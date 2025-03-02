@@ -7,6 +7,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionIt
 		.gitignore = .gitignore
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TarsEngine", "TarsEngine\TarsEngine.csproj", "{B0A629F0-DC3A-4A88-AF1D-CDF891784B22}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngineFSharp", "TarsEngineFSharp\TarsEngineFSharp.fsproj", "{8E6EE825-BBBD-476D-9613-96F685A7F2A6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -17,5 +21,13 @@ Global
 		{4B437562-F207-4CB2-833B-F852E5E08DCA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4B437562-F207-4CB2-833B-F852E5E08DCA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4B437562-F207-4CB2-833B-F852E5E08DCA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B0A629F0-DC3A-4A88-AF1D-CDF891784B22}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B0A629F0-DC3A-4A88-AF1D-CDF891784B22}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B0A629F0-DC3A-4A88-AF1D-CDF891784B22}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B0A629F0-DC3A-4A88-AF1D-CDF891784B22}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8E6EE825-BBBD-476D-9613-96F685A7F2A6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8E6EE825-BBBD-476D-9613-96F685A7F2A6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8E6EE825-BBBD-476D-9613-96F685A7F2A6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8E6EE825-BBBD-476D-9613-96F685A7F2A6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

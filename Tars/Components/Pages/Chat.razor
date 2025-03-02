@@ -1,0 +1,89 @@
+@page "/chat"
+@using Microsoft.FSharp.Control
+@using Microsoft.FSharp.Core
+@using TarsEngineFSharp
+@inject ISnackbar Snackbar
+
+<PageTitle>TARS Chat</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-16">
+    <MudPaper Class="pa-4" Style="height: calc(100vh - 200px); display: flex; flex-direction: column;">
+        <MudText Typo="Typo.h5" Class="mb-4">Chat with TARS</MudText>
+
+        <MudPaper Class="flex-grow-1 overflow-auto pa-4" Elevation="0">
+            @foreach (var message in _messages)
+            {
+                <MudPaper Class="@($"pa-3 mb-2 {(message.IsUser ? "ml-auto bg-primary" : "mr-auto")}")"
+                         Style="@($"max-width: 80%; {(message.IsUser ? "color: white" : "")}")"
+                         Elevation="2">
+                    <MudText>@message.Text</MudText>
+                    @if (!message.IsUser && !string.IsNullOrEmpty(message.Source))
+                    {
+                        <MudText Typo="Typo.caption" Style="opacity: 0.7">Source: @message.Source</MudText>
+                    }
+                </MudPaper>
+            }
+        </MudPaper>
+
+        <MudPaper Class="d-flex align-center mt-4" Elevation="0">
+            <MudTextField @bind-Value="_currentMessage"
+                         Label="Type your message"
+                         Variant="Variant.Outlined"
+                         Class="flex-grow-1 mr-2"
+                         @onkeyup="@(async (e) => { if (e.Key == "Enter") await SendMessage(); })" />
+            <MudButton Color="Color.Primary"
+                      Variant="Variant.Filled"
+                      OnClick="SendMessage"
+                      Disabled="@(_isProcessing || string.IsNullOrWhiteSpace(_currentMessage))">
+                Send
+            </MudButton>
+        </MudPaper>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private record ChatMessage(string Text, bool IsUser, string? Source = null);
+
+    private readonly List<ChatMessage> _messages = new();
+    private string _currentMessage = "";
+    private bool _isProcessing;
+    private readonly ChatBotService.ChatBot _chatBot = ChatBotService.createDefaultChatBot();
+
+    protected override void OnInitialized()
+    {
+        _messages.Add(new ChatMessage("Hello! I can help you check the weather. Try asking about the temperature in any city!", false, "System"));
+    }
+
+    private async Task SendMessage()
+    {
+        if (string.IsNullOrWhiteSpace(_currentMessage) || _isProcessing)
+            return;
+
+        var userMessage = _currentMessage;
+        _messages.Add(new ChatMessage(userMessage, true));
+        _currentMessage = "";
+        _isProcessing = true;
+
+        try
+        {
+            var response = await FSharpAsync.StartAsTask(
+                _chatBot.ProcessMessage(userMessage),
+                FSharpOption<TaskCreationOptions>.None,
+                FSharpOption<CancellationToken>.Some(CancellationToken.None)
+            );
+
+            _messages.Add(new ChatMessage(response.Text, false, response.Source));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Error processing message: " + ex.Message, Severity.Error);
+            _messages.Add(new ChatMessage("I'm sorry, I encountered an error processing your message.", false));
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
+
+        StateHasChanged();
+    }
+}

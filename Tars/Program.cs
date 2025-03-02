@@ -1,6 +1,8 @@
 using Tars.Components;
 using MudBlazor.Services;
 using Blazored.LocalStorage;
+using Tars;
+using TarsEngine.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,6 +12,7 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddMudServices();
 builder.Services.AddBlazoredLocalStorage();
+builder.Services.AddScoped<ITarsEngineService, TarsEngineServiceService>();
 
 var app = builder.Build();
 
