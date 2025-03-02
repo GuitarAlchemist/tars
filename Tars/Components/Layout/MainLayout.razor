@@ -1,0 +1,92 @@
+﻿@inherits LayoutComponentBase
+@using MudBlazor.Utilities
+@using Blazored.LocalStorage
+@inject ILocalStorageService LocalStorage
+
+<MudThemeProvider @bind-IsDarkMode="_isDarkMode" Theme="_theme"/>
+<MudDialogProvider/>
+<MudSnackbarProvider/>
+
+<MudLayout>
+    <MudAppBar Elevation="1">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
+        <MudText Typo="Typo.h6" Class="ml-4">Tars</MudText>
+        <MudSpacer />
+        <MudIconButton Icon="@Icons.Material.Filled.Brightness4" Color="Color.Inherit" OnClick="@((e) => ToggleDarkMode())"/>
+    </MudAppBar>
+    <MudDrawer @bind-Open="_drawerOpen" 
+               Elevation="1"
+               ClipMode="DrawerClipMode.Always" 
+               Variant="@DrawerVariant.Mini" 
+               OpenMiniOnHover="true"
+               MiniWidth="80px">
+        <NavMenu />
+    </MudDrawer>
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.Large" Class="my-4 pt-4">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    private bool _drawerOpen = true;
+    private bool _isDarkMode = true;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var darkMode = await LocalStorage.GetItemAsync<bool?>("darkMode");
+            if (darkMode.HasValue && darkMode.Value != _isDarkMode)
+            {
+                _isDarkMode = darkMode.Value;
+                StateHasChanged();
+            }
+        }
+    }
+
+    private void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+
+    private async Task ToggleDarkMode()
+    {
+        _isDarkMode = !_isDarkMode;
+        await LocalStorage.SetItemAsync("darkMode", _isDarkMode);
+    }
+
+    private readonly MudTheme _theme = new()
+    {
+        PaletteLight = new PaletteLight()
+        {
+            Primary = "#2196f3",      // Material Blue 500
+            Secondary = Colors.DeepPurple.Accent2,
+            AppbarBackground = "#1976d2",  // Material Blue 700
+            Background = Colors.Gray.Lighten5,
+            DrawerBackground = "#FFF",
+            DrawerText = "rgba(0,0,0, 0.7)",
+            Success = "#007E33"
+        },
+        PaletteDark = new PaletteDark()
+        {
+            Primary = "#90caf9",      // Material Blue 200
+            Secondary = Colors.DeepPurple.Accent1,
+            Background = "#1A1A1A",
+            AppbarBackground = "#0d47a1",  // Material Blue 900
+            DrawerBackground = "#1A1A1A",
+            DrawerText = "rgba(255,255,255, 0.7)",
+            Surface = "#1A1A1A",
+            TextPrimary = "rgba(255,255,255, 0.70)",
+            TextSecondary = "rgba(255,255,255, 0.50)"
+        },
+        Typography = new Typography()
+        {
+            Default = new DefaultTypography()
+            {
+                FontFamily = new[] { "Roboto", "Helvetica", "Arial", "sans-serif" }
+            }
+        }
+    };
+}
