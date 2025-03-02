@@ -1,0 +1,53 @@
+bin/
+obj/
+/packages/
+riderModule.iml
+/_ReSharper.Caches/
+.idea/
+
+## .NET Core
+*.user
+*.userosscache
+*.suo
+*.userprefs
+.vs/
+.vscode/
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+build/
+bld/
+[Oo]ut/
+msbuild.log
+msbuild.err
+msbuild.wrn
+
+## Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+.history/
+
+## Visual Studio
+*.sln.docstates
+
+## Rider
+.idea/
+*.sln.iml
+*.DotSettings.user
+
+## Project-specific files
+wwwroot/lib/
+*.min.css
+*.min.js
+*.map
+
+## OS-specific files
+.DS_Store
+Thumbs.db
