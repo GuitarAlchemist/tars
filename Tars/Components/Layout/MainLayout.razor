@@ -3,7 +3,7 @@
 @using Blazored.LocalStorage
 @inject ILocalStorageService LocalStorage
 
-<MudThemeProvider @bind-IsDarkMode="_isDarkMode" Theme="_theme"/>
+<MudThemeProvider @bind-IsDarkMode="_isDarkMode"/>
 <MudDialogProvider/>
 <MudSnackbarProvider/>
 
@@ -56,37 +56,4 @@
         _isDarkMode = !_isDarkMode;
         await LocalStorage.SetItemAsync("darkMode", _isDarkMode);
     }
-
-    private readonly MudTheme _theme = new()
-    {
-        PaletteLight = new PaletteLight()
-        {
-            Primary = "#2196f3",      // Material Blue 500
-            Secondary = Colors.DeepPurple.Accent2,
-            AppbarBackground = "#1976d2",  // Material Blue 700
-            Background = Colors.Gray.Lighten5,
-            DrawerBackground = "#FFF",
-            DrawerText = "rgba(0,0,0, 0.7)",
-            Success = "#007E33"
-        },
-        PaletteDark = new PaletteDark()
-        {
-            Primary = "#90caf9",      // Material Blue 200
-            Secondary = Colors.DeepPurple.Accent1,
-            Background = "#1A1A1A",
-            AppbarBackground = "#0d47a1",  // Material Blue 900
-            DrawerBackground = "#1A1A1A",
-            DrawerText = "rgba(255,255,255, 0.7)",
-            Surface = "#1A1A1A",
-            TextPrimary = "rgba(255,255,255, 0.70)",
-            TextSecondary = "rgba(255,255,255, 0.50)"
-        },
-        Typography = new Typography()
-        {
-            Default = new DefaultTypography()
-            {
-                FontFamily = new[] { "Roboto", "Helvetica", "Arial", "sans-serif" }
-            }
-        }
-    };
 }

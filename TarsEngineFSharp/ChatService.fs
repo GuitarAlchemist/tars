@@ -16,6 +16,11 @@ module ChatService =
         LastUpdated: DateTime
     }
 
+    type ChatResponse = {
+        Text: string
+        Source: string
+    }
+
     let createNewSession() =
         {
             Id = Guid.NewGuid().ToString()
@@ -40,3 +45,11 @@ module ChatService =
 
     let getMessageHistory (session: ChatSession) =
         session.Messages
+
+    let processMessage (message: string) = async {
+        // TODO: Add actual message processing logic here
+        return {
+            Text = $"You said: {message}"
+            Source = "ChatService"
+        }
+    }

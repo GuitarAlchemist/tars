@@ -1,89 +1,122 @@
 @page "/chat"
-@using Microsoft.FSharp.Control
-@using Microsoft.FSharp.Core
-@using TarsEngineFSharp
-@inject ISnackbar Snackbar
+@using TarsEngine.Services
+@using Microsoft.Extensions.Logging
+@inject ILogger<Chat> Logger
+@inject ChatBotService ChatService
 
-<PageTitle>TARS Chat</PageTitle>
+<PageTitle>Chat with TARS</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-16">
-    <MudPaper Class="pa-4" Style="height: calc(100vh - 200px); display: flex; flex-direction: column;">
-        <MudText Typo="Typo.h5" Class="mb-4">Chat with TARS</MudText>
+<MudPaper Class="pa-4 chat-container">
+    <MudText Typo="Typo.h4" Class="mb-4">Chat with TARS</MudText>
 
-        <MudPaper Class="flex-grow-1 overflow-auto pa-4" Elevation="0">
-            @foreach (var message in _messages)
-            {
-                <MudPaper Class="@($"pa-3 mb-2 {(message.IsUser ? "ml-auto bg-primary" : "mr-auto")}")"
-                         Style="@($"max-width: 80%; {(message.IsUser ? "color: white" : "")}")"
-                         Elevation="2">
-                    <MudText>@message.Text</MudText>
-                    @if (!message.IsUser && !string.IsNullOrEmpty(message.Source))
-                    {
-                        <MudText Typo="Typo.caption" Style="opacity: 0.7">Source: @message.Source</MudText>
-                    }
-                </MudPaper>
-            }
-        </MudPaper>
+    <div class="chat-messages">
+        @foreach (var message in _messages)
+        {
+            <MudPaper Class="@($"message-bubble mb-2 {(message.IsUser ? "user-message" : "tars-message")}")">
+                <MudText>@message.Text</MudText>
+            </MudPaper>
+        }
+    </div>
 
-        <MudPaper Class="d-flex align-center mt-4" Elevation="0">
-            <MudTextField @bind-Value="_currentMessage"
-                         Label="Type your message"
-                         Variant="Variant.Outlined"
-                         Class="flex-grow-1 mr-2"
-                         @onkeyup="@(async (e) => { if (e.Key == "Enter") await SendMessage(); })" />
-            <MudButton Color="Color.Primary"
-                      Variant="Variant.Filled"
-                      OnClick="SendMessage"
-                      Disabled="@(_isProcessing || string.IsNullOrWhiteSpace(_currentMessage))">
-                Send
-            </MudButton>
-        </MudPaper>
+    <MudPaper Class="d-flex align-center chat-input">
+        <MudTextField T="string"
+                     @bind-Value="_currentMessage"
+                     Placeholder="Type your message..."
+                     Class="flex-grow-1 mr-2"
+                     Immediate="true"
+                     @onkeydown="@HandleKeyPress"/>
+        <MudButton Color="Color.Primary"
+                  OnClick="SendMessage"
+                  StartIcon="@Icons.Material.Filled.Send">
+            Send
+        </MudButton>
     </MudPaper>
-</MudContainer>
+</MudPaper>
+
+<style>
+    .chat-container {
+        height: calc(100vh - 100px);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .chat-messages {
+        flex-grow: 1;
+        overflow-y: auto;
+        margin-bottom: 16px;
+        padding: 8px;
+    }
+
+    .message-bubble {
+        padding: 8px 16px;
+        margin: 4px;
+        max-width: 80%;
+        border-radius: 16px;
+    }
+
+    .user-message {
+        margin-left: auto;
+        background-color: var(--mud-palette-primary);
+        color: var(--mud-palette-primary-text);
+    }
+
+    .tars-message {
+        margin-right: auto;
+        background-color: var(--mud-palette-surface);
+    }
+
+    .chat-input {
+        padding: 8px;
+    }
+</style>
 
 @code {
-    private record ChatMessage(string Text, bool IsUser, string? Source = null);
-
-    private readonly List<ChatMessage> _messages = new();
     private string _currentMessage = "";
-    private bool _isProcessing;
-    private readonly ChatBotService.ChatBot _chatBot = ChatBotService.createDefaultChatBot();
+    private List<(string Text, bool IsUser)> _messages = new();
 
     protected override void OnInitialized()
     {
-        _messages.Add(new ChatMessage("Hello! I can help you check the weather. Try asking about the temperature in any city!", false, "System"));
+        Logger.LogInformation("Chat component initialized");
     }
 
     private async Task SendMessage()
     {
-        if (string.IsNullOrWhiteSpace(_currentMessage) || _isProcessing)
-            return;
+        Logger.LogInformation("Entering SendMessage");
 
-        var userMessage = _currentMessage;
-        _messages.Add(new ChatMessage(userMessage, true));
-        _currentMessage = "";
-        _isProcessing = true;
+        if (string.IsNullOrWhiteSpace(_currentMessage))
+        {
+            Logger.LogInformation("Empty message, returning");
+            return;
+        }
 
         try
         {
-            var response = await FSharpAsync.StartAsTask(
-                _chatBot.ProcessMessage(userMessage),
-                FSharpOption<TaskCreationOptions>.None,
-                FSharpOption<CancellationToken>.Some(CancellationToken.None)
-            );
+            var userMessage = _currentMessage;
+            Logger.LogInformation("Processing message: {Message}", userMessage);
 
-            _messages.Add(new ChatMessage(response.Text, false, response.Source));
+            _messages.Add((userMessage, true));
+            _currentMessage = "";
+
+            var response = await ChatService.GetResponse(userMessage);
+            _messages.Add((response.Text, false));
+
+            Logger.LogInformation("Response received: {Response}", response.Text);
         }
         catch (Exception ex)
         {
-            Snackbar.Add("Error processing message: " + ex.Message, Severity.Error);
-            _messages.Add(new ChatMessage("I'm sorry, I encountered an error processing your message.", false));
-        }
-        finally
-        {
-            _isProcessing = false;
+            Logger.LogError(ex, "Error in SendMessage");
+            _messages.Add(("Sorry, I encountered an error processing your message.", false));
         }
 
         StateHasChanged();
+    }
+
+    private async Task HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_currentMessage))
+        {
+            Logger.LogInformation("Enter key pressed");
+            await SendMessage();
+        }
     }
 }

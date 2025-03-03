@@ -1,7 +1,6 @@
-module TarsEngineFSharp.ChatBotService
+namespace TarsEngineFSharp
 
 open WeatherService
-open TarsEngineFSharp.LlmService
 
 type ChatResponse = {
     Text: string
@@ -23,22 +22,30 @@ type ChatBot() =
                         Type = "string"
                     }
                 ]
-                Handler = fun args -> async {
-                    let location = args.["location"].ToString() |> Some
-                    let! weather = WeatherService.fetchWeatherData location None
-                    return sprintf "In %s, the temperature is %.1f°C and the condition is %s"
-                            weather.Location weather.Temperature weather.Condition
-                }
+                Handler = fun args ->
+                    async {
+                        let location = args.["location"].ToString()
+                        let! weather = WeatherService.fetchWeatherData location
+                        return sprintf "In %s, the temperature is %.1f°C and the condition is %s"
+                                weather.Location weather.Temperature weather.Condition
+                    }
             }
         ]
         
         // Let LLM decide which function to call based on the message
         let! result = LlmService.processWithFunctions message functions
-        
-        return {
-            Text = result
-            Source = "LLM Service"
-        }
+        return { Text = result; Source = "ChatBot" }
     }
 
-let createDefaultChatBot() = ChatBot()
+type IChatBotService =
+    abstract member GetResponse : string -> System.Threading.Tasks.Task<ChatResponse>
+
+type ChatBotService() =
+    let bot = ChatBot()
+    
+    interface IChatBotService with
+        member this.GetResponse(message: string) =
+            bot.ProcessMessage(message)
+            |> Async.StartAsTask
+
+let createChatBotService() = ChatBotService() :> IChatBotService

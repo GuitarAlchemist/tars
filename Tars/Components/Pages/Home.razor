@@ -61,7 +61,7 @@
     private bool _isRunning;
     private float _currentProgress;
     private string _currentActivity = "";
-    private List<(DateTime Time, string Capability, float Confidence)> _improvements = new();
+    private readonly List<(DateTime Time, string Capability, float Confidence)> _improvements = [];
     private CancellationTokenSource? _cancellationTokenSource;
 
     private async Task ToggleImprovement()

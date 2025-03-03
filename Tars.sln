@@ -5,6 +5,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionItems", "{58D07B0A-A5C8-49A4-ACD9-E226ABCEF07D}"
 	ProjectSection(SolutionItems) = preProject
 		.gitignore = .gitignore
+		Directory.Build.props = Directory.Build.props
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TarsEngine", "TarsEngine\TarsEngine.csproj", "{B0A629F0-DC3A-4A88-AF1D-CDF891784B22}"

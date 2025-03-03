@@ -1,0 +1,50 @@
+@page "/test"
+
+<PageTitle>Interactivity Test</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudText Typo="Typo.h4" Class="mb-4">Interactivity Test Page</MudText>
+
+    <MudText Class="mb-4">
+        Current count: @_count
+    </MudText>
+
+    <MudStack Row="true" Spacing="2">
+        <MudButton Variant="Variant.Filled" 
+                   Color="Color.Primary"
+                   OnClick="IncrementCount">
+            Increment Counter
+        </MudButton>
+
+        <MudButton Variant="Variant.Filled" 
+                   Color="@(_toggleColor ? Color.Success : Color.Error)"
+                   OnClick="ToggleColor">
+            Toggle Color
+        </MudButton>
+    </MudStack>
+
+    <MudTextField T="string"
+                  @bind-Value="_inputText"
+                  Label="Type something"
+                  Class="mt-4"/>
+
+    <MudText Class="mt-4">
+        You typed: @_inputText
+    </MudText>
+</MudPaper>
+
+@code {
+    private int _count = 0;
+    private bool _toggleColor = false;
+    private string _inputText = "";
+
+    private void IncrementCount()
+    {
+        _count++;
+    }
+
+    private void ToggleColor()
+    {
+        _toggleColor = !_toggleColor;
+    }
+}
