@@ -8,6 +8,8 @@ This project is an AI chat application that demonstrates how to chat with custom
 # Configure the AI Model Provider
 To use models hosted by GitHub Models, you will need to create a GitHub personal access token. The token should not have any scopes or permissions. See [Managing your personal access tokens](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens).
 
+![img_2.png](img_2.png)
+
 From the command line, configure your token for this project using .NET User Secrets by running the following commands:
 
 ```sh
