@@ -1,0 +1,9 @@
+<Project>
+    <PropertyGroup>
+        <FSharpCoreVersion>9.0.201</FSharpCoreVersion>
+    </PropertyGroup>
+    
+    <ItemGroup>
+        <PackageReference Update="FSharp.Core" Version="$(FSharpCoreVersion)" />
+    </ItemGroup>
+</Project>

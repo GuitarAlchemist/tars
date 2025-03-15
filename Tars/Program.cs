@@ -1,52 +1,43 @@
-using Tars.Components;
-using MudBlazor.Services;
 using Blazored.LocalStorage;
-using TarsEngine.Services;
-using NLog;
+using MudBlazor.Services;
 using NLog.Web;
+using Tars.Components;
+using TarsEngine.Services;
 
-var logger = LogManager.Setup()
-    .LoadConfigurationFromAppSettings()
-    .GetCurrentClassLogger();
-try
+var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container
+builder.Services.AddRazorComponents()
+    .AddInteractiveServerComponents();
+
+builder.Services.AddMudServices();
+builder.Services.AddBlazoredLocalStorage();
+
+// Add logging
+builder.Logging.ClearProviders();
+builder.Host.UseNLog();
+
+// Add custom services
+builder.Services.AddScoped<RivaWrapperService>();
+builder.Services.AddScoped<WebSpeechService>();
+builder.Services.AddScoped<SpeechServiceFactory>();
+builder.Services.AddScoped<ChatBotService>();
+builder.Services.AddScoped<ITarsEngineService, TarsEngineServiceService>();
+
+var app = builder.Build();
+
+// Configure the HTTP request pipeline
+if (!app.Environment.IsDevelopment())
 {
-    var builder = WebApplication.CreateBuilder(args);
-
-    builder.Services.AddRazorComponents()
-        .AddInteractiveServerComponents();
-
-    builder.Services.AddMudServices();
-    builder.Services.AddBlazoredLocalStorage();
-    builder.Services.AddScoped<ITarsEngineService, TarsEngineServiceService>();
-    builder.Services.AddScoped<ChatBotService>();
-
-    builder.Logging.ClearProviders();
-    builder.Logging.AddConsole();
-    builder.Logging.AddDebug();
-
-    var app = builder.Build();
-
-    if (!app.Environment.IsDevelopment())
-    {
-        app.UseExceptionHandler("/Error", createScopeForErrors: true);
-        app.UseHsts();
-    }
-
-    app.UseHttpsRedirection();
-    app.UseStaticFiles();
-    app.UseAntiforgery();
-
-    app.MapRazorComponents<App>()
-        .AddInteractiveServerRenderMode();
-
-    app.Run();
+    app.UseExceptionHandler("/Error");
+    app.UseHsts();
 }
-catch (Exception ex)
-{
-    logger.Error(ex, "Stopped program because of exception");
-    throw;
-}
-finally
-{
-    LogManager.Shutdown();
-}
+
+app.UseHttpsRedirection();
+app.UseStaticFiles();
+app.UseAntiforgery();
+
+app.MapRazorComponents<App>()
+    .AddInteractiveServerRenderMode();
+
+app.Run();

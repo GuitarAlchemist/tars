@@ -3,59 +3,91 @@
 @inject ITarsEngineService EngineService
 @inject ISnackbar Snackbar
 
-<PageTitle>TARS Control Panel</PageTitle>
-
-<MudPaper Class="pa-4">
-    <MudText Typo="Typo.h4" Class="mb-4">TARS Self-Improvement Control</MudText>
-    
-    <MudStack Row="true" Spacing="2">
-        <MudButton Variant="Variant.Filled" 
-                   Color="@(_isRunning ? Color.Error : Color.Success)"
-                   StartIcon="@(_isRunning ? Icons.Material.Filled.Stop : Icons.Material.Filled.PlayArrow)"
-                   OnClick="ToggleImprovement">
-            @(_isRunning ? "Stop" : "Start") Self-Improvement
-        </MudButton>
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudPaper Class="pa-4">
+        <MudText Typo="Typo.h4" Class="mb-4">TARS Self-Improvement Control</MudText>
         
-        <MudButton Variant="Variant.Outlined"
-                   Color="Color.Primary"
-                   StartIcon="@Icons.Material.Filled.Refresh"
-                   OnClick="ResumeImprovement"
-                   Disabled="@_isRunning">
-            Resume Last Session
-        </MudButton>
-    </MudStack>
+        <MudGrid>
+            <MudItem xs="12" sm="6">
+                <MudButton Variant="Variant.Filled" 
+                          Color="@(_isRunning ? Color.Error : Color.Primary)"
+                          OnClick="ToggleImprovement" 
+                          Class="mb-4">
+                    @(_isRunning ? "Stop Improvement" : "Start Improvement")
+                </MudButton>
+                
+                <MudButton Variant="Variant.Outlined" 
+                          Color="Color.Secondary"
+                          OnClick="ResumeImprovement" 
+                          Disabled="@_isRunning"
+                          Class="ml-2 mb-4">
+                    Resume from Checkpoint
+                </MudButton>
+            </MudItem>
+        </MudGrid>
 
-    @if (_isRunning)
-    {
-        <MudPaper Class="mt-4 pa-4" Elevation="0">
-            <MudText Typo="Typo.h6" Color="Color.Primary">Learning Progress</MudText>
+        @if (_isRunning)
+        {
             <MudProgressLinear Color="Color.Primary" 
-                             Value="@_currentProgress" 
-                             Class="my-2" />
-            <MudText Typo="Typo.body2">@_currentActivity</MudText>
-            
-            <MudSimpleTable Dense="true" Hover="true" Class="mt-4">
+                              Value="@_currentProgress" 
+                              Class="my-4" />
+            <MudText Class="mb-4">@_currentActivity</MudText>
+        }
+
+        <MudPaper Class="mt-4" Style="max-height: 400px; overflow-y: auto;">
+            <MudText Typo="Typo.h6" Class="mb-2">Recent Improvements</MudText>
+            <MudSimpleTable Dense="true" Hover="true">
                 <thead>
                     <tr>
-                        <th>Time</th>
-                        <th>New Capability</th>
+                        <th>Time (UTC)</th>
+                        <th>Capability</th>
                         <th>Confidence</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var improvement in _improvements)
+                    @foreach (var (time, capability, confidence) in _improvements)
                     {
                         <tr>
-                            <td>@improvement.Time.ToLocalTime()</td>
-                            <td>@improvement.Capability</td>
-                            <td>@($"{improvement.Confidence:P1}")</td>
+                            <td>@time.ToString("HH:mm:ss")</td>
+                            <td>@capability</td>
+                            <td>@(confidence.ToString("P1"))</td>
                         </tr>
                     }
                 </tbody>
             </MudSimpleTable>
         </MudPaper>
-    }
-</MudPaper>
+
+        <MudExpansionPanels Class="mt-4">
+            <MudExpansionPanel Text="Upload Work Items">
+                <MudFileUpload T="IBrowserFile" FilesChanged="OnFilesChanged">
+                    <UploadTemplate>
+                        <MudButton HtmlTag="label"
+                                   Variant="Variant.Filled"
+                                   Color="Color.Secondary"
+                                   StartIcon="@Icons.Material.Filled.CloudUpload"
+                                   for="files">
+                            Upload Stories/Epics
+                        </MudButton>
+                    </UploadTemplate>
+                </MudFileUpload>
+                
+                <MudTextField @bind-Value="@_promptText"
+                            Label="Or enter prompt directly"
+                            Variant="Variant.Outlined"
+                            Lines="3"
+                            Class="mt-4" />
+                            
+                <MudButton Color="Color.Primary"
+                          Variant="Variant.Filled"
+                          OnClick="ProcessPrompt"
+                          Disabled="@(string.IsNullOrEmpty(_promptText))"
+                          Class="mt-2">
+                    Process Prompt
+                </MudButton>
+            </MudExpansionPanel>
+        </MudExpansionPanels>
+    </MudPaper>
+</MudContainer>
 
 @code {
     private bool _isRunning;
@@ -63,6 +95,7 @@
     private string _currentActivity = "";
     private readonly List<(DateTime Time, string Capability, float Confidence)> _improvements = [];
     private CancellationTokenSource? _cancellationTokenSource;
+    private string _promptText = "";
 
     private async Task ToggleImprovement()
     {
@@ -125,6 +158,37 @@
         else
         {
             Snackbar.Add("No checkpoint found", Severity.Warning);
+        }
+    }
+
+    private async Task OnFilesChanged(IBrowserFile file)
+    {
+        try
+        {
+            using var stream = file.OpenReadStream();
+            var content = await EngineService.ProcessUploadedFile(stream, file.Name);
+            _promptText = content;
+            Snackbar.Add("File processed successfully", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error processing file: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task ProcessPrompt()
+    {
+        if (string.IsNullOrEmpty(_promptText)) return;
+
+        try
+        {
+            await EngineService.ProcessPrompt(_promptText);
+            Snackbar.Add("Prompt processed successfully", Severity.Success);
+            _promptText = "";
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error processing prompt: {ex.Message}", Severity.Error);
         }
     }
 }

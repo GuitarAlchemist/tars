@@ -43,14 +43,14 @@ module RivaService =
             { Type = "LOCATION"; Value = "New York"; Position = (10, 18) }
         ]
 
-        member _.ProcessQuery(text: string) = async {
+        member _.ProcessQuery(audioData: byte array) = async {
             // Simulate processing delay
             do! Async.Sleep 100
             
             return {
                 Intent = Some defaultIntent
                 Entities = mockEntities
-                OriginalText = text
+                OriginalText = "Simulated transcription from audio data"
             }
         }
 

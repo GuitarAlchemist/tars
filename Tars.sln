@@ -6,11 +6,19 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionIt
 	ProjectSection(SolutionItems) = preProject
 		.gitignore = .gitignore
 		Directory.Build.props = Directory.Build.props
+		docs\Exploration.md = docs\Exploration.md
+		docs\Exploration.txt = docs\Exploration.txt
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TarsEngine", "TarsEngine\TarsEngine.csproj", "{B0A629F0-DC3A-4A88-AF1D-CDF891784B22}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngineFSharp", "TarsEngineFSharp\TarsEngineFSharp.fsproj", "{8E6EE825-BBBD-476D-9613-96F685A7F2A6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TarsEngine.Interfaces", "TarsEngine.Interfaces\TarsEngine.Interfaces.csproj", "{0FE79EFD-D007-4DA6-871F-7D6F915A945C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Experiments", "Experiments", "{40B2EE05-DDC5-4583-95D5-346AFFD9DF5D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChatbotExample1", "Experiments\ChatbotExample1\ChatbotExample1.csproj", "{44541258-8F01-4A42-B2AD-985658559358}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -30,5 +38,16 @@ Global
 		{8E6EE825-BBBD-476D-9613-96F685A7F2A6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8E6EE825-BBBD-476D-9613-96F685A7F2A6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8E6EE825-BBBD-476D-9613-96F685A7F2A6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0FE79EFD-D007-4DA6-871F-7D6F915A945C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0FE79EFD-D007-4DA6-871F-7D6F915A945C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0FE79EFD-D007-4DA6-871F-7D6F915A945C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0FE79EFD-D007-4DA6-871F-7D6F915A945C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{44541258-8F01-4A42-B2AD-985658559358}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{44541258-8F01-4A42-B2AD-985658559358}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{44541258-8F01-4A42-B2AD-985658559358}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{44541258-8F01-4A42-B2AD-985658559358}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{44541258-8F01-4A42-B2AD-985658559358} = {40B2EE05-DDC5-4583-95D5-346AFFD9DF5D}
 	EndGlobalSection
 EndGlobal

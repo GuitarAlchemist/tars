@@ -3,6 +3,9 @@
 @using Microsoft.Extensions.Logging
 @inject ILogger<Chat> Logger
 @inject ChatBotService ChatService
+@inject RivaWrapperService RivaService
+@inject IJSRuntime JSRuntime
+@inject ISnackbar Snackbar
 
 <PageTitle>Chat with TARS</PageTitle>
 
@@ -14,11 +17,22 @@
         {
             <MudPaper Class="@($"message-bubble mb-2 {(message.IsUser ? "user-message" : "tars-message")}")">
                 <MudText>@message.Text</MudText>
+                @if (!message.IsUser)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.VolumeUp"
+                                 Size="Size.Small"
+                                 OnClick="@(() => PlayTTSAsync(message.Text))"
+                                 Class="ml-2"/>
+                }
             </MudPaper>
         }
     </div>
 
     <MudPaper Class="d-flex align-center chat-input">
+        <MudIconButton Icon="@(_isRecording ? Icons.Material.Filled.MicOff : Icons.Material.Filled.Mic)"
+                      Color="@(_isRecording ? Color.Error : Color.Primary)"
+                      OnClick="ToggleRecording"
+                      Class="mr-2"/>
         <MudTextField T="string"
                      @bind-Value="_currentMessage"
                      Placeholder="Type your message..."
@@ -33,50 +47,71 @@
     </MudPaper>
 </MudPaper>
 
-<style>
-    .chat-container {
-        height: calc(100vh - 100px);
-        display: flex;
-        flex-direction: column;
-    }
-
-    .chat-messages {
-        flex-grow: 1;
-        overflow-y: auto;
-        margin-bottom: 16px;
-        padding: 8px;
-    }
-
-    .message-bubble {
-        padding: 8px 16px;
-        margin: 4px;
-        max-width: 80%;
-        border-radius: 16px;
-    }
-
-    .user-message {
-        margin-left: auto;
-        background-color: var(--mud-palette-primary);
-        color: var(--mud-palette-primary-text);
-    }
-
-    .tars-message {
-        margin-right: auto;
-        background-color: var(--mud-palette-surface);
-    }
-
-    .chat-input {
-        padding: 8px;
-    }
-</style>
-
 @code {
     private string _currentMessage = "";
     private List<(string Text, bool IsUser)> _messages = new();
+    private bool _isRecording = false;
 
-    protected override void OnInitialized()
+    private async Task ToggleRecording()
     {
-        Logger.LogInformation("Chat component initialized");
+        if (_isRecording)
+        {
+            await StopRecordingAsync();
+        }
+        else
+        {
+            await StartRecordingAsync();
+        }
+        _isRecording = !_isRecording;
+    }
+
+    private async Task PlayTTSAsync(string text)
+    {
+        try
+        {
+            var audioData = await RivaService.SynthesizeSpeechAsync(text);
+            if (audioData == null || audioData.Length == 0)
+            {
+                Logger.LogWarning("No audio data received from TTS service");
+                return;
+            }
+
+            Logger.LogInformation("Received audio data of length: {Length} bytes", audioData.Length);
+            await JSRuntime.InvokeVoidAsync("audioPlayer.play", audioData);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error playing TTS audio");
+            Snackbar.Add("Failed to play audio", Severity.Error);
+        }
+    }
+
+    private async Task StartRecordingAsync()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("audioRecorder.start", new { sampleRate = 16000, channels = 1 });
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error starting recording");
+            // Handle error appropriately
+        }
+    }
+
+    private async Task StopRecordingAsync()
+    {
+        try
+        {
+            var audioData = await JSRuntime.InvokeAsync<byte[]>("audioRecorder.stop");
+            var transcription = await RivaService.TranscribeAudioAsync(audioData);
+            // Handle transcription result
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error stopping recording");
+            // Handle error appropriately
+        }
     }
 
     private async Task SendMessage()
@@ -113,9 +148,8 @@
 
     private async Task HandleKeyPress(KeyboardEventArgs e)
     {
-        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_currentMessage))
+        if (e.Key == "Enter" && !e.ShiftKey)
         {
-            Logger.LogInformation("Enter key pressed");
             await SendMessage();
         }
     }

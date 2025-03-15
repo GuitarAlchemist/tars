@@ -1,42 +1,121 @@
 @page "/test"
+@using TarsEngine.Services
+@inject RivaWrapperService RivaService
+@inject ILogger<InteractivityTest> Logger
+@inject IJSRuntime JSRuntime
+@inject ISnackbar Snackbar
+@inject SpeechServiceFactory SpeechFactory
 
 <PageTitle>Interactivity Test</PageTitle>
 
 <MudPaper Class="pa-4">
     <MudText Typo="Typo.h4" Class="mb-4">Interactivity Test Page</MudText>
 
-    <MudText Class="mb-4">
-        Current count: @_count
-    </MudText>
+    <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
+        <MudTabPanel Text="Basic Controls" Icon="@Icons.Material.Filled.ToggleOn">
+            <MudText Class="mb-4">
+                Current count: @_count
+            </MudText>
 
-    <MudStack Row="true" Spacing="2">
-        <MudButton Variant="Variant.Filled" 
-                   Color="Color.Primary"
-                   OnClick="IncrementCount">
-            Increment Counter
-        </MudButton>
+            <MudStack Row="true" Spacing="2">
+                <MudButton Variant="Variant.Filled" 
+                          Color="Color.Primary"
+                          OnClick="IncrementCount">
+                    Increment Counter
+                </MudButton>
 
-        <MudButton Variant="Variant.Filled" 
-                   Color="@(_toggleColor ? Color.Success : Color.Error)"
-                   OnClick="ToggleColor">
-            Toggle Color
-        </MudButton>
-    </MudStack>
+                <MudButton Variant="Variant.Filled" 
+                          Color="@(_toggleColor ? Color.Success : Color.Error)"
+                          OnClick="ToggleColor">
+                    Toggle Color
+                </MudButton>
+            </MudStack>
+        </MudTabPanel>
 
-    <MudTextField T="string"
-                  @bind-Value="_inputText"
-                  Label="Type something"
-                  Class="mt-4"/>
+        <MudTabPanel Text="Speech Synthesis" Icon="@Icons.Material.Filled.RecordVoiceOver">
+            <MudText Typo="Typo.h6" Class="mb-4">Text-to-Speech Test</MudText>
+            
+            <MudTextField T="string"
+                         @bind-Value="_textToSpeak"
+                         Label="Text to speak"
+                         Variant="Variant.Outlined"
+                         Lines="3"
+                         Class="mb-4"/>
 
-    <MudText Class="mt-4">
-        You typed: @_inputText
-    </MudText>
+            <MudSelect T="string" Label="Speech Service" 
+                       @bind-Value="_selectedSpeechService" 
+                       Class="mb-4">
+                @foreach (var service in SpeechFactory.AvailableServices)
+                {
+                    <MudSelectItem Value="@service">@service</MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       OnClick="SpeakText"
+                       Disabled="@(string.IsNullOrEmpty(_textToSpeak) || _isSpeaking)"
+                       StartIcon="@Icons.Material.Filled.RecordVoiceOver">
+                @(_isSpeaking ? "Speaking..." : "Speak Text")
+            </MudButton>
+        </MudTabPanel>
+
+        <MudTabPanel Text="Text Input" Icon="@Icons.Material.Filled.Edit">
+            <MudText Typo="Typo.h6" Class="mb-4">Text Input Test</MudText>
+            
+            <MudTextField T="string"
+                         @bind-Value="_inputText"
+                         Label="Type something"
+                         Variant="Variant.Outlined"
+                         Class="mb-4"/>
+
+            <MudText>
+                You typed: @_inputText
+            </MudText>
+        </MudTabPanel>
+
+        <MudTabPanel Text="Advanced" Icon="@Icons.Material.Filled.Settings">
+            <MudAlert Severity="Severity.Info" Class="mb-4">
+                This tab is reserved for future advanced testing features.
+            </MudAlert>
+
+            <MudExpansionPanels>
+                <MudExpansionPanel Text="Debug Information">
+                    <MudText>
+                        Audio Module Status: @(_audioModule != null ? "Loaded" : "Not Loaded")
+                    </MudText>
+                </MudExpansionPanel>
+            </MudExpansionPanels>
+        </MudTabPanel>
+    </MudTabs>
 </MudPaper>
 
 @code {
     private int _count = 0;
     private bool _toggleColor = false;
     private string _inputText = "";
+    private string _textToSpeak = "Hello, I am TARS. How can I assist you today?";
+    private bool _isSpeaking = false;
+    private IJSObjectReference? _audioModule;
+    private string _selectedSpeechService = "webspeech";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                _audioModule = await JSRuntime.InvokeAsync<IJSObjectReference>(
+                    "import", "./js/audioHelpers.js");
+                Logger.LogInformation("Audio module loaded successfully");
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Failed to load audio module");
+                Snackbar.Add("Failed to initialize audio system", Severity.Error);
+            }
+        }
+    }
 
     private void IncrementCount()
     {
@@ -46,5 +125,51 @@
     private void ToggleColor()
     {
         _toggleColor = !_toggleColor;
+    }
+
+    private async Task SpeakText()
+    {
+        if (string.IsNullOrEmpty(_textToSpeak))
+        {
+            Snackbar.Add("No text to speak", Severity.Warning);
+            return;
+        }
+
+        if (_isSpeaking)
+        {
+            Snackbar.Add("Already speaking", Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            _isSpeaking = true;
+            StateHasChanged();
+            
+            var service = SpeechFactory.GetSpeechService(_selectedSpeechService);
+            Logger.LogInformation("Using speech service: {Service}", service.ServiceName);
+            
+            if (_selectedSpeechService == "webspeech")
+            {
+                await service.SynthesizeSpeechAsync(_textToSpeak);
+            }
+            else
+            {
+                var audioData = await service.SynthesizeSpeechAsync(_textToSpeak);
+                await JSRuntime.InvokeVoidAsync("audioPlayer.play", audioData);
+            }
+            
+            Logger.LogInformation("Speech synthesis completed");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error during speech synthesis");
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isSpeaking = false;
+            StateHasChanged();
+        }
     }
 }
