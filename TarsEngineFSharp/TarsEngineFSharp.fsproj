@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>net9.0</TargetFramework>
@@ -7,6 +7,12 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <Compile Include="AsyncExecution.fs" />
+        <Compile Include="DataProcessing.fs" />
+        <Compile Include="DataSources.fs" />
+        <Compile Include="PromptEngine.fs" />
+        <Compile Include="TarsDsl.fs" />
+        <Compile Include="Examples.fs" />
         <Compile Include="RivaService.fs" />
         <Compile Include="WeatherService.fs" />
         <Compile Include="ChatService.fs" />

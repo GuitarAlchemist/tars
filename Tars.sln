@@ -8,6 +8,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionIt
 		Directory.Build.props = Directory.Build.props
 		docs\Exploration.md = docs\Exploration.md
 		docs\Exploration.txt = docs\Exploration.txt
+		docs\Exploration2.txt = docs\Exploration2.txt
+		docs\TARS_DSL_Structure.md = docs\TARS_DSL_Structure.md
+		progress.txt = progress.txt
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TarsEngine", "TarsEngine\TarsEngine.csproj", "{B0A629F0-DC3A-4A88-AF1D-CDF891784B22}"

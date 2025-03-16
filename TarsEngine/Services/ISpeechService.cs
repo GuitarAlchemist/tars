@@ -1,8 +1,8 @@
-namespace TarsEngine.Interfaces;
+namespace TarsEngine.Services;
 
 public interface ISpeechService
 {
-    string ServiceName { get; }
     Task<string> TranscribeAudioAsync(byte[] audioData);
     Task<byte[]> SynthesizeSpeechAsync(string text);
+    string ServiceName { get; }
 }

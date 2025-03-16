@@ -1,4 +1,8 @@
 // Ensure you add the correct F# library reference providing TarsEngine functionality
+
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using TarsEngine;
 using Microsoft.FSharp.Control;
 using Microsoft.FSharp.Core;
@@ -9,12 +13,12 @@ namespace TarsEngine.Services;
 
 public class ChatBotService
 {
-    private ChatService.ChatSession _session;
+    private TarsEngineFSharp.ChatService.ChatSession _session;
     private readonly ILogger<ChatBotService> _logger;
 
     public ChatBotService(ILogger<ChatBotService> logger)
     {
-        _session = ChatService.createNewSession();
+        _session = TarsEngineFSharp.ChatService.createNewSession();
         _logger = logger;
     }
 
@@ -24,16 +28,16 @@ public class ChatBotService
         
         try 
         {
-            _session = ChatService.addMessage(_session, "user", message);
+            _session = TarsEngineFSharp.ChatService.addMessage(_session, "user", message);
             
             _logger.LogDebug("Processing message through ChatService");
             var response = await FSharpAsync.StartAsTask(
-                ChatService.processMessage(message),
+                TarsEngineFSharp.ChatService.processMessage(message),
                 FSharpOption<TaskCreationOptions>.None,
                 FSharpOption<CancellationToken>.None
             );
 
-            _session = ChatService.addMessage(_session, "assistant", response.Text);
+            _session = TarsEngineFSharp.ChatService.addMessage(_session, "assistant", response.Text);
             
             _logger.LogInformation("Response received: {Response}", response.Text);
             return new ChatResponse(response.Text, response.Source);
