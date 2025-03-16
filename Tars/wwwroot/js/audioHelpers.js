@@ -90,37 +90,77 @@ window.audioRecorder = {
     }
 };
 
-// Add this to your audioHelpers.js file
+// Enhanced speech synthesis service
 window.speechService = {
     speak: function(text, voiceName, rate, pitch) {
         return new Promise((resolve, reject) => {
             try {
+                // Cancel any ongoing speech
+                window.speechSynthesis.cancel();
+                
                 const utterance = new SpeechSynthesisUtterance(text);
                 
                 // Apply voice settings if provided
                 if (voiceName) {
-                    const voices = window.speechSynthesis.getVoices();
+                    // Make sure voices are loaded
+                    const voices = this.getVoicesSync();
                     const voice = voices.find(v => v.name === voiceName);
                     if (voice) utterance.voice = voice;
                 }
                 
-                if (rate) utterance.rate = rate;
-                if (pitch) utterance.pitch = pitch;
+                // Apply speech parameters with sensible defaults
+                utterance.rate = rate || 1.0;
+                utterance.pitch = pitch || 1.0;
+                utterance.volume = 1.0; // Maximum volume
                 
+                // Add event handlers
                 utterance.onend = () => resolve();
                 utterance.onerror = (event) => reject(new Error(`Speech synthesis error: ${event.error}`));
+                
+                // Start speaking
                 window.speechSynthesis.speak(utterance);
+                
+                // Chrome bug workaround: speech can stop after 15 seconds
+                const intervalId = setInterval(() => {
+                    if (!window.speechSynthesis.speaking) {
+                        clearInterval(intervalId);
+                        return;
+                    }
+                    // Pause and resume to keep it going
+                    window.speechSynthesis.pause();
+                    window.speechSynthesis.resume();
+                }, 14000);
             } catch (error) {
                 reject(error);
             }
         });
     },
     
+    getVoicesSync: function() {
+        return window.speechSynthesis.getVoices();
+    },
+    
     getVoices: function() {
-        return window.speechSynthesis.getVoices().map(voice => ({
-            name: voice.name,
-            lang: voice.lang,
-            default: voice.default
-        }));
+        return new Promise((resolve) => {
+            let voices = window.speechSynthesis.getVoices();
+            
+            if (voices.length > 0) {
+                resolve(voices.map(voice => ({
+                    name: voice.name,
+                    lang: voice.lang,
+                    default: voice.default
+                })));
+            } else {
+                // Wait for voices to be loaded
+                window.speechSynthesis.onvoiceschanged = () => {
+                    voices = window.speechSynthesis.getVoices();
+                    resolve(voices.map(voice => ({
+                        name: voice.name,
+                        lang: voice.lang,
+                        default: voice.default
+                    })));
+                };
+            }
+        });
     }
 };

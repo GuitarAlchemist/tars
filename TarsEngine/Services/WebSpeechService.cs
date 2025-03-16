@@ -24,8 +24,14 @@ public class WebSpeechService : ISpeechService
     {
         try
         {
-            // Call JavaScript with voice parameters
-            await _jsRuntime.InvokeVoidAsync("speechService.speak", text, voiceName, rate, pitch);
+            // Use improved speech synthesis with better parameters
+            await _jsRuntime.InvokeVoidAsync("speechService.speak", 
+                text, 
+                voiceName ?? "Google US English", // Default to a high-quality voice if available
+                rate ?? 1.0f,  // Normal rate
+                pitch ?? 1.0f  // Normal pitch
+            );
+            
             return Array.Empty<byte>();
         }
         catch (Exception ex)
@@ -33,4 +39,24 @@ public class WebSpeechService : ISpeechService
             throw new Exception($"Speech synthesis failed: {ex.Message}", ex);
         }
     }
+    
+    public async Task<List<VoiceInfo>> GetAvailableVoicesAsync()
+    {
+        try
+        {
+            var voices = await _jsRuntime.InvokeAsync<List<VoiceInfo>>("speechService.getVoices");
+            return voices;
+        }
+        catch (Exception ex)
+        {
+            throw new Exception($"Failed to get available voices: {ex.Message}", ex);
+        }
+    }
+}
+
+public class VoiceInfo
+{
+    public string Name { get; set; } = string.Empty;
+    public string Lang { get; set; } = string.Empty;
+    public bool Default { get; set; }
 }

@@ -51,3 +51,10 @@ wwwroot/lib/
 ## OS-specific files
 .DS_Store
 Thumbs.db
+
+## NLog specific files
+**/logs/
+logs/
+*.log
+**/internal-nlog.txt
+internal-nlog.txt

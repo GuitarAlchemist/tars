@@ -1,12 +1,10 @@
 @page "/test"
 @using TarsEngine.Services
-@using Microsoft.AspNetCore.Components
 @rendermode InteractiveServer
-@inject RivaWrapperService RivaService
+@inject WebSpeechService WebSpeechService
 @inject ILogger<InteractivityTest> Logger
 @inject IJSRuntime JSRuntime
 @inject ISnackbar Snackbar
-@inject SpeechServiceFactory SpeechFactory
 
 <PageTitle>Interactivity Test</PageTitle>
 
@@ -67,7 +65,11 @@
     private string _textToSpeak = "Hello, I am TARS. How can I assist you today?";
     private bool _isSpeaking = false;
     private IJSObjectReference? _audioModule;
-    private string _selectedSpeechService = "webspeech";
+    private List<VoiceInfo> _availableVoices = new();
+    private string _selectedVoice = "";
+    private double _speechRate = 1.0;
+    private double _speechPitch = 1.0;
+    private double _sliderValue = 50; // Default value
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -78,12 +80,37 @@
                 _audioModule = await JSRuntime.InvokeAsync<IJSObjectReference>(
                     "import", "./js/audioHelpers.js");
                 Logger.LogInformation("Audio module loaded successfully");
+                
+                // Load available voices
+                await LoadVoicesAsync();
             }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Failed to load audio module");
                 Snackbar.Add("Failed to initialize audio system", Severity.Error);
             }
+        }
+    }
+
+    private async Task LoadVoicesAsync()
+    {
+        try
+        {
+            _availableVoices = await WebSpeechService.GetAvailableVoicesAsync();
+            if (_availableVoices.Count > 0)
+            {
+                // Select a default voice (preferably English)
+                var defaultVoice = _availableVoices.FirstOrDefault(v => v.Default) ?? 
+                                  _availableVoices.FirstOrDefault(v => v.Lang.StartsWith("en")) ??
+                                  _availableVoices.First();
+                _selectedVoice = defaultVoice.Name;
+            }
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load voices");
+            Snackbar.Add("Failed to load available voices", Severity.Error);
         }
     }
 
@@ -105,11 +132,13 @@
             _isSpeaking = true;
             StateHasChanged();
             
-            // Create and use a SpeechSynthesisUtterance directly
-            await JSRuntime.InvokeVoidAsync("eval", @"
-                const utterance = new SpeechSynthesisUtterance('" + _textToSpeak.Replace("'", "\\'") + @"');
-                window.speechSynthesis.speak(utterance);
-            ");
+            // Use the enhanced speech service from audioHelpers.js
+            await JSRuntime.InvokeVoidAsync("speechService.speak", 
+                _textToSpeak,
+                _selectedVoice, // Use selected voice
+                _speechRate,    // Use speech rate
+                _speechPitch    // Use speech pitch
+            );
         }
         catch (Exception ex)
         {
@@ -120,6 +149,20 @@
         {
             _isSpeaking = false;
             StateHasChanged();
+        }
+    }
+    
+    private async Task StopSpeaking()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("speechSynthesis.cancel");
+            _isSpeaking = false;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error stopping speech");
         }
     }
 }
