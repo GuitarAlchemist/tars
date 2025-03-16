@@ -126,3 +126,19 @@ window.audioRecorder = {
         });
     }
 };
+
+// Add this to your audioHelpers.js file
+window.speechSynthesis = window.speechSynthesis || {};
+
+window.speakText = function(text) {
+    return new Promise((resolve, reject) => {
+        try {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.onend = () => resolve();
+            utterance.onerror = (event) => reject(new Error(`Speech synthesis error: ${event.error}`));
+            window.speechSynthesis.speak(utterance);
+        } catch (error) {
+            reject(error);
+        }
+    });
+};

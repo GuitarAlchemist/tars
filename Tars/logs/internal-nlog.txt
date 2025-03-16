@@ -376,3 +376,52 @@
 2025-03-05 21:21:21.3823 Info NLog, Version=5.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c. File version: 5.2.8.2366. Product version: 5.2.8+f586f1341c46fa38aaaff4c641e7f0fa7e813943. GlobalAssemblyCache: False
 2025-03-05 21:21:21.3823 Info Validating config: TargetNames=allfile, lifetimeConsole, webfile, ConfigItems=70, FilePath=C:\Users\spare\source\repos\tars\Tars\NLog.config
 2025-03-05 21:21:21.4068 Info Configuration initialized.
+2025-03-16 18:37:38.9994 Info Registered target NLog.Targets.FileTarget(Name=allfile)
+2025-03-16 18:37:38.9994 Info Registered target NLog.Targets.FileTarget(Name=webfile)
+2025-03-16 18:37:38.9994 Info Registered target NLog.Targets.ConsoleTarget(Name=lifetimeConsole)
+2025-03-16 18:37:39.0099 Warn Error has been raised. Exception: NLog.NLogConfigurationException: Unrecognized value 'when'='contains('${aspnet-request-url}', 'http')' for element 'logger' in section 'rules'
+2025-03-16 18:37:39.0099 Info NLog, Version=5.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c. File version: 5.2.8.2366. Product version: 5.2.8+f586f1341c46fa38aaaff4c641e7f0fa7e813943. GlobalAssemblyCache: False
+2025-03-16 18:37:39.0099 Info Validating config: TargetNames=allfile, lifetimeConsole, webfile, ConfigItems=70, FilePath=C:\Users\spare\source\repos\tars\Tars\NLog.config
+2025-03-16 18:37:39.0238 Info Configuration initialized.
+2025-03-16 18:41:44.1312 Info Registered target NLog.Targets.FileTarget(Name=allfile)
+2025-03-16 18:41:44.1382 Info Registered target NLog.Targets.FileTarget(Name=webfile)
+2025-03-16 18:41:44.1382 Info Registered target NLog.Targets.ConsoleTarget(Name=lifetimeConsole)
+2025-03-16 18:41:44.1382 Warn Error has been raised. Exception: NLog.NLogConfigurationException: Unrecognized value 'when'='contains('${aspnet-request-url}', 'http')' for element 'logger' in section 'rules'
+2025-03-16 18:41:44.1382 Info NLog, Version=5.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c. File version: 5.2.8.2366. Product version: 5.2.8+f586f1341c46fa38aaaff4c641e7f0fa7e813943. GlobalAssemblyCache: False
+2025-03-16 18:41:44.1382 Info Validating config: TargetNames=allfile, lifetimeConsole, webfile, ConfigItems=70, FilePath=C:\Users\spare\source\repos\tars\Tars\NLog.config
+2025-03-16 18:41:44.1540 Info Configuration initialized.
+2025-03-16 18:43:24.9015 Info Registered target NLog.Targets.FileTarget(Name=allfile)
+2025-03-16 18:43:24.9015 Info Registered target NLog.Targets.FileTarget(Name=webfile)
+2025-03-16 18:43:24.9015 Info Registered target NLog.Targets.ConsoleTarget(Name=lifetimeConsole)
+2025-03-16 18:43:24.9141 Warn Error has been raised. Exception: NLog.NLogConfigurationException: Unrecognized value 'when'='contains('${aspnet-request-url}', 'http')' for element 'logger' in section 'rules'
+2025-03-16 18:43:24.9141 Info NLog, Version=5.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c. File version: 5.2.8.2366. Product version: 5.2.8+f586f1341c46fa38aaaff4c641e7f0fa7e813943. GlobalAssemblyCache: False
+2025-03-16 18:43:24.9141 Info Validating config: TargetNames=allfile, lifetimeConsole, webfile, ConfigItems=70, FilePath=C:\Users\spare\source\repos\tars\Tars\NLog.config
+2025-03-16 18:43:24.9392 Info Configuration initialized.
+2025-03-16 18:44:21.1225 Info Registered target NLog.Targets.FileTarget(Name=allfile)
+2025-03-16 18:44:21.1225 Info Registered target NLog.Targets.FileTarget(Name=webfile)
+2025-03-16 18:44:21.1225 Info Registered target NLog.Targets.ConsoleTarget(Name=lifetimeConsole)
+2025-03-16 18:44:21.1358 Warn Error has been raised. Exception: NLog.NLogConfigurationException: Unrecognized value 'when'='contains('${aspnet-request-url}', 'http')' for element 'logger' in section 'rules'
+2025-03-16 18:44:21.1358 Info NLog, Version=5.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c. File version: 5.2.8.2366. Product version: 5.2.8+f586f1341c46fa38aaaff4c641e7f0fa7e813943. GlobalAssemblyCache: False
+2025-03-16 18:44:21.1493 Info Validating config: TargetNames=allfile, lifetimeConsole, webfile, ConfigItems=70, FilePath=C:\Users\spare\source\repos\tars\Tars\NLog.config
+2025-03-16 18:44:21.1493 Info Configuration initialized.
+2025-03-16 18:45:27.9616 Info Registered target NLog.Targets.FileTarget(Name=allfile)
+2025-03-16 18:45:27.9616 Info Registered target NLog.Targets.FileTarget(Name=webfile)
+2025-03-16 18:45:27.9616 Info Registered target NLog.Targets.ConsoleTarget(Name=lifetimeConsole)
+2025-03-16 18:45:27.9616 Warn Error has been raised. Exception: NLog.NLogConfigurationException: Unrecognized value 'when'='contains('${aspnet-request-url}', 'http')' for element 'logger' in section 'rules'
+2025-03-16 18:45:27.9790 Info NLog, Version=5.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c. File version: 5.2.8.2366. Product version: 5.2.8+f586f1341c46fa38aaaff4c641e7f0fa7e813943. GlobalAssemblyCache: False
+2025-03-16 18:45:27.9790 Info Validating config: TargetNames=allfile, lifetimeConsole, webfile, ConfigItems=70, FilePath=C:\Users\spare\source\repos\tars\Tars\NLog.config
+2025-03-16 18:45:27.9971 Info Configuration initialized.
+2025-03-16 18:46:23.6202 Info Registered target NLog.Targets.FileTarget(Name=allfile)
+2025-03-16 18:46:23.6202 Info Registered target NLog.Targets.FileTarget(Name=webfile)
+2025-03-16 18:46:23.6202 Info Registered target NLog.Targets.ConsoleTarget(Name=lifetimeConsole)
+2025-03-16 18:46:23.6339 Warn Error has been raised. Exception: NLog.NLogConfigurationException: Unrecognized value 'when'='contains('${aspnet-request-url}', 'http')' for element 'logger' in section 'rules'
+2025-03-16 18:46:23.6339 Info NLog, Version=5.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c. File version: 5.2.8.2366. Product version: 5.2.8+f586f1341c46fa38aaaff4c641e7f0fa7e813943. GlobalAssemblyCache: False
+2025-03-16 18:46:23.6339 Info Validating config: TargetNames=allfile, lifetimeConsole, webfile, ConfigItems=70, FilePath=C:\Users\spare\source\repos\tars\Tars\NLog.config
+2025-03-16 18:46:23.6592 Info Configuration initialized.
+2025-03-16 18:47:10.7619 Info Registered target NLog.Targets.FileTarget(Name=allfile)
+2025-03-16 18:47:10.7619 Info Registered target NLog.Targets.FileTarget(Name=webfile)
+2025-03-16 18:47:10.7619 Info Registered target NLog.Targets.ConsoleTarget(Name=lifetimeConsole)
+2025-03-16 18:47:10.7755 Warn Error has been raised. Exception: NLog.NLogConfigurationException: Unrecognized value 'when'='contains('${aspnet-request-url}', 'http')' for element 'logger' in section 'rules'
+2025-03-16 18:47:10.7755 Info NLog, Version=5.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c. File version: 5.2.8.2366. Product version: 5.2.8+f586f1341c46fa38aaaff4c641e7f0fa7e813943. GlobalAssemblyCache: False
+2025-03-16 18:47:10.7897 Info Validating config: TargetNames=allfile, lifetimeConsole, webfile, ConfigItems=70, FilePath=C:\Users\spare\source\repos\tars\Tars\NLog.config
+2025-03-16 18:47:10.7897 Info Configuration initialized.

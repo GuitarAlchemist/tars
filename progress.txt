@@ -1,3 +1,5 @@
+Use exploration documents as a reference (Exploration2.txt, then Exploration.txt) 
+
 # TARS Implementation Progress
 
 ## Project Structure Information
@@ -22,7 +24,7 @@ Status: In Progress
 - [x] Add self-evaluation metrics for AI-generated improvements
 - [ ] Implement blue/green deployment for AI-generated code
 - [ ] Create a plugin system for extensibility
-- [ ] Add Blazor Server UI with MudBlazor for TARS interaction
+- [ ] Add Blazor Server UI with MudBlazor for TARS interaction - Use ChatbotExample1 as a reference
 - [ ] Implement AI coding assistant integration improvements
 
 ### Notes:
