@@ -24,7 +24,7 @@ public class RivaWrapperService : IDisposable, ISpeechService
         return result.OriginalText;
     }
 
-    public async Task<byte[]> SynthesizeSpeechAsync(string text)
+    public async Task<byte[]> SynthesizeSpeechAsync(string text, string? voiceName = null, float? rate = null, float? pitch = null)
     {
         var result = await FSharpAsync.StartAsTask(
             _client.GenerateResponse(text),

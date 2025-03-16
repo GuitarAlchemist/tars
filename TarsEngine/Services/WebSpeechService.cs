@@ -20,13 +20,13 @@ public class WebSpeechService : ISpeechService
         throw new NotImplementedException("Direct audio transcription not supported in Web Speech API");
     }
 
-    public async Task<byte[]> SynthesizeSpeechAsync(string text)
+    public async Task<byte[]> SynthesizeSpeechAsync(string text, string? voiceName = null, float? rate = null, float? pitch = null)
     {
         try
         {
-            // Call JavaScript to handle speech synthesis
-            await _jsRuntime.InvokeVoidAsync("speechService.speak", text);
-            return Array.Empty<byte>(); // Web Speech API handles playback directly
+            // Call JavaScript with voice parameters
+            await _jsRuntime.InvokeVoidAsync("speechService.speak", text, voiceName, rate, pitch);
+            return Array.Empty<byte>();
         }
         catch (Exception ex)
         {

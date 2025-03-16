@@ -1,9 +1,12 @@
 @page "/chat"
+@rendermode InteractiveServer
 @using TarsEngine.Services
 @using Microsoft.Extensions.Logging
+@using System.Threading.Tasks
+@implements IAsyncDisposable
 @inject ILogger<Chat> Logger
 @inject ChatBotService ChatService
-@inject RivaWrapperService RivaService
+@inject SpeechServiceFactory SpeechFactory
 @inject IJSRuntime JSRuntime
 @inject ISnackbar Snackbar
 
@@ -11,6 +14,13 @@
 
 <MudPaper Class="pa-4 chat-container">
     <MudText Typo="Typo.h4" Class="mb-4">Chat with TARS</MudText>
+    
+    <MudSelect T="SpeechServiceType" Label="Speech Service" @bind-Value="_selectedSpeechService" Class="mb-4">
+        @foreach (var service in SpeechFactory.AvailableServices)
+        {
+            <MudSelectItem Value="@service">@service</MudSelectItem>
+        }
+    </MudSelect>
 
     <div class="chat-messages">
         @foreach (var message in _messages)
@@ -51,6 +61,45 @@
     private string _currentMessage = "";
     private List<(string Text, bool IsUser)> _messages = new();
     private bool _isRecording = false;
+    private SpeechServiceType _selectedSpeechService;
+    private IJSObjectReference? _audioModule;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _selectedSpeechService = SpeechFactory.DefaultService;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("audioPlayer.init");
+                Logger.LogInformation("Audio player initialized");
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Failed to initialize audio player");
+                Snackbar.Add("Failed to initialize audio system", Severity.Error);
+            }
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_audioModule is not null)
+        {
+            try
+            {
+                await _audioModule.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+                // Browser might have already disconnected
+            }
+        }
+    }
 
     private async Task ToggleRecording()
     {
@@ -69,7 +118,9 @@
     {
         try
         {
-            var audioData = await RivaService.SynthesizeSpeechAsync(text);
+            var speechService = SpeechFactory.GetSpeechService(_selectedSpeechService);
+            var audioData = await speechService.SynthesizeSpeechAsync(text);
+            
             if (audioData == null || audioData.Length == 0)
             {
                 Logger.LogWarning("No audio data received from TTS service");
@@ -104,13 +155,19 @@
         try
         {
             var audioData = await JSRuntime.InvokeAsync<byte[]>("audioRecorder.stop");
-            var transcription = await RivaService.TranscribeAudioAsync(audioData);
-            // Handle transcription result
+            var speechService = SpeechFactory.GetSpeechService(_selectedSpeechService);
+            var transcription = await speechService.TranscribeAudioAsync(audioData);
+            
+            if (!string.IsNullOrEmpty(transcription))
+            {
+                _currentMessage = transcription;
+                StateHasChanged();
+            }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error stopping recording");
-            // Handle error appropriately
+            Snackbar.Add("Failed to process audio", Severity.Error);
         }
     }
 
@@ -131,6 +188,9 @@
 
             _messages.Add((userMessage, true));
             _currentMessage = "";
+            
+            // Force UI update before waiting for response
+            StateHasChanged();
 
             var response = await ChatService.GetResponse(userMessage);
             _messages.Add((response.Text, false));

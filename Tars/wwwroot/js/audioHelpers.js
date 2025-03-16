@@ -1,84 +1,47 @@
 
-class AudioPlayer {
-    constructor() {
-        this.audioContext = null;
-        this.currentSource = null;
-    }
-
-    async play(audioData) {
-        try {
-            // Convert base64 if needed
-            let arrayBuffer;
-            if (typeof audioData === 'string') {
-                // Handle base64 string
-                const binaryString = window.atob(audioData);
-                const bytes = new Uint8Array(binaryString.length);
-                for (let i = 0; i < binaryString.length; i++) {
-                    bytes[i] = binaryString.charCodeAt(i);
-                }
-                arrayBuffer = bytes.buffer;
-            } else if (audioData instanceof Uint8Array) {
-                arrayBuffer = audioData.buffer;
-            } else {
-                arrayBuffer = audioData;
-            }
-
-            // Initialize audio context if needed
-            if (!this.audioContext) {
-                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            }
-
-            // Stop any currently playing audio
-            if (this.currentSource) {
-                try {
-                    this.currentSource.stop();
-                    this.currentSource.disconnect();
-                } catch (e) {
-                    console.warn("Error stopping previous audio:", e);
-                }
-            }
-
-            console.log("Decoding audio data of size:", arrayBuffer.byteLength);
-
-            // Decode and play
-            const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
-            this.currentSource = this.audioContext.createBufferSource();
-            this.currentSource.buffer = audioBuffer;
-            this.currentSource.connect(this.audioContext.destination);
-
-            return new Promise((resolve) => {
-                this.currentSource.onended = () => {
-                    console.log("Audio playback completed");
-                    resolve();
-                };
-                this.currentSource.start(0);
-                console.log("Audio playback started");
-            });
-        } catch (error) {
-            console.error("Error playing audio:", error);
-            throw error;
-        }
-    }
-
-    stop() {
-        if (this.currentSource) {
-            try {
-                this.currentSource.stop();
-                this.currentSource.disconnect();
-            } catch (e) {
-                console.warn("Error stopping audio:", e);
-            }
-        }
-    }
-}
-
-// Create and export a global instance
-window.audioPlayer = new AudioPlayer();
-
-// Recording functionality
+// Global audio objects
 let mediaRecorder = null;
 let audioChunks = [];
+let audioPlayer = null;
 
+window.audioPlayer = {
+    init: function() {
+        if (!audioPlayer) {
+            audioPlayer = new Audio();
+        }
+        return true;
+    },
+    
+    play: function(audioData) {
+        return new Promise((resolve, reject) => {
+            try {
+                if (!audioPlayer) {
+                    audioPlayer = new Audio();
+                }
+                
+                const blob = new Blob([audioData], { type: 'audio/wav' });
+                const url = URL.createObjectURL(blob);
+                
+                audioPlayer.src = url;
+                audioPlayer.onended = () => {
+                    URL.revokeObjectURL(url);
+                    resolve();
+                };
+                audioPlayer.onerror = (e) => {
+                    URL.revokeObjectURL(url);
+                    reject(e);
+                };
+                
+                audioPlayer.play();
+            } catch (error) {
+                console.error("Error playing audio:", error);
+                reject(error);
+            }
+        });
+    }
+};
+
+// Recording functionality
 window.audioRecorder = {
     async start(options = { sampleRate: 16000, channels: 1 }) {
         try {
@@ -128,17 +91,36 @@ window.audioRecorder = {
 };
 
 // Add this to your audioHelpers.js file
-window.speechSynthesis = window.speechSynthesis || {};
-
-window.speakText = function(text) {
-    return new Promise((resolve, reject) => {
-        try {
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.onend = () => resolve();
-            utterance.onerror = (event) => reject(new Error(`Speech synthesis error: ${event.error}`));
-            window.speechSynthesis.speak(utterance);
-        } catch (error) {
-            reject(error);
-        }
-    });
+window.speechService = {
+    speak: function(text, voiceName, rate, pitch) {
+        return new Promise((resolve, reject) => {
+            try {
+                const utterance = new SpeechSynthesisUtterance(text);
+                
+                // Apply voice settings if provided
+                if (voiceName) {
+                    const voices = window.speechSynthesis.getVoices();
+                    const voice = voices.find(v => v.name === voiceName);
+                    if (voice) utterance.voice = voice;
+                }
+                
+                if (rate) utterance.rate = rate;
+                if (pitch) utterance.pitch = pitch;
+                
+                utterance.onend = () => resolve();
+                utterance.onerror = (event) => reject(new Error(`Speech synthesis error: ${event.error}`));
+                window.speechSynthesis.speak(utterance);
+            } catch (error) {
+                reject(error);
+            }
+        });
+    },
+    
+    getVoices: function() {
+        return window.speechSynthesis.getVoices().map(voice => ({
+            name: voice.name,
+            lang: voice.lang,
+            default: voice.default
+        }));
+    }
 };

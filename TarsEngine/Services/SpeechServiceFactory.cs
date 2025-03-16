@@ -5,21 +5,23 @@ namespace TarsEngine.Services;
 public class SpeechServiceFactory
 {
     private readonly IServiceProvider _serviceProvider;
+    
+    public SpeechServiceType DefaultService => SpeechServiceType.Riva;
 
     public SpeechServiceFactory(IServiceProvider serviceProvider)
     {
         _serviceProvider = serviceProvider;
     }
 
-    public ISpeechService GetSpeechService(string serviceName)
+    public ISpeechService GetSpeechService(SpeechServiceType serviceType)
     {
-        return serviceName.ToLower() switch
+        return serviceType switch
         {
-            "riva" => _serviceProvider.GetRequiredService<RivaWrapperService>(),
-            "webspeech" => _serviceProvider.GetRequiredService<WebSpeechService>(),
-            _ => throw new ArgumentException($"Unknown speech service: {serviceName}")
+            SpeechServiceType.Riva => _serviceProvider.GetRequiredService<RivaWrapperService>(),
+            SpeechServiceType.WebSpeech => _serviceProvider.GetRequiredService<WebSpeechService>(),
+            _ => throw new ArgumentException($"Unknown speech service: {serviceType}")
         };
     }
 
-    public IEnumerable<string> AvailableServices => new[] { "riva", "webspeech" };
+    public IEnumerable<SpeechServiceType> AvailableServices => Enum.GetValues<SpeechServiceType>();
 }
