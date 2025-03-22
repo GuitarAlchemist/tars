@@ -1,0 +1,14 @@
+AutoGen
+https://microsoft.github.io/autogen-for-net/articles/Two-agent-chat.html?utm_source=chatgpt.com
+https://github.com/microsoft/autogen/blob/main/notebook/agentchat_function_call.ipynb?utm_source=chatgpt.com
+https://www.youtube.com/watch?v=dfZZNLPcyb0
+
+Computer user
+https://www.anthropic.com/news/3-5-models-and-computer-use
+https://osatlas.github.io/
+
+Refit
+https://github.com/reactiveui/refit
+
+Actors
+https://learn.microsoft.com/en-us/dotnet/orleans/overview

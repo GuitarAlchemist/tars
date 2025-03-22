@@ -1,0 +1,60 @@
+// TARS DSL Script: Extended with AI Agent Elements
+
+DESCRIBE {
+    name: "TARS DSL",
+    version: "0.2",
+    author: "Your Name",
+    description: "An evolutive DSL blending strong typing, prompt-based instructions, and autonomous AI agent management."
+}
+
+CONFIG {
+    defaultModel: "baseline"
+}
+
+// Define a strongly-typed AI agent within TARS
+AGENT {
+    id: "agent1"
+    name: "OptimizerAgent"
+    capabilities: ["refactoring", "self-improvement"]
+    status: "active"
+    initPrompt: "Initialize optimizer with baseline rules"
+    communication: COMMUNICATION {
+        protocol: "HTTP"
+        endpoint: "http://localhost:9090"
+        channel: "AgentChannel"
+    }
+    task: TASK {
+        id: "task_refactor"
+        description: "Refactor code for performance"
+        cancellable: true
+        progress: true
+        estimatedComplexity: "medium"
+        ETA: "5min"
+        ACTION {
+            refactorCode("current_version")
+        }
+    }
+}
+
+// Dynamically spawn a new AI agent using an agent expression
+SPAWN_AGENT("agent2", {
+    type: "BugFixer",
+    initPrompt: "Detect and fix common errors",
+    memory: 128,
+    selfImprove: true
+})
+
+// Send a message to a specific agent
+MESSAGE(agent1, "Request status update")
+
+// Instruct an agent to perform self-improvement
+SELF_IMPROVE(agent2, "Optimize self-learning parameters")
+
+// Standard TARS workflow with integrated AI agent tasks
+TARS {
+    PROMPT "Summarize combined insights from agents and data sources"
+    ACTION {
+        let summary = combineDataSources(fileData, apiData)
+        print(summary)
+    }
+}

@@ -1,0 +1,87 @@
+@using System.Runtime.CompilerServices
+@using System.Text.RegularExpressions
+@using System.Linq
+@using Microsoft.Extensions.AI
+@using TarsApp.Components.Chat
+
+@if (Message.Role == ChatRole.User)
+{
+    <MudPaper Class="user-message mb-2">
+        <MudText>@Message.Text</MudText>
+    </MudPaper>
+}
+else if (Message.Role == ChatRole.Assistant)
+{
+    foreach (var content in Message.Contents)
+    {
+        if (content is TextContent { Text: { Length: > 0 } text })
+        {
+            <MudPaper Class="assistant-message mb-2">
+                <div class="d-flex">
+                    <MudIcon Icon="@Icons.Material.Filled.SmartToy" Class="mr-2" />
+                    <MudText Typo="Typo.subtitle1" Class="mb-1">TARS</MudText>
+                </div>
+                <div class="assistant-message-text">
+                    <assistant-message markdown="@text"></assistant-message>
+
+                    @foreach (var citation in citations ?? [])
+                    {
+                        <ChatCitation File="@citation.File" PageNumber="@citation.Page" Quote="@citation.Quote" />
+                    }
+                </div>
+                @if (!InProgress)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.VolumeUp"
+                                 Size="Size.Small"
+                                 OnClick="@(() => PlayTTSAsync(text))"
+                                 Class="ml-2"/>
+                }
+            </MudPaper>
+        }
+    }
+}
+
+@code {
+    private static readonly ConditionalWeakTable<ChatMessage, ChatMessageItem> SubscribersLookup = new();
+    private static readonly Regex CitationRegex = new(@"<citation filename='(?<file>[^']*)' page_number='(?<page>\d*)'>(?<quote>.*?)</citation>", RegexOptions.NonBacktracking);
+
+    private List<(string File, int? Page, string Quote)>? citations;
+
+    [Parameter, EditorRequired]
+    public required ChatMessage Message { get; set; }
+
+    [Parameter]
+    public bool InProgress { get; set;}
+
+    protected override void OnInitialized()
+    {
+        SubscribersLookup.AddOrUpdate(Message, this);
+
+        if (!InProgress && Message.Role == ChatRole.Assistant && Message.Text is { Length: > 0 } text)
+        {
+            ParseCitations(text);
+        }
+    }
+
+    public static void NotifyChanged(ChatMessage source)
+    {
+        if (SubscribersLookup.TryGetValue(source, out var subscriber))
+        {
+            subscriber.StateHasChanged();
+        }
+    }
+
+    private void ParseCitations(string text)
+    {
+        var matches = CitationRegex.Matches(text);
+        citations = matches.Any()
+            ? matches.Select(m => (m.Groups["file"].Value, int.TryParse(m.Groups["page"].Value, out var page) ? page : (int?)null, m.Groups["quote"].Value)).ToList()
+            : null;
+    }
+
+    private Task PlayTTSAsync(string text)
+    {
+        // Implement text-to-speech logic
+        return Task.CompletedTask;
+    }
+}

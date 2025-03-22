@@ -1,0 +1,48 @@
+@using Microsoft.Extensions.AI
+@using Microsoft.JSInterop
+@using TarsEngineFSharp
+@inject IJSRuntime JS
+
+<div class="message-list-container">
+    <div class="message-list" id="chat-messages">
+        @foreach (var message in Messages)
+        {
+            <TarsApp.Components.Pages.Chat.ChatMessageItem @key="@message" Message="@message" InProgress="@(message == Messages.Last() && InProgressMessage != null)" />
+        }
+
+        @if (InProgressMessage is not null)
+        {
+            <TarsApp.Components.Pages.Chat.ChatMessageItem Message="@InProgressMessage" InProgress="true" />
+            <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+        }
+        else if (IsEmpty)
+        {
+            <div class="no-messages">@NoMessagesContent</div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public required IEnumerable<ChatService.ChatMessage> Messages { get; set; }
+
+    [Parameter]
+    public ChatMessage? InProgressMessage { get; set; }
+
+    [Parameter]
+    public RenderFragment? NoMessagesContent { get; set; }
+
+    private bool IsEmpty => !Messages.Any(m => (m.Role == ChatRole.User || m.Role == ChatRole.Assistant) && !string.IsNullOrEmpty(m.Text));
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("scrollToBottom", "chat-messages");
+        }
+        else if (InProgressMessage != null || Messages.LastOrDefault()?.Role == ChatRole.User)
+        {
+            await JS.InvokeVoidAsync("scrollToBottom", "chat-messages");
+        }
+    }
+}

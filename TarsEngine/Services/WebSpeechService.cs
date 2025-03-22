@@ -32,7 +32,7 @@ public class WebSpeechService : ISpeechService
                 pitch ?? 1.0f  // Normal pitch
             );
             
-            return Array.Empty<byte>();
+            return [];
         }
         catch (Exception ex)
         {

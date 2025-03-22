@@ -1,0 +1,104 @@
+@page "/file-upload"
+@using Microsoft.AspNetCore.Components.Forms
+@using Tars.Services.Ingestion
+@inject DataIngestor DataIngestor
+@inject ISnackbar Snackbar
+@rendermode InteractiveServer
+
+<PageTitle>TARS - File Upload</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudText Typo="Typo.h3" Class="mb-4">File Upload</MudText>
+    
+    <MudPaper Class="pa-4" Elevation="3">
+        <MudText Typo="Typo.h5" Class="mb-4">Upload Files for Processing</MudText>
+        
+        <MudFileUpload T="IBrowserFile[]" Accept=".txt,.pdf,.docx,.md,.json,.yaml,.csv" 
+                       MaximumFileCount="10" OnFilesChanged="OnInputFileChanged">
+            <ButtonTemplate>
+                <MudPaper Height="200px" Width="100%" Outlined="true" Class="d-flex flex-column align-center justify-center mud-background-gray pa-4">
+                    <MudIcon Icon="@Icons.Material.Filled.CloudUpload" Size="Size.Large" Class="mb-2" />
+                    <MudText Typo="Typo.h6">Drag and drop files here or click</MudText>
+                    <MudText Typo="Typo.body2" Class="mt-1">Supported formats: TXT, PDF, DOCX, MD, JSON, YAML, CSV</MudText>
+                </MudPaper>
+            </ButtonTemplate>
+        </MudFileUpload>
+        
+        @if (files != null && files.Length > 0)
+        {
+            <MudText Typo="Typo.subtitle1" Class="mt-4 mb-2">Selected Files:</MudText>
+            <MudList Dense="true">
+                @foreach (var file in files)
+                {
+                    <MudListItem Icon="@Icons.Material.Filled.InsertDriveFile">
+                        @file.Name (@(Math.Round((double)file.Size / 1024, 2)) KB)
+                    </MudListItem>
+                }
+            </MudList>
+            
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" 
+                       Class="mt-4" OnClick="ProcessFiles" 
+                       Disabled="@isProcessing">
+                @if(isProcessing)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                    <span>Processing...</span>
+                }
+                else
+                {
+                    <span>Process Files</span>
+                }
+            </MudButton>
+        }
+    </MudPaper>
+    
+    @if (processingResults.Count > 0)
+    {
+        <MudPaper Class="pa-4 mt-4" Elevation="3">
+            <MudText Typo="Typo.h5" Class="mb-4">Processing Results</MudText>
+            
+            <MudList>
+                @foreach (var result in processingResults)
+                {
+                    <MudListItem Icon="@(result.Success ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Error)">
+                        <MudText Color="@(result.Success ? Color.Success : Color.Error)">
+                            @result.FileName: @result.Message
+                        </MudText>
+                    </MudListItem>
+                }
+            </MudList>
+        </MudPaper>
+    }
+</MudContainer>
+
+@code {
+    private List<IBrowserFile> files = new();
+    private string uploadResult = "";
+    private bool isUploading = false;
+
+    private void OnInputFileChanged(InputFileChangeEventArgs e)
+    {
+        files = e.GetMultipleFiles().ToList();
+    }
+
+    private async Task UploadFiles()
+    {
+        if (files.Count == 0) return;
+        
+        isUploading = true;
+        try
+        {
+            // Upload logic here
+            await Task.Delay(1000); // Simulate upload
+            uploadResult = $"Successfully uploaded {files.Count} files";
+        }
+        catch (Exception ex)
+        {
+            uploadResult = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isUploading = false;
+        }
+    }
+}

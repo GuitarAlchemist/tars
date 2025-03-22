@@ -1,0 +1,15 @@
+<div class="chat-header-container main-background-gradient">
+    <div class="chat-header-controls">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@OnNewChat">
+            <MudIcon Icon="@Icons.Material.Filled.Add" Class="mr-2" />
+            New chat
+        </MudButton>
+    </div>
+
+    <MudText Typo="Typo.h4">Chat with TARS</MudText>
+</div>
+
+@code {
+    [Parameter]
+    public EventCallback OnNewChat { get; set; }
+}

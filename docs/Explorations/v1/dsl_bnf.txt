@@ -1,0 +1,93 @@
+<tars-program> ::= "TARS" "{" <block-list> "}"
+
+<block-list> ::= <block> | <block> <block-list>
+<block> ::= <config-block>
+          | <prompt-block>
+          | <action-block>
+          | <task-block>
+          | <channel-block>
+          | <system-block>
+          | <auto-improve-block>
+          | <tooling-block>
+          | <agent-block>                // New AI agent block
+
+// Configuration block (unchanged)
+<config-block> ::= "CONFIG" "{" <config-item-list> "}"
+<config-item-list> ::= <config-item> | <config-item> <config-item-list>
+<config-item> ::= <identifier> ":" <value>
+
+// Prompt block (unchanged)
+<prompt-block> ::= "PROMPT" <string-literal>
+
+// Action block (unchanged)
+<action-block> ::= "ACTION" "{" <statement-list> "}"
+<statement-list> ::= <statement> | <statement> <statement-list>
+<statement> ::= <function-call> | <assignment> | <conditional> | <loop>
+
+// Task block (unchanged)
+<task-block> ::= "TASK" "{" <task-property-list> "}"
+<task-property-list> ::= <task-property> | <task-property> <task-property-list>
+<task-property> ::= "id" ":" <string-literal>
+                  | "description" ":" <string-literal>
+                  | "cancellable" ":" <boolean>
+                  | "progress" ":" <boolean>
+                  | "estimatedComplexity" ":" <string-literal>
+                  | "ETA" ":" <string-literal>
+                  | "onProgress" ":" "{" <statement-list> "}"
+                  | "onBifurcation" ":" "{" <statement-list> "}"
+                  | "entropy" ":" <number>
+                  | "ACTION" "{" <statement-list> "}"
+
+<!-- New: AI Agent Block -->
+<agent-block> ::= "AGENT" "{" <agent-property-list> "}"
+<agent-property-list> ::= <agent-property> | <agent-property> <agent-property-list>
+<agent-property> ::= "id" ":" <string-literal>
+                   | "name" ":" <string-literal>
+                   | "capabilities" ":" <array>
+                   | "status" ":" <string-literal>
+                   | "initPrompt" ":" <string-literal>
+                   | "communication" ":" <communication-block>
+                   | "task" ":" <task-block>
+
+// Communication block used by agents
+<communication-block> ::= "COMMUNICATION" "{" <comm-property-list> "}"
+<comm-property-list> ::= <comm-property> | <comm-property> <comm-property-list>
+<comm-property> ::= "protocol" ":" <string-literal>  // Now supports "HTTP" or "INPROC"
+                  | "endpoint" ":" <string-literal>  // Optional if protocol is INPROC
+                  | "channel" ":" <string-literal>
+
+// AI Agent Expressions for dynamic behavior
+<ai-agent-expression> ::= "SPAWN_AGENT" "(" <string-literal> "," <agent-config> ")"
+<agent-config> ::= "{" <agent-config-properties> "}"
+<agent-config-properties> ::= <agent-config-property> | <agent-config-property> <agent-config-properties>
+<agent-config-property> ::= "type" ":" <string-literal>
+                          | "initPrompt" ":" <string-literal>
+                          | "memory" ":" <number>
+                          | "selfImprove" ":" <boolean>
+
+<ai-message> ::= "MESSAGE" "(" <identifier> "," <string-literal> ")"
+<self-improve-agent> ::= "SELF_IMPROVE" "(" <identifier> "," <string-literal> ")"
+
+// Remaining basic elements remain unchanged…
+<function-call> ::= <identifier> "(" <parameter-list> ")"
+<parameter-list> ::= ε | <parameter> | <parameter> "," <parameter-list>
+<parameter> ::= <identifier> ":" <value> | <value>
+<assignment> ::= <identifier> "=" <value>
+<conditional> ::= "if" <expression> "{" <statement-list> "}" ["else" "{" <statement-list> "}"]
+<loop> ::= "for" <identifier> "in" <expression> "{" <statement-list> "}"
+<expression> ::= <value> | <value> <operator> <value> | <function-call>
+<operator> ::= "+" | "-" | "*" | "/" | "==" | "!=" | ">" | "<" | ">=" | "<="
+<value> ::= <string-literal> | <number> | <boolean> | <identifier> | <array> | <object>
+<string-literal> ::= '"' <characters> '"'
+<number> ::= <digits> ["." <digits>]
+<boolean> ::= "true" | "false"
+<identifier> ::= <letter> {<letter> | <digit> | "_"}
+<array> ::= "[" <value-list> "]"
+<value-list> ::= ε | <value> | <value> "," <value-list>
+<object> ::= "{" <property-list> "}"
+<property-list> ::= ε | <property> | <property> "," <property-list>
+<property> ::= <string-literal> ":" <value>
+<letter> ::= "A" | "B" | ... | "Z" | "a" | "b" | ... | "z"
+<digit> ::= "0" | "1" | ... | "9"
+<characters> ::= ε | <character> <characters>
+<character> ::= any printable character except unescaped '"'

@@ -1,0 +1,148 @@
+@page "/auto-improvement"
+@using Microsoft.AspNetCore.Components.Web
+@inject ISnackbar Snackbar
+
+<PageTitle>TARS - Auto Improvement</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudText Typo="Typo.h3" Class="mb-4">Auto Improvement</MudText>
+    
+    <MudPaper Class="pa-4 mb-4" Elevation="3">
+        <MudText Typo="Typo.h5" Class="mb-4">Run TARS Auto-Improvement Process</MudText>
+        
+        <MudForm @ref="form" @bind-IsValid="@success">
+            <MudSelect T="string" Label="Improvement Target" @bind-Value="selectedTarget" Required RequiredError="Improvement target is required">
+                <MudSelectItem Value="@("code")">Code Structure</MudSelectItem>
+                <MudSelectItem Value="@("performance")">Performance Optimization</MudSelectItem>
+                <MudSelectItem Value="@("architecture")">Architecture Improvement</MudSelectItem>
+                <MudSelectItem Value="@("security")">Security Enhancement</MudSelectItem>
+            </MudSelect>
+            
+            <MudTextField T="string" Label="Additional Instructions" @bind-Value="additionalInstructions" 
+                          Lines="3" Class="mt-3" />
+            
+            <MudCheckBox @bind-Checked="@enableBlueGreen" Label="Enable Blue/Green Deployment" Class="mt-3" />
+            
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" 
+                       OnClick="RunAutoImprovement" Class="mt-4" 
+                       Disabled="@(!success || isProcessing)">
+                @if (isProcessing)
+                {
+                    <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                    <MudText Class="ms-2">Processing...</MudText>
+                }
+                else
+                {
+                    <MudText>Run Auto-Improvement</MudText>
+                }
+            </MudButton>
+        </MudForm>
+    </MudPaper>
+    
+    @if (showResults)
+    {
+        <MudPaper Class="pa-4 mt-4" Elevation="3">
+            <MudText Typo="Typo.h5" Class="mb-2">Improvement Results</MudText>
+            
+            <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
+                <MudTabPanel Text="Summary">
+                    <MudAlert Severity="Severity.Success" Class="mb-4">Auto-improvement process completed successfully!</MudAlert>
+                    <MudText>@improvementSummary</MudText>
+                </MudTabPanel>
+                <MudTabPanel Text="Changes">
+                    <MudText>The following changes were made:</MudText>
+                    <MudList Dense="true">
+                        @foreach (var change in improvementChanges)
+                        {
+                            <MudListItem Icon="@Icons.Material.Filled.Check">@change</MudListItem>
+                        }
+                    </MudList>
+                </MudTabPanel>
+                <MudTabPanel Text="Metrics">
+                    <MudSimpleTable>
+                        <thead>
+                            <tr>
+                                <th>Metric</th>
+                                <th>Before</th>
+                                <th>After</th>
+                                <th>Improvement</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var metric in improvementMetrics)
+                            {
+                                <tr>
+                                    <td>@metric.Name</td>
+                                    <td>@metric.Before</td>
+                                    <td>@metric.After</td>
+                                    <td>
+                                        <MudChip Color="@(metric.IsBetter ? Color.Success : Color.Error)" 
+                                                Size="Size.Small">
+                                            @metric.Difference
+                                        </MudChip>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                </MudTabPanel>
+            </MudTabs>
+            
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" 
+                       OnClick="@(() => showResults = false)" Class="mt-4">
+                Close Results
+            </MudButton>
+        </MudPaper>
+    }
+</MudContainer>
+
+@code {
+    private MudForm form;
+    private bool success;
+    private string selectedTarget;
+    private string additionalInstructions;
+    private bool enableBlueGreen;
+    private bool isProcessing;
+    private bool showResults;
+    
+    // Results data
+    private string improvementSummary = "TARS has successfully optimized the code structure, improving performance by 15% and reducing complexity by 23%.";
+    private List<string> improvementChanges =
+    [
+        "Refactored DataProcessor class for better performance",
+        "Optimized database queries in UserService",
+        "Improved error handling in API controllers",
+        "Reduced memory usage in file processing operations"
+    ];
+    private List<MetricItem> improvementMetrics =
+    [
+        new MetricItem { Name = "Performance", Before = "85ms", After = "72ms", Difference = "-15%", IsBetter = true },
+        new MetricItem { Name = "Memory Usage", Before = "156MB", After = "142MB", Difference = "-9%", IsBetter = true },
+        new MetricItem { Name = "Code Complexity", Before = "24", After = "18", Difference = "-25%", IsBetter = true },
+        new MetricItem { Name = "Test Coverage", Before = "78%", After = "82%", Difference = "+5%", IsBetter = true }
+    ];
+    
+    private async Task RunAutoImprovement()
+    {
+        if (!success) return;
+        
+        isProcessing = true;
+        
+        // Simulate processing time
+        await Task.Delay(3000);
+        
+        isProcessing = false;
+        showResults = true;
+        
+        Snackbar.Add("Auto-improvement process completed successfully!", Severity.Success);
+    }
+    
+    public class MetricItem
+    {
+        public string Name { get; set; }
+        public string Before { get; set; }
+        public string After { get; set; }
+        public string Difference { get; set; }
+        public bool IsBetter { get; set; }
+    }
+}

@@ -1,0 +1,172 @@
+@page "/prompt-processing"
+@using Microsoft.AspNetCore.Components.Forms
+@using Tars.Services.Ingestion
+@inject ISnackbar Snackbar
+@inject DataIngestor DataIngestor
+@inject SemanticSearch SemanticSearch
+@rendermode InteractiveServer
+
+<PageTitle>TARS - Prompt Processing</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudText Typo="Typo.h3" Class="mb-4">Prompt Processing</MudText>
+
+    <MudPaper Class="pa-4 mb-4" Elevation="3">
+        <MudText Typo="Typo.h5" Class="mb-4">Process Epics, Stories, or Spikes</MudText>
+
+        <MudForm @ref="form" @bind-IsValid="@success">
+            <MudSelect T="string" Label="Prompt Type" @bind-Value="selectedType" Required
+                       RequiredError="Prompt type is required">
+                <MudSelectItem Value="@("Epic")">Epic</MudSelectItem>
+                <MudSelectItem Value="@("Story")">Story</MudSelectItem>
+                <MudSelectItem Value="@("Spike")">Spike</MudSelectItem>
+            </MudSelect>
+
+            <MudTextField @bind-Value="promptText" Label="Enter your prompt"
+                          Variant="Variant.Outlined" Lines="5" Class="mt-3"
+                          Required RequiredError="Prompt text is required"/>
+
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       Class="mt-4" OnClick="ProcessPrompt"
+                       Disabled="@(!success || isProcessing)">
+                @if(isProcessing)
+                {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+                <span>Processing...</span>
+                }
+                else
+                {
+                <span>Process</span>
+                }
+            </MudButton>
+        </MudForm>
+    </MudPaper>
+
+    <MudPaper Class="pa-4 mb-4" Elevation="3">
+        <MudText Typo="Typo.h5" Class="mb-4">Upload Files</MudText>
+
+        <MudFileUpload T="IBrowserFile" FilesChanged="OnFilesChanged" Accept=".txt,.pdf,.docx,.md">
+            <ButtonTemplate>
+                <MudButton HtmlTag="label"
+                           Variant="Variant.Filled"
+                           Color="Color.Secondary"
+                           StartIcon="@Icons.Material.Filled.CloudUpload"
+                           for="@context">
+                    Upload Files
+                </MudButton>
+            </ButtonTemplate>
+        </MudFileUpload>
+
+        @if (files != null && files.Count > 0)
+        {
+        <MudList Dense="true" Class="mt-3">
+            @foreach (var file in files)
+            {
+            <MudListItem Icon="@Icons.Material.Filled.InsertDriveFile">
+                @file.Name (@(Math.Round((double)file.Size / 1024, 2)) KB)
+            </MudListItem>
+            }
+        </MudList>
+
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   Class="mt-3" OnClick="ProcessFiles"
+                   Disabled="@(isProcessing)">
+            @if(isProcessing)
+            {
+            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+            <span>Processing...</span>
+            }
+            else
+            {
+            <span>Process Files</span>
+            }
+        </MudButton>
+        }
+    </MudPaper>
+
+    @if (!string.IsNullOrEmpty(result))
+    {
+    <MudPaper Class="pa-4" Elevation="3">
+        <MudText Typo="Typo.h5" Class="mb-4">Results</MudText>
+        <MudText>@result</MudText>
+    </MudPaper>
+    }
+</MudContainer>
+
+@code {
+private MudForm form;
+private bool success;
+private string selectedType = "Story";
+private string promptText = "";
+private string result = "";
+private bool isProcessing = false;
+private List<IBrowserFile> files = new();
+
+private async Task ProcessPrompt()
+{
+if (string.IsNullOrWhiteSpace(promptText))
+return;
+
+isProcessing = true;
+
+try
+{
+// Process the prompt using your AI service
+result = $"Processing {selectedType}: {promptText}";
+
+// Simulate processing time
+await Task.Delay(2000);
+
+result = $"Completed processing {selectedType}.\n\nAI Analysis: This {selectedType.ToLower()} requires implementation of new features related to data processing and user interface components.";
+
+Snackbar.Add($"{selectedType} processed successfully", Severity.Success);
+}
+catch (Exception ex)
+{
+result = $"Error: {ex.Message}";
+Snackbar.Add("Error processing prompt", Severity.Error);
+}
+finally
+{
+isProcessing = false;
+}
+}
+
+private void OnFilesChanged(InputFileChangeEventArgs e)
+{
+files = e.GetMultipleFiles().ToList();
+}
+
+private async Task ProcessFiles()
+{
+if (files == null || files.Count == 0)
+return;
+
+isProcessing = true;
+
+try
+{
+result = $"Processing {files.Count} file(s)...";
+
+// Process each file
+foreach (var file in files)
+{
+// Here you would normally ingest the file content
+await Task.Delay(1000); // Simulate processing time
+}
+
+result = $"Completed processing {files.Count} file(s).\n\nAI Analysis: The uploaded documents contain requirements for new system features and potential improvements to existing functionality.";
+
+Snackbar.Add($"{files.Count} file(s) processed successfully", Severity.Success);
+}
+catch (Exception ex)
+{
+result = $"Error: {ex.Message}";
+Snackbar.Add("Error processing files", Severity.Error);
+}
+finally
+{
+isProcessing = false;
+}
+}
+}

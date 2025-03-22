@@ -1,0 +1,88 @@
+@using Microsoft.Extensions.AI
+@using Tars.Services
+@inject Microsoft.Extensions.AI.IChatClient ChatClient
+
+@if (suggestions is not null)
+{
+    <div class="suggestions">
+        @foreach (var suggestion in suggestions)
+        {
+            <MudButton Variant="Variant.Text" 
+                      Color="Color.Primary" 
+                      Size="Size.Small"
+                      Class="mb-2 mr-2" 
+                      @onclick="@(() => AddSuggestionAsync(suggestion))">
+                @suggestion
+            </MudButton>
+        }
+    </div>
+}
+
+@code {
+    private static string Prompt = @"
+        Suggest up to 3 follow-up questions that I could ask you to help me complete my task.
+        Each suggestion must be a complete sentence, maximum 6 words.
+        Each suggestion must be phrased as something that I (the user) would ask you (the assistant) in response to your previous message,
+        for example 'How do I do that?' or 'Explain ...'.
+        If there are no suggestions, reply with an empty list.
+    ";
+
+    private string[]? suggestions;
+    private CancellationTokenSource? cancellation;
+
+    [Parameter]
+    public EventCallback<Microsoft.Extensions.AI.ChatMessage> OnSelected { get; set; }
+
+    public void Clear()
+    {
+        suggestions = null;
+        cancellation?.Cancel();
+    }
+
+    private async Task UpdateSuggestionsAsync(IReadOnlyList<Microsoft.Extensions.AI.ChatMessage> messages)
+    {
+        cancellation?.Cancel();
+        cancellation = new CancellationTokenSource();
+
+        try
+        {
+            // Create a list of Microsoft.Extensions.AI.ChatMessage objects for the API call
+            var aiMessages = ReduceMessages(messages).Select(m => 
+                new Microsoft.Extensions.AI.ChatMessage(m.Role, m.Text)).ToList();
+            
+            // Add the prompt message
+            aiMessages.Add(new Microsoft.Extensions.AI.ChatMessage(ChatRole.User, Prompt));
+            
+            var response = await ChatClient.GetResponseAsync<string[]>(
+                aiMessages,
+                useNativeJsonSchema: true, cancellationToken: cancellation.Token);
+                
+            if (!response.TryGetResult(out suggestions))
+            {
+                suggestions = null;
+            }
+
+            StateHasChanged();
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // Handle exception
+            suggestions = null;
+        }
+    }
+
+    private async Task AddSuggestionAsync(string text)
+    {
+        // Create a Microsoft.Extensions.AI.ChatMessage explicitly
+        var message = new Microsoft.Extensions.AI.ChatMessage(ChatRole.User, text);
+        await OnSelected.InvokeAsync(message);
+    }
+
+    // Rename this method to avoid hiding the inherited method
+    private Task HandleExceptionAsync(Exception ex)
+    {
+        // In a real app, you might want to log this or display it to the user
+        Console.Error.WriteLine($"Error generating suggestions: {ex}");
+        return Task.CompletedTask;
+    }
+}

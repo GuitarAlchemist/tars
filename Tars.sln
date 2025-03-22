@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tars", "Tars\Tars.csproj", "{4B437562-F207-4CB2-833B-F852E5E08DCA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TarsApp", "TarsApp\TarsApp.csproj", "{4B437562-F207-4CB2-833B-F852E5E08DCA}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionItems", "{58D07B0A-A5C8-49A4-ACD9-E226ABCEF07D}"
 	ProjectSection(SolutionItems) = preProject
@@ -11,6 +11,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionIt
 		docs\Exploration2.txt = docs\Exploration2.txt
 		docs\TARS_DSL_Structure.md = docs\TARS_DSL_Structure.md
 		progress.txt = progress.txt
+		docs\Exploration3.txt = docs\Exploration3.txt
+		docs\dsl_bnf.txt = docs\dsl_bnf.txt
+		docs\Links.txt = docs\Links.txt
+		docs\PoC\Core components.fs = docs\PoC\Core components.fs
+		docs\PoC\Core components.py = docs\PoC\Core components.py
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TarsEngine", "TarsEngine\TarsEngine.csproj", "{B0A629F0-DC3A-4A88-AF1D-CDF891784B22}"

@@ -58,3 +58,5 @@ logs/
 *.log
 **/internal-nlog.txt
 internal-nlog.txt
+/TarsApp/ingestioncache.db
+/Experiments/ChatbotExample1/ingestioncache.db
