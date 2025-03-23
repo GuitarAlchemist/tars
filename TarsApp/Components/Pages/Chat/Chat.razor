@@ -1,9 +1,5 @@
 ﻿@page "/"
 @using System.ComponentModel
-@using Microsoft.Extensions.AI
-@using TarsApp.Components.Layout
-@using IChatClient = Tars.Services.IChatClient
-@using Microsoft.AspNetCore.Components.Web
 @inject IChatClient ChatClient
 @inject NavigationManager Nav
 @inject SemanticSearch Search
@@ -22,7 +18,7 @@
 </ChatMessageList>
 
 <div class="chat-container">
-    <TarsApp.Components.ChatSuggestions OnSelected="@AddUserMessageAsync" @ref="@chatSuggestions" />
+    <ChatSuggestions OnSelected="@AddUserMessageAsync" @ref="@chatSuggestions" />
     <ChatInput OnSend="@AddUserMessageAsync" @ref="@chatInput" />
     <SurveyPrompt /> @* Remove this line to eliminate the template survey message *@
 </div>
@@ -66,24 +62,13 @@
         chatSuggestions?.Clear();
         await chatInput!.FocusAsync();
 
-        // Stream and display a new response from the IChatClient
-        var responseText = new TextContent("");
-        currentResponseMessage = new ChatMessage(ChatRole.Assistant, [responseText]);
+        // Display a new response from the IChatClient, streaming responses
+        // aren't supported because Ollama will not support both streaming and using Tools
         currentResponseCancellation = new();
+        var response = await ChatClient.GetResponseAsync(messages, chatOptions, currentResponseCancellation.Token);
 
-        // Pass a copy of the messages then add messages to the list while handling the streaming responses
-        var requestMessages = messages.ToArray();
-
-        await foreach (var update in ChatClient.GetStreamingResponseAsync(requestMessages, chatOptions, currentResponseCancellation.Token))
-        {
-            AddMessages(messages, update, filter: c => c is not TextContent);
-            responseText.Text += update.Text;
-            ChatMessageItem.NotifyChanged(currentResponseMessage);
-        }
-
-        // Store the final response in the conversation, and begin getting suggestions
-        messages.Add(currentResponseMessage!);
-        currentResponseMessage = null;
+        // Store responses in the conversation, and begin getting suggestions
+        messages.AddMessages(response);
         chatSuggestions?.Update(messages);
     }
 
@@ -106,22 +91,6 @@
         messages.Add(new(ChatRole.System, SystemPrompt));
         chatSuggestions?.Clear();
         await chatInput!.FocusAsync();
-    }
-
-    // TODO: Needed until https://github.com/dotnet/extensions/issues/6114 is resolved, which will introduce
-    // an extension method on IList<ChatMessage> for adding messages from a ChatResponseUpdate.
-    private static void AddMessages(IList<ChatMessage> list, ChatResponseUpdate update, Func<AIContent, bool> filter)
-    {
-        var contentsList = update.Contents.Where(filter).ToList();
-        if (contentsList.Count > 0)
-        {
-            list.Add(new(update.Role ?? ChatRole.Assistant, contentsList)
-            {
-                AuthorName = update.AuthorName,
-                RawRepresentation = update.RawRepresentation,
-                AdditionalProperties = update.AdditionalProperties,
-            });
-        }
     }
 
     [Description("Searches for information using a phrase or keyword")]

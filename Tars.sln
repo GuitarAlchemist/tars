@@ -1,21 +1,22 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TarsApp", "TarsApp\TarsApp.csproj", "{4B437562-F207-4CB2-833B-F852E5E08DCA}"
-EndProject
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35818.85
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionItems", "{58D07B0A-A5C8-49A4-ACD9-E226ABCEF07D}"
 	ProjectSection(SolutionItems) = preProject
 		.gitignore = .gitignore
+		docs\PoC\Core components.fs = docs\PoC\Core components.fs
+		docs\PoC\Core components.py = docs\PoC\Core components.py
 		Directory.Build.props = Directory.Build.props
+		docs\dsl_bnf.txt = docs\dsl_bnf.txt
 		docs\Exploration.md = docs\Exploration.md
 		docs\Exploration.txt = docs\Exploration.txt
 		docs\Exploration2.txt = docs\Exploration2.txt
-		docs\TARS_DSL_Structure.md = docs\TARS_DSL_Structure.md
-		progress.txt = progress.txt
 		docs\Exploration3.txt = docs\Exploration3.txt
-		docs\dsl_bnf.txt = docs\dsl_bnf.txt
 		docs\Links.txt = docs\Links.txt
-		docs\PoC\Core components.fs = docs\PoC\Core components.fs
-		docs\PoC\Core components.py = docs\PoC\Core components.py
+		progress.txt = progress.txt
+		docs\TARS_DSL_Structure.md = docs\TARS_DSL_Structure.md
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TarsEngine", "TarsEngine\TarsEngine.csproj", "{B0A629F0-DC3A-4A88-AF1D-CDF891784B22}"
@@ -28,16 +29,14 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Experiments", "Experiments"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChatbotExample1", "Experiments\ChatbotExample1\ChatbotExample1.csproj", "{44541258-8F01-4A42-B2AD-985658559358}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TarsApp", "TarsApp\TarsApp.csproj", "{711A944C-9EB3-B279-18BF-ED2E6B7DD799}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{4B437562-F207-4CB2-833B-F852E5E08DCA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{4B437562-F207-4CB2-833B-F852E5E08DCA}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{4B437562-F207-4CB2-833B-F852E5E08DCA}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{4B437562-F207-4CB2-833B-F852E5E08DCA}.Release|Any CPU.Build.0 = Release|Any CPU
 		{B0A629F0-DC3A-4A88-AF1D-CDF891784B22}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{B0A629F0-DC3A-4A88-AF1D-CDF891784B22}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B0A629F0-DC3A-4A88-AF1D-CDF891784B22}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -54,6 +53,13 @@ Global
 		{44541258-8F01-4A42-B2AD-985658559358}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{44541258-8F01-4A42-B2AD-985658559358}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{44541258-8F01-4A42-B2AD-985658559358}.Release|Any CPU.Build.0 = Release|Any CPU
+		{711A944C-9EB3-B279-18BF-ED2E6B7DD799}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{711A944C-9EB3-B279-18BF-ED2E6B7DD799}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{711A944C-9EB3-B279-18BF-ED2E6B7DD799}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{711A944C-9EB3-B279-18BF-ED2E6B7DD799}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{44541258-8F01-4A42-B2AD-985658559358} = {40B2EE05-DDC5-4583-95D5-346AFFD9DF5D}

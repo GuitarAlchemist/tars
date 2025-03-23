@@ -1,30 +1,27 @@
-@using Microsoft.Extensions.AI
-@using Microsoft.JSInterop
-@using TarsEngineFSharp
 @inject IJSRuntime JS
 
 <div class="message-list-container">
-    <div class="message-list" id="chat-messages">
+    <chat-messages class="page-width message-list" in-progress="@(InProgressMessage is not null)">
         @foreach (var message in Messages)
         {
-            <TarsApp.Components.Pages.Chat.ChatMessageItem @key="@message" Message="@message" InProgress="@(message == Messages.Last() && InProgressMessage != null)" />
+            <ChatMessageItem @key="@message" Message="@message" />
         }
 
         @if (InProgressMessage is not null)
         {
-            <TarsApp.Components.Pages.Chat.ChatMessageItem Message="@InProgressMessage" InProgress="true" />
-            <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+            <ChatMessageItem Message="@InProgressMessage" InProgress="true" />
+            <LoadingSpinner />
         }
         else if (IsEmpty)
         {
             <div class="no-messages">@NoMessagesContent</div>
         }
-    </div>
+    </chat-messages>
 </div>
 
 @code {
     [Parameter]
-    public required IEnumerable<ChatService.ChatMessage> Messages { get; set; }
+    public required IEnumerable<ChatMessage> Messages { get; set; }
 
     [Parameter]
     public ChatMessage? InProgressMessage { get; set; }
@@ -38,11 +35,8 @@
     {
         if (firstRender)
         {
-            await JS.InvokeVoidAsync("scrollToBottom", "chat-messages");
-        }
-        else if (InProgressMessage != null || Messages.LastOrDefault()?.Role == ChatRole.User)
-        {
-            await JS.InvokeVoidAsync("scrollToBottom", "chat-messages");
+            // Activates the auto-scrolling behavior
+            await JS.InvokeVoidAsync("import", "./Components/Pages/Chat/ChatMessageList.razor.js");
         }
     }
 }

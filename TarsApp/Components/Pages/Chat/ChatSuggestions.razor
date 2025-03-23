@@ -1,21 +1,13 @@
-@using ChatMessage = Microsoft.Extensions.AI.ChatMessage
-@using ChatRole = Microsoft.Extensions.AI.ChatRole
 @inject IChatClient ChatClient
-
-@namespace TarsApp.Components.Pages.Chat
 
 @if (suggestions is not null)
 {
-    <div class="suggestions mt-2">
+    <div class="page-width suggestions">
         @foreach (var suggestion in suggestions)
         {
-            <MudButton Variant="Variant.Outlined" 
-                      Color="Color.Primary" 
-                      Size="Size.Small"
-                      Class="mr-2 mb-2" 
-                      @onclick="@(() => AddSuggestionAsync(suggestion))">
+            <button class="btn-subtle" @onclick="@(() => AddSuggestionAsync(suggestion))">
                 @suggestion
-            </MudButton>
+            </button>
         }
     </div>
 }
@@ -55,8 +47,10 @@
         try
         {
             var response = await ChatClient.GetResponseAsync<string[]>(
-                [.. ReduceMessages(messages), new(ChatRole.User, Prompt)],
-                useNativeJsonSchema: true, cancellationToken: cancellation.Token);
+                ReduceMessages(messages).Append(new ChatMessage(ChatRole.User, Prompt)),
+                new ChatOptions { Temperature = 0.7f },
+                null,
+                cancellation.Token);
             if (!response.TryGetResult(out suggestions))
             {
                 suggestions = null;
@@ -66,30 +60,21 @@
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            // Handle exception properly
             await DispatchExceptionAsync(ex);
         }
     }
 
     private async Task AddSuggestionAsync(string text)
     {
-        await OnSelected.InvokeAsync(new ChatMessage(ChatRole.User, text));
+        await OnSelected.InvokeAsync(new(ChatRole.User, text));
     }
 
     private IEnumerable<ChatMessage> ReduceMessages(IReadOnlyList<ChatMessage> messages)
     {
         // Get any leading system messages, plus up to 5 user/assistant messages
+        // This should be enough context to generate suggestions without unnecessarily resending entire conversations when long
         var systemMessages = messages.TakeWhile(m => m.Role == ChatRole.System);
-        var otherMessages = messages.Where(m => m.Role == ChatRole.User || m.Role == ChatRole.Assistant)
-                                   .Where(m => !string.IsNullOrEmpty(m.Text))
-                                   .TakeLast(5);
+        var otherMessages = messages.Where((m, index) => m.Role == ChatRole.User || m.Role == ChatRole.Assistant).Where(m => !string.IsNullOrEmpty(m.Text)).TakeLast(5);
         return systemMessages.Concat(otherMessages);
-    }
-    
-    private Task DispatchExceptionAsync(Exception ex)
-    {
-        // In a real app, you might want to log this or display it to the user
-        Console.Error.WriteLine($"Error generating suggestions: {ex}");
-        return Task.CompletedTask;
     }
 }

@@ -1,30 +1,19 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.VectorData;
-using Tars.Components;
-using Tars.Services;
-using Tars.Services.Ingestion;
-using OpenAI;
-using System.ClientModel;
-using MudBlazor.Services;
+using TarsApp.Components;
+using TarsApp.Services;
+using TarsApp.Services.Ingestion;
+using OllamaSharp;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();
-builder.Services.AddMudServices();
 
-// You will need to set the endpoint and key to your own values
-// You can do this using Visual Studio's "Manage User Secrets" UI, or on the command line:
-//   cd this-project-directory
-//   dotnet user-secrets set GitHubModels:Token YOUR-GITHUB-TOKEN
-var credential = new ApiKeyCredential(builder.Configuration["GitHubModels:Token"] ?? throw new InvalidOperationException("Missing configuration: GitHubModels:Token. See the README for details."));
-var openAIOptions = new OpenAIClientOptions()
-{
-    Endpoint = new Uri("https://models.inference.ai.azure.com")
-};
-
-var ghModelsClient = new OpenAIClient(credential, openAIOptions);
-var chatClient = ghModelsClient.AsChatClient("gpt-4o-mini");
-var embeddingGenerator = ghModelsClient.AsEmbeddingGenerator("text-embedding-3-small");
+// Use llama3 for both chat and embeddings
+IChatClient chatClient = new OllamaApiClient(new Uri("http://localhost:11434"),
+    "llama3");
+IEmbeddingGenerator<string, Embedding<float>> embeddingGenerator = new OllamaApiClient(new Uri("http://localhost:11434"),
+    "llama3"); // Using llama3 for embeddings instead of all-minilm
 
 var vectorStore = new JsonVectorStore(Path.Combine(AppContext.BaseDirectory, "vector-store"));
 
