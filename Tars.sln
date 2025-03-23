@@ -54,6 +54,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionIt
 		docs\Summary.txt = docs\Summary.txt
 		docs\vibecoding\ChatGPT-Augment Code Struggles Summary.md = docs\vibecoding\ChatGPT-Augment Code Struggles Summary.md
 		docs\vibecoding\vibecoding_augmentcode_rider.mp4 = docs\vibecoding\vibecoding_augmentcode_rider.mp4
+		docs\Explorations\v1\Chats\ChatGPT-Quaternions and Projective Geometry for TARS.md = docs\Explorations\v1\Chats\ChatGPT-Quaternions and Projective Geometry for TARS.md
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TarsEngine", "TarsEngine\TarsEngine.csproj", "{B0A629F0-DC3A-4A88-AF1D-CDF891784B22}"
