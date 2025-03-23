@@ -50,7 +50,8 @@
     protected override void OnInitialized()
     {
         messages.Add(new(ChatRole.System, SystemPrompt));
-        chatOptions.Tools = [AIFunctionFactory.Create(SearchAsync)];
+        // Remove tools configuration since Ollama doesn't support it
+        // chatOptions.Tools = [AIFunctionFactory.Create(SearchAsync)];
     }
 
     private async Task AddUserMessageAsync(ChatMessage userMessage)
@@ -62,8 +63,30 @@
         chatSuggestions?.Clear();
         await chatInput!.FocusAsync();
 
-        // Display a new response from the IChatClient, streaming responses
-        // aren't supported because Ollama will not support both streaming and using Tools
+        // For Ollama, we'll need to manually handle search functionality
+        // Check if the message contains search-like queries
+        if (userMessage.Text.Contains("search") || userMessage.Text.Contains("find") || 
+            userMessage.Text.Contains("look for"))
+        {
+            // Add a system message explaining we're searching
+            messages.Add(new(ChatRole.System, "Searching for relevant information..."));
+            
+            // Perform search with the user's query
+            var results = await Search.SearchAsync(userMessage.Text, null, maxResults: 3);
+            
+            // Add search results as a system message
+            if (results.Any())
+            {
+                var searchResultsMessage = "Found these relevant passages:\n\n";
+                foreach (var result in results)
+                {
+                    searchResultsMessage += $"From {result.FileName} (page {result.PageNumber}):\n{result.Text}\n\n";
+                }
+                messages.Add(new(ChatRole.System, searchResultsMessage));
+            }
+        }
+
+        // Get response from the model
         currentResponseCancellation = new();
         var response = await ChatClient.GetResponseAsync(messages, chatOptions, currentResponseCancellation.Token);
 
