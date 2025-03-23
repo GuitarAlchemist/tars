@@ -1,6 +1,5 @@
 ﻿@page "/"
 @using System.ComponentModel
-@using MudBlazor
 @inject IChatClient ChatClient
 @inject NavigationManager Nav
 @inject SemanticSearch Search
@@ -8,30 +7,44 @@
 
 <PageTitle>Chat</PageTitle>
 
-<MudPaper Elevation="0" Class="mb-4">
-    <MudToolBar DisableGutters="true">
-        <MudText Typo="Typo.h5">Chat</MudText>
-        <MudSpacer />
-        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="@ResetConversationAsync">
-            New Chat
+<MudLayout>
+    <MudAppBar Elevation="0" Color="Color.Transparent" Class="chat-header">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="@ResetConversationAsync">
+            New chat
         </MudButton>
-    </MudToolBar>
-</MudPaper>
+        <MudSpacer />
+        <MudText Typo="Typo.h5">TarsApp</MudText>
+        <MudSpacer />
+    </MudAppBar>
 
-<div style="height: calc(100vh - 250px); overflow-y: auto; margin-bottom: 16px;">
-    <ChatMessageList Messages="@messages" InProgressMessage="@currentResponseMessage">
-        <NoMessagesContent>
-            <MudText Class="mb-4">To get started, try asking about these example documents. You can replace these with your own data and replace this message.</MudText>
-            <ChatCitation File="Example_Emergency_Survival_Kit.pdf"/>
-            <ChatCitation File="Example_GPS_Watch.pdf"/>
-        </NoMessagesContent>
-    </ChatMessageList>
-</div>
+    <MudMainContent Class="d-flex flex-column" Style="height: calc(100vh - 64px);">
+        <ChatMessageList Messages="@messages" InProgressMessage="@currentResponseMessage">
+            <NoMessagesContent>
+                <div>To get started, try asking about these example documents. You can replace these with your own data and replace this message.</div>
+                <ChatCitation File="Example_Emergency_Survival_Kit.pdf"/>
+                <ChatCitation File="Example_GPS_Watch.pdf"/>
+            </NoMessagesContent>
+        </ChatMessageList>
 
-<MudPaper Elevation="1" Class="pa-4 mt-4">
-    <ChatSuggestions OnSelected="@AddUserMessageAsync" @ref="@chatSuggestions" />
-    <ChatInput OnSend="@AddUserMessageAsync" @ref="@chatInput" IsWaiting="@(currentResponseMessage is not null)" />
-</MudPaper>
+        <MudPaper Elevation="0" Class="py-2 px-3 sticky-bottom" Style="background-color: var(--mud-palette-background);">
+            <ChatSuggestions OnSelected="@(suggestion => AddUserMessageAsync(new ChatMessage(ChatRole.User, suggestion)))" @ref="@chatSuggestions" />
+            <ChatInput OnSend="@(message => AddUserMessageAsync(message))" @ref="@chatInput" IsWaiting="@(currentResponseMessage is not null)" />
+            <SurveyPrompt />
+        </MudPaper>
+    </MudMainContent>
+</MudLayout>
+
+<style>
+    .sticky-bottom {
+        position: sticky;
+        bottom: 0;
+        border-top: 1px solid var(--mud-palette-lines-default);
+    }
+    
+    .chat-header {
+        background: linear-gradient(to bottom, rgb(225 227 233), #f4f4f4);
+    }
+</style>
 
 @code {
     private const string SystemPrompt = @"

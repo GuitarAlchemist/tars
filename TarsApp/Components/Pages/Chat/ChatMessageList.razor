@@ -1,23 +1,33 @@
 @inject IJSRuntime JS
 
-<div class="message-list-container">
-    <chat-messages class="page-width message-list" in-progress="@(InProgressMessage is not null)">
+<MudContainer Class="px-2 py-2 flex-grow-1 overflow-auto">
+    <MudList T="ChatMessage" Clickable="false" Dense="false" DisableGutters="true" Class="d-flex flex-column gap-4">
         @foreach (var message in Messages)
         {
-            <ChatMessageItem @key="@message" Message="@message" />
+            <MudListItem @key="@message" DisableGutters="true" Class="pa-0">
+                <ChatMessageItem Message="@message" />
+            </MudListItem>
         }
 
         @if (InProgressMessage is not null)
         {
-            <ChatMessageItem Message="@InProgressMessage" InProgress="true" />
-            <LoadingSpinner />
+            <MudListItem DisableGutters="true" Class="pa-0">
+                <ChatMessageItem Message="@InProgressMessage" InProgress="true" />
+            </MudListItem>
+            <MudListItem DisableGutters="true" Class="pa-0">
+                <LoadingSpinner />
+            </MudListItem>
         }
         else if (IsEmpty)
         {
-            <div class="no-messages">@NoMessagesContent</div>
+            <MudListItem DisableGutters="true" Class="d-flex justify-center">
+                <MudText Typo="Typo.body1" Color="Color.Default" Class="text-center mt-10">
+                    @NoMessagesContent
+                </MudText>
+            </MudListItem>
         }
-    </chat-messages>
-</div>
+    </MudList>
+</MudContainer>
 
 @code {
     [Parameter]

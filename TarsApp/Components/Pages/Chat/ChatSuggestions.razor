@@ -1,99 +1,120 @@
 @inject IChatClient ChatClient
-@using MudBlazor
+@inject ILogger<ChatSuggestions> Logger
+@using System.Linq
 
-@if (suggestions.Count > 0)
+@if (suggestions is not null && suggestions.Any())
 {
-    <MudGrid Class="mb-4">
+    <MudChipSet T="string" Class="d-flex flex-wrap gap-2 mb-2">
         @foreach (var suggestion in suggestions)
         {
-            <MudItem xs="12" sm="6" md="4">
-                <MudButton Variant="Variant.Outlined" 
-                          Color="Color.Primary" 
-                          FullWidth="true"
-                          OnClick="@(() => SelectSuggestionAsync(suggestion))">
-                    @suggestion
-                </MudButton>
-            </MudItem>
+            <MudChip Color="Color.Primary" Variant="Variant.Outlined" 
+                    OnClick="@(() => AddSuggestionAsync(suggestion))">
+                @suggestion
+            </MudChip>
         }
-    </MudGrid>
+    </MudChipSet>
 }
 
 @code {
-    private static string Prompt = @"
-        Suggest up to 3 follow-up questions that I could ask you to help me complete my task.
-        Each suggestion must be a complete sentence, maximum 6 words.
-        Each suggestion must be phrased as something that I (the user) would ask you (the assistant) in response to your previous message,
-        for example 'How do I do that?' or 'Explain ...'.
-        If there are no suggestions, reply with an empty list.
-    ";
-
-    private readonly List<string> suggestions = new();
-    private CancellationTokenSource? cancellation;
+    private List<string>? suggestions;
+    private CancellationTokenSource? cancellationTokenSource;
+    private List<ChatMessage> chatHistory = new();
 
     [Parameter]
-    public EventCallback<ChatMessage> OnSelected { get; set; }
+    public EventCallback<string> OnSelected { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await GenerateSuggestionsAsync();
+    }
+
+    private async Task AddSuggestionAsync(string suggestion)
+    {
+        suggestions = null;
+        await OnSelected.InvokeAsync(suggestion);
+    }
+
+    public void Update(List<ChatMessage> messages)
+    {
+        chatHistory = messages.ToList();
+        _ = GenerateSuggestionsAsync();
+    }
 
     public void Clear()
     {
-        suggestions.Clear();
-        cancellation?.Cancel();
+        suggestions = null;
         StateHasChanged();
     }
 
-    public void Update(IReadOnlyList<ChatMessage> messages)
+    private async Task GenerateSuggestionsAsync()
     {
-        // Runs in the background and handles its own cancellation/errors
-        _ = UpdateSuggestionsAsync(messages);
-    }
-
-    private async Task UpdateSuggestionsAsync(IReadOnlyList<ChatMessage> messages)
-    {
-        cancellation?.Cancel();
-        cancellation = new CancellationTokenSource();
+        cancellationTokenSource?.Cancel();
+        cancellationTokenSource = new CancellationTokenSource();
+        var token = cancellationTokenSource.Token;
 
         try
         {
-            // Prepare messages and options
-            var messagesToSend = ReduceMessages(messages).Append(new ChatMessage(ChatRole.User, Prompt));
-            var options = new ChatOptions { Temperature = 0.7f };
+            suggestions = new List<string>();
+            StateHasChanged();
 
-            // Call the API with correct parameters
-            var response = await ChatClient.GetResponseAsync<string[]>(
-                messagesToSend,
-                options,
-                null,  // This parameter is likely for streaming
-                cancellation.Token);
-
-            suggestions.Clear();
-            if (response.TryGetResult(out var newSuggestions))
+            // Create a prompt to generate suggestions based on chat history
+            if (chatHistory.Count > 0)
             {
-                suggestions.AddRange(newSuggestions);
+                var systemPrompt = "Based on the conversation history, suggest 3 brief follow-up questions the user might want to ask. " +
+                                  "Keep suggestions short (under 10 words) and directly related to the conversation. " +
+                                  "Return only the questions as a numbered list with no additional text.";
+                
+                var messages = new List<ChatMessage>
+                {
+                    new ChatMessage(ChatRole.System, systemPrompt)
+                };
+                
+                // Add the last few messages from chat history (up to 5)
+                messages.AddRange(chatHistory
+                    .Where(m => m.Role == ChatRole.User || m.Role == ChatRole.Assistant)
+                    .TakeLast(5));
+                
+                var response = await ChatClient.GetResponseAsync(messages, new ChatOptions(), token);
+                var responseMessage = response.Messages.FirstOrDefault(m => m.Role == ChatRole.Assistant);
+                
+                if (responseMessage != null && !string.IsNullOrEmpty(responseMessage.Text))
+                {
+                    // Parse the numbered list into individual suggestions
+                    var text = responseMessage.Text;
+                    var lines = text.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(line => line.Trim())
+                        .Where(line => !string.IsNullOrWhiteSpace(line))
+                        .Select(line => line.TrimStart('1', '2', '3', '4', '5', '.', ' ', '-'))
+                        .Where(line => !string.IsNullOrWhiteSpace(line))
+                        .Take(3)
+                        .ToList();
+                    
+                    suggestions.AddRange(lines);
+                }
             }
-
+            else
+            {
+                // Default suggestions for new chat
+                suggestions.AddRange(new[] {
+                    "What can you help me with?",
+                    "Tell me about the example documents",
+                    "How do I add my own data?"
+                });
+            }
+            
             StateHasChanged();
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            // Handle exception
-            await Console.Error.WriteLineAsync($"Error generating suggestions: {ex.Message}");
-            suggestions.Clear();
+            Logger.LogError(ex, "Error generating suggestions");
+            suggestions?.Clear();
             StateHasChanged();
         }
     }
 
-    private async Task SelectSuggestionAsync(string text)
+    public void Dispose()
     {
-        await OnSelected.InvokeAsync(new ChatMessage(ChatRole.User, text));
-    }
-
-    private IEnumerable<ChatMessage> ReduceMessages(IReadOnlyList<ChatMessage> messages)
-    {
-        // Get any leading system messages, plus up to 5 user/assistant messages
-        // This should be enough context to generate suggestions without unnecessarily resending entire conversations when long
-        var systemMessages = messages.TakeWhile(m => m.Role == ChatRole.System);
-        var otherMessages = messages.Where(m => m.Role == ChatRole.User || m.Role == ChatRole.Assistant)
-                                   .Where(m => !string.IsNullOrEmpty(m.Text))
-                                   .TakeLast(5);
-        return systemMessages.Concat(otherMessages);
+        cancellationTokenSource?.Cancel();
+        cancellationTokenSource?.Dispose();
     }
 }
