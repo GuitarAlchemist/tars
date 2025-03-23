@@ -1,15 +1,21 @@
 @inject IChatClient ChatClient
+@using MudBlazor
 
-@if (suggestions is not null)
+@if (suggestions.Count > 0)
 {
-    <div class="page-width suggestions">
+    <MudGrid Class="mb-4">
         @foreach (var suggestion in suggestions)
         {
-            <button class="btn-subtle" @onclick="@(() => AddSuggestionAsync(suggestion))">
-                @suggestion
-            </button>
+            <MudItem xs="12" sm="6" md="4">
+                <MudButton Variant="Variant.Outlined" 
+                          Color="Color.Primary" 
+                          FullWidth="true"
+                          OnClick="@(() => SelectSuggestionAsync(suggestion))">
+                    @suggestion
+                </MudButton>
+            </MudItem>
         }
-    </div>
+    </MudGrid>
 }
 
 @code {
@@ -21,7 +27,7 @@
         If there are no suggestions, reply with an empty list.
     ";
 
-    private string[]? suggestions;
+    private readonly List<string> suggestions = new();
     private CancellationTokenSource? cancellation;
 
     [Parameter]
@@ -29,8 +35,9 @@
 
     public void Clear()
     {
-        suggestions = null;
+        suggestions.Clear();
         cancellation?.Cancel();
+        StateHasChanged();
     }
 
     public void Update(IReadOnlyList<ChatMessage> messages)
@@ -46,27 +53,37 @@
 
         try
         {
+            // Prepare messages and options
+            var messagesToSend = ReduceMessages(messages).Append(new ChatMessage(ChatRole.User, Prompt));
+            var options = new ChatOptions { Temperature = 0.7f };
+
+            // Call the API with correct parameters
             var response = await ChatClient.GetResponseAsync<string[]>(
-                ReduceMessages(messages).Append(new ChatMessage(ChatRole.User, Prompt)),
-                new ChatOptions { Temperature = 0.7f },
-                null,
+                messagesToSend,
+                options,
+                null,  // This parameter is likely for streaming
                 cancellation.Token);
-            if (!response.TryGetResult(out suggestions))
+
+            suggestions.Clear();
+            if (response.TryGetResult(out var newSuggestions))
             {
-                suggestions = null;
+                suggestions.AddRange(newSuggestions);
             }
 
             StateHasChanged();
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            await DispatchExceptionAsync(ex);
+            // Handle exception
+            await Console.Error.WriteLineAsync($"Error generating suggestions: {ex.Message}");
+            suggestions.Clear();
+            StateHasChanged();
         }
     }
 
-    private async Task AddSuggestionAsync(string text)
+    private async Task SelectSuggestionAsync(string text)
     {
-        await OnSelected.InvokeAsync(new(ChatRole.User, text));
+        await OnSelected.InvokeAsync(new ChatMessage(ChatRole.User, text));
     }
 
     private IEnumerable<ChatMessage> ReduceMessages(IReadOnlyList<ChatMessage> messages)
@@ -74,7 +91,9 @@
         // Get any leading system messages, plus up to 5 user/assistant messages
         // This should be enough context to generate suggestions without unnecessarily resending entire conversations when long
         var systemMessages = messages.TakeWhile(m => m.Role == ChatRole.System);
-        var otherMessages = messages.Where((m, index) => m.Role == ChatRole.User || m.Role == ChatRole.Assistant).Where(m => !string.IsNullOrEmpty(m.Text)).TakeLast(5);
+        var otherMessages = messages.Where(m => m.Role == ChatRole.User || m.Role == ChatRole.Assistant)
+                                   .Where(m => !string.IsNullOrEmpty(m.Text))
+                                   .TakeLast(5);
         return systemMessages.Concat(otherMessages);
     }
 }

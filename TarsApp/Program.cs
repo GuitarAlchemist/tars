@@ -5,9 +5,11 @@ using TarsApp.Components;
 using TarsApp.Services;
 using TarsApp.Services.Ingestion;
 using OllamaSharp;
+using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();
+builder.Services.AddMudServices(); // Add MudBlazor services
 
 // Use llama3 for both chat and embeddings
 IChatClient chatClient = new OllamaApiClient(new Uri("http://localhost:11434"),

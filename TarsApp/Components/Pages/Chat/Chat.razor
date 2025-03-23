@@ -1,5 +1,6 @@
 ﻿@page "/"
 @using System.ComponentModel
+@using MudBlazor
 @inject IChatClient ChatClient
 @inject NavigationManager Nav
 @inject SemanticSearch Search
@@ -7,21 +8,30 @@
 
 <PageTitle>Chat</PageTitle>
 
-<ChatHeader OnNewChat="@ResetConversationAsync" />
+<MudPaper Elevation="0" Class="mb-4">
+    <MudToolBar DisableGutters="true">
+        <MudText Typo="Typo.h5">Chat</MudText>
+        <MudSpacer />
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="@ResetConversationAsync">
+            New Chat
+        </MudButton>
+    </MudToolBar>
+</MudPaper>
 
-<ChatMessageList Messages="@messages" InProgressMessage="@currentResponseMessage">
-    <NoMessagesContent>
-        <div>To get started, try asking about these example documents. You can replace these with your own data and replace this message.</div>
-        <ChatCitation File="Example_Emergency_Survival_Kit.pdf"/>
-        <ChatCitation File="Example_GPS_Watch.pdf"/>
-    </NoMessagesContent>
-</ChatMessageList>
-
-<div class="chat-container">
-    <ChatSuggestions OnSelected="@AddUserMessageAsync" @ref="@chatSuggestions" />
-    <ChatInput OnSend="@AddUserMessageAsync" @ref="@chatInput" />
-    <SurveyPrompt /> @* Remove this line to eliminate the template survey message *@
+<div style="height: calc(100vh - 250px); overflow-y: auto; margin-bottom: 16px;">
+    <ChatMessageList Messages="@messages" InProgressMessage="@currentResponseMessage">
+        <NoMessagesContent>
+            <MudText Class="mb-4">To get started, try asking about these example documents. You can replace these with your own data and replace this message.</MudText>
+            <ChatCitation File="Example_Emergency_Survival_Kit.pdf"/>
+            <ChatCitation File="Example_GPS_Watch.pdf"/>
+        </NoMessagesContent>
+    </ChatMessageList>
 </div>
+
+<MudPaper Elevation="1" Class="pa-4 mt-4">
+    <ChatSuggestions OnSelected="@AddUserMessageAsync" @ref="@chatSuggestions" />
+    <ChatInput OnSend="@AddUserMessageAsync" @ref="@chatInput" IsWaiting="@(currentResponseMessage is not null)" />
+</MudPaper>
 
 @code {
     private const string SystemPrompt = @"
