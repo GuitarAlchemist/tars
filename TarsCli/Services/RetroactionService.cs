@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Text;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using System.Text.RegularExpressions;
 
 namespace TarsCli.Services;
 
@@ -109,56 +110,72 @@ Return the improved code in a code block, followed by a brief explanation of the
 
     private string ExtractCodeFromResponse(string response, string fileExtension)
     {
-        // Extract code from markdown code blocks
-        if (response.Contains("```"))
+        try
         {
-            var codeBlockStart = response.IndexOf("```");
-            var codeBlockEnd = response.IndexOf("```", codeBlockStart + 3);
+            // Look for code blocks with the specific language
+            var codeBlockPattern = $"```(?:{GetLanguageIdentifier(fileExtension)})?\\s*\\n([\\s\\S]*?)\\n```";
+            var match = Regex.Match(response, codeBlockPattern, RegexOptions.IgnoreCase);
             
-            if (codeBlockEnd > codeBlockStart)
+            if (match.Success && match.Groups.Count > 1)
             {
-                var codeBlock = response.Substring(codeBlockStart + 3, codeBlockEnd - codeBlockStart - 3);
-                
-                // Remove language identifier if present
-                var firstLineEnd = codeBlock.IndexOf('\n');
-                if (firstLineEnd > 0)
-                {
-                    var firstLine = codeBlock.Substring(0, firstLineEnd).Trim();
-                    if (firstLine.Contains(fileExtension.TrimStart('.')) || 
-                        IsLanguageIdentifier(firstLine, fileExtension))
-                    {
-                        codeBlock = codeBlock.Substring(firstLineEnd + 1);
-                    }
-                }
-                
-                return codeBlock.Trim();
+                return match.Groups[1].Value.Trim();
             }
+            
+            // Fallback: look for any code block
+            var anyCodeBlockPattern = "```\\s*\\n([\\s\\S]*?)\\n```";
+            match = Regex.Match(response, anyCodeBlockPattern);
+            
+            if (match.Success && match.Groups.Count > 1)
+            {
+                return match.Groups[1].Value.Trim();
+            }
+            
+            // If no code blocks found, check if the entire response looks like code
+            if (IsLikelyCode(response, fileExtension))
+            {
+                return response.Trim();
+            }
+            
+            _logger.LogWarning("Could not extract code from response. Returning original response.");
+            return response;
         }
-        
-        // If no code blocks found, return the raw response
-        return response;
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error extracting code from response");
+            return response;
+        }
     }
 
-    private bool IsLanguageIdentifier(string line, string extension)
+    private bool IsLikelyCode(string text, string fileExtension)
     {
-        // Map file extensions to common language identifiers in markdown
-        var extensionMap = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase)
+        // Basic heuristics to determine if text is likely code
+        switch (fileExtension.ToLower())
         {
-            { ".cs", new List<string> { "csharp", "c#" } },
-            { ".js", new List<string> { "javascript" } },
-            { ".py", new List<string> { "python" } },
-            { ".md", new List<string> { "markdown" } },
-            { ".html", new List<string> { "html" } },
-            { ".css", new List<string> { "css" } },
-            { ".json", new List<string> { "json" } }
-        };
-
-        if (extensionMap.TryGetValue(extension, out var identifiers))
-        {
-            return identifiers.Any(id => line.Equals(id, StringComparison.OrdinalIgnoreCase));
+            case ".cs":
+                return text.Contains("namespace") || text.Contains("class") || text.Contains("using ");
+            case ".js":
+            case ".ts":
+                return text.Contains("function") || text.Contains("const") || text.Contains("let");
+            case ".py":
+                return text.Contains("def ") || text.Contains("import ") || text.Contains("class ");
+            case ".md":
+                return text.Contains("#") || text.Contains("##");
+            default:
+                return false;
         }
+    }
 
-        return false;
+    private string GetLanguageIdentifier(string fileExtension)
+    {
+        return fileExtension.ToLower() switch
+        {
+            ".cs" => "csharp|cs|c#",
+            ".js" => "javascript|js",
+            ".ts" => "typescript|ts",
+            ".py" => "python|py",
+            ".md" => "markdown|md",
+            _ => ""
+        };
     }
 
     private void SaveTarsMetadata(string filePath, string task, string model, string outputDir)
