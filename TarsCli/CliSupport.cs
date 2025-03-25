@@ -211,7 +211,10 @@ public static class CliSupport
         var diagnosticsCommand = new Command("diagnostics", "Run system diagnostics and check environment setup");
         diagnosticsCommand.SetHandler(async () =>
         {
-            var diagnosticsResult = await diagnosticsService.RunInitialDiagnosticsAsync();
+            Console.WriteLine("\n=== Running TARS Diagnostics ===");
+            Console.WriteLine("Checking system configuration, Ollama setup, and required models...");
+            
+            var diagnosticsResult = await diagnosticsService.RunInitialDiagnosticsAsync(verbose: true);
             
             WriteHeader("=== TARS Diagnostics Report ===");
             Console.WriteLine($"System: {diagnosticsResult.SystemInfo.OperatingSystem}");
@@ -241,6 +244,18 @@ public static class CliSupport
             Console.Write($"Overall Status: ");
             WriteColorLine(diagnosticsResult.IsReady ? "Ready ✓" : "Not Ready ✗", 
                           diagnosticsResult.IsReady ? ConsoleColor.Green : ConsoleColor.Red);
+            
+            if (!diagnosticsResult.IsReady)
+            {
+                Console.WriteLine();
+                WriteColorLine("Recommendations:", ConsoleColor.Yellow);
+                if (diagnosticsResult.ModelStatus.Any(m => !m.Value))
+                {
+                    WriteColorLine("  - Missing required models. Run the Install-Prerequisites.ps1 script:", ConsoleColor.Yellow);
+                    WriteColorLine("    .\\TarsCli\\Scripts\\Install-Prerequisites.ps1", ConsoleColor.Cyan);
+                }
+            }
+            
             WriteColorLine("===========================", ConsoleColor.Cyan);
         });
 

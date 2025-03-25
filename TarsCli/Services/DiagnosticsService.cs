@@ -21,11 +21,16 @@ public class DiagnosticsService
         _ollamaService = ollamaService;
     }
 
-    public async Task<DiagnosticsResult> RunInitialDiagnosticsAsync()
+    public async Task<DiagnosticsResult> RunInitialDiagnosticsAsync(bool verbose = false)
     {
+        if (verbose)
+            Console.WriteLine("Starting system diagnostics check...");
+        
         var result = new DiagnosticsResult();
         
         // System information
+        if (verbose)
+            Console.WriteLine("Checking system information...");
         result.SystemInfo = GetSystemInfo();
         _logger.LogInformation("System: {OS}, {Cores} cores, {Memory}GB RAM", 
             result.SystemInfo.OperatingSystem,
@@ -33,12 +38,16 @@ public class DiagnosticsService
             result.SystemInfo.AvailableMemoryGB);
         
         // Ollama configuration
+        if (verbose)
+            Console.WriteLine("Checking Ollama configuration...");
         result.OllamaConfig = GetOllamaConfig();
         _logger.LogInformation("Ollama configured at {BaseUrl} with default model {DefaultModel}", 
             result.OllamaConfig.BaseUrl,
             result.OllamaConfig.DefaultModel);
         
         // Check required models
+        if (verbose)
+            Console.WriteLine("Checking required models availability...");
         result.ModelStatus = await CheckRequiredModelsAsync();
         foreach (var model in result.ModelStatus)
         {
@@ -49,6 +58,8 @@ public class DiagnosticsService
         }
         
         // Project configuration
+        if (verbose)
+            Console.WriteLine("Checking project configuration...");
         result.ProjectConfig = GetProjectConfig();
         _logger.LogInformation("Project root: {ProjectRoot}", result.ProjectConfig.ProjectRoot);
         
