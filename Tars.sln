@@ -67,6 +67,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionIt
 		docs\Explorations\v1\Chats\ChatGPT-Replicate NotebookLLM Locally.md = docs\Explorations\v1\Chats\ChatGPT-Replicate NotebookLLM Locally.md
 		docs\Explorations\v1\Chats\ChatGPT-State-Space for TARS.md = docs\Explorations\v1\Chats\ChatGPT-State-Space for TARS.md
 		docs\Explorations\v1\Chats\ChatGPT-TARS Multi-modal Memory Space.md = docs\Explorations\v1\Chats\ChatGPT-TARS Multi-modal Memory Space.md
+		docs\Feedback\ChatGPT-Automated Coding Loop Path - 2.md = docs\Feedback\ChatGPT-Automated Coding Loop Path - 2.md
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TarsEngine", "TarsEngine\TarsEngine.csproj", "{B0A629F0-DC3A-4A88-AF1D-CDF891784B22}"
