@@ -48,7 +48,8 @@ public static class CliSupport
         IConfiguration configuration,
         ILogger logger,
         DiagnosticsService diagnosticsService,
-        RetroactionService retroactionService)
+        RetroactionService retroactionService,
+        OllamaSetupService ollamaSetupService)
     {
         // Setup command line options
         var fileOption = new Option<string>(
@@ -71,7 +72,7 @@ public static class CliSupport
         // Add validation for file option
         fileOption.AddValidator(result =>
         {
-            string? filePath = result.GetValueForOption(fileOption);
+            var filePath = result.GetValueForOption(fileOption);
             if (filePath != null && !File.Exists(filePath))
             {
                 result.ErrorMessage = $"File does not exist: {filePath}";
@@ -81,7 +82,7 @@ public static class CliSupport
         // Add validation for model option
         modelOption.AddValidator(result =>
         {
-            string? model = result.GetValueForOption(modelOption);
+            var model = result.GetValueForOption(modelOption);
             if (string.IsNullOrWhiteSpace(model))
             {
                 result.ErrorMessage = "Model name cannot be empty";
@@ -93,7 +94,7 @@ public static class CliSupport
 
         // Add help option
         var helpOption = new Option<bool>(
-            aliases: new[] { "--help", "-h" },
+            aliases: ["--help", "-h"],
             description: "Display detailed help information about TARS CLI");
 
         rootCommand.AddGlobalOption(helpOption);
@@ -138,7 +139,7 @@ public static class CliSupport
             Console.WriteLine($"Model: {model}");
             Console.WriteLine();
 
-            bool success = await retroactionService.ProcessFile(file, task, model);
+            var success = await retroactionService.ProcessFile(file, task, model);
             
             if (success)
             {
@@ -167,7 +168,7 @@ public static class CliSupport
 
         docsCommand.SetHandler(async (task, model, path) =>
         {
-            string docsPath = Path.Combine(configuration["Tars:ProjectRoot"] ?? "", "docs");
+            var docsPath = Path.Combine(configuration["Tars:ProjectRoot"] ?? "", "docs");
             
             if (!string.IsNullOrEmpty(path))
             {
@@ -189,12 +190,12 @@ public static class CliSupport
             
             // Process all markdown files in the directory
             var files = Directory.GetFiles(docsPath, "*.md", SearchOption.AllDirectories);
-            int successCount = 0;
+            var successCount = 0;
             
             foreach (var file in files)
             {
                 Console.WriteLine($"Processing file: {file}");
-                bool success = await retroactionService.ProcessFile(file, task, model);
+                var success = await retroactionService.ProcessFile(file, task, model);
                 
                 if (success)
                 {
@@ -211,59 +212,166 @@ public static class CliSupport
         var diagnosticsCommand = new Command("diagnostics", "Run system diagnostics and check environment setup");
         diagnosticsCommand.SetHandler(async () =>
         {
-            Console.WriteLine("\n=== Running TARS Diagnostics ===");
-            Console.WriteLine("Checking system configuration, Ollama setup, and required models...");
-            
-            var diagnosticsResult = await diagnosticsService.RunInitialDiagnosticsAsync(verbose: true);
-            
-            WriteHeader("=== TARS Diagnostics Report ===");
-            Console.WriteLine($"System: {diagnosticsResult.SystemInfo.OperatingSystem}");
-            Console.WriteLine($"CPU Cores: {diagnosticsResult.SystemInfo.ProcessorCores}");
-            Console.WriteLine($"Available Memory: {diagnosticsResult.SystemInfo.AvailableMemoryGB:F2} GB");
-            Console.WriteLine();
-            
-            WriteHeader("Ollama Configuration");
-            Console.WriteLine($"  Base URL: {diagnosticsResult.OllamaConfig.BaseUrl}");
-            Console.WriteLine($"  Default Model: {diagnosticsResult.OllamaConfig.DefaultModel}");
-            Console.WriteLine();
-            
-            WriteHeader("Required Models");
-            foreach (var model in diagnosticsResult.ModelStatus)
+            try
             {
-                var statusColor = model.Value ? ConsoleColor.Green : ConsoleColor.Red;
-                var statusText = model.Value ? "Available ✓" : "Not Available ✗";
-                Console.Write($"  {model.Key}: ");
-                WriteColorLine(statusText, statusColor);
-            }
-            Console.WriteLine();
-            
-            WriteHeader("Project Configuration");
-            Console.WriteLine($"  Project Root: {diagnosticsResult.ProjectConfig.ProjectRoot}");
-            Console.WriteLine();
-            
-            Console.Write($"Overall Status: ");
-            WriteColorLine(diagnosticsResult.IsReady ? "Ready ✓" : "Not Ready ✗", 
-                          diagnosticsResult.IsReady ? ConsoleColor.Green : ConsoleColor.Red);
-            
-            if (!diagnosticsResult.IsReady)
-            {
+                WriteHeader("=== Running TARS Diagnostics ===");
+                Console.WriteLine("Checking system configuration, Ollama setup, and required models...");
+                
+                var diagnosticsResult = await diagnosticsService.RunInitialDiagnosticsAsync(verbose: true);
+                
+                WriteHeader("=== TARS Diagnostics Report ===");
+                
+                WriteColorLine("--- System Information ---", ConsoleColor.Cyan);
+                Console.WriteLine($"  Operating System: {diagnosticsResult.SystemInfo.OperatingSystem}");
+                Console.WriteLine($"  CPU Cores: {diagnosticsResult.SystemInfo.ProcessorCores}");
+                Console.WriteLine($"  Available Memory: {diagnosticsResult.SystemInfo.AvailableMemoryGB:F2} GB");
                 Console.WriteLine();
-                WriteColorLine("Recommendations:", ConsoleColor.Yellow);
-                if (diagnosticsResult.ModelStatus.Any(m => !m.Value))
+                
+                WriteColorLine("--- Ollama Configuration ---", ConsoleColor.Cyan);
+                Console.WriteLine($"  Base URL: {diagnosticsResult.OllamaConfig.BaseUrl}");
+                Console.WriteLine($"  Default Model: {diagnosticsResult.OllamaConfig.DefaultModel}");
+                Console.WriteLine();
+                
+                WriteColorLine("--- Required Models ---", ConsoleColor.Cyan);
+                foreach (var model in diagnosticsResult.ModelStatus)
                 {
-                    WriteColorLine("  - Missing required models. Run the Install-Prerequisites.ps1 script:", ConsoleColor.Yellow);
-                    WriteColorLine("    .\\TarsCli\\Scripts\\Install-Prerequisites.ps1", ConsoleColor.Cyan);
+                    var statusColor = model.Value ? ConsoleColor.Green : ConsoleColor.Red;
+                    var statusText = model.Value ? "Available ✓" : "Not Available ✗";
+                    Console.Write($"  {model.Key}: ");
+                    WriteColorLine(statusText, statusColor);
                 }
+                Console.WriteLine();
+                
+                WriteColorLine("--- Project Configuration ---", ConsoleColor.Cyan);
+                Console.WriteLine($"  Project Root: {diagnosticsResult.ProjectConfig.ProjectRoot}");
+                Console.WriteLine();
+                
+                Console.Write($"Overall Status: ");
+                WriteColorLine(diagnosticsResult.IsReady ? "Ready ✓" : "Not Ready ✗", 
+                              diagnosticsResult.IsReady ? ConsoleColor.Green : ConsoleColor.Red);
+                
+                if (!diagnosticsResult.IsReady)
+                {
+                    Console.WriteLine();
+                    WriteColorLine("Recommendations:", ConsoleColor.Yellow);
+                    if (diagnosticsResult.ModelStatus.Any(m => !m.Value))
+                    {
+                        var missingModels = diagnosticsResult.ModelStatus
+                            .Where(m => !m.Value)
+                            .Select(m => m.Key)
+                            .ToList();
+                        
+                        WriteColorLine($"  - Missing required models: {string.Join(", ", missingModels)}", ConsoleColor.Yellow);
+                        WriteColorLine("  - Run the following command to install missing models:", ConsoleColor.Yellow);
+                        WriteColorLine("    tarscli models install", ConsoleColor.White);
+                        WriteColorLine("  - Or use the Install-Prerequisites.ps1 script:", ConsoleColor.Yellow);
+                        WriteColorLine("    .\\TarsCli\\Scripts\\Install-Prerequisites.ps1", ConsoleColor.White);
+                    }
+                }
+                
+                WriteColorLine("===========================", ConsoleColor.Cyan);
+                WriteColorLine("Diagnostics completed successfully.", ConsoleColor.Green);
+            }
+            catch (Exception ex)
+            {
+                WriteColorLine($"Error running diagnostics: {ex.Message}", ConsoleColor.Red);
+                WriteColorLine($"Stack trace: {ex.StackTrace}", ConsoleColor.Red);
+            }
+        });
+
+        // Add a setup command
+        var setupCommand = new Command("setup", "Run the prerequisites setup script");
+        setupCommand.SetHandler(async () =>
+        {
+            WriteHeader("Running Prerequisites Setup");
+            var scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Scripts", "Install-Prerequisites.ps1");
+            
+            if (!File.Exists(scriptPath))
+            {
+                WriteColorLine($"Setup script not found: {scriptPath}", ConsoleColor.Red);
+                Environment.Exit(1);
+                return;
             }
             
-            WriteColorLine("===========================", ConsoleColor.Cyan);
+            // Check if PowerShell Core is installed
+            if (!diagnosticsService.IsPowerShellCoreInstalled())
+            {
+                WriteColorLine("PowerShell Core (pwsh) is not installed.", ConsoleColor.Yellow);
+                WriteColorLine("For better cross-platform compatibility, we recommend installing PowerShell Core:", ConsoleColor.Yellow);
+                WriteColorLine("", ConsoleColor.White);
+                WriteColorLine("Windows: Install from Microsoft Store or download from:", ConsoleColor.White);
+                WriteColorLine("https://github.com/PowerShell/PowerShell/releases", ConsoleColor.Cyan);
+                WriteColorLine("", ConsoleColor.White);
+                WriteColorLine("macOS: brew install --cask powershell", ConsoleColor.White);
+                WriteColorLine("", ConsoleColor.White);
+                WriteColorLine("Linux: See installation instructions at:", ConsoleColor.White);
+                WriteColorLine("https://learn.microsoft.com/en-us/powershell/scripting/install/installing-powershell-on-linux", ConsoleColor.Cyan);
+                WriteColorLine("", ConsoleColor.White);
+                WriteColorLine("Continuing with Windows PowerShell...", ConsoleColor.Yellow);
+                Console.WriteLine();
+            }
+            
+            var success = await diagnosticsService.RunPowerShellScript(scriptPath);
+            
+            if (success)
+            {
+                WriteColorLine("Setup completed successfully", ConsoleColor.Green);
+            }
+            else
+            {
+                WriteColorLine("Setup failed", ConsoleColor.Red);
+                Environment.Exit(1);
+            }
         });
+
+        // Add a models command with install subcommand
+        var modelsCommand = new Command("models", "Manage Ollama models");
+        var installCommand = new Command("install", "Install required models");
+
+        installCommand.SetHandler(async () =>
+        {
+            try
+            {
+                Console.WriteLine("Installing required models...");
+                
+                var requiredModels = await ollamaSetupService.GetRequiredModelsAsync();
+                Console.WriteLine($"Required models: {string.Join(", ", requiredModels)}");
+                
+                var missingModels = await ollamaSetupService.GetMissingModelsAsync();
+                
+                if (missingModels.Count == 0)
+                {
+                    Console.WriteLine("All required models are already installed.");
+                    return;
+                }
+                
+                Console.WriteLine($"Found {missingModels.Count} missing models: {string.Join(", ", missingModels)}");
+                
+                foreach (var model in missingModels)
+                {
+                    Console.WriteLine($"Installing {model}...");
+                    var success = await ollamaSetupService.InstallModelAsync(model);
+
+                    Console.WriteLine(success ? $"Successfully installed {model}" : $"Failed to install {model}");
+                }
+                
+                Console.WriteLine("Model installation completed.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error installing models: {ex.Message}");
+            }
+        });
+
+        modelsCommand.Add(installCommand);
+        rootCommand.Add(modelsCommand);
 
         // Add commands to root command
         rootCommand.AddCommand(helpCommand);
         rootCommand.AddCommand(processCommand);
         rootCommand.AddCommand(docsCommand);
         rootCommand.AddCommand(diagnosticsCommand);
+        rootCommand.AddCommand(setupCommand);
 
         // Add default handler for root command
         rootCommand.SetHandler((InvocationContext context) => 

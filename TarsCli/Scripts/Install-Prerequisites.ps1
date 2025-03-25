@@ -4,7 +4,7 @@
 param(
     [switch]$Force,
     [switch]$SkipOllama,
-    [string[]]$Models = @("llama3.2", "all-minilm")
+    [string[]]$Models = @("llama3", "all-minilm")
 )
 
 $ErrorActionPreference = "Stop"

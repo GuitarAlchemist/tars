@@ -18,7 +18,7 @@
 @code {
     private List<string>? suggestions;
     private CancellationTokenSource? cancellationTokenSource;
-    private List<ChatMessage> chatHistory = new();
+    private List<ChatMessage> chatHistory = [];
 
     [Parameter]
     public EventCallback<string> OnSelected { get; set; }
@@ -54,7 +54,7 @@
 
         try
         {
-            suggestions = new List<string>();
+            suggestions = [];
             StateHasChanged();
 
             // Create a prompt to generate suggestions based on chat history
@@ -95,11 +95,11 @@
             else
             {
                 // Default suggestions for new chat
-                suggestions.AddRange(new[] {
+                suggestions.AddRange([
                     "What can you help me with?",
                     "Tell me about the example documents",
                     "How do I add my own data?"
-                });
+                ]);
             }
             
             StateHasChanged();

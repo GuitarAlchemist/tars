@@ -36,33 +36,33 @@ public class RetroactionService
             }
 
             // Create output directory
-            string outputDir = Path.Combine(_projectRoot, "output", $"v{DateTime.UtcNow:yyyyMMdd}");
+            var outputDir = Path.Combine(_projectRoot, "output", $"v{DateTime.UtcNow:yyyyMMdd}");
             Directory.CreateDirectory(outputDir);
 
             // Read the file
-            string fileContent = await File.ReadAllTextAsync(filePath);
-            string fileName = Path.GetFileName(filePath);
+            var fileContent = await File.ReadAllTextAsync(filePath);
+            var fileName = Path.GetFileName(filePath);
 
             // Save original version
-            string originalPath = Path.Combine(outputDir, $"{Path.GetFileNameWithoutExtension(fileName)}_original{Path.GetExtension(fileName)}");
+            var originalPath = Path.Combine(outputDir, $"{Path.GetFileNameWithoutExtension(fileName)}_original{Path.GetExtension(fileName)}");
             await File.WriteAllTextAsync(originalPath, fileContent);
 
             // Generate prompt for Ollama
-            string prompt = GeneratePrompt(fileContent, taskDescription, filePath);
+            var prompt = GeneratePrompt(fileContent, taskDescription, filePath);
 
             // Get completion from Ollama
             _logger.LogInformation("Sending to Ollama for processing...");
-            string improvedCode = await _ollamaService.GenerateCompletion(prompt, model);
+            var improvedCode = await _ollamaService.GenerateCompletion(prompt, model);
 
             // Extract code from the response
-            string extractedCode = ExtractCodeFromResponse(improvedCode, Path.GetExtension(filePath));
+            var extractedCode = ExtractCodeFromResponse(improvedCode, Path.GetExtension(filePath));
             
             // Save the improved version
-            string improvedPath = Path.Combine(outputDir, $"{Path.GetFileNameWithoutExtension(fileName)}_improved{Path.GetExtension(fileName)}");
+            var improvedPath = Path.Combine(outputDir, $"{Path.GetFileNameWithoutExtension(fileName)}_improved{Path.GetExtension(fileName)}");
             await File.WriteAllTextAsync(improvedPath, extractedCode);
 
             // Save the full response
-            string responsePath = Path.Combine(outputDir, $"{Path.GetFileNameWithoutExtension(fileName)}_response.md");
+            var responsePath = Path.Combine(outputDir, $"{Path.GetFileNameWithoutExtension(fileName)}_response.md");
             await File.WriteAllTextAsync(responsePath, improvedCode);
 
             // Save metadata
@@ -70,7 +70,7 @@ public class RetroactionService
 
             // Ask user if they want to apply changes
             Console.WriteLine("\nImproved code generated. Would you like to apply these changes? (y/n)");
-            string? response = Console.ReadLine()?.ToLower();
+            var response = Console.ReadLine()?.ToLower();
             
             if (response == "y" || response == "yes")
             {
@@ -182,9 +182,9 @@ Return the improved code in a code block, followed by a brief explanation of the
     {
         try
         {
-            string metadataPath = Path.Combine(outputDir, $"{Path.GetFileNameWithoutExtension(filePath)}.tars");
+            var metadataPath = Path.Combine(outputDir, $"{Path.GetFileNameWithoutExtension(filePath)}.tars");
             
-            string metadata = $@"TARS Iteration {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}
+            var metadata = $@"TARS Iteration {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}
 ---
 file: ""{filePath}""
 task: ""{task}""

@@ -47,16 +47,22 @@ internal static class Program
                 .AddSingleton<DiagnosticsService>()
                 .BuildServiceProvider();
 
+            // Get services
             var logger = serviceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("TarsCli");
+            var retroactionService = serviceProvider.GetRequiredService<RetroactionService>();
             var diagnosticsService = serviceProvider.GetRequiredService<DiagnosticsService>();
             var setupService = serviceProvider.GetRequiredService<OllamaSetupService>();
-            var retroactionService = serviceProvider.GetRequiredService<RetroactionService>();
 
             // Run initial diagnostics
             logger.LogInformation("Running initial diagnostics...");
             var diagnosticsResult = await diagnosticsService.RunInitialDiagnosticsAsync();
 
-            if (!diagnosticsResult.IsReady)
+            // Skip confirmation prompt for diagnostics command
+            var skipConfirmation = args.Length > 0 && 
+                                   (args[0].Equals("diagnostics", StringComparison.OrdinalIgnoreCase) || 
+                                    args[0].Equals("setup", StringComparison.OrdinalIgnoreCase));
+
+            if (!diagnosticsResult.IsReady && !skipConfirmation)
             {
                 logger.LogWarning("System is not fully ready for TARS operations");
                 logger.LogInformation("You can still proceed, but some features may not work as expected");
@@ -70,26 +76,46 @@ internal static class Program
                     return 1;
                 }
             }
+            else if (!diagnosticsResult.IsReady)
+            {
+                logger.LogWarning("System is not fully ready for TARS operations");
+                logger.LogInformation("Proceeding with command execution anyway...");
+            }
             else
             {
                 logger.LogInformation("System is ready for TARS operations");
             }
 
             // Check Ollama setup
+            Console.WriteLine("Checking Ollama setup...");
             if (!await setupService.CheckOllamaSetupAsync())
             {
                 logger.LogError("Failed to set up Ollama. Please run the Install-Prerequisites.ps1 script or set up Ollama manually.");
                 logger.LogInformation("You can find the script in the Scripts directory.");
+                Console.WriteLine("Ollama setup failed!");
                 return 1;
             }
+            Console.WriteLine("Ollama setup successful!");
 
             // Setup and run command line
-            var rootCommand = CliSupport.SetupCommandLine(configuration, logger, diagnosticsService, retroactionService);
-            return await rootCommand.InvokeAsync(args);
+            Console.WriteLine("Setting up command line...");
+            var rootCommand = CliSupport.SetupCommandLine(
+                configuration, 
+                logger, 
+                diagnosticsService, 
+                retroactionService,
+                setupService);
+            
+            Console.WriteLine($"Invoking command: {string.Join(" ", args)}");
+            var result = await rootCommand.InvokeAsync(args);
+            Console.WriteLine($"Command completed with result: {result}");
+            return result;
         }
         catch (Exception ex)
         {
             // Log any startup exceptions
+            Console.WriteLine($"CRITICAL ERROR: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
             LogManager.GetCurrentClassLogger().Error(ex, "Stopped program because of exception");
             return 1;
         }
