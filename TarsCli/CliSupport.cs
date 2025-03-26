@@ -3,6 +3,7 @@ using System.CommandLine.Invocation;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using TarsCli.Services;
+using TarsCli.Mcp;
 
 namespace TarsCli;
 
@@ -47,6 +48,7 @@ public static class CliSupport
     public static RootCommand SetupCommandLine(
         IConfiguration configuration,
         ILogger logger,
+        ILoggerFactory loggerFactory,
         DiagnosticsService diagnosticsService,
         RetroactionService retroactionService,
         OllamaSetupService ollamaSetupService)
@@ -365,6 +367,51 @@ public static class CliSupport
 
         modelsCommand.Add(installCommand);
         rootCommand.Add(modelsCommand);
+
+        // Create MCP command
+        var mcpCommand = new Command("mcp", "Machine Control Panel - control your system");
+
+        // Add subcommands for MCP
+        var runCommand = new Command("run", "Run an application")
+        {
+            new Argument<string>("application", "Path or name of the application to run")
+        };
+
+        var processesCommand = new Command("processes", "List running processes");
+        var statusCommand = new Command("status", "Show system status");
+
+        // Set handlers for MCP subcommands
+        runCommand.SetHandler(async (application) =>
+        {
+            WriteHeader("MCP - Run Application");
+            var mcpController = new McpController(loggerFactory.CreateLogger<TarsCli.Mcp.McpController>());
+            var result = await mcpController.ExecuteCommand("run", application);
+            Console.WriteLine(result);
+        }, new Argument<string>("application"));
+
+        processesCommand.SetHandler(async () =>
+        {
+            WriteHeader("MCP - Processes");
+            var mcpController = new McpController(loggerFactory.CreateLogger<TarsCli.Mcp.McpController>());
+            var result = await mcpController.ExecuteCommand("processes");
+            Console.WriteLine(result);
+        });
+
+        statusCommand.SetHandler(async () =>
+        {
+            WriteHeader("MCP - System Status");
+            var mcpController = new McpController(loggerFactory.CreateLogger<TarsCli.Mcp.McpController>());
+            var result = await mcpController.ExecuteCommand("status");
+            Console.WriteLine(result);
+        });
+
+        // Add subcommands to MCP command
+        mcpCommand.AddCommand(runCommand);
+        mcpCommand.AddCommand(processesCommand);
+        mcpCommand.AddCommand(statusCommand);
+
+        // Add MCP command to root command
+        rootCommand.AddCommand(mcpCommand);
 
         // Add commands to root command
         rootCommand.AddCommand(helpCommand);

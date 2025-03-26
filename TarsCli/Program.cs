@@ -45,6 +45,7 @@ internal static class Program
                 .AddSingleton<OllamaSetupService>()
                 .AddSingleton<RetroactionService>()
                 .AddSingleton<DiagnosticsService>()
+                .AddSingleton<TarsCli.Mcp.McpController>()
                 .BuildServiceProvider();
 
             // Get services
@@ -101,10 +102,11 @@ internal static class Program
             Console.WriteLine("Setting up command line...");
             var rootCommand = CliSupport.SetupCommandLine(
                 configuration, 
-                logger, 
+                logger,
+                serviceProvider.GetRequiredService<ILoggerFactory>(), 
                 diagnosticsService, 
                 retroactionService,
-                setupService);
+                setupService);  // setupService is the OllamaSetupService instance
             
             Console.WriteLine($"Invoking command: {string.Join(" ", args)}");
             var result = await rootCommand.InvokeAsync(args);
