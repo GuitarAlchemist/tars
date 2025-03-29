@@ -14,6 +14,51 @@ public class OllamaService(ILogger<OllamaService> logger, IConfiguration configu
     // Add a public property to expose the base URL
     public string BaseUrl => _baseUrl;
 
+    /// <summary>
+    /// Check if a model is available
+    /// </summary>
+    /// <param name="model">Model name</param>
+    /// <returns>True if the model is available, false otherwise</returns>
+    public async Task<bool> IsModelAvailable(string model)
+    {
+        try
+        {
+            logger.LogDebug($"Checking if model {model} is available");
+            var response = await _httpClient.GetAsync($"{_baseUrl}/api/tags");
+            response.EnsureSuccessStatusCode();
+
+            var result = await response.Content.ReadFromJsonAsync<OllamaTagsResponse>();
+            return result?.Models?.Any(m => m.Name == model) ?? false;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, $"Error checking if model {model} is available");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Get a list of available models
+    /// </summary>
+    /// <returns>List of available models</returns>
+    public async Task<List<string>> GetAvailableModels()
+    {
+        try
+        {
+            logger.LogDebug("Getting available models");
+            var response = await _httpClient.GetAsync($"{_baseUrl}/api/tags");
+            response.EnsureSuccessStatusCode();
+
+            var result = await response.Content.ReadFromJsonAsync<OllamaTagsResponse>();
+            return result?.Models?.Select(m => m.Name).ToList() ?? new List<string>();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error getting available models");
+            return new List<string>();
+        }
+    }
+
     public async Task<string> GenerateCompletion(string prompt, string model)
     {
         try
@@ -56,13 +101,13 @@ public class OllamaService(ILogger<OllamaService> logger, IConfiguration configu
     {
         [JsonPropertyName("model")]
         public string Model { get; set; } = string.Empty;
-        
+
         [JsonPropertyName("prompt")]
         public string Prompt { get; set; } = string.Empty;
-        
+
         [JsonPropertyName("stream")]
         public bool Stream { get; set; }
-        
+
         [JsonPropertyName("options")]
         public OllamaOptions Options { get; set; } = new();
     }
@@ -77,5 +122,23 @@ public class OllamaService(ILogger<OllamaService> logger, IConfiguration configu
     {
         [JsonPropertyName("response")]
         public string Response { get; set; } = string.Empty;
+    }
+
+    private class OllamaTagsResponse
+    {
+        [JsonPropertyName("models")]
+        public List<OllamaModel>? Models { get; set; }
+    }
+
+    private class OllamaModel
+    {
+        [JsonPropertyName("name")]
+        public string Name { get; set; } = string.Empty;
+
+        [JsonPropertyName("size")]
+        public long Size { get; set; }
+
+        [JsonPropertyName("modified_at")]
+        public string? ModifiedAt { get; set; }
     }
 }

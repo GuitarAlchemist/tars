@@ -140,6 +140,8 @@ public static class CliSupport
             WriteCommand("language", "Generate and manage language specifications");
             WriteCommand("docs-explore", "Explore TARS documentation");
             WriteCommand("demo", "Run a demonstration of TARS capabilities");
+            WriteCommand("secrets", "Manage API keys and other secrets");
+            WriteCommand("auto-improve", "Run autonomous self-improvement");
 
             WriteHeader("Global Options");
             WriteCommand("--help, -h", "Display help information");
@@ -175,6 +177,12 @@ public static class CliSupport
             WriteExample("tarscli demo --type self-improvement --model llama3");
             WriteExample("tarscli demo --type code-generation --model codellama");
             WriteExample("tarscli demo --type all");
+            WriteExample("tarscli secrets list");
+            WriteExample("tarscli secrets set --key HuggingFace:ApiKey");
+            WriteExample("tarscli secrets remove --key OpenAI:ApiKey");
+            WriteExample("tarscli auto-improve --time-limit 60 --model llama3");
+            WriteExample("tarscli auto-improve --status");
+            WriteExample("tarscli auto-improve --stop");
 
             Console.WriteLine("\nFor more information, visit: https://github.com/yourusername/tars");
         });
@@ -1361,6 +1369,232 @@ public static class CliSupport
             }
         }, demoTypeOption, demoModelOption);
 
+        // Create secrets command
+        var secretsCommand = new Command("secrets", "Manage API keys and other secrets");
+
+        // List secrets command
+        var listSecretsCommand = new Command("list", "List all secret keys");
+        listSecretsCommand.SetHandler(async () =>
+        {
+            WriteHeader("TARS Secrets - List");
+
+            var secretsService = _serviceProvider!.GetRequiredService<SecretsService>();
+            var keys = await secretsService.ListSecretKeysAsync();
+
+            if (keys.Count == 0)
+            {
+                WriteColorLine("No secrets found.", ConsoleColor.Yellow);
+                return;
+            }
+
+            WriteColorLine($"Found {keys.Count} secret(s):", ConsoleColor.Green);
+            Console.WriteLine();
+
+            foreach (var key in keys)
+            {
+                WriteColorLine(key, ConsoleColor.Cyan);
+            }
+        });
+
+        // Set secret command
+        var setSecretCommand = new Command("set", "Set a secret value");
+        var setSecretKeyOption = new Option<string>("--key", "The secret key");
+        var setSecretValueOption = new Option<string?>("--value", "The secret value (if not provided, will prompt for input)");
+
+        setSecretCommand.AddOption(setSecretKeyOption);
+        setSecretCommand.AddOption(setSecretValueOption);
+
+        setSecretCommand.SetHandler(async (string key, string? value) =>
+        {
+            WriteHeader("TARS Secrets - Set");
+
+            var secretsService = _serviceProvider!.GetRequiredService<SecretsService>();
+            var userInteractionService = _serviceProvider!.GetRequiredService<UserInteractionService>();
+
+            if (string.IsNullOrEmpty(value))
+            {
+                value = userInteractionService.AskForSecret($"Enter value for secret '{key}'");
+            }
+
+            var success = await secretsService.SetSecretAsync(key, value);
+
+            if (success)
+            {
+                WriteColorLine($"Secret '{key}' set successfully.", ConsoleColor.Green);
+            }
+            else
+            {
+                WriteColorLine($"Failed to set secret '{key}'.", ConsoleColor.Red);
+                Environment.Exit(1);
+            }
+        }, setSecretKeyOption, setSecretValueOption);
+
+        // Remove secret command
+        var removeSecretCommand = new Command("remove", "Remove a secret");
+        var removeSecretKeyOption = new Option<string>("--key", "The secret key");
+
+        removeSecretCommand.AddOption(removeSecretKeyOption);
+
+        removeSecretCommand.SetHandler(async (string key) =>
+        {
+            WriteHeader("TARS Secrets - Remove");
+
+            var secretsService = _serviceProvider!.GetRequiredService<SecretsService>();
+            var userInteractionService = _serviceProvider!.GetRequiredService<UserInteractionService>();
+
+            var confirm = userInteractionService.AskForConfirmation($"Are you sure you want to remove secret '{key}'?", false);
+
+            if (!confirm)
+            {
+                WriteColorLine("Operation cancelled.", ConsoleColor.Yellow);
+                return;
+            }
+
+            var success = await secretsService.RemoveSecretAsync(key);
+
+            if (success)
+            {
+                WriteColorLine($"Secret '{key}' removed successfully.", ConsoleColor.Green);
+            }
+            else
+            {
+                WriteColorLine($"Failed to remove secret '{key}'. It may not exist.", ConsoleColor.Red);
+            }
+        }, removeSecretKeyOption);
+
+        // Clear secrets command
+        var clearSecretsCommand = new Command("clear", "Clear all secrets");
+
+        clearSecretsCommand.SetHandler(async () =>
+        {
+            WriteHeader("TARS Secrets - Clear");
+
+            var secretsService = _serviceProvider!.GetRequiredService<SecretsService>();
+            var userInteractionService = _serviceProvider!.GetRequiredService<UserInteractionService>();
+
+            var confirm = userInteractionService.AskForConfirmation("Are you sure you want to clear all secrets? This cannot be undone.", false);
+
+            if (!confirm)
+            {
+                WriteColorLine("Operation cancelled.", ConsoleColor.Yellow);
+                return;
+            }
+
+            var success = await secretsService.ClearSecretsAsync();
+
+            if (success)
+            {
+                WriteColorLine("All secrets cleared successfully.", ConsoleColor.Green);
+            }
+            else
+            {
+                WriteColorLine("Failed to clear secrets.", ConsoleColor.Red);
+                Environment.Exit(1);
+            }
+        });
+
+        // Add subcommands to secrets command
+        secretsCommand.AddCommand(listSecretsCommand);
+        secretsCommand.AddCommand(setSecretCommand);
+        secretsCommand.AddCommand(removeSecretCommand);
+        secretsCommand.AddCommand(clearSecretsCommand);
+
+        // Create auto-improve command
+        var autoImproveCommand = new Command("auto-improve", "Run autonomous self-improvement");
+        var autoImproveTimeLimitOption = new Option<int>("--time-limit", () => 60, "Time limit in minutes (default: 60)");
+        var autoImproveModelOption = new Option<string>("--model", () => "llama3", "Model to use for improvements");
+        var statusOption = new Option<bool>("--status", "Show status of autonomous improvement");
+        var stopOption = new Option<bool>("--stop", "Stop autonomous improvement");
+
+        autoImproveCommand.AddOption(autoImproveTimeLimitOption);
+        autoImproveCommand.AddOption(autoImproveModelOption);
+        autoImproveCommand.AddOption(statusOption);
+        autoImproveCommand.AddOption(stopOption);
+
+        autoImproveCommand.SetHandler(async (int timeLimit, string model, bool status, bool stop) =>
+        {
+            var autoImprovementService = _serviceProvider!.GetRequiredService<AutoImprovementService>();
+
+            if (status)
+            {
+                // Show status
+                WriteHeader("TARS Autonomous Improvement - Status");
+
+                var improvementStatus = autoImprovementService.GetStatus();
+
+                if (improvementStatus.IsRunning)
+                {
+                    WriteColorLine("Status: Running", ConsoleColor.Green);
+                    WriteColorLine($"Started: {improvementStatus.StartTime}", ConsoleColor.Cyan);
+                    WriteColorLine($"Time Limit: {improvementStatus.TimeLimit.TotalMinutes} minutes", ConsoleColor.Cyan);
+                    WriteColorLine($"Elapsed Time: {improvementStatus.ElapsedTime.TotalMinutes:F2} minutes", ConsoleColor.Cyan);
+                    WriteColorLine($"Remaining Time: {improvementStatus.RemainingTime.TotalMinutes:F2} minutes", ConsoleColor.Cyan);
+                    WriteColorLine($"Files Processed: {improvementStatus.FilesProcessed}", ConsoleColor.Cyan);
+                    WriteColorLine($"Files Remaining: {improvementStatus.FilesRemaining}", ConsoleColor.Cyan);
+                    WriteColorLine($"Current File: {improvementStatus.CurrentFile ?? "None"}", ConsoleColor.Cyan);
+                    WriteColorLine($"Last Improved File: {improvementStatus.LastImprovedFile ?? "None"}", ConsoleColor.Cyan);
+                    WriteColorLine($"Total Improvements: {improvementStatus.TotalImprovements}", ConsoleColor.Cyan);
+                }
+                else
+                {
+                    WriteColorLine("Status: Not Running", ConsoleColor.Yellow);
+
+                    if (improvementStatus.FilesProcessed > 0)
+                    {
+                        WriteColorLine($"Last Run Statistics:", ConsoleColor.Cyan);
+                        WriteColorLine($"Files Processed: {improvementStatus.FilesProcessed}", ConsoleColor.Cyan);
+                        WriteColorLine($"Files Remaining: {improvementStatus.FilesRemaining}", ConsoleColor.Cyan);
+                        WriteColorLine($"Last Improved File: {improvementStatus.LastImprovedFile ?? "None"}", ConsoleColor.Cyan);
+                        WriteColorLine($"Total Improvements: {improvementStatus.TotalImprovements}", ConsoleColor.Cyan);
+                    }
+                }
+
+                return;
+            }
+
+            if (stop)
+            {
+                // Stop improvement
+                WriteHeader("TARS Autonomous Improvement - Stop");
+
+                var success = autoImprovementService.Stop();
+
+                if (success)
+                {
+                    WriteColorLine("Autonomous improvement stopped successfully.", ConsoleColor.Green);
+                    WriteColorLine("The process will complete the current file and then exit.", ConsoleColor.Yellow);
+                }
+                else
+                {
+                    WriteColorLine("Failed to stop autonomous improvement. It may not be running.", ConsoleColor.Red);
+                }
+
+                return;
+            }
+
+            // Start improvement
+            WriteHeader("TARS Autonomous Improvement - Start");
+
+            WriteColorLine($"Starting autonomous improvement with time limit of {timeLimit} minutes", ConsoleColor.Cyan);
+            WriteColorLine($"Using model: {model}", ConsoleColor.Cyan);
+            Console.WriteLine();
+
+            var startSuccess = await autoImprovementService.StartAsync(timeLimit, model);
+
+            if (startSuccess)
+            {
+                WriteColorLine("Autonomous improvement started successfully.", ConsoleColor.Green);
+                WriteColorLine("The process will run in the background until the time limit is reached.", ConsoleColor.Yellow);
+                WriteColorLine("You can check the status with 'tarscli auto-improve --status'.", ConsoleColor.Yellow);
+                WriteColorLine("You can stop the process with 'tarscli auto-improve --stop'.", ConsoleColor.Yellow);
+            }
+            else
+            {
+                WriteColorLine("Failed to start autonomous improvement.", ConsoleColor.Red);
+                Environment.Exit(1);
+            }
+        }, autoImproveTimeLimitOption, autoImproveModelOption, statusOption, stopOption);
+
         rootCommand.AddCommand(selfAnalyzeCommand);
         rootCommand.AddCommand(selfProposeCommand);
         rootCommand.AddCommand(selfRewriteCommand);
@@ -1371,6 +1605,8 @@ public static class CliSupport
         rootCommand.AddCommand(languageCommand);
         rootCommand.AddCommand(docsExploreCommand);
         rootCommand.AddCommand(demoCommand);
+        rootCommand.AddCommand(secretsCommand);
+        rootCommand.AddCommand(autoImproveCommand);
 
         // Add default handler for root command
         rootCommand.SetHandler((InvocationContext context) =>

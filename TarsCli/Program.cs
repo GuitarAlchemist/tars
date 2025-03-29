@@ -56,6 +56,9 @@ internal static class Program
                 .AddSingleton<LanguageSpecificationService>()
                 .AddSingleton<DocumentationService>()
                 .AddSingleton<DemoService>()
+                .AddSingleton<SecretsService>()
+                .AddSingleton<UserInteractionService>()
+                .AddSingleton<AutoImprovementService>()
                 .AddSingleton<TarsCli.Mcp.McpController>(sp => new TarsCli.Mcp.McpController(sp.GetRequiredService<ILogger<TarsCli.Mcp.McpController>>(), configuration))
                 .AddSingleton<EnhancedMcpService>()
                 .BuildServiceProvider();

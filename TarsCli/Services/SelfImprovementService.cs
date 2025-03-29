@@ -390,6 +390,44 @@ public class SelfImprovementService
         }
     }
 
+    /// <summary>
+    /// Analyze, propose, and apply improvements to a file
+    /// </summary>
+    /// <param name="filePath">Path to the file</param>
+    /// <param name="model">Model to use for analysis</param>
+    /// <param name="autoApply">Whether to automatically apply improvements</param>
+    /// <returns>True if successful, false otherwise</returns>
+    public async Task<bool> RewriteFile(string filePath, string model, bool autoApply = false)
+    {
+        try
+        {
+            _logger.LogInformation($"Rewriting file: {filePath}");
+
+            // Step 1: Analyze the file
+            var analyzeSuccess = await AnalyzeFile(filePath, model);
+            if (!analyzeSuccess)
+            {
+                _logger.LogError($"Failed to analyze file: {filePath}");
+                return false;
+            }
+
+            // Step 2: Propose improvements
+            var proposeSuccess = await ProposeImprovement(filePath, model, autoApply);
+            if (!proposeSuccess)
+            {
+                _logger.LogError($"Failed to propose improvements for file: {filePath}");
+                return false;
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error rewriting file: {filePath}");
+            return false;
+        }
+    }
+
     public async Task<bool> ClearLearningDatabase()
     {
         try

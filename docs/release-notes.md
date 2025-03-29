@@ -13,6 +13,13 @@ This document provides a history of TARS releases, including new features, impro
   - Implemented auto-accept option for proposals
   - Created learning database for recording improvements and feedback
 
+- **Autonomous Self-Improvement**
+  - Added ability for TARS to improve itself without human intervention
+  - Implemented time-limited autonomous improvement (default: 60 minutes)
+  - Added state persistence for resuming improvement between runs
+  - Created prioritization system for selecting files to improve
+  - Added status monitoring and safe stopping capabilities
+
 - **Master Control Program (MCP)**
   - Implemented MCP interface
   - Added support for automatic code generation
