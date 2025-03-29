@@ -9,15 +9,18 @@ public class SessionService
     private readonly ILogger<SessionService> _logger;
     private readonly IConfiguration _configuration;
     private readonly string _projectRoot;
+    private readonly ScriptExecutionService _scriptExecutionService;
 
     public SessionService(
         ILogger<SessionService> logger,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        ScriptExecutionService scriptExecutionService)
     {
         _logger = logger;
         _configuration = configuration;
-        _projectRoot = _configuration["Tars:ProjectRoot"] ?? 
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), 
+        _scriptExecutionService = scriptExecutionService;
+        _projectRoot = _configuration["Tars:ProjectRoot"] ??
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
                 "source", "repos", "tars");
     }
 
@@ -26,31 +29,31 @@ public class SessionService
         try
         {
             _logger.LogInformation($"Initializing session: {sessionName}");
-            
+
             // Create session directory
             var sessionDir = Path.Combine(_projectRoot, "sessions", sessionName);
-            
+
             if (Directory.Exists(sessionDir))
             {
                 Console.WriteLine($"Session '{sessionName}' already exists. Do you want to overwrite it? (y/n): ");
                 var response = Console.ReadLine()?.ToLower();
-                
+
                 if (response != "y" && response != "yes")
                 {
                     _logger.LogInformation("Session initialization cancelled by user");
                     return false;
                 }
-                
+
                 _logger.LogInformation($"Overwriting existing session: {sessionName}");
             }
-            
+
             // Create directory structure
             Directory.CreateDirectory(sessionDir);
             Directory.CreateDirectory(Path.Combine(sessionDir, "logs"));
             Directory.CreateDirectory(Path.Combine(sessionDir, "configs"));
             Directory.CreateDirectory(Path.Combine(sessionDir, "plans"));
             Directory.CreateDirectory(Path.Combine(sessionDir, "output"));
-            
+
             // Create default config file
             var configContent = @"{
   ""session"": {
@@ -81,13 +84,13 @@ public class SessionService
     ""defaultModel"": ""llama3""
   }
 }";
-            
+
             configContent = configContent
                 .Replace("SESSION_NAME", sessionName)
                 .Replace("TIMESTAMP", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"));
-            
+
             await File.WriteAllTextAsync(Path.Combine(sessionDir, "configs", "session.json"), configContent);
-            
+
             // Create sample plan template
             var planTemplate = @"// TARS Plan Template
 // This is a sample F# script that defines a TARS workflow
@@ -100,28 +103,28 @@ open FSharp.Data
 // Define the workflow
 let workflow = async {
     printfn ""Starting TARS workflow...""
-    
+
     // Example: Call the Planner agent
     let! planResult = Async.AwaitTask(TarsEngine.Agents.Planner.CreatePlan(""Create a simple web API""))
     printfn ""Plan created: %s"" planResult
-    
+
     // Example: Call the Coder agent
     let! codeResult = Async.AwaitTask(TarsEngine.Agents.Coder.GenerateCode(planResult))
     printfn ""Code generated: %s"" codeResult
-    
+
     // Example: Call the Critic agent
     let! criticResult = Async.AwaitTask(TarsEngine.Agents.Critic.ReviewCode(codeResult))
     printfn ""Code reviewed: %s"" criticResult
-    
+
     return ""Workflow completed successfully""
 }
 
 // Run the workflow
 Async.RunSynchronously(workflow)
 ";
-            
+
             await File.WriteAllTextAsync(Path.Combine(sessionDir, "plans", "template.fsx"), planTemplate);
-            
+
             // Create README file
             var readmeContent = $@"# TARS Session: {sessionName}
 
@@ -144,12 +147,12 @@ This directory contains the TARS session '{sessionName}' created on {DateTime.Ut
 
 For more information, see the TARS documentation in the `docs/` directory of the main repository.
 ";
-            
+
             await File.WriteAllTextAsync(Path.Combine(sessionDir, "README.md"), readmeContent);
-            
+
             _logger.LogInformation($"Session '{sessionName}' initialized successfully");
             Console.WriteLine($"Session '{sessionName}' initialized successfully at {sessionDir}");
-            
+
             return true;
         }
         catch (Exception ex)
@@ -164,57 +167,48 @@ For more information, see the TARS documentation in the `docs/` directory of the
         try
         {
             _logger.LogInformation($"Running plan '{planFile}' in session '{sessionName}'");
-            
+
             // Check if session exists
             var sessionDir = Path.Combine(_projectRoot, "sessions", sessionName);
-            
+
             if (!Directory.Exists(sessionDir))
             {
                 _logger.LogError($"Session '{sessionName}' does not exist");
                 Console.WriteLine($"Session '{sessionName}' does not exist. Use 'tarscli init {sessionName}' to create it.");
                 return false;
             }
-            
+
             // Check if plan file exists
             var planPath = Path.Combine(sessionDir, "plans", planFile);
-            
+
             if (!File.Exists(planPath))
             {
                 _logger.LogError($"Plan file '{planFile}' does not exist in session '{sessionName}'");
                 Console.WriteLine($"Plan file '{planFile}' does not exist in session '{sessionName}'.");
                 return false;
             }
-            
-            // Create a log file for this run
-            var logDir = Path.Combine(sessionDir, "logs");
-            var logFile = Path.Combine(logDir, $"run_{DateTime.UtcNow:yyyyMMdd_HHmmss}.log");
-            
-            // For now, we'll just simulate running the plan
-            // In a real implementation, this would execute the F# script
-            
+
             Console.WriteLine($"Executing plan '{planFile}' in session '{sessionName}'...");
-            
-            // TODO: Implement actual F# script execution
-            // This would involve using the F# Compiler Services to execute the script
-            
-            // For now, just log that we would run it
-            var logContent = $@"=== TARS Plan Execution Log ===
-Session: {sessionName}
-Plan: {planFile}
-Started: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}
 
-[INFO] Loading plan file: {planPath}
-[INFO] Executing plan...
-[INFO] Plan execution completed
-[INFO] Execution time: 0.0 seconds
+            // Execute the script using the ScriptExecutionService
+            var (success, output) = await _scriptExecutionService.ExecuteScriptAsync(sessionName, planFile);
 
-=== End of Log ===";
-            
-            await File.WriteAllTextAsync(logFile, logContent);
-            
-            Console.WriteLine($"Plan execution completed. Log saved to {logFile}");
-            
-            return true;
+            if (success)
+            {
+                Console.WriteLine("Plan execution completed successfully.");
+                Console.WriteLine();
+                Console.WriteLine("Output:");
+                Console.WriteLine(output);
+                return true;
+            }
+            else
+            {
+                Console.WriteLine("Plan execution failed.");
+                Console.WriteLine();
+                Console.WriteLine("Error:");
+                Console.WriteLine(output);
+                return false;
+            }
         }
         catch (Exception ex)
         {
@@ -228,42 +222,42 @@ Started: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}
         try
         {
             _logger.LogInformation($"Viewing trace '{traceId}' in session '{sessionName}'");
-            
+
             // Check if session exists
             var sessionDir = Path.Combine(_projectRoot, "sessions", sessionName);
-            
+
             if (!Directory.Exists(sessionDir))
             {
                 _logger.LogError($"Session '{sessionName}' does not exist");
                 Console.WriteLine($"Session '{sessionName}' does not exist. Use 'tarscli init {sessionName}' to create it.");
                 return false;
             }
-            
+
             // Get the log file
             var logDir = Path.Combine(sessionDir, "logs");
             string logFile;
-            
+
             if (traceId.ToLower() == "last")
             {
                 // Get the most recent log file
                 var logFiles = Directory.GetFiles(logDir, "run_*.log")
                     .OrderByDescending(f => f)
                     .ToArray();
-                
+
                 if (logFiles.Length == 0)
                 {
                     _logger.LogError($"No trace logs found in session '{sessionName}'");
                     Console.WriteLine($"No trace logs found in session '{sessionName}'.");
                     return false;
                 }
-                
+
                 logFile = logFiles[0];
             }
             else
             {
                 // Try to find a log file with the specified ID
                 logFile = Path.Combine(logDir, $"run_{traceId}.log");
-                
+
                 if (!File.Exists(logFile))
                 {
                     _logger.LogError($"Trace log '{traceId}' not found in session '{sessionName}'");
@@ -271,14 +265,14 @@ Started: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}
                     return false;
                 }
             }
-            
+
             // Display the log file
             var logContent = await File.ReadAllTextAsync(logFile);
-            
+
             Console.WriteLine();
             CliSupport.WriteHeader($"Trace Log: {Path.GetFileName(logFile)}");
             Console.WriteLine(logContent);
-            
+
             return true;
         }
         catch (Exception ex)

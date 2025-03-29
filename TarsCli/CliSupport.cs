@@ -123,6 +123,7 @@ public static class CliSupport
             WriteCommand("self-analyze", "Analyze a file for potential improvements");
             WriteCommand("self-propose", "Propose improvements for a file");
             WriteCommand("self-rewrite", "Analyze, propose, and apply improvements to a file");
+            WriteCommand("workflow", "Run a multi-agent workflow for a task");
 
             WriteHeader("Global Options");
             WriteCommand("--help, -h", "Display help information");
@@ -137,6 +138,7 @@ public static class CliSupport
             WriteExample("tarscli self-analyze --file path/to/file.cs --model llama3");
             WriteExample("tarscli self-propose --file path/to/file.cs --model codellama:13b-code");
             WriteExample("tarscli self-rewrite --file path/to/file.cs --model codellama:13b-code --auto-apply");
+            WriteExample("tarscli workflow --task \"Create a simple web API in C#\"");
 
             Console.WriteLine("\nFor more information, visit: https://github.com/yourusername/tars");
         });
@@ -579,6 +581,31 @@ public static class CliSupport
             }
         }, fileOption, modelOption, autoApplyOption);
 
+        // Create workflow command
+        var workflowCommand = new Command("workflow", "Run a multi-agent workflow for a task");
+        var workflowTaskOption = new Option<string>("--task", "Description of the task to perform");
+        workflowTaskOption.IsRequired = true;
+        workflowCommand.AddOption(workflowTaskOption);
+
+        workflowCommand.SetHandler(async (string task) =>
+        {
+            WriteHeader("TARS Workflow");
+            Console.WriteLine($"Task: {task}");
+
+            var workflowService = _serviceProvider!.GetRequiredService<WorkflowCoordinationService>();
+            var success = await workflowService.RunWorkflow(task);
+
+            if (success)
+            {
+                WriteColorLine("Workflow completed successfully", ConsoleColor.Green);
+            }
+            else
+            {
+                WriteColorLine("Workflow failed", ConsoleColor.Red);
+                Environment.Exit(1);
+            }
+        }, workflowTaskOption);
+
         // Add commands to root command
         rootCommand.AddCommand(helpCommand);
         rootCommand.AddCommand(processCommand);
@@ -591,6 +618,7 @@ public static class CliSupport
         rootCommand.AddCommand(selfAnalyzeCommand);
         rootCommand.AddCommand(selfProposeCommand);
         rootCommand.AddCommand(selfRewriteCommand);
+        rootCommand.AddCommand(workflowCommand);
 
         // Add default handler for root command
         rootCommand.SetHandler((InvocationContext context) =>

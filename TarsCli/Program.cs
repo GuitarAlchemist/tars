@@ -46,7 +46,9 @@ internal static class Program
                 .AddSingleton<RetroactionService>()
                 .AddSingleton<DiagnosticsService>()
                 .AddSingleton<SelfImprovementService>()
+                .AddSingleton<ScriptExecutionService>()
                 .AddSingleton<SessionService>()
+                .AddSingleton<WorkflowCoordinationService>()
                 .AddSingleton<TarsCli.Mcp.McpController>()
                 .BuildServiceProvider();
 
