@@ -34,7 +34,7 @@ internal static class Program
 
             // Setup DI
             var serviceProvider = new ServiceCollection()
-                .AddLogging(builder => 
+                .AddLogging(builder =>
                 {
                     builder.ClearProviders();
                     builder.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
@@ -45,6 +45,8 @@ internal static class Program
                 .AddSingleton<OllamaSetupService>()
                 .AddSingleton<RetroactionService>()
                 .AddSingleton<DiagnosticsService>()
+                .AddSingleton<SelfImprovementService>()
+                .AddSingleton<SessionService>()
                 .AddSingleton<TarsCli.Mcp.McpController>()
                 .BuildServiceProvider();
 
@@ -59,15 +61,15 @@ internal static class Program
             var diagnosticsResult = await diagnosticsService.RunInitialDiagnosticsAsync();
 
             // Skip confirmation prompt for diagnostics command
-            var skipConfirmation = args.Length > 0 && 
-                                   (args[0].Equals("diagnostics", StringComparison.OrdinalIgnoreCase) || 
+            var skipConfirmation = args.Length > 0 &&
+                                   (args[0].Equals("diagnostics", StringComparison.OrdinalIgnoreCase) ||
                                     args[0].Equals("setup", StringComparison.OrdinalIgnoreCase));
 
             if (!diagnosticsResult.IsReady && !skipConfirmation)
             {
                 logger.LogWarning("System is not fully ready for TARS operations");
                 logger.LogInformation("You can still proceed, but some features may not work as expected");
-                
+
                 // Prompt user to continue
                 Console.Write("Do you want to continue anyway? (y/n): ");
                 var response = Console.ReadLine()?.ToLower();
@@ -101,13 +103,14 @@ internal static class Program
             // Setup and run command line
             Console.WriteLine("Setting up command line...");
             var rootCommand = CliSupport.SetupCommandLine(
-                configuration, 
+                configuration,
                 logger,
-                serviceProvider.GetRequiredService<ILoggerFactory>(), 
-                diagnosticsService, 
+                serviceProvider.GetRequiredService<ILoggerFactory>(),
+                diagnosticsService,
                 retroactionService,
-                setupService);  // setupService is the OllamaSetupService instance
-            
+                setupService,
+                serviceProvider);  // setupService is the OllamaSetupService instance
+
             Console.WriteLine($"Invoking command: {string.Join(" ", args)}");
             var result = await rootCommand.InvokeAsync(args);
             Console.WriteLine($"Command completed with result: {result}");

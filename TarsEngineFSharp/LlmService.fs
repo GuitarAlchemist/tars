@@ -83,7 +83,7 @@ module LlmService =
             try
                 let! response = 
                     client.PostAsync(
-                        sprintf "%s/v1/completions" config.Endpoint,
+                        $"%s{config.Endpoint}/v1/completions",
                         jsonContent)
                     |> Async.AwaitTask
                 

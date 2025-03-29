@@ -40,9 +40,7 @@ module WeatherService =
                 // OpenMeteo Geocoding
                 try
                     let encodedCity = Uri.EscapeDataString(city)
-                    let! response = Http.AsyncRequestString(
-                        sprintf "https://geocoding-api.open-meteo.com/v1/search?name=%s&count=1" encodedCity
-                    )
+                    let! response = Http.AsyncRequestString $"https://geocoding-api.open-meteo.com/v1/search?name=%s{encodedCity}&count=1"
                     let result = JsonValue.Parse(response)
                     let results = result.GetProperty("results").AsArray()
                     if results.Length > 0 then
@@ -60,7 +58,7 @@ module WeatherService =
                 try
                     let encodedCity = Uri.EscapeDataString(city)
                     let! response = Http.AsyncRequestString(
-                        sprintf "https://nominatim.openstreetmap.org/search?q=%s&format=json&limit=1" encodedCity,
+                        $"https://nominatim.openstreetmap.org/search?q=%s{encodedCity}&format=json&limit=1",
                         headers = [ "User-Agent", "TarsEngine/1.0" ]
                     )
                     let searchResult = JsonValue.Parse(response)
@@ -85,8 +83,7 @@ module WeatherService =
     let private getOpenMeteoWeather (latitude: float) (longitude: float) = async {
         try
             use client = new HttpClient()
-            let url = sprintf "https://api.open-meteo.com/v1/forecast?latitude=%f&longitude=%f&current=temperature_2m,weather_code&timezone=auto" 
-                        latitude longitude
+            let url = $"https://api.open-meteo.com/v1/forecast?latitude=%f{latitude}&longitude=%f{longitude}&current=temperature_2m,weather_code&timezone=auto"
             let! response = client.GetStringAsync(url) |> Async.AwaitTask
             let weather = JsonValue.Parse(response)
             let current = weather.GetProperty("current")
@@ -101,8 +98,7 @@ module WeatherService =
         // Note: Requires API key in practice
         try
             use client = new HttpClient()
-            let url = sprintf "https://api.weatherapi.com/v1/current.json?q=%f,%f&key=YOUR_API_KEY" 
-                        latitude longitude
+            let url = $"https://api.weatherapi.com/v1/current.json?q=%f{latitude},%f{longitude}&key=YOUR_API_KEY"
             let! response = client.GetStringAsync(url) |> Async.AwaitTask
             let weather = JsonValue.Parse(response)
             let current = weather.GetProperty("current")

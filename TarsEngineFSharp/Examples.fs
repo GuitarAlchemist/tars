@@ -27,20 +27,20 @@ module Examples =
         let! result = tars {
             // Load data from file
             let! fileContent = tars.FileData(sampleDataPath, id)
-            printfn "Loaded file content: %s" fileContent
+            printfn $"Loaded file content: %s{fileContent}"
             
             // Generate a summary using AI
             let! summary = tars.Summarize fileContent
-            printfn "Summary: %s (Confidence: %.2f)" summary.Content summary.Confidence
+            printfn $"Summary: %s{summary.Content} (Confidence: %.2f{summary.Confidence})"
             
             // Generate additional content based on the summary
             let! additionalContent = tars.Generate $"Expand on this summary: {summary.Content}"
-            printfn "Additional content: %s" additionalContent.Content
+            printfn $"Additional content: %s{additionalContent.Content}"
             
             return "Workflow completed successfully"
         }
         
-        printfn "Final result: %s" result
+        printfn $"Final result: %s{result}"
         
         // Clean up
         if File.Exists(sampleDataPath) then
@@ -65,11 +65,11 @@ module Examples =
         let! result = async {
             // Load data from CSV file
             let! csvData = DATA.CSV sampleDataPath rowParser ','
-            printfn "Loaded CSV data with %d rows" csvData.Length
+            printfn $"Loaded CSV data with %d{csvData.Length} rows"
             
             // Perform a web search
             let! searchResults = DATA.WEB_SEARCH "latest AI research"
-            printfn "Search results: %A" searchResults
+            printfn $"Search results: %A{searchResults}"
             
             // Analyze the combined data
             let combinedData = 
@@ -79,12 +79,12 @@ module Examples =
                 |> fun s -> s + "\n\nSearch results: " + (String.concat ", " searchResults)
             
             let! analysis = AI.ANALYZE combinedData
-            printfn "Analysis: %s" analysis.Content
+            printfn $"Analysis: %s{analysis.Content}"
             
             return "Alternative syntax workflow completed successfully"
         }
         
-        printfn "Final result: %s" result
+        printfn $"Final result: %s{result}"
         
         // Clean up
         if File.Exists(sampleDataPath) then
@@ -110,17 +110,17 @@ module Examples =
             let! (taskInfo1, result1) = tars.ExecuteTask("Task 1", task1)
             let! (taskInfo2, result2) = tars.ExecuteTask("Task 2", task2)
             
-            printfn "Started tasks: %A and %A" taskInfo1.Id taskInfo2.Id
+            printfn $"Started tasks: %A{taskInfo1.Id} and %A{taskInfo2.Id}"
             
             // Wait for both tasks to complete
             let! completedTask1 = tars.WaitForTask(taskInfo1.Id, TimeSpan.FromSeconds(5.0))
             let! completedTask2 = tars.WaitForTask(taskInfo2.Id, TimeSpan.FromSeconds(5.0))
             
-            printfn "Task 1 completed: %s" result1
-            printfn "Task 2 completed: %s" result2
+            printfn $"Task 1 completed: %s{result1}"
+            printfn $"Task 2 completed: %s{result2}"
             
             return "Async task workflow completed successfully"
         }
         
-        printfn "Final result: %s" result
+        printfn $"Final result: %s{result}"
     }

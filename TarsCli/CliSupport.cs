@@ -1,5 +1,6 @@
 using System.CommandLine;
 using System.CommandLine.Invocation;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using TarsCli.Services;
@@ -9,6 +10,7 @@ namespace TarsCli;
 
 public static class CliSupport
 {
+    private static IServiceProvider? _serviceProvider;
     // Color output helpers
     public static void WriteColorLine(string text, ConsoleColor color)
     {
@@ -51,8 +53,10 @@ public static class CliSupport
         ILoggerFactory loggerFactory,
         DiagnosticsService diagnosticsService,
         RetroactionService retroactionService,
-        OllamaSetupService ollamaSetupService)
+        OllamaSetupService ollamaSetupService,
+        IServiceProvider serviceProvider)
     {
+        _serviceProvider = serviceProvider;
         // Setup command line options
         var fileOption = new Option<string>(
             name: "--file",
@@ -103,25 +107,37 @@ public static class CliSupport
 
         // Create help command
         var helpCommand = new Command("help", "Display detailed help information about TARS CLI");
-        helpCommand.SetHandler(() => 
+        helpCommand.SetHandler(() =>
         {
             WriteHeader("=== TARS CLI Help ===");
             Console.WriteLine("TARS (Transformative Autonomous Reasoning System) is a tool for processing files through AI models.");
-            
+
             WriteHeader("Available Commands");
             WriteCommand("process", "Process a file through the TARS retroaction loop");
             WriteCommand("docs", "Process documentation files in the docs directory");
             WriteCommand("diagnostics", "Run system diagnostics and check environment setup");
             WriteCommand("help", "Display this help information");
-            
+            WriteCommand("init", "Initialize a new TARS session");
+            WriteCommand("run", "Run a defined agent workflow from DSL script");
+            WriteCommand("trace", "View trace logs for a completed run");
+            WriteCommand("self-analyze", "Analyze a file for potential improvements");
+            WriteCommand("self-propose", "Propose improvements for a file");
+            WriteCommand("self-rewrite", "Analyze, propose, and apply improvements to a file");
+
             WriteHeader("Global Options");
             WriteCommand("--help, -h", "Display help information");
-            
+
             WriteHeader("Examples");
             WriteExample("tarscli process --file path/to/file.cs --task \"Refactor this code\"");
             WriteExample("tarscli docs --task \"Improve documentation clarity\"");
             WriteExample("tarscli diagnostics");
-            
+            WriteExample("tarscli init my-session");
+            WriteExample("tarscli run --session my-session my-plan.fsx");
+            WriteExample("tarscli trace --session my-session last");
+            WriteExample("tarscli self-analyze --file path/to/file.cs --model llama3");
+            WriteExample("tarscli self-propose --file path/to/file.cs --model codellama:13b-code");
+            WriteExample("tarscli self-rewrite --file path/to/file.cs --model codellama:13b-code --auto-apply");
+
             Console.WriteLine("\nFor more information, visit: https://github.com/yourusername/tars");
         });
 
@@ -142,7 +158,7 @@ public static class CliSupport
             Console.WriteLine();
 
             var success = await retroactionService.ProcessFile(file, task, model);
-            
+
             if (success)
             {
                 WriteColorLine("Processing completed successfully", ConsoleColor.Green);
@@ -171,43 +187,43 @@ public static class CliSupport
         docsCommand.SetHandler(async (task, model, path) =>
         {
             var docsPath = Path.Combine(configuration["Tars:ProjectRoot"] ?? "", "docs");
-            
+
             if (!string.IsNullOrEmpty(path))
             {
                 docsPath = Path.Combine(docsPath, path);
             }
-            
+
             if (!Directory.Exists(docsPath))
             {
                 WriteColorLine($"Directory not found: {docsPath}", ConsoleColor.Red);
                 Environment.Exit(1);
                 return;
             }
-            
+
             WriteHeader("Processing Documentation");
             Console.WriteLine($"Path: {docsPath}");
             Console.WriteLine($"Task: {task}");
             Console.WriteLine($"Model: {model}");
             Console.WriteLine();
-            
+
             // Process all markdown files in the directory
             var files = Directory.GetFiles(docsPath, "*.md", SearchOption.AllDirectories);
             var successCount = 0;
-            
+
             foreach (var file in files)
             {
                 Console.WriteLine($"Processing file: {file}");
                 var success = await retroactionService.ProcessFile(file, task, model);
-                
+
                 if (success)
                 {
                     successCount++;
                 }
             }
-            
-            WriteColorLine($"Processing completed. {successCount}/{files.Length} files processed successfully.", 
+
+            WriteColorLine($"Processing completed. {successCount}/{files.Length} files processed successfully.",
                 successCount == files.Length ? ConsoleColor.Green : ConsoleColor.Yellow);
-            
+
         }, taskOption, modelOption, docsPathOption);
 
         // Create diagnostics command
@@ -218,22 +234,22 @@ public static class CliSupport
             {
                 WriteHeader("=== Running TARS Diagnostics ===");
                 Console.WriteLine("Checking system configuration, Ollama setup, and required models...");
-                
+
                 var diagnosticsResult = await diagnosticsService.RunInitialDiagnosticsAsync(verbose: true);
-                
+
                 WriteHeader("=== TARS Diagnostics Report ===");
-                
+
                 WriteColorLine("--- System Information ---", ConsoleColor.Cyan);
                 Console.WriteLine($"  Operating System: {diagnosticsResult.SystemInfo.OperatingSystem}");
                 Console.WriteLine($"  CPU Cores: {diagnosticsResult.SystemInfo.ProcessorCores}");
                 Console.WriteLine($"  Available Memory: {diagnosticsResult.SystemInfo.AvailableMemoryGB:F2} GB");
                 Console.WriteLine();
-                
+
                 WriteColorLine("--- Ollama Configuration ---", ConsoleColor.Cyan);
                 Console.WriteLine($"  Base URL: {diagnosticsResult.OllamaConfig.BaseUrl}");
                 Console.WriteLine($"  Default Model: {diagnosticsResult.OllamaConfig.DefaultModel}");
                 Console.WriteLine();
-                
+
                 WriteColorLine("--- Required Models ---", ConsoleColor.Cyan);
                 foreach (var model in diagnosticsResult.ModelStatus)
                 {
@@ -243,15 +259,15 @@ public static class CliSupport
                     WriteColorLine(statusText, statusColor);
                 }
                 Console.WriteLine();
-                
+
                 WriteColorLine("--- Project Configuration ---", ConsoleColor.Cyan);
                 Console.WriteLine($"  Project Root: {diagnosticsResult.ProjectConfig.ProjectRoot}");
                 Console.WriteLine();
-                
+
                 Console.Write($"Overall Status: ");
-                WriteColorLine(diagnosticsResult.IsReady ? "Ready ✓" : "Not Ready ✗", 
+                WriteColorLine(diagnosticsResult.IsReady ? "Ready ✓" : "Not Ready ✗",
                               diagnosticsResult.IsReady ? ConsoleColor.Green : ConsoleColor.Red);
-                
+
                 if (!diagnosticsResult.IsReady)
                 {
                     Console.WriteLine();
@@ -262,7 +278,7 @@ public static class CliSupport
                             .Where(m => !m.Value)
                             .Select(m => m.Key)
                             .ToList();
-                        
+
                         WriteColorLine($"  - Missing required models: {string.Join(", ", missingModels)}", ConsoleColor.Yellow);
                         WriteColorLine("  - Run the following command to install missing models:", ConsoleColor.Yellow);
                         WriteColorLine("    tarscli models install", ConsoleColor.White);
@@ -270,7 +286,7 @@ public static class CliSupport
                         WriteColorLine("    .\\TarsCli\\Scripts\\Install-Prerequisites.ps1", ConsoleColor.White);
                     }
                 }
-                
+
                 WriteColorLine("===========================", ConsoleColor.Cyan);
                 WriteColorLine("Diagnostics completed successfully.", ConsoleColor.Green);
             }
@@ -287,14 +303,14 @@ public static class CliSupport
         {
             WriteHeader("Running Prerequisites Setup");
             var scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Scripts", "Install-Prerequisites.ps1");
-            
+
             if (!File.Exists(scriptPath))
             {
                 WriteColorLine($"Setup script not found: {scriptPath}", ConsoleColor.Red);
                 Environment.Exit(1);
                 return;
             }
-            
+
             // Check if PowerShell Core is installed
             if (!diagnosticsService.IsPowerShellCoreInstalled())
             {
@@ -312,9 +328,9 @@ public static class CliSupport
                 WriteColorLine("Continuing with Windows PowerShell...", ConsoleColor.Yellow);
                 Console.WriteLine();
             }
-            
+
             var success = await diagnosticsService.RunPowerShellScript(scriptPath);
-            
+
             if (success)
             {
                 WriteColorLine("Setup completed successfully", ConsoleColor.Green);
@@ -335,20 +351,20 @@ public static class CliSupport
             try
             {
                 Console.WriteLine("Installing required models...");
-                
+
                 var requiredModels = await ollamaSetupService.GetRequiredModelsAsync();
                 Console.WriteLine($"Required models: {string.Join(", ", requiredModels)}");
-                
+
                 var missingModels = await ollamaSetupService.GetMissingModelsAsync();
-                
+
                 if (missingModels.Count == 0)
                 {
                     Console.WriteLine("All required models are already installed.");
                     return;
                 }
-                
+
                 Console.WriteLine($"Found {missingModels.Count} missing models: {string.Join(", ", missingModels)}");
-                
+
                 foreach (var model in missingModels)
                 {
                     Console.WriteLine($"Installing {model}...");
@@ -356,7 +372,7 @@ public static class CliSupport
 
                     Console.WriteLine(success ? $"Successfully installed {model}" : $"Failed to install {model}");
                 }
-                
+
                 Console.WriteLine("Model installation completed.");
             }
             catch (Exception ex)
@@ -413,15 +429,171 @@ public static class CliSupport
         // Add MCP command to root command
         rootCommand.AddCommand(mcpCommand);
 
+        // Create init command
+        var initCommand = new Command("init", "Initialize a new TARS session");
+        var sessionNameArgument = new Argument<string>("session-name", "Name of the session to initialize");
+        initCommand.AddArgument(sessionNameArgument);
+
+        initCommand.SetHandler(async (string sessionName) =>
+        {
+            WriteHeader("Initializing TARS Session");
+            Console.WriteLine($"Session name: {sessionName}");
+
+            var sessionService = _serviceProvider!.GetRequiredService<SessionService>();
+            var success = await sessionService.InitializeSession(sessionName);
+
+            if (success)
+            {
+                WriteColorLine("Session initialized successfully", ConsoleColor.Green);
+            }
+            else
+            {
+                WriteColorLine("Failed to initialize session", ConsoleColor.Red);
+                Environment.Exit(1);
+            }
+        }, sessionNameArgument);
+
+        // Create run command
+        var runPlanCommand = new Command("run", "Run a defined agent workflow from DSL script");
+        var sessionOption = new Option<string>("--session", "Name of the session to use");
+        var planArgument = new Argument<string>("plan", "Name of the plan file to run");
+
+        runPlanCommand.AddOption(sessionOption);
+        runPlanCommand.AddArgument(planArgument);
+
+        runPlanCommand.SetHandler(async (string session, string plan) =>
+        {
+            WriteHeader("Running TARS Plan");
+            Console.WriteLine($"Session: {session}");
+            Console.WriteLine($"Plan: {plan}");
+
+            var sessionService = _serviceProvider!.GetRequiredService<SessionService>();
+            var success = await sessionService.RunPlan(session, plan);
+
+            if (success)
+            {
+                WriteColorLine("Plan executed successfully", ConsoleColor.Green);
+            }
+            else
+            {
+                WriteColorLine("Failed to execute plan", ConsoleColor.Red);
+                Environment.Exit(1);
+            }
+        }, sessionOption, planArgument);
+
+        // Create trace command
+        var traceCommand = new Command("trace", "View trace logs for a completed run");
+        var traceSessionOption = new Option<string>("--session", "Name of the session to use");
+        var traceIdArgument = new Argument<string>("trace-id", "ID of the trace to view (or 'last' for the most recent)");
+        traceIdArgument.SetDefaultValue("last");
+
+        traceCommand.AddOption(traceSessionOption);
+        traceCommand.AddArgument(traceIdArgument);
+
+        traceCommand.SetHandler(async (string session, string traceId) =>
+        {
+            var sessionService = _serviceProvider!.GetRequiredService<SessionService>();
+            var success = await sessionService.ViewTrace(session, traceId);
+
+            if (!success)
+            {
+                Environment.Exit(1);
+            }
+        }, traceSessionOption, traceIdArgument);
+
+        // Create self-analyze command
+        var selfAnalyzeCommand = new Command("self-analyze", "Analyze a file for potential improvements");
+        selfAnalyzeCommand.AddOption(fileOption);
+        selfAnalyzeCommand.AddOption(modelOption);
+
+        selfAnalyzeCommand.SetHandler(async (string file, string model) =>
+        {
+            WriteHeader("TARS Self-Analysis");
+            Console.WriteLine($"File: {file}");
+            Console.WriteLine($"Model: {model}");
+
+            var selfImprovementService = _serviceProvider!.GetRequiredService<SelfImprovementService>();
+            var success = await selfImprovementService.AnalyzeFile(file, model);
+
+            if (success)
+            {
+                WriteColorLine("Analysis completed successfully", ConsoleColor.Green);
+            }
+            else
+            {
+                WriteColorLine("Analysis failed", ConsoleColor.Red);
+                Environment.Exit(1);
+            }
+        }, fileOption, modelOption);
+
+        // Create self-propose command
+        var selfProposeCommand = new Command("self-propose", "Propose improvements for a file");
+        selfProposeCommand.AddOption(fileOption);
+        selfProposeCommand.AddOption(modelOption);
+
+        selfProposeCommand.SetHandler(async (string file, string model) =>
+        {
+            WriteHeader("TARS Self-Improvement Proposal");
+            Console.WriteLine($"File: {file}");
+            Console.WriteLine($"Model: {model}");
+
+            var selfImprovementService = _serviceProvider!.GetRequiredService<SelfImprovementService>();
+            var success = await selfImprovementService.ProposeImprovement(file, model);
+
+            if (success)
+            {
+                WriteColorLine("Proposal generated successfully", ConsoleColor.Green);
+            }
+            else
+            {
+                WriteColorLine("Failed to generate proposal", ConsoleColor.Red);
+                Environment.Exit(1);
+            }
+        }, fileOption, modelOption);
+
+        // Create self-rewrite command
+        var selfRewriteCommand = new Command("self-rewrite", "Analyze, propose, and apply improvements to a file");
+        selfRewriteCommand.AddOption(fileOption);
+        selfRewriteCommand.AddOption(modelOption);
+        var autoApplyOption = new Option<bool>("--auto-apply", "Automatically apply the proposed changes");
+        selfRewriteCommand.AddOption(autoApplyOption);
+
+        selfRewriteCommand.SetHandler(async (string file, string model, bool autoApply) =>
+        {
+            WriteHeader("TARS Self-Rewrite");
+            Console.WriteLine($"File: {file}");
+            Console.WriteLine($"Model: {model}");
+            Console.WriteLine($"Auto-apply: {autoApply}");
+
+            var selfImprovementService = _serviceProvider!.GetRequiredService<SelfImprovementService>();
+            var success = await selfImprovementService.SelfRewrite(file, model, autoApply);
+
+            if (success)
+            {
+                WriteColorLine("Self-rewrite completed successfully", ConsoleColor.Green);
+            }
+            else
+            {
+                WriteColorLine("Self-rewrite failed", ConsoleColor.Red);
+                Environment.Exit(1);
+            }
+        }, fileOption, modelOption, autoApplyOption);
+
         // Add commands to root command
         rootCommand.AddCommand(helpCommand);
         rootCommand.AddCommand(processCommand);
         rootCommand.AddCommand(docsCommand);
         rootCommand.AddCommand(diagnosticsCommand);
         rootCommand.AddCommand(setupCommand);
+        rootCommand.AddCommand(initCommand);
+        rootCommand.AddCommand(runPlanCommand);
+        rootCommand.AddCommand(traceCommand);
+        rootCommand.AddCommand(selfAnalyzeCommand);
+        rootCommand.AddCommand(selfProposeCommand);
+        rootCommand.AddCommand(selfRewriteCommand);
 
         // Add default handler for root command
-        rootCommand.SetHandler((InvocationContext context) => 
+        rootCommand.SetHandler((InvocationContext context) =>
         {
             if (context.ParseResult.GetValueForOption(helpOption))
             {
