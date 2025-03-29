@@ -1,9 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.FSharp.Core;
-using Microsoft.FSharp.Control;
 using System.Text;
-using TarsEngine.SelfImprovement;
 
 namespace TarsCli.Services;
 

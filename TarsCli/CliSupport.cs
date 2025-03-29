@@ -1,6 +1,5 @@
 using System.CommandLine;
 using System.CommandLine.Invocation;
-using System.CommandLine.Parsing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -124,6 +123,7 @@ public static class CliSupport
             WriteCommand("self-analyze", "Analyze a file for potential improvements");
             WriteCommand("self-propose", "Propose improvements for a file");
             WriteCommand("self-rewrite", "Analyze, propose, and apply improvements to a file");
+            WriteCommand("learning", "View and manage learning data");
             WriteCommand("template", "Manage TARS templates");
             WriteCommand("workflow", "Run a multi-agent workflow for a task");
 
@@ -140,6 +140,8 @@ public static class CliSupport
             WriteExample("tarscli self-analyze --file path/to/file.cs --model llama3");
             WriteExample("tarscli self-propose --file path/to/file.cs --model codellama:13b-code");
             WriteExample("tarscli self-rewrite --file path/to/file.cs --model codellama:13b-code --auto-apply");
+            WriteExample("tarscli learning stats");
+            WriteExample("tarscli learning events --count 5");
             WriteExample("tarscli template list");
             WriteExample("tarscli template create --name my_template.json --file path/to/template.json");
             WriteExample("tarscli workflow --task \"Create a simple web API in C#\"");
@@ -789,9 +791,109 @@ public static class CliSupport
         rootCommand.AddCommand(initCommand);
         rootCommand.AddCommand(runPlanCommand);
         rootCommand.AddCommand(traceCommand);
+        // Create learning command
+        var learningCommand = new Command("learning", "View and manage learning data");
+
+        // Create learning stats command
+        var learningStatsCommand = new Command("stats", "View learning statistics");
+        learningStatsCommand.SetHandler(async () =>
+        {
+            WriteHeader("TARS Learning Statistics");
+
+            var selfImprovementService = _serviceProvider!.GetRequiredService<SelfImprovementService>();
+            var statistics = await selfImprovementService.GetLearningStatistics();
+
+            Console.WriteLine(statistics);
+        });
+
+        // Create learning events command
+        var learningEventsCommand = new Command("events", "View recent learning events");
+        var countOption = new Option<int>("--count", () => 10, "Number of events to show");
+        learningEventsCommand.AddOption(countOption);
+
+        learningEventsCommand.SetHandler(async (int count) =>
+        {
+            WriteHeader("TARS Learning Events");
+
+            var selfImprovementService = _serviceProvider!.GetRequiredService<SelfImprovementService>();
+            var events = await selfImprovementService.GetRecentLearningEvents(count);
+
+            if (events.Count == 0)
+            {
+                WriteColorLine("No learning events found", ConsoleColor.Yellow);
+                return;
+            }
+
+            foreach (var evt in events)
+            {
+                dynamic eventObj = evt;
+                WriteColorLine($"Event ID: {eventObj.Id}", ConsoleColor.Cyan);
+                Console.WriteLine($"Type: {eventObj.EventType}");
+                Console.WriteLine($"File: {eventObj.FileName}");
+                Console.WriteLine($"Time: {eventObj.Timestamp:yyyy-MM-dd HH:mm:ss}");
+                Console.WriteLine($"Success: {eventObj.Success}");
+
+                // Access feedback property
+                try
+                {
+                    var feedback = eventObj.Feedback;
+                    if (feedback != null)
+                    {
+                        var isSome = Microsoft.FSharp.Core.FSharpOption<string>.get_IsSome(feedback);
+                        if (isSome)
+                        {
+                            Console.WriteLine($"Feedback: {feedback.Value}");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Ignore errors accessing properties
+                    Console.WriteLine("(No feedback available)");
+                }
+
+                Console.WriteLine();
+            }
+        }, countOption);
+
+        // Create learning clear command
+        var learningClearCommand = new Command("clear", "Clear learning database");
+        learningClearCommand.SetHandler(async () =>
+        {
+            WriteHeader("TARS Learning Database Clear");
+
+            Console.Write("Are you sure you want to clear the learning database? (y/n): ");
+            var response = Console.ReadLine()?.ToLower();
+
+            if (response == "y" || response == "yes")
+            {
+                var selfImprovementService = _serviceProvider!.GetRequiredService<SelfImprovementService>();
+                var success = await selfImprovementService.ClearLearningDatabase();
+
+                if (success)
+                {
+                    WriteColorLine("Learning database cleared successfully", ConsoleColor.Green);
+                }
+                else
+                {
+                    WriteColorLine("Failed to clear learning database", ConsoleColor.Red);
+                }
+            }
+            else
+            {
+                WriteColorLine("Operation cancelled", ConsoleColor.Yellow);
+            }
+        });
+
+        // Add learning subcommands
+        learningCommand.AddCommand(learningStatsCommand);
+        learningCommand.AddCommand(learningEventsCommand);
+        learningCommand.AddCommand(learningClearCommand);
+
         rootCommand.AddCommand(selfAnalyzeCommand);
         rootCommand.AddCommand(selfProposeCommand);
         rootCommand.AddCommand(selfRewriteCommand);
+        rootCommand.AddCommand(learningCommand);
         rootCommand.AddCommand(templateCommand);
         rootCommand.AddCommand(workflowCommand);
 

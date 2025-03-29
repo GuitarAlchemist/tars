@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using System.Text;
 using TarsEngine.SelfImprovement;
 using Microsoft.FSharp.Control;
 using Microsoft.FSharp.Core;
@@ -39,11 +38,24 @@ public class SelfImprovementService
             // Get Ollama endpoint from configuration
             var ollamaEndpoint = _configuration["Ollama:BaseUrl"] ?? "http://localhost:11434";
 
+            // Read the file content for learning database
+            var fileContent = await File.ReadAllTextAsync(filePath);
+            var fileType = Path.GetExtension(filePath).TrimStart('.');
+
             // Call the F# self-analyzer
             var analysisResult = await FSharpAsync.StartAsTask(
                 SelfAnalyzer.analyzeFile(filePath, ollamaEndpoint, model),
                 FSharpOption<TaskCreationOptions>.None,
                 FSharpOption<CancellationToken>.None);
+
+            // Record the analysis in the learning database
+            // TODO: Uncomment when F# module is properly exposed
+            /*
+            await FSharpAsync.StartAsTask(
+                TarsEngine.SelfImprovement.LearningDatabase.recordAnalysis(filePath, fileType, fileContent, analysisResult),
+                FSharpOption<TaskCreationOptions>.None,
+                FSharpOption<CancellationToken>.None);
+            */
 
             // Display the analysis results
             Console.WriteLine();
@@ -88,6 +100,7 @@ public class SelfImprovementService
 
             // Get Ollama endpoint from configuration
             var ollamaEndpoint = _configuration["Ollama:BaseUrl"] ?? "http://localhost:11434";
+            var fileType = Path.GetExtension(filePath).TrimStart('.');
 
             // Call the F# self-improvement engine
             var result = await FSharpAsync.StartAsTask(
@@ -103,6 +116,15 @@ public class SelfImprovementService
             if (FSharpOption<ImprovementProposal>.get_IsSome(result.Proposal))
             {
                 var proposal = result.Proposal.Value;
+
+                // Record the improvement proposal in the learning database
+                // TODO: Uncomment when F# module is properly exposed
+                /*
+                await FSharpAsync.StartAsTask(
+                    TarsEngine.SelfImprovement.LearningDatabase.recordImprovement(filePath, fileType, proposal),
+                    FSharpOption<TaskCreationOptions>.None,
+                    FSharpOption<CancellationToken>.None);
+                */
 
                 // Create a diff-like display
                 Console.WriteLine();
@@ -148,17 +170,71 @@ public class SelfImprovementService
                     if (applyResult)
                     {
                         CliSupport.WriteColorLine("Changes applied successfully", ConsoleColor.Green);
+
+                        // Record feedback in the learning database
+                        // TODO: Uncomment when F# module is properly exposed
+                        /*
+                        var lastEvents = await FSharpAsync.StartAsTask(
+                            TarsEngine.SelfImprovement.LearningDatabase.getMostRecentEvents(1),
+                            FSharpOption<TaskCreationOptions>.None,
+                            FSharpOption<CancellationToken>.None);
+
+                        if (lastEvents.Length > 0)
+                        {
+                            await FSharpAsync.StartAsTask(
+                                TarsEngine.SelfImprovement.LearningDatabase.recordFeedback(lastEvents[0].Id, "Changes applied successfully", true),
+                                FSharpOption<TaskCreationOptions>.None,
+                                FSharpOption<CancellationToken>.None);
+                        }
+                        */
+
                         return true;
                     }
                     else
                     {
                         CliSupport.WriteColorLine("Failed to apply changes", ConsoleColor.Red);
+
+                        // Record feedback in the learning database
+                        // TODO: Uncomment when F# module is properly exposed
+                        /*
+                        var lastEvents = await FSharpAsync.StartAsTask(
+                            TarsEngine.SelfImprovement.LearningDatabase.getMostRecentEvents(1),
+                            FSharpOption<TaskCreationOptions>.None,
+                            FSharpOption<CancellationToken>.None);
+
+                        if (lastEvents.Length > 0)
+                        {
+                            await FSharpAsync.StartAsTask(
+                                TarsEngine.SelfImprovement.LearningDatabase.recordFeedback(lastEvents[0].Id, "Failed to apply changes", false),
+                                FSharpOption<TaskCreationOptions>.None,
+                                FSharpOption<CancellationToken>.None);
+                        }
+                        */
+
                         return false;
                     }
                 }
                 else
                 {
                     CliSupport.WriteColorLine("Changes not applied", ConsoleColor.Yellow);
+
+                    // Record feedback in the learning database
+                    // TODO: Uncomment when F# module is properly exposed
+                    /*
+                    var lastEvents = await FSharpAsync.StartAsTask(
+                        TarsEngine.SelfImprovement.LearningDatabase.getMostRecentEvents(1),
+                        FSharpOption<TaskCreationOptions>.None,
+                        FSharpOption<CancellationToken>.None);
+
+                    if (lastEvents.Length > 0)
+                    {
+                        await FSharpAsync.StartAsTask(
+                            TarsEngine.SelfImprovement.LearningDatabase.recordFeedback(lastEvents[0].Id, "User chose not to apply changes", false),
+                            FSharpOption<TaskCreationOptions>.None,
+                            FSharpOption<CancellationToken>.None);
+                    }
+                    */
+
                     return true; // Still consider this a success since the process completed
                 }
             }
@@ -190,6 +266,7 @@ public class SelfImprovementService
 
             // Get Ollama endpoint from configuration
             var ollamaEndpoint = _configuration["Ollama:BaseUrl"] ?? "http://localhost:11434";
+            var fileType = Path.GetExtension(filePath).TrimStart('.');
 
             // Call the F# self-improvement engine with auto-apply option
             var result = await FSharpAsync.StartAsTask(
@@ -202,11 +279,120 @@ public class SelfImprovementService
             CliSupport.WriteHeader($"Self-Rewrite Results for {Path.GetFileName(filePath)}");
             CliSupport.WriteColorLine(result.Message, result.Success ? ConsoleColor.Green : ConsoleColor.Red);
 
+            // Record the result in the learning database
+            // TODO: Uncomment when F# module is properly exposed
+            /*
+            if (FSharpOption<ImprovementProposal>.get_IsSome(result.Proposal))
+            {
+                var proposal = result.Proposal.Value;
+
+                // Record the improvement in the learning database
+                await FSharpAsync.StartAsTask(
+                    TarsEngine.SelfImprovement.LearningDatabase.recordImprovement(filePath, fileType, proposal),
+                    FSharpOption<TaskCreationOptions>.None,
+                    FSharpOption<CancellationToken>.None);
+
+                // Record feedback based on success
+                var lastEvents = await FSharpAsync.StartAsTask(
+                    TarsEngine.SelfImprovement.LearningDatabase.getMostRecentEvents(1),
+                    FSharpOption<TaskCreationOptions>.None,
+                    FSharpOption<CancellationToken>.None);
+
+                if (lastEvents.Length > 0)
+                {
+                    string feedback = result.Success ?
+                        "Self-rewrite applied successfully" :
+                        "Self-rewrite failed";
+
+                    await FSharpAsync.StartAsTask(
+                        TarsEngine.SelfImprovement.LearningDatabase.recordFeedback(lastEvents[0].Id, feedback, result.Success),
+                        FSharpOption<TaskCreationOptions>.None,
+                        FSharpOption<CancellationToken>.None);
+                }
+            }
+            */
+
             return result.Success;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error self-rewriting file");
+            return false;
+        }
+    }
+
+    public async Task<string> GetLearningStatistics()
+    {
+        try
+        {
+            _logger.LogInformation("Getting learning statistics");
+
+            // TODO: Uncomment when F# module is properly exposed
+            /*
+            // Get statistics from the learning database
+            var statistics = await FSharpAsync.StartAsTask(
+                TarsEngine.SelfImprovement.LearningDatabase.getStatisticsString(),
+                FSharpOption<TaskCreationOptions>.None,
+                FSharpOption<CancellationToken>.None);
+
+            return statistics;
+            */
+
+            return "Learning statistics are not available yet.";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting learning statistics");
+            return $"Error getting learning statistics: {ex.Message}";
+        }
+    }
+
+    public async Task<List<object>> GetRecentLearningEvents(int count = 10)
+    {
+        try
+        {
+            _logger.LogInformation($"Getting {count} most recent learning events");
+
+            // TODO: Uncomment when F# module is properly exposed
+            /*
+            // Get recent events from the learning database
+            var events = await FSharpAsync.StartAsTask(
+                TarsEngine.SelfImprovement.LearningDatabase.getMostRecentEvents(count),
+                FSharpOption<TaskCreationOptions>.None,
+                FSharpOption<CancellationToken>.None);
+
+            return events.ToList<object>();
+            */
+
+            return new List<object>(); // Return empty list for now
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting recent learning events");
+            return new List<object>();
+        }
+    }
+
+    public async Task<bool> ClearLearningDatabase()
+    {
+        try
+        {
+            _logger.LogInformation("Clearing learning database");
+
+            // TODO: Uncomment when F# module is properly exposed
+            /*
+            // Clear the learning database
+            await FSharpAsync.StartAsTask(
+                TarsEngine.SelfImprovement.LearningDatabase.clearDatabase(),
+                FSharpOption<TaskCreationOptions>.None,
+                FSharpOption<CancellationToken>.None);
+            */
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error clearing learning database");
             return false;
         }
     }

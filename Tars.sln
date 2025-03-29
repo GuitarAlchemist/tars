@@ -72,6 +72,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionIt
 		docs\Explorations\v1\Chats\ChatGPT-Courbes Takagi et Rham.md = docs\Explorations\v1\Chats\ChatGPT-Courbes Takagi et Rham.md
 		docs\Explorations\v1\Chats\ChatGPT-Nash Equilibrium and Dynamics.md = docs\Explorations\v1\Chats\ChatGPT-Nash Equilibrium and Dynamics.md
 		docs\Explorations\v1\Chats\ChatGPT-What is eBPF.md = docs\Explorations\v1\Chats\ChatGPT-What is eBPF.md
+		docs\Explorations\v1\Chats\ChatGPT-Nash Equilibrium in Dynamics.md = docs\Explorations\v1\Chats\ChatGPT-Nash Equilibrium in Dynamics.md
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TarsEngine", "TarsEngine\TarsEngine.csproj", "{B0A629F0-DC3A-4A88-AF1D-CDF891784B22}"

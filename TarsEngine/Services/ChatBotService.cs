@@ -1,9 +1,5 @@
 // Ensure you add the correct F# library reference providing TarsEngine functionality
 
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-using TarsEngine;
 using Microsoft.FSharp.Control;
 using Microsoft.FSharp.Core;
 using Microsoft.Extensions.Logging;

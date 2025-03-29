@@ -1,5 +1,16 @@
 # TARS Project
 
+<div align="center">
+  <img src="docs/images/tars_logo.svg" alt="TARS Logo" width="200"/>
+  <br/>
+  <img src="docs/images/tars_architecture.svg" alt="TARS Architecture" width="600"/>
+  <br/>
+  <img src="docs/images/tars_fractal.svg" alt="TARS Bifurcation" width="600"/>
+  <p><i>For more information about these images, see <a href="docs/IMAGES.md">IMAGES.md</a></i></p>
+</div>
+
+## Overview
+
 This repository contains the TARS (Transformative Autonomous Reasoning System) project, a powerful AI-driven development and automation system.
 
 ## Project Structure
@@ -26,7 +37,18 @@ TARS now includes a powerful Master Control Program (MCP) that enables autonomou
 
 ### Self-Improvement Capabilities
 
-TARS includes advanced self-improvement capabilities:
+TARS includes advanced self-improvement capabilities that allow it to analyze, improve, and learn from code:
+
+#### Recent Progress
+
+- **First Analysis Success**: Successfully analyzed test code and identified multiple issues
+- **Pattern Recognition**: Implemented detection for magic numbers, inefficient string operations, and more
+- **Learning Database**: Created a system to record improvements and feedback
+- **JSON Escaping Fix**: Resolved API communication issues with Ollama
+
+[View detailed progress tracking](docs/PROGRESS.md) | [Technical documentation](docs/SELF_IMPROVEMENT.md)
+
+#### Core Features
 
 - **Code Analysis**: Analyze code for potential improvements
 - **Improvement Proposals**: Generate proposals for code improvements
