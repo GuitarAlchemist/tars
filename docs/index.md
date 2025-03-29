@@ -22,6 +22,7 @@ TARS is an advanced AI-powered system designed to enhance software development t
 - [**Development Roadmap**](roadmap.md) - Current status and future development plans
 - [**TARS DSL Reference**](DSL/index.md) - Documentation for the TARS Domain Specific Language
 - [**API Reference**](api/index.md) - Reference for TARS APIs and services
+- [**Post-Mortem Analyses**](post-mortem/index.md) - Analyses of TARS features and implementations
 - [**Contributing Guide**](contributing.md) - How to contribute to the TARS project
 
 ### Features
