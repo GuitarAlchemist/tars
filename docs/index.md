@@ -29,6 +29,7 @@ TARS is an advanced AI-powered system designed to enhance software development t
 - [**Master Control Program (MCP)**](features/mcp.md) - Autonomous operation and integration
 - [**Self-Improvement System**](features/self-improvement.md) - How TARS learns and improves
 - [**Hugging Face Integration**](features/huggingface.md) - Working with models from Hugging Face
+- [**Demo Command**](features/demo.md) - Showcase TARS capabilities
 
 ## Quick Links
 

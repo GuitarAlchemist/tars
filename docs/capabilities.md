@@ -147,6 +147,21 @@ TARS can process documentation files, improving clarity and consistency:
 tarscli docs --task "Improve documentation clarity"
 ```
 
+### Demo Capabilities
+
+TARS includes a demo command to showcase its capabilities:
+
+```bash
+# Run all demos
+tarscli demo
+
+# Run a specific demo
+tarscli demo --type self-improvement --model llama3
+
+# Run code generation demo
+tarscli demo --type code-generation
+```
+
 ### Multi-Agent Workflows
 
 TARS supports multi-agent workflows for complex tasks:

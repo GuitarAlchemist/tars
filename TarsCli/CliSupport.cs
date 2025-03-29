@@ -139,6 +139,7 @@ public static class CliSupport
             WriteCommand("huggingface", "Interact with Hugging Face models");
             WriteCommand("language", "Generate and manage language specifications");
             WriteCommand("docs-explore", "Explore TARS documentation");
+            WriteCommand("demo", "Run a demonstration of TARS capabilities");
 
             WriteHeader("Global Options");
             WriteCommand("--help, -h", "Display help information");
@@ -171,6 +172,9 @@ public static class CliSupport
             WriteExample("tarscli docs-explore --list");
             WriteExample("tarscli docs-explore --search \"self-improvement\"");
             WriteExample("tarscli docs-explore --path index.md");
+            WriteExample("tarscli demo --type self-improvement --model llama3");
+            WriteExample("tarscli demo --type code-generation --model codellama");
+            WriteExample("tarscli demo --type all");
 
             Console.WriteLine("\nFor more information, visit: https://github.com/yourusername/tars");
         });
@@ -1338,6 +1342,25 @@ public static class CliSupport
             }
         }, searchOption, pathOption, listOption);
 
+        // Create demo command
+        var demoCommand = new Command("demo", "Run a demonstration of TARS capabilities");
+        var demoTypeOption = new Option<string>("--type", () => "all", "Type of demo to run (self-improvement, code-generation, language-specs, all)");
+        var demoModelOption = new Option<string>("--model", () => "llama3", "Model to use for the demo");
+
+        demoCommand.AddOption(demoTypeOption);
+        demoCommand.AddOption(demoModelOption);
+
+        demoCommand.SetHandler(async (string type, string model) =>
+        {
+            var demoService = _serviceProvider!.GetRequiredService<DemoService>();
+            var success = await demoService.RunDemoAsync(type, model);
+
+            if (!success)
+            {
+                Environment.Exit(1);
+            }
+        }, demoTypeOption, demoModelOption);
+
         rootCommand.AddCommand(selfAnalyzeCommand);
         rootCommand.AddCommand(selfProposeCommand);
         rootCommand.AddCommand(selfRewriteCommand);
@@ -1347,6 +1370,7 @@ public static class CliSupport
         rootCommand.AddCommand(huggingFaceCommand);
         rootCommand.AddCommand(languageCommand);
         rootCommand.AddCommand(docsExploreCommand);
+        rootCommand.AddCommand(demoCommand);
 
         // Add default handler for root command
         rootCommand.SetHandler((InvocationContext context) =>
