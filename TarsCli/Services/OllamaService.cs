@@ -25,15 +25,38 @@ public class OllamaService(ILogger<OllamaService> logger, IConfiguration configu
         {
             logger.LogDebug($"Checking if model {model} is available");
             var response = await _httpClient.GetAsync($"{_baseUrl}/api/tags");
-            response.EnsureSuccessStatusCode();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                logger.LogError($"Failed to get models from Ollama API: {response.StatusCode} - {response.ReasonPhrase}");
+                logger.LogInformation("Assuming model is available since we can't verify");
+                return true; // Assume model is available if we can't check
+            }
 
             var result = await response.Content.ReadFromJsonAsync<OllamaTagsResponse>();
-            return result?.Models?.Any(m => m.Name == model) ?? false;
+
+            if (result?.Models == null || !result.Models.Any())
+            {
+                logger.LogWarning("No models returned from Ollama API");
+                logger.LogInformation("Assuming model is available since we can't verify");
+                return true; // Assume model is available if no models are returned
+            }
+
+            // Log available models for debugging
+            var availableModels = result.Models.Select(m => m.Name).ToList();
+            logger.LogDebug($"Available models: {string.Join(", ", availableModels)}");
+
+            // Check if model exists or if a model with the same prefix exists
+            var exactMatch = result.Models.Any(m => m.Name == model);
+            var prefixMatch = result.Models.Any(m => m.Name.StartsWith(model + ":") || model.StartsWith(m.Name + ":"));
+
+            return exactMatch || prefixMatch;
         }
         catch (Exception ex)
         {
             logger.LogError(ex, $"Error checking if model {model} is available");
-            return false;
+            logger.LogInformation("Assuming model is available since we can't verify");
+            return true; // Assume model is available if we can't check due to an error
         }
     }
 
