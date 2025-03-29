@@ -85,11 +85,15 @@ public class SelfImprovementService
         }
     }
 
-    public async Task<bool> ProposeImprovement(string filePath, string model)
+    public async Task<bool> ProposeImprovement(string filePath, string model, bool autoAccept = false)
     {
         try
         {
             _logger.LogInformation($"Proposing improvements for file: {filePath}");
+            if (autoAccept)
+            {
+                _logger.LogInformation("Auto-accept is enabled. Changes will be applied automatically.");
+            }
 
             // Ensure file exists
             if (!File.Exists(filePath))
@@ -155,12 +159,25 @@ public class SelfImprovementService
                 CliSupport.WriteColorLine("Explanation:", ConsoleColor.Yellow);
                 Console.WriteLine(proposal.Explanation);
 
-                // Ask user if they want to apply changes
-                Console.WriteLine();
-                Console.Write("Would you like to apply these changes? (y/n): ");
-                var response = Console.ReadLine()?.ToLower();
+                // Apply changes automatically or ask for confirmation
+                bool shouldApply = false;
 
-                if (response == "y" || response == "yes")
+                if (autoAccept)
+                {
+                    Console.WriteLine();
+                    CliSupport.WriteColorLine("Auto-accept is enabled. Applying changes automatically...", ConsoleColor.Yellow);
+                    shouldApply = true;
+                }
+                else
+                {
+                    // Ask user if they want to apply changes
+                    Console.WriteLine();
+                    Console.Write("Would you like to apply these changes? (y/n): ");
+                    var response = Console.ReadLine()?.ToLower();
+                    shouldApply = (response == "y" || response == "yes");
+                }
+
+                if (shouldApply)
                 {
                     var applyResult = await FSharpAsync.StartAsTask(
                     SelfImprover.applyImprovement(proposal),

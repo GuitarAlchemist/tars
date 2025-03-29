@@ -35,6 +35,17 @@ TARS now includes a powerful Master Control Program (MCP) that enables autonomou
 - **Terminal Command Execution**: Execute terminal commands without permission prompts
 - **Augment Code Integration**: Configure and interact with Augment Code MCP servers
 
+### Hugging Face Integration
+
+TARS can now browse, download, and install the best coding LLMs from Hugging Face:
+
+- **Model Discovery**: Search and find the best coding models on Hugging Face
+- **Automatic Installation**: Download and convert models to work with Ollama
+- **Seamless Integration**: Use Hugging Face models with all TARS commands
+- **Model Management**: List and manage your installed models
+
+[View Hugging Face integration documentation](docs/HUGGINGFACE_INTEGRATION.md)
+
 ### Self-Improvement Capabilities
 
 TARS includes advanced self-improvement capabilities that allow it to analyze, improve, and learn from code:

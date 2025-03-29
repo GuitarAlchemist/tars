@@ -14,9 +14,19 @@ public static class CliSupport
     // Color output helpers
     public static void WriteColorLine(string text, ConsoleColor color)
     {
+        WriteColorLine(text, color, true);
+    }
+
+    public static void WriteColorLine(string text, ConsoleColor color, bool addNewLine)
+    {
         var originalColor = Console.ForegroundColor;
         Console.ForegroundColor = color;
-        Console.WriteLine(text);
+
+        if (addNewLine)
+            Console.WriteLine(text);
+        else
+            Console.Write(text);
+
         Console.ForegroundColor = originalColor;
     }
 
@@ -126,6 +136,9 @@ public static class CliSupport
             WriteCommand("learning", "View and manage learning data");
             WriteCommand("template", "Manage TARS templates");
             WriteCommand("workflow", "Run a multi-agent workflow for a task");
+            WriteCommand("huggingface", "Interact with Hugging Face models");
+            WriteCommand("language", "Generate and manage language specifications");
+            WriteCommand("docs-explore", "Explore TARS documentation");
 
             WriteHeader("Global Options");
             WriteCommand("--help, -h", "Display help information");
@@ -139,6 +152,7 @@ public static class CliSupport
             WriteExample("tarscli trace --session my-session last");
             WriteExample("tarscli self-analyze --file path/to/file.cs --model llama3");
             WriteExample("tarscli self-propose --file path/to/file.cs --model codellama:13b-code");
+            WriteExample("tarscli self-propose --file path/to/file.cs --model codellama:13b-code --auto-accept");
             WriteExample("tarscli self-rewrite --file path/to/file.cs --model codellama:13b-code --auto-apply");
             WriteExample("tarscli learning stats");
             WriteExample("tarscli learning events --count 5");
@@ -149,6 +163,14 @@ public static class CliSupport
             WriteExample("tarscli mcp code path/to/file.cs \"public class MyClass { }\"");
             WriteExample("tarscli mcp triple-code path/to/file.cs \"using System;\n\npublic class Program\n{\n    public static void Main()\n    {\n        Console.WriteLine(\"Hello, World!\");\n    }\n}\"");
             WriteExample("tarscli mcp augment sqlite uvx --args mcp-server-sqlite --db-path /path/to/test.db");
+            WriteExample("tarscli huggingface search --query \"code generation\" --task text-generation --limit 5");
+            WriteExample("tarscli huggingface best --limit 3");
+            WriteExample("tarscli huggingface details --model microsoft/phi-2");
+            WriteExample("tarscli huggingface download --model microsoft/phi-2");
+            WriteExample("tarscli huggingface install --model microsoft/phi-2 --name phi2");
+            WriteExample("tarscli docs-explore --list");
+            WriteExample("tarscli docs-explore --search \"self-improvement\"");
+            WriteExample("tarscli docs-explore --path index.md");
 
             Console.WriteLine("\nFor more information, visit: https://github.com/yourusername/tars");
         });
@@ -640,15 +662,18 @@ public static class CliSupport
         var selfProposeCommand = new Command("self-propose", "Propose improvements for a file");
         selfProposeCommand.AddOption(fileOption);
         selfProposeCommand.AddOption(modelOption);
+        var autoAcceptOption = new Option<bool>("--auto-accept", "Automatically accept and apply the proposed changes");
+        selfProposeCommand.AddOption(autoAcceptOption);
 
-        selfProposeCommand.SetHandler(async (string file, string model) =>
+        selfProposeCommand.SetHandler(async (string file, string model, bool autoAccept) =>
         {
             WriteHeader("TARS Self-Improvement Proposal");
             Console.WriteLine($"File: {file}");
             Console.WriteLine($"Model: {model}");
+            Console.WriteLine($"Auto-accept: {autoAccept}");
 
             var selfImprovementService = _serviceProvider!.GetRequiredService<SelfImprovementService>();
-            var success = await selfImprovementService.ProposeImprovement(file, model);
+            var success = await selfImprovementService.ProposeImprovement(file, model, autoAccept);
 
             if (success)
             {
@@ -659,7 +684,7 @@ public static class CliSupport
                 WriteColorLine("Failed to generate proposal", ConsoleColor.Red);
                 Environment.Exit(1);
             }
-        }, fileOption, modelOption);
+        }, fileOption, modelOption, autoAcceptOption);
 
         // Create self-rewrite command
         var selfRewriteCommand = new Command("self-rewrite", "Analyze, propose, and apply improvements to a file");
@@ -890,12 +915,438 @@ public static class CliSupport
         learningCommand.AddCommand(learningEventsCommand);
         learningCommand.AddCommand(learningClearCommand);
 
+        // Create huggingface command
+        var huggingFaceCommand = new Command("huggingface", "Interact with Hugging Face models");
+
+        // Create huggingface search command
+        var hfSearchCommand = new Command("search", "Search for models on Hugging Face");
+        var queryOption = new Option<string>("--query", "Search query") { IsRequired = true };
+        var hfTaskOption = new Option<string>("--task", () => "text-generation", "Task type (e.g., text-generation, code-generation)");
+        var limitOption = new Option<int>("--limit", () => 10, "Maximum number of results to return");
+
+        hfSearchCommand.AddOption(queryOption);
+        hfSearchCommand.AddOption(hfTaskOption);
+        hfSearchCommand.AddOption(limitOption);
+
+        hfSearchCommand.SetHandler(async (string query, string task, int limit) =>
+        {
+            WriteHeader("Hugging Face - Search Models");
+            Console.WriteLine($"Query: {query}");
+            Console.WriteLine($"Task: {task}");
+            Console.WriteLine($"Limit: {limit}");
+
+            var huggingFaceService = _serviceProvider!.GetRequiredService<HuggingFaceService>();
+            var models = await huggingFaceService.SearchModelsAsync(query, task, limit);
+
+            if (models.Count == 0)
+            {
+                WriteColorLine("No models found matching the search criteria", ConsoleColor.Yellow);
+                return;
+            }
+
+            WriteColorLine($"Found {models.Count} models:", ConsoleColor.Green);
+            Console.WriteLine();
+
+            foreach (var model in models)
+            {
+                WriteColorLine(model.Id, ConsoleColor.Cyan);
+                Console.WriteLine($"Author: {model.Author}");
+                Console.WriteLine($"Downloads: {model.Downloads:N0}");
+                Console.WriteLine($"Likes: {model.Likes:N0}");
+                Console.WriteLine($"Tags: {string.Join(", ", model.Tags)}");
+                Console.WriteLine();
+            }
+        }, queryOption, hfTaskOption, limitOption);
+
+        // Create huggingface best command
+        var hfBestCommand = new Command("best", "Get the best coding models from Hugging Face");
+        hfBestCommand.AddOption(limitOption);
+
+        hfBestCommand.SetHandler(async (int limit) =>
+        {
+            WriteHeader("Hugging Face - Best Coding Models");
+            Console.WriteLine($"Limit: {limit}");
+
+            var huggingFaceService = _serviceProvider!.GetRequiredService<HuggingFaceService>();
+            var models = await huggingFaceService.GetBestCodingModelsAsync(limit);
+
+            if (models.Count == 0)
+            {
+                WriteColorLine("No models found", ConsoleColor.Yellow);
+                return;
+            }
+
+            WriteColorLine($"Found {models.Count} best coding models:", ConsoleColor.Green);
+            Console.WriteLine();
+
+            foreach (var model in models)
+            {
+                WriteColorLine(model.Id, ConsoleColor.Cyan);
+                Console.WriteLine($"Author: {model.Author}");
+                Console.WriteLine($"Downloads: {model.Downloads:N0}");
+                Console.WriteLine($"Likes: {model.Likes:N0}");
+                Console.WriteLine($"Tags: {string.Join(", ", model.Tags)}");
+                Console.WriteLine();
+            }
+        }, limitOption);
+
+        // Create huggingface details command
+        var hfDetailsCommand = new Command("details", "Get detailed information about a model");
+        var modelIdOption = new Option<string>("--model", "Model ID") { IsRequired = true };
+
+        hfDetailsCommand.AddOption(modelIdOption);
+
+        hfDetailsCommand.SetHandler(async (string modelId) =>
+        {
+            WriteHeader("Hugging Face - Model Details");
+            Console.WriteLine($"Model ID: {modelId}");
+
+            var huggingFaceService = _serviceProvider!.GetRequiredService<HuggingFaceService>();
+            var modelDetails = await huggingFaceService.GetModelDetailsAsync(modelId);
+
+            if (string.IsNullOrEmpty(modelDetails.Id))
+            {
+                WriteColorLine($"No details found for model: {modelId}", ConsoleColor.Yellow);
+                return;
+            }
+
+            WriteColorLine(modelDetails.Id, ConsoleColor.Cyan);
+            Console.WriteLine($"Author: {modelDetails.Author}");
+            Console.WriteLine($"Downloads: {modelDetails.Downloads:N0}");
+            Console.WriteLine($"Likes: {modelDetails.Likes:N0}");
+            Console.WriteLine($"Last Modified: {modelDetails.LastModified}");
+            Console.WriteLine($"License: {modelDetails.CardData.License}");
+            Console.WriteLine($"Tags: {string.Join(", ", modelDetails.Tags)}");
+            Console.WriteLine($"Languages: {string.Join(", ", modelDetails.CardData.Languages)}");
+            Console.WriteLine($"Datasets: {string.Join(", ", modelDetails.CardData.Datasets)}");
+
+            if (modelDetails.Siblings.Count > 0)
+            {
+                Console.WriteLine("\nFiles:");
+                foreach (var file in modelDetails.Siblings)
+                {
+                    Console.WriteLine($"- {file.Filename} ({file.Size / 1024.0 / 1024.0:N2} MB)");
+                }
+            }
+        }, modelIdOption);
+
+        // Create huggingface download command
+        var hfDownloadCommand = new Command("download", "Download a model from Hugging Face");
+        hfDownloadCommand.AddOption(modelIdOption);
+
+        hfDownloadCommand.SetHandler(async (string modelId) =>
+        {
+            WriteHeader("Hugging Face - Download Model");
+            Console.WriteLine($"Model ID: {modelId}");
+
+            var huggingFaceService = _serviceProvider!.GetRequiredService<HuggingFaceService>();
+            var success = await huggingFaceService.DownloadModelAsync(modelId);
+
+            if (success)
+            {
+                WriteColorLine($"Successfully downloaded model: {modelId}", ConsoleColor.Green);
+            }
+            else
+            {
+                WriteColorLine($"Failed to download model: {modelId}", ConsoleColor.Red);
+            }
+        }, modelIdOption);
+
+        // Create huggingface install command
+        var hfInstallCommand = new Command("install", "Install a model from Hugging Face to Ollama");
+        hfInstallCommand.AddOption(modelIdOption);
+        var ollamaNameOption = new Option<string>("--name", "Name to use in Ollama");
+        hfInstallCommand.AddOption(ollamaNameOption);
+
+        hfInstallCommand.SetHandler(async (string modelId, string ollamaName) =>
+        {
+            WriteHeader("Hugging Face - Install Model");
+            Console.WriteLine($"Model ID: {modelId}");
+
+            if (!string.IsNullOrEmpty(ollamaName))
+            {
+                Console.WriteLine($"Ollama Name: {ollamaName}");
+            }
+
+            var huggingFaceService = _serviceProvider!.GetRequiredService<HuggingFaceService>();
+            var success = await huggingFaceService.InstallModelAsync(modelId, ollamaName);
+
+            if (success)
+            {
+                WriteColorLine($"Successfully installed model: {modelId}", ConsoleColor.Green);
+            }
+            else
+            {
+                WriteColorLine($"Failed to install model: {modelId}", ConsoleColor.Red);
+            }
+        }, modelIdOption, ollamaNameOption);
+
+        // Create huggingface list command
+        var hfListCommand = new Command("list", "List installed models");
+
+        hfListCommand.SetHandler(() =>
+        {
+            WriteHeader("Hugging Face - Installed Models");
+
+            var huggingFaceService = _serviceProvider!.GetRequiredService<HuggingFaceService>();
+            var installedModels = huggingFaceService.GetInstalledModels();
+
+            if (installedModels.Count == 0)
+            {
+                WriteColorLine("No models installed", ConsoleColor.Yellow);
+                return;
+            }
+
+            WriteColorLine($"Found {installedModels.Count} installed models:", ConsoleColor.Green);
+            Console.WriteLine();
+
+            foreach (var model in installedModels)
+            {
+                WriteColorLine(model, ConsoleColor.Cyan);
+            }
+        });
+
+        // Add subcommands to huggingface command
+        huggingFaceCommand.AddCommand(hfSearchCommand);
+        huggingFaceCommand.AddCommand(hfBestCommand);
+        huggingFaceCommand.AddCommand(hfDetailsCommand);
+        huggingFaceCommand.AddCommand(hfDownloadCommand);
+        huggingFaceCommand.AddCommand(hfInstallCommand);
+        huggingFaceCommand.AddCommand(hfListCommand);
+
+        // Create language command
+        var languageCommand = new Command("language", "Generate and manage language specifications");
+
+        // Create language ebnf command
+        var languageEbnfCommand = new Command("ebnf", "Generate EBNF specification for TARS DSL");
+        var outputOption = new Option<string>("--output", "Output file path");
+        languageEbnfCommand.AddOption(outputOption);
+
+        languageEbnfCommand.SetHandler(async (string output) =>
+        {
+            WriteHeader("TARS Language - EBNF Specification");
+
+            var languageService = _serviceProvider!.GetRequiredService<LanguageSpecificationService>();
+            var ebnf = await languageService.GenerateEbnfAsync();
+
+            if (!string.IsNullOrEmpty(output))
+            {
+                var success = await languageService.SaveSpecificationToFileAsync(ebnf, output);
+                if (success)
+                {
+                    WriteColorLine($"EBNF specification saved to: {output}", ConsoleColor.Green);
+                }
+                else
+                {
+                    WriteColorLine($"Failed to save EBNF specification to: {output}", ConsoleColor.Red);
+                    Environment.Exit(1);
+                }
+            }
+            else
+            {
+                // Print to console
+                Console.WriteLine(ebnf);
+            }
+        }, outputOption);
+
+        // Create language bnf command
+        var languageBnfCommand = new Command("bnf", "Generate BNF specification for TARS DSL");
+        languageBnfCommand.AddOption(outputOption);
+
+        languageBnfCommand.SetHandler(async (string output) =>
+        {
+            WriteHeader("TARS Language - BNF Specification");
+
+            var languageService = _serviceProvider!.GetRequiredService<LanguageSpecificationService>();
+            var bnf = await languageService.GenerateBnfAsync();
+
+            if (!string.IsNullOrEmpty(output))
+            {
+                var success = await languageService.SaveSpecificationToFileAsync(bnf, output);
+                if (success)
+                {
+                    WriteColorLine($"BNF specification saved to: {output}", ConsoleColor.Green);
+                }
+                else
+                {
+                    WriteColorLine($"Failed to save BNF specification to: {output}", ConsoleColor.Red);
+                    Environment.Exit(1);
+                }
+            }
+            else
+            {
+                // Print to console
+                Console.WriteLine(bnf);
+            }
+        }, outputOption);
+
+        // Create language json-schema command
+        var languageJsonSchemaCommand = new Command("json-schema", "Generate JSON schema for TARS DSL");
+        languageJsonSchemaCommand.AddOption(outputOption);
+
+        languageJsonSchemaCommand.SetHandler(async (string output) =>
+        {
+            WriteHeader("TARS Language - JSON Schema");
+
+            var languageService = _serviceProvider!.GetRequiredService<LanguageSpecificationService>();
+            var schema = await languageService.GenerateJsonSchemaAsync();
+
+            if (!string.IsNullOrEmpty(output))
+            {
+                var success = await languageService.SaveSpecificationToFileAsync(schema, output);
+                if (success)
+                {
+                    WriteColorLine($"JSON schema saved to: {output}", ConsoleColor.Green);
+                }
+                else
+                {
+                    WriteColorLine($"Failed to save JSON schema to: {output}", ConsoleColor.Red);
+                    Environment.Exit(1);
+                }
+            }
+            else
+            {
+                // Print to console
+                Console.WriteLine(schema);
+            }
+        }, outputOption);
+
+        // Create language docs command
+        var languageDocsCommand = new Command("docs", "Generate markdown documentation for TARS DSL");
+        languageDocsCommand.AddOption(outputOption);
+
+        languageDocsCommand.SetHandler(async (string output) =>
+        {
+            WriteHeader("TARS Language - Documentation");
+
+            var languageService = _serviceProvider!.GetRequiredService<LanguageSpecificationService>();
+            var docs = await languageService.GenerateMarkdownDocumentationAsync();
+
+            if (!string.IsNullOrEmpty(output))
+            {
+                var success = await languageService.SaveSpecificationToFileAsync(docs, output);
+                if (success)
+                {
+                    WriteColorLine($"Documentation saved to: {output}", ConsoleColor.Green);
+                }
+                else
+                {
+                    WriteColorLine($"Failed to save documentation to: {output}", ConsoleColor.Red);
+                    Environment.Exit(1);
+                }
+            }
+            else
+            {
+                // Print to console
+                Console.WriteLine(docs);
+            }
+        }, outputOption);
+
+        // Add language subcommands
+        languageCommand.AddCommand(languageEbnfCommand);
+        languageCommand.AddCommand(languageBnfCommand);
+        languageCommand.AddCommand(languageJsonSchemaCommand);
+        languageCommand.AddCommand(languageDocsCommand);
+
+        // Create docs-explore command
+        var docsExploreCommand = new Command("docs-explore", "Explore TARS documentation");
+        var searchOption = new Option<string>("--search", "Search query");
+        var pathOption = new Option<string>("--path", "Documentation path");
+        var listOption = new Option<bool>("--list", "List all documentation");
+
+        docsExploreCommand.AddOption(searchOption);
+        docsExploreCommand.AddOption(pathOption);
+        docsExploreCommand.AddOption(listOption);
+
+        docsExploreCommand.SetHandler((string search, string path, bool list) =>
+        {
+            WriteHeader("TARS Documentation Explorer");
+
+            var docService = _serviceProvider!.GetRequiredService<DocumentationService>();
+
+            if (!string.IsNullOrEmpty(path))
+            {
+                // Display a specific document
+                var entry = docService.GetDocEntry(path);
+                if (entry == null)
+                {
+                    WriteColorLine($"Documentation not found: {path}", ConsoleColor.Red);
+                    return;
+                }
+
+                WriteColorLine(entry.Title, ConsoleColor.Cyan);
+                Console.WriteLine();
+
+                var formattedContent = docService.FormatMarkdownForConsole(entry.Content);
+                Console.WriteLine(formattedContent);
+            }
+            else if (list || string.IsNullOrEmpty(search))
+            {
+                // List all documents
+                var entries = docService.GetAllDocEntries();
+                entries = entries.OrderBy(e => e.Path).ToList();
+
+                WriteColorLine($"Found {entries.Count} documentation files:", ConsoleColor.Green);
+                Console.WriteLine();
+
+                foreach (var entry in entries)
+                {
+                    WriteColorLine(entry.Title, ConsoleColor.Cyan);
+                    Console.WriteLine($"Path: {entry.Path}");
+                    if (!string.IsNullOrEmpty(entry.Summary))
+                    {
+                        Console.WriteLine(entry.Summary);
+                    }
+                    Console.WriteLine();
+                }
+
+                Console.WriteLine("To view a specific document, use:");
+                Console.WriteLine($"  tarscli docs --path <path>");
+                Console.WriteLine("Example:");
+                if (entries.Count > 0)
+                {
+                    Console.WriteLine($"  tarscli docs --path {entries[0].Path}");
+                }
+            }
+            else
+            {
+                // Search documents
+                var entries = docService.SearchDocEntries(search);
+                entries = entries.OrderBy(e => e.Path).ToList();
+
+                WriteColorLine($"Found {entries.Count} documents matching '{search}':", ConsoleColor.Green);
+                Console.WriteLine();
+
+                foreach (var entry in entries)
+                {
+                    WriteColorLine(entry.Title, ConsoleColor.Cyan);
+                    Console.WriteLine($"Path: {entry.Path}");
+                    if (!string.IsNullOrEmpty(entry.Summary))
+                    {
+                        Console.WriteLine(entry.Summary);
+                    }
+                    Console.WriteLine();
+                }
+
+                if (entries.Count > 0)
+                {
+                    Console.WriteLine("To view a specific document, use:");
+                    Console.WriteLine($"  tarscli docs --path <path>");
+                    Console.WriteLine("Example:");
+                    Console.WriteLine($"  tarscli docs --path {entries[0].Path}");
+                }
+            }
+        }, searchOption, pathOption, listOption);
+
         rootCommand.AddCommand(selfAnalyzeCommand);
         rootCommand.AddCommand(selfProposeCommand);
         rootCommand.AddCommand(selfRewriteCommand);
         rootCommand.AddCommand(learningCommand);
         rootCommand.AddCommand(templateCommand);
         rootCommand.AddCommand(workflowCommand);
+        rootCommand.AddCommand(huggingFaceCommand);
+        rootCommand.AddCommand(languageCommand);
+        rootCommand.AddCommand(docsExploreCommand);
 
         // Add default handler for root command
         rootCommand.SetHandler((InvocationContext context) =>

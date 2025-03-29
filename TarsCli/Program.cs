@@ -52,6 +52,9 @@ internal static class Program
                 .AddSingleton<TemplateService>()
                 .AddSingleton<SessionService>()
                 .AddSingleton<WorkflowCoordinationService>()
+                .AddSingleton<HuggingFaceService>()
+                .AddSingleton<LanguageSpecificationService>()
+                .AddSingleton<DocumentationService>()
                 .AddSingleton<TarsCli.Mcp.McpController>(sp => new TarsCli.Mcp.McpController(sp.GetRequiredService<ILogger<TarsCli.Mcp.McpController>>(), configuration))
                 .AddSingleton<EnhancedMcpService>()
                 .BuildServiceProvider();
@@ -96,15 +99,12 @@ internal static class Program
             }
 
             // Check Ollama setup
-            Console.WriteLine("Checking Ollama setup...");
             if (!await setupService.CheckOllamaSetupAsync())
             {
                 logger.LogError("Failed to set up Ollama. Please run the Install-Prerequisites.ps1 script or set up Ollama manually.");
                 logger.LogInformation("You can find the script in the Scripts directory.");
-                Console.WriteLine("Ollama setup failed!");
                 return 1;
             }
-            Console.WriteLine("Ollama setup successful!");
 
             // Setup and run command line
             Console.WriteLine("Setting up command line...");

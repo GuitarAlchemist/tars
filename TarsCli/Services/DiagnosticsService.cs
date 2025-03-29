@@ -27,40 +27,36 @@ public class DiagnosticsService
         try
         {
             _logger.LogOperationStarted("diagnostics");
-            
+
             if (verbose)
             {
                 Console.WriteLine("Starting diagnostics...");
                 Console.WriteLine("Calling RunInitialDiagnosticsAsync...");
             }
-            
+
             // Run system diagnostics
-            Console.WriteLine("Starting system diagnostics check...");
-            
+            Console.WriteLine("System diagnostics - Running");
+
             // Get system information
-            Console.WriteLine("Checking system information...");
             var systemInfo = GetSystemInfo();
-            
+
             // Check Ollama configuration
-            Console.WriteLine("Checking Ollama configuration...");
             var ollamaConfig = GetOllamaConfig();
-            
+
             // Check required models
-            Console.WriteLine("Checking required models availability...");
             var modelStatus = await CheckRequiredModelsAsync();
-            
+
             // Check project configuration
-            Console.WriteLine("Checking project configuration...");
             var projectConfig = GetProjectConfig();
-            
+
             if (verbose)
             {
                 Console.WriteLine("Diagnostics completed.");
                 Console.WriteLine("RunInitialDiagnosticsAsync completed.");
             }
-            
+
             _logger.LogOperationCompleted("diagnostics");
-            
+
             return new DiagnosticsResult
             {
                 SystemInfo = systemInfo,
@@ -73,11 +69,11 @@ public class DiagnosticsService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error running diagnostics");
-            
+
             // Use CliSupport for colored output
             CliSupport.WriteColorLine($"Critical error running diagnostics: {ex.Message}", ConsoleColor.Red);
             Console.WriteLine($"Stack trace: {ex.StackTrace}");
-            
+
             // Return a minimal result instead of throwing
             return new DiagnosticsResult
             {
@@ -97,7 +93,7 @@ public class DiagnosticsService
             ProcessorCores = Environment.ProcessorCount,
             AvailableMemoryGB = GetAvailableMemoryGB()
         };
-        
+
         return info;
     }
 
@@ -182,7 +178,7 @@ public class DiagnosticsService
         {
             _logger.LogError(ex, "Error determining available memory");
         }
-        
+
         return 0;
     }
 
@@ -200,38 +196,38 @@ public class DiagnosticsService
     {
         var result = new Dictionary<string, bool>();
         var requiredModels = (_configuration["Ollama:RequiredModels"] ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries);
-        
+
         if (requiredModels.Length == 0)
         {
             // Add default model if no required models specified
             requiredModels = [_configuration["Ollama:DefaultModel"] ?? "codellama:13b-code"];
         }
-        
+
         // Get list of installed models
         var installedModels = await GetInstalledModelsAsync();
-        
+
         foreach (var model in requiredModels)
         {
             try
             {
                 var modelName = model.Trim();
-                
+
                 // Check if the exact model is installed
                 if (installedModels.Contains(modelName))
                 {
                     result[modelName] = true;
                     continue;
                 }
-                
+
                 // Check for alternative embedding models
-                if ((modelName.Contains("all-minilm") || modelName.Contains("nomic-embed")) && 
-                    installedModels.Any(m => m.Contains("all-minilm") || m.Contains("nomic-embed") || 
+                if ((modelName.Contains("all-minilm") || modelName.Contains("nomic-embed")) &&
+                    installedModels.Any(m => m.Contains("all-minilm") || m.Contains("nomic-embed") ||
                                             m.Contains("gte-small") || m.Contains("e5-small")))
                 {
                     result[modelName] = true;
                     continue;
                 }
-                
+
                 // If not found in installed models, try a test generation
                 var testResult = await _ollamaService.GenerateCompletion("test", modelName);
                 result[modelName] = !string.IsNullOrEmpty(testResult) && !testResult.StartsWith("Error");
@@ -241,7 +237,7 @@ public class DiagnosticsService
                 result[model.Trim()] = false;
             }
         }
-        
+
         return result;
     }
 
@@ -260,14 +256,14 @@ public class DiagnosticsService
             // Check if PowerShell Core is installed
             var isPwshInstalled = IsPowerShellCoreInstalled();
             var psExecutable = isPwshInstalled ? "pwsh" : "powershell.exe";
-            
+
             if (!isPwshInstalled)
             {
                 _logger.LogWarning("PowerShell Core (pwsh) is not installed. Using Windows PowerShell instead.");
                 _logger.LogInformation("For better cross-platform compatibility, consider installing PowerShell Core:");
                 _logger.LogInformation("https://github.com/PowerShell/PowerShell#get-powershell");
             }
-            
+
             var startInfo = new ProcessStartInfo
             {
                 FileName = psExecutable,
@@ -281,13 +277,13 @@ public class DiagnosticsService
             using var process = Process.Start(startInfo);
             var output = await process.StandardOutput.ReadToEndAsync();
             var error = await process.StandardError.ReadToEndAsync();
-            
+
             await process.WaitForExitAsync();
-            
+
             _logger.LogInformation($"PowerShell Output: {output}");
             if (!string.IsNullOrEmpty(error))
                 _logger.LogError($"PowerShell Error: {error}");
-                
+
             return process.ExitCode == 0;
         }
         catch (Exception ex)
@@ -313,7 +309,7 @@ public class DiagnosticsService
                     CreateNoWindow = true
                 }
             };
-            
+
             process.Start();
             process.WaitForExit();
             return true;
@@ -331,12 +327,12 @@ public class DiagnosticsService
             var baseUrl = _configuration["Ollama:BaseUrl"] ?? "http://localhost:11434";
             using var httpClient = new HttpClient();
             var response = await httpClient.GetAsync($"{baseUrl}/api/tags");
-            
+
             if (response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsStringAsync();
                 var tagsResponse = System.Text.Json.JsonSerializer.Deserialize<TagsResponse>(content);
-                
+
                 if (tagsResponse?.Models != null)
                 {
                     return tagsResponse.Models.Select(m => m.Name).ToList();
@@ -347,7 +343,7 @@ public class DiagnosticsService
         {
             _logger.LogError(ex, "Error getting installed models");
         }
-        
+
         return new List<string>();
     }
 
@@ -370,7 +366,7 @@ public class DiagnosticsResult
     public OllamaConfig OllamaConfig { get; set; } = new();
     public Dictionary<string, bool> ModelStatus { get; set; } = new();
     public ProjectConfig ProjectConfig { get; set; } = new();
-    
+
     public bool IsReady => ModelStatus.All(m => m.Value);
 }
 
