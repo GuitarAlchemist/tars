@@ -10,25 +10,31 @@ public class SessionService
     private readonly IConfiguration _configuration;
     private readonly string _projectRoot;
     private readonly ScriptExecutionService _scriptExecutionService;
+    private readonly TemplateService _templateService;
 
     public SessionService(
         ILogger<SessionService> logger,
         IConfiguration configuration,
-        ScriptExecutionService scriptExecutionService)
+        ScriptExecutionService scriptExecutionService,
+        TemplateService templateService)
     {
         _logger = logger;
         _configuration = configuration;
         _scriptExecutionService = scriptExecutionService;
+        _templateService = templateService;
         _projectRoot = _configuration["Tars:ProjectRoot"] ??
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
                 "source", "repos", "tars");
     }
 
-    public async Task<bool> InitializeSession(string sessionName)
+    public async Task<bool> InitializeSession(string sessionName, string templateName = "default_session.json")
     {
         try
         {
             _logger.LogInformation($"Initializing session: {sessionName}");
+
+            // Initialize templates directory if it doesn't exist
+            await _templateService.InitializeTemplatesDirectory();
 
             // Create session directory
             var sessionDir = Path.Combine(_projectRoot, "sessions", sessionName);
@@ -54,76 +60,52 @@ public class SessionService
             Directory.CreateDirectory(Path.Combine(sessionDir, "plans"));
             Directory.CreateDirectory(Path.Combine(sessionDir, "output"));
 
-            // Create default config file
-            var configContent = @"{
-  ""session"": {
-    ""name"": ""SESSION_NAME"",
-    ""description"": ""A TARS session"",
-    ""created"": ""TIMESTAMP"",
-    ""version"": ""1.0.0""
-  },
-  ""agents"": {
-    ""planner"": {
-      ""model"": ""llama3"",
-      ""temperature"": 0.7,
-      ""description"": ""Plans the overall approach and breaks down tasks""
-    },
-    ""coder"": {
-      ""model"": ""codellama:13b-code"",
-      ""temperature"": 0.2,
-      ""description"": ""Writes and refines code based on the plan""
-    },
-    ""critic"": {
-      ""model"": ""llama3"",
-      ""temperature"": 0.5,
-      ""description"": ""Reviews and critiques code and plans""
-    }
-  },
-  ""ollama"": {
-    ""baseUrl"": ""http://localhost:11434"",
-    ""defaultModel"": ""llama3""
-  }
-}";
+            // Get the session template content
+            var configTemplateContent = await _templateService.GetTemplateContent(templateName);
 
-            configContent = configContent
-                .Replace("SESSION_NAME", sessionName)
-                .Replace("TIMESTAMP", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"));
+            if (string.IsNullOrEmpty(configTemplateContent))
+            {
+                _logger.LogWarning($"Template '{templateName}' not found. Using default template.");
+                Console.WriteLine($"Template '{templateName}' not found. Using default template.");
 
+                // Create default templates
+                await _templateService.CreateDefaultTemplates();
+                configTemplateContent = await _templateService.GetTemplateContent("default_session.json");
+
+                if (string.IsNullOrEmpty(configTemplateContent))
+                {
+                    _logger.LogError("Failed to create default template.");
+                    return false;
+                }
+            }
+
+            // Apply template variables
+            var variables = new Dictionary<string, string>
+            {
+                { "SESSION_NAME", sessionName },
+                { "TIMESTAMP", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ") }
+            };
+
+            var configContent = await _templateService.ApplyTemplateVariables(configTemplateContent, variables);
+
+            // Save the config file
             await File.WriteAllTextAsync(Path.Combine(sessionDir, "configs", "session.json"), configContent);
 
-            // Create sample plan template
-            var planTemplate = @"// TARS Plan Template
-// This is a sample F# script that defines a TARS workflow
+            // Get the plan template content
+            var planTemplateContent = await _templateService.GetTemplateContent("default_plan.fsx");
 
-#r ""nuget: FSharp.Data""
+            if (!string.IsNullOrEmpty(planTemplateContent))
+            {
+                // Apply template variables
+                var planContent = await _templateService.ApplyTemplateVariables(planTemplateContent, variables);
 
-open System
-open FSharp.Data
-
-// Define the workflow
-let workflow = async {
-    printfn ""Starting TARS workflow...""
-
-    // Example: Call the Planner agent
-    let! planResult = Async.AwaitTask(TarsEngine.Agents.Planner.CreatePlan(""Create a simple web API""))
-    printfn ""Plan created: %s"" planResult
-
-    // Example: Call the Coder agent
-    let! codeResult = Async.AwaitTask(TarsEngine.Agents.Coder.GenerateCode(planResult))
-    printfn ""Code generated: %s"" codeResult
-
-    // Example: Call the Critic agent
-    let! criticResult = Async.AwaitTask(TarsEngine.Agents.Critic.ReviewCode(codeResult))
-    printfn ""Code reviewed: %s"" criticResult
-
-    return ""Workflow completed successfully""
-}
-
-// Run the workflow
-Async.RunSynchronously(workflow)
-";
-
-            await File.WriteAllTextAsync(Path.Combine(sessionDir, "plans", "template.fsx"), planTemplate);
+                // Save the plan file
+                await File.WriteAllTextAsync(Path.Combine(sessionDir, "plans", "template.fsx"), planContent);
+            }
+            else
+            {
+                _logger.LogWarning("Plan template not found. Skipping plan creation.");
+            }
 
             // Create README file
             var readmeContent = $@"# TARS Session: {sessionName}

@@ -4,6 +4,8 @@ using Microsoft.Extensions.Logging;
 using NLog;
 using NLog.Extensions.Logging;
 using System.CommandLine;
+using System.CommandLine.Builder;
+using System.CommandLine.Parsing;
 using TarsCli.Services;
 
 namespace TarsCli;
@@ -47,9 +49,11 @@ internal static class Program
                 .AddSingleton<DiagnosticsService>()
                 .AddSingleton<SelfImprovementService>()
                 .AddSingleton<ScriptExecutionService>()
+                .AddSingleton<TemplateService>()
                 .AddSingleton<SessionService>()
                 .AddSingleton<WorkflowCoordinationService>()
-                .AddSingleton<TarsCli.Mcp.McpController>()
+                .AddSingleton<TarsCli.Mcp.McpController>(sp => new TarsCli.Mcp.McpController(sp.GetRequiredService<ILogger<TarsCli.Mcp.McpController>>(), configuration))
+                .AddSingleton<EnhancedMcpService>()
                 .BuildServiceProvider();
 
             // Get services
@@ -114,9 +118,27 @@ internal static class Program
                 serviceProvider);  // setupService is the OllamaSetupService instance
 
             Console.WriteLine($"Invoking command: {string.Join(" ", args)}");
-            var result = await rootCommand.InvokeAsync(args);
-            Console.WriteLine($"Command completed with result: {result}");
-            return result;
+
+            // Check if we need to use the triple-quoted parser
+            if (args.Any(arg => arg.Contains("\"\"\"") || args.Contains("-triple-quoted")))
+            {
+                // Create the parser
+                var parser = new CommandLineBuilder(rootCommand)
+                    .UseDefaults()
+                    .Build();
+
+                // Use our custom parser for triple-quoted strings
+                var parseResult = Parsing.TripleQuotedArgumentParser.ParseCommandLine(parser, args);
+                var result = await parseResult.InvokeAsync();
+                return result;
+            }
+            else
+            {
+                // Use the standard parser for regular commands
+                var result = await rootCommand.InvokeAsync(args);
+                Console.WriteLine($"Command completed with result: {result}");
+                return result;
+            }
         }
         catch (Exception ex)
         {

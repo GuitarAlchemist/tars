@@ -1,5 +1,6 @@
 using System.CommandLine;
 using System.CommandLine.Invocation;
+using System.CommandLine.Parsing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -123,6 +124,7 @@ public static class CliSupport
             WriteCommand("self-analyze", "Analyze a file for potential improvements");
             WriteCommand("self-propose", "Propose improvements for a file");
             WriteCommand("self-rewrite", "Analyze, propose, and apply improvements to a file");
+            WriteCommand("template", "Manage TARS templates");
             WriteCommand("workflow", "Run a multi-agent workflow for a task");
 
             WriteHeader("Global Options");
@@ -138,7 +140,13 @@ public static class CliSupport
             WriteExample("tarscli self-analyze --file path/to/file.cs --model llama3");
             WriteExample("tarscli self-propose --file path/to/file.cs --model codellama:13b-code");
             WriteExample("tarscli self-rewrite --file path/to/file.cs --model codellama:13b-code --auto-apply");
+            WriteExample("tarscli template list");
+            WriteExample("tarscli template create --name my_template.json --file path/to/template.json");
             WriteExample("tarscli workflow --task \"Create a simple web API in C#\"");
+            WriteExample("tarscli mcp execute \"echo Hello, World!\"");
+            WriteExample("tarscli mcp code path/to/file.cs \"public class MyClass { }\"");
+            WriteExample("tarscli mcp triple-code path/to/file.cs \"using System;\n\npublic class Program\n{\n    public static void Main()\n    {\n        Console.WriteLine(\"Hello, World!\");\n    }\n}\"");
+            WriteExample("tarscli mcp augment sqlite uvx --args mcp-server-sqlite --db-path /path/to/test.db");
 
             Console.WriteLine("\nFor more information, visit: https://github.com/yourusername/tars");
         });
@@ -423,10 +431,108 @@ public static class CliSupport
             Console.WriteLine(result);
         });
 
+        // Add more MCP subcommands for enhanced features
+        var executeCommand = new Command("execute", "Execute a terminal command without asking for permission")
+        {
+            new Argument<string>("command", "The command to execute")
+        };
+
+        executeCommand.SetHandler(async (command) =>
+        {
+            WriteHeader("MCP - Execute Command");
+            Console.WriteLine($"Command: {command}");
+
+            var mcpController = _serviceProvider!.GetRequiredService<TarsCli.Mcp.McpController>();
+            var result = await mcpController.ExecuteCommand("execute", command);
+            Console.WriteLine(result);
+        }, new Argument<string>("command"));
+
+        var codeCommand = new Command("code", "Generate and save code without asking for permission");
+        var fileArgument = new Argument<string>("file", "Path to the file to create or update");
+        var contentArgument = new Argument<string>("content", "The content to write to the file");
+
+        codeCommand.AddArgument(fileArgument);
+        codeCommand.AddArgument(contentArgument);
+
+        codeCommand.SetHandler(async (string file, string content) =>
+        {
+            WriteHeader("MCP - Generate Code");
+            Console.WriteLine($"File: {file}");
+
+            // Check if the content is triple-quoted
+            if (content.StartsWith("\"\"\"") && content.EndsWith("\"\"\""))
+            {
+                // Remove the triple quotes
+                content = content.Substring(3, content.Length - 6);
+                Console.WriteLine("Using triple-quoted syntax for code generation.");
+            }
+
+            // Create a direct parameter string with file path and content
+            var codeSpec = $"{file}:::{content}";
+
+            var mcpController = _serviceProvider!.GetRequiredService<TarsCli.Mcp.McpController>();
+            var result = await mcpController.ExecuteCommand("code", codeSpec);
+            Console.WriteLine(result);
+        }, fileArgument, contentArgument);
+
+        var augmentCommand = new Command("augment", "Configure Augment Code MCP server")
+        {
+            new Argument<string>("name", "Name of the MCP server"),
+            new Argument<string>("command", "Command to execute"),
+            new Option<string[]>("--args", "Arguments to pass to the command") { AllowMultipleArgumentsPerToken = true }
+        };
+
+        augmentCommand.SetHandler(async (name, command, args) =>
+        {
+            WriteHeader("MCP - Configure Augment");
+            Console.WriteLine($"Server Name: {name}");
+            Console.WriteLine($"Command: {command}");
+            Console.WriteLine($"Args: {string.Join(", ", args)}");
+
+            // Create a JSON specification for the Augment configuration
+            var configSpec = System.Text.Json.JsonSerializer.Serialize(new
+            {
+                serverName = name,
+                command = command,
+                args = args
+            });
+
+            var mcpController = _serviceProvider!.GetRequiredService<TarsCli.Mcp.McpController>();
+            var result = await mcpController.ExecuteCommand("augment", configSpec);
+            Console.WriteLine(result);
+        }, new Argument<string>("name"), new Argument<string>("command"), new Option<string[]>("--args"));
+
+
+
+        // Create a dedicated command for triple-quoted code
+        var tripleCodeCommand = new Command("triple-code", "Generate code using triple-quoted syntax");
+        var fileArg = new Argument<string>("file", "Path to the file to create or update");
+        var contentArg = new Argument<string>("content", "The content to write to the file");
+
+        tripleCodeCommand.AddArgument(fileArg);
+        tripleCodeCommand.AddArgument(contentArg);
+
+        tripleCodeCommand.SetHandler(async (string file, string content) =>
+        {
+            WriteHeader("MCP - Triple-Quoted Code");
+            Console.WriteLine($"File: {file}");
+
+            // Create a direct parameter string with file path and triple-quoted content
+            var codeSpec = $"{file}:::-triple-quoted:::{content}";
+
+            var mcpController = _serviceProvider!.GetRequiredService<TarsCli.Mcp.McpController>();
+            var result = await mcpController.ExecuteCommand("code", codeSpec);
+            Console.WriteLine(result);
+        }, fileArg, contentArg);
+
         // Add subcommands to MCP command
         mcpCommand.AddCommand(runCommand);
         mcpCommand.AddCommand(processesCommand);
         mcpCommand.AddCommand(statusCommand);
+        mcpCommand.AddCommand(executeCommand);
+        mcpCommand.AddCommand(codeCommand);
+        mcpCommand.AddCommand(tripleCodeCommand);
+        mcpCommand.AddCommand(augmentCommand);
 
         // Add MCP command to root command
         rootCommand.AddCommand(mcpCommand);
@@ -581,6 +687,74 @@ public static class CliSupport
             }
         }, fileOption, modelOption, autoApplyOption);
 
+        // Create template command
+        var templateCommand = new Command("template", "Manage TARS templates");
+
+        // Create template list command
+        var templateListCommand = new Command("list", "List available templates");
+        templateListCommand.SetHandler(() =>
+        {
+            WriteHeader("TARS Templates");
+
+            var templateService = _serviceProvider!.GetRequiredService<TemplateService>();
+            var templates = templateService.ListTemplates();
+
+            if (templates.Count == 0)
+            {
+                WriteColorLine("No templates found", ConsoleColor.Yellow);
+                return;
+            }
+
+            foreach (var template in templates)
+            {
+                Console.WriteLine($"- {template}");
+            }
+        });
+
+        // Create template create command
+        var templateCreateCommand = new Command("create", "Create a new template");
+        var templateNameOption = new Option<string>("--name", "Name of the template");
+        var templateFileOption = new Option<string>("--file", "Path to the template file");
+        templateNameOption.IsRequired = true;
+        templateFileOption.IsRequired = true;
+
+        templateCreateCommand.AddOption(templateNameOption);
+        templateCreateCommand.AddOption(templateFileOption);
+
+        templateCreateCommand.SetHandler(async (string name, string file) =>
+        {
+            WriteHeader("Create TARS Template");
+            Console.WriteLine($"Template name: {name}");
+            Console.WriteLine($"Template file: {file}");
+
+            if (!File.Exists(file))
+            {
+                WriteColorLine($"File not found: {file}", ConsoleColor.Red);
+                Environment.Exit(1);
+                return;
+            }
+
+            var templateService = _serviceProvider!.GetRequiredService<TemplateService>();
+            await templateService.InitializeTemplatesDirectory();
+
+            var content = await File.ReadAllTextAsync(file);
+            var success = await templateService.CreateTemplate(name, content);
+
+            if (success)
+            {
+                WriteColorLine($"Template '{name}' created successfully", ConsoleColor.Green);
+            }
+            else
+            {
+                WriteColorLine($"Failed to create template '{name}'", ConsoleColor.Red);
+                Environment.Exit(1);
+            }
+        }, templateNameOption, templateFileOption);
+
+        // Add template subcommands
+        templateCommand.AddCommand(templateListCommand);
+        templateCommand.AddCommand(templateCreateCommand);
+
         // Create workflow command
         var workflowCommand = new Command("workflow", "Run a multi-agent workflow for a task");
         var workflowTaskOption = new Option<string>("--task", "Description of the task to perform");
@@ -618,6 +792,7 @@ public static class CliSupport
         rootCommand.AddCommand(selfAnalyzeCommand);
         rootCommand.AddCommand(selfProposeCommand);
         rootCommand.AddCommand(selfRewriteCommand);
+        rootCommand.AddCommand(templateCommand);
         rootCommand.AddCommand(workflowCommand);
 
         // Add default handler for root command
