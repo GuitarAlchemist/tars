@@ -165,10 +165,12 @@ public static class CliSupport
             WriteExample("tarscli template list");
             WriteExample("tarscli template create --name my_template.json --file path/to/template.json");
             WriteExample("tarscli workflow --task \"Create a simple web API in C#\"");
+            WriteExample("tarscli mcp start");
+            WriteExample("tarscli mcp status");
+            WriteExample("tarscli mcp configure --port 8999 --auto-execute --auto-code");
+            WriteExample("tarscli mcp augment");
             WriteExample("tarscli mcp execute \"echo Hello, World!\"");
             WriteExample("tarscli mcp code path/to/file.cs \"public class MyClass { }\"");
-            WriteExample("tarscli mcp triple-code path/to/file.cs \"using System;\n\npublic class Program\n{\n    public static void Main()\n    {\n        Console.WriteLine(\"Hello, World!\");\n    }\n}\"");
-            WriteExample("tarscli mcp augment sqlite uvx --args mcp-server-sqlite --db-path /path/to/test.db");
             WriteExample("tarscli huggingface search --query \"code generation\" --task text-generation --limit 5");
             WriteExample("tarscli huggingface best --limit 3");
             WriteExample("tarscli huggingface details --model microsoft/phi-2");
@@ -560,43 +562,59 @@ public static class CliSupport
         rootCommand.Add(modelsCommand);
 
         // Create MCP command
-        var mcpCommand = new Command("mcp", "Machine Control Panel - control your system");
+        var mcpCommand = new Command("mcp", "Model Context Protocol - interact with AI models and tools");
 
         // Add subcommands for MCP
-        var runCommand = new Command("run", "Run an application")
-        {
-            new Argument<string>("application", "Path or name of the application to run")
-        };
-
-        var processesCommand = new Command("processes", "List running processes");
-        var statusCommand = new Command("status", "Show system status");
+        var startCommand = new Command("start", "Start the MCP server");
+        var stopCommand = new Command("stop", "Stop the MCP server");
+        var statusCommand = new Command("status", "Show MCP server status");
 
         // Set handlers for MCP subcommands
-        runCommand.SetHandler(async (application) =>
+        startCommand.SetHandler(async () =>
         {
-            WriteHeader("MCP - Run Application");
-            var mcpController = new McpController(loggerFactory.CreateLogger<TarsCli.Mcp.McpController>());
-            var result = await mcpController.ExecuteCommand("run", application);
-            Console.WriteLine(result);
-        }, new Argument<string>("application"));
-
-        processesCommand.SetHandler(async () =>
-        {
-            WriteHeader("MCP - Processes");
-            var mcpController = new McpController(loggerFactory.CreateLogger<TarsCli.Mcp.McpController>());
-            var result = await mcpController.ExecuteCommand("processes");
-            Console.WriteLine(result);
+            WriteHeader("MCP - Start Server");
+            var mcpService = _serviceProvider!.GetRequiredService<TarsMcpService>();
+            await mcpService.StartAsync();
+            WriteColorLine("MCP server started successfully", ConsoleColor.Green);
+            Console.WriteLine("The MCP server is now running and ready to accept requests.");
+            Console.WriteLine("Other applications like Augment Code can now connect to TARS.");
         });
 
-        statusCommand.SetHandler(async () =>
+        stopCommand.SetHandler(() =>
         {
-            WriteHeader("MCP - System Status");
-            var mcpController = new McpController(loggerFactory.CreateLogger<TarsCli.Mcp.McpController>());
-            var result = await mcpController.ExecuteCommand("status");
-            Console.WriteLine(result);
+            WriteHeader("MCP - Stop Server");
+            var mcpService = _serviceProvider!.GetRequiredService<TarsMcpService>();
+            mcpService.Stop();
+            WriteColorLine("MCP server stopped", ConsoleColor.Yellow);
         });
 
-        // Add more MCP subcommands for enhanced features
+        statusCommand.SetHandler(() =>
+        {
+            WriteHeader("MCP - Server Status");
+            var mcpService = _serviceProvider!.GetRequiredService<McpService>();
+            var configuration = _serviceProvider!.GetRequiredService<IConfiguration>();
+            var port = configuration.GetValue<int>("Tars:Mcp:Port", 8999);
+            var autoExecuteEnabled = configuration.GetValue<bool>("Tars:Mcp:AutoExecuteEnabled", false);
+            var autoCodeEnabled = configuration.GetValue<bool>("Tars:Mcp:AutoCodeEnabled", false);
+
+            Console.WriteLine($"MCP Server URL: http://localhost:{port}/");
+            Console.Write("Auto-execute commands: ");
+            WriteColorLine(autoExecuteEnabled ? "Enabled" : "Disabled", autoExecuteEnabled ? ConsoleColor.Green : ConsoleColor.Yellow);
+            Console.Write("Auto-code generation: ");
+            WriteColorLine(autoCodeEnabled ? "Enabled" : "Disabled", autoCodeEnabled ? ConsoleColor.Green : ConsoleColor.Yellow);
+
+            Console.WriteLine("\nAvailable MCP Actions:");
+            WriteColorLine("  execute - Execute terminal commands", ConsoleColor.Cyan);
+            WriteColorLine("  code - Generate and save code", ConsoleColor.Cyan);
+            WriteColorLine("  status - Get system status", ConsoleColor.Cyan);
+            WriteColorLine("  tars - Execute TARS-specific operations", ConsoleColor.Cyan);
+            WriteColorLine("  ollama - Execute Ollama operations", ConsoleColor.Cyan);
+            WriteColorLine("  self-improve - Execute self-improvement operations", ConsoleColor.Cyan);
+            WriteColorLine("  slack - Execute Slack operations", ConsoleColor.Cyan);
+            WriteColorLine("  speech - Execute speech operations", ConsoleColor.Cyan);
+        });
+
+        // Add execute command for backward compatibility
         var executeCommand = new Command("execute", "Execute a terminal command without asking for permission")
         {
             new Argument<string>("command", "The command to execute")
@@ -607,11 +625,13 @@ public static class CliSupport
             WriteHeader("MCP - Execute Command");
             Console.WriteLine($"Command: {command}");
 
-            var mcpController = _serviceProvider!.GetRequiredService<TarsCli.Mcp.McpController>();
-            var result = await mcpController.ExecuteCommand("execute", command);
-            Console.WriteLine(result);
+            var mcpService = _serviceProvider!.GetRequiredService<McpService>();
+            var configuration = _serviceProvider!.GetRequiredService<IConfiguration>();
+            var result = await mcpService.SendRequestAsync("http://localhost:" + configuration.GetValue<int>("Tars:Mcp:Port", 8999) + "/", "execute", new { command });
+            Console.WriteLine(result.GetProperty("output").GetString());
         }, new Argument<string>("command"));
 
+        // Add code command for backward compatibility
         var codeCommand = new Command("code", "Generate and save code without asking for permission");
         var fileArgument = new Argument<string>("file", "Path to the file to create or update");
         var contentArgument = new Argument<string>("content", "The content to write to the file");
@@ -632,71 +652,206 @@ public static class CliSupport
                 Console.WriteLine("Using triple-quoted syntax for code generation.");
             }
 
-            // Create a direct parameter string with file path and content
-            var codeSpec = $"{file}:::{content}";
-
-            var mcpController = _serviceProvider!.GetRequiredService<TarsCli.Mcp.McpController>();
-            var result = await mcpController.ExecuteCommand("code", codeSpec);
-            Console.WriteLine(result);
+            var mcpService = _serviceProvider!.GetRequiredService<McpService>();
+            var configuration = _serviceProvider!.GetRequiredService<IConfiguration>();
+            var result = await mcpService.SendRequestAsync("http://localhost:" + configuration.GetValue<int>("Tars:Mcp:Port", 8999) + "/", "code", new { filePath = file, content });
+            Console.WriteLine(result.GetProperty("message").GetString());
         }, fileArgument, contentArgument);
 
-        var augmentCommand = new Command("augment", "Configure Augment Code MCP server")
-        {
-            new Argument<string>("name", "Name of the MCP server"),
-            new Argument<string>("command", "Command to execute"),
-            new Option<string[]>("--args", "Arguments to pass to the command") { AllowMultipleArgumentsPerToken = true }
-        };
+        // Add configure command for Augment integration
+        var configureCommand = new Command("configure", "Configure MCP settings");
+        var portOption = new Option<int>("--port", () => 8999, "Port for the MCP server");
+        var autoExecuteOption = new Option<bool>("--auto-execute", "Enable auto-execution of commands");
+        var autoCodeOption = new Option<bool>("--auto-code", "Enable auto-code generation");
 
-        augmentCommand.SetHandler(async (name, command, args) =>
-        {
-            WriteHeader("MCP - Configure Augment");
-            Console.WriteLine($"Server Name: {name}");
-            Console.WriteLine($"Command: {command}");
-            Console.WriteLine($"Args: {string.Join(", ", args)}");
+        configureCommand.AddOption(portOption);
+        configureCommand.AddOption(autoExecuteOption);
+        configureCommand.AddOption(autoCodeOption);
 
-            // Create a JSON specification for the Augment configuration
-            var configSpec = System.Text.Json.JsonSerializer.Serialize(new
+        configureCommand.SetHandler((int port, bool autoExecute, bool autoCode) =>
+        {
+            WriteHeader("MCP - Configure");
+
+            // Update appsettings.json
+            var appSettingsPath = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
+            var json = File.ReadAllText(appSettingsPath);
+            var settings = System.Text.Json.JsonDocument.Parse(json);
+            var root = new Dictionary<string, object>();
+
+            // Copy existing settings
+            foreach (var property in settings.RootElement.EnumerateObject())
             {
-                serverName = name,
-                command = command,
-                args = args
-            });
+                if (property.Name == "Tars")
+                {
+                    var tarsSettings = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(property.Value.GetRawText());
 
-            var mcpController = _serviceProvider!.GetRequiredService<TarsCli.Mcp.McpController>();
-            var result = await mcpController.ExecuteCommand("augment", configSpec);
-            Console.WriteLine(result);
-        }, new Argument<string>("name"), new Argument<string>("command"), new Option<string[]>("--args"));
+                    if (tarsSettings.ContainsKey("Mcp"))
+                    {
+                        var mcpSettings = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(tarsSettings["Mcp"].ToString());
+                        mcpSettings["Port"] = port;
+                        mcpSettings["AutoExecuteEnabled"] = autoExecute;
+                        mcpSettings["AutoCodeEnabled"] = autoCode;
+                        tarsSettings["Mcp"] = mcpSettings;
+                    }
+                    else
+                    {
+                        tarsSettings["Mcp"] = new Dictionary<string, object>
+                        {
+                            ["Port"] = port,
+                            ["AutoExecuteEnabled"] = autoExecute,
+                            ["AutoCodeEnabled"] = autoCode
+                        };
+                    }
 
+                    root["Tars"] = tarsSettings;
+                }
+                else
+                {
+                    root[property.Name] = System.Text.Json.JsonSerializer.Deserialize<object>(property.Value.GetRawText());
+                }
+            }
 
+            // If Tars section doesn't exist, create it
+            if (!root.ContainsKey("Tars"))
+            {
+                root["Tars"] = new Dictionary<string, object>
+                {
+                    ["Mcp"] = new Dictionary<string, object>
+                    {
+                        ["Port"] = port,
+                        ["AutoExecuteEnabled"] = autoExecute,
+                        ["AutoCodeEnabled"] = autoCode
+                    }
+                };
+            }
 
-        // Create a dedicated command for triple-quoted code
-        var tripleCodeCommand = new Command("triple-code", "Generate code using triple-quoted syntax");
-        var fileArg = new Argument<string>("file", "Path to the file to create or update");
-        var contentArg = new Argument<string>("content", "The content to write to the file");
+            // Save the updated settings
+            var newJson = System.Text.Json.JsonSerializer.Serialize(root, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(appSettingsPath, newJson);
 
-        tripleCodeCommand.AddArgument(fileArg);
-        tripleCodeCommand.AddArgument(contentArg);
+            WriteColorLine("MCP configuration updated successfully", ConsoleColor.Green);
+            Console.WriteLine($"Port: {port}");
+            Console.WriteLine($"Auto-execute commands: {(autoExecute ? "Enabled" : "Disabled")}");
+            Console.WriteLine($"Auto-code generation: {(autoCode ? "Enabled" : "Disabled")}");
+            Console.WriteLine("\nRestart the application for changes to take effect.");
+        }, portOption, autoExecuteOption, autoCodeOption);
 
-        tripleCodeCommand.SetHandler(async (string file, string content) =>
+        // Add augment command for configuring Augment Code integration
+        var augmentCommand = new Command("augment", "Configure Augment Code integration");
+
+        augmentCommand.SetHandler(() =>
         {
-            WriteHeader("MCP - Triple-Quoted Code");
-            Console.WriteLine($"File: {file}");
+            WriteHeader("MCP - Configure Augment Integration");
 
-            // Create a direct parameter string with file path and triple-quoted content
-            var codeSpec = $"{file}:::-triple-quoted:::{content}";
+            var configuration = _serviceProvider!.GetRequiredService<IConfiguration>();
+            var port = configuration.GetValue<int>("Tars:Mcp:Port", 8999);
+            var vscodeSettingsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".vscode", "settings.json");
 
-            var mcpController = _serviceProvider!.GetRequiredService<TarsCli.Mcp.McpController>();
-            var result = await mcpController.ExecuteCommand("code", codeSpec);
-            Console.WriteLine(result);
-        }, fileArg, contentArg);
+            if (!File.Exists(vscodeSettingsPath))
+            {
+                WriteColorLine("VS Code settings file not found. Creating a new one.", ConsoleColor.Yellow);
+                Directory.CreateDirectory(Path.GetDirectoryName(vscodeSettingsPath));
+                File.WriteAllText(vscodeSettingsPath, "{}");
+            }
+
+            var json = File.ReadAllText(vscodeSettingsPath);
+            var settings = System.Text.Json.JsonDocument.Parse(json);
+            var root = new Dictionary<string, object>();
+
+            // Copy existing settings
+            foreach (var property in settings.RootElement.EnumerateObject())
+            {
+                root[property.Name] = System.Text.Json.JsonSerializer.Deserialize<object>(property.Value.GetRawText());
+            }
+
+            // Add or update augment.advanced settings
+            if (root.ContainsKey("augment.advanced"))
+            {
+                var advancedSettings = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(root["augment.advanced"].ToString());
+
+                if (advancedSettings.ContainsKey("mcpServers"))
+                {
+                    var mcpServers = System.Text.Json.JsonSerializer.Deserialize<List<object>>(advancedSettings["mcpServers"].ToString());
+
+                    // Check if TARS MCP server already exists
+                    bool found = false;
+                    for (int i = 0; i < mcpServers.Count; i++)
+                    {
+                        var server = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(mcpServers[i].ToString());
+                        if (server.ContainsKey("name") && server["name"].ToString() == "tars")
+                        {
+                            // Update existing server
+                            mcpServers[i] = new Dictionary<string, object>
+                            {
+                                ["name"] = "tars",
+                                ["url"] = $"http://localhost:{port}/"
+                            };
+                            found = true;
+                            break;
+                        }
+                    }
+
+                    if (!found)
+                    {
+                        // Add new server
+                        mcpServers.Add(new Dictionary<string, object>
+                        {
+                            ["name"] = "tars",
+                            ["url"] = $"http://localhost:{port}/"
+                        });
+                    }
+
+                    advancedSettings["mcpServers"] = mcpServers;
+                }
+                else
+                {
+                    // Create new mcpServers array
+                    advancedSettings["mcpServers"] = new List<object>
+                    {
+                        new Dictionary<string, object>
+                        {
+                            ["name"] = "tars",
+                            ["url"] = $"http://localhost:{port}/"
+                        }
+                    };
+                }
+
+                root["augment.advanced"] = advancedSettings;
+            }
+            else
+            {
+                // Create new augment.advanced section
+                root["augment.advanced"] = new Dictionary<string, object>
+                {
+                    ["mcpServers"] = new List<object>
+                    {
+                        new Dictionary<string, object>
+                        {
+                            ["name"] = "tars",
+                            ["url"] = $"http://localhost:{port}/"
+                        }
+                    }
+                };
+            }
+
+            // Save the updated settings
+            var newJson = System.Text.Json.JsonSerializer.Serialize(root, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(vscodeSettingsPath, newJson);
+
+            WriteColorLine("Augment Code integration configured successfully", ConsoleColor.Green);
+            Console.WriteLine($"TARS MCP server added to Augment Code with URL: http://localhost:{port}/");
+            Console.WriteLine("\nTo use TARS from Augment Code:");
+            Console.WriteLine("1. Start the MCP server with 'tarscli mcp start'");
+            Console.WriteLine("2. In VS Code, use the command '@tars' to interact with TARS");
+        });
 
         // Add subcommands to MCP command
-        mcpCommand.AddCommand(runCommand);
-        mcpCommand.AddCommand(processesCommand);
+        mcpCommand.AddCommand(startCommand);
+        mcpCommand.AddCommand(stopCommand);
         mcpCommand.AddCommand(statusCommand);
         mcpCommand.AddCommand(executeCommand);
         mcpCommand.AddCommand(codeCommand);
-        mcpCommand.AddCommand(tripleCodeCommand);
+        mcpCommand.AddCommand(configureCommand);
         mcpCommand.AddCommand(augmentCommand);
 
         // Add MCP command to root command
@@ -1956,21 +2111,21 @@ public static class CliSupport
             WriteColorLine("\nTo use voice cloning, provide a speaker reference audio file with --speaker-wav", ConsoleColor.Yellow);
         });
 
-        // Configure command
-        var configureCommand = new Command("configure", "Configure speech settings");
+        // Configure command for speech
+        var speechConfigureCommand = new Command("configure", "Configure speech settings");
         var enabledOption = new Option<bool>("--enabled", () => true, "Whether speech is enabled");
         var defaultVoiceOption = new Option<string?>("--default-voice", "Default voice model");
         var defaultLanguageOption = new Option<string?>("--default-language", "Default language code");
         var preloadVoicesOption = new Option<bool?>("--preload-voices", "Whether to preload voice models");
         var maxConcurrencyOption = new Option<int?>("--max-concurrency", "Maximum concurrent speech operations");
 
-        configureCommand.AddOption(enabledOption);
-        configureCommand.AddOption(defaultVoiceOption);
-        configureCommand.AddOption(defaultLanguageOption);
-        configureCommand.AddOption(preloadVoicesOption);
-        configureCommand.AddOption(maxConcurrencyOption);
+        speechConfigureCommand.AddOption(enabledOption);
+        speechConfigureCommand.AddOption(defaultVoiceOption);
+        speechConfigureCommand.AddOption(defaultLanguageOption);
+        speechConfigureCommand.AddOption(preloadVoicesOption);
+        speechConfigureCommand.AddOption(maxConcurrencyOption);
 
-        configureCommand.SetHandler((bool enabled, string? defaultVoice, string? defaultLanguage, bool? preloadVoices, int? maxConcurrency) =>
+        speechConfigureCommand.SetHandler((bool enabled, string? defaultVoice, string? defaultLanguage, bool? preloadVoices, int? maxConcurrency) =>
         {
             WriteHeader("TARS Speech - Configure");
 
@@ -1983,7 +2138,7 @@ public static class CliSupport
         // Add subcommands to speech command
         speechCommand.AddCommand(speakCommand);
         speechCommand.AddCommand(listVoicesCommand);
-        speechCommand.AddCommand(configureCommand);
+        speechCommand.AddCommand(speechConfigureCommand);
 
         rootCommand.AddCommand(selfAnalyzeCommand);
         rootCommand.AddCommand(selfProposeCommand);

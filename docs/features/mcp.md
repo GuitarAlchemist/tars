@@ -1,201 +1,201 @@
-# Master Control Program (MCP)
+# Model Context Protocol (MCP)
 
-The Master Control Program (MCP) is a core component of TARS that enables autonomous operation and integration with external systems. This document provides a detailed overview of the MCP, its capabilities, and how to use it effectively.
+TARS implements the Model Context Protocol (MCP) as defined by Anthropic, allowing seamless integration between TARS and other AI tools like Augment Code. This document provides a detailed overview of the MCP implementation in TARS, its capabilities, and how to use it effectively.
 
-## Overview
+## What is MCP?
 
-The MCP is designed to:
+The Model Context Protocol (MCP) is a standard for communication between AI models and tools. It allows AI models to:
 
-1. **Execute commands** without requiring manual confirmation
-2. **Generate code** based on natural language descriptions
-3. **Integrate with external systems** like Augment Code
-4. **Automate workflows** for increased productivity
+1. **Execute commands** on the user's system
+2. **Generate and save code** without requiring manual confirmation
+3. **Access system information** and capabilities
+4. **Interact with other AI tools and services**
 
-![MCP Architecture](../images/mcp_architecture.svg)
+MCP enables AI models to be more helpful by giving them controlled access to your system's capabilities.
 
-## Key Features
+## TARS MCP Implementation
 
-### Automatic Code Generation
+TARS implements MCP as both a client and a server:
 
-The MCP can generate code without requiring manual confirmation for each action:
+1. **MCP Server**: TARS can run as an MCP server, allowing other tools like Augment Code to access TARS capabilities
+2. **MCP Client**: TARS can act as an MCP client, sending requests to other MCP servers
+
+## Available MCP Actions
+
+TARS MCP server supports the following actions:
+
+- **execute**: Execute terminal commands
+- **code**: Generate and save code
+- **status**: Get system status
+- **tars**: Execute TARS-specific operations
+- **ollama**: Execute Ollama operations
+- **self-improve**: Execute self-improvement operations
+- **slack**: Execute Slack operations
+- **speech**: Execute speech operations
+
+## Using TARS MCP
+
+### Starting the MCP Server
+
+To start the TARS MCP server:
 
 ```bash
-tarscli mcp code path/to/file.cs "public class MyClass { }"
+tarscli mcp start
 ```
 
-This will create or update the specified file with the provided code.
+This will start the MCP server on the configured port (default: 8999).
 
-### Triple-Quoted Syntax
+### Checking MCP Status
 
-For multi-line code blocks, the MCP supports triple-quoted syntax:
+To check the status of the MCP server:
 
 ```bash
-tarscli mcp triple-code path/to/file.cs """
-using System;
+tarscli mcp status
+```
 
-public class Program
+This will show the server URL, configuration settings, and available actions.
+
+### Configuring MCP
+
+To configure the MCP server:
+
+```bash
+tarscli mcp configure --port 8999 --auto-execute --auto-code
+```
+
+Options:
+- `--port`: Port for the MCP server (default: 8999)
+- `--auto-execute`: Enable auto-execution of commands
+- `--auto-code`: Enable auto-code generation
+
+### Integrating with Augment Code
+
+To configure Augment Code to use TARS:
+
+```bash
+tarscli mcp augment
+```
+
+This will update your VS Code settings to include TARS as an MCP server for Augment Code.
+
+After configuration, you can use TARS from Augment Code by:
+
+1. Starting the MCP server with `tarscli mcp start`
+2. In VS Code, using the command `@tars` to interact with TARS
+
+## MCP Architecture
+
+The TARS MCP implementation consists of the following components:
+
+### McpService
+
+The `McpService` is the core MCP server implementation. It:
+
+- Listens for HTTP requests on the configured port
+- Parses MCP requests and routes them to the appropriate handlers
+- Executes actions and returns responses
+- Provides a client interface for sending requests to other MCP servers
+
+### TarsMcpService
+
+The `TarsMcpService` extends the MCP server with TARS-specific capabilities:
+
+- Ollama integration for text generation
+- Self-improvement capabilities
+- Slack integration for notifications
+- Speech synthesis for text-to-speech
+
+## MCP Security Considerations
+
+The MCP protocol gives AI models significant access to your system. TARS implements several security measures:
+
+1. **Auto-execute setting**: Commands are only executed if auto-execute is enabled
+2. **Auto-code setting**: Code is only generated and saved if auto-code is enabled
+3. **Local-only server**: The MCP server only listens on localhost, preventing remote access
+4. **Explicit configuration**: Security settings must be explicitly enabled
+
+## Example MCP Requests
+
+Here are some example MCP requests that can be sent to the TARS MCP server:
+
+### Execute a Command
+
+```json
 {
-    public static void Main()
-    {
-        Console.WriteLine("Hello, World!");
-    }
+  "action": "execute",
+  "command": "echo Hello, World!"
 }
-"""
 ```
 
-This makes it easier to generate complex code structures with proper formatting.
+### Generate Code
 
-### Terminal Command Execution
-
-The MCP can execute terminal commands without requiring permission prompts:
-
-```bash
-tarscli mcp execute "echo Hello, World!"
-```
-
-This enables automation of command-line tasks and integration with external tools.
-
-### Augment Code Integration
-
-The MCP integrates with Augment Code, allowing for enhanced code generation and analysis:
-
-```bash
-tarscli mcp augment sqlite uvx --args mcp-server-sqlite --db-path /path/to/test.db
-```
-
-## Architecture
-
-The MCP is implemented as a controller with several services:
-
-### McpController
-
-The `McpController` is the main entry point for MCP commands. It:
-
-1. Parses and validates commands
-2. Routes commands to the appropriate handlers
-3. Manages execution context and state
-
-### EnhancedMcpService
-
-The `EnhancedMcpService` provides advanced MCP capabilities, including:
-
-1. Code generation with context awareness
-2. Terminal command execution with output capture
-3. Integration with external systems
-
-### McpCommandHandler
-
-The `McpCommandHandler` processes specific MCP commands, such as:
-
-1. `code`: Generate code
-2. `triple-code`: Generate multi-line code
-3. `execute`: Execute terminal commands
-4. `augment`: Integrate with Augment Code
-
-## Using the MCP
-
-### Basic Code Generation
-
-To generate code for a file:
-
-```bash
-tarscli mcp code path/to/file.cs "public class MyClass { }"
-```
-
-This will:
-1. Create the file if it doesn't exist
-2. Write the provided code to the file
-3. Display a success message
-
-### Multi-line Code Generation
-
-To generate multi-line code:
-
-```bash
-tarscli mcp triple-code path/to/file.cs """
-using System;
-using System.Collections.Generic;
-
-namespace MyNamespace
+```json
 {
-    public class MyClass
-    {
-        public void MyMethod()
-        {
-            Console.WriteLine("Hello, World!");
-        }
-    }
+  "action": "code",
+  "filePath": "path/to/file.cs",
+  "content": "public class MyClass { }"
 }
-"""
 ```
 
-This will:
-1. Create the file if it doesn't exist
-2. Write the provided multi-line code to the file
-3. Display a success message
+### Get System Status
 
-### Terminal Command Execution
-
-To execute a terminal command:
-
-```bash
-tarscli mcp execute "git status"
-```
-
-This will:
-1. Execute the command in the terminal
-2. Capture and display the output
-3. Return the exit code
-
-For more complex commands:
-
-```bash
-tarscli mcp execute "for i in {1..5}; do echo $i; done"
-```
-
-### Augment Code Integration
-
-To integrate with Augment Code:
-
-```bash
-tarscli mcp augment sqlite uvx --args mcp-server-sqlite --db-path /path/to/test.db
-```
-
-This will:
-1. Connect to the Augment Code server
-2. Execute the specified command
-3. Return the results
-
-## Advanced Usage
-
-### Command Chaining
-
-You can chain multiple MCP commands together:
-
-```bash
-tarscli mcp execute "mkdir -p src/models" && \
-tarscli mcp triple-code src/models/user.cs """
-using System;
-
-namespace Models
+```json
 {
-    public class User
-    {
-        public int Id { get; set; }
-        public string Name { get; set; }
-        public string Email { get; set; }
-    }
+  "action": "status"
 }
-"""
 ```
 
-### Environment Variables
+### Use TARS Capabilities
 
-The MCP respects environment variables:
+```json
+{
+  "action": "tars",
+  "operation": "capabilities"
+}
+```
 
-```bash
-export PROJECT_ROOT=/path/to/project
-tarscli mcp execute "cd $PROJECT_ROOT && ls -la"
+### Generate Text with Ollama
+
+```json
+{
+  "action": "ollama",
+  "operation": "generate",
+  "prompt": "Write a haiku about AI",
+  "model": "llama3"
+}
+```
+
+### Start Self-Improvement
+
+```json
+{
+  "action": "self-improve",
+  "operation": "start",
+  "duration": 60,
+  "autoAccept": true
+}
+```
+
+### Send a Slack Announcement
+
+```json
+{
+  "action": "slack",
+  "operation": "announce",
+  "title": "New Feature",
+  "message": "TARS now supports MCP!"
+}
+```
+
+### Speak Text
+
+```json
+{
+  "action": "speech",
+  "operation": "speak",
+  "text": "Hello, I am TARS",
+  "language": "en"
+}
 ```
 
 ### Error Handling
@@ -293,3 +293,43 @@ The MCP is continuously evolving. Planned enhancements include:
 3. **Multi-step Operations**: Support for complex, multi-step operations
 4. **Context-aware Command Execution**: Smarter command execution based on context
 5. **Enhanced Security**: Additional security features for safer command execution
+
+## Extending MCP
+
+You can extend TARS MCP by registering new handlers for custom actions. This allows you to add new capabilities to TARS that can be accessed through the MCP protocol.
+
+To register a new handler, use the `RegisterHandler` method of the `McpService` class:
+
+```csharp
+mcpService.RegisterHandler("custom-action", async (request) =>
+{
+    // Handle the request
+    return JsonSerializer.SerializeToElement(new { success = true, result = "Custom action executed" });
+});
+```
+
+## Troubleshooting
+
+### MCP Server Not Starting
+
+If the MCP server fails to start, check:
+
+- The port is not already in use by another application
+- You have sufficient permissions to start a server
+- The configuration in `appsettings.json` is valid
+
+### Commands Not Executing
+
+If commands are not executing, check:
+
+- Auto-execute is enabled in the configuration
+- The command is valid and can be executed on your system
+- You have sufficient permissions to execute the command
+
+### Augment Integration Not Working
+
+If Augment Code integration is not working, check:
+
+- The MCP server is running (`tarscli mcp start`)
+- The VS Code settings have been updated with the correct MCP server URL
+- You're using the correct syntax in Augment Code (`@tars <command>`)
