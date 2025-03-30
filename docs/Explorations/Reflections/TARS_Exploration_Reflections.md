@@ -24,76 +24,76 @@ These explorations collectively paint a picture of TARS as an ambitious project 
 
 ### AI and Machine Learning
 
-- [AI Inference Engines C#](ChatGPT-AI%20Inference%20Engines%20C%23.md) - 3/22/2025
-- [AI-FP Language with Prompts](ChatGPT-AI-FP%20Language%20with%20Prompts.md) - 3/22/2025
-- [AutoGen C# Examples](ChatGPT-AutoGen%20C%23%20Examples.md) - 3/22/2025
+- [AI Inference Engines C#](../v1/ChatGPT-AI%20Inference%20Engines%20C%23.md) - 3/22/2025
+- [AI-FP Language with Prompts](../v1/ChatGPT-AI-FP%20Language%20with%20Prompts.md) - 3/22/2025
+- [AutoGen C# Examples](../v1/ChatGPT-AutoGen%20C%23%20Examples.md) - 3/22/2025
 - [Deep-Thinking: Advanced AI Architectures](ChatGPT-DeepThinking/Deep-Thinking20230623.md) - 6/23/2023
-- [Fine-tuning AI for Summarization](ChatGPT-Fine-tuning%20AI%20for%20Summarization.md) - 3/22/2025
-- [Fine-tuning Model with GitHub](ChatGPT-Fine-tuning%20Model%20with%20GitHub.md) - 3/22/2025
-- [LlamaIndex Beginner Guide](ChatGPT-LlamaIndex%20Beginner%20Guide.md) - 3/22/2025
-- [Markov Chains in AI](ChatGPT-Markov%20Chains%20in%20AI.md) - 3/23/2025
+- [Fine-tuning AI for Summarization](../v1/ChatGPT-Fine-tuning%20AI%20for%20Summarization.md) - 3/22/2025
+- [Fine-tuning Model with GitHub](../v1/ChatGPT-Fine-tuning%20Model%20with%20GitHub.md) - 3/22/2025
+- [LlamaIndex Beginner Guide](../v1/ChatGPT-LlamaIndex%20Beginner%20Guide.md) - 3/22/2025
+- [Markov Chains in AI](../v1/ChatGPT-Markov%20Chains%20in%20AI.md) - 3/23/2025
 
 ### Mathematics and Algorithms
 
-- [Advanced Math CS 2025](ChatGPT-Advanced%20Math%20CS%202025.md) - 3/23/2025
-- [Courbes Takagi et Rham](ChatGPT-Courbes%20Takagi%20et%20Rham.md) - 3/28/2025
-- [Nash Equilibrium and Dynamics](ChatGPT-Nash%20Equilibrium%20and%20Dynamics.md) - 3/26/2025
-- [Nash Equilibrium in Dynamics](ChatGPT-Nash%20Equilibrium%20in%20Dynamics.md) - 3/29/2025
-- [Quaternions and Projective Geometry for TARS](ChatGPT-Quaternions%20and%20Projective%20Geometry%20for%20TARS.md) - 3/23/2025
+- [Advanced Math CS 2025](../v1/ChatGPT-Advanced%20Math%20CS%202025.md) - 3/23/2025
+- [Courbes Takagi et Rham](../v1/ChatGPT-Courbes%20Takagi%20et%20Rham.md) - 3/28/2025
+- [Nash Equilibrium and Dynamics](../v1/ChatGPT-Nash%20Equilibrium%20and%20Dynamics.md) - 3/26/2025
+- [Nash Equilibrium in Dynamics](../v1/ChatGPT-Nash%20Equilibrium%20in%20Dynamics.md) - 3/29/2025
+- [Quaternions and Projective Geometry for TARS](../v1/ChatGPT-Quaternions%20and%20Projective%20Geometry%20for%20TARS.md) - 3/23/2025
 
 ### Software Development
 
-- [BNF and Parsing Alternatives](ChatGPT-BNF%20and%20Parsing%20Alternatives.md) - 3/22/2025
-- [Computation Expressions for AI Workflows](ChatGPT-Computation%20Expressions%20for%20AI%20Workflows.md) - 3/22/2025
-- [Computation Expressions for TARS](ChatGPT-Computation%20Expressions%20for%20TARS.md) - 3/22/2025
-- [DSLs for AI](ChatGPT-DSLs%20for%20AI.md) - 3/22/2025
-- [GitHub Repo Access](ChatGPT-GitHub%20Repo%20Access.md) - 3/22/2025
+- [BNF and Parsing Alternatives](../v1/ChatGPT-BNF%20and%20Parsing%20Alternatives.md) - 3/22/2025
+- [Computation Expressions for AI Workflows](../v1/ChatGPT-Computation%20Expressions%20for%20AI%20Workflows.md) - 3/22/2025
+- [Computation Expressions for TARS](../v1/ChatGPT-Computation%20Expressions%20for%20TARS.md) - 3/22/2025
+- [DSLs for AI](../v1/ChatGPT-DSLs%20for%20AI.md) - 3/22/2025
+- [GitHub Repo Access](../v1/ChatGPT-GitHub%20Repo%20Access.md) - 3/22/2025
 
 ### TARS Architecture
 
-- [Auto Improvement Strategies TARS](ChatGPT-Auto%20Improvement%20Strategies%20TARS.md) - 3/22/2025
-- [Better Architecture than Q-star](ChatGPT-Better%20Architecture%20than%20Q-star.md) - 3/22/2025
-- [State-Space for TARS](ChatGPT-State-Space%20for%20TARS.md) - 3/24/2025
-- [TARS Multi-modal Memory Space](ChatGPT-TARS%20Multi-modal%20Memory%20Space.md) - 3/24/2025
-- [TARS Project Implications](ChatGPT-TARS%20Project%20Implications.md) - 3/23/2025
+- [Auto Improvement Strategies TARS](../v1/ChatGPT-Auto%20Improvement%20Strategies%20TARS.md) - 3/22/2025
+- [Better Architecture than Q-star](../v1/ChatGPT-Better%20Architecture%20than%20Q-star.md) - 3/22/2025
+- [State-Space for TARS](../v1/ChatGPT-State-Space%20for%20TARS.md) - 3/24/2025
+- [TARS Multi-modal Memory Space](../v1/ChatGPT-TARS%20Multi-modal%20Memory%20Space.md) - 3/24/2025
+- [TARS Project Implications](../v1/ChatGPT-TARS%20Project%20Implications.md) - 3/23/2025
 
 ### Integration and APIs
 
-- [Implement MCP Server .NET](ChatGPT-Implement%20MCP%20Server%20.NET.md) - 3/22/2025
-- [Model Context Protocol Explained](ChatGPT-Model%20Context%20Protocol%20Explained.md) - 3/22/2025
-- [Redis Vector Store Integration](ChatGPT-Redis%20Vector%20Store%20Integration.md) - 3/22/2025
-- [What is eBPF](ChatGPT-What%20is%20eBPF.md) - 3/28/2025
+- [Implement MCP Server .NET](../v1/ChatGPT-Implement%20MCP%20Server%20.NET.md) - 3/22/2025
+- [Model Context Protocol Explained](../v1/ChatGPT-Model%20Context%20Protocol%20Explained.md) - 3/22/2025
+- [Redis Vector Store Integration](../v1/ChatGPT-Redis%20Vector%20Store%20Integration.md) - 3/22/2025
+- [What is eBPF](../v1/ChatGPT-What%20is%20eBPF.md) - 3/28/2025
 
 ### Speech and Language
 
-- [Best TTS Engines .NET](ChatGPT-Best%20TTS%20Engines%20.NET.md) - 3/22/2025
-- [Run Coqui TTS in .NET](ChatGPT-Run%20Coqui%20TTS%20in%20.NET.md) - 3/30/2025
+- [Best TTS Engines .NET](../v1/ChatGPT-Best%20TTS%20Engines%20.NET.md) - 3/22/2025
+- [Run Coqui TTS in .NET](../v1/ChatGPT-Run%20Coqui%20TTS%20in%20.NET.md) - 3/30/2025
 
 ### Visualization and UI
 
-- [Blazor MudBlazor Learning Resources](ChatGPT-Blazor%20MudBlazor%20Learning%20Resources.md) - 3/30/2025
-- [Three.js TARS Visualization Ideas](ChatGPT-Three.js%20TARS%20Visualization%20Ideas.md) - 3/23/2025
+- [Blazor MudBlazor Learning Resources](../v1/ChatGPT-Blazor%20MudBlazor%20Learning%20Resources.md) - 3/30/2025
+- [Three.js TARS Visualization Ideas](../v1/ChatGPT-Three.js%20TARS%20Visualization%20Ideas.md) - 3/23/2025
 
 ### Ethics and Implications
 
-- [Business Value and Ethics](ChatGPT-Business%20Value%20and%20Ethics.md) - 3/28/2025
-- [TARS Project Implications](ChatGPT-TARS%20Project%20Implications.md) - 3/23/2025
+- [Business Value and Ethics](../v1/ChatGPT-Business%20Value%20and%20Ethics.md) - 3/28/2025
+- [TARS Project Implications](../v1/ChatGPT-TARS%20Project%20Implications.md) - 3/23/2025
 
 ### Performance and Optimization
 
-- [Computer Use Cost Breakdown](ChatGPT-Computer%20Use%20Cost%20Breakdown.md) - 3/24/2025
-- [ONNX vs Ollama Speed](ChatGPT-ONNX%20vs%20Ollama%20Speed.md) - 3/24/2025
-- [Ollama Chatbot Prototype](ChatGPT-Ollama%20Chatbot%20Prototype.md) - 3/22/2025
-- [Ollama GPU Optimization](ChatGPT-Ollama%20GPU%20Optimization.md) - 3/23/2025
-- [Replicate NotebookLLM Locally](ChatGPT-Replicate%20NotebookLLM%20Locally.md) - 3/24/2025
+- [Computer Use Cost Breakdown](../v1/ChatGPT-Computer%20Use%20Cost%20Breakdown.md) - 3/24/2025
+- [ONNX vs Ollama Speed](../v1/ChatGPT-ONNX%20vs%20Ollama%20Speed.md) - 3/24/2025
+- [Ollama Chatbot Prototype](../v1/ChatGPT-Ollama%20Chatbot%20Prototype.md) - 3/22/2025
+- [Ollama GPU Optimization](../v1/ChatGPT-Ollama%20GPU%20Optimization.md) - 3/23/2025
+- [Replicate NotebookLLM Locally](../v1/ChatGPT-Replicate%20NotebookLLM%20Locally.md) - 3/24/2025
 
 ### Other
 
-- [Agentic AI Workflow Resources](ChatGPT-Agentic%20AI%20Workflow%20Resources.md) - 3/22/2025
-- [Automated Coding Loop Path](ChatGPT-Automated%20Coding%20Loop%20Path.md) - 3/24/2025
-- [Augment Code Struggles Summary](ChatGPT-Augment%20Code%20Struggles%20Summary.md) - 3/23/2025
-- [ChatGPT CEO Decision Prompts](ChatGPT-ChatGPT%20CEO%20Decision%20Prompts.md) - 3/22/2025
-- [Famous Sci-Fi Robots](ChatGPT-Famous%20Sci-Fi%20Robots.md) - 3/22/2025
+- [Agentic AI Workflow Resources](../v1/ChatGPT-Agentic%20AI%20Workflow%20Resources.md) - 3/22/2025
+- [Automated Coding Loop Path](../v1/ChatGPT-Automated%20Coding%20Loop%20Path.md) - 3/24/2025
+- [Augment Code Struggles Summary](../v1/ChatGPT-Augment%20Code%20Struggles%20Summary.md) - 3/23/2025
+- [ChatGPT CEO Decision Prompts](../v1/ChatGPT-ChatGPT%20CEO%20Decision%20Prompts.md) - 3/22/2025
+- [Famous Sci-Fi Robots](../v1/ChatGPT-Famous%20Sci-Fi%20Robots.md) - 3/22/2025
 
 ## Individual Reflections
 
