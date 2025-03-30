@@ -20,6 +20,21 @@ This document provides a history of TARS releases, including new features, impro
   - Created prioritization system for selecting files to improve
   - Added status monitoring and safe stopping capabilities
 
+- **Speech System**
+  - Added text-to-speech functionality with Coqui TTS
+  - Implemented support for multiple languages (English, French, Spanish, German, Italian, Dutch, Russian)
+  - Added voice cloning capabilities using reference audio samples
+  - Created DSL integration with `speak`, `speak_extended`, and `speak_multi` commands
+  - Implemented cross-platform audio playback (Windows, Linux, macOS)
+  - Added automatic language detection
+
+- **Slack Integration**
+  - Added ability to post updates and announcements to Slack
+  - Implemented commands for posting announcements, feature updates, and milestones
+  - Added automatic posting of auto-improvement updates
+  - Created secure storage for Slack webhook URL
+  - Added support for customizing the target channel
+
 - **Master Control Program (MCP)**
   - Implemented MCP interface
   - Added support for automatic code generation

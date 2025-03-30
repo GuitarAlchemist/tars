@@ -39,6 +39,8 @@ TARS is an advanced AI-powered system designed to enhance software development t
 * [**Hugging Face Integration**](features/huggingface.md) - Working with models from Hugging Face
 * [**Demo Command**](features/demo.md) - Showcase TARS capabilities
 * [**Secrets Management**](features/secrets.md) - Securely store and manage API keys
+* [**Slack Integration**](features/slack.md) - Post updates and announcements to Slack
+* [**Speech System**](features/speech.md) - Text-to-speech with multiple languages and voice cloning
 
 ### Quick Links
 
@@ -48,6 +50,8 @@ TARS is an advanced AI-powered system designed to enhance software development t
 
 ### Recent Updates
 
+* Added Speech System with text-to-speech, multiple languages, and voice cloning
+* Added Slack integration for posting updates and announcements
 * Added autonomous self-improvement for TARS to improve itself without human intervention
 * Added secrets management for securely storing API keys
 * Added demo command to showcase TARS capabilities

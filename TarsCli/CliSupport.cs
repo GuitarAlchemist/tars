@@ -143,6 +143,7 @@ public static class CliSupport
             WriteCommand("secrets", "Manage API keys and other secrets");
             WriteCommand("auto-improve", "Run autonomous self-improvement");
             WriteCommand("slack", "Manage Slack integration");
+            WriteCommand("speech", "Text-to-speech functionality");
 
             WriteHeader("Global Options");
             WriteCommand("--help, -h", "Display help information");
@@ -190,6 +191,11 @@ public static class CliSupport
             WriteExample("tarscli slack announce --title \"New Release\" --message \"TARS v1.0 is now available!\"");
             WriteExample("tarscli slack feature --name \"GPU Acceleration\" --description \"TARS now supports GPU acceleration for faster processing.\"");
             WriteExample("tarscli slack milestone --name \"1000 Users\" --description \"TARS has reached 1000 active users!\"");
+            WriteExample("tarscli speech speak --text \"Hello, I am TARS\"");
+            WriteExample("tarscli speech speak --text \"Bonjour, je suis TARS\" --language fr");
+            WriteExample("tarscli speech speak --text \"Hello\" --speaker-wav reference.wav");
+            WriteExample("tarscli speech list-voices");
+            WriteExample("tarscli speech configure --default-voice \"tts_models/en/ljspeech/tacotron2-DDC\" --default-language en");
 
             Console.WriteLine("\nFor more information, visit: https://github.com/yourusername/tars");
         });
@@ -1898,6 +1904,87 @@ public static class CliSupport
         slackCommand.AddCommand(featureCommand);
         slackCommand.AddCommand(milestoneCommand);
 
+        // Create speech command
+        var speechCommand = new Command("speech", "Text-to-speech functionality");
+
+        // Speak command
+        var speakCommand = new Command("speak", "Speak text using text-to-speech");
+        var textOption = new Option<string>("--text", "The text to speak");
+        var voiceOption = new Option<string?>("--voice", "The voice model to use");
+        var languageOption = new Option<string?>("--language", "The language code (e.g., en, fr, es)");
+        var speakerWavOption = new Option<string?>("--speaker-wav", "Path to speaker reference audio for voice cloning");
+        var agentIdOption = new Option<string?>("--agent-id", "Agent identifier");
+
+        speakCommand.AddOption(textOption);
+        speakCommand.AddOption(voiceOption);
+        speakCommand.AddOption(languageOption);
+        speakCommand.AddOption(speakerWavOption);
+        speakCommand.AddOption(agentIdOption);
+
+        speakCommand.SetHandler((string text, string? voice, string? language, string? speakerWav, string? agentId) =>
+        {
+            WriteHeader("TARS Speech - Speak");
+
+            var speechService = _serviceProvider!.GetRequiredService<TarsSpeechService>();
+            speechService.Speak(text, voice, language, speakerWav, agentId);
+
+            WriteColorLine("Speech completed.", ConsoleColor.Green);
+        }, textOption, voiceOption, languageOption, speakerWavOption, agentIdOption);
+
+        // List voices command
+        var listVoicesCommand = new Command("list-voices", "List available voice models");
+
+        listVoicesCommand.SetHandler(() =>
+        {
+            WriteHeader("TARS Speech - Available Voices");
+
+            var speechService = _serviceProvider!.GetRequiredService<TarsSpeechService>();
+            speechService.Initialize();
+
+            WriteColorLine("Standard voices:", ConsoleColor.Cyan);
+            WriteColorLine("  English: tts_models/en/ljspeech/tacotron2-DDC", ConsoleColor.White);
+            WriteColorLine("  French: tts_models/fr/mai/tacotron2-DDC", ConsoleColor.White);
+            WriteColorLine("  Spanish: tts_models/es/mai/tacotron2-DDC", ConsoleColor.White);
+            WriteColorLine("  German: tts_models/de/thorsten/tacotron2-DDC", ConsoleColor.White);
+            WriteColorLine("  Italian: tts_models/it/mai_female/glow-tts", ConsoleColor.White);
+            WriteColorLine("  Dutch: tts_models/nl/mai/tacotron2-DDC", ConsoleColor.White);
+            WriteColorLine("  Russian: tts_models/ru/multi-dataset/vits", ConsoleColor.White);
+
+            WriteColorLine("\nVoice cloning:", ConsoleColor.Cyan);
+            WriteColorLine("  Multi-speaker: tts_models/multilingual/multi-dataset/your_tts", ConsoleColor.White);
+
+            WriteColorLine("\nTo use voice cloning, provide a speaker reference audio file with --speaker-wav", ConsoleColor.Yellow);
+        });
+
+        // Configure command
+        var configureCommand = new Command("configure", "Configure speech settings");
+        var enabledOption = new Option<bool>("--enabled", () => true, "Whether speech is enabled");
+        var defaultVoiceOption = new Option<string?>("--default-voice", "Default voice model");
+        var defaultLanguageOption = new Option<string?>("--default-language", "Default language code");
+        var preloadVoicesOption = new Option<bool?>("--preload-voices", "Whether to preload voice models");
+        var maxConcurrencyOption = new Option<int?>("--max-concurrency", "Maximum concurrent speech operations");
+
+        configureCommand.AddOption(enabledOption);
+        configureCommand.AddOption(defaultVoiceOption);
+        configureCommand.AddOption(defaultLanguageOption);
+        configureCommand.AddOption(preloadVoicesOption);
+        configureCommand.AddOption(maxConcurrencyOption);
+
+        configureCommand.SetHandler((bool enabled, string? defaultVoice, string? defaultLanguage, bool? preloadVoices, int? maxConcurrency) =>
+        {
+            WriteHeader("TARS Speech - Configure");
+
+            var speechService = _serviceProvider!.GetRequiredService<TarsSpeechService>();
+            speechService.Configure(enabled, defaultVoice, defaultLanguage, preloadVoices, maxConcurrency);
+
+            WriteColorLine("Speech configuration updated.", ConsoleColor.Green);
+        }, enabledOption, defaultVoiceOption, defaultLanguageOption, preloadVoicesOption, maxConcurrencyOption);
+
+        // Add subcommands to speech command
+        speechCommand.AddCommand(speakCommand);
+        speechCommand.AddCommand(listVoicesCommand);
+        speechCommand.AddCommand(configureCommand);
+
         rootCommand.AddCommand(selfAnalyzeCommand);
         rootCommand.AddCommand(selfProposeCommand);
         rootCommand.AddCommand(selfRewriteCommand);
@@ -1911,6 +1998,7 @@ public static class CliSupport
         rootCommand.AddCommand(secretsCommand);
         rootCommand.AddCommand(autoImproveCommand);
         rootCommand.AddCommand(slackCommand);
+        rootCommand.AddCommand(speechCommand);
 
         // Add default handler for root command
         rootCommand.SetHandler((InvocationContext context) =>
