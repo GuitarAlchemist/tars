@@ -11,15 +11,18 @@ public class DiagnosticsService
     private readonly ILogger<DiagnosticsService> _logger;
     private readonly IConfiguration _configuration;
     private readonly OllamaService _ollamaService;
+    private readonly GpuService _gpuService;
 
     public DiagnosticsService(
         ILogger<DiagnosticsService> logger,
         IConfiguration configuration,
-        OllamaService ollamaService)
+        OllamaService ollamaService,
+        GpuService gpuService)
     {
         _logger = logger;
         _configuration = configuration;
         _ollamaService = ollamaService;
+        _gpuService = gpuService;
     }
 
     public async Task<DiagnosticsResult> RunInitialDiagnosticsAsync(bool verbose = false)
@@ -293,6 +296,34 @@ public class DiagnosticsService
         }
     }
 
+    public GpuDiagnosticsResult GetGpuDiagnostics()
+    {
+        try
+        {
+            _logger.LogInformation("Running GPU diagnostics");
+
+            var result = new GpuDiagnosticsResult
+            {
+                IsGpuAvailable = _gpuService.IsGpuAvailable(),
+                GpuInfo = _gpuService.GetGpuInfo(),
+                OllamaGpuParameters = _gpuService.GetOllamaGpuParameters()
+            };
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error running GPU diagnostics");
+            return new GpuDiagnosticsResult
+            {
+                IsGpuAvailable = false,
+                GpuInfo = new List<GpuInfo>(),
+                OllamaGpuParameters = new Dictionary<string, object>(),
+                ErrorMessage = ex.Message
+            };
+        }
+    }
+
     public bool IsPowerShellCoreInstalled()
     {
         try
@@ -387,4 +418,12 @@ public class OllamaConfig
 public class ProjectConfig
 {
     public string ProjectRoot { get; set; } = string.Empty;
+}
+
+public class GpuDiagnosticsResult
+{
+    public bool IsGpuAvailable { get; set; }
+    public List<GpuInfo> GpuInfo { get; set; } = new();
+    public Dictionary<string, object> OllamaGpuParameters { get; set; } = new();
+    public string? ErrorMessage { get; set; }
 }

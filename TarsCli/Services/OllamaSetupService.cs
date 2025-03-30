@@ -10,12 +10,28 @@ using Microsoft.Extensions.Logging;
 
 using static CliSupport;
 
-public class OllamaSetupService(ILogger<OllamaSetupService> logger, IConfiguration configuration)
+public class OllamaSetupService
 {
+    private readonly ILogger<OllamaSetupService> _logger;
+    private readonly IConfiguration _configuration;
+    private readonly GpuService _gpuService;
     private readonly HttpClient _httpClient = new();
-    private readonly string _baseUrl = configuration["Ollama:BaseUrl"] ?? "http://localhost:11434";
-    private readonly string[] _requiredModels = (configuration["Ollama:RequiredModels"] ?? "llama3.2,all-minilm")
-        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    private readonly string _baseUrl;
+    private readonly string[] _requiredModels;
+
+    public OllamaSetupService(
+        ILogger<OllamaSetupService> logger,
+        IConfiguration configuration,
+        GpuService gpuService)
+    {
+        _logger = logger;
+        _configuration = configuration;
+        _gpuService = gpuService;
+
+        _baseUrl = configuration["Ollama:BaseUrl"] ?? "http://localhost:11434";
+        _requiredModels = (configuration["Ollama:RequiredModels"] ?? "llama3.2,all-minilm")
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    }
 
     public async Task<bool> CheckOllamaSetupAsync()
     {
@@ -31,18 +47,45 @@ public class OllamaSetupService(ILogger<OllamaSetupService> logger, IConfigurati
                 return false;
             }
 
+            // Check GPU availability
+            var isGpuAvailable = _gpuService.IsGpuAvailable();
+            if (isGpuAvailable)
+            {
+                WriteColorLine("GPU Acceleration: ", ConsoleColor.Cyan, false);
+                WriteColorLine("Enabled", ConsoleColor.Green);
+
+                // Display GPU information
+                var gpuInfo = _gpuService.GetGpuInfo();
+                var compatibleGpus = gpuInfo.Where(gpu =>
+                    (gpu.Type == GpuType.Nvidia && gpu.MemoryMB >= 4000) ||
+                    (gpu.Type == GpuType.Amd && gpu.MemoryMB >= 8000) ||
+                    (gpu.Type == GpuType.Apple && gpu.MemoryMB >= 4000)
+                ).ToList();
+
+                foreach (var gpu in compatibleGpus)
+                {
+                    WriteColorLine($"  - {gpu.Name} ({gpu.MemoryMB}MB)", ConsoleColor.Yellow);
+                }
+            }
+            else
+            {
+                WriteColorLine("GPU Acceleration: ", ConsoleColor.Cyan, false);
+                WriteColorLine("Disabled", ConsoleColor.Yellow);
+                WriteColorLine("  No compatible GPU found or GPU acceleration is disabled in configuration.", ConsoleColor.Gray);
+            }
+
             // Check for missing models
             var missingModels = await GetMissingModelsAsync();
 
             if (missingModels.Count > 0)
             {
                 WriteColorLine("Installing Models", ConsoleColor.Yellow);
-                logger.LogInformation($"Missing required models: {string.Join(", ", missingModels)}");
+                _logger.LogInformation($"Missing required models: {string.Join(", ", missingModels)}");
 
                 // Install missing models without verbose output
                 foreach (var model in missingModels)
                 {
-                    logger.LogInformation($"Installing model: {model}");
+                    _logger.LogInformation($"Installing model: {model}");
 
                     if (model.Contains("nomic-embed") || model.Contains("embed"))
                     {
@@ -65,7 +108,7 @@ public class OllamaSetupService(ILogger<OllamaSetupService> logger, IConfigurati
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error checking Ollama setup");
+            _logger.LogError(ex, "Error checking Ollama setup");
             WriteColorLine("Error", ConsoleColor.Red);
             return false;
         }
@@ -116,7 +159,7 @@ public class OllamaSetupService(ILogger<OllamaSetupService> logger, IConfigurati
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error checking installed models");
+            _logger.LogError(ex, "Error checking installed models");
         }
 
         return missingModels;
@@ -129,13 +172,13 @@ public class OllamaSetupService(ILogger<OllamaSetupService> logger, IConfigurati
 
     public async Task<bool> InstallModelAsync(string modelName)
     {
-        logger.LogInformation($"Installing model: {modelName}");
+        _logger.LogInformation($"Installing model: {modelName}");
 
         try
         {
             // Normalize model name to ensure proper format
             var normalizedModel = NormalizeModelName(modelName);
-            logger.LogInformation($"Using normalized model name: {normalizedModel}");
+            _logger.LogInformation($"Using normalized model name: {normalizedModel}");
 
             // Special handling for embedding models
             if (modelName.Contains("all-minilm") || modelName.Contains("nomic-embed"))
@@ -164,7 +207,7 @@ public class OllamaSetupService(ILogger<OllamaSetupService> logger, IConfigurati
                 if (!string.IsNullOrEmpty(args.Data))
                 {
                     outputBuilder.AppendLine(args.Data);
-                    logger.LogInformation($"Ollama output: {args.Data}");
+                    _logger.LogInformation($"Ollama output: {args.Data}");
                     Console.WriteLine($"Ollama output: {args.Data}");
                 }
             };
@@ -173,7 +216,7 @@ public class OllamaSetupService(ILogger<OllamaSetupService> logger, IConfigurati
                 if (!string.IsNullOrEmpty(args.Data))
                 {
                     errorBuilder.AppendLine(args.Data);
-                    logger.LogWarning($"Ollama error: {args.Data}");
+                    _logger.LogWarning($"Ollama error: {args.Data}");
                     Console.WriteLine($"Ollama error: {args.Data}");
                 }
             };
@@ -185,13 +228,13 @@ public class OllamaSetupService(ILogger<OllamaSetupService> logger, IConfigurati
 
             if (process.ExitCode != 0)
             {
-                logger.LogError($"Ollama pull failed with exit code {process.ExitCode}. Error: {errorBuilder}");
+                _logger.LogError($"Ollama pull failed with exit code {process.ExitCode}. Error: {errorBuilder}");
                 Console.WriteLine($"Ollama pull failed with exit code {process.ExitCode}");
 
                 // Try alternative model names if the original fails
                 if (modelName.Contains("all-minilm") || modelName.Contains("nomic-embed"))
                 {
-                    logger.LogInformation("Trying alternative model name for embedding model...");
+                    _logger.LogInformation("Trying alternative model name for embedding model...");
                     Console.WriteLine("Trying alternative model name for embedding model...");
                     return await TryAlternativeModelsForEmbedding();
                 }
@@ -203,13 +246,13 @@ public class OllamaSetupService(ILogger<OllamaSetupService> logger, IConfigurati
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, $"Error installing model {modelName}");
+            _logger.LogError(ex, $"Error installing model {modelName}");
             Console.WriteLine($"Error installing model {modelName}: {ex.Message}");
 
             // Try alternative model names if the original fails
             if (modelName.Contains("all-minilm") || modelName.Contains("nomic-embed"))
             {
-                logger.LogInformation("Trying alternative model name for embedding model...");
+                _logger.LogInformation("Trying alternative model name for embedding model...");
                 Console.WriteLine("Trying alternative model name for embedding model...");
                 return await TryAlternativeModelsForEmbedding();
             }
@@ -254,7 +297,7 @@ public class OllamaSetupService(ILogger<OllamaSetupService> logger, IConfigurati
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error starting Ollama service");
+            _logger.LogError(ex, "Error starting Ollama service");
             return false;
         }
     }
@@ -263,7 +306,7 @@ public class OllamaSetupService(ILogger<OllamaSetupService> logger, IConfigurati
     {
         try
         {
-            logger.LogInformation($"Installing model via API: {modelName}");
+            _logger.LogInformation($"Installing model via API: {modelName}");
 
             // Normalize model name
             var normalizedModel = NormalizeModelName(modelName);
@@ -278,7 +321,7 @@ public class OllamaSetupService(ILogger<OllamaSetupService> logger, IConfigurati
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
-                logger.LogError($"Failed to install model via API. Status: {response.StatusCode}, Error: {errorContent}");
+                _logger.LogError($"Failed to install model via API. Status: {response.StatusCode}, Error: {errorContent}");
                 return false;
             }
 
@@ -286,7 +329,7 @@ public class OllamaSetupService(ILogger<OllamaSetupService> logger, IConfigurati
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, $"Error installing model via API: {modelName}");
+            _logger.LogError(ex, $"Error installing model via API: {modelName}");
             return false;
         }
     }
@@ -317,12 +360,12 @@ public class OllamaSetupService(ILogger<OllamaSetupService> logger, IConfigurati
             "e5-small-v2"
         };
 
-        logger.LogInformation("Trying alternative embedding models...");
+        _logger.LogInformation("Trying alternative embedding models...");
         Console.WriteLine("Trying alternative embedding models...");
 
         foreach (var model in alternativeModels)
         {
-            logger.LogInformation($"Trying alternative embedding model: {model}");
+            _logger.LogInformation($"Trying alternative embedding model: {model}");
             Console.WriteLine($"Trying alternative embedding model: {model}");
 
             try {
@@ -346,7 +389,7 @@ public class OllamaSetupService(ILogger<OllamaSetupService> logger, IConfigurati
                     if (!string.IsNullOrEmpty(args.Data))
                     {
                         outputBuilder.AppendLine(args.Data);
-                        logger.LogInformation($"Ollama output: {args.Data}");
+                        _logger.LogInformation($"Ollama output: {args.Data}");
                         Console.WriteLine($"Ollama output: {args.Data}");
                     }
                 };
@@ -355,7 +398,7 @@ public class OllamaSetupService(ILogger<OllamaSetupService> logger, IConfigurati
                     if (!string.IsNullOrEmpty(args.Data))
                     {
                         errorBuilder.AppendLine(args.Data);
-                        logger.LogWarning($"Ollama error: {args.Data}");
+                        _logger.LogWarning($"Ollama error: {args.Data}");
                         Console.WriteLine($"Ollama error: {args.Data}");
                     }
                 };
@@ -367,7 +410,7 @@ public class OllamaSetupService(ILogger<OllamaSetupService> logger, IConfigurati
 
                 if (process.ExitCode == 0)
                 {
-                    logger.LogInformation($"Successfully installed alternative model: {model}");
+                    _logger.LogInformation($"Successfully installed alternative model: {model}");
                     Console.WriteLine($"Successfully installed alternative model: {model}");
 
                     // Update the configuration to use this model instead
@@ -377,7 +420,7 @@ public class OllamaSetupService(ILogger<OllamaSetupService> logger, IConfigurati
                 }
             }
             catch (Exception ex) {
-                logger.LogError(ex, $"Error installing alternative model {model}");
+                _logger.LogError(ex, $"Error installing alternative model {model}");
                 Console.WriteLine($"Error installing alternative model {model}: {ex.Message}");
             }
         }
@@ -392,11 +435,11 @@ public class OllamaSetupService(ILogger<OllamaSetupService> logger, IConfigurati
             }
         }
         catch (Exception ex) {
-            logger.LogError(ex, "Error installing model via API");
+            _logger.LogError(ex, "Error installing model via API");
             Console.WriteLine($"Error installing model via API: {ex.Message}");
         }
 
-        logger.LogError("Failed to install any alternative embedding models");
+        _logger.LogError("Failed to install any alternative embedding models");
         Console.WriteLine("Failed to install any alternative embedding models");
 
         // Return true anyway to allow the program to continue
@@ -408,7 +451,7 @@ public class OllamaSetupService(ILogger<OllamaSetupService> logger, IConfigurati
     {
         try
         {
-            logger.LogInformation($"Updating configuration to use alternative model: {model}");
+            _logger.LogInformation($"Updating configuration to use alternative model: {model}");
             Console.WriteLine($"Updating configuration to use alternative model: {model}");
 
             // For now, just log that we would update the config
@@ -423,14 +466,14 @@ public class OllamaSetupService(ILogger<OllamaSetupService> logger, IConfigurati
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error updating configuration");
+            _logger.LogError(ex, "Error updating configuration");
             Console.WriteLine($"Error updating configuration: {ex.Message}");
         }
     }
 
     private async Task<bool> InstallEmbeddingModelAsync(string modelName)
     {
-        logger.LogInformation($"Installing embedding model: {modelName}");
+        _logger.LogInformation($"Installing embedding model: {modelName}");
         WriteColorLine($"Installing embedding model: {modelName}", ConsoleColor.White);
 
         // Try a list of common embedding models that work with Ollama
@@ -446,7 +489,7 @@ public class OllamaSetupService(ILogger<OllamaSetupService> logger, IConfigurati
         foreach (var model in embeddingModels)
         {
             WriteColorLine($"Trying embedding model: {model}...", ConsoleColor.Yellow);
-            logger.LogInformation($"Trying embedding model: {model}");
+            _logger.LogInformation($"Trying embedding model: {model}");
 
             try
             {
@@ -470,7 +513,7 @@ public class OllamaSetupService(ILogger<OllamaSetupService> logger, IConfigurati
                     if (!string.IsNullOrEmpty(args.Data))
                     {
                         outputBuilder.AppendLine(args.Data);
-                        logger.LogInformation($"Ollama output: {args.Data}");
+                        _logger.LogInformation($"Ollama output: {args.Data}");
                         WriteColorLine($"Ollama output: {args.Data}", ConsoleColor.Gray);
                     }
                 };
@@ -479,7 +522,7 @@ public class OllamaSetupService(ILogger<OllamaSetupService> logger, IConfigurati
                     if (!string.IsNullOrEmpty(args.Data))
                     {
                         errorBuilder.AppendLine(args.Data);
-                        logger.LogWarning($"Ollama error: {args.Data}");
+                        _logger.LogWarning($"Ollama error: {args.Data}");
                         WriteColorLine($"Ollama error: {args.Data}", ConsoleColor.DarkYellow);
                     }
                 };
@@ -492,20 +535,20 @@ public class OllamaSetupService(ILogger<OllamaSetupService> logger, IConfigurati
                 if (process.ExitCode == 0)
                 {
                     WriteColorLine($"Successfully installed embedding model: {model}", ConsoleColor.Green);
-                    logger.LogInformation($"Successfully installed embedding model: {model}");
+                    _logger.LogInformation($"Successfully installed embedding model: {model}");
                     return true;
                 }
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, $"Error installing embedding model {model}");
+                _logger.LogError(ex, $"Error installing embedding model {model}");
                 WriteColorLine($"Error installing embedding model {model}: {ex.Message}", ConsoleColor.Red);
             }
         }
 
         // If we get here, all attempts failed
         WriteColorLine("Failed to install any embedding model. Some functionality may be limited.", ConsoleColor.Red);
-        logger.LogError("Failed to install any embedding model");
+        _logger.LogError("Failed to install any embedding model");
 
         // Return true anyway to allow the process to continue
         return true;

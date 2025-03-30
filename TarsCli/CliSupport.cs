@@ -142,6 +142,7 @@ public static class CliSupport
             WriteCommand("demo", "Run a demonstration of TARS capabilities");
             WriteCommand("secrets", "Manage API keys and other secrets");
             WriteCommand("auto-improve", "Run autonomous self-improvement");
+            WriteCommand("slack", "Manage Slack integration");
 
             WriteHeader("Global Options");
             WriteCommand("--help, -h", "Display help information");
@@ -150,6 +151,7 @@ public static class CliSupport
             WriteExample("tarscli process --file path/to/file.cs --task \"Refactor this code\"");
             WriteExample("tarscli docs --task \"Improve documentation clarity\"");
             WriteExample("tarscli diagnostics");
+            WriteExample("tarscli diagnostics gpu");
             WriteExample("tarscli init my-session");
             WriteExample("tarscli run --session my-session my-plan.fsx");
             WriteExample("tarscli trace --session my-session last");
@@ -183,6 +185,11 @@ public static class CliSupport
             WriteExample("tarscli auto-improve --time-limit 60 --model llama3");
             WriteExample("tarscli auto-improve --status");
             WriteExample("tarscli auto-improve --stop");
+            WriteExample("tarscli slack set-webhook --url https://hooks.slack.com/services/XXX/YYY/ZZZ");
+            WriteExample("tarscli slack test --message \"Hello from TARS\" --channel #tars");
+            WriteExample("tarscli slack announce --title \"New Release\" --message \"TARS v1.0 is now available!\"");
+            WriteExample("tarscli slack feature --name \"GPU Acceleration\" --description \"TARS now supports GPU acceleration for faster processing.\"");
+            WriteExample("tarscli slack milestone --name \"1000 Users\" --description \"TARS has reached 1000 active users!\"");
 
             Console.WriteLine("\nFor more information, visit: https://github.com/yourusername/tars");
         });
@@ -274,6 +281,122 @@ public static class CliSupport
 
         // Create diagnostics command
         var diagnosticsCommand = new Command("diagnostics", "Run system diagnostics and check environment setup");
+
+        // Create GPU subcommand
+        var gpuCommand = new Command("gpu", "Check GPU capabilities and Ollama GPU acceleration");
+        gpuCommand.SetHandler(() =>
+        {
+            try
+            {
+                WriteHeader("=== TARS GPU Diagnostics ===");
+                Console.WriteLine("Checking GPU capabilities and Ollama GPU acceleration...");
+
+                var diagnosticsService = _serviceProvider!.GetRequiredService<DiagnosticsService>();
+                var gpuDiagnostics = diagnosticsService.GetGpuDiagnostics();
+
+                WriteColorLine("--- GPU Information ---", ConsoleColor.Cyan);
+                Console.Write("  GPU Acceleration: ");
+                WriteColorLine(gpuDiagnostics.IsGpuAvailable ? "Available ✓" : "Not Available ✗",
+                              gpuDiagnostics.IsGpuAvailable ? ConsoleColor.Green : ConsoleColor.Yellow);
+                Console.WriteLine();
+
+                if (gpuDiagnostics.GpuInfo.Count > 0)
+                {
+                    WriteColorLine("--- Detected GPUs ---", ConsoleColor.Cyan);
+                    foreach (var gpu in gpuDiagnostics.GpuInfo)
+                    {
+                        var isCompatible = (gpu.Type == GpuType.Nvidia && gpu.MemoryMB >= 4000) ||
+                                         (gpu.Type == GpuType.Amd && gpu.MemoryMB >= 8000) ||
+                                         (gpu.Type == GpuType.Apple && gpu.MemoryMB >= 4000);
+
+                        var statusColor = isCompatible ? ConsoleColor.Green : ConsoleColor.Yellow;
+                        var statusText = isCompatible ? "Compatible ✓" : "Not Compatible ✗";
+
+                        Console.WriteLine($"  {gpu.Name} ({gpu.MemoryMB}MB):");
+                        Console.Write($"    Type: {gpu.Type}, Status: ");
+                        WriteColorLine(statusText, statusColor);
+                    }
+                    Console.WriteLine();
+                }
+                else
+                {
+                    WriteColorLine("  No GPUs detected", ConsoleColor.Yellow);
+                    Console.WriteLine();
+                }
+
+                if (gpuDiagnostics.IsGpuAvailable && gpuDiagnostics.OllamaGpuParameters.Count > 0)
+                {
+                    WriteColorLine("--- Ollama GPU Configuration ---", ConsoleColor.Cyan);
+                    foreach (var param in gpuDiagnostics.OllamaGpuParameters)
+                    {
+                        Console.WriteLine($"  {param.Key}: {param.Value}");
+                    }
+                    Console.WriteLine();
+
+                    WriteColorLine("GPU acceleration is enabled for Ollama", ConsoleColor.Green);
+                    Console.WriteLine();
+
+                    // Run a quick test with Ollama
+                    WriteColorLine("--- Running GPU Test ---", ConsoleColor.Cyan);
+                    Console.WriteLine("Sending a test request to Ollama to verify GPU acceleration...");
+                    Console.WriteLine("This may take a few seconds...");
+
+                    var ollamaService = _serviceProvider!.GetRequiredService<OllamaService>();
+                    var testPrompt = "What is the capital of France? Keep it short.";
+                    var testModel = "llama3";
+
+                    try
+                    {
+                        var startTime = DateTime.Now;
+                        var response = ollamaService.GenerateCompletion(testPrompt, testModel).GetAwaiter().GetResult();
+                        var endTime = DateTime.Now;
+                        var duration = (endTime - startTime).TotalSeconds;
+
+                        Console.WriteLine();
+                        WriteColorLine("Test Results:", ConsoleColor.Cyan);
+                        Console.WriteLine($"  Prompt: {testPrompt}");
+                        Console.WriteLine($"  Response: {response}");
+                        Console.WriteLine($"  Duration: {duration:F2} seconds");
+                        Console.WriteLine();
+
+                        WriteColorLine("GPU test completed successfully", ConsoleColor.Green);
+                    }
+                    catch (Exception ex)
+                    {
+                        WriteColorLine($"Error running GPU test: {ex.Message}", ConsoleColor.Red);
+                    }
+                }
+                else if (gpuDiagnostics.IsGpuAvailable)
+                {
+                    WriteColorLine("GPU is available but not configured for Ollama", ConsoleColor.Yellow);
+                }
+                else
+                {
+                    WriteColorLine("GPU acceleration is not available for Ollama", ConsoleColor.Yellow);
+                    Console.WriteLine("Reasons could include:");
+                    Console.WriteLine("  - No compatible GPU detected");
+                    Console.WriteLine("  - GPU drivers not installed or outdated");
+                    Console.WriteLine("  - GPU disabled in configuration");
+                }
+
+                if (!string.IsNullOrEmpty(gpuDiagnostics.ErrorMessage))
+                {
+                    Console.WriteLine();
+                    WriteColorLine("Error during GPU diagnostics:", ConsoleColor.Red);
+                    WriteColorLine($"  {gpuDiagnostics.ErrorMessage}", ConsoleColor.Red);
+                }
+            }
+            catch (Exception ex)
+            {
+                WriteColorLine($"Error running GPU diagnostics: {ex.Message}", ConsoleColor.Red);
+                WriteColorLine($"Stack trace: {ex.StackTrace}", ConsoleColor.Red);
+            }
+        });
+
+        // Add GPU subcommand to diagnostics command
+        diagnosticsCommand.AddCommand(gpuCommand);
+
+        // Main diagnostics command handler
         diagnosticsCommand.SetHandler(async () =>
         {
             try
@@ -1595,6 +1718,186 @@ public static class CliSupport
             }
         }, autoImproveTimeLimitOption, autoImproveModelOption, statusOption, stopOption);
 
+        // Create slack command
+        var slackCommand = new Command("slack", "Manage Slack integration");
+
+        // Set webhook command
+        var setWebhookCommand = new Command("set-webhook", "Set the Slack webhook URL");
+        var webhookUrlOption = new Option<string>("--url", "The webhook URL");
+
+        setWebhookCommand.AddOption(webhookUrlOption);
+
+        setWebhookCommand.SetHandler(async (string url) =>
+        {
+            WriteHeader("TARS Slack Integration - Set Webhook");
+
+            var slackService = _serviceProvider!.GetRequiredService<SlackIntegrationService>();
+            var success = await slackService.SetWebhookUrlAsync(url);
+
+            if (success)
+            {
+                WriteColorLine("Slack webhook URL set successfully.", ConsoleColor.Green);
+            }
+            else
+            {
+                WriteColorLine("Failed to set Slack webhook URL.", ConsoleColor.Red);
+                Environment.Exit(1);
+            }
+        }, webhookUrlOption);
+
+        // Test command
+        var testCommand = new Command("test", "Test the Slack integration");
+        var messageOption = new Option<string>("--message", () => "Test message from TARS", "The message to send");
+        var channelOption = new Option<string?>("--channel", "The channel to send to (optional)");
+
+        testCommand.AddOption(messageOption);
+        testCommand.AddOption(channelOption);
+
+        testCommand.SetHandler(async (string message, string? channel) =>
+        {
+            WriteHeader("TARS Slack Integration - Test");
+
+            var slackService = _serviceProvider!.GetRequiredService<SlackIntegrationService>();
+
+            if (!slackService.IsEnabled())
+            {
+                WriteColorLine("Slack integration is not enabled. Use 'tarscli slack set-webhook' to set the webhook URL.", ConsoleColor.Red);
+                Environment.Exit(1);
+                return;
+            }
+
+            WriteColorLine($"Sending message to Slack{(channel != null ? $" channel {channel}" : "")}...", ConsoleColor.Cyan);
+            var success = await slackService.PostMessageAsync(message, channel);
+
+            if (success)
+            {
+                WriteColorLine("Message sent successfully.", ConsoleColor.Green);
+            }
+            else
+            {
+                WriteColorLine("Failed to send message.", ConsoleColor.Red);
+                Environment.Exit(1);
+            }
+        }, messageOption, channelOption);
+
+        // Announce command
+        var announceCommand = new Command("announce", "Post an announcement to Slack");
+        var titleOption = new Option<string>("--title", "The announcement title");
+        var announcementMessageOption = new Option<string>("--message", "The announcement message");
+        var announceChannelOption = new Option<string?>("--channel", "The channel to send to (optional)");
+
+        announceCommand.AddOption(titleOption);
+        announceCommand.AddOption(announcementMessageOption);
+        announceCommand.AddOption(announceChannelOption);
+
+        announceCommand.SetHandler(async (string title, string message, string? channel) =>
+        {
+            WriteHeader("TARS Slack Integration - Announce");
+
+            var slackService = _serviceProvider!.GetRequiredService<SlackIntegrationService>();
+
+            if (!slackService.IsEnabled())
+            {
+                WriteColorLine("Slack integration is not enabled. Use 'tarscli slack set-webhook' to set the webhook URL.", ConsoleColor.Red);
+                Environment.Exit(1);
+                return;
+            }
+
+            WriteColorLine($"Posting announcement to Slack{(channel != null ? $" channel {channel}" : "")}...", ConsoleColor.Cyan);
+            var success = await slackService.PostAnnouncementAsync(title, message, channel);
+
+            if (success)
+            {
+                WriteColorLine("Announcement posted successfully.", ConsoleColor.Green);
+            }
+            else
+            {
+                WriteColorLine("Failed to post announcement.", ConsoleColor.Red);
+                Environment.Exit(1);
+            }
+        }, titleOption, announcementMessageOption, announceChannelOption);
+
+        // Feature command
+        var featureCommand = new Command("feature", "Post a feature update to Slack");
+        var featureNameOption = new Option<string>("--name", "The feature name");
+        var featureDescriptionOption = new Option<string>("--description", "The feature description");
+        var featureChannelOption = new Option<string?>("--channel", "The channel to send to (optional)");
+
+        featureCommand.AddOption(featureNameOption);
+        featureCommand.AddOption(featureDescriptionOption);
+        featureCommand.AddOption(featureChannelOption);
+
+        featureCommand.SetHandler(async (string name, string description, string? channel) =>
+        {
+            WriteHeader("TARS Slack Integration - Feature Update");
+
+            var slackService = _serviceProvider!.GetRequiredService<SlackIntegrationService>();
+
+            if (!slackService.IsEnabled())
+            {
+                WriteColorLine("Slack integration is not enabled. Use 'tarscli slack set-webhook' to set the webhook URL.", ConsoleColor.Red);
+                Environment.Exit(1);
+                return;
+            }
+
+            WriteColorLine($"Posting feature update to Slack{(channel != null ? $" channel {channel}" : "")}...", ConsoleColor.Cyan);
+            var success = await slackService.PostFeatureUpdateAsync(name, description, channel);
+
+            if (success)
+            {
+                WriteColorLine("Feature update posted successfully.", ConsoleColor.Green);
+            }
+            else
+            {
+                WriteColorLine("Failed to post feature update.", ConsoleColor.Red);
+                Environment.Exit(1);
+            }
+        }, featureNameOption, featureDescriptionOption, featureChannelOption);
+
+        // Milestone command
+        var milestoneCommand = new Command("milestone", "Post a milestone to Slack");
+        var milestoneNameOption = new Option<string>("--name", "The milestone name");
+        var milestoneDescriptionOption = new Option<string>("--description", "The milestone description");
+        var milestoneChannelOption = new Option<string?>("--channel", "The channel to send to (optional)");
+
+        milestoneCommand.AddOption(milestoneNameOption);
+        milestoneCommand.AddOption(milestoneDescriptionOption);
+        milestoneCommand.AddOption(milestoneChannelOption);
+
+        milestoneCommand.SetHandler(async (string name, string description, string? channel) =>
+        {
+            WriteHeader("TARS Slack Integration - Milestone");
+
+            var slackService = _serviceProvider!.GetRequiredService<SlackIntegrationService>();
+
+            if (!slackService.IsEnabled())
+            {
+                WriteColorLine("Slack integration is not enabled. Use 'tarscli slack set-webhook' to set the webhook URL.", ConsoleColor.Red);
+                Environment.Exit(1);
+                return;
+            }
+
+            WriteColorLine($"Posting milestone to Slack{(channel != null ? $" channel {channel}" : "")}...", ConsoleColor.Cyan);
+            var success = await slackService.PostMilestoneAsync(name, description, channel);
+
+            if (success)
+            {
+                WriteColorLine("Milestone posted successfully.", ConsoleColor.Green);
+            }
+            else
+            {
+                WriteColorLine("Failed to post milestone.", ConsoleColor.Red);
+                Environment.Exit(1);
+            }
+        }, milestoneNameOption, milestoneDescriptionOption, milestoneChannelOption);
+
+        // Add subcommands to slack command
+        slackCommand.AddCommand(setWebhookCommand);
+        slackCommand.AddCommand(testCommand);
+        slackCommand.AddCommand(announceCommand);
+        slackCommand.AddCommand(featureCommand);
+        slackCommand.AddCommand(milestoneCommand);
+
         rootCommand.AddCommand(selfAnalyzeCommand);
         rootCommand.AddCommand(selfProposeCommand);
         rootCommand.AddCommand(selfRewriteCommand);
@@ -1607,6 +1910,7 @@ public static class CliSupport
         rootCommand.AddCommand(demoCommand);
         rootCommand.AddCommand(secretsCommand);
         rootCommand.AddCommand(autoImproveCommand);
+        rootCommand.AddCommand(slackCommand);
 
         // Add default handler for root command
         rootCommand.SetHandler((InvocationContext context) =>

@@ -43,6 +43,7 @@ internal static class Program
                     builder.AddNLog(configuration);
                 })
                 .AddSingleton<IConfiguration>(configuration)
+                .AddSingleton<GpuService>()
                 .AddSingleton<OllamaService>()
                 .AddSingleton<OllamaSetupService>()
                 .AddSingleton<RetroactionService>()
@@ -59,6 +60,7 @@ internal static class Program
                 .AddSingleton<SecretsService>()
                 .AddSingleton<UserInteractionService>()
                 .AddSingleton<AutoImprovementService>()
+                .AddSingleton<SlackIntegrationService>()
                 .AddSingleton<TarsCli.Mcp.McpController>(sp => new TarsCli.Mcp.McpController(sp.GetRequiredService<ILogger<TarsCli.Mcp.McpController>>(), configuration))
                 .AddSingleton<EnhancedMcpService>()
                 .BuildServiceProvider();
