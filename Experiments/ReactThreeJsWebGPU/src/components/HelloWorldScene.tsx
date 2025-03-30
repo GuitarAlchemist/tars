@@ -11,31 +11,86 @@ const YELLOW_TEXT_COLOR = 0xFFFF00 // Bright yellow for text
 // Skybox component with parallax effect (follows camera rotation but not zoom)
 const MilkyWaySkybox = () => {
   const { scene } = useThree()
-  const [texture] = useState(() => new THREE.TextureLoader().load('./textures/milky_way.jpg'))
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Local Milky Way image path
+  const milkyWayImagePath = './textures/milky_way.jpg'
 
   useEffect(() => {
-    // Create a skybox using CubeTextureLoader or by using a single texture on a large sphere
-    const skyGeometry = new THREE.SphereGeometry(1000, 60, 40) // Very large radius
-    const skyMaterial = new THREE.MeshBasicMaterial({
-      map: texture,
-      side: THREE.BackSide, // Render on the inside of the sphere
-      depthWrite: false,    // Don't write to depth buffer
-    })
+    // Create a texture loader
+    const textureLoader = new THREE.TextureLoader()
 
-    const sky = new THREE.Mesh(skyGeometry, skyMaterial)
-    sky.name = 'milkyWaySkybox'
+    // Load the texture from the local path
+    textureLoader.load(
+      milkyWayImagePath,
+      // onLoad callback
+      (texture) => {
+        // Create a skybox using a single texture on a large sphere
+        const skyGeometry = new THREE.SphereGeometry(1000, 60, 40) // Very large radius
+        const skyMaterial = new THREE.MeshBasicMaterial({
+          map: texture,
+          side: THREE.BackSide, // Render on the inside of the sphere
+          depthWrite: false,    // Don't write to depth buffer
+        })
 
-    // Add to scene
-    scene.add(sky)
+        const sky = new THREE.Mesh(skyGeometry, skyMaterial)
+        sky.name = 'milkyWaySkybox'
+
+        // Add to scene
+        scene.add(sky)
+        setIsLoading(false)
+
+        console.log('✅ Milky Way skybox loaded successfully')
+      },
+      // onProgress callback
+      undefined,
+      // onError callback
+      (err) => {
+        console.error('Error loading Milky Way image:', err)
+        setError('Failed to load Milky Way image. Please check if the image exists in the textures directory.')
+        setIsLoading(false)
+      }
+    )
 
     // Cleanup function
     return () => {
-      scene.remove(sky)
-      skyGeometry.dispose()
-      skyMaterial.dispose()
-      texture.dispose()
+      const sky = scene.getObjectByName('milkyWaySkybox')
+      if (sky) {
+        scene.remove(sky)
+        if (sky.geometry) sky.geometry.dispose()
+        if (sky.material) {
+          if (Array.isArray(sky.material)) {
+            sky.material.forEach(material => {
+              if (material.map) material.map.dispose()
+              material.dispose()
+            })
+          } else {
+            if (sky.material.map) sky.material.map.dispose()
+            sky.material.dispose()
+          }
+        }
+      }
     }
-  }, [scene, texture])
+  }, [scene])
+
+  // Show loading or error message
+  if (isLoading || error) {
+    return (
+      <group position={[0, 0, -10]}>
+        {isLoading && (
+          <Text position={[0, 0, 0]} fontSize={0.5} color="white">
+            Loading Milky Way image...
+          </Text>
+        )}
+        {error && (
+          <Text position={[0, 0, 0]} fontSize={0.5} color="red">
+            {error}
+          </Text>
+        )}
+      </group>
+    )
+  }
 
   // No need to return anything as we're adding directly to the scene
   return null
