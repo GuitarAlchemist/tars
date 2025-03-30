@@ -1,5 +1,12 @@
+using System;
+using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Text.Json;
+using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -171,6 +178,8 @@ public static class CliSupport
             WriteExample("tarscli mcp augment");
             WriteExample("tarscli mcp execute \"echo Hello, World!\"");
             WriteExample("tarscli mcp code path/to/file.cs \"public class MyClass { }\"");
+            WriteExample("tarscli mcp conversations --source augment --count 5");
+            WriteExample("tarscli mcp conversations --open");
             WriteExample("tarscli huggingface search --query \"code generation\" --task text-generation --limit 5");
             WriteExample("tarscli huggingface best --limit 3");
             WriteExample("tarscli huggingface details --model microsoft/phi-2");
@@ -849,10 +858,80 @@ public static class CliSupport
         mcpCommand.AddCommand(startCommand);
         mcpCommand.AddCommand(stopCommand);
         mcpCommand.AddCommand(statusCommand);
+        // Add conversations command to view conversation history
+        var conversationsCommand = new Command("conversations", "View conversation history");
+        var sourceOption = new Option<string?>("--source", "Filter conversations by source (e.g., 'augment')");
+        var countOption = new Option<int>("--count", () => 10, "Number of conversations to show");
+        var openOption = new Option<bool>("--open", "Open the conversation log in the default browser");
+
+        conversationsCommand.AddOption(sourceOption);
+        conversationsCommand.AddOption(countOption);
+        conversationsCommand.AddOption(openOption);
+
+        conversationsCommand.SetHandler(async (string? source, int count, bool open) =>
+        {
+            WriteHeader("MCP - Conversation History");
+
+            var loggingService = _serviceProvider!.GetRequiredService<ConversationLoggingService>();
+
+            if (open)
+            {
+                var logPath = loggingService.GetAugmentLogPath();
+                if (File.Exists(logPath))
+                {
+                    WriteColorLine($"Opening conversation log: {logPath}", ConsoleColor.Green);
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = logPath,
+                        UseShellExecute = true
+                    });
+                }
+                else
+                {
+                    WriteColorLine($"Conversation log file not found: {logPath}", ConsoleColor.Red);
+                }
+                return;
+            }
+
+            var conversations = await loggingService.GetRecentConversationsAsync(count, source);
+
+            if (conversations.Count == 0)
+            {
+                WriteColorLine("No conversations found.", ConsoleColor.Yellow);
+                return;
+            }
+
+            WriteColorLine($"Found {conversations.Count} conversations" + (source != null ? $" from {source}" : ""), ConsoleColor.Green);
+            Console.WriteLine();
+
+            foreach (var conversation in conversations)
+            {
+                var json = JsonSerializer.Serialize(conversation, new JsonSerializerOptions { WriteIndented = true });
+                var conversationDict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json);
+
+                var timestamp = conversationDict["Timestamp"].GetString();
+                var conversationSource = conversationDict["Source"].GetString();
+                var action = conversationDict["Action"].GetString();
+
+                WriteColorLine($"[{timestamp}] Source: {conversationSource}, Action: {action}", ConsoleColor.Cyan);
+
+                // Show a condensed version of the request and response
+                var request = conversationDict["Request"].ToString();
+                var response = conversationDict["Response"].ToString();
+
+                WriteColorLine("Request: " + (request.Length > 100 ? request.Substring(0, 100) + "..." : request), ConsoleColor.White);
+                WriteColorLine("Response: " + (response.Length > 100 ? response.Substring(0, 100) + "..." : response), ConsoleColor.White);
+                Console.WriteLine();
+            }
+
+            WriteColorLine("To view the full conversation log, use the --open option.", ConsoleColor.Yellow);
+        }, sourceOption, countOption, openOption);
+
         mcpCommand.AddCommand(executeCommand);
         mcpCommand.AddCommand(codeCommand);
         mcpCommand.AddCommand(configureCommand);
         mcpCommand.AddCommand(augmentCommand);
+        mcpCommand.AddCommand(conversationsCommand);
 
         // Add MCP command to root command
         rootCommand.AddCommand(mcpCommand);
@@ -1129,8 +1208,8 @@ public static class CliSupport
 
         // Create learning events command
         var learningEventsCommand = new Command("events", "View recent learning events");
-        var countOption = new Option<int>("--count", () => 10, "Number of events to show");
-        learningEventsCommand.AddOption(countOption);
+        var eventsCountOption = new Option<int>("--count", () => 10, "Number of events to show");
+        learningEventsCommand.AddOption(eventsCountOption);
 
         learningEventsCommand.SetHandler(async (int count) =>
         {
@@ -1175,7 +1254,7 @@ public static class CliSupport
 
                 Console.WriteLine();
             }
-        }, countOption);
+        }, eventsCountOption);
 
         // Create learning clear command
         var learningClearCommand = new Command("clear", "Clear learning database");

@@ -83,6 +83,27 @@ After configuration, you can use TARS from Augment Code by:
 1. Starting the MCP server with `tarscli mcp start`
 2. In VS Code, using the command `@tars` to interact with TARS
 
+### Viewing Conversation History
+
+TARS logs all MCP conversations, including those with Augment Code. To view the conversation history:
+
+```bash
+tarscli mcp conversations --source augment --count 5
+```
+
+Options:
+- `--source`: Filter conversations by source (e.g., 'augment')
+- `--count`: Number of conversations to show (default: 10)
+- `--open`: Open the conversation log in the default browser
+
+To open the full conversation log in your default browser:
+
+```bash
+tarscli mcp conversations --open
+```
+
+This is particularly useful for reviewing interactions with Augment Code and understanding how TARS is being used.
+
 ## MCP Architecture
 
 The TARS MCP implementation consists of the following components:

@@ -21,22 +21,25 @@ namespace TarsCli.Services
         private HttpListener? _listener;
         private bool _isRunning = false;
         private readonly Dictionary<string, Func<JsonElement, Task<JsonElement>>> _handlers = new();
+        private readonly ConversationLoggingService? _conversationLoggingService;
 
         public McpService(
             ILogger<McpService> logger,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            ConversationLoggingService? conversationLoggingService = null)
         {
             _logger = logger;
             _configuration = configuration;
             _httpClient = new HttpClient();
-            
+            _conversationLoggingService = conversationLoggingService;
+
             // Get configuration values
             _servicePort = _configuration.GetValue<int>("Tars:Mcp:Port", 8999);
             _serviceUrl = $"http://localhost:{_servicePort}/";
-            
+
             // Register default handlers
             RegisterDefaultHandlers();
-            
+
             _logger.LogInformation($"MCP Service initialized with URL: {_serviceUrl}");
         }
 
@@ -46,41 +49,41 @@ namespace TarsCli.Services
         private void RegisterDefaultHandlers()
         {
             // Register the execute handler
-            RegisterHandler("execute", async (request) => 
+            RegisterHandler("execute", async (request) =>
             {
                 var command = request.GetProperty("command").GetString();
                 _logger.LogInformation($"Executing command: {command}");
-                
+
                 var result = await ExecuteCommand(command);
                 return JsonSerializer.SerializeToElement(new { success = true, output = result });
             });
-            
+
             // Register the code handler
-            RegisterHandler("code", async (request) => 
+            RegisterHandler("code", async (request) =>
             {
                 var filePath = request.GetProperty("filePath").GetString();
                 var content = request.GetProperty("content").GetString();
                 _logger.LogInformation($"Generating code for file: {filePath}");
-                
+
                 var result = await GenerateCode(filePath, content);
                 return JsonSerializer.SerializeToElement(new { success = true, message = result });
             });
-            
+
             // Register the status handler
-            RegisterHandler("status", async (request) => 
+            RegisterHandler("status", async (request) =>
             {
                 _logger.LogInformation("Getting system status");
-                
+
                 var status = GetSystemStatus();
                 return JsonSerializer.SerializeToElement(new { success = true, status = status });
             });
-            
+
             // Register the tars handler for TARS-specific operations
-            RegisterHandler("tars", async (request) => 
+            RegisterHandler("tars", async (request) =>
             {
                 var operation = request.GetProperty("operation").GetString();
                 _logger.LogInformation($"Executing TARS operation: {operation}");
-                
+
                 var result = await ExecuteTarsOperation(operation, request);
                 return result;
             });
@@ -105,18 +108,18 @@ namespace TarsCli.Services
                 _logger.LogWarning("MCP Service is already running");
                 return;
             }
-            
+
             try
             {
                 _listener = new HttpListener();
                 _listener.Prefixes.Add(_serviceUrl);
                 _listener.Start();
-                
+
                 _isRunning = true;
                 _logger.LogInformation($"MCP Service started on {_serviceUrl}");
-                
+
                 // Start listening for requests
-                await Task.Run(async () => 
+                await Task.Run(async () =>
                 {
                     while (_isRunning)
                     {
@@ -152,11 +155,11 @@ namespace TarsCli.Services
             {
                 return;
             }
-            
+
             _isRunning = false;
             _listener?.Stop();
             _listener = null;
-            
+
             _logger.LogInformation("MCP Service stopped");
         }
 
@@ -169,7 +172,7 @@ namespace TarsCli.Services
             {
                 var request = context.Request;
                 var response = context.Response;
-                
+
                 // Only accept POST requests
                 if (request.HttpMethod != "POST")
                 {
@@ -177,37 +180,55 @@ namespace TarsCli.Services
                     response.Close();
                     return;
                 }
-                
+
                 // Read the request body
                 string requestBody;
                 using (var reader = new StreamReader(request.InputStream, request.ContentEncoding))
                 {
                     requestBody = await reader.ReadToEndAsync();
                 }
-                
+
                 _logger.LogInformation($"Received MCP request: {requestBody}");
-                
+
                 // Parse the request
                 var requestJson = JsonSerializer.Deserialize<JsonElement>(requestBody);
-                
+
                 // Get the action
                 if (!requestJson.TryGetProperty("action", out var actionElement))
                 {
                     await SendErrorResponse(response, "Missing 'action' property");
                     return;
                 }
-                
+
                 var action = actionElement.GetString();
-                
+
                 // Execute the handler for the action
                 if (_handlers.TryGetValue(action, out var handler))
                 {
                     var result = await handler(requestJson);
-                    
+
+                    // Log the conversation if logging service is available
+                    if (_conversationLoggingService != null)
+                    {
+                        // Try to determine the source from the request headers
+                        string source = "unknown";
+                        if (request.Headers["User-Agent"] != null && request.Headers["User-Agent"].Contains("Augment"))
+                        {
+                            source = "augment";
+                        }
+                        else if (request.Headers["X-Source"] != null)
+                        {
+                            source = request.Headers["X-Source"];
+                        }
+
+                        // Log the conversation
+                        await _conversationLoggingService.LogConversationAsync(source, action, requestJson, result);
+                    }
+
                     // Send the response
                     response.ContentType = "application/json";
                     response.StatusCode = 200;
-                    
+
                     var responseBytes = Encoding.UTF8.GetBytes(result.ToString());
                     response.ContentLength64 = responseBytes.Length;
                     await response.OutputStream.WriteAsync(responseBytes);
@@ -235,7 +256,7 @@ namespace TarsCli.Services
         {
             response.ContentType = "application/json";
             response.StatusCode = 400;
-            
+
             var errorResponse = JsonSerializer.Serialize(new { success = false, error = message });
             var responseBytes = Encoding.UTF8.GetBytes(errorResponse);
             response.ContentLength64 = responseBytes.Length;
@@ -255,7 +276,7 @@ namespace TarsCli.Services
                     _logger.LogWarning($"Auto-execute is disabled. Command not executed: {command}");
                     return "Auto-execute is disabled. Command not executed.";
                 }
-                
+
                 var processStartInfo = new System.Diagnostics.ProcessStartInfo
                 {
                     FileName = Environment.OSVersion.Platform == PlatformID.Win32NT ? "cmd.exe" : "/bin/bash",
@@ -265,19 +286,19 @@ namespace TarsCli.Services
                     UseShellExecute = false,
                     CreateNoWindow = true
                 };
-                
+
                 using var process = System.Diagnostics.Process.Start(processStartInfo);
                 var output = await process.StandardOutput.ReadToEndAsync();
                 var error = await process.StandardError.ReadToEndAsync();
-                
+
                 await process.WaitForExitAsync();
-                
+
                 if (process.ExitCode != 0)
                 {
                     _logger.LogWarning($"Command exited with code {process.ExitCode}: {error}");
                     return $"Command exited with code {process.ExitCode}: {error}";
                 }
-                
+
                 return output;
             }
             catch (Exception ex)
@@ -300,17 +321,17 @@ namespace TarsCli.Services
                     _logger.LogWarning($"Auto-code generation is disabled. Code not saved to: {filePath}");
                     return "Auto-code generation is disabled. Code not saved.";
                 }
-                
+
                 // Create directory if it doesn't exist
                 var directory = Path.GetDirectoryName(filePath);
                 if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
                 {
                     Directory.CreateDirectory(directory);
                 }
-                
+
                 // Save the code to the file
                 await File.WriteAllTextAsync(filePath, content);
-                
+
                 _logger.LogInformation($"Code generated and saved to: {filePath}");
                 return $"Code generated and saved to: {filePath}";
             }
@@ -349,7 +370,7 @@ namespace TarsCli.Services
                     case "version":
                         var version = typeof(McpService).Assembly.GetName().Version.ToString();
                         return JsonSerializer.SerializeToElement(new { success = true, version = version });
-                    
+
                     case "capabilities":
                         var capabilities = new Dictionary<string, object>
                         {
@@ -359,7 +380,7 @@ namespace TarsCli.Services
                             ["tars"] = "Execute TARS-specific operations"
                         };
                         return JsonSerializer.SerializeToElement(new { success = true, capabilities = capabilities });
-                    
+
                     default:
                         return JsonSerializer.SerializeToElement(new { success = false, error = $"Unknown TARS operation: {operation}" });
                 }
@@ -382,18 +403,33 @@ namespace TarsCli.Services
                 {
                     ["action"] = action,
                 };
-                
+
                 // Add all properties from data
                 foreach (var property in data.GetType().GetProperties())
                 {
                     request[property.Name] = property.GetValue(data);
                 }
-                
-                var response = await _httpClient.PostAsJsonAsync(url, request);
+
+                // Add a custom header to identify the source
+                using var httpRequest = new HttpRequestMessage(HttpMethod.Post, url)
+                {
+                    Content = JsonContent.Create(request)
+                };
+                httpRequest.Headers.Add("X-Source", "tars");
+
+                var response = await _httpClient.SendAsync(httpRequest);
                 response.EnsureSuccessStatusCode();
-                
+
                 var responseContent = await response.Content.ReadAsStringAsync();
-                return JsonSerializer.Deserialize<JsonElement>(responseContent);
+                var responseJson = JsonSerializer.Deserialize<JsonElement>(responseContent);
+
+                // Log the conversation if logging service is available
+                if (_conversationLoggingService != null)
+                {
+                    await _conversationLoggingService.LogConversationAsync("tars", action, request, responseJson);
+                }
+
+                return responseJson;
             }
             catch (Exception ex)
             {

@@ -61,8 +61,11 @@ internal static class Program
                 .AddSingleton<UserInteractionService>()
                 .AddSingleton<AutoImprovementService>()
                 .AddSingleton<SlackIntegrationService>()
+                .AddSingleton<TarsSpeechService>()
+                .AddSingleton<ConversationLoggingService>()
+                .AddSingleton<McpService>()
+                .AddSingleton<TarsMcpService>()
                 .AddSingleton<TarsCli.Mcp.McpController>(sp => new TarsCli.Mcp.McpController(sp.GetRequiredService<ILogger<TarsCli.Mcp.McpController>>(), configuration))
-                .AddSingleton<EnhancedMcpService>()
                 .BuildServiceProvider();
 
             // Get services
