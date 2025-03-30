@@ -14,7 +14,7 @@ Deep thinking in the context of TARS refers to the process of:
 
 ## Available Deep Thinking Explorations
 
-- [Advanced AI Architectures](DeepThinking20230623.md) - June 23, 2023
+- [Advanced AI Architectures](Deep-Thinking20230623.md) - June 23, 2023
   - Builds upon AI Inference Engines exploration
   - Explores hybrid architectures, neuromorphic computing, and self-modifying systems
 
