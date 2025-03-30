@@ -19,6 +19,7 @@ namespace TarsCli.Services
         private readonly IConfiguration _configuration;
         private readonly SelfImprovementService _selfImprovementService;
         private readonly OllamaService _ollamaService;
+        private readonly SlackIntegrationService _slackService;
         private readonly string _stateFilePath;
         private readonly string _docsDir;
         private readonly string _chatsDir;
@@ -32,12 +33,14 @@ namespace TarsCli.Services
             ILogger<AutoImprovementService> logger,
             IConfiguration configuration,
             SelfImprovementService selfImprovementService,
-            OllamaService ollamaService)
+            OllamaService ollamaService,
+            SlackIntegrationService slackService)
         {
             _logger = logger;
             _configuration = configuration;
             _selfImprovementService = selfImprovementService;
             _ollamaService = ollamaService;
+            _slackService = slackService;
 
             // Get project root directory
             var projectRoot = _configuration["Tars:ProjectRoot"] ?? Directory.GetCurrentDirectory();
@@ -215,7 +218,30 @@ namespace TarsCli.Services
                         {
                             _logger.LogInformation($"Successfully improved file: {filePath}");
                             _state.LastImprovedFile = filePath;
+                            _state.ImprovedFiles.Add(filePath);
                             _state.TotalImprovements++;
+
+                            // Post to Slack every 5 improvements if enabled
+                            if (_slackService.IsEnabled() && _state.TotalImprovements % 5 == 0)
+                            {
+                                var details = new System.Text.StringBuilder();
+                                details.AppendLine($"TARS has made {_state.TotalImprovements} improvements so far in this session.");
+                                details.AppendLine($"Processed {_state.ProcessedFiles.Count} files out of {_state.ProcessedFiles.Count + _state.PendingFiles.Count} total files.");
+                                details.AppendLine($"\nLast improved file: `{Path.GetFileName(filePath)}`");
+
+                                // Add some of the most recently improved files
+                                var recentlyImproved = _state.ImprovedFiles.TakeLast(Math.Min(3, _state.ImprovedFiles.Count)).ToList();
+                                if (recentlyImproved.Any())
+                                {
+                                    details.AppendLine("\n*Recently improved files:*");
+                                    foreach (var file in recentlyImproved)
+                                    {
+                                        details.AppendLine($"• `{Path.GetFileName(file)}`");
+                                    }
+                                }
+
+                                await _slackService.PostAutoImprovementUpdateAsync(_state.TotalImprovements, details.ToString());
+                            }
                         }
                         else
                         {
@@ -253,6 +279,32 @@ namespace TarsCli.Services
                 _logger.LogInformation("Autonomous improvement completed");
                 _logger.LogInformation($"Processed {_state.ProcessedFiles.Count} files");
                 _logger.LogInformation($"Made {_state.TotalImprovements} improvements");
+
+                // Post update to Slack if enabled
+                if (_slackService.IsEnabled() && _state.TotalImprovements > 0)
+                {
+                    var details = new System.Text.StringBuilder();
+                    details.AppendLine($"TARS has completed an autonomous improvement session and made {_state.TotalImprovements} improvements.");
+                    details.AppendLine($"Processed {_state.ProcessedFiles.Count} files in {(DateTime.Now - _startTime).TotalMinutes:F1} minutes.");
+
+                    if (!string.IsNullOrEmpty(_state.LastImprovedFile))
+                    {
+                        details.AppendLine($"\nLast improved file: `{Path.GetFileName(_state.LastImprovedFile)}`");
+                    }
+
+                    // Add some of the most recently improved files
+                    var recentlyImproved = _state.ImprovedFiles.TakeLast(Math.Min(5, _state.ImprovedFiles.Count)).ToList();
+                    if (recentlyImproved.Any())
+                    {
+                        details.AppendLine("\n*Recently improved files:*");
+                        foreach (var file in recentlyImproved)
+                        {
+                            details.AppendLine($"• `{Path.GetFileName(file)}`");
+                        }
+                    }
+
+                    await _slackService.PostAutoImprovementUpdateAsync(_state.TotalImprovements, details.ToString());
+                }
             }
             catch (OperationCanceledException)
             {
@@ -432,6 +484,11 @@ namespace TarsCli.Services
         /// Last file that was successfully improved
         /// </summary>
         public string? LastImprovedFile { get; set; }
+
+        /// <summary>
+        /// Files that were successfully improved
+        /// </summary>
+        public List<string> ImprovedFiles { get; set; } = new List<string>();
 
         /// <summary>
         /// Total number of improvements made

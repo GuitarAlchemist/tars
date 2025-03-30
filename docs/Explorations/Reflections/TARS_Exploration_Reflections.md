@@ -27,6 +27,7 @@ These explorations collectively paint a picture of TARS as an ambitious project 
 - [AI Inference Engines C#](ChatGPT-AI%20Inference%20Engines%20C%23.md) - 3/22/2025
 - [AI-FP Language with Prompts](ChatGPT-AI-FP%20Language%20with%20Prompts.md) - 3/22/2025
 - [AutoGen C# Examples](ChatGPT-AutoGen%20C%23%20Examples.md) - 3/22/2025
+- [Deep Thinking: Advanced AI Architectures](ChatGPT-DeepThinking/DeepThinking20230623.md) - 6/23/2023
 - [Fine-tuning AI for Summarization](ChatGPT-Fine-tuning%20AI%20for%20Summarization.md) - 3/22/2025
 - [Fine-tuning Model with GitHub](ChatGPT-Fine-tuning%20Model%20with%20GitHub.md) - 3/22/2025
 - [LlamaIndex Beginner Guide](ChatGPT-LlamaIndex%20Beginner%20Guide.md) - 3/22/2025

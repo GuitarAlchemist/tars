@@ -2234,6 +2234,103 @@ public static class CliSupport
         rootCommand.AddCommand(slackCommand);
         rootCommand.AddCommand(speechCommand);
 
+        // Create reflection command
+        var reflectionCommand = new Command("reflect", "Reflect on TARS explorations");
+
+        // Add list subcommand
+        var reflectionListCommand = new Command("list", "List exploration files");
+        var directoryOption = new Option<string>("--directory", () => "v1/Chats", "The subdirectory to list explorations from");
+
+        reflectionListCommand.AddOption(directoryOption);
+
+        reflectionListCommand.SetHandler((string directory) =>
+        {
+            WriteHeader("TARS Exploration Files");
+
+            var reflectionService = _serviceProvider!.GetRequiredService<ExplorationReflectionService>();
+            var files = reflectionService.GetExplorationFiles(directory);
+
+            if (files.Count == 0)
+            {
+                WriteColorLine("No exploration files found.", ConsoleColor.Yellow);
+                return;
+            }
+
+            WriteColorLine($"Found {files.Count} exploration files:", ConsoleColor.Green);
+            Console.WriteLine();
+
+            foreach (var file in files)
+            {
+                WriteColorLine($"{file.Title}", ConsoleColor.Cyan);
+                Console.WriteLine($"  Path: {file.FilePath}");
+                Console.WriteLine($"  Modified: {file.LastModified}");
+                Console.WriteLine($"  Size: {file.SizeInBytes / 1024} KB");
+                Console.WriteLine();
+            }
+        }, directoryOption);
+
+        // Add generate subcommand
+        var reflectionGenerateCommand = new Command("generate", "Generate a reflection on an exploration file");
+        var reflectionFileOption = new Option<string>("--file", "The path to the exploration file");
+        var reflectionModelOption = new Option<string>("--model", () => "llama3", "The model to use for reflection");
+
+        reflectionGenerateCommand.AddOption(reflectionFileOption);
+        reflectionGenerateCommand.AddOption(reflectionModelOption);
+
+        reflectionGenerateCommand.SetHandler(async (string file, string model) =>
+        {
+            WriteHeader("TARS Exploration Reflection");
+
+            var reflectionService = _serviceProvider!.GetRequiredService<ExplorationReflectionService>();
+
+            WriteColorLine($"Generating reflection for: {file}", ConsoleColor.Green);
+            WriteColorLine($"Using model: {model}", ConsoleColor.Green);
+            Console.WriteLine();
+
+            var reflection = await reflectionService.GenerateReflectionAsync(file, model);
+
+            Console.WriteLine(reflection);
+        }, reflectionFileOption, reflectionModelOption);
+
+        // Add report subcommand
+        var reflectionReportCommand = new Command("report", "Generate a comprehensive reflection report");
+        var reportDirectoryOption = new Option<string>("--directory", () => "v1/Chats", "The subdirectory to generate reflections from");
+        var reportModelOption = new Option<string>("--model", () => "llama3", "The model to use for reflection");
+        var saveOption = new Option<bool>("--save", "Save the report to a file");
+
+        reflectionReportCommand.AddOption(reportDirectoryOption);
+        reflectionReportCommand.AddOption(reportModelOption);
+        reflectionReportCommand.AddOption(saveOption);
+
+        reflectionReportCommand.SetHandler(async (string directory, string model, bool save) =>
+        {
+            WriteHeader("TARS Exploration Reflection Report");
+
+            var reflectionService = _serviceProvider!.GetRequiredService<ExplorationReflectionService>();
+
+            WriteColorLine($"Generating reflection report for directory: {directory}", ConsoleColor.Green);
+            WriteColorLine($"Using model: {model}", ConsoleColor.Green);
+            Console.WriteLine();
+
+            var report = await reflectionService.GenerateReflectionReportAsync(directory, model);
+
+            if (save)
+            {
+                var filePath = await reflectionService.SaveReflectionReportAsync(report);
+                WriteColorLine($"Report saved to: {filePath}", ConsoleColor.Green);
+                Console.WriteLine();
+            }
+
+            Console.WriteLine(report);
+        }, reportDirectoryOption, reportModelOption, saveOption);
+
+        // Add subcommands to reflection command
+        reflectionCommand.AddCommand(reflectionListCommand);
+        reflectionCommand.AddCommand(reflectionGenerateCommand);
+        reflectionCommand.AddCommand(reflectionReportCommand);
+
+        rootCommand.AddCommand(reflectionCommand);
+
         // Create chat command
         var chatCommand = new Command("chat", "Interactive chat bot");
 
@@ -2363,7 +2460,196 @@ public static class CliSupport
         chatCommand.AddCommand(chatExamplesCommand);
         chatCommand.AddCommand(chatHistoryCommand);
 
+        // Create deep thinking command
+        var deepThinkingCommand = new Command("think", "Deep thinking about explorations");
+
+        // Add generate subcommand
+        var thinkGenerateCommand = new Command("generate", "Generate a new deep thinking exploration");
+        var topicOption = new Option<string>("--topic", "The topic for deep thinking") { IsRequired = true };
+        var baseFileOption = new Option<string>("--base-file", "The base exploration file to build upon");
+        var thinkModelOption = new Option<string>("--model", () => "llama3", "The model to use for deep thinking");
+
+        thinkGenerateCommand.AddOption(topicOption);
+        thinkGenerateCommand.AddOption(baseFileOption);
+        thinkGenerateCommand.AddOption(thinkModelOption);
+
+        thinkGenerateCommand.SetHandler(async (string topic, string baseFile, string model) =>
+        {
+            WriteHeader("TARS Deep Thinking");
+
+            // Use the new reflection service
+            var reflectionService = _serviceProvider!.GetRequiredService<ExplorationReflectionService2>();
+            var ollamaService = _serviceProvider!.GetRequiredService<OllamaService>();
+            var configuration = _serviceProvider!.GetRequiredService<IConfiguration>();
+            var logger = _serviceProvider!.GetRequiredService<ILogger<DeepThinkingService>>();
+
+            // Create the deep thinking service manually
+            var deepThinkingService = new DeepThinkingService(logger, configuration, ollamaService, reflectionService);
+
+            WriteColorLine($"Generating deep thinking exploration on topic: {topic}", ConsoleColor.Cyan);
+            WriteColorLine($"Using model: {model}", ConsoleColor.Cyan);
+
+            if (!string.IsNullOrEmpty(baseFile))
+            {
+                WriteColorLine($"Building upon base file: {baseFile}", ConsoleColor.Cyan);
+            }
+
+            Console.WriteLine();
+            WriteColorLine("Thinking deeply...", ConsoleColor.Yellow);
+
+            try
+            {
+                // Generate the deep thinking exploration
+                var result = await deepThinkingService.GenerateDeepThinkingExplorationAsync(topic, baseFile, model);
+
+                // Save the exploration
+                var filePath = await deepThinkingService.SaveDeepThinkingExplorationAsync(result);
+
+                Console.WriteLine();
+                WriteColorLine($"Deep thinking exploration generated and saved to: {filePath}", ConsoleColor.Green);
+                WriteColorLine($"Version: {result.Version}", ConsoleColor.Green);
+            }
+            catch (Exception ex)
+            {
+                WriteColorLine($"Error generating deep thinking exploration: {ex.Message}", ConsoleColor.Red);
+            }
+        }, topicOption, baseFileOption, thinkModelOption);
+
+        // Add evolve subcommand
+        var thinkEvolveCommand = new Command("evolve", "Evolve an existing exploration with deep thinking");
+        var evolveFileOption = new Option<string>("--file", "The exploration file to evolve") { IsRequired = true };
+        var evolveModelOption = new Option<string>("--model", () => "llama3", "The model to use for deep thinking");
+
+        thinkEvolveCommand.AddOption(evolveFileOption);
+        thinkEvolveCommand.AddOption(evolveModelOption);
+
+        thinkEvolveCommand.SetHandler(async (string file, string model) =>
+        {
+            WriteHeader("TARS Deep Thinking Evolution");
+
+            // Use the new reflection service
+            var reflectionService = _serviceProvider!.GetRequiredService<ExplorationReflectionService2>();
+            var ollamaService = _serviceProvider!.GetRequiredService<OllamaService>();
+            var configuration = _serviceProvider!.GetRequiredService<IConfiguration>();
+            var logger = _serviceProvider!.GetRequiredService<ILogger<DeepThinkingService>>();
+
+            // Create the deep thinking service manually
+            var deepThinkingService = new DeepThinkingService(logger, configuration, ollamaService, reflectionService);
+
+            WriteColorLine($"Evolving exploration: {file}", ConsoleColor.Cyan);
+            WriteColorLine($"Using model: {model}", ConsoleColor.Cyan);
+
+            Console.WriteLine();
+            WriteColorLine("Thinking deeply...", ConsoleColor.Yellow);
+
+            try
+            {
+                // Generate the deep thinking evolution
+                var filePath = await deepThinkingService.GenerateDeepThinkingEvolutionAsync(file, model);
+
+                Console.WriteLine();
+                WriteColorLine($"Deep thinking evolution generated and saved to: {filePath}", ConsoleColor.Green);
+            }
+            catch (Exception ex)
+            {
+                WriteColorLine($"Error evolving exploration: {ex.Message}", ConsoleColor.Red);
+            }
+        }, evolveFileOption, evolveModelOption);
+
+        // Add series subcommand
+        var thinkSeriesCommand = new Command("series", "Generate a series of related deep thinking explorations");
+        var baseTopicOption = new Option<string>("--base-topic", "The base topic for the series") { IsRequired = true };
+        var seriesCountOption = new Option<int>("--count", () => 3, "The number of explorations to generate");
+        var seriesModelOption = new Option<string>("--model", () => "llama3", "The model to use for deep thinking");
+
+        thinkSeriesCommand.AddOption(baseTopicOption);
+        thinkSeriesCommand.AddOption(seriesCountOption);
+        thinkSeriesCommand.AddOption(seriesModelOption);
+
+        thinkSeriesCommand.SetHandler(async (string baseTopic, int count, string model) =>
+        {
+            WriteHeader("TARS Deep Thinking Series");
+
+            // Use the new reflection service
+            var reflectionService = _serviceProvider!.GetRequiredService<ExplorationReflectionService2>();
+            var ollamaService = _serviceProvider!.GetRequiredService<OllamaService>();
+            var configuration = _serviceProvider!.GetRequiredService<IConfiguration>();
+            var logger = _serviceProvider!.GetRequiredService<ILogger<DeepThinkingService>>();
+
+            // Create the deep thinking service manually
+            var deepThinkingService = new DeepThinkingService(logger, configuration, ollamaService, reflectionService);
+
+            WriteColorLine($"Generating deep thinking series on base topic: {baseTopic}", ConsoleColor.Cyan);
+            WriteColorLine($"Number of explorations: {count}", ConsoleColor.Cyan);
+            WriteColorLine($"Using model: {model}", ConsoleColor.Cyan);
+
+            Console.WriteLine();
+            WriteColorLine("Thinking deeply...", ConsoleColor.Yellow);
+
+            try
+            {
+                // Generate the deep thinking series
+                var filePaths = await deepThinkingService.GenerateDeepThinkingSeriesAsync(baseTopic, count, model);
+
+                Console.WriteLine();
+                WriteColorLine($"Deep thinking series generated with {filePaths.Count} explorations:", ConsoleColor.Green);
+
+                foreach (var filePath in filePaths)
+                {
+                    WriteColorLine($"- {filePath}", ConsoleColor.Green);
+                }
+            }
+            catch (Exception ex)
+            {
+                WriteColorLine($"Error generating deep thinking series: {ex.Message}", ConsoleColor.Red);
+            }
+        }, baseTopicOption, seriesCountOption, seriesModelOption);
+
+        // Add versions subcommand
+        var thinkVersionsCommand = new Command("versions", "List exploration versions");
+
+        thinkVersionsCommand.SetHandler(() =>
+        {
+            WriteHeader("TARS Exploration Versions");
+
+            // Use the new reflection service
+            var reflectionService = _serviceProvider!.GetRequiredService<ExplorationReflectionService2>();
+            var ollamaService = _serviceProvider!.GetRequiredService<OllamaService>();
+            var configuration = _serviceProvider!.GetRequiredService<IConfiguration>();
+            var logger = _serviceProvider!.GetRequiredService<ILogger<DeepThinkingService>>();
+
+            // Create the deep thinking service manually
+            var deepThinkingService = new DeepThinkingService(logger, configuration, ollamaService, reflectionService);
+
+            var versions = deepThinkingService.GetExplorationVersions();
+
+            if (versions.Count == 0)
+            {
+                WriteColorLine("No exploration versions found.", ConsoleColor.Yellow);
+                return;
+            }
+
+            WriteColorLine($"Found {versions.Count} exploration versions:", ConsoleColor.Green);
+            Console.WriteLine();
+
+            foreach (var version in versions)
+            {
+                WriteColorLine($"- {version}", ConsoleColor.Cyan);
+            }
+
+            Console.WriteLine();
+            WriteColorLine($"Latest version: {deepThinkingService.GetLatestExplorationVersion()}", ConsoleColor.Green);
+            WriteColorLine($"Next version: {deepThinkingService.GetNextExplorationVersion()}", ConsoleColor.Green);
+        });
+
+        // Add subcommands to deep thinking command
+        deepThinkingCommand.AddCommand(thinkGenerateCommand);
+        deepThinkingCommand.AddCommand(thinkEvolveCommand);
+        deepThinkingCommand.AddCommand(thinkSeriesCommand);
+        deepThinkingCommand.AddCommand(thinkVersionsCommand);
+
         rootCommand.AddCommand(chatCommand);
+        rootCommand.AddCommand(deepThinkingCommand);
 
         // Add default handler for root command
         rootCommand.SetHandler((InvocationContext context) =>
