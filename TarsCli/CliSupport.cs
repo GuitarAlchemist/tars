@@ -2234,6 +2234,137 @@ public static class CliSupport
         rootCommand.AddCommand(slackCommand);
         rootCommand.AddCommand(speechCommand);
 
+        // Create chat command
+        var chatCommand = new Command("chat", "Interactive chat bot");
+
+        // Add start subcommand
+        var chatStartCommand = new Command("start", "Start an interactive chat session");
+        var chatModelOption = new Option<string>("--model", () => "llama3", "The model to use for chat");
+        var chatSpeechOption = new Option<bool>("--speech", "Enable speech output");
+
+        chatStartCommand.AddOption(chatModelOption);
+        chatStartCommand.AddOption(chatSpeechOption);
+
+        chatStartCommand.SetHandler((string model, bool speech) =>
+        {
+            WriteHeader("TARS Chat Bot");
+
+            var chatBotService = _serviceProvider!.GetRequiredService<ChatBotService>();
+            chatBotService.StartNewConversation(model);
+            chatBotService.EnableSpeech(speech);
+
+            WriteColorLine($"Chat model: {model}", ConsoleColor.Cyan);
+            WriteColorLine($"Speech: {(speech ? "Enabled" : "Disabled")}", ConsoleColor.Cyan);
+            Console.WriteLine();
+            WriteColorLine("Type 'exit', 'quit', or press Ctrl+C to end the chat session.", ConsoleColor.Yellow);
+            WriteColorLine("Type 'examples' to see example prompts.", ConsoleColor.Yellow);
+            WriteColorLine("Type 'model <name>' to change the model.", ConsoleColor.Yellow);
+            WriteColorLine("Type 'speech on/off' to enable/disable speech.", ConsoleColor.Yellow);
+            WriteColorLine("Type 'clear' to start a new conversation.", ConsoleColor.Yellow);
+            Console.WriteLine();
+
+            // Start the chat loop
+            RunChatLoop(chatBotService).Wait();
+        }, chatModelOption, chatSpeechOption);
+
+        // Add websocket subcommand
+        var chatWebSocketCommand = new Command("websocket", "Start a WebSocket server for chat");
+        var chatPortOption = new Option<int>("--port", () => 8998, "The port to use for the WebSocket server");
+
+        chatWebSocketCommand.AddOption(chatPortOption);
+
+        chatWebSocketCommand.SetHandler((int port) =>
+        {
+            WriteHeader("TARS Chat WebSocket Server");
+
+            var chatWebSocketService = _serviceProvider!.GetRequiredService<ChatWebSocketService>();
+
+            // Start the WebSocket server
+            chatWebSocketService.StartAsync().Wait();
+
+            WriteColorLine($"WebSocket server started on {chatWebSocketService.GetServerUrl()}", ConsoleColor.Green);
+            WriteColorLine("Press Ctrl+C to stop the server.", ConsoleColor.Yellow);
+
+            // Keep the server running until Ctrl+C is pressed
+            var cancellationTokenSource = new CancellationTokenSource();
+            Console.CancelKeyPress += (sender, e) =>
+            {
+                e.Cancel = true;
+                cancellationTokenSource.Cancel();
+            };
+
+            try
+            {
+                Task.Delay(-1, cancellationTokenSource.Token).Wait();
+            }
+            catch (TaskCanceledException)
+            {
+                // Expected when cancellation token is triggered
+            }
+
+            // Stop the WebSocket server
+            chatWebSocketService.StopAsync().Wait();
+            WriteColorLine("WebSocket server stopped.", ConsoleColor.Yellow);
+        }, chatPortOption);
+
+        // Add examples subcommand
+        var chatExamplesCommand = new Command("examples", "Show example chat prompts");
+
+        chatExamplesCommand.SetHandler(() =>
+        {
+            WriteHeader("TARS Chat Examples");
+
+            var chatBotService = _serviceProvider!.GetRequiredService<ChatBotService>();
+            var examples = chatBotService.GetExamplePrompts();
+
+            for (int i = 0; i < examples.Count; i++)
+            {
+                WriteColorLine($"{i + 1}. {examples[i]}", ConsoleColor.Cyan);
+            }
+        });
+
+        // Add history subcommand
+        var chatHistoryCommand = new Command("history", "Show chat history");
+        var chatCountOption = new Option<int>("--count", () => 5, "Number of history files to show");
+
+        chatHistoryCommand.AddOption(chatCountOption);
+
+        chatHistoryCommand.SetHandler((int count) =>
+        {
+            WriteHeader("TARS Chat History");
+
+            var chatBotService = _serviceProvider!.GetRequiredService<ChatBotService>();
+            var historyFiles = chatBotService.GetConversationHistoryFiles();
+
+            if (historyFiles.Count == 0)
+            {
+                WriteColorLine("No chat history found.", ConsoleColor.Yellow);
+                return;
+            }
+
+            WriteColorLine($"Found {historyFiles.Count} chat history files:", ConsoleColor.Green);
+            Console.WriteLine();
+
+            var filesToShow = historyFiles.Take(count).ToList();
+
+            for (int i = 0; i < filesToShow.Count; i++)
+            {
+                var file = filesToShow[i];
+                var fileName = Path.GetFileName(file);
+                var creationTime = File.GetCreationTime(file);
+
+                WriteColorLine($"{i + 1}. {fileName} - {creationTime}", ConsoleColor.Cyan);
+            }
+        }, chatCountOption);
+
+        // Add subcommands to chat command
+        chatCommand.AddCommand(chatStartCommand);
+        chatCommand.AddCommand(chatWebSocketCommand);
+        chatCommand.AddCommand(chatExamplesCommand);
+        chatCommand.AddCommand(chatHistoryCommand);
+
+        rootCommand.AddCommand(chatCommand);
+
         // Add default handler for root command
         rootCommand.SetHandler((InvocationContext context) =>
         {
@@ -2249,5 +2380,104 @@ public static class CliSupport
         });
 
         return rootCommand;
+    }
+
+    /// <summary>
+    /// Run the chat loop for interactive chat
+    /// </summary>
+    private static async Task RunChatLoop(ChatBotService chatBotService)
+    {
+        try
+        {
+            while (true)
+            {
+                // Display prompt
+                WriteColorLine("\nYou: ", ConsoleColor.Green);
+
+                // Read user input
+                var input = Console.ReadLine();
+
+                // Check for exit commands
+                if (string.IsNullOrWhiteSpace(input) || input.ToLower() == "exit" || input.ToLower() == "quit")
+                {
+                    WriteColorLine("\nChat session ended.", ConsoleColor.Yellow);
+                    break;
+                }
+
+                // Check for special commands
+                if (input.ToLower() == "examples")
+                {
+                    WriteColorLine("\nExample prompts:", ConsoleColor.Cyan);
+                    var examples = chatBotService.GetExamplePrompts();
+                    for (int i = 0; i < examples.Count; i++)
+                    {
+                        WriteColorLine($"{i + 1}. {examples[i]}", ConsoleColor.Cyan);
+                    }
+                    continue;
+                }
+
+                if (input.ToLower() == "clear")
+                {
+                    chatBotService.StartNewConversation();
+                    WriteColorLine("\nStarted a new conversation.", ConsoleColor.Yellow);
+                    continue;
+                }
+
+                if (input.ToLower().StartsWith("model "))
+                {
+                    var model = input.Substring(6).Trim();
+                    chatBotService.SetModel(model);
+                    WriteColorLine($"\nChanged model to: {model}", ConsoleColor.Yellow);
+                    continue;
+                }
+
+                if (input.ToLower() == "speech on")
+                {
+                    chatBotService.EnableSpeech(true);
+                    WriteColorLine("\nSpeech enabled.", ConsoleColor.Yellow);
+                    continue;
+                }
+
+                if (input.ToLower() == "speech off")
+                {
+                    chatBotService.EnableSpeech(false);
+                    WriteColorLine("\nSpeech disabled.", ConsoleColor.Yellow);
+                    continue;
+                }
+
+                // Send message to chat bot
+                WriteColorLine("\nTARS: ", ConsoleColor.Blue);
+
+                // Show typing indicator
+                var typingTask = Task.Run(async () =>
+                {
+                    var typingChars = new[] { '|', '/', '-', '\\' };
+                    var typingIndex = 0;
+
+                    while (true)
+                    {
+                        Console.Write(typingChars[typingIndex]);
+                        await Task.Delay(100);
+                        Console.Write("\b");
+                        typingIndex = (typingIndex + 1) % typingChars.Length;
+                    }
+                });
+
+                // Get response from chat bot
+                var response = await chatBotService.SendMessageAsync(input);
+
+                // Stop typing indicator
+                typingTask.Dispose();
+                Console.Write(" ");
+                Console.Write("\b");
+
+                // Display response
+                Console.WriteLine(response);
+            }
+        }
+        catch (Exception ex)
+        {
+            WriteColorLine($"\nError in chat loop: {ex.Message}", ConsoleColor.Red);
+        }
     }
 }

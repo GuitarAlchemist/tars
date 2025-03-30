@@ -36,11 +36,12 @@ TARS is an advanced AI-powered system designed to enhance software development t
 * [**Master Control Program (MCP)**](features/mcp.md) - Autonomous operation and integration
 * [**Self-Improvement System**](features/self-improvement.md) - How TARS learns and improves
 * [**Autonomous Self-Improvement**](features/auto-improve.md) - TARS improves itself without human intervention
+* [**Chat Bot**](features/chat.md) - Interactive conversations with AI models
+* [**Speech System**](features/speech.md) - Text-to-speech with multiple languages and voice cloning
 * [**Hugging Face Integration**](features/huggingface.md) - Working with models from Hugging Face
 * [**Demo Command**](features/demo.md) - Showcase TARS capabilities
 * [**Secrets Management**](features/secrets.md) - Securely store and manage API keys
 * [**Slack Integration**](features/slack.md) - Post updates and announcements to Slack
-* [**Speech System**](features/speech.md) - Text-to-speech with multiple languages and voice cloning
 
 ### Quick Links
 
