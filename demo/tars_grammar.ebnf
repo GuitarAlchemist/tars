@@ -1,0 +1,63 @@
+(* TARS DSL - Extended Backus-Naur Form Specification *)
+(* Generated on: 2025-03-29 20:13:39 UTC *)
+
+(* Top-level program structure *)
+<tars-program> ::= { <block> }
+<block> ::= <block-type> <block-name>? '{' <block-content> '}'
+<block-type> ::= 'CONFIG' | 'PROMPT' | 'ACTION' | 'TASK' | 'AGENT' | 'AUTO_IMPROVE' | 'DATA' | 'TOOLING'
+<block-name> ::= <identifier>
+<block-content> ::= { <property> | <statement> | <block> }
+
+(* Property definitions *)
+<property> ::= <identifier> ':' <value> ';'?
+<value> ::= <string> | <number> | <boolean> | <array> | <object> | <identifier>
+<string> ::= '"' { <any-character-except-double-quote> | '\"' } '"'
+<number> ::= <integer> | <float>
+<integer> ::= ['-'] <digit> { <digit> }
+<float> ::= <integer> '.' <digit> { <digit> }
+<boolean> ::= 'true' | 'false'
+<array> ::= '[' [ <value> { ',' <value> } ] ']'
+<object> ::= '{' [ <property> { ',' <property> } ] '}'
+
+(* Statement definitions *)
+<statement> ::= <assignment> | <function-call> | <control-flow> | <return-statement>
+<assignment> ::= ['let'] <identifier> ['=' | ':='] <expression> ';'?
+<function-call> ::= <identifier> '(' [ <expression> { ',' <expression> } ] ')' ';'?
+<control-flow> ::= <if-statement> | <for-loop> | <while-loop>
+<if-statement> ::= 'if' '(' <expression> ')' '{' <block-content> '}' [ 'else' '{' <block-content> '}' ]
+<for-loop> ::= 'for' '(' <assignment> ';' <expression> ';' <expression> ')' '{' <block-content> '}'
+<while-loop> ::= 'while' '(' <expression> ')' '{' <block-content> '}'
+<return-statement> ::= 'return' <expression>? ';'?
+
+(* Expression definitions *)
+<expression> ::= <value> | <identifier> | <function-call> | <binary-expression> | '(' <expression> ')'
+<binary-expression> ::= <expression> <operator> <expression>
+<operator> ::= '+' | '-' | '*' | '/' | '%' | '==' | '!=' | '<' | '>' | '<=' | '>=' | '&&' | '||'
+
+(* Identifier definition *)
+<identifier> ::= <letter> { <letter> | <digit> | '_' }
+<letter> ::= 'A' | 'B' | ... | 'Z' | 'a' | 'b' | ... | 'z'
+<digit> ::= '0' | '1' | ... | '9'
+
+(* Specific block definitions *)
+<config-block> ::= 'CONFIG' '{' { <config-property> } '}'
+<config-property> ::= 'version' ':' <string> ';'? | 'author' ':' <string> ';'? | 'description' ':' <string> ';'?
+
+<prompt-block> ::= 'PROMPT' [<identifier>] '{' <prompt-content> '}'
+<prompt-content> ::= <string> | { <property> }
+
+<action-block> ::= 'ACTION' [<identifier>] '{' { <statement> } '}'
+
+<task-block> ::= 'TASK' [<identifier>] '{' { <property> | <action-block> } '}'
+
+<agent-block> ::= 'AGENT' [<identifier>] '{' { <property> | <task-block> | <communication-block> } '}'
+<communication-block> ::= 'COMMUNICATION' '{' { <property> } '}'
+
+<auto-improve-block> ::= 'AUTO_IMPROVE' [<identifier>] '{' { <property> | <statement> } '}'
+
+<data-block> ::= 'DATA' '{' { <assignment> | <statement> } '}'
+
+<tooling-block> ::= 'TOOLING' '{' { <generate-grammar-block> | <diagnostics-block> | <instrumentation-block> } '}'
+<generate-grammar-block> ::= 'GENERATE_GRAMMAR' '{' { <property> } '}'
+<diagnostics-block> ::= 'DIAGNOSTICS' '{' { <property> } '}'
+<instrumentation-block> ::= 'INSTRUMENTATION' '{' { <property> } '}'

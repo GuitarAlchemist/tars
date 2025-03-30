@@ -1,0 +1,47 @@
+# TARS DSL - Backus-Naur Form Specification
+# Generated on: 2025-03-29 20:13:39 UTC
+
+# Top-level program structure
+<tars-program> ::= <block> | <tars-program> <block>
+<block> ::= <block-type> <block-name> "{" <block-content> "}" | <block-type> "{" <block-content> "}"
+<block-type> ::= "CONFIG" | "PROMPT" | "ACTION" | "TASK" | "AGENT" | "AUTO_IMPROVE" | "DATA" | "TOOLING"
+<block-name> ::= <identifier>
+<block-content> ::= <property> | <statement> | <block> | <block-content> <property> | <block-content> <statement> | <block-content> <block>
+
+# Property definitions
+<property> ::= <identifier> ":" <value> ";" | <identifier> ":" <value>
+<value> ::= <string> | <number> | <boolean> | <array> | <object> | <identifier>
+<string> ::= "\"" <string-content> "\""
+<string-content> ::= <empty> | <character> | <string-content> <character>
+<number> ::= <integer> | <float>
+<integer> ::= <digit> | <integer> <digit>
+<float> ::= <integer> "." <integer>
+<boolean> ::= "true" | "false"
+<array> ::= "[" <array-content> "]" | "[" "]"
+<array-content> ::= <value> | <array-content> "," <value>
+<object> ::= "{" <object-content> "}" | "{" "}"
+<object-content> ::= <property> | <object-content> "," <property>
+
+# Statement definitions
+<statement> ::= <assignment> | <function-call> | <control-flow> | <return-statement>
+<assignment> ::= "let" <identifier> "=" <expression> ";" | <identifier> "=" <expression> ";" | "let" <identifier> "=" <expression> | <identifier> "=" <expression>
+<function-call> ::= <identifier> "(" <argument-list> ")" ";" | <identifier> "(" ")" ";" | <identifier> "(" <argument-list> ")" | <identifier> "(" ")"
+<argument-list> ::= <expression> | <argument-list> "," <expression>
+<control-flow> ::= <if-statement> | <for-loop> | <while-loop>
+<if-statement> ::= "if" "(" <expression> ")" "{" <block-content> "}" | "if" "(" <expression> ")" "{" <block-content> "}" "else" "{" <block-content> "}"
+<for-loop> ::= "for" "(" <assignment> ";" <expression> ";" <expression> ")" "{" <block-content> "}"
+<while-loop> ::= "while" "(" <expression> ")" "{" <block-content> "}"
+<return-statement> ::= "return" <expression> ";" | "return" ";" | "return" <expression> | "return"
+
+# Expression definitions
+<expression> ::= <value> | <identifier> | <function-call> | <binary-expression> | "(" <expression> ")"
+<binary-expression> ::= <expression> <operator> <expression>
+<operator> ::= "+" | "-" | "*" | "/" | "%" | "==" | "!=" | "<" | ">" | "<=" | ">=" | "&&" | "||"
+
+# Identifier definition
+<identifier> ::= <letter> | <identifier> <letter> | <identifier> <digit> | <identifier> "_"
+<letter> ::= "A" | "B" | ... | "Z" | "a" | "b" | ... | "z"
+<digit> ::= "0" | "1" | ... | "9"
+<empty> ::= 
+<character> ::= <letter> | <digit> | <special-character>
+<special-character> ::= " " | "!" | "#" | "$" | ... | "{" | "|" | "}" | "~"
