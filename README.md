@@ -79,6 +79,8 @@ TARS includes advanced self-improvement capabilities that allow it to analyze, i
 
 #### Recent Progress
 
+- **Enhanced File Prioritization**: Implemented sophisticated file prioritization algorithm that considers file type, content, recency, complexity, and improvement history
+- **Improvement Metrics**: Added metrics to measure the quality of improvements and track progress
 - **First Analysis Success**: Successfully analyzed test code and identified multiple issues
 - **Pattern Recognition**: Implemented detection for magic numbers, inefficient string operations, and more
 - **Learning Database**: Created a system to record improvements and feedback
@@ -86,10 +88,12 @@ TARS includes advanced self-improvement capabilities that allow it to analyze, i
 - **Console Capture**: Added ability to capture console output and use it to improve code
 - **ANSI Escape Sequence Handling**: Improved handling of ANSI escape sequences in console output
 
-[View detailed progress tracking](docs/PROGRESS.md) | [Technical documentation](docs/SELF_IMPROVEMENT.md)
+[View detailed progress tracking](docs/PROGRESS.md) | [Technical documentation](docs/SELF_IMPROVEMENT.md) | [Auto-improvement documentation](docs/features/auto-improvement.md)
 
 #### Core Features
 
+- **Autonomous Improvement**: Run autonomous improvement for a specified time limit
+- **Smart File Selection**: Prioritize files based on multiple factors for maximum impact
 - **Code Analysis**: Analyze code for potential improvements
 - **Improvement Proposals**: Generate proposals for code improvements
 - **Self-Rewriting**: Automatically implement approved improvements
@@ -139,6 +143,15 @@ dotnet run --project TarsCli/TarsCli.csproj -- run --session my-session --plan t
 
 # Analyze a file for improvements
 dotnet run --project TarsCli/TarsCli.csproj -- self-analyze --file path/to/file.cs --model llama3
+
+# Run autonomous improvement for 60 minutes
+dotnet run --project TarsCli/TarsCli.csproj -- auto-improve --time-limit 60 --model llama3
+
+# Check the status of autonomous improvement
+dotnet run --project TarsCli/TarsCli.csproj -- auto-improve --status
+
+# Stop autonomous improvement
+dotnet run --project TarsCli/TarsCli.csproj -- auto-improve --stop
 
 # Capture console output and use it to improve code
 dotnet run --project TarsCli/TarsCli.csproj -- console-capture --start
