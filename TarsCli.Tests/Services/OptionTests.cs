@@ -254,5 +254,154 @@ namespace TarsCli.Tests.Services
             // Assert
             Assert.True(option.IsNone);
         }
+
+        [Fact]
+        public async Task TryAsync_WithSuccessfulOperation_ReturnsSome()
+        {
+            // Act
+            var option = await Option.TryAsync(async () =>
+            {
+                await Task.Delay(10); // Simulate async operation
+                return int.Parse("123");
+            });
+
+            // Assert
+            Assert.True(option.IsSome);
+            Assert.Equal(123, option.Value);
+        }
+
+        [Fact]
+        public async Task TryAsync_WithFailingOperation_ReturnsNone()
+        {
+            // Act
+            var option = await Option.TryAsync(async () =>
+            {
+                await Task.Delay(10); // Simulate async operation
+                return int.Parse("not a number");
+            });
+
+            // Assert
+            Assert.True(option.IsNone);
+        }
+
+        [Fact]
+        public void Some_WithNull_ThrowsArgumentNullException()
+        {
+            // Act & Assert
+            Assert.Throws<ArgumentNullException>(() => Option.Some<string>(null!));
+        }
+
+        [Fact]
+        public void ValueOrElse_WithSome_ReturnsValue()
+        {
+            // Arrange
+            var option = Option.Some(5);
+            bool funcCalled = false;
+
+            // Act
+            var result = option.ValueOrElse(() =>
+            {
+                funcCalled = true;
+                return 10;
+            });
+
+            // Assert
+            Assert.Equal(5, result);
+            Assert.False(funcCalled, "Default value provider should not be called for Some");
+        }
+
+        [Fact]
+        public void ValueOrElse_WithNone_ReturnsDefaultFromFunc()
+        {
+            // Arrange
+            var option = Option.None<int>();
+            bool funcCalled = false;
+
+            // Act
+            var result = option.ValueOrElse(() =>
+            {
+                funcCalled = true;
+                return 10;
+            });
+
+            // Assert
+            Assert.Equal(10, result);
+            Assert.True(funcCalled, "Default value provider should be called for None");
+        }
+
+        [Fact]
+        public void IfSome_WithSome_ExecutesAction()
+        {
+            // Arrange
+            var option = Option.Some(5);
+            bool actionCalled = false;
+            int actionValue = 0;
+
+            // Act
+            var result = option.IfSome(x =>
+            {
+                actionCalled = true;
+                actionValue = x;
+            });
+
+            // Assert
+            Assert.True(actionCalled, "Action should be called for Some");
+            Assert.Equal(5, actionValue);
+            Assert.Equal(option, result, "IfSome should return the original option");
+        }
+
+        [Fact]
+        public void IfSome_WithNone_DoesNotExecuteAction()
+        {
+            // Arrange
+            var option = Option.None<int>();
+            bool actionCalled = false;
+
+            // Act
+            var result = option.IfSome(x =>
+            {
+                actionCalled = true;
+            });
+
+            // Assert
+            Assert.False(actionCalled, "Action should not be called for None");
+            Assert.Equal(option, result, "IfSome should return the original option");
+        }
+
+        [Fact]
+        public void IfNone_WithSome_DoesNotExecuteAction()
+        {
+            // Arrange
+            var option = Option.Some(5);
+            bool actionCalled = false;
+
+            // Act
+            var result = option.IfNone(() =>
+            {
+                actionCalled = true;
+            });
+
+            // Assert
+            Assert.False(actionCalled, "Action should not be called for Some");
+            Assert.Equal(option, result, "IfNone should return the original option");
+        }
+
+        [Fact]
+        public void IfNone_WithNone_ExecutesAction()
+        {
+            // Arrange
+            var option = Option.None<int>();
+            bool actionCalled = false;
+
+            // Act
+            var result = option.IfNone(() =>
+            {
+                actionCalled = true;
+            });
+
+            // Assert
+            Assert.True(actionCalled, "Action should be called for None");
+            Assert.Equal(option, result, "IfNone should return the original option");
+        }
     }
 }
