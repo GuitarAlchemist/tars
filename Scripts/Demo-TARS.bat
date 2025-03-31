@@ -63,15 +63,15 @@ echo.
 echo Generate a Deep Thinking Exploration
 echo -----------------------------------
 echo.
-echo ^> tarscli deep-thinking generate --topic "%DEMO_TOPIC%" --preview
-%TARS_CLI% deep-thinking generate --topic "%DEMO_TOPIC%" --preview
+echo ^> tarscli think --topic "%DEMO_TOPIC%" --preview
+%TARS_CLI% think --topic "%DEMO_TOPIC%" --preview
 echo.
 
 echo Generate Related Topics
 echo ----------------------
 echo.
-echo ^> tarscli deep-thinking related-topics --topic "%DEMO_TOPIC%" --count 5
-%TARS_CLI% deep-thinking related-topics --topic "%DEMO_TOPIC%" --count 5
+echo ^> tarscli think related --topic "%DEMO_TOPIC%" --count 5
+%TARS_CLI% think related --topic "%DEMO_TOPIC%" --count 5
 echo.
 
 timeout /t 3 > nul

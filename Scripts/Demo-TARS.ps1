@@ -182,10 +182,10 @@ Pause-Demo
 Write-Header "DEEP THINKING"
 
 Write-SubHeader "Generate a Deep Thinking Exploration"
-Invoke-TarsCommand "deep-thinking generate --topic `"$DemoTopic`" --preview"
+Invoke-TarsCommand "think --topic `"$DemoTopic`" --preview"
 
 Write-SubHeader "Generate Related Topics"
-Invoke-TarsCommand "deep-thinking related-topics --topic `"$DemoTopic`" --count 5"
+Invoke-TarsCommand "think related --topic `"$DemoTopic`" --count 5"
 
 Pause-Demo
 
