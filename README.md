@@ -6,6 +6,8 @@
   <img src="docs/images/tars_architecture.svg" alt="TARS Architecture" width="600"/>
   <br/>
   <img src="docs/images/tars_fractal.svg" alt="TARS Bifurcation" width="600"/>
+  <br/>
+  <img src="docs/images/tars_mcp_integration.svg" alt="TARS MCP Integration" width="600"/>
   <p><i>For more information about these images, see <a href="docs/IMAGES.md">IMAGES.md</a></i></p>
 </div>
 
@@ -26,14 +28,17 @@ This repository contains the TARS (Transformative Autonomous Reasoning System) p
 
 ## Features
 
-### Master Control Program (MCP) Integration
+### Model Context Protocol (MCP) Integration
 
-TARS now includes a powerful Master Control Program (MCP) that enables autonomous operation and integration with Augment Code. Key features include:
+TARS now implements Anthropic's Model Context Protocol (MCP), a standard that enables AI assistants to interact with tools and services. This integration allows TARS to function as an MCP service and collaborate with other MCP-compatible systems like Augment Code. Key features include:
 
-- **Automatic Code Generation**: Generate code without requiring manual confirmation
+- **Tool-Using Capabilities**: Access and use tools through a standardized protocol
 - **Triple-Quoted Syntax**: Use `"""..."""` syntax for multi-line code blocks
-- **Terminal Command Execution**: Execute terminal commands without permission prompts
-- **Augment Code Integration**: Configure and interact with Augment Code MCP servers
+- **Terminal Command Execution**: Execute terminal commands with proper authorization
+- **Augment Code Integration**: Seamless collaboration with Augment Code through MCP
+- **Structured Communication**: Standardized JSON format for tool requests and responses
+
+[View Model Context Protocol documentation](docs/features/model-context-protocol.md)
 
 ### Learning and Education Features
 
@@ -160,10 +165,10 @@ dotnet run --project TarsCli/TarsCli.csproj -- console-capture --stop
 dotnet run --project TarsCli/TarsCli.csproj -- console-capture --analyze path/to/file.cs --apply
 ```
 
-### MCP Commands
+### Model Context Protocol (MCP) Commands
 
 ```bash
-# Execute a terminal command without permission
+# Execute a terminal command through MCP
 dotnet run --project TarsCli/TarsCli.csproj -- mcp execute "echo Hello, World!"
 
 # Generate code with triple-quoted syntax
@@ -177,8 +182,11 @@ public class Program
     }
 }"""
 
-# Configure Augment Code MCP server
-dotnet run --project TarsCli/TarsCli.csproj -- mcp augment sqlite uvx --args mcp-server-sqlite --db-path /path/to/test.db
+# Start the MCP service for Augment Code integration
+dotnet run --project TarsCli/TarsCli.csproj -- mcp start --port 8999
+
+# Configure MCP tool permissions
+dotnet run --project TarsCli/TarsCli.csproj -- mcp config --auto-execute true --tools terminal,code,status
 ```
 
 ### Multi-Agent Workflows

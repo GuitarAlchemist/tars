@@ -21,7 +21,7 @@ The architecture diagram illustrates the high-level structure of the TARS system
 
 * **Core Engine**: The central component that coordinates all system activities
 * **Self-Improvement**: The module responsible for analyzing and enhancing code
-* **MCP (Master Control Program)**: The autonomous operation and integration component
+* **MCP (Model Context Protocol)**: The standardized protocol for tool interaction and integration
 * **Agent System**: The multi-agent coordination system
 * **Interfaces**: CLI and Web UI for user interaction
 
@@ -46,6 +46,26 @@ The bifurcation/fractal image represents the self-improving nature of TARS:
 * **Evolution**: The continuous improvement of the system over time
 
 This fractal nature illustrates how small improvements compound over time, leading to significant enhancements in the system's capabilities.
+
+## Model Context Protocol Integration
+----------------------------------
+
+![TARS MCP Integration](images/tars_mcp_integration.svg)
+
+The Model Context Protocol (MCP) integration diagram illustrates how TARS implements Anthropic's MCP standard:
+
+### Key Components
+
+* **TARS System**: The core TARS platform that implements the MCP standard
+* **Model Context Protocol**: The standardized communication layer between AI assistants and tools
+* **Augment Code**: External AI assistant that can collaborate with TARS through MCP
+* **Tools**: Various tools that can be accessed through the MCP protocol, including:
+  * Terminal command execution
+  * Code generation and manipulation
+  * File access and management
+  * Web search and information retrieval
+
+The diagram shows the bidirectional flow of standardized JSON messages between systems and tools, enabling seamless collaboration between different AI assistants and external services.
 
 ## Usage Guidelines
 -------------------
