@@ -1,0 +1,43 @@
+/* TARS DSL EBNF Grammar */
+
+/* Program */
+Program = Block, { Block } ;
+
+/* Block */
+Block = BlockType, [ Identifier ], "{", [ BlockContent ], "}" ;
+
+/* Block Type */
+BlockType = "CONFIG" | "PROMPT" | "ACTION" | "TASK" | "AGENT" | "AUTO_IMPROVE" | "DESCRIBE" | "SPAWN_AGENT" | "MESSAGE" | "SELF_IMPROVE" | "TARS" | "COMMUNICATION" ;
+
+/* Block Content */
+BlockContent = { Property }, { Block } ;
+
+/* Property */
+Property = Identifier, ":", PropertyValue ;
+
+/* Property Value */
+PropertyValue = StringValue | NumberValue | BooleanValue | ArrayValue | ObjectValue ;
+
+/* String Value */
+StringValue = '"', { Character - '"' }, '"' ;
+
+/* Number Value */
+NumberValue = [ "-" ], Digit, { Digit }, [ ".", Digit, { Digit } ] ;
+
+/* Boolean Value */
+BooleanValue = "true" | "false" ;
+
+/* Array Value */
+ArrayValue = "[", [ PropertyValue, { ",", PropertyValue } ], "]" ;
+
+/* Object Value */
+ObjectValue = "{", [ Property, { ",", Property } ], "}" ;
+
+/* Identifier */
+Identifier = Letter, { Letter | Digit | "_" } ;
+
+/* Basic Definitions */
+Letter = "A" | "B" | "C" | ... | "Z" | "a" | "b" | "c" | ... | "z" ;
+Digit = "0" | "1" | "2" | ... | "9" ;
+Character = Letter | Digit | Symbol ;
+Symbol = " " | "!" | "#" | "$" | ... ; /* Any printable character */
