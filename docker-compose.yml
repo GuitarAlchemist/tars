@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  tars-mcp:
+    image: tars-mcp:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp
+    ports:
+      - "8999:8999"
+    volumes:
+      - ./config:/app/config
+    environment:
+      - ModelProvider__Default=DockerModelRunner
+      - DockerModelRunner__BaseUrl=http://model-runner:8080
+      - DockerModelRunner__DefaultModel=llama3:8b
+    depends_on:
+      - model-runner
+
+  model-runner:
+    image: docker/modelrunner:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - model-runner-data:/data
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+volumes:
+  model-runner-data:
