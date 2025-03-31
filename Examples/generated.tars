@@ -1,0 +1,20 @@
+CONFIG {
+    model: "llama3"
+    temperature: 0.7
+    max_tokens: 1000
+}
+
+PROMPT {
+    text: "You are a helpful assistant. Answer the user's questions accurately and concisely."
+    role: "system"
+}
+
+PROMPT {
+    text: "What is the capital of France?"
+    role: "user"
+}
+
+ACTION {
+    type: "chat"
+    model: "llama3"
+}
