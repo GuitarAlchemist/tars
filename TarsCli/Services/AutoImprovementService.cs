@@ -2,18 +2,21 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using TarsCli.Models;
 
 namespace TarsCli.Services
 {
     /// <summary>
     /// Service for autonomous self-improvement of TARS
     /// </summary>
-    public class AutoImprovementService
+    public partial class AutoImprovementService
     {
         private readonly ILogger<AutoImprovementService> _logger;
         private readonly IConfiguration _configuration;
@@ -157,7 +160,7 @@ namespace TarsCli.Services
         /// <returns>Status information</returns>
         public AutoImprovementStatus GetStatus()
         {
-            return new AutoImprovementStatus
+            var status = new AutoImprovementStatus
             {
                 IsRunning = _isRunning,
                 StartTime = _startTime,
@@ -170,6 +173,56 @@ namespace TarsCli.Services
                 LastImprovedFile = _state.LastImprovedFile,
                 TotalImprovements = _state.TotalImprovements
             };
+
+            // Add top priority files
+            var topFiles = _state.FilePriorityScores
+                .OrderByDescending(kvp => kvp.Value.TotalScore)
+                .Take(5)
+                .ToList();
+
+            foreach (var file in topFiles)
+            {
+                status.TopPriorityFiles.Add(new FilePriorityInfo
+                {
+                    FilePath = file.Key,
+                    Score = file.Value.TotalScore,
+                    Reason = GetTopScoreFactors(file.Value)
+                });
+            }
+
+            // Add recent improvements
+            var recentImprovements = _state.ImprovementHistory
+                .OrderByDescending(i => i.Timestamp)
+                .Take(5)
+                .ToList();
+
+            foreach (var improvement in recentImprovements)
+            {
+                status.RecentImprovements.Add(new ImprovementInfo
+                {
+                    FilePath = improvement.FilePath,
+                    Timestamp = improvement.Timestamp,
+                    Description = improvement.Description,
+                    ScoreImprovement = improvement.ScoreAfter - improvement.ScoreBefore
+                });
+            }
+
+            return status;
+        }
+
+        /// <summary>
+        /// Get the top score factors for a file
+        /// </summary>
+        /// <param name="score">The file priority score</param>
+        /// <returns>A string describing the top score factors</returns>
+        private string GetTopScoreFactors(FilePriorityScore score)
+        {
+            var topFactors = score.ScoreFactors
+                .OrderByDescending(kvp => kvp.Value)
+                .Take(3)
+                .ToList();
+
+            return string.Join(", ", topFactors.Select(f => $"{f.Key}: {f.Value:F2}"));
         }
 
         /// <summary>
@@ -211,15 +264,43 @@ namespace TarsCli.Services
 
                     try
                     {
+                        // Calculate the score before improvement
+                        var scoreBefore = CalculateFilePriorityScore(filePath);
+                        _logger.LogInformation($"Score before improvement: {scoreBefore.TotalScore:F2}");
+
                         // Analyze and improve file
                         var success = await _selfImprovementService.RewriteFile(filePath, model, true);
 
                         if (success)
                         {
                             _logger.LogInformation($"Successfully improved file: {filePath}");
-                            _state.LastImprovedFile = filePath;
+
+                            // Calculate the score after improvement
+                            var scoreAfter = CalculateFilePriorityScore(filePath);
+                            _logger.LogInformation($"Score after improvement: {scoreAfter.TotalScore:F2}");
+                            _logger.LogInformation($"Score improvement: {scoreAfter.TotalScore - scoreBefore.TotalScore:F2}");
+
+                            // Record the improvement
+                            var improvement = new ImprovementRecord
+                            {
+                                FilePath = filePath,
+                                Timestamp = DateTime.Now,
+                                Description = $"Improved file using {model} model",
+                                ScoreBefore = scoreBefore.TotalScore,
+                                ScoreAfter = scoreAfter.TotalScore,
+                                Model = model
+                            };
+
+                            _state.ImprovementHistory.Add(improvement);
                             _state.ImprovedFiles.Add(filePath);
+                            _state.LastImprovedFile = filePath;
                             _state.TotalImprovements++;
+
+                            // Update the file priority score
+                            _state.FilePriorityScores[filePath] = scoreAfter;
+
+                            // Save state
+                            SaveState();
 
                             // Post to Slack every 5 improvements if enabled
                             if (_slackService.IsEnabled() && _state.TotalImprovements % 5 == 0)
@@ -228,6 +309,17 @@ namespace TarsCli.Services
                                 details.AppendLine($"TARS has made {_state.TotalImprovements} improvements so far in this session.");
                                 details.AppendLine($"Processed {_state.ProcessedFiles.Count} files out of {_state.ProcessedFiles.Count + _state.PendingFiles.Count} total files.");
                                 details.AppendLine($"\nLast improved file: `{Path.GetFileName(filePath)}`");
+
+                                // Add score improvement information
+                                var latestImprovement = _state.ImprovementHistory
+                                    .OrderByDescending(i => i.Timestamp)
+                                    .FirstOrDefault();
+
+                                if (latestImprovement != null)
+                                {
+                                    var scoreImprovement = latestImprovement.ScoreAfter - latestImprovement.ScoreBefore;
+                                    details.AppendLine($"Score improvement: {scoreImprovement:F2}");
+                                }
 
                                 // Add some of the most recently improved files
                                 var recentlyImproved = _state.ImprovedFiles.TakeLast(Math.Min(3, _state.ImprovedFiles.Count)).ToList();
@@ -253,6 +345,16 @@ namespace TarsCli.Services
                         _state.PendingFiles.Remove(filePath);
                         _state.CurrentFile = null;
                         SaveState();
+
+                        // Check if we should stop
+                        if (DateTime.Now - _startTime >= _timeLimit)
+                        {
+                            _logger.LogInformation("Time limit reached, stopping autonomous improvement");
+                            break;
+                        }
+
+                        // Add a small delay to avoid overloading the system
+                        await Task.Delay(1000, cancellationToken);
                     }
                     catch (Exception ex)
                     {
@@ -265,15 +367,6 @@ namespace TarsCli.Services
                         SaveState();
                     }
 
-                    // Check if we should stop
-                    if (DateTime.Now - _startTime >= _timeLimit)
-                    {
-                        _logger.LogInformation("Time limit reached, stopping autonomous improvement");
-                        break;
-                    }
-
-                    // Add a small delay to avoid overloading the system
-                    await Task.Delay(1000, cancellationToken);
                 }
 
                 _logger.LogInformation("Autonomous improvement completed");
@@ -332,15 +425,17 @@ namespace TarsCli.Services
             // Clear existing lists
             _state.PendingFiles.Clear();
             _state.ProcessedFiles.Clear();
+            _state.FilePriorityScores.Clear();
 
             // Get files from docs directory
+            var allFiles = new List<string>();
             if (Directory.Exists(_docsDir))
             {
                 var docsFiles = Directory.GetFiles(_docsDir, "*.md", SearchOption.AllDirectories)
                     .ToList();
 
                 _logger.LogInformation($"Found {docsFiles.Count} documentation files");
-                _state.PendingFiles.AddRange(docsFiles);
+                allFiles.AddRange(docsFiles);
             }
             else
             {
@@ -353,19 +448,38 @@ namespace TarsCli.Services
                 var chatFiles = Directory.GetFiles(_chatsDir, "*.md", SearchOption.AllDirectories)
                     .ToList();
 
-                // Sort chat files by quality (using file size as a proxy for now)
-                chatFiles = chatFiles
-                    .Select(f => new { Path = f, Info = new FileInfo(f) })
-                    .OrderByDescending(f => f.Info.Length) // Larger files might have more content
-                    .Select(f => f.Path)
-                    .ToList();
-
                 _logger.LogInformation($"Found {chatFiles.Count} chat files");
-                _state.PendingFiles.AddRange(chatFiles);
+                allFiles.AddRange(chatFiles);
             }
             else
             {
                 _logger.LogWarning($"Chats directory not found: {_chatsDir}");
+            }
+
+            // Get source code files
+            var projectRoot = _configuration["Tars:ProjectRoot"] ?? Directory.GetCurrentDirectory();
+            var sourceCodeDirs = new[] { "TarsCli", "TarsEngine", "TarsEngine.DSL", "TarsEngine.SelfImprovement" };
+
+            foreach (var dir in sourceCodeDirs)
+            {
+                var dirPath = Path.Combine(projectRoot, dir);
+                if (Directory.Exists(dirPath))
+                {
+                    var sourceFiles = Directory.GetFiles(dirPath, "*.cs", SearchOption.AllDirectories)
+                        .Concat(Directory.GetFiles(dirPath, "*.fs", SearchOption.AllDirectories))
+                        .ToList();
+
+                    _logger.LogInformation($"Found {sourceFiles.Count} source files in {dir}");
+                    allFiles.AddRange(sourceFiles);
+                }
+            }
+
+            // Calculate priority scores for all files
+            foreach (var file in allFiles)
+            {
+                var score = CalculateFilePriorityScore(file);
+                _state.FilePriorityScores[file] = score;
+                _state.PendingFiles.Add(file);
             }
 
             // Prioritize files
@@ -382,28 +496,30 @@ namespace TarsCli.Services
         /// </summary>
         private void PrioritizeFiles()
         {
-            // This is a simple prioritization strategy
-            // In a more advanced implementation, we could use more sophisticated criteria
-
-            // For now, we'll prioritize:
-            // 1. Documentation files (they're more structured)
-            // 2. Larger chat files (they might contain more useful information)
-
-            var docFiles = _state.PendingFiles
-                .Where(f => f.StartsWith(_docsDir))
+            // Sort files by total priority score (descending)
+            var prioritizedFiles = _state.FilePriorityScores
+                .OrderByDescending(kvp => kvp.Value.TotalScore)
+                .Select(kvp => kvp.Key)
                 .ToList();
 
-            var chatFiles = _state.PendingFiles
-                .Where(f => f.StartsWith(_chatsDir))
-                .Select(f => new { Path = f, Info = new FileInfo(f) })
-                .OrderByDescending(f => f.Info.Length)
-                .Select(f => f.Path)
-                .ToList();
-
+            // Update the pending files list with the prioritized order
             _state.PendingFiles.Clear();
-            _state.PendingFiles.AddRange(docFiles);
-            _state.PendingFiles.AddRange(chatFiles);
+            _state.PendingFiles.AddRange(prioritizedFiles);
+
+            // Log the top 5 priority files
+            var topFiles = _state.FilePriorityScores
+                .OrderByDescending(kvp => kvp.Value.TotalScore)
+                .Take(5)
+                .ToList();
+
+            _logger.LogInformation("Top priority files:");
+            foreach (var file in topFiles)
+            {
+                _logger.LogInformation($"{Path.GetFileName(file.Key)}: Score = {file.Value.TotalScore:F2}");
+            }
         }
+
+        // GetTopScoreFactors method is already defined above
 
         /// <summary>
         /// Get the next file to process
@@ -494,6 +610,57 @@ namespace TarsCli.Services
         /// Total number of improvements made
         /// </summary>
         public int TotalImprovements { get; set; }
+
+        /// <summary>
+        /// The file priority scores
+        /// </summary>
+        public Dictionary<string, FilePriorityScore> FilePriorityScores { get; set; } = new Dictionary<string, FilePriorityScore>();
+
+        /// <summary>
+        /// The last time the state was updated
+        /// </summary>
+        public DateTime LastUpdated { get; set; } = DateTime.Now;
+
+        /// <summary>
+        /// The history of improvements made
+        /// </summary>
+        public List<ImprovementRecord> ImprovementHistory { get; set; } = new List<ImprovementRecord>();
+    }
+
+    /// <summary>
+    /// Represents a record of an improvement made to a file
+    /// </summary>
+    public class ImprovementRecord
+    {
+        /// <summary>
+        /// The path of the file that was improved
+        /// </summary>
+        public string FilePath { get; set; } = string.Empty;
+
+        /// <summary>
+        /// The time the improvement was made
+        /// </summary>
+        public DateTime Timestamp { get; set; } = DateTime.Now;
+
+        /// <summary>
+        /// A description of the improvement
+        /// </summary>
+        public string Description { get; set; } = string.Empty;
+
+        /// <summary>
+        /// The score of the file before improvement
+        /// </summary>
+        public double ScoreBefore { get; set; }
+
+        /// <summary>
+        /// The score of the file after improvement
+        /// </summary>
+        public double ScoreAfter { get; set; }
+
+        /// <summary>
+        /// The model used for the improvement
+        /// </summary>
+        public string Model { get; set; } = string.Empty;
     }
 
     /// <summary>
@@ -550,5 +717,62 @@ namespace TarsCli.Services
         /// Total number of improvements made
         /// </summary>
         public int TotalImprovements { get; set; }
+
+        /// <summary>
+        /// The top priority files (up to 5)
+        /// </summary>
+        public List<FilePriorityInfo> TopPriorityFiles { get; set; } = new List<FilePriorityInfo>();
+
+        /// <summary>
+        /// The recent improvements (up to 5)
+        /// </summary>
+        public List<ImprovementInfo> RecentImprovements { get; set; } = new List<ImprovementInfo>();
+    }
+
+    /// <summary>
+    /// Represents information about a file's priority
+    /// </summary>
+    public class FilePriorityInfo
+    {
+        /// <summary>
+        /// The path of the file
+        /// </summary>
+        public string FilePath { get; set; } = string.Empty;
+
+        /// <summary>
+        /// The priority score of the file
+        /// </summary>
+        public double Score { get; set; }
+
+        /// <summary>
+        /// A description of why the file has this priority
+        /// </summary>
+        public string Reason { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Represents information about an improvement
+    /// </summary>
+    public class ImprovementInfo
+    {
+        /// <summary>
+        /// The path of the file that was improved
+        /// </summary>
+        public string FilePath { get; set; } = string.Empty;
+
+        /// <summary>
+        /// The time the improvement was made
+        /// </summary>
+        public DateTime Timestamp { get; set; }
+
+        /// <summary>
+        /// A description of the improvement
+        /// </summary>
+        public string Description { get; set; } = string.Empty;
+
+        /// <summary>
+        /// The score improvement
+        /// </summary>
+        public double ScoreImprovement { get; set; }
     }
 }
