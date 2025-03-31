@@ -10,24 +10,24 @@ module Evaluator =
     let rec evaluateString (str: string) (env: Map<string, PropertyValue>) =
         // Match ${variable} or ${variable.property} patterns
         let regex = Regex(@"\${([^}]+)}")
-        
+
         // Replace all matches with their evaluated values
         let result = regex.Replace(str, fun m ->
             let path = m.Groups.[1].Value.Split('.')
-            
+
             // Get the root variable
             match env.TryFind(path.[0]) with
             | Some value ->
                 // If there are property accesses, navigate through them
                 let mutable current = value
                 let mutable success = true
-                
+
                 for i in 1 .. path.Length - 1 do
                     match current with
                     | ObjectValue props ->
                         match props.TryFind(path.[i]) with
                         | Some v -> current <- v
-                        | None -> 
+                        | None ->
                             success <- false
                             current <- StringValue("undefined")
                     | ListValue items ->
@@ -41,7 +41,7 @@ module Evaluator =
                     | _ ->
                         success <- false
                         current <- StringValue("undefined")
-                
+
                 // Convert the final value to a string
                 if success then
                     match current with
@@ -53,11 +53,11 @@ module Evaluator =
                 else
                     "undefined"
             | None -> "undefined")
-        
+
         result
-    
+
     /// Evaluate a boolean expression
-    let evaluateBooleanExpression (expr: string) (env: Map<string, PropertyValue>) =
+    let rec evaluateBooleanExpression (expr: string) (env: Map<string, PropertyValue>) =
         // Handle simple variable references like "${var}"
         if expr.StartsWith("${") && expr.EndsWith("}") then
             let varName = expr.Substring(2, expr.Length - 3)
@@ -72,8 +72,8 @@ module Evaluator =
         elif expr.Contains("==") then
             let parts = expr.Split([|"=="|], StringSplitOptions.None)
             if parts.Length = 2 then
-                let left = evaluateString parts.[0].Trim() env
-                let right = evaluateString parts.[1].Trim() env
+                let left = evaluateString (parts.[0].Trim()) env
+                let right = evaluateString (parts.[1].Trim()) env
                 left = right
             else
                 false
@@ -81,8 +81,8 @@ module Evaluator =
         elif expr.Contains("!=") then
             let parts = expr.Split([|"!="|], StringSplitOptions.None)
             if parts.Length = 2 then
-                let left = evaluateString parts.[0].Trim() env
-                let right = evaluateString parts.[1].Trim() env
+                let left = evaluateString (parts.[0].Trim()) env
+                let right = evaluateString (parts.[1].Trim()) env
                 left <> right
             else
                 false
@@ -90,8 +90,8 @@ module Evaluator =
         elif expr.Contains(">") && not (expr.Contains(">=")) then
             let parts = expr.Split([|">"|], StringSplitOptions.None)
             if parts.Length = 2 then
-                let left = evaluateString parts.[0].Trim() env
-                let right = evaluateString parts.[1].Trim() env
+                let left = evaluateString (parts.[0].Trim()) env
+                let right = evaluateString (parts.[1].Trim()) env
                 match Double.TryParse(left), Double.TryParse(right) with
                 | (true, leftNum), (true, rightNum) -> leftNum > rightNum
                 | _ -> String.Compare(left, right) > 0
@@ -101,8 +101,8 @@ module Evaluator =
         elif expr.Contains("<") && not (expr.Contains("<=")) then
             let parts = expr.Split([|"<"|], StringSplitOptions.None)
             if parts.Length = 2 then
-                let left = evaluateString parts.[0].Trim() env
-                let right = evaluateString parts.[1].Trim() env
+                let left = evaluateString (parts.[0].Trim()) env
+                let right = evaluateString (parts.[1].Trim()) env
                 match Double.TryParse(left), Double.TryParse(right) with
                 | (true, leftNum), (true, rightNum) -> leftNum < rightNum
                 | _ -> String.Compare(left, right) < 0
@@ -112,8 +112,8 @@ module Evaluator =
         elif expr.Contains(">=") then
             let parts = expr.Split([|">="|], StringSplitOptions.None)
             if parts.Length = 2 then
-                let left = evaluateString parts.[0].Trim() env
-                let right = evaluateString parts.[1].Trim() env
+                let left = evaluateString (parts.[0].Trim()) env
+                let right = evaluateString (parts.[1].Trim()) env
                 match Double.TryParse(left), Double.TryParse(right) with
                 | (true, leftNum), (true, rightNum) -> leftNum >= rightNum
                 | _ -> String.Compare(left, right) >= 0
@@ -123,8 +123,8 @@ module Evaluator =
         elif expr.Contains("<=") then
             let parts = expr.Split([|"<="|], StringSplitOptions.None)
             if parts.Length = 2 then
-                let left = evaluateString parts.[0].Trim() env
-                let right = evaluateString parts.[1].Trim() env
+                let left = evaluateString (parts.[0].Trim()) env
+                let right = evaluateString (parts.[1].Trim()) env
                 match Double.TryParse(left), Double.TryParse(right) with
                 | (true, leftNum), (true, rightNum) -> leftNum <= rightNum
                 | _ -> String.Compare(left, right) <= 0
@@ -137,7 +137,7 @@ module Evaluator =
             if m.Success then
                 let arrayName = m.Groups.[1].Value
                 let searchValue = evaluateString m.Groups.[2].Value env
-                
+
                 match env.TryFind(arrayName) with
                 | Some(ListValue items) ->
                     items |> List.exists (function
@@ -150,14 +150,14 @@ module Evaluator =
         // Handle logical AND like "${var1} && ${var2}"
         elif expr.Contains("&&") then
             let parts = expr.Split([|"&&"|], StringSplitOptions.None)
-            parts |> Array.forall (fun p -> evaluateBooleanExpression p.Trim() env)
+            parts |> Array.forall (fun p -> evaluateBooleanExpression (p.Trim()) env)
         // Handle logical OR like "${var1} || ${var2}"
         elif expr.Contains("||") then
             let parts = expr.Split([|"||"|], StringSplitOptions.None)
-            parts |> Array.exists (fun p -> evaluateBooleanExpression p.Trim() env)
+            parts |> Array.exists (fun p -> evaluateBooleanExpression (p.Trim()) env)
         // Handle logical NOT like "!${var}"
         elif expr.StartsWith("!") then
-            not (evaluateBooleanExpression expr.Substring(1).Trim() env)
+            not (evaluateBooleanExpression (expr.Substring(1).Trim()) env)
         // Handle literal true/false
         elif expr.ToLower() = "true" then
             true
@@ -167,23 +167,23 @@ module Evaluator =
         else
             let evaluated = evaluateString expr env
             not (String.IsNullOrEmpty(evaluated) || evaluated = "false" || evaluated = "0" || evaluated = "undefined")
-    
+
     /// Evaluate a property value with variable interpolation
     let rec evaluatePropertyValue (value: PropertyValue) (env: Map<string, PropertyValue>) =
         match value with
         | StringValue s -> StringValue(evaluateString s env)
         | NumberValue n -> NumberValue(n)  // Numbers don't need interpolation
         | BoolValue b -> BoolValue(b)      // Booleans don't need interpolation
-        | ListValue items -> 
+        | ListValue items ->
             ListValue(items |> List.map (fun item -> evaluatePropertyValue item env))
         | ObjectValue props ->
-            let evaluatedProps = 
-                props 
-                |> Map.toSeq 
+            let evaluatedProps =
+                props
+                |> Map.toSeq
                 |> Seq.map (fun (k, v) -> (k, evaluatePropertyValue v env))
                 |> Map.ofSeq
             ObjectValue(evaluatedProps)
-    
+
     /// Parse a string into a PropertyValue
     let parseValue (str: string) =
         // Try to parse as number
@@ -194,14 +194,14 @@ module Evaluator =
             match str.ToLower() with
             | "true" -> BoolValue(true)
             | "false" -> BoolValue(false)
-            | _ -> 
+            | _ ->
                 // Try to parse as JSON array or object
                 if (str.StartsWith("[") && str.EndsWith("]")) || (str.StartsWith("{") && str.EndsWith("}")) then
                     try
                         let json = Newtonsoft.Json.JsonConvert.DeserializeObject(str)
                         match json with
                         | :? System.Collections.IList as list ->
-                            let items = 
+                            let items =
                                 [for i in 0 .. list.Count - 1 do
                                     match list.[i] with
                                     | :? string as s -> StringValue(s)
@@ -211,12 +211,12 @@ module Evaluator =
                                     | _ -> StringValue(list.[i].ToString())]
                             ListValue(items)
                         | :? System.Collections.IDictionary as dict ->
-                            let props = 
-                                dict.Keys 
-                                |> Seq.cast<obj> 
-                                |> Seq.map (fun k -> 
+                            let props =
+                                dict.Keys
+                                |> Seq.cast<obj>
+                                |> Seq.map (fun k ->
                                     let key = k.ToString()
-                                    let value = 
+                                    let value =
                                         match dict.[k] with
                                         | :? string as s -> StringValue(s)
                                         | :? int as i -> NumberValue(float i)

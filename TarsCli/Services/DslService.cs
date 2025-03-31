@@ -1,8 +1,10 @@
 using System;
 using System.IO;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using TarsEngine.DSL;
+using TarsCli.Common;
 
 namespace TarsCli.Services
 {
@@ -215,6 +217,136 @@ ACTION {
     type: ""execute""
     task: ""Find information about the history of Paris""
 }";
+        }
+
+        /// <summary>
+        /// Generates an EBNF (Extended Backus-Naur Form) grammar specification for the TARS DSL
+        /// </summary>
+        /// <param name="outputPath">The path to save the generated EBNF file</param>
+        /// <returns>The exit code</returns>
+        public async Task<int> GenerateEbnfAsync(string outputPath)
+        {
+            try
+            {
+                _logger.LogInformation($"Generating EBNF grammar specification to {outputPath}");
+
+                // Generate the EBNF grammar
+                Option<string> ebnfOption = GenerateEbnfGrammar();
+
+                return await ebnfOption.Match(
+                    some: async ebnf => 
+                    {
+                        // Create the directory if it doesn't exist
+                        var directory = Path.GetDirectoryName(outputPath);
+                        if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+                        {
+                            Directory.CreateDirectory(directory);
+                        }
+
+                        // Write the EBNF to the file
+                        await File.WriteAllTextAsync(outputPath, ebnf);
+
+                        _logger.LogInformation($"EBNF grammar specification generated successfully: {outputPath}");
+                        return 0;
+                    },
+                    none: () => 
+                    {
+                        _logger.LogError("Failed to generate EBNF grammar specification");
+                        return Task.FromResult(1);
+                    });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error generating EBNF grammar specification: {ex.Message}");
+                return 1;
+            }
+        }
+
+        /// <summary>
+        /// Generates the EBNF grammar for the TARS DSL
+        /// </summary>
+        /// <returns>An Option containing the EBNF grammar if successful</returns>
+        private Option<string> GenerateEbnfGrammar()
+        {
+            try
+            {
+                // Create the EBNF grammar as a multi-line string to avoid escaping issues
+                string ebnfGrammar = @"(* TARS DSL EBNF Grammar Specification *)
+
+(* Top-level program *)
+Program = Block, {Block};
+
+(* Block types *)
+Block = ConfigBlock | PromptBlock | ActionBlock | TaskBlock | AgentBlock | DescribeBlock | VariableBlock | IfBlock | ForBlock | WhileBlock | FunctionBlock | ReturnBlock | ImportBlock | ExportBlock | TarsBlock | CommunicationBlock | MessageBlock | SpawnAgentBlock | SelfImproveBlock | AutoImproveBlock;
+
+(* Block structure *)
+ConfigBlock = 'CONFIG', '{', [Properties], '}';
+PromptBlock = 'PROMPT', '{', [Properties], '}';
+ActionBlock = 'ACTION', '{', [Properties], '}';
+TaskBlock = 'TASK', [Identifier], '{', [Properties], [NestedBlocks], '}';
+AgentBlock = 'AGENT', [Identifier], '{', [Properties], [NestedBlocks], '}';
+DescribeBlock = 'DESCRIBE', '{', [Properties], '}';
+VariableBlock = 'VARIABLE', Identifier, '{', [Properties], '}';
+IfBlock = 'IF', '{', [Properties], [NestedBlocks], '}';
+ForBlock = 'FOR', '{', [Properties], [NestedBlocks], '}';
+WhileBlock = 'WHILE', '{', [Properties], [NestedBlocks], '}';
+FunctionBlock = 'FUNCTION', [Identifier], '{', [Properties], [NestedBlocks], '}';
+ReturnBlock = 'RETURN', '{', [Properties], '}';
+ImportBlock = 'IMPORT', '{', [Properties], '}';
+ExportBlock = 'EXPORT', '{', [Properties], '}';
+TarsBlock = 'TARS', '{', [NestedBlocks], '}';
+CommunicationBlock = 'COMMUNICATION', '{', [Properties], '}';
+MessageBlock = 'MESSAGE', '{', [Properties], '}';
+SpawnAgentBlock = 'SPAWN_AGENT', '{', [Properties], '}';
+SelfImproveBlock = 'SELF_IMPROVE', '{', [Properties], '}';
+AutoImproveBlock = 'AUTO_IMPROVE', '{', [Properties], '}';
+
+(* Properties *)
+Properties = Property, {Property};
+Property = Identifier, ':', PropertyValue;
+
+(* Property values *)
+PropertyValue = StringValue | NumberValue | BoolValue | ListValue | ObjectValue;
+StringValue = '""', {Character - '""'}, '""';
+NumberValue = ['-'], Digit, {Digit}, ['.', {Digit}];
+BoolValue = 'true' | 'false';
+ListValue = '[', [PropertyValue, {',', PropertyValue}], ']';
+ObjectValue = '{', [Property, {',', Property}], '}';
+
+(* Nested blocks *)
+NestedBlocks = Block, {Block};
+
+(* Basic elements *)
+Identifier = Letter, {Letter | Digit | '_'};
+Letter = 'A' | 'B' | ... | 'Z' | 'a' | 'b' | ... | 'z';
+Digit = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9';
+Character = Letter | Digit | Symbol;
+Symbol = '!' | '@' | '#' | '$' | '%' | '^' | '&' | '*' | '(' | ')' | ... ;
+
+(* Expressions *)
+Expression = Literal | Variable | FunctionCall | BinaryOp | UnaryOp;
+Literal = StringValue | NumberValue | BoolValue | ListValue | ObjectValue;
+Variable = '${', Identifier, '}';
+FunctionCall = Identifier, '(', [Expression, {',', Expression}], ')';
+BinaryOp = Expression, Operator, Expression;
+UnaryOp = Operator, Expression;
+Operator = '+' | '-' | '*' | '/' | '==' | '!=' | '>' | '<' | '>=' | '<=' | '&&' | '||';
+
+(* Comments *)
+Comment = '//', {Character - NewLine}, NewLine;
+MultiLineComment = '/*', {Character - '*/'}, '*/';
+
+(* Whitespace *)
+Whitespace = ' ' | '\t' | '\r' | '\n';
+";
+
+                return Option.Some(ebnfGrammar);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error generating EBNF grammar: {ex.Message}");
+                return Option.None<string>();
+            }
         }
     }
 }
