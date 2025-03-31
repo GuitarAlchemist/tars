@@ -18,13 +18,30 @@ module Ast =
         | Task
         | Agent
         | AutoImprove
+        | Describe
+        | SpawnAgent
+        | Message
+        | SelfImprove
+        | Tars
+        | Communication
+        | Variable
+        | If
+        | Else
+        | For
+        | While
+        | Function
+        | Return
+        | Import
+        | Export
         | Unknown of string
 
     /// A block in the DSL
     type TarsBlock = {
         Type: BlockType
+        Name: string option
         Content: string
         Properties: Map<string, PropertyValue>
+        NestedBlocks: TarsBlock list
     }
 
     /// A TARS program consisting of blocks
