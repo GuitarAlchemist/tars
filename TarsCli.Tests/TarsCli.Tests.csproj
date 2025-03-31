@@ -5,6 +5,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+    <!-- Suppress non-critical warnings -->
+    <NoWarn>$(NoWarn);CS1591;CS1998;CS8618;CS8601;CS8602;CS8603;CS8604;CS8619;CS0168;CS0414</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
