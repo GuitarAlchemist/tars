@@ -1,0 +1,578 @@
+DESCRIBE {
+    name: "TARS DSL Debugging Metascript"
+    version: "1.0"
+    author: "TARS"
+    description: "A metascript for debugging TARS DSL scripts"
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.2
+    max_tokens: 4000
+}
+
+// Define variables for configuration
+VARIABLE config {
+    value: {
+        target_script: "examples/metascripts/self_improvement_workflow.tars",
+        breakpoints: [
+            { file: "examples/metascripts/self_improvement_workflow.tars", line: 100 },
+            { file: "examples/metascripts/self_improvement_workflow.tars", line: 200 },
+            { file: "examples/metascripts/self_improvement_workflow.tars", line: 300 }
+        ],
+        watches: ["config", "iteration", "improvement_stats"],
+        step_mode: true,
+        output_directory: "debug_output"
+    }
+}
+
+// Define the debugger agent
+AGENT debugger {
+    description: "An agent that debugs TARS DSL scripts"
+    capabilities: ["breakpoint_management", "variable_inspection", "step_execution"]
+    
+    TASK manage_breakpoints {
+        description: "Manage breakpoints in a DSL script"
+        
+        FUNCTION add_breakpoint {
+            parameters: ["file", "line"]
+            
+            ACTION {
+                type: "add_breakpoint"
+                file: "${file}"
+                line: "${line}"
+            }
+            
+            RETURN {
+                value: {
+                    success: true,
+                    breakpoint: {
+                        file: "${file}",
+                        line: "${line}"
+                    }
+                }
+            }
+        }
+        
+        FUNCTION remove_breakpoint {
+            parameters: ["file", "line"]
+            
+            ACTION {
+                type: "remove_breakpoint"
+                file: "${file}"
+                line: "${line}"
+            }
+            
+            RETURN {
+                value: {
+                    success: true
+                }
+            }
+        }
+        
+        FUNCTION list_breakpoints {
+            parameters: []
+            
+            ACTION {
+                type: "list_breakpoints"
+            }
+            
+            RETURN {
+                value: {
+                    breakpoints: "${config.value.breakpoints}"
+                }
+            }
+        }
+    }
+    
+    TASK inspect_variables {
+        description: "Inspect variables in a DSL script"
+        
+        FUNCTION add_watch {
+            parameters: ["variable"]
+            
+            ACTION {
+                type: "add_watch"
+                variable: "${variable}"
+            }
+            
+            RETURN {
+                value: {
+                    success: true,
+                    variable: "${variable}"
+                }
+            }
+        }
+        
+        FUNCTION get_variable_value {
+            parameters: ["variable"]
+            
+            ACTION {
+                type: "get_variable_value"
+                variable: "${variable}"
+            }
+            
+            RETURN {
+                value: {
+                    variable: "${variable}",
+                    value: "Variable value would go here"
+                }
+            }
+        }
+        
+        FUNCTION list_watches {
+            parameters: []
+            
+            ACTION {
+                type: "list_watches"
+            }
+            
+            RETURN {
+                value: {
+                    watches: "${config.value.watches}"
+                }
+            }
+        }
+    }
+    
+    TASK control_execution {
+        description: "Control the execution of a DSL script"
+        
+        FUNCTION run_with_debugging {
+            parameters: ["script_path"]
+            
+            ACTION {
+                type: "run_with_debugging"
+                script_path: "${script_path}"
+            }
+            
+            RETURN {
+                value: {
+                    success: true,
+                    execution_id: "debug-session-1"
+                }
+            }
+        }
+        
+        FUNCTION step_next {
+            parameters: ["execution_id"]
+            
+            ACTION {
+                type: "step_next"
+                execution_id: "${execution_id}"
+            }
+            
+            RETURN {
+                value: {
+                    success: true,
+                    current_line: 101,
+                    current_file: "examples/metascripts/self_improvement_workflow.tars"
+                }
+            }
+        }
+        
+        FUNCTION step_into {
+            parameters: ["execution_id"]
+            
+            ACTION {
+                type: "step_into"
+                execution_id: "${execution_id}"
+            }
+            
+            RETURN {
+                value: {
+                    success: true,
+                    current_line: 102,
+                    current_file: "examples/metascripts/self_improvement_workflow.tars"
+                }
+            }
+        }
+        
+        FUNCTION continue_execution {
+            parameters: ["execution_id"]
+            
+            ACTION {
+                type: "continue"
+                execution_id: "${execution_id}"
+            }
+            
+            RETURN {
+                value: {
+                    success: true,
+                    stopped_at: {
+                        file: "examples/metascripts/self_improvement_workflow.tars",
+                        line: 200,
+                        reason: "breakpoint"
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Define the debug analyzer agent
+AGENT debug_analyzer {
+    description: "An agent that analyzes debug information"
+    capabilities: ["call_stack_analysis", "variable_analysis", "execution_path_analysis"]
+    
+    TASK analyze_debug_info {
+        description: "Analyze debug information"
+        
+        FUNCTION analyze_call_stack {
+            parameters: ["call_stack"]
+            
+            ACTION {
+                type: "analyze_call_stack"
+                call_stack: "${call_stack}"
+            }
+            
+            RETURN {
+                value: {
+                    analysis: "Call stack analysis would go here",
+                    recommendations: [
+                        "Check function parameters in the top frame",
+                        "Verify return values are being handled correctly"
+                    ]
+                }
+            }
+        }
+        
+        FUNCTION analyze_variables {
+            parameters: ["variables"]
+            
+            ACTION {
+                type: "analyze_variables"
+                variables: "${variables}"
+            }
+            
+            RETURN {
+                value: {
+                    analysis: "Variable analysis would go here",
+                    issues: [
+                        {
+                            variable: "iteration",
+                            issue: "Value is not being incremented correctly",
+                            recommendation: "Check the update_counter action"
+                        }
+                    ]
+                }
+            }
+        }
+        
+        FUNCTION analyze_execution_path {
+            parameters: ["execution_history"]
+            
+            ACTION {
+                type: "analyze_execution_path"
+                execution_history: "${execution_history}"
+            }
+            
+            RETURN {
+                value: {
+                    analysis: "Execution path analysis would go here",
+                    bottlenecks: [
+                        {
+                            location: { file: "examples/metascripts/self_improvement_workflow.tars", line: 250 },
+                            issue: "Excessive looping",
+                            recommendation: "Add early exit condition"
+                        }
+                    ]
+                }
+            }
+        }
+    }
+}
+
+// Main workflow
+TARS {
+    // Initialize the workflow
+    ACTION {
+        type: "log"
+        message: "Starting DSL debugging workflow"
+    }
+    
+    // Create output directory if it doesn't exist
+    ACTION {
+        type: "ensure_directory"
+        path: "${config.value.output_directory}"
+    }
+    
+    // Set up breakpoints
+    ACTION {
+        type: "log"
+        message: "Setting up breakpoints"
+    }
+    
+    FOR {
+        variable: "bp"
+        range: "${config.value.breakpoints}"
+        
+        ACTION {
+            type: "execute"
+            agent: "debugger"
+            task: "manage_breakpoints"
+            function: "add_breakpoint"
+            parameters: {
+                file: "${bp.file}",
+                line: "${bp.line}"
+            }
+        }
+    }
+    
+    // Set up watches
+    ACTION {
+        type: "log"
+        message: "Setting up variable watches"
+    }
+    
+    FOR {
+        variable: "watch"
+        range: "${config.value.watches}"
+        
+        ACTION {
+            type: "execute"
+            agent: "debugger"
+            task: "inspect_variables"
+            function: "add_watch"
+            parameters: {
+                variable: "${watch}"
+            }
+        }
+    }
+    
+    // Start debugging session
+    ACTION {
+        type: "log"
+        message: "Starting debugging session for ${config.value.target_script}"
+    }
+    
+    VARIABLE debug_session {
+        value: {}
+    }
+    
+    ACTION {
+        type: "execute"
+        agent: "debugger"
+        task: "control_execution"
+        function: "run_with_debugging"
+        parameters: {
+            script_path: "${config.value.target_script}"
+        }
+        output_variable: "debug_session"
+    }
+    
+    // Initialize debug data collection
+    VARIABLE debug_data {
+        value: {
+            breakpoints: [],
+            variables: {},
+            call_stack: [],
+            execution_history: []
+        }
+    }
+    
+    // Debug loop - continue until first breakpoint
+    ACTION {
+        type: "log"
+        message: "Running to first breakpoint"
+    }
+    
+    VARIABLE stop_info {
+        value: {}
+    }
+    
+    ACTION {
+        type: "execute"
+        agent: "debugger"
+        task: "control_execution"
+        function: "continue_execution"
+        parameters: {
+            execution_id: "${debug_session.value.execution_id}"
+        }
+        output_variable: "stop_info"
+    }
+    
+    // Record breakpoint hit
+    ACTION {
+        type: "append"
+        target: "debug_data.value.breakpoints"
+        value: "${stop_info.value.stopped_at}"
+    }
+    
+    // Inspect variables at breakpoint
+    ACTION {
+        type: "log"
+        message: "Inspecting variables at breakpoint"
+    }
+    
+    FOR {
+        variable: "watch"
+        range: "${config.value.watches}"
+        
+        VARIABLE var_value {
+            value: {}
+        }
+        
+        ACTION {
+            type: "execute"
+            agent: "debugger"
+            task: "inspect_variables"
+            function: "get_variable_value"
+            parameters: {
+                variable: "${watch}"
+            }
+            output_variable: "var_value"
+        }
+        
+        ACTION {
+            type: "assign"
+            target: "debug_data.value.variables.${watch}"
+            value: "${var_value.value.value}"
+        }
+    }
+    
+    // Step through code
+    ACTION {
+        type: "log"
+        message: "Stepping through code"
+    }
+    
+    VARIABLE current_position {
+        value: {}
+    }
+    
+    // Step 10 times
+    VARIABLE step_count {
+        value: 0
+    }
+    
+    WHILE {
+        condition: "${step_count.value < 10}"
+        
+        ACTION {
+            type: "execute"
+            agent: "debugger"
+            task: "control_execution"
+            function: "step_next"
+            parameters: {
+                execution_id: "${debug_session.value.execution_id}"
+            }
+            output_variable: "current_position"
+        }
+        
+        // Record step in execution history
+        ACTION {
+            type: "append"
+            target: "debug_data.value.execution_history"
+            value: {
+                line: "${current_position.value.current_line}",
+                file: "${current_position.value.current_file}"
+            }
+        }
+        
+        // Increment step count
+        ACTION {
+            type: "update_counter"
+            target: "step_count.value"
+            increment: 1
+        }
+    }
+    
+    // Continue to next breakpoint
+    ACTION {
+        type: "log"
+        message: "Continuing to next breakpoint"
+    }
+    
+    ACTION {
+        type: "execute"
+        agent: "debugger"
+        task: "control_execution"
+        function: "continue_execution"
+        parameters: {
+            execution_id: "${debug_session.value.execution_id}"
+        }
+        output_variable: "stop_info"
+    }
+    
+    // Record breakpoint hit
+    ACTION {
+        type: "append"
+        target: "debug_data.value.breakpoints"
+        value: "${stop_info.value.stopped_at}"
+    }
+    
+    // Analyze debug data
+    ACTION {
+        type: "log"
+        message: "Analyzing debug data"
+    }
+    
+    VARIABLE call_stack_analysis {
+        value: {}
+    }
+    
+    ACTION {
+        type: "execute"
+        agent: "debug_analyzer"
+        task: "analyze_debug_info"
+        function: "analyze_call_stack"
+        parameters: {
+            call_stack: "${debug_data.value.call_stack}"
+        }
+        output_variable: "call_stack_analysis"
+    }
+    
+    VARIABLE variable_analysis {
+        value: {}
+    }
+    
+    ACTION {
+        type: "execute"
+        agent: "debug_analyzer"
+        task: "analyze_debug_info"
+        function: "analyze_variables"
+        parameters: {
+            variables: "${debug_data.value.variables}"
+        }
+        output_variable: "variable_analysis"
+    }
+    
+    VARIABLE execution_path_analysis {
+        value: {}
+    }
+    
+    ACTION {
+        type: "execute"
+        agent: "debug_analyzer"
+        task: "analyze_debug_info"
+        function: "analyze_execution_path"
+        parameters: {
+            execution_history: "${debug_data.value.execution_history}"
+        }
+        output_variable: "execution_path_analysis"
+    }
+    
+    // Generate debug report
+    ACTION {
+        type: "log"
+        message: "Generating debug report"
+    }
+    
+    VARIABLE debug_report {
+        value: "# TARS DSL Debug Report\n\n## Script\n\n${config.value.target_script}\n\n## Breakpoints\n\n${debug_data.value.breakpoints}\n\n## Variables\n\n${debug_data.value.variables}\n\n## Call Stack Analysis\n\n${call_stack_analysis.value.analysis}\n\n### Recommendations\n\n${call_stack_analysis.value.recommendations}\n\n## Variable Analysis\n\n${variable_analysis.value.analysis}\n\n### Issues\n\n${variable_analysis.value.issues}\n\n## Execution Path Analysis\n\n${execution_path_analysis.value.analysis}\n\n### Bottlenecks\n\n${execution_path_analysis.value.bottlenecks}\n\n## Conclusion\n\nThis debug session identified several issues that should be addressed to improve the script's performance and reliability."
+    }
+    
+    // Save debug report
+    ACTION {
+        type: "write_file"
+        path: "${config.value.output_directory}/debug_report.md"
+        content: "${debug_report.value}"
+    }
+    
+    // Log completion
+    ACTION {
+        type: "log"
+        message: "DSL debugging workflow completed"
+    }
+}

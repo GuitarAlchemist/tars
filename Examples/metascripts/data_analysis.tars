@@ -1,0 +1,875 @@
+DESCRIBE {
+    name: "TARS Data Analysis Metascript"
+    version: "1.0"
+    author: "TARS"
+    description: "A metascript for performing data analysis tasks"
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.2
+    max_tokens: 4000
+}
+
+// Define variables for configuration
+VARIABLE config {
+    value: {
+        data_sources: [
+            {
+                name: "sales_data",
+                type: "csv",
+                path: "data/sales_data.csv",
+                delimiter: ","
+            },
+            {
+                name: "customer_data",
+                type: "json",
+                path: "data/customer_data.json"
+            },
+            {
+                name: "product_data",
+                type: "database",
+                connection_string: "Server=localhost;Database=products;User Id=user;Password=password;"
+            }
+        ],
+        analysis_types: ["descriptive", "diagnostic", "predictive"],
+        output_formats: ["csv", "json", "html", "markdown"],
+        output_directory: "analysis_results"
+    }
+}
+
+// Define the data loader agent
+AGENT data_loader {
+    description: "An agent that loads data from various sources"
+    capabilities: ["csv_loading", "json_loading", "database_loading", "data_validation"]
+    
+    TASK load_data {
+        description: "Load data from a source"
+        
+        FUNCTION load_csv {
+            parameters: ["file_path", "delimiter"]
+            
+            ACTION {
+                type: "load_csv"
+                file_path: "${file_path}"
+                delimiter: "${delimiter}"
+            }
+            
+            RETURN {
+                value: {
+                    columns: ["date", "product_id", "customer_id", "quantity", "price"],
+                    rows: [
+                        ["2023-01-01", "P001", "C001", "2", "19.99"],
+                        ["2023-01-01", "P002", "C002", "1", "29.99"],
+                        ["2023-01-02", "P001", "C003", "3", "19.99"]
+                    ],
+                    metadata: {
+                        row_count: 3,
+                        column_count: 5,
+                        file_size: "1.2 KB"
+                    }
+                }
+            }
+        }
+        
+        FUNCTION load_json {
+            parameters: ["file_path"]
+            
+            ACTION {
+                type: "load_json"
+                file_path: "${file_path}"
+            }
+            
+            RETURN {
+                value: {
+                    data: [
+                        {
+                            "customer_id": "C001",
+                            "name": "John Doe",
+                            "email": "john@example.com",
+                            "age": 35
+                        },
+                        {
+                            "customer_id": "C002",
+                            "name": "Jane Smith",
+                            "email": "jane@example.com",
+                            "age": 28
+                        },
+                        {
+                            "customer_id": "C003",
+                            "name": "Bob Johnson",
+                            "email": "bob@example.com",
+                            "age": 42
+                        }
+                    ],
+                    metadata: {
+                        record_count: 3,
+                        file_size: "2.5 KB"
+                    }
+                }
+            }
+        }
+        
+        FUNCTION load_database {
+            parameters: ["connection_string", "query"]
+            
+            ACTION {
+                type: "execute_query"
+                connection_string: "${connection_string}"
+                query: "${query}"
+            }
+            
+            RETURN {
+                value: {
+                    columns: ["product_id", "name", "category", "price", "stock"],
+                    rows: [
+                        ["P001", "Widget A", "Widgets", "19.99", "100"],
+                        ["P002", "Gadget B", "Gadgets", "29.99", "50"],
+                        ["P003", "Widget C", "Widgets", "24.99", "75"]
+                    ],
+                    metadata: {
+                        row_count: 3,
+                        column_count: 5,
+                        query_time: "0.05s"
+                    }
+                }
+            }
+        }
+        
+        FUNCTION validate_data {
+            parameters: ["data", "validation_rules"]
+            
+            ACTION {
+                type: "validate_data"
+                data: "${data}"
+                validation_rules: "${validation_rules}"
+            }
+            
+            RETURN {
+                value: {
+                    is_valid: true,
+                    validation_errors: [],
+                    validation_warnings: [
+                        {
+                            row: 2,
+                            column: "price",
+                            message: "Price is above average for this category"
+                        }
+                    ]
+                }
+            }
+        }
+    }
+}
+
+// Define the data transformer agent
+AGENT data_transformer {
+    description: "An agent that transforms and cleans data"
+    capabilities: ["data_cleaning", "data_transformation", "feature_engineering"]
+    
+    TASK transform_data {
+        description: "Transform and clean data"
+        
+        FUNCTION clean_data {
+            parameters: ["data", "cleaning_options"]
+            
+            ACTION {
+                type: "clean_data"
+                data: "${data}"
+                options: "${cleaning_options}"
+            }
+            
+            RETURN {
+                value: {
+                    cleaned_data: {
+                        columns: ["date", "product_id", "customer_id", "quantity", "price"],
+                        rows: [
+                            ["2023-01-01", "P001", "C001", "2", "19.99"],
+                            ["2023-01-01", "P002", "C002", "1", "29.99"],
+                            ["2023-01-02", "P001", "C003", "3", "19.99"]
+                        ]
+                    },
+                    cleaning_stats: {
+                        missing_values_filled: 0,
+                        outliers_removed: 0,
+                        duplicates_removed: 0
+                    }
+                }
+            }
+        }
+        
+        FUNCTION transform_columns {
+            parameters: ["data", "transformations"]
+            
+            ACTION {
+                type: "transform_columns"
+                data: "${data}"
+                transformations: "${transformations}"
+            }
+            
+            RETURN {
+                value: {
+                    transformed_data: {
+                        columns: ["date", "product_id", "customer_id", "quantity", "revenue"],
+                        rows: [
+                            ["2023-01-01", "P001", "C001", "2", "39.98"],
+                            ["2023-01-01", "P002", "C002", "1", "29.99"],
+                            ["2023-01-02", "P001", "C003", "3", "59.97"]
+                        ]
+                    },
+                    transformation_stats: {
+                        columns_added: 1,
+                        columns_removed: 1,
+                        columns_modified: 0
+                    }
+                }
+            }
+        }
+        
+        FUNCTION engineer_features {
+            parameters: ["data", "feature_definitions"]
+            
+            ACTION {
+                type: "engineer_features"
+                data: "${data}"
+                feature_definitions: "${feature_definitions}"
+            }
+            
+            RETURN {
+                value: {
+                    engineered_data: {
+                        columns: ["date", "product_id", "customer_id", "quantity", "revenue", "day_of_week", "is_weekend"],
+                        rows: [
+                            ["2023-01-01", "P001", "C001", "2", "39.98", "Sunday", "true"],
+                            ["2023-01-01", "P002", "C002", "1", "29.99", "Sunday", "true"],
+                            ["2023-01-02", "P001", "C003", "3", "59.97", "Monday", "false"]
+                        ]
+                    },
+                    feature_stats: {
+                        features_added: 2,
+                        categorical_features: 1,
+                        numerical_features: 0,
+                        boolean_features: 1
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Define the data analyzer agent
+AGENT data_analyzer {
+    description: "An agent that analyzes data"
+    capabilities: ["descriptive_analysis", "diagnostic_analysis", "predictive_analysis"]
+    
+    TASK analyze_data {
+        description: "Analyze data"
+        
+        FUNCTION descriptive_analysis {
+            parameters: ["data"]
+            
+            ACTION {
+                type: "descriptive_analysis"
+                data: "${data}"
+            }
+            
+            RETURN {
+                value: {
+                    summary_statistics: {
+                        numerical: {
+                            "quantity": {
+                                "mean": 2.0,
+                                "median": 2.0,
+                                "min": 1.0,
+                                "max": 3.0,
+                                "std": 1.0
+                            },
+                            "revenue": {
+                                "mean": 43.31,
+                                "median": 39.98,
+                                "min": 29.99,
+                                "max": 59.97,
+                                "std": 15.33
+                            }
+                        },
+                        categorical: {
+                            "product_id": {
+                                "unique_values": 2,
+                                "most_common": "P001",
+                                "most_common_count": 2
+                            },
+                            "day_of_week": {
+                                "unique_values": 2,
+                                "most_common": "Sunday",
+                                "most_common_count": 2
+                            }
+                        }
+                    },
+                    correlations: {
+                        "quantity_revenue": 1.0,
+                        "is_weekend_revenue": -0.5
+                    }
+                }
+            }
+        }
+        
+        FUNCTION diagnostic_analysis {
+            parameters: ["data", "target_variable"]
+            
+            ACTION {
+                type: "diagnostic_analysis"
+                data: "${data}"
+                target_variable: "${target_variable}"
+            }
+            
+            RETURN {
+                value: {
+                    feature_importance: {
+                        "product_id": 0.4,
+                        "day_of_week": 0.3,
+                        "is_weekend": 0.2,
+                        "quantity": 0.1
+                    },
+                    segment_analysis: {
+                        "by_product": [
+                            {
+                                "segment": "P001",
+                                "count": 2,
+                                "avg_revenue": 49.98
+                            },
+                            {
+                                "segment": "P002",
+                                "count": 1,
+                                "avg_revenue": 29.99
+                            }
+                        ],
+                        "by_day": [
+                            {
+                                "segment": "Sunday",
+                                "count": 2,
+                                "avg_revenue": 34.99
+                            },
+                            {
+                                "segment": "Monday",
+                                "count": 1,
+                                "avg_revenue": 59.97
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+        
+        FUNCTION predictive_analysis {
+            parameters: ["data", "target_variable", "features"]
+            
+            ACTION {
+                type: "predictive_analysis"
+                data: "${data}"
+                target_variable: "${target_variable}"
+                features: "${features}"
+            }
+            
+            RETURN {
+                value: {
+                    model_performance: {
+                        "r_squared": 0.85,
+                        "mean_absolute_error": 5.2,
+                        "mean_squared_error": 42.1
+                    },
+                    predictions: [
+                        {
+                            "inputs": {
+                                "product_id": "P001",
+                                "day_of_week": "Tuesday",
+                                "is_weekend": false,
+                                "quantity": 2
+                            },
+                            "predicted_revenue": 41.5,
+                            "confidence": 0.8
+                        },
+                        {
+                            "inputs": {
+                                "product_id": "P002",
+                                "day_of_week": "Saturday",
+                                "is_weekend": true,
+                                "quantity": 3
+                            },
+                            "predicted_revenue": 92.4,
+                            "confidence": 0.7
+                        }
+                    ]
+                }
+            }
+        }
+    }
+}
+
+// Define the data visualizer agent
+AGENT data_visualizer {
+    description: "An agent that creates visualizations from data"
+    capabilities: ["chart_generation", "dashboard_creation", "report_generation"]
+    
+    TASK visualize_data {
+        description: "Create visualizations from data"
+        
+        FUNCTION create_chart {
+            parameters: ["data", "chart_type", "x_axis", "y_axis", "options"]
+            
+            ACTION {
+                type: "create_chart"
+                data: "${data}"
+                chart_type: "${chart_type}"
+                x_axis: "${x_axis}"
+                y_axis: "${y_axis}"
+                options: "${options}"
+            }
+            
+            RETURN {
+                value: {
+                    chart_data: {
+                        type: "${chart_type}",
+                        data: {
+                            labels: ["P001", "P002"],
+                            datasets: [
+                                {
+                                    label: "Revenue",
+                                    data: [99.95, 29.99]
+                                }
+                            ]
+                        }
+                    },
+                    chart_image: "chart_1.png",
+                    chart_html: "<div id='chart1'></div><script>...</script>"
+                }
+            }
+        }
+        
+        FUNCTION create_dashboard {
+            parameters: ["charts", "layout", "title"]
+            
+            ACTION {
+                type: "create_dashboard"
+                charts: "${charts}"
+                layout: "${layout}"
+                title: "${title}"
+            }
+            
+            RETURN {
+                value: {
+                    dashboard_html: "<!DOCTYPE html><html>...</html>",
+                    dashboard_file: "dashboard.html"
+                }
+            }
+        }
+        
+        FUNCTION generate_report {
+            parameters: ["data", "analysis_results", "charts", "format"]
+            
+            ACTION {
+                type: "generate_report"
+                data: "${data}"
+                analysis_results: "${analysis_results}"
+                charts: "${charts}"
+                format: "${format}"
+            }
+            
+            RETURN {
+                value: {
+                    report_content: "# Sales Analysis Report\n\n## Summary\n\nTotal Revenue: $129.94\n\n...",
+                    report_file: "sales_analysis_report.md"
+                }
+            }
+        }
+    }
+}
+
+// Main workflow
+TARS {
+    // Initialize the workflow
+    ACTION {
+        type: "log"
+        message: "Starting data analysis workflow"
+    }
+    
+    // Create output directory if it doesn't exist
+    ACTION {
+        type: "ensure_directory"
+        path: "${config.value.output_directory}"
+    }
+    
+    // Load data from all sources
+    ACTION {
+        type: "log"
+        message: "Loading data from sources"
+    }
+    
+    VARIABLE all_data {
+        value: {}
+    }
+    
+    FOR {
+        variable: "source"
+        range: "${config.value.data_sources}"
+        
+        ACTION {
+            type: "log"
+            message: "Loading data from ${source.name}"
+        }
+        
+        VARIABLE source_data {
+            value: {}
+        }
+        
+        IF {
+            condition: "${source.type == 'csv'}"
+            
+            ACTION {
+                type: "execute"
+                agent: "data_loader"
+                task: "load_data"
+                function: "load_csv"
+                parameters: {
+                    file_path: "${source.path}",
+                    delimiter: "${source.delimiter}"
+                }
+                output_variable: "source_data"
+            }
+        }
+        ELSE IF {
+            condition: "${source.type == 'json'}"
+            
+            ACTION {
+                type: "execute"
+                agent: "data_loader"
+                task: "load_data"
+                function: "load_json"
+                parameters: {
+                    file_path: "${source.path}"
+                }
+                output_variable: "source_data"
+            }
+        }
+        ELSE IF {
+            condition: "${source.type == 'database'}"
+            
+            ACTION {
+                type: "execute"
+                agent: "data_loader"
+                task: "load_data"
+                function: "load_database"
+                parameters: {
+                    connection_string: "${source.connection_string}",
+                    query: "SELECT * FROM products"
+                }
+                output_variable: "source_data"
+            }
+        }
+        
+        // Validate the data
+        VARIABLE validation_result {
+            value: {}
+        }
+        
+        ACTION {
+            type: "execute"
+            agent: "data_loader"
+            task: "load_data"
+            function: "validate_data"
+            parameters: {
+                data: "${source_data.value}",
+                validation_rules: {
+                    required_columns: ["product_id"],
+                    data_types: {
+                        "quantity": "number",
+                        "price": "number"
+                    },
+                    value_ranges: {
+                        "price": { min: 0 },
+                        "quantity": { min: 1 }
+                    }
+                }
+            }
+            output_variable: "validation_result"
+        }
+        
+        // Store the data if valid
+        IF {
+            condition: "${validation_result.value.is_valid}"
+            
+            ACTION {
+                type: "assign"
+                target: "all_data.value.${source.name}"
+                value: "${source_data.value}"
+            }
+        }
+        ELSE {
+            ACTION {
+                type: "log"
+                message: "Data validation failed for ${source.name}: ${validation_result.value.validation_errors}"
+                level: "error"
+            }
+        }
+    }
+    
+    // Transform and clean the data
+    ACTION {
+        type: "log"
+        message: "Transforming and cleaning data"
+    }
+    
+    VARIABLE sales_data_cleaned {
+        value: {}
+    }
+    
+    ACTION {
+        type: "execute"
+        agent: "data_transformer"
+        task: "transform_data"
+        function: "clean_data"
+        parameters: {
+            data: "${all_data.value.sales_data}",
+            cleaning_options: {
+                fill_missing_values: true,
+                remove_duplicates: true,
+                handle_outliers: "clip"
+            }
+        }
+        output_variable: "sales_data_cleaned"
+    }
+    
+    VARIABLE sales_data_transformed {
+        value: {}
+    }
+    
+    ACTION {
+        type: "execute"
+        agent: "data_transformer"
+        task: "transform_data"
+        function: "transform_columns"
+        parameters: {
+            data: "${sales_data_cleaned.value.cleaned_data}",
+            transformations: {
+                add_columns: {
+                    "revenue": "quantity * price"
+                },
+                remove_columns: ["price"]
+            }
+        }
+        output_variable: "sales_data_transformed"
+    }
+    
+    VARIABLE sales_data_with_features {
+        value: {}
+    }
+    
+    ACTION {
+        type: "execute"
+        agent: "data_transformer"
+        task: "transform_data"
+        function: "engineer_features"
+        parameters: {
+            data: "${sales_data_transformed.value.transformed_data}",
+            feature_definitions: {
+                "day_of_week": "DAYNAME(date)",
+                "is_weekend": "DAYNAME(date) IN ('Saturday', 'Sunday')"
+            }
+        }
+        output_variable: "sales_data_with_features"
+    }
+    
+    // Perform descriptive analysis
+    ACTION {
+        type: "log"
+        message: "Performing descriptive analysis"
+    }
+    
+    VARIABLE descriptive_results {
+        value: {}
+    }
+    
+    ACTION {
+        type: "execute"
+        agent: "data_analyzer"
+        task: "analyze_data"
+        function: "descriptive_analysis"
+        parameters: {
+            data: "${sales_data_with_features.value.engineered_data}"
+        }
+        output_variable: "descriptive_results"
+    }
+    
+    // Perform diagnostic analysis
+    ACTION {
+        type: "log"
+        message: "Performing diagnostic analysis"
+    }
+    
+    VARIABLE diagnostic_results {
+        value: {}
+    }
+    
+    ACTION {
+        type: "execute"
+        agent: "data_analyzer"
+        task: "analyze_data"
+        function: "diagnostic_analysis"
+        parameters: {
+            data: "${sales_data_with_features.value.engineered_data}",
+            target_variable: "revenue"
+        }
+        output_variable: "diagnostic_results"
+    }
+    
+    // Perform predictive analysis if requested
+    IF {
+        condition: "${config.value.analysis_types.includes('predictive')}"
+        
+        ACTION {
+            type: "log"
+            message: "Performing predictive analysis"
+        }
+        
+        VARIABLE predictive_results {
+            value: {}
+        }
+        
+        ACTION {
+            type: "execute"
+            agent: "data_analyzer"
+            task: "analyze_data"
+            function: "predictive_analysis"
+            parameters: {
+                data: "${sales_data_with_features.value.engineered_data}",
+                target_variable: "revenue",
+                features: ["product_id", "day_of_week", "is_weekend", "quantity"]
+            }
+            output_variable: "predictive_results"
+        }
+    }
+    
+    // Create visualizations
+    ACTION {
+        type: "log"
+        message: "Creating visualizations"
+    }
+    
+    VARIABLE revenue_by_product_chart {
+        value: {}
+    }
+    
+    ACTION {
+        type: "execute"
+        agent: "data_visualizer"
+        task: "visualize_data"
+        function: "create_chart"
+        parameters: {
+            data: "${sales_data_with_features.value.engineered_data}",
+            chart_type: "bar",
+            x_axis: "product_id",
+            y_axis: "revenue",
+            options: {
+                title: "Revenue by Product",
+                aggregation: "sum"
+            }
+        }
+        output_variable: "revenue_by_product_chart"
+    }
+    
+    VARIABLE revenue_by_day_chart {
+        value: {}
+    }
+    
+    ACTION {
+        type: "execute"
+        agent: "data_visualizer"
+        task: "visualize_data"
+        function: "create_chart"
+        parameters: {
+            data: "${sales_data_with_features.value.engineered_data}",
+            chart_type: "bar",
+            x_axis: "day_of_week",
+            y_axis: "revenue",
+            options: {
+                title: "Revenue by Day of Week",
+                aggregation: "sum"
+            }
+        }
+        output_variable: "revenue_by_day_chart"
+    }
+    
+    // Create a dashboard
+    VARIABLE dashboard {
+        value: {}
+    }
+    
+    ACTION {
+        type: "execute"
+        agent: "data_visualizer"
+        task: "visualize_data"
+        function: "create_dashboard"
+        parameters: {
+            charts: [
+                "${revenue_by_product_chart.value.chart_html}",
+                "${revenue_by_day_chart.value.chart_html}"
+            ],
+            layout: {
+                rows: 1,
+                columns: 2
+            },
+            title: "Sales Analysis Dashboard"
+        }
+        output_variable: "dashboard"
+    }
+    
+    // Save the dashboard
+    ACTION {
+        type: "write_file"
+        path: "${config.value.output_directory}/dashboard.html"
+        content: "${dashboard.value.dashboard_html}"
+    }
+    
+    // Generate a report
+    ACTION {
+        type: "log"
+        message: "Generating report"
+    }
+    
+    VARIABLE report {
+        value: {}
+    }
+    
+    ACTION {
+        type: "execute"
+        agent: "data_visualizer"
+        task: "visualize_data"
+        function: "generate_report"
+        parameters: {
+            data: "${sales_data_with_features.value.engineered_data}",
+            analysis_results: {
+                descriptive: "${descriptive_results.value}",
+                diagnostic: "${diagnostic_results.value}",
+                predictive: "${predictive_results.value}"
+            },
+            charts: [
+                "${revenue_by_product_chart.value.chart_image}",
+                "${revenue_by_day_chart.value.chart_image}"
+            ],
+            format: "markdown"
+        }
+        output_variable: "report"
+    }
+    
+    // Save the report
+    ACTION {
+        type: "write_file"
+        path: "${config.value.output_directory}/sales_analysis_report.md"
+        content: "${report.value.report_content}"
+    }
+    
+    // Log completion
+    ACTION {
+        type: "log"
+        message: "Data analysis workflow completed"
+    }
+}

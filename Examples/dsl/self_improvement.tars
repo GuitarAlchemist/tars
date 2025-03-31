@@ -1,0 +1,66 @@
+DESCRIBE {
+    name: "TARS Self-Improvement Example"
+    version: "1.0"
+    author: "TARS User"
+    description: "A self-improvement example of the TARS DSL"
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.7
+    max_tokens: 2000
+}
+
+TARS {
+    AGENT improver {
+        description: "An agent that can improve code"
+        capabilities: ["analyze", "refactor", "optimize"]
+        
+        TASK AnalyzeCode {
+            description: "Analyze code for potential improvements"
+            
+            ACTION {
+                type: "analyze"
+                target: "TarsCli/Services/SelfImprovementService.cs"
+                metrics: ["complexity", "maintainability", "performance"]
+            }
+        }
+        
+        TASK RefactorCode {
+            description: "Refactor code based on analysis"
+            
+            ACTION {
+                type: "refactor"
+                target: "TarsCli/Services/SelfImprovementService.cs"
+                improvements: ["reduce_complexity", "improve_naming", "add_comments"]
+            }
+        }
+    }
+    
+    AUTO_IMPROVE {
+        target: "TarsCli/Services/SelfImprovementService.cs"
+        method: "analyze_and_refactor"
+        iterations: 3
+        agent: "improver"
+        
+        PROMPT {
+            text: "Analyze this code and suggest improvements for readability and performance."
+            role: "system"
+        }
+        
+        ACTION {
+            type: "execute"
+            task: "AnalyzeCode"
+        }
+        
+        ACTION {
+            type: "execute"
+            task: "RefactorCode"
+        }
+        
+        SELF_IMPROVE {
+            agent: "improver"
+            instructions: "Learn from the refactoring process to improve future refactorings"
+        }
+    }
+}
