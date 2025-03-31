@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -18,6 +19,9 @@ public class OllamaSetupService
     private readonly HttpClient _httpClient = new();
     private readonly string _baseUrl;
     private readonly string[] _requiredModels;
+
+    // Regular expression to match ANSI escape sequences
+    private static readonly Regex _ansiRegex = new Regex(@"\x1B\[[^@-~]*[@-~]", RegexOptions.Compiled);
 
     public OllamaSetupService(
         ILogger<OllamaSetupService> logger,
@@ -206,18 +210,20 @@ public class OllamaSetupService
             process.OutputDataReceived += (sender, args) => {
                 if (!string.IsNullOrEmpty(args.Data))
                 {
-                    outputBuilder.AppendLine(args.Data);
-                    _logger.LogInformation($"Ollama output: {args.Data}");
-                    Console.WriteLine($"Ollama output: {args.Data}");
+                    var cleanData = StripAnsiEscapeSequences(args.Data);
+                    outputBuilder.AppendLine(cleanData);
+                    _logger.LogInformation($"Ollama output: {cleanData}");
+                    Console.WriteLine($"Ollama output: {cleanData}");
                 }
             };
 
             process.ErrorDataReceived += (sender, args) => {
                 if (!string.IsNullOrEmpty(args.Data))
                 {
-                    errorBuilder.AppendLine(args.Data);
-                    _logger.LogWarning($"Ollama error: {args.Data}");
-                    Console.WriteLine($"Ollama error: {args.Data}");
+                    var cleanData = StripAnsiEscapeSequences(args.Data);
+                    errorBuilder.AppendLine(cleanData);
+                    _logger.LogWarning($"Ollama error: {cleanData}");
+                    Console.WriteLine($"Ollama error: {cleanData}");
                 }
             };
 
@@ -271,6 +277,19 @@ public class OllamaSetupService
             "llama3" => "llama3",
             _ => modelName
         };
+    }
+
+    /// <summary>
+    /// Strip ANSI escape sequences from a string
+    /// </summary>
+    /// <param name="input">Input string that may contain ANSI escape sequences</param>
+    /// <returns>String with ANSI escape sequences removed</returns>
+    private static string StripAnsiEscapeSequences(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+            return input;
+
+        return _ansiRegex.Replace(input, string.Empty);
     }
 
     private bool StartOllamaService()
@@ -388,18 +407,20 @@ public class OllamaSetupService
                 process.OutputDataReceived += (sender, args) => {
                     if (!string.IsNullOrEmpty(args.Data))
                     {
-                        outputBuilder.AppendLine(args.Data);
-                        _logger.LogInformation($"Ollama output: {args.Data}");
-                        Console.WriteLine($"Ollama output: {args.Data}");
+                        var cleanData = StripAnsiEscapeSequences(args.Data);
+                        outputBuilder.AppendLine(cleanData);
+                        _logger.LogInformation($"Ollama output: {cleanData}");
+                        Console.WriteLine($"Ollama output: {cleanData}");
                     }
                 };
 
                 process.ErrorDataReceived += (sender, args) => {
                     if (!string.IsNullOrEmpty(args.Data))
                     {
-                        errorBuilder.AppendLine(args.Data);
-                        _logger.LogWarning($"Ollama error: {args.Data}");
-                        Console.WriteLine($"Ollama error: {args.Data}");
+                        var cleanData = StripAnsiEscapeSequences(args.Data);
+                        errorBuilder.AppendLine(cleanData);
+                        _logger.LogWarning($"Ollama error: {cleanData}");
+                        Console.WriteLine($"Ollama error: {cleanData}");
                     }
                 };
 
@@ -512,18 +533,20 @@ public class OllamaSetupService
                 process.OutputDataReceived += (sender, args) => {
                     if (!string.IsNullOrEmpty(args.Data))
                     {
-                        outputBuilder.AppendLine(args.Data);
-                        _logger.LogInformation($"Ollama output: {args.Data}");
-                        WriteColorLine($"Ollama output: {args.Data}", ConsoleColor.Gray);
+                        var cleanData = StripAnsiEscapeSequences(args.Data);
+                        outputBuilder.AppendLine(cleanData);
+                        _logger.LogInformation($"Ollama output: {cleanData}");
+                        WriteColorLine($"Ollama output: {cleanData}", ConsoleColor.Gray);
                     }
                 };
 
                 process.ErrorDataReceived += (sender, args) => {
                     if (!string.IsNullOrEmpty(args.Data))
                     {
-                        errorBuilder.AppendLine(args.Data);
-                        _logger.LogWarning($"Ollama error: {args.Data}");
-                        WriteColorLine($"Ollama error: {args.Data}", ConsoleColor.DarkYellow);
+                        var cleanData = StripAnsiEscapeSequences(args.Data);
+                        errorBuilder.AppendLine(cleanData);
+                        _logger.LogWarning($"Ollama error: {cleanData}");
+                        WriteColorLine($"Ollama error: {cleanData}", ConsoleColor.DarkYellow);
                     }
                 };
 

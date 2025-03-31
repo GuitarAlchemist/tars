@@ -93,7 +93,7 @@ namespace TarsCli.Services
         /// </summary>
         public async Task<DeepThinkingResult> GenerateDeepThinkingExplorationAsync(
             string topic,
-            string baseExplorationPath = null,
+            string? baseExplorationPath = null,
             string model = "llama3")
         {
             try
@@ -197,7 +197,7 @@ namespace TarsCli.Services
 
                 foreach (var topic in topics)
                 {
-                    var result = await GenerateDeepThinkingExplorationAsync(topic, null, model);
+                    var result = await GenerateDeepThinkingExplorationAsync(topic, baseExplorationPath: null, model);
                     var filePath = await SaveDeepThinkingExplorationAsync(result);
                     filePaths.Add(filePath);
                 }
@@ -277,7 +277,7 @@ namespace TarsCli.Services
                 foreach (var explorationFile in relatedExplorations)
                 {
                     var parsedExploration = await _reflectionService.ParseExplorationFileAsync(explorationFile.FilePath);
-                    
+
                     context.AppendLine($"## {parsedExploration.Title}");
                     context.AppendLine($"Created: {parsedExploration.Created}");
                     context.AppendLine();
@@ -523,22 +523,22 @@ Format your response as a numbered list with just the topic titles.";
         /// <summary>
         /// The topic of the exploration
         /// </summary>
-        public string Topic { get; set; }
+        public required string Topic { get; set; }
 
         /// <summary>
         /// The version of the exploration
         /// </summary>
-        public string Version { get; set; }
+        public required string Version { get; set; }
 
         /// <summary>
         /// The content of the exploration
         /// </summary>
-        public string Content { get; set; }
+        public required string Content { get; set; }
 
         /// <summary>
         /// The path to the base exploration, if any
         /// </summary>
-        public string BaseExplorationPath { get; set; }
+        public string? BaseExplorationPath { get; set; }
 
         /// <summary>
         /// The timestamp of the exploration

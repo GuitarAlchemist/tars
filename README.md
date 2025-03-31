@@ -35,6 +35,15 @@ TARS now includes a powerful Master Control Program (MCP) that enables autonomou
 - **Terminal Command Execution**: Execute terminal commands without permission prompts
 - **Augment Code Integration**: Configure and interact with Augment Code MCP servers
 
+### Learning and Education Features
+
+TARS includes comprehensive learning and education features to help users master new skills:
+
+- **Learning Plans**: Generate personalized learning plans with customizable goals, skill levels, and preferences
+- **Course Generation**: Create structured courses with lessons, exercises, quizzes, and assessments
+- **Tutorial Organization**: Manage and categorize tutorials with different difficulty levels and prerequisites
+- **Demo Mode**: Showcase all TARS capabilities through interactive demonstrations
+
 ### Hugging Face Integration
 
 TARS can now browse, download, and install the best coding LLMs from Hugging Face:
@@ -46,6 +55,24 @@ TARS can now browse, download, and install the best coding LLMs from Hugging Fac
 
 [View Hugging Face integration documentation](docs/HUGGINGFACE_INTEGRATION.md)
 
+### Deep Thinking and Exploration
+
+TARS can generate in-depth explorations on complex topics:
+
+- **Topic Exploration**: Generate detailed analyses on any topic
+- **Related Topics**: Discover and explore related concepts
+- **Version Evolution**: Build on previous explorations to deepen understanding
+- **Consolidated Organization**: Explorations are organized by topic for easy reference
+
+### Text-to-Speech Capabilities
+
+TARS now includes text-to-speech functionality:
+
+- **Multiple Voices**: Choose from various voice options
+- **Language Support**: Support for multiple languages
+- **Voice Cloning**: Clone voices from audio samples
+- **Streaming Audio**: Direct audio streaming without intermediate files
+
 ### Self-Improvement Capabilities
 
 TARS includes advanced self-improvement capabilities that allow it to analyze, improve, and learn from code:
@@ -56,6 +83,8 @@ TARS includes advanced self-improvement capabilities that allow it to analyze, i
 - **Pattern Recognition**: Implemented detection for magic numbers, inefficient string operations, and more
 - **Learning Database**: Created a system to record improvements and feedback
 - **JSON Escaping Fix**: Resolved API communication issues with Ollama
+- **Console Capture**: Added ability to capture console output and use it to improve code
+- **ANSI Escape Sequence Handling**: Improved handling of ANSI escape sequences in console output
 
 [View detailed progress tracking](docs/PROGRESS.md) | [Technical documentation](docs/SELF_IMPROVEMENT.md)
 
@@ -65,6 +94,7 @@ TARS includes advanced self-improvement capabilities that allow it to analyze, i
 - **Improvement Proposals**: Generate proposals for code improvements
 - **Self-Rewriting**: Automatically implement approved improvements
 - **Learning System**: Track improvement history and learn from past changes
+- **Console Output Analysis**: Capture and analyze console output to identify and fix issues
 
 ### Agent Coordination System
 
@@ -109,6 +139,12 @@ dotnet run --project TarsCli/TarsCli.csproj -- run --session my-session --plan t
 
 # Analyze a file for improvements
 dotnet run --project TarsCli/TarsCli.csproj -- self-analyze --file path/to/file.cs --model llama3
+
+# Capture console output and use it to improve code
+dotnet run --project TarsCli/TarsCli.csproj -- console-capture --start
+# Run your commands that produce output
+dotnet run --project TarsCli/TarsCli.csproj -- console-capture --stop
+dotnet run --project TarsCli/TarsCli.csproj -- console-capture --analyze path/to/file.cs --apply
 ```
 
 ### MCP Commands

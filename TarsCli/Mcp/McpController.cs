@@ -8,10 +8,10 @@ namespace TarsCli.Mcp;
 public class McpController
 {
     private readonly ILogger<McpController> _logger;
-    private readonly IConfiguration _configuration;
+    private readonly IConfiguration? _configuration;
     private readonly bool _autoExecuteEnabled;
 
-    public McpController(ILogger<McpController> logger, IConfiguration configuration = null)
+    public McpController(ILogger<McpController> logger, IConfiguration? configuration = null)
     {
         _logger = logger;
         _configuration = configuration;

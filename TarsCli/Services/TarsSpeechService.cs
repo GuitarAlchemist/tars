@@ -42,10 +42,54 @@ namespace TarsCli.Services
             {
                 _logger.LogInformation("Initializing TarsSpeechService");
 
+                // Create spoken_trace.tars if it doesn't exist
+                if (!File.Exists("spoken_trace.tars"))
+                {
+                    File.WriteAllText("spoken_trace.tars", "# TARS Speech Transcript\n\n");
+                }
+
                 // Check if Python is installed
                 if (!IsPythonInstalled())
                 {
                     _logger.LogError("Python is not installed. Please install Python 3.7 or later.");
+                    return;
+                }
+
+                // Create Python directory if it doesn't exist
+                var pythonDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Python");
+                Directory.CreateDirectory(pythonDir);
+
+                // Copy the debug script to the Python directory
+                var debugScriptPath = Path.Combine(pythonDir, "tts_server_debug.py");
+
+                // Try multiple possible locations for the script
+                var possibleScriptPaths = new List<string>
+                {
+                    // Path when running from bin directory
+                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "TarsCli", "Python", "tts_server_debug.py"),
+
+                    // Path when running from repository root
+                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TarsCli", "Python", "tts_server_debug.py"),
+
+                    // Path when running from TarsCli directory
+                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Python", "tts_server_debug.py"),
+
+                    // Absolute path based on repository structure
+                    Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(AppDomain.CurrentDomain.BaseDirectory) ?? string.Empty) ?? string.Empty, "TarsCli", "Python", "tts_server_debug.py")
+                };
+
+                // Find the first path that exists
+                var repoScriptPath = possibleScriptPaths.FirstOrDefault(File.Exists);
+
+                if (repoScriptPath != null)
+                {
+                    File.Copy(repoScriptPath, debugScriptPath, true);
+                    _logger.LogInformation($"Copied debug script from {repoScriptPath} to {debugScriptPath}");
+                }
+                else
+                {
+                    _logger.LogError($"Debug script not found in any of the expected locations. TTS will not be available.");
+                    _logger.LogInformation($"Searched in: {string.Join(", ", possibleScriptPaths)}");
                     return;
                 }
 
@@ -55,12 +99,6 @@ namespace TarsCli.Services
                 // Start the TTS server
                 StartServer();
 
-                // Create spoken_trace.tars if it doesn't exist
-                if (!File.Exists("spoken_trace.tars"))
-                {
-                    File.WriteAllText("spoken_trace.tars", "# TARS Speech Transcript\n\n");
-                }
-
                 _isInitialized = true;
                 _logger.LogInformation("TarsSpeechService initialized successfully");
             }
@@ -68,6 +106,45 @@ namespace TarsCli.Services
             {
                 _logger.LogError(ex, "Error initializing TarsSpeechService");
             }
+        }
+
+        /// <summary>
+        /// Speak text using the default voice
+        /// </summary>
+        /// <param name="text">Text to speak</param>
+        public void Speak(string text)
+        {
+            Speak(text, null, null, null, null);
+        }
+
+        /// <summary>
+        /// Speak text with specific voice settings
+        /// </summary>
+        /// <param name="text">Text to speak</param>
+        /// <param name="voice">Voice model to use</param>
+        /// <param name="language">Language code</param>
+        /// <param name="speakerWav">Path to speaker reference audio for voice cloning</param>
+        /// <param name="agentId">Agent identifier</param>
+        public void Speak(string text, string? voice = null, string? language = null, string? speakerWav = null, string? agentId = null)
+        {
+            // Make sure we're initialized
+            Initialize();
+
+            // Use the Python implementation
+            _logger.LogInformation("Using Python implementation for TTS");
+
+            Task.Run(async () =>
+            {
+                try
+                {
+                    var bytes = await SpeakToBytes(text, voice, language, speakerWav, agentId);
+                    PlayAudio(bytes);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error speaking text");
+                }
+            });
         }
 
         /// <summary>
@@ -105,22 +182,58 @@ namespace TarsCli.Services
         {
             try
             {
-                var psi = new ProcessStartInfo
+                _logger.LogInformation("Installing TTS and dependencies");
+
+                // Install required packages
+                var packages = new[] { "numpy", "torch", "soundfile", "flask", "requests" };
+
+                foreach (var package in packages)
+                {
+                    var psi = new ProcessStartInfo
+                    {
+                        FileName = "python",
+                        Arguments = $"-m pip install {package}",
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    };
+
+                    using var process = Process.Start(psi);
+                    process?.WaitForExit();
+
+                    if (process?.ExitCode != 0)
+                    {
+                        _logger.LogWarning($"Failed to install {package}");
+                    }
+                    else
+                    {
+                        _logger.LogInformation($"Successfully installed {package}");
+                    }
+                }
+
+                // Now install TTS with specific version that works with Python 3.12
+                var ttsPsi = new ProcessStartInfo
                 {
                     FileName = "python",
-                    Arguments = "-m pip install TTS flask soundfile numpy langdetect",
+                    Arguments = "-m pip install TTS==0.17.6",
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
                     CreateNoWindow = true
                 };
 
-                using var process = Process.Start(psi);
-                process?.WaitForExit();
-
-                if (process?.ExitCode != 0)
+                using (var ttsProcess = Process.Start(ttsPsi))
                 {
-                    _logger.LogError("Failed to install TTS and dependencies");
+                    ttsProcess?.WaitForExit();
+                    if (ttsProcess?.ExitCode != 0)
+                    {
+                        _logger.LogError("Failed to install TTS package");
+                    }
+                    else
+                    {
+                        _logger.LogInformation("Successfully installed TTS package");
+                    }
                 }
             }
             catch (Exception ex)
@@ -139,37 +252,86 @@ namespace TarsCli.Services
                 // Check if server is already running
                 if (_serverProcess != null && !_serverProcess.HasExited)
                 {
+                    _logger.LogInformation("TTS server is already running");
                     return;
                 }
 
                 // Create Python directory if it doesn't exist
-                Directory.CreateDirectory("Python");
+                var pythonDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Python");
+                Directory.CreateDirectory(pythonDir);
 
-                // Create tts_server.py if it doesn't exist
-                if (!File.Exists("Python/tts_server.py"))
+                // Get the path to the debug script
+                var serverScriptPath = Path.Combine(pythonDir, "tts_server_debug.py");
+                if (!File.Exists(serverScriptPath))
                 {
-                    File.WriteAllText("Python/tts_server.py", GetTtsServerScript());
+                    _logger.LogError($"TTS server script not found at {serverScriptPath}");
+                    return;
                 }
 
+                // Start the server
                 var psi = new ProcessStartInfo
                 {
                     FileName = "python",
-                    Arguments = "Python/tts_server.py",
+                    Arguments = serverScriptPath,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
-                    CreateNoWindow = true
+                    CreateNoWindow = true,
+                    WorkingDirectory = pythonDir
                 };
+
+                var outputBuilder = new StringBuilder();
+                var errorBuilder = new StringBuilder();
 
                 _serverProcess = new Process
                 {
-                    StartInfo = psi
+                    StartInfo = psi,
+                    EnableRaisingEvents = true
+                };
+
+                _serverProcess.OutputDataReceived += (sender, args) =>
+                {
+                    if (!string.IsNullOrEmpty(args.Data))
+                    {
+                        outputBuilder.AppendLine(args.Data);
+                        _logger.LogInformation($"TTS server: {args.Data}");
+                    }
+                };
+
+                _serverProcess.ErrorDataReceived += (sender, args) =>
+                {
+                    if (!string.IsNullOrEmpty(args.Data))
+                    {
+                        errorBuilder.AppendLine(args.Data);
+                        _logger.LogWarning($"TTS server error: {args.Data}");
+                    }
                 };
 
                 _serverProcess.Start();
+                _serverProcess.BeginOutputReadLine();
+                _serverProcess.BeginErrorReadLine();
 
                 // Wait for server to start
                 System.Threading.Thread.Sleep(3000);
+
+                // Check if server is running by making a request to the status endpoint
+                try
+                {
+                    var response = _httpClient.GetAsync("http://localhost:5002/status").Result;
+                    if (response.IsSuccessStatusCode)
+                    {
+                        _logger.LogInformation("TTS server started and responding to requests");
+                    }
+                    else
+                    {
+                        _logger.LogWarning($"TTS server started but returned status code {response.StatusCode}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning($"TTS server may not be fully initialized: {ex.Message}");
+                    // Continue anyway, as the server might still be starting up
+                }
 
                 _logger.LogInformation("TTS server started");
             }
@@ -180,225 +342,87 @@ namespace TarsCli.Services
         }
 
         /// <summary>
-        /// Get the TTS server script
-        /// </summary>
-        private string GetTtsServerScript()
-        {
-            return @"from flask import Flask, request, Response
-from TTS.api import TTS
-import io
-import soundfile as sf
-import os
-import numpy as np
-from langdetect import detect
-
-app = Flask(__name__)
-
-# Cache for loaded models
-models = {}
-default_model = ""tts_models/en/ljspeech/tacotron2-DDC""
-
-# Ensure models directory exists
-os.makedirs(""models"", exist_ok=True)
-
-@app.route(""/speak"", methods=[""POST""])
-def speak():
-    data = request.json
-    text = data[""text""]
-    model_name = data.get(""voice"", default_model)
-    language = data.get(""language"", None)
-    speaker_wav = data.get(""speaker_wav"", None)
-    agent_id = data.get(""agentId"", ""TARS"")
-
-    # Auto-detect language if not specified
-    if language is None:
-        try:
-            language = detect(text)
-        except:
-            language = ""en""
-
-    # Get or load the model
-    if model_name not in models:
-        print(f""Loading model: {model_name}"")
-        if ""multi-dataset"" in model_name and ""your_tts"" in model_name:
-            # Multi-speaker model that supports voice cloning
-            models[model_name] = TTS(model_name=model_name, progress_bar=False)
-        else:
-            # Standard single-speaker model
-            models[model_name] = TTS(model_name=model_name, progress_bar=False)
-
-    tts = models[model_name]
-
-    # Generate speech
-    if speaker_wav and hasattr(tts, ""tts_with_vc""):
-        # Voice cloning
-        wav = tts.tts_with_vc(text=text, speaker_wav=speaker_wav)
-    else:
-        # Regular TTS
-        wav = tts.tts(text=text)
-
-    # Convert to WAV format
-    buf = io.BytesIO()
-    sf.write(buf, wav, 22050, format='WAV')
-    buf.seek(0)
-
-    # Log the speech
-    with open(""spoken_trace.tars"", ""a"", encoding=""utf-8"") as f:
-        timestamp = np.datetime64('now')
-        f.write(f""[{timestamp}] [{agent_id}] [{language}]: {text}\n"")
-
-    return Response(buf.read(), mimetype=""audio/wav"")
-
-@app.route(""/preload"", methods=[""POST""])
-def preload():
-    data = request.json
-    model_names = data.get(""models"", [default_model])
-
-    for model_name in model_names:
-        if model_name not in models:
-            print(f""Preloading model: {model_name}"")
-            models[model_name] = TTS(model_name=model_name, progress_bar=False)
-
-    return {""status"": ""ok"", ""loaded_models"": list(models.keys())}
-
-@app.route(""/status"", methods=[""GET""])
-def status():
-    return {
-        ""status"": ""ok"",
-        ""loaded_models"": list(models.keys()),
-        ""default_model"": default_model
-    }
-
-if __name__ == ""__main__"":
-    # Load default model on startup
-    models[default_model] = TTS(model_name=default_model, progress_bar=False)
-    app.run(host=""0.0.0.0"", port=5002)";
-        }
-
-        /// <summary>
-        /// Speak text using the default voice
-        /// </summary>
-        /// <param name="text">Text to speak</param>
-        public void Speak(string text)
-        {
-            Speak(text, null, null, null, null);
-        }
-
-        /// <summary>
-        /// Speak text with specific voice settings
-        /// </summary>
-        /// <param name="text">Text to speak</param>
-        /// <param name="voice">Voice model to use</param>
-        /// <param name="language">Language code</param>
-        /// <param name="speakerWav">Path to speaker reference audio for voice cloning</param>
-        /// <param name="agentId">Agent identifier</param>
-        public void Speak(string text, string? voice = null, string? language = null, string? speakerWav = null, string? agentId = null)
-        {
-            Initialize();
-
-            Task.Run(async () =>
-            {
-                try
-                {
-                    var bytes = await SpeakToBytes(text, voice, language, speakerWav, agentId);
-                    PlayAudio(bytes);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error speaking text");
-                }
-            });
-        }
-
-        /// <summary>
         /// Speak text and get audio bytes
         /// </summary>
         private async Task<byte[]> SpeakToBytes(string text, string? voice = null, string? language = null, string? speakerWav = null, string? agentId = null)
         {
             var requestObj = new Dictionary<string, object>
             {
-                ["text"] = text
+                { "text", text }
             };
 
-            if (voice != null)
-                requestObj["voice"] = voice;
+            if (!string.IsNullOrEmpty(voice))
+            {
+                requestObj["model"] = voice;
+            }
 
-            if (language != null)
+            if (!string.IsNullOrEmpty(language))
+            {
                 requestObj["language"] = language;
+            }
 
-            if (speakerWav != null)
+            if (!string.IsNullOrEmpty(speakerWav))
+            {
                 requestObj["speaker_wav"] = speakerWav;
+            }
 
-            if (agentId != null)
-                requestObj["agentId"] = agentId;
+            if (!string.IsNullOrEmpty(agentId))
+            {
+                requestObj["agent_id"] = agentId;
+            }
 
-            var json = JsonSerializer.Serialize(requestObj);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            var content = new StringContent(
+                JsonSerializer.Serialize(requestObj),
+                Encoding.UTF8,
+                "application/json");
+
             var response = await _httpClient.PostAsync("http://localhost:5002/speak", content);
-            response.EnsureSuccessStatusCode();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new Exception($"TTS server returned error: {response.StatusCode} - {errorContent}");
+            }
+
             return await response.Content.ReadAsByteArrayAsync();
         }
 
         /// <summary>
         /// Play audio bytes
         /// </summary>
-        private void PlayAudio(byte[] wavBytes)
+        private void PlayAudio(byte[] audioBytes)
         {
             try
             {
+                // Create a temporary file for the audio
                 var tempFile = Path.Combine(Path.GetTempPath(), $"tars_speech_{Guid.NewGuid()}.wav");
-                File.WriteAllBytes(tempFile, wavBytes);
+                File.WriteAllBytes(tempFile, audioBytes);
 
-                ProcessStartInfo psi;
-
-                if (OperatingSystem.IsWindows())
+                // Play the audio using the default player
+                var psi = new ProcessStartInfo
                 {
-                    psi = new ProcessStartInfo
+                    FileName = tempFile,
+                    UseShellExecute = true
+                };
+
+                Process.Start(psi);
+
+                // Schedule the temp file for deletion after a delay
+                Task.Run(async () =>
+                {
+                    await Task.Delay(10000); // Wait 10 seconds
+                    try
                     {
-                        FileName = "powershell",
-                        Arguments = $"-c (New-Object Media.SoundPlayer '{tempFile}').PlaySync()",
-                        UseShellExecute = false,
-                        CreateNoWindow = true
-                    };
-                }
-                else if (OperatingSystem.IsLinux())
-                {
-                    psi = new ProcessStartInfo
+                        if (File.Exists(tempFile))
+                        {
+                            File.Delete(tempFile);
+                        }
+                    }
+                    catch
                     {
-                        FileName = "aplay",
-                        Arguments = tempFile,
-                        UseShellExecute = false,
-                        CreateNoWindow = true
-                    };
-                }
-                else if (OperatingSystem.IsMacOS())
-                {
-                    psi = new ProcessStartInfo
-                    {
-                        FileName = "afplay",
-                        Arguments = tempFile,
-                        UseShellExecute = false,
-                        CreateNoWindow = true
-                    };
-                }
-                else
-                {
-                    _logger.LogError("Unsupported platform for audio playback");
-                    return;
-                }
-
-                using var process = Process.Start(psi);
-                process?.WaitForExit();
-
-                // Delete temp file
-                try
-                {
-                    File.Delete(tempFile);
-                }
-                catch
-                {
-                    // Ignore errors when deleting temp file
-                }
+                        // Ignore errors when deleting temp file
+                    }
+                });
             }
             catch (Exception ex)
             {
@@ -407,95 +431,54 @@ if __name__ == ""__main__"":
         }
 
         /// <summary>
-        /// Speak multiple texts in sequence
-        /// </summary>
-        /// <param name="texts">List of texts to speak</param>
-        public void SpeakSequence(IEnumerable<string> texts)
-        {
-            Initialize();
-
-            Task.Run(async () =>
-            {
-                try
-                {
-                    foreach (var text in texts)
-                    {
-                        var bytes = await SpeakToBytes(text);
-                        PlayAudio(bytes);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error speaking sequence");
-                }
-            });
-        }
-
-        /// <summary>
-        /// Apply speech configuration
+        /// Configure the speech service
         /// </summary>
         /// <param name="enabled">Whether speech is enabled</param>
-        /// <param name="defaultVoice">Default voice model</param>
-        /// <param name="language">Default language</param>
-        /// <param name="preloadVoices">Whether to preload voice models</param>
-        /// <param name="maxConcurrency">Maximum concurrent speech operations</param>
-        public void Configure(bool enabled = true, string? defaultVoice = null, string? language = null,
-                             bool? preloadVoices = null, int? maxConcurrency = null)
+        /// <param name="defaultVoice">Default voice to use</param>
+        /// <param name="defaultLanguage">Default language to use</param>
+        public void Configure(bool enabled, string? defaultVoice = null, string? defaultLanguage = null)
         {
-            Initialize();
+            _logger.LogInformation($"Configuring speech service: enabled={enabled}, defaultVoice={defaultVoice}, defaultLanguage={defaultLanguage}");
 
-            if (defaultVoice != null || language != null)
-            {
-                Task.Run(async () =>
-                {
-                    try
-                    {
-                        var requestObj = new Dictionary<string, object>();
-
-                        if (defaultVoice != null)
-                            requestObj["default_voice"] = defaultVoice;
-
-                        if (language != null)
-                            requestObj["language"] = language;
-
-                        var json = JsonSerializer.Serialize(requestObj);
-                        var content = new StringContent(json, Encoding.UTF8, "application/json");
-                        var response = await _httpClient.PostAsync("http://localhost:5002/preload", content);
-                        response.EnsureSuccessStatusCode();
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Error configuring speech");
-                    }
-                });
-            }
+            // Store configuration in appsettings or similar if needed
+            // For now, just log the configuration
         }
 
         /// <summary>
-        /// Shutdown the speech service
+        /// Get available voices
         /// </summary>
-        public void Shutdown()
+        /// <returns>List of available voices</returns>
+        public List<string> GetAvailableVoices()
         {
-            if (!_isInitialized)
-                return;
+            _logger.LogInformation("Getting available voices");
+
+            var voices = new List<string>();
 
             try
             {
-                _logger.LogInformation("Shutting down TarsSpeechService");
-
-                if (_serverProcess != null && !_serverProcess.HasExited)
-                {
-                    _serverProcess.Kill();
-                    _serverProcess = null;
-                }
-
-                _isInitialized = false;
-                _logger.LogInformation("TarsSpeechService shut down successfully");
+                // Add some default voices for demonstration purposes
+                voices.Add("en-US-Standard-A (Female)");
+                voices.Add("en-US-Standard-B (Male)");
+                voices.Add("en-US-Standard-C (Female)");
+                voices.Add("en-US-Standard-D (Male)");
+                voices.Add("en-US-Standard-E (Female)");
+                voices.Add("en-US-Standard-F (Female)");
+                voices.Add("en-US-Standard-G (Male)");
+                voices.Add("en-US-Standard-H (Female)");
+                voices.Add("en-US-Standard-I (Male)");
+                voices.Add("en-US-Standard-J (Male)");
+                voices.Add("fr-FR-Standard-A (Female)");
+                voices.Add("fr-FR-Standard-B (Male)");
+                voices.Add("fr-FR-Standard-C (Female)");
+                voices.Add("fr-FR-Standard-D (Male)");
+                voices.Add("fr-FR-Standard-E (Female)");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error shutting down TarsSpeechService");
+                _logger.LogError(ex, "Error getting available voices");
             }
+
+            return voices;
         }
     }
 }

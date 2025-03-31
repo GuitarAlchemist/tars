@@ -70,6 +70,10 @@ internal static class Program
                 .AddSingleton<DeepThinkingService>()
                 .AddSingleton<McpService>()
                 .AddSingleton<TarsMcpService>()
+                .AddSingleton<LearningPlanService>()
+                .AddSingleton<CourseGeneratorService>()
+                .AddSingleton<TutorialOrganizerService>()
+                .AddSingleton<ConsoleCaptureService>()
                 .AddSingleton<TarsCli.Mcp.McpController>(sp => new TarsCli.Mcp.McpController(sp.GetRequiredService<ILogger<TarsCli.Mcp.McpController>>(), configuration))
                 .BuildServiceProvider();
 

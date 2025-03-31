@@ -26,31 +26,31 @@ namespace TarsCli.Services
         {
             _logger = logger;
             _configuration = configuration;
-            
+
             // Get log directory from configuration or use default
             _logDirectory = _configuration.GetValue<string>("Tars:Logs:Directory", "logs");
-            
+
             // Ensure log directory exists
             if (!Directory.Exists(_logDirectory))
             {
                 Directory.CreateDirectory(_logDirectory);
             }
-            
+
             // Set log file paths
             _conversationLogPath = Path.Combine(_logDirectory, "conversations.json");
             _augmentLogPath = Path.Combine(_logDirectory, "augment_conversations.md");
-            
+
             // Create log files if they don't exist
             if (!File.Exists(_conversationLogPath))
             {
                 File.WriteAllText(_conversationLogPath, "[]");
             }
-            
+
             if (!File.Exists(_augmentLogPath))
             {
                 File.WriteAllText(_augmentLogPath, "# TARS - Augment Code Conversations\n\n");
             }
-            
+
             _logger.LogInformation($"ConversationLoggingService initialized with log directory: {_logDirectory}");
         }
 
@@ -69,16 +69,16 @@ namespace TarsCli.Services
                     Request = request,
                     Response = response
                 };
-                
+
                 // Log to JSON file
                 await LogToJsonAsync(conversation);
-                
+
                 // If source is Augment, also log to markdown file
                 if (source.Equals("augment", StringComparison.OrdinalIgnoreCase))
                 {
                     await LogToMarkdownAsync(conversation);
                 }
-                
+
                 _logger.LogInformation($"Logged conversation from {source} with action {action}");
             }
             catch (Exception ex)
@@ -100,20 +100,20 @@ namespace TarsCli.Services
                 {
                     json = File.ReadAllText(_conversationLogPath);
                 }
-                
+
                 var conversations = JsonSerializer.Deserialize<List<object>>(json) ?? new List<object>();
-                
+
                 // Add new conversation
                 conversations.Add(conversation);
-                
+
                 // Write updated conversations
                 var updatedJson = JsonSerializer.Serialize(conversations, new JsonSerializerOptions { WriteIndented = true });
-                
+
                 lock (_fileLock)
                 {
                     File.WriteAllText(_conversationLogPath, updatedJson);
                 }
-                
+
                 await Task.CompletedTask;
             }
             catch (Exception ex)
@@ -132,13 +132,13 @@ namespace TarsCli.Services
             {
                 // Convert conversation to markdown format
                 var markdown = FormatConversationAsMarkdown(conversation);
-                
+
                 // Append to markdown file
                 lock (_fileLock)
                 {
                     File.AppendAllText(_augmentLogPath, markdown);
                 }
-                
+
                 await Task.CompletedTask;
             }
             catch (Exception ex)
@@ -155,12 +155,12 @@ namespace TarsCli.Services
         {
             var json = JsonSerializer.Serialize(conversation, new JsonSerializerOptions { WriteIndented = true });
             var conversationDict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json);
-            
+
             var timestamp = conversationDict["Timestamp"].GetString();
             var action = conversationDict["Action"].GetString();
             var request = conversationDict["Request"].ToString();
             var response = conversationDict["Response"].ToString();
-            
+
             var markdown = $"## Conversation on {timestamp}\n\n";
             markdown += $"### Action: {action}\n\n";
             markdown += "### Request\n\n```json\n";
@@ -170,7 +170,7 @@ namespace TarsCli.Services
             markdown += response + "\n";
             markdown += "```\n\n";
             markdown += "---\n\n";
-            
+
             return markdown;
         }
 
@@ -185,7 +185,7 @@ namespace TarsCli.Services
         /// <summary>
         /// Get recent conversations
         /// </summary>
-        public async Task<List<object>> GetRecentConversationsAsync(int count = 10, string source = null)
+        public async Task<List<object>> GetRecentConversationsAsync(int count = 10, string? source = null)
         {
             try
             {
@@ -195,18 +195,18 @@ namespace TarsCli.Services
                 {
                     json = File.ReadAllText(_conversationLogPath);
                 }
-                
+
                 var conversations = JsonSerializer.Deserialize<List<Dictionary<string, JsonElement>>>(json) ?? new List<Dictionary<string, JsonElement>>();
-                
+
                 // Filter by source if specified
                 if (!string.IsNullOrEmpty(source))
                 {
                     conversations = conversations.FindAll(c => c["Source"].GetString().Equals(source, StringComparison.OrdinalIgnoreCase));
                 }
-                
+
                 // Get the most recent conversations
                 var recentConversations = conversations.Count <= count ? conversations : conversations.GetRange(conversations.Count - count, count);
-                
+
                 return recentConversations.ConvertAll(c => (object)c);
             }
             catch (Exception ex)

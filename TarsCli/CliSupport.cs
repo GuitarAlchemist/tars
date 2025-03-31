@@ -12,6 +12,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using TarsCli.Services;
 using TarsCli.Mcp;
+using static TarsCli.Services.CourseGeneratorService; // For DifficultyLevel enum
 
 namespace TarsCli;
 
@@ -151,6 +152,9 @@ public static class CliSupport
             WriteCommand("auto-improve", "Run autonomous self-improvement");
             WriteCommand("slack", "Manage Slack integration");
             WriteCommand("speech", "Text-to-speech functionality");
+            WriteCommand("chat", "Interactive chat bot");
+            WriteCommand("deep-thinking", "Generate deep thinking explorations");
+            WriteCommand("console-capture", "Capture console output and improve code");
 
             WriteHeader("Global Options");
             WriteCommand("--help, -h", "Display help information");
@@ -169,6 +173,17 @@ public static class CliSupport
             WriteExample("tarscli self-rewrite --file path/to/file.cs --model codellama:13b-code --auto-apply");
             WriteExample("tarscli learning stats");
             WriteExample("tarscli learning events --count 5");
+            WriteExample("tarscli learning plan generate --name \"C# Basics\" --topic \"C# Programming\" --skill-level Beginner --goals \"Learn syntax\" \"Build applications\" --hours 20");
+            WriteExample("tarscli learning plan list");
+            WriteExample("tarscli learning plan view --id plan-id");
+            WriteExample("tarscli learning course generate --title \"Introduction to C#\" --description \"Learn C# programming\" --topic \"C#\" --difficulty Beginner --hours 20 --audience \"Beginners\" \"Students\"");
+            WriteExample("tarscli learning course list");
+            WriteExample("tarscli learning course view --id course-id");
+            WriteExample("tarscli learning tutorial add --title \"Getting Started with C#\" --description \"A beginner's guide\" --content \"# Tutorial content\" --category \"Programming\" --difficulty Beginner --tags \"C#\" \"Beginner\"");
+            WriteExample("tarscli learning tutorial list");
+            WriteExample("tarscli learning tutorial list --category \"Programming\" --difficulty Beginner --tag \"C#\"");
+            WriteExample("tarscli learning tutorial view --id tutorial-id");
+            WriteExample("tarscli learning tutorial categorize --ids tutorial-id1 tutorial-id2 --category \"New Category\"");
             WriteExample("tarscli template list");
             WriteExample("tarscli template create --name my_template.json --file path/to/template.json");
             WriteExample("tarscli workflow --task \"Create a simple web API in C#\"");
@@ -190,6 +205,13 @@ public static class CliSupport
             WriteExample("tarscli docs-explore --path index.md");
             WriteExample("tarscli demo --type self-improvement --model llama3");
             WriteExample("tarscli demo --type code-generation --model codellama");
+            WriteExample("tarscli demo --type chatbot");
+            WriteExample("tarscli demo --type deep-thinking");
+            WriteExample("tarscli demo --type learning-plan");
+            WriteExample("tarscli demo --type course-generator");
+            WriteExample("tarscli demo --type tutorial-organizer");
+            WriteExample("tarscli demo --type speech");
+            WriteExample("tarscli demo --type mcp");
             WriteExample("tarscli demo --type all");
             WriteExample("tarscli secrets list");
             WriteExample("tarscli secrets set --key HuggingFace:ApiKey");
@@ -207,6 +229,9 @@ public static class CliSupport
             WriteExample("tarscli speech speak --text \"Hello\" --speaker-wav reference.wav");
             WriteExample("tarscli speech list-voices");
             WriteExample("tarscli speech configure --default-voice \"tts_models/en/ljspeech/tacotron2-DDC\" --default-language en");
+            WriteExample("tarscli console-capture --start");
+            WriteExample("tarscli console-capture --stop");
+            WriteExample("tarscli console-capture --analyze path/to/file.cs --apply");
 
             Console.WriteLine("\nFor more information, visit: https://github.com/yourusername/tars");
         });
@@ -1285,10 +1310,595 @@ public static class CliSupport
             }
         });
 
+        // Create learning plan commands
+        var learningPlanCommand = new Command("plan", "Manage learning plans");
+
+        // Create generate-plan command
+        var generatePlanCommand = new Command("generate", "Generate a new learning plan");
+        var planNameOption = new Option<string>("--name", "Name of the learning plan") { IsRequired = true };
+        var topicOption = new Option<string>("--topic", "Topic of the learning plan") { IsRequired = true };
+        var skillLevelOption = new Option<string>("--skill-level", () => "Intermediate", "Skill level (Beginner, Intermediate, Advanced)");
+        var goalsOption = new Option<string[]>("--goals", "Learning goals") { AllowMultipleArgumentsPerToken = true };
+        var preferencesOption = new Option<string[]>("--preferences", "Learning preferences") { AllowMultipleArgumentsPerToken = true };
+        var hoursOption = new Option<int>("--hours", () => 20, "Estimated hours to complete");
+
+        generatePlanCommand.AddOption(planNameOption);
+        generatePlanCommand.AddOption(topicOption);
+        generatePlanCommand.AddOption(skillLevelOption);
+        generatePlanCommand.AddOption(goalsOption);
+        generatePlanCommand.AddOption(preferencesOption);
+        generatePlanCommand.AddOption(hoursOption);
+        generatePlanCommand.AddOption(modelOption);
+
+        generatePlanCommand.SetHandler(async (string name, string topic, string skillLevel, string[] goals, string[] preferences, int hours, string model) =>
+        {
+            WriteHeader("Generate Learning Plan");
+            Console.WriteLine($"Name: {name}");
+            Console.WriteLine($"Topic: {topic}");
+            Console.WriteLine($"Skill Level: {skillLevel}");
+            Console.WriteLine($"Goals: {string.Join(", ", goals)}");
+            Console.WriteLine($"Preferences: {string.Join(", ", preferences)}");
+            Console.WriteLine($"Estimated Hours: {hours}");
+            Console.WriteLine($"Model: {model}");
+
+            try
+            {
+                var learningPlanService = _serviceProvider!.GetRequiredService<LearningPlanService>();
+                var parsedSkillLevel = Enum.Parse<SkillLevel>(skillLevel, true);
+                var learningPlan = await learningPlanService.GenerateLearningPlan(name, topic, parsedSkillLevel, goals.ToList(), preferences.ToList(), hours, model);
+
+                WriteColorLine("\nLearning plan generated successfully!", ConsoleColor.Green);
+                Console.WriteLine($"ID: {learningPlan.Id}");
+                Console.WriteLine($"Name: {learningPlan.Name}");
+                Console.WriteLine($"Topic: {learningPlan.Topic}");
+                Console.WriteLine($"Created: {learningPlan.CreatedDate:yyyy-MM-dd HH:mm:ss}");
+
+                // Display a summary of the learning plan
+                WriteColorLine("\nSummary:", ConsoleColor.Cyan);
+                Console.WriteLine(learningPlan.Content.Introduction);
+
+                WriteColorLine("\nModules:", ConsoleColor.Cyan);
+                foreach (var module in learningPlan.Content.Modules)
+                {
+                    Console.WriteLine($"- {module.Title} ({module.EstimatedHours} hours)");
+                }
+            }
+            catch (Exception ex)
+            {
+                WriteColorLine($"Error generating learning plan: {ex.Message}", ConsoleColor.Red);
+                Environment.Exit(1);
+            }
+        }, planNameOption, topicOption, skillLevelOption, goalsOption, preferencesOption, hoursOption, modelOption);
+
+        // Create list-plans command
+        var listPlansCommand = new Command("list", "List available learning plans");
+
+        listPlansCommand.SetHandler(async () =>
+        {
+            WriteHeader("Learning Plans");
+
+            try
+            {
+                var learningPlanService = _serviceProvider!.GetRequiredService<LearningPlanService>();
+                var plans = await learningPlanService.GetLearningPlans();
+
+                if (plans.Count == 0)
+                {
+                    WriteColorLine("No learning plans found", ConsoleColor.Yellow);
+                    return;
+                }
+
+                foreach (var plan in plans)
+                {
+                    WriteColorLine($"ID: {plan.Id}", ConsoleColor.Cyan);
+                    Console.WriteLine($"Name: {plan.Name}");
+                    Console.WriteLine($"Topic: {plan.Topic}");
+                    Console.WriteLine($"Skill Level: {plan.SkillLevel}");
+                    Console.WriteLine($"Created: {plan.CreatedDate:yyyy-MM-dd HH:mm:ss}");
+                    Console.WriteLine();
+                }
+            }
+            catch (Exception ex)
+            {
+                WriteColorLine($"Error listing learning plans: {ex.Message}", ConsoleColor.Red);
+                Environment.Exit(1);
+            }
+        });
+
+        // Create view-plan command
+        var viewPlanCommand = new Command("view", "View details of a specific learning plan");
+        var planIdOption = new Option<string>("--id", "ID of the learning plan") { IsRequired = true };
+        viewPlanCommand.AddOption(planIdOption);
+
+        viewPlanCommand.SetHandler(async (string id) =>
+        {
+            WriteHeader("View Learning Plan");
+
+            try
+            {
+                var learningPlanService = _serviceProvider!.GetRequiredService<LearningPlanService>();
+                var plan = await learningPlanService.GetLearningPlan(id);
+
+                if (plan == null)
+                {
+                    WriteColorLine($"Learning plan with ID {id} not found", ConsoleColor.Red);
+                    Environment.Exit(1);
+                    return;
+                }
+
+                WriteColorLine($"ID: {plan.Id}", ConsoleColor.Cyan);
+                Console.WriteLine($"Name: {plan.Name}");
+                Console.WriteLine($"Topic: {plan.Topic}");
+                Console.WriteLine($"Skill Level: {plan.SkillLevel}");
+                Console.WriteLine($"Created: {plan.CreatedDate:yyyy-MM-dd HH:mm:ss}");
+                Console.WriteLine($"Last Modified: {plan.LastModifiedDate:yyyy-MM-dd HH:mm:ss}");
+
+                WriteColorLine("\nIntroduction:", ConsoleColor.Cyan);
+                Console.WriteLine(plan.Content.Introduction);
+
+                WriteColorLine("\nPrerequisites:", ConsoleColor.Cyan);
+                foreach (var prereq in plan.Content.Prerequisites)
+                {
+                    Console.WriteLine($"- {prereq}");
+                }
+
+                WriteColorLine("\nModules:", ConsoleColor.Cyan);
+                foreach (var module in plan.Content.Modules)
+                {
+                    WriteColorLine($"\n{module.Title} ({module.EstimatedHours} hours)", ConsoleColor.Green);
+                    Console.WriteLine("Objectives:");
+                    foreach (var objective in module.Objectives)
+                    {
+                        Console.WriteLine($"- {objective}");
+                    }
+
+                    Console.WriteLine("\nResources:");
+                    foreach (var resource in module.Resources)
+                    {
+                        Console.WriteLine($"- {resource.Title} ({resource.Type}): {resource.Url}");
+                    }
+
+                    Console.WriteLine($"\nAssessment: {module.Assessment}");
+                }
+
+                WriteColorLine("\nTimeline:", ConsoleColor.Cyan);
+                foreach (var item in plan.Content.Timeline)
+                {
+                    Console.WriteLine($"Week {item.Week}:");
+                    foreach (var activity in item.Activities)
+                    {
+                        Console.WriteLine($"  - {activity}");
+                    }
+                }
+
+                WriteColorLine("\nMilestones:", ConsoleColor.Cyan);
+                foreach (var milestone in plan.Content.Milestones)
+                {
+                    Console.WriteLine($"- {milestone.Title}: {milestone.Description}");
+                }
+
+                WriteColorLine("\nPractice Projects:", ConsoleColor.Cyan);
+                foreach (var project in plan.Content.PracticeProjects)
+                {
+                    Console.WriteLine($"- {project.Title}: {project.Description}");
+                }
+            }
+            catch (Exception ex)
+            {
+                WriteColorLine($"Error viewing learning plan: {ex.Message}", ConsoleColor.Red);
+                Environment.Exit(1);
+            }
+        }, planIdOption);
+
+        // Add subcommands to learning plan command
+        learningPlanCommand.AddCommand(generatePlanCommand);
+        learningPlanCommand.AddCommand(listPlansCommand);
+        learningPlanCommand.AddCommand(viewPlanCommand);
+
+        // Create course commands
+        var courseCommand = new Command("course", "Manage courses");
+
+        // Create generate-course command
+        var generateCourseCommand = new Command("generate", "Generate a new course");
+        var courseTitleOption = new Option<string>("--title", "Title of the course") { IsRequired = true };
+        var courseDescriptionOption = new Option<string>("--description", "Description of the course") { IsRequired = true };
+        var courseTopicOption = new Option<string>("--topic", "Topic of the course") { IsRequired = true };
+        var courseDifficultyOption = new Option<string>("--difficulty", () => "Intermediate", "Difficulty level (Beginner, Intermediate, Advanced)");
+        var courseHoursOption = new Option<int>("--hours", () => 20, "Estimated hours to complete");
+        var targetAudienceOption = new Option<string[]>("--audience", "Target audience") { AllowMultipleArgumentsPerToken = true };
+
+        generateCourseCommand.AddOption(courseTitleOption);
+        generateCourseCommand.AddOption(courseDescriptionOption);
+        generateCourseCommand.AddOption(courseTopicOption);
+        generateCourseCommand.AddOption(courseDifficultyOption);
+        generateCourseCommand.AddOption(courseHoursOption);
+        generateCourseCommand.AddOption(targetAudienceOption);
+        generateCourseCommand.AddOption(modelOption);
+
+        generateCourseCommand.SetHandler(async (string title, string description, string topic, string difficulty, int hours, string[] audience, string model) =>
+        {
+            WriteHeader("Generate Course");
+            Console.WriteLine($"Title: {title}");
+            Console.WriteLine($"Description: {description}");
+            Console.WriteLine($"Topic: {topic}");
+            Console.WriteLine($"Difficulty: {difficulty}");
+            Console.WriteLine($"Estimated Hours: {hours}");
+            Console.WriteLine($"Target Audience: {string.Join(", ", audience)}");
+            Console.WriteLine($"Model: {model}");
+
+            try
+            {
+                var courseGeneratorService = _serviceProvider!.GetRequiredService<CourseGeneratorService>();
+                var parsedDifficulty = Enum.Parse<DifficultyLevel>(difficulty, true);
+                var course = await courseGeneratorService.GenerateCourse(title, description, topic, parsedDifficulty, hours, audience.ToList(), model);
+
+                WriteColorLine("\nCourse generated successfully!", ConsoleColor.Green);
+                Console.WriteLine($"ID: {course.Id}");
+                Console.WriteLine($"Title: {course.Title}");
+                Console.WriteLine($"Topic: {course.Topic}");
+                Console.WriteLine($"Created: {course.CreatedDate:yyyy-MM-dd HH:mm:ss}");
+
+                // Display a summary of the course
+                WriteColorLine("\nOverview:", ConsoleColor.Cyan);
+                Console.WriteLine(course.Content.Overview);
+
+                WriteColorLine("\nLessons:", ConsoleColor.Cyan);
+                foreach (var lesson in course.Content.Lessons)
+                {
+                    Console.WriteLine($"- {lesson.Title} ({lesson.EstimatedMinutes} minutes)");
+                }
+            }
+            catch (Exception ex)
+            {
+                WriteColorLine($"Error generating course: {ex.Message}", ConsoleColor.Red);
+                Environment.Exit(1);
+            }
+        }, courseTitleOption, courseDescriptionOption, courseTopicOption, courseDifficultyOption, courseHoursOption, targetAudienceOption, modelOption);
+
+        // Create list-courses command
+        var listCoursesCommand = new Command("list", "List available courses");
+
+        listCoursesCommand.SetHandler(async () =>
+        {
+            WriteHeader("Courses");
+
+            try
+            {
+                var courseGeneratorService = _serviceProvider!.GetRequiredService<CourseGeneratorService>();
+                var courses = await courseGeneratorService.GetCourses();
+
+                if (courses.Count == 0)
+                {
+                    WriteColorLine("No courses found", ConsoleColor.Yellow);
+                    return;
+                }
+
+                foreach (var course in courses)
+                {
+                    WriteColorLine($"ID: {course.Id}", ConsoleColor.Cyan);
+                    Console.WriteLine($"Title: {course.Title}");
+                    Console.WriteLine($"Topic: {course.Topic}");
+                    Console.WriteLine($"Difficulty: {course.DifficultyLevel}");
+                    Console.WriteLine($"Created: {course.CreatedDate:yyyy-MM-dd HH:mm:ss}");
+                    Console.WriteLine();
+                }
+            }
+            catch (Exception ex)
+            {
+                WriteColorLine($"Error listing courses: {ex.Message}", ConsoleColor.Red);
+                Environment.Exit(1);
+            }
+        });
+
+        // Create view-course command
+        var viewCourseCommand = new Command("view", "View details of a specific course");
+        var courseIdOption = new Option<string>("--id", "ID of the course") { IsRequired = true };
+        viewCourseCommand.AddOption(courseIdOption);
+
+        viewCourseCommand.SetHandler(async (string id) =>
+        {
+            WriteHeader("View Course");
+
+            try
+            {
+                var courseGeneratorService = _serviceProvider!.GetRequiredService<CourseGeneratorService>();
+                var course = await courseGeneratorService.GetCourse(id);
+
+                if (course == null)
+                {
+                    WriteColorLine($"Course with ID {id} not found", ConsoleColor.Red);
+                    Environment.Exit(1);
+                    return;
+                }
+
+                WriteColorLine($"ID: {course.Id}", ConsoleColor.Cyan);
+                Console.WriteLine($"Title: {course.Title}");
+                Console.WriteLine($"Description: {course.Description}");
+                Console.WriteLine($"Topic: {course.Topic}");
+                Console.WriteLine($"Difficulty: {course.DifficultyLevel}");
+                Console.WriteLine($"Created: {course.CreatedDate:yyyy-MM-dd HH:mm:ss}");
+                Console.WriteLine($"Last Modified: {course.LastModifiedDate:yyyy-MM-dd HH:mm:ss}");
+
+                WriteColorLine("\nOverview:", ConsoleColor.Cyan);
+                Console.WriteLine(course.Content.Overview);
+
+                WriteColorLine("\nLearning Objectives:", ConsoleColor.Cyan);
+                foreach (var objective in course.Content.LearningObjectives)
+                {
+                    Console.WriteLine($"- {objective}");
+                }
+
+                WriteColorLine("\nLessons:", ConsoleColor.Cyan);
+                foreach (var lesson in course.Content.Lessons)
+                {
+                    WriteColorLine($"\n{lesson.Title} ({lesson.EstimatedMinutes} minutes)", ConsoleColor.Green);
+                    Console.WriteLine("Objectives:");
+                    foreach (var objective in lesson.Objectives)
+                    {
+                        Console.WriteLine($"- {objective}");
+                    }
+
+                    Console.WriteLine("\nContent:");
+                    Console.WriteLine(lesson.Content);
+
+                    Console.WriteLine("\nExercises:");
+                    foreach (var exercise in lesson.Exercises)
+                    {
+                        Console.WriteLine($"- {exercise.Title}: {exercise.Description} (Difficulty: {exercise.Difficulty})");
+                    }
+
+                    Console.WriteLine("\nQuiz Questions:");
+                    foreach (var quiz in lesson.QuizQuestions)
+                    {
+                        Console.WriteLine($"Q: {quiz.Question}");
+                        for (int i = 0; i < quiz.Options.Count; i++)
+                        {
+                            if (i == quiz.CorrectAnswerIndex)
+                            {
+                                WriteColorLine($"   {i + 1}. {quiz.Options[i]} (CORRECT)", ConsoleColor.Green);
+                            }
+                            else
+                            {
+                                Console.WriteLine($"   {i + 1}. {quiz.Options[i]}");
+                            }
+                        }
+                        Console.WriteLine($"   Explanation: {quiz.Explanation}");
+                        Console.WriteLine();
+                    }
+                }
+
+                WriteColorLine("\nFinal Assessment:", ConsoleColor.Cyan);
+                Console.WriteLine($"Title: {course.Content.FinalAssessment.Title}");
+                Console.WriteLine($"Description: {course.Content.FinalAssessment.Description}");
+                Console.WriteLine($"Estimated Hours: {course.Content.FinalAssessment.EstimatedHours}");
+                Console.WriteLine("Criteria:");
+                foreach (var criterion in course.Content.FinalAssessment.Criteria)
+                {
+                    Console.WriteLine($"- {criterion}");
+                }
+
+                WriteColorLine("\nAdditional Resources:", ConsoleColor.Cyan);
+                foreach (var resource in course.Content.AdditionalResources)
+                {
+                    Console.WriteLine($"- {resource.Title} ({resource.Type}): {resource.Url}");
+                    Console.WriteLine($"  {resource.Description}");
+                }
+            }
+            catch (Exception ex)
+            {
+                WriteColorLine($"Error viewing course: {ex.Message}", ConsoleColor.Red);
+                Environment.Exit(1);
+            }
+        }, courseIdOption);
+
+        // Add subcommands to course command
+        courseCommand.AddCommand(generateCourseCommand);
+        courseCommand.AddCommand(listCoursesCommand);
+        courseCommand.AddCommand(viewCourseCommand);
+
+        // Create tutorial commands
+        var tutorialCommand = new Command("tutorial", "Manage tutorials");
+
+        // Create add-tutorial command
+        var addTutorialCommand = new Command("add", "Add a new tutorial");
+        var tutorialTitleOption = new Option<string>("--title", "Title of the tutorial") { IsRequired = true };
+        var tutorialDescriptionOption = new Option<string>("--description", "Description of the tutorial") { IsRequired = true };
+        var tutorialContentOption = new Option<string>("--content", "Content of the tutorial") { IsRequired = true };
+        var tutorialCategoryOption = new Option<string>("--category", "Category of the tutorial") { IsRequired = true };
+        var tutorialDifficultyOption = new Option<string>("--difficulty", () => "Intermediate", "Difficulty level (Beginner, Intermediate, Advanced)");
+        var tutorialTagsOption = new Option<string[]>("--tags", "Tags for the tutorial") { AllowMultipleArgumentsPerToken = true };
+        var tutorialPrerequisitesOption = new Option<string[]>("--prerequisites", "Prerequisites for the tutorial") { AllowMultipleArgumentsPerToken = true };
+
+        addTutorialCommand.AddOption(tutorialTitleOption);
+        addTutorialCommand.AddOption(tutorialDescriptionOption);
+        addTutorialCommand.AddOption(tutorialContentOption);
+        addTutorialCommand.AddOption(tutorialCategoryOption);
+        addTutorialCommand.AddOption(tutorialDifficultyOption);
+        addTutorialCommand.AddOption(tutorialTagsOption);
+        addTutorialCommand.AddOption(tutorialPrerequisitesOption);
+
+        addTutorialCommand.SetHandler(async (string title, string description, string content, string category, string difficulty, string[] tags, string[] prerequisites) =>
+        {
+            WriteHeader("Add Tutorial");
+            Console.WriteLine($"Title: {title}");
+            Console.WriteLine($"Description: {description}");
+            Console.WriteLine($"Category: {category}");
+            Console.WriteLine($"Difficulty: {difficulty}");
+            Console.WriteLine($"Tags: {string.Join(", ", tags)}");
+            Console.WriteLine($"Prerequisites: {string.Join(", ", prerequisites)}");
+
+            try
+            {
+                var tutorialOrganizerService = _serviceProvider!.GetRequiredService<TutorialOrganizerService>();
+                var parsedDifficulty = Enum.Parse<DifficultyLevel>(difficulty, true);
+                var tutorial = await tutorialOrganizerService.AddTutorial(title, description, content, category, parsedDifficulty, tags.ToList(), prerequisites.ToList());
+
+                WriteColorLine("\nTutorial added successfully!", ConsoleColor.Green);
+                Console.WriteLine($"ID: {tutorial.Id}");
+                Console.WriteLine($"Title: {tutorial.Title}");
+                Console.WriteLine($"Category: {tutorial.Category}");
+                Console.WriteLine($"Created: {tutorial.CreatedDate:yyyy-MM-dd HH:mm:ss}");
+            }
+            catch (Exception ex)
+            {
+                WriteColorLine($"Error adding tutorial: {ex.Message}", ConsoleColor.Red);
+                Environment.Exit(1);
+            }
+        }, tutorialTitleOption, tutorialDescriptionOption, tutorialContentOption, tutorialCategoryOption, tutorialDifficultyOption, tutorialTagsOption, tutorialPrerequisitesOption);
+
+        // Create list-tutorials command
+        var listTutorialsCommand = new Command("list", "List available tutorials");
+        var categoryFilterOption = new Option<string>("--category", "Filter by category");
+        var difficultyFilterOption = new Option<string>("--difficulty", "Filter by difficulty level");
+        var tagFilterOption = new Option<string>("--tag", "Filter by tag");
+
+        listTutorialsCommand.AddOption(categoryFilterOption);
+        listTutorialsCommand.AddOption(difficultyFilterOption);
+        listTutorialsCommand.AddOption(tagFilterOption);
+
+        listTutorialsCommand.SetHandler(async (string category, string difficulty, string tag) =>
+        {
+            WriteHeader("Tutorials");
+
+            try
+            {
+                var tutorialOrganizerService = _serviceProvider!.GetRequiredService<TutorialOrganizerService>();
+                var tutorials = await tutorialOrganizerService.GetTutorials();
+
+                // Filter tutorials based on criteria
+                if (!string.IsNullOrEmpty(category))
+                {
+                    tutorials = tutorials.Where(t => string.Equals(t.Category, category, StringComparison.OrdinalIgnoreCase)).ToList();
+                }
+
+                if (!string.IsNullOrEmpty(difficulty) && Enum.TryParse<DifficultyLevel>(difficulty, true, out var difficultyLevel))
+                {
+                    tutorials = tutorials.Where(t => t.DifficultyLevel == difficultyLevel).ToList();
+                }
+
+                if (!string.IsNullOrEmpty(tag))
+                {
+                    tutorials = tutorials.Where(t => t.Tags.Any(tagItem => string.Equals(tagItem, tag, StringComparison.OrdinalIgnoreCase))).ToList();
+                }
+
+                if (tutorials.Count == 0)
+                {
+                    WriteColorLine("No tutorials found matching the criteria", ConsoleColor.Yellow);
+                    return;
+                }
+
+                foreach (var tutorial in tutorials)
+                {
+                    WriteColorLine($"ID: {tutorial.Id}", ConsoleColor.Cyan);
+                    Console.WriteLine($"Title: {tutorial.Title}");
+                    Console.WriteLine($"Category: {tutorial.Category}");
+                    Console.WriteLine($"Difficulty: {tutorial.DifficultyLevel}");
+                    Console.WriteLine($"Tags: {string.Join(", ", tutorial.Tags)}");
+                    Console.WriteLine($"Created: {tutorial.CreatedDate:yyyy-MM-dd HH:mm:ss}");
+                    Console.WriteLine();
+                }
+            }
+            catch (Exception ex)
+            {
+                WriteColorLine($"Error listing tutorials: {ex.Message}", ConsoleColor.Red);
+                Environment.Exit(1);
+            }
+        }, categoryFilterOption, difficultyFilterOption, tagFilterOption);
+
+        // Create view-tutorial command
+        var viewTutorialCommand = new Command("view", "View details of a specific tutorial");
+        var tutorialIdOption = new Option<string>("--id", "ID of the tutorial") { IsRequired = true };
+        viewTutorialCommand.AddOption(tutorialIdOption);
+
+        viewTutorialCommand.SetHandler(async (string id) =>
+        {
+            WriteHeader("View Tutorial");
+
+            try
+            {
+                var tutorialOrganizerService = _serviceProvider!.GetRequiredService<TutorialOrganizerService>();
+                var tutorialWithContent = await tutorialOrganizerService.GetTutorial(id);
+
+                // Use pattern matching to check if result is not null
+                if (tutorialWithContent is not { } result)
+                {
+                    WriteColorLine($"Tutorial with ID {id} not found", ConsoleColor.Red);
+                    Environment.Exit(1);
+                    return;
+                }
+
+                // Deconstruct the record for easier access
+                var (tutorial, content) = result;
+
+                WriteColorLine($"ID: {tutorial.Id}", ConsoleColor.Cyan);
+                Console.WriteLine($"Title: {tutorial.Title}");
+                Console.WriteLine($"Description: {tutorial.Description}");
+                Console.WriteLine($"Category: {tutorial.Category}");
+                Console.WriteLine($"Difficulty: {tutorial.DifficultyLevel}");
+                Console.WriteLine($"Tags: {string.Join(", ", tutorial.Tags)}");
+                Console.WriteLine($"Prerequisites: {string.Join(", ", tutorial.Prerequisites)}");
+                Console.WriteLine($"Created: {tutorial.CreatedDate:yyyy-MM-dd HH:mm:ss}");
+                Console.WriteLine($"Last Modified: {tutorial.LastModifiedDate:yyyy-MM-dd HH:mm:ss}");
+
+                WriteColorLine("\nContent:", ConsoleColor.Cyan);
+                Console.WriteLine(content);
+            }
+            catch (Exception ex)
+            {
+                WriteColorLine($"Error viewing tutorial: {ex.Message}", ConsoleColor.Red);
+                Environment.Exit(1);
+            }
+        }, tutorialIdOption);
+
+        // Create categorize command
+        var categorizeTutorialsCommand = new Command("categorize", "Organize tutorials into categories");
+        var tutorialIdsOption = new Option<string[]>("--ids", "IDs of the tutorials to categorize") { IsRequired = true, AllowMultipleArgumentsPerToken = true };
+        var newCategoryOption = new Option<string>("--category", "New category for the tutorials") { IsRequired = true };
+
+        categorizeTutorialsCommand.AddOption(tutorialIdsOption);
+        categorizeTutorialsCommand.AddOption(newCategoryOption);
+
+        categorizeTutorialsCommand.SetHandler(async (string[] ids, string category) =>
+        {
+            WriteHeader("Categorize Tutorials");
+            Console.WriteLine($"Tutorial IDs: {string.Join(", ", ids)}");
+            Console.WriteLine($"New Category: {category}");
+
+            try
+            {
+                var tutorialOrganizerService = _serviceProvider!.GetRequiredService<TutorialOrganizerService>();
+                var success = await tutorialOrganizerService.CategorizeTutorials(ids.ToList(), category);
+
+                if (success)
+                {
+                    WriteColorLine("\nTutorials categorized successfully!", ConsoleColor.Green);
+                }
+                else
+                {
+                    WriteColorLine("\nFailed to categorize tutorials", ConsoleColor.Red);
+                    Environment.Exit(1);
+                }
+            }
+            catch (Exception ex)
+            {
+                WriteColorLine($"Error categorizing tutorials: {ex.Message}", ConsoleColor.Red);
+                Environment.Exit(1);
+            }
+        }, tutorialIdsOption, newCategoryOption);
+
+        // Add subcommands to tutorial command
+        tutorialCommand.AddCommand(addTutorialCommand);
+        tutorialCommand.AddCommand(listTutorialsCommand);
+        tutorialCommand.AddCommand(viewTutorialCommand);
+        tutorialCommand.AddCommand(categorizeTutorialsCommand);
+
         // Add learning subcommands
         learningCommand.AddCommand(learningStatsCommand);
         learningCommand.AddCommand(learningEventsCommand);
         learningCommand.AddCommand(learningClearCommand);
+        learningCommand.AddCommand(learningPlanCommand);
+        learningCommand.AddCommand(courseCommand);
+        learningCommand.AddCommand(tutorialCommand);
 
         // Create huggingface command
         var huggingFaceCommand = new Command("huggingface", "Interact with Hugging Face models");
@@ -1864,6 +2474,109 @@ public static class CliSupport
 
         // Create auto-improve command
         var autoImproveCommand = new Command("auto-improve", "Run autonomous self-improvement");
+
+        // Create console-capture command
+        var consoleCaptureCommand = new Command("console-capture", "Capture console output and improve code");
+        var startOption = new Option<bool>("--start", "Start capturing console output");
+        var stopCaptureOption = new Option<bool>("--stop", "Stop capturing console output");
+        var analyzeOption = new Option<string>("--analyze", "Analyze captured output and suggest improvements for a file");
+        var applyOption = new Option<bool>("--apply", "Apply suggested improvements");
+        var autoOption = new Option<string>("--auto", "Automatically improve a file based on captured output");
+
+        consoleCaptureCommand.AddOption(startOption);
+        consoleCaptureCommand.AddOption(stopCaptureOption);
+        consoleCaptureCommand.AddOption(analyzeOption);
+        consoleCaptureCommand.AddOption(applyOption);
+        consoleCaptureCommand.AddOption(autoOption);
+
+        consoleCaptureCommand.SetHandler(async (bool start, bool stop, string? analyze, bool apply, string? auto) =>
+        {
+            WriteHeader("TARS Console Capture");
+
+            var consoleCaptureService = _serviceProvider!.GetRequiredService<ConsoleCaptureService>();
+
+            if (start)
+            {
+                consoleCaptureService.StartCapture();
+                WriteColorLine("Started capturing console output.", ConsoleColor.Green);
+                WriteColorLine("Run your commands and then use '--stop' to stop capturing.", ConsoleColor.Yellow);
+                return;
+            }
+
+            if (stop)
+            {
+                var capturedOutput = consoleCaptureService.StopCapture();
+                WriteColorLine("Stopped capturing console output.", ConsoleColor.Green);
+                WriteColorLine($"Captured {capturedOutput.Length} characters.", ConsoleColor.Yellow);
+                WriteColorLine("Use '--analyze <file-path>' to analyze the captured output and suggest improvements.", ConsoleColor.Yellow);
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(analyze))
+            {
+                if (!File.Exists(analyze))
+                {
+                    WriteColorLine($"File not found: {analyze}", ConsoleColor.Red);
+                    return;
+                }
+
+                WriteColorLine($"Analyzing captured output for file: {analyze}", ConsoleColor.Yellow);
+                var capturedOutput = string.Join("\n", consoleCaptureService.GetCapturedOutput());
+
+                if (string.IsNullOrEmpty(capturedOutput))
+                {
+                    WriteColorLine("No captured output to analyze. Use '--start' to start capturing first.", ConsoleColor.Red);
+                    return;
+                }
+
+                var suggestions = await consoleCaptureService.AnalyzeAndSuggestImprovements(capturedOutput, analyze);
+                WriteColorLine("Analysis complete. Suggested improvements:", ConsoleColor.Green);
+                Console.WriteLine(suggestions);
+
+                if (apply)
+                {
+                    WriteColorLine("\nApplying suggested improvements...", ConsoleColor.Yellow);
+                    var result = await consoleCaptureService.ApplyImprovements(analyze, suggestions);
+                    WriteColorLine(result, ConsoleColor.Green);
+                }
+                else
+                {
+                    WriteColorLine("\nUse '--apply' to apply these suggestions.", ConsoleColor.Yellow);
+                }
+
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(auto))
+            {
+                if (!File.Exists(auto))
+                {
+                    WriteColorLine($"File not found: {auto}", ConsoleColor.Red);
+                    return;
+                }
+
+                WriteColorLine($"Auto-improving code for file: {auto}", ConsoleColor.Yellow);
+                var capturedOutput = string.Join("\n", consoleCaptureService.GetCapturedOutput());
+
+                if (string.IsNullOrEmpty(capturedOutput))
+                {
+                    WriteColorLine("No captured output to analyze. Use '--start' to start capturing first.", ConsoleColor.Red);
+                    return;
+                }
+
+                var result = await consoleCaptureService.AutoImproveCode(capturedOutput, auto);
+                WriteColorLine(result, ConsoleColor.Green);
+                return;
+            }
+
+            // If no options provided, show help
+            WriteColorLine("Console Capture Commands:", ConsoleColor.Cyan);
+            WriteColorLine("  --start: Start capturing console output", ConsoleColor.White);
+            WriteColorLine("  --stop: Stop capturing console output", ConsoleColor.White);
+            WriteColorLine("  --analyze <file-path>: Analyze captured output and suggest improvements", ConsoleColor.White);
+            WriteColorLine("  --apply: Apply suggested improvements (use with --analyze)", ConsoleColor.White);
+            WriteColorLine("  --auto <file-path>: Automatically improve code based on captured output", ConsoleColor.White);
+        }, startOption, stopCaptureOption, analyzeOption, applyOption, autoOption);
         var autoImproveTimeLimitOption = new Option<int>("--time-limit", () => 60, "Time limit in minutes (default: 60)");
         var autoImproveModelOption = new Option<string>("--model", () => "llama3", "Model to use for improvements");
         var statusOption = new Option<bool>("--status", "Show status of autonomous improvement");
@@ -2209,7 +2922,9 @@ public static class CliSupport
             WriteHeader("TARS Speech - Configure");
 
             var speechService = _serviceProvider!.GetRequiredService<TarsSpeechService>();
-            speechService.Configure(enabled, defaultVoice, defaultLanguage, preloadVoices, maxConcurrency);
+            speechService.Configure(enabled, defaultVoice, defaultLanguage);
+
+            // Note: preloadVoices and maxConcurrency parameters are not currently supported
 
             WriteColorLine("Speech configuration updated.", ConsoleColor.Green);
         }, enabledOption, defaultVoiceOption, defaultLanguageOption, preloadVoicesOption, maxConcurrencyOption);
@@ -2465,11 +3180,11 @@ public static class CliSupport
 
         // Add generate subcommand
         var thinkGenerateCommand = new Command("generate", "Generate a new deep thinking exploration");
-        var topicOption = new Option<string>("--topic", "The topic for deep thinking") { IsRequired = true };
+        var thinkTopicOption = new Option<string>("--topic", "The topic for deep thinking") { IsRequired = true };
         var baseFileOption = new Option<string>("--base-file", "The base exploration file to build upon");
         var thinkModelOption = new Option<string>("--model", () => "llama3", "The model to use for deep thinking");
 
-        thinkGenerateCommand.AddOption(topicOption);
+        thinkGenerateCommand.AddOption(thinkTopicOption);
         thinkGenerateCommand.AddOption(baseFileOption);
         thinkGenerateCommand.AddOption(thinkModelOption);
 
@@ -2513,7 +3228,7 @@ public static class CliSupport
             {
                 WriteColorLine($"Error generating deep thinking exploration: {ex.Message}", ConsoleColor.Red);
             }
-        }, topicOption, baseFileOption, thinkModelOption);
+        }, thinkTopicOption, baseFileOption, thinkModelOption);
 
         // Add evolve subcommand
         var thinkEvolveCommand = new Command("evolve", "Evolve an existing exploration with deep thinking");
@@ -2650,6 +3365,7 @@ public static class CliSupport
 
         rootCommand.AddCommand(chatCommand);
         rootCommand.AddCommand(deepThinkingCommand);
+        rootCommand.AddCommand(consoleCaptureCommand);
 
         // Add default handler for root command
         rootCommand.SetHandler((InvocationContext context) =>
