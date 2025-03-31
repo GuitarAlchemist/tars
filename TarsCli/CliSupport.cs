@@ -3363,9 +3363,13 @@ public static class CliSupport
         deepThinkingCommand.AddCommand(thinkSeriesCommand);
         deepThinkingCommand.AddCommand(thinkVersionsCommand);
 
+        // Create DSL command
+        var dslCommand = new Commands.DslCommand(_serviceProvider!.GetRequiredService<DslService>());
+
         rootCommand.AddCommand(chatCommand);
         rootCommand.AddCommand(deepThinkingCommand);
         rootCommand.AddCommand(consoleCaptureCommand);
+        rootCommand.AddCommand(dslCommand);
 
         // Add default handler for root command
         rootCommand.SetHandler((InvocationContext context) =>
@@ -3450,26 +3454,45 @@ public static class CliSupport
                 // Send message to chat bot
                 WriteColorLine("\nTARS: ", ConsoleColor.Blue);
 
+                // Create cancellation token for typing indicator
+                var typingCts = new CancellationTokenSource();
+
                 // Show typing indicator
                 var typingTask = Task.Run(async () =>
                 {
                     var typingChars = new[] { '|', '/', '-', '\\' };
                     var typingIndex = 0;
 
-                    while (true)
+                    try
                     {
-                        Console.Write(typingChars[typingIndex]);
-                        await Task.Delay(100);
-                        Console.Write("\b");
-                        typingIndex = (typingIndex + 1) % typingChars.Length;
+                        while (!typingCts.Token.IsCancellationRequested)
+                        {
+                            Console.Write(typingChars[typingIndex]);
+                            await Task.Delay(100, typingCts.Token);
+                            Console.Write("\b");
+                            typingIndex = (typingIndex + 1) % typingChars.Length;
+                        }
                     }
-                });
+                    catch (OperationCanceledException)
+                    {
+                        // Expected when cancellation is requested
+                    }
+                }, typingCts.Token);
 
                 // Get response from chat bot
                 var response = await chatBotService.SendMessageAsync(input);
 
                 // Stop typing indicator
-                typingTask.Dispose();
+                typingCts.Cancel();
+                try
+                {
+                    await typingTask; // Wait for the task to complete
+                }
+                catch (OperationCanceledException)
+                {
+                    // Expected when cancellation is requested
+                }
+
                 Console.Write(" ");
                 Console.Write("\b");
 
@@ -3480,6 +3503,11 @@ public static class CliSupport
         catch (Exception ex)
         {
             WriteColorLine($"\nError in chat loop: {ex.Message}", ConsoleColor.Red);
+            if (ex.InnerException != null)
+            {
+                WriteColorLine($"Inner exception: {ex.InnerException.Message}", ConsoleColor.Red);
+            }
+            WriteColorLine($"Stack trace: {ex.StackTrace}", ConsoleColor.DarkRed);
         }
     }
 }
