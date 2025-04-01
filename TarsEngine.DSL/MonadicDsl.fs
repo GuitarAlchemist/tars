@@ -172,7 +172,7 @@ module MonadicDsl =
             // Execute a block
             let block = {
                 Type = SimpleDsl.BlockType.Action
-                Name = None
+                Name = Option.None
                 Content = ""
                 Properties = Map.ofList [
                     "type", SimpleDsl.StringValue "log"

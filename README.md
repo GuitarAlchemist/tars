@@ -104,8 +104,12 @@ TARS includes advanced self-improvement capabilities that allow it to analyze, i
 - **JSON Escaping Fix**: Resolved API communication issues with Ollama
 - **Console Capture**: Added ability to capture console output and use it to improve code
 - **ANSI Escape Sequence Handling**: Improved handling of ANSI escape sequences in console output
+- **Self-Improvement Commands**: Added CLI commands for analyzing, improving, generating, and testing code
+- **Code Generation**: Implemented code generation based on requirements
+- **Test Generation**: Added automatic test generation for code files
+- **Improvement Cycle**: Created a complete self-improvement cycle that analyzes and improves code
 
-[View detailed progress tracking](docs/PROGRESS.md) | [Technical documentation](docs/SELF_IMPROVEMENT.md) | [Auto-improvement documentation](docs/features/auto-improvement.md)
+[View detailed progress tracking](docs/PROGRESS.md) | [Technical documentation](docs/SELF_IMPROVEMENT.md) | [Auto-improvement documentation](docs/features/auto-improvement.md) | [Self-improvement commands](docs/features/self-improvement-commands.md)
 
 #### Core Features
 
@@ -116,6 +120,9 @@ TARS includes advanced self-improvement capabilities that allow it to analyze, i
 - **Self-Rewriting**: Automatically implement approved improvements
 - **Learning System**: Track improvement history and learn from past changes
 - **Console Output Analysis**: Capture and analyze console output to identify and fix issues
+- **Code Generation**: Generate code based on requirements
+- **Test Generation**: Generate tests for code files
+- **Improvement Cycle**: Run a complete self-improvement cycle on a project
 
 ### Agent Coordination System
 
@@ -159,22 +166,34 @@ dotnet run --project TarsCli/TarsCli.csproj -- init my-session
 dotnet run --project TarsCli/TarsCli.csproj -- run --session my-session --plan template.fsx
 
 # Analyze a file for improvements
-dotnet run --project TarsCli/TarsCli.csproj -- self-analyze --file path/to/file.cs --model llama3
+dotnet run --project TarsCli/TarsCli.csproj -- self-improve analyze path/to/file.cs
 
-# Run autonomous improvement for 60 minutes
+# Improve a file based on analysis
+dotnet run --project TarsCli/TarsCli.csproj -- self-improve improve path/to/file.cs --backup
+
+# Generate code based on requirements
+dotnet run --project TarsCli/TarsCli.csproj -- self-improve generate path/to/output.cs --requirements "Create a simple calculator class"
+
+# Generate tests for a file
+dotnet run --project TarsCli/TarsCli.csproj -- self-improve test path/to/file.cs --output path/to/tests.cs
+
+# Run a complete self-improvement cycle
+dotnet run --project TarsCli/TarsCli.csproj -- self-improve cycle path/to/project --max-files 10 --backup
+
+# Show learning statistics
+dotnet run --project TarsCli/TarsCli.csproj -- self-improve stats
+
+# Record feedback on code generation or improvement
+dotnet run --project TarsCli/TarsCli.csproj -- self-improve feedback path/to/file.cs --rating 5 --comment "Great improvement!"
+
+# Run autonomous improvement for 60 minutes (legacy command)
 dotnet run --project TarsCli/TarsCli.csproj -- auto-improve --time-limit 60 --model llama3
 
-# Check the status of autonomous improvement
+# Check the status of autonomous improvement (legacy command)
 dotnet run --project TarsCli/TarsCli.csproj -- auto-improve --status
 
-# Stop autonomous improvement
+# Stop autonomous improvement (legacy command)
 dotnet run --project TarsCli/TarsCli.csproj -- auto-improve --stop
-
-# Capture console output and use it to improve code
-dotnet run --project TarsCli/TarsCli.csproj -- console-capture --start
-# Run your commands that produce output
-dotnet run --project TarsCli/TarsCli.csproj -- console-capture --stop
-dotnet run --project TarsCli/TarsCli.csproj -- console-capture --analyze path/to/file.cs --apply
 ```
 
 ### Model Context Protocol (MCP) Commands
