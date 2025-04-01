@@ -15,6 +15,13 @@ module SimpleDsl =
         | Variable
         | If
         | Else
+        | While
+        | For
+        | Function
+        | Call
+        | Try
+        | Catch
+        | Return
         | Unknown of string
 
     /// Property value types in the DSL
@@ -54,6 +61,13 @@ module SimpleDsl =
         | "VARIABLE" -> BlockType.Variable
         | "IF" -> BlockType.If
         | "ELSE" -> BlockType.Else
+        | "WHILE" -> BlockType.While
+        | "FOR" -> BlockType.For
+        | "FUNCTION" -> BlockType.Function
+        | "CALL" -> BlockType.Call
+        | "TRY" -> BlockType.Try
+        | "CATCH" -> BlockType.Catch
+        | "RETURN" -> BlockType.Return
         | _ -> BlockType.Unknown blockType
 
     /// Parse a property value
