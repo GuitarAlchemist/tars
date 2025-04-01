@@ -1,0 +1,39 @@
+DESCRIBE {
+    name: "Hello World"
+    version: "1.0"
+    description: "A simple hello world example for the TARS DSL"
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.7
+    max_tokens: 1000
+}
+
+VARIABLE message {
+    value: "Hello, World!"
+}
+
+PROMPT {
+    text: "${message}"
+}
+
+ACTION {
+    type: "log"
+    message: "${message}"
+}
+
+IF {
+    condition: "${message == 'Hello, World!'}"
+    
+    ACTION {
+        type: "log"
+        message: "The message is a greeting!"
+    }
+}
+ELSE {
+    ACTION {
+        type: "log"
+        message: "The message is not a greeting."
+    }
+}
