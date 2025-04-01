@@ -9,6 +9,9 @@
   <ItemGroup>
     <Compile Include="Tests.fs" />
     <Compile Include="SimpleDslUnitTests.fs" />
+    <Compile Include="AdvancedDslUnitTests.fs" />
+    <Compile Include="AdvancedFeaturesIntegrationTests.fs" />
+    <Compile Include="MonadicDslTests.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
