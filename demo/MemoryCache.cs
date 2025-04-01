@@ -3,63 +3,65 @@ using System.Collections.Generic;
 
 public class Cache<TKey, TValue>
 {
-    private readonly Dictionary<TKey, CachedItem<TValue>> _cache = new Dictionary<TKey, CachedItem<TValue>>();
-    private readonly Dictionary<TKey, DateTime> _expires = new Dictionary<TKey, DateTime>();
-    private readonly int _defaultExpirationSeconds;
+    private readonly Dictionary<TKey, CacheEntry<TValue>> _cache;
+    private readonly object _syncLock = new object();
+    private readonly int _defaultTimeoutSeconds;
 
-    public Cache(int defaultExpirationSeconds)
+    public Cache(int defaultTimeoutSeconds = 300)
     {
-        _defaultExpirationSeconds = defaultExpirationSeconds;
+        _cache = new Dictionary<TKey, CacheEntry<TValue>>();
+        _defaultTimeoutSeconds = defaultTimeoutSeconds;
     }
 
     public void Add(TKey key, TValue value)
     {
-        var cachedItem = new CachedItem<TValue>(value);
-        _cache.Add(key, cachedItem);
-        _expires.Add(key, DateTime.UtcNow.AddSeconds(_defaultExpirationSeconds));
+        lock (_syncLock)
+        {
+            var entry = new CacheEntry<TValue>(value);
+            if (entry.Expiration > DateTime.Now.AddSeconds(_defaultTimeoutSeconds))
+                _cache[key] = entry;
+            else
+                throw new InvalidOperationException("Cannot add cache entry with expiration in the past.");
+        }
     }
 
     public TValue Get(TKey key)
     {
-        if (!_cache.ContainsKey(key))
-            return default(TValue);
-
-        var cachedItem = _cache[key];
-        var now = DateTime.UtcNow;
-
-        if (now > _expires[key])
+        lock (_syncLock)
         {
-            Remove(key);
-            return default(TValue); // or throw an exception, depending on your requirements
+            TValue result;
+            if (_cache.TryGetValue(key, out result) && result.Expiration > DateTime.Now)
+                return result.Value;
+            else
+                throw new KeyNotFoundException("Cache entry not found or expired.");
         }
-
-        return cachedItem.Value;
     }
 
     public void Remove(TKey key)
     {
-        if (_cache.ContainsKey(key))
+        lock (_syncLock)
         {
             _cache.Remove(key);
-            _expires.Remove(key);
         }
     }
 
     public void Clear()
     {
-        _cache.Clear();
-        _expires.Clear();
-    }
-
-    private class CachedItem<T>
-    {
-        public T Value { get; set; }
-        public DateTime Expiration { get; set; }
-
-        public CachedItem(T value)
+        lock (_syncLock)
         {
-            Value = value;
-            Expiration = DateTime.UtcNow.AddSeconds(30); // default expiration time
+            _cache.Clear();
         }
+    }
+}
+
+public class CacheEntry<T>
+{
+    public DateTime Expiration { get; set; }
+    public T Value { get; set; }
+
+    public CacheEntry(T value)
+    {
+        Expiration = DateTime.Now.AddSeconds(1);
+        Value = value;
     }
 }

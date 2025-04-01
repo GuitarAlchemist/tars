@@ -10,7 +10,7 @@ TARS DSL is a block-based language. Each block has a type, an optional name, and
 BLOCK_TYPE [name] {
     property1: value1
     property2: value2
-    
+
     NESTED_BLOCK {
         nested_property: value
     }
@@ -156,6 +156,119 @@ COMMUNICATION {
 }
 ```
 
+### VARIABLE
+
+Defines a variable with a name and value.
+
+```
+VARIABLE my_var {
+    value: "Hello, world!"
+}
+```
+
+### IF
+
+Executes nested blocks if a condition is true.
+
+```
+IF {
+    condition: true
+
+    PROMPT {
+        text: "This will be executed if the condition is true"
+    }
+}
+```
+
+### ELSE
+
+Executes nested blocks if the preceding IF block's condition is false.
+
+```
+ELSE {
+    PROMPT {
+        text: "This will be executed if the condition is false"
+    }
+}
+```
+
+### FOR
+
+Executes nested blocks for each value in a range.
+
+```
+FOR {
+    variable: "item"
+    range: ["a", "b", "c"]
+
+    PROMPT {
+        text: "Processing item"
+    }
+}
+```
+
+### WHILE
+
+Executes nested blocks while a condition is true.
+
+```
+WHILE {
+    condition: true
+
+    PROMPT {
+        text: "This will be executed while the condition is true"
+    }
+}
+```
+
+### FUNCTION
+
+Defines a reusable function.
+
+```
+FUNCTION process_data {
+    parameters: ["data"]
+
+    PROMPT {
+        text: "Processing data"
+    }
+
+    RETURN {
+        value: "Processed data"
+    }
+}
+```
+
+### RETURN
+
+Returns a value from a function.
+
+```
+RETURN {
+    value: "Result"
+}
+```
+
+### IMPORT
+
+Imports a module.
+
+```
+IMPORT {
+    module: "utils"
+}
+```
+
+### EXPORT
+
+Exports a value.
+
+```
+EXPORT {
+    name: "my_function"
+}
+```
+
 ## Nested Blocks
 
 Blocks can be nested to create hierarchical structures. For example, an AGENT block can contain TASK blocks, which can contain ACTION blocks.
@@ -163,10 +276,10 @@ Blocks can be nested to create hierarchical structures. For example, an AGENT bl
 ```
 AGENT researcher {
     description: "A research agent"
-    
+
     TASK FindInformation {
         description: "Find information"
-        
+
         ACTION {
             type: "web_search"
             query: "history of Paris"
@@ -234,12 +347,12 @@ TARS {
         text: "You are a helpful assistant. Answer the user's questions accurately and concisely."
         role: "system"
     }
-    
+
     PROMPT {
         text: "What is the capital of France?"
         role: "user"
     }
-    
+
     ACTION {
         type: "chat"
         model: "llama3"
@@ -259,10 +372,10 @@ CONFIG {
 AGENT researcher {
     description: "A research agent that can find information on the web"
     capabilities: ["search", "summarize", "analyze"]
-    
+
     TASK FindInformation {
         description: "Find information about the history of Paris"
-        
+
         ACTION {
             type: "web_search"
             query: "history of Paris"

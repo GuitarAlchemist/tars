@@ -7,7 +7,7 @@ Program = Block, { Block } ;
 Block = BlockType, [ Identifier ], "{", [ BlockContent ], "}" ;
 
 /* Block Type */
-BlockType = "CONFIG" | "PROMPT" | "ACTION" | "TASK" | "AGENT" | "AUTO_IMPROVE" | "DESCRIBE" | "SPAWN_AGENT" | "MESSAGE" | "SELF_IMPROVE" | "TARS" | "COMMUNICATION" ;
+BlockType = "CONFIG" | "PROMPT" | "ACTION" | "TASK" | "AGENT" | "AUTO_IMPROVE" | "DESCRIBE" | "SPAWN_AGENT" | "MESSAGE" | "SELF_IMPROVE" | "TARS" | "COMMUNICATION" | "VARIABLE" | "IF" | "ELSE" | "FOR" | "WHILE" | "FUNCTION" | "RETURN" | "IMPORT" | "EXPORT" ;
 
 /* Block Content */
 BlockContent = { Property }, { Block } ;

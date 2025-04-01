@@ -9,6 +9,13 @@ The demo command runs pre-configured demonstrations of various TARS capabilities
 1. **Self-Improvement**: Shows how TARS can analyze and improve code
 2. **Code Generation**: Demonstrates TARS's ability to generate code from natural language descriptions
 3. **Language Specifications**: Shows how TARS can generate formal language specifications for its DSL
+4. **ChatBot**: Demonstrates TARS's conversational capabilities
+5. **Deep Thinking**: Shows how TARS can generate in-depth explorations on complex topics
+6. **Learning Plan**: Demonstrates generation of personalized learning plans
+7. **Course Generator**: Shows how TARS can create structured course content
+8. **Tutorial Organizer**: Demonstrates management and categorization of tutorials
+9. **Speech**: Shows TARS's text-to-speech capabilities
+10. **MCP**: Demonstrates Model Context Protocol integration
 
 ## Usage
 
@@ -20,7 +27,7 @@ tarscli demo [options]
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--type` | `all` | Type of demo to run (`self-improvement`, `code-generation`, `language-specs`, `all`) |
+| `--type` | `all` | Type of demo to run (`self-improvement`, `code-generation`, `language-specs`, `chatbot`, `deep-thinking`, `learning-plan`, `course-generator`, `tutorial-organizer`, `speech`, `mcp`, `all`) |
 | `--model` | `llama3` | Model to use for the demo |
 
 ### Examples
@@ -38,6 +45,16 @@ tarscli demo --type self-improvement --model codellama
 Run the code generation demo:
 ```bash
 tarscli demo --type code-generation
+```
+
+Run the chatbot demo:
+```bash
+tarscli demo --type chatbot
+```
+
+Run the learning plan demo:
+```bash
+tarscli demo --type learning-plan
 ```
 
 ## Demo Types
@@ -74,6 +91,62 @@ The language specifications demo shows how TARS can generate formal language spe
 3. Generates a JSON schema
 4. Generates markdown documentation
 
+### ChatBot Demo
+
+The chatbot demo shows how TARS can engage in natural language conversations. It:
+
+1. Simulates a conversation with predefined questions
+2. Shows TARS's responses to various queries
+3. Saves the conversation transcript
+
+### Deep Thinking Demo
+
+The deep thinking demo shows how TARS can generate in-depth explorations on complex topics. It:
+
+1. Generates a deep thinking exploration on a specified topic
+2. Displays a preview of the generated content
+3. Generates related topics for further exploration
+
+### Learning Plan Demo
+
+The learning plan demo shows how TARS can generate personalized learning plans. It:
+
+1. Creates a learning plan with specified parameters (name, topic, skill level, goals, etc.)
+2. Displays the introduction and modules of the learning plan
+3. Saves the complete learning plan as a JSON file
+
+### Course Generator Demo
+
+The course generator demo shows how TARS can create structured course content. It:
+
+1. Generates a course with specified parameters (title, description, topic, etc.)
+2. Displays the overview and lessons of the course
+3. Saves the complete course as a JSON file
+
+### Tutorial Organizer Demo
+
+The tutorial organizer demo shows how TARS can manage and categorize tutorials. It:
+
+1. Creates multiple tutorials with different categories and difficulty levels
+2. Lists all tutorials with their metadata
+3. Saves the tutorial content as markdown files
+
+### Speech Demo
+
+The speech demo shows TARS's text-to-speech capabilities. It:
+
+1. Converts a text message to speech
+2. Lists available voices
+3. Saves information about the demo to a text file
+
+### MCP Demo
+
+The MCP (Model Context Protocol) demo shows how TARS integrates with the Model Context Protocol. It:
+
+1. Executes a command using MCP
+2. Generates code using MCP
+3. Displays the results of these operations
+
 ## Output
 
 All demo outputs are saved to the `demo` directory in the TARS project root. This includes:
@@ -81,6 +154,10 @@ All demo outputs are saved to the `demo` directory in the TARS project root. Thi
 - Generated code files
 - Language specifications
 - Documentation files
+- Learning plans and courses
+- Tutorial content
+- Chat transcripts
+- Deep thinking explorations
 
 ## Use Cases
 

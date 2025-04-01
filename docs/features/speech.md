@@ -153,7 +153,50 @@ To add support for new languages or voice models:
 
 If you encounter issues with the TARS Speech System:
 
-1. **Python not installed**: Install Python 3.7 or later
-2. **TTS not installed**: Run `pip install TTS flask soundfile numpy langdetect`
-3. **Audio playback issues**: Ensure your system has audio output configured correctly
-4. **Voice model not found**: Check the model name and ensure it's available in the Coqui TTS Model Zoo
+### Automatic Troubleshooting
+
+Run the installation script to automatically fix common issues:
+
+```bash
+.\Scripts\Install-TTS.ps1
+```
+
+Or run the test script to diagnose issues:
+
+```bash
+python .\Scripts\test-tts.py
+```
+
+### Common Issues
+
+1. **Python not installed**: Install Python 3.10 or later from [python.org](https://www.python.org/downloads/)
+
+2. **TTS not installed or incompatible**: Install a specific version that works with your Python version:
+   ```bash
+   python -m pip install TTS==0.17.6
+   ```
+
+3. **Missing dependencies**: Install required dependencies:
+   ```bash
+   python -m pip install flask soundfile numpy langdetect
+   ```
+
+4. **DLL load failed**: Install the [Visual C++ Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe)
+
+5. **Audio playback issues**: Ensure your system has audio output configured correctly
+
+6. **Voice model not found**: Check the model name and ensure it's available in the Coqui TTS Model Zoo
+
+7. **Server not starting**: Check the logs in the console or run:
+   ```bash
+   curl http://localhost:5002/diagnostics
+   ```
+
+### Advanced Troubleshooting
+
+If you're still experiencing issues:
+
+1. Check the Python version compatibility (Python 3.10 or 3.11 recommended)
+2. Try installing TTS with the `--no-deps` flag and then install dependencies separately
+3. Check for conflicts with other Python packages
+4. Ensure you have sufficient disk space for the TTS models

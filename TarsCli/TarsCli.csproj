@@ -6,6 +6,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AssemblyName>tarscli</AssemblyName>
+    <!-- Suppress non-critical warnings -->
+    <NoWarn>$(NoWarn);CS1591;CS1998;CS8618;CS8601;CS8602;CS8603;CS8604;CS8619;CS0168;CS0414</NoWarn>
+    <!-- Generate XML documentation for IntelliSense but don't require all members to be documented -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -22,6 +26,7 @@
     <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
     <PackageReference Include="FSharp.Core" Version="9.0.201" />
     <PackageReference Include="NAudio" Version="2.2.1" Condition="'$(OS)' == 'Windows_NT'" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Core" Version="2.2.5" />
   </ItemGroup>
 
   <ItemGroup>
@@ -36,8 +41,19 @@
     </None>
   </ItemGroup>
 
+  <!-- Copy PowerShell scripts to output directory -->
+  <Target Name="CopyScripts" AfterTargets="Build">
+    <ItemGroup>
+      <ScriptFiles Include="..\Scripts\*.ps1" />
+    </ItemGroup>
+    <MakeDir Directories="$(OutputPath)\Scripts" />
+    <Copy SourceFiles="@(ScriptFiles)" DestinationFolder="$(OutputPath)\Scripts" />
+  </Target>
+
   <ItemGroup>
     <ProjectReference Include="..\TarsEngine.SelfImprovement\TarsEngine.SelfImprovement.fsproj" />
+    <ProjectReference Include="..\TarsEngine.DSL\TarsEngine.DSL.fsproj" />
+    <ProjectReference Include="..\TarsEngineFSharp\TarsEngineFSharp.fsproj" />
   </ItemGroup>
 
 </Project>

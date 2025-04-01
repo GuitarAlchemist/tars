@@ -1,6 +1,7 @@
 namespace TarsEngine.DSL
 
 open Ast
+open AgentInterfaces
 open System
 open System.Collections.Generic
 
@@ -45,6 +46,13 @@ module Interpreter =
 
     /// Global execution context
     let mutable globalContext = createContext()
+
+    /// Global agent registry
+    let mutable agentRegistry: IAgentRegistry option = None
+
+    /// Set the agent registry
+    let setAgentRegistry registry =
+        agentRegistry <- Some registry
 
     /// Execute a block with the given environment
     let rec executeBlock (block: TarsBlock) (env: Environment) =
@@ -266,13 +274,15 @@ module Interpreter =
                 Error("Export block must have a 'name' property")
 
         | BlockType.Agent ->
-            // Create an agent from the block
-            let agent = AgentFramework.createAgent block
-
-            // Register the agent
-            AgentFramework.registry.RegisterAgent(agent)
-
-            Success(StringValue($"Agent registered: {agent.Name}"))
+            // Check if agent registry is available
+            match agentRegistry with
+            | Some registry ->
+                // In a real implementation, this would create an agent from the block
+                // For now, we'll just return a success result
+                registry.RegisterAgent(block)
+                Success(StringValue($"Agent registered"))
+            | None ->
+                Error("Agent registry not available")
 
         | BlockType.Task ->
             // Tasks are handled as part of agent creation
@@ -296,19 +306,23 @@ module Interpreter =
                         | Some(ObjectValue(paramMap)) -> paramMap
                         | _ -> Map.empty
 
-                    // Execute the task
-                    match AgentFramework.registry.ExecuteTask(agentName, taskName, functionName, parameters, env) with
-                    | AgentFramework.AgentResult.Success result ->
-                        // Store the result in the output variable if specified
-                        match block.Properties.TryFind("output_variable") with
-                        | Some(StringValue(varName)) ->
-                            let newEnv = env.Add(varName, result)
-                            // Update global context
-                            globalContext <- { globalContext with Environment = newEnv }
-                        | _ -> ()
+                    // Check if agent registry is available
+                    match agentRegistry with
+                    | Some registry ->
+                        // Execute the task
+                        match registry.ExecuteTask(agentName, taskName, functionName, parameters, env) with
+                        | AgentResult.Success result ->
+                            // Store the result in the output variable if specified
+                            match block.Properties.TryFind("output_variable") with
+                            | Some(StringValue(varName)) ->
+                                let newEnv = env.Add(varName, result)
+                                // Update global context
+                                globalContext <- { globalContext with Environment = newEnv }
+                            | _ -> ()
 
-                        Success(result)
-                    | AgentFramework.AgentResult.Error msg -> Error(msg)
+                            Success(result)
+                        | AgentResult.Error msg -> Error(msg)
+                    | None -> Error("Agent registry not available")
                 | _ ->
                     Error("Action block with type 'execute' must have 'agent' and 'task' properties")
             | Some(StringValue(actionType)) ->

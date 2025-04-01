@@ -2,6 +2,13 @@
 
 This directory contains scripts for demonstrating TARS capabilities.
 
+## Working Demo Scripts
+
+These scripts demonstrate TARS capabilities using only commands that are known to work correctly:
+
+- **Working-Demo.bat** - A simplified Windows batch file that works reliably
+- **Working-Demo.ps1** - A simplified PowerShell script that works reliably
+
 ## Available Scripts
 
 ### Demo-TARS.ps1
@@ -93,3 +100,5 @@ If you encounter errors running the scripts:
    ```
 
    The scripts will automatically change to the repository root directory if needed, but it's best to start from there.
+
+5. **Use Working Demo Scripts**: If you encounter issues with the main demo scripts, try using the Working-Demo scripts instead. These scripts use only commands that are known to work correctly and provide a more reliable demonstration experience.

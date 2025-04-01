@@ -173,7 +173,7 @@ Pause-Demo -Message "Starting demo in"
 Write-Header "BASIC INFORMATION"
 
 Write-SubHeader "TARS Version and Help"
-Invoke-TarsCommand "version"
+Invoke-TarsCommand "--version"
 Invoke-TarsCommand "help"
 
 Pause-Demo
@@ -181,11 +181,8 @@ Pause-Demo
 # Section 2: Deep Thinking
 Write-Header "DEEP THINKING"
 
-Write-SubHeader "Generate a Deep Thinking Exploration"
-Invoke-TarsCommand "think --topic `"$DemoTopic`" --preview"
-
-Write-SubHeader "Generate Related Topics"
-Invoke-TarsCommand "think related --topic `"$DemoTopic`" --count 5"
+Write-SubHeader "Run Deep Thinking Demo"
+Invoke-TarsCommand "demo --type deep-thinking"
 
 Pause-Demo
 

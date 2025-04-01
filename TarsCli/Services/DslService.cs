@@ -57,6 +57,10 @@ namespace TarsCli.Services
                     }
                 }
 
+                // Initialize the agent registry
+                var registry = new TarsEngine.DSL.AgentFramework.AgentRegistry();
+                TarsEngine.DSL.Interpreter.setAgentRegistry(registry);
+
                 // Execute the program
                 var result = TarsEngine.DSL.Interpreter.execute(program);
 
@@ -234,7 +238,7 @@ ACTION {
                 Option<string> ebnfOption = GenerateEbnfGrammar();
 
                 return await ebnfOption.Match(
-                    some: async ebnf => 
+                    some: async ebnf =>
                     {
                         // Create the directory if it doesn't exist
                         var directory = Path.GetDirectoryName(outputPath);
@@ -249,7 +253,7 @@ ACTION {
                         _logger.LogInformation($"EBNF grammar specification generated successfully: {outputPath}");
                         return 0;
                     },
-                    none: () => 
+                    none: () =>
                     {
                         _logger.LogError("Failed to generate EBNF grammar specification");
                         return Task.FromResult(1);
