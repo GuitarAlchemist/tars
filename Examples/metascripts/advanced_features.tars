@@ -1,0 +1,207 @@
+DESCRIBE {
+    name: "Advanced Features Demo"
+    version: "1.0"
+    description: "A demonstration of advanced TARS DSL features"
+    author: "TARS Team"
+    date: "2025-03-31"
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.7
+    max_tokens: 1000
+}
+
+VARIABLE message {
+    value: "Hello, World!"
+}
+
+// Define a function to calculate factorial
+FUNCTION factorial {
+    parameters: "n"
+    
+    // Base case
+    IF {
+        condition: "${n <= 1}"
+        
+        RETURN {
+            value: 1
+        }
+    }
+    
+    // Recursive case
+    VARIABLE temp {
+        value: 0
+    }
+    
+    CALL {
+        function: "factorial"
+        arguments: {
+            n: "${n - 1}"
+        }
+        result_variable: "temp"
+    }
+    
+    RETURN {
+        value: "${n * temp}"
+    }
+}
+
+// Define a function to print numbers
+FUNCTION print_numbers {
+    parameters: "start, end, step"
+    
+    FOR {
+        variable: "i"
+        from: "${start}"
+        to: "${end}"
+        step: "${step}"
+        
+        ACTION {
+            type: "log"
+            message: "Number: ${i}"
+        }
+    }
+    
+    RETURN {
+        value: "Done printing numbers"
+    }
+}
+
+// Define a function that might fail
+FUNCTION might_fail {
+    parameters: "should_fail"
+    
+    IF {
+        condition: "${should_fail == 'true'}"
+        
+        ACTION {
+            type: "log"
+            message: "About to fail..."
+        }
+        
+        // This will cause an error
+        ACTION {
+            type: "unknown_action"
+            message: "This will fail"
+        }
+    }
+    ELSE {
+        ACTION {
+            type: "log"
+            message: "Not failing this time"
+        }
+    }
+    
+    RETURN {
+        value: "Function completed successfully"
+    }
+}
+
+// Main program
+ACTION {
+    type: "log"
+    message: "Starting advanced features demo"
+}
+
+// Test the factorial function
+ACTION {
+    type: "log"
+    message: "Testing factorial function"
+}
+
+CALL {
+    function: "factorial"
+    arguments: {
+        n: 5
+    }
+    result_variable: "fact_result"
+}
+
+ACTION {
+    type: "log"
+    message: "Factorial of 5 is ${fact_result}"
+}
+
+// Test the print_numbers function
+ACTION {
+    type: "log"
+    message: "Testing print_numbers function"
+}
+
+CALL {
+    function: "print_numbers"
+    arguments: {
+        start: 1
+        end: 5
+        step: 1
+    }
+    result_variable: "print_result"
+}
+
+ACTION {
+    type: "log"
+    message: "Result: ${print_result}"
+}
+
+// Test the while loop
+ACTION {
+    type: "log"
+    message: "Testing while loop"
+}
+
+VARIABLE counter {
+    value: 0
+}
+
+WHILE {
+    condition: "${counter < 5}"
+    
+    ACTION {
+        type: "log"
+        message: "Counter: ${counter}"
+    }
+    
+    // Increment counter
+    VARIABLE counter {
+        value: "${counter + 1}"
+    }
+}
+
+// Test error handling
+ACTION {
+    type: "log"
+    message: "Testing error handling"
+}
+
+TRY {
+    ACTION {
+        type: "log"
+        message: "Inside try block"
+    }
+    
+    CALL {
+        function: "might_fail"
+        arguments: {
+            should_fail: "true"
+        }
+        result_variable: "fail_result"
+    }
+    
+    ACTION {
+        type: "log"
+        message: "This won't be executed if an error occurs"
+    }
+    
+    CATCH {
+        ACTION {
+            type: "log"
+            message: "Caught an error: ${error}"
+        }
+    }
+}
+
+ACTION {
+    type: "log"
+    message: "Demo completed successfully"
+}
