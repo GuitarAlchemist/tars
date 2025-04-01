@@ -1,0 +1,81 @@
+DESCRIBE {
+    name: "TARS-Augment Collaboration Demo"
+    version: "1.0"
+    description: "A demonstration of TARS and Augment collaborating via MCP"
+    author: "TARS Team"
+    date: "2025-03-31"
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.7
+    max_tokens: 1000
+}
+
+VARIABLE task {
+    value: "Implement a WebGPU renderer for a 3D scene with dynamic lighting"
+}
+
+ACTION {
+    type: "log"
+    message: "Starting collaboration with Augment on task: ${task}"
+}
+
+ACTION {
+    type: "mcp_send"
+    target: "augment"
+    action: "code_generation"
+    parameters: {
+        language: "typescript"
+        task: "${task}"
+        framework: "three.js"
+        mode: "webgpu"
+    }
+    result_variable: "augment_code"
+}
+
+ACTION {
+    type: "log"
+    message: "Received code from Augment, now enhancing with TARS capabilities"
+}
+
+PROMPT {
+    text: "Analyze the following code from Augment and suggest optimizations for WebGPU performance:\n\n${augment_code}"
+    result_variable: "tars_analysis"
+}
+
+ACTION {
+    type: "log"
+    message: "TARS analysis complete. Sending optimization suggestions back to Augment."
+}
+
+ACTION {
+    type: "mcp_send"
+    target: "augment"
+    action: "code_enhancement"
+    parameters: {
+        original_code: "${augment_code}"
+        suggestions: "${tars_analysis}"
+    }
+    result_variable: "final_code"
+}
+
+ACTION {
+    type: "log"
+    message: "Collaboration complete. Final optimized code ready."
+}
+
+IF {
+    condition: "${final_code != ''}"
+    
+    ACTION {
+        type: "log"
+        message: "Saving the final code to a file..."
+    }
+}
+ELSE {
+    ACTION {
+        type: "log"
+        message: "Error: Failed to generate final code."
+    }
+}

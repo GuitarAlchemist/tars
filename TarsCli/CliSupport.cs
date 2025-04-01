@@ -1,18 +1,14 @@
-using System;
-using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
 using System.Text.Json;
-using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using TarsCli.Services;
-using TarsCli.Mcp;
-using static TarsCli.Services.CourseGeneratorService; // For DifficultyLevel enum
+using TarsCli.Commands;
+
+// For DifficultyLevel enum
 
 namespace TarsCli;
 
@@ -709,7 +705,7 @@ public static class CliSupport
             // Update appsettings.json
             var appSettingsPath = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
             var json = File.ReadAllText(appSettingsPath);
-            var settings = System.Text.Json.JsonDocument.Parse(json);
+            var settings = JsonDocument.Parse(json);
             var root = new Dictionary<string, object>();
 
             // Copy existing settings
@@ -717,11 +713,11 @@ public static class CliSupport
             {
                 if (property.Name == "Tars")
                 {
-                    var tarsSettings = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(property.Value.GetRawText());
+                    var tarsSettings = JsonSerializer.Deserialize<Dictionary<string, object>>(property.Value.GetRawText());
 
                     if (tarsSettings.ContainsKey("Mcp"))
                     {
-                        var mcpSettings = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(tarsSettings["Mcp"].ToString());
+                        var mcpSettings = JsonSerializer.Deserialize<Dictionary<string, object>>(tarsSettings["Mcp"].ToString());
                         mcpSettings["Port"] = port;
                         mcpSettings["AutoExecuteEnabled"] = autoExecute;
                         mcpSettings["AutoCodeEnabled"] = autoCode;
@@ -741,7 +737,7 @@ public static class CliSupport
                 }
                 else
                 {
-                    root[property.Name] = System.Text.Json.JsonSerializer.Deserialize<object>(property.Value.GetRawText());
+                    root[property.Name] = JsonSerializer.Deserialize<object>(property.Value.GetRawText());
                 }
             }
 
@@ -760,7 +756,7 @@ public static class CliSupport
             }
 
             // Save the updated settings
-            var newJson = System.Text.Json.JsonSerializer.Serialize(root, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+            var newJson = JsonSerializer.Serialize(root, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(appSettingsPath, newJson);
 
             WriteColorLine("MCP configuration updated successfully", ConsoleColor.Green);
@@ -789,29 +785,29 @@ public static class CliSupport
             }
 
             var json = File.ReadAllText(vscodeSettingsPath);
-            var settings = System.Text.Json.JsonDocument.Parse(json);
+            var settings = JsonDocument.Parse(json);
             var root = new Dictionary<string, object>();
 
             // Copy existing settings
             foreach (var property in settings.RootElement.EnumerateObject())
             {
-                root[property.Name] = System.Text.Json.JsonSerializer.Deserialize<object>(property.Value.GetRawText());
+                root[property.Name] = JsonSerializer.Deserialize<object>(property.Value.GetRawText());
             }
 
             // Add or update augment.advanced settings
             if (root.ContainsKey("augment.advanced"))
             {
-                var advancedSettings = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(root["augment.advanced"].ToString());
+                var advancedSettings = JsonSerializer.Deserialize<Dictionary<string, object>>(root["augment.advanced"].ToString());
 
                 if (advancedSettings.ContainsKey("mcpServers"))
                 {
-                    var mcpServers = System.Text.Json.JsonSerializer.Deserialize<List<object>>(advancedSettings["mcpServers"].ToString());
+                    var mcpServers = JsonSerializer.Deserialize<List<object>>(advancedSettings["mcpServers"].ToString());
 
                     // Check if TARS MCP server already exists
                     bool found = false;
                     for (int i = 0; i < mcpServers.Count; i++)
                     {
-                        var server = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(mcpServers[i].ToString());
+                        var server = JsonSerializer.Deserialize<Dictionary<string, object>>(mcpServers[i].ToString());
                         if (server.ContainsKey("name") && server["name"].ToString() == "tars")
                         {
                             // Update existing server
@@ -869,7 +865,7 @@ public static class CliSupport
             }
 
             // Save the updated settings
-            var newJson = System.Text.Json.JsonSerializer.Serialize(root, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+            var newJson = JsonSerializer.Serialize(root, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(vscodeSettingsPath, newJson);
 
             WriteColorLine("Augment Code integration configured successfully", ConsoleColor.Green);
@@ -3366,10 +3362,22 @@ public static class CliSupport
         // Create DSL command
         var dslCommand = new Commands.DslCommand(_serviceProvider!.GetRequiredService<DslService>());
 
+        // Create DSL debug command
+        var dslDebugCommand = new Commands.DslDebugCommand(_serviceProvider!);
+
         rootCommand.AddCommand(chatCommand);
         rootCommand.AddCommand(deepThinkingCommand);
         rootCommand.AddCommand(consoleCaptureCommand);
         rootCommand.AddCommand(dslCommand);
+        rootCommand.AddCommand(dslDebugCommand);
+
+        // Add Metascript command
+        var metascriptCommand = new MetascriptCommand(_serviceProvider);
+        rootCommand.AddCommand(metascriptCommand);
+
+        // Add Docker Model Runner command
+        var dockerModelRunnerCommand = new DockerModelRunnerCommand();
+        rootCommand.AddCommand(dockerModelRunnerCommand);
 
         // Add default handler for root command
         rootCommand.SetHandler((InvocationContext context) =>

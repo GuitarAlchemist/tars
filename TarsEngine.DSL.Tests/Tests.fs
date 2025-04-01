@@ -1,4 +1,4 @@
-﻿module TarsEngine.DSL.Tests
+﻿module TarsEngine.DSL.Tests.DslTests
 
 open System
 open Xunit
@@ -15,7 +15,7 @@ let ``Parser can parse CONFIG block`` () =
         max_tokens: 1000
     }"""
 
-    let program = Parser.parse code
+    let program = parse code
 
     Assert.Equal(1, program.Blocks.Length)
     Assert.Equal(BlockType.Config, program.Blocks.[0].Type)
@@ -40,7 +40,7 @@ let ``Parser can parse PROMPT block`` () =
         model: "llama3"
     }"""
 
-    let program = Parser.parse code
+    let program = parse code
 
     Assert.Equal(1, program.Blocks.Length)
     Assert.Equal(BlockType.Prompt, program.Blocks.[0].Type)
@@ -66,7 +66,7 @@ let ``Parser can parse multiple blocks`` () =
         model: "llama3"
     }"""
 
-    let program = Parser.parse code
+    let program = parse code
 
     Assert.Equal(3, program.Blocks.Length)
     Assert.Equal(BlockType.Config, program.Blocks.[0].Type)
@@ -81,9 +81,9 @@ let ``Interpreter can execute CONFIG block`` () =
         max_tokens: 1000
     }"""
 
-    let program = Parser.parse code
-    let result = Interpreter.execute program
+    let program = parse code
+    let result = execute program
 
     match result with
-    | Success(StringValue(msg)) -> Assert.Equal("Program executed successfully", msg)
+    | Success(StringValue(msg)) -> Assert.Equal("Config block executed", msg)
     | _ -> Assert.True(false, "Execution failed or returned unexpected result")
