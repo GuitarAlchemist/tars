@@ -1,0 +1,174 @@
+DESCRIBE {
+    name: "Monadic DSL Example"
+    version: "1.0"
+    description: "A demonstration of monadic features in TARS DSL"
+    author: "TARS Team"
+    date: "2025-04-01"
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.7
+    max_tokens: 1000
+}
+
+// Define a monadic computation
+FSHARP {
+    open TarsEngine.DSL.Monads
+    open TarsEngine.DSL.MonadicDsl
+    
+    // Create a computation that processes a list of numbers
+    let processNumbers numbers =
+        dsl {
+            // Initialize sum
+            do! Dsl.setVariable "sum" (NumberValue 0.0)
+            
+            // Process each number
+            for n in numbers do
+                // Get current sum
+                let! sum = Dsl.getVariable "sum"
+                
+                // Update sum
+                match sum with
+                | NumberValue currentSum ->
+                    do! Dsl.setVariable "sum" (NumberValue (currentSum + float n))
+                | _ ->
+                    return! Dsl.error "Expected NumberValue"
+                    
+            // Return the sum
+            let! sum = Dsl.getVariable "sum"
+            return sum
+        }
+    
+    // Run the computation
+    let env = System.Collections.Generic.Dictionary<string, PropertyValue>()
+    let (result, finalState) = Dsl.run (processNumbers [1..10]) env
+    
+    // Store the result in the environment
+    match result with
+    | Ok value -> 
+        finalState.Environment.["result"] <- value
+    | Error msg ->
+        finalState.Environment.["error"] <- StringValue msg
+}
+
+// Access the result from the monadic computation
+ACTION {
+    type: "log"
+    message: "Sum of numbers from 1 to 10: ${result}"
+}
+
+// Example of using the Option monad
+FSHARP {
+    open TarsEngine.DSL.Monads
+    
+    // Define a function that returns an option
+    let tryDivide x y =
+        if y = 0 then None else Some (x / y)
+    
+    // Use the option computation expression
+    let result = option {
+        let! a = tryDivide 10 2  // Some 5
+        let! b = tryDivide a 0   // None
+        return b
+    }
+    
+    // Store the result in the environment
+    let env = System.Collections.Generic.Dictionary<string, PropertyValue>()
+    match result with
+    | Some value -> 
+        env.["division_result"] <- NumberValue (float value)
+        env.["division_success"] <- BoolValue true
+    | None ->
+        env.["division_success"] <- BoolValue false
+}
+
+// Check the result of the division
+IF {
+    condition: "${division_success}"
+    
+    ACTION {
+        type: "log"
+        message: "Division result: ${division_result}"
+    }
+}
+ELSE {
+    ACTION {
+        type: "log"
+        message: "Division failed (division by zero)"
+    }
+}
+
+// Example of using the Result monad
+FSHARP {
+    open TarsEngine.DSL.Monads
+    
+    // Define a function that returns a result
+    let safeDivide x y =
+        if y = 0 then Error "Division by zero" else Ok (x / y)
+    
+    // Use the result computation expression
+    let result = result {
+        let! a = safeDivide 10 2   // Ok 5
+        let! b = safeDivide 20 a   // Ok 4
+        return b
+    }
+    
+    // Store the result in the environment
+    let env = System.Collections.Generic.Dictionary<string, PropertyValue>()
+    match result with
+    | Ok value -> 
+        env.["safe_division_result"] <- NumberValue (float value)
+        env.["safe_division_success"] <- BoolValue true
+    | Error msg ->
+        env.["safe_division_error"] <- StringValue msg
+        env.["safe_division_success"] <- BoolValue false
+}
+
+// Check the result of the safe division
+IF {
+    condition: "${safe_division_success}"
+    
+    ACTION {
+        type: "log"
+        message: "Safe division result: ${safe_division_result}"
+    }
+}
+ELSE {
+    ACTION {
+        type: "log"
+        message: "Safe division failed: ${safe_division_error}"
+    }
+}
+
+// Example of using the State monad
+FSHARP {
+    open TarsEngine.DSL.Monads
+    
+    // Define a state computation
+    let counter = state {
+        let! count = State.get
+        do! State.put (count + 1)
+        return count
+    }
+    
+    // Run the state computation multiple times
+    let rec runCounter n s =
+        if n <= 0 then s
+        else
+            let (_, s') = State.run counter s
+            runCounter (n-1) s'
+    
+    // Run the counter 5 times starting from 0
+    let finalState = runCounter 5 0
+    
+    // Store the result in the environment
+    let env = System.Collections.Generic.Dictionary<string, PropertyValue>()
+    env.["counter_state"] <- NumberValue (float finalState)
+}
+
+// Show the final counter state
+ACTION {
+    type: "log"
+    message: "Final counter state: ${counter_state}"
+}
