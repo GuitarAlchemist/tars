@@ -8,7 +8,7 @@ module Monads =
         | None
 
     /// Option monad functions
-    module Option =
+    module DslOption =
         /// Return a value wrapped in Some
         let return' x = Some x
 
@@ -196,9 +196,9 @@ module Monads =
         let pass (Writer ((x, f), w)) = Writer (x, f w)
 
     /// Computation expression builder for Option monad
-    type OptionBuilder() =
-        member _.Return(x) = Option.return' x
-        member _.Bind(m, f) = Option.bind f m
+    type DslOptionBuilder() =
+        member _.Return(x) = DslOption.return' x
+        member _.Bind(m, f) = DslOption.bind f m
         member _.Zero() = None
         member _.ReturnFrom(m) = m
 
@@ -231,7 +231,7 @@ module Monads =
         member _.ReturnFrom(m) = m
 
     /// Computation expression instances
-    let option = OptionBuilder()
+    let dsloption = DslOptionBuilder()
     let result = ResultBuilder()
     let state = StateBuilder()
     let reader = ReaderBuilder()

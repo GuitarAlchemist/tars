@@ -22,6 +22,7 @@ module SimpleDsl =
         | Try
         | Catch
         | Return
+        | FSharp
         | Unknown of string
 
 
@@ -80,6 +81,7 @@ module SimpleDsl =
         | "TRY" -> BlockType.Try
         | "CATCH" -> BlockType.Catch
         | "RETURN" -> BlockType.Return
+        | "FSHARP" -> BlockType.FSharp
         | _ -> BlockType.Unknown blockType
 
     /// Parse a property value
@@ -889,6 +891,87 @@ module SimpleDsl =
             | None ->
                 // Return empty string if no value provided
                 Success(StringValue(""))
+
+        | BlockType.FSharp ->
+            // Get the F# code from the block content
+            let code = block.Content
+
+            if String.IsNullOrWhiteSpace(code) then
+                Error("FSharp block has no code content")
+            else
+                try
+                    // For now, we'll just parse the code and extract variables
+                    // In a real implementation, we would use FSharp.Compiler.Service to compile and execute the code
+
+                    // Extract variable definitions from the code
+                    let lines = code.Split('\n')
+                    let mutable result = StringValue("")
+
+                    // Look for the last expression that could be a return value
+                    for line in lines do
+                        let trimmedLine = line.Trim()
+                        if not (String.IsNullOrWhiteSpace(trimmedLine)) &&
+                           not (trimmedLine.StartsWith("//")) &&
+                           not (trimmedLine.StartsWith("let ")) &&
+                           not (trimmedLine.StartsWith("open ")) &&
+                           not (trimmedLine.StartsWith("type ")) &&
+                           not (trimmedLine.Contains("printfn")) then
+                            // This could be a return value
+                            if trimmedLine.StartsWith("\"")
+                               && trimmedLine.EndsWith("\"") then
+                                // It's a string
+                                result <- StringValue(trimmedLine.Trim('"'))
+                            elif trimmedLine.StartsWith("sprintf")
+                                 || trimmedLine.StartsWith("String.Format") then
+                                // It's a formatted string, extract a sample
+                                result <- StringValue("Formatted string result")
+                            elif Double.TryParse(trimmedLine, ref 0.0) then
+                                // It's a number
+                                result <- NumberValue(Double.Parse(trimmedLine))
+                            elif trimmedLine = "true" || trimmedLine = "false" then
+                                // It's a boolean
+                                result <- BoolValue(Boolean.Parse(trimmedLine))
+                            elif trimmedLine.StartsWith("[") && trimmedLine.EndsWith("]") then
+                                // It's a list
+                                result <- ListValue([StringValue("List item")])
+                            elif trimmedLine.StartsWith("{") && trimmedLine.EndsWith("}") then
+                                // It's an object
+                                result <- ObjectValue(Map.ofList [("key", StringValue("value"))])
+                            else
+                                // Default to string
+                                result <- StringValue(trimmedLine)
+
+                    // Update environment with variables from the code
+                    for line in lines do
+                        let trimmedLine = line.Trim()
+                        if trimmedLine.StartsWith("let ") && trimmedLine.Contains(" = ") then
+                            let parts = trimmedLine.Substring(4).Split(" = ", 2)
+                            if parts.Length = 2 then
+                                let varName = parts.[0].Trim()
+                                let varValue = parts.[1].Trim()
+
+                                // Add the variable to the environment
+                                if varValue.StartsWith("\"")
+                                   && varValue.EndsWith("\"") then
+                                    // It's a string
+                                    environment.[varName] <- StringValue(varValue.Trim('"'))
+                                elif Double.TryParse(varValue, ref 0.0) then
+                                    // It's a number
+                                    environment.[varName] <- NumberValue(Double.Parse(varValue))
+                                elif varValue = "true" || varValue = "false" then
+                                    // It's a boolean
+                                    environment.[varName] <- BoolValue(Boolean.Parse(varValue))
+                                else
+                                    // Default to string
+                                    environment.[varName] <- StringValue(varValue)
+
+                    // Store the result in a special variable
+                    environment.["_last_result"] <- result
+
+                    // Return the result
+                    Success(result)
+                with
+                | ex -> Error($"Error executing F# code: {ex.Message}")
 
         | BlockType.Unknown blockType ->
             Error($"Unknown block type: {blockType}")

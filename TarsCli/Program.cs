@@ -6,7 +6,9 @@ using NLog.Extensions.Logging;
 using System.CommandLine;
 using System.CommandLine.Builder;
 using System.CommandLine.Parsing;
+using TarsCli.Controllers;
 using TarsCli.Services;
+using TarsEngineFSharp;
 
 namespace TarsCli;
 
@@ -43,6 +45,7 @@ internal static class Program
                     builder.AddNLog(configuration);
                 })
                 .AddSingleton<IConfiguration>(configuration)
+                .AddHttpClient()
                 .AddSingleton<GpuService>()
                 .AddSingleton<OllamaService>()
                 .AddSingleton<OllamaSetupService>()
@@ -79,6 +82,14 @@ internal static class Program
                 .AddSingleton<DockerModelRunnerService>()
                 .AddSingleton<ModelProviderFactory>()
                 .AddSingleton<ConsoleService>()
+                .AddSingleton<TarsEngine.Services.Interfaces.ICodeAnalysisService, TarsEngine.Services.CodeAnalysisService>()
+                .AddSingleton<TarsEngine.Services.Interfaces.IProjectAnalysisService, TarsEngine.Services.ProjectAnalysisService>()
+                .AddSingleton<TarsEngine.Services.Interfaces.ILlmService, TarsEngine.Services.LlmService>()
+                .AddSingleton<TarsEngine.Services.Interfaces.ICodeGenerationService, TarsEngine.Services.CodeGenerationService>()
+                .AddSingleton<TarsEngine.Services.CodeExecutionService>()
+                .AddSingleton<TarsEngine.Services.LearningService>()
+                .AddSingleton<TarsEngine.Services.Interfaces.ISelfImprovementService, TarsEngine.Services.SelfImprovementService>()
+                .AddSingleton<SelfImprovementController>()
                 .AddSingleton<Mcp.McpController>(sp => new Mcp.McpController(sp.GetRequiredService<ILogger<Mcp.McpController>>(), configuration))
                 .BuildServiceProvider();
 

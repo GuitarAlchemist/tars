@@ -83,6 +83,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionIt
 		docs\Explorations\v1\Chats\ChatGPT-TTS Audio Deep Dive.md = docs\Explorations\v1\Chats\ChatGPT-TTS Audio Deep Dive.md
 		docs\Explorations\v1\Chats\ChatGPT-Learning Plan Generator.md = docs\Explorations\v1\Chats\ChatGPT-Learning Plan Generator.md
 		README.md = README.md
+		docs\Explorations\v1\Chats\ChatGPT-TARS Code Analysis and Re-engineering.md = docs\Explorations\v1\Chats\ChatGPT-TARS Code Analysis and Re-engineering.md
+		docs\Explorations\v1\Chats\ChatGPT-Philosophers and Philosophy DSL.md = docs\Explorations\v1\Chats\ChatGPT-Philosophers and Philosophy DSL.md
+		docs\Explorations\v1\Chats\ChatGPT-TARS Thought Experiments.md = docs\Explorations\v1\Chats\ChatGPT-TARS Thought Experiments.md
+		docs\Explorations\v1\Chats\ChatGPT-Auto-evolutive 3D Entities.md = docs\Explorations\v1\Chats\ChatGPT-Auto-evolutive 3D Entities.md
+		docs\Explorations\v1\Chats\ChatGPT-Video to Text Models.md = docs\Explorations\v1\Chats\ChatGPT-Video to Text Models.md
+		docs\Explorations\v1\Chats\ChatGPT-DSLs for Visualization Engines.md = docs\Explorations\v1\Chats\ChatGPT-DSLs for Visualization Engines.md
+		docs\Explorations\v1\Chats\ChatGPT-Text to DSL for TARS.md = docs\Explorations\v1\Chats\ChatGPT-Text to DSL for TARS.md
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TarsEngine", "TarsEngine\TarsEngine.csproj", "{B0A629F0-DC3A-4A88-AF1D-CDF891784B22}"
@@ -104,6 +111,8 @@ EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.DSL", "TarsEngine.DSL\TarsEngine.DSL.fsproj", "{D08A6D0E-C072-4119-B7E8-0F563A5888BA}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.DSL.Tests", "TarsEngine.DSL.Tests\TarsEngine.DSL.Tests.fsproj", "{AD1E290A-E48F-4CF1-8F8A-0A13E95D62FC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TarsEngine.Tests", "TarsEngine.Tests\TarsEngine.Tests.csproj", "{FB95CD0B-D5C8-4F39-9B49-799D6434FD0A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -223,6 +232,18 @@ Global
 		{AD1E290A-E48F-4CF1-8F8A-0A13E95D62FC}.Release|x64.Build.0 = Release|Any CPU
 		{AD1E290A-E48F-4CF1-8F8A-0A13E95D62FC}.Release|x86.ActiveCfg = Release|Any CPU
 		{AD1E290A-E48F-4CF1-8F8A-0A13E95D62FC}.Release|x86.Build.0 = Release|Any CPU
+		{FB95CD0B-D5C8-4F39-9B49-799D6434FD0A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FB95CD0B-D5C8-4F39-9B49-799D6434FD0A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FB95CD0B-D5C8-4F39-9B49-799D6434FD0A}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{FB95CD0B-D5C8-4F39-9B49-799D6434FD0A}.Debug|x64.Build.0 = Debug|Any CPU
+		{FB95CD0B-D5C8-4F39-9B49-799D6434FD0A}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{FB95CD0B-D5C8-4F39-9B49-799D6434FD0A}.Debug|x86.Build.0 = Debug|Any CPU
+		{FB95CD0B-D5C8-4F39-9B49-799D6434FD0A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FB95CD0B-D5C8-4F39-9B49-799D6434FD0A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FB95CD0B-D5C8-4F39-9B49-799D6434FD0A}.Release|x64.ActiveCfg = Release|Any CPU
+		{FB95CD0B-D5C8-4F39-9B49-799D6434FD0A}.Release|x64.Build.0 = Release|Any CPU
+		{FB95CD0B-D5C8-4F39-9B49-799D6434FD0A}.Release|x86.ActiveCfg = Release|Any CPU
+		{FB95CD0B-D5C8-4F39-9B49-799D6434FD0A}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

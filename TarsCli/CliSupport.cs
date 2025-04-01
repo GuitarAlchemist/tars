@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using TarsCli.Services;
 using TarsCli.Commands;
+using TarsCli.Controllers;
 
 // For DifficultyLevel enum
 
@@ -3378,6 +3379,10 @@ public static class CliSupport
         // Add Docker Model Runner command
         var dockerModelRunnerCommand = new DockerModelRunnerCommand();
         rootCommand.AddCommand(dockerModelRunnerCommand);
+
+        // Add Self-Improvement command
+        var selfImprovementController = _serviceProvider.GetRequiredService<SelfImprovementController>();
+        selfImprovementController.RegisterCommands(rootCommand);
 
         // Add default handler for root command
         rootCommand.SetHandler((InvocationContext context) =>
