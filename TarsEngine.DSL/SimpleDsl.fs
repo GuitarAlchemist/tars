@@ -477,6 +477,220 @@ module SimpleDsl =
 
             result
 
+        | BlockType.While ->
+            // Get the condition
+            match block.Properties.TryFind("condition") with
+            | Some (StringValue condition) ->
+                // Execute the loop
+                let mutable result = Success(StringValue(""))
+                let mutable continueLoop = true
+                let mutable loopCount = 0
+                let maxLoops = 1000 // Safety limit to prevent infinite loops
+
+                while continueLoop && loopCount < maxLoops do
+                    // Substitute variables in the condition
+                    let substitutedCondition = substituteVariables condition environment
+
+                    // Evaluate the condition
+                    let conditionResult = evaluateCondition substitutedCondition
+
+                    if conditionResult then
+                        // Execute the nested blocks
+                        let mutable blockResult = Success(StringValue(""))
+                        let mutable continueExecution = true
+
+                        for nestedBlock in block.NestedBlocks do
+                            if continueExecution then
+                                match executeBlock nestedBlock environment with
+                                | Success value -> blockResult <- Success value
+                                | Error msg ->
+                                    blockResult <- Error msg
+                                    // Stop execution on error
+                                    continueExecution <- false
+                                    continueLoop <- false
+
+                        result <- blockResult
+                        loopCount <- loopCount + 1
+                    else
+                        // Condition is false, exit the loop
+                        continueLoop <- false
+
+                // Check if we hit the max loop count
+                if loopCount >= maxLoops then
+                    Error($"While loop exceeded maximum iteration count ({maxLoops})")
+                else
+                    result
+            | _ ->
+                Error("While block has no condition property")
+
+        | BlockType.For ->
+            // Get the required properties
+            let variableOpt = block.Properties.TryFind("variable")
+            let fromOpt = block.Properties.TryFind("from")
+            let toOpt = block.Properties.TryFind("to")
+            let stepOpt = block.Properties.TryFind("step")
+
+            match variableOpt, fromOpt, toOpt with
+            | Some (StringValue variable), Some fromValue, Some toValue ->
+                // Parse from and to values
+                let fromNum =
+                    match fromValue with
+                    | NumberValue n -> n
+                    | StringValue s ->
+                        match Double.TryParse(substituteVariables s environment) with
+                        | true, n -> n
+                        | _ -> 0.0
+                    | _ -> 0.0
+
+                let toNum =
+                    match toValue with
+                    | NumberValue n -> n
+                    | StringValue s ->
+                        match Double.TryParse(substituteVariables s environment) with
+                        | true, n -> n
+                        | _ -> 0.0
+                    | _ -> 0.0
+
+                // Parse step value (default to 1.0)
+                let stepNum =
+                    match stepOpt with
+                    | Some (NumberValue n) -> n
+                    | Some (StringValue s) ->
+                        match Double.TryParse(substituteVariables s environment) with
+                        | true, n -> n
+                        | _ -> 1.0
+                    | _ -> 1.0
+
+                // Execute the loop
+                let mutable result = Success(StringValue(""))
+                let mutable loopCount = 0
+                let maxLoops = 1000 // Safety limit to prevent infinite loops
+
+                let mutable i = fromNum
+                while (stepNum > 0.0 && i <= toNum) || (stepNum < 0.0 && i >= toNum) do
+                    if loopCount >= maxLoops then
+                        result <- Error($"For loop exceeded maximum iteration count ({maxLoops})")
+                        i <- if stepNum > 0.0 then toNum + 1.0 else toNum - 1.0 // Exit the loop
+                    else
+                        // Set the loop variable
+                        environment.[variable] <- NumberValue(i)
+
+                        // Execute the nested blocks
+                        let mutable blockResult = Success(StringValue(""))
+                        let mutable continueExecution = true
+
+                        for nestedBlock in block.NestedBlocks do
+                            if continueExecution then
+                                match executeBlock nestedBlock environment with
+                                | Success value -> blockResult <- Success value
+                                | Error msg ->
+                                    blockResult <- Error msg
+                                    // Stop execution on error
+                                    continueExecution <- false
+                                    i <- if stepNum > 0.0 then toNum + 1.0 else toNum - 1.0 // Exit the loop
+
+                        result <- blockResult
+                        loopCount <- loopCount + 1
+                        i <- i + stepNum
+
+                result
+            | _ ->
+                Error("For block requires 'variable', 'from', and 'to' properties")
+
+        | BlockType.Function ->
+            // Functions are registered in the first pass of executeProgram
+            // Just return success here
+            Success(StringValue("Function defined"))
+
+        | BlockType.Call ->
+            // Get the function name
+            match block.Properties.TryFind("function") with
+            | Some (StringValue functionName) ->
+                // Get arguments
+                let args =
+                    match block.Properties.TryFind("arguments") with
+                    | Some (ObjectValue argMap) -> argMap
+                    | _ -> Map.empty
+
+                // Execute the function (mock implementation)
+                let result = Success(StringValue($"Function {functionName} called with {args.Count} arguments"))
+
+                // Store the result in the result_variable if provided
+                match block.Properties.TryFind("result_variable") with
+                | Some (StringValue resultVar) ->
+                    match result with
+                    | Success value -> environment.[resultVar] <- value
+                    | _ -> ()
+                | _ -> ()
+
+                result
+            | _ ->
+                Error("Call block has no function property")
+
+        | BlockType.Try ->
+            // Execute the nested blocks with error handling
+            let mutable result = Success(StringValue(""))
+            let mutable errorOccurred = false
+            let mutable errorMessage = ""
+
+            // Execute the try block
+            for nestedBlock in block.NestedBlocks do
+                if not errorOccurred && nestedBlock.Type <> BlockType.Catch then
+                    match executeBlock nestedBlock environment with
+                    | Success value -> result <- Success value
+                    | Error msg ->
+                        errorOccurred <- true
+                        errorMessage <- msg
+
+            if errorOccurred then
+                // Find the catch block
+                let catchBlock =
+                    block.NestedBlocks
+                    |> List.tryFind (fun b -> b.Type = BlockType.Catch)
+
+                match catchBlock with
+                | Some cb ->
+                    // Store the error message in the environment
+                    environment.["error"] <- StringValue(errorMessage)
+
+                    // Execute the catch block
+                    let mutable catchResult = Success(StringValue(""))
+                    let mutable continueExecution = true
+
+                    for nestedBlock in cb.NestedBlocks do
+                        if continueExecution then
+                            match executeBlock nestedBlock environment with
+                            | Success value -> catchResult <- Success value
+                            | Error msg ->
+                                catchResult <- Error msg
+                                // Stop execution on error
+                                continueExecution <- false
+
+                    catchResult
+                | None ->
+                    // No catch block, return the error
+                    Error(errorMessage)
+            else
+                // No error occurred, return the result
+                result
+
+        | BlockType.Catch ->
+            // Catch blocks are handled by the Try block
+            // This should only be executed if a Catch block is used outside a Try block
+            Error("Catch block used outside of Try block")
+
+        | BlockType.Return ->
+            // Get the return value
+            match block.Properties.TryFind("value") with
+            | Some value ->
+                // Substitute variables in string values
+                match value with
+                | StringValue s -> Success(StringValue(substituteVariables s environment))
+                | _ -> Success(value)
+            | None ->
+                // Return empty string if no value provided
+                Success(StringValue(""))
+
         | BlockType.Unknown blockType ->
             Error($"Unknown block type: {blockType}")
 
@@ -485,12 +699,35 @@ module SimpleDsl =
         // Create an environment for variable storage
         let environment = Dictionary<string, PropertyValue>()
 
+        // First pass: register all functions
+        for block in program.Blocks do
+            if block.Type = BlockType.Function then
+                match block.Name with
+                | Some name ->
+                    // Get parameters
+                    let parameters =
+                        match block.Properties.TryFind("parameters") with
+                        | Some (ListValue paramList) ->
+                            paramList |> List.choose (function
+                                | StringValue s -> Some s
+                                | _ -> None)
+                        | Some (StringValue paramStr) ->
+                            paramStr.Split([|','; ' '|], StringSplitOptions.RemoveEmptyEntries)
+                            |> Array.toList
+                        | _ -> []
+
+                    // Register the function (mock implementation)
+                    printfn "Registered function: %s with %d parameters" name parameters.Length
+                | None ->
+                    printfn "Warning: Function block without a name will be ignored"
+
         // Execute each block
         let mutable result = Success(StringValue(""))
         let mutable continueExecution = true
 
         for block in program.Blocks do
-            if continueExecution then
+            // Skip function definitions in the main execution
+            if continueExecution && block.Type <> BlockType.Function then
                 match executeBlock block environment with
                 | Success value -> result <- Success value
                 | Error msg ->
