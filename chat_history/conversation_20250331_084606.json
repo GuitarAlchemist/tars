@@ -1,0 +1,12 @@
+[
+  {
+    "Role": "user",
+    "Content": "Hello how are you?",
+    "Timestamp": "2025-03-31T08:46:05.4617547-04:00"
+  },
+  {
+    "Role": "assistant",
+    "Content": "Greetings! I\u0027m functioning within optimal parameters, thank you for asking. It\u0027s great to interact with you. How can I assist you today?",
+    "Timestamp": "2025-03-31T08:46:06.5265666-04:00"
+  }
+]

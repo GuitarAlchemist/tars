@@ -24,15 +24,7 @@ module SimpleDsl =
         | Return
         | Unknown of string
 
-    /// A function definition
-    type FunctionDef = {
-        Name: string
-        Parameters: string list
-        Body: Block list
-    }
 
-    /// Global function registry
-    let mutable functionRegistry = Map.empty<string, FunctionDef>
 
     /// Property value types in the DSL
     type PropertyValue =
@@ -50,6 +42,16 @@ module SimpleDsl =
         Properties: Map<string, PropertyValue>
         NestedBlocks: Block list
     }
+
+    /// A function definition
+    type FunctionDef = {
+        Name: string
+        Parameters: string list
+        Body: Block list
+    }
+
+    /// Global function registry
+    let mutable functionRegistry = Map.empty<string, FunctionDef>
 
     /// A TARS program consisting of blocks
     type Program = {

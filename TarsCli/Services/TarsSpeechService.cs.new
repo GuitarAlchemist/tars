@@ -1,0 +1,576 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Net.Http;
+using System.Text;
+using System.Text.Json;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
+
+namespace TarsCli.Services
+{
+    /// <summary>
+    /// Service for text-to-speech functionality in TARS
+    /// </summary>
+    public class TarsSpeechService
+    {
+        private readonly ILogger<TarsSpeechService> _logger;
+        private readonly IConfiguration _configuration;
+        private Process? _serverProcess;
+        private bool _isInitialized = false;
+        private readonly HttpClient _httpClient = new HttpClient();
+
+        public TarsSpeechService(
+            ILogger<TarsSpeechService> logger,
+            IConfiguration configuration)
+        {
+            _logger = logger;
+            _configuration = configuration;
+        }
+
+        /// <summary>
+        /// Initialize the speech service
+        /// </summary>
+        public void Initialize()
+        {
+            if (_isInitialized)
+                return;
+
+            try
+            {
+                _logger.LogInformation("Initializing TarsSpeechService");
+
+                // Check if Python is installed
+                if (!IsPythonInstalled())
+                {
+                    _logger.LogError("Python is not installed. Please install Python 3.7 or later.");
+                    return;
+                }
+
+                // Install TTS and dependencies
+                InstallTts();
+
+                // Start the TTS server
+                StartServer();
+
+                // Create spoken_trace.tars if it doesn't exist
+                if (!File.Exists("spoken_trace.tars"))
+                {
+                    File.WriteAllText("spoken_trace.tars", "# TARS Speech Transcript\n\n");
+                }
+
+                _isInitialized = true;
+                _logger.LogInformation("TarsSpeechService initialized successfully");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error initializing TarsSpeechService");
+            }
+        }
+
+        /// <summary>
+        /// Check if Python is installed
+        /// </summary>
+        private bool IsPythonInstalled()
+        {
+            try
+            {
+                var psi = new ProcessStartInfo
+                {
+                    FileName = "python",
+                    Arguments = "--version",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+
+                using var process = Process.Start(psi);
+                process?.WaitForExit();
+
+                return process?.ExitCode == 0;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Install TTS and dependencies
+        /// </summary>
+        private void InstallTts()
+        {
+            try
+            {
+                // Install required packages
+                var packages = new[] { "numpy", "torch", "soundfile", "flask", "requests" };
+                
+                foreach (var package in packages)
+                {
+                    var psi = new ProcessStartInfo
+                    {
+                        FileName = "python",
+                        Arguments = $"-m pip install {package}",
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    };
+
+                    using var process = Process.Start(psi);
+                    process?.WaitForExit();
+                    
+                    if (process?.ExitCode != 0)
+                    {
+                        _logger.LogWarning($"Failed to install {package}");
+                    }
+                    else
+                    {
+                        _logger.LogInformation($"Successfully installed {package}");
+                    }
+                }
+
+                // Now install TTS with specific version that works with Python 3.12
+                var ttsPsi = new ProcessStartInfo
+                {
+                    FileName = "python",
+                    Arguments = "-m pip install TTS==0.17.6",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+
+                using (var ttsProcess = Process.Start(ttsPsi))
+                {
+                    ttsProcess?.WaitForExit();
+                    if (ttsProcess?.ExitCode != 0)
+                    {
+                        _logger.LogError("Failed to install TTS package");
+                        
+                        // Try an alternative installation method
+                        _logger.LogInformation("Trying alternative installation method for TTS");
+                        TryAlternativeTtsInstallation();
+                    }
+                    else
+                    {
+                        _logger.LogInformation("Successfully installed TTS package");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error installing TTS and dependencies");
+                TryAlternativeTtsInstallation();
+            }
+        }
+
+        /// <summary>
+        /// Try an alternative installation method for TTS
+        /// </summary>
+        private void TryAlternativeTtsInstallation()
+        {
+            try
+            {
+                _logger.LogInformation("Attempting alternative TTS installation");
+                
+                // Try installing with pip directly
+                var psi = new ProcessStartInfo
+                {
+                    FileName = "pip",
+                    Arguments = "install TTS==0.17.6",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+
+                using var process = Process.Start(psi);
+                process?.WaitForExit();
+                
+                if (process?.ExitCode != 0)
+                {
+                    _logger.LogError("Alternative TTS installation failed");
+                }
+                else
+                {
+                    _logger.LogInformation("Alternative TTS installation succeeded");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in alternative TTS installation");
+            }
+        }
+
+        /// <summary>
+        /// Start the TTS server
+        /// </summary>
+        private void StartServer()
+        {
+            try
+            {
+                // Check if server is already running
+                if (_serverProcess != null && !_serverProcess.HasExited)
+                {
+                    _logger.LogInformation("TTS server is already running");
+                    return;
+                }
+
+                // Create Python directory if it doesn't exist
+                var pythonDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Python");
+                Directory.CreateDirectory(pythonDir);
+
+                // Create tts_server.py if it doesn't exist
+                var serverScriptPath = Path.Combine(pythonDir, "tts_server.py");
+                if (!File.Exists(serverScriptPath))
+                {
+                    File.WriteAllText(serverScriptPath, GetTtsServerScript());
+                    _logger.LogInformation($"Created TTS server script at {serverScriptPath}");
+                }
+
+                // Start the server
+                var psi = new ProcessStartInfo
+                {
+                    FileName = "python",
+                    Arguments = serverScriptPath,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    WorkingDirectory = pythonDir
+                };
+
+                var outputBuilder = new StringBuilder();
+                var errorBuilder = new StringBuilder();
+
+                _serverProcess = new Process
+                {
+                    StartInfo = psi,
+                    EnableRaisingEvents = true
+                };
+
+                _serverProcess.OutputDataReceived += (sender, args) =>
+                {
+                    if (!string.IsNullOrEmpty(args.Data))
+                    {
+                        outputBuilder.AppendLine(args.Data);
+                        _logger.LogInformation($"TTS server: {args.Data}");
+                    }
+                };
+
+                _serverProcess.ErrorDataReceived += (sender, args) =>
+                {
+                    if (!string.IsNullOrEmpty(args.Data))
+                    {
+                        errorBuilder.AppendLine(args.Data);
+                        _logger.LogWarning($"TTS server error: {args.Data}");
+                    }
+                };
+
+                _serverProcess.Start();
+                _serverProcess.BeginOutputReadLine();
+                _serverProcess.BeginErrorReadLine();
+
+                // Wait for server to start
+                System.Threading.Thread.Sleep(5000);
+
+                // Check if server is running by making a request to the status endpoint
+                try
+                {
+                    var response = _httpClient.GetAsync("http://localhost:5002/status").Result;
+                    if (response.IsSuccessStatusCode)
+                    {
+                        _logger.LogInformation("TTS server started and responding to requests");
+                    }
+                    else
+                    {
+                        _logger.LogWarning($"TTS server started but returned status code {response.StatusCode}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning($"TTS server may not be fully initialized: {ex.Message}");
+                    // Continue anyway, as the server might still be starting up
+                }
+
+                _logger.LogInformation("TTS server started");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error starting TTS server");
+            }
+        }
+
+        /// <summary>
+        /// Get the TTS server script
+        /// </summary>
+        private string GetTtsServerScript()
+        {
+            return @"from flask import Flask, request, Response
+import io
+import os
+import sys
+import traceback
+import numpy as np
+
+# Set up error handling for TTS import
+tts_import_error = None
+models = {}
+default_model = 'tts_models/en/ljspeech/tacotron2-DDC'
+
+try:
+    from TTS.api import TTS
+except Exception as e:
+    tts_import_error = str(e)
+    print(f""Error importing TTS: {e}"")
+
+app = Flask(__name__)
+
+@app.route(""/status"", methods=[""GET""])
+def status():
+    if tts_import_error:
+        return {""status"": ""error"", ""message"": f""TTS module could not be imported: {tts_import_error}""}, 500
+    return {""status"": ""ok"", ""models"": list(models.keys())}
+
+@app.route(""/speak"", methods=[""POST""])
+def speak():
+    # Check for import errors
+    if tts_import_error:
+        return {""error"": f""TTS module could not be imported: {tts_import_error}""}, 500
+    
+    try:
+        data = request.json
+        text = data.get(""text"", """")
+        model_name = data.get(""model"", default_model)
+        language = data.get(""language"", None)
+        speaker_wav = data.get(""speaker_wav"", None)
+        agent_id = data.get(""agent_id"", ""default"")
+        
+        if not text:
+            return {""error"": ""No text provided""}, 400
+            
+        print(f""Generating speech for: {text}"")
+        print(f""Model: {model_name}"")
+        print(f""Language: {language}"")
+        print(f""Speaker WAV: {speaker_wav}"")
+        
+        # Load model if not already loaded
+        if model_name not in models:
+            try:
+                print(f""Loading model: {model_name}"")
+                models[model_name] = TTS(model_name=model_name, progress_bar=False)
+                print(f""Model loaded: {model_name}"")
+            except Exception as e:
+                print(f""Error loading model {model_name}: {e}"")
+                traceback.print_exc()
+                return {""error"": f""Failed to load model {model_name}: {str(e)}""}, 500
+        
+        # Generate speech
+        try:
+            model = models[model_name]
+            
+            # Set up parameters for speech generation
+            kwargs = {}
+            
+            if language:
+                kwargs[""language""] = language
+                
+            if speaker_wav:
+                kwargs[""speaker_wav""] = speaker_wav
+                
+            # Generate speech
+            wav = model.tts(text=text, **kwargs)
+            
+            # Import soundfile here to avoid issues if it's not installed
+            import soundfile as sf
+            
+            # Convert to WAV format
+            try:
+                buf = io.BytesIO()
+                sf.write(buf, wav, 22050, format='WAV')
+                buf.seek(0)
+                
+                # Log the speech
+                try:
+                    with open(""spoken_trace.tars"", ""a"", encoding=""utf-8"") as f:
+                        timestamp = np.datetime64('now')
+                        f.write(f""[{timestamp}] [{agent_id}] [{language}]: {text}\n"")
+                except Exception as e:
+                    print(f""Error logging speech: {e}"")
+                    # Continue even if logging fails
+                
+                return Response(buf.read(), mimetype=""audio/wav"")
+            except Exception as e:
+                print(f""Error converting to WAV: {e}"")
+                traceback.print_exc()
+                return {""error"": f""Failed to convert to WAV: {str(e)}""}, 500
+        except Exception as e:
+            print(f""Unexpected error in speak endpoint: {e}"")
+            traceback.print_exc()
+            return {""error"": f""Unexpected error: {str(e)}""}, 500
+
+@app.route(""/preload"", methods=[""POST""])
+def preload():
+    # Check for import errors
+    if tts_import_error:
+        return {""error"": f""TTS module could not be imported: {tts_import_error}""}, 500
+        
+    try:
+        data = request.json
+        model_names = data.get(""models"", [default_model])
+        
+        for model_name in model_names:
+            if model_name not in models:
+                print(f""Preloading model: {model_name}"")
+                try:
+                    models[model_name] = TTS(model_name=model_name, progress_bar=False)
+                except Exception as e:
+                    print(f""Error preloading model {model_name}: {e}"")
+                    # Continue with other models even if one fails
+        
+        return {""status"": ""ok"", ""loaded_models"": list(models.keys())}
+    except Exception as e:
+        print(f""Error in preload endpoint: {e}"")
+        traceback.print_exc()
+        return {""error"": f""Failed to preload models: {str(e)}""}, 500
+
+# Try to load default model on startup if TTS is available
+if not tts_import_error:
+    try:
+        models[default_model] = TTS(model_name=default_model, progress_bar=False)
+        print(f""Successfully loaded default model: {default_model}"")
+    except Exception as e:
+        print(f""Error loading default model: {e}"")
+
+app.run(host=""0.0.0.0"", port=5002, debug=True)";
+        }
+
+        /// <summary>
+        /// Speak text using the default voice
+        /// </summary>
+        /// <param name="text">Text to speak</param>
+        public void Speak(string text)
+        {
+            Speak(text, null, null, null, null);
+        }
+
+        /// <summary>
+        /// Speak text with specific voice settings
+        /// </summary>
+        /// <param name="text">Text to speak</param>
+        /// <param name="voice">Voice model to use</param>
+        /// <param name="language">Language code</param>
+        /// <param name="speakerWav">Path to speaker reference audio for voice cloning</param>
+        /// <param name="agentId">Agent identifier</param>
+        public void Speak(string text, string? voice = null, string? language = null, string? speakerWav = null, string? agentId = null)
+        {
+            Initialize();
+
+            Task.Run(async () =>
+            {
+                try
+                {
+                    var bytes = await SpeakToBytes(text, voice, language, speakerWav, agentId);
+                    PlayAudio(bytes);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error speaking text");
+                }
+            });
+        }
+
+        /// <summary>
+        /// Speak text and get audio bytes
+        /// </summary>
+        private async Task<byte[]> SpeakToBytes(string text, string? voice = null, string? language = null, string? speakerWav = null, string? agentId = null)
+        {
+            var requestObj = new Dictionary<string, object>
+            {
+                { "text", text }
+            };
+
+            if (!string.IsNullOrEmpty(voice))
+            {
+                requestObj["model"] = voice;
+            }
+
+            if (!string.IsNullOrEmpty(language))
+            {
+                requestObj["language"] = language;
+            }
+
+            if (!string.IsNullOrEmpty(speakerWav))
+            {
+                requestObj["speaker_wav"] = speakerWav;
+            }
+
+            if (!string.IsNullOrEmpty(agentId))
+            {
+                requestObj["agent_id"] = agentId;
+            }
+
+            var content = new StringContent(
+                JsonSerializer.Serialize(requestObj),
+                Encoding.UTF8,
+                "application/json");
+
+            var response = await _httpClient.PostAsync("http://localhost:5002/speak", content);
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new Exception($"TTS server returned error: {response.StatusCode} - {errorContent}");
+            }
+
+            return await response.Content.ReadAsByteArrayAsync();
+        }
+
+        /// <summary>
+        /// Play audio bytes
+        /// </summary>
+        private void PlayAudio(byte[] audioBytes)
+        {
+            try
+            {
+                // Create a temporary file for the audio
+                var tempFile = Path.Combine(Path.GetTempPath(), $"tars_speech_{Guid.NewGuid()}.wav");
+                File.WriteAllBytes(tempFile, audioBytes);
+
+                // Play the audio using the default player
+                var psi = new ProcessStartInfo
+                {
+                    FileName = tempFile,
+                    UseShellExecute = true
+                };
+
+                Process.Start(psi);
+
+                // Schedule the temp file for deletion after a delay
+                Task.Run(async () =>
+                {
+                    await Task.Delay(10000); // Wait 10 seconds
+                    try
+                    {
+                        if (File.Exists(tempFile))
+                        {
+                            File.Delete(tempFile);
+                        }
+                    }
+                    catch
+                    {
+                        // Ignore errors when deleting temp file
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error playing audio");
+            }
+        }
+    }
+}

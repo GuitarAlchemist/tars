@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TARS DSL Debugger</title>
+    <link rel="stylesheet" href="css/dsl-debugger.css">
+</head>
+<body>
+    <div class="debugger-container">
+        <header class="debugger-header">
+            <h1>TARS DSL Debugger</h1>
+        </header>
+        
+        <div class="debugger-toolbar">
+            <select id="file-selector">
+                <option value="">Select a DSL file</option>
+            </select>
+            <button id="start-debug">Start Debugging</button>
+            <button id="stop-debug" disabled>Stop Debugging</button>
+            <button id="continue" disabled>Continue</button>
+            <button id="step-next" disabled>Step Next</button>
+            <button id="step-into" disabled>Step Into</button>
+            <button id="step-out" disabled>Step Out</button>
+        </div>
+        
+        <div class="debugger-content">
+            <div class="debugger-sidebar">
+                <div class="sidebar-section">
+                    <h2>Breakpoints</h2>
+                    <ul id="breakpoints-list">
+                        <li>No breakpoints</li>
+                    </ul>
+                    <div class="add-control">
+                        <input type="text" id="breakpoint-file" placeholder="File path">
+                        <input type="number" id="breakpoint-line" placeholder="Line">
+                        <button id="add-breakpoint">Add</button>
+                    </div>
+                </div>
+                
+                <div class="sidebar-section">
+                    <h2>Watches</h2>
+                    <ul id="watches-list">
+                        <li>No watches</li>
+                    </ul>
+                    <div class="add-control">
+                        <input type="text" id="watch-variable" placeholder="Variable name">
+                        <button id="add-watch">Add</button>
+                    </div>
+                </div>
+                
+                <div class="sidebar-section">
+                    <h2>Variables</h2>
+                    <ul id="variables-list">
+                        <li>No variables</li>
+                    </ul>
+                </div>
+                
+                <div class="sidebar-section">
+                    <h2>Call Stack</h2>
+                    <ul id="call-stack-list">
+                        <li>No call stack</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="debugger-main">
+                <div id="code-viewer" class="code-viewer">
+                    <div class="code-line">
+                        <span class="line-number">1</span>
+                        <span class="line-content">// Select a file to debug</span>
+                    </div>
+                </div>
+                
+                <div id="status-bar" class="status-bar status-not-running">
+                    Not debugging
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/dsl-debugger.js"></script>
+</body>
+</html>

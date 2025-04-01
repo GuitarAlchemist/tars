@@ -1,0 +1,12 @@
+[
+  {
+    "Role": "user",
+    "Content": "Hello, how can you help me with TARS?",
+    "Timestamp": "2025-03-31T08:46:39.5727027-04:00"
+  },
+  {
+    "Role": "assistant",
+    "Content": "Hello! I\u0027m TARS, an AI assistant designed to assist and augment your decision-making processes. I\u0027m here to provide accurate and concise responses to your questions. What would you like to chat about or ask for help with? I\u0027m all ears (or rather, all code)!",
+    "Timestamp": "2025-03-31T08:46:41.3683765-04:00"
+  }
+]

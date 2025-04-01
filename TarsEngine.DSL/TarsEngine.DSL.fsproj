@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="Monads.fs" />
     <Compile Include="Ast.fs" />
     <Compile Include="Library.fs" />
     <Compile Include="Parser.fs" />
@@ -16,6 +17,8 @@
     <Compile Include="AgentLearning.fs" />
     <Compile Include="Interpreter.fs" />
     <Compile Include="SimpleDsl.fs" />
+    <Compile Include="AdvancedDsl.fs" />
+    <Compile Include="MonadicDsl.fs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -8,8 +8,13 @@ Metascripts are written in the TARS Domain Specific Language (DSL) and allow you
 
 - Define variables and configurations
 - Execute prompts with LLMs
-- Perform conditional logic (IF/ELSE)
+- Perform conditional logic (IF/ELSE, WHILE, FOR)
+- Define and call functions
+- Handle errors with TRY/CATCH blocks
 - Interact with other AI systems via MCP
+- Perform file operations (read/write)
+- Make HTTP requests
+- Execute shell commands
 - Log information and results
 
 ## Metascript Structure
@@ -110,6 +115,10 @@ Action types include:
 - `log`: Log a message
 - `mcp_send`: Send a request to another AI system via MCP
 - `mcp_receive`: Receive a request from another AI system via MCP
+- `file_read`: Read a file and store its content in a variable
+- `file_write`: Write content to a file
+- `http_request`: Make an HTTP request and store the response in a variable
+- `shell_execute`: Execute a shell command and store the output in a variable
 
 ### IF/ELSE
 
@@ -118,7 +127,7 @@ The `IF` and `ELSE` blocks provide conditional logic:
 ```
 IF {
     condition: "${prompt_result != ''}"
-    
+
     ACTION {
         type: "log"
         message: "Prompt returned a result"
@@ -129,6 +138,107 @@ ELSE {
         type: "log"
         message: "Prompt returned no result"
     }
+}
+```
+
+### WHILE
+
+The `WHILE` block provides loop functionality based on a condition:
+
+```
+VARIABLE counter {
+    value: 0
+}
+
+WHILE {
+    condition: "${counter < 5}"
+
+    ACTION {
+        type: "log"
+        message: "Counter: ${counter}"
+    }
+
+    VARIABLE counter {
+        value: "${counter + 1}"
+    }
+}
+```
+
+### FOR
+
+The `FOR` block provides loop functionality with a variable, start, end, and step values:
+
+```
+FOR {
+    variable: "i"
+    from: 1
+    to: 5
+    step: 1
+
+    ACTION {
+        type: "log"
+        message: "Number: ${i}"
+    }
+}
+```
+
+### FUNCTION
+
+The `FUNCTION` block defines a reusable function:
+
+```
+FUNCTION add {
+    parameters: "a, b"
+
+    RETURN {
+        value: "${a + b}"
+    }
+}
+```
+
+### CALL
+
+The `CALL` block calls a defined function:
+
+```
+CALL {
+    function: "add"
+    arguments: {
+        a: 2
+        b: 3
+    }
+    result_variable: "sum"
+}
+```
+
+### TRY/CATCH
+
+The `TRY` and `CATCH` blocks provide error handling:
+
+```
+TRY {
+    ACTION {
+        type: "file_read"
+        path: "non_existent_file.txt"
+        result_variable: "file_content"
+    }
+
+    CATCH {
+        ACTION {
+            type: "log"
+            message: "Caught an error: ${error}"
+        }
+    }
+}
+```
+
+### RETURN
+
+The `RETURN` block returns a value from a function:
+
+```
+RETURN {
+    value: "${result}"
 }
 ```
 
