@@ -24,6 +24,16 @@ module SimpleDsl =
         | Return
         | Unknown of string
 
+    /// A function definition
+    type FunctionDef = {
+        Name: string
+        Parameters: string list
+        Body: Block list
+    }
+
+    /// Global function registry
+    let mutable functionRegistry = Map.empty<string, FunctionDef>
+
     /// Property value types in the DSL
     type PropertyValue =
         | StringValue of string
@@ -408,6 +418,158 @@ module SimpleDsl =
 
                     Success(StringValue(mockResponse))
 
+                | "file_read" ->
+                    // Get the required parameters
+                    let pathOpt = block.Properties.TryFind("path")
+                    let resultVarOpt = block.Properties.TryFind("result_variable")
+
+                    match pathOpt, resultVarOpt with
+                    | Some (StringValue path), Some (StringValue resultVar) ->
+                        // Substitute variables in path
+                        let substitutedPath = substituteVariables path environment
+
+                        try
+                            // Read the file
+                            let content = System.IO.File.ReadAllText(substitutedPath)
+
+                            // Store the result in the result variable
+                            environment.[resultVar] <- StringValue(content)
+
+                            Success(StringValue($"File read successfully: {substitutedPath}"))
+                        with
+                        | ex -> Error($"Error reading file {substitutedPath}: {ex.Message}")
+                    | _ ->
+                        Error("File read action requires 'path' and 'result_variable' properties")
+
+                | "file_write" ->
+                    // Get the required parameters
+                    let pathOpt = block.Properties.TryFind("path")
+                    let contentOpt = block.Properties.TryFind("content")
+
+                    match pathOpt, contentOpt with
+                    | Some (StringValue path), Some (StringValue content) ->
+                        // Substitute variables in path and content
+                        let substitutedPath = substituteVariables path environment
+                        let substitutedContent = substituteVariables content environment
+
+                        try
+                            // Write the file
+                            System.IO.File.WriteAllText(substitutedPath, substitutedContent)
+
+                            Success(StringValue($"File written successfully: {substitutedPath}"))
+                        with
+                        | ex -> Error($"Error writing file {substitutedPath}: {ex.Message}")
+                    | _ ->
+                        Error("File write action requires 'path' and 'content' properties")
+
+                | "http_request" ->
+                    // Get the required parameters
+                    let urlOpt = block.Properties.TryFind("url")
+                    let methodOpt = block.Properties.TryFind("method")
+                    let headersOpt = block.Properties.TryFind("headers")
+                    let bodyOpt = block.Properties.TryFind("body")
+                    let resultVarOpt = block.Properties.TryFind("result_variable")
+
+                    match urlOpt, resultVarOpt with
+                    | Some (StringValue url), Some (StringValue resultVar) ->
+                        // Substitute variables in url
+                        let substitutedUrl = substituteVariables url environment
+
+                        // Get method (default to GET)
+                        let method =
+                            match methodOpt with
+                            | Some (StringValue m) -> substituteVariables m environment
+                            | _ -> "GET"
+
+                        // Get headers
+                        let headers =
+                            match headersOpt with
+                            | Some (ObjectValue headerMap) ->
+                                headerMap |> Map.map (fun _ value ->
+                                    match value with
+                                    | StringValue s -> substituteVariables s environment
+                                    | _ -> "")
+                            | _ -> Map.empty
+
+                        // Get body
+                        let body =
+                            match bodyOpt with
+                            | Some (StringValue b) -> substituteVariables b environment
+                            | _ -> ""
+
+                        try
+                            // Create the request
+                            let request = System.Net.WebRequest.Create(substitutedUrl) :?> System.Net.HttpWebRequest
+                            request.Method <- method
+
+                            // Add headers
+                            for KeyValue(key, value) in headers do
+                                request.Headers.Add(key, value)
+
+                            // Add body for POST, PUT, etc.
+                            if method <> "GET" && method <> "HEAD" && body <> "" then
+                                let bytes = System.Text.Encoding.UTF8.GetBytes(body)
+                                request.ContentLength <- int64 bytes.Length
+                                use stream = request.GetRequestStream()
+                                stream.Write(bytes, 0, bytes.Length)
+
+                            // Get the response
+                            use response = request.GetResponse()
+                            use stream = response.GetResponseStream()
+                            use reader = new System.IO.StreamReader(stream)
+                            let responseText = reader.ReadToEnd()
+
+                            // Store the result in the result variable
+                            environment.[resultVar] <- StringValue(responseText)
+
+                            Success(StringValue($"HTTP request successful: {substitutedUrl}"))
+                        with
+                        | ex -> Error($"Error making HTTP request to {substitutedUrl}: {ex.Message}")
+                    | _ ->
+                        Error("HTTP request action requires 'url' and 'result_variable' properties")
+
+                | "shell_execute" ->
+                    // Get the required parameters
+                    let commandOpt = block.Properties.TryFind("command")
+                    let resultVarOpt = block.Properties.TryFind("result_variable")
+
+                    match commandOpt with
+                    | Some (StringValue command) ->
+                        // Substitute variables in command
+                        let substitutedCommand = substituteVariables command environment
+
+                        try
+                            // Create the process
+                            let processInfo = new System.Diagnostics.ProcessStartInfo()
+                            processInfo.FileName <- "cmd.exe"
+                            processInfo.Arguments <- $"/c {substitutedCommand}"
+                            processInfo.RedirectStandardOutput <- true
+                            processInfo.RedirectStandardError <- true
+                            processInfo.UseShellExecute <- false
+                            processInfo.CreateNoWindow <- true
+
+                            // Start the process
+                            use process = System.Diagnostics.Process.Start(processInfo)
+                            let output = process.StandardOutput.ReadToEnd()
+                            let error = process.StandardError.ReadToEnd()
+                            process.WaitForExit()
+
+                            // Store the result in the result variable if provided
+                            match resultVarOpt with
+                            | Some (StringValue resultVar) ->
+                                environment.[resultVar] <- StringValue(output)
+                            | _ -> ()
+
+                            // Check if the process exited successfully
+                            if process.ExitCode = 0 then
+                                Success(StringValue($"Command executed successfully: {substitutedCommand}"))
+                            else
+                                Error($"Command failed with exit code {process.ExitCode}: {error}")
+                        with
+                        | ex -> Error($"Error executing command {substitutedCommand}: {ex.Message}")
+                    | _ ->
+                        Error("Shell execute action requires 'command' property")
+
                 | _ ->
                     Error($"Unknown action type: '{actionType}'")
 
@@ -612,15 +774,50 @@ module SimpleDsl =
                     | Some (ObjectValue argMap) -> argMap
                     | _ -> Map.empty
 
-                // Execute the function (mock implementation)
-                let result = Success(StringValue($"Function {functionName} called with {args.Count} arguments"))
+                // Look up the function in the registry
+                let result =
+                    match functionRegistry.TryFind(functionName) with
+                    | Some functionDef ->
+                        // Create a new environment for the function call
+                        let functionEnv = Dictionary<string, PropertyValue>()
+
+                        // Copy global variables to function environment
+                        for KeyValue(key, value) in environment do
+                            functionEnv.[key] <- value
+
+                        // Bind arguments to parameters
+                        for paramName in functionDef.Parameters do
+                            match args.TryFind(paramName) with
+                            | Some argValue ->
+                                // Substitute variables in string arguments
+                                match argValue with
+                                | StringValue s -> functionEnv.[paramName] <- StringValue(substituteVariables s environment)
+                                | _ -> functionEnv.[paramName] <- argValue
+                            | None ->
+                                // Parameter not provided
+                                functionEnv.[paramName] <- StringValue("")
+
+                        // Execute the function body
+                        let mutable funcResult = Success(StringValue(""))
+                        let mutable continueExecution = true
+
+                        for nestedBlock in functionDef.Body do
+                            if continueExecution then
+                                match executeBlock nestedBlock functionEnv with
+                                | Success value -> funcResult <- Success value
+                                | Error msg ->
+                                    funcResult <- Error msg
+                                    // Stop execution on error
+                                    continueExecution <- false
+
+                        funcResult
+                    | None ->
+                        Error($"Function '{functionName}' not found")
 
                 // Store the result in the result_variable if provided
-                match block.Properties.TryFind("result_variable") with
-                | Some (StringValue resultVar) ->
-                    match result with
-                    | Success value -> environment.[resultVar] <- value
-                    | _ -> ()
+                match result, block.Properties.TryFind("result_variable") with
+                | Success value, Some (StringValue resultVar) ->
+                    environment.[resultVar] <- value
                 | _ -> ()
 
                 result
@@ -699,6 +896,9 @@ module SimpleDsl =
         // Create an environment for variable storage
         let environment = Dictionary<string, PropertyValue>()
 
+        // Clear the function registry
+        functionRegistry <- Map.empty
+
         // First pass: register all functions
         for block in program.Blocks do
             if block.Type = BlockType.Function then
@@ -716,7 +916,13 @@ module SimpleDsl =
                             |> Array.toList
                         | _ -> []
 
-                    // Register the function (mock implementation)
+                    // Register the function
+                    let functionDef = {
+                        Name = name
+                        Parameters = parameters
+                        Body = block.NestedBlocks
+                    }
+                    functionRegistry <- functionRegistry.Add(name, functionDef)
                     printfn "Registered function: %s with %d parameters" name parameters.Length
                 | None ->
                     printfn "Warning: Function block without a name will be ignored"
