@@ -44,8 +44,8 @@ echo.
 echo TARS Version and Help
 echo ---------------------
 echo.
-echo ^> tarscli version
-%TARS_CLI% version
+echo ^> tarscli --version
+%TARS_CLI% --version
 echo.
 echo ^> tarscli help
 %TARS_CLI% help
@@ -60,18 +60,12 @@ echo                  DEEP THINKING
 echo ===================================================
 echo.
 
-echo Generate a Deep Thinking Exploration
-echo -----------------------------------
+echo Run Deep Thinking Demo
+echo ---------------------
 echo.
-echo ^> tarscli think --topic "%DEMO_TOPIC%" --preview
-%TARS_CLI% think --topic "%DEMO_TOPIC%" --preview
+echo ^> tarscli demo --type deep-thinking
+%TARS_CLI% demo --type deep-thinking
 echo.
-
-echo Generate Related Topics
-echo ----------------------
-echo.
-echo ^> tarscli think related --topic "%DEMO_TOPIC%" --count 5
-%TARS_CLI% think related --topic "%DEMO_TOPIC%" --count 5
 echo.
 
 timeout /t 3 > nul

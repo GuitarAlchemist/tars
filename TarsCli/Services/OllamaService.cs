@@ -46,6 +46,11 @@ public class OllamaService
     public string BaseUrl => _baseUrl;
 
     /// <summary>
+    /// Get the default model for Ollama
+    /// </summary>
+    public string DefaultModel => _defaultModel;
+
+    /// <summary>
     /// Check if a model is available
     /// </summary>
     /// <param name="model">Model name</param>

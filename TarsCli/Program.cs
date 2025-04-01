@@ -74,7 +74,12 @@ internal static class Program
                 .AddSingleton<CourseGeneratorService>()
                 .AddSingleton<TutorialOrganizerService>()
                 .AddSingleton<ConsoleCaptureService>()
-                .AddSingleton<TarsCli.Mcp.McpController>(sp => new TarsCli.Mcp.McpController(sp.GetRequiredService<ILogger<TarsCli.Mcp.McpController>>(), configuration))
+                .AddSingleton<DslService>()
+                .AddSingleton<DslDebuggerService>()
+                .AddSingleton<DockerModelRunnerService>()
+                .AddSingleton<ModelProviderFactory>()
+                .AddSingleton<ConsoleService>()
+                .AddSingleton<Mcp.McpController>(sp => new Mcp.McpController(sp.GetRequiredService<ILogger<Mcp.McpController>>(), configuration))
                 .BuildServiceProvider();
 
             // Get services

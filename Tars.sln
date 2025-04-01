@@ -76,6 +76,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionIt
 		docs\Explorations\v1\Chats\ChatGPT-Blazor MudBlazor Learning Resources.md = docs\Explorations\v1\Chats\ChatGPT-Blazor MudBlazor Learning Resources.md
 		docs\Explorations\v1\Chats\ChatGPT-Run Coqui TTS in .NET.md = docs\Explorations\v1\Chats\ChatGPT-Run Coqui TTS in .NET.md
 		docs\Explorations\v1\Chats\ChatGPT-AI OS with TARS.md = docs\Explorations\v1\Chats\ChatGPT-AI OS with TARS.md
+		docs\Explorations\v1\Chats\ChatGPT-TARS CLI Data Manipulation.md = docs\Explorations\v1\Chats\ChatGPT-TARS CLI Data Manipulation.md
+		docs\Explorations\v1\Chats\ChatGPT-MCP for TARS Improvement.md = docs\Explorations\v1\Chats\ChatGPT-MCP for TARS Improvement.md
+		docs\Explorations\v1\Chats\ChatGPT-Genetic Memory and Vectors.md = docs\Explorations\v1\Chats\ChatGPT-Genetic Memory and Vectors.md
+		docs\Explorations\v1\Chats\ChatGPT-Running LLMs in Docker.md = docs\Explorations\v1\Chats\ChatGPT-Running LLMs in Docker.md
+		docs\Explorations\v1\Chats\ChatGPT-TTS Audio Deep Dive.md = docs\Explorations\v1\Chats\ChatGPT-TTS Audio Deep Dive.md
+		docs\Explorations\v1\Chats\ChatGPT-Learning Plan Generator.md = docs\Explorations\v1\Chats\ChatGPT-Learning Plan Generator.md
+		README.md = README.md
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TarsEngine", "TarsEngine\TarsEngine.csproj", "{B0A629F0-DC3A-4A88-AF1D-CDF891784B22}"
@@ -93,6 +100,10 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TarsCli", "TarsCli\TarsCli.csproj", "{6AFA07C5-B0D9-4C3A-80BE-0F257167890E}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.SelfImprovement", "TarsEngine.SelfImprovement\TarsEngine.SelfImprovement.fsproj", "{47547979-D932-4F1D-A132-24E36054B388}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.DSL", "TarsEngine.DSL\TarsEngine.DSL.fsproj", "{D08A6D0E-C072-4119-B7E8-0F563A5888BA}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.DSL.Tests", "TarsEngine.DSL.Tests\TarsEngine.DSL.Tests.fsproj", "{AD1E290A-E48F-4CF1-8F8A-0A13E95D62FC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -188,6 +199,30 @@ Global
 		{47547979-D932-4F1D-A132-24E36054B388}.Release|x64.Build.0 = Release|Any CPU
 		{47547979-D932-4F1D-A132-24E36054B388}.Release|x86.ActiveCfg = Release|Any CPU
 		{47547979-D932-4F1D-A132-24E36054B388}.Release|x86.Build.0 = Release|Any CPU
+		{D08A6D0E-C072-4119-B7E8-0F563A5888BA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D08A6D0E-C072-4119-B7E8-0F563A5888BA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D08A6D0E-C072-4119-B7E8-0F563A5888BA}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D08A6D0E-C072-4119-B7E8-0F563A5888BA}.Debug|x64.Build.0 = Debug|Any CPU
+		{D08A6D0E-C072-4119-B7E8-0F563A5888BA}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{D08A6D0E-C072-4119-B7E8-0F563A5888BA}.Debug|x86.Build.0 = Debug|Any CPU
+		{D08A6D0E-C072-4119-B7E8-0F563A5888BA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D08A6D0E-C072-4119-B7E8-0F563A5888BA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D08A6D0E-C072-4119-B7E8-0F563A5888BA}.Release|x64.ActiveCfg = Release|Any CPU
+		{D08A6D0E-C072-4119-B7E8-0F563A5888BA}.Release|x64.Build.0 = Release|Any CPU
+		{D08A6D0E-C072-4119-B7E8-0F563A5888BA}.Release|x86.ActiveCfg = Release|Any CPU
+		{D08A6D0E-C072-4119-B7E8-0F563A5888BA}.Release|x86.Build.0 = Release|Any CPU
+		{AD1E290A-E48F-4CF1-8F8A-0A13E95D62FC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AD1E290A-E48F-4CF1-8F8A-0A13E95D62FC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AD1E290A-E48F-4CF1-8F8A-0A13E95D62FC}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{AD1E290A-E48F-4CF1-8F8A-0A13E95D62FC}.Debug|x64.Build.0 = Debug|Any CPU
+		{AD1E290A-E48F-4CF1-8F8A-0A13E95D62FC}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{AD1E290A-E48F-4CF1-8F8A-0A13E95D62FC}.Debug|x86.Build.0 = Debug|Any CPU
+		{AD1E290A-E48F-4CF1-8F8A-0A13E95D62FC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AD1E290A-E48F-4CF1-8F8A-0A13E95D62FC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AD1E290A-E48F-4CF1-8F8A-0A13E95D62FC}.Release|x64.ActiveCfg = Release|Any CPU
+		{AD1E290A-E48F-4CF1-8F8A-0A13E95D62FC}.Release|x64.Build.0 = Release|Any CPU
+		{AD1E290A-E48F-4CF1-8F8A-0A13E95D62FC}.Release|x86.ActiveCfg = Release|Any CPU
+		{AD1E290A-E48F-4CF1-8F8A-0A13E95D62FC}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
