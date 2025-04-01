@@ -28,6 +28,18 @@ This repository contains the TARS (Transformative Autonomous Reasoning System) p
 
 ## Features
 
+### TARS Metascripts and DSL
+
+TARS includes a powerful Domain Specific Language (DSL) for creating metascripts that orchestrate complex workflows:
+
+- **Metascript Language**: Create scripts that combine multiple AI capabilities
+- **Variable Substitution**: Use variables throughout your metascripts
+- **Conditional Logic**: Implement IF/ELSE conditions based on results
+- **MCP Integration**: Collaborate with other AI systems via MCP
+- **Action Types**: Log information, send/receive MCP requests, and more
+
+[View Metascripts documentation](docs/Features/Metascripts.md)
+
 ### Model Context Protocol (MCP) Integration
 
 TARS now implements Anthropic's Model Context Protocol (MCP), a standard that enables AI assistants to interact with tools and services. This integration allows TARS to function as an MCP service and collaborate with other MCP-compatible systems like Augment Code. Key features include:

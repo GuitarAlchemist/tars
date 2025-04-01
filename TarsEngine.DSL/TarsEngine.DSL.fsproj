@@ -6,13 +6,21 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="Ast.fs" />
     <Compile Include="Library.fs" />
     <Compile Include="Parser.fs" />
+    <Compile Include="Evaluator.fs" />
+    <Compile Include="AgentInterfaces.fs" />
+    <Compile Include="AgentFramework.fs" />
+    <Compile Include="AgentCommunication.fs" />
+    <Compile Include="AgentLearning.fs" />
     <Compile Include="Interpreter.fs" />
+    <Compile Include="SimpleDsl.fs" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="FParsec" Version="1.1.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
 </Project>
