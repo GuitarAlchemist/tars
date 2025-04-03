@@ -1,9 +1,8 @@
 # Built with [Augment Code](https://www.augmentcode.com/)
 
 <div align="center">
-  <a href="https://www.augmentcode.com/" style="text-decoration: none;">
-    <h2 style="color: #4285f4; font-size: 36px; font-weight: bold;">Augment Code</h2>
-    <p style="font-style: italic; margin-top: -10px;">The AI pair programmer that knows your codebase</p>
+  <a href="https://www.augmentcode.com/">
+    <img src="https://www.augmentcode.com/assets/logo-light-mode.svg" alt="Augment Code Logo" width="400"/>
   </a>
 </div>
 
