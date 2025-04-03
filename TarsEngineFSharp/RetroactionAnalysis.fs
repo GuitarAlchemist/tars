@@ -397,8 +397,7 @@ module RetroactionAnalysis =
             let issue = {
                 Type = MissingExceptionHandling
                 Location = sprintf "Line %d" (method.GetLocation().GetLineSpan().StartLinePosition.Line + 1)
-                Description = sprintf "Method '%s' calls potentially throwing methods (%s) without exception handling"
-                                method.Identifier.Text (String.Join(", ", riskyCalls))
+                Description = sprintf "Method '%s' calls potentially throwing methods (%s) without exception handling" method.Identifier.Text (String.Join(", ", riskyCalls))
             }
 
             // Create a fix by wrapping the method body in a try/catch
