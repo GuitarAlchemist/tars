@@ -1,14 +1,8 @@
-# TARS Project
-
-<div align="center">
-  <img src="docs/images/tars_logo.svg" alt="TARS Logo" width="200"/>
-</div>
-
-## Powered by [Augment Code](https://www.augmentcode.com/)
+# Powered by [Augment Code](https://www.augmentcode.com/)
 
 <div align="center">
   <a href="https://www.augmentcode.com/">
-    <img src="https://www.augmentcode.com/assets/logo-light-mode.svg" alt="Augment Code Logo" width="300"/>
+    <img src="https://www.augmentcode.com/assets/logo-light-mode.svg" alt="Augment Code Logo" width="400"/>
   </a>
 </div>
 
@@ -17,6 +11,12 @@
 > *"Augment Code coded a F# to Rust transpiler in no time - it's almost AI sorcery!"* — Stephane Pareilleux, TARS Creator
 >
 > [See our collaboration in action](https://app.augmentcode.com/share/bPqtEs7_x4s)
+
+# TARS Project
+
+<div align="center">
+  <img src="docs/images/tars_logo.svg" alt="TARS Logo" width="200"/>
+</div>
 
 <div align="center">
   <br/>
