@@ -1,10 +1,10 @@
 # Built with [Augment Code](https://www.augmentcode.com/)
 
 <div align="center">
-  <a href="https://www.augmentcode.com/">
-    <img src="docs/images/logos/augment_code_logo.svg" alt="Augment Code Logo" width="400"/>
-    <p style="font-size: 18px; margin-top: 5px;">The AI pair programmer that knows your codebase</p>
-  </a>
+
+## `{"} augment code`
+### *The AI pair programmer that knows your codebase*
+
 </div>
 
 > **TARS development has been accelerated by [Augment Code](https://www.augmentcode.com/), an advanced AI pair programming tool.** Augment Code has significantly enhanced our development process through its deep understanding of complex codebases and ability to generate sophisticated implementations. From helping implement F# to Rust transpilation to improving code quality, Augment Code has been an invaluable partner in bringing TARS to life.
