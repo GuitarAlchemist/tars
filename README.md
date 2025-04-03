@@ -9,7 +9,7 @@
 
 > **TARS development has been accelerated by [Augment Code](https://www.augmentcode.com/), an advanced AI pair programming tool.** Augment Code has significantly enhanced our development process through its deep understanding of complex codebases and ability to generate sophisticated implementations. From helping implement F# to Rust transpilation to improving code quality, Augment Code has been an invaluable partner in bringing TARS to life.
 >
-> *"Augment Code helped create a F# to Rust transpiler with remarkable efficiency"* — Stephane Pareilleux, TARS Creator
+> *"Augment Code has been transformative for TARS development - from creating a F# to Rust transpiler in record time to implementing autonomous improvement capabilities, MCP integration, and complex DSL features. It's like having an expert developer who already knows your entire codebase."* — Stephane Pareilleux, TARS Creator
 >
 > [See our collaboration in action](https://app.augmentcode.com/share/bPqtEs7_x4s)
 
