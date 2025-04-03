@@ -1,0 +1,229 @@
+DESCRIBE {
+    name: "TARS Code Analysis Metascript"
+    version: "1.0"
+    author: "TARS"
+    description: "A metascript for analyzing and refactoring code"
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.2
+    max_tokens: 4000
+}
+
+// Define variables for configuration
+VARIABLE config {
+    value: {
+        target_directory: "TarsCli/Services",
+        file_extensions: [".cs", ".fs"],
+        analysis_depth: "deep",
+        improvement_types: ["readability", "performance", "maintainability"]
+    }
+}
+
+// Define the code analyzer agent
+AGENT analyzer {
+    description: "An agent that analyzes code for potential improvements"
+    capabilities: ["static_analysis", "pattern_recognition", "complexity_measurement"]
+    
+    TASK analyze_file {
+        description: "Analyze a file for potential improvements"
+        
+        FUNCTION get_complexity_metrics {
+            parameters: ["file_path"]
+            
+            ACTION {
+                type: "analyze"
+                target: "${file_path}"
+                metrics: ["cyclomatic_complexity", "cognitive_complexity", "lines_of_code"]
+            }
+            
+            RETURN {
+                value: {
+                    cyclomatic_complexity: 10,  // Placeholder values
+                    cognitive_complexity: 15,
+                    lines_of_code: 200
+                }
+            }
+        }
+        
+        FUNCTION identify_patterns {
+            parameters: ["file_path"]
+            
+            ACTION {
+                type: "pattern_recognition"
+                target: "${file_path}"
+                patterns: ["duplicate_code", "long_methods", "complex_conditionals"]
+            }
+            
+            RETURN {
+                value: ["long_methods", "complex_conditionals"]  // Placeholder values
+            }
+        }
+    }
+}
+
+// Define the code refactorer agent
+AGENT refactorer {
+    description: "An agent that refactors code based on analysis"
+    capabilities: ["refactoring", "code_generation", "testing"]
+    
+    TASK refactor_file {
+        description: "Refactor a file based on analysis"
+        
+        FUNCTION apply_refactorings {
+            parameters: ["file_path", "issues"]
+            
+            ACTION {
+                type: "refactor"
+                target: "${file_path}"
+                issues: "${issues}"
+                strategies: ["extract_method", "simplify_conditionals", "rename_variables"]
+            }
+            
+            RETURN {
+                value: {
+                    refactored: true,
+                    changes_made: 5  // Placeholder values
+                }
+            }
+        }
+        
+        FUNCTION verify_refactoring {
+            parameters: ["file_path"]
+            
+            ACTION {
+                type: "test"
+                target: "${file_path}"
+                test_types: ["unit_tests", "integration_tests"]
+            }
+            
+            RETURN {
+                value: {
+                    tests_passed: true,
+                    coverage: 85  // Placeholder values
+                }
+            }
+        }
+    }
+}
+
+// Main workflow
+TARS {
+    // Initialize the workflow
+    ACTION {
+        type: "log"
+        message: "Starting code analysis and refactoring workflow"
+    }
+    
+    // Get the list of files to analyze
+    VARIABLE files {
+        value: []  // This would be populated by the actual implementation
+    }
+    
+    ACTION {
+        type: "get_files"
+        directory: "${config.value.target_directory}"
+        extensions: "${config.value.file_extensions}"
+        output_variable: "files"
+    }
+    
+    // Process each file
+    FOR {
+        variable: "file"
+        range: "${files.value}"
+        
+        // Analyze the file
+        ACTION {
+            type: "log"
+            message: "Analyzing file: ${file}"
+        }
+        
+        VARIABLE analysis_results {
+            value: {}
+        }
+        
+        ACTION {
+            type: "execute"
+            agent: "analyzer"
+            task: "analyze_file"
+            parameters: {
+                file_path: "${file}"
+            }
+            output_variable: "analysis_results"
+        }
+        
+        // Decide whether to refactor
+        IF {
+            condition: "${analysis_results.value.needs_refactoring}"
+            
+            ACTION {
+                type: "log"
+                message: "Refactoring file: ${file}"
+            }
+            
+            VARIABLE refactoring_results {
+                value: {}
+            }
+            
+            ACTION {
+                type: "execute"
+                agent: "refactorer"
+                task: "refactor_file"
+                parameters: {
+                    file_path: "${file}",
+                    issues: "${analysis_results.value.issues}"
+                }
+                output_variable: "refactoring_results"
+            }
+            
+            // Verify the refactoring
+            IF {
+                condition: "${refactoring_results.value.tests_passed}"
+                
+                ACTION {
+                    type: "log"
+                    message: "Refactoring successful for file: ${file}"
+                }
+            }
+            ELSE {
+                ACTION {
+                    type: "log"
+                    message: "Refactoring failed for file: ${file}"
+                }
+                
+                ACTION {
+                    type: "revert"
+                    file_path: "${file}"
+                }
+            }
+        }
+        ELSE {
+            ACTION {
+                type: "log"
+                message: "No refactoring needed for file: ${file}"
+            }
+        }
+    }
+    
+    // Generate a summary report
+    ACTION {
+        type: "generate_report"
+        title: "Code Analysis and Refactoring Report"
+        content: {
+            files_analyzed: "${files.value.length}",
+            files_refactored: 3,  // Placeholder values
+            improvements_made: 15,
+            test_coverage: "85%"
+        }
+        format: "markdown"
+        output_file: "code_analysis_report.md"
+    }
+    
+    // Notify about completion
+    ACTION {
+        type: "notify"
+        message: "Code analysis and refactoring workflow completed"
+        channels: ["slack", "email"]
+    }
+}

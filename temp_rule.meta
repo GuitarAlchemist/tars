@@ -1,0 +1,1 @@
+rule AddNullCheck {\n    match: \"public int Divide\\(int a, int b\\)\\s*{\\s*return a / b;\\s*}\"\n    replace: \"public int Divide(int a, int b)\\n    {\\n        if (b == 0)\\n        {\\n            throw new System.DivideByZeroException(\\\"Cannot divide by zero\\\");\\n        }\\n        return a / b;\\n    }\"\n    requires: \"System\"\n}

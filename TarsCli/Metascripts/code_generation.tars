@@ -1,0 +1,292 @@
+DESCRIBE {
+    name: "Code Generation Example"
+    version: "1.0"
+    description: "A demonstration of code generation capabilities in TARS DSL"
+    author: "TARS Team"
+    date: "2025-04-01"
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.7
+    max_tokens: 1000
+}
+
+// Define a variable for the function name
+VARIABLE function_name {
+    value: "calculate_area"
+}
+
+// Define a variable for the shape
+VARIABLE shape {
+    value: "circle"
+}
+
+// Execute F# code to generate a function
+ACTION {
+    type: "log"
+    message: "Generating function for ${shape}..."
+}
+
+FSHARP {
+    // Generate a function based on the shape
+    let generateFunction functionName shape =
+        match shape.ToLower() with
+        | "circle" ->
+            sprintf """FUNCTION %s {
+    parameters: "radius"
+    
+    VARIABLE area {
+        value: "${3.14159 * radius * radius}"
+    }
+    
+    RETURN {
+        value: "${area}"
+    }
+}""" functionName
+        | "square" ->
+            sprintf """FUNCTION %s {
+    parameters: "side"
+    
+    VARIABLE area {
+        value: "${side * side}"
+    }
+    
+    RETURN {
+        value: "${area}"
+    }
+}""" functionName
+        | "rectangle" ->
+            sprintf """FUNCTION %s {
+    parameters: "length, width"
+    
+    VARIABLE area {
+        value: "${length * width}"
+    }
+    
+    RETURN {
+        value: "${area}"
+    }
+}""" functionName
+        | "triangle" ->
+            sprintf """FUNCTION %s {
+    parameters: "base, height"
+    
+    VARIABLE area {
+        value: "${0.5 * base * height}"
+    }
+    
+    RETURN {
+        value: "${area}"
+    }
+}""" functionName
+        | _ ->
+            sprintf """FUNCTION %s {
+    parameters: "x"
+    
+    VARIABLE error {
+        value: "Unknown shape: %s"
+    }
+    
+    RETURN {
+        value: "${error}"
+    }
+}""" functionName shape
+    
+    // Generate the function
+    generateFunction function_name shape
+}
+
+// Store the generated code
+VARIABLE generated_code {
+    value: "${_last_result}"
+}
+
+// Display the generated code
+ACTION {
+    type: "log"
+    message: "Generated code:\n${generated_code}"
+}
+
+// Execute the generated code
+${generated_code}
+
+// Test the generated function
+ACTION {
+    type: "log"
+    message: "Testing the generated function..."
+}
+
+// Call the function with different parameters based on the shape
+IF {
+    condition: "${shape == 'circle'}"
+    
+    CALL {
+        function: "${function_name}"
+        arguments: {
+            radius: 5
+        }
+        result_variable: "result"
+    }
+}
+ELSE IF {
+    condition: "${shape == 'square'}"
+    
+    CALL {
+        function: "${function_name}"
+        arguments: {
+            side: 5
+        }
+        result_variable: "result"
+    }
+}
+ELSE IF {
+    condition: "${shape == 'rectangle'}"
+    
+    CALL {
+        function: "${function_name}"
+        arguments: {
+            length: 5
+            width: 3
+        }
+        result_variable: "result"
+    }
+}
+ELSE IF {
+    condition: "${shape == 'triangle'}"
+    
+    CALL {
+        function: "${function_name}"
+        arguments: {
+            base: 5
+            height: 3
+        }
+        result_variable: "result"
+    }
+}
+ELSE {
+    VARIABLE result {
+        value: "Unknown shape: ${shape}"
+    }
+}
+
+// Display the result
+ACTION {
+    type: "log"
+    message: "Area of ${shape}: ${result}"
+}
+
+// Now let's try with a different shape
+VARIABLE shape {
+    value: "square"
+}
+
+// Generate a new function
+ACTION {
+    type: "log"
+    message: "Generating function for ${shape}..."
+}
+
+FSHARP {
+    // Generate the function
+    let generateFunction functionName shape =
+        match shape.ToLower() with
+        | "circle" ->
+            sprintf """FUNCTION %s {
+    parameters: "radius"
+    
+    VARIABLE area {
+        value: "${3.14159 * radius * radius}"
+    }
+    
+    RETURN {
+        value: "${area}"
+    }
+}""" functionName
+        | "square" ->
+            sprintf """FUNCTION %s {
+    parameters: "side"
+    
+    VARIABLE area {
+        value: "${side * side}"
+    }
+    
+    RETURN {
+        value: "${area}"
+    }
+}""" functionName
+        | "rectangle" ->
+            sprintf """FUNCTION %s {
+    parameters: "length, width"
+    
+    VARIABLE area {
+        value: "${length * width}"
+    }
+    
+    RETURN {
+        value: "${area}"
+    }
+}""" functionName
+        | "triangle" ->
+            sprintf """FUNCTION %s {
+    parameters: "base, height"
+    
+    VARIABLE area {
+        value: "${0.5 * base * height}"
+    }
+    
+    RETURN {
+        value: "${area}"
+    }
+}""" functionName
+        | _ ->
+            sprintf """FUNCTION %s {
+    parameters: "x"
+    
+    VARIABLE error {
+        value: "Unknown shape: %s"
+    }
+    
+    RETURN {
+        value: "${error}"
+    }
+}""" functionName shape
+    
+    // Generate the function
+    generateFunction function_name shape
+}
+
+// Store the generated code
+VARIABLE generated_code {
+    value: "${_last_result}"
+}
+
+// Display the generated code
+ACTION {
+    type: "log"
+    message: "Generated code:\n${generated_code}"
+}
+
+// Execute the generated code
+${generated_code}
+
+// Test the generated function
+ACTION {
+    type: "log"
+    message: "Testing the generated function..."
+}
+
+// Call the function
+CALL {
+    function: "${function_name}"
+    arguments: {
+        side: 5
+    }
+    result_variable: "result"
+}
+
+// Display the result
+ACTION {
+    type: "log"
+    message: "Area of ${shape}: ${result}"
+}

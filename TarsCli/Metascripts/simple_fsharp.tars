@@ -1,0 +1,43 @@
+DESCRIBE {
+    name: "Simple F# Integration Example"
+    version: "1.0"
+    description: "A simple demonstration of F# code integration in TARS DSL"
+    author: "TARS Team"
+    date: "2025-04-01"
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.7
+    max_tokens: 1000
+}
+
+// Define a variable
+VARIABLE x {
+    value: 10
+}
+
+// Execute F# code
+ACTION {
+    type: "log"
+    message: "Executing F# code..."
+}
+
+FSHARP {
+    // Access the variable from the DSL environment
+    let result = x * 2
+    
+    // Return the result
+    result.ToString()
+}
+
+// Store the result in a variable
+VARIABLE result {
+    value: "${_last_result}"
+}
+
+// Display the result
+ACTION {
+    type: "log"
+    message: "Result: ${result}"
+}
