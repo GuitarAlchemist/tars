@@ -2,6 +2,23 @@
 
 <div align="center">
   <img src="docs/images/tars_logo.svg" alt="TARS Logo" width="200"/>
+</div>
+
+## Powered by [Augment Code](https://www.augmentcode.com/)
+
+<div align="center">
+  <a href="https://www.augmentcode.com/">
+    <img src="https://www.augmentcode.com/assets/logo-light-mode.svg" alt="Augment Code Logo" width="300"/>
+  </a>
+</div>
+
+> **TARS has been made possible through the revolutionary capabilities of [Augment Code](https://www.augmentcode.com/), the world's most advanced AI pair programmer.** The development of TARS has been dramatically accelerated by Augment's ability to understand complex codebases, generate sophisticated implementations, and collaborate through the Model Context Protocol (MCP). From implementing F# to Rust transpilation in record time to autonomously improving code quality, Augment Code has been an indispensable partner in bringing TARS to life.
+>
+> *"Augment Code coded a F# to Rust transpiler in no time - it's almost AI sorcery!"* — Stephane Pareilleux, TARS Creator
+>
+> [See our collaboration in action](https://app.augmentcode.com/share/bPqtEs7_x4s)
+
+<div align="center">
   <br/>
   <img src="docs/images/tars_architecture.svg" alt="TARS Architecture" width="600"/>
   <br/>
@@ -40,15 +57,16 @@ TARS includes a powerful Domain Specific Language (DSL) for creating metascripts
 
 [View Metascripts documentation](docs/Features/Metascripts.md)
 
-### Model Context Protocol (MCP) Integration
+### Model Context Protocol (MCP) Integration with Augment Code
 
-TARS now implements Anthropic's Model Context Protocol (MCP), a standard that enables AI assistants to interact with tools and services. This integration allows TARS to function as an MCP service and collaborate with other MCP-compatible systems like Augment Code. Key features include:
+TARS implements Anthropic's Model Context Protocol (MCP), enabling powerful collaboration with [Augment Code](https://www.augmentcode.com/). This integration has been transformative for TARS development, allowing for unprecedented acceleration of complex features. Key capabilities include:
 
+- **Augment Code Collaboration**: Seamless integration with Augment Code for sophisticated code generation and problem-solving
 - **Tool-Using Capabilities**: Access and use tools through a standardized protocol
 - **Triple-Quoted Syntax**: Use `"""..."""` syntax for multi-line code blocks
 - **Terminal Command Execution**: Execute terminal commands with proper authorization
-- **Augment Code Integration**: Seamless collaboration with Augment Code through MCP
 - **Structured Communication**: Standardized JSON format for tool requests and responses
+- **Auto-Coding**: Automatic code generation and implementation through Augment Code's advanced capabilities
 
 [View Model Context Protocol documentation](docs/features/model-context-protocol.md)
 
@@ -249,3 +267,9 @@ dotnet test TarsCli.Tests/TarsCli.Tests.csproj
 - **Multiple LLM Providers**: Integration with various AI providers
 - **Web UI**: Browser-based interface for managing TARS sessions
 - **Collaborative Workflows**: Support for multi-user collaboration
+
+## Acknowledgements
+
+- [Augment Code](https://www.augmentcode.com/) - For providing the revolutionary AI pair programming capabilities that made TARS possible
+- [Anthropic](https://www.anthropic.com/) - For the Model Context Protocol specification
+- [Ollama](https://ollama.ai/) - For local model inference capabilities
