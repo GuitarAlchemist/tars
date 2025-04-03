@@ -1,0 +1,34 @@
+// Basic code improvement rules
+
+rule DivideByZeroCheck {
+    match: "return $a / $b;"
+    replace: "if ($b == 0) { throw new DivideByZeroException(\"Cannot divide by zero\"); }\n        return $a / $b;"
+}
+
+rule UseLinqSum {
+    match: "int $sum = 0;\n        for (int $i = 0; $i < $collection.Count; $i++)\n        {\n            $sum = $sum + $collection[$i];\n        }"
+    replace: "$sum = $collection.Sum();"
+    requires: "System.Linq"
+}
+
+rule UseLinqAverage {
+    match: "double $avg = $sum / $collection.Count;"
+    replace: "double $avg = $collection.Average();"
+    requires: "System.Linq"
+}
+
+rule UseLinqMax {
+    match: "int $max = $collection[0];\n        for (int $i = 1; $i < $collection.Count; $i++)\n        {\n            if ($collection[$i] > $max)\n            {\n                $max = $collection[$i];\n            }\n        }"
+    replace: "$max = $collection.Max();"
+    requires: "System.Linq"
+}
+
+rule AddNullCheck {
+    match: "public $returnType $methodName(List<$itemType> $paramName)\n    {\n        $body"
+    replace: "public $returnType $methodName(List<$itemType> $paramName)\n    {\n        if ($paramName == null || $paramName.Count == 0)\n        {\n            throw new ArgumentException(\"List cannot be null or empty\");\n        }\n        $body"
+}
+
+rule AddXmlDocumentation {
+    match: "public $returnType $methodName($params)\n    {"
+    replace: "/// <summary>\n    /// $methodName operation\n    /// </summary>\n    /// <param name=\"$params\">Parameters for the operation</param>\n    /// <returns>$returnType result</returns>\n    public $returnType $methodName($params)\n    {"
+}

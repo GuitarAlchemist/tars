@@ -223,4 +223,13 @@ public class OllamaService
         [JsonPropertyName("modified_at")]
         public string? ModifiedAt { get; set; }
     }
+
+    /// <summary>
+    /// Generates text using the specified model
+    /// </summary>
+    public async Task<string> GenerateAsync(string prompt, string model = null, float temperature = 0.7f, int maxTokens = 2048)
+    {
+        model ??= _defaultModel;
+        return await GenerateCompletion(prompt, model);
+    }
 }

@@ -3382,7 +3382,11 @@ public static class CliSupport
 
         // Add Self-Improvement command
         var selfImprovementController = _serviceProvider.GetRequiredService<SelfImprovementController>();
-        selfImprovementController.RegisterCommands(rootCommand);
+        selfImprovementController.RegisterCommands(rootCommand!);
+
+        // Add Retroaction command
+        var retroactionCommand = _serviceProvider.GetRequiredService<Commands.RetroactionCommand>();
+        rootCommand.AddCommand(retroactionCommand.RegisterCommands());
 
         // Add default handler for root command
         rootCommand.SetHandler((InvocationContext context) =>

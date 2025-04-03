@@ -3,6 +3,7 @@ namespace TarsEngine.DSL
 open System
 open System.Text.RegularExpressions
 open System.Collections.Generic
+open Microsoft.FSharp.Core
 
 /// Module containing a simplified implementation of the TARS DSL
 module SimpleDsl =
@@ -23,6 +24,9 @@ module SimpleDsl =
         | Catch
         | Return
         | FSharp
+        | Agent
+        | Task
+        | Tars
         | Unknown of string
 
 
@@ -82,6 +86,9 @@ module SimpleDsl =
         | "CATCH" -> BlockType.Catch
         | "RETURN" -> BlockType.Return
         | "FSHARP" -> BlockType.FSharp
+        | "AGENT" -> BlockType.Agent
+        | "TASK" -> BlockType.Task
+        | "TARS" -> BlockType.Tars
         | _ -> BlockType.Unknown blockType
 
     /// Parse a property value
@@ -251,6 +258,10 @@ module SimpleDsl =
                 m.Value // Keep the original if variable not found
         )
 
+    /// Generate a range of numbers
+    and range (start: int) (stop: int) =
+        [start .. (stop - 1)] |> List.map (fun i -> NumberValue(float i))
+
     /// Evaluate a condition
     and evaluateCondition (condition: string) =
         // Simple condition evaluation
@@ -272,6 +283,28 @@ module SimpleDsl =
                 let left = parts.[0].Trim()
                 let right = parts.[1].Trim()
                 left <> right
+            else
+                false
+        // Check for greater than
+        elif condition.Contains(">") then
+            let parts = condition.Split([|">"|], StringSplitOptions.None)
+            if parts.Length = 2 then
+                let left = parts.[0].Trim()
+                let right = parts.[1].Trim()
+                match Double.TryParse(left), Double.TryParse(right) with
+                | (true, leftNum), (true, rightNum) -> leftNum > rightNum
+                | _ -> false
+            else
+                false
+        // Check for less than
+        elif condition.Contains("<") then
+            let parts = condition.Split([|"<"|], StringSplitOptions.None)
+            if parts.Length = 2 then
+                let left = parts.[0].Trim()
+                let right = parts.[1].Trim()
+                match Double.TryParse(left), Double.TryParse(right) with
+                | (true, leftNum), (true, rightNum) -> leftNum < rightNum
+                | _ -> false
             else
                 false
         // Check for boolean value
@@ -466,6 +499,28 @@ module SimpleDsl =
                     | _ ->
                         Error("File write action requires 'path' and 'content' properties")
 
+                | "file_delete" ->
+                    // Get the required parameters
+                    let pathOpt = block.Properties.TryFind("path")
+
+                    match pathOpt with
+                    | Some (StringValue path) ->
+                        // Substitute variables in path
+                        let substitutedPath = substituteVariables path environment
+
+                        try
+                            // Check if file exists
+                            if System.IO.File.Exists(substitutedPath) then
+                                // Delete the file
+                                System.IO.File.Delete(substitutedPath)
+                                Success(StringValue($"File deleted successfully: {substitutedPath}"))
+                            else
+                                Error($"File not found: {substitutedPath}")
+                        with
+                        | ex -> Error($"Error deleting file {substitutedPath}: {ex.Message}")
+                    | _ ->
+                        Error("File delete action requires 'path' property")
+
                 | "http_request" ->
                     // Get the required parameters
                     let urlOpt = block.Properties.TryFind("url")
@@ -573,6 +628,129 @@ module SimpleDsl =
                         | ex -> Error($"Error executing command {substitutedCommand}: {ex.Message}")
                     | _ ->
                         Error("Shell execute action requires 'command' property")
+
+                | "mcp_send" ->
+                    // Get the required parameters
+                    let targetOpt = block.Properties.TryFind("target")
+                    let actionOpt = block.Properties.TryFind("action")
+                    let parametersOpt = block.Properties.TryFind("parameters")
+                    let resultVarOpt = block.Properties.TryFind("result_variable")
+
+                    match targetOpt, actionOpt with
+                    | Some (StringValue target), Some (StringValue action) ->
+                        // Substitute variables
+                        let substitutedTarget = substituteVariables target environment
+                        let substitutedAction = substituteVariables action environment
+
+                        // Get parameters as a map
+                        let parameters =
+                            match parametersOpt with
+                            | Some (ObjectValue paramsMap) ->
+                                // Substitute variables in parameter values
+                                paramsMap |> Map.map (fun _ value ->
+                                    match value with
+                                    | StringValue s -> StringValue(substituteVariables s environment)
+                                    | _ -> value)
+                            | _ -> Map.empty
+
+                        // In a real implementation, this would send a message to the MCP target
+                        // For now, we'll just simulate a response
+                        let response =
+                            match substitutedTarget, substitutedAction with
+                            | "augment", "code_generation" ->
+                                "// Generated code\nfunction helloWorld() {\n  console.log('Hello from Augment!');\n}"
+                            | "augment", "code_enhancement" ->
+                                "// Enhanced code\nfunction helloWorld() {\n  console.log('Hello from Augment with optimizations!');\n}"
+                            | _ ->
+                                $"Response from {substitutedTarget} for action {substitutedAction}"
+
+                        // Store the result in the result variable if provided
+                        match resultVarOpt with
+                        | Some (StringValue resultVar) ->
+                            environment.[resultVar] <- StringValue(response)
+                        | _ -> ()
+
+                        Success(StringValue($"MCP message sent to {substitutedTarget}"))
+                    | _ ->
+                        Error("MCP send action requires 'target' and 'action' properties")
+
+                | "mcp_receive" ->
+                    // Get the required parameters
+                    let sourceOpt = block.Properties.TryFind("source")
+                    let timeoutOpt = block.Properties.TryFind("timeout")
+                    let resultVarOpt = block.Properties.TryFind("result_variable")
+
+                    match sourceOpt, resultVarOpt with
+                    | Some (StringValue source), Some (StringValue resultVar) ->
+                        // Substitute variables
+                        let substitutedSource = substituteVariables source environment
+
+                        // Get timeout
+                        let timeout =
+                            match timeoutOpt with
+                            | Some (NumberValue t) -> int t
+                            | _ -> 30 // Default timeout in seconds
+
+                        // In a real implementation, this would wait for a message from the MCP source
+                        // For now, we'll just simulate a response
+                        let response = $"Response from {substitutedSource}"
+
+                        // Store the result in the result variable
+                        environment.[resultVar] <- StringValue(response)
+
+                        Success(StringValue($"MCP message received from {substitutedSource}"))
+                    | _ ->
+                        Error("MCP receive action requires 'source' and 'result_variable' properties")
+
+                | "read_file" ->
+                    // Get the required parameters
+                    let pathOpt = block.Properties.TryFind("path")
+                    let resultVarOpt = block.Properties.TryFind("result_variable")
+
+                    match pathOpt, resultVarOpt with
+                    | Some (StringValue path), Some (StringValue resultVar) ->
+                        // Substitute variables
+                        let substitutedPath = substituteVariables path environment
+
+                        try
+                            // Read the file
+                            let content = System.IO.File.ReadAllText(substitutedPath)
+
+                            // Store the result in the result variable
+                            environment.[resultVar] <- StringValue(content)
+
+                            Success(StringValue($"File read successfully: {substitutedPath}"))
+                        with
+                        | ex -> Error($"Error reading file {substitutedPath}: {ex.Message}")
+                    | _ ->
+                        Error("Read file action requires 'path' and 'result_variable' properties")
+
+                | "write_file" ->
+                    // Get the required parameters
+                    let pathOpt = block.Properties.TryFind("path")
+                    let contentOpt = block.Properties.TryFind("content")
+
+                    match pathOpt, contentOpt with
+                    | Some (StringValue path), Some (StringValue content) ->
+                        // Substitute variables
+                        let substitutedPath = substituteVariables path environment
+                        let substitutedContent = substituteVariables content environment
+
+                        try
+                            // Write the file
+                            System.IO.File.WriteAllText(substitutedPath, substitutedContent)
+
+                            Success(StringValue($"File written successfully: {substitutedPath}"))
+                        with
+                        | ex -> Error($"Error writing file {substitutedPath}: {ex.Message}")
+                    | _ ->
+                        Error("Write file action requires 'path' and 'content' properties")
+
+                | "analyze" | "pattern_recognition" | "refactor" | "test" | "get_files" | "generate_report" | "notify" ->
+                    // These are placeholder implementations for the more complex actions
+                    // In a real implementation, these would perform actual analysis, refactoring, etc.
+                    printfn "Executing action: %s (placeholder implementation)" actionType
+                    Success(StringValue($"Action {actionType} executed (placeholder implementation)"))
 
                 | _ ->
                     Error($"Unknown action type: '{actionType}'")
@@ -692,54 +870,46 @@ module SimpleDsl =
         | BlockType.For ->
             // Get the required properties
             let variableOpt = block.Properties.TryFind("variable")
+            let itemOpt = block.Properties.TryFind("item")
             let fromOpt = block.Properties.TryFind("from")
             let toOpt = block.Properties.TryFind("to")
             let stepOpt = block.Properties.TryFind("step")
+            let collectionOpt = block.Properties.TryFind("collection")
 
-            match variableOpt, fromOpt, toOpt with
-            | Some (StringValue variable), Some fromValue, Some toValue ->
-                // Parse from and to values
-                let fromNum =
-                    match fromValue with
-                    | NumberValue n -> n
+            // Check if this is a collection-based for loop
+            match itemOpt, collectionOpt with
+            | Some (StringValue itemVar), Some collectionValue ->
+                // This is a collection-based for loop (for item in collection)
+                let collection =
+                    match collectionValue with
+                    | ListValue items -> items
                     | StringValue s ->
-                        match Double.TryParse(substituteVariables s environment) with
-                        | true, n -> n
-                        | _ -> 0.0
-                    | _ -> 0.0
+                        // Try to parse as a list from the environment
+                        let substituted = substituteVariables s environment
+                        match environment.TryGetValue(substituted.Trim('$', '{', '}')) with
+                        | true, ListValue items -> items
+                        | _ ->
+                            // Try to parse as a JSON array
+                            try
+                                // Parse as a simple comma-separated list
+                                substituted.Split(',')
+                                |> Array.map (fun s -> StringValue(s.Trim()))
+                                |> Array.toList
+                            with
+                            | _ -> [StringValue substituted] // Fallback to a single item
+                    | _ -> [] // Empty collection if not a list or string
 
-                let toNum =
-                    match toValue with
-                    | NumberValue n -> n
-                    | StringValue s ->
-                        match Double.TryParse(substituteVariables s environment) with
-                        | true, n -> n
-                        | _ -> 0.0
-                    | _ -> 0.0
-
-                // Parse step value (default to 1.0)
-                let stepNum =
-                    match stepOpt with
-                    | Some (NumberValue n) -> n
-                    | Some (StringValue s) ->
-                        match Double.TryParse(substituteVariables s environment) with
-                        | true, n -> n
-                        | _ -> 1.0
-                    | _ -> 1.0
-
-                // Execute the loop
+                // Execute the loop for each item in the collection
                 let mutable result = Success(StringValue(""))
                 let mutable loopCount = 0
-                let maxLoops = 1000 // Safety limit to prevent infinite loops
+                let maxLoops = 1000 // Safety limit
 
-                let mutable i = fromNum
-                while (stepNum > 0.0 && i <= toNum) || (stepNum < 0.0 && i >= toNum) do
+                for item in collection do
                     if loopCount >= maxLoops then
                         result <- Error($"For loop exceeded maximum iteration count ({maxLoops})")
-                        i <- if stepNum > 0.0 then toNum + 1.0 else toNum - 1.0 // Exit the loop
                     else
-                        // Set the loop variable
-                        environment.[variable] <- NumberValue(i)
+                        // Set the item variable
+                        environment.[itemVar] <- item
 
                         // Execute the nested blocks
                         let mutable blockResult = Success(StringValue(""))
@@ -753,15 +923,83 @@ module SimpleDsl =
                                     blockResult <- Error msg
                                     // Stop execution on error
                                     continueExecution <- false
-                                    i <- if stepNum > 0.0 then toNum + 1.0 else toNum - 1.0 // Exit the loop
 
                         result <- blockResult
                         loopCount <- loopCount + 1
-                        i <- i + stepNum
 
                 result
+
+            // Check if this is a numeric range-based for loop
+            | Some (StringValue variable), Some fromValue ->
+                // Check if we have a 'to' value
+                match toOpt with
+                | Some toValue ->
+                    // Parse from and to values
+                    let fromNum =
+                        match fromValue with
+                        | NumberValue n -> n
+                        | StringValue s ->
+                            match Double.TryParse(substituteVariables s environment) with
+                            | true, n -> n
+                            | _ -> 0.0
+                        | _ -> 0.0
+
+                    let toNum =
+                        match toValue with
+                        | NumberValue n -> n
+                        | StringValue s ->
+                            match Double.TryParse(substituteVariables s environment) with
+                            | true, n -> n
+                            | _ -> 0.0
+                        | _ -> 0.0
+
+                    // Parse step value (default to 1.0)
+                    let stepNum =
+                        match stepOpt with
+                        | Some (NumberValue n) -> n
+                        | Some (StringValue s) ->
+                            match Double.TryParse(substituteVariables s environment) with
+                            | true, n -> n
+                            | _ -> 1.0
+                        | _ -> 1.0
+
+                    // Execute the loop
+                    let mutable result = Success(StringValue(""))
+                    let mutable loopCount = 0
+                    let maxLoops = 1000 // Safety limit to prevent infinite loops
+
+                    let mutable i = fromNum
+                    while (stepNum > 0.0 && i <= toNum) || (stepNum < 0.0 && i >= toNum) do
+                        if loopCount >= maxLoops then
+                            result <- Error($"For loop exceeded maximum iteration count ({maxLoops})")
+                            i <- if stepNum > 0.0 then toNum + 1.0 else toNum - 1.0 // Exit the loop
+                        else
+                            // Set the loop variable
+                            environment.[variable] <- NumberValue(i)
+
+                            // Execute the nested blocks
+                            let mutable blockResult = Success(StringValue(""))
+                            let mutable continueExecution = true
+
+                            for nestedBlock in block.NestedBlocks do
+                                if continueExecution then
+                                    match executeBlock nestedBlock environment with
+                                    | Success value -> blockResult <- Success value
+                                    | Error msg ->
+                                        blockResult <- Error msg
+                                        // Stop execution on error
+                                        continueExecution <- false
+                                        i <- if stepNum > 0.0 then toNum + 1.0 else toNum - 1.0 // Exit the loop
+
+                            result <- blockResult
+                            loopCount <- loopCount + 1
+                            i <- i + stepNum
+
+                    result
+                | None ->
+                    Error("For loop with 'variable' requires 'to' property")
             | _ ->
-                Error("For block requires 'variable', 'from', and 'to' properties")
+                Error("For block requires 'variable' or 'item' property")
 
         | BlockType.Function ->
             // Functions are registered in the first pass of executeProgram
@@ -973,6 +1211,106 @@ module SimpleDsl =
                 with
                 | ex -> Error($"Error executing F# code: {ex.Message}")
 
+        | BlockType.Agent ->
+            // Get the agent name
+            let agentName =
+                match block.Name with
+                | Some name -> name
+                | None -> "unnamed_agent"
+
+            // Get agent properties
+            let description =
+                match block.Properties.TryFind("description") with
+                | Some (StringValue desc) -> substituteVariables desc environment
+                | _ -> ""
+
+            let capabilities =
+                match block.Properties.TryFind("capabilities") with
+                | Some (ListValue capList) ->
+                    capList |> List.choose (function
+                        | StringValue s -> Some (substituteVariables s environment)
+                        | _ -> None)
+                | _ -> []
+
+            // Store agent information in environment
+            let agentInfo =
+                ObjectValue(Map.ofList [
+                    "name", StringValue(agentName);
+                    "description", StringValue(description);
+                    "capabilities", ListValue(capabilities |> List.map StringValue)
+                ])
+
+            environment.["agent_" + agentName] <- agentInfo
+
+            // Execute nested blocks (tasks, etc.)
+            let mutable result = Success(StringValue($"Agent {agentName} defined"))
+            let mutable continueExecution = true
+
+            for nestedBlock in block.NestedBlocks do
+                if continueExecution then
+                    match executeBlock nestedBlock environment with
+                    | Success value -> result <- Success value
+                    | Error msg ->
+                        result <- Error msg
+                        // Stop execution on error
+                        continueExecution <- false
+
+            result
+
+        | BlockType.Task ->
+            // Get the task name
+            let taskName =
+                match block.Name with
+                | Some name -> name
+                | None -> "unnamed_task"
+
+            // Get task properties
+            let description =
+                match block.Properties.TryFind("description") with
+                | Some (StringValue desc) -> substituteVariables desc environment
+                | _ -> ""
+
+            // Store task information in environment
+            let taskInfo =
+                ObjectValue(Map.ofList [
+                    "name", StringValue(taskName);
+                    "description", StringValue(description)
+                ])
+
+            environment.["task_" + taskName] <- taskInfo
+
+            // Execute nested blocks
+            let mutable result = Success(StringValue($"Task {taskName} defined"))
+            let mutable continueExecution = true
+
+            for nestedBlock in block.NestedBlocks do
+                if continueExecution then
+                    match executeBlock nestedBlock environment with
+                    | Success value -> result <- Success value
+                    | Error msg ->
+                        result <- Error msg
+                        // Stop execution on error
+                        continueExecution <- false
+
+            result
+
+        | BlockType.Tars ->
+            // The TARS block is the main workflow block
+            // Execute all nested blocks in sequence
+            let mutable result = Success(StringValue("TARS workflow started"))
+            let mutable continueExecution = true
+
+            for nestedBlock in block.NestedBlocks do
+                if continueExecution then
+                    match executeBlock nestedBlock environment with
+                    | Success value -> result <- Success value
+                    | Error msg ->
+                        result <- Error msg
+                        // Stop execution on error
+                        continueExecution <- false
+
+            result
+
         | BlockType.Unknown blockType ->
             Error($"Unknown block type: {blockType}")
 
@@ -980,6 +1318,10 @@ module SimpleDsl =
     and executeProgram (program: Program) =
         // Create an environment for variable storage
         let environment = Dictionary<string, PropertyValue>()
+
+        // Add built-in functions
+        // Add range function to environment
+        environment.["range"] <- ObjectValue(Map.ofList [("__function", StringValue "range")])
 
         // Clear the function registry
         functionRegistry <- Map.empty

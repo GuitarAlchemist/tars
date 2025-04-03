@@ -863,14 +863,18 @@ namespace DemoCode
             CliSupport.WriteColorLine("Step 2: Loading a sample metascript for TARS-Augment collaboration...", ConsoleColor.Green);
             Console.WriteLine();
 
-            var metascriptPath = Path.Combine(_demoDir, "metascripts", "tars_augment_collaboration.tars");
+            var metascriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Metascripts", "tars_augment_collaboration.tars");
             if (!File.Exists(metascriptPath))
             {
-                metascriptPath = Path.Combine("Examples", "metascripts", "tars_augment_collaboration.tars");
+                metascriptPath = Path.Combine("TarsCli", "Metascripts", "tars_augment_collaboration.tars");
                 if (!File.Exists(metascriptPath))
                 {
-                    Console.WriteLine("Error: Could not find the sample metascript file.");
-                    return false;
+                    metascriptPath = Path.Combine("Examples", "metascripts", "tars_augment_collaboration.tars");
+                    if (!File.Exists(metascriptPath))
+                    {
+                        Console.WriteLine("Error: Could not find the sample metascript file.");
+                        return false;
+                    }
                 }
             }
 
