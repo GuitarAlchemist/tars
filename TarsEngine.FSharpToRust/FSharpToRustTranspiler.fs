@@ -24,14 +24,14 @@ module FSharpToRustTranspiler =
         | "uint64" -> "u64"
         | t when t.StartsWith("option<") ->
             let innerType = t.Substring(7, t.Length - 8)
-            $"Option<{mapType innerType}>"
+            sprintf "Option<%s>" (mapType innerType)
         | t when t.StartsWith("list<") ->
             let innerType = t.Substring(5, t.Length - 6)
-            $"Vec<{mapType innerType}>"
+            sprintf "Vec<%s>" (mapType innerType)
         | t when t.StartsWith("array<") ->
             let innerType = t.Substring(6, t.Length - 7)
-            $"Vec<{mapType innerType}>"
-        | _ -> $"/* Unmapped type: {fsType} */ ()"
+            sprintf "Vec<%s>" (mapType innerType)
+        | _ -> sprintf "/* Unmapped type: %s */ ()" fsType
 
     /// Simple transpilation for basic F# constructs (for proof of concept)
     let simpleTranspile (fsharpCode: string) =
@@ -48,9 +48,9 @@ module FSharpToRustTranspiler =
                     |> Array.map (fun p ->
                         let parts = p.Trim().Split(':')
                         if parts.Length > 1 then
-                            $"{parts.[0].Trim()}: {mapType (parts.[1].Trim())}"
+                            sprintf "%s: %s" (parts.[0].Trim()) (mapType (parts.[1].Trim()))
                         else
-                            $"{parts.[0].Trim()}: /* unknown type */")
+                            sprintf "%s: /* unknown type */" (parts.[0].Trim()))
                     |> String.concat ", "
                 else ""
 
@@ -61,7 +61,7 @@ module FSharpToRustTranspiler =
 
             let body = m.Groups.[4].Value.Trim()
 
-            $"fn {functionName}({parameters}) -> {returnType} {{\n    {body}\n}}")
+            sprintf "fn %s(%s) -> %s {\n    %s\n}" functionName parameters returnType body)
 
         // Replace F# if/then/else
         let ifRegex = Regex(@"if\s+(.+?)\s+then\s+(.+?)(?:\s+else\s+(.+?))?(?=\s*let|\s*if|\z)", RegexOptions.Singleline)
@@ -71,9 +71,9 @@ module FSharpToRustTranspiler =
 
             if m.Groups.[3].Success then
                 let elseBranch = m.Groups.[3].Value.Trim()
-                $"if {condition} {{ {thenBranch} }} else {{ {elseBranch} }}"
+                sprintf "if %s { %s } else { %s }" condition thenBranch elseBranch
             else
-                $"if {condition} {{ {thenBranch} }}")
+                sprintf "if %s { %s }" condition thenBranch)
 
         // Replace F# match expressions
         let matchRegex = Regex(@"match\s+(.+?)\s+with\s+\|\s+(.+?)(?=let|\z)", RegexOptions.Singleline)
@@ -86,15 +86,15 @@ module FSharpToRustTranspiler =
             let processedCases = caseRegex.Replace(cases, fun c ->
                 let pattern = c.Groups.[1].Value.Trim()
                 let result = c.Groups.[2].Value.Trim()
-                $"{pattern} => {{ {result} }},")
+                sprintf "%s => { %s }," pattern result)
 
-            $"match {expr} {{\n{processedCases}\n}}")
+            sprintf "match %s {\n%s\n}" expr processedCases)
 
         // Replace F# types
         let typeRegex = Regex(@":\s*(\w+(?:<[^>]+>)?)")
         rustCode <- typeRegex.Replace(rustCode, fun m ->
             let fsType = m.Groups.[1].Value.Trim()
-            $": {mapType fsType}")
+            sprintf ": %s" (mapType fsType))
 
         rustCode
 
@@ -113,5 +113,5 @@ module FSharpToRustTranspiler =
             true
         with
         | ex ->
-            printfn $"Error transpiling file: {ex.Message}"
+            printfn "Error transpiling file: %s" ex.Message
             false
