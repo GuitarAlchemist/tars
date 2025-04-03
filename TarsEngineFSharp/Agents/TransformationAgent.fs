@@ -21,7 +21,7 @@ type CSharpTransformationAgent() =
                 let analysisResult = RetroactionAnalysis.analyzeCode code
 
                 // Apply the transformations
-                let transformedCode = RetroactionAnalysis.applyFixes code analysisResult.Fixes
+                let transformedCode = RetroactionAnalysis.applyFixesToCode code analysisResult.Fixes
 
                 return transformedCode
             }

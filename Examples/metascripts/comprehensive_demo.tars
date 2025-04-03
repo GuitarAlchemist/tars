@@ -1,0 +1,229 @@
+DESCRIBE {
+    name: "Comprehensive TARS DSL Demo"
+    version: "1.0"
+    description: "A comprehensive demonstration of TARS DSL capabilities"
+    author: "TARS Team"
+    date: "2025-04-02"
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.7
+    max_tokens: 1000
+}
+
+// Define variables
+VARIABLE greeting {
+    value: "Hello, TARS!"
+}
+
+VARIABLE count {
+    value: 5
+}
+
+// Display a greeting
+ACTION {
+    type: "log"
+    message: "${greeting}"
+}
+
+// Demonstrate conditional logic
+IF {
+    condition: "${count > 3}"
+    
+    ACTION {
+        type: "log"
+        message: "Count is greater than 3"
+    }
+}
+ELSE {
+    ACTION {
+        type: "log"
+        message: "Count is not greater than 3"
+    }
+}
+
+// Demonstrate loops
+VARIABLE numbers {
+    value: [1, 2, 3, 4, 5]
+}
+
+ACTION {
+    type: "log"
+    message: "Iterating through numbers:"
+}
+
+FOR {
+    item: "num"
+    collection: "${numbers}"
+    
+    ACTION {
+        type: "log"
+        message: "Number: ${num}"
+    }
+}
+
+// Demonstrate F# integration
+ACTION {
+    type: "log"
+    message: "Executing F# code..."
+}
+
+FSHARP {
+    // Define a function
+    let square x = x * x
+    
+    // Get the count from the environment
+    let count = environment.["count"].ToString() |> int
+    
+    // Calculate the square
+    let result = square count
+    
+    // Return the result
+    sprintf "The square of %d is %d" count result
+}
+
+// Store the result in a variable
+VARIABLE square_result {
+    value: "${_last_result}"
+}
+
+// Display the result
+ACTION {
+    type: "log"
+    message: "${square_result}"
+}
+
+// Demonstrate function definition and calling
+FUNCTION calculate_factorial {
+    parameters: "n"
+    
+    VARIABLE result {
+        value: 1
+    }
+    
+    FOR {
+        item: "i"
+        collection: "${range(1, n + 1)}"
+        
+        VARIABLE result {
+            value: "${result * i}"
+        }
+    }
+    
+    RETURN {
+        value: "${result}"
+    }
+}
+
+// Call the function
+CALL {
+    function: "calculate_factorial"
+    arguments: {
+        n: 5
+    }
+    result_variable: "factorial_result"
+}
+
+// Display the result
+ACTION {
+    type: "log"
+    message: "Factorial of 5 is ${factorial_result}"
+}
+
+// Demonstrate error handling
+TRY {
+    ACTION {
+        type: "log"
+        message: "Attempting division by zero..."
+    }
+    
+    VARIABLE result {
+        value: "${10 / 0}"
+    }
+}
+CATCH {
+    ACTION {
+        type: "log"
+        message: "Caught an error: Division by zero"
+    }
+}
+
+// Demonstrate code transformation with metascripts
+VARIABLE sample_code {
+    value: "
+public class Calculator
+{
+    public int Add(int a, int b)
+    {
+        return a + b;
+    }
+
+    public int Subtract(int a, int b)
+    {
+        return a - b;
+    }
+
+    public int Multiply(int a, int b)
+    {
+        return a * b;
+    }
+
+    public int Divide(int a, int b)
+    {
+        return a / b;
+    }
+}
+"
+}
+
+// Create a metascript rule
+VARIABLE rule_content {
+    value: "rule AddNullCheck {
+    match: \"public int Divide\\(int a, int b\\)\\s*{\\s*return a / b;\\s*}\"
+    replace: \"public int Divide(int a, int b)\\n    {\\n        if (b == 0)\\n        {\\n            throw new System.DivideByZeroException(\\\"Cannot divide by zero\\\");\\n        }\\n        return a / b;\\n    }\"
+    requires: \"System\"
+}"
+}
+
+// Save the rule to a file
+ACTION {
+    type: "file_write"
+    path: "demo_rule.meta"
+    content: "${rule_content}"
+}
+
+// Apply the transformation using F#
+FSHARP {
+    // Load the rule
+    let rulePath = "demo_rule.meta"
+    let rules = TarsEngineFSharp.MetascriptEngine.loadRules(rulePath)
+    
+    // Get the sample code from the environment
+    let code = environment.["sample_code"].ToString()
+    
+    // Apply the transformation
+    let transformedCode = 
+        rules 
+        |> List.fold (fun c rule -> TarsEngineFSharp.MetascriptEngine.applyRule rule c) code
+    
+    // Return the transformed code
+    transformedCode
+}
+
+// Store the transformed code
+VARIABLE transformed_code {
+    value: "${_last_result}"
+}
+
+// Display the transformed code
+ACTION {
+    type: "log"
+    message: "Transformed code:\n${transformed_code}"
+}
+
+// Final message
+ACTION {
+    type: "log"
+    message: "TARS DSL demonstration completed successfully!"
+}

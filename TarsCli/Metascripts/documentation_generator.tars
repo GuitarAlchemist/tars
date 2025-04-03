@@ -1,0 +1,379 @@
+DESCRIBE {
+    name: "TARS Documentation Generator Metascript"
+    version: "1.0"
+    author: "TARS"
+    description: "A metascript for generating comprehensive documentation from code"
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.3
+    max_tokens: 4000
+}
+
+// Define variables for configuration
+VARIABLE config {
+    value: {
+        source_directory: "TarsCli",
+        output_directory: "docs/generated",
+        doc_types: ["api", "architecture", "user_guide"],
+        include_diagrams: true,
+        include_examples: true
+    }
+}
+
+// Define the code analyzer agent
+AGENT code_analyzer {
+    description: "An agent that analyzes code to extract documentation information"
+    capabilities: ["code_parsing", "type_inference", "dependency_analysis"]
+    
+    TASK extract_api_info {
+        description: "Extract API information from code files"
+        
+        FUNCTION parse_code {
+            parameters: ["file_path"]
+            
+            ACTION {
+                type: "parse"
+                target: "${file_path}"
+                extract: ["classes", "methods", "properties", "comments"]
+            }
+            
+            RETURN {
+                value: {
+                    classes: [],  // Would be populated with actual data
+                    methods: [],
+                    properties: [],
+                    comments: []
+                }
+            }
+        }
+        
+        FUNCTION analyze_dependencies {
+            parameters: ["file_path"]
+            
+            ACTION {
+                type: "analyze_dependencies"
+                target: "${file_path}"
+            }
+            
+            RETURN {
+                value: {
+                    imports: [],  // Would be populated with actual data
+                    dependencies: []
+                }
+            }
+        }
+    }
+}
+
+// Define the documentation generator agent
+AGENT doc_generator {
+    description: "An agent that generates documentation from code analysis"
+    capabilities: ["markdown_generation", "diagram_generation", "example_creation"]
+    
+    TASK generate_api_docs {
+        description: "Generate API documentation from code analysis"
+        
+        FUNCTION create_markdown {
+            parameters: ["api_info", "output_path"]
+            
+            ACTION {
+                type: "generate_markdown"
+                data: "${api_info}"
+                template: "api_template"
+                output: "${output_path}"
+            }
+            
+            RETURN {
+                value: {
+                    success: true,
+                    file_path: "${output_path}"
+                }
+            }
+        }
+        
+        FUNCTION create_diagrams {
+            parameters: ["api_info", "output_directory"]
+            
+            ACTION {
+                type: "generate_diagrams"
+                data: "${api_info}"
+                types: ["class_diagram", "sequence_diagram"]
+                output_directory: "${output_directory}"
+            }
+            
+            RETURN {
+                value: {
+                    success: true,
+                    diagrams: []  // Would be populated with actual data
+                }
+            }
+        }
+    }
+    
+    TASK generate_architecture_docs {
+        description: "Generate architecture documentation"
+        
+        FUNCTION create_architecture_overview {
+            parameters: ["dependency_info", "output_path"]
+            
+            ACTION {
+                type: "generate_markdown"
+                data: "${dependency_info}"
+                template: "architecture_template"
+                output: "${output_path}"
+            }
+            
+            RETURN {
+                value: {
+                    success: true,
+                    file_path: "${output_path}"
+                }
+            }
+        }
+    }
+    
+    TASK generate_user_guide {
+        description: "Generate user guide documentation"
+        
+        FUNCTION create_user_guide {
+            parameters: ["api_info", "output_path"]
+            
+            ACTION {
+                type: "generate_markdown"
+                data: "${api_info}"
+                template: "user_guide_template"
+                output: "${output_path}"
+            }
+            
+            RETURN {
+                value: {
+                    success: true,
+                    file_path: "${output_path}"
+                }
+            }
+        }
+        
+        FUNCTION create_examples {
+            parameters: ["api_info", "output_directory"]
+            
+            ACTION {
+                type: "generate_examples"
+                data: "${api_info}"
+                output_directory: "${output_directory}"
+            }
+            
+            RETURN {
+                value: {
+                    success: true,
+                    examples: []  // Would be populated with actual data
+                }
+            }
+        }
+    }
+}
+
+// Main workflow
+TARS {
+    // Initialize the workflow
+    ACTION {
+        type: "log"
+        message: "Starting documentation generation workflow"
+    }
+    
+    // Create output directory if it doesn't exist
+    ACTION {
+        type: "ensure_directory"
+        path: "${config.value.output_directory}"
+    }
+    
+    // Get the list of files to analyze
+    VARIABLE files {
+        value: []  // This would be populated by the actual implementation
+    }
+    
+    ACTION {
+        type: "get_files"
+        directory: "${config.value.source_directory}"
+        extensions: [".cs", ".fs", ".fsx"]
+        output_variable: "files"
+    }
+    
+    // Analyze all files
+    VARIABLE all_api_info {
+        value: {
+            classes: [],
+            methods: [],
+            properties: [],
+            dependencies: []
+        }
+    }
+    
+    FOR {
+        variable: "file"
+        range: "${files.value}"
+        
+        // Analyze the file
+        ACTION {
+            type: "log"
+            message: "Analyzing file: ${file}"
+        }
+        
+        VARIABLE file_api_info {
+            value: {}
+        }
+        
+        ACTION {
+            type: "execute"
+            agent: "code_analyzer"
+            task: "extract_api_info"
+            parameters: {
+                file_path: "${file}"
+            }
+            output_variable: "file_api_info"
+        }
+        
+        // Merge the file API info into the all API info
+        ACTION {
+            type: "merge"
+            target: "all_api_info"
+            source: "file_api_info"
+        }
+    }
+    
+    // Generate API documentation if requested
+    IF {
+        condition: "${config.value.doc_types.includes('api')}"
+        
+        ACTION {
+            type: "log"
+            message: "Generating API documentation"
+        }
+        
+        VARIABLE api_docs_result {
+            value: {}
+        }
+        
+        ACTION {
+            type: "execute"
+            agent: "doc_generator"
+            task: "generate_api_docs"
+            parameters: {
+                api_info: "${all_api_info.value}",
+                output_path: "${config.value.output_directory}/api"
+            }
+            output_variable: "api_docs_result"
+        }
+        
+        // Generate diagrams if requested
+        IF {
+            condition: "${config.value.include_diagrams}"
+            
+            ACTION {
+                type: "log"
+                message: "Generating API diagrams"
+            }
+            
+            ACTION {
+                type: "execute"
+                agent: "doc_generator"
+                task: "generate_api_docs"
+                function: "create_diagrams"
+                parameters: {
+                    api_info: "${all_api_info.value}",
+                    output_directory: "${config.value.output_directory}/api/diagrams"
+                }
+            }
+        }
+    }
+    
+    // Generate architecture documentation if requested
+    IF {
+        condition: "${config.value.doc_types.includes('architecture')}"
+        
+        ACTION {
+            type: "log"
+            message: "Generating architecture documentation"
+        }
+        
+        VARIABLE architecture_docs_result {
+            value: {}
+        }
+        
+        ACTION {
+            type: "execute"
+            agent: "doc_generator"
+            task: "generate_architecture_docs"
+            parameters: {
+                dependency_info: "${all_api_info.value.dependencies}",
+                output_path: "${config.value.output_directory}/architecture"
+            }
+            output_variable: "architecture_docs_result"
+        }
+    }
+    
+    // Generate user guide if requested
+    IF {
+        condition: "${config.value.doc_types.includes('user_guide')}"
+        
+        ACTION {
+            type: "log"
+            message: "Generating user guide"
+        }
+        
+        VARIABLE user_guide_result {
+            value: {}
+        }
+        
+        ACTION {
+            type: "execute"
+            agent: "doc_generator"
+            task: "generate_user_guide"
+            parameters: {
+                api_info: "${all_api_info.value}",
+                output_path: "${config.value.output_directory}/user_guide"
+            }
+            output_variable: "user_guide_result"
+        }
+        
+        // Generate examples if requested
+        IF {
+            condition: "${config.value.include_examples}"
+            
+            ACTION {
+                type: "log"
+                message: "Generating code examples"
+            }
+            
+            ACTION {
+                type: "execute"
+                agent: "doc_generator"
+                task: "generate_user_guide"
+                function: "create_examples"
+                parameters: {
+                    api_info: "${all_api_info.value}",
+                    output_directory: "${config.value.output_directory}/user_guide/examples"
+                }
+            }
+        }
+    }
+    
+    // Generate index file
+    ACTION {
+        type: "generate_markdown"
+        data: {
+            title: "Documentation Index",
+            sections: "${config.value.doc_types}"
+        }
+        template: "index_template"
+        output: "${config.value.output_directory}/index.md"
+    }
+    
+    // Notify about completion
+    ACTION {
+        type: "notify"
+        message: "Documentation generation workflow completed"
+        channels: ["slack"]
+    }
+}

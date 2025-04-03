@@ -1,0 +1,94 @@
+DESCRIBE {
+    name: "Code Transformation Example"
+    version: "1.0"
+    description: "A demonstration of code transformation using metascripts"
+    author: "TARS Team"
+    date: "2025-04-02"
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.7
+    max_tokens: 1000
+}
+
+// Define a sample C# code to transform
+VARIABLE sample_code {
+    value: "
+public class Calculator
+{
+    public int Add(int a, int b)
+    {
+        return a + b;
+    }
+
+    public int Subtract(int a, int b)
+    {
+        return a - b;
+    }
+
+    public int Multiply(int a, int b)
+    {
+        return a * b;
+    }
+
+    public int Divide(int a, int b)
+    {
+        return a / b;
+    }
+}
+"
+}
+
+// Log the original code
+ACTION {
+    type: "log"
+    message: "Original code:\n${sample_code}"
+}
+
+// Define a transformation rule to add null checks
+VARIABLE transformation_rule {
+    value: "rule AddNullCheck {\n    match: \"public int Divide\\(int a, int b\\)\\s*{\\s*return a / b;\\s*}\"\n    replace: \"public int Divide(int a, int b)\\n    {\\n        if (b == 0)\\n        {\\n            throw new System.DivideByZeroException(\\\"Cannot divide by zero\\\");\\n        }\\n        return a / b;\\n    }\"\n    requires: \"System\"\n}"
+}
+
+// Save the transformation rule to a file
+ACTION {
+    type: "file_write"
+    path: "temp_rule.meta"
+    content: "${transformation_rule}"
+}
+
+// Use F# to apply the transformation
+FSHARP {
+    // Load the rule
+    let rulePath = "temp_rule.meta"
+    let rules = TarsEngineFSharp.MetascriptEngine.loadRules(rulePath)
+
+    // Get the sample code from the environment
+    let code = environment.["sample_code"].ToString()
+
+    // Apply the transformation
+    let transformedCode =
+        rules
+        |> List.fold (fun c rule -> TarsEngineFSharp.MetascriptEngine.applyRule rule c) code
+
+    // Return the transformed code
+    transformedCode
+}
+
+// Store the transformed code
+VARIABLE transformed_code {
+    value: "${_last_result}"
+}
+
+// Log the transformed code
+ACTION {
+    type: "log"
+    message: "Transformed code:\n${transformed_code}"
+}
+
+// Note: We would clean up the temporary file here, but file_delete is not supported yet
+ACTION {
+    type: "log"
+    message: "Note: Temporary file 'temp_rule.meta' should be manually deleted."
+}

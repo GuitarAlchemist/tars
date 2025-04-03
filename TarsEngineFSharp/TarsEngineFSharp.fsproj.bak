@@ -9,7 +9,6 @@
     <ItemGroup>
         <Compile Include="Agents\AgentTypes.fs" />
         <Compile Include="RetroactionAnalysis.fs" />
-        <Compile Include="JavaScriptAnalysis.fs" />
         <Compile Include="Agents\AnalysisAgent.fs" />
         <Compile Include="Agents\ValidationAgent.fs" />
         <Compile Include="Agents\TransformationAgent.fs" />
