@@ -2,21 +2,10 @@
 
 <div align="center">
   <a href="https://www.augmentcode.com/">
-    <h1 style="font-size: 48px; font-weight: bold; margin-bottom: 0;">AUGMENT CODE</h1>
+    <img src="docs/images/logos/augment_code_logo.svg" alt="Augment Code Logo" width="400"/>
     <p style="font-size: 18px; margin-top: 5px;">The AI pair programmer that knows your codebase</p>
   </a>
 </div>
-
-```
-  _____                                     _      _____          _
- |  _  |                                   | |    /  __ \        | |
- | | | |_   _  __ _ _ __ ___   ___ _ __  __| |    | /  \/ ___   __| | ___
- | | | | | | |/ _` | '_ ` _ \ / _ \ '_ \/ _` |    | |    / _ \ / _` |/ _ \
- | |_| | |_| | (_| | | | | | |  __/ | | | (_| |    | \__/\ (_) | (_| |  __/
- \_____/\__,_|\__, |_| |_| |_|\___|_| |_|\__,_|     \____/\___/ \__,_|\___|
-               __/ |
-              |___/
-```
 
 > **TARS development has been accelerated by [Augment Code](https://www.augmentcode.com/), an advanced AI pair programming tool.** Augment Code has significantly enhanced our development process through its deep understanding of complex codebases and ability to generate sophisticated implementations. From helping implement F# to Rust transpilation to improving code quality, Augment Code has been an invaluable partner in bringing TARS to life.
 >

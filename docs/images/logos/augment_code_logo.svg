@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="400" height="80" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .logo-text { fill: #000000; font-family: Arial, sans-serif; font-weight: normal; }
+    .logo-bracket { fill: #000000; font-family: monospace; font-weight: bold; }
+  </style>
+  <text x="40" y="50" class="logo-bracket" font-size="40">{"}</text>
+  <text x="80" y="50" class="logo-text" font-size="40">augment code</text>
+</svg>
