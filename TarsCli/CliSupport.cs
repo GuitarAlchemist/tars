@@ -3380,6 +3380,13 @@ public static class CliSupport
         var dockerModelRunnerCommand = new DockerModelRunnerCommand();
         rootCommand.AddCommand(dockerModelRunnerCommand);
 
+        // Add Auto-Improve command using metascripts
+        var autoImproveMetascriptCommand = new AutoImproveCommand(
+            _serviceProvider.GetRequiredService<ILogger<AutoImproveCommand>>(),
+            _serviceProvider.GetRequiredService<DslService>(),
+            _serviceProvider.GetRequiredService<ConsoleService>());
+        rootCommand.AddCommand(autoImproveMetascriptCommand);
+
         // Add Self-Improvement command
         var selfImprovementController = _serviceProvider.GetRequiredService<SelfImprovementController>();
         selfImprovementController.RegisterCommands(rootCommand!);
