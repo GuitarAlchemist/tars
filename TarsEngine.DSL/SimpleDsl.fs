@@ -557,33 +557,42 @@ module SimpleDsl =
                             | _ -> ""
 
                         try
-                            // Create the request
-                            let request = System.Net.WebRequest.Create(substitutedUrl) :?> System.Net.HttpWebRequest
-                            request.Method <- method
+                            // Use HttpClient for HTTP requests
+                            use client = new System.Net.Http.HttpClient()
 
                             // Add headers
                             for KeyValue(key, value) in headers do
-                                request.Headers.Add(key, value)
+                                client.DefaultRequestHeaders.Add(key, value)
+
+                            // Create the request message
+                            let requestMessage = new System.Net.Http.HttpRequestMessage()
+                            requestMessage.RequestUri <- new System.Uri(substitutedUrl)
+
+                            // Set the method
+                            match method with
+                            | "GET" -> requestMessage.Method <- System.Net.Http.HttpMethod.Get
+                            | "POST" -> requestMessage.Method <- System.Net.Http.HttpMethod.Post
+                            | "PUT" -> requestMessage.Method <- System.Net.Http.HttpMethod.Put
+                            | "DELETE" -> requestMessage.Method <- System.Net.Http.HttpMethod.Delete
+                            | "PATCH" -> requestMessage.Method <- System.Net.Http.HttpMethod.Patch
+                            | "HEAD" -> requestMessage.Method <- System.Net.Http.HttpMethod.Head
+                            | "OPTIONS" -> requestMessage.Method <- System.Net.Http.HttpMethod.Options
+                            | _ -> requestMessage.Method <- new System.Net.Http.HttpMethod(method)
 
                             // Add body for POST, PUT, etc.
                             if method <> "GET" && method <> "HEAD" && body <> "" then
-                                let bytes = System.Text.Encoding.UTF8.GetBytes(body)
-                                request.ContentLength <- int64 bytes.Length
-                                use stream = request.GetRequestStream()
-                                stream.Write(bytes, 0, bytes.Length)
+                                requestMessage.Content <- new System.Net.Http.StringContent(body, System.Text.Encoding.UTF8, "application/json")
 
                             // Get the response
-                            use response = request.GetResponse()
-                            use stream = response.GetResponseStream()
-                            use reader = new System.IO.StreamReader(stream)
-                            let responseText = reader.ReadToEnd()
+                            let response = client.SendAsync(requestMessage).Result
+                            let responseText = response.Content.ReadAsStringAsync().Result
 
                             // Store the result in the result variable
                             environment.[resultVar] <- StringValue(responseText)
 
-                            Success(StringValue($"HTTP request successful: {substitutedUrl}"))
+                            Success(StringValue(sprintf "HTTP request successful: %s" substitutedUrl))
                         with
-                        | ex -> Error($"Error making HTTP request to {substitutedUrl}: {ex.Message}")
+                        | ex -> Error(sprintf "Error making HTTP request to %s: %s" substitutedUrl ex.Message)
                     | _ ->
                         Error("HTTP request action requires 'url' and 'result_variable' properties")
 
@@ -608,10 +617,10 @@ module SimpleDsl =
                             processInfo.CreateNoWindow <- true
 
                             // Start the process
-                            use process = System.Diagnostics.Process.Start(processInfo)
-                            let output = process.StandardOutput.ReadToEnd()
-                            let error = process.StandardError.ReadToEnd()
-                            process.WaitForExit()
+                            use proc = System.Diagnostics.Process.Start(processInfo)
+                            let output = proc.StandardOutput.ReadToEnd()
+                            let error = proc.StandardError.ReadToEnd()
+                            proc.WaitForExit()
 
                             // Store the result in the result variable if provided
                             match resultVarOpt with
@@ -620,12 +629,12 @@ module SimpleDsl =
                             | _ -> ()
 
                             // Check if the process exited successfully
-                            if process.ExitCode = 0 then
-                                Success(StringValue($"Command executed successfully: {substitutedCommand}"))
+                            if proc.ExitCode = 0 then
+                                Success(StringValue(sprintf "Command executed successfully: %s" substitutedCommand))
                             else
-                                Error($"Command failed with exit code {process.ExitCode}: {error}")
+                                Error(sprintf "Command failed with exit code %d: %s" proc.ExitCode error)
                         with
-                        | ex -> Error($"Error executing command {substitutedCommand}: {ex.Message}")
+                        | ex -> Error(sprintf "Error executing command %s: %s" substitutedCommand ex.Message)
                     | _ ->
                         Error("Shell execute action requires 'command' property")
 

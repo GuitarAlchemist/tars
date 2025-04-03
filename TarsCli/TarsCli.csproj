@@ -26,7 +26,9 @@
     <PackageReference Include="NLog.Extensions.Logging" Version="5.3.5" />
     <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
     <PackageReference Include="FSharp.Core" Version="9.0.201" />
-    <PackageReference Include="FSharp.Compiler.Service" Version="43.8.200" />
+    <PackageReference Include="FSharp.Compiler.Service" Version="43.8.200">
+      <NoWarn>NU1608</NoWarn>
+    </PackageReference>
     <PackageReference Include="NAudio" Version="2.2.1" Condition="'$(OS)' == 'Windows_NT'" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Core" Version="2.2.5" />
   </ItemGroup>

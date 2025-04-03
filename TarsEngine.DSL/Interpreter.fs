@@ -391,11 +391,10 @@ module Interpreter =
             Success(StringValue("Auto-improvement triggered"))
 
         | BlockType.Unknown(blockType) ->
-            Error($"Unknown block type: {blockType}")
+            Error(sprintf "Unknown block type: %s" blockType)
 
-        | _ ->
-            // These block types are handled elsewhere or not yet implemented
-            Success(StringValue($"Block type {block.Type} executed"))
+        // All block types should be handled above
+        // This is a fallback that should never be reached
 
     /// Execute a TARS program
     let execute (program: TarsProgram) =
