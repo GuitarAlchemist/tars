@@ -7,6 +7,14 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <Compile Include="Agents\AgentTypes.fs" />
+        <Compile Include="RetroactionAnalysis.fs" />
+        <Compile Include="Agents\AnalysisAgent.fs" />
+        <Compile Include="Agents\ValidationAgent.fs" />
+        <Compile Include="Agents\TransformationAgent.fs" />
+        <Compile Include="CodeAnalysis.fs" />
+        <Compile Include="EnhancedCodeAnalysis.fs" />
+        <Compile Include="MetascriptEngine.fs" />
         <Compile Include="Option.fs" />
         <Compile Include="Result.fs" />
         <Compile Include="ModelProvider.fs" />
@@ -14,9 +22,12 @@
         <Compile Include="DataProcessing.fs" />
         <Compile Include="DataSources.fs" />
         <Compile Include="PromptEngine.fs" />
+
+        <Compile Include="SampleAgents.fs" />
         <Compile Include="TarsDsl.fs" />
         <Compile Include="Examples.fs" />
         <Compile Include="RivaService.fs" />
+        <Compile Include="TypeProviderPatternMatching.fs" />
         <Compile Include="WeatherService.fs" />
         <Compile Include="ChatService.fs" />
         <Compile Include="LlmService.fs" />
@@ -34,6 +45,10 @@
 
     <ItemGroup>
       <ProjectReference Include="..\TarsEngine.Interfaces\TarsEngine.Interfaces.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Content Include="improvement_rules.meta" />
     </ItemGroup>
 
 </Project>

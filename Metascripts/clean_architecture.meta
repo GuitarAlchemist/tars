@@ -1,0 +1,106 @@
+// Clean Architecture patterns metascript
+
+rule CreateEntityClass {
+    match: "// TODO: Create $entityName entity"
+    replace: "public class $entityName : Entity\n{\n    public $entityName()\n    {\n    }\n    \n    public $entityName(Guid id)\n    {\n        Id = id;\n    }\n    \n    // TODO: Add properties\n}"
+    description: "Create entity class"
+    language: "csharp"
+    confidence: 0.9
+}
+
+rule CreateValueObject {
+    match: "// TODO: Create $valueName value object"
+    replace: "public class $valueName : ValueObject\n{\n    // TODO: Add properties\n    \n    protected override IEnumerable<object> GetEqualityComponents()\n    {\n        // TODO: Yield return each property\n        yield break;\n    }\n}"
+    description: "Create value object class"
+    language: "csharp"
+    confidence: 0.9
+}
+
+rule CreateRepository {
+    match: "// TODO: Create $entityName repository"
+    replace: "public interface I$entityNameRepository : IRepository<$entityName>\n{\n    Task<$entityName> GetByIdAsync(Guid id);\n    Task<IEnumerable<$entityName>> GetAllAsync();\n    Task AddAsync($entityName entity);\n    Task UpdateAsync($entityName entity);\n    Task DeleteAsync(Guid id);\n}"
+    requires: "System.Collections.Generic;System.Threading.Tasks"
+    description: "Create repository interface"
+    language: "csharp"
+    confidence: 0.9
+}
+
+rule ImplementRepository {
+    match: "public interface I$entityNameRepository : IRepository<$entityName>\n{\n    $methods\n}"
+    replace: "public interface I$entityNameRepository : IRepository<$entityName>\n{\n    $methods\n}\n\npublic class $entityNameRepository : I$entityNameRepository\n{\n    private readonly ApplicationDbContext _context;\n    \n    public $entityNameRepository(ApplicationDbContext context)\n    {\n        _context = context;\n    }\n    \n    public async Task<$entityName> GetByIdAsync(Guid id)\n    {\n        return await _context.$entityNames.FindAsync(id);\n    }\n    \n    public async Task<IEnumerable<$entityName>> GetAllAsync()\n    {\n        return await _context.$entityNames.ToListAsync();\n    }\n    \n    public async Task AddAsync($entityName entity)\n    {\n        await _context.$entityNames.AddAsync(entity);\n        await _context.SaveChangesAsync();\n    }\n    \n    public async Task UpdateAsync($entityName entity)\n    {\n        _context.$entityNames.Update(entity);\n        await _context.SaveChangesAsync();\n    }\n    \n    public async Task DeleteAsync(Guid id)\n    {\n        var entity = await GetByIdAsync(id);\n        if (entity != null)\n        {\n            _context.$entityNames.Remove(entity);\n            await _context.SaveChangesAsync();\n        }\n    }\n}"
+    requires: "Microsoft.EntityFrameworkCore;System.Collections.Generic;System.Threading.Tasks"
+    description: "Implement repository class"
+    language: "csharp"
+    confidence: 0.8
+}
+
+rule CreateUseCase {
+    match: "// TODO: Create $useCaseName use case"
+    replace: "public class $useCaseNameRequest : IRequest<$useCaseNameResponse>\n{\n    // TODO: Add request properties\n}\n\npublic class $useCaseNameResponse\n{\n    // TODO: Add response properties\n}\n\npublic class $useCaseNameHandler : IRequestHandler<$useCaseNameRequest, $useCaseNameResponse>\n{\n    // TODO: Add dependencies\n    \n    public $useCaseNameHandler()\n    {\n        // TODO: Initialize dependencies\n    }\n    \n    public async Task<$useCaseNameResponse> Handle($useCaseNameRequest request, CancellationToken cancellationToken)\n    {\n        // TODO: Implement use case logic\n        throw new NotImplementedException();\n    }\n}"
+    requires: "MediatR;System.Threading;System.Threading.Tasks"
+    description: "Create use case classes"
+    language: "csharp"
+    confidence: 0.8
+}
+
+rule CreateController {
+    match: "// TODO: Create $entityName controller"
+    replace: "[ApiController]\n[Route(\"api/[$entityNames]\")\n public class $entityNameController : ControllerBase\n{\n    private readonly IMediator _mediator;\n    \n    public $entityNameController(IMediator mediator)\n    {\n        _mediator = mediator;\n    }\n    \n    [HttpGet]\n    public async Task<ActionResult<IEnumerable<$entityNameDto>>> GetAll()\n    {\n        var query = new GetAll$entityNamesRequest();\n        var result = await _mediator.Send(query);\n        return Ok(result.$entityNames);\n    }\n    \n    [HttpGet(\"{id}\")]\n    public async Task<ActionResult<$entityNameDto>> GetById(Guid id)\n    {\n        var query = new Get$entityNameByIdRequest { Id = id };\n        var result = await _mediator.Send(query);\n        \n        if (result.$entityName == null)\n        {\n            return NotFound();\n        }\n        \n        return Ok(result.$entityName);\n    }\n    \n    [HttpPost]\n    public async Task<ActionResult<$entityNameDto>> Create(Create$entityNameRequest request)\n    {\n        var result = await _mediator.Send(request);\n        return CreatedAtAction(nameof(GetById), new { id = result.$entityName.Id }, result.$entityName);\n    }\n    \n    [HttpPut(\"{id}\")]\n    public async Task<IActionResult> Update(Guid id, Update$entityNameRequest request)\n    {\n        if (id != request.Id)\n        {\n            return BadRequest();\n        }\n        \n        await _mediator.Send(request);\n        return NoContent();\n    }\n    \n    [HttpDelete(\"{id}\")]\n    public async Task<IActionResult> Delete(Guid id)\n    {\n        await _mediator.Send(new Delete$entityNameRequest { Id = id });\n        return NoContent();\n    }\n}"
+    requires: "MediatR;Microsoft.AspNetCore.Mvc;System.Collections.Generic;System.Threading.Tasks"
+    description: "Create API controller"
+    language: "csharp"
+    confidence: 0.8
+}
+
+rule CreateDto {
+    match: "// TODO: Create $entityName DTO"
+    replace: "public class $entityNameDto\n{\n    public Guid Id { get; set; }\n    \n    // TODO: Add properties\n}"
+    description: "Create DTO class"
+    language: "csharp"
+    confidence: 0.9
+}
+
+rule CreateMapper {
+    match: "// TODO: Create $entityName mapper"
+    replace: "public class $entityNameMapper : Profile\n{\n    public $entityNameMapper()\n    {\n        CreateMap<$entityName, $entityNameDto>();\n        CreateMap<$entityNameDto, $entityName>();\n    }\n}"
+    requires: "AutoMapper"
+    description: "Create AutoMapper profile"
+    language: "csharp"
+    confidence: 0.9
+}
+
+rule CreateDbContext {
+    match: "// TODO: Create database context"
+    replace: "public class ApplicationDbContext : DbContext\n{\n    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)\n        : base(options)\n    {\n    }\n    \n    // TODO: Add DbSet properties\n    \n    protected override void OnModelCreating(ModelBuilder modelBuilder)\n    {\n        base.OnModelCreating(modelBuilder);\n        \n        // TODO: Configure entity mappings\n    }\n}"
+    requires: "Microsoft.EntityFrameworkCore"
+    description: "Create Entity Framework DbContext"
+    language: "csharp"
+    confidence: 0.9
+}
+
+rule ConfigureServices {
+    match: "// TODO: Configure services"
+    replace: "// Register MediatR\nservices.AddMediatR(typeof(Startup));\n\n// Register AutoMapper\nservices.AddAutoMapper(typeof(Startup));\n\n// Register DbContext\nservices.AddDbContext<ApplicationDbContext>(options =>\n    options.UseSqlServer(Configuration.GetConnectionString(\"DefaultConnection\")));\n\n// Register repositories\nservices.AddScoped<IUnitOfWork, UnitOfWork>();\n// TODO: Register specific repositories\n\n// Register services\n// TODO: Register specific services"
+    requires: "AutoMapper.Extensions.Microsoft.DependencyInjection;MediatR.Extensions.Microsoft.DependencyInjection;Microsoft.EntityFrameworkCore;Microsoft.EntityFrameworkCore.SqlServer"
+    description: "Configure services in Startup.cs"
+    language: "csharp"
+    confidence: 0.8
+}
+
+rule AddValidation {
+    match: "public class $requestName : IRequest<$responseName>\n{\n    $properties\n}"
+    replace: "public class $requestName : IRequest<$responseName>\n{\n    $properties\n}\n\npublic class $requestNameValidator : AbstractValidator<$requestName>\n{\n    public $requestNameValidator()\n    {\n        // TODO: Add validation rules\n    }\n}"
+    requires: "FluentValidation"
+    description: "Add FluentValidation validator"
+    language: "csharp"
+    confidence: 0.9
+}
+
+rule AddValidationBehavior {
+    match: "// TODO: Add validation behavior"
+    replace: "public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>\n    where TRequest : IRequest<TResponse>\n{\n    private readonly IEnumerable<IValidator<TRequest>> _validators;\n    \n    public ValidationBehavior(IEnumerable<IValidator<TRequest>> validators)\n    {\n        _validators = validators;\n    }\n    \n    public async Task<TResponse> Handle(TRequest request, CancellationToken cancellationToken, RequestHandlerDelegate<TResponse> next)\n    {\n        if (_validators.Any())\n        {\n            var context = new ValidationContext<TRequest>(request);\n            \n            var validationResults = await Task.WhenAll(\n                _validators.Select(v => v.ValidateAsync(context, cancellationToken)));\n            \n            var failures = validationResults\n                .SelectMany(r => r.Errors)\n                .Where(f => f != null)\n                .ToList();\n            \n            if (failures.Count != 0)\n            {\n                throw new ValidationException(failures);\n            }\n        }\n        \n        return await next();\n    }\n}"
+    requires: "FluentValidation;MediatR;System.Collections.Generic;System.Linq;System.Threading;System.Threading.Tasks"
+    description: "Add MediatR validation behavior"
+    language: "csharp"
+    confidence: 0.8
+}

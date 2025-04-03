@@ -67,11 +67,33 @@ public class MetascriptCommand : Command
                     consoleService.WriteHeader("TARS Metascript Execution");
                     consoleService.WriteInfo($"Executing TARS metascript: {file}");
 
+                    // Check if the file exists as specified
                     if (!File.Exists(file))
                     {
-                        consoleService.WriteError($"File not found: {file}");
-                        context.ExitCode = 1;
-                        return;
+                        // Try to find the file in the Metascripts directory
+                        var metascriptsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Metascripts");
+                        var metascriptFile = Path.Combine(metascriptsDir, file);
+
+                        if (File.Exists(metascriptFile))
+                        {
+                            file = metascriptFile;
+                        }
+                        else
+                        {
+                            consoleService.WriteError($"File not found: {file}");
+                            consoleService.WriteInfo("Try using one of the built-in metascripts in the Metascripts directory:");
+
+                            if (Directory.Exists(metascriptsDir))
+                            {
+                                foreach (var metascript in Directory.GetFiles(metascriptsDir, "*.tars"))
+                                {
+                                    consoleService.WriteInfo($"  - {Path.GetFileName(metascript)}");
+                                }
+                            }
+
+                            context.ExitCode = 1;
+                            return;
+                        }
                     }
 
                     // Read the file
@@ -151,11 +173,33 @@ public class MetascriptCommand : Command
                     consoleService.WriteHeader("TARS Metascript Validation");
                     consoleService.WriteInfo($"Validating TARS metascript: {file}");
 
+                    // Check if the file exists as specified
                     if (!File.Exists(file))
                     {
-                        consoleService.WriteError($"File not found: {file}");
-                        context.ExitCode = 1;
-                        return;
+                        // Try to find the file in the Metascripts directory
+                        var metascriptsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Metascripts");
+                        var metascriptFile = Path.Combine(metascriptsDir, file);
+
+                        if (File.Exists(metascriptFile))
+                        {
+                            file = metascriptFile;
+                        }
+                        else
+                        {
+                            consoleService.WriteError($"File not found: {file}");
+                            consoleService.WriteInfo("Try using one of the built-in metascripts in the Metascripts directory:");
+
+                            if (Directory.Exists(metascriptsDir))
+                            {
+                                foreach (var metascript in Directory.GetFiles(metascriptsDir, "*.tars"))
+                                {
+                                    consoleService.WriteInfo($"  - {Path.GetFileName(metascript)}");
+                                }
+                            }
+
+                            context.ExitCode = 1;
+                            return;
+                        }
                     }
 
                     // Read the file

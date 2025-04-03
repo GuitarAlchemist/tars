@@ -1,0 +1,75 @@
+// Code quality improvement metascript
+
+rule AddNullChecks {
+    match: "public $returnType $methodName($paramType $paramName)\n    {\n        $body\n    }"
+    replace: "public $returnType $methodName($paramType $paramName)\n    {\n        if ($paramName == null)\n        {\n            throw new ArgumentNullException(nameof($paramName));\n        }\n        \n        $body\n    }"
+    requires: "System"
+    description: "Add null checks for parameters"
+    language: "csharp"
+    confidence: 0.9
+}
+
+rule AddRangeChecks {
+    match: "public $returnType $methodName(int $paramName)\n    {\n        $body\n    }"
+    replace: "public $returnType $methodName(int $paramName)\n    {\n        if ($paramName < 0)\n        {\n            throw new ArgumentOutOfRangeException(nameof($paramName), \"Value cannot be negative.\");\n        }\n        \n        $body\n    }"
+    requires: "System"
+    description: "Add range checks for integer parameters"
+    language: "csharp"
+    confidence: 0.8
+}
+
+rule AddGuardClauses {
+    match: "public $returnType $methodName($params)\n    {\n        if ($condition)\n        {\n            throw new $exceptionType($message);\n        }\n        \n        $body\n    }"
+    replace: "public $returnType $methodName($params)\n    {\n        Guard.Against.$exceptionType($condition, $message);\n        \n        $body\n    }"
+    description: "Replace if-throw with Guard clauses"
+    language: "csharp"
+    confidence: 0.7
+}
+
+rule AddXmlDocumentation {
+    match: "public $returnType $methodName($params)"
+    replace: "/// <summary>\n    /// $methodName operation.\n    /// </summary>\n    /// <param name=\"$params\">Parameters for the operation</param>\n    /// <returns>$returnType result</returns>\n    public $returnType $methodName($params)"
+    description: "Add XML documentation"
+    language: "csharp"
+    confidence: 0.9
+}
+
+rule UseStringInterpolation {
+    match: "string.Format(\"$text {0} $moreText\", $var)"
+    replace: "$\"$text {$var} $moreText\""
+    description: "Use string interpolation instead of string.Format"
+    language: "csharp"
+    confidence: 0.9
+}
+
+rule UseExpressionBodiedMembers {
+    match: "public $returnType $methodName($params)\n    {\n        return $expression;\n    }"
+    replace: "public $returnType $methodName($params) => $expression;"
+    description: "Use expression-bodied members for simple methods"
+    language: "csharp"
+    confidence: 0.8
+}
+
+rule UsePatternMatching {
+    match: "if ($var is $type)\n        {\n            var $name = ($type)$var;\n            $body\n        }"
+    replace: "if ($var is $type $name)\n        {\n            $body\n        }"
+    description: "Use pattern matching instead of type checking and casting"
+    language: "csharp"
+    confidence: 0.9
+}
+
+rule UseNullCoalescingOperator {
+    match: "$var = $expr == null ? $default : $expr;"
+    replace: "$var = $expr ?? $default;"
+    description: "Use null coalescing operator"
+    language: "csharp"
+    confidence: 0.9
+}
+
+rule UseNullConditionalOperator {
+    match: "$var = $expr != null ? $expr.$prop : null;"
+    replace: "$var = $expr?.$prop;"
+    description: "Use null conditional operator"
+    language: "csharp"
+    confidence: 0.9
+}

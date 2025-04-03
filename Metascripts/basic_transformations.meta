@@ -1,0 +1,44 @@
+// Basic code transformation rules
+
+rule AddNullCheck {
+    match: "public $returnType $methodName($paramType $paramName)"
+    replace: "public $returnType $methodName($paramType $paramName)\n    {\n        if ($paramName == null)\n        {\n            throw new ArgumentNullException(nameof($paramName));\n        }"
+    requires: "System"
+    description: "Add null check for reference type parameters"
+    language: "csharp"
+    confidence: 0.9
+}
+
+rule ReplaceForWithLinq {
+    match: "for (int $i = 0; $i < $collection.Count; $i++)\n        {\n            $sum += $collection[$i];\n        }"
+    replace: "$sum = $collection.Sum();"
+    requires: "System.Linq"
+    description: "Replace for loop with LINQ Sum()"
+    language: "csharp"
+    confidence: 0.8
+}
+
+rule AddDivideByZeroCheck {
+    match: "return $a / $b;"
+    replace: "if ($b == 0)\n        {\n            throw new DivideByZeroException(\"Cannot divide by zero\");\n        }\n        return $a / $b;"
+    requires: "System"
+    description: "Add divide-by-zero check"
+    language: "csharp"
+    confidence: 0.9
+}
+
+rule UseStringInterpolation {
+    match: "string.Format(\"$text {0} $moreText\", $var)"
+    replace: "$\"$text {$var} $moreText\""
+    description: "Use string interpolation instead of string.Format"
+    language: "csharp"
+    confidence: 0.9
+}
+
+rule UseExpressionBodiedMembers {
+    match: "public $returnType $methodName($params)\n    {\n        return $expression;\n    }"
+    replace: "public $returnType $methodName($params) => $expression;"
+    description: "Use expression-bodied members for simple methods"
+    language: "csharp"
+    confidence: 0.7
+}

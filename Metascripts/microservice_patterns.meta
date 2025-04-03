@@ -1,0 +1,100 @@
+// Microservice architecture patterns metascript
+
+rule ImplementCircuitBreaker {
+    match: "public $returnType $methodName($params)\n    {\n        $body\n    }"
+    replace: "public $returnType $methodName($params)\n    {\n        return _circuitBreaker.ExecuteAsync(() =>\n        {\n            $body\n        });\n    }"
+    requires: "Polly"
+    description: "Implement circuit breaker pattern using Polly"
+    language: "csharp"
+    confidence: 0.8
+}
+
+rule ImplementRetryPattern {
+    match: "public $returnType $methodName($params)\n    {\n        $body\n    }"
+    replace: "public $returnType $methodName($params)\n    {\n        return _retryPolicy.ExecuteAsync(() =>\n        {\n            $body\n        });\n    }"
+    requires: "Polly"
+    description: "Implement retry pattern using Polly"
+    language: "csharp"
+    confidence: 0.8
+}
+
+rule AddHealthCheck {
+    match: "public class $className : ControllerBase\n{\n    $body\n}"
+    replace: "public class $className : ControllerBase\n{\n    [HttpGet(\"health\")]\n    public IActionResult HealthCheck()\n    {\n        return Ok(new { status = \"healthy\", timestamp = DateTime.UtcNow });\n    }\n    \n    $body\n}"
+    requires: "Microsoft.AspNetCore.Mvc"
+    description: "Add health check endpoint to controller"
+    language: "csharp"
+    confidence: 0.9
+}
+
+rule ImplementCQRS {
+    match: "public class $className\n{\n    $body\n}"
+    replace: "public class $className\n{\n    private readonly IMediator _mediator;\n    \n    public $className(IMediator mediator)\n    {\n        _mediator = mediator;\n    }\n    \n    $body\n}"
+    requires: "MediatR"
+    description: "Implement CQRS pattern using MediatR"
+    language: "csharp"
+    confidence: 0.8
+}
+
+rule AddCommandHandler {
+    match: "public class $commandName\n{\n    $properties\n}"
+    replace: "public class $commandName : IRequest<$resultType>\n{\n    $properties\n}\n\npublic class $commandNameHandler : IRequestHandler<$commandName, $resultType>\n{\n    public async Task<$resultType> Handle($commandName request, CancellationToken cancellationToken)\n    {\n        // TODO: Implement command handling logic\n        throw new NotImplementedException();\n    }\n}"
+    requires: "MediatR;System.Threading;System.Threading.Tasks"
+    description: "Add command handler for CQRS pattern"
+    language: "csharp"
+    confidence: 0.8
+}
+
+rule AddQueryHandler {
+    match: "public class $queryName\n{\n    $properties\n}"
+    replace: "public class $queryName : IRequest<$resultType>\n{\n    $properties\n}\n\npublic class $queryNameHandler : IRequestHandler<$queryName, $resultType>\n{\n    public async Task<$resultType> Handle($queryName request, CancellationToken cancellationToken)\n    {\n        // TODO: Implement query handling logic\n        throw new NotImplementedException();\n    }\n}"
+    requires: "MediatR;System.Threading;System.Threading.Tasks"
+    description: "Add query handler for CQRS pattern"
+    language: "csharp"
+    confidence: 0.8
+}
+
+rule ImplementEventSourcing {
+    match: "public class $entityName\n{\n    $properties\n}"
+    replace: "public class $entityName\n{\n    private readonly List<IDomainEvent> _events = new List<IDomainEvent>();\n    \n    public IReadOnlyCollection<IDomainEvent> Events => _events.AsReadOnly();\n    \n    protected void AddEvent(IDomainEvent @event)\n    {\n        _events.Add(@event);\n    }\n    \n    public void ClearEvents()\n    {\n        _events.Clear();\n    }\n    \n    $properties\n}"
+    requires: "System.Collections.Generic"
+    description: "Implement event sourcing pattern"
+    language: "csharp"
+    confidence: 0.7
+}
+
+rule AddMessageConsumer {
+    match: "public class $className\n{\n    $body\n}"
+    replace: "public class $className : IHostedService\n{\n    private readonly IConnection _connection;\n    private readonly IModel _channel;\n    private readonly string _queueName = \"$queueName\";\n    \n    public $className(IOptions<RabbitMQOptions> options)\n    {\n        var factory = new ConnectionFactory\n        {\n            HostName = options.Value.HostName,\n            UserName = options.Value.UserName,\n            Password = options.Value.Password\n        };\n        \n        _connection = factory.CreateConnection();\n        _channel = _connection.CreateModel();\n        _channel.QueueDeclare(_queueName, durable: true, exclusive: false, autoDelete: false);\n    }\n    \n    public Task StartAsync(CancellationToken cancellationToken)\n    {\n        var consumer = new EventingBasicConsumer(_channel);\n        consumer.Received += (model, ea) =>\n        {\n            var body = ea.Body.ToArray();\n            var message = Encoding.UTF8.GetString(body);\n            \n            // TODO: Process message\n            \n            _channel.BasicAck(ea.DeliveryTag, multiple: false);\n        };\n        \n        _channel.BasicConsume(_queueName, autoAck: false, consumer: consumer);\n        \n        return Task.CompletedTask;\n    }\n    \n    public Task StopAsync(CancellationToken cancellationToken)\n    {\n        _channel?.Close();\n        _connection?.Close();\n        return Task.CompletedTask;\n    }\n    \n    $body\n}"
+    requires: "Microsoft.Extensions.Hosting;RabbitMQ.Client;RabbitMQ.Client.Events;System.Text;System.Threading;System.Threading.Tasks"
+    description: "Add RabbitMQ message consumer"
+    language: "csharp"
+    confidence: 0.7
+}
+
+rule AddMessagePublisher {
+    match: "public class $className\n{\n    $body\n}"
+    replace: "public class $className\n{\n    private readonly IConnection _connection;\n    private readonly IModel _channel;\n    private readonly string _exchangeName = \"$exchangeName\";\n    \n    public $className(IOptions<RabbitMQOptions> options)\n    {\n        var factory = new ConnectionFactory\n        {\n            HostName = options.Value.HostName,\n            UserName = options.Value.UserName,\n            Password = options.Value.Password\n        };\n        \n        _connection = factory.CreateConnection();\n        _channel = _connection.CreateModel();\n        _channel.ExchangeDeclare(_exchangeName, ExchangeType.Topic, durable: true);\n    }\n    \n    public void PublishMessage<T>(T message, string routingKey)\n    {\n        var json = JsonSerializer.Serialize(message);\n        var body = Encoding.UTF8.GetBytes(json);\n        \n        var properties = _channel.CreateBasicProperties();\n        properties.Persistent = true;\n        \n        _channel.BasicPublish(\n            exchange: _exchangeName,\n            routingKey: routingKey,\n            basicProperties: properties,\n            body: body);\n    }\n    \n    $body\n}"
+    requires: "RabbitMQ.Client;System.Text;System.Text.Json"
+    description: "Add RabbitMQ message publisher"
+    language: "csharp"
+    confidence: 0.7
+}
+
+rule ImplementApiGateway {
+    match: "public class Startup\n{\n    $body\n}"
+    replace: "public class Startup\n{\n    $body\n    \n    private void ConfigureOcelot(IApplicationBuilder app)\n    {\n        app.UseOcelot().Wait();\n    }\n}"
+    requires: "Ocelot"
+    description: "Implement API Gateway using Ocelot"
+    language: "csharp"
+    confidence: 0.7
+}
+
+rule AddDistributedCaching {
+    match: "public $returnType $methodName($params)\n    {\n        $body\n    }"
+    replace: "public async Task<$returnType> $methodName($params)\n    {\n        string cacheKey = $\"$methodName:{$params}\";\n        \n        // Try to get from cache\n        var cachedResult = await _distributedCache.GetStringAsync(cacheKey);\n        if (cachedResult != null)\n        {\n            return JsonSerializer.Deserialize<$returnType>(cachedResult);\n        }\n        \n        // If not in cache, execute the original method\n        var result = $body\n        \n        // Store in cache\n        await _distributedCache.SetStringAsync(\n            cacheKey,\n            JsonSerializer.Serialize(result),\n            new DistributedCacheEntryOptions\n            {\n                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10)\n            });\n        \n        return result;\n    }"
+    requires: "Microsoft.Extensions.Caching.Distributed;System.Text.Json;System.Threading.Tasks"
+    description: "Add distributed caching"
+    language: "csharp"
+    confidence: 0.7
+}
