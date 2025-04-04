@@ -16,14 +16,14 @@
 # TARS Project
 
 <div align="center">
-  <img src="docs/images/tars_logo.svg" alt="TARS Logo" width="200"/>
+  <img src="docs/images/ChatGPT Image Mar 29, 2025, 10_57_07 AM.png" alt="TARS AI Logo" width="600"/>
 </div>
 
 <div align="center">
   <br/>
   <img src="docs/images/tars_architecture.svg" alt="TARS Architecture" width="600"/>
   <br/>
-  <img src="docs/images/tars_fractal.svg" alt="TARS Bifurcation" width="600"/>
+  <img src="docs/images/ChatGPT Image Mar 29, 2025, 10_55_18 AM.png" alt="TARS Bifurcation" width="600"/>
   <br/>
   <img src="docs/images/tars_mcp_integration.svg" alt="TARS MCP Integration" width="600"/>
   <p><i>For more information about these images, see <a href="docs/IMAGES.md">IMAGES.md</a></i></p>
@@ -88,6 +88,7 @@ TARS can now browse, download, and install the best coding LLMs from Hugging Fac
 - **Automatic Installation**: Download and convert models to work with Ollama
 - **Seamless Integration**: Use Hugging Face models with all TARS commands
 - **Model Management**: List and manage your installed models
+- **GPU Acceleration**: Automatically detect and utilize compatible GPUs for faster inference
 
 [View Hugging Face integration documentation](docs/HUGGINGFACE_INTEGRATION.md)
 
@@ -99,6 +100,18 @@ TARS can generate in-depth explorations on complex topics:
 - **Related Topics**: Discover and explore related concepts
 - **Version Evolution**: Build on previous explorations to deepen understanding
 - **Consolidated Organization**: Explorations are organized by topic for easy reference
+
+### Docker Model Runner Integration
+
+TARS now supports running LLMs in Docker containers:
+
+- **Containerized Models**: Run LLMs in isolated Docker containers
+- **GPU Passthrough**: Utilize GPU acceleration in Docker containers
+- **Simplified Deployment**: Easy setup with docker-compose
+- **Consistent Environment**: Ensure consistent model behavior across different systems
+- **MCP Integration**: Seamless integration with the Model Context Protocol
+
+[View Docker integration documentation](docs/features/docker-integration.md)
 
 ### Text-to-Speech Capabilities
 
@@ -143,6 +156,20 @@ TARS includes advanced self-improvement capabilities that allow it to analyze, i
 - **Test Generation**: Generate tests for code files
 - **Improvement Cycle**: Run a complete self-improvement cycle on a project
 
+### Retroaction Loop
+
+TARS includes a sophisticated retroaction loop that enables continuous learning from code improvements:
+
+- **Pattern Management**: Maintain a database of improvement patterns with dynamic scores
+- **Pattern Application**: Apply patterns to improve code quality
+- **Feedback Collection**: Gather data on the effectiveness of improvements
+- **Learning Mechanism**: Adjust pattern scores based on feedback
+- **Pattern Generation**: Automatically discover new improvement patterns
+- **Functional Implementation**: Built with F# using functional programming principles
+- **Monadic Abstractions**: Leverages monadic patterns for error handling and state management
+
+[View Retroaction Loop documentation](docs/features/retroaction-loop.md)
+
 ### Agent Coordination System
 
 TARS implements a multi-agent coordination system:
@@ -159,6 +186,16 @@ TARS includes a flexible template system for session management:
 - **Session Templates**: Create and manage templates for new sessions
 - **Custom Templates**: Define custom templates for specific use cases
 - **Variable Substitution**: Use variables in templates for dynamic content
+
+### F# to Rust Transpilation
+
+TARS includes experimental support for transpiling F# code to Rust:
+
+- **Basic Transpilation**: Convert F# functions and types to Rust equivalents
+- **Type Mapping**: Automatic mapping of F# types to Rust types
+- **Pattern Matching**: Support for translating F# pattern matching to Rust
+- **Command-Line Interface**: Simple CLI for transpiling F# files to Rust
+- **Example Code**: Built-in examples to demonstrate transpilation capabilities
 
 ## Getting Started
 
@@ -237,6 +274,12 @@ dotnet run --project TarsCli/TarsCli.csproj -- mcp start --port 8999
 
 # Configure MCP tool permissions
 dotnet run --project TarsCli/TarsCli.csproj -- mcp config --auto-execute true --tools terminal,code,status
+
+# Start the MCP service with Docker Model Runner
+dotnet run --project TarsCli/TarsCli.csproj -- mcp start --port 8999 --model-provider DockerModelRunner
+
+# Configure Docker Model Runner
+dotnet run --project TarsCli/TarsCli.csproj -- docker-model config --base-url http://localhost:8080 --default-model llama3:8b
 ```
 
 ### Multi-Agent Workflows
@@ -244,6 +287,29 @@ dotnet run --project TarsCli/TarsCli.csproj -- mcp config --auto-execute true --
 ```bash
 # Run a multi-agent workflow for a task
 dotnet run --project TarsCli/TarsCli.csproj -- workflow --task "Create a simple web API in C#"
+```
+
+### F# to Rust Transpilation
+
+```bash
+# Transpile an F# file to Rust
+dotnet run --project TarsCli/TarsCli.csproj -- transpile path/to/file.fs path/to/output.rs
+
+# Run a transpilation example
+dotnet run --project TarsCli/TarsCli.csproj -- transpile --example
+```
+
+### Retroaction Loop
+
+```bash
+# Run the retroaction loop
+dotnet run --project TarsCli/TarsCli.csproj -- retroaction-loop run
+
+# Create a new pattern
+dotnet run --project TarsCli/TarsCli.csproj -- retroaction-loop create-pattern --name "Replace for loop with LINQ" --description "Replace traditional for loops with LINQ expressions" --pattern "for\s*\(int\s+i\s*=\s*0;\s*i\s*<\s*(\w+)\.Count;\s*i\+\+\)\s*{\s*sum\s*\+=\s*\1\[i\];\s*}\s*return\s+sum\s*\/\s*\1\.Count;" --replacement "return $1.Average();" --context "CSharp"
+
+# Apply patterns to a file
+dotnet run --project TarsCli/TarsCli.csproj -- retroaction-loop apply --file path/to/file.cs --backup
 ```
 
 ## Development
@@ -261,6 +327,17 @@ This combination provides both functional programming benefits and strong integr
 # Run the test suite
 dotnet test TarsCli.Tests/TarsCli.Tests.csproj
 ```
+
+### Experimental Features
+
+#### React Three.js with WebGPU Rendering
+
+TARS includes experimental support for WebGPU rendering in React Three.js applications:
+
+- **WebGPU Rendering**: Modern GPU API for high-performance 3D graphics
+- **Browser Compatibility Check**: Automatic detection of WebGPU support
+- **Fallback Handling**: Graceful degradation when WebGPU is not available
+- **Performance Optimization**: Leverages the latest GPU capabilities for improved performance
 
 ## Future Directions
 

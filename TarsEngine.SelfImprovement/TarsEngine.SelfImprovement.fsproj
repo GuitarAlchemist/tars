@@ -8,12 +8,14 @@
   <ItemGroup>
     <Compile Include="LearningDatabase.fs" />
     <Compile Include="PatternRecognition.fs" />
+    <Compile Include="RetroactionLoop.fs" />
     <Compile Include="Library.fs" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="FSharp.Data" Version="6.6.0" />
     <PackageReference Include="FSharp.SystemTextJson" Version="1.2.42" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.0" />
   </ItemGroup>
 
 </Project>
