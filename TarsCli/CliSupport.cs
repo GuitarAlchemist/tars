@@ -150,6 +150,7 @@ public static class CliSupport
             WriteCommand("chat", "Interactive chat bot");
             WriteCommand("doc-extract", "Extract knowledge from documentation and integrate it with the RetroactionLoop");
             WriteCommand("knowledge-viz", "Visualize the knowledge base");
+            WriteCommand("knowledge-test", "Generate tests from the knowledge base");
             WriteCommand("deep-thinking", "Generate deep thinking explorations");
             WriteCommand("console-capture", "Capture console output and improve code");
 
@@ -3415,6 +3416,13 @@ public static class CliSupport
             _serviceProvider.GetRequiredService<KnowledgeVisualizationService>(),
             _serviceProvider.GetRequiredService<ConsoleService>());
         rootCommand.AddCommand(knowledgeVizCommand);
+
+        // Add KnowledgeTestGeneration command
+        var knowledgeTestCommand = new KnowledgeTestGenerationCommand(
+            _serviceProvider.GetRequiredService<ILogger<KnowledgeTestGenerationCommand>>(),
+            _serviceProvider.GetRequiredService<KnowledgeTestGenerationService>(),
+            _serviceProvider.GetRequiredService<ConsoleService>());
+        rootCommand.AddCommand(knowledgeTestCommand);
 
         // Add default handler for root command
         rootCommand.SetHandler((InvocationContext context) =>
