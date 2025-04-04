@@ -89,6 +89,7 @@ internal static class Program
                 .AddSingleton<ModelProviderFactory>()
                 .AddSingleton<ConsoleService>()
                 .AddSingleton<DocumentationKnowledgeService>()
+                .AddSingleton<KnowledgeVisualizationService>()
                 .AddSingleton<TarsEngine.Services.Interfaces.ICodeAnalysisService, TarsEngine.Services.CodeAnalysisService>()
                 .AddSingleton<TarsEngine.Services.Interfaces.IProjectAnalysisService, TarsEngine.Services.ProjectAnalysisService>()
                 .AddSingleton<TarsEngine.Services.Interfaces.ILlmService, TarsEngine.Services.LlmService>()

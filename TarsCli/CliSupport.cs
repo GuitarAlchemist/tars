@@ -149,6 +149,7 @@ public static class CliSupport
             WriteCommand("speech", "Text-to-speech functionality");
             WriteCommand("chat", "Interactive chat bot");
             WriteCommand("doc-extract", "Extract knowledge from documentation and integrate it with the RetroactionLoop");
+            WriteCommand("knowledge-viz", "Visualize the knowledge base");
             WriteCommand("deep-thinking", "Generate deep thinking explorations");
             WriteCommand("console-capture", "Capture console output and improve code");
 
@@ -3407,6 +3408,13 @@ public static class CliSupport
             _serviceProvider.GetRequiredService<DocumentationKnowledgeService>(),
             _serviceProvider.GetRequiredService<ConsoleService>());
         rootCommand.AddCommand(docExtractCommand);
+
+        // Add KnowledgeVisualization command
+        var knowledgeVizCommand = new KnowledgeVisualizationCommand(
+            _serviceProvider.GetRequiredService<ILogger<KnowledgeVisualizationCommand>>(),
+            _serviceProvider.GetRequiredService<KnowledgeVisualizationService>(),
+            _serviceProvider.GetRequiredService<ConsoleService>());
+        rootCommand.AddCommand(knowledgeVizCommand);
 
         // Add default handler for root command
         rootCommand.SetHandler((InvocationContext context) =>
