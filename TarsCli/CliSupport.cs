@@ -3395,6 +3395,13 @@ public static class CliSupport
         var retroactionCommand = _serviceProvider.GetRequiredService<Commands.RetroactionCommand>();
         rootCommand.AddCommand(retroactionCommand.RegisterCommands());
 
+        // Add RetroactionLoop command
+        var retroactionLoopCommand = new Commands.RetroactionLoopCommand(
+            _serviceProvider.GetRequiredService<ILogger<RetroactionLoopCommand>>(),
+            _serviceProvider.GetRequiredService<RetroactionLoopService>(),
+            _serviceProvider.GetRequiredService<ConsoleService>());
+        rootCommand.AddCommand(retroactionLoopCommand);
+
         // Add default handler for root command
         rootCommand.SetHandler((InvocationContext context) =>
         {

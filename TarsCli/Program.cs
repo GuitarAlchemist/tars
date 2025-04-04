@@ -50,6 +50,7 @@ internal static class Program
                 .AddSingleton<OllamaService>()
                 .AddSingleton<OllamaSetupService>()
                 .AddSingleton<RetroactionService>()
+                .AddSingleton<RetroactionLoopService>()
                 .AddSingleton<DiagnosticsService>()
                 .AddSingleton<DynamicFSharpCompilerService>()
                 .AddSingleton<TarsCli.Services.MetascriptEngine>()
