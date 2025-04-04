@@ -18,7 +18,7 @@ public class AutoImproveCommand : Command
         ILogger<AutoImproveCommand> logger,
         DslService dslService,
         ConsoleService consoleService)
-        : base("auto-improve", "Run autonomous improvement using metascripts")
+        : base("auto-improve-meta", "Run autonomous improvement using metascripts")
     {
         _logger = logger;
         _dslService = dslService;
