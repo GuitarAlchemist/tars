@@ -129,10 +129,14 @@ module MonadicDsl =
         /// Try-with in computation expression
         member _.TryWith(body, handler) =
             State (fun s ->
-                try
-                    State.run body s
-                with
-                | ex -> State.run (handler ex) s)
+                let (result, s') = State.run body s
+                match result with
+                | Ok value -> (Ok value, s')
+                | Error msg ->
+                    // Set the error message in the environment
+                    s'.Environment.["error"] <- SimpleDsl.StringValue(msg)
+                    // Run the handler
+                    State.run (handler (Exception(msg))) s')
 
         /// Try-finally in computation expression
         member _.TryFinally(body, compensation) =

@@ -1,7 +1,4 @@
-using System.CommandLine;
-using System.CommandLine.Invocation;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using TarsCli.Models;
 using TarsCli.Services;
 

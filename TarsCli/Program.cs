@@ -1,14 +1,11 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using NLog;
 using NLog.Extensions.Logging;
-using System.CommandLine;
 using System.CommandLine.Builder;
 using System.CommandLine.Parsing;
 using TarsCli.Controllers;
 using TarsCli.Services;
-using TarsEngineFSharp;
 
 namespace TarsCli;
 
@@ -53,12 +50,12 @@ internal static class Program
                 .AddSingleton<RetroactionLoopService>()
                 .AddSingleton<DiagnosticsService>()
                 .AddSingleton<DynamicFSharpCompilerService>()
-                .AddSingleton<TarsCli.Services.MetascriptEngine>()
+                .AddSingleton<MetascriptEngine>()
                 .AddSingleton<TransformationLearningService>()
                 .AddSingleton<MultiAgentCollaborationService>()
                 .AddSingleton<DistributedAgentService>()
                 .AddSingleton<AiCodeUnderstandingService>()
-                .AddSingleton<TarsCli.Services.LearningService>()
+                .AddSingleton<LearningService>()
                 .AddSingleton<Commands.RetroactionCommand>()
                 .AddSingleton<SelfImprovementService>()
                 .AddSingleton<ScriptExecutionService>()

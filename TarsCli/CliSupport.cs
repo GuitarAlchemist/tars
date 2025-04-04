@@ -1,10 +1,8 @@
-using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using TarsCli.Services;
 using TarsCli.Commands;
 using TarsCli.Controllers;
@@ -3361,10 +3359,10 @@ public static class CliSupport
         deepThinkingCommand.AddCommand(thinkVersionsCommand);
 
         // Create DSL command
-        var dslCommand = new Commands.DslCommand(_serviceProvider!.GetRequiredService<DslService>());
+        var dslCommand = new DslCommand(_serviceProvider!.GetRequiredService<DslService>());
 
         // Create DSL debug command
-        var dslDebugCommand = new Commands.DslDebugCommand(_serviceProvider!);
+        var dslDebugCommand = new DslDebugCommand(_serviceProvider!);
 
         rootCommand.AddCommand(chatCommand);
         rootCommand.AddCommand(deepThinkingCommand);
@@ -3392,11 +3390,11 @@ public static class CliSupport
         selfImprovementController.RegisterCommands(rootCommand!);
 
         // Add Retroaction command
-        var retroactionCommand = _serviceProvider.GetRequiredService<Commands.RetroactionCommand>();
+        var retroactionCommand = _serviceProvider.GetRequiredService<RetroactionCommand>();
         rootCommand.AddCommand(retroactionCommand.RegisterCommands());
 
         // Add RetroactionLoop command
-        var retroactionLoopCommand = new Commands.RetroactionLoopCommand(
+        var retroactionLoopCommand = new RetroactionLoopCommand(
             _serviceProvider.GetRequiredService<ILogger<RetroactionLoopCommand>>(),
             _serviceProvider.GetRequiredService<RetroactionLoopService>(),
             _serviceProvider.GetRequiredService<ConsoleService>());

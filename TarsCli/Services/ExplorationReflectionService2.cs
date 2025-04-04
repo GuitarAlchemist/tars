@@ -1,6 +1,5 @@
 using System.Text;
 using System.Text.RegularExpressions;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 
 namespace TarsCli.Services;
@@ -43,7 +42,7 @@ public class ExplorationReflectionService2
             if (!Directory.Exists(fullPath))
             {
                 _logger.LogWarning($"Directory not found: {fullPath}");
-                return new List<ExplorationFile>();
+                return [];
             }
 
             var files = Directory.GetFiles(fullPath, "*.md")
@@ -56,7 +55,7 @@ public class ExplorationReflectionService2
         catch (Exception ex)
         {
             _logger.LogError(ex, $"Error getting exploration files from {directoryPath}");
-            return new List<ExplorationFile>();
+            return [];
         }
     }
 
@@ -324,25 +323,27 @@ Your meta-reflection should identify the big picture and strategic insights from
         // Define theme keywords
         var themeKeywords = new Dictionary<string, List<string>>
         {
-            { "AI and Machine Learning", new List<string> { "AI", "Machine Learning", "Neural", "Model", "Fine-tuning", "LlamaIndex", "Inference" } },
-            { "Mathematics and Algorithms", new List<string> { "Math", "Algorithm", "Markov", "Nash", "Quaternion", "Geometry" } },
-            { "Software Development", new List<string> { "Code", "C#", ".NET", "F#", "GitHub", "Repo", "DSL", "BNF", "Parsing" } },
-            { "TARS Architecture", new List<string> { "TARS", "Architecture", "Workflow", "Auto Improvement", "Self-Improvement" } },
-            { "Integration and APIs", new List<string> { "API", "Integration", "MCP", "Protocol", "Redis", "Vector Store" } },
-            { "Speech and Language", new List<string> { "TTS", "Speech", "Coqui", "Language" } },
-            { "Visualization and UI", new List<string> { "Three.js", "Visualization", "Blazor", "MudBlazor", "UI" } },
-            { "Ethics and Implications", new List<string> { "Ethics", "Legal", "Political", "Implications", "Business Value" } },
-            { "Performance and Optimization", new List<string> { "GPU", "Optimization", "Speed", "ONNX", "Ollama" } }
+            { "AI and Machine Learning",
+                ["AI", "Machine Learning", "Neural", "Model", "Fine-tuning", "LlamaIndex", "Inference"]
+            },
+            { "Mathematics and Algorithms", ["Math", "Algorithm", "Markov", "Nash", "Quaternion", "Geometry"] },
+            { "Software Development", ["Code", "C#", ".NET", "F#", "GitHub", "Repo", "DSL", "BNF", "Parsing"] },
+            { "TARS Architecture", ["TARS", "Architecture", "Workflow", "Auto Improvement", "Self-Improvement"] },
+            { "Integration and APIs", ["API", "Integration", "MCP", "Protocol", "Redis", "Vector Store"] },
+            { "Speech and Language", ["TTS", "Speech", "Coqui", "Language"] },
+            { "Visualization and UI", ["Three.js", "Visualization", "Blazor", "MudBlazor", "UI"] },
+            { "Ethics and Implications", ["Ethics", "Legal", "Political", "Implications", "Business Value"] },
+            { "Performance and Optimization", ["GPU", "Optimization", "Speed", "ONNX", "Ollama"] }
         };
             
         // Initialize theme lists
         foreach (var theme in themeKeywords.Keys)
         {
-            themes[theme] = new List<ExplorationChat>();
+            themes[theme] = [];
         }
             
         // Add "Other" theme for unclassified chats
-        themes["Other"] = new List<ExplorationChat>();
+        themes["Other"] = [];
             
         // Classify each chat
         foreach (var chat in chats)

@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 
 namespace TarsCli.Services;
 
@@ -710,8 +709,8 @@ namespace DemoCode
             content = "# Advanced TARS Features\n\nThis tutorial explores advanced features of the TARS framework.\n\n## Deep Thinking\n\nThe deep thinking feature allows TARS to generate in-depth explorations on complex topics.\n\n```bash\ntarscli deep-thinking --topic \"AI Ethics\" --model llama3\n```\n\n## Self-Improvement\n\nTARS can analyze and improve code automatically.\n\n```bash\ntarscli self-analyze --file path/to/code.cs --model codellama\n```\n\n## Conclusion\n\nThese advanced features make TARS a powerful tool for AI-assisted development.";
             category = "Advanced Features";
             difficultyLevel = DifficultyLevel.Advanced;
-            tags = new List<string> { "Advanced", "Deep Thinking", "Self-Improvement" };
-            prerequisites = new List<string> { "Completion of Getting Started tutorial" };
+            tags = ["Advanced", "Deep Thinking", "Self-Improvement"];
+            prerequisites = ["Completion of Getting Started tutorial"];
 
             Console.WriteLine($"Title: {title}");
             Console.WriteLine($"Description: {description}");

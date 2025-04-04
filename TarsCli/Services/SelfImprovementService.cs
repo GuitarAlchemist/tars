@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using TarsEngine.SelfImprovement;
 using Microsoft.FSharp.Control;
 using Microsoft.FSharp.Core;

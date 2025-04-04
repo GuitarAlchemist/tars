@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging;
 using TarsEngine.DSL;
 
 namespace TarsCli.Services;
@@ -12,7 +11,7 @@ public class DslDebuggerService
     private readonly DslService _dslService;
 
     // Breakpoints stored as (file, line) pairs
-    private readonly HashSet<(string, int)> _breakpoints = new();
+    private readonly HashSet<(string, int)> _breakpoints = [];
 
     // Step mode flag
     private bool _stepMode = false;
@@ -25,7 +24,7 @@ public class DslDebuggerService
     private bool _isPaused = false;
 
     // Variable watch list
-    private readonly HashSet<string> _watchedVariables = new();
+    private readonly HashSet<string> _watchedVariables = [];
 
     /// <summary>
     /// Constructor
@@ -288,6 +287,6 @@ public class DslDebuggerService
     public IEnumerable<string> GetCallStack()
     {
         // In a real implementation, this would get the call stack from the interpreter
-        return new[] { "main", "function1", "function2" };
+        return ["main", "function1", "function2"];
     }
 }

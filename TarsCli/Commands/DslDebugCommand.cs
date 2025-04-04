@@ -1,6 +1,4 @@
-using System.CommandLine;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using TarsCli.Services;
 
 namespace TarsCli.Commands;
@@ -34,7 +32,7 @@ public class DslDebugCommand : Command
         var command = new Command("run", "Run a DSL file with debugging");
             
         var fileOption = new Option<string>(
-            aliases: new[] { "--file", "-f" },
+            aliases: ["--file", "-f"],
             description: "The path to the DSL file")
         {
             IsRequired = true
@@ -69,14 +67,14 @@ public class DslDebugCommand : Command
         var command = new Command("add", "Add a breakpoint");
             
         var fileOption = new Option<string>(
-            aliases: new[] { "--file", "-f" },
+            aliases: ["--file", "-f"],
             description: "The file path")
         {
             IsRequired = true
         };
             
         var lineOption = new Option<int>(
-            aliases: new[] { "--line", "-l" },
+            aliases: ["--line", "-l"],
             description: "The line number")
         {
             IsRequired = true
@@ -98,14 +96,14 @@ public class DslDebugCommand : Command
         var command = new Command("remove", "Remove a breakpoint");
             
         var fileOption = new Option<string>(
-            aliases: new[] { "--file", "-f" },
+            aliases: ["--file", "-f"],
             description: "The file path")
         {
             IsRequired = true
         };
             
         var lineOption = new Option<int>(
-            aliases: new[] { "--line", "-l" },
+            aliases: ["--line", "-l"],
             description: "The line number")
         {
             IsRequired = true
@@ -169,7 +167,7 @@ public class DslDebugCommand : Command
         var command = new Command("add", "Add a variable watch");
             
         var variableOption = new Option<string>(
-            aliases: new[] { "--variable", "-v" },
+            aliases: ["--variable", "-v"],
             description: "The variable name")
         {
             IsRequired = true
@@ -190,7 +188,7 @@ public class DslDebugCommand : Command
         var command = new Command("remove", "Remove a variable watch");
             
         var variableOption = new Option<string>(
-            aliases: new[] { "--variable", "-v" },
+            aliases: ["--variable", "-v"],
             description: "The variable name")
         {
             IsRequired = true

@@ -60,3 +60,5 @@ logs/
 internal-nlog.txt
 /TarsApp/ingestioncache.db
 /Experiments/ChatbotExample1/ingestioncache.db
+
+.fake

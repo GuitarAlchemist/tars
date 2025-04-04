@@ -1,164 +1,159 @@
-using System;
-using System.IO;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
-using TarsEngine.DSL;
 using TarsCli.Common;
+using Option = TarsCli.Common.Option;
 
-namespace TarsCli.Services
+namespace TarsCli.Services;
+
+/// <summary>
+/// Service for working with TARS DSL files
+/// </summary>
+public class DslService
 {
-    /// <summary>
-    /// Service for working with TARS DSL files
-    /// </summary>
-    public class DslService
+    private readonly ILogger<DslService> _logger;
+    private readonly OllamaService _ollamaService;
+    private readonly TemplateService _templateService;
+
+    public DslService(
+        ILogger<DslService> logger,
+        OllamaService ollamaService,
+        TemplateService templateService)
     {
-        private readonly ILogger<DslService> _logger;
-        private readonly OllamaService _ollamaService;
-        private readonly TemplateService _templateService;
+        _logger = logger;
+        _ollamaService = ollamaService;
+        _templateService = templateService;
+    }
 
-        public DslService(
-            ILogger<DslService> logger,
-            OllamaService ollamaService,
-            TemplateService templateService)
+    /// <summary>
+    /// Run a TARS DSL file
+    /// </summary>
+    /// <param name="filePath">The path to the DSL file</param>
+    /// <param name="verbose">Whether to show verbose output</param>
+    /// <returns>The exit code</returns>
+    public async Task<int> RunDslFileAsync(string filePath, bool verbose)
+    {
+        try
         {
-            _logger = logger;
-            _ollamaService = ollamaService;
-            _templateService = templateService;
-        }
+            _logger.LogInformation($"Running DSL file: {filePath}");
 
-        /// <summary>
-        /// Run a TARS DSL file
-        /// </summary>
-        /// <param name="filePath">The path to the DSL file</param>
-        /// <param name="verbose">Whether to show verbose output</param>
-        /// <returns>The exit code</returns>
-        public async Task<int> RunDslFileAsync(string filePath, bool verbose)
-        {
-            try
+            if (!File.Exists(filePath))
             {
-                _logger.LogInformation($"Running DSL file: {filePath}");
+                _logger.LogError($"File not found: {filePath}");
+                return 1;
+            }
 
-                if (!File.Exists(filePath))
+            // Parse the DSL file
+            var program = TarsEngine.DSL.Parser.parseFile(filePath);
+
+            if (verbose)
+            {
+                _logger.LogInformation($"Parsed {program.Blocks.Length} blocks from the DSL file");
+                foreach (var block in program.Blocks)
                 {
-                    _logger.LogError($"File not found: {filePath}");
+                    _logger.LogInformation($"Block type: {block.Type}");
+                }
+            }
+
+            // Initialize the agent registry
+            var registry = new TarsEngine.DSL.AgentFramework.AgentRegistry();
+            TarsEngine.DSL.Interpreter.setAgentRegistry(registry);
+
+            // Execute the program
+            var result = TarsEngine.DSL.Interpreter.execute(program);
+
+            switch (result)
+            {
+                case TarsEngine.DSL.Interpreter.ExecutionResult.Success value:
+                    _logger.LogInformation($"Program executed successfully: {value.Item}");
+                    return 0;
+                case TarsEngine.DSL.Interpreter.ExecutionResult.Error error:
+                    _logger.LogError($"Error executing program: {error.Item}");
                     return 1;
-                }
-
-                // Parse the DSL file
-                var program = TarsEngine.DSL.Parser.parseFile(filePath);
-
-                if (verbose)
-                {
-                    _logger.LogInformation($"Parsed {program.Blocks.Length} blocks from the DSL file");
-                    foreach (var block in program.Blocks)
-                    {
-                        _logger.LogInformation($"Block type: {block.Type}");
-                    }
-                }
-
-                // Initialize the agent registry
-                var registry = new TarsEngine.DSL.AgentFramework.AgentRegistry();
-                TarsEngine.DSL.Interpreter.setAgentRegistry(registry);
-
-                // Execute the program
-                var result = TarsEngine.DSL.Interpreter.execute(program);
-
-                switch (result)
-                {
-                    case TarsEngine.DSL.Interpreter.ExecutionResult.Success value:
-                        _logger.LogInformation($"Program executed successfully: {value.Item}");
-                        return 0;
-                    case TarsEngine.DSL.Interpreter.ExecutionResult.Error error:
-                        _logger.LogError($"Error executing program: {error.Item}");
-                        return 1;
-                    default:
-                        _logger.LogError("Unknown execution result");
-                        return 1;
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error running DSL file: {ex.Message}");
-                return 1;
-            }
-        }
-
-        /// <summary>
-        /// Validate a TARS DSL file
-        /// </summary>
-        /// <param name="filePath">The path to the DSL file</param>
-        /// <returns>The exit code</returns>
-        public async Task<int> ValidateDslFileAsync(string filePath)
-        {
-            try
-            {
-                _logger.LogInformation($"Validating DSL file: {filePath}");
-
-                if (!File.Exists(filePath))
-                {
-                    _logger.LogError($"File not found: {filePath}");
+                default:
+                    _logger.LogError("Unknown execution result");
                     return 1;
-                }
-
-                // Parse the DSL file
-                var program = TarsEngine.DSL.Parser.parseFile(filePath);
-
-                _logger.LogInformation($"DSL file is valid. Contains {program.Blocks.Length} blocks.");
-
-                return 0;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error validating DSL file: {ex.Message}");
-                return 1;
             }
         }
-
-        /// <summary>
-        /// Generate a TARS DSL file template
-        /// </summary>
-        /// <param name="outputPath">The path to save the generated DSL file</param>
-        /// <param name="templateName">The template to use</param>
-        /// <returns>The exit code</returns>
-        public async Task<int> GenerateDslTemplateAsync(string outputPath, string templateName)
+        catch (Exception ex)
         {
-            try
+            _logger.LogError(ex, $"Error running DSL file: {ex.Message}");
+            return 1;
+        }
+    }
+
+    /// <summary>
+    /// Validate a TARS DSL file
+    /// </summary>
+    /// <param name="filePath">The path to the DSL file</param>
+    /// <returns>The exit code</returns>
+    public async Task<int> ValidateDslFileAsync(string filePath)
+    {
+        try
+        {
+            _logger.LogInformation($"Validating DSL file: {filePath}");
+
+            if (!File.Exists(filePath))
             {
-                _logger.LogInformation($"Generating DSL template: {templateName} to {outputPath}");
-
-                string template = templateName.ToLower() switch
-                {
-                    "basic" => GetBasicTemplate(),
-                    "chat" => GetChatTemplate(),
-                    "agent" => GetAgentTemplate(),
-                    _ => GetBasicTemplate()
-                };
-
-                // Create the directory if it doesn't exist
-                var directory = Path.GetDirectoryName(outputPath);
-                if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
-                {
-                    Directory.CreateDirectory(directory);
-                }
-
-                // Write the template to the file
-                await File.WriteAllTextAsync(outputPath, template);
-
-                _logger.LogInformation($"DSL template generated successfully: {outputPath}");
-
-                return 0;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error generating DSL template: {ex.Message}");
+                _logger.LogError($"File not found: {filePath}");
                 return 1;
             }
-        }
 
-        private string GetBasicTemplate()
+            // Parse the DSL file
+            var program = TarsEngine.DSL.Parser.parseFile(filePath);
+
+            _logger.LogInformation($"DSL file is valid. Contains {program.Blocks.Length} blocks.");
+
+            return 0;
+        }
+        catch (Exception ex)
         {
-            return @"CONFIG {
+            _logger.LogError(ex, $"Error validating DSL file: {ex.Message}");
+            return 1;
+        }
+    }
+
+    /// <summary>
+    /// Generate a TARS DSL file template
+    /// </summary>
+    /// <param name="outputPath">The path to save the generated DSL file</param>
+    /// <param name="templateName">The template to use</param>
+    /// <returns>The exit code</returns>
+    public async Task<int> GenerateDslTemplateAsync(string outputPath, string templateName)
+    {
+        try
+        {
+            _logger.LogInformation($"Generating DSL template: {templateName} to {outputPath}");
+
+            string template = templateName.ToLower() switch
+            {
+                "basic" => GetBasicTemplate(),
+                "chat" => GetChatTemplate(),
+                "agent" => GetAgentTemplate(),
+                _ => GetBasicTemplate()
+            };
+
+            // Create the directory if it doesn't exist
+            var directory = Path.GetDirectoryName(outputPath);
+            if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            // Write the template to the file
+            await File.WriteAllTextAsync(outputPath, template);
+
+            _logger.LogInformation($"DSL template generated successfully: {outputPath}");
+
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error generating DSL template: {ex.Message}");
+            return 1;
+        }
+    }
+
+    private string GetBasicTemplate()
+    {
+        return @"CONFIG {
     model: ""llama3""
     temperature: 0.7
     max_tokens: 1000
@@ -172,11 +167,11 @@ ACTION {
     type: ""generate""
     model: ""llama3""
 }";
-        }
+    }
 
-        private string GetChatTemplate()
-        {
-            return @"CONFIG {
+    private string GetChatTemplate()
+    {
+        return @"CONFIG {
     model: ""llama3""
     temperature: 0.7
     max_tokens: 1000
@@ -196,11 +191,11 @@ ACTION {
     type: ""chat""
     model: ""llama3""
 }";
-        }
+    }
 
-        private string GetAgentTemplate()
-        {
-            return @"CONFIG {
+    private string GetAgentTemplate()
+    {
+        return @"CONFIG {
     model: ""llama3""
     temperature: 0.7
     max_tokens: 1000
@@ -221,61 +216,61 @@ ACTION {
     type: ""execute""
     task: ""Find information about the history of Paris""
 }";
-        }
+    }
 
-        /// <summary>
-        /// Generates an EBNF (Extended Backus-Naur Form) grammar specification for the TARS DSL
-        /// </summary>
-        /// <param name="outputPath">The path to save the generated EBNF file</param>
-        /// <returns>The exit code</returns>
-        public async Task<int> GenerateEbnfAsync(string outputPath)
+    /// <summary>
+    /// Generates an EBNF (Extended Backus-Naur Form) grammar specification for the TARS DSL
+    /// </summary>
+    /// <param name="outputPath">The path to save the generated EBNF file</param>
+    /// <returns>The exit code</returns>
+    public async Task<int> GenerateEbnfAsync(string outputPath)
+    {
+        try
         {
-            try
-            {
-                _logger.LogInformation($"Generating EBNF grammar specification to {outputPath}");
+            _logger.LogInformation($"Generating EBNF grammar specification to {outputPath}");
 
-                // Generate the EBNF grammar
-                Option<string> ebnfOption = GenerateEbnfGrammar();
+            // Generate the EBNF grammar
+            Common.Option<string> ebnfOption = GenerateEbnfGrammar();
 
-                return await ebnfOption.Match(
-                    some: async ebnf =>
+            return await ebnfOption.Match(
+                some: async ebnf =>
+                {
+                    // Create the directory if it doesn't exist
+                    var directory = Path.GetDirectoryName(outputPath);
+                    if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
                     {
-                        // Create the directory if it doesn't exist
-                        var directory = Path.GetDirectoryName(outputPath);
-                        if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
-                        {
-                            Directory.CreateDirectory(directory);
-                        }
+                        Directory.CreateDirectory(directory);
+                    }
 
-                        // Write the EBNF to the file
-                        await File.WriteAllTextAsync(outputPath, ebnf);
+                    // Write the EBNF to the file
+                    await File.WriteAllTextAsync(outputPath, ebnf);
 
-                        _logger.LogInformation($"EBNF grammar specification generated successfully: {outputPath}");
-                        return 0;
-                    },
-                    none: () =>
-                    {
-                        _logger.LogError("Failed to generate EBNF grammar specification");
-                        return Task.FromResult(1);
-                    });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error generating EBNF grammar specification: {ex.Message}");
-                return 1;
-            }
+                    _logger.LogInformation($"EBNF grammar specification generated successfully: {outputPath}");
+                    return 0;
+                },
+                none: () =>
+                {
+                    _logger.LogError("Failed to generate EBNF grammar specification");
+                    return Task.FromResult(1);
+                });
         }
-
-        /// <summary>
-        /// Generates the EBNF grammar for the TARS DSL
-        /// </summary>
-        /// <returns>An Option containing the EBNF grammar if successful</returns>
-        private Option<string> GenerateEbnfGrammar()
+        catch (Exception ex)
         {
-            try
-            {
-                // Create the EBNF grammar as a multi-line string to avoid escaping issues
-                string ebnfGrammar = @"(* TARS DSL EBNF Grammar Specification *)
+            _logger.LogError(ex, $"Error generating EBNF grammar specification: {ex.Message}");
+            return 1;
+        }
+    }
+
+    /// <summary>
+    /// Generates the EBNF grammar for the TARS DSL
+    /// </summary>
+    /// <returns>An Option containing the EBNF grammar if successful</returns>
+    private Common.Option<string> GenerateEbnfGrammar()
+    {
+        try
+        {
+            // Create the EBNF grammar as a multi-line string to avoid escaping issues
+            string ebnfGrammar = @"(* TARS DSL EBNF Grammar Specification *)
 
 (* Top-level program *)
 Program = Block, {Block};
@@ -344,13 +339,12 @@ MultiLineComment = '/*', {Character - '*/'}, '*/';
 Whitespace = ' ' | '\t' | '\r' | '\n';
 ";
 
-                return Option.Some(ebnfGrammar);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error generating EBNF grammar: {ex.Message}");
-                return Option.None<string>();
-            }
+            return Option.Some(ebnfGrammar);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error generating EBNF grammar: {ex.Message}");
+            return Option.None<string>();
         }
     }
 }

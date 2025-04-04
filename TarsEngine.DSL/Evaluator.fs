@@ -13,46 +13,126 @@ module Evaluator =
 
         // Replace all matches with their evaluated values
         let result = regex.Replace(str, fun m ->
-            let path = m.Groups.[1].Value.Split('.')
+            let expr = m.Groups.[1].Value
 
-            // Get the root variable
-            match env.TryFind(path.[0]) with
-            | Some value ->
-                // If there are property accesses, navigate through them
-                let mutable current = value
-                let mutable success = true
+            // Check if this is a simple variable or an expression
+            if expr.Contains(" + ") then
+                // This is an expression like "${a + b}"
+                let parts = expr.Split([|" + "|], StringSplitOptions.None)
+                if parts.Length = 2 then
+                    let var1 = parts.[0].Trim()
+                    let var2 = parts.[1].Trim()
 
-                for i in 1 .. path.Length - 1 do
-                    match current with
-                    | ObjectValue props ->
-                        match props.TryFind(path.[i]) with
-                        | Some v -> current <- v
-                        | None ->
-                            success <- false
-                            current <- StringValue("undefined")
-                    | ListValue items ->
-                        // Try to parse the property as an index
-                        match Int32.TryParse(path.[i]) with
-                        | true, idx when idx >= 0 && idx < items.Length ->
-                            current <- items.[idx]
+                    // Get the values of the variables
+                    let value1 =
+                        match env.TryFind(var1) with
+                        | Some(NumberValue n) -> n
+                        | Some(StringValue s) ->
+                            match Double.TryParse(s) with
+                            | true, n -> n
+                            | _ -> 0.0
+                        | _ -> 0.0
+
+                    let value2 =
+                        match env.TryFind(var2) with
+                        | Some(NumberValue n) -> n
+                        | Some(StringValue s) ->
+                            match Double.TryParse(s) with
+                            | true, n -> n
+                            | _ -> 0.0
+                        | _ ->
+                            // Check if var2 is a number literal
+                            match Double.TryParse(var2) with
+                            | true, n -> n
+                            | _ -> 0.0
+
+                    // Calculate the result
+                    let sum = value1 + value2
+                    sum.ToString()
+                else
+                    // Just a regular path
+                    let path = expr.Split('.')
+
+                    // Get the root variable
+                    match env.TryFind(path.[0]) with
+                    | Some value ->
+                        // If there are property accesses, navigate through them
+                        let mutable current = value
+                        let mutable success = true
+
+                        for i in 1 .. path.Length - 1 do
+                            match current with
+                            | ObjectValue props ->
+                                match props.TryFind(path.[i]) with
+                                | Some v -> current <- v
+                                | None ->
+                                    success <- false
+                                    current <- StringValue("undefined")
+                            | ListValue items ->
+                                // Try to parse the property as an index
+                                match Int32.TryParse(path.[i]) with
+                                | true, idx when idx >= 0 && idx < items.Length ->
+                                    current <- items.[idx]
+                                | _ ->
+                                    success <- false
+                                    current <- StringValue("undefined")
+                            | _ ->
+                                success <- false
+                                current <- StringValue("undefined")
+
+                        // Convert the final value to a string
+                        if success then
+                            match current with
+                            | StringValue s -> s
+                            | NumberValue n -> n.ToString()
+                            | BoolValue b -> b.ToString().ToLower()
+                            | ListValue _ -> "[array]"
+                            | ObjectValue _ -> "[object]"
+                        else
+                            "undefined"
+                    | None -> "undefined"
+            else
+                // Just a regular path
+                let path = expr.Split('.')
+
+                // Get the root variable
+                match env.TryFind(path.[0]) with
+                | Some value ->
+                    // If there are property accesses, navigate through them
+                    let mutable current = value
+                    let mutable success = true
+
+                    for i in 1 .. path.Length - 1 do
+                        match current with
+                        | ObjectValue props ->
+                            match props.TryFind(path.[i]) with
+                            | Some v -> current <- v
+                            | None ->
+                                success <- false
+                                current <- StringValue("undefined")
+                        | ListValue items ->
+                            // Try to parse the property as an index
+                            match Int32.TryParse(path.[i]) with
+                            | true, idx when idx >= 0 && idx < items.Length ->
+                                current <- items.[idx]
+                            | _ ->
+                                success <- false
+                                current <- StringValue("undefined")
                         | _ ->
                             success <- false
                             current <- StringValue("undefined")
-                    | _ ->
-                        success <- false
-                        current <- StringValue("undefined")
 
-                // Convert the final value to a string
-                if success then
-                    match current with
-                    | StringValue s -> s
-                    | NumberValue n -> n.ToString()
-                    | BoolValue b -> b.ToString().ToLower()
-                    | ListValue _ -> "[array]"
-                    | ObjectValue _ -> "[object]"
-                else
-                    "undefined"
-            | None -> "undefined")
+                    // Convert the final value to a string
+                    if success then
+                        match current with
+                        | StringValue s -> s
+                        | NumberValue n -> n.ToString()
+                        | BoolValue b -> b.ToString().ToLower()
+                        | ListValue _ -> "[array]"
+                        | ObjectValue _ -> "[object]"
+                    else
+                        "undefined"
+                | None -> "undefined")
 
         result
 
