@@ -148,6 +148,7 @@ public static class CliSupport
             WriteCommand("slack", "Manage Slack integration");
             WriteCommand("speech", "Text-to-speech functionality");
             WriteCommand("chat", "Interactive chat bot");
+            WriteCommand("doc-extract", "Extract knowledge from documentation and integrate it with the RetroactionLoop");
             WriteCommand("deep-thinking", "Generate deep thinking explorations");
             WriteCommand("console-capture", "Capture console output and improve code");
 
@@ -3399,6 +3400,13 @@ public static class CliSupport
             _serviceProvider.GetRequiredService<RetroactionLoopService>(),
             _serviceProvider.GetRequiredService<ConsoleService>());
         rootCommand.AddCommand(retroactionLoopCommand);
+
+        // Add DocumentationKnowledge command
+        var docExtractCommand = new DocumentationKnowledgeCommand(
+            _serviceProvider.GetRequiredService<ILogger<DocumentationKnowledgeCommand>>(),
+            _serviceProvider.GetRequiredService<DocumentationKnowledgeService>(),
+            _serviceProvider.GetRequiredService<ConsoleService>());
+        rootCommand.AddCommand(docExtractCommand);
 
         // Add default handler for root command
         rootCommand.SetHandler((InvocationContext context) =>

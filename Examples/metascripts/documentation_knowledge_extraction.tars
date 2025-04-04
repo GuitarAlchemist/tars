@@ -1,0 +1,615 @@
+DESCRIBE {
+    name: "TARS Documentation Knowledge Extraction"
+    version: "1.0"
+    author: "TARS Team"
+    description: "A metascript for extracting knowledge from TARS documentation and applying it to improve the codebase"
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.3
+    max_tokens: 4000
+}
+
+// Define paths to important directories
+VARIABLE docs_dir {
+    value: "docs"
+}
+
+VARIABLE explorations_dir {
+    value: "${docs_dir}/Explorations"
+}
+
+VARIABLE chats_dir {
+    value: "${explorations_dir}/v1/Chats"
+}
+
+VARIABLE reflections_dir {
+    value: "${explorations_dir}/Reflections"
+}
+
+VARIABLE knowledge_base_file {
+    value: "knowledge_base.json"
+}
+
+VARIABLE extraction_state_file {
+    value: "extraction_state.json"
+}
+
+// Initialize state if it doesn't exist
+ACTION {
+    type: "file_exists"
+    path: "${extraction_state_file}"
+    output_variable: "state_exists"
+}
+
+IF {
+    condition: "${!state_exists}"
+    then: {
+        ACTION {
+            type: "log"
+            message: "Initializing extraction state..."
+        }
+        
+        VARIABLE initial_state {
+            value: {
+                "processed_files": [],
+                "pending_files": [],
+                "knowledge_entries": 0,
+                "current_file": null,
+                "last_processed_file": null,
+                "extraction_history": [],
+                "last_updated": "${new Date().toISOString()}"
+            }
+        }
+        
+        ACTION {
+            type: "file_write"
+            path: "${extraction_state_file}"
+            content: "${JSON.stringify(initial_state, null, 2)}"
+        }
+    }
+}
+
+// Initialize knowledge base if it doesn't exist
+ACTION {
+    type: "file_exists"
+    path: "${knowledge_base_file}"
+    output_variable: "kb_exists"
+}
+
+IF {
+    condition: "${!kb_exists}"
+    then: {
+        ACTION {
+            type: "log"
+            message: "Initializing knowledge base..."
+        }
+        
+        VARIABLE initial_kb {
+            value: {
+                "patterns": [],
+                "best_practices": [],
+                "code_examples": [],
+                "improvement_strategies": [],
+                "architecture_insights": [],
+                "last_updated": "${new Date().toISOString()}"
+            }
+        }
+        
+        ACTION {
+            type: "file_write"
+            path: "${knowledge_base_file}"
+            content: "${JSON.stringify(initial_kb, null, 2)}"
+        }
+    }
+}
+
+// Load the current state
+ACTION {
+    type: "file_read"
+    path: "${extraction_state_file}"
+    output_variable: "state_json"
+}
+
+VARIABLE state {
+    value: "${JSON.parse(state_json)}"
+}
+
+// Load the knowledge base
+ACTION {
+    type: "file_read"
+    path: "${knowledge_base_file}"
+    output_variable: "kb_json"
+}
+
+VARIABLE knowledge_base {
+    value: "${JSON.parse(kb_json)}"
+}
+
+// Function to extract knowledge from a markdown file
+FUNCTION extract_knowledge_from_file {
+    parameters: ["file_path"]
+    
+    ACTION {
+        type: "log"
+        message: "Extracting knowledge from ${file_path}..."
+    }
+    
+    ACTION {
+        type: "file_read"
+        path: "${file_path}"
+        output_variable: "file_content"
+    }
+    
+    // Determine the file type based on path
+    VARIABLE file_type {
+        value: "${file_path.includes('/Chats/') ? 'chat' : (file_path.includes('/Reflections/') ? 'reflection' : 'documentation')}"
+    }
+    
+    // Extract knowledge using LLM with a prompt tailored to the file type
+    PROMPT {
+        text: "You are an expert at extracting structured knowledge from software documentation. 
+        
+        I'll provide you with the content of a ${file_type} file from the TARS project. Please extract key insights, patterns, and best practices that could be used to improve code.
+        
+        Focus on:
+        1. Code patterns and anti-patterns
+        2. Best practices for software development
+        3. Architecture insights
+        4. Improvement strategies
+        5. Concrete code examples
+        
+        Format your response as a JSON object with the following structure:
+        {
+          \"patterns\": [
+            {\"name\": \"pattern name\", \"description\": \"pattern description\", \"context\": \"language or framework\", \"example\": \"code example\"}
+          ],
+          \"best_practices\": [
+            {\"name\": \"practice name\", \"description\": \"practice description\", \"context\": \"language or framework\"}
+          ],
+          \"code_examples\": [
+            {\"description\": \"example description\", \"code\": \"code snippet\", \"language\": \"programming language\"}
+          ],
+          \"improvement_strategies\": [
+            {\"name\": \"strategy name\", \"description\": \"strategy description\", \"applicability\": \"when to apply\"}
+          ],
+          \"architecture_insights\": [
+            {\"name\": \"insight name\", \"description\": \"insight description\", \"context\": \"applicable context\"}
+          ]
+        }
+        
+        Here's the ${file_type} content:
+        
+        ${file_content}"
+        
+        model: "llama3"
+        temperature: 0.2
+        max_tokens: 3000
+        output_variable: "extracted_knowledge_text"
+    }
+    
+    // Parse the extracted knowledge
+    VARIABLE extracted_knowledge {
+        value: "${JSON.parse(extracted_knowledge_text)}"
+    }
+    
+    // Return the extracted knowledge
+    RETURN {
+        value: "${extracted_knowledge}"
+    }
+}
+
+// Function to update the knowledge base with new knowledge
+FUNCTION update_knowledge_base {
+    parameters: ["new_knowledge", "file_path"]
+    
+    ACTION {
+        type: "log"
+        message: "Updating knowledge base with insights from ${file_path}..."
+    }
+    
+    // Add source information to each knowledge item
+    FSHARP {
+        let knowledge = new_knowledge
+        let filePath = file_path
+        let fileName = System.IO.Path.GetFileName(filePath)
+        
+        // Add source to patterns
+        let patternsWithSource = 
+            knowledge.patterns
+            |> Array.map (fun pattern -> 
+                let patternWithSource = pattern
+                patternWithSource?source <- fileName
+                patternWithSource)
+        
+        // Add source to best practices
+        let practicesWithSource = 
+            knowledge.best_practices
+            |> Array.map (fun practice -> 
+                let practiceWithSource = practice
+                practiceWithSource?source <- fileName
+                practiceWithSource)
+        
+        // Add source to code examples
+        let examplesWithSource = 
+            knowledge.code_examples
+            |> Array.map (fun example -> 
+                let exampleWithSource = example
+                exampleWithSource?source <- fileName
+                exampleWithSource)
+        
+        // Add source to improvement strategies
+        let strategiesWithSource = 
+            knowledge.improvement_strategies
+            |> Array.map (fun strategy -> 
+                let strategyWithSource = strategy
+                strategyWithSource?source <- fileName
+                strategyWithSource)
+        
+        // Add source to architecture insights
+        let insightsWithSource = 
+            knowledge.architecture_insights
+            |> Array.map (fun insight -> 
+                let insightWithSource = insight
+                insightWithSource?source <- fileName
+                insightWithSource)
+        
+        // Create updated knowledge
+        let updatedKnowledge = knowledge
+        updatedKnowledge?patterns <- patternsWithSource
+        updatedKnowledge?best_practices <- practicesWithSource
+        updatedKnowledge?code_examples <- examplesWithSource
+        updatedKnowledge?improvement_strategies <- strategiesWithSource
+        updatedKnowledge?architecture_insights <- insightsWithSource
+        
+        updatedKnowledge
+        
+        output_variable: "knowledge_with_source"
+    }
+    
+    // Merge with existing knowledge base
+    FSHARP {
+        let kb = knowledge_base
+        let newKnowledge = knowledge_with_source
+        
+        // Merge patterns
+        let allPatterns = Array.append kb.patterns newKnowledge.patterns
+        
+        // Merge best practices
+        let allPractices = Array.append kb.best_practices newKnowledge.best_practices
+        
+        // Merge code examples
+        let allExamples = Array.append kb.code_examples newKnowledge.code_examples
+        
+        // Merge improvement strategies
+        let allStrategies = Array.append kb.improvement_strategies newKnowledge.improvement_strategies
+        
+        // Merge architecture insights
+        let allInsights = Array.append kb.architecture_insights newKnowledge.architecture_insights
+        
+        // Create updated knowledge base
+        let updatedKb = kb
+        updatedKb?patterns <- allPatterns
+        updatedKb?best_practices <- allPractices
+        updatedKb?code_examples <- allExamples
+        updatedKb?improvement_strategies <- allStrategies
+        updatedKb?architecture_insights <- allInsights
+        updatedKb?last_updated <- System.DateTime.UtcNow.ToString("o")
+        
+        updatedKb
+        
+        output_variable: "updated_kb"
+    }
+    
+    // Return the updated knowledge base
+    RETURN {
+        value: "${updated_kb}"
+    }
+}
+
+// Function to convert knowledge to RetroactionLoop patterns
+FUNCTION convert_to_retroaction_patterns {
+    parameters: ["knowledge_base"]
+    
+    ACTION {
+        type: "log"
+        message: "Converting knowledge to RetroactionLoop patterns..."
+    }
+    
+    VARIABLE retroaction_patterns {
+        value: []
+    }
+    
+    // Convert patterns to RetroactionLoop patterns
+    FSHARP {
+        let kb = knowledge_base
+        let patterns = kb.patterns
+        
+        // Convert each pattern to a RetroactionLoop pattern
+        let retroactionPatterns = 
+            patterns
+            |> Array.filter (fun pattern -> 
+                pattern?example <> null && 
+                pattern?example <> "" && 
+                pattern?description <> null && 
+                pattern?description <> "")
+            |> Array.map (fun pattern -> 
+                let name = if pattern?name <> null then pattern?name else "Unnamed Pattern"
+                let description = pattern?description
+                let context = if pattern?context <> null then pattern?context else "CSharp"
+                let example = pattern?example
+                
+                // Create a simple pattern and replacement
+                // In a real implementation, this would be more sophisticated
+                {|
+                    name = name
+                    description = description
+                    pattern = example
+                    replacement = example // This is a placeholder - in reality, we'd generate a better replacement
+                    context = context
+                |})
+        
+        retroactionPatterns
+        
+        output_variable: "retroaction_patterns"
+    }
+    
+    // Return the RetroactionLoop patterns
+    RETURN {
+        value: "${retroaction_patterns}"
+    }
+}
+
+// Get all markdown files in the documentation directories
+ACTION {
+    type: "list_files"
+    path: "${chats_dir}"
+    pattern: "*.md"
+    recursive: true
+    output_variable: "chat_files"
+}
+
+ACTION {
+    type: "list_files"
+    path: "${reflections_dir}"
+    pattern: "*.md"
+    recursive: true
+    output_variable: "reflection_files"
+}
+
+// Combine all files
+FSHARP {
+    let chatFiles = chat_files
+    let reflectionFiles = reflection_files
+    Array.append chatFiles reflectionFiles
+    
+    output_variable: "all_files"
+}
+
+// Filter out already processed files
+FSHARP {
+    let allFiles = all_files
+    let processedFiles = state.processed_files
+    
+    // Filter out files that have already been processed
+    let pendingFiles = 
+        allFiles
+        |> Array.filter (fun file -> 
+            not (Array.contains file processedFiles))
+    
+    pendingFiles
+    
+    output_variable: "pending_files"
+}
+
+// Update the state with pending files
+FSHARP {
+    let currentState = state
+    currentState?pending_files <- pending_files
+    currentState?last_updated <- System.DateTime.UtcNow.ToString("o")
+    
+    currentState
+    
+    output_variable: "updated_state"
+}
+
+ACTION {
+    type: "file_write"
+    path: "${extraction_state_file}"
+    content: "${JSON.stringify(updated_state, null, 2)}"
+}
+
+// Process a batch of files
+VARIABLE max_files_to_process {
+    value: 5
+}
+
+FSHARP {
+    let pendingFiles = pending_files
+    let maxFiles = max_files_to_process
+    
+    // Take up to max_files_to_process files
+    let filesToProcess = 
+        pendingFiles
+        |> Array.truncate maxFiles
+    
+    filesToProcess
+    
+    output_variable: "files_to_process"
+}
+
+// Process each file
+FOREACH {
+    items: "${files_to_process}"
+    item_variable: "file_path"
+    
+    // Update state to show current file
+    FSHARP {
+        let currentState = updated_state
+        currentState?current_file <- file_path
+        currentState?last_updated <- System.DateTime.UtcNow.ToString("o")
+        
+        currentState
+        
+        output_variable: "current_state"
+    }
+    
+    ACTION {
+        type: "file_write"
+        path: "${extraction_state_file}"
+        content: "${JSON.stringify(current_state, null, 2)}"
+    }
+    
+    // Extract knowledge from the file
+    ACTION {
+        type: "execute"
+        function: "extract_knowledge_from_file"
+        parameters: {
+            file_path: "${file_path}"
+        }
+        output_variable: "extracted_knowledge"
+    }
+    
+    // Update the knowledge base
+    ACTION {
+        type: "execute"
+        function: "update_knowledge_base"
+        parameters: {
+            new_knowledge: "${extracted_knowledge}",
+            file_path: "${file_path}"
+        }
+        output_variable: "updated_knowledge_base"
+    }
+    
+    // Save the updated knowledge base
+    ACTION {
+        type: "file_write"
+        path: "${knowledge_base_file}"
+        content: "${JSON.stringify(updated_knowledge_base, null, 2)}"
+    }
+    
+    // Update state to mark file as processed
+    FSHARP {
+        let currentState = current_state
+        
+        // Add file to processed files
+        let processedFiles = currentState.processed_files
+        let newProcessedFiles = Array.append processedFiles [| file_path |]
+        currentState?processed_files <- newProcessedFiles
+        
+        // Remove file from pending files
+        let pendingFiles = currentState.pending_files
+        let newPendingFiles = 
+            pendingFiles
+            |> Array.filter (fun f -> f <> file_path)
+        currentState?pending_files <- newPendingFiles
+        
+        // Update last processed file
+        currentState?last_processed_file <- file_path
+        
+        // Update knowledge entries count
+        currentState?knowledge_entries <- updated_knowledge_base.patterns.Length + 
+                                         updated_knowledge_base.best_practices.Length + 
+                                         updated_knowledge_base.code_examples.Length + 
+                                         updated_knowledge_base.improvement_strategies.Length + 
+                                         updated_knowledge_base.architecture_insights.Length
+        
+        // Add to extraction history
+        let historyEntry = {|
+            file_path = file_path
+            timestamp = System.DateTime.UtcNow.ToString("o")
+            patterns_extracted = extracted_knowledge.patterns.Length
+            practices_extracted = extracted_knowledge.best_practices.Length
+            examples_extracted = extracted_knowledge.code_examples.Length
+            strategies_extracted = extracted_knowledge.improvement_strategies.Length
+            insights_extracted = extracted_knowledge.architecture_insights.Length
+        |}
+        
+        let extractionHistory = currentState.extraction_history
+        let newExtractionHistory = Array.append extractionHistory [| historyEntry |]
+        currentState?extraction_history <- newExtractionHistory
+        
+        // Update timestamp
+        currentState?last_updated <- System.DateTime.UtcNow.ToString("o")
+        
+        currentState
+        
+        output_variable: "updated_state"
+    }
+    
+    ACTION {
+        type: "file_write"
+        path: "${extraction_state_file}"
+        content: "${JSON.stringify(updated_state, null, 2)}"
+    }
+    
+    // Add a small delay to avoid overloading the system
+    ACTION {
+        type: "sleep"
+        milliseconds: 1000
+    }
+}
+
+// Convert knowledge to RetroactionLoop patterns
+ACTION {
+    type: "execute"
+    function: "convert_to_retroaction_patterns"
+    parameters: {
+        knowledge_base: "${updated_knowledge_base}"
+    }
+    output_variable: "retroaction_patterns"
+}
+
+// Save the RetroactionLoop patterns to a file
+ACTION {
+    type: "file_write"
+    path: "retroaction_patterns.json"
+    content: "${JSON.stringify(retroaction_patterns, null, 2)}"
+}
+
+// Generate a summary report
+VARIABLE timestamp {
+    value: "${new Date().toISOString().replace(/:/g, '-').replace(/\..+/, '')}"
+}
+
+VARIABLE report_content {
+    value: "# TARS Documentation Knowledge Extraction Report
+    
+## Summary
+- **Date:** ${new Date().toLocaleString()}
+- **Total Files Processed:** ${updated_state.processed_files.length}
+- **Total Knowledge Entries:** ${updated_state.knowledge_entries}
+- **Patterns Extracted:** ${updated_knowledge_base.patterns.length}
+- **Best Practices Extracted:** ${updated_knowledge_base.best_practices.length}
+- **Code Examples Extracted:** ${updated_knowledge_base.code_examples.length}
+- **Improvement Strategies Extracted:** ${updated_knowledge_base.improvement_strategies.length}
+- **Architecture Insights Extracted:** ${updated_knowledge_base.architecture_insights.length}
+- **RetroactionLoop Patterns Generated:** ${retroaction_patterns.length}
+
+## Recently Processed Files
+${updated_state.extraction_history.slice(-5).reverse().map(entry => `- **${entry.file_path}**: Extracted ${entry.patterns_extracted + entry.practices_extracted + entry.examples_extracted + entry.strategies_extracted + entry.insights_extracted} knowledge items at ${new Date(entry.timestamp).toLocaleString()}`).join('\n')}
+
+## Next Steps
+- Process the remaining ${updated_state.pending_files.length} files
+- Refine the RetroactionLoop patterns
+- Apply the patterns to improve the codebase
+"
+}
+
+// Save the report
+ACTION {
+    type: "file_write"
+    path: "documentation_extraction_report_${timestamp}.md"
+    content: "${report_content}"
+}
+
+ACTION {
+    type: "log"
+    message: "Report saved to: documentation_extraction_report_${timestamp}.md"
+}
+
+ACTION {
+    type: "log"
+    message: "Knowledge extraction completed. Processed ${files_to_process.length} files."
+}

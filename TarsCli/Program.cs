@@ -88,6 +88,7 @@ internal static class Program
                 .AddSingleton<DockerModelRunnerService>()
                 .AddSingleton<ModelProviderFactory>()
                 .AddSingleton<ConsoleService>()
+                .AddSingleton<DocumentationKnowledgeService>()
                 .AddSingleton<TarsEngine.Services.Interfaces.ICodeAnalysisService, TarsEngine.Services.CodeAnalysisService>()
                 .AddSingleton<TarsEngine.Services.Interfaces.IProjectAnalysisService, TarsEngine.Services.ProjectAnalysisService>()
                 .AddSingleton<TarsEngine.Services.Interfaces.ILlmService, TarsEngine.Services.LlmService>()
