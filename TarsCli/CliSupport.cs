@@ -151,6 +151,7 @@ public static class CliSupport
             WriteCommand("doc-extract", "Extract knowledge from documentation and integrate it with the RetroactionLoop");
             WriteCommand("knowledge-viz", "Visualize the knowledge base");
             WriteCommand("knowledge-test", "Generate tests from the knowledge base");
+            WriteCommand("auto-improve-workflow", "Run autonomous improvement workflow");
             WriteCommand("deep-thinking", "Generate deep thinking explorations");
             WriteCommand("console-capture", "Capture console output and improve code");
 
@@ -3423,6 +3424,13 @@ public static class CliSupport
             _serviceProvider.GetRequiredService<KnowledgeTestGenerationService>(),
             _serviceProvider.GetRequiredService<ConsoleService>());
         rootCommand.AddCommand(knowledgeTestCommand);
+
+        // Add AutonomousImprovement command
+        var autonomousImprovementCommand = new AutonomousImprovementCommand(
+            _serviceProvider.GetRequiredService<ILogger<AutonomousImprovementCommand>>(),
+            _serviceProvider.GetRequiredService<AutonomousImprovementService>(),
+            _serviceProvider.GetRequiredService<ConsoleService>());
+        rootCommand.AddCommand(autonomousImprovementCommand);
 
         // Add default handler for root command
         rootCommand.SetHandler((InvocationContext context) =>
