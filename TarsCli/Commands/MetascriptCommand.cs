@@ -1,7 +1,4 @@
-using System.CommandLine;
-using System.CommandLine.Invocation;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using TarsCli.Services;
 using TarsEngine.DSL;
 
@@ -22,8 +19,8 @@ public class MetascriptCommand : Command
         _serviceProvider = serviceProvider;
 
         // Add subcommands
-        this.AddCommand(new ExecuteCommand(_serviceProvider));
-        this.AddCommand(new ValidateCommand(_serviceProvider));
+        AddCommand(new ExecuteCommand(_serviceProvider));
+        AddCommand(new ValidateCommand(_serviceProvider));
     }
 
     /// <summary>
@@ -41,11 +38,11 @@ public class MetascriptCommand : Command
             _serviceProvider = serviceProvider;
             // Add arguments
             var fileArgument = new Argument<string>("file", "The TARS metascript file to execute");
-            this.AddArgument(fileArgument);
+            AddArgument(fileArgument);
 
             // Add options
             var verboseOption = new Option<bool>("--verbose", "Enable verbose output");
-            this.AddOption(verboseOption);
+            AddOption(verboseOption);
 
             // Set handler
             this.SetHandler(async (context) =>
@@ -147,11 +144,11 @@ public class MetascriptCommand : Command
             _serviceProvider = serviceProvider;
             // Add arguments
             var fileArgument = new Argument<string>("file", "The TARS metascript file to validate");
-            this.AddArgument(fileArgument);
+            AddArgument(fileArgument);
 
             // Add options
             var verboseOption = new Option<bool>("--verbose", "Enable verbose output");
-            this.AddOption(verboseOption);
+            AddOption(verboseOption);
 
             // Set handler
             this.SetHandler(async (context) =>

@@ -2,7 +2,6 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 
 namespace TarsCli.Services;
 
@@ -88,7 +87,7 @@ public class GpuService
             return _gpuInfo;
         }
 
-        _gpuInfo = new List<GpuInfo>();
+        _gpuInfo = [];
 
         try
         {
@@ -135,7 +134,7 @@ public class GpuService
         try
         {
             // Get compatible GPUs
-            var compatibleGpus = _gpuInfo?.Where(gpu => IsGpuCompatible(gpu)).ToList() ?? new List<GpuInfo>();
+            var compatibleGpus = _gpuInfo?.Where(gpu => IsGpuCompatible(gpu)).ToList() ?? [];
 
             if (compatibleGpus.Any())
             {
@@ -244,7 +243,7 @@ public class GpuService
             process.WaitForExit();
 
             // Parse the output
-            var gpuBlocks = output.Split(new[] { "\r\n\r\n" }, StringSplitOptions.RemoveEmptyEntries);
+            var gpuBlocks = output.Split(["\r\n\r\n"], StringSplitOptions.RemoveEmptyEntries);
 
             foreach (var block in gpuBlocks)
             {

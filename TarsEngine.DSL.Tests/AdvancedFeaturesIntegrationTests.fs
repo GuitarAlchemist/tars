@@ -50,16 +50,16 @@ let ``Test While Loop`` () =
             }
         ]
     }
-    
+
     // Execute the program
     let result = executeProgram program
-    
+
     // Check the result
     match result with
-    | Success _ -> 
+    | Success _ ->
         // Test passes if no error occurred
         Assert.True(true)
-    | Error msg -> 
+    | Error msg ->
         Assert.True(false, $"Program execution failed: {msg}")
 
 [<Fact>]
@@ -87,6 +87,15 @@ let ``Test Function Definition and Call`` () =
                 ]
             }
             {
+                Type = BlockType.Variable
+                Name = Some "result"
+                Content = ""
+                Properties = Map.ofList [
+                    "value", NumberValue(0.0)
+                ]
+                NestedBlocks = []
+            }
+            {
                 Type = BlockType.Call
                 Name = None
                 Content = ""
@@ -112,16 +121,16 @@ let ``Test Function Definition and Call`` () =
             }
         ]
     }
-    
+
     // Execute the program
     let result = executeProgram program
-    
+
     // Check the result
     match result with
-    | Success _ -> 
+    | Success _ ->
         // Test passes if no error occurred
         Assert.True(true)
-    | Error msg -> 
+    | Error msg ->
         Assert.True(false, $"Program execution failed: {msg}")
 
 [<Fact>]
@@ -176,16 +185,16 @@ let ``Test Try Catch`` () =
             }
         ]
     }
-    
+
     // Execute the program
     let result = executeProgram program
-    
+
     // Check the result
     match result with
-    | Success _ -> 
+    | Success _ ->
         // Test passes if no error occurred
         Assert.True(true)
-    | Error msg -> 
+    | Error msg ->
         Assert.True(false, $"Program execution failed: {msg}")
 
 [<Fact>]
@@ -236,14 +245,14 @@ let ``Test For Loop`` () =
             }
         ]
     }
-    
+
     // Execute the program
     let result = executeProgram program
-    
+
     // Check the result
     match result with
-    | Success _ -> 
+    | Success _ ->
         // Test passes if no error occurred
         Assert.True(true)
-    | Error msg -> 
+    | Error msg ->
         Assert.True(false, $"Program execution failed: {msg}")

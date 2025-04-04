@@ -1,4 +1,3 @@
-using System.CommandLine;
 using TarsCli.Services;
 
 namespace TarsCli.Commands;
@@ -26,14 +25,14 @@ public class DslCommand : Command
         var command = new Command("run", "Run a TARS DSL file");
 
         var fileOption = new Option<string>(
-            aliases: new[] { "--file", "-f" },
+            aliases: ["--file", "-f"],
             description: "The path to the DSL file to run")
         {
             IsRequired = true
         };
 
         var verboseOption = new Option<bool>(
-            aliases: new[] { "--verbose", "-v" },
+            aliases: ["--verbose", "-v"],
             description: "Show verbose output");
 
         command.AddOption(fileOption);
@@ -53,7 +52,7 @@ public class DslCommand : Command
         var command = new Command("validate", "Validate a TARS DSL file");
 
         var fileOption = new Option<string>(
-            aliases: new[] { "--file", "-f" },
+            aliases: ["--file", "-f"],
             description: "The path to the DSL file to validate")
         {
             IsRequired = true
@@ -75,14 +74,14 @@ public class DslCommand : Command
         var command = new Command("generate", "Generate a TARS DSL file template");
 
         var outputOption = new Option<string>(
-            aliases: new[] { "--output", "-o" },
+            aliases: ["--output", "-o"],
             description: "The path to save the generated DSL file")
         {
             IsRequired = true
         };
 
         var templateOption = new Option<string>(
-            aliases: new[] { "--template", "-t" },
+            aliases: ["--template", "-t"],
             description: "The template to use (basic, chat, agent)")
         {
             IsRequired = false
@@ -107,7 +106,7 @@ public class DslCommand : Command
         var command = new Command("ebnf", "Generate EBNF for the TARS DSL");
 
         var outputOption = new Option<string>(
-            aliases: new[] { "--output", "-o" },
+            aliases: ["--output", "-o"],
             description: "The path to save the EBNF file")
         {
             IsRequired = false

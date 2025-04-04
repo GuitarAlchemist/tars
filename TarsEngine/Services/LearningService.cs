@@ -1,416 +1,409 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
-namespace TarsEngine.Services
+namespace TarsEngine.Services;
+
+/// <summary>
+/// Service for learning from feedback and improving over time
+/// </summary>
+public class LearningService
 {
-    /// <summary>
-    /// Service for learning from feedback and improving over time
-    /// </summary>
-    public class LearningService
+    private readonly ILogger<LearningService> _logger;
+    private readonly string _learningDataPath;
+    private LearningData _learningData;
+
+    public LearningService(ILogger<LearningService> logger)
     {
-        private readonly ILogger<LearningService> _logger;
-        private readonly string _learningDataPath;
-        private LearningData _learningData;
+        _logger = logger;
+            
+        // Set the path for learning data
+        string appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "TARS");
+        _learningDataPath = Path.Combine(appDataPath, "learning_data.json");
+            
+        // Ensure the directory exists
+        Directory.CreateDirectory(appDataPath);
+            
+        // Load learning data
+        LoadLearningData();
+    }
 
-        public LearningService(ILogger<LearningService> logger)
+    /// <summary>
+    /// Records feedback on a code generation or improvement
+    /// </summary>
+    /// <param name="feedback">The feedback to record</param>
+    /// <returns>True if the feedback was recorded successfully</returns>
+    public async Task<bool> RecordFeedbackAsync(CodeFeedback feedback)
+    {
+        try
         {
-            _logger = logger;
-            
-            // Set the path for learning data
-            string appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "TARS");
-            _learningDataPath = Path.Combine(appDataPath, "learning_data.json");
-            
-            // Ensure the directory exists
-            Directory.CreateDirectory(appDataPath);
-            
-            // Load learning data
-            LoadLearningData();
+            _logger.LogInformation($"Recording feedback for {feedback.Type} with rating {feedback.Rating}");
+                
+            // Add the feedback to the learning data
+            _learningData.Feedback.Add(feedback);
+                
+            // Update pattern scores based on the feedback
+            UpdatePatternScores(feedback);
+                
+            // Save the learning data
+            await SaveLearningDataAsync();
+                
+            return true;
         }
-
-        /// <summary>
-        /// Records feedback on a code generation or improvement
-        /// </summary>
-        /// <param name="feedback">The feedback to record</param>
-        /// <returns>True if the feedback was recorded successfully</returns>
-        public async Task<bool> RecordFeedbackAsync(CodeFeedback feedback)
+        catch (Exception ex)
         {
-            try
-            {
-                _logger.LogInformation($"Recording feedback for {feedback.Type} with rating {feedback.Rating}");
-                
-                // Add the feedback to the learning data
-                _learningData.Feedback.Add(feedback);
-                
-                // Update pattern scores based on the feedback
-                UpdatePatternScores(feedback);
-                
-                // Save the learning data
-                await SaveLearningDataAsync();
-                
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error recording feedback: {ex.Message}");
-                return false;
-            }
+            _logger.LogError(ex, $"Error recording feedback: {ex.Message}");
+            return false;
         }
+    }
 
-        /// <summary>
-        /// Gets the top patterns for a specific context
-        /// </summary>
-        /// <param name="context">The context to get patterns for</param>
-        /// <param name="count">The number of patterns to return</param>
-        /// <returns>A list of the top patterns</returns>
-        public List<CodePattern> GetTopPatternsForContext(string context, int count = 5)
+    /// <summary>
+    /// Gets the top patterns for a specific context
+    /// </summary>
+    /// <param name="context">The context to get patterns for</param>
+    /// <param name="count">The number of patterns to return</param>
+    /// <returns>A list of the top patterns</returns>
+    public List<CodePattern> GetTopPatternsForContext(string context, int count = 5)
+    {
+        try
         {
-            try
-            {
-                _logger.LogInformation($"Getting top {count} patterns for context: {context}");
+            _logger.LogInformation($"Getting top {count} patterns for context: {context}");
                 
-                // Filter patterns by context
-                var matchingPatterns = _learningData.Patterns
-                    .Where(p => p.Context.Equals(context, StringComparison.OrdinalIgnoreCase))
+            // Filter patterns by context
+            var matchingPatterns = _learningData.Patterns
+                .Where(p => p.Context.Equals(context, StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(p => p.Score)
+                .Take(count)
+                .ToList();
+                
+            return matchingPatterns;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error getting top patterns: {ex.Message}");
+            return [];
+        }
+    }
+
+    /// <summary>
+    /// Adds a new pattern to the learning data
+    /// </summary>
+    /// <param name="pattern">The pattern to add</param>
+    /// <returns>True if the pattern was added successfully</returns>
+    public async Task<bool> AddPatternAsync(CodePattern pattern)
+    {
+        try
+        {
+            _logger.LogInformation($"Adding new pattern for context: {pattern.Context}");
+                
+            // Check if the pattern already exists
+            var existingPattern = _learningData.Patterns
+                .FirstOrDefault(p => p.Context.Equals(pattern.Context, StringComparison.OrdinalIgnoreCase) &&
+                                     p.Pattern.Equals(pattern.Pattern, StringComparison.OrdinalIgnoreCase));
+                
+            if (existingPattern != null)
+            {
+                // Update the existing pattern
+                existingPattern.Score += 1;
+                existingPattern.UsageCount += 1;
+                existingPattern.LastUsed = DateTime.Now;
+            }
+            else
+            {
+                // Add the new pattern
+                pattern.Id = Guid.NewGuid().ToString();
+                pattern.CreatedAt = DateTime.Now;
+                pattern.LastUsed = DateTime.Now;
+                pattern.UsageCount = 1;
+                    
+                _learningData.Patterns.Add(pattern);
+            }
+                
+            // Save the learning data
+            await SaveLearningDataAsync();
+                
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error adding pattern: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Gets learning statistics
+    /// </summary>
+    /// <returns>Learning statistics</returns>
+    public LearningStatistics GetStatistics()
+    {
+        try
+        {
+            _logger.LogInformation("Getting learning statistics");
+                
+            var stats = new LearningStatistics
+            {
+                TotalFeedbackCount = _learningData.Feedback.Count,
+                TotalPatternCount = _learningData.Patterns.Count,
+                AverageFeedbackRating = _learningData.Feedback.Any() ? _learningData.Feedback.Average(f => f.Rating) : 0,
+                TopPatterns = _learningData.Patterns
                     .OrderByDescending(p => p.Score)
-                    .Take(count)
-                    .ToList();
+                    .Take(5)
+                    .ToList(),
+                FeedbackByType = _learningData.Feedback
+                    .GroupBy(f => f.Type)
+                    .ToDictionary(g => g.Key, g => g.Count()),
+                FeedbackByRating = _learningData.Feedback
+                    .GroupBy(f => f.Rating)
+                    .ToDictionary(g => g.Key, g => g.Count())
+            };
                 
-                return matchingPatterns;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error getting top patterns: {ex.Message}");
-                return new List<CodePattern>();
-            }
+            return stats;
         }
-
-        /// <summary>
-        /// Adds a new pattern to the learning data
-        /// </summary>
-        /// <param name="pattern">The pattern to add</param>
-        /// <returns>True if the pattern was added successfully</returns>
-        public async Task<bool> AddPatternAsync(CodePattern pattern)
+        catch (Exception ex)
         {
-            try
+            _logger.LogError(ex, $"Error getting statistics: {ex.Message}");
+            return new LearningStatistics();
+        }
+    }
+
+    /// <summary>
+    /// Analyzes feedback to extract patterns
+    /// </summary>
+    /// <returns>True if patterns were extracted successfully</returns>
+    public async Task<bool> AnalyzeFeedbackForPatternsAsync()
+    {
+        try
+        {
+            _logger.LogInformation("Analyzing feedback for patterns");
+                
+            // Get positive feedback (rating >= 4)
+            var positiveFeedback = _learningData.Feedback
+                .Where(f => f.Rating >= 4)
+                .ToList();
+                
+            // Group feedback by context
+            var feedbackByContext = positiveFeedback
+                .GroupBy(f => f.Context)
+                .ToDictionary(g => g.Key, g => g.ToList());
+                
+            // Extract patterns from each context group
+            foreach (var contextGroup in feedbackByContext)
             {
-                _logger.LogInformation($"Adding new pattern for context: {pattern.Context}");
-                
-                // Check if the pattern already exists
-                var existingPattern = _learningData.Patterns
-                    .FirstOrDefault(p => p.Context.Equals(pattern.Context, StringComparison.OrdinalIgnoreCase) &&
-                                        p.Pattern.Equals(pattern.Pattern, StringComparison.OrdinalIgnoreCase));
-                
-                if (existingPattern != null)
-                {
-                    // Update the existing pattern
-                    existingPattern.Score += 1;
-                    existingPattern.UsageCount += 1;
-                    existingPattern.LastUsed = DateTime.Now;
-                }
-                else
-                {
-                    // Add the new pattern
-                    pattern.Id = Guid.NewGuid().ToString();
-                    pattern.CreatedAt = DateTime.Now;
-                    pattern.LastUsed = DateTime.Now;
-                    pattern.UsageCount = 1;
+                string context = contextGroup.Key;
+                var feedbackItems = contextGroup.Value;
                     
-                    _learningData.Patterns.Add(pattern);
-                }
-                
-                // Save the learning data
-                await SaveLearningDataAsync();
-                
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error adding pattern: {ex.Message}");
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// Gets learning statistics
-        /// </summary>
-        /// <returns>Learning statistics</returns>
-        public LearningStatistics GetStatistics()
-        {
-            try
-            {
-                _logger.LogInformation("Getting learning statistics");
-                
-                var stats = new LearningStatistics
-                {
-                    TotalFeedbackCount = _learningData.Feedback.Count,
-                    TotalPatternCount = _learningData.Patterns.Count,
-                    AverageFeedbackRating = _learningData.Feedback.Any() ? _learningData.Feedback.Average(f => f.Rating) : 0,
-                    TopPatterns = _learningData.Patterns
-                        .OrderByDescending(p => p.Score)
-                        .Take(5)
-                        .ToList(),
-                    FeedbackByType = _learningData.Feedback
-                        .GroupBy(f => f.Type)
-                        .ToDictionary(g => g.Key, g => g.Count()),
-                    FeedbackByRating = _learningData.Feedback
-                        .GroupBy(f => f.Rating)
-                        .ToDictionary(g => g.Key, g => g.Count())
-                };
-                
-                return stats;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error getting statistics: {ex.Message}");
-                return new LearningStatistics();
-            }
-        }
-
-        /// <summary>
-        /// Analyzes feedback to extract patterns
-        /// </summary>
-        /// <returns>True if patterns were extracted successfully</returns>
-        public async Task<bool> AnalyzeFeedbackForPatternsAsync()
-        {
-            try
-            {
-                _logger.LogInformation("Analyzing feedback for patterns");
-                
-                // Get positive feedback (rating >= 4)
-                var positiveFeedback = _learningData.Feedback
-                    .Where(f => f.Rating >= 4)
-                    .ToList();
-                
-                // Group feedback by context
-                var feedbackByContext = positiveFeedback
-                    .GroupBy(f => f.Context)
-                    .ToDictionary(g => g.Key, g => g.ToList());
-                
-                // Extract patterns from each context group
-                foreach (var contextGroup in feedbackByContext)
-                {
-                    string context = contextGroup.Key;
-                    var feedbackItems = contextGroup.Value;
+                // Extract common patterns from the code
+                var patterns = ExtractPatternsFromCode(feedbackItems);
                     
-                    // Extract common patterns from the code
-                    var patterns = ExtractPatternsFromCode(feedbackItems);
-                    
-                    // Add each pattern to the learning data
-                    foreach (var pattern in patterns)
-                    {
-                        pattern.Context = context;
-                        await AddPatternAsync(pattern);
-                    }
+                // Add each pattern to the learning data
+                foreach (var pattern in patterns)
+                {
+                    pattern.Context = context;
+                    await AddPatternAsync(pattern);
                 }
+            }
                 
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error analyzing feedback for patterns: {ex.Message}");
-                return false;
-            }
+            return true;
         }
-
-        /// <summary>
-        /// Loads learning data from disk
-        /// </summary>
-        private void LoadLearningData()
+        catch (Exception ex)
         {
-            try
+            _logger.LogError(ex, $"Error analyzing feedback for patterns: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Loads learning data from disk
+    /// </summary>
+    private void LoadLearningData()
+    {
+        try
+        {
+            if (File.Exists(_learningDataPath))
             {
-                if (File.Exists(_learningDataPath))
-                {
-                    string json = File.ReadAllText(_learningDataPath);
-                    _learningData = JsonSerializer.Deserialize<LearningData>(json);
-                }
-                else
-                {
-                    _learningData = new LearningData
-                    {
-                        Feedback = new List<CodeFeedback>(),
-                        Patterns = new List<CodePattern>()
-                    };
-                }
+                string json = File.ReadAllText(_learningDataPath);
+                _learningData = JsonSerializer.Deserialize<LearningData>(json);
             }
-            catch (Exception ex)
+            else
             {
-                _logger.LogError(ex, $"Error loading learning data: {ex.Message}");
-                
-                // Create a new learning data object if loading fails
                 _learningData = new LearningData
                 {
-                    Feedback = new List<CodeFeedback>(),
-                    Patterns = new List<CodePattern>()
+                    Feedback = [],
+                    Patterns = []
                 };
             }
         }
-
-        /// <summary>
-        /// Saves learning data to disk
-        /// </summary>
-        private async Task SaveLearningDataAsync()
+        catch (Exception ex)
         {
-            try
-            {
-                string json = JsonSerializer.Serialize(_learningData, new JsonSerializerOptions
-                {
-                    WriteIndented = true
-                });
+            _logger.LogError(ex, $"Error loading learning data: {ex.Message}");
                 
-                await File.WriteAllTextAsync(_learningDataPath, json);
-            }
-            catch (Exception ex)
+            // Create a new learning data object if loading fails
+            _learningData = new LearningData
             {
-                _logger.LogError(ex, $"Error saving learning data: {ex.Message}");
-            }
+                Feedback = [],
+                Patterns = []
+            };
         }
+    }
 
-        /// <summary>
-        /// Updates pattern scores based on feedback
-        /// </summary>
-        private void UpdatePatternScores(CodeFeedback feedback)
+    /// <summary>
+    /// Saves learning data to disk
+    /// </summary>
+    private async Task SaveLearningDataAsync()
+    {
+        try
         {
-            try
+            string json = JsonSerializer.Serialize(_learningData, new JsonSerializerOptions
             {
-                // Find patterns that match the context
-                var matchingPatterns = _learningData.Patterns
-                    .Where(p => p.Context.Equals(feedback.Context, StringComparison.OrdinalIgnoreCase))
-                    .ToList();
+                WriteIndented = true
+            });
                 
-                foreach (var pattern in matchingPatterns)
+            await File.WriteAllTextAsync(_learningDataPath, json);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error saving learning data: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Updates pattern scores based on feedback
+    /// </summary>
+    private void UpdatePatternScores(CodeFeedback feedback)
+    {
+        try
+        {
+            // Find patterns that match the context
+            var matchingPatterns = _learningData.Patterns
+                .Where(p => p.Context.Equals(feedback.Context, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+                
+            foreach (var pattern in matchingPatterns)
+            {
+                // Check if the pattern is present in the code
+                if (feedback.Code.Contains(pattern.Pattern))
                 {
-                    // Check if the pattern is present in the code
-                    if (feedback.Code.Contains(pattern.Pattern))
-                    {
-                        // Update the pattern score based on the feedback rating
-                        double scoreAdjustment = (feedback.Rating - 3) / 2.0; // Range: -1.0 to +1.0
-                        pattern.Score += scoreAdjustment;
-                        pattern.UsageCount += 1;
-                        pattern.LastUsed = DateTime.Now;
-                    }
+                    // Update the pattern score based on the feedback rating
+                    double scoreAdjustment = (feedback.Rating - 3) / 2.0; // Range: -1.0 to +1.0
+                    pattern.Score += scoreAdjustment;
+                    pattern.UsageCount += 1;
+                    pattern.LastUsed = DateTime.Now;
                 }
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error updating pattern scores: {ex.Message}");
-            }
         }
-
-        /// <summary>
-        /// Extracts patterns from code feedback
-        /// </summary>
-        private List<CodePattern> ExtractPatternsFromCode(List<CodeFeedback> feedbackItems)
+        catch (Exception ex)
         {
-            var patterns = new List<CodePattern>();
+            _logger.LogError(ex, $"Error updating pattern scores: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Extracts patterns from code feedback
+    /// </summary>
+    private List<CodePattern> ExtractPatternsFromCode(List<CodeFeedback> feedbackItems)
+    {
+        var patterns = new List<CodePattern>();
             
-            try
-            {
-                // This is a simplified implementation
-                // In a real implementation, we would use more sophisticated pattern extraction techniques
+        try
+        {
+            // This is a simplified implementation
+            // In a real implementation, we would use more sophisticated pattern extraction techniques
                 
-                // Extract common code blocks
-                var codeBlocks = new List<string>();
-                foreach (var feedback in feedbackItems)
-                {
-                    // Split the code into lines
-                    var lines = feedback.Code.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+            // Extract common code blocks
+            var codeBlocks = new List<string>();
+            foreach (var feedback in feedbackItems)
+            {
+                // Split the code into lines
+                var lines = feedback.Code.Split(["\r\n", "\r", "\n"], StringSplitOptions.None);
                     
-                    // Extract blocks of 3-5 lines
-                    for (int i = 0; i < lines.Length - 2; i++)
+                // Extract blocks of 3-5 lines
+                for (int i = 0; i < lines.Length - 2; i++)
+                {
+                    for (int blockSize = 3; blockSize <= Math.Min(5, lines.Length - i); blockSize++)
                     {
-                        for (int blockSize = 3; blockSize <= Math.Min(5, lines.Length - i); blockSize++)
-                        {
-                            var block = string.Join(Environment.NewLine, lines.Skip(i).Take(blockSize));
-                            codeBlocks.Add(block);
-                        }
+                        var block = string.Join(Environment.NewLine, lines.Skip(i).Take(blockSize));
+                        codeBlocks.Add(block);
                     }
                 }
-                
-                // Count occurrences of each block
-                var blockCounts = codeBlocks
-                    .GroupBy(b => b)
-                    .Select(g => new { Block = g.Key, Count = g.Count() })
-                    .Where(b => b.Count > 1) // Only consider blocks that appear multiple times
-                    .OrderByDescending(b => b.Count)
-                    .Take(10) // Take the top 10 blocks
-                    .ToList();
-                
-                // Create patterns from the blocks
-                foreach (var block in blockCounts)
-                {
-                    patterns.Add(new CodePattern
-                    {
-                        Pattern = block.Block,
-                        Description = $"Common code pattern (found in {block.Count} feedback items)",
-                        Score = block.Count / (double)feedbackItems.Count, // Score based on frequency
-                        UsageCount = block.Count
-                    });
-                }
             }
-            catch (Exception ex)
+                
+            // Count occurrences of each block
+            var blockCounts = codeBlocks
+                .GroupBy(b => b)
+                .Select(g => new { Block = g.Key, Count = g.Count() })
+                .Where(b => b.Count > 1) // Only consider blocks that appear multiple times
+                .OrderByDescending(b => b.Count)
+                .Take(10) // Take the top 10 blocks
+                .ToList();
+                
+            // Create patterns from the blocks
+            foreach (var block in blockCounts)
             {
-                _logger.LogError(ex, $"Error extracting patterns from code: {ex.Message}");
+                patterns.Add(new CodePattern
+                {
+                    Pattern = block.Block,
+                    Description = $"Common code pattern (found in {block.Count} feedback items)",
+                    Score = block.Count / (double)feedbackItems.Count, // Score based on frequency
+                    UsageCount = block.Count
+                });
             }
-            
-            return patterns;
         }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error extracting patterns from code: {ex.Message}");
+        }
+            
+        return patterns;
     }
+}
 
-    /// <summary>
-    /// Represents learning data
-    /// </summary>
-    public class LearningData
-    {
-        public List<CodeFeedback> Feedback { get; set; } = new List<CodeFeedback>();
-        public List<CodePattern> Patterns { get; set; } = new List<CodePattern>();
-    }
+/// <summary>
+/// Represents learning data
+/// </summary>
+public class LearningData
+{
+    public List<CodeFeedback> Feedback { get; set; } = [];
+    public List<CodePattern> Patterns { get; set; } = [];
+}
 
-    /// <summary>
-    /// Represents feedback on code generation or improvement
-    /// </summary>
-    public class CodeFeedback
-    {
-        public string Id { get; set; } = Guid.NewGuid().ToString();
-        public DateTime Timestamp { get; set; } = DateTime.Now;
-        public string Type { get; set; } // "Generation", "Improvement", "Test", etc.
-        public string Context { get; set; } // Language, project type, etc.
-        public string Code { get; set; } // The code that was generated or improved
-        public int Rating { get; set; } // 1-5 rating
-        public string Comment { get; set; } // Optional comment
-    }
+/// <summary>
+/// Represents feedback on code generation or improvement
+/// </summary>
+public class CodeFeedback
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+    public DateTime Timestamp { get; set; } = DateTime.Now;
+    public string Type { get; set; } // "Generation", "Improvement", "Test", etc.
+    public string Context { get; set; } // Language, project type, etc.
+    public string Code { get; set; } // The code that was generated or improved
+    public int Rating { get; set; } // 1-5 rating
+    public string Comment { get; set; } // Optional comment
+}
 
-    /// <summary>
-    /// Represents a code pattern
-    /// </summary>
-    public class CodePattern
-    {
-        public string Id { get; set; }
-        public string Context { get; set; } // Language, project type, etc.
-        public string Pattern { get; set; } // The code pattern
-        public string Description { get; set; } // Description of the pattern
-        public double Score { get; set; } // Score for the pattern (higher is better)
-        public int UsageCount { get; set; } // Number of times the pattern has been used
-        public DateTime CreatedAt { get; set; }
-        public DateTime LastUsed { get; set; }
-    }
+/// <summary>
+/// Represents a code pattern
+/// </summary>
+public class CodePattern
+{
+    public string Id { get; set; }
+    public string Context { get; set; } // Language, project type, etc.
+    public string Pattern { get; set; } // The code pattern
+    public string Description { get; set; } // Description of the pattern
+    public double Score { get; set; } // Score for the pattern (higher is better)
+    public int UsageCount { get; set; } // Number of times the pattern has been used
+    public DateTime CreatedAt { get; set; }
+    public DateTime LastUsed { get; set; }
+}
 
-    /// <summary>
-    /// Represents learning statistics
-    /// </summary>
-    public class LearningStatistics
-    {
-        public int TotalFeedbackCount { get; set; }
-        public int TotalPatternCount { get; set; }
-        public double AverageFeedbackRating { get; set; }
-        public List<CodePattern> TopPatterns { get; set; } = new List<CodePattern>();
-        public Dictionary<string, int> FeedbackByType { get; set; } = new Dictionary<string, int>();
-        public Dictionary<int, int> FeedbackByRating { get; set; } = new Dictionary<int, int>();
-    }
+/// <summary>
+/// Represents learning statistics
+/// </summary>
+public class LearningStatistics
+{
+    public int TotalFeedbackCount { get; set; }
+    public int TotalPatternCount { get; set; }
+    public double AverageFeedbackRating { get; set; }
+    public List<CodePattern> TopPatterns { get; set; } = [];
+    public Dictionary<string, int> FeedbackByType { get; set; } = new Dictionary<string, int>();
+    public Dictionary<int, int> FeedbackByRating { get; set; } = new Dictionary<int, int>();
 }

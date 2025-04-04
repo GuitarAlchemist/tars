@@ -1,6 +1,5 @@
 using System.Text;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using Markdig;
 using Markdig.Syntax;
 using Markdig.Syntax.Inlines;

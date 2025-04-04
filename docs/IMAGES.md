@@ -6,9 +6,15 @@ This document provides information about the images used in the TARS project doc
 ## Logo
 --------
 
-![TARS Logo](images/tars_logo.svg)
+![TARS AI Logo](images/ChatGPT Image Mar 29, 2025, 10_57_07 AM.png)
 
-The TARS logo represents the core identity of the Transformative Autonomous Reasoning System. The circular design with intersecting lines symbolizes the interconnected nature of the system's components and its ability to process information from multiple sources.
+The TARS AI logo represents the advanced artificial intelligence capabilities of the Transformative Autonomous Reasoning System. The humanoid AI figure with Earth in the background symbolizes TARS's role as an intelligent assistant with a global perspective and understanding.
+
+### Previous Logo
+
+![TARS Original Logo](images/tars_logo.svg)
+
+The original TARS logo featured a circular design with intersecting lines, symbolizing the interconnected nature of the system's components and its ability to process information from multiple sources.
 
 ## Architecture
 -------------
@@ -32,7 +38,7 @@ The connections between components show the flow of information and control with
 ## Bifurcation
 -------------
 
-![TARS Bifurcation](images/tars_fractal.svg)
+![TARS Bifurcation](images/ChatGPT Image Mar 29, 2025, 10_55_18 AM.png)
 
 The bifurcation/fractal image represents the self-improving nature of TARS:
 

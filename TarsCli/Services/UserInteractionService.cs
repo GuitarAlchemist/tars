@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using System.Security;
 
 namespace TarsCli.Services;

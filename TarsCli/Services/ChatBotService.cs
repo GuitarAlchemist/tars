@@ -1,6 +1,5 @@
 using System.Text;
 using System.Text.Json;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 
 namespace TarsCli.Services;
@@ -15,7 +14,7 @@ public class ChatBotService
     private readonly OllamaService _ollamaService;
     private readonly TarsSpeechService _speechService;
     private readonly string _historyDirectory;
-    private readonly List<ChatMessage> _currentConversation = new();
+    private readonly List<ChatMessage> _currentConversation = [];
     private string _currentModel = "llama3";
     private bool _speechEnabled = false;
 
@@ -189,7 +188,7 @@ public class ChatBotService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting conversation history files");
-            return new List<string>();
+            return [];
         }
     }
 
@@ -224,8 +223,8 @@ public class ChatBotService
     /// </summary>
     public List<string> GetExamplePrompts()
     {
-        return new List<string>
-        {
+        return
+        [
             "Hello, how are you today?",
             "What is the capital of France?",
             "Write a short poem about artificial intelligence.",
@@ -236,7 +235,7 @@ public class ChatBotService
             "What's the difference between machine learning and deep learning?",
             "Can you help me debug this code: Console.WriteLine('Hello, World!');",
             "What are some best practices for writing clean code?"
-        };
+        ];
     }
 }
 

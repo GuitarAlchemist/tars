@@ -30,6 +30,7 @@ module Ast =
         | For
         | While
         | Function
+        | Call
         | Return
         | Import
         | Export

@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 
 namespace TarsCli.Mcp;
 
@@ -167,7 +166,7 @@ public class McpController
             else
             {
                 // Parse direct parameters (filePath:::content format)
-                var parts = codeSpec.Split(new[] { ":::" }, 2, StringSplitOptions.None);
+                var parts = codeSpec.Split([":::"], 2, StringSplitOptions.None);
                 if (parts.Length != 2)
                 {
                     return "Invalid code specification format. Use filePath:::content format.";

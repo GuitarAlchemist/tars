@@ -1,5 +1,3 @@
-using System.CommandLine;
-using Microsoft.Extensions.Logging;
 using TarsCli.Services;
 
 namespace TarsCli.Commands;
@@ -28,25 +26,25 @@ public class AutoImproveCommand : Command
 
         // Add options
         var timeOption = new Option<int>(
-            new[] { "--time", "-t" },
+            ["--time", "-t"],
             () => 60,
             "Time limit in minutes");
 
         var modelOption = new Option<string>(
-            new[] { "--model", "-m" },
+            ["--model", "-m"],
             () => "llama3",
             "Model to use for improvements");
 
         var statusOption = new Option<bool>(
-            new[] { "--status", "-s" },
+            ["--status", "-s"],
             "Show status of the autonomous improvement process");
 
         var stopOption = new Option<bool>(
-            new[] { "--stop" },
+            ["--stop"],
             "Stop the autonomous improvement process");
 
         var reportOption = new Option<bool>(
-            new[] { "--report", "-r" },
+            ["--report", "-r"],
             "Generate a report of the autonomous improvement process");
 
         // Add options to command

@@ -1,8 +1,4 @@
-using System.CommandLine;
-using System.CommandLine.Invocation;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using TarsCli.Constants;
 using TarsCli.Services;
 
 namespace TarsCli.Commands;
@@ -66,7 +62,7 @@ public class DockerModelRunnerCommand : Command
 
                     // Display models in a table format
                     consoleService.WriteTable(
-                        new[] { "ID", "Owner", "Created" },
+                        ["ID", "Owner", "Created"],
                         models.Select(m => new[]
                         {
                             m.Id,

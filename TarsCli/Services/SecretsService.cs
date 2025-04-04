@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 
 namespace TarsCli.Services;
 
@@ -115,12 +114,12 @@ public class SecretsService
         try
         {
             var secrets = await LoadSecretsAsync();
-            return new List<string>(secrets.Keys);
+            return [..secrets.Keys];
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error listing secret keys");
-            return new List<string>();
+            return [];
         }
     }
 
