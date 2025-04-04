@@ -9,6 +9,14 @@
     <Compile Include="LearningDatabase.fs" />
     <Compile Include="PatternRecognition.fs" />
     <Compile Include="RetroactionLoop.fs" />
+    <Compile Include="WorkflowState.fs" />
+    <Compile Include="WorkflowScheduler.fs" />
+    <Compile Include="WorkflowEngine.fs" />
+    <Compile Include="KnowledgeExtractionStep.fs" />
+    <Compile Include="CodeAnalysisStep.fs" />
+    <Compile Include="ImprovementApplicationStep.fs" />
+    <Compile Include="FeedbackCollectionStep.fs" />
+    <Compile Include="ReportingStep.fs" />
     <Compile Include="Library.fs" />
   </ItemGroup>
 

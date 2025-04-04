@@ -91,6 +91,7 @@ internal static class Program
                 .AddSingleton<DocumentationKnowledgeService>()
                 .AddSingleton<KnowledgeVisualizationService>()
                 .AddSingleton<KnowledgeTestGenerationService>()
+                .AddSingleton<AutonomousImprovementService>()
                 .AddSingleton<TarsEngine.Services.Interfaces.ICodeAnalysisService, TarsEngine.Services.CodeAnalysisService>()
                 .AddSingleton<TarsEngine.Services.Interfaces.IProjectAnalysisService, TarsEngine.Services.ProjectAnalysisService>()
                 .AddSingleton<TarsEngine.Services.Interfaces.ILlmService, TarsEngine.Services.LlmService>()
