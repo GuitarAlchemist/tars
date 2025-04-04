@@ -1,8 +1,9 @@
 DESCRIBE {
     name: "TARS Documentation Knowledge Extraction"
-    version: "1.0"
+    version: "1.1"
     author: "TARS Team"
     description: "A metascript for extracting knowledge from TARS documentation and applying it to improve the codebase"
+    tags: ["documentation", "knowledge-extraction", "retroaction-loop", "self-improvement"]
 }
 
 CONFIG {
@@ -28,6 +29,27 @@ VARIABLE reflections_dir {
     value: "${explorations_dir}/Reflections"
 }
 
+VARIABLE features_dir {
+    value: "${docs_dir}/features"
+}
+
+VARIABLE architecture_dir {
+    value: "${docs_dir}/architecture"
+}
+
+VARIABLE tutorials_dir {
+    value: "${docs_dir}/tutorials"
+}
+
+// Define file priority categories
+VARIABLE priority_keywords {
+    value: {
+        "high": ["architecture", "design", "pattern", "best practice", "improvement", "retroaction", "self-improvement", "metascript"],
+        "medium": ["tutorial", "guide", "example", "feature", "implementation", "code"],
+        "low": ["exploration", "chat", "discussion", "idea", "concept"]
+    }
+}
+
 VARIABLE knowledge_base_file {
     value: "knowledge_base.json"
 }
@@ -50,7 +72,7 @@ IF {
             type: "log"
             message: "Initializing extraction state..."
         }
-        
+
         VARIABLE initial_state {
             value: {
                 "processed_files": [],
@@ -62,7 +84,7 @@ IF {
                 "last_updated": "${new Date().toISOString()}"
             }
         }
-        
+
         ACTION {
             type: "file_write"
             path: "${extraction_state_file}"
@@ -85,7 +107,7 @@ IF {
             type: "log"
             message: "Initializing knowledge base..."
         }
-        
+
         VARIABLE initial_kb {
             value: {
                 "patterns": [],
@@ -96,7 +118,7 @@ IF {
                 "last_updated": "${new Date().toISOString()}"
             }
         }
-        
+
         ACTION {
             type: "file_write"
             path: "${knowledge_base_file}"
@@ -130,131 +152,372 @@ VARIABLE knowledge_base {
 // Function to extract knowledge from a markdown file
 FUNCTION extract_knowledge_from_file {
     parameters: ["file_path"]
-    
+
     ACTION {
         type: "log"
         message: "Extracting knowledge from ${file_path}..."
     }
-    
+
     ACTION {
         type: "file_read"
         path: "${file_path}"
         output_variable: "file_content"
     }
-    
+
     // Determine the file type based on path
     VARIABLE file_type {
-        value: "${file_path.includes('/Chats/') ? 'chat' : (file_path.includes('/Reflections/') ? 'reflection' : 'documentation')}"
+        value: "${file_path.includes('/Chats/') ? 'chat' :
+               (file_path.includes('/Reflections/') ? 'reflection' :
+               (file_path.includes('/features/') ? 'feature' :
+               (file_path.includes('/architecture/') ? 'architecture' :
+               (file_path.includes('/tutorials/') ? 'tutorial' : 'documentation'))))}"
     }
-    
-    // Extract knowledge using LLM with a prompt tailored to the file type
-    PROMPT {
-        text: "You are an expert at extracting structured knowledge from software documentation. 
-        
-        I'll provide you with the content of a ${file_type} file from the TARS project. Please extract key insights, patterns, and best practices that could be used to improve code.
-        
-        Focus on:
-        1. Code patterns and anti-patterns
-        2. Best practices for software development
-        3. Architecture insights
-        4. Improvement strategies
-        5. Concrete code examples
-        
-        Format your response as a JSON object with the following structure:
-        {
-          \"patterns\": [
-            {\"name\": \"pattern name\", \"description\": \"pattern description\", \"context\": \"language or framework\", \"example\": \"code example\"}
-          ],
-          \"best_practices\": [
-            {\"name\": \"practice name\", \"description\": \"practice description\", \"context\": \"language or framework\"}
-          ],
-          \"code_examples\": [
-            {\"description\": \"example description\", \"code\": \"code snippet\", \"language\": \"programming language\"}
-          ],
-          \"improvement_strategies\": [
-            {\"name\": \"strategy name\", \"description\": \"strategy description\", \"applicability\": \"when to apply\"}
-          ],
-          \"architecture_insights\": [
-            {\"name\": \"insight name\", \"description\": \"insight description\", \"context\": \"applicable context\"}
-          ]
+
+    // Create a prompt tailored to the file type
+    VARIABLE prompt_text {
+        value: ""
+    }
+
+    IF {
+        condition: "${file_type === 'chat'}"
+        then: {
+            VARIABLE prompt_text {
+                value: "You are an expert at extracting structured knowledge from software development chat transcripts.
+
+                I'll provide you with the content of a chat transcript from the TARS project. Please extract key insights, patterns, and best practices that could be used to improve code.
+
+                Focus on:
+                1. Code patterns and anti-patterns mentioned in the conversation
+                2. Best practices for software development discussed
+                3. Architecture insights and design decisions
+                4. Improvement strategies suggested
+                5. Concrete code examples shared
+
+                Ignore casual conversation, greetings, and other non-technical content. Focus only on extracting actionable technical knowledge.
+
+                Format your response as a JSON object with the following structure:
+                {
+                  \"patterns\": [
+                    {\"name\": \"pattern name\", \"description\": \"pattern description\", \"context\": \"language or framework\", \"example\": \"code example\"}
+                  ],
+                  \"best_practices\": [
+                    {\"name\": \"practice name\", \"description\": \"practice description\", \"context\": \"language or framework\"}
+                  ],
+                  \"code_examples\": [
+                    {\"description\": \"example description\", \"code\": \"code snippet\", \"language\": \"programming language\"}
+                  ],
+                  \"improvement_strategies\": [
+                    {\"name\": \"strategy name\", \"description\": \"strategy description\", \"applicability\": \"when to apply\"}
+                  ],
+                  \"architecture_insights\": [
+                    {\"name\": \"insight name\", \"description\": \"insight description\", \"context\": \"applicable context\"}
+                  ]
+                }
+
+                Here's the chat transcript content:
+
+                ${file_content}"
+            }
         }
-        
-        Here's the ${file_type} content:
-        
-        ${file_content}"
-        
+    }
+
+    IF {
+        condition: "${file_type === 'reflection'}"
+        then: {
+            VARIABLE prompt_text {
+                value: "You are an expert at extracting structured knowledge from software development reflections and analyses.
+
+                I'll provide you with the content of a reflection document from the TARS project. Please extract key insights, patterns, and best practices that could be used to improve code.
+
+                Focus on:
+                1. Deep insights about code architecture and design
+                2. Lessons learned and retrospective analyses
+                3. Identified patterns and anti-patterns
+                4. Strategic improvement suggestions
+                5. High-level architectural principles
+
+                Format your response as a JSON object with the following structure:
+                {
+                  \"patterns\": [
+                    {\"name\": \"pattern name\", \"description\": \"pattern description\", \"context\": \"language or framework\", \"example\": \"code example\"}
+                  ],
+                  \"best_practices\": [
+                    {\"name\": \"practice name\", \"description\": \"practice description\", \"context\": \"language or framework\"}
+                  ],
+                  \"code_examples\": [
+                    {\"description\": \"example description\", \"code\": \"code snippet\", \"language\": \"programming language\"}
+                  ],
+                  \"improvement_strategies\": [
+                    {\"name\": \"strategy name\", \"description\": \"strategy description\", \"applicability\": \"when to apply\"}
+                  ],
+                  \"architecture_insights\": [
+                    {\"name\": \"insight name\", \"description\": \"insight description\", \"context\": \"applicable context\"}
+                  ]
+                }
+
+                Here's the reflection document content:
+
+                ${file_content}"
+            }
+        }
+    }
+
+    IF {
+        condition: "${file_type === 'feature'}"
+        then: {
+            VARIABLE prompt_text {
+                value: "You are an expert at extracting structured knowledge from software feature documentation.
+
+                I'll provide you with the content of a feature documentation file from the TARS project. Please extract key insights, patterns, and best practices that could be used to implement similar features.
+
+                Focus on:
+                1. Implementation patterns for the described features
+                2. Best practices for feature implementation
+                3. Architecture considerations for the features
+                4. Integration strategies with other components
+                5. Code examples and implementation details
+
+                Format your response as a JSON object with the following structure:
+                {
+                  \"patterns\": [
+                    {\"name\": \"pattern name\", \"description\": \"pattern description\", \"context\": \"language or framework\", \"example\": \"code example\"}
+                  ],
+                  \"best_practices\": [
+                    {\"name\": \"practice name\", \"description\": \"practice description\", \"context\": \"language or framework\"}
+                  ],
+                  \"code_examples\": [
+                    {\"description\": \"example description\", \"code\": \"code snippet\", \"language\": \"programming language\"}
+                  ],
+                  \"improvement_strategies\": [
+                    {\"name\": \"strategy name\", \"description\": \"strategy description\", \"applicability\": \"when to apply\"}
+                  ],
+                  \"architecture_insights\": [
+                    {\"name\": \"insight name\", \"description\": \"insight description\", \"context\": \"applicable context\"}
+                  ]
+                }
+
+                Here's the feature documentation content:
+
+                ${file_content}"
+            }
+        }
+    }
+
+    IF {
+        condition: "${file_type === 'architecture'}"
+        then: {
+            VARIABLE prompt_text {
+                value: "You are an expert at extracting structured knowledge from software architecture documentation.
+
+                I'll provide you with the content of an architecture documentation file from the TARS project. Please extract key insights, patterns, and best practices that could be used to implement similar architectures.
+
+                Focus on:
+                1. Architectural patterns and principles
+                2. Component relationships and interactions
+                3. Design decisions and their rationales
+                4. Scalability and performance considerations
+                5. Implementation guidelines for the architecture
+
+                Format your response as a JSON object with the following structure:
+                {
+                  \"patterns\": [
+                    {\"name\": \"pattern name\", \"description\": \"pattern description\", \"context\": \"language or framework\", \"example\": \"code example\"}
+                  ],
+                  \"best_practices\": [
+                    {\"name\": \"practice name\", \"description\": \"practice description\", \"context\": \"language or framework\"}
+                  ],
+                  \"code_examples\": [
+                    {\"description\": \"example description\", \"code\": \"code snippet\", \"language\": \"programming language\"}
+                  ],
+                  \"improvement_strategies\": [
+                    {\"name\": \"strategy name\", \"description\": \"strategy description\", \"applicability\": \"when to apply\"}
+                  ],
+                  \"architecture_insights\": [
+                    {\"name\": \"insight name\", \"description\": \"insight description\", \"context\": \"applicable context\"}
+                  ]
+                }
+
+                Here's the architecture documentation content:
+
+                ${file_content}"
+            }
+        }
+    }
+
+    IF {
+        condition: "${file_type === 'tutorial'}"
+        then: {
+            VARIABLE prompt_text {
+                value: "You are an expert at extracting structured knowledge from software tutorials.
+
+                I'll provide you with the content of a tutorial from the TARS project. Please extract key insights, patterns, and best practices that could be used to implement similar functionality.
+
+                Focus on:
+                1. Step-by-step implementation patterns
+                2. Best practices demonstrated in the tutorial
+                3. Code examples and their explanations
+                4. Common pitfalls and how to avoid them
+                5. Integration with other components
+
+                Format your response as a JSON object with the following structure:
+                {
+                  \"patterns\": [
+                    {\"name\": \"pattern name\", \"description\": \"pattern description\", \"context\": \"language or framework\", \"example\": \"code example\"}
+                  ],
+                  \"best_practices\": [
+                    {\"name\": \"practice name\", \"description\": \"practice description\", \"context\": \"language or framework\"}
+                  ],
+                  \"code_examples\": [
+                    {\"description\": \"example description\", \"code\": \"code snippet\", \"language\": \"programming language\"}
+                  ],
+                  \"improvement_strategies\": [
+                    {\"name\": \"strategy name\", \"description\": \"strategy description\", \"applicability\": \"when to apply\"}
+                  ],
+                  \"architecture_insights\": [
+                    {\"name\": \"insight name\", \"description\": \"insight description\", \"context\": \"applicable context\"}
+                  ]
+                }
+
+                Here's the tutorial content:
+
+                ${file_content}"
+            }
+        }
+    }
+
+    IF {
+        condition: "${file_type === 'documentation'}"
+        then: {
+            VARIABLE prompt_text {
+                value: "You are an expert at extracting structured knowledge from software documentation.
+
+                I'll provide you with the content of a documentation file from the TARS project. Please extract key insights, patterns, and best practices that could be used to improve code.
+
+                Focus on:
+                1. Code patterns and anti-patterns
+                2. Best practices for software development
+                3. Architecture insights
+                4. Improvement strategies
+                5. Concrete code examples
+
+                Format your response as a JSON object with the following structure:
+                {
+                  \"patterns\": [
+                    {\"name\": \"pattern name\", \"description\": \"pattern description\", \"context\": \"language or framework\", \"example\": \"code example\"}
+                  ],
+                  \"best_practices\": [
+                    {\"name\": \"practice name\", \"description\": \"practice description\", \"context\": \"language or framework\"}
+                  ],
+                  \"code_examples\": [
+                    {\"description\": \"example description\", \"code\": \"code snippet\", \"language\": \"programming language\"}
+                  ],
+                  \"improvement_strategies\": [
+                    {\"name\": \"strategy name\", \"description\": \"strategy description\", \"applicability\": \"when to apply\"}
+                  ],
+                  \"architecture_insights\": [
+                    {\"name\": \"insight name\", \"description\": \"insight description\", \"context\": \"applicable context\"}
+                  ]
+                }
+
+                Here's the documentation content:
+
+                ${file_content}"
+            }
+        }
+    }
+
+    // Extract knowledge using LLM with the tailored prompt
+    PROMPT {
+        text: "${prompt_text}"
         model: "llama3"
         temperature: 0.2
         max_tokens: 3000
         output_variable: "extracted_knowledge_text"
     }
-    
+
     // Parse the extracted knowledge
     VARIABLE extracted_knowledge {
         value: "${JSON.parse(extracted_knowledge_text)}"
     }
-    
-    // Return the extracted knowledge
+
+    // Add metadata about the source
+    FSHARP {
+        let knowledge = extracted_knowledge
+        let filePath = file_path
+        let fileType = file_type
+
+        // Add metadata
+        let knowledgeWithMeta = knowledge
+        knowledgeWithMeta?source_file <- filePath
+        knowledgeWithMeta?file_type <- fileType
+        knowledgeWithMeta?extraction_timestamp <- System.DateTime.UtcNow.ToString("o")
+
+        knowledgeWithMeta
+
+        output_variable: "knowledge_with_meta"
+    }
+
+    // Return the extracted knowledge with metadata
     RETURN {
-        value: "${extracted_knowledge}"
+        value: "${knowledge_with_meta}"
     }
 }
 
 // Function to update the knowledge base with new knowledge
 FUNCTION update_knowledge_base {
     parameters: ["new_knowledge", "file_path"]
-    
+
     ACTION {
         type: "log"
         message: "Updating knowledge base with insights from ${file_path}..."
     }
-    
+
     // Add source information to each knowledge item
     FSHARP {
         let knowledge = new_knowledge
         let filePath = file_path
         let fileName = System.IO.Path.GetFileName(filePath)
-        
+
         // Add source to patterns
-        let patternsWithSource = 
+        let patternsWithSource =
             knowledge.patterns
-            |> Array.map (fun pattern -> 
+            |> Array.map (fun pattern ->
                 let patternWithSource = pattern
                 patternWithSource?source <- fileName
                 patternWithSource)
-        
+
         // Add source to best practices
-        let practicesWithSource = 
+        let practicesWithSource =
             knowledge.best_practices
-            |> Array.map (fun practice -> 
+            |> Array.map (fun practice ->
                 let practiceWithSource = practice
                 practiceWithSource?source <- fileName
                 practiceWithSource)
-        
+
         // Add source to code examples
-        let examplesWithSource = 
+        let examplesWithSource =
             knowledge.code_examples
-            |> Array.map (fun example -> 
+            |> Array.map (fun example ->
                 let exampleWithSource = example
                 exampleWithSource?source <- fileName
                 exampleWithSource)
-        
+
         // Add source to improvement strategies
-        let strategiesWithSource = 
+        let strategiesWithSource =
             knowledge.improvement_strategies
-            |> Array.map (fun strategy -> 
+            |> Array.map (fun strategy ->
                 let strategyWithSource = strategy
                 strategyWithSource?source <- fileName
                 strategyWithSource)
-        
+
         // Add source to architecture insights
-        let insightsWithSource = 
+        let insightsWithSource =
             knowledge.architecture_insights
-            |> Array.map (fun insight -> 
+            |> Array.map (fun insight ->
                 let insightWithSource = insight
                 insightWithSource?source <- fileName
                 insightWithSource)
-        
+
         // Create updated knowledge
         let updatedKnowledge = knowledge
         updatedKnowledge?patterns <- patternsWithSource
@@ -262,32 +525,32 @@ FUNCTION update_knowledge_base {
         updatedKnowledge?code_examples <- examplesWithSource
         updatedKnowledge?improvement_strategies <- strategiesWithSource
         updatedKnowledge?architecture_insights <- insightsWithSource
-        
+
         updatedKnowledge
-        
+
         output_variable: "knowledge_with_source"
     }
-    
+
     // Merge with existing knowledge base
     FSHARP {
         let kb = knowledge_base
         let newKnowledge = knowledge_with_source
-        
+
         // Merge patterns
         let allPatterns = Array.append kb.patterns newKnowledge.patterns
-        
+
         // Merge best practices
         let allPractices = Array.append kb.best_practices newKnowledge.best_practices
-        
+
         // Merge code examples
         let allExamples = Array.append kb.code_examples newKnowledge.code_examples
-        
+
         // Merge improvement strategies
         let allStrategies = Array.append kb.improvement_strategies newKnowledge.improvement_strategies
-        
+
         // Merge architecture insights
         let allInsights = Array.append kb.architecture_insights newKnowledge.architecture_insights
-        
+
         // Create updated knowledge base
         let updatedKb = kb
         updatedKb?patterns <- allPatterns
@@ -296,12 +559,12 @@ FUNCTION update_knowledge_base {
         updatedKb?improvement_strategies <- allStrategies
         updatedKb?architecture_insights <- allInsights
         updatedKb?last_updated <- System.DateTime.UtcNow.ToString("o")
-        
+
         updatedKb
-        
+
         output_variable: "updated_kb"
     }
-    
+
     // Return the updated knowledge base
     RETURN {
         value: "${updated_kb}"
@@ -311,35 +574,35 @@ FUNCTION update_knowledge_base {
 // Function to convert knowledge to RetroactionLoop patterns
 FUNCTION convert_to_retroaction_patterns {
     parameters: ["knowledge_base"]
-    
+
     ACTION {
         type: "log"
         message: "Converting knowledge to RetroactionLoop patterns..."
     }
-    
+
     VARIABLE retroaction_patterns {
         value: []
     }
-    
+
     // Convert patterns to RetroactionLoop patterns
     FSHARP {
         let kb = knowledge_base
         let patterns = kb.patterns
-        
+
         // Convert each pattern to a RetroactionLoop pattern
-        let retroactionPatterns = 
+        let retroactionPatterns =
             patterns
-            |> Array.filter (fun pattern -> 
-                pattern?example <> null && 
-                pattern?example <> "" && 
-                pattern?description <> null && 
+            |> Array.filter (fun pattern ->
+                pattern?example <> null &&
+                pattern?example <> "" &&
+                pattern?description <> null &&
                 pattern?description <> "")
-            |> Array.map (fun pattern -> 
+            |> Array.map (fun pattern ->
                 let name = if pattern?name <> null then pattern?name else "Unnamed Pattern"
                 let description = pattern?description
                 let context = if pattern?context <> null then pattern?context else "CSharp"
                 let example = pattern?example
-                
+
                 // Create a simple pattern and replacement
                 // In a real implementation, this would be more sophisticated
                 {|
@@ -349,12 +612,12 @@ FUNCTION convert_to_retroaction_patterns {
                     replacement = example // This is a placeholder - in reality, we'd generate a better replacement
                     context = context
                 |})
-        
+
         retroactionPatterns
-        
+
         output_variable: "retroaction_patterns"
     }
-    
+
     // Return the RetroactionLoop patterns
     RETURN {
         value: "${retroaction_patterns}"
@@ -378,39 +641,209 @@ ACTION {
     output_variable: "reflection_files"
 }
 
+ACTION {
+    type: "list_files"
+    path: "${features_dir}"
+    pattern: "*.md"
+    recursive: true
+    output_variable: "feature_files"
+}
+
+ACTION {
+    type: "list_files"
+    path: "${architecture_dir}"
+    pattern: "*.md"
+    recursive: true
+    output_variable: "architecture_files"
+}
+
+ACTION {
+    type: "list_files"
+    path: "${tutorials_dir}"
+    pattern: "*.md"
+    recursive: true
+    output_variable: "tutorial_files"
+}
+
 // Combine all files
 FSHARP {
     let chatFiles = chat_files
     let reflectionFiles = reflection_files
-    Array.append chatFiles reflectionFiles
-    
+    let featureFiles = feature_files
+    let architectureFiles = architecture_files
+    let tutorialFiles = tutorial_files
+
+    // Combine all files
+    let allFiles =
+        Array.concat [
+            chatFiles
+            reflectionFiles
+            featureFiles
+            architectureFiles
+            tutorialFiles
+        ]
+
+    allFiles
+
     output_variable: "all_files"
+}
+
+// Function to calculate file priority based on content and path
+FUNCTION calculate_file_priority {
+    parameters: ["file_path"]
+
+    ACTION {
+        type: "log"
+        message: "Calculating priority for ${file_path}..."
+    }
+
+    // Read the file content
+    ACTION {
+        type: "file_read"
+        path: "${file_path}"
+        output_variable: "file_content"
+    }
+
+    // Calculate priority based on keywords and path
+    FSHARP {
+        let filePath = file_path
+        let fileContent = file_content
+        let priorityKeywords = priority_keywords
+
+        // Helper function to count occurrences of keywords in text
+        let countKeywords (text: string) (keywords: string array) =
+            keywords
+            |> Array.sumBy (fun keyword ->
+                let count =
+                    System.Text.RegularExpressions.Regex.Matches(
+                        text.ToLower(),
+                        sprintf "\\b%s\\b" (keyword.ToLower())
+                    ).Count
+                count)
+
+        // Calculate scores for each priority level
+        let highScore = countKeywords fileContent priorityKeywords?high
+        let mediumScore = countKeywords fileContent priorityKeywords?medium
+        let lowScore = countKeywords fileContent priorityKeywords?low
+
+        // Add path-based priority
+        let pathBasedPriority =
+            if filePath.Contains("architecture") then 30
+            elif filePath.Contains("features") then 20
+            elif filePath.Contains("tutorials") then 15
+            elif filePath.Contains("Reflections") then 10
+            elif filePath.Contains("Chats") then 5
+            else 0
+
+        // Calculate final priority score
+        let priorityScore = highScore * 3 + mediumScore * 2 + lowScore + pathBasedPriority
+
+        // Create priority object
+        let priority = {|
+            file_path = filePath
+            score = priorityScore
+            high_keywords = highScore
+            medium_keywords = mediumScore
+            low_keywords = lowScore
+            path_priority = pathBasedPriority
+        |}
+
+        priority
+
+        output_variable: "priority"
+    }
+
+    // Return the priority
+    RETURN {
+        value: "${priority}"
+    }
 }
 
 // Filter out already processed files
 FSHARP {
     let allFiles = all_files
     let processedFiles = state.processed_files
-    
+
     // Filter out files that have already been processed
-    let pendingFiles = 
+    let pendingFiles =
         allFiles
-        |> Array.filter (fun file -> 
+        |> Array.filter (fun file ->
             not (Array.contains file processedFiles))
-    
+
     pendingFiles
-    
+
     output_variable: "pending_files"
+}
+
+// Calculate priority for each pending file
+VARIABLE file_priorities {
+    value: []
+}
+
+FOREACH {
+    items: "${pending_files}"
+    item_variable: "pending_file"
+    max_items: 20 // Limit to 20 files for priority calculation to avoid long processing times
+
+    // Calculate priority for this file
+    ACTION {
+        type: "execute"
+        function: "calculate_file_priority"
+        parameters: {
+            file_path: "${pending_file}"
+        }
+        output_variable: "file_priority"
+    }
+
+    // Add to file_priorities
+    FSHARP {
+        let currentPriorities = file_priorities
+        let newPriority = file_priority
+
+        let updatedPriorities = Array.append currentPriorities [| newPriority |]
+        updatedPriorities
+
+        output_variable: "file_priorities"
+    }
+}
+
+// Sort files by priority
+FSHARP {
+    let priorities = file_priorities
+
+    // Sort by score in descending order
+    let sortedPriorities =
+        priorities
+        |> Array.sortByDescending (fun p -> p?score)
+
+    // Extract file paths
+    let sortedFiles =
+        sortedPriorities
+        |> Array.map (fun p -> p?file_path)
+
+    // Log the top priorities
+    let topPriorities =
+        sortedPriorities
+        |> Array.truncate (min 5 sortedPriorities.Length)
+        |> Array.map (fun p -> sprintf "%s (score: %d)" p?file_path p?score)
+        |> String.concat "\n  "
+
+    System.Console.WriteLine(sprintf "Top priority files:\n  %s" topPriorities)
+
+    sortedFiles
+
+    output_variable: "prioritized_files"
 }
 
 // Update the state with pending files
 FSHARP {
     let currentState = state
     currentState?pending_files <- pending_files
+    currentState?prioritized_files <- prioritized_files
     currentState?last_updated <- System.DateTime.UtcNow.ToString("o")
-    
+
     currentState
-    
+
     output_variable: "updated_state"
 }
 
@@ -426,16 +859,16 @@ VARIABLE max_files_to_process {
 }
 
 FSHARP {
-    let pendingFiles = pending_files
+    let prioritizedFiles = prioritized_files
     let maxFiles = max_files_to_process
-    
+
     // Take up to max_files_to_process files
-    let filesToProcess = 
-        pendingFiles
+    let filesToProcess =
+        prioritizedFiles
         |> Array.truncate maxFiles
-    
+
     filesToProcess
-    
+
     output_variable: "files_to_process"
 }
 
@@ -443,24 +876,24 @@ FSHARP {
 FOREACH {
     items: "${files_to_process}"
     item_variable: "file_path"
-    
+
     // Update state to show current file
     FSHARP {
         let currentState = updated_state
         currentState?current_file <- file_path
         currentState?last_updated <- System.DateTime.UtcNow.ToString("o")
-        
+
         currentState
-        
+
         output_variable: "current_state"
     }
-    
+
     ACTION {
         type: "file_write"
         path: "${extraction_state_file}"
         content: "${JSON.stringify(current_state, null, 2)}"
     }
-    
+
     // Extract knowledge from the file
     ACTION {
         type: "execute"
@@ -470,7 +903,7 @@ FOREACH {
         }
         output_variable: "extracted_knowledge"
     }
-    
+
     // Update the knowledge base
     ACTION {
         type: "execute"
@@ -481,40 +914,40 @@ FOREACH {
         }
         output_variable: "updated_knowledge_base"
     }
-    
+
     // Save the updated knowledge base
     ACTION {
         type: "file_write"
         path: "${knowledge_base_file}"
         content: "${JSON.stringify(updated_knowledge_base, null, 2)}"
     }
-    
+
     // Update state to mark file as processed
     FSHARP {
         let currentState = current_state
-        
+
         // Add file to processed files
         let processedFiles = currentState.processed_files
         let newProcessedFiles = Array.append processedFiles [| file_path |]
         currentState?processed_files <- newProcessedFiles
-        
+
         // Remove file from pending files
         let pendingFiles = currentState.pending_files
-        let newPendingFiles = 
+        let newPendingFiles =
             pendingFiles
             |> Array.filter (fun f -> f <> file_path)
         currentState?pending_files <- newPendingFiles
-        
+
         // Update last processed file
         currentState?last_processed_file <- file_path
-        
+
         // Update knowledge entries count
-        currentState?knowledge_entries <- updated_knowledge_base.patterns.Length + 
-                                         updated_knowledge_base.best_practices.Length + 
-                                         updated_knowledge_base.code_examples.Length + 
-                                         updated_knowledge_base.improvement_strategies.Length + 
+        currentState?knowledge_entries <- updated_knowledge_base.patterns.Length +
+                                         updated_knowledge_base.best_practices.Length +
+                                         updated_knowledge_base.code_examples.Length +
+                                         updated_knowledge_base.improvement_strategies.Length +
                                          updated_knowledge_base.architecture_insights.Length
-        
+
         // Add to extraction history
         let historyEntry = {|
             file_path = file_path
@@ -525,25 +958,25 @@ FOREACH {
             strategies_extracted = extracted_knowledge.improvement_strategies.Length
             insights_extracted = extracted_knowledge.architecture_insights.Length
         |}
-        
+
         let extractionHistory = currentState.extraction_history
         let newExtractionHistory = Array.append extractionHistory [| historyEntry |]
         currentState?extraction_history <- newExtractionHistory
-        
+
         // Update timestamp
         currentState?last_updated <- System.DateTime.UtcNow.ToString("o")
-        
+
         currentState
-        
+
         output_variable: "updated_state"
     }
-    
+
     ACTION {
         type: "file_write"
         path: "${extraction_state_file}"
         content: "${JSON.stringify(updated_state, null, 2)}"
     }
-    
+
     // Add a small delay to avoid overloading the system
     ACTION {
         type: "sleep"
@@ -575,7 +1008,7 @@ VARIABLE timestamp {
 
 VARIABLE report_content {
     value: "# TARS Documentation Knowledge Extraction Report
-    
+
 ## Summary
 - **Date:** ${new Date().toLocaleString()}
 - **Total Files Processed:** ${updated_state.processed_files.length}
