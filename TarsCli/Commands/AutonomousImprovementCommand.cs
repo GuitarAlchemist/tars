@@ -37,6 +37,10 @@ public class AutonomousImprovementCommand : Command
             ["--status", "-t"],
             "Get the status of the autonomous improvement workflow");
 
+        var reportOption = new Option<bool>(
+            ["--report", "-r"],
+            "Get a detailed report of the autonomous improvement workflow");
+
         var nameOption = new Option<string>(
             ["--name", "-n"],
             () => "TARS Autonomous Improvement",
@@ -60,22 +64,23 @@ public class AutonomousImprovementCommand : Command
         AddOption(startOption);
         AddOption(stopOption);
         AddOption(statusOption);
+        AddOption(reportOption);
         AddOption(nameOption);
         AddOption(directoriesOption);
         AddOption(maxDurationOption);
         AddOption(maxImprovementsOption);
 
         // Set the handler
-        this.SetHandler(async (start, stop, status, name, directories, maxDuration, maxImprovements) =>
+        this.SetHandler(async (start, stop, status, report, name, directories, maxDuration, maxImprovements) =>
         {
-            await HandleCommandAsync(start, stop, status, name, directories, maxDuration, maxImprovements);
-        }, startOption, stopOption, statusOption, nameOption, directoriesOption, maxDurationOption, maxImprovementsOption);
+            await HandleCommandAsync(start, stop, status, report, name, directories, maxDuration, maxImprovements);
+        }, startOption, stopOption, statusOption, reportOption, nameOption, directoriesOption, maxDurationOption, maxImprovementsOption);
     }
 
     /// <summary>
     /// Handles the command execution
     /// </summary>
-    private async Task HandleCommandAsync(bool start, bool stop, bool status, string name, List<string> directories, int maxDuration, int maxImprovements)
+    private async Task HandleCommandAsync(bool start, bool stop, bool status, bool report, string name, List<string>? directories, int maxDuration, int maxImprovements)
     {
         try
         {
@@ -118,50 +123,16 @@ public class AutonomousImprovementCommand : Command
             // Get the status of the workflow
             else if (status)
             {
-                var workflowState = await _autonomousImprovementService.GetWorkflowStatusAsync();
-                if (workflowState != null)
-                {
-                    _consoleService.WriteHeader("Workflow Status");
-                    _consoleService.WriteInfo($"Name: {workflowState.Name}");
-                    _consoleService.WriteInfo($"Status: {workflowState.Status}");
-                    _consoleService.WriteInfo($"Start Time: {workflowState.StartTime}");
-                    
-                    if (workflowState.EndTime.HasValue)
-                    {
-                        _consoleService.WriteInfo($"End Time: {workflowState.EndTime.Value}");
-                        _consoleService.WriteInfo($"Duration: {(workflowState.EndTime.Value - workflowState.StartTime).TotalMinutes:F2} minutes");
-                    }
-                    else
-                    {
-                        _consoleService.WriteInfo($"Duration: {(DateTime.UtcNow - workflowState.StartTime).TotalMinutes:F2} minutes");
-                    }
-                    
-                    _consoleService.WriteInfo($"Target Directories: {string.Join(", ", workflowState.TargetDirectories)}");
-                    _consoleService.WriteInfo($"Maximum Duration: {workflowState.MaxDurationMinutes} minutes");
-                    
-                    _consoleService.WriteInfo("Steps:");
-                    foreach (var step in workflowState.Steps)
-                    {
-                        string status = step.Status.ToString();
-                        string duration = "N/A";
-                        
-                        if (step.StartTime.HasValue && step.EndTime.HasValue)
-                        {
-                            duration = $"{(step.EndTime.Value - step.StartTime.Value).TotalMinutes:F2} minutes";
-                        }
-                        
-                        _consoleService.WriteInfo($"  - {step.Name}: {status} ({duration})");
-                        
-                        if (step.Status == TarsEngine.SelfImprovement.StepStatus.Failed && step.ErrorMessage.HasValue)
-                        {
-                            _consoleService.WriteError($"    Error: {step.ErrorMessage.Value}");
-                        }
-                    }
-                }
-                else
-                {
-                    _consoleService.WriteWarning("No workflow status found");
-                }
+                var workflowStatus = await _autonomousImprovementService.GetWorkflowStatusAsync();
+                _consoleService.WriteHeader("Workflow Status");
+                _consoleService.WriteInfo($"Status: {workflowStatus}");
+            }
+            // Get the report of the workflow
+            else if (report)
+            {
+                var workflowReport = await _autonomousImprovementService.GetWorkflowReportAsync();
+                _consoleService.WriteHeader("Workflow Report");
+                _consoleService.WriteInfo(workflowReport);
             }
             // Show help
             else
@@ -170,6 +141,7 @@ public class AutonomousImprovementCommand : Command
                 _consoleService.WriteInfo("  --start, -s    Start the autonomous improvement workflow");
                 _consoleService.WriteInfo("  --stop, -x     Stop the autonomous improvement workflow");
                 _consoleService.WriteInfo("  --status, -t   Get the status of the autonomous improvement workflow");
+                _consoleService.WriteInfo("  --report, -r   Get a detailed report of the autonomous improvement workflow");
                 _consoleService.WriteInfo("");
                 _consoleService.WriteInfo("When starting a workflow, you can specify:");
                 _consoleService.WriteInfo("  --name, -n             The name of the workflow (default: TARS Autonomous Improvement)");

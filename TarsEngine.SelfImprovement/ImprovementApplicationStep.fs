@@ -7,6 +7,9 @@ open Microsoft.Extensions.Logging
 open System.Text.Json
 open System.Text.RegularExpressions
 
+// Import types from other modules
+open TarsEngine.SelfImprovement.CodeAnalysisStep
+
 /// <summary>
 /// Represents an applied improvement
 /// </summary>
@@ -73,7 +76,7 @@ module ImprovementApplicationStep =
         task {
             if File.Exists(opportunitiesPath) then
                 let! json = File.ReadAllTextAsync(opportunitiesPath)
-                return JsonSerializer.Deserialize<CodeAnalysisStep.ImprovementOpportunity[]>(json)
+                return JsonSerializer.Deserialize<ImprovementOpportunity[]>(json)
             else
                 return [||]
         }
@@ -87,7 +90,7 @@ module ImprovementApplicationStep =
                 let! json = File.ReadAllTextAsync(knowledgeBasePath)
                 return JsonSerializer.Deserialize<JsonElement>(json)
             else
-                return JsonElement.Parse("{}")
+                return JsonDocument.Parse("{}").RootElement
         }
 
     /// <summary>
@@ -121,49 +124,49 @@ module ImprovementApplicationStep =
     /// <summary>
     /// Applies an improvement to a file
     /// </summary>
-    let applyImprovement (logger: ILogger) (kb: JsonElement) (opportunity: CodeAnalysisStep.ImprovementOpportunity) =
+    let applyImprovement (logger: ILogger) (kb: JsonElement) (opportunity: ImprovementOpportunity) =
         task {
             try
                 // Check if the file exists
                 if not (File.Exists(opportunity.FilePath)) then
                     logger.LogWarning("File not found: {FilePath}", opportunity.FilePath)
                     return None
+                else
+                    // Get the replacement for the pattern
+                    let replacementOption = getPatternReplacement kb opportunity.PatternId
 
-                // Get the replacement for the pattern
-                let replacementOption = getPatternReplacement kb opportunity.PatternId
+                    match replacementOption, opportunity.CodeSnippet with
+                    | Some replacement, Some codeSnippet when not (String.IsNullOrWhiteSpace(replacement)) ->
+                        // Read the file content
+                        let! content = File.ReadAllTextAsync(opportunity.FilePath)
 
-                match replacementOption, opportunity.CodeSnippet with
-                | Some replacement, Some codeSnippet when not (String.IsNullOrWhiteSpace(replacement)) ->
-                    // Read the file content
-                    let! content = File.ReadAllTextAsync(opportunity.FilePath)
+                        // Replace the code snippet with the replacement
+                        let improvedContent = content.Replace(codeSnippet, replacement)
 
-                    // Replace the code snippet with the replacement
-                    let improvedContent = content.Replace(codeSnippet, replacement)
+                        // Check if the content was actually changed
+                        if content = improvedContent then
+                            logger.LogWarning("No changes made to file: {FilePath}", opportunity.FilePath)
+                            return None
+                        else
+                            // Write the improved content back to the file
+                            do! File.WriteAllTextAsync(opportunity.FilePath, improvedContent)
 
-                    // Check if the content was actually changed
-                    if content = improvedContent then
-                        logger.LogWarning("No changes made to file: {FilePath}", opportunity.FilePath)
+                            // Create the applied improvement
+                            let appliedImprovement = {
+                                FilePath = opportunity.FilePath
+                                PatternId = opportunity.PatternId
+                                PatternName = opportunity.PatternName
+                                LineNumber = opportunity.LineNumber
+                                OriginalCode = codeSnippet
+                                ImprovedCode = replacement
+                                AppliedAt = DateTime.UtcNow
+                            }
+
+                            logger.LogInformation("Applied improvement to file: {FilePath}", opportunity.FilePath)
+                            return Some appliedImprovement
+                    | _ ->
+                        logger.LogWarning("No replacement found for pattern: {PatternId}", opportunity.PatternId)
                         return None
-
-                    // Write the improved content back to the file
-                    do! File.WriteAllTextAsync(opportunity.FilePath, improvedContent)
-
-                    // Create the applied improvement
-                    let appliedImprovement = {
-                        FilePath = opportunity.FilePath
-                        PatternId = opportunity.PatternId
-                        PatternName = opportunity.PatternName
-                        LineNumber = opportunity.LineNumber
-                        OriginalCode = codeSnippet
-                        ImprovedCode = replacement
-                        AppliedAt = DateTime.UtcNow
-                    }
-
-                    logger.LogInformation("Applied improvement to file: {FilePath}", opportunity.FilePath)
-                    return Some appliedImprovement
-                | _ ->
-                    logger.LogWarning("No replacement found for pattern: {PatternId}", opportunity.PatternId)
-                    return None
             with ex ->
                 logger.LogError(ex, "Error applying improvement to file: {FilePath}", opportunity.FilePath)
                 return None
@@ -172,7 +175,7 @@ module ImprovementApplicationStep =
     /// <summary>
     /// Gets the improvement application step handler
     /// </summary>
-    let getHandler (logger: ILogger) (maxImprovements: int) : WorkflowEngine.StepHandler =
+    let getHandler (logger: ILogger) (maxImprovements: int) : WorkflowState -> Task<StepResult> =
         fun state ->
             task {
                 logger.LogInformation("Starting improvement application step")
@@ -210,9 +213,10 @@ module ImprovementApplicationStep =
                 do! File.WriteAllTextAsync(appliedImprovementsPath, json)
 
                 // Return the result data
-                return Ok (Map.ofList [
+                let resultMap = Map.ofList [
                     "applied_improvements_path", appliedImprovementsPath
                     "applied_improvements_count", appliedImprovements.Length.ToString()
                     "opportunities_count", opportunities.Length.ToString()
-                ])
+                ]
+                return Ok resultMap
             }

@@ -4,12 +4,6 @@ open System
 open System.IO
 open System.Threading.Tasks
 open Microsoft.Extensions.Logging
-open Microsoft.FSharp.Core
-
-/// <summary>
-/// Represents a step handler in the workflow
-/// </summary>
-type StepHandler = WorkflowState -> Task<FSharpResult<Map<string, string>, string>>
 
 /// <summary>
 /// Module for executing workflows
@@ -18,7 +12,7 @@ module WorkflowEngine =
     /// <summary>
     /// Executes a workflow step
     /// </summary>
-    let executeStep (logger: ILogger) (handler: StepHandler) (state: WorkflowState) (stepIndex: int) =
+    let executeStep (logger: ILogger) (handler: WorkflowState -> Task<StepResult>) (state: WorkflowState) (stepIndex: int) =
         task {
             // Start the step
             let updatedState = WorkflowState.startStep stepIndex state
@@ -31,12 +25,12 @@ module WorkflowEngine =
                 let! result = handler updatedState
 
                 match result with
-                | Result.Ok data ->
+                | Ok data ->
                     // Complete the step
                     let completedState = WorkflowState.completeStep stepIndex data updatedState
                     let! _ = WorkflowState.save completedState WorkflowState.defaultStatePath
                     return completedState
-                | Result.Error errorMessage ->
+                | Error errorMessage ->
                     // Fail the step
                     logger.LogError("Step {StepName} failed: {ErrorMessage}",
                                    updatedState.Steps.[stepIndex].Name,
@@ -56,7 +50,7 @@ module WorkflowEngine =
     /// <summary>
     /// Executes a workflow
     /// </summary>
-    let executeWorkflow (logger: ILogger) (handlers: StepHandler list) (state: WorkflowState) =
+    let executeWorkflow (logger: ILogger) (handlers: (WorkflowState -> Task<StepResult>) list) (state: WorkflowState) =
         task {
             // Check if the workflow has already been completed or failed
             if state.Status = Completed || state.Status = Failed then
@@ -64,6 +58,7 @@ module WorkflowEngine =
                                      state.Name,
                                      state.Status)
                 return state
+            else
 
             // Initialize the workflow if it doesn't have any steps
             let initialState =
@@ -101,8 +96,8 @@ module WorkflowEngine =
                         let completedState = WorkflowState.complete currentState
                         let! _ = WorkflowState.save completedState WorkflowState.defaultStatePath
                         return completedState
-                    // Check if the workflow has exceeded its maximum duration
                     elif WorkflowState.hasExceededMaxDuration currentState then
+                        // Check if the workflow has exceeded its maximum duration
                         logger.LogWarning("Workflow {WorkflowName} has exceeded its maximum duration of {MaxDurationMinutes} minutes",
                                          currentState.Name,
                                          currentState.MaxDurationMinutes)
@@ -132,7 +127,7 @@ module WorkflowEngine =
     /// <summary>
     /// Creates a new workflow and executes it
     /// </summary>
-    let createAndExecuteWorkflow (logger: ILogger) (name: string) (targetDirectories: string list) (maxDurationMinutes: int) (handlers: StepHandler list) =
+    let createAndExecuteWorkflow (logger: ILogger) (name: string) (targetDirectories: string list) (maxDurationMinutes: int) (handlers: (WorkflowState -> Task<StepResult>) list) =
         task {
             // Create a new workflow state
             let state = WorkflowState.create name targetDirectories maxDurationMinutes
@@ -147,7 +142,7 @@ module WorkflowEngine =
     /// <summary>
     /// Resumes a workflow from its saved state
     /// </summary>
-    let resumeWorkflow (logger: ILogger) (handlers: StepHandler list) =
+    let resumeWorkflow (logger: ILogger) (handlers: (WorkflowState -> Task<StepResult>) list) =
         task {
             // Try to load the workflow state
             let! stateOption = WorkflowState.tryLoad WorkflowState.defaultStatePath
