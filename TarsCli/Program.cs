@@ -108,8 +108,18 @@ internal static class Program
                 .AddSingleton<TarsEngine.Services.LearningService>()
                 .AddSingleton<TarsEngine.Services.Interfaces.ISelfImprovementService, TarsEngine.Services.SelfImprovementService>()
                 .AddSingleton<CollaborationService>()
+                .AddSingleton<TarsEngine.Services.Interfaces.IMetascriptService, TarsEngine.Services.MetascriptService>()
+                .AddSingleton<TarsEngine.Services.Interfaces.ITestGenerationService, TarsEngine.Services.TestGenerationService>()
+                .AddSingleton<TarsEngine.Services.Interfaces.ITestValidationService, TarsEngine.Services.TestValidationService>()
+                .AddSingleton<TarsEngine.Services.Interfaces.IRegressionTestingService, TarsEngine.Services.RegressionTestingService>()
+                .AddSingleton<TarsEngine.Services.Interfaces.ICodeQualityService, TarsEngine.Services.CodeQualityService>()
+                .AddSingleton<TarsEngine.Services.Interfaces.IComplexityAnalysisService, TarsEngine.Services.ComplexityAnalysisService>()
+                .AddSingleton<TarsEngine.Services.Interfaces.IReadabilityService, TarsEngine.Services.ReadabilityService>()
+                .AddSingleton<TarsEngine.Services.Interfaces.IDocumentParserService, TarsEngine.Services.DocumentParserService>()
                 .AddSingleton<SelfImprovementController>()
-                .AddSingleton<Mcp.McpController>(sp => new Mcp.McpController(sp.GetRequiredService<ILogger<Mcp.McpController>>(), configuration))
+                .AddSingleton<Mcp.McpController>(sp => new Mcp.McpController(
+                    sp.GetRequiredService<ILogger<Mcp.McpController>>(),
+                    configuration))
                 .BuildServiceProvider();
 
             // Get services
