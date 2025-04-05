@@ -3,25 +3,13 @@ namespace TarsCli.Services;
 /// <summary>
 /// Service for coordinating multiple agents in code analysis and transformation
 /// </summary>
-public class MultiAgentCollaborationService
+public class MultiAgentCollaborationService(
+    ILogger<MultiAgentCollaborationService> logger,
+    DynamicFSharpCompilerService fsharpCompiler,
+    MetascriptEngine metascriptEngine,
+    TransformationLearningService learningService)
 {
-    private readonly ILogger<MultiAgentCollaborationService> _logger;
-    private readonly DynamicFSharpCompilerService _fsharpCompiler;
-    private readonly MetascriptEngine _metascriptEngine;
-    private readonly TransformationLearningService _learningService;
     private readonly List<ICodeAgent> _registeredAgents = [];
-
-    public MultiAgentCollaborationService(
-        ILogger<MultiAgentCollaborationService> logger,
-        DynamicFSharpCompilerService fsharpCompiler,
-        MetascriptEngine metascriptEngine,
-        TransformationLearningService learningService)
-    {
-        _logger = logger;
-        _fsharpCompiler = fsharpCompiler;
-        _metascriptEngine = metascriptEngine;
-        _learningService = learningService;
-    }
 
     /// <summary>
     /// Registers an agent with the collaboration service
@@ -30,7 +18,7 @@ public class MultiAgentCollaborationService
     public void RegisterAgent(ICodeAgent agent)
     {
         _registeredAgents.Add(agent);
-        _logger.LogInformation($"Registered agent: {agent.Name} ({agent.Role})");
+        logger.LogInformation($"Registered agent: {agent.Name} ({agent.Role})");
     }
 
     /// <summary>
@@ -58,7 +46,7 @@ public class MultiAgentCollaborationService
     {
         try
         {
-            _logger.LogInformation($"Analyzing file: {filePath}");
+            logger.LogInformation($"Analyzing file: {filePath}");
 
             if (!File.Exists(filePath))
             {
@@ -73,7 +61,7 @@ public class MultiAgentCollaborationService
 
             if (analysisAgents.Count == 0)
             {
-                _logger.LogWarning("No analysis agents registered");
+                logger.LogWarning("No analysis agents registered");
                 return new CollaborativeAnalysisResult
                 {
                     FilePath = filePath,
@@ -117,7 +105,7 @@ public class MultiAgentCollaborationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Error analyzing file: {filePath}");
+            logger.LogError(ex, $"Error analyzing file: {filePath}");
             throw;
         }
     }
@@ -131,7 +119,7 @@ public class MultiAgentCollaborationService
     {
         try
         {
-            _logger.LogInformation($"Transforming file: {filePath}");
+            logger.LogInformation($"Transforming file: {filePath}");
 
             if (!File.Exists(filePath))
             {
@@ -146,7 +134,7 @@ public class MultiAgentCollaborationService
 
             if (transformationAgents.Count == 0)
             {
-                _logger.LogWarning("No transformation agents registered");
+                logger.LogWarning("No transformation agents registered");
                 return new CollaborativeTransformationResult
                 {
                     FilePath = filePath,
@@ -220,7 +208,7 @@ public class MultiAgentCollaborationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Error transforming file: {filePath}");
+            logger.LogError(ex, $"Error transforming file: {filePath}");
             throw;
         }
     }
@@ -239,7 +227,7 @@ public class MultiAgentCollaborationService
 
             if (validationAgents.Count == 0)
             {
-                _logger.LogWarning("No validation agents registered");
+                logger.LogWarning("No validation agents registered");
                 return new ValidationResult
                 {
                     IsValid = true,
@@ -263,7 +251,7 @@ public class MultiAgentCollaborationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error validating transformation");
+            logger.LogError(ex, "Error validating transformation");
             throw;
         }
     }
@@ -277,10 +265,10 @@ public class MultiAgentCollaborationService
     {
         try
         {
-            _logger.LogInformation($"Creating agent from F# code: {agentName}");
+            logger.LogInformation($"Creating agent from F# code: {agentName}");
 
             // Compile the F# code
-            var assembly = await _fsharpCompiler.CompileFSharpCodeAsync(fsharpCode, $"Agent_{agentName}");
+            var assembly = await fsharpCompiler.CompileFSharpCodeAsync(fsharpCode, $"Agent_{agentName}");
 
             // Find the agent type
             var agentType = assembly.GetTypes()
@@ -301,7 +289,7 @@ public class MultiAgentCollaborationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Error creating agent from F# code: {agentName}");
+            logger.LogError(ex, $"Error creating agent from F# code: {agentName}");
             throw;
         }
     }
@@ -313,7 +301,7 @@ public class MultiAgentCollaborationService
     {
         try
         {
-            _logger.LogInformation($"Running analysis agent: {agent.Name}");
+            logger.LogInformation($"Running analysis agent: {agent.Name}");
 
             if (agent is IAnalysisAgent analysisAgent)
             {
@@ -324,7 +312,7 @@ public class MultiAgentCollaborationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Error running analysis agent {agent.Name}");
+            logger.LogError(ex, $"Error running analysis agent {agent.Name}");
             return new AnalysisResult
             {
                 Issues = []
@@ -343,7 +331,7 @@ public class MultiAgentCollaborationService
     {
         try
         {
-            _logger.LogInformation($"Running transformation agent: {agent.Name}");
+            logger.LogInformation($"Running transformation agent: {agent.Name}");
 
             if (agent is ITransformationAgent transformationAgent)
             {
@@ -354,7 +342,7 @@ public class MultiAgentCollaborationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Error running transformation agent {agent.Name}");
+            logger.LogError(ex, $"Error running transformation agent {agent.Name}");
             return new TransformationResult
             {
                 TransformedCode = code,
@@ -373,7 +361,7 @@ public class MultiAgentCollaborationService
     {
         try
         {
-            _logger.LogInformation($"Running validation agent: {agent.Name}");
+            logger.LogInformation($"Running validation agent: {agent.Name}");
 
             if (agent is IValidationAgent validationAgent)
             {
@@ -384,7 +372,7 @@ public class MultiAgentCollaborationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Error running validation agent {agent.Name}");
+            logger.LogError(ex, $"Error running validation agent {agent.Name}");
             return new ValidationResult
             {
                 IsValid = false,

@@ -1,0 +1,17 @@
+{
+  "chat.agent.enabled": true,
+  "augment.advanced": {
+    "agentMode": true,
+    "mcpServers": [
+      {
+        "name": "tars",
+        "url": "http://localhost:9000/"
+      }
+    ]
+  },
+  "workbench.startupEditor": "none",
+  "task.runOnStartup": {
+    "task": "Ensure TARS MCP Server",
+    "enabled": true
+  }
+}

@@ -1,0 +1,27 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "TARS MCP Server",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "Build TARS",
+            "program": "${workspaceFolder}/TarsCli/bin/Debug/net9.0/tarscli.dll",
+            "args": ["mcp", "start"],
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
+            "name": "TARS CLI",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "Build TARS",
+            "program": "${workspaceFolder}/TarsCli/bin/Debug/net9.0/tarscli.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        }
+    ]
+}
