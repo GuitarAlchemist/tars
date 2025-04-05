@@ -8,6 +8,11 @@ open System.Text.Json
 open System.Text.RegularExpressions
 
 /// <summary>
+/// Represents a step handler function
+/// </summary>
+type StepHandler = WorkflowState -> Task<StepResult>
+
+/// <summary>
 /// Represents a code improvement opportunity
 /// </summary>
 type ImprovementOpportunity = {
@@ -80,7 +85,7 @@ module CodeAnalysisStep =
                 let! json = File.ReadAllTextAsync(knowledgeBasePath)
                 return JsonSerializer.Deserialize<JsonElement>(json)
             else
-                return JsonElement.Parse("{}")
+                return JsonDocument.Parse("{}").RootElement
         }
 
     /// <summary>
@@ -132,34 +137,34 @@ module CodeAnalysisStep =
 
                 if not isContextMatch || String.IsNullOrWhiteSpace(patternText) then
                     return []
+                else
+                    // Read the file content
+                    let! content = File.ReadAllTextAsync(filePath)
 
-                // Read the file content
-                let! content = File.ReadAllTextAsync(filePath)
+                    // Create a regex for the pattern
+                    // Note: This is a simplified approach. In a real implementation,
+                    // you would need a more sophisticated pattern matching algorithm.
+                    let regex = Regex(patternText, RegexOptions.IgnoreCase)
+                    let matches = regex.Matches(content)
 
-                // Create a regex for the pattern
-                // Note: This is a simplified approach. In a real implementation,
-                // you would need a more sophisticated pattern matching algorithm.
-                let regex = Regex(patternText, RegexOptions.IgnoreCase)
-                let matches = regex.Matches(content)
+                    // Create opportunities for each match
+                    return
+                        matches
+                        |> Seq.map (fun m ->
+                            // Calculate the line number
+                            let lineNumber =
+                                content.Substring(0, m.Index).Split('\n').Length
 
-                // Create opportunities for each match
-                return
-                    matches
-                    |> Seq.map (fun m ->
-                        // Calculate the line number
-                        let lineNumber =
-                            content.Substring(0, m.Index).Split('\n').Length
-
-                        // Create the opportunity
-                        {
-                            FilePath = filePath
-                            PatternId = patternId
-                            PatternName = patternName
-                            Confidence = 0.8 // Fixed confidence for now
-                            LineNumber = Some lineNumber
-                            CodeSnippet = Some m.Value
-                        })
-                    |> Seq.toList
+                            // Create the opportunity
+                            {
+                                FilePath = filePath
+                                PatternId = patternId
+                                PatternName = patternName
+                                Confidence = 0.8 // Fixed confidence for now
+                                LineNumber = Some lineNumber
+                                CodeSnippet = Some m.Value
+                            })
+                        |> Seq.toList
             with ex ->
                 // Log the error and continue
                 return []
@@ -180,7 +185,8 @@ module CodeAnalysisStep =
                     |> Task.WhenAll
 
                 // Flatten the lists
-                return opportunitiesLists |> Array.collect List.toArray |> Array.toList
+                let result = opportunitiesLists |> Array.collect List.toArray |> Array.toList
+                return result
             with ex ->
                 logger.LogError(ex, "Error analyzing file: {FilePath}", filePath)
                 return []
@@ -189,7 +195,7 @@ module CodeAnalysisStep =
     /// <summary>
     /// Gets the code analysis step handler
     /// </summary>
-    let getHandler (logger: ILogger) : WorkflowEngine.StepHandler =
+    let getHandler (logger: ILogger) : WorkflowState -> Task<StepResult> =
         fun state ->
             task {
                 logger.LogInformation("Starting code analysis step")

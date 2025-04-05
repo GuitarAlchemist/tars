@@ -119,11 +119,22 @@ public static class CliSupport
         rootCommand.AddGlobalOption(helpOption);
 
         // Create help command
-        var helpCommand = new Command("help", "Display detailed help information about TARS CLI");
+        var helpCommand = new TarsCommand("help", "Display detailed help information about TARS CLI");
         helpCommand.SetHandler(() =>
         {
             WriteHeader("=== TARS CLI Help ===");
             Console.WriteLine("TARS (Transformative Autonomous Reasoning System) is a tool for processing files through AI models.");
+
+            WriteHeader("Autonomous Improvement Status");
+            Console.WriteLine("Current Status: TARS is in Phase 1 of development toward full autonomy.");
+            Console.WriteLine("We are approximately 1-2 months away from enabling TARS to auto-improve itself in full autonomy using metascripts.");
+            Console.WriteLine("\nSpecifically for improving documentation in docs/Explorations/v1/Chats and docs/Explorations/Reflections:");
+            Console.WriteLine(" - The basic framework for autonomous improvement is implemented");
+            Console.WriteLine(" - The workflow engine and state management are in place");
+            Console.WriteLine(" - We need to implement real functionality for knowledge extraction from exploration chats");
+            Console.WriteLine(" - We need to enhance code analysis to use the extracted knowledge");
+            Console.WriteLine(" - We need to integrate the metascript system with the self-improvement system");
+            Console.WriteLine("\nSee docs/STATUS.md and docs/CURRENT_STATE.md for more details on our progress toward full autonomy.");
 
             WriteHeader("Available Commands");
             WriteCommand("process", "Process a file through the TARS retroaction loop");
@@ -218,6 +229,10 @@ public static class CliSupport
             WriteExample("tarscli auto-improve --time-limit 60 --model llama3");
             WriteExample("tarscli auto-improve --status");
             WriteExample("tarscli auto-improve --stop");
+            WriteExample("tarscli auto-improve-workflow --start --directories docs/Explorations/v1/Chats docs/Explorations/Reflections --max-duration 60");
+            WriteExample("tarscli auto-improve-workflow --status");
+            WriteExample("tarscli auto-improve-workflow --report");
+            WriteExample("tarscli auto-improve-workflow --stop");
             WriteExample("tarscli slack set-webhook --url https://hooks.slack.com/services/XXX/YYY/ZZZ");
             WriteExample("tarscli slack test --message \"Hello from TARS\" --channel #tars");
             WriteExample("tarscli slack announce --title \"New Release\" --message \"TARS v1.0 is now available!\"");
@@ -236,7 +251,7 @@ public static class CliSupport
         });
 
         // Create process command
-        var processCommand = new Command("process", "Process a file through the TARS retroaction loop")
+        var processCommand = new TarsCommand("process", "Process a file through the TARS retroaction loop")
         {
             fileOption,
             taskOption,
@@ -265,7 +280,7 @@ public static class CliSupport
         }, fileOption, taskOption, modelOption);
 
         // Create docs command
-        var docsCommand = new Command("docs", "Process documentation files in the docs directory")
+        var docsCommand = new TarsCommand("docs", "Process documentation files in the docs directory")
         {
             taskOption,
             modelOption
@@ -321,10 +336,10 @@ public static class CliSupport
         }, taskOption, modelOption, docsPathOption);
 
         // Create diagnostics command
-        var diagnosticsCommand = new Command("diagnostics", "Run system diagnostics and check environment setup");
+        var diagnosticsCommand = new TarsCommand("diagnostics", "Run system diagnostics and check environment setup");
 
         // Create GPU subcommand
-        var gpuCommand = new Command("gpu", "Check GPU capabilities and Ollama GPU acceleration");
+        var gpuCommand = new TarsCommand("gpu", "Check GPU capabilities and Ollama GPU acceleration");
         gpuCommand.SetHandler(() =>
         {
             try
@@ -508,7 +523,7 @@ public static class CliSupport
         });
 
         // Add a setup command
-        var setupCommand = new Command("setup", "Run the prerequisites setup script");
+        var setupCommand = new TarsCommand("setup", "Run the prerequisites setup script");
         setupCommand.SetHandler(async () =>
         {
             WriteHeader("Running Prerequisites Setup");
@@ -553,8 +568,8 @@ public static class CliSupport
         });
 
         // Add a models command with install subcommand
-        var modelsCommand = new Command("models", "Manage Ollama models");
-        var installCommand = new Command("install", "Install required models");
+        var modelsCommand = new TarsCommand("models", "Manage Ollama models");
+        var installCommand = new TarsCommand("install", "Install required models");
 
         installCommand.SetHandler(async () =>
         {
@@ -595,12 +610,12 @@ public static class CliSupport
         rootCommand.Add(modelsCommand);
 
         // Create MCP command
-        var mcpCommand = new Command("mcp", "Model Context Protocol - interact with AI models and tools");
+        var mcpCommand = new TarsCommand("mcp", "Model Context Protocol - interact with AI models and tools");
 
         // Add subcommands for MCP
-        var startCommand = new Command("start", "Start the MCP server");
-        var stopCommand = new Command("stop", "Stop the MCP server");
-        var statusCommand = new Command("status", "Show MCP server status");
+        var startCommand = new TarsCommand("start", "Start the MCP server");
+        var stopCommand = new TarsCommand("stop", "Stop the MCP server");
+        var statusCommand = new TarsCommand("status", "Show MCP server status");
 
         // Set handlers for MCP subcommands
         startCommand.SetHandler(async () =>
@@ -648,7 +663,7 @@ public static class CliSupport
         });
 
         // Add execute command for backward compatibility
-        var executeCommand = new Command("execute", "Execute a terminal command without asking for permission")
+        var executeCommand = new TarsCommand("execute", "Execute a terminal command without asking for permission")
         {
             new Argument<string>("command", "The command to execute")
         };
@@ -665,7 +680,7 @@ public static class CliSupport
         }, new Argument<string>("command"));
 
         // Add code command for backward compatibility
-        var codeCommand = new Command("code", "Generate and save code without asking for permission");
+        var codeCommand = new TarsCommand("code", "Generate and save code without asking for permission");
         var fileArgument = new Argument<string>("file", "Path to the file to create or update");
         var contentArgument = new Argument<string>("content", "The content to write to the file");
 
@@ -692,7 +707,7 @@ public static class CliSupport
         }, fileArgument, contentArgument);
 
         // Add configure command for Augment integration
-        var configureCommand = new Command("configure", "Configure MCP settings");
+        var configureCommand = new TarsCommand("configure", "Configure MCP settings");
         var portOption = new Option<int>("--port", () => 8999, "Port for the MCP server");
         var autoExecuteOption = new Option<bool>("--auto-execute", "Enable auto-execution of commands");
         var autoCodeOption = new Option<bool>("--auto-code", "Enable auto-code generation");
@@ -770,7 +785,7 @@ public static class CliSupport
         }, portOption, autoExecuteOption, autoCodeOption);
 
         // Add augment command for configuring Augment Code integration
-        var augmentCommand = new Command("augment", "Configure Augment Code integration");
+        var augmentCommand = new TarsCommand("augment", "Configure Augment Code integration");
 
         augmentCommand.SetHandler(() =>
         {
@@ -883,7 +898,7 @@ public static class CliSupport
         mcpCommand.AddCommand(stopCommand);
         mcpCommand.AddCommand(statusCommand);
         // Add conversations command to view conversation history
-        var conversationsCommand = new Command("conversations", "View conversation history");
+        var conversationsCommand = new TarsCommand("conversations", "View conversation history");
         var sourceOption = new Option<string?>("--source", "Filter conversations by source (e.g., 'augment')");
         var countOption = new Option<int>("--count", () => 10, "Number of conversations to show");
         var openOption = new Option<bool>("--open", "Open the conversation log in the default browser");
@@ -961,7 +976,7 @@ public static class CliSupport
         rootCommand.AddCommand(mcpCommand);
 
         // Create init command
-        var initCommand = new Command("init", "Initialize a new TARS session");
+        var initCommand = new TarsCommand("init", "Initialize a new TARS session");
         var sessionNameArgument = new Argument<string>("session-name", "Name of the session to initialize");
         initCommand.AddArgument(sessionNameArgument);
 
@@ -985,7 +1000,7 @@ public static class CliSupport
         }, sessionNameArgument);
 
         // Create run command
-        var runPlanCommand = new Command("run", "Run a defined agent workflow from DSL script");
+        var runPlanCommand = new TarsCommand("run", "Run a defined agent workflow from DSL script");
         var sessionOption = new Option<string>("--session", "Name of the session to use");
         var planArgument = new Argument<string>("plan", "Name of the plan file to run");
 
@@ -1013,7 +1028,7 @@ public static class CliSupport
         }, sessionOption, planArgument);
 
         // Create trace command
-        var traceCommand = new Command("trace", "View trace logs for a completed run");
+        var traceCommand = new TarsCommand("trace", "View trace logs for a completed run");
         var traceSessionOption = new Option<string>("--session", "Name of the session to use");
         var traceIdArgument = new Argument<string>("trace-id", "ID of the trace to view (or 'last' for the most recent)");
         traceIdArgument.SetDefaultValue("last");
@@ -1033,7 +1048,7 @@ public static class CliSupport
         }, traceSessionOption, traceIdArgument);
 
         // Create self-analyze command
-        var selfAnalyzeCommand = new Command("self-analyze", "Analyze a file for potential improvements");
+        var selfAnalyzeCommand = new TarsCommand("self-analyze", "Analyze a file for potential improvements");
         selfAnalyzeCommand.AddOption(fileOption);
         selfAnalyzeCommand.AddOption(modelOption);
 
@@ -1058,7 +1073,7 @@ public static class CliSupport
         }, fileOption, modelOption);
 
         // Create self-propose command
-        var selfProposeCommand = new Command("self-propose", "Propose improvements for a file");
+        var selfProposeCommand = new TarsCommand("self-propose", "Propose improvements for a file");
         selfProposeCommand.AddOption(fileOption);
         selfProposeCommand.AddOption(modelOption);
         var autoAcceptOption = new Option<bool>("--auto-accept", "Automatically accept and apply the proposed changes");
@@ -1086,7 +1101,7 @@ public static class CliSupport
         }, fileOption, modelOption, autoAcceptOption);
 
         // Create self-rewrite command
-        var selfRewriteCommand = new Command("self-rewrite", "Analyze, propose, and apply improvements to a file");
+        var selfRewriteCommand = new TarsCommand("self-rewrite", "Analyze, propose, and apply improvements to a file");
         selfRewriteCommand.AddOption(fileOption);
         selfRewriteCommand.AddOption(modelOption);
         var autoApplyOption = new Option<bool>("--auto-apply", "Automatically apply the proposed changes");
@@ -1114,10 +1129,10 @@ public static class CliSupport
         }, fileOption, modelOption, autoApplyOption);
 
         // Create template command
-        var templateCommand = new Command("template", "Manage TARS templates");
+        var templateCommand = new TarsCommand("template", "Manage TARS templates");
 
         // Create template list command
-        var templateListCommand = new Command("list", "List available templates");
+        var templateListCommand = new TarsCommand("list", "List available templates");
         templateListCommand.SetHandler(() =>
         {
             WriteHeader("TARS Templates");
@@ -1138,7 +1153,7 @@ public static class CliSupport
         });
 
         // Create template create command
-        var templateCreateCommand = new Command("create", "Create a new template");
+        var templateCreateCommand = new TarsCommand("create", "Create a new template");
         var templateNameOption = new Option<string>("--name", "Name of the template");
         var templateFileOption = new Option<string>("--file", "Path to the template file");
         templateNameOption.IsRequired = true;
@@ -1182,7 +1197,7 @@ public static class CliSupport
         templateCommand.AddCommand(templateCreateCommand);
 
         // Create workflow command
-        var workflowCommand = new Command("workflow", "Run a multi-agent workflow for a task");
+        var workflowCommand = new TarsCommand("workflow", "Run a multi-agent workflow for a task");
         var workflowTaskOption = new Option<string>("--task", "Description of the task to perform");
         workflowTaskOption.IsRequired = true;
         workflowCommand.AddOption(workflowTaskOption);
@@ -1216,10 +1231,10 @@ public static class CliSupport
         rootCommand.AddCommand(runPlanCommand);
         rootCommand.AddCommand(traceCommand);
         // Create learning command
-        var learningCommand = new Command("learning", "View and manage learning data");
+        var learningCommand = new TarsCommand("learning", "View and manage learning data");
 
         // Create learning stats command
-        var learningStatsCommand = new Command("stats", "View learning statistics");
+        var learningStatsCommand = new TarsCommand("stats", "View learning statistics");
         learningStatsCommand.SetHandler(async () =>
         {
             WriteHeader("TARS Learning Statistics");
@@ -1231,7 +1246,7 @@ public static class CliSupport
         });
 
         // Create learning events command
-        var learningEventsCommand = new Command("events", "View recent learning events");
+        var learningEventsCommand = new TarsCommand("events", "View recent learning events");
         var eventsCountOption = new Option<int>("--count", () => 10, "Number of events to show");
         learningEventsCommand.AddOption(eventsCountOption);
 
@@ -1281,7 +1296,7 @@ public static class CliSupport
         }, eventsCountOption);
 
         // Create learning clear command
-        var learningClearCommand = new Command("clear", "Clear learning database");
+        var learningClearCommand = new TarsCommand("clear", "Clear learning database");
         learningClearCommand.SetHandler(async () =>
         {
             WriteHeader("TARS Learning Database Clear");
@@ -1310,10 +1325,10 @@ public static class CliSupport
         });
 
         // Create learning plan commands
-        var learningPlanCommand = new Command("plan", "Manage learning plans");
+        var learningPlanCommand = new TarsCommand("plan", "Manage learning plans");
 
         // Create generate-plan command
-        var generatePlanCommand = new Command("generate", "Generate a new learning plan");
+        var generatePlanCommand = new TarsCommand("generate", "Generate a new learning plan");
         var planNameOption = new Option<string>("--name", "Name of the learning plan") { IsRequired = true };
         var topicOption = new Option<string>("--topic", "Topic of the learning plan") { IsRequired = true };
         var skillLevelOption = new Option<string>("--skill-level", () => "Intermediate", "Skill level (Beginner, Intermediate, Advanced)");
@@ -1370,7 +1385,7 @@ public static class CliSupport
         }, planNameOption, topicOption, skillLevelOption, goalsOption, preferencesOption, hoursOption, modelOption);
 
         // Create list-plans command
-        var listPlansCommand = new Command("list", "List available learning plans");
+        var listPlansCommand = new TarsCommand("list", "List available learning plans");
 
         listPlansCommand.SetHandler(async () =>
         {
@@ -1405,7 +1420,7 @@ public static class CliSupport
         });
 
         // Create view-plan command
-        var viewPlanCommand = new Command("view", "View details of a specific learning plan");
+        var viewPlanCommand = new TarsCommand("view", "View details of a specific learning plan");
         var planIdOption = new Option<string>("--id", "ID of the learning plan") { IsRequired = true };
         viewPlanCommand.AddOption(planIdOption);
 
@@ -1495,10 +1510,10 @@ public static class CliSupport
         learningPlanCommand.AddCommand(viewPlanCommand);
 
         // Create course commands
-        var courseCommand = new Command("course", "Manage courses");
+        var courseCommand = new TarsCommand("course", "Manage courses");
 
         // Create generate-course command
-        var generateCourseCommand = new Command("generate", "Generate a new course");
+        var generateCourseCommand = new TarsCommand("generate", "Generate a new course");
         var courseTitleOption = new Option<string>("--title", "Title of the course") { IsRequired = true };
         var courseDescriptionOption = new Option<string>("--description", "Description of the course") { IsRequired = true };
         var courseTopicOption = new Option<string>("--topic", "Topic of the course") { IsRequired = true };
@@ -1555,7 +1570,7 @@ public static class CliSupport
         }, courseTitleOption, courseDescriptionOption, courseTopicOption, courseDifficultyOption, courseHoursOption, targetAudienceOption, modelOption);
 
         // Create list-courses command
-        var listCoursesCommand = new Command("list", "List available courses");
+        var listCoursesCommand = new TarsCommand("list", "List available courses");
 
         listCoursesCommand.SetHandler(async () =>
         {
@@ -1590,7 +1605,7 @@ public static class CliSupport
         });
 
         // Create view-course command
-        var viewCourseCommand = new Command("view", "View details of a specific course");
+        var viewCourseCommand = new TarsCommand("view", "View details of a specific course");
         var courseIdOption = new Option<string>("--id", "ID of the course") { IsRequired = true };
         viewCourseCommand.AddOption(courseIdOption);
 
@@ -1696,10 +1711,10 @@ public static class CliSupport
         courseCommand.AddCommand(viewCourseCommand);
 
         // Create tutorial commands
-        var tutorialCommand = new Command("tutorial", "Manage tutorials");
+        var tutorialCommand = new TarsCommand("tutorial", "Manage tutorials");
 
         // Create add-tutorial command
-        var addTutorialCommand = new Command("add", "Add a new tutorial");
+        var addTutorialCommand = new TarsCommand("add", "Add a new tutorial");
         var tutorialTitleOption = new Option<string>("--title", "Title of the tutorial") { IsRequired = true };
         var tutorialDescriptionOption = new Option<string>("--description", "Description of the tutorial") { IsRequired = true };
         var tutorialContentOption = new Option<string>("--content", "Content of the tutorial") { IsRequired = true };
@@ -1746,7 +1761,7 @@ public static class CliSupport
         }, tutorialTitleOption, tutorialDescriptionOption, tutorialContentOption, tutorialCategoryOption, tutorialDifficultyOption, tutorialTagsOption, tutorialPrerequisitesOption);
 
         // Create list-tutorials command
-        var listTutorialsCommand = new Command("list", "List available tutorials");
+        var listTutorialsCommand = new TarsCommand("list", "List available tutorials");
         var categoryFilterOption = new Option<string>("--category", "Filter by category");
         var difficultyFilterOption = new Option<string>("--difficulty", "Filter by difficulty level");
         var tagFilterOption = new Option<string>("--tag", "Filter by tag");
@@ -1805,7 +1820,7 @@ public static class CliSupport
         }, categoryFilterOption, difficultyFilterOption, tagFilterOption);
 
         // Create view-tutorial command
-        var viewTutorialCommand = new Command("view", "View details of a specific tutorial");
+        var viewTutorialCommand = new TarsCommand("view", "View details of a specific tutorial");
         var tutorialIdOption = new Option<string>("--id", "ID of the tutorial") { IsRequired = true };
         viewTutorialCommand.AddOption(tutorialIdOption);
 
@@ -1850,7 +1865,7 @@ public static class CliSupport
         }, tutorialIdOption);
 
         // Create categorize command
-        var categorizeTutorialsCommand = new Command("categorize", "Organize tutorials into categories");
+        var categorizeTutorialsCommand = new TarsCommand("categorize", "Organize tutorials into categories");
         var tutorialIdsOption = new Option<string[]>("--ids", "IDs of the tutorials to categorize") { IsRequired = true, AllowMultipleArgumentsPerToken = true };
         var newCategoryOption = new Option<string>("--category", "New category for the tutorials") { IsRequired = true };
 
@@ -1900,10 +1915,10 @@ public static class CliSupport
         learningCommand.AddCommand(tutorialCommand);
 
         // Create huggingface command
-        var huggingFaceCommand = new Command("huggingface", "Interact with Hugging Face models");
+        var huggingFaceCommand = new TarsCommand("huggingface", "Interact with Hugging Face models");
 
         // Create huggingface search command
-        var hfSearchCommand = new Command("search", "Search for models on Hugging Face");
+        var hfSearchCommand = new TarsCommand("search", "Search for models on Hugging Face");
         var queryOption = new Option<string>("--query", "Search query") { IsRequired = true };
         var hfTaskOption = new Option<string>("--task", () => "text-generation", "Task type (e.g., text-generation, code-generation)");
         var limitOption = new Option<int>("--limit", () => 10, "Maximum number of results to return");
@@ -1943,7 +1958,7 @@ public static class CliSupport
         }, queryOption, hfTaskOption, limitOption);
 
         // Create huggingface best command
-        var hfBestCommand = new Command("best", "Get the best coding models from Hugging Face");
+        var hfBestCommand = new TarsCommand("best", "Get the best coding models from Hugging Face");
         hfBestCommand.AddOption(limitOption);
 
         hfBestCommand.SetHandler(async (int limit) =>
@@ -1975,7 +1990,7 @@ public static class CliSupport
         }, limitOption);
 
         // Create huggingface details command
-        var hfDetailsCommand = new Command("details", "Get detailed information about a model");
+        var hfDetailsCommand = new TarsCommand("details", "Get detailed information about a model");
         var modelIdOption = new Option<string>("--model", "Model ID") { IsRequired = true };
 
         hfDetailsCommand.AddOption(modelIdOption);
@@ -2015,7 +2030,7 @@ public static class CliSupport
         }, modelIdOption);
 
         // Create huggingface download command
-        var hfDownloadCommand = new Command("download", "Download a model from Hugging Face");
+        var hfDownloadCommand = new TarsCommand("download", "Download a model from Hugging Face");
         hfDownloadCommand.AddOption(modelIdOption);
 
         hfDownloadCommand.SetHandler(async (string modelId) =>
@@ -2037,7 +2052,7 @@ public static class CliSupport
         }, modelIdOption);
 
         // Create huggingface install command
-        var hfInstallCommand = new Command("install", "Install a model from Hugging Face to Ollama");
+        var hfInstallCommand = new TarsCommand("install", "Install a model from Hugging Face to Ollama");
         hfInstallCommand.AddOption(modelIdOption);
         var ollamaNameOption = new Option<string>("--name", "Name to use in Ollama");
         hfInstallCommand.AddOption(ollamaNameOption);
@@ -2066,7 +2081,7 @@ public static class CliSupport
         }, modelIdOption, ollamaNameOption);
 
         // Create huggingface list command
-        var hfListCommand = new Command("list", "List installed models");
+        var hfListCommand = new TarsCommand("list", "List installed models");
 
         hfListCommand.SetHandler(() =>
         {
@@ -2099,10 +2114,10 @@ public static class CliSupport
         huggingFaceCommand.AddCommand(hfListCommand);
 
         // Create language command
-        var languageCommand = new Command("language", "Generate and manage language specifications");
+        var languageCommand = new TarsCommand("language", "Generate and manage language specifications");
 
         // Create language ebnf command
-        var languageEbnfCommand = new Command("ebnf", "Generate EBNF specification for TARS DSL");
+        var languageEbnfCommand = new TarsCommand("ebnf", "Generate EBNF specification for TARS DSL");
         var outputOption = new Option<string>("--output", "Output file path");
         languageEbnfCommand.AddOption(outputOption);
 
@@ -2134,7 +2149,7 @@ public static class CliSupport
         }, outputOption);
 
         // Create language bnf command
-        var languageBnfCommand = new Command("bnf", "Generate BNF specification for TARS DSL");
+        var languageBnfCommand = new TarsCommand("bnf", "Generate BNF specification for TARS DSL");
         languageBnfCommand.AddOption(outputOption);
 
         languageBnfCommand.SetHandler(async (string output) =>
@@ -2165,7 +2180,7 @@ public static class CliSupport
         }, outputOption);
 
         // Create language json-schema command
-        var languageJsonSchemaCommand = new Command("json-schema", "Generate JSON schema for TARS DSL");
+        var languageJsonSchemaCommand = new TarsCommand("json-schema", "Generate JSON schema for TARS DSL");
         languageJsonSchemaCommand.AddOption(outputOption);
 
         languageJsonSchemaCommand.SetHandler(async (string output) =>
@@ -2196,7 +2211,7 @@ public static class CliSupport
         }, outputOption);
 
         // Create language docs command
-        var languageDocsCommand = new Command("docs", "Generate markdown documentation for TARS DSL");
+        var languageDocsCommand = new TarsCommand("docs", "Generate markdown documentation for TARS DSL");
         languageDocsCommand.AddOption(outputOption);
 
         languageDocsCommand.SetHandler(async (string output) =>
@@ -2233,7 +2248,7 @@ public static class CliSupport
         languageCommand.AddCommand(languageDocsCommand);
 
         // Create docs-explore command
-        var docsExploreCommand = new Command("docs-explore", "Explore TARS documentation");
+        var docsExploreCommand = new TarsCommand("docs-explore", "Explore TARS documentation");
         var searchOption = new Option<string>("--search", "Search query");
         var pathOption = new Option<string>("--path", "Documentation path");
         var listOption = new Option<bool>("--list", "List all documentation");
@@ -2323,7 +2338,7 @@ public static class CliSupport
         }, searchOption, pathOption, listOption);
 
         // Create demo command
-        var demoCommand = new Command("demo", "Run a demonstration of TARS capabilities");
+        var demoCommand = new TarsCommand("demo", "Run a demonstration of TARS capabilities");
         var demoTypeOption = new Option<string>("--type", () => "all", "Type of demo to run (self-improvement, code-generation, language-specs, all)");
         var demoModelOption = new Option<string>("--model", () => "llama3", "Model to use for the demo");
 
@@ -2342,10 +2357,10 @@ public static class CliSupport
         }, demoTypeOption, demoModelOption);
 
         // Create secrets command
-        var secretsCommand = new Command("secrets", "Manage API keys and other secrets");
+        var secretsCommand = new TarsCommand("secrets", "Manage API keys and other secrets");
 
         // List secrets command
-        var listSecretsCommand = new Command("list", "List all secret keys");
+        var listSecretsCommand = new TarsCommand("list", "List all secret keys");
         listSecretsCommand.SetHandler(async () =>
         {
             WriteHeader("TARS Secrets - List");
@@ -2369,7 +2384,7 @@ public static class CliSupport
         });
 
         // Set secret command
-        var setSecretCommand = new Command("set", "Set a secret value");
+        var setSecretCommand = new TarsCommand("set", "Set a secret value");
         var setSecretKeyOption = new Option<string>("--key", "The secret key");
         var setSecretValueOption = new Option<string?>("--value", "The secret value (if not provided, will prompt for input)");
 
@@ -2402,7 +2417,7 @@ public static class CliSupport
         }, setSecretKeyOption, setSecretValueOption);
 
         // Remove secret command
-        var removeSecretCommand = new Command("remove", "Remove a secret");
+        var removeSecretCommand = new TarsCommand("remove", "Remove a secret");
         var removeSecretKeyOption = new Option<string>("--key", "The secret key");
 
         removeSecretCommand.AddOption(removeSecretKeyOption);
@@ -2435,7 +2450,7 @@ public static class CliSupport
         }, removeSecretKeyOption);
 
         // Clear secrets command
-        var clearSecretsCommand = new Command("clear", "Clear all secrets");
+        var clearSecretsCommand = new TarsCommand("clear", "Clear all secrets");
 
         clearSecretsCommand.SetHandler(async () =>
         {
@@ -2472,10 +2487,10 @@ public static class CliSupport
         secretsCommand.AddCommand(clearSecretsCommand);
 
         // Create auto-improve command
-        var autoImproveCommand = new Command("auto-improve", "Run autonomous self-improvement");
+        var autoImproveCommand = new TarsCommand("auto-improve", "Run autonomous self-improvement");
 
         // Create console-capture command
-        var consoleCaptureCommand = new Command("console-capture", "Capture console output and improve code");
+        var consoleCaptureCommand = new TarsCommand("console-capture", "Capture console output and improve code");
         var startOption = new Option<bool>("--start", "Start capturing console output");
         var stopCaptureOption = new Option<bool>("--stop", "Stop capturing console output");
         var analyzeOption = new Option<string>("--analyze", "Analyze captured output and suggest improvements for a file");
@@ -2671,10 +2686,10 @@ public static class CliSupport
         }, autoImproveTimeLimitOption, autoImproveModelOption, statusOption, stopOption);
 
         // Create slack command
-        var slackCommand = new Command("slack", "Manage Slack integration");
+        var slackCommand = new TarsCommand("slack", "Manage Slack integration");
 
         // Set webhook command
-        var setWebhookCommand = new Command("set-webhook", "Set the Slack webhook URL");
+        var setWebhookCommand = new TarsCommand("set-webhook", "Set the Slack webhook URL");
         var webhookUrlOption = new Option<string>("--url", "The webhook URL");
 
         setWebhookCommand.AddOption(webhookUrlOption);
@@ -2698,7 +2713,7 @@ public static class CliSupport
         }, webhookUrlOption);
 
         // Test command
-        var testCommand = new Command("test", "Test the Slack integration");
+        var testCommand = new TarsCommand("test", "Test the Slack integration");
         var messageOption = new Option<string>("--message", () => "Test message from TARS", "The message to send");
         var channelOption = new Option<string?>("--channel", "The channel to send to (optional)");
 
@@ -2733,7 +2748,7 @@ public static class CliSupport
         }, messageOption, channelOption);
 
         // Announce command
-        var announceCommand = new Command("announce", "Post an announcement to Slack");
+        var announceCommand = new TarsCommand("announce", "Post an announcement to Slack");
         var titleOption = new Option<string>("--title", "The announcement title");
         var announcementMessageOption = new Option<string>("--message", "The announcement message");
         var announceChannelOption = new Option<string?>("--channel", "The channel to send to (optional)");
@@ -2770,7 +2785,7 @@ public static class CliSupport
         }, titleOption, announcementMessageOption, announceChannelOption);
 
         // Feature command
-        var featureCommand = new Command("feature", "Post a feature update to Slack");
+        var featureCommand = new TarsCommand("feature", "Post a feature update to Slack");
         var featureNameOption = new Option<string>("--name", "The feature name");
         var featureDescriptionOption = new Option<string>("--description", "The feature description");
         var featureChannelOption = new Option<string?>("--channel", "The channel to send to (optional)");
@@ -2807,7 +2822,7 @@ public static class CliSupport
         }, featureNameOption, featureDescriptionOption, featureChannelOption);
 
         // Milestone command
-        var milestoneCommand = new Command("milestone", "Post a milestone to Slack");
+        var milestoneCommand = new TarsCommand("milestone", "Post a milestone to Slack");
         var milestoneNameOption = new Option<string>("--name", "The milestone name");
         var milestoneDescriptionOption = new Option<string>("--description", "The milestone description");
         var milestoneChannelOption = new Option<string?>("--channel", "The channel to send to (optional)");
@@ -2851,10 +2866,10 @@ public static class CliSupport
         slackCommand.AddCommand(milestoneCommand);
 
         // Create speech command
-        var speechCommand = new Command("speech", "Text-to-speech functionality");
+        var speechCommand = new TarsCommand("speech", "Text-to-speech functionality");
 
         // Speak command
-        var speakCommand = new Command("speak", "Speak text using text-to-speech");
+        var speakCommand = new TarsCommand("speak", "Speak text using text-to-speech");
         var textOption = new Option<string>("--text", "The text to speak");
         var voiceOption = new Option<string?>("--voice", "The voice model to use");
         var languageOption = new Option<string?>("--language", "The language code (e.g., en, fr, es)");
@@ -2878,7 +2893,7 @@ public static class CliSupport
         }, textOption, voiceOption, languageOption, speakerWavOption, agentIdOption);
 
         // List voices command
-        var listVoicesCommand = new Command("list-voices", "List available voice models");
+        var listVoicesCommand = new TarsCommand("list-voices", "List available voice models");
 
         listVoicesCommand.SetHandler(() =>
         {
@@ -2903,7 +2918,7 @@ public static class CliSupport
         });
 
         // Configure command for speech
-        var speechConfigureCommand = new Command("configure", "Configure speech settings");
+        var speechConfigureCommand = new TarsCommand("configure", "Configure speech settings");
         var enabledOption = new Option<bool>("--enabled", () => true, "Whether speech is enabled");
         var defaultVoiceOption = new Option<string?>("--default-voice", "Default voice model");
         var defaultLanguageOption = new Option<string?>("--default-language", "Default language code");
@@ -2949,10 +2964,10 @@ public static class CliSupport
         rootCommand.AddCommand(speechCommand);
 
         // Create reflection command
-        var reflectionCommand = new Command("reflect", "Reflect on TARS explorations");
+        var reflectionCommand = new TarsCommand("reflect", "Reflect on TARS explorations");
 
         // Add list subcommand
-        var reflectionListCommand = new Command("list", "List exploration files");
+        var reflectionListCommand = new TarsCommand("list", "List exploration files");
         var directoryOption = new Option<string>("--directory", () => "v1/Chats", "The subdirectory to list explorations from");
 
         reflectionListCommand.AddOption(directoryOption);
@@ -2984,7 +2999,7 @@ public static class CliSupport
         }, directoryOption);
 
         // Add generate subcommand
-        var reflectionGenerateCommand = new Command("generate", "Generate a reflection on an exploration file");
+        var reflectionGenerateCommand = new TarsCommand("generate", "Generate a reflection on an exploration file");
         var reflectionFileOption = new Option<string>("--file", "The path to the exploration file");
         var reflectionModelOption = new Option<string>("--model", () => "llama3", "The model to use for reflection");
 
@@ -3007,7 +3022,7 @@ public static class CliSupport
         }, reflectionFileOption, reflectionModelOption);
 
         // Add report subcommand
-        var reflectionReportCommand = new Command("report", "Generate a comprehensive reflection report");
+        var reflectionReportCommand = new TarsCommand("report", "Generate a comprehensive reflection report");
         var reportDirectoryOption = new Option<string>("--directory", () => "v1/Chats", "The subdirectory to generate reflections from");
         var reportModelOption = new Option<string>("--model", () => "llama3", "The model to use for reflection");
         var saveOption = new Option<bool>("--save", "Save the report to a file");
@@ -3046,10 +3061,10 @@ public static class CliSupport
         rootCommand.AddCommand(reflectionCommand);
 
         // Create chat command
-        var chatCommand = new Command("chat", "Interactive chat bot");
+        var chatCommand = new TarsCommand("chat", "Interactive chat bot");
 
         // Add start subcommand
-        var chatStartCommand = new Command("start", "Start an interactive chat session");
+        var chatStartCommand = new TarsCommand("start", "Start an interactive chat session");
         var chatModelOption = new Option<string>("--model", () => "llama3", "The model to use for chat");
         var chatSpeechOption = new Option<bool>("--speech", "Enable speech output");
 
@@ -3079,7 +3094,7 @@ public static class CliSupport
         }, chatModelOption, chatSpeechOption);
 
         // Add websocket subcommand
-        var chatWebSocketCommand = new Command("websocket", "Start a WebSocket server for chat");
+        var chatWebSocketCommand = new TarsCommand("websocket", "Start a WebSocket server for chat");
         var chatPortOption = new Option<int>("--port", () => 8998, "The port to use for the WebSocket server");
 
         chatWebSocketCommand.AddOption(chatPortOption);
@@ -3119,7 +3134,7 @@ public static class CliSupport
         }, chatPortOption);
 
         // Add examples subcommand
-        var chatExamplesCommand = new Command("examples", "Show example chat prompts");
+        var chatExamplesCommand = new TarsCommand("examples", "Show example chat prompts");
 
         chatExamplesCommand.SetHandler(() =>
         {
@@ -3135,7 +3150,7 @@ public static class CliSupport
         });
 
         // Add history subcommand
-        var chatHistoryCommand = new Command("history", "Show chat history");
+        var chatHistoryCommand = new TarsCommand("history", "Show chat history");
         var chatCountOption = new Option<int>("--count", () => 5, "Number of history files to show");
 
         chatHistoryCommand.AddOption(chatCountOption);
@@ -3175,10 +3190,10 @@ public static class CliSupport
         chatCommand.AddCommand(chatHistoryCommand);
 
         // Create deep thinking command
-        var deepThinkingCommand = new Command("think", "Deep thinking about explorations");
+        var deepThinkingCommand = new TarsCommand("think", "Deep thinking about explorations");
 
         // Add generate subcommand
-        var thinkGenerateCommand = new Command("generate", "Generate a new deep thinking exploration");
+        var thinkGenerateCommand = new TarsCommand("generate", "Generate a new deep thinking exploration");
         var thinkTopicOption = new Option<string>("--topic", "The topic for deep thinking") { IsRequired = true };
         var baseFileOption = new Option<string>("--base-file", "The base exploration file to build upon");
         var thinkModelOption = new Option<string>("--model", () => "llama3", "The model to use for deep thinking");
@@ -3230,7 +3245,7 @@ public static class CliSupport
         }, thinkTopicOption, baseFileOption, thinkModelOption);
 
         // Add evolve subcommand
-        var thinkEvolveCommand = new Command("evolve", "Evolve an existing exploration with deep thinking");
+        var thinkEvolveCommand = new TarsCommand("evolve", "Evolve an existing exploration with deep thinking");
         var evolveFileOption = new Option<string>("--file", "The exploration file to evolve") { IsRequired = true };
         var evolveModelOption = new Option<string>("--model", () => "llama3", "The model to use for deep thinking");
 
@@ -3271,7 +3286,7 @@ public static class CliSupport
         }, evolveFileOption, evolveModelOption);
 
         // Add series subcommand
-        var thinkSeriesCommand = new Command("series", "Generate a series of related deep thinking explorations");
+        var thinkSeriesCommand = new TarsCommand("series", "Generate a series of related deep thinking explorations");
         var baseTopicOption = new Option<string>("--base-topic", "The base topic for the series") { IsRequired = true };
         var seriesCountOption = new Option<int>("--count", () => 3, "The number of explorations to generate");
         var seriesModelOption = new Option<string>("--model", () => "llama3", "The model to use for deep thinking");
@@ -3320,7 +3335,7 @@ public static class CliSupport
         }, baseTopicOption, seriesCountOption, seriesModelOption);
 
         // Add versions subcommand
-        var thinkVersionsCommand = new Command("versions", "List exploration versions");
+        var thinkVersionsCommand = new TarsCommand("versions", "List exploration versions");
 
         thinkVersionsCommand.SetHandler(() =>
         {

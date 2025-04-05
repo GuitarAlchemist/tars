@@ -7,6 +7,10 @@ open Microsoft.Extensions.Logging
 open System.Text.Json
 open System.Text
 
+// Import types from other modules
+open TarsEngine.SelfImprovement.ImprovementApplicationStep
+open TarsEngine.SelfImprovement.FeedbackCollectionStep
+
 /// <summary>
 /// Module for the reporting step in the autonomous improvement workflow
 /// </summary>
@@ -33,7 +37,7 @@ module ReportingStep =
         task {
             if File.Exists(appliedImprovementsPath) then
                 let! json = File.ReadAllTextAsync(appliedImprovementsPath)
-                return JsonSerializer.Deserialize<ImprovementApplicationStep.AppliedImprovement[]>(json)
+                return JsonSerializer.Deserialize<AppliedImprovement[]>(json)
             else
                 return [||]
         }
@@ -45,7 +49,7 @@ module ReportingStep =
         task {
             if File.Exists(feedbackPath) then
                 let! json = File.ReadAllTextAsync(feedbackPath)
-                return JsonSerializer.Deserialize<FeedbackCollectionStep.ImprovementFeedback[]>(json)
+                return JsonSerializer.Deserialize<ImprovementFeedback[]>(json)
             else
                 return [||]
         }
@@ -82,9 +86,9 @@ module ReportingStep =
                 // Add the summary
                 report.AppendLine("## Summary") |> ignore
                 report.AppendLine() |> ignore
-                report.AppendLine($"- **Improvements Applied:** {appliedImprovements.Length}") |> ignore
-                report.AppendLine($"- **Successful Improvements:** {feedback |> Array.filter (fun f -> f.IsSuccessful) |> Array.length}") |> ignore
-                report.AppendLine($"- **Failed Improvements:** {feedback |> Array.filter (fun f -> not f.IsSuccessful) |> Array.length}") |> ignore
+                report.AppendLine(sprintf "- **Improvements Applied:** %d" appliedImprovements.Length) |> ignore
+                report.AppendLine(sprintf "- **Successful Improvements:** %d" (feedback |> Array.filter (fun f -> f.IsSuccessful) |> Array.length)) |> ignore
+                report.AppendLine(sprintf "- **Failed Improvements:** %d" (feedback |> Array.filter (fun f -> not f.IsSuccessful) |> Array.length)) |> ignore
                 report.AppendLine() |> ignore
 
                 // Add the workflow steps
@@ -129,12 +133,12 @@ module ReportingStep =
                             | Some f -> "❌ Failed"
                             | None -> "⚠️ Unknown"
 
-                        report.AppendLine($"### {improvement.PatternName} ({status})") |> ignore
+                        report.AppendLine(sprintf "### %s (%s)" improvement.PatternName status) |> ignore
                         report.AppendLine() |> ignore
-                        report.AppendLine($"**File:** {improvement.FilePath}") |> ignore
+                        report.AppendLine(sprintf "**File:** %s" improvement.FilePath) |> ignore
 
                         match improvement.LineNumber with
-                        | Some line -> report.AppendLine($"**Line:** {line}") |> ignore
+                        | Some line -> report.AppendLine(sprintf "**Line:** %d" line) |> ignore
                         | None -> ()
 
                         report.AppendLine() |> ignore
@@ -174,7 +178,7 @@ module ReportingStep =
     /// <summary>
     /// Gets the reporting step handler
     /// </summary>
-    let getHandler (logger: ILogger) : WorkflowEngine.StepHandler =
+    let getHandler (logger: ILogger) : StepHandler =
         fun state ->
             task {
                 logger.LogInformation("Starting reporting step")

@@ -46,6 +46,17 @@ This repository contains the TARS (Transformative Autonomous Reasoning System) p
 
 ## Features
 
+### Project Milestones
+
+TARS is evolving through several key milestones toward full autonomy:
+
+- **Phase 0 (Completed)**: Basic DSL parsing and execution, CLI commands, project structure
+- **Phase 1 (In Progress)**: Self-improvement workflow, knowledge extraction from documentation, autonomous improvement capabilities
+- **Phase 2 (Planned)**: Full autonomy in self-improvement, advanced reasoning, multi-agent collaboration
+- **Phase 3 (Future)**: Domain adaptation, distributed processing, advanced collaboration
+
+See the [detailed milestones](docs/STATUS.md#development-milestones) for a complete timeline and the [current state explanation](docs/CURRENT_STATE.md) for our progress toward full autonomy.
+
 ### TARS Metascripts and DSL
 
 TARS includes a powerful Domain Specific Language (DSL) for creating metascripts that orchestrate complex workflows:
@@ -124,10 +135,24 @@ TARS now includes text-to-speech functionality:
 
 ### Self-Improvement Capabilities
 
-TARS includes advanced self-improvement capabilities that allow it to analyze, improve, and learn from code:
+TARS includes advanced self-improvement capabilities that allow it to analyze, improve, and learn from code and documentation:
+
+#### Current Status (April 2024)
+
+The self-improvement system is currently under active development. Key components include:
+
+- **Workflow Engine**: Framework for executing multi-step improvement workflows
+- **Knowledge Extraction**: Capability to extract insights from documentation (in development)
+- **Code Analysis**: Identification of improvement opportunities in code
+- **Improvement Application**: Application of improvements based on analysis
+- **Feedback Collection**: Collection of feedback on applied improvements
+- **Learning Database**: System to record improvements and feedback
+
+See the [current status document](docs/STATUS.md) for more details on the project's development progress, the [current state explanation](docs/CURRENT_STATE.md) for a detailed explanation of the current state of TARS and the path to full autonomy, and the [post-mortem analysis](docs/post-mortem/autonomous-improvement-april-2024.md) for an analysis of the autonomous improvement system.
 
 #### Recent Progress
 
+- **Workflow State Management**: Implemented state management for autonomous improvement workflows
 - **Enhanced File Prioritization**: Implemented sophisticated file prioritization algorithm that considers file type, content, recency, complexity, and improvement history
 - **Improvement Metrics**: Added metrics to measure the quality of improvements and track progress
 - **First Analysis Success**: Successfully analyzed test code and identified multiple issues
@@ -250,6 +275,18 @@ dotnet run --project TarsCli/TarsCli.csproj -- auto-improve --status
 
 # Stop autonomous improvement (legacy command)
 dotnet run --project TarsCli/TarsCli.csproj -- auto-improve --stop
+
+# Start autonomous improvement workflow on specific directories
+dotnet run --project TarsCli/TarsCli.csproj -- auto-improve-workflow --start --directories docs/Explorations/v1/Chats docs/Explorations/Reflections --max-duration 60
+
+# Check the status of the autonomous improvement workflow
+dotnet run --project TarsCli/TarsCli.csproj -- auto-improve-workflow --status
+
+# Get a detailed report of the autonomous improvement workflow
+dotnet run --project TarsCli/TarsCli.csproj -- auto-improve-workflow --report
+
+# Stop the autonomous improvement workflow
+dotnet run --project TarsCli/TarsCli.csproj -- auto-improve-workflow --stop
 ```
 
 ### Model Context Protocol (MCP) Commands

@@ -1,0 +1,207 @@
+namespace TarsEngine.SelfImprovement
+
+open System
+open System.IO
+open System.Threading.Tasks
+open Microsoft.Extensions.Logging
+open System.Text.Json
+open System.Text
+
+/// <summary>
+/// Module for the reporting step in the autonomous improvement workflow
+/// </summary>
+module ReportingStep =
+    /// <summary>
+    /// The path to the applied improvements file
+    /// </summary>
+    let appliedImprovementsPath = "applied_improvements.json"
+
+    /// <summary>
+    /// The path to the feedback file
+    /// </summary>
+    let feedbackPath = "improvement_feedback.json"
+
+    /// <summary>
+    /// The path to the report file
+    /// </summary>
+    let reportPath = "improvement_report.md"
+
+    /// <summary>
+    /// Loads the applied improvements
+    /// </summary>
+    let loadAppliedImprovements () =
+        task {
+            if File.Exists(appliedImprovementsPath) then
+                let! json = File.ReadAllTextAsync(appliedImprovementsPath)
+                return JsonSerializer.Deserialize<AppliedImprovement[]>(json)
+            else
+                return [||]
+        }
+
+    /// <summary>
+    /// Loads the feedback
+    /// </summary>
+    let loadFeedback () =
+        task {
+            if File.Exists(feedbackPath) then
+                let! json = File.ReadAllTextAsync(feedbackPath)
+                return JsonSerializer.Deserialize<ImprovementFeedback[]>(json)
+            else
+                return [||]
+        }
+
+    /// <summary>
+    /// Generates a report
+    /// </summary>
+    let generateReport (logger: ILogger) (appliedImprovements: AppliedImprovement[]) (feedback: ImprovementFeedback[]) =
+        task {
+            try
+                logger.LogInformation("Generating report")
+
+                // Create a StringBuilder for the report
+                let report = StringBuilder()
+
+                // Add the report header
+                report.AppendLine("# Autonomous Improvement Report") |> ignore
+                report.AppendLine() |> ignore
+                report.AppendLine($"Generated at: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC") |> ignore
+                report.AppendLine() |> ignore
+
+                // Add a summary section
+                report.AppendLine("## Summary") |> ignore
+                report.AppendLine() |> ignore
+                report.AppendLine($"- **Applied Improvements:** {appliedImprovements.Length}") |> ignore
+
+                // Calculate the number of successful and failed improvements
+                let successfulImprovements = feedback |> Array.filter (fun f -> f.IsSuccessful) |> Array.length
+                let failedImprovements = feedback |> Array.filter (fun f -> not f.IsSuccessful) |> Array.length
+
+                report.AppendLine($"- **Successful Improvements:** {successfulImprovements}") |> ignore
+                report.AppendLine($"- **Failed Improvements:** {failedImprovements}") |> ignore
+                report.AppendLine() |> ignore
+
+                // Add a section for applied improvements
+                report.AppendLine("## Applied Improvements") |> ignore
+                report.AppendLine() |> ignore
+
+                if appliedImprovements.Length > 0 then
+                    // Create a table header
+                    report.AppendLine("| File | Pattern | Line | Status |") |> ignore
+                    report.AppendLine("|------|---------|------|--------|") |> ignore
+
+                    // Add a row for each improvement
+                    for improvement in appliedImprovements do
+                        // Find the feedback for this improvement
+                        let feedbackOption =
+                            feedback
+                            |> Array.tryFind (fun f ->
+                                f.FilePath = improvement.FilePath &&
+                                f.PatternId = improvement.PatternId)
+
+                        // Get the status from the feedback
+                        let status =
+                            match feedbackOption with
+                            | Some f when f.IsSuccessful -> "✅ Success"
+                            | Some f -> "❌ Failed"
+                            | None -> "⚠️ Unknown"
+
+                        // Add the row
+                        let lineNumber =
+                            match improvement.LineNumber with
+                            | Some line -> line.ToString()
+                            | None -> "N/A"
+
+                        report.AppendLine($"| {Path.GetFileName(improvement.FilePath)} | {improvement.PatternName} | {lineNumber} | {status} |") |> ignore
+                else
+                    report.AppendLine("No improvements were applied.") |> ignore
+
+                report.AppendLine() |> ignore
+
+                // Add a section for improvement details
+                report.AppendLine("## Improvement Details") |> ignore
+                report.AppendLine() |> ignore
+
+                if appliedImprovements.Length > 0 then
+                    for improvement in appliedImprovements do
+                        report.AppendLine($"### {improvement.PatternName} in {Path.GetFileName(improvement.FilePath)}") |> ignore
+                        report.AppendLine() |> ignore
+                        report.AppendLine($"- **File:** {improvement.FilePath}") |> ignore
+                        report.AppendLine($"- **Line:** {improvement.LineNumber |> Option.map string |> Option.defaultValue "N/A"}") |> ignore
+                        report.AppendLine($"- **Applied At:** {improvement.AppliedAt:yyyy-MM-dd HH:mm:ss} UTC") |> ignore
+                        report.AppendLine() |> ignore
+
+                        // Find the feedback for this improvement
+                        let feedbackOption =
+                            feedback
+                            |> Array.tryFind (fun f ->
+                                f.FilePath = improvement.FilePath &&
+                                f.PatternId = improvement.PatternId)
+
+                        // Add the status from the feedback
+                        match feedbackOption with
+                        | Some f when f.IsSuccessful ->
+                            report.AppendLine("**Status:** ✅ Success") |> ignore
+                        | Some f ->
+                            report.AppendLine("**Status:** ❌ Failed") |> ignore
+                            report.AppendLine() |> ignore
+                            report.AppendLine("**Error:**") |> ignore
+                            report.AppendLine() |> ignore
+                            report.AppendLine("```") |> ignore
+                            report.AppendLine(f.ErrorMessage |> Option.defaultValue "Unknown error") |> ignore
+                            report.AppendLine("```") |> ignore
+                        | None ->
+                            report.AppendLine("**Status:** ⚠️ Unknown") |> ignore
+
+                        report.AppendLine() |> ignore
+                        report.AppendLine("**Original Code:**") |> ignore
+                        report.AppendLine() |> ignore
+                        report.AppendLine("```") |> ignore
+                        report.AppendLine(improvement.OriginalCode) |> ignore
+                        report.AppendLine("```") |> ignore
+                        report.AppendLine() |> ignore
+                        report.AppendLine("**Improved Code:**") |> ignore
+                        report.AppendLine() |> ignore
+                        report.AppendLine("```") |> ignore
+                        report.AppendLine(improvement.ImprovedCode) |> ignore
+                        report.AppendLine("```") |> ignore
+                        report.AppendLine() |> ignore
+                else
+                    report.AppendLine("No improvements were applied.") |> ignore
+
+                // Return the report
+                return report.ToString()
+            with ex ->
+                logger.LogError(ex, "Error generating report")
+                return "Error generating report: " + ex.Message
+        }
+
+    /// <summary>
+    /// Gets the reporting step handler
+    /// </summary>
+    let getHandler (logger: ILogger) : WorkflowState -> Task<StepResult> =
+        fun state ->
+            task {
+                logger.LogInformation("Starting reporting step")
+
+                // Load the applied improvements
+                let! appliedImprovements = loadAppliedImprovements()
+
+                // Load the feedback
+                let! feedback = loadFeedback()
+
+                // Generate the report
+                let! report = generateReport logger appliedImprovements feedback
+
+                // Save the report to a file
+                do! File.WriteAllTextAsync(reportPath, report)
+
+                logger.LogInformation("Report saved to {ReportPath}", reportPath)
+
+                // Return the result data
+                let resultMap = Map.ofList [
+                    "report_path", reportPath
+                    "applied_improvements_count", appliedImprovements.Length.ToString()
+                    "feedback_count", feedback.Length.ToString()
+                ]
+                return Ok resultMap
+            }
