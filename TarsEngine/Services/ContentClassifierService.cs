@@ -275,39 +275,32 @@ public class ContentClassifierService : IContentClassifierService
                 return 0.5;
             }
 
-            // Create a metascript for relevance scoring
-            var metascript = $@"
-// Relevance scoring metascript
-// Context: {JsonSerializer.Serialize(context)}
-
-// The content to score
-let content = `{(content ?? "").Replace("`", "\\`")}`;
-
-// Calculate relevance score
-let relevanceScore = calculateRelevanceScore(content, {JsonSerializer.Serialize(context)});
-
-// Return the relevance score
-return relevanceScore;
-";
-
-            // Execute the metascript
-            var result = await _metascriptService.ExecuteMetascriptAsync(metascript);
-
-            // Parse the result
-            double relevanceScore = 0.5; // Default to medium relevance
-            if (!string.IsNullOrEmpty(result))
+            // Simple relevance scoring based on keyword matching
+            if (string.IsNullOrWhiteSpace(content))
             {
-                try
-                {
-                    if (double.TryParse(result, out var score))
-                    {
-                        relevanceScore = score;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error parsing relevance score");
-                }
+                return 0.0;
+            }
+
+            double relevanceScore = 0.5; // Default to medium relevance
+
+            // Extract keywords from context
+            var keywords = new List<string>();
+            if (context.TryGetValue("Keywords", out var keywordsStr))
+            {
+                keywords.AddRange(keywordsStr.Split(',', ';').Select(k => k.Trim().ToLowerInvariant()));
+            }
+
+            if (context.TryGetValue("Topic", out var topic))
+            {
+                keywords.AddRange(topic.Split(' ').Where(w => w.Length > 3).Select(w => w.ToLowerInvariant()));
+            }
+
+            // If we have keywords, calculate relevance based on keyword matches
+            if (keywords.Any())
+            {
+                var contentLower = content.ToLowerInvariant();
+                int matches = keywords.Count(k => contentLower.Contains(k));
+                relevanceScore = Math.Min(1.0, (double)matches / keywords.Count * 1.5);
             }
 
             // Ensure the score is between 0 and 1
