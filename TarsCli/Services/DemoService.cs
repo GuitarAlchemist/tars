@@ -599,6 +599,10 @@ namespace DemoCode
             var json = JsonSerializer.Serialize(learningPlan, options);
             await File.WriteAllTextAsync(demoFilePath, json);
 
+            // Log the full path of the demo file
+            _logger.LogInformation($"Learning plan demo saved to: {Path.GetFullPath(demoFilePath)}");
+            Console.WriteLine($"Learning plan demo saved to: {Path.GetFullPath(demoFilePath)}");
+
             return true;
         }
         catch (Exception ex)

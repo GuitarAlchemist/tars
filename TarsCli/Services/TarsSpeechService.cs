@@ -1,6 +1,9 @@
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
+using System.Net;
+using System.Net.Sockets;
 using Microsoft.Extensions.Configuration;
 
 namespace TarsCli.Services;
@@ -77,8 +80,58 @@ public class TarsSpeechService
 
             if (repoScriptPath != null)
             {
-                File.Copy(repoScriptPath, debugScriptPath, true);
-                _logger.LogInformation($"Copied debug script from {repoScriptPath} to {debugScriptPath}");
+                try
+                {
+                    // Check if the file already exists and is identical
+                    bool needsCopy = true;
+                    if (File.Exists(debugScriptPath))
+                    {
+                        try
+                        {
+                            // Compare file contents to see if we need to copy
+                            byte[] sourceBytes = File.ReadAllBytes(repoScriptPath);
+                            byte[] destBytes = File.ReadAllBytes(debugScriptPath);
+
+                            if (sourceBytes.SequenceEqual(destBytes))
+                            {
+                                needsCopy = false;
+                                _logger.LogInformation($"Debug script already exists and is up to date at {debugScriptPath}");
+                            }
+                        }
+                        catch (IOException)
+                        {
+                            // If we can't read the file, assume we need to copy
+                            needsCopy = true;
+                        }
+                    }
+
+                    if (needsCopy)
+                    {
+                        // Try to copy the file, but handle the case where it's in use
+                        try
+                        {
+                            File.Copy(repoScriptPath, debugScriptPath, true);
+                            _logger.LogInformation($"Copied debug script from {repoScriptPath} to {debugScriptPath}");
+                        }
+                        catch (IOException ex) when (ex.Message.Contains("being used by another process"))
+                        {
+                            // If the file is in use, we can still proceed if it exists
+                            if (File.Exists(debugScriptPath))
+                            {
+                                _logger.LogWarning($"Debug script is in use and cannot be updated. Using existing file at {debugScriptPath}");
+                            }
+                            else
+                            {
+                                throw; // Rethrow if the file doesn't exist
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"Error copying debug script from {repoScriptPath} to {debugScriptPath}");
+                    throw;
+                }
             }
             else
             {
@@ -139,6 +192,36 @@ public class TarsSpeechService
                 _logger.LogError(ex, "Error speaking text");
             }
         });
+    }
+
+    /// <summary>
+    /// Check if a port is in use
+    /// </summary>
+    /// <param name="port">Port number to check</param>
+    /// <returns>True if the port is in use, false otherwise</returns>
+    private bool IsPortInUse(int port)
+    {
+        try
+        {
+            using (var client = new TcpClient())
+            {
+                var result = client.BeginConnect(IPAddress.Loopback, port, null, null);
+                var success = result.AsyncWaitHandle.WaitOne(TimeSpan.FromMilliseconds(100));
+                if (success)
+                {
+                    client.EndConnect(result);
+                    return true; // Port is in use
+                }
+                else
+                {
+                    return false; // Port is not in use
+                }
+            }
+        }
+        catch
+        {
+            return false; // Error occurred, assume port is not in use
+        }
     }
 
     /// <summary>
@@ -244,9 +327,28 @@ public class TarsSpeechService
         try
         {
             // Check if server is already running
-            if (_serverProcess != null && !_serverProcess.HasExited)
+            if (_serverProcess != null)
             {
-                _logger.LogInformation("TTS server is already running");
+                try
+                {
+                    if (!_serverProcess.HasExited)
+                    {
+                        _logger.LogInformation("TTS server is already running");
+                        return;
+                    }
+                }
+                catch (InvalidOperationException)
+                {
+                    // Process may have been terminated externally
+                    _logger.LogWarning("Previous TTS server process is no longer valid. Starting a new one.");
+                    _serverProcess = null;
+                }
+            }
+
+            // Check if there's already a TTS server running by checking the port
+            if (IsPortInUse(5002))
+            {
+                _logger.LogInformation("TTS server port 5002 is already in use. Assuming server is running.");
                 return;
             }
 
