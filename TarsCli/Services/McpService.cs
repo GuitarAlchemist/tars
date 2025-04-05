@@ -1,8 +1,15 @@
-using System.Text.Json;
-using Microsoft.Extensions.Configuration;
+using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Net;
+using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text;
+using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace TarsCli.Services;
 
@@ -21,6 +28,7 @@ public class McpService
     private bool _isRunning = false;
     private readonly Dictionary<string, Func<JsonElement, Task<JsonElement>>> _handlers = new();
     private readonly ConversationLoggingService? _conversationLoggingService;
+    private readonly List<(HttpListenerResponse Response, CancellationTokenSource CancellationTokenSource)> _sseClients = new();
 
     public McpService(
         ILogger<McpService> logger,
@@ -172,7 +180,14 @@ public class McpService
             var request = context.Request;
             var response = context.Response;
 
-            // Only accept POST requests
+            // Check if this is an SSE request
+            if (request.Headers["Accept"] == "text/event-stream")
+            {
+                await HandleSSERequestAsync(context);
+                return;
+            }
+
+            // Only accept POST requests for regular API calls
             if (request.HttpMethod != "POST")
             {
                 response.StatusCode = 405; // Method Not Allowed
@@ -389,6 +404,158 @@ public class McpService
         {
             _logger.LogError(ex, $"Error executing TARS operation: {operation}");
             return JsonSerializer.SerializeToElement(new { success = false, error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Handle a Server-Sent Events (SSE) request
+    /// </summary>
+    private async Task HandleSSERequestAsync(HttpListenerContext context)
+    {
+        var response = context.Response;
+        var cancellationTokenSource = new CancellationTokenSource();
+        var cancellationToken = cancellationTokenSource.Token;
+
+        try
+        {
+            // Set SSE headers
+            response.ContentType = "text/event-stream";
+            response.Headers.Add("Cache-Control", "no-cache");
+            response.Headers.Add("Connection", "keep-alive");
+            response.Headers.Add("Access-Control-Allow-Origin", "*");
+
+            // Add the client to the list of connected clients
+            lock (_sseClients)
+            {
+                _sseClients.Add((response, cancellationTokenSource));
+            }
+
+            _logger.LogInformation("SSE client connected. Total clients: {ClientCount}", _sseClients.Count);
+
+            // Send initial connection established event
+            await SendSSEEventAsync(response, "connected", JsonSerializer.Serialize(new { message = "MCP connection established" }));
+
+            // Send capabilities event
+            var capabilities = new Dictionary<string, object>
+            {
+                ["execute"] = "Execute terminal commands",
+                ["code"] = "Generate and save code",
+                ["status"] = "Get system status",
+                ["tars"] = "Execute TARS-specific operations",
+                ["knowledge"] = "Extract and apply knowledge from documentation",
+                ["vscode_agent"] = "VS Code Agent Mode integration",
+                ["vscode"] = "VS Code integration"
+            };
+            await SendSSEEventAsync(response, "capabilities", JsonSerializer.Serialize(new { capabilities }));
+
+            // Keep the connection alive with heartbeats
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                await SendSSEEventAsync(response, "heartbeat", JsonSerializer.Serialize(new { timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds() }));
+                await Task.Delay(30000, cancellationToken); // Send heartbeat every 30 seconds
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            // Normal cancellation, no need to log
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error handling SSE request");
+        }
+        finally
+        {
+            // Remove the client from the list of connected clients
+            lock (_sseClients)
+            {
+                _sseClients.RemoveAll(client => client.Response == response);
+            }
+
+            _logger.LogInformation("SSE client disconnected. Total clients: {ClientCount}", _sseClients.Count);
+
+            cancellationTokenSource.Dispose();
+            response.Close();
+        }
+    }
+
+    /// <summary>
+    /// Send a Server-Sent Event
+    /// </summary>
+    private async Task SendSSEEventAsync(HttpListenerResponse response, string eventType, string data)
+    {
+        try
+        {
+            var eventBuilder = new StringBuilder();
+            eventBuilder.AppendLine($"event: {eventType}");
+
+            // Split data by newlines and prefix each line with "data: "
+            foreach (var line in data.Split('\n'))
+            {
+                eventBuilder.AppendLine($"data: {line}");
+            }
+
+            eventBuilder.AppendLine(); // Empty line to signal end of event
+
+            var eventBytes = Encoding.UTF8.GetBytes(eventBuilder.ToString());
+            await response.OutputStream.WriteAsync(eventBytes, 0, eventBytes.Length);
+            await response.OutputStream.FlushAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending SSE event");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Send an event to all connected SSE clients
+    /// </summary>
+    public async Task BroadcastEventAsync(string eventType, object data)
+    {
+        var jsonData = JsonSerializer.Serialize(data);
+        _logger.LogInformation("Broadcasting event: {EventType} to {ClientCount} clients", eventType, _sseClients.Count);
+
+        // Create a list of clients to remove if they're disconnected
+        var clientsToRemove = new List<(HttpListenerResponse Response, CancellationTokenSource CancellationTokenSource)>();
+
+        // Send the event to all connected clients
+        foreach (var client in _sseClients)
+        {
+            try
+            {
+                if (client.Response.OutputStream.CanWrite)
+                {
+                    await SendSSEEventAsync(client.Response, eventType, jsonData);
+                }
+                else
+                {
+                    // Client is disconnected
+                    clientsToRemove.Add(client);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending event to client");
+                clientsToRemove.Add(client);
+            }
+        }
+
+        // Remove disconnected clients
+        if (clientsToRemove.Count > 0)
+        {
+            lock (_sseClients)
+            {
+                foreach (var client in clientsToRemove)
+                {
+                    _sseClients.Remove(client);
+                    client.CancellationTokenSource.Cancel();
+                    client.CancellationTokenSource.Dispose();
+                    try { client.Response.Close(); } catch { /* Ignore */ }
+                }
+            }
+
+            _logger.LogInformation("Removed {RemovedCount} disconnected clients. Total clients: {ClientCount}",
+                clientsToRemove.Count, _sseClients.Count);
         }
     }
 

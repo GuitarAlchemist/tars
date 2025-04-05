@@ -107,6 +107,7 @@ internal static class Program
                 .AddSingleton<TarsEngine.Services.CodeExecutionService>()
                 .AddSingleton<TarsEngine.Services.LearningService>()
                 .AddSingleton<TarsEngine.Services.Interfaces.ISelfImprovementService, TarsEngine.Services.SelfImprovementService>()
+                .AddSingleton<CollaborationService>()
                 .AddSingleton<SelfImprovementController>()
                 .AddSingleton<Mcp.McpController>(sp => new Mcp.McpController(sp.GetRequiredService<ILogger<Mcp.McpController>>(), configuration))
                 .BuildServiceProvider();

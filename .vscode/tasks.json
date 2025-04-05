@@ -1,0 +1,53 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build TARS",
+            "type": "shell",
+            "command": "dotnet build",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "silent",
+                "panel": "dedicated",
+                "close": true
+            },
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "Ensure TARS MCP Server",
+            "type": "shell",
+            "command": "${workspaceFolder}/ensure-tars-mcp.cmd",
+            "presentation": {
+                "reveal": "silent",
+                "panel": "dedicated",
+                "close": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Start TARS MCP Server",
+            "type": "shell",
+            "command": "${workspaceFolder}/start-tars-mcp.cmd",
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "close": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Stop TARS MCP Server",
+            "type": "shell",
+            "command": "${workspaceFolder}/tarscli.cmd mcp stop",
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "close": true
+            },
+            "problemMatcher": []
+        }
+    ]
+}

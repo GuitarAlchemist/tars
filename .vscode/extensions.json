@@ -1,0 +1,8 @@
+{
+    "recommendations": [
+        "ms-vscode.vscode-typescript-next",
+        "ms-vscode.vscode-js-profile-flame",
+        "ms-dotnettools.csharp",
+        "ionide.ionide-fsharp"
+    ]
+}

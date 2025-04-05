@@ -990,6 +990,70 @@ public static class CliSupport
         mcpCommand.AddCommand(augmentCommand);
         mcpCommand.AddCommand(conversationsCommand);
 
+        // Add collaborate command for TARS-Augment-VSCode collaboration
+        var collaborateCommand = new CollaborateCommand(_serviceProvider);
+        mcpCommand.AddCommand(collaborateCommand);
+
+        // Add test-collaboration command
+        var testCollaborationCommand = new TarsCommand("test-collaboration", "Test the collaboration between TARS, Augment Code, and VS Code");
+
+        var workflowOption = new Option<string>(
+            "--workflow",
+            () => "code_improvement",
+            "The workflow to test (code_improvement, knowledge_extraction, self_improvement)");
+        testCollaborationCommand.AddOption(workflowOption);
+
+        testCollaborationCommand.SetHandler(async (string workflow) =>
+        {
+            WriteHeader("Testing TARS-Augment-VSCode Collaboration");
+
+            var tarsMcpService = _serviceProvider!.GetRequiredService<TarsMcpService>();
+
+            // Create a request to initiate the workflow
+            var request = JsonSerializer.SerializeToElement(new
+            {
+                operation = "initiate_workflow",
+                workflow_name = workflow,
+                parameters = new Dictionary<string, string>
+                {
+                    ["target_directory"] = "TarsCli",
+                    ["file_pattern"] = "*.cs"
+                }
+            });
+
+            // Execute the collaboration operation
+            var result = await tarsMcpService.ExecuteCollaborationOperationAsync("initiate_workflow", request);
+
+            // Display the result
+            var resultObj = JsonSerializer.Deserialize<Dictionary<string, object>>(result.GetRawText());
+
+            if (resultObj != null && resultObj.TryGetValue("success", out var successObj) && successObj.ToString() == "True")
+            {
+                WriteColorLine($"Successfully initiated workflow: {workflow}", ConsoleColor.Green);
+
+                if (resultObj.TryGetValue("workflow_id", out var workflowIdObj))
+                {
+                    Console.WriteLine($"Workflow ID: {workflowIdObj}");
+                }
+
+                if (resultObj.TryGetValue("message", out var messageObj))
+                {
+                    Console.WriteLine($"Message: {messageObj}");
+                }
+            }
+            else
+            {
+                WriteColorLine("Failed to initiate workflow", ConsoleColor.Red);
+
+                if (resultObj != null && resultObj.TryGetValue("error", out var errorObj))
+                {
+                    Console.WriteLine($"Error: {errorObj}");
+                }
+            }
+        }, workflowOption);
+
+        mcpCommand.AddCommand(testCollaborationCommand);
+
         // Add MCP command to root command
         rootCommand.AddCommand(mcpCommand);
 

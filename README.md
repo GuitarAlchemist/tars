@@ -15,6 +15,18 @@
 
 # TARS Project
 
+## MCP Integration for TARS/VSCode/Augment Collaboration
+
+TARS now features a powerful integration between TARS, VSCode Agent Mode, and Augment Code through the Model Context Protocol (MCP). This integration enables a seamless collaboration between these three systems, leveraging their respective strengths:
+
+- **TARS**: Provides domain-specific capabilities like metascript processing, DSL handling, and self-improvement
+- **VSCode Agent Mode**: Provides the user interface and autonomous agent capabilities within the editor
+- **Augment Code**: Offers deep codebase understanding and specialized code generation
+
+The integration is built on the Model Context Protocol (MCP), which enables AI models to interact with external tools and services through a unified interface.
+
+To get started with the integration, see [VS Code Integration](docs/vscode-integration.md).
+
 <div align="center">
   <img src="docs/images/ChatGPT Image Mar 29, 2025, 10_57_07 AM.png" alt="TARS AI Logo" width="600"/>
 </div>
