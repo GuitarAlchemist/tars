@@ -116,6 +116,7 @@ internal static class Program
                 .AddSingleton<TarsEngine.Services.Interfaces.IComplexityAnalysisService, TarsEngine.Services.ComplexityAnalysisService>()
                 .AddSingleton<TarsEngine.Services.Interfaces.IReadabilityService, TarsEngine.Services.ReadabilityService>()
                 .AddSingleton<TarsEngine.Services.Interfaces.IDocumentParserService, TarsEngine.Services.DocumentParserService>()
+                .AddSingleton<TarsEngine.Services.Interfaces.IContentClassifierService, TarsEngine.Services.ContentClassifierService>()
                 .AddSingleton<SelfImprovementController>()
                 .AddSingleton<Mcp.McpController>(sp => new Mcp.McpController(
                     sp.GetRequiredService<ILogger<Mcp.McpController>>(),
