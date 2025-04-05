@@ -1,8 +1,10 @@
 using Microsoft.Extensions.Logging;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using TarsCli.Models;
 
 namespace TarsCli.Services;
 
@@ -197,5 +199,70 @@ public class AutonomousImprovementService
         }
     }
 
+    /// <summary>
+    /// Starts autonomous improvement process
+    /// </summary>
+    /// <param name="explorationDirectories">Directories containing exploration files</param>
+    /// <param name="targetDirectories">Directories to target with improvements</param>
+    /// <param name="durationMinutes">Duration of the improvement process in minutes</param>
+    /// <param name="model">Model to use for improvement</param>
+    /// <param name="autoCommit">Whether to automatically commit improvements</param>
+    /// <param name="createPullRequest">Whether to create a pull request for improvements</param>
+    /// <returns>Path to the generated report</returns>
+    public async Task<string> StartAutonomousImprovementAsync(
+        List<string> explorationDirectories,
+        List<string> targetDirectories,
+        int durationMinutes = 60,
+        string model = "llama3",
+        bool autoCommit = false,
+        bool createPullRequest = false)
+    {
+        try
+        {
+            // Start a workflow for autonomous improvement
+            var workflowStarted = await StartWorkflowAsync(
+                "Autonomous Improvement",
+                targetDirectories,
+                durationMinutes,
+                100);
 
+            if (!workflowStarted)
+            {
+                return string.Empty;
+            }
+
+            // Return a placeholder report path
+            return Path.Combine(Path.GetTempPath(), $"autonomous_improvement_report_{DateTime.Now:yyyyMMdd_HHmmss}.md");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error starting autonomous improvement");
+            _consoleService.WriteError($"Error starting autonomous improvement: {ex.Message}");
+            return string.Empty;
+        }
+    }
+
+    /// <summary>
+    /// Stop the autonomous improvement process
+    /// </summary>
+    public void StopAutonomousImprovement()
+    {
+        StopWorkflow();
+    }
+
+    /// <summary>
+    /// Get the status of the autonomous improvement process
+    /// </summary>
+    /// <returns>Status of the autonomous improvement process</returns>
+    public AutonomousImprovementStatus GetStatus()
+    {
+        return new AutonomousImprovementStatus
+        {
+            IsRunning = _currentWorkflowTask != null && !_currentWorkflowTask.IsCompleted,
+            StartTime = DateTime.Now.AddMinutes(-5), // Placeholder
+            EndTime = DateTime.Now.AddMinutes(55),   // Placeholder
+            ElapsedTime = TimeSpan.FromMinutes(5),   // Placeholder
+            RemainingTime = TimeSpan.FromMinutes(55) // Placeholder
+        };
+    }
 }

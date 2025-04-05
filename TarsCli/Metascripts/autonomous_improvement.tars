@@ -1,0 +1,1553 @@
+DESCRIBE {
+    name: "Autonomous Improvement"
+    version: "1.1"
+    author: "Augment Code & TARS Collaboration"
+    description: "A metascript for autonomous improvement of TARS documentation and codebase with enhanced prioritization and intelligence metrics"
+    tags: ["autonomous", "improvement", "documentation", "codebase", "intelligence-metrics", "prioritization"]
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.3
+    max_tokens: 4000
+}
+
+// Define paths to important directories
+VARIABLE exploration_dirs {
+    value: [
+        "./docs/Explorations/v1/Chats",
+        "./docs/Explorations/Reflections"
+    ]
+}
+
+VARIABLE target_dirs {
+    value: [
+        "./TarsCli/Services",
+        "./TarsCli/Commands",
+        "./TarsCli/Models",
+        "./TarsEngine/Services",
+        "./TarsEngine.DSL"
+    ]
+}
+
+// Define strategic goals for prioritization
+VARIABLE strategic_goals {
+    value: [
+        {
+            "name": "DSL Enhancement",
+            "keywords": ["DSL", "metascript", "interpreter", "parser", "evaluator"],
+            "weight": 1.5
+        },
+        {
+            "name": "Self-Improvement",
+            "keywords": ["self-improvement", "autonomous", "retroaction", "knowledge", "learning"],
+            "weight": 1.8
+        },
+        {
+            "name": "Documentation",
+            "keywords": ["documentation", "tutorial", "guide", "example", "explanation"],
+            "weight": 1.2
+        },
+        {
+            "name": "Core Engine",
+            "keywords": ["engine", "core", "service", "framework", "infrastructure"],
+            "weight": 1.4
+        }
+    ]
+}
+
+// Define state management functions
+FUNCTION load_state {
+    parameters: []
+
+    ACTION {
+        type: "log"
+        message: "Loading state from disk"
+    }
+
+    // Define the state file path
+    VARIABLE state_file_path {
+        value: "./autonomous_improvement_state.yaml"
+    }
+
+    // Check if the state file exists
+    ACTION {
+        type: "file_exists"
+        path: "${state_file_path}"
+        output_variable: "state_file_exists"
+    }
+
+    // If the state file exists, load it
+    IF {
+        condition: "${state_file_exists}"
+        then: {
+            ACTION {
+                type: "file_read"
+                path: "${state_file_path}"
+                output_variable: "state_yaml"
+            }
+
+            // Parse the YAML content
+            ACTION {
+                type: "yaml_parse"
+                yaml: "${state_yaml}"
+                output_variable: "loaded_state"
+            }
+
+            ACTION {
+                type: "log"
+                message: "State loaded from ${state_file_path}"
+            }
+
+            RETURN {
+                value: "${loaded_state}"
+            }
+        }
+        else: {
+            // Create a new state object
+            VARIABLE new_state {
+                value: {
+                    start_time: Date.now(),
+                    end_time: null,
+                    files_processed: 0,
+                    files_improved: 0,
+                    improvements_made: 0,
+                    improved_files: [],
+                    knowledge_items: [],
+                    current_phase: "initialization",
+                    run_history: [],
+                    // Intelligence metrics
+                    metrics: {
+                        knowledge_quality: 0,
+                        improvement_quality: 0,
+                        code_quality_before: {},
+                        code_quality_after: {},
+                        prioritization_effectiveness: 0,
+                        strategic_alignment: 0,
+                        learning_rate: 0
+                    },
+                    // Prioritization data
+                    file_priorities: {},
+                    exploration_priorities: {}
+                }
+            }
+
+            ACTION {
+                type: "log"
+                message: "No existing state found, created new state"
+            }
+
+            RETURN {
+                value: "${new_state}"
+            }
+        }
+    }
+}
+
+FUNCTION save_state {
+    parameters: ["state"]
+
+    ACTION {
+        type: "log"
+        message: "Saving state to disk"
+    }
+
+    // Define the state file path
+    VARIABLE state_file_path {
+        value: "./autonomous_improvement_state.yaml"
+    }
+
+    // Convert state to YAML
+    ACTION {
+        type: "yaml_stringify"
+        object: "${state}"
+        output_variable: "state_yaml"
+    }
+
+    // Write the YAML to the file
+    ACTION {
+        type: "file_write"
+        path: "${state_file_path}"
+        content: "${state_yaml}"
+    }
+
+    ACTION {
+        type: "log"
+        message: "State saved to ${state_file_path}"
+    }
+
+    RETURN {
+        value: true
+    }
+}
+
+// Load the state from disk or initialize a new one
+VARIABLE state {
+    value: "${load_state()}"
+}
+
+// Get all markdown files in a directory
+FUNCTION get_markdown_files {
+    parameters: ["directory"]
+
+    ACTION {
+        type: "get_files"
+        directory: "${directory}"
+        pattern: "*.md"
+        recursive: true
+        output_variable: "markdown_files"
+    }
+
+    RETURN {
+        value: "${markdown_files}"
+    }
+}
+
+// Analyze exploration file to determine its value and relevance
+FUNCTION analyze_exploration_value {
+    parameters: ["file_path"]
+
+    ACTION {
+        type: "log"
+        message: "Analyzing exploration value: ${file_path}"
+    }
+
+    // Read the file content
+    ACTION {
+        type: "file_read"
+        path: "${file_path}"
+        output_variable: "file_content"
+    }
+
+    // Create a prompt for exploration value analysis
+    VARIABLE prompt_text {
+        value: "You are an expert at evaluating the value and relevance of technical explorations.\n\nI'll provide you with the content of an exploration file from the TARS project. Please analyze its value and relevance for improving the codebase.\n\nFocus on:\n1. Novelty of ideas and concepts\n2. Technical depth and sophistication\n3. Practical applicability to the codebase\n4. Strategic alignment with project goals\n5. Potential for significant improvements\n\nHere's the content:\n\n${file_content}\n\nPlease provide your analysis in the following JSON format:\n{\n  \"title\": \"The title of the exploration\",\n  \"value_score\": 0.0 to 1.0,\n  \"relevance_score\": 0.0 to 1.0,\n  \"novelty_score\": 0.0 to 1.0,\n  \"technical_depth_score\": 0.0 to 1.0,\n  \"practical_applicability_score\": 0.0 to 1.0,\n  \"strategic_alignment_score\": 0.0 to 1.0,\n  \"key_value_points\": [\n    \"Point 1\",\n    \"Point 2\"\n  ],\n  \"improvement_potential\": \"Description of how this exploration could lead to improvements\"\n}\n\nFocus on providing an accurate assessment of the exploration's value for improving the TARS codebase."
+    }
+
+    // Get the analysis from the LLM
+    PROMPT {
+        text: "${prompt_text}"
+        model: "llama3"
+        temperature: 0.3
+        max_tokens: 2000
+        output_variable: "analysis_result_text"
+    }
+
+    // Parse the JSON response
+    VARIABLE analysis_result {
+        value: "${JSON.parse(analysis_result_text.match(/\{[\s\S]*\}/)[0])}"
+    }
+
+    // Add metadata
+    VARIABLE exploration_value {
+        value: "${Object.assign({}, analysis_result, {
+            file_path: file_path,
+            analysis_date: new Date().toISOString()
+        })}"
+    }
+
+    // Update the state with exploration priority
+    VARIABLE state {
+        value: "${Object.assign({}, state, {
+            exploration_priorities: Object.assign({}, state.exploration_priorities, {
+                [file_path]: exploration_value
+            })
+        })}"
+    }
+
+    ACTION {
+        type: "log"
+        message: "Exploration value analyzed: ${file_path} (Value: ${exploration_value.value_score}, Relevance: ${exploration_value.relevance_score})"
+    }
+
+    RETURN {
+        value: "${exploration_value}"
+    }
+}
+
+// Calculate file priority score based on multiple factors
+FUNCTION calculate_file_priority {
+    parameters: ["file_path"]
+
+    ACTION {
+        type: "log"
+        message: "Calculating priority for: ${file_path}"
+    }
+
+    // Read the file content
+    ACTION {
+        type: "file_read"
+        path: "${file_path}"
+        output_variable: "file_content"
+    }
+
+    // Get file info
+    VARIABLE file_extension {
+        value: "${file_path.split('.').pop().toLowerCase()}"
+    }
+
+    // Base score based on file type
+    VARIABLE base_score {
+        value: "${file_extension === 'cs' ? 2.0 :
+               (file_extension === 'fs' ? 2.5 :
+               (file_extension === 'md' ? 1.0 : 0.5))}"
+    }
+
+    // Calculate content complexity score
+    VARIABLE complexity_score {
+        value: "${Math.min(1.0, file_content.length / 10000)}"
+    }
+
+    // Calculate strategic alignment score
+    VARIABLE strategic_alignment_score {
+        value: 0
+    }
+
+    FOREACH {
+        items: "${strategic_goals}"
+        item_variable: "goal"
+
+        VARIABLE keyword_matches {
+            value: 0
+        }
+
+        FOREACH {
+            items: "${goal.keywords}"
+            item_variable: "keyword"
+
+            IF {
+                condition: "${file_content.toLowerCase().includes(keyword.toLowerCase())}"
+                then: {
+                    VARIABLE keyword_matches {
+                        value: "${keyword_matches + 1}"
+                    }
+                }
+            }
+        }
+
+        IF {
+            condition: "${keyword_matches > 0}"
+            then: {
+                VARIABLE match_score {
+                    value: "${Math.min(1.0, keyword_matches / 3) * goal.weight}"
+                }
+
+                VARIABLE strategic_alignment_score {
+                    value: "${strategic_alignment_score + match_score}"
+                }
+            }
+        }
+    }
+
+    // Calculate dependency score
+    VARIABLE dependency_score {
+        value: 0
+    }
+
+    // Check for imports/references to prioritize dependent files
+    IF {
+        condition: "${file_extension === 'cs' || file_extension === 'fs'}"
+        then: {
+            // Count using statements or imports
+            VARIABLE import_count {
+                value: "${(file_content.match(/using\s+[\w\.]+;/g) || []).length +
+                       (file_content.match(/open\s+[\w\.]+/g) || []).length}"
+            }
+
+            VARIABLE dependency_score {
+                value: "${Math.min(1.0, import_count / 10)}"
+            }
+        }
+    }
+
+    // Calculate improvement potential score
+    VARIABLE improvement_potential_score {
+        value: 0
+    }
+
+    // Check for TODOs, FIXMEs, etc.
+    VARIABLE todo_count {
+        value: "${(file_content.match(/TODO|FIXME|HACK|XXX|BUG/gi) || []).length}"
+    }
+
+    VARIABLE improvement_potential_score {
+        value: "${Math.min(1.0, todo_count / 5)}"
+    }
+
+    // Calculate total priority score
+    VARIABLE total_score {
+        value: "${base_score +
+               (complexity_score * 0.8) +
+               (strategic_alignment_score * 1.5) +
+               (dependency_score * 0.7) +
+               (improvement_potential_score * 1.2)}"
+    }
+
+    // Create priority score object
+    VARIABLE priority_score {
+        value: {
+            file_path: "${file_path}",
+            base_score: "${base_score}",
+            complexity_score: "${complexity_score}",
+            strategic_alignment_score: "${strategic_alignment_score}",
+            dependency_score: "${dependency_score}",
+            improvement_potential_score: "${improvement_potential_score}",
+            total_score: "${total_score}",
+            calculation_date: "${new Date().toISOString()}"
+        }
+    }
+
+    // Update the state with file priority
+    VARIABLE state {
+        value: "${Object.assign({}, state, {
+            file_priorities: Object.assign({}, state.file_priorities, {
+                [file_path]: priority_score
+            })
+        })}"
+    }
+
+    ACTION {
+        type: "log"
+        message: "Priority calculated for ${file_path}: ${total_score}"
+    }
+
+    RETURN {
+        value: "${priority_score}"
+    }
+}
+
+// Measure code quality before and after improvements
+FUNCTION measure_code_quality {
+    parameters: ["file_path", "content"]
+
+    ACTION {
+        type: "log"
+        message: "Measuring code quality for: ${file_path}"
+    }
+
+    // Create a prompt for code quality analysis
+    VARIABLE prompt_text {
+        value: "You are an expert at evaluating code quality.\n\nI'll provide you with the content of a file from the TARS project. Please analyze its quality across multiple dimensions.\n\nFocus on:\n1. Readability and clarity\n2. Maintainability\n3. Efficiency and performance\n4. Error handling\n5. Documentation quality\n6. Adherence to best practices\n\nHere's the content:\n\n```\n${content}\n```\n\nPlease provide your analysis in the following JSON format:\n{\n  \"overall_quality_score\": 0.0 to 1.0,\n  \"readability_score\": 0.0 to 1.0,\n  \"maintainability_score\": 0.0 to 1.0,\n  \"efficiency_score\": 0.0 to 1.0,\n  \"error_handling_score\": 0.0 to 1.0,\n  \"documentation_score\": 0.0 to 1.0,\n  \"best_practices_score\": 0.0 to 1.0,\n  \"strengths\": [\n    \"Strength 1\",\n    \"Strength 2\"\n  ],\n  \"weaknesses\": [\n    \"Weakness 1\",\n    \"Weakness 2\"\n  ],\n  \"improvement_suggestions\": [\n    \"Suggestion 1\",\n    \"Suggestion 2\"\n  ]\n}\n\nFocus on providing an accurate assessment of the code quality."
+    }
+
+    // Get the analysis from the LLM
+    PROMPT {
+        text: "${prompt_text}"
+        model: "llama3"
+        temperature: 0.3
+        max_tokens: 2000
+        output_variable: "analysis_result_text"
+    }
+
+    // Parse the JSON response
+    VARIABLE analysis_result {
+        value: "${JSON.parse(analysis_result_text.match(/\{[\s\S]*\}/)[0])}"
+    }
+
+    // Add metadata
+    VARIABLE quality_metrics {
+        value: "${Object.assign({}, analysis_result, {
+            file_path: file_path,
+            analysis_date: new Date().toISOString()
+        })}"
+    }
+
+    ACTION {
+        type: "log"
+        message: "Code quality measured for ${file_path}: ${quality_metrics.overall_quality_score}"
+    }
+
+    RETURN {
+        value: "${quality_metrics}"
+    }
+}
+
+// Measure intelligence progression by comparing before and after metrics
+FUNCTION measure_intelligence_progression {
+    parameters: ["metrics_before", "metrics_after"]
+
+    ACTION {
+        type: "log"
+        message: "Measuring intelligence progression"
+    }
+
+    // Calculate improvement in knowledge quality
+    VARIABLE knowledge_quality_improvement {
+        value: "${metrics_after.knowledge_quality - metrics_before.knowledge_quality}"
+    }
+
+    // Calculate improvement in code quality
+    VARIABLE code_quality_improvement {
+        value: "${metrics_after.improvement_quality - metrics_before.improvement_quality}"
+    }
+
+    // Calculate improvement in prioritization effectiveness
+    VARIABLE prioritization_improvement {
+        value: "${metrics_after.prioritization_effectiveness - metrics_before.prioritization_effectiveness}"
+    }
+
+    // Calculate improvement in strategic alignment
+    VARIABLE strategic_alignment_improvement {
+        value: "${metrics_after.strategic_alignment - metrics_before.strategic_alignment}"
+    }
+
+    // Calculate overall intelligence progression
+    VARIABLE overall_progression {
+        value: "${(
+            knowledge_quality_improvement * 0.3 +
+            code_quality_improvement * 0.3 +
+            prioritization_improvement * 0.2 +
+            strategic_alignment_improvement * 0.2
+        )}"
+    }
+
+    // Create progression report
+    VARIABLE progression_report {
+        value: {
+            knowledge_quality_improvement: "${knowledge_quality_improvement}",
+            code_quality_improvement: "${code_quality_improvement}",
+            prioritization_improvement: "${prioritization_improvement}",
+            strategic_alignment_improvement: "${strategic_alignment_improvement}",
+            overall_progression: "${overall_progression}",
+            measurement_date: "${new Date().toISOString()}"
+        }
+    }
+
+    // Update the state with progression metrics
+    VARIABLE state {
+        value: "${Object.assign({}, state, {
+            metrics: Object.assign({}, state.metrics, {
+                learning_rate: overall_progression
+            })
+        })}"
+    }
+
+    ACTION {
+        type: "log"
+        message: "Intelligence progression measured: ${overall_progression}"
+    }
+
+    RETURN {
+        value: "${progression_report}"
+    }
+}
+
+// Generate intelligence metrics report
+FUNCTION generate_intelligence_report {
+    parameters: []
+
+    ACTION {
+        type: "log"
+        message: "Generating intelligence metrics report"
+    }
+
+    // Create the report
+    VARIABLE report {
+        value: "# TARS Intelligence Metrics Report\n\n" +
+               "Generated: " + new Date().toISOString() + "\n\n" +
+               "## Intelligence Metrics\n\n" +
+               "- **Knowledge Quality:** " + state.metrics.knowledge_quality.toFixed(2) + "\n" +
+               "- **Improvement Quality:** " + state.metrics.improvement_quality.toFixed(2) + "\n" +
+               "- **Prioritization Effectiveness:** " + state.metrics.prioritization_effectiveness.toFixed(2) + "\n" +
+               "- **Strategic Alignment:** " + state.metrics.strategic_alignment.toFixed(2) + "\n" +
+               "- **Learning Rate:** " + state.metrics.learning_rate.toFixed(2) + "\n\n" +
+               "## Code Quality Metrics\n\n" +
+               "### Before Improvements\n\n" +
+               Object.entries(state.metrics.code_quality_before).map(([file, metrics]) =>
+                   `- **${file}:** ${metrics.overall_quality_score.toFixed(2)}`
+               ).join("\n") + "\n\n" +
+               "### After Improvements\n\n" +
+               Object.entries(state.metrics.code_quality_after).map(([file, metrics]) =>
+                   `- **${file}:** ${metrics.overall_quality_score.toFixed(2)}`
+               ).join("\n") + "\n\n" +
+               "## Improvement Statistics\n\n" +
+               "- **Files Processed:** " + state.files_processed + "\n" +
+               "- **Files Improved:** " + state.files_improved + "\n" +
+               "- **Improvements Made:** " + state.improvements_made + "\n\n" +
+               "## Run History\n\n" +
+               state.run_history.map((run, index) =>
+                   `### Run ${index + 1} - ${new Date(run.start_time).toLocaleString()}\n\n` +
+                   `- **Duration:** ${((run.end_time - run.start_time) / (1000 * 60)).toFixed(1)} minutes\n` +
+                   `- **Files Processed:** ${run.files_processed}\n` +
+                   `- **Files Improved:** ${run.files_improved}\n` +
+                   `- **Knowledge Quality:** ${run.metrics.knowledge_quality.toFixed(2)}\n` +
+                   `- **Improvement Quality:** ${run.metrics.improvement_quality.toFixed(2)}\n`
+               ).join("\n") + "\n\n" +
+               "## Intelligence Progression\n\n" +
+               "```\n" +
+               "Knowledge Quality:     " + state.run_history.map(run => run.metrics.knowledge_quality.toFixed(2)).join(" → ") + "\n" +
+               "Improvement Quality:   " + state.run_history.map(run => run.metrics.improvement_quality.toFixed(2)).join(" → ") + "\n" +
+               "Strategic Alignment:   " + state.run_history.map(run => run.metrics.strategic_alignment.toFixed(2)).join(" → ") + "\n" +
+               "Learning Rate:         " + state.run_history.map(run => run.metrics.learning_rate.toFixed(2)).join(" → ") + "\n" +
+               "```\n\n" +
+               "## Recommendations\n\n" +
+               "1. Focus on improving components with low quality scores\n" +
+               "2. Prioritize files with high strategic alignment\n" +
+               "3. Extract more knowledge from high-value explorations\n" +
+               "4. Analyze intelligence progression to identify areas for improvement\n"
+    }
+
+    // Save the report
+    VARIABLE report_path {
+        value: "intelligence_report_" + new Date().toISOString().replace(/:/g, '-') + ".md"
+    }
+
+    ACTION {
+        type: "file_write"
+        path: "${report_path}"
+        content: "${report}"
+    }
+
+    ACTION {
+        type: "log"
+        message: "Intelligence report generated: ${report_path}"
+    }
+
+    RETURN {
+        value: "${report_path}"
+    }
+}
+
+// Prioritize files based on enhanced algorithm
+FUNCTION prioritize_files {
+    parameters: ["target_dirs"]
+
+    ACTION {
+        type: "log"
+        message: "Prioritizing files using enhanced algorithm"
+    }
+
+    // Get all code files in the target directories
+    VARIABLE all_files {
+        value: []
+    }
+
+    FOREACH {
+        items: "${target_dirs}"
+        item_variable: "dir"
+
+        ACTION {
+            type: "get_files"
+            directory: "${dir}"
+            pattern: "*.{cs,fs}"
+            recursive: true
+            output_variable: "dir_files"
+        }
+
+        VARIABLE all_files {
+            value: "${all_files.concat(dir_files)}"
+        }
+    }
+
+    ACTION {
+        type: "log"
+        message: "Found ${all_files.length} files to prioritize"
+    }
+
+    // Calculate priority for each file
+    VARIABLE prioritized_files {
+        value: []
+    }
+
+    FOREACH {
+        items: "${all_files}"
+        item_variable: "file"
+
+        ACTION {
+            type: "call_function"
+            function: "calculate_file_priority"
+            parameters: {
+                file_path: "${file}"
+            }
+            output_variable: "priority"
+        }
+
+        VARIABLE prioritized_files {
+            value: "${[...prioritized_files, { file: file, priority: priority.total_score }]}"
+        }
+    }
+
+    // Sort files by priority (descending)
+    VARIABLE sorted_files {
+        value: "${prioritized_files.sort((a, b) => b.priority - a.priority).map(item => item.file)}"
+    }
+
+    // Calculate prioritization effectiveness
+    VARIABLE strategic_alignment_sum {
+        value: "${Object.values(state.file_priorities).reduce((sum, priority) => sum + priority.strategic_alignment_score, 0)}"
+    }
+
+    VARIABLE prioritization_effectiveness {
+        value: "${strategic_alignment_sum / Object.values(state.file_priorities).length}"
+    }
+
+    // Update the state with prioritization metrics
+    VARIABLE state {
+        value: "${Object.assign({}, state, {
+            metrics: Object.assign({}, state.metrics, {
+                prioritization_effectiveness: prioritization_effectiveness,
+                strategic_alignment: strategic_alignment_sum / Object.values(state.file_priorities).length
+            })
+        })}"
+    }
+
+    ACTION {
+        type: "log"
+        message: "Files prioritized. Top priority: ${sorted_files[0]}"
+    }
+
+    RETURN {
+        value: "${sorted_files}"
+    }
+}
+
+// Extract knowledge from a file with enhanced focus on high-value content
+FUNCTION extract_knowledge_enhanced {
+    parameters: ["file_path"]
+
+    ACTION {
+        type: "log"
+        message: "Analyzing exploration value: ${file_path}"
+    }
+
+    // Read the file content
+    ACTION {
+        type: "file_read"
+        path: "${file_path}"
+        output_variable: "file_content"
+    }
+
+    // Create a prompt for exploration value analysis
+    VARIABLE prompt_text {
+        value: "You are an expert at evaluating the value and relevance of technical explorations.
+
+I'll provide you with the content of an exploration file from the TARS project. Please analyze its value and relevance for improving the codebase.
+
+Focus on:
+1. Novelty of ideas and concepts
+2. Technical depth and sophistication
+3. Practical applicability to the codebase
+4. Strategic alignment with project goals
+5. Potential for significant improvements
+
+Here's the content:
+
+${file_content}
+
+Please provide your analysis in the following JSON format:
+{
+  \"title\": \"The title of the exploration\",
+  \"value_score\": 0.0 to 1.0,
+  \"relevance_score\": 0.0 to 1.0,
+  \"novelty_score\": 0.0 to 1.0,
+  \"technical_depth_score\": 0.0 to 1.0,
+  \"practical_applicability_score\": 0.0 to 1.0,
+  \"strategic_alignment_score\": 0.0 to 1.0,
+  \"key_value_points\": [
+    \"Point 1\",
+    \"Point 2\"
+  ],
+  \"improvement_potential\": \"Description of how this exploration could lead to improvements\"
+}
+
+Focus on providing an accurate assessment of the exploration's value for improving the TARS codebase."
+    }
+
+    // Get the analysis from the LLM
+    PROMPT {
+        text: "${prompt_text}"
+        model: "llama3"
+        temperature: 0.3
+        max_tokens: 2000
+        output_variable: "analysis_result_text"
+    }
+
+    // Parse the JSON response
+    VARIABLE analysis_result {
+        value: "${JSON.parse(analysis_result_text.match(/\{[\s\S]*\}/)[0])}"
+    }
+
+    // Add metadata
+    VARIABLE exploration_value {
+        value: "${Object.assign({}, analysis_result, {
+            file_path: file_path,
+            analysis_date: new Date().toISOString()
+        })}"
+    }
+
+    // Update the state with exploration priority
+    VARIABLE state {
+        value: "${Object.assign({}, state, {
+            exploration_priorities: Object.assign({}, state.exploration_priorities, {
+                [file_path]: exploration_value
+            })
+        })}"
+    }
+
+    ACTION {
+        type: "log"
+        message: "Exploration value analyzed: ${file_path} (Value: ${exploration_value.value_score}, Relevance: ${exploration_value.relevance_score})"
+    }
+
+    RETURN {
+        value: "${exploration_value}"
+    }
+}
+
+// Extract knowledge from a file
+FUNCTION extract_knowledge {
+    parameters: ["file_path"]
+
+    ACTION {
+        type: "log"
+        message: "Extracting knowledge from: ${file_path}"
+    }
+
+    // Read the file content
+    ACTION {
+        type: "file_read"
+        path: "${file_path}"
+        output_variable: "file_content"
+    }
+
+    // Create a prompt for knowledge extraction
+    VARIABLE prompt_text {
+        value: "You are an expert at extracting structured knowledge from documentation.
+
+I'll provide you with the content of a markdown file from the TARS project. Please extract key knowledge, concepts, and insights from this document.
+
+Focus on:
+1. Key concepts and their definitions
+2. Important insights and conclusions
+3. Technical details and specifications
+4. Design decisions and rationales
+5. Relationships between concepts
+
+Here's the content:
+
+${file_content}
+
+Please provide your extracted knowledge in the following JSON format:
+{
+  \"title\": \"The title of the document\",
+  \"summary\": \"A concise summary of the document\",
+  \"key_concepts\": [
+    {
+      \"name\": \"Concept name\",
+      \"definition\": \"Concept definition\",
+      \"related_concepts\": [\"Related concept 1\", \"Related concept 2\"]
+    }
+  ],
+  \"insights\": [
+    {
+      \"description\": \"Description of the insight\",
+      \"importance\": \"Why this insight is important\",
+      \"applications\": [\"Application 1\", \"Application 2\"]
+    }
+  ],
+  \"technical_details\": [
+    {
+      \"topic\": \"Topic name\",
+      \"details\": \"Technical details\",
+      \"code_examples\": [\"Example 1\", \"Example 2\"]
+    }
+  ],
+  \"design_decisions\": [
+    {
+      \"decision\": \"The decision made\",
+      \"rationale\": \"Why this decision was made\",
+      \"alternatives\": [\"Alternative 1\", \"Alternative 2\"]
+    }
+  ],
+  \"relationships\": [
+    {
+      \"from\": \"Concept A\",
+      \"to\": \"Concept B\",
+      \"relationship\": \"How A relates to B\"
+    }
+  ]
+}
+
+Focus on extracting the most valuable knowledge from this document."
+    }
+
+    // Get the extracted knowledge from the LLM
+    PROMPT {
+        text: "${prompt_text}"
+        model: "llama3"
+        temperature: 0.3
+        max_tokens: 4000
+        output_variable: "analysis_result_text"
+    }
+
+    // Parse the JSON response
+    VARIABLE analysis_result {
+        value: "${JSON.parse(analysis_result_text.match(/\\{[\\s\\S]*\\}/)[0])}"
+    }
+
+    // Add metadata
+    VARIABLE knowledge_item {
+        value: "${Object.assign({}, analysis_result, {
+            source_file: file_path,
+            extraction_date: new Date().toISOString()
+        })}"
+    }
+
+    // Update the state
+    VARIABLE state {
+        value: "${Object.assign({}, state, {
+            files_processed: state.files_processed + 1,
+            knowledge_items: [...state.knowledge_items, knowledge_item]
+        })}"
+    }
+
+    ACTION {
+        type: "log"
+        message: "Knowledge extracted from: ${file_path}"
+    }
+
+    RETURN {
+        value: "${knowledge_item}"
+    }
+}
+
+// Apply knowledge to improve a file
+FUNCTION apply_knowledge {
+    parameters: ["file_path"]
+
+    ACTION {
+        type: "log"
+        message: "Applying knowledge to improve: ${file_path}"
+    }
+
+    // Read the file content
+    ACTION {
+        type: "file_read"
+        path: "${file_path}"
+        output_variable: "file_content"
+    }
+
+    // Create a knowledge summary
+    VARIABLE knowledge_summary {
+        value: "# Knowledge Summary\n\n"
+    }
+
+    // Add key concepts
+    VARIABLE knowledge_summary {
+        value: "${knowledge_summary}## Key Concepts\n\n"
+    }
+
+    FOREACH {
+        items: "${state.knowledge_items}"
+        item_variable: "knowledge"
+
+        FOREACH {
+            items: "${knowledge.key_concepts || []}"
+            item_variable: "concept"
+
+            VARIABLE knowledge_summary {
+                value: "${knowledge_summary}- **${concept.name}**: ${concept.definition}\n"
+            }
+        }
+    }
+
+    // Add insights
+    VARIABLE knowledge_summary {
+        value: "${knowledge_summary}\n## Insights\n\n"
+    }
+
+    FOREACH {
+        items: "${state.knowledge_items}"
+        item_variable: "knowledge"
+
+        FOREACH {
+            items: "${knowledge.insights || []}"
+            item_variable: "insight"
+
+            VARIABLE knowledge_summary {
+                value: "${knowledge_summary}- ${insight.description}\n"
+            }
+        }
+    }
+
+    // Add design decisions
+    VARIABLE knowledge_summary {
+        value: "${knowledge_summary}\n## Design Decisions\n\n"
+    }
+
+    FOREACH {
+        items: "${state.knowledge_items}"
+        item_variable: "knowledge"
+
+        FOREACH {
+            items: "${knowledge.design_decisions || []}"
+            item_variable: "decision"
+
+            VARIABLE knowledge_summary {
+                value: "${knowledge_summary}- **${decision.decision}**: ${decision.rationale}\n"
+            }
+        }
+    }
+
+    // Create a prompt for improving the file
+    VARIABLE prompt_text {
+        value: "You are an expert at improving code and documentation by applying knowledge from a knowledge base.
+
+I'll provide you with:
+1. The content of a file from the TARS project
+2. A summary of knowledge extracted from TARS documentation
+
+Your task is to improve the file by applying relevant knowledge from the knowledge base. This could involve:
+- Adding comments to explain concepts or design decisions
+- Improving variable or function names based on standard terminology
+- Adding documentation that references key concepts
+- Restructuring code to better align with design principles
+- Adding references to related concepts or components
+
+Here's the file content:
+
+```
+${file_content}
+```
+
+Here's the knowledge base summary:
+
+${knowledge_summary}
+
+Please provide your improved version of the file. If you make changes, explain each change and how it applies knowledge from the knowledge base.
+
+If the file doesn't need improvement or the knowledge isn't relevant, just say so."
+    }
+
+    // Get the improved content from the LLM
+    PROMPT {
+        text: "${prompt_text}"
+        model: "llama3"
+        temperature: 0.3
+        max_tokens: 4000
+        output_variable: "response"
+    }
+
+    // Extract the improved content
+    VARIABLE improved_content {
+        value: "${response.match(/```(?:[\\w]*)\s*([\\s\\S]*?)```/)?.[1]?.trim() || file_content}"
+    }
+
+    // Check if the content was actually improved
+    IF {
+        condition: "${improved_content !== file_content}"
+        then: {
+            // Create a backup of the original file
+            VARIABLE backup_path {
+                value: "${file_path}.bak"
+            }
+
+            ACTION {
+                type: "file_write"
+                path: "${backup_path}"
+                content: "${file_content}"
+            }
+
+            // Write the improved content back to the file
+            ACTION {
+                type: "file_write"
+                path: "${file_path}"
+                content: "${improved_content}"
+            }
+
+            // Update the state
+            VARIABLE state {
+                value: "${Object.assign({}, state, {
+                    files_improved: state.files_improved + 1,
+                    improvements_made: state.improvements_made + 1,
+                    improved_files: [...state.improved_files, file_path]
+                })}"
+            }
+
+            ACTION {
+                type: "log"
+                message: "File improved: ${file_path}"
+            }
+
+            RETURN {
+                value: true
+            }
+        }
+        else: {
+            ACTION {
+                type: "log"
+                message: "No improvements needed for: ${file_path}"
+            }
+
+            RETURN {
+                value: false
+            }
+        }
+    }
+}
+
+// Generate a knowledge report
+FUNCTION generate_knowledge_report {
+    ACTION {
+        type: "log"
+        message: "Generating knowledge report"
+    }
+
+    // Create the report
+    VARIABLE report {
+        value: "# TARS Knowledge Report\n\n" +
+               "Generated: " + new Date().toISOString() + "\n\n" +
+               "Total knowledge items: " + state.knowledge_items.length + "\n\n"
+    }
+
+    // Add a summary of each knowledge item
+    VARIABLE report {
+        value: "${report}## Knowledge Items\n\n"
+    }
+
+    FOREACH {
+        items: "${state.knowledge_items}"
+        item_variable: "knowledge"
+
+        VARIABLE report {
+            value: "${report}### ${knowledge.title}\n\n" +
+                   "Source: ${knowledge.source_file}\n" +
+                   "Extracted: ${knowledge.extraction_date}\n\n" +
+                   "${knowledge.summary}\n\n"
+        }
+
+        // Add key concepts
+        IF {
+            condition: "${knowledge.key_concepts && knowledge.key_concepts.length > 0}"
+            then: {
+                VARIABLE report {
+                    value: "${report}#### Key Concepts\n\n"
+                }
+
+                FOREACH {
+                    items: "${knowledge.key_concepts}"
+                    item_variable: "concept"
+
+                    VARIABLE report {
+                        value: "${report}- **${concept.name}**: ${concept.definition}\n"
+                    }
+                }
+
+                VARIABLE report {
+                    value: "${report}\n"
+                }
+            }
+        }
+
+        // Add insights
+        IF {
+            condition: "${knowledge.insights && knowledge.insights.length > 0}"
+            then: {
+                VARIABLE report {
+                    value: "${report}#### Insights\n\n"
+                }
+
+                FOREACH {
+                    items: "${knowledge.insights}"
+                    item_variable: "insight"
+
+                    VARIABLE report {
+                        value: "${report}- ${insight.description}\n"
+                    }
+                }
+
+                VARIABLE report {
+                    value: "${report}\n"
+                }
+            }
+        }
+    }
+
+    // Save the report
+    VARIABLE report_path {
+        value: "knowledge_report_" + new Date().toISOString().replace(/:/g, '-') + ".md"
+    }
+
+    ACTION {
+        type: "file_write"
+        path: "${report_path}"
+        content: "${report}"
+    }
+
+    ACTION {
+        type: "log"
+        message: "Knowledge report generated: ${report_path}"
+    }
+
+    RETURN {
+        value: "${report_path}"
+    }
+}
+
+// Main workflow
+TARS {
+    // Initialize the workflow
+    ACTION {
+        type: "log"
+        message: "Starting Autonomous Improvement"
+    }
+
+    VARIABLE state {
+        value: "${Object.assign({}, state, {
+            current_phase: 'knowledge_extraction'
+        })}"
+    }
+
+    // Step 1: Extract knowledge from exploration directories
+    ACTION {
+        type: "log"
+        message: "Extracting knowledge from exploration directories"
+    }
+
+    // Save the initial state
+    ACTION {
+        type: "call_function"
+        function: "save_state"
+        parameters: {
+            state: "${state}"
+        }
+    }
+
+    FOREACH {
+        items: "${exploration_dirs}"
+        item_variable: "dir"
+
+        ACTION {
+            type: "log"
+            message: "Processing directory: ${dir}"
+        }
+
+        // Get all markdown files in the directory
+        ACTION {
+            type: "call_function"
+            function: "get_markdown_files"
+            parameters: {
+                directory: "${dir}"
+            }
+            output_variable: "markdown_files"
+        }
+
+        ACTION {
+            type: "log"
+            message: "Found ${markdown_files.length} markdown files in ${dir}"
+        }
+
+        // Extract knowledge from each file
+        FOREACH {
+            items: "${markdown_files}"
+            item_variable: "file"
+
+            ACTION {
+                type: "call_function"
+                function: "extract_knowledge"
+                parameters: {
+                    file_path: "${file}"
+                }
+                output_variable: "knowledge_item"
+            }
+
+            // Save state periodically (every 5 files)
+            IF {
+                condition: "${state.files_processed % 5 === 0}"
+                then: {
+                    ACTION {
+                        type: "call_function"
+                        function: "save_state"
+                        parameters: {
+                            state: "${state}"
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Step 2: Generate a knowledge report
+    VARIABLE state {
+        value: "${Object.assign({}, state, {
+            current_phase: 'knowledge_report'
+        })}"
+    }
+
+    ACTION {
+        type: "call_function"
+        function: "generate_knowledge_report"
+        output_variable: "report_path"
+    }
+
+    // Step 3: Prioritize files for improvement
+    VARIABLE state {
+        value: "${Object.assign({}, state, {
+            current_phase: 'file_prioritization'
+        })}"
+    }
+
+    // Save state before prioritization
+    ACTION {
+        type: "call_function"
+        function: "save_state"
+        parameters: {
+            state: "${state}"
+        }
+    }
+
+    ACTION {
+        type: "log"
+        message: "Prioritizing files for improvement based on strategic goals and content analysis"
+    }
+
+    // Use the enhanced prioritization algorithm
+    ACTION {
+        type: "call_function"
+        function: "prioritize_files"
+        parameters: {
+            target_dirs: "${target_dirs}"
+        }
+        output_variable: "prioritized_files"
+    }
+
+    // Save state after prioritization
+    ACTION {
+        type: "call_function"
+        function: "save_state"
+        parameters: {
+            state: "${state}"
+        }
+    }
+
+    // Step 4: Apply knowledge to improve prioritized files
+    VARIABLE state {
+        value: "${Object.assign({}, state, {
+            current_phase: 'knowledge_application'
+        })}"
+    }
+
+    ACTION {
+        type: "log"
+        message: "Applying knowledge to improve prioritized files"
+    }
+
+    // Measure code quality before improvements
+    VARIABLE files_to_improve {
+        value: "${prioritized_files.slice(0, Math.min(20, prioritized_files.length))}"
+    }
+
+    ACTION {
+        type: "log"
+        message: "Selected ${files_to_improve.length} highest priority files for improvement"
+    }
+
+    // Measure code quality before improvements
+    FOREACH {
+        items: "${files_to_improve}"
+        item_variable: "file"
+
+        // Read the file content
+        ACTION {
+            type: "file_read"
+            path: "${file}"
+            output_variable: "file_content"
+        }
+
+        // Measure code quality
+        ACTION {
+            type: "call_function"
+            function: "measure_code_quality"
+            parameters: {
+                file_path: "${file}",
+                content: "${file_content}"
+            }
+            output_variable: "quality_metrics"
+        }
+
+        // Store the quality metrics
+        VARIABLE state {
+            value: "${Object.assign({}, state, {
+                metrics: Object.assign({}, state.metrics, {
+                    code_quality_before: Object.assign({}, state.metrics.code_quality_before, {
+                        [file]: quality_metrics
+                    })
+                })
+            })}"
+        }
+    }
+
+    // Save state after measuring initial code quality
+    ACTION {
+        type: "call_function"
+        function: "save_state"
+        parameters: {
+            state: "${state}"
+        }
+    }
+
+    // Apply knowledge to each prioritized file
+    FOREACH {
+        items: "${files_to_improve}"
+        item_variable: "file"
+
+        ACTION {
+            type: "call_function"
+            function: "apply_knowledge"
+            parameters: {
+                file_path: "${file}"
+            }
+            output_variable: "improved"
+        }
+
+        // If the file was improved, measure code quality after improvement
+        IF {
+            condition: "${improved}"
+            then: {
+                // Read the updated file content
+                ACTION {
+                    type: "file_read"
+                    path: "${file}"
+                    output_variable: "file_content"
+                }
+
+                // Measure code quality after improvement
+                ACTION {
+                    type: "call_function"
+                    function: "measure_code_quality"
+                    parameters: {
+                        file_path: "${file}",
+                        content: "${file_content}"
+                    }
+                    output_variable: "quality_metrics"
+                }
+
+                // Store the quality metrics
+                VARIABLE state {
+                    value: "${Object.assign({}, state, {
+                        metrics: Object.assign({}, state.metrics, {
+                            code_quality_after: Object.assign({}, state.metrics.code_quality_after, {
+                                [file]: quality_metrics
+                            }),
+                            improvement_quality: (state.metrics.improvement_quality * state.files_improved +
+                                                (quality_metrics.overall_quality_score - (state.metrics.code_quality_before[file]?.overall_quality_score || 0))) /
+                                                (state.files_improved + 1)
+                        })
+                    })}"
+                }
+
+                // Save state periodically (every 3 improved files)
+                IF {
+                    condition: "${state.files_improved % 3 === 0}"
+                    then: {
+                        ACTION {
+                            type: "call_function"
+                            function: "save_state"
+                            parameters: {
+                                state: "${state}"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Save state after applying improvements
+    ACTION {
+        type: "call_function"
+        function: "save_state"
+        parameters: {
+            state: "${state}"
+        }
+    }
+
+    // Step 4: Finalize the process
+    VARIABLE run_summary {
+        value: {
+            start_time: state.start_time,
+            end_time: Date.now(),
+            files_processed: state.files_processed,
+            files_improved: state.files_improved,
+            improvements_made: state.improvements_made,
+            knowledge_items_count: state.knowledge_items.length,
+            metrics: {
+                knowledge_quality: state.metrics.knowledge_quality,
+                improvement_quality: state.metrics.improvement_quality,
+                prioritization_effectiveness: state.metrics.prioritization_effectiveness,
+                strategic_alignment: state.metrics.strategic_alignment,
+                learning_rate: state.metrics.learning_rate
+            }
+        }
+    }
+
+    VARIABLE state {
+        value: "${Object.assign({}, state, {
+            current_phase: 'finalization',
+            end_time: Date.now(),
+            run_history: [...state.run_history, run_summary]
+        })}"
+    }
+
+    // Save the final state
+    ACTION {
+        type: "call_function"
+        function: "save_state"
+        parameters: {
+            state: "${state}"
+        }
+    }
+
+    // Generate intelligence metrics report
+    ACTION {
+        type: "call_function"
+        function: "generate_intelligence_report"
+        output_variable: "intelligence_report_path"
+    }
+
+    // Generate a summary report
+    VARIABLE summary {
+        value: "# Autonomous Improvement Report\n\n" +
+               "## Summary\n\n" +
+               "- **Start Time:** " + new Date(state.start_time).toLocaleString() + "\n" +
+               "- **End Time:** " + new Date(state.end_time).toLocaleString() + "\n" +
+               "- **Files Processed:** " + state.files_processed + "\n" +
+               "- **Files Improved:** " + state.files_improved + "\n" +
+               "- **Improvements Made:** " + state.improvements_made + "\n\n" +
+               "## Intelligence Metrics\n\n" +
+               "- **Knowledge Quality:** " + state.metrics.knowledge_quality.toFixed(2) + "\n" +
+               "- **Improvement Quality:** " + state.metrics.improvement_quality.toFixed(2) + "\n" +
+               "- **Prioritization Effectiveness:** " + state.metrics.prioritization_effectiveness.toFixed(2) + "\n" +
+               "- **Strategic Alignment:** " + state.metrics.strategic_alignment.toFixed(2) + "\n" +
+               "- **Learning Rate:** " + state.metrics.learning_rate.toFixed(2) + "\n\n" +
+               "## Improved Files\n\n" +
+               state.improved_files.map(file => `- ${file}`).join('\n') + "\n\n" +
+               "## Knowledge Items\n\n" +
+               state.knowledge_items.map(item => `- ${item.title}`).join('\n') + "\n\n" +
+               "## Next Steps\n\n" +
+               "1. Review the improved files to ensure the changes are appropriate\n" +
+               "2. Run the improvement process again to continue improving more files\n" +
+               "3. Consider extracting additional knowledge from new exploration files\n" +
+               "4. Analyze intelligence metrics to identify areas for improvement\n"
+    }
+
+    // Create a timestamped filename for the report
+    VARIABLE timestamp {
+        value: "${new Date().toISOString().replace(/:/g, '-').replace(/\..+/, '')}"
+    }
+
+    VARIABLE report_filename {
+        value: "autonomous_improvement_report_${timestamp}.md"
+    }
+
+    ACTION {
+        type: "file_write"
+        path: "${report_filename}"
+        content: "${summary}"
+    }
+
+    ACTION {
+        type: "log"
+        message: "Autonomous Improvement completed. Reports generated:\n- Main report: ${report_filename}\n- Intelligence metrics: ${intelligence_report_path}"
+    }
+}

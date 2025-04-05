@@ -376,7 +376,8 @@ public class McpService
                         ["execute"] = "Execute terminal commands",
                         ["code"] = "Generate and save code",
                         ["status"] = "Get system status",
-                        ["tars"] = "Execute TARS-specific operations"
+                        ["tars"] = "Execute TARS-specific operations",
+                        ["knowledge"] = "Extract and apply knowledge from documentation"
                     };
                     return JsonSerializer.SerializeToElement(new { success = true, capabilities = capabilities });
 

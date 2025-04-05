@@ -1,0 +1,194 @@
+DESCRIBE {
+    name: "Simple Explorations Improvement"
+    version: "1.0"
+    author: "TARS Team"
+    description: "A simple metascript for improving TARS documentation in the Explorations directories"
+    tags: ["documentation", "self-improvement", "explorations", "markdown"]
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.3
+    max_tokens: 4000
+}
+
+// Main workflow
+TARS {
+    // Initialize the workflow
+    ACTION {
+        type: "log"
+        message: "Starting Simple Explorations Improvement"
+    }
+
+    // Get the file path from environment variables
+    VARIABLE file_path {
+        value: "${process.env.TARS_IMPROVE_SPECIFIC_FILE || ''}"
+    }
+
+    // Check if a file path was provided
+    IF {
+        condition: "${file_path !== ''}"
+        then: {
+            ACTION {
+                type: "log"
+                message: "Processing file: ${file_path}"
+            }
+
+            // Read the file content
+            ACTION {
+                type: "file_read"
+                path: "${file_path}"
+                output_variable: "file_content"
+            }
+
+            // Create a prompt for improving the file
+            VARIABLE prompt_text {
+                value: "You are an expert at improving documentation and organizing knowledge.
+
+I'll provide you with the content of a markdown file from the TARS project. Please analyze it and suggest improvements to make it more structured, readable, and valuable as a knowledge resource.
+
+Focus on:
+1. Improving structure and organization
+2. Enhancing clarity and readability
+3. Adding valuable context or explanations
+4. Highlighting key insights and concepts
+5. Improving formatting for better readability
+
+Here's the content:
+
+${file_content}
+
+Please provide your suggested improvements in the following JSON format:
+{
+  \"analysis\": {
+    \"structure_score\": 0-10,
+    \"content_quality_score\": 0-10,
+    \"key_insights\": [\"insight 1\", \"insight 2\", ...],
+    \"missing_elements\": [\"element 1\", \"element 2\", ...]
+  },
+  \"improvements\": [
+    {
+      \"type\": \"structure\",
+      \"description\": \"Improve organization\",
+      \"original_text\": \"text to replace\",
+      \"improved_text\": \"improved text with better organization\"
+    },
+    {
+      \"type\": \"content\",
+      \"description\": \"Add context\",
+      \"original_text\": \"text to replace\",
+      \"improved_text\": \"improved text with added context\"
+    }
+  ],
+  \"overall_assessment\": \"An overall assessment of the file and the improvements suggested\"
+}
+
+Focus on making meaningful improvements that enhance the value of this document as a knowledge resource."
+            }
+
+            // Get improvement suggestions from the LLM
+            PROMPT {
+                text: "${prompt_text}"
+                model: "llama3"
+                temperature: 0.3
+                max_tokens: 4000
+                output_variable: "analysis_result_text"
+            }
+
+            // Parse the analysis result
+            VARIABLE analysis_result {
+                value: "${JSON.parse(analysis_result_text)}"
+            }
+
+            // Create a backup of the original file
+            VARIABLE backup_path {
+                value: "${file_path}.bak"
+            }
+
+            ACTION {
+                type: "file_write"
+                path: "${backup_path}"
+                content: "${file_content}"
+            }
+
+            // Apply each improvement
+            VARIABLE improved_content {
+                value: "${file_content}"
+            }
+
+            FOREACH {
+                items: "${analysis_result.improvements}"
+                item_variable: "improvement"
+                
+                // Apply the improvement if it has both original and improved text
+                IF {
+                    condition: "${improvement.original_text !== undefined && improvement.improved_text !== undefined}"
+                    then: {
+                        // If original text is empty, it means we're adding new content at the end
+                        IF {
+                            condition: "${improvement.original_text === ''}"
+                            then: {
+                                VARIABLE improved_content {
+                                    value: "${improved_content + '\\n\\n' + improvement.improved_text}"
+                                }
+                            }
+                            else: {
+                                VARIABLE improved_content {
+                                    value: "${improved_content.replace(improvement.original_text, improvement.improved_text)}"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Write the improved content back to the file
+            ACTION {
+                type: "file_write"
+                path: "${file_path}"
+                content: "${improved_content}"
+            }
+
+            // Generate a summary report
+            VARIABLE summary {
+                value: "# TARS Explorations Improvement Report\n\n" +
+                       "## Summary\n\n" +
+                       "- **File:** ${file_path}\n" +
+                       "- **Structure Score:** ${analysis_result.analysis.structure_score}/10\n" +
+                       "- **Content Quality Score:** ${analysis_result.analysis.content_quality_score}/10\n" +
+                       "- **Improvements Made:** ${analysis_result.improvements.length}\n\n" +
+                       "## Key Insights\n\n" +
+                       "${analysis_result.analysis.key_insights.map(insight => `- ${insight}`).join('\\n')}\n\n" +
+                       "## Missing Elements\n\n" +
+                       "${analysis_result.analysis.missing_elements.map(element => `- ${element}`).join('\\n')}\n\n" +
+                       "## Overall Assessment\n\n" +
+                       "${analysis_result.overall_assessment}\n\n" +
+                       "## Next Steps\n\n" +
+                       "1. Review the improved file to ensure the changes are appropriate\n" +
+                       "2. Consider extracting key insights to apply to the codebase\n"
+            }
+
+            ACTION {
+                type: "file_write"
+                path: "explorations_improvement_report.md"
+                content: "${summary}"
+            }
+
+            ACTION {
+                type: "log"
+                message: "Improvements applied to ${file_path}"
+            }
+        }
+        else: {
+            ACTION {
+                type: "log"
+                message: "No file path provided. Please specify a file to improve."
+            }
+        }
+    }
+
+    ACTION {
+        type: "log"
+        message: "Simple Explorations Improvement completed"
+    }
+}

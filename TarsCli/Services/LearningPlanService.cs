@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace TarsCli.Services;
 
@@ -177,10 +178,27 @@ Ensure the learning plan is tailored to the specified skill level and preference
             if (jsonStart >= 0 && jsonEnd >= 0 && jsonEnd > jsonStart)
             {
                 var jsonContent = response.Substring(jsonStart, jsonEnd - jsonStart + 1);
-                var planContent = JsonSerializer.Deserialize<LearningPlanContent>(jsonContent, new JsonSerializerOptions
+
+                // Clean up the JSON content to handle potential issues
+                jsonContent = CleanupJsonContent(jsonContent);
+
+                // Try to deserialize the content
+                LearningPlanContent? planContent = null;
+                try
                 {
-                    PropertyNameCaseInsensitive = true
-                });
+                    planContent = JsonSerializer.Deserialize<LearningPlanContent>(jsonContent, JsonSerializerConfig.AiResponseOptions);
+                }
+                catch (JsonException ex)
+                {
+                    _logger.LogWarning(ex, "Error deserializing learning plan content, attempting fallback parsing");
+                    planContent = FallbackParseLearningPlanContent(jsonContent);
+                }
+
+                if (planContent == null)
+                {
+                    _logger.LogError("Failed to parse learning plan content");
+                    throw new FormatException("The AI response could not be parsed into a learning plan");
+                }
 
                 // Create a new learning plan with metadata and content
                 return new LearningPlan
@@ -205,6 +223,75 @@ Ensure the learning plan is tailored to the specified skill level and preference
             _logger.LogError(ex, "Error parsing learning plan JSON");
             throw new FormatException("The AI response contained invalid JSON", ex);
         }
+        catch (Exception ex) when (ex is not FormatException)
+        {
+            _logger.LogError(ex, "Unexpected error parsing learning plan");
+            throw new FormatException("An unexpected error occurred while parsing the learning plan", ex);
+        }
+    }
+
+    /// <summary>
+    /// Cleans up JSON content to handle common issues
+    /// </summary>
+    private string CleanupJsonContent(string jsonContent)
+    {
+        // Replace any invalid escape sequences
+        jsonContent = jsonContent.Replace("\\n", "\n");
+
+        // Remove any trailing commas before closing brackets or braces
+        jsonContent = System.Text.RegularExpressions.Regex.Replace(jsonContent, @",\s*([\]\}])", "$1");
+
+        return jsonContent;
+    }
+
+    /// <summary>
+    /// Fallback method to parse learning plan content when standard deserialization fails
+    /// </summary>
+    private LearningPlanContent? FallbackParseLearningPlanContent(string jsonContent)
+    {
+        try
+        {
+            // Try to parse as a dynamic object first
+            using var doc = JsonDocument.Parse(jsonContent);
+            var root = doc.RootElement;
+
+            var content = new LearningPlanContent
+            {
+                Introduction = GetStringProperty(root, "introduction") ?? "No introduction provided."
+            };
+
+            // Try to parse prerequisites
+            if (root.TryGetProperty("prerequisites", out var prereqsElement) && prereqsElement.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var prereq in prereqsElement.EnumerateArray())
+                {
+                    if (prereq.ValueKind == JsonValueKind.String)
+                    {
+                        content.Prerequisites.Add(prereq.GetString() ?? "");
+                    }
+                }
+            }
+
+            // Return the partially parsed content
+            return content;
+        }
+        catch
+        {
+            // If all parsing attempts fail, return null
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Helper method to safely get a string property from a JsonElement
+    /// </summary>
+    private string? GetStringProperty(JsonElement element, string propertyName)
+    {
+        if (element.TryGetProperty(propertyName, out var property) && property.ValueKind == JsonValueKind.String)
+        {
+            return property.GetString();
+        }
+        return null;
     }
 
     /// <summary>
@@ -214,15 +301,10 @@ Ensure the learning plan is tailored to the specified skill level and preference
     {
         var filePath = Path.Combine(_learningPlansDirectory, $"{plan.Id}.json");
 
-        var options = new JsonSerializerOptions
-        {
-            WriteIndented = true
-        };
-
-        var json = JsonSerializer.Serialize(plan, options);
+        var json = JsonSerializer.Serialize(plan, JsonSerializerConfig.DefaultOptions);
         await File.WriteAllTextAsync(filePath, json);
 
-        _logger.LogInformation($"Learning plan saved: {filePath}");
+        _logger.LogInformation($"Learning plan saved: {Path.GetFullPath(filePath)}");
     }
 
     /// <summary>
@@ -230,7 +312,10 @@ Ensure the learning plan is tailored to the specified skill level and preference
     /// </summary>
     public async Task<LearningPlan> GetLearningPlan(string id)
     {
+        _logger.LogInformation($"Loading learning plan: {id}");
+
         var filePath = Path.Combine(_learningPlansDirectory, $"{id}.json");
+        _logger.LogInformation($"Learning plan file path: {Path.GetFullPath(filePath)}");
 
         if (!File.Exists(filePath))
         {
@@ -239,7 +324,7 @@ Ensure the learning plan is tailored to the specified skill level and preference
         }
 
         var json = await File.ReadAllTextAsync(filePath);
-        return JsonSerializer.Deserialize<LearningPlan>(json);
+        return JsonSerializer.Deserialize<LearningPlan>(json, JsonSerializerConfig.DefaultOptions);
     }
 
     /// <summary>
@@ -247,19 +332,22 @@ Ensure the learning plan is tailored to the specified skill level and preference
     /// </summary>
     public async Task<List<LearningPlan>> GetLearningPlans()
     {
+        _logger.LogInformation($"Loading all learning plans from directory: {Path.GetFullPath(_learningPlansDirectory)}");
+
         var plans = new List<LearningPlan>();
 
         foreach (var file in Directory.GetFiles(_learningPlansDirectory, "*.json"))
         {
             try
             {
+                _logger.LogInformation($"Loading learning plan from file: {Path.GetFullPath(file)}");
                 var json = await File.ReadAllTextAsync(file);
-                var plan = JsonSerializer.Deserialize<LearningPlan>(json);
+                var plan = JsonSerializer.Deserialize<LearningPlan>(json, JsonSerializerConfig.DefaultOptions);
                 plans.Add(plan);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error loading learning plan: {file}");
+                _logger.LogError(ex, $"Error loading learning plan: {Path.GetFullPath(file)}");
             }
         }
 
@@ -320,15 +408,16 @@ public enum SkillLevel
 /// <summary>
 /// Represents a learning plan
 /// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public class LearningPlan
 {
-    public required string Id { get; set; }
-    public required string Name { get; set; }
-    public required string Topic { get; set; }
-    public SkillLevel SkillLevel { get; set; }
-    public DateTime CreatedDate { get; set; }
-    public DateTime LastModifiedDate { get; set; }
-    public required LearningPlanContent Content { get; set; }
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+    public string Name { get; set; } = string.Empty;
+    public string Topic { get; set; } = string.Empty;
+    public SkillLevel SkillLevel { get; set; } = SkillLevel.Beginner;
+    public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+    public DateTime LastModifiedDate { get; set; } = DateTime.UtcNow;
+    public LearningPlanContent Content { get; set; } = new LearningPlanContent();
 }
 
 /// <summary>
@@ -336,7 +425,7 @@ public class LearningPlan
 /// </summary>
 public class LearningPlanContent
 {
-    public required string Introduction { get; set; }
+    public string Introduction { get; set; } = string.Empty;
     public List<string> Prerequisites { get; set; } = new List<string>();
     public List<Module> Modules { get; set; } = new List<Module>();
     public List<TimelineItem> Timeline { get; set; } = new List<TimelineItem>();
@@ -349,11 +438,11 @@ public class LearningPlanContent
 /// </summary>
 public class Module
 {
-    public required string Title { get; set; }
+    public string Title { get; set; } = string.Empty;
     public List<string> Objectives { get; set; } = new List<string>();
     public int EstimatedHours { get; set; }
     public List<Resource> Resources { get; set; } = new List<Resource>();
-    public required string Assessment { get; set; }
+    public string Assessment { get; set; } = string.Empty;
 }
 
 /// <summary>
@@ -361,10 +450,10 @@ public class Module
 /// </summary>
 public class Resource
 {
-    public required string Type { get; set; }
-    public required string Title { get; set; }
-    public required string Url { get; set; }
-    public required string Description { get; set; }
+    public string Type { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string Url { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
 }
 
 /// <summary>
@@ -381,9 +470,9 @@ public class TimelineItem
 /// </summary>
 public class Milestone
 {
-    public required string Title { get; set; }
-    public required string Description { get; set; }
-    public required string CompletionCriteria { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string CompletionCriteria { get; set; } = string.Empty;
 }
 
 /// <summary>
@@ -391,8 +480,8 @@ public class Milestone
 /// </summary>
 public class PracticeProject
 {
-    public required string Title { get; set; }
-    public required string Description { get; set; }
-    public required string Difficulty { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string Difficulty { get; set; } = string.Empty;
     public int EstimatedHours { get; set; }
 }

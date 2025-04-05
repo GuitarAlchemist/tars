@@ -147,6 +147,7 @@ public static class CliSupport
             WriteCommand("self-analyze", "Analyze a file for potential improvements");
             WriteCommand("self-propose", "Propose improvements for a file");
             WriteCommand("self-rewrite", "Analyze, propose, and apply improvements to a file");
+            WriteCommand("self-diagnose", "Run comprehensive self-diagnostics and generate a report");
             WriteCommand("learning", "View and manage learning data");
             WriteCommand("template", "Manage TARS templates");
             WriteCommand("workflow", "Run a multi-agent workflow for a task");
@@ -156,6 +157,10 @@ public static class CliSupport
             WriteCommand("demo", "Run a demonstration of TARS capabilities");
             WriteCommand("secrets", "Manage API keys and other secrets");
             WriteCommand("auto-improve", "Run autonomous self-improvement");
+            WriteCommand("improve-explorations", "Improve TARS Explorations documentation using metascripts");
+            WriteCommand("knowledge-apply", "Apply knowledge from the knowledge base to improve files");
+            WriteCommand("knowledge-integrate", "Integrate knowledge with other TARS systems");
+            WriteCommand("autonomous", "Autonomous improvement of TARS");
             WriteCommand("slack", "Manage Slack integration");
             WriteCommand("speech", "Text-to-speech functionality");
             WriteCommand("chat", "Interactive chat bot");
@@ -233,6 +238,19 @@ public static class CliSupport
             WriteExample("tarscli auto-improve-workflow --status");
             WriteExample("tarscli auto-improve-workflow --report");
             WriteExample("tarscli auto-improve-workflow --stop");
+            WriteExample("tarscli improve-explorations --time 60 --model llama3");
+            WriteExample("tarscli improve-explorations --chats-only");
+            WriteExample("tarscli improve-explorations --file docs/Explorations/v1/Chats/ChatGPT-TARS-Project-Implications.md");
+            WriteExample("tarscli knowledge-apply --extract docs/Explorations/v1/Chats/ChatGPT-TARS-Project-Implications.md");
+            WriteExample("tarscli knowledge-apply --file TarsCli/Services/DslService.cs");
+            WriteExample("tarscli knowledge-apply --directory TarsCli/Services --pattern *.cs --recursive");
+            WriteExample("tarscli knowledge-apply --report");
+            WriteExample("tarscli knowledge-integrate --metascript --target TarsCli/Services --pattern *.cs");
+            WriteExample("tarscli knowledge-integrate --cycle --exploration docs/Explorations/v1/Chats --target TarsCli/Services");
+            WriteExample("tarscli knowledge-integrate --retroaction --exploration docs/Explorations/v1/Chats --target TarsCli/Services");
+            WriteExample("tarscli autonomous start --exploration docs/Explorations/v1/Chats docs/Explorations/Reflections --target TarsCli/Services TarsCli/Commands --duration 60");
+            WriteExample("tarscli autonomous status");
+            WriteExample("tarscli autonomous stop");
             WriteExample("tarscli slack set-webhook --url https://hooks.slack.com/services/XXX/YYY/ZZZ");
             WriteExample("tarscli slack test --message \"Hello from TARS\" --channel #tars");
             WriteExample("tarscli slack announce --title \"New Release\" --message \"TARS v1.0 is now available!\"");
@@ -3403,6 +3421,39 @@ public static class CliSupport
             _serviceProvider.GetRequiredService<DslService>(),
             _serviceProvider.GetRequiredService<ConsoleService>());
         rootCommand.AddCommand(autoImproveMetascriptCommand);
+
+        // Add Self-Diagnose command
+        var selfDiagnoseCommand = new Commands.SelfDiagnoseCommand();
+        rootCommand.AddCommand(selfDiagnoseCommand);
+
+        // Add Explorations Improve command
+        var explorationsImproveCommand = new Commands.ExplorationsImproveCommand(
+            _serviceProvider.GetRequiredService<ILogger<Commands.ExplorationsImproveCommand>>(),
+            _serviceProvider.GetRequiredService<DslService>(),
+            _serviceProvider.GetRequiredService<ConsoleService>());
+        rootCommand.AddCommand(explorationsImproveCommand);
+
+        // Add Knowledge Apply command
+        var knowledgeApplyCommand = new Commands.KnowledgeApplyCommand();
+        knowledgeApplyCommand.SetServices(
+            _serviceProvider.GetRequiredService<ILogger<Commands.KnowledgeApplyCommand>>(),
+            _serviceProvider.GetRequiredService<KnowledgeApplicationService>(),
+            _serviceProvider.GetRequiredService<ConsoleService>());
+        rootCommand.AddCommand(knowledgeApplyCommand);
+
+        // Add Knowledge Integrate command
+        var knowledgeIntegrateCommand = new Commands.KnowledgeIntegrateCommand(
+            _serviceProvider.GetRequiredService<ILogger<Commands.KnowledgeIntegrateCommand>>(),
+            _serviceProvider.GetRequiredService<KnowledgeIntegrationService>(),
+            _serviceProvider.GetRequiredService<ConsoleService>());
+        rootCommand.AddCommand(knowledgeIntegrateCommand);
+
+        // Add Autonomous command
+        var autonomousCommand = new Commands.AutonomousCommand(
+            _serviceProvider.GetRequiredService<ILogger<Commands.AutonomousCommand>>(),
+            _serviceProvider.GetRequiredService<AutonomousImprovementService>(),
+            _serviceProvider.GetRequiredService<ConsoleService>());
+        rootCommand.AddCommand(autonomousCommand);
 
         // Add Self-Improvement command
         var selfImprovementController = _serviceProvider.GetRequiredService<SelfImprovementController>();

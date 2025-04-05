@@ -1,67 +1,59 @@
 using System;
 using System.Collections.Generic;
 
-public class Cache<TKey, TValue>
+public class MemoryCache<TKey, TValue>
 {
-    private readonly Dictionary<TKey, CacheEntry<TValue>> _cache;
+    private readonly Dictionary<TKey, CacheEntry<TValue>> _cache = new Dictionary<TKey, CacheEntry<TValue>>();
     private readonly object _syncLock = new object();
-    private readonly int _defaultTimeoutSeconds;
+    private readonly TimeSpan _expirationTimeSpan;
 
-    public Cache(int defaultTimeoutSeconds = 300)
+    public MemoryCache(TimeSpan expirationTimeSpan)
     {
-        _cache = new Dictionary<TKey, CacheEntry<TValue>>();
-        _defaultTimeoutSeconds = defaultTimeoutSeconds;
-    }
-
-    public void Add(TKey key, TValue value)
-    {
-        lock (_syncLock)
-        {
-            var entry = new CacheEntry<TValue>(value);
-            if (entry.Expiration > DateTime.Now.AddSeconds(_defaultTimeoutSeconds))
-                _cache[key] = entry;
-            else
-                throw new InvalidOperationException("Cannot add cache entry with expiration in the past.");
-        }
+        _expirationTimeSpan = expirationTimeSpan;
     }
 
     public TValue Get(TKey key)
     {
-        lock (_syncLock)
+        if (_cache.TryGetValue(key, out var cacheEntry))
         {
-            TValue result;
-            if (_cache.TryGetValue(key, out result) && result.Expiration > DateTime.Now)
-                return result.Value;
+            if (DateTime.UtcNow - cacheEntry.LastAccessed > _expirationTimeSpan)
+            {
+                Remove(key);
+                return default(TValue); // Return default value for type
+            }
             else
-                throw new KeyNotFoundException("Cache entry not found or expired.");
+            {
+                cacheEntry.LastAccessed = DateTime.UtcNow;
+                return cacheEntry.Value;
+            }
         }
+        return default(TValue); // Return default value for type
+    }
+
+    public void Add(TKey key, TValue value)
+    {
+        _cache.Add(key, new CacheEntry<TValue>(value));
     }
 
     public void Remove(TKey key)
     {
-        lock (_syncLock)
-        {
-            _cache.Remove(key);
-        }
+        _cache.Remove(key);
     }
 
     public void Clear()
     {
-        lock (_syncLock)
-        {
-            _cache.Clear();
-        }
+        _cache.Clear();
     }
-}
 
-public class CacheEntry<T>
-{
-    public DateTime Expiration { get; set; }
-    public T Value { get; set; }
-
-    public CacheEntry(T value)
+    private class CacheEntry<T>
     {
-        Expiration = DateTime.Now.AddSeconds(1);
-        Value = value;
+        public T Value { get; set; }
+        public DateTime LastAccessed { get; set; }
+
+        public CacheEntry(T value)
+        {
+            Value = value;
+            LastAccessed = DateTime.UtcNow;
+        }
     }
 }

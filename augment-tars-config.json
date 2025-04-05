@@ -1,0 +1,209 @@
+{
+  "mcp": {
+    "serverUrl": "http://localhost:9000/",
+    "capabilities": [
+      {
+        "name": "knowledge",
+        "description": "Extract and apply knowledge from documentation",
+        "operations": [
+          {
+            "name": "extract",
+            "description": "Extract knowledge from a file",
+            "parameters": [
+              {
+                "name": "filePath",
+                "type": "string",
+                "description": "Path to the file to extract knowledge from",
+                "required": true
+              },
+              {
+                "name": "model",
+                "type": "string",
+                "description": "Model to use for extraction",
+                "required": false,
+                "default": "llama3"
+              }
+            ]
+          },
+          {
+            "name": "apply",
+            "description": "Apply knowledge to improve a file",
+            "parameters": [
+              {
+                "name": "filePath",
+                "type": "string",
+                "description": "Path to the file to improve",
+                "required": true
+              },
+              {
+                "name": "model",
+                "type": "string",
+                "description": "Model to use for improvement",
+                "required": false,
+                "default": "llama3"
+              }
+            ]
+          },
+          {
+            "name": "report",
+            "description": "Generate a knowledge report",
+            "parameters": []
+          },
+          {
+            "name": "metascript",
+            "description": "Generate a knowledge metascript",
+            "parameters": [
+              {
+                "name": "targetDirectory",
+                "type": "string",
+                "description": "Directory to target with the metascript",
+                "required": true
+              },
+              {
+                "name": "pattern",
+                "type": "string",
+                "description": "File pattern to match",
+                "required": false,
+                "default": "*.cs"
+              },
+              {
+                "name": "model",
+                "type": "string",
+                "description": "Model to use for the metascript",
+                "required": false,
+                "default": "llama3"
+              }
+            ]
+          },
+          {
+            "name": "cycle",
+            "description": "Run a knowledge improvement cycle",
+            "parameters": [
+              {
+                "name": "explorationDirectory",
+                "type": "string",
+                "description": "Directory containing exploration files",
+                "required": true
+              },
+              {
+                "name": "targetDirectory",
+                "type": "string",
+                "description": "Directory to target with improvements",
+                "required": true
+              },
+              {
+                "name": "pattern",
+                "type": "string",
+                "description": "File pattern to match",
+                "required": false,
+                "default": "*.cs"
+              },
+              {
+                "name": "model",
+                "type": "string",
+                "description": "Model to use for the cycle",
+                "required": false,
+                "default": "llama3"
+              }
+            ]
+          },
+          {
+            "name": "retroaction",
+            "description": "Generate a retroaction report",
+            "parameters": [
+              {
+                "name": "explorationDirectory",
+                "type": "string",
+                "description": "Directory containing exploration files",
+                "required": true
+              },
+              {
+                "name": "targetDirectory",
+                "type": "string",
+                "description": "Directory containing target files",
+                "required": true
+              },
+              {
+                "name": "model",
+                "type": "string",
+                "description": "Model to use for the report",
+                "required": false,
+                "default": "llama3"
+              }
+            ]
+          },
+          {
+            "name": "list",
+            "description": "List all knowledge items",
+            "parameters": []
+          }
+        ]
+      },
+      {
+        "name": "ollama",
+        "description": "Interact with Ollama models",
+        "operations": [
+          {
+            "name": "generate",
+            "description": "Generate text with a model",
+            "parameters": [
+              {
+                "name": "prompt",
+                "type": "string",
+                "description": "The prompt to generate from",
+                "required": true
+              },
+              {
+                "name": "model",
+                "type": "string",
+                "description": "The model to use",
+                "required": false,
+                "default": "llama3"
+              }
+            ]
+          },
+          {
+            "name": "models",
+            "description": "Get available models",
+            "parameters": []
+          }
+        ]
+      },
+      {
+        "name": "self-improve",
+        "description": "Self-improvement capabilities",
+        "operations": [
+          {
+            "name": "start",
+            "description": "Start self-improvement",
+            "parameters": [
+              {
+                "name": "duration",
+                "type": "integer",
+                "description": "Duration in minutes",
+                "required": true
+              },
+              {
+                "name": "autoAccept",
+                "type": "boolean",
+                "description": "Whether to auto-accept improvements",
+                "required": false,
+                "default": false
+              }
+            ]
+          },
+          {
+            "name": "status",
+            "description": "Get self-improvement status",
+            "parameters": []
+          },
+          {
+            "name": "stop",
+            "description": "Stop self-improvement",
+            "parameters": []
+          }
+        ]
+      }
+    ]
+  }
+}

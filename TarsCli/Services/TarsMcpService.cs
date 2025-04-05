@@ -16,6 +16,8 @@ public class TarsMcpService
     private readonly SelfImprovementService _selfImprovementService;
     private readonly SlackIntegrationService _slackIntegrationService;
     private readonly TarsSpeechService _speechService;
+    private readonly KnowledgeApplicationService _knowledgeApplicationService;
+    private readonly KnowledgeIntegrationService _knowledgeIntegrationService;
 
     public TarsMcpService(
         ILogger<TarsMcpService> logger,
@@ -24,7 +26,9 @@ public class TarsMcpService
         OllamaService ollamaService,
         SelfImprovementService selfImprovementService,
         SlackIntegrationService slackIntegrationService,
-        TarsSpeechService speechService)
+        TarsSpeechService speechService,
+        KnowledgeApplicationService knowledgeApplicationService,
+        KnowledgeIntegrationService knowledgeIntegrationService)
     {
         _logger = logger;
         _configuration = configuration;
@@ -33,6 +37,8 @@ public class TarsMcpService
         _selfImprovementService = selfImprovementService;
         _slackIntegrationService = slackIntegrationService;
         _speechService = speechService;
+        _knowledgeApplicationService = knowledgeApplicationService;
+        _knowledgeIntegrationService = knowledgeIntegrationService;
 
         // Register TARS-specific handlers
         RegisterHandlers();
@@ -82,6 +88,16 @@ public class TarsMcpService
             _logger.LogInformation($"Executing speech operation: {operation}");
 
             var result = await ExecuteSpeechOperation(operation, request);
+            return result;
+        });
+
+        // Register the knowledge handler
+        _mcpService.RegisterHandler("knowledge", async (request) =>
+        {
+            var operation = request.GetProperty("operation").GetString();
+            _logger.LogInformation($"Executing knowledge operation: {operation}");
+
+            var result = await ExecuteKnowledgeOperation(operation, request);
             return result;
         });
     }
@@ -251,6 +267,73 @@ public class TarsMcpService
         catch (Exception ex)
         {
             _logger.LogError(ex, $"Error executing speech operation: {operation}");
+            return JsonSerializer.SerializeToElement(new { success = false, error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Execute a knowledge operation
+    /// </summary>
+    private async Task<JsonElement> ExecuteKnowledgeOperation(string operation, JsonElement request)
+    {
+        try
+        {
+            switch (operation)
+            {
+                case "extract":
+                    var filePath = request.GetProperty("filePath").GetString();
+                    var model = request.TryGetProperty("model", out var modelElement) ? modelElement.GetString() : "llama3";
+
+                    var knowledge = await _knowledgeApplicationService.ExtractKnowledgeAsync(filePath, model);
+                    return JsonSerializer.SerializeToElement(new { success = true, knowledge = knowledge });
+
+                case "apply":
+                    var targetFile = request.GetProperty("filePath").GetString();
+                    var applyModel = request.TryGetProperty("model", out var applyModelElement) ? applyModelElement.GetString() : "llama3";
+
+                    var result = await _knowledgeApplicationService.ApplyKnowledgeToFileAsync(targetFile, applyModel);
+                    return JsonSerializer.SerializeToElement(new { success = true, improved = result, message = result ? "File improved successfully" : "No improvements needed" });
+
+                case "report":
+                    var reportPath = await _knowledgeApplicationService.GenerateKnowledgeReportAsync();
+                    return JsonSerializer.SerializeToElement(new { success = true, reportPath = reportPath });
+
+                case "metascript":
+                    var targetDir = request.GetProperty("targetDirectory").GetString();
+                    var pattern = request.TryGetProperty("pattern", out var patternElement) ? patternElement.GetString() : "*.cs";
+                    var metascriptModel = request.TryGetProperty("model", out var metascriptModelElement) ? metascriptModelElement.GetString() : "llama3";
+
+                    var metascriptPath = await _knowledgeIntegrationService.GenerateKnowledgeMetascriptAsync(targetDir, pattern, metascriptModel);
+                    return JsonSerializer.SerializeToElement(new { success = true, metascriptPath = metascriptPath });
+
+                case "cycle":
+                    var explorationDir = request.GetProperty("explorationDirectory").GetString();
+                    var targetDirectory = request.GetProperty("targetDirectory").GetString();
+                    var filePattern = request.TryGetProperty("pattern", out var filePatternElement) ? filePatternElement.GetString() : "*.cs";
+                    var cycleModel = request.TryGetProperty("model", out var cycleModelElement) ? cycleModelElement.GetString() : "llama3";
+
+                    var cycleReportPath = await _knowledgeIntegrationService.RunKnowledgeImprovementCycleAsync(explorationDir, targetDirectory, filePattern, cycleModel);
+                    return JsonSerializer.SerializeToElement(new { success = true, reportPath = cycleReportPath });
+
+                case "retroaction":
+                    var retroExplorationDir = request.GetProperty("explorationDirectory").GetString();
+                    var retroTargetDir = request.GetProperty("targetDirectory").GetString();
+                    var retroModel = request.TryGetProperty("model", out var retroModelElement) ? retroModelElement.GetString() : "llama3";
+
+                    var retroReportPath = await _knowledgeIntegrationService.GenerateRetroactionReportAsync(retroExplorationDir, retroTargetDir, retroModel);
+                    return JsonSerializer.SerializeToElement(new { success = true, reportPath = retroReportPath });
+
+                case "list":
+                    var knowledgeItems = await _knowledgeApplicationService.GetAllKnowledgeAsync();
+                    return JsonSerializer.SerializeToElement(new { success = true, count = knowledgeItems.Count, items = knowledgeItems });
+
+                default:
+                    return JsonSerializer.SerializeToElement(new { success = false, error = $"Unknown knowledge operation: {operation}" });
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error executing knowledge operation: {operation}");
             return JsonSerializer.SerializeToElement(new { success = false, error = ex.Message });
         }
     }
