@@ -9,11 +9,13 @@ public class McpController
     private readonly ILogger<McpController> _logger;
     private readonly IConfiguration? _configuration;
     private readonly bool _autoExecuteEnabled;
+    private readonly TarsEngine.Services.Interfaces.IKnowledgeTransferService? _knowledgeTransferService;
 
-    public McpController(ILogger<McpController> logger, IConfiguration? configuration = null)
+    public McpController(ILogger<McpController> logger, IConfiguration? configuration = null, TarsEngine.Services.Interfaces.IKnowledgeTransferService? knowledgeTransferService = null)
     {
         _logger = logger;
         _configuration = configuration;
+        _knowledgeTransferService = knowledgeTransferService;
 
         // Check if auto-execute is enabled in configuration
         var autoExecuteValue = _configuration?["Tars:Mcp:AutoExecuteEnabled"];
@@ -36,6 +38,10 @@ public class McpController
                 "execute" => await ExecuteTerminalCommand(target),
                 "code" => await GenerateCode(target),
                 "augment" => ConfigureAugmentMcp(target),
+                "extract-knowledge" => await ExtractKnowledgeAsync(target),
+                "share-knowledge" => await ShareKnowledgeAsync(target),
+                "retrieve-knowledge" => await RetrieveKnowledgeAsync(target),
+                "apply-knowledge" => await ApplyKnowledgeAsync(target),
                 // Add more commands as needed
                 _ => $"Unknown command: {commandType}"
             };
@@ -228,6 +234,197 @@ public class McpController
         {
             _logger.LogError(ex, "Error generating code");
             return $"Error generating code: {ex.Message}";
+        }
+    }
+
+    private async Task<string> ExtractKnowledgeAsync(string text)
+    {
+        try
+        {
+            _logger.LogInformation("Extracting knowledge from text of length {Length}", text.Length);
+
+            if (_knowledgeTransferService == null)
+            {
+                return "Error: Knowledge transfer service is not available";
+            }
+
+            var knowledgeItems = await _knowledgeTransferService.ExtractKnowledgeAsync(text);
+            var itemsList = knowledgeItems.ToList();
+
+            _logger.LogInformation("Extracted {Count} knowledge items", itemsList.Count);
+
+            return System.Text.Json.JsonSerializer.Serialize(itemsList, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error extracting knowledge");
+            return $"Error extracting knowledge: {ex.Message}";
+        }
+    }
+
+    private async Task<string> ShareKnowledgeAsync(string target)
+    {
+        try
+        {
+            _logger.LogInformation("Sharing knowledge with {Target}", target);
+
+            if (_knowledgeTransferService == null)
+            {
+                return "Error: Knowledge transfer service is not available";
+            }
+
+            // Parse the target as JSON
+            var targetData = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(target);
+            if (targetData == null)
+            {
+                return "Error: Invalid target data";
+            }
+
+            // Get the knowledge items
+            if (!targetData.TryGetValue("items", out var itemsObj) || itemsObj == null)
+            {
+                return "Error: No knowledge items specified";
+            }
+
+            // Get the target system
+            if (!targetData.TryGetValue("target", out var targetSystemObj) || targetSystemObj == null)
+            {
+                return "Error: No target system specified";
+            }
+
+            // Get the options
+            Dictionary<string, string>? options = null;
+            if (targetData.TryGetValue("options", out var optionsObj) && optionsObj != null)
+            {
+                options = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(optionsObj.ToString() ?? "{}");
+            }
+
+            // Convert the items to KnowledgeItems
+            var itemsJson = System.Text.Json.JsonSerializer.Serialize(itemsObj);
+            var knowledgeItems = System.Text.Json.JsonSerializer.Deserialize<List<TarsEngine.Services.Interfaces.KnowledgeItem>>(itemsJson);
+            if (knowledgeItems == null)
+            {
+                return "Error: Invalid knowledge items";
+            }
+
+            // Share the knowledge
+            var result = await _knowledgeTransferService.ShareKnowledgeAsync(knowledgeItems, targetSystemObj.ToString() ?? "", options);
+
+            return System.Text.Json.JsonSerializer.Serialize(result, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sharing knowledge");
+            return $"Error sharing knowledge: {ex.Message}";
+        }
+    }
+
+    private async Task<string> RetrieveKnowledgeAsync(string target)
+    {
+        try
+        {
+            _logger.LogInformation("Retrieving knowledge with query: {Query}", target);
+
+            if (_knowledgeTransferService == null)
+            {
+                return "Error: Knowledge transfer service is not available";
+            }
+
+            // Parse the target as JSON
+            var targetData = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(target);
+            if (targetData == null)
+            {
+                return "Error: Invalid target data";
+            }
+
+            // Get the query
+            if (!targetData.TryGetValue("query", out var queryObj) || queryObj == null)
+            {
+                return "Error: No query specified";
+            }
+
+            // Get the source
+            if (!targetData.TryGetValue("source", out var sourceObj) || sourceObj == null)
+            {
+                return "Error: No source specified";
+            }
+
+            // Get the options
+            Dictionary<string, string>? options = null;
+            if (targetData.TryGetValue("options", out var optionsObj) && optionsObj != null)
+            {
+                options = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(optionsObj.ToString() ?? "{}");
+            }
+
+            // Retrieve the knowledge
+            var knowledgeItems = await _knowledgeTransferService.RetrieveKnowledgeAsync(queryObj.ToString() ?? "", sourceObj.ToString() ?? "", options);
+            var itemsList = knowledgeItems.ToList();
+
+            _logger.LogInformation("Retrieved {Count} knowledge items", itemsList.Count);
+
+            return System.Text.Json.JsonSerializer.Serialize(itemsList, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving knowledge");
+            return $"Error retrieving knowledge: {ex.Message}";
+        }
+    }
+
+    private async Task<string> ApplyKnowledgeAsync(string target)
+    {
+        try
+        {
+            _logger.LogInformation("Applying knowledge to {Target}", target);
+
+            if (_knowledgeTransferService == null)
+            {
+                return "Error: Knowledge transfer service is not available";
+            }
+
+            // Parse the target as JSON
+            var targetData = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(target);
+            if (targetData == null)
+            {
+                return "Error: Invalid target data";
+            }
+
+            // Get the knowledge items
+            if (!targetData.TryGetValue("items", out var itemsObj) || itemsObj == null)
+            {
+                return "Error: No knowledge items specified";
+            }
+
+            // Get the target system
+            if (!targetData.TryGetValue("target", out var targetSystemObj) || targetSystemObj == null)
+            {
+                return "Error: No target system specified";
+            }
+
+            // Get the options
+            Dictionary<string, string>? options = null;
+            if (targetData.TryGetValue("options", out var optionsObj) && optionsObj != null)
+            {
+                options = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(optionsObj.ToString() ?? "{}");
+            }
+
+            // Convert the items to KnowledgeItems
+            var itemsJson = System.Text.Json.JsonSerializer.Serialize(itemsObj);
+            var knowledgeItems = System.Text.Json.JsonSerializer.Deserialize<List<TarsEngine.Services.Interfaces.KnowledgeItem>>(itemsJson);
+            if (knowledgeItems == null)
+            {
+                return "Error: Invalid knowledge items";
+            }
+
+            // Apply the knowledge
+            var result = await _knowledgeTransferService.ApplyKnowledgeAsync(knowledgeItems, targetSystemObj.ToString() ?? "", options);
+
+            return System.Text.Json.JsonSerializer.Serialize(result, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error applying knowledge");
+            return $"Error applying knowledge: {ex.Message}";
         }
     }
 

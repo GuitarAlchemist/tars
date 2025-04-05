@@ -1057,6 +1057,10 @@ public static class CliSupport
         // Add MCP command to root command
         rootCommand.AddCommand(mcpCommand);
 
+        // Add Testing Framework command
+        var testingFrameworkCommand = new TestingFrameworkCommand(_serviceProvider);
+        rootCommand.AddCommand(testingFrameworkCommand);
+
         // Create init command
         var initCommand = new TarsCommand("init", "Initialize a new TARS session");
         var sessionNameArgument = new Argument<string>("session-name", "Name of the session to initialize");
