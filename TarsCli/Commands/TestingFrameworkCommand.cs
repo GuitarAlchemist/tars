@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using TarsEngine.Services.Interfaces;
+using TarsCli.Services;
 
 namespace TarsCli.Commands;
 
@@ -14,12 +15,14 @@ namespace TarsCli.Commands;
 public class TestingFrameworkCommand : TarsCommand
 {
     private readonly IServiceProvider? _serviceProvider;
+    private readonly ConsoleService _consoleService;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TestingFrameworkCommand"/> class
     /// </summary>
     public TestingFrameworkCommand(IServiceProvider? serviceProvider) : base("testing", "Testing framework operations")
     {
+        _consoleService = new ConsoleService();
         _serviceProvider = serviceProvider;
 
         // Add generate-tests command
@@ -80,11 +83,11 @@ public class TestingFrameworkCommand : TarsCommand
     {
         try
         {
-            WriteHeader("Generate Tests");
+            _consoleService.WriteHeader("Generate Tests");
 
             if (_serviceProvider == null)
             {
-                WriteColorLine("Service provider is not available", ConsoleColor.Red);
+                _consoleService.WriteColorLine("Service provider is not available", ConsoleColor.Red);
                 return;
             }
 
@@ -111,14 +114,14 @@ public class TestingFrameworkCommand : TarsCommand
             // Write the test code to the file
             await File.WriteAllTextAsync(testFilePath, testCode);
 
-            WriteColorLine($"Tests generated successfully: {testFilePath}", ConsoleColor.Green);
+            _consoleService.WriteColorLine($"Tests generated successfully: {testFilePath}", ConsoleColor.Green);
             Console.WriteLine();
             Console.WriteLine("Test code:");
             Console.WriteLine(testCode);
         }
         catch (Exception ex)
         {
-            WriteColorLine($"Error generating tests: {ex.Message}", ConsoleColor.Red);
+            _consoleService.WriteColorLine($"Error generating tests: {ex.Message}", ConsoleColor.Red);
         }
     }
 
@@ -126,11 +129,11 @@ public class TestingFrameworkCommand : TarsCommand
     {
         try
         {
-            WriteHeader("Validate Tests");
+            _consoleService.WriteHeader("Validate Tests");
 
             if (_serviceProvider == null)
             {
-                WriteColorLine("Service provider is not available", ConsoleColor.Red);
+                _consoleService.WriteColorLine("Service provider is not available", ConsoleColor.Red);
                 return;
             }
 
@@ -145,44 +148,44 @@ public class TestingFrameworkCommand : TarsCommand
             var testResult = await testValidationService.RunTestsAsync(codeFile, testFile, projectPath);
 
             // Display the test results
-            WriteColorLine($"Test Results:", ConsoleColor.Cyan);
-            WriteColorLine($"Total Tests: {testResult.TotalTests}", ConsoleColor.White);
-            WriteColorLine($"Passed Tests: {testResult.PassedTests}", ConsoleColor.Green);
-            WriteColorLine($"Failed Tests: {testResult.FailedTests}", ConsoleColor.Red);
-            WriteColorLine($"Skipped Tests: {testResult.SkippedTests}", ConsoleColor.Yellow);
-            WriteColorLine($"Execution Time: {testResult.ExecutionTimeMs}ms", ConsoleColor.White);
+            _consoleService.WriteColorLine($"Test Results:", ConsoleColor.Cyan);
+            _consoleService.WriteColorLine($"Total Tests: {testResult.TotalTests}", ConsoleColor.White);
+            _consoleService.WriteColorLine($"Passed Tests: {testResult.PassedTests}", ConsoleColor.Green);
+            _consoleService.WriteColorLine($"Failed Tests: {testResult.FailedTests}", ConsoleColor.Red);
+            _consoleService.WriteColorLine($"Skipped Tests: {testResult.SkippedTests}", ConsoleColor.Yellow);
+            _consoleService.WriteColorLine($"Execution Time: {testResult.ExecutionTimeMs}ms", ConsoleColor.White);
 
             if (testResult.FailedTests > 0)
             {
-                WriteColorLine("Failures:", ConsoleColor.Red);
+                _consoleService.WriteColorLine("Failures:", ConsoleColor.Red);
                 foreach (var failure in testResult.Failures)
                 {
-                    WriteColorLine($"  {failure.TestName}: {failure.ErrorMessage}", ConsoleColor.Red);
+                    _consoleService.WriteColorLine($"  {failure.TestName}: {failure.ErrorMessage}", ConsoleColor.Red);
                 }
 
                 // Suggest fixes for failing tests
                 var fixes = await testValidationService.SuggestFixesForFailingTestsAsync(testResult, codeFile, testFile);
                 if (fixes.Count > 0)
                 {
-                    WriteColorLine("Suggested Fixes:", ConsoleColor.Yellow);
+                    _consoleService.WriteColorLine("Suggested Fixes:", ConsoleColor.Yellow);
                     foreach (var fix in fixes)
                     {
-                        WriteColorLine($"  {fix.Description}", ConsoleColor.Yellow);
-                        WriteColorLine($"    File: {fix.FilePath}", ConsoleColor.Yellow);
-                        WriteColorLine($"    Line: {fix.LineNumber}", ConsoleColor.Yellow);
-                        WriteColorLine($"    Fix: {fix.FixCode}", ConsoleColor.Yellow);
-                        WriteColorLine($"    Confidence: {fix.Confidence:P0}", ConsoleColor.Yellow);
+                        _consoleService.WriteColorLine($"  {fix.Description}", ConsoleColor.Yellow);
+                        _consoleService.WriteColorLine($"    File: {fix.FilePath}", ConsoleColor.Yellow);
+                        _consoleService.WriteColorLine($"    Line: {fix.LineNumber}", ConsoleColor.Yellow);
+                        _consoleService.WriteColorLine($"    Fix: {fix.FixCode}", ConsoleColor.Yellow);
+                        _consoleService.WriteColorLine($"    Confidence: {fix.Confidence:P0}", ConsoleColor.Yellow);
                     }
                 }
             }
             else
             {
-                WriteColorLine("All tests passed!", ConsoleColor.Green);
+                _consoleService.WriteColorLine("All tests passed!", ConsoleColor.Green);
             }
         }
         catch (Exception ex)
         {
-            WriteColorLine($"Error validating tests: {ex.Message}", ConsoleColor.Red);
+            _consoleService.WriteColorLine($"Error validating tests: {ex.Message}", ConsoleColor.Red);
         }
     }
 
@@ -190,11 +193,11 @@ public class TestingFrameworkCommand : TarsCommand
     {
         try
         {
-            WriteHeader("Analyze Code Quality");
+            _consoleService.WriteHeader("Analyze Code Quality");
 
             if (_serviceProvider == null)
             {
-                WriteColorLine("Service provider is not available", ConsoleColor.Red);
+                _consoleService.WriteColorLine("Service provider is not available", ConsoleColor.Red);
                 return;
             }
 
@@ -209,66 +212,66 @@ public class TestingFrameworkCommand : TarsCommand
             var qualityResult = await codeQualityService.AnalyzeCodeQualityAsync(file, lang);
 
             // Display the quality results
-            WriteColorLine($"Code Quality Results:", ConsoleColor.Cyan);
-            WriteColorLine($"Overall Score: {qualityResult.OverallScore:F1}/100", GetScoreColor(qualityResult.OverallScore));
-            WriteColorLine($"Maintainability Score: {qualityResult.MaintainabilityScore:F1}/100", GetScoreColor(qualityResult.MaintainabilityScore));
-            WriteColorLine($"Reliability Score: {qualityResult.ReliabilityScore:F1}/100", GetScoreColor(qualityResult.ReliabilityScore));
-            WriteColorLine($"Security Score: {qualityResult.SecurityScore:F1}/100", GetScoreColor(qualityResult.SecurityScore));
-            WriteColorLine($"Performance Score: {qualityResult.PerformanceScore:F1}/100", GetScoreColor(qualityResult.PerformanceScore));
+            _consoleService.WriteColorLine($"Code Quality Results:", ConsoleColor.Cyan);
+            _consoleService.WriteColorLine($"Overall Score: {qualityResult.OverallScore:F1}/100", GetScoreColor(qualityResult.OverallScore));
+            _consoleService.WriteColorLine($"Maintainability Score: {qualityResult.MaintainabilityScore:F1}/100", GetScoreColor(qualityResult.MaintainabilityScore));
+            _consoleService.WriteColorLine($"Reliability Score: {qualityResult.ReliabilityScore:F1}/100", GetScoreColor(qualityResult.ReliabilityScore));
+            _consoleService.WriteColorLine($"Security Score: {qualityResult.SecurityScore:F1}/100", GetScoreColor(qualityResult.SecurityScore));
+            _consoleService.WriteColorLine($"Performance Score: {qualityResult.PerformanceScore:F1}/100", GetScoreColor(qualityResult.PerformanceScore));
 
             if (qualityResult.Issues.Count > 0)
             {
-                WriteColorLine("Issues:", ConsoleColor.Yellow);
+                _consoleService.WriteColorLine("Issues:", ConsoleColor.Yellow);
                 foreach (var issue in qualityResult.Issues)
                 {
                     ConsoleColor color = issue.Severity switch
                     {
-                        IssueSeverity.Info => ConsoleColor.Blue,
-                        IssueSeverity.Warning => ConsoleColor.Yellow,
-                        IssueSeverity.Error => ConsoleColor.Red,
-                        IssueSeverity.Critical => ConsoleColor.DarkRed,
+                        TarsEngine.Services.Interfaces.IssueSeverity.Info => ConsoleColor.Blue,
+                        TarsEngine.Services.Interfaces.IssueSeverity.Warning => ConsoleColor.Yellow,
+                        TarsEngine.Services.Interfaces.IssueSeverity.Error => ConsoleColor.Red,
+                        TarsEngine.Services.Interfaces.IssueSeverity.Critical => ConsoleColor.DarkRed,
                         _ => ConsoleColor.White
                     };
 
-                    WriteColorLine($"  [{issue.Severity}] {issue.Description}", color);
-                    WriteColorLine($"    Location: {issue.Location}", color);
+                    _consoleService.WriteColorLine($"  [{issue.Severity}] {issue.Description}", color);
+                    _consoleService.WriteColorLine($"    Location: {issue.Location}", color);
                     if (!string.IsNullOrEmpty(issue.SuggestedFix))
                     {
-                        WriteColorLine($"    Suggested Fix: {issue.SuggestedFix}", color);
+                        _consoleService.WriteColorLine($"    Suggested Fix: {issue.SuggestedFix}", color);
                     }
                 }
             }
             else
             {
-                WriteColorLine("No issues found!", ConsoleColor.Green);
+                _consoleService.WriteColorLine("No issues found!", ConsoleColor.Green);
             }
 
             // Display complexity metrics
-            WriteColorLine("Complexity Metrics:", ConsoleColor.Cyan);
-            WriteColorLine($"  Average Cyclomatic Complexity: {qualityResult.ComplexityMetrics.AverageCyclomaticComplexity:F1}", ConsoleColor.White);
-            WriteColorLine($"  Maximum Cyclomatic Complexity: {qualityResult.ComplexityMetrics.MaxCyclomaticComplexity}", ConsoleColor.White);
-            WriteColorLine($"  Average Cognitive Complexity: {qualityResult.ComplexityMetrics.AverageCognitiveComplexity:F1}", ConsoleColor.White);
-            WriteColorLine($"  Maximum Cognitive Complexity: {qualityResult.ComplexityMetrics.MaxCognitiveComplexity}", ConsoleColor.White);
-            WriteColorLine($"  Average Method Length: {qualityResult.ComplexityMetrics.AverageMethodLength:F1} lines", ConsoleColor.White);
-            WriteColorLine($"  Maximum Method Length: {qualityResult.ComplexityMetrics.MaxMethodLength} lines", ConsoleColor.White);
+            _consoleService.WriteColorLine("Complexity Metrics:", ConsoleColor.Cyan);
+            _consoleService.WriteColorLine($"  Average Cyclomatic Complexity: {qualityResult.ComplexityMetrics.AverageCyclomaticComplexity:F1}", ConsoleColor.White);
+            _consoleService.WriteColorLine($"  Maximum Cyclomatic Complexity: {qualityResult.ComplexityMetrics.MaxCyclomaticComplexity}", ConsoleColor.White);
+            _consoleService.WriteColorLine($"  Average Cognitive Complexity: {qualityResult.ComplexityMetrics.AverageCognitiveComplexity:F1}", ConsoleColor.White);
+            _consoleService.WriteColorLine($"  Maximum Cognitive Complexity: {qualityResult.ComplexityMetrics.MaxCognitiveComplexity}", ConsoleColor.White);
+            _consoleService.WriteColorLine($"  Average Method Length: {qualityResult.ComplexityMetrics.AverageMethodLength:F1} lines", ConsoleColor.White);
+            _consoleService.WriteColorLine($"  Maximum Method Length: {qualityResult.ComplexityMetrics.MaxMethodLength} lines", ConsoleColor.White);
 
             // Display readability metrics
-            WriteColorLine("Readability Metrics:", ConsoleColor.Cyan);
-            WriteColorLine($"  Average Identifier Length: {qualityResult.ReadabilityMetrics.AverageIdentifierLength:F1} characters", ConsoleColor.White);
-            WriteColorLine($"  Comment Density: {qualityResult.ReadabilityMetrics.CommentDensity:F2} comments per line", ConsoleColor.White);
-            WriteColorLine($"  Documentation Coverage: {qualityResult.ReadabilityMetrics.DocumentationCoverage:P0}", ConsoleColor.White);
-            WriteColorLine($"  Average Parameter Count: {qualityResult.ReadabilityMetrics.AverageParameterCount:F1}", ConsoleColor.White);
-            WriteColorLine($"  Maximum Parameter Count: {qualityResult.ReadabilityMetrics.MaxParameterCount}", ConsoleColor.White);
+            _consoleService.WriteColorLine("Readability Metrics:", ConsoleColor.Cyan);
+            _consoleService.WriteColorLine($"  Average Identifier Length: {qualityResult.ReadabilityMetrics.AverageIdentifierLength:F1} characters", ConsoleColor.White);
+            _consoleService.WriteColorLine($"  Comment Density: {qualityResult.ReadabilityMetrics.CommentDensity:F2} comments per line", ConsoleColor.White);
+            _consoleService.WriteColorLine($"  Documentation Coverage: {qualityResult.ReadabilityMetrics.DocumentationCoverage:P0}", ConsoleColor.White);
+            _consoleService.WriteColorLine($"  Average Parameter Count: {qualityResult.ReadabilityMetrics.AverageParameterCount:F1}", ConsoleColor.White);
+            _consoleService.WriteColorLine($"  Maximum Parameter Count: {qualityResult.ReadabilityMetrics.MaxParameterCount}", ConsoleColor.White);
 
             // Display duplication metrics
-            WriteColorLine("Duplication Metrics:", ConsoleColor.Cyan);
-            WriteColorLine($"  Duplication Percentage: {qualityResult.DuplicationMetrics.DuplicationPercentage:P0}", ConsoleColor.White);
-            WriteColorLine($"  Duplicated Blocks: {qualityResult.DuplicationMetrics.DuplicatedBlocks}", ConsoleColor.White);
-            WriteColorLine($"  Duplicated Lines: {qualityResult.DuplicationMetrics.DuplicatedLines}", ConsoleColor.White);
+            _consoleService.WriteColorLine("Duplication Metrics:", ConsoleColor.Cyan);
+            _consoleService.WriteColorLine($"  Duplication Percentage: {qualityResult.DuplicationMetrics.DuplicationPercentage:P0}", ConsoleColor.White);
+            _consoleService.WriteColorLine($"  Duplicated Blocks: {qualityResult.DuplicationMetrics.DuplicatedBlocks}", ConsoleColor.White);
+            _consoleService.WriteColorLine($"  Duplicated Lines: {qualityResult.DuplicationMetrics.DuplicatedLines}", ConsoleColor.White);
         }
         catch (Exception ex)
         {
-            WriteColorLine($"Error analyzing code quality: {ex.Message}", ConsoleColor.Red);
+            _consoleService.WriteColorLine($"Error analyzing code quality: {ex.Message}", ConsoleColor.Red);
         }
     }
 
@@ -276,11 +279,11 @@ public class TestingFrameworkCommand : TarsCommand
     {
         try
         {
-            WriteHeader("Analyze Code Complexity");
+            _consoleService.WriteHeader("Analyze Code Complexity");
 
             if (_serviceProvider == null)
             {
-                WriteColorLine("Service provider is not available", ConsoleColor.Red);
+                _consoleService.WriteColorLine("Service provider is not available", ConsoleColor.Red);
                 return;
             }
 
@@ -295,70 +298,70 @@ public class TestingFrameworkCommand : TarsCommand
             var complexityResult = await complexityAnalysisService.AnalyzeComplexityAsync(file, lang);
 
             // Display the complexity results
-            WriteColorLine($"Code Complexity Results:", ConsoleColor.Cyan);
-            WriteColorLine($"Average Cyclomatic Complexity: {complexityResult.AverageCyclomaticComplexity:F1}", ConsoleColor.White);
-            WriteColorLine($"Maximum Cyclomatic Complexity: {complexityResult.MaxCyclomaticComplexity}", ConsoleColor.White);
-            WriteColorLine($"Average Cognitive Complexity: {complexityResult.AverageCognitiveComplexity:F1}", ConsoleColor.White);
-            WriteColorLine($"Maximum Cognitive Complexity: {complexityResult.MaxCognitiveComplexity}", ConsoleColor.White);
-            WriteColorLine($"Average Halstead Complexity: {complexityResult.AverageHalsteadComplexity:F1}", ConsoleColor.White);
-            WriteColorLine($"Maximum Halstead Complexity: {complexityResult.MaxHalsteadComplexity:F1}", ConsoleColor.White);
-            WriteColorLine($"Average Maintainability Index: {complexityResult.AverageMaintainabilityIndex:F1}", ConsoleColor.White);
-            WriteColorLine($"Minimum Maintainability Index: {complexityResult.MinMaintainabilityIndex:F1}", ConsoleColor.White);
+            _consoleService.WriteColorLine($"Code Complexity Results:", ConsoleColor.Cyan);
+            _consoleService.WriteColorLine($"Average Cyclomatic Complexity: {complexityResult.AverageCyclomaticComplexity:F1}", ConsoleColor.White);
+            _consoleService.WriteColorLine($"Maximum Cyclomatic Complexity: {complexityResult.MaxCyclomaticComplexity}", ConsoleColor.White);
+            _consoleService.WriteColorLine($"Average Cognitive Complexity: {complexityResult.AverageCognitiveComplexity:F1}", ConsoleColor.White);
+            _consoleService.WriteColorLine($"Maximum Cognitive Complexity: {complexityResult.MaxCognitiveComplexity}", ConsoleColor.White);
+            _consoleService.WriteColorLine($"Average Halstead Complexity: {complexityResult.AverageHalsteadComplexity:F1}", ConsoleColor.White);
+            _consoleService.WriteColorLine($"Maximum Halstead Complexity: {complexityResult.MaxHalsteadComplexity:F1}", ConsoleColor.White);
+            _consoleService.WriteColorLine($"Average Maintainability Index: {complexityResult.AverageMaintainabilityIndex:F1}", ConsoleColor.White);
+            _consoleService.WriteColorLine($"Minimum Maintainability Index: {complexityResult.MinMaintainabilityIndex:F1}", ConsoleColor.White);
 
             // Display complex methods
             if (complexityResult.ComplexMethods.Count > 0)
             {
-                WriteColorLine("Complex Methods:", ConsoleColor.Yellow);
+                _consoleService.WriteColorLine("Complex Methods:", ConsoleColor.Yellow);
                 foreach (var method in complexityResult.ComplexMethods)
                 {
-                    WriteColorLine($"  {method.ClassName}.{method.MethodName}", ConsoleColor.Yellow);
-                    WriteColorLine($"    File: {method.FilePath}", ConsoleColor.Yellow);
-                    WriteColorLine($"    Line: {method.LineNumber}", ConsoleColor.Yellow);
-                    WriteColorLine($"    Cyclomatic Complexity: {method.CyclomaticComplexity}", ConsoleColor.Yellow);
-                    WriteColorLine($"    Cognitive Complexity: {method.CognitiveComplexity}", ConsoleColor.Yellow);
-                    WriteColorLine($"    Method Length: {method.MethodLength} lines", ConsoleColor.Yellow);
+                    _consoleService.WriteColorLine($"  {method.ClassName}.{method.MethodName}", ConsoleColor.Yellow);
+                    _consoleService.WriteColorLine($"    File: {method.FilePath}", ConsoleColor.Yellow);
+                    _consoleService.WriteColorLine($"    Line: {method.LineNumber}", ConsoleColor.Yellow);
+                    _consoleService.WriteColorLine($"    Cyclomatic Complexity: {method.CyclomaticComplexity}", ConsoleColor.Yellow);
+                    _consoleService.WriteColorLine($"    Cognitive Complexity: {method.CognitiveComplexity}", ConsoleColor.Yellow);
+                    _consoleService.WriteColorLine($"    Method Length: {method.MethodLength} lines", ConsoleColor.Yellow);
                 }
             }
             else
             {
-                WriteColorLine("No complex methods found!", ConsoleColor.Green);
+                _consoleService.WriteColorLine("No complex methods found!", ConsoleColor.Green);
             }
 
             // Identify complex code sections
             var complexSections = await complexityAnalysisService.IdentifyComplexCodeAsync(file, lang, threshold);
             if (complexSections.Count > 0)
             {
-                WriteColorLine($"Complex Code Sections (Threshold: {threshold}):", ConsoleColor.Yellow);
+                _consoleService.WriteColorLine($"Complex Code Sections (Threshold: {threshold}):", ConsoleColor.Yellow);
                 foreach (var section in complexSections)
                 {
-                    WriteColorLine($"  {section.ComplexityType} Complexity: {section.ComplexityValue}", ConsoleColor.Yellow);
-                    WriteColorLine($"    File: {section.FilePath}", ConsoleColor.Yellow);
-                    WriteColorLine($"    Lines: {section.StartLine}-{section.EndLine}", ConsoleColor.Yellow);
+                    _consoleService.WriteColorLine($"  {section.ComplexityType} Complexity: {section.ComplexityValue}", ConsoleColor.Yellow);
+                    _consoleService.WriteColorLine($"    File: {section.FilePath}", ConsoleColor.Yellow);
+                    _consoleService.WriteColorLine($"    Lines: {section.StartLine}-{section.EndLine}", ConsoleColor.Yellow);
                     if (!string.IsNullOrEmpty(section.MethodName))
                     {
-                        WriteColorLine($"    Method: {section.MethodName}", ConsoleColor.Yellow);
+                        _consoleService.WriteColorLine($"    Method: {section.MethodName}", ConsoleColor.Yellow);
                     }
                     if (!string.IsNullOrEmpty(section.ClassName))
                     {
-                        WriteColorLine($"    Class: {section.ClassName}", ConsoleColor.Yellow);
+                        _consoleService.WriteColorLine($"    Class: {section.ClassName}", ConsoleColor.Yellow);
                     }
 
                     // Suggest simplifications
                     var simplifications = await complexityAnalysisService.SuggestSimplificationsAsync(section);
                     if (simplifications.Count > 0)
                     {
-                        WriteColorLine("    Suggested Simplifications:", ConsoleColor.Green);
+                        _consoleService.WriteColorLine("    Suggested Simplifications:", ConsoleColor.Green);
                         foreach (var simplification in simplifications)
                         {
-                            WriteColorLine($"      {simplification.Description}", ConsoleColor.Green);
-                            WriteColorLine($"        Complexity Reduction: {simplification.ComplexityReduction}", ConsoleColor.Green);
-                            WriteColorLine($"        Confidence: {simplification.Confidence:P0}", ConsoleColor.Green);
+                            _consoleService.WriteColorLine($"      {simplification.Description}", ConsoleColor.Green);
+                            _consoleService.WriteColorLine($"        Complexity Reduction: {simplification.ComplexityReduction}", ConsoleColor.Green);
+                            _consoleService.WriteColorLine($"        Confidence: {simplification.Confidence:P0}", ConsoleColor.Green);
                             if (simplification.PotentialRisks.Count > 0)
                             {
-                                WriteColorLine("        Potential Risks:", ConsoleColor.Red);
+                                _consoleService.WriteColorLine("        Potential Risks:", ConsoleColor.Red);
                                 foreach (var risk in simplification.PotentialRisks)
                                 {
-                                    WriteColorLine($"          {risk}", ConsoleColor.Red);
+                                    _consoleService.WriteColorLine($"          {risk}", ConsoleColor.Red);
                                 }
                             }
                         }
@@ -367,12 +370,12 @@ public class TestingFrameworkCommand : TarsCommand
             }
             else
             {
-                WriteColorLine($"No complex code sections found (Threshold: {threshold})!", ConsoleColor.Green);
+                _consoleService.WriteColorLine($"No complex code sections found (Threshold: {threshold})!", ConsoleColor.Green);
             }
         }
         catch (Exception ex)
         {
-            WriteColorLine($"Error analyzing code complexity: {ex.Message}", ConsoleColor.Red);
+            _consoleService.WriteColorLine($"Error analyzing code complexity: {ex.Message}", ConsoleColor.Red);
         }
     }
 
@@ -380,11 +383,11 @@ public class TestingFrameworkCommand : TarsCommand
     {
         try
         {
-            WriteHeader("Analyze Code Readability");
+            _consoleService.WriteHeader("Analyze Code Readability");
 
             if (_serviceProvider == null)
             {
-                WriteColorLine("Service provider is not available", ConsoleColor.Red);
+                _consoleService.WriteColorLine("Service provider is not available", ConsoleColor.Red);
                 return;
             }
 
@@ -399,62 +402,62 @@ public class TestingFrameworkCommand : TarsCommand
             var readabilityResult = await readabilityService.AnalyzeReadabilityAsync(file, lang);
 
             // Display the readability results
-            WriteColorLine($"Code Readability Results:", ConsoleColor.Cyan);
-            WriteColorLine($"Overall Score: {readabilityResult.OverallScore:F1}/100", GetScoreColor(readabilityResult.OverallScore));
-            WriteColorLine($"Naming Convention Score: {readabilityResult.NamingConventionScore:F1}/100", GetScoreColor(readabilityResult.NamingConventionScore));
-            WriteColorLine($"Comment Quality Score: {readabilityResult.CommentQualityScore:F1}/100", GetScoreColor(readabilityResult.CommentQualityScore));
-            WriteColorLine($"Code Formatting Score: {readabilityResult.CodeFormattingScore:F1}/100", GetScoreColor(readabilityResult.CodeFormattingScore));
-            WriteColorLine($"Documentation Score: {readabilityResult.DocumentationScore:F1}/100", GetScoreColor(readabilityResult.DocumentationScore));
+            _consoleService.WriteColorLine($"Code Readability Results:", ConsoleColor.Cyan);
+            _consoleService.WriteColorLine($"Overall Score: {readabilityResult.OverallScore:F1}/100", GetScoreColor(readabilityResult.OverallScore));
+            _consoleService.WriteColorLine($"Naming Convention Score: {readabilityResult.NamingConventionScore:F1}/100", GetScoreColor(readabilityResult.NamingConventionScore));
+            _consoleService.WriteColorLine($"Comment Quality Score: {readabilityResult.CommentQualityScore:F1}/100", GetScoreColor(readabilityResult.CommentQualityScore));
+            _consoleService.WriteColorLine($"Code Formatting Score: {readabilityResult.CodeFormattingScore:F1}/100", GetScoreColor(readabilityResult.CodeFormattingScore));
+            _consoleService.WriteColorLine($"Documentation Score: {readabilityResult.DocumentationScore:F1}/100", GetScoreColor(readabilityResult.DocumentationScore));
 
             // Display readability metrics
-            WriteColorLine("Readability Metrics:", ConsoleColor.Cyan);
-            WriteColorLine($"  Average Identifier Length: {readabilityResult.Metrics.AverageIdentifierLength:F1} characters", ConsoleColor.White);
-            WriteColorLine($"  Comment Density: {readabilityResult.Metrics.CommentDensity:F2} comments per line", ConsoleColor.White);
-            WriteColorLine($"  Documentation Coverage: {readabilityResult.Metrics.DocumentationCoverage:P0}", ConsoleColor.White);
-            WriteColorLine($"  Average Parameter Count: {readabilityResult.Metrics.AverageParameterCount:F1}", ConsoleColor.White);
-            WriteColorLine($"  Maximum Parameter Count: {readabilityResult.Metrics.MaxParameterCount}", ConsoleColor.White);
+            _consoleService.WriteColorLine("Readability Metrics:", ConsoleColor.Cyan);
+            _consoleService.WriteColorLine($"  Average Identifier Length: {readabilityResult.Metrics.AverageIdentifierLength:F1} characters", ConsoleColor.White);
+            _consoleService.WriteColorLine($"  Comment Density: {readabilityResult.Metrics.CommentDensity:F2} comments per line", ConsoleColor.White);
+            _consoleService.WriteColorLine($"  Documentation Coverage: {readabilityResult.Metrics.DocumentationCoverage:P0}", ConsoleColor.White);
+            _consoleService.WriteColorLine($"  Average Parameter Count: {readabilityResult.Metrics.AverageParameterCount:F1}", ConsoleColor.White);
+            _consoleService.WriteColorLine($"  Maximum Parameter Count: {readabilityResult.Metrics.MaxParameterCount}", ConsoleColor.White);
 
             // Display readability issues
             if (readabilityResult.Issues.Count > 0)
             {
-                WriteColorLine("Readability Issues:", ConsoleColor.Yellow);
+                _consoleService.WriteColorLine("Readability Issues:", ConsoleColor.Yellow);
                 foreach (var issue in readabilityResult.Issues)
                 {
-                    WriteColorLine($"  {issue.Description}", ConsoleColor.Yellow);
-                    WriteColorLine($"    Location: {issue.Location}", ConsoleColor.Yellow);
+                    _consoleService.WriteColorLine($"  {issue.Description}", ConsoleColor.Yellow);
+                    _consoleService.WriteColorLine($"    Location: {issue.Location}", ConsoleColor.Yellow);
                     if (!string.IsNullOrEmpty(issue.SuggestedFix))
                     {
-                        WriteColorLine($"    Suggested Fix: {issue.SuggestedFix}", ConsoleColor.Yellow);
+                        _consoleService.WriteColorLine($"    Suggested Fix: {issue.SuggestedFix}", ConsoleColor.Yellow);
                     }
-                    WriteColorLine($"    Score Impact: {issue.ScoreImpact:F1}", ConsoleColor.Yellow);
+                    _consoleService.WriteColorLine($"    Score Impact: {issue.ScoreImpact:F1}", ConsoleColor.Yellow);
                 }
 
                 // Identify readability issues
                 var readabilityIssues = await readabilityService.IdentifyReadabilityIssuesAsync(file, lang);
                 if (readabilityIssues.Count > 0)
                 {
-                    WriteColorLine("Detailed Readability Issues:", ConsoleColor.Yellow);
+                    _consoleService.WriteColorLine("Detailed Readability Issues:", ConsoleColor.Yellow);
                     foreach (var issue in readabilityIssues)
                     {
-                        WriteColorLine($"  {issue.Description}", ConsoleColor.Yellow);
-                        WriteColorLine($"    Location: {issue.Location}", ConsoleColor.Yellow);
+                        _consoleService.WriteColorLine($"  {issue.Description}", ConsoleColor.Yellow);
+                        _consoleService.WriteColorLine($"    Location: {issue.Location}", ConsoleColor.Yellow);
                         if (!string.IsNullOrEmpty(issue.SuggestedFix))
                         {
-                            WriteColorLine($"    Suggested Fix: {issue.SuggestedFix}", ConsoleColor.Yellow);
+                            _consoleService.WriteColorLine($"    Suggested Fix: {issue.SuggestedFix}", ConsoleColor.Yellow);
                         }
-                        WriteColorLine($"    Score Impact: {issue.ScoreImpact:F1}", ConsoleColor.Yellow);
+                        _consoleService.WriteColorLine($"    Score Impact: {issue.ScoreImpact:F1}", ConsoleColor.Yellow);
 
                         // Suggest improvements
                         var improvements = await readabilityService.SuggestReadabilityImprovementsAsync(issue);
                         if (improvements.Count > 0)
                         {
-                            WriteColorLine("    Suggested Improvements:", ConsoleColor.Green);
+                            _consoleService.WriteColorLine("    Suggested Improvements:", ConsoleColor.Green);
                             foreach (var improvement in improvements)
                             {
-                                WriteColorLine($"      {improvement.Description}", ConsoleColor.Green);
-                                WriteColorLine($"        Category: {improvement.Category}", ConsoleColor.Green);
-                                WriteColorLine($"        Readability Improvement: {improvement.ReadabilityImprovement:F1}", ConsoleColor.Green);
-                                WriteColorLine($"        Confidence: {improvement.Confidence:P0}", ConsoleColor.Green);
+                                _consoleService.WriteColorLine($"      {improvement.Description}", ConsoleColor.Green);
+                                _consoleService.WriteColorLine($"        Category: {improvement.Category}", ConsoleColor.Green);
+                                _consoleService.WriteColorLine($"        Readability Improvement: {improvement.ReadabilityScore:F1}", ConsoleColor.Green);
+                                _consoleService.WriteColorLine($"        Confidence: {improvement.Confidence:P0}", ConsoleColor.Green);
                             }
                         }
                     }
@@ -462,12 +465,12 @@ public class TestingFrameworkCommand : TarsCommand
             }
             else
             {
-                WriteColorLine("No readability issues found!", ConsoleColor.Green);
+                _consoleService.WriteColorLine("No readability issues found!", ConsoleColor.Green);
             }
         }
         catch (Exception ex)
         {
-            WriteColorLine($"Error analyzing code readability: {ex.Message}", ConsoleColor.Red);
+            _consoleService.WriteColorLine($"Error analyzing code readability: {ex.Message}", ConsoleColor.Red);
         }
     }
 
@@ -527,3 +530,5 @@ public class TestingFrameworkCommand : TarsCommand
         };
     }
 }
+
+

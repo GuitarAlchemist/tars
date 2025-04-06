@@ -50,7 +50,7 @@ This document tracks the progress of the TARS project development, focusing on k
 
 ### First Self-Improvement Iteration (Partial Success)
 
-On March 29, 2025, we ran the first self-improvement iteration on a test file with intentional code issues:
+On April 5, 2025, we ran the first self-improvement iteration on a test file with intentional code issues:
 
 1. **Analysis Phase (Successful)**
    - Successfully identified multiple issues in the test code:

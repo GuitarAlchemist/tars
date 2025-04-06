@@ -149,7 +149,7 @@ TARS now includes text-to-speech functionality:
 
 TARS includes advanced self-improvement capabilities that allow it to analyze, improve, and learn from code and documentation:
 
-#### Current Status (April 2024)
+#### Current Status (April 2025)
 
 The self-improvement system is currently under active development. Key components include:
 

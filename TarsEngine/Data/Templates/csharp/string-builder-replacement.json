@@ -1,0 +1,76 @@
+{
+  "Id": "csharp-perf-template-001",
+  "Name": "String Builder Replacement",
+  "Description": "Template for replacing string concatenation in loops with StringBuilder",
+  "Code": "// Generated metascript to replace string concatenation with StringBuilder\nusing System;\nusing System.Collections.Generic;\nusing System.Text;\nusing System.Text.RegularExpressions;\n\n// Input: ${MatchedText}\n// File: ${FilePath}\n\npublic class StringBuilderReplacement\n{\n    public Dictionary<string, object> Execute()\n    {\n        var changes = new List<MetascriptChange>();\n        \n        // Create the replacement code\n        var originalCode = @\"${MatchedText}\";\n        var variableName = \"${VariableName}\";\n        var indentation = \"${Indentation}\";\n        \n        // Create StringBuilder initialization before the loop\n        var sbInitialization = $\"{indentation}var sb = new StringBuilder();\";\n        \n        // Replace string concatenation with StringBuilder.Append\n        var modifiedLoopCode = Regex.Replace(originalCode, \n            $@\"({variableName})\\s*\\+=\\s*([^;]+);\", \n            \"sb.Append($2);\");\n        \n        // Add StringBuilder.ToString() after the loop\n        var sbToString = $\"{indentation}{variableName} = sb.ToString();\";\n        \n        // Create the full replacement\n        var replacement = $\"{sbInitialization}\\n{modifiedLoopCode}\\n{sbToString}\";\n        \n        // Create the change\n        changes.Add(new MetascriptChange\n        {\n            Type = MetascriptChangeType.Modification,\n            FilePath = \"${FilePath}\",\n            OriginalContent = originalCode,\n            NewContent = replacement,\n            StartLine = ${Location:StartLine},\n            EndLine = ${Location:EndLine},\n            Description = \"Replaced string concatenation with StringBuilder for better performance\"\n        });\n        \n        return new Dictionary<string, object>\n        {\n            { \"Changes\", changes }\n        };\n    }\n}",
+  "Language": "csharp",
+  "Version": "1.0.0",
+  "CreatedAt": "2023-04-01T00:00:00Z",
+  "Parameters": [
+    {
+      "Name": "MatchedText",
+      "Description": "The matched code containing string concatenation in a loop",
+      "Type": "Code",
+      "IsRequired": true,
+      "Source": "PatternMatch",
+      "SourcePath": "MatchedText"
+    },
+    {
+      "Name": "FilePath",
+      "Description": "The path to the file containing the code",
+      "Type": "FilePath",
+      "IsRequired": true,
+      "Source": "PatternMatch",
+      "SourcePath": "FilePath"
+    },
+    {
+      "Name": "VariableName",
+      "Description": "The name of the string variable being concatenated",
+      "Type": "String",
+      "IsRequired": true,
+      "Source": "PatternMatch",
+      "SourcePath": "Capture:1",
+      "DefaultValue": "result"
+    },
+    {
+      "Name": "Indentation",
+      "Description": "The indentation of the code",
+      "Type": "String",
+      "IsRequired": false,
+      "DefaultValue": "    "
+    },
+    {
+      "Name": "Location:StartLine",
+      "Description": "The start line of the matched code",
+      "Type": "Integer",
+      "IsRequired": true,
+      "Source": "PatternMatch",
+      "SourcePath": "Location:StartLine"
+    },
+    {
+      "Name": "Location:EndLine",
+      "Description": "The end line of the matched code",
+      "Type": "Integer",
+      "IsRequired": true,
+      "Source": "PatternMatch",
+      "SourcePath": "Location:EndLine"
+    }
+  ],
+  "ApplicablePatterns": [
+    "csharp-perf-001"
+  ],
+  "Tags": [
+    "performance",
+    "string-concatenation",
+    "loop",
+    "csharp"
+  ],
+  "Metadata": {
+    "Category": "Performance",
+    "Source": "Best Practices",
+    "Reference": "https://docs.microsoft.com/en-us/dotnet/api/system.text.stringbuilder"
+  },
+  "Examples": [
+    "// Original code:\nfor (int i = 0; i < 100; i++) {\n    result += i.ToString();\n}\n\n// Generated code:\nvar sb = new StringBuilder();\nfor (int i = 0; i < 100; i++) {\n    sb.Append(i.ToString());\n}\nresult = sb.ToString();"
+  ]
+}

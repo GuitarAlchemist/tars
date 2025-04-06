@@ -117,6 +117,52 @@ internal static class Program
                 .AddSingleton<TarsEngine.Services.Interfaces.IReadabilityService, TarsEngine.Services.ReadabilityService>()
                 .AddSingleton<TarsEngine.Services.Interfaces.IDocumentParserService, TarsEngine.Services.DocumentParserService>()
                 .AddSingleton<TarsEngine.Services.Interfaces.IContentClassifierService, TarsEngine.Services.ContentClassifierService>()
+                .AddSingleton<TarsEngine.Services.Interfaces.IKnowledgeExtractorService, TarsEngine.Services.KnowledgeExtractorService>()
+                .AddSingleton<TarsEngine.Services.Interfaces.IKnowledgeRepository, TarsEngine.Services.KnowledgeRepository>()
+                .AddSingleton<TarsEngine.Data.KnowledgeDbContext>()
+
+                // Improvement Generation System services
+                .AddSingleton<TarsEngine.Services.Interfaces.ICodeAnalyzerService, TarsEngine.Services.CodeAnalyzerService>()
+                .AddSingleton<TarsEngine.Services.CodeSmellDetector>()
+                .AddSingleton<TarsEngine.Services.ComplexityAnalyzer>()
+                .AddSingleton<TarsEngine.Services.PerformanceAnalyzer>()
+                .AddSingleton<TarsEngine.Services.GenericAnalyzer>()
+                .AddSingleton<TarsEngine.Services.CSharpAnalyzer>()
+                .AddSingleton<TarsEngine.Services.FSharpAnalyzer>()
+
+                .AddSingleton<TarsEngine.Services.Interfaces.IPatternMatcherService, TarsEngine.Services.PatternMatcherService>()
+                .AddSingleton<TarsEngine.Services.PatternLanguage>()
+                .AddSingleton<TarsEngine.Services.PatternParser>()
+                .AddSingleton<TarsEngine.Services.PatternMatcher>()
+                .AddSingleton<TarsEngine.Services.FuzzyMatcher>()
+                .AddSingleton<TarsEngine.Data.PatternLibrary>(sp => new TarsEngine.Data.PatternLibrary(
+                    sp.GetRequiredService<ILogger<TarsEngine.Data.PatternLibrary>>(),
+                    Path.Combine(Directory.GetCurrentDirectory(), "TarsEngine", "Data", "Patterns")))
+
+                .AddSingleton<TarsEngine.Services.Interfaces.IMetascriptGeneratorService, TarsEngine.Services.MetascriptGeneratorService>()
+                .AddSingleton<TarsEngine.Services.MetascriptTemplateService>(sp => new TarsEngine.Services.MetascriptTemplateService(
+                    sp.GetRequiredService<ILogger<TarsEngine.Services.MetascriptTemplateService>>(),
+                    Path.Combine(Directory.GetCurrentDirectory(), "TarsEngine", "Data", "Templates")))
+                .AddSingleton<TarsEngine.Services.TemplateFiller>()
+                .AddSingleton<TarsEngine.Services.ParameterOptimizer>()
+                .AddSingleton<TarsEngine.Services.MetascriptSandbox>(sp => new TarsEngine.Services.MetascriptSandbox(
+                    sp.GetRequiredService<ILogger<TarsEngine.Services.MetascriptSandbox>>(),
+                    Path.Combine(Directory.GetCurrentDirectory(), "TarsEngine", "Data", "Sandbox")))
+
+                .AddSingleton<TarsEngine.Services.Interfaces.IImprovementPrioritizerService, TarsEngine.Services.ImprovementPrioritizerService>()
+                .AddSingleton<TarsEngine.Services.ImprovementScorer>()
+                .AddSingleton<TarsEngine.Services.StrategicAlignmentService>(sp => new TarsEngine.Services.StrategicAlignmentService(
+                    sp.GetRequiredService<ILogger<TarsEngine.Services.StrategicAlignmentService>>(),
+                    Path.Combine(Directory.GetCurrentDirectory(), "TarsEngine", "Data", "Goals")))
+                .AddSingleton<TarsEngine.Services.DependencyGraphService>()
+                .AddSingleton<TarsEngine.Services.ImprovementQueue>((sp) => new TarsEngine.Services.ImprovementQueue(
+                    sp.GetRequiredService<ILogger<TarsEngine.Services.ImprovementQueue>>(),
+                    Path.Combine(Directory.GetCurrentDirectory(), "TarsEngine", "Data", "Improvements"),
+                    sp.GetRequiredService<TarsEngine.Services.DependencyGraphService>()))
+
+                // Improvement Generation System CLI commands
+                .AddSingleton<Commands.ImprovementGenerationCommand>()
+                .AddSingleton<Commands.ImprovementWorkflowCommand>()
                 .AddSingleton<SelfImprovementController>()
                 .AddSingleton<Mcp.McpController>(sp => new Mcp.McpController(
                     sp.GetRequiredService<ILogger<Mcp.McpController>>(),

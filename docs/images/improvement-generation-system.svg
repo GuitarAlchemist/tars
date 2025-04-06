@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="800" height="400" xmlns="http://www.w3.org/2000/svg">
+  <!-- Styles -->
+  <style>
+    .component { fill: #e6f3ff; stroke: #0066cc; stroke-width: 2; }
+    .artifact { fill: #f9f9f9; stroke: #666666; stroke-width: 1; }
+    .arrow { stroke: #333333; stroke-width: 2; marker-end: url(#arrowhead); }
+    .label { font-family: Arial, sans-serif; font-size: 14px; text-anchor: middle; }
+    .title { font-family: Arial, sans-serif; font-size: 18px; font-weight: bold; text-anchor: middle; }
+  </style>
+  
+  <!-- Arrow marker definition -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#333333" />
+    </marker>
+  </defs>
+  
+  <!-- Title -->
+  <text x="400" y="30" class="title">Improvement Generation System Architecture</text>
+  
+  <!-- Components -->
+  <rect x="50" y="80" width="150" height="80" rx="10" ry="10" class="component" />
+  <text x="125" y="125" class="label">Code Analyzer</text>
+  
+  <rect x="250" y="80" width="150" height="80" rx="10" ry="10" class="component" />
+  <text x="325" y="125" class="label">Pattern Matcher</text>
+  
+  <rect x="450" y="80" width="150" height="80" rx="10" ry="10" class="component" />
+  <text x="525" y="125" class="label">Metascript Generator</text>
+  
+  <rect x="650" y="80" width="150" height="80" rx="10" ry="10" class="component" />
+  <text x="725" y="125" class="label">Improvement Prioritizer</text>
+  
+  <!-- Artifacts -->
+  <rect x="50" y="220" width="150" height="60" rx="5" ry="5" class="artifact" />
+  <text x="125" y="250" class="label">Analysis Results</text>
+  
+  <rect x="250" y="220" width="150" height="60" rx="5" ry="5" class="artifact" />
+  <text x="325" y="250" class="label">Pattern Matches</text>
+  
+  <rect x="450" y="220" width="150" height="60" rx="5" ry="5" class="artifact" />
+  <text x="525" y="250" class="label">Generated Metascripts</text>
+  
+  <rect x="650" y="220" width="150" height="60" rx="5" ry="5" class="artifact" />
+  <text x="725" y="250" class="label">Prioritized Improvements</text>
+  
+  <!-- Orchestrator -->
+  <rect x="250" y="320" width="350" height="60" rx="10" ry="10" class="component" />
+  <text x="425" y="355" class="label">Improvement Generation Orchestrator</text>
+  
+  <!-- Arrows between components -->
+  <line x1="200" y1="120" x2="250" y2="120" class="arrow" />
+  <line x1="400" y1="120" x2="450" y2="120" class="arrow" />
+  <line x1="600" y1="120" x2="650" y2="120" class="arrow" />
+  
+  <!-- Arrows from components to artifacts -->
+  <line x1="125" y1="160" x2="125" y2="220" class="arrow" />
+  <line x1="325" y1="160" x2="325" y2="220" class="arrow" />
+  <line x1="525" y1="160" x2="525" y2="220" class="arrow" />
+  <line x1="725" y1="160" x2="725" y2="220" class="arrow" />
+  
+  <!-- Arrows from artifacts to orchestrator -->
+  <line x1="125" y1="280" x2="125" y2="350" class="arrow" />
+  <line x1="125" y1="350" x2="250" y2="350" class="arrow" />
+  
+  <line x1="325" y1="280" x2="325" y2="320" class="arrow" />
+  
+  <line x1="525" y1="280" x2="525" y2="320" class="arrow" />
+  
+  <line x1="725" y1="280" x2="725" y2="350" class="arrow" />
+  <line x1="725" y1="350" x2="600" y2="350" class="arrow" />
+</svg>

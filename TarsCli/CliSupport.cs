@@ -167,9 +167,11 @@ public static class CliSupport
             WriteCommand("doc-extract", "Extract knowledge from documentation and integrate it with the RetroactionLoop");
             WriteCommand("knowledge-viz", "Visualize the knowledge base");
             WriteCommand("knowledge-test", "Generate tests from the knowledge base");
+            WriteCommand("knowledge", "Extract and process knowledge from documents");
             WriteCommand("auto-improve-workflow", "Run autonomous improvement workflow");
             WriteCommand("deep-thinking", "Generate deep thinking explorations");
             WriteCommand("console-capture", "Capture console output and improve code");
+            WriteCommand("improve", "Generate and manage code improvements");
 
             WriteHeader("Global Options");
             WriteCommand("--help, -h", "Display help information");
@@ -197,6 +199,14 @@ public static class CliSupport
             WriteExample("tarscli learning tutorial add --title \"Getting Started with C#\" --description \"A beginner's guide\" --content \"# Tutorial content\" --category \"Programming\" --difficulty Beginner --tags \"C#\" \"Beginner\"");
             WriteExample("tarscli learning tutorial list");
             WriteExample("tarscli learning tutorial list --category \"Programming\" --difficulty Beginner --tag \"C#\"");
+            WriteExample("tarscli improve analyze --path path/to/code --recursive");
+            WriteExample("tarscli improve match --path path/to/code --recursive");
+            WriteExample("tarscli improve generate --match-id pattern-id");
+            WriteExample("tarscli improve prioritize --metascript-id metascript-id");
+            WriteExample("tarscli improve list --category Performance --sort-by priority");
+            WriteExample("tarscli improve execute --id improvement-id");
+            WriteExample("tarscli improve status");
+            WriteExample("tarscli improve workflow --path path/to/code --recursive --execute");
             WriteExample("tarscli learning tutorial view --id tutorial-id");
             WriteExample("tarscli learning tutorial categorize --ids tutorial-id1 tutorial-id2 --category \"New Category\"");
             WriteExample("tarscli template list");
@@ -248,6 +258,9 @@ public static class CliSupport
             WriteExample("tarscli knowledge-integrate --metascript --target TarsCli/Services --pattern *.cs");
             WriteExample("tarscli knowledge-integrate --cycle --exploration docs/Explorations/v1/Chats --target TarsCli/Services");
             WriteExample("tarscli knowledge-integrate --retroaction --exploration docs/Explorations/v1/Chats --target TarsCli/Services");
+            WriteExample("tarscli knowledge extract --path docs/Explorations/v1/Chats --recursive --save");
+            WriteExample("tarscli knowledge search --query \"autonomous improvement\" --type Concept --max-results 5");
+            WriteExample("tarscli knowledge stats");
             WriteExample("tarscli autonomous start --exploration docs/Explorations/v1/Chats docs/Explorations/Reflections --target TarsCli/Services TarsCli/Commands --duration 60");
             WriteExample("tarscli autonomous status");
             WriteExample("tarscli autonomous stop");
@@ -3565,6 +3578,19 @@ public static class CliSupport
             _serviceProvider.GetRequiredService<AutonomousImprovementService>(),
             _serviceProvider.GetRequiredService<ConsoleService>());
         rootCommand.AddCommand(autonomousImprovementCommand);
+
+        // Add KnowledgeExtraction command
+        var knowledgeExtractionCommand = new KnowledgeExtractionCommand(
+            _serviceProvider.GetRequiredService<ILogger<KnowledgeExtractionCommand>>(),
+            _serviceProvider.GetRequiredService<TarsEngine.Services.Interfaces.IDocumentParserService>(),
+            _serviceProvider.GetRequiredService<TarsEngine.Services.Interfaces.IContentClassifierService>(),
+            _serviceProvider.GetRequiredService<TarsEngine.Services.Interfaces.IKnowledgeExtractorService>(),
+            _serviceProvider.GetRequiredService<TarsEngine.Services.Interfaces.IKnowledgeRepository>());
+        rootCommand.AddCommand(knowledgeExtractionCommand);
+
+        // Add ImprovementGeneration command
+        var improvementGenerationCommand = _serviceProvider.GetRequiredService<Commands.ImprovementGenerationCommand>();
+        rootCommand.AddCommand(improvementGenerationCommand);
 
         // Add default handler for root command
         rootCommand.SetHandler((InvocationContext context) =>
