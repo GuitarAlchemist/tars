@@ -1,0 +1,34 @@
+{
+  "Id": "csharp-perf-001",
+  "Name": "String Concatenation in Loop",
+  "Description": "Detects string concatenation inside loops, which can lead to performance issues due to the immutable nature of strings.",
+  "Language": "csharp",
+  "Pattern": "for\\s*\\([^{]*\\)\\s*{[^}]*\\+=[^}]*}|while\\s*\\([^{]*\\)\\s*{[^}]*\\+=[^}]*}|foreach\\s*\\([^{]*\\)\\s*{[^}]*\\+=[^}]*}",
+  "PatternLanguage": "Regex",
+  "Replacement": "// Use StringBuilder instead:\nvar sb = new StringBuilder();\n$0\n// Then get the final string:\nstring result = sb.ToString();",
+  "ReplacementExplanation": "String concatenation inside loops creates a new string object for each iteration, which is inefficient. Use StringBuilder instead to append strings and convert to a string only when needed.",
+  "ExpectedImprovement": "Improved performance by reducing memory allocations and garbage collection pressure.",
+  "Severity": 3,
+  "ConfidenceThreshold": 0.8,
+  "ImpactScore": 0.7,
+  "DifficultyScore": 0.3,
+  "CreatedAt": "2023-04-01T00:00:00Z",
+  "Tags": [
+    "performance",
+    "string-concatenation",
+    "loop"
+  ],
+  "Metadata": {
+    "Category": "Performance",
+    "Source": "Best Practices",
+    "Reference": "https://docs.microsoft.com/en-us/dotnet/api/system.text.stringbuilder"
+  },
+  "Options": {
+    "IgnoreCase": "true",
+    "IgnoreWhitespace": "true"
+  },
+  "Examples": [
+    "for (int i = 0; i < 100; i++) {\n    result += i.ToString();\n}",
+    "foreach (var item in items) {\n    text += item;\n}"
+  ]
+}

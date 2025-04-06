@@ -1,0 +1,33 @@
+{
+  "Id": "fsharp-func-001",
+  "Name": "Mutable Variable",
+  "Description": "Detects mutable variables in F# code, which should be avoided in favor of immutable values.",
+  "Language": "fsharp",
+  "Pattern": "let\\s+mutable\\s+[a-zA-Z0-9_]+",
+  "PatternLanguage": "Regex",
+  "Replacement": null,
+  "ReplacementExplanation": "Mutable variables should be avoided in functional programming. Consider using immutable values and functional transformations instead.",
+  "ExpectedImprovement": "Improved code correctness, readability, and maintainability by following functional programming principles.",
+  "Severity": 1,
+  "ConfidenceThreshold": 0.9,
+  "ImpactScore": 0.4,
+  "DifficultyScore": 0.5,
+  "CreatedAt": "2023-04-01T00:00:00Z",
+  "Tags": [
+    "functional-style",
+    "immutability",
+    "code-smell"
+  ],
+  "Metadata": {
+    "Category": "Functional",
+    "Source": "F# Best Practices",
+    "Reference": "https://fsharpforfunandprofit.com/posts/correctness-immutability/"
+  },
+  "Options": {
+    "IgnoreCase": "false",
+    "IgnoreWhitespace": "true"
+  },
+  "Examples": [
+    "let mutable count = 0\ncount <- count + 1"
+  ]
+}

@@ -101,6 +101,22 @@ public class ConsoleService
     }
 
     /// <summary>
+    /// Write a colored line to the console
+    /// </summary>
+    /// <param name="text">The text to write</param>
+    /// <param name="color">The color to use</param>
+    /// <param name="indent">The indentation level</param>
+    public void WriteColorLine(string text, ConsoleColor color, int indent = 2)
+    {
+        lock (_lock)
+        {
+            Console.ForegroundColor = color;
+            Console.WriteLine($"{new string(' ', indent)}{text}");
+            Console.ResetColor();
+        }
+    }
+
+    /// <summary>
     /// Write a table to the console
     /// </summary>
     /// <param name="headers">The table headers</param>
@@ -111,7 +127,7 @@ public class ConsoleService
         {
             var headersList = headers.ToList();
             var rowsList = rows.Select(r => r.ToList()).ToList();
-            
+
             // Calculate column widths
             var columnWidths = new int[headersList.Count];
             for (var i = 0; i < headersList.Count; i++)
@@ -125,7 +141,7 @@ public class ConsoleService
                     }
                 }
             }
-            
+
             // Write headers
             Console.WriteLine();
             var headerLine = new StringBuilder("  ");
@@ -140,7 +156,7 @@ public class ConsoleService
             }
             Console.WriteLine(headerLine.ToString());
             Console.ResetColor();
-            
+
             // Write separator
             var separatorLine = new StringBuilder("  ");
             for (var i = 0; i < headersList.Count; i++)
@@ -152,7 +168,7 @@ public class ConsoleService
                 }
             }
             Console.WriteLine(separatorLine.ToString());
-            
+
             // Write rows
             foreach (var row in rowsList)
             {
@@ -168,7 +184,7 @@ public class ConsoleService
                 }
                 Console.WriteLine(rowLine.ToString());
             }
-            
+
             Console.WriteLine();
         }
     }

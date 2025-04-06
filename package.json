@@ -1,0 +1,13 @@
+{
+  "name": "tars-augment-integration",
+  "version": "1.0.0",
+  "description": "Integration between TARS and Augment Code",
+  "main": "augment-tars-mcp-integration.js",
+  "type": "module",
+  "scripts": {
+    "start": "node augment-tars-mcp-integration.js"
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.2"
+  }
+}
