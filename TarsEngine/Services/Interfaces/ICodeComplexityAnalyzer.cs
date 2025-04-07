@@ -42,12 +42,21 @@ public interface ICodeComplexityAnalyzer
     Task<List<HalsteadMetric>> AnalyzeHalsteadComplexityAsync(string filePath, string language);
 
     /// <summary>
+    /// Analyzes readability of a file
+    /// </summary>
+    /// <param name="filePath">Path to the file</param>
+    /// <param name="language">Programming language</param>
+    /// <param name="readabilityType">Type of readability to analyze</param>
+    /// <returns>Readability metrics for the file</returns>
+    Task<List<ReadabilityMetric>> AnalyzeReadabilityAsync(string filePath, string language, ReadabilityType readabilityType);
+
+    /// <summary>
     /// Analyzes all complexity metrics of a file
     /// </summary>
     /// <param name="filePath">Path to the file</param>
     /// <param name="language">Programming language</param>
     /// <returns>All complexity metrics for the file</returns>
-    Task<(List<ComplexityMetric> ComplexityMetrics, List<HalsteadMetric> HalsteadMetrics, List<MaintainabilityMetric> MaintainabilityMetrics)> AnalyzeAllComplexityMetricsAsync(string filePath, string language);
+    Task<(List<ComplexityMetric> ComplexityMetrics, List<HalsteadMetric> HalsteadMetrics, List<MaintainabilityMetric> MaintainabilityMetrics, List<ReadabilityMetric> ReadabilityMetrics)> AnalyzeAllComplexityMetricsAsync(string filePath, string language);
 
     /// <summary>
     /// Analyzes complexity metrics of a project
