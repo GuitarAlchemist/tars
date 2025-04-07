@@ -32,6 +32,10 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<FSharpComplexityAnalyzer>();
         services.AddSingleton<ICodeComplexityAnalyzer, CodeComplexityAnalyzerService>();
 
+        // Add code duplication analyzers
+        services.AddSingleton<CSharpDuplicationAnalyzer>();
+        services.AddSingleton<IDuplicationAnalyzer, DuplicationAnalyzerService>();
+
         // Add the main system
         services.AddSingleton<IntelligenceProgressionSystem>();
 

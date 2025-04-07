@@ -4312,6 +4312,10 @@ public static class CliSupport
         var codeComplexityCommand = _serviceProvider!.GetRequiredService<Commands.CodeComplexityCommand>();
         rootCommand.AddCommand(codeComplexityCommand);
 
+        // Add duplication demo command
+        var duplicationDemoCommand = new Commands.DuplicationDemoCommand();
+        rootCommand.AddCommand(duplicationDemoCommand);
+
         return rootCommand;
     }
 
