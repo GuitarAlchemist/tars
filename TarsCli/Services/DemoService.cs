@@ -1,7 +1,23 @@
+using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 
 namespace TarsCli.Services;
+
+/// <summary>
+/// Extension methods for the DemoService
+/// </summary>
+public static class DemoServiceExtensions
+{
+    /// <summary>
+    /// Truncates a string to the specified length
+    /// </summary>
+    public static string Truncate(this string value, int maxLength)
+    {
+        if (string.IsNullOrEmpty(value)) return value;
+        return value.Length <= maxLength ? value : value.Substring(0, maxLength - 3) + "...";
+    }
+}
 
 /// <summary>
 /// Service for demonstrating TARS capabilities
@@ -106,6 +122,8 @@ public class DemoService
                     return await RunMetascriptDemoAsync(model);
                 case "intelligence-spark":
                     return await RunIntelligenceSparkDemoAsync(model);
+                case "code-complexity":
+                    return await RunCodeComplexityDemoAsync();
                 case "all":
                     var success = await RunSelfImprovementDemoAsync(model);
                     if (!success) return false;
@@ -143,6 +161,9 @@ public class DemoService
                     success = await RunIntelligenceSparkDemoAsync(model);
                     if (!success) return false;
 
+                    success = await RunCodeComplexityDemoAsync();
+                    if (!success) return false;
+
                     return true;
                 default:
                     CliSupport.WriteColorLine($"Unknown demo type: {demoType}", ConsoleColor.Red);
@@ -159,6 +180,7 @@ public class DemoService
                     Console.WriteLine("  - mcp: Demonstrate Model Context Protocol integration");
                     Console.WriteLine("  - metascript: Demonstrate TARS Metascript capabilities");
                     Console.WriteLine("  - intelligence-spark: Demonstrate intelligence spark and measurement");
+                    Console.WriteLine("  - code-complexity: Demonstrate code complexity analysis");
                     Console.WriteLine("  - all: Run all demos");
                     return false;
             }
@@ -569,7 +591,38 @@ namespace DemoCode
     {
         try
         {
-            CliSupport.WriteColorLine("Step 1: Generating a learning plan...", ConsoleColor.Green);
+            CliSupport.WriteColorLine("\nTARS Demonstration - Learning Plan Generation", ConsoleColor.Cyan);
+            CliSupport.WriteColorLine("==========================================", ConsoleColor.Cyan);
+            Console.WriteLine($"Model: {model}\n");
+
+            CliSupport.WriteColorLine("Step 1: Configuring Learning Plan Parameters...", ConsoleColor.Green);
+            Console.WriteLine();
+
+            // Simulate interactive parameter selection
+            Console.Write("Name: ");
+            CliSupport.WriteColorLine("TARS Development Learning Plan", ConsoleColor.Yellow);
+            await Task.Delay(300);
+
+            Console.Write("Topic: ");
+            CliSupport.WriteColorLine("Building AI-powered CLI applications", ConsoleColor.Yellow);
+            await Task.Delay(300);
+
+            Console.Write("Skill Level: ");
+            CliSupport.WriteColorLine("Intermediate", ConsoleColor.Yellow);
+            await Task.Delay(300);
+
+            Console.Write("Goals: ");
+            CliSupport.WriteColorLine("Learn C# CLI development, Understand AI integration patterns, Build a functional prototype", ConsoleColor.Yellow);
+            await Task.Delay(300);
+
+            Console.Write("Preferences: ");
+            CliSupport.WriteColorLine("Hands-on exercises, Project-based learning", ConsoleColor.Yellow);
+            await Task.Delay(300);
+
+            Console.Write("Estimated Hours: ");
+            CliSupport.WriteColorLine("40", ConsoleColor.Yellow);
+            await Task.Delay(300);
+
             Console.WriteLine();
 
             var name = "TARS Development Learning Plan";
@@ -579,41 +632,119 @@ namespace DemoCode
             var preferences = new List<string> { "Hands-on exercises", "Project-based learning" };
             var estimatedHours = 40;
 
-            Console.WriteLine($"Name: {name}");
-            Console.WriteLine($"Topic: {topic}");
-            Console.WriteLine($"Skill Level: {skillLevel}");
-            Console.WriteLine($"Goals: {string.Join(", ", goals)}");
-            Console.WriteLine($"Preferences: {string.Join(", ", preferences)}");
-            Console.WriteLine($"Estimated Hours: {estimatedHours}");
+            CliSupport.WriteColorLine("Step 2: Generating Learning Plan...", ConsoleColor.Green);
             Console.WriteLine();
+
+            // Show a progress animation
+            var progressChars = new[] { '|', '/', '-', '\\' };
+            var progressTask = Task.Run(async () => {
+                int i = 0;
+                while (true) {
+                    Console.Write($"\rGenerating learning plan {progressChars[i % progressChars.Length]} ");
+                    await Task.Delay(100);
+                    i++;
+                }
+            });
 
             var learningPlan = await _learningPlanService.GenerateLearningPlan(name, topic, skillLevel, goals, preferences, estimatedHours, model);
 
-            CliSupport.WriteColorLine("Learning plan generated successfully!", ConsoleColor.Green);
-            Console.WriteLine($"ID: {learningPlan.Id}");
+            // Stop the progress animation
+            progressTask.Dispose();
+            Console.WriteLine("\rLearning plan generated successfully!" + new string(' ', 20));
             Console.WriteLine();
 
-            // Display a preview of the learning plan
+            CliSupport.WriteColorLine("Step 3: Learning Plan Overview", ConsoleColor.Green);
+            Console.WriteLine();
+
+            // Display the learning plan ID with a border
+            Console.WriteLine("┌" + new string('─', 50) + "┐");
+            Console.WriteLine("│" + $" Learning Plan ID: {learningPlan.Id}".PadRight(50) + "│");
+            Console.WriteLine("└" + new string('─', 50) + "┘");
+            Console.WriteLine();
+
+            // Display a preview of the learning plan with improved formatting
             CliSupport.WriteColorLine("Introduction:", ConsoleColor.Yellow);
             Console.WriteLine(learningPlan.Content.Introduction);
             Console.WriteLine();
 
-            CliSupport.WriteColorLine("Modules:", ConsoleColor.Yellow);
-            foreach (var module in learningPlan.Content.Modules)
+            // Display prerequisites with bullet points
+            CliSupport.WriteColorLine("Prerequisites:", ConsoleColor.Yellow);
+            foreach (var prerequisite in learningPlan.Content.Prerequisites)
             {
-                Console.WriteLine($"- {module.Title} ({module.EstimatedHours} hours)");
+                Console.WriteLine($"  • {prerequisite}");
             }
             Console.WriteLine();
 
-            // Save a copy to the demo directory
-            var demoFilePath = Path.Combine(_demoDir, "LearningPlanDemo.json");
+            // Display modules with more detailed information
+            CliSupport.WriteColorLine("Modules:", ConsoleColor.Yellow);
+            for (int i = 0; i < learningPlan.Content.Modules.Count; i++)
+            {
+                var module = learningPlan.Content.Modules[i];
+                Console.WriteLine($"  Module {i+1}: {module.Title}");
+                Console.WriteLine($"    Duration: {module.EstimatedHours} hours");
+
+                if (module.Objectives.Count > 0)
+                {
+                    Console.WriteLine("    Objectives:");
+                    foreach (var objective in module.Objectives)
+                    {
+                        Console.WriteLine($"      - {objective}");
+                    }
+                }
+
+                if (module.Resources.Count > 0)
+                {
+                    Console.WriteLine("    Resources:");
+                    foreach (var resource in module.Resources)
+                    {
+                        Console.WriteLine($"      - {resource.Title} ({resource.Type})");
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(module.Assessment))
+                {
+                    Console.WriteLine($"    Assessment: {module.Assessment}");
+                }
+
+                Console.WriteLine();
+            }
+
+            // Display timeline with a visual representation
+            CliSupport.WriteColorLine("Timeline:", ConsoleColor.Yellow);
+            Console.WriteLine("┌───────────┬─────────────────────────────────────────┐");
+            Console.WriteLine("│   Week    │ Activities                              │");
+            Console.WriteLine("├───────────┼─────────────────────────────────────────┤");
+            foreach (var timelineItem in learningPlan.Content.Timeline)
+            {
+                Console.WriteLine($"│ {timelineItem.Week,-9} │ {string.Join(", ", timelineItem.Activities).Truncate(39),-39} │");
+            }
+            Console.WriteLine("└───────────┴─────────────────────────────────────────┘");
+            Console.WriteLine();
+
+            CliSupport.WriteColorLine("Step 4: Exporting Learning Plan...", ConsoleColor.Green);
+            Console.WriteLine();
+
+            // Save as JSON
+            var jsonFilePath = Path.Combine(_demoDir, "LearningPlanDemo.json");
             var options = new JsonSerializerOptions { WriteIndented = true };
             var json = JsonSerializer.Serialize(learningPlan, options);
-            await File.WriteAllTextAsync(demoFilePath, json);
+            await File.WriteAllTextAsync(jsonFilePath, json);
 
-            // Log the full path of the demo file
-            _logger.LogInformation($"Learning plan demo saved to: {Path.GetFullPath(demoFilePath)}");
-            Console.WriteLine($"Learning plan demo saved to: {Path.GetFullPath(demoFilePath)}");
+            // Save as Markdown for better readability
+            var markdownFilePath = Path.Combine(_demoDir, "LearningPlanDemo.md");
+            var markdown = GenerateLearningPlanMarkdown(learningPlan);
+            await File.WriteAllTextAsync(markdownFilePath, markdown);
+
+            // Log the full paths of the demo files
+            _logger.LogInformation($"Learning plan demo saved to JSON: {Path.GetFullPath(jsonFilePath)}");
+            _logger.LogInformation($"Learning plan demo saved to Markdown: {Path.GetFullPath(markdownFilePath)}");
+
+            Console.WriteLine($"Learning plan exported to JSON: {Path.GetFullPath(jsonFilePath)}");
+            Console.WriteLine($"Learning plan exported to Markdown: {Path.GetFullPath(markdownFilePath)}");
+            Console.WriteLine();
+
+            CliSupport.WriteColorLine("Learning Plan Demo Completed Successfully!", ConsoleColor.Yellow);
+            Console.WriteLine();
 
             return true;
         }
@@ -623,6 +754,134 @@ namespace DemoCode
             CliSupport.WriteColorLine($"Error running learning plan demo: {ex.Message}", ConsoleColor.Red);
             return false;
         }
+    }
+
+    /// <summary>
+    /// Generates a markdown representation of a learning plan
+    /// </summary>
+    private string GenerateLearningPlanMarkdown(LearningPlan plan)
+    {
+        var sb = new StringBuilder();
+
+        // Title and metadata
+        sb.AppendLine($"# {plan.Name}");
+        sb.AppendLine();
+        sb.AppendLine($"**Topic:** {plan.Topic}  ");
+        sb.AppendLine($"**Skill Level:** {plan.SkillLevel}  ");
+        sb.AppendLine($"**Created:** {plan.CreatedDate:yyyy-MM-dd}  ");
+        sb.AppendLine($"**ID:** {plan.Id}  ");
+        sb.AppendLine();
+
+        // Introduction
+        sb.AppendLine("## Introduction");
+        sb.AppendLine();
+        sb.AppendLine(plan.Content.Introduction);
+        sb.AppendLine();
+
+        // Prerequisites
+        sb.AppendLine("## Prerequisites");
+        sb.AppendLine();
+        foreach (var prerequisite in plan.Content.Prerequisites)
+        {
+            sb.AppendLine($"- {prerequisite}");
+        }
+        sb.AppendLine();
+
+        // Modules
+        sb.AppendLine("## Modules");
+        sb.AppendLine();
+        for (int i = 0; i < plan.Content.Modules.Count; i++)
+        {
+            var module = plan.Content.Modules[i];
+            sb.AppendLine($"### Module {i+1}: {module.Title}");
+            sb.AppendLine();
+            sb.AppendLine($"**Estimated Hours:** {module.EstimatedHours}  ");
+            sb.AppendLine();
+
+            if (module.Objectives.Count > 0)
+            {
+                sb.AppendLine("#### Objectives");
+                sb.AppendLine();
+                foreach (var objective in module.Objectives)
+                {
+                    sb.AppendLine($"- {objective}");
+                }
+                sb.AppendLine();
+            }
+
+            if (module.Resources.Count > 0)
+            {
+                sb.AppendLine("#### Resources");
+                sb.AppendLine();
+                foreach (var resource in module.Resources)
+                {
+                    sb.AppendLine($"- [{resource.Title}]({resource.Url}) - {resource.Type}");
+                    if (!string.IsNullOrEmpty(resource.Description))
+                    {
+                        sb.AppendLine($"  {resource.Description}");
+                    }
+                }
+                sb.AppendLine();
+            }
+
+            if (!string.IsNullOrEmpty(module.Assessment))
+            {
+                sb.AppendLine("#### Assessment");
+                sb.AppendLine();
+                sb.AppendLine(module.Assessment);
+                sb.AppendLine();
+            }
+        }
+
+        // Timeline
+        sb.AppendLine("## Timeline");
+        sb.AppendLine();
+        sb.AppendLine("| Week | Activities |");
+        sb.AppendLine("| ---- | ---------- |");
+        foreach (var timelineItem in plan.Content.Timeline)
+        {
+            sb.AppendLine($"| {timelineItem.Week} | {string.Join(", ", timelineItem.Activities)} |");
+        }
+        sb.AppendLine();
+
+        // Milestones
+        if (plan.Content.Milestones.Count > 0)
+        {
+            sb.AppendLine("## Milestones");
+            sb.AppendLine();
+            foreach (var milestone in plan.Content.Milestones)
+            {
+                sb.AppendLine($"### {milestone.Title}");
+                sb.AppendLine();
+                sb.AppendLine(milestone.Description);
+                sb.AppendLine();
+                sb.AppendLine($"**Completion Criteria:** {milestone.CompletionCriteria}");
+                sb.AppendLine();
+            }
+        }
+
+        // Practice Projects
+        if (plan.Content.PracticeProjects.Count > 0)
+        {
+            sb.AppendLine("## Practice Projects");
+            sb.AppendLine();
+            foreach (var project in plan.Content.PracticeProjects)
+            {
+                sb.AppendLine($"### {project.Title}");
+                sb.AppendLine();
+                sb.AppendLine(project.Description);
+                sb.AppendLine();
+                sb.AppendLine($"**Difficulty:** {project.Difficulty}  ");
+                sb.AppendLine($"**Estimated Hours:** {project.EstimatedHours}  ");
+                sb.AppendLine();
+            }
+        }
+
+        // Footer
+        sb.AppendLine("---");
+        sb.AppendLine("Generated by TARS Learning Plan Generator");
+
+        return sb.ToString();
     }
 
     /// <summary>
@@ -976,64 +1235,242 @@ namespace DemoCode
     {
         try
         {
-            // Step 1: Simulate intelligence spark initialization
-            CliSupport.WriteColorLine("Step 1: Simulating Intelligence Spark Initialization...", ConsoleColor.Green);
+            // Show a progress animation for initialization
+            CliSupport.WriteColorLine("Initializing Intelligence Spark Components...", ConsoleColor.Green);
+            var progressChars = new[] { '|', '/', '-', '\\' };
+
+            // Simulate progress animation
+            for (int i = 0; i < 15; i++)
+            {
+                Console.Write($"\rInitializing {progressChars[i % progressChars.Length]} ");
+                await Task.Delay(100);
+            }
+
+            Console.WriteLine("\rInitialization complete!" + new string(' ', 20));
             Console.WriteLine();
 
-            await Task.Delay(500);
-            Console.WriteLine("Intelligence Spark would initialize with the following components:");
-            Console.WriteLine("- Creative Thinking");
-            Console.WriteLine("- Intuitive Reasoning");
-            Console.WriteLine("- Spontaneous Thought");
-            Console.WriteLine("- Curiosity Drive");
-            Console.WriteLine("- Insight Generation");
+            // Step 1: Simulate intelligence spark initialization with a visual component diagram
+            CliSupport.WriteColorLine("Step 1: Intelligence Spark Architecture", ConsoleColor.Green);
             Console.WriteLine();
 
-            // Step 2: Simulate intelligence measurements
-            CliSupport.WriteColorLine("Step 2: Simulating Intelligence Measurements...", ConsoleColor.Green);
+            // Display a visual diagram of the intelligence spark components
+            Console.WriteLine("┌─────────────────────────────────────────────────────────┐");
+            Console.WriteLine("│                 Intelligence Spark                    │");
+            Console.WriteLine("└───────────────┬─────────────────────┬───────────────┘");
+            Console.WriteLine("                │                     │                ");
+            Console.WriteLine("┌───────────────┴───────────┐ ┌───────┴───────────────┐");
+            Console.WriteLine("│   Cognitive Processes    │ │    Emergent Properties   │");
+            Console.WriteLine("└──────────┬──────────────┘ └──────────┬──────────────┘");
+            Console.WriteLine("            │                           │            ");
+            Console.WriteLine("┌──────────┴──────────────┐     ┌──────┴──────────────┐");
+            Console.WriteLine("│ • Creative Thinking    │     │ • Spontaneous Thought  │");
+            Console.WriteLine("│ • Intuitive Reasoning  │     │ • Curiosity Drive      │");
+            Console.WriteLine("│ • Pattern Recognition  │     │ • Insight Generation   │");
+            Console.WriteLine("└─────────────────────────┘     └─────────────────────┘");
             Console.WriteLine();
 
-            await Task.Delay(500);
-            Console.WriteLine("Intelligence Metrics (simulated):");
-            Console.WriteLine("- Intelligence Level: 120.5");
-            Console.WriteLine("- Logarithmic Intelligence Score: 2.08");
-            Console.WriteLine("- Baseline Human Intelligence: 100.0");
-            Console.WriteLine("- Intelligence Ratio: 120.5% of human baseline");
+            // Step 2: Simulate intelligence measurements with a visual gauge
+            CliSupport.WriteColorLine("Step 2: Intelligence Measurements", ConsoleColor.Green);
             Console.WriteLine();
 
-            // Step 3: Simulate creative thinking
-            CliSupport.WriteColorLine("Step 3: Simulating Creative Thinking...", ConsoleColor.Green);
+            // Display intelligence metrics with a visual gauge
+            double intelligenceScore = 120.5;
+            double baselineHuman = 100.0;
+            double ratio = intelligenceScore / baselineHuman;
+
+            // Create a visual gauge
+            int gaugeWidth = 40;
+            int position = (int)(ratio * gaugeWidth / 2);
+
+            Console.WriteLine("Intelligence Level:");
+            Console.WriteLine("┌" + new string('─', gaugeWidth) + "┐");
+            Console.Write("│");
+            for (int i = 0; i < gaugeWidth; i++)
+            {
+                if (i == gaugeWidth / 2) // Human baseline position
+                    Console.Write("H");
+                else if (i == position) // Current intelligence position
+                    Console.Write("█");
+                else
+                    Console.Write(" ");
+            }
+            Console.WriteLine("│");
+            Console.WriteLine("└" + new string('─', gaugeWidth) + "┘");
+            Console.WriteLine($"  0{new string(' ', gaugeWidth/2-3)}Human{new string(' ', gaugeWidth/2-8)}2x Human");
             Console.WriteLine();
 
+            // Display detailed metrics
+            Console.WriteLine("Detailed Intelligence Metrics:");
+            Console.WriteLine($"  • Raw Intelligence Score: {intelligenceScore:F1}");
+            Console.WriteLine($"  • Logarithmic Intelligence Score: {Math.Log10(intelligenceScore) * 10:F2}");
+            Console.WriteLine($"  • Baseline Human Intelligence: {baselineHuman:F1}");
+            Console.WriteLine($"  • Intelligence Ratio: {ratio:P1} of human baseline");
+            Console.WriteLine();
+
+            // Step 3: Simulate creative thinking with an interactive component
+            CliSupport.WriteColorLine("Step 3: Creative Thinking Demonstration", ConsoleColor.Green);
+            Console.WriteLine();
+
+            // Simulate the creative thinking process with a visual representation
+            Console.WriteLine("Activating creative thinking neural pathways...");
             await Task.Delay(800);
-            Console.WriteLine("Creative thinking process would generate novel connections between concepts.");
-            Console.WriteLine("\nExample Creative Output:");
-            Console.WriteLine("What if we combined neural networks with quantum computing to create a hybrid");
-            Console.WriteLine("system that leverages both classical and quantum properties for AI training?");
-            Console.WriteLine();
 
-            // Step 4: Simulate intuitive reasoning
-            CliSupport.WriteColorLine("Step 4: Simulating Intuitive Reasoning...", ConsoleColor.Green);
-            Console.WriteLine();
+            // Show a visual representation of creative thinking
+            Console.WriteLine("\nCreative Thinking Process:");
+            string[] concepts = { "Neural Networks", "Quantum Computing", "Optimization", "Parallel Processing" };
 
+            // Display concepts
+            for (int i = 0; i < concepts.Length; i++)
+            {
+                await Task.Delay(300);
+                Console.WriteLine($"  [{i+1}] {concepts[i]}");
+            }
+
+            // Display connections being made
             await Task.Delay(800);
-            Console.WriteLine("Intuitive reasoning would analyze patterns without explicit logical steps.");
-            Console.WriteLine("\nExample Intuitive Insight:");
-            Console.WriteLine("The code structure suggests a potential memory leak in the recursive function.");
-            Console.WriteLine();
+            Console.WriteLine("\nForming novel connections:");
+            await Task.Delay(400);
+            Console.WriteLine("  [1] ──────► [2]  : Neural Networks + Quantum Computing");
+            await Task.Delay(300);
+            Console.WriteLine("  [2] ──────► [3]  : Quantum Computing + Optimization");
+            await Task.Delay(300);
+            Console.WriteLine("  [1] ─ ─ ─► [4]  : Neural Networks + Parallel Processing");
 
-            // Step 5: Simulate intelligence growth projection
-            CliSupport.WriteColorLine("Step 5: Simulating Intelligence Growth Projection...", ConsoleColor.Green);
-            Console.WriteLine();
-
+            // Display creative output
             await Task.Delay(800);
-            Console.WriteLine("\nIntelligence Growth Projection (simulated):");
-            Console.WriteLine("Current Intelligence Score: 120.5");
-            Console.WriteLine("Projected Score (1 year): 267.3");
-            Console.WriteLine("Projected Score (5 years): 1,245.8");
+            Console.WriteLine("\nCreative Output:");
+            Console.WriteLine("┌───────────────────────────────────────────────────────────────────┐");
+            Console.WriteLine("│ What if we combined neural networks with quantum computing to     │");
+            Console.WriteLine("│ create a hybrid system that leverages both classical and quantum  │");
+            Console.WriteLine("│ properties for AI training? This could potentially overcome the   │");
+            Console.WriteLine("│ limitations of both approaches through parallel optimization.     │");
+            Console.WriteLine("└───────────────────────────────────────────────────────────────────┘");
             Console.WriteLine();
 
-            CliSupport.WriteColorLine("Intelligence Spark Demo Simulation Completed!", ConsoleColor.Yellow);
+            // Step 4: Simulate intuitive reasoning with a visual component
+            CliSupport.WriteColorLine("Step 4: Intuitive Reasoning Demonstration", ConsoleColor.Green);
+            Console.WriteLine();
+
+            // Simulate the intuitive reasoning process
+            Console.WriteLine("Activating intuitive reasoning pathways...");
+            await Task.Delay(800);
+
+            // Show a visual representation of intuitive reasoning
+            Console.WriteLine("\nIntuitive Pattern Recognition:");
+            string[] codePatterns = {
+                "function recursiveProcess(data) {",
+                "  if (data.length === 0) return [];",
+                "  const result = heavyComputation(data);",
+                "  return [result, ...recursiveProcess(data.slice(1))];" ,
+                "}"
+            };
+
+            // Display code with highlighting
+            for (int i = 0; i < codePatterns.Length; i++)
+            {
+                await Task.Delay(200);
+                if (i == 3) // Highlight the problematic line
+                    CliSupport.WriteColorLine($"  {codePatterns[i]}", ConsoleColor.Red);
+                else
+                    Console.WriteLine($"  {codePatterns[i]}");
+            }
+
+            // Display intuitive insight
+            await Task.Delay(800);
+            Console.WriteLine("\nIntuitive Insight:");
+            Console.WriteLine("┌───────────────────────────────────────────────────────────────────┐");
+            Console.WriteLine("│ The recursive function lacks memoization and creates new arrays   │");
+            Console.WriteLine("│ on each call. This pattern suggests a potential memory leak or    │");
+            Console.WriteLine("│ stack overflow for large inputs. Consider adding memoization or   │");
+            Console.WriteLine("│ converting to an iterative approach.                             │");
+            Console.WriteLine("└───────────────────────────────────────────────────────────────────┘");
+            Console.WriteLine();
+
+            // Step 5: Simulate intelligence growth projection with a visual graph
+            CliSupport.WriteColorLine("Step 5: Intelligence Growth Projection", ConsoleColor.Green);
+            Console.WriteLine();
+
+            // Display a visual graph of intelligence growth over time
+            Console.WriteLine("Intelligence Growth Projection:");
+            Console.WriteLine("┌" + new string('─', 50) + "┐");
+
+            // Create a simple ASCII graph showing exponential growth
+            string[] graph = new string[10];
+            for (int i = 0; i < 10; i++)
+                graph[i] = new string(' ', 50);
+
+            // Plot the curve (exponential growth)
+            for (int x = 0; x < 50; x++)
+            {
+                double t = x / 50.0 * 5.0; // 0 to 5 years
+                double y = Math.Pow(1.5, t) * 120.5 / 1245.8 * 9; // Normalized to fit in 10 rows
+                int yPos = 9 - (int)Math.Min(9, y);
+                if (yPos >= 0 && yPos < 10)
+                {
+                    char[] chars = graph[yPos].ToCharArray();
+                    if (x < chars.Length)
+                    {
+                        chars[x] = '*';
+                        graph[yPos] = new string(chars);
+                    }
+                }
+            }
+
+            // Display the graph
+            for (int i = 0; i < 10; i++)
+                Console.WriteLine("│" + graph[i] + "│");
+
+            Console.WriteLine("└" + new string('─', 50) + "┘");
+            Console.WriteLine("  Now      1 year      2 years      3 years      4 years      5 years");
+            Console.WriteLine();
+
+            // Display numerical projections
+            Console.WriteLine("Numerical Projections:");
+            Console.WriteLine($"  • Current Intelligence Score: 120.5");
+            Console.WriteLine($"  • Projected Score (1 year): 267.3");
+            Console.WriteLine($"  • Projected Score (2 years): 594.0");
+            Console.WriteLine($"  • Projected Score (5 years): 1,245.8");
+            Console.WriteLine();
+
+            // Step 6: Simulate consciousness emergence
+            CliSupport.WriteColorLine("Step 6: Consciousness Emergence Simulation", ConsoleColor.Green);
+            Console.WriteLine();
+
+            Console.WriteLine("Simulating consciousness emergence through intelligence spark...");
+            await Task.Delay(1000);
+
+            // Display a visual representation of consciousness emergence
+            Console.WriteLine("\nConsciousness Emergence Indicators:");
+            string[] indicators = {
+                "Self-reference capability",
+                "Recursive self-improvement",
+                "Goal-directed behavior",
+                "Adaptive learning",
+                "Spontaneous thought generation"
+            };
+
+            // Display indicators with progress bars
+            for (int i = 0; i < indicators.Length; i++)
+            {
+                await Task.Delay(300);
+                int progress = i < 2 ? 100 : (i == 2 ? 80 : (i == 3 ? 65 : 40));
+                Console.Write($"  {indicators[i]}: [");
+
+                for (int j = 0; j < 20; j++)
+                {
+                    if (j < progress / 5)
+                        Console.Write("█");
+                    else
+                        Console.Write("░");
+                }
+
+                Console.WriteLine($"] {progress}%");
+            }
+
+            Console.WriteLine("\nConsciousness Emergence Status: Partial (40%)");
+            Console.WriteLine();
+
+            CliSupport.WriteColorLine("Intelligence Spark Demo Completed Successfully!", ConsoleColor.Yellow);
             Console.WriteLine();
             Console.WriteLine("Note: This was a simulation. To see the actual intelligence spark in action,");
             Console.WriteLine("register the TarsEngine.Consciousness.Intelligence.IntelligenceSpark and");
@@ -1046,6 +1483,293 @@ namespace DemoCode
         {
             _logger.LogError(ex, "Error running simulated Intelligence Spark demo");
             CliSupport.WriteColorLine($"Error running simulated Intelligence Spark demo: {ex.Message}", ConsoleColor.Red);
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Runs the code complexity demo
+    /// </summary>
+    /// <returns>True if the demo ran successfully, false otherwise</returns>
+    private async Task<bool> RunCodeComplexityDemoAsync()
+    {
+        try
+        {
+            CliSupport.WriteColorLine("Code Complexity Analysis Demo", ConsoleColor.Cyan);
+            Console.WriteLine();
+
+            // Get the code complexity analyzer service
+            var codeComplexityAnalyzer = _serviceProvider.GetRequiredService<TarsEngine.Services.Interfaces.ICodeComplexityAnalyzer>();
+
+            // Step 1: Analyze a simple C# file
+            CliSupport.WriteColorLine("Step 1: Analyzing a simple C# file...", ConsoleColor.Green);
+            Console.WriteLine();
+
+            // Create a temporary C# file with a simple class
+            var tempDir = Path.Combine(Path.GetTempPath(), "TarsCodeComplexityDemo");
+            Directory.CreateDirectory(tempDir);
+
+            var simpleFilePath = Path.Combine(tempDir, "SimpleExample.cs");
+            var simpleCode = @"
+using System;
+
+namespace TarsDemo
+{
+    public class SimpleExample
+    {
+        public int CalculateMax(int a, int b)
+        {
+            if (a > b)
+            {
+                return a;
+            }
+            else
+            {
+                return b;
+            }
+        }
+    }
+}";
+            await File.WriteAllTextAsync(simpleFilePath, simpleCode);
+
+            // Analyze the simple file
+            Console.WriteLine("Analyzing simple C# file...");
+            var simpleMetrics = await codeComplexityAnalyzer.AnalyzeCyclomaticComplexityAsync(simpleFilePath, "C#");
+
+            // Display the results
+            Console.WriteLine();
+            Console.WriteLine("Simple C# File Analysis Results:");
+            Console.WriteLine(new string('-', 80));
+
+            foreach (var metric in simpleMetrics)
+            {
+                Console.WriteLine($"Target: {metric.Target}");
+                Console.WriteLine($"Complexity: {metric.Value:F2}");
+                Console.WriteLine($"Threshold: {metric.ThresholdValue:F2}");
+                Console.WriteLine($"Status: {(metric.IsAboveThreshold ? "EXCEEDS THRESHOLD" : "OK")}");
+                Console.WriteLine();
+            }
+
+            // Step 2: Analyze a complex C# file
+            CliSupport.WriteColorLine("Step 2: Analyzing a complex C# file...", ConsoleColor.Green);
+            Console.WriteLine();
+
+            // Create a temporary C# file with a complex class
+            var complexFilePath = Path.Combine(tempDir, "ComplexExample.cs");
+            var complexCode = @"
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace TarsDemo
+{
+    public class ComplexExample
+    {
+        public int CalculateComplexValue(int a, int b, int c, bool flag1, bool flag2)
+        {
+            int result = 0;
+
+            if (flag1)
+            {
+                if (a > b)
+                {
+                    if (a > c)
+                    {
+                        result = a * 2;
+                    }
+                    else
+                    {
+                        result = c;
+                    }
+                }
+                else
+                {
+                    if (b > c)
+                    {
+                        result = b;
+                    }
+                    else
+                    {
+                        result = c;
+                    }
+                }
+            }
+            else
+            {
+                if (flag2)
+                {
+                    for (int i = 0; i < 10; i++)
+                    {
+                        if (i % 2 == 0)
+                        {
+                            result += a;
+                        }
+                        else
+                        {
+                            result += b;
+                        }
+                    }
+
+                    switch (result % 3)
+                    {
+                        case 0:
+                            result += a;
+                            break;
+                        case 1:
+                            result += b;
+                            break;
+                        default:
+                            result += c;
+                            break;
+                    }
+                }
+                else
+                {
+                    result = a + b + c;
+                }
+            }
+
+            return result;
+        }
+
+        public List<int> ProcessList(List<int> items)
+        {
+            var result = new List<int>();
+
+            foreach (var item in items)
+            {
+                if (item % 2 == 0)
+                {
+                    result.Add(item * 2);
+                }
+                else if (item % 3 == 0)
+                {
+                    result.Add(item * 3);
+                }
+                else if (item % 5 == 0)
+                {
+                    result.Add(item * 5);
+                }
+                else
+                {
+                    result.Add(item);
+                }
+            }
+
+            return result;
+        }
+    }
+}";
+            await File.WriteAllTextAsync(complexFilePath, complexCode);
+
+            // Analyze the complex file
+            Console.WriteLine("Analyzing complex C# file...");
+            var complexMetrics = await codeComplexityAnalyzer.AnalyzeCyclomaticComplexityAsync(complexFilePath, "C#");
+
+            // Display the results
+            Console.WriteLine();
+            Console.WriteLine("Complex C# File Analysis Results:");
+            Console.WriteLine(new string('-', 80));
+
+            foreach (var metric in complexMetrics)
+            {
+                var statusColor = metric.IsAboveThreshold ? ConsoleColor.Red : ConsoleColor.Green;
+
+                Console.WriteLine($"Target: {metric.Target}");
+                Console.WriteLine($"Complexity: {metric.Value:F2}");
+                Console.WriteLine($"Threshold: {metric.ThresholdValue:F2}");
+                Console.Write($"Status: ");
+                CliSupport.WriteColorLine(metric.IsAboveThreshold ? "EXCEEDS THRESHOLD" : "OK", statusColor);
+                Console.WriteLine();
+            }
+
+            // Step 3: Compare the results
+            CliSupport.WriteColorLine("Step 3: Comparing the results...", ConsoleColor.Green);
+            Console.WriteLine();
+
+            var simpleMethodMetric = simpleMetrics.FirstOrDefault(m => m.Target.Contains("CalculateMax"));
+            var complexMethodMetric = complexMetrics.FirstOrDefault(m => m.Target.Contains("CalculateComplexValue"));
+
+            if (simpleMethodMetric != null && complexMethodMetric != null)
+            {
+                Console.WriteLine("Comparison of Method Complexity:");
+                Console.WriteLine(new string('-', 80));
+                Console.WriteLine($"Simple Method: {simpleMethodMetric.Value:F2}");
+                Console.WriteLine($"Complex Method: {complexMethodMetric.Value:F2}");
+                Console.WriteLine($"Difference: {complexMethodMetric.Value - simpleMethodMetric.Value:F2}");
+                Console.WriteLine($"Ratio: {complexMethodMetric.Value / simpleMethodMetric.Value:F2}x");
+                Console.WriteLine();
+
+                // Create a visual representation of the difference
+                Console.WriteLine("Visual Complexity Comparison:");
+
+                Console.Write("Simple Method: ");
+                for (int i = 0; i < simpleMethodMetric.Value; i++)
+                {
+                    Console.Write("█");
+                }
+                Console.WriteLine();
+
+                Console.Write("Complex Method: ");
+                for (int i = 0; i < complexMethodMetric.Value; i++)
+                {
+                    Console.Write("█");
+                }
+                Console.WriteLine();
+            }
+
+            // Step 4: Show recommendations
+            CliSupport.WriteColorLine("Step 4: Recommendations...", ConsoleColor.Green);
+            Console.WriteLine();
+
+            var methodsExceedingThreshold = complexMetrics
+                .Where(m => m.IsAboveThreshold && m.TargetType == TarsEngine.Models.Metrics.TargetType.Method)
+                .ToList();
+
+            if (methodsExceedingThreshold.Any())
+            {
+                Console.WriteLine("The following methods exceed the recommended complexity threshold:");
+                Console.WriteLine();
+
+                foreach (var metric in methodsExceedingThreshold)
+                {
+                    Console.WriteLine($"Method: {metric.Target}");
+                    Console.WriteLine($"Complexity: {metric.Value:F2} (Threshold: {metric.ThresholdValue:F2})");
+                    Console.WriteLine("Recommendations:");
+                    Console.WriteLine("  - Break down the method into smaller, more focused methods");
+                    Console.WriteLine("  - Reduce nested conditionals by extracting helper methods");
+                    Console.WriteLine("  - Consider using strategy pattern for complex conditional logic");
+                    Console.WriteLine("  - Use early returns to reduce nesting");
+                    Console.WriteLine();
+                }
+            }
+            else
+            {
+                Console.WriteLine("All methods are within acceptable complexity thresholds.");
+                Console.WriteLine();
+            }
+
+            // Clean up
+            try
+            {
+                File.Delete(simpleFilePath);
+                File.Delete(complexFilePath);
+                Directory.Delete(tempDir);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error cleaning up temporary files");
+            }
+
+            CliSupport.WriteColorLine("Code Complexity Analysis Demo Completed!", ConsoleColor.Yellow);
+            Console.WriteLine();
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error running code complexity demo");
+            CliSupport.WriteColorLine($"Error running code complexity demo: {ex.Message}", ConsoleColor.Red);
             return false;
         }
     }
