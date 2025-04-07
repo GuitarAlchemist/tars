@@ -13,6 +13,91 @@ namespace TarsCli;
 
 public static class CliSupport
 {
+    /// <summary>
+    /// Runs the intelligence spark demo
+    /// </summary>
+    private static async Task RunIntelligenceSparkDemoAsync(string model)
+    {
+        try
+        {
+            WriteColorLine("\nTARS Demonstration - intelligence-spark", ConsoleColor.Cyan);
+            WriteColorLine("=====================================", ConsoleColor.Cyan);
+            Console.WriteLine($"Model: {model}\n");
+
+            WriteColorLine("Intelligence Spark Demo (Simulation Mode)", ConsoleColor.Yellow);
+            Console.WriteLine();
+
+            // Step 1: Simulate intelligence spark initialization
+            WriteColorLine("Step 1: Simulating Intelligence Spark Initialization...", ConsoleColor.Green);
+            Console.WriteLine();
+
+            await Task.Delay(500);
+            Console.WriteLine("Intelligence Spark would initialize with the following components:");
+            Console.WriteLine("- Creative Thinking");
+            Console.WriteLine("- Intuitive Reasoning");
+            Console.WriteLine("- Spontaneous Thought");
+            Console.WriteLine("- Curiosity Drive");
+            Console.WriteLine("- Insight Generation");
+            Console.WriteLine();
+
+            // Step 2: Simulate intelligence measurements
+            WriteColorLine("Step 2: Simulating Intelligence Measurements...", ConsoleColor.Green);
+            Console.WriteLine();
+
+            await Task.Delay(500);
+            Console.WriteLine("Intelligence Metrics (simulated):");
+            Console.WriteLine("- Intelligence Level: 120.5");
+            Console.WriteLine("- Logarithmic Intelligence Score: 2.08");
+            Console.WriteLine("- Baseline Human Intelligence: 100.0");
+            Console.WriteLine("- Intelligence Ratio: 120.5% of human baseline");
+            Console.WriteLine();
+
+            // Step 3: Simulate creative thinking
+            WriteColorLine("Step 3: Simulating Creative Thinking...", ConsoleColor.Green);
+            Console.WriteLine();
+
+            await Task.Delay(800);
+            Console.WriteLine("Creative thinking process would generate novel connections between concepts.");
+            Console.WriteLine("\nExample Creative Output:");
+            Console.WriteLine("What if we combined neural networks with quantum computing to create a hybrid");
+            Console.WriteLine("system that leverages both classical and quantum properties for AI training?");
+            Console.WriteLine();
+
+            // Step 4: Simulate intuitive reasoning
+            WriteColorLine("Step 4: Simulating Intuitive Reasoning...", ConsoleColor.Green);
+            Console.WriteLine();
+
+            await Task.Delay(800);
+            Console.WriteLine("Intuitive reasoning would analyze patterns without explicit logical steps.");
+            Console.WriteLine("\nExample Intuitive Insight:");
+            Console.WriteLine("The code structure suggests a potential memory leak in the recursive function.");
+            Console.WriteLine();
+
+            // Step 5: Simulate intelligence growth projection
+            WriteColorLine("Step 5: Simulating Intelligence Growth Projection...", ConsoleColor.Green);
+            Console.WriteLine();
+
+            await Task.Delay(800);
+            Console.WriteLine("\nIntelligence Growth Projection (simulated):");
+            Console.WriteLine("Current Intelligence Score: 120.5");
+            Console.WriteLine("Projected Score (1 year): 267.3");
+            Console.WriteLine("Projected Score (5 years): 1,245.8");
+            Console.WriteLine();
+
+            WriteColorLine("Intelligence Spark Demo Simulation Completed!", ConsoleColor.Yellow);
+            Console.WriteLine();
+            Console.WriteLine("Note: This was a simulation. To see the actual intelligence spark in action,");
+            Console.WriteLine("register the TarsEngine.Consciousness.Intelligence.IntelligenceSpark and");
+            Console.WriteLine("TarsEngine.ML.Core.IntelligenceMeasurement services in your dependency injection container.");
+            Console.WriteLine();
+        }
+        catch (Exception ex)
+        {
+            WriteColorLine($"Error running simulated Intelligence Spark demo: {ex.Message}", ConsoleColor.Red);
+            Environment.Exit(1);
+        }
+    }
+
     private static IServiceProvider? _serviceProvider;
     // Color output helpers
     public static void WriteColorLine(string text, ConsoleColor color)
@@ -172,6 +257,7 @@ public static class CliSupport
             WriteCommand("deep-thinking", "Generate deep thinking explorations");
             WriteCommand("console-capture", "Capture console output and improve code");
             WriteCommand("improve", "Generate and manage code improvements");
+            WriteCommand("execute", "Commands for autonomous execution");
 
             WriteHeader("Global Options");
             WriteCommand("--help, -h", "Display help information");
@@ -2438,7 +2524,7 @@ public static class CliSupport
 
         // Create demo command
         var demoCommand = new TarsCommand("demo", "Run a demonstration of TARS capabilities");
-        var demoTypeOption = new Option<string>("--type", () => "all", "Type of demo to run (self-improvement, code-generation, language-specs, all)");
+        var demoTypeOption = new Option<string>("--type", () => "all", "Type of demo to run (self-improvement, code-generation, language-specs, intelligence-spark, all)");
         var demoModelOption = new Option<string>("--model", () => "llama3", "Model to use for the demo");
 
         demoCommand.AddOption(demoTypeOption);
@@ -2446,6 +2532,30 @@ public static class CliSupport
 
         demoCommand.SetHandler(async (string type, string model) =>
         {
+            // Special handling for intelligence-spark demo to avoid dependency injection issues
+            if (type.Equals("intelligence-spark", StringComparison.OrdinalIgnoreCase))
+            {
+                await RunIntelligenceSparkDemoAsync(model);
+                return;
+            }
+
+            // Special handling for "all" demo to include intelligence-spark
+            if (type.Equals("all", StringComparison.OrdinalIgnoreCase))
+            {
+                var allDemoService = _serviceProvider!.GetRequiredService<DemoService>();
+                var allDemoSuccess = await allDemoService.RunDemoAsync(type, model);
+
+                if (!allDemoSuccess)
+                {
+                    Environment.Exit(1);
+                }
+
+                // Run the intelligence-spark demo after all other demos
+                await RunIntelligenceSparkDemoAsync(model);
+                return;
+            }
+
+            // Get the demo service
             var demoService = _serviceProvider!.GetRequiredService<DemoService>();
             var success = await demoService.RunDemoAsync(type, model);
 

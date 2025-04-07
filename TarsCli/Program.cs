@@ -6,6 +6,7 @@ using System.CommandLine.Builder;
 using System.CommandLine.Parsing;
 using TarsCli.Controllers;
 using TarsCli.Services;
+using TarsEngine.Consciousness;
 
 namespace TarsCli;
 
@@ -97,6 +98,15 @@ internal static class Program
                 .AddSingleton<ModelProviderFactory>()
                 .AddSingleton<ConsoleService>()
                 .AddSingleton<DocumentationKnowledgeService>()
+                .AddSingleton<TarsEngine.Consciousness.Intelligence.IntelligenceSpark>()
+                .AddSingleton<TarsEngine.ML.Core.IntelligenceMeasurement>()
+                .AddSingleton<TarsEngine.Consciousness.Intelligence.Pattern.ImplicitPatternRecognition>()
+                .AddSingleton<TarsEngine.Consciousness.Intelligence.Heuristic.HeuristicReasoning>()
+                .AddSingleton<TarsEngine.Consciousness.Intelligence.IntuitiveReasoning>()
+                .AddSingleton<TarsEngine.Consciousness.Intelligence.SpontaneousThought>()
+                .AddSingleton<TarsEngine.Consciousness.Intelligence.CuriosityDrive>()
+                .AddSingleton<TarsEngine.Consciousness.Intelligence.InsightGeneration>()
+                .AddSingleton<TarsEngine.Consciousness.Intelligence.CreativeThinking>()
                 .AddSingleton<KnowledgeVisualizationService>()
                 .AddSingleton<KnowledgeTestGenerationService>()
                 .AddSingleton<AutonomousImprovementService>()
@@ -137,6 +147,7 @@ internal static class Program
                 .AddSingleton<TarsEngine.Services.FuzzyMatcher>()
                 .AddSingleton<TarsEngine.Data.PatternLibrary>(sp => new TarsEngine.Data.PatternLibrary(
                     sp.GetRequiredService<ILogger<TarsEngine.Data.PatternLibrary>>(),
+                    sp.GetRequiredService<TarsEngine.Services.PatternParser>(),
                     Path.Combine(Directory.GetCurrentDirectory(), "TarsEngine", "Data", "Patterns")))
 
                 .AddSingleton<TarsEngine.Services.Interfaces.IMetascriptGeneratorService, TarsEngine.Services.MetascriptGeneratorService>()
@@ -167,6 +178,9 @@ internal static class Program
                 .AddSingleton<Mcp.McpController>(sp => new Mcp.McpController(
                     sp.GetRequiredService<ILogger<Mcp.McpController>>(),
                     configuration))
+
+                // Consciousness services
+                .AddConsciousnessServices()
                 .BuildServiceProvider();
 
             // Get services
