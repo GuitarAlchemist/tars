@@ -119,11 +119,62 @@ public class CSharpDuplicationAnalyzer : IDuplicationAnalyzer
     }
 
     /// <inheritdoc/>
-    public Task<List<DuplicationMetric>> AnalyzeSemanticDuplicationAsync(string filePath, string language)
+    public async Task<List<DuplicationMetric>> AnalyzeSemanticDuplicationAsync(string filePath, string language)
     {
-        // This will be implemented in a future step
-        _logger.LogInformation("Semantic duplication analysis not yet implemented");
-        return Task.FromResult(new List<DuplicationMetric>());
+        if (language != "C#")
+        {
+            _logger.LogWarning("Language {Language} not supported by CSharpDuplicationAnalyzer", language);
+            return new List<DuplicationMetric>();
+        }
+
+        try
+        {
+            _logger.LogInformation("Analyzing semantic duplication for file {FilePath}", filePath);
+
+            // Read the file content
+            var sourceCode = await File.ReadAllTextAsync(filePath);
+
+            // Create the syntax tree
+            var syntaxTree = CSharpSyntaxTree.ParseText(sourceCode);
+            var root = await syntaxTree.GetRootAsync();
+
+            // Create the result list
+            var metrics = new List<DuplicationMetric>();
+
+            // Analyze file-level semantic duplication
+            var fileMetric = await AnalyzeFileSemanticDuplicationAsync(filePath, root);
+            metrics.Add(fileMetric);
+
+            // Analyze class-level semantic duplication
+            var classDeclarations = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
+            foreach (var classDecl in classDeclarations)
+            {
+                var className = classDecl.Identifier.Text;
+                var namespaceName = GetNamespace(classDecl);
+                var fullClassName = string.IsNullOrEmpty(namespaceName) ? className : $"{namespaceName}.{className}";
+
+                var classMetric = await AnalyzeClassSemanticDuplicationAsync(filePath, classDecl, fullClassName);
+                metrics.Add(classMetric);
+
+                // Analyze method-level semantic duplication
+                var methodDeclarations = classDecl.DescendantNodes().OfType<MethodDeclarationSyntax>();
+                foreach (var methodDecl in methodDeclarations)
+                {
+                    var methodName = methodDecl.Identifier.Text;
+                    var fullMethodName = $"{fullClassName}.{methodName}";
+
+                    var methodMetric = await AnalyzeMethodSemanticDuplicationAsync(filePath, methodDecl, fullMethodName);
+                    metrics.Add(methodMetric);
+                }
+            }
+
+            return metrics;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error analyzing semantic duplication for file {FilePath}", filePath);
+            return new List<DuplicationMetric>();
+        }
     }
 
     /// <inheritdoc/>
@@ -408,6 +459,241 @@ public class CSharpDuplicationAnalyzer : IDuplicationAnalyzer
         metric.Value = metric.DuplicationPercentage;
 
         return metric;
+    }
+
+    /// <summary>
+    /// Analyzes file-level semantic duplication
+    /// </summary>
+    /// <param name="filePath">File path</param>
+    /// <param name="root">Syntax tree root</param>
+    /// <returns>Duplication metric for the file</returns>
+    private async Task<DuplicationMetric> AnalyzeFileSemanticDuplicationAsync(string filePath, SyntaxNode root)
+    {
+        var fileName = Path.GetFileName(filePath);
+        var sourceCode = root.ToFullString();
+        var lines = sourceCode.Split('\n');
+
+        // Create a semantic similarity analyzer
+        var analyzer = new SemanticSimilarityAnalyzer(_logger, 80, MinimumDuplicateLines);
+
+        // Find similar code blocks
+        var similarBlocks = analyzer.FindSimilarCodeBlocks(filePath, sourceCode);
+
+        // Convert to duplicated blocks
+        var duplicatedBlocks = new List<DuplicatedBlock>();
+        foreach (var block in similarBlocks)
+        {
+            var duplicatedCode = GetCodeBetweenLines(sourceCode, block.StartLine, block.EndLine);
+
+            var duplicatedBlock = new DuplicatedBlock
+            {
+                SourceFilePath = filePath,
+                SourceStartLine = block.StartLine,
+                SourceEndLine = block.EndLine,
+                TargetFilePath = filePath,
+                TargetStartLine = block.SimilarStartLine,
+                TargetEndLine = block.SimilarEndLine,
+                DuplicatedCode = duplicatedCode,
+                SimilarityPercentage = block.SimilarityPercentage
+            };
+
+            duplicatedBlocks.Add(duplicatedBlock);
+        }
+
+        // Calculate duplicated lines of code
+        var duplicatedLinesOfCode = duplicatedBlocks.Sum(b => b.DuplicatedLines);
+
+        // Calculate duplication percentage
+        var duplicationPercentage = lines.Length > 0 ? (double)duplicatedLinesOfCode / lines.Length * 100 : 0;
+
+        // Create a duplication metric
+        var metric = new DuplicationMetric
+        {
+            Name = $"Semantic Duplication - {fileName}",
+            Description = $"Semantic duplication for file {fileName}",
+            Type = DuplicationType.Semantic,
+            FilePath = filePath,
+            Language = "C#",
+            Target = fileName,
+            TargetType = TargetType.File,
+            TotalLinesOfCode = lines.Length,
+            DuplicatedLinesOfCode = duplicatedLinesOfCode,
+            DuplicationPercentage = duplicationPercentage,
+            DuplicatedBlockCount = duplicatedBlocks.Count,
+            DuplicatedBlocks = duplicatedBlocks,
+            Timestamp = DateTime.UtcNow,
+            ThresholdValue = GetThreshold("C#", DuplicationType.Semantic, "File")
+        };
+
+        // Set the value to the duplication percentage
+        metric.Value = metric.DuplicationPercentage;
+
+        return metric;
+    }
+
+    /// <summary>
+    /// Analyzes class-level semantic duplication
+    /// </summary>
+    /// <param name="filePath">File path</param>
+    /// <param name="classDecl">Class declaration syntax</param>
+    /// <param name="fullClassName">Full class name</param>
+    /// <returns>Duplication metric for the class</returns>
+    private async Task<DuplicationMetric> AnalyzeClassSemanticDuplicationAsync(string filePath, ClassDeclarationSyntax classDecl, string fullClassName)
+    {
+        var sourceCode = classDecl.ToFullString();
+        var lines = sourceCode.Split('\n');
+
+        // Create a semantic similarity analyzer
+        var analyzer = new SemanticSimilarityAnalyzer(_logger, 80, MinimumDuplicateLines);
+
+        // Find similar code blocks
+        var similarBlocks = analyzer.FindSimilarCodeBlocks(filePath, sourceCode);
+
+        // Convert to duplicated blocks
+        var duplicatedBlocks = new List<DuplicatedBlock>();
+        foreach (var block in similarBlocks)
+        {
+            var duplicatedCode = GetCodeBetweenLines(sourceCode, block.StartLine, block.EndLine);
+
+            var duplicatedBlock = new DuplicatedBlock
+            {
+                SourceFilePath = filePath,
+                SourceStartLine = block.StartLine,
+                SourceEndLine = block.EndLine,
+                TargetFilePath = filePath,
+                TargetStartLine = block.SimilarStartLine,
+                TargetEndLine = block.SimilarEndLine,
+                DuplicatedCode = duplicatedCode,
+                SimilarityPercentage = block.SimilarityPercentage
+            };
+
+            duplicatedBlocks.Add(duplicatedBlock);
+        }
+
+        // Calculate duplicated lines of code
+        var duplicatedLinesOfCode = duplicatedBlocks.Sum(b => b.DuplicatedLines);
+
+        // Calculate duplication percentage
+        var duplicationPercentage = lines.Length > 0 ? (double)duplicatedLinesOfCode / lines.Length * 100 : 0;
+
+        // Create a duplication metric
+        var metric = new DuplicationMetric
+        {
+            Name = $"Semantic Duplication - {fullClassName}",
+            Description = $"Semantic duplication for class {fullClassName}",
+            Type = DuplicationType.Semantic,
+            FilePath = filePath,
+            Language = "C#",
+            Target = fullClassName,
+            TargetType = TargetType.Class,
+            TotalLinesOfCode = lines.Length,
+            DuplicatedLinesOfCode = duplicatedLinesOfCode,
+            DuplicationPercentage = duplicationPercentage,
+            DuplicatedBlockCount = duplicatedBlocks.Count,
+            DuplicatedBlocks = duplicatedBlocks,
+            Timestamp = DateTime.UtcNow,
+            ThresholdValue = GetThreshold("C#", DuplicationType.Semantic, "Class")
+        };
+
+        // Set the value to the duplication percentage
+        metric.Value = metric.DuplicationPercentage;
+
+        return metric;
+    }
+
+    /// <summary>
+    /// Analyzes method-level semantic duplication
+    /// </summary>
+    /// <param name="filePath">File path</param>
+    /// <param name="methodDecl">Method declaration syntax</param>
+    /// <param name="fullMethodName">Full method name</param>
+    /// <returns>Duplication metric for the method</returns>
+    private async Task<DuplicationMetric> AnalyzeMethodSemanticDuplicationAsync(string filePath, MethodDeclarationSyntax methodDecl, string fullMethodName)
+    {
+        var sourceCode = methodDecl.ToFullString();
+        var lines = sourceCode.Split('\n');
+
+        // Create a semantic similarity analyzer
+        var analyzer = new SemanticSimilarityAnalyzer(_logger, 80, MinimumDuplicateLines);
+
+        // Find similar code blocks
+        var similarBlocks = analyzer.FindSimilarCodeBlocks(filePath, sourceCode);
+
+        // Convert to duplicated blocks
+        var duplicatedBlocks = new List<DuplicatedBlock>();
+        foreach (var block in similarBlocks)
+        {
+            var duplicatedCode = GetCodeBetweenLines(sourceCode, block.StartLine, block.EndLine);
+
+            var duplicatedBlock = new DuplicatedBlock
+            {
+                SourceFilePath = filePath,
+                SourceStartLine = block.StartLine,
+                SourceEndLine = block.EndLine,
+                TargetFilePath = filePath,
+                TargetStartLine = block.SimilarStartLine,
+                TargetEndLine = block.SimilarEndLine,
+                DuplicatedCode = duplicatedCode,
+                SimilarityPercentage = block.SimilarityPercentage
+            };
+
+            duplicatedBlocks.Add(duplicatedBlock);
+        }
+
+        // Calculate duplicated lines of code
+        var duplicatedLinesOfCode = duplicatedBlocks.Sum(b => b.DuplicatedLines);
+
+        // Calculate duplication percentage
+        var duplicationPercentage = lines.Length > 0 ? (double)duplicatedLinesOfCode / lines.Length * 100 : 0;
+
+        // Create a duplication metric
+        var metric = new DuplicationMetric
+        {
+            Name = $"Semantic Duplication - {fullMethodName}",
+            Description = $"Semantic duplication for method {fullMethodName}",
+            Type = DuplicationType.Semantic,
+            FilePath = filePath,
+            Language = "C#",
+            Target = fullMethodName,
+            TargetType = TargetType.Method,
+            TotalLinesOfCode = lines.Length,
+            DuplicatedLinesOfCode = duplicatedLinesOfCode,
+            DuplicationPercentage = duplicationPercentage,
+            DuplicatedBlockCount = duplicatedBlocks.Count,
+            DuplicatedBlocks = duplicatedBlocks,
+            Timestamp = DateTime.UtcNow,
+            ThresholdValue = GetThreshold("C#", DuplicationType.Semantic, "Method")
+        };
+
+        // Set the value to the duplication percentage
+        metric.Value = metric.DuplicationPercentage;
+
+        return metric;
+    }
+
+    /// <summary>
+    /// Gets the code between two line numbers
+    /// </summary>
+    /// <param name="sourceCode">Source code</param>
+    /// <param name="startLine">Start line</param>
+    /// <param name="endLine">End line</param>
+    /// <returns>Code between the lines</returns>
+    private string GetCodeBetweenLines(string sourceCode, int startLine, int endLine)
+    {
+        var lines = sourceCode.Split('\n');
+
+        // Adjust line numbers to be 0-based
+        startLine = Math.Max(0, startLine - 1);
+        endLine = Math.Min(lines.Length - 1, endLine - 1);
+
+        // Extract the lines
+        var codeLines = new List<string>();
+        for (int i = startLine; i <= endLine; i++)
+        {
+            codeLines.Add(lines[i]);
+        }
+
+        return string.Join("\n", codeLines);
     }
 
     /// <summary>
