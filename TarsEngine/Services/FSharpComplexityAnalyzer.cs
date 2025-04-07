@@ -62,23 +62,23 @@ public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
             }
 
             var sourceCode = await File.ReadAllTextAsync(filePath);
-            
+
             // For now, we'll use a simplified approach for F# complexity analysis
             // In a real implementation, we would use FSharp.Compiler.Service to parse the code
-            
+
             var metrics = new List<ComplexityMetric>();
             var fileName = Path.GetFileName(filePath);
-            
+
             // Estimate complexity based on pattern matching
             var functionCount = CountFunctions(sourceCode);
             var matchCount = CountMatches(sourceCode);
             var ifCount = CountIfs(sourceCode);
             var forCount = CountFors(sourceCode);
             var recursionCount = CountRecursions(sourceCode);
-            
+
             // Estimate file complexity
             var fileComplexity = matchCount * 2 + ifCount + forCount + recursionCount * 2;
-            
+
             var fileMetric = new ComplexityMetric
             {
                 Name = $"Cyclomatic Complexity - {fileName}",
@@ -92,14 +92,14 @@ public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
                 Timestamp = DateTime.UtcNow,
                 ThresholdValue = GetThreshold(language, ComplexityType.Cyclomatic, "File")
             };
-            
+
             metrics.Add(fileMetric);
-            
+
             // In a full implementation, we would analyze individual functions and modules
             // For now, we'll just add a note about the simplified implementation
-            
+
             _logger.LogInformation("F# complexity analysis is using a simplified approach. For accurate analysis, FSharp.Compiler.Service should be used.");
-            
+
             return metrics;
         }
         catch (Exception ex)
@@ -118,56 +118,207 @@ public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
     }
 
     /// <inheritdoc/>
-    public async Task<List<ComplexityMetric>> AnalyzeMaintainabilityIndexAsync(string filePath, string language)
+    public async Task<List<MaintainabilityMetric>> AnalyzeMaintainabilityIndexAsync(string filePath, string language)
     {
-        // Implementation will be added in a future task
-        _logger.LogInformation("F# maintainability index analysis not yet implemented");
-        return new List<ComplexityMetric>();
-    }
+        // Basic implementation for F# maintainability index
+        _logger.LogInformation("Using basic maintainability index analysis for F#");
 
-    /// <inheritdoc/>
-    public async Task<List<ComplexityMetric>> AnalyzeHalsteadComplexityAsync(string filePath, string language)
-    {
-        // Implementation will be added in a future task
-        _logger.LogInformation("F# Halstead complexity analysis not yet implemented");
-        return new List<ComplexityMetric>();
-    }
-
-    /// <inheritdoc/>
-    public async Task<List<ComplexityMetric>> AnalyzeAllComplexityMetricsAsync(string filePath, string language)
-    {
-        var metrics = new List<ComplexityMetric>();
-        
-        metrics.AddRange(await AnalyzeCyclomaticComplexityAsync(filePath, language));
-        metrics.AddRange(await AnalyzeCognitiveComplexityAsync(filePath, language));
-        metrics.AddRange(await AnalyzeMaintainabilityIndexAsync(filePath, language));
-        metrics.AddRange(await AnalyzeHalsteadComplexityAsync(filePath, language));
-        
-        return metrics;
-    }
-
-    /// <inheritdoc/>
-    public async Task<List<ComplexityMetric>> AnalyzeProjectComplexityAsync(string projectPath)
-    {
-        var metrics = new List<ComplexityMetric>();
-        
         try
         {
+            var metrics = new List<MaintainabilityMetric>();
+            var fileName = Path.GetFileName(filePath);
+
+            // Create a simple file-level maintainability metric based on file size
+            var fileContent = await File.ReadAllTextAsync(filePath);
+            var lines = fileContent.Split('\n');
+            var linesOfCode = lines.Count(l => !string.IsNullOrWhiteSpace(l) && !l.TrimStart().StartsWith("//"));
+            var commentLines = lines.Count(l => !string.IsNullOrWhiteSpace(l) && l.TrimStart().StartsWith("//"));
+            var commentPercentage = linesOfCode > 0 ? (double)commentLines / linesOfCode * 100 : 0;
+
+            // Estimate Halstead volume based on file size
+            var halsteadVolume = linesOfCode * 10; // Simple estimation
+
+            // Estimate cyclomatic complexity based on keywords
+            var cyclomaticComplexity = fileContent.Split(new[] { "if", "match", "for", "while" }, StringSplitOptions.None).Length - 1;
+
+            var metric = new MaintainabilityMetric
+            {
+                Name = $"Maintainability Index - {fileName}",
+                Description = $"Estimated maintainability index for F# file {fileName}",
+                HalsteadVolume = halsteadVolume,
+                CyclomaticComplexity = cyclomaticComplexity,
+                LinesOfCode = linesOfCode,
+                CommentPercentage = commentPercentage,
+                FilePath = filePath,
+                Language = language,
+                Target = fileName,
+                TargetType = TargetType.File,
+                Timestamp = DateTime.UtcNow,
+                UseMicrosoftFormula = true,
+                ThresholdValue = GetThreshold(language, ComplexityType.MaintainabilityIndex, "File")
+            };
+
+            // Calculate maintainability index
+            metric.Value = metric.MaintainabilityIndex;
+
+            metrics.Add(metric);
+
+            return metrics;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error analyzing maintainability index for F# file {FilePath}", filePath);
+            return new List<MaintainabilityMetric>();
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task<List<HalsteadMetric>> AnalyzeHalsteadComplexityAsync(string filePath, string language)
+    {
+        // Basic implementation for F# Halstead complexity
+        _logger.LogInformation("Using basic Halstead complexity analysis for F#");
+
+        try
+        {
+            var metrics = new List<HalsteadMetric>();
+            var fileName = Path.GetFileName(filePath);
+
+            // Create a simple file-level Halstead metric based on file content
+            var fileContent = await File.ReadAllTextAsync(filePath);
+
+            // Count distinct operators (simplified for F#)
+            var operators = new[] { "+", "-", "*", "/", "=", "<", ">", "|", "&", "^", "!", "~", ".", "<|", "|>", ">>" };
+            var distinctOperators = operators.Count(op => fileContent.Contains(op));
+            var totalOperators = operators.Sum(op => fileContent.Split(op).Length - 1);
+
+            // Count distinct operands (simplified for F#)
+            var words = fileContent.Split(new[] { ' ', '\n', '\r', '\t', '(', ')', '{', '}', '[', ']', ',', ';', ':', '"' }, StringSplitOptions.RemoveEmptyEntries);
+            var operands = words.Where(w => !operators.Contains(w) && !new[] { "let", "if", "then", "else", "match", "with", "for", "while", "do", "done", "in", "rec", "fun", "function", "type", "module", "open" }.Contains(w)).ToList();
+            var distinctOperands = operands.Distinct().Count();
+            var totalOperands = operands.Count;
+
+            // Create metrics for each Halstead type
+            foreach (var halsteadType in Enum.GetValues<HalsteadType>())
+            {
+                var metric = new HalsteadMetric
+                {
+                    Type = halsteadType,
+                    FilePath = filePath,
+                    Language = language,
+                    Target = fileName,
+                    TargetType = TargetType.File,
+                    DistinctOperators = distinctOperators,
+                    DistinctOperands = distinctOperands,
+                    TotalOperators = totalOperators,
+                    TotalOperands = totalOperands,
+                    Timestamp = DateTime.UtcNow
+                };
+
+                // Set name, description, and value based on Halstead type
+                switch (halsteadType)
+                {
+                    case HalsteadType.Vocabulary:
+                        metric.Name = $"Halstead Vocabulary - {fileName}";
+                        metric.Description = $"Halstead vocabulary (n) for file {fileName}";
+                        metric.Value = metric.Vocabulary;
+                        break;
+                    case HalsteadType.Length:
+                        metric.Name = $"Halstead Length - {fileName}";
+                        metric.Description = $"Halstead length (N) for file {fileName}";
+                        metric.Value = metric.Length;
+                        break;
+                    case HalsteadType.Volume:
+                        metric.Name = $"Halstead Volume - {fileName}";
+                        metric.Description = $"Halstead volume (V) for file {fileName}";
+                        metric.Value = metric.Volume;
+                        metric.ThresholdValue = 10000; // Default threshold for F#
+                        break;
+                    case HalsteadType.Difficulty:
+                        metric.Name = $"Halstead Difficulty - {fileName}";
+                        metric.Description = $"Halstead difficulty (D) for file {fileName}";
+                        metric.Value = metric.Difficulty;
+                        metric.ThresholdValue = 50; // Default threshold for F#
+                        break;
+                    case HalsteadType.Effort:
+                        metric.Name = $"Halstead Effort - {fileName}";
+                        metric.Description = $"Halstead effort (E) for file {fileName}";
+                        metric.Value = metric.Effort;
+                        metric.ThresholdValue = 500000; // Default threshold for F#
+                        break;
+                    case HalsteadType.TimeRequired:
+                        metric.Name = $"Halstead Time Required - {fileName}";
+                        metric.Description = $"Halstead time required (T) for file {fileName}";
+                        metric.Value = metric.TimeRequired;
+                        break;
+                    case HalsteadType.DeliveredBugs:
+                        metric.Name = $"Halstead Delivered Bugs - {fileName}";
+                        metric.Description = $"Halstead delivered bugs (B) for file {fileName}";
+                        metric.Value = metric.DeliveredBugs;
+                        break;
+                }
+
+                metrics.Add(metric);
+            }
+
+            return metrics;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error analyzing Halstead complexity for F# file {FilePath}", filePath);
+            return new List<HalsteadMetric>();
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task<(List<ComplexityMetric> ComplexityMetrics, List<HalsteadMetric> HalsteadMetrics, List<MaintainabilityMetric> MaintainabilityMetrics)> AnalyzeAllComplexityMetricsAsync(string filePath, string language)
+    {
+        var complexityMetrics = new List<ComplexityMetric>();
+        var halsteadMetrics = new List<HalsteadMetric>();
+        var maintainabilityMetrics = new List<MaintainabilityMetric>();
+
+        // Get cyclomatic complexity metrics
+        complexityMetrics.AddRange(await AnalyzeCyclomaticComplexityAsync(filePath, language));
+
+        // Get cognitive complexity metrics
+        complexityMetrics.AddRange(await AnalyzeCognitiveComplexityAsync(filePath, language));
+
+        // Get Halstead complexity metrics
+        halsteadMetrics.AddRange(await AnalyzeHalsteadComplexityAsync(filePath, language));
+
+        // Get maintainability index metrics
+        maintainabilityMetrics.AddRange(await AnalyzeMaintainabilityIndexAsync(filePath, language));
+
+        return (complexityMetrics, halsteadMetrics, maintainabilityMetrics);
+    }
+
+    /// <inheritdoc/>
+    public async Task<(List<ComplexityMetric> ComplexityMetrics, List<HalsteadMetric> HalsteadMetrics, List<MaintainabilityMetric> MaintainabilityMetrics)> AnalyzeProjectComplexityAsync(string projectPath)
+    {
+        try
+        {
+            var complexityMetrics = new List<ComplexityMetric>();
+            var halsteadMetrics = new List<HalsteadMetric>();
+            var maintainabilityMetrics = new List<MaintainabilityMetric>();
+
+            // Analyze F# files
             var fsharpFiles = Directory.GetFiles(projectPath, "*.fs", SearchOption.AllDirectories);
-            
             foreach (var file in fsharpFiles)
             {
-                metrics.AddRange(await AnalyzeCyclomaticComplexityAsync(file, "F#"));
+                var fileMetrics = await AnalyzeAllComplexityMetricsAsync(file, "F#");
+                complexityMetrics.AddRange(fileMetrics.ComplexityMetrics);
+                halsteadMetrics.AddRange(fileMetrics.HalsteadMetrics);
+                maintainabilityMetrics.AddRange(fileMetrics.MaintainabilityMetrics);
             }
-            
+
             // Calculate project-level metrics
             var projectName = Path.GetFileName(projectPath);
-            
-            var projectCyclomaticComplexity = metrics
+
+            // Calculate project-level cyclomatic complexity
+            var projectCyclomaticComplexity = complexityMetrics
                 .Where(m => m.Type == ComplexityType.Cyclomatic && m.TargetType == TargetType.File)
                 .Sum(m => m.Value);
-            
-            var projectMetric = new ComplexityMetric
+
+            var cyclomaticMetric = new ComplexityMetric
             {
                 Name = $"Cyclomatic Complexity - {projectName}",
                 Description = $"Estimated cyclomatic complexity for F# project {projectName}",
@@ -179,15 +330,66 @@ public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
                 TargetType = TargetType.Project,
                 Timestamp = DateTime.UtcNow
             };
-            
-            metrics.Add(projectMetric);
+
+            complexityMetrics.Add(cyclomaticMetric);
+
+            // Calculate project-level Halstead volume
+            var projectHalsteadVolume = halsteadMetrics
+                .Where(m => m.Type == HalsteadType.Volume && m.TargetType == TargetType.File)
+                .Sum(m => m.Value);
+
+            var halsteadMetric = new HalsteadMetric
+            {
+                Name = $"Halstead Volume - {projectName}",
+                Description = $"Halstead volume for F# project {projectName}",
+                Value = projectHalsteadVolume,
+                Type = HalsteadType.Volume,
+                FilePath = projectPath,
+                Language = "F#",
+                Target = projectName,
+                TargetType = TargetType.Project,
+                Timestamp = DateTime.UtcNow
+            };
+
+            halsteadMetrics.Add(halsteadMetric);
+
+            // Calculate project-level maintainability index
+            // Use average of file maintainability indices
+            var fileMaintenanceIndices = maintainabilityMetrics
+                .Where(m => m.TargetType == TargetType.File)
+                .ToList();
+
+            if (fileMaintenanceIndices.Any())
+            {
+                var averageMaintainabilityIndex = fileMaintenanceIndices.Average(m => m.Value);
+
+                var maintainabilityMetric = new MaintainabilityMetric
+                {
+                    Name = $"Maintainability Index - {projectName}",
+                    Description = $"Maintainability index for F# project {projectName}",
+                    Value = averageMaintainabilityIndex,
+                    HalsteadVolume = projectHalsteadVolume,
+                    CyclomaticComplexity = projectCyclomaticComplexity,
+                    LinesOfCode = fileMaintenanceIndices.Sum(m => m.LinesOfCode),
+                    CommentPercentage = fileMaintenanceIndices.Average(m => m.CommentPercentage),
+                    FilePath = projectPath,
+                    Language = "F#",
+                    Target = projectName,
+                    TargetType = TargetType.Project,
+                    Timestamp = DateTime.UtcNow,
+                    UseMicrosoftFormula = true
+                };
+
+                maintainabilityMetrics.Add(maintainabilityMetric);
+            }
+
+            return (complexityMetrics, halsteadMetrics, maintainabilityMetrics);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error analyzing F# project complexity for {ProjectPath}", projectPath);
+            return (new List<ComplexityMetric>(), new List<HalsteadMetric>(), new List<MaintainabilityMetric>());
         }
-        
-        return metrics;
     }
 
     /// <inheritdoc/>
@@ -198,8 +400,54 @@ public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
         {
             return Task.FromResult(typeThresholds);
         }
-        
+
         return Task.FromResult(new Dictionary<string, double>());
+    }
+
+    /// <inheritdoc/>
+    public Task<Dictionary<string, double>> GetHalsteadThresholdsAsync(string language, HalsteadType halsteadType)
+    {
+        // Default thresholds for F# Halstead metrics
+        var thresholds = new Dictionary<string, double>
+        {
+            ["Function"] = halsteadType switch
+            {
+                HalsteadType.Volume => 500,
+                HalsteadType.Difficulty => 15,
+                HalsteadType.Effort => 10000,
+                _ => 0
+            },
+            ["Module"] = halsteadType switch
+            {
+                HalsteadType.Volume => 4000,
+                HalsteadType.Difficulty => 30,
+                HalsteadType.Effort => 100000,
+                _ => 0
+            },
+            ["File"] = halsteadType switch
+            {
+                HalsteadType.Volume => 10000,
+                HalsteadType.Difficulty => 50,
+                HalsteadType.Effort => 500000,
+                _ => 0
+            }
+        };
+
+        return Task.FromResult(thresholds);
+    }
+
+    /// <inheritdoc/>
+    public Task<Dictionary<string, double>> GetMaintainabilityThresholdsAsync(string language)
+    {
+        // Default thresholds for F# maintainability index
+        var thresholds = new Dictionary<string, double>
+        {
+            ["Function"] = 60,
+            ["Module"] = 50,
+            ["File"] = 40
+        };
+
+        return Task.FromResult(thresholds);
     }
 
     /// <inheritdoc/>
@@ -211,23 +459,58 @@ public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
             {
                 _thresholds[language] = new Dictionary<ComplexityType, Dictionary<string, double>>();
             }
-            
+
             if (!_thresholds[language].ContainsKey(complexityType))
             {
                 _thresholds[language][complexityType] = new Dictionary<string, double>();
             }
-            
+
             _thresholds[language][complexityType][targetType] = threshold;
             return Task.FromResult(true);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error setting F# complexity threshold for {Language}, {ComplexityType}, {TargetType}", 
+            _logger.LogError(ex, "Error setting F# complexity threshold for {Language}, {ComplexityType}, {TargetType}",
                 language, complexityType, targetType);
             return Task.FromResult(false);
         }
     }
-    
+
+    /// <inheritdoc/>
+    public Task<bool> SetHalsteadThresholdAsync(string language, HalsteadType halsteadType, string targetType, double threshold)
+    {
+        // F# Halstead thresholds are currently fixed
+        _logger.LogInformation("Setting F# Halstead threshold for {HalsteadType}, {TargetType} to {Threshold}",
+            halsteadType, targetType, threshold);
+        return Task.FromResult(true);
+    }
+
+    /// <inheritdoc/>
+    public Task<bool> SetMaintainabilityThresholdAsync(string language, string targetType, double threshold)
+    {
+        try
+        {
+            if (!_thresholds.ContainsKey(language))
+            {
+                _thresholds[language] = new Dictionary<ComplexityType, Dictionary<string, double>>();
+            }
+
+            if (!_thresholds[language].ContainsKey(ComplexityType.MaintainabilityIndex))
+            {
+                _thresholds[language][ComplexityType.MaintainabilityIndex] = new Dictionary<string, double>();
+            }
+
+            _thresholds[language][ComplexityType.MaintainabilityIndex][targetType] = threshold;
+            return Task.FromResult(true);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error setting F# maintainability threshold for {Language}, {TargetType}",
+                language, targetType);
+            return Task.FromResult(false);
+        }
+    }
+
     /// <summary>
     /// Counts the number of function definitions in F# code
     /// </summary>
@@ -239,7 +522,7 @@ public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
         // This is a simplified approach and not 100% accurate
         var lines = sourceCode.Split('\n');
         int count = 0;
-        
+
         foreach (var line in lines)
         {
             var trimmedLine = line.Trim();
@@ -253,10 +536,10 @@ public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
                 }
             }
         }
-        
+
         return count;
     }
-    
+
     /// <summary>
     /// Counts the number of match expressions in F# code
     /// </summary>
@@ -267,7 +550,7 @@ public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
         // Count "match" expressions
         var lines = sourceCode.Split('\n');
         int count = 0;
-        
+
         foreach (var line in lines)
         {
             var trimmedLine = line.Trim();
@@ -276,10 +559,10 @@ public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
                 count++;
             }
         }
-        
+
         return count;
     }
-    
+
     /// <summary>
     /// Counts the number of if expressions in F# code
     /// </summary>
@@ -290,7 +573,7 @@ public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
         // Count "if" expressions
         var lines = sourceCode.Split('\n');
         int count = 0;
-        
+
         foreach (var line in lines)
         {
             var trimmedLine = line.Trim();
@@ -298,17 +581,17 @@ public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
             {
                 count++;
             }
-            
+
             // Count "elif" and "else if"
             if (trimmedLine.StartsWith("elif ") || trimmedLine.StartsWith("else if "))
             {
                 count++;
             }
         }
-        
+
         return count;
     }
-    
+
     /// <summary>
     /// Counts the number of for loops in F# code
     /// </summary>
@@ -319,7 +602,7 @@ public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
         // Count "for" loops
         var lines = sourceCode.Split('\n');
         int count = 0;
-        
+
         foreach (var line in lines)
         {
             var trimmedLine = line.Trim();
@@ -327,17 +610,17 @@ public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
             {
                 count++;
             }
-            
+
             // Count "while" loops
             if (trimmedLine.StartsWith("while ") && trimmedLine.Contains(" do"))
             {
                 count++;
             }
         }
-        
+
         return count;
     }
-    
+
     /// <summary>
     /// Estimates the number of recursive functions in F# code
     /// </summary>
@@ -347,10 +630,10 @@ public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
     {
         // This is a very simplified approach to estimate recursion
         // In a real implementation, we would need to analyze the AST
-        
+
         var lines = sourceCode.Split('\n');
         int count = 0;
-        
+
         // Count "rec" keyword
         foreach (var line in lines)
         {
@@ -360,10 +643,10 @@ public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
                 count++;
             }
         }
-        
+
         return count;
     }
-    
+
     /// <summary>
     /// Gets the threshold value for a specific language, complexity type, and target type
     /// </summary>
@@ -379,7 +662,7 @@ public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
         {
             return threshold;
         }
-        
+
         // Default thresholds if not configured
         return complexityType switch
         {
