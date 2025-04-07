@@ -69,7 +69,7 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
             var root = await syntaxTree.GetRootAsync();
 
             var metrics = new List<ComplexityMetric>();
-            
+
             // Analyze methods
             var methodDeclarations = root.DescendantNodes().OfType<MethodDeclarationSyntax>();
             foreach (var method in methodDeclarations)
@@ -78,7 +78,7 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
                 var className = GetClassName(method);
                 var methodName = method.Identifier.Text;
                 var fullMethodName = $"{className}.{methodName}";
-                
+
                 var metric = new ComplexityMetric
                 {
                     Name = $"Cyclomatic Complexity - {fullMethodName}",
@@ -92,10 +92,10 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
                     Timestamp = DateTime.UtcNow,
                     ThresholdValue = GetThreshold(language, ComplexityType.Cyclomatic, "Method")
                 };
-                
+
                 metrics.Add(metric);
             }
-            
+
             // Analyze classes
             var classDeclarations = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
             foreach (var classDecl in classDeclarations)
@@ -103,11 +103,11 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
                 var className = classDecl.Identifier.Text;
                 var namespaceName = GetNamespace(classDecl);
                 var fullClassName = string.IsNullOrEmpty(namespaceName) ? className : $"{namespaceName}.{className}";
-                
+
                 // Sum complexity of all methods in the class
                 var classMethods = classDecl.DescendantNodes().OfType<MethodDeclarationSyntax>();
                 var classComplexity = classMethods.Sum(m => CalculateCyclomaticComplexity(m));
-                
+
                 var metric = new ComplexityMetric
                 {
                     Name = $"Cyclomatic Complexity - {fullClassName}",
@@ -121,14 +121,14 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
                     Timestamp = DateTime.UtcNow,
                     ThresholdValue = GetThreshold(language, ComplexityType.Cyclomatic, "Class")
                 };
-                
+
                 metrics.Add(metric);
             }
-            
+
             // Calculate file complexity
             var fileComplexity = methodDeclarations.Sum(m => CalculateCyclomaticComplexity(m));
             var fileName = Path.GetFileName(filePath);
-            
+
             var fileMetric = new ComplexityMetric
             {
                 Name = $"Cyclomatic Complexity - {fileName}",
@@ -142,9 +142,9 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
                 Timestamp = DateTime.UtcNow,
                 ThresholdValue = GetThreshold(language, ComplexityType.Cyclomatic, "File")
             };
-            
+
             metrics.Add(fileMetric);
-            
+
             return metrics;
         }
         catch (Exception ex)
@@ -163,56 +163,107 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
     }
 
     /// <inheritdoc/>
-    public async Task<List<ComplexityMetric>> AnalyzeMaintainabilityIndexAsync(string filePath, string language)
+    public async Task<List<MaintainabilityMetric>> AnalyzeMaintainabilityIndexAsync(string filePath, string language)
     {
-        // Implementation will be added in a future task
-        _logger.LogInformation("Maintainability index analysis not yet implemented");
-        return new List<ComplexityMetric>();
+        try
+        {
+            if (language != "C#")
+            {
+                _logger.LogWarning("Language {Language} not supported by CSharpComplexityAnalyzer", language);
+                return new List<MaintainabilityMetric>();
+            }
+
+            // Create maintainability analyzer
+            var halsteadAnalyzer = new CSharpHalsteadAnalyzer(_logger);
+            var maintainabilityAnalyzer = new CSharpMaintainabilityAnalyzer(_logger, this, halsteadAnalyzer);
+
+            // Analyze maintainability index
+            return await maintainabilityAnalyzer.AnalyzeMaintainabilityIndexAsync(filePath);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error analyzing maintainability index for file {FilePath}", filePath);
+            return new List<MaintainabilityMetric>();
+        }
     }
 
     /// <inheritdoc/>
-    public async Task<List<ComplexityMetric>> AnalyzeHalsteadComplexityAsync(string filePath, string language)
+    public async Task<List<HalsteadMetric>> AnalyzeHalsteadComplexityAsync(string filePath, string language)
     {
-        // Implementation will be added in a future task
-        _logger.LogInformation("Halstead complexity analysis not yet implemented");
-        return new List<ComplexityMetric>();
+        try
+        {
+            if (language != "C#")
+            {
+                _logger.LogWarning("Language {Language} not supported by CSharpComplexityAnalyzer", language);
+                return new List<HalsteadMetric>();
+            }
+
+            // Create Halstead analyzer
+            var halsteadAnalyzer = new CSharpHalsteadAnalyzer(_logger);
+
+            // Analyze Halstead complexity
+            return await halsteadAnalyzer.AnalyzeHalsteadComplexityAsync(filePath);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error analyzing Halstead complexity for file {FilePath}", filePath);
+            return new List<HalsteadMetric>();
+        }
     }
 
     /// <inheritdoc/>
-    public async Task<List<ComplexityMetric>> AnalyzeAllComplexityMetricsAsync(string filePath, string language)
+    public async Task<(List<ComplexityMetric> ComplexityMetrics, List<HalsteadMetric> HalsteadMetrics, List<MaintainabilityMetric> MaintainabilityMetrics)> AnalyzeAllComplexityMetricsAsync(string filePath, string language)
     {
-        var metrics = new List<ComplexityMetric>();
-        
-        metrics.AddRange(await AnalyzeCyclomaticComplexityAsync(filePath, language));
-        metrics.AddRange(await AnalyzeCognitiveComplexityAsync(filePath, language));
-        metrics.AddRange(await AnalyzeMaintainabilityIndexAsync(filePath, language));
-        metrics.AddRange(await AnalyzeHalsteadComplexityAsync(filePath, language));
-        
-        return metrics;
+        var complexityMetrics = new List<ComplexityMetric>();
+        var halsteadMetrics = new List<HalsteadMetric>();
+        var maintainabilityMetrics = new List<MaintainabilityMetric>();
+
+        // Get cyclomatic complexity metrics
+        complexityMetrics.AddRange(await AnalyzeCyclomaticComplexityAsync(filePath, language));
+
+        // Get cognitive complexity metrics
+        complexityMetrics.AddRange(await AnalyzeCognitiveComplexityAsync(filePath, language));
+
+        // Get Halstead complexity metrics
+        halsteadMetrics.AddRange(await AnalyzeHalsteadComplexityAsync(filePath, language));
+
+        // Get maintainability index metrics
+        maintainabilityMetrics.AddRange(await AnalyzeMaintainabilityIndexAsync(filePath, language));
+
+        return (complexityMetrics, halsteadMetrics, maintainabilityMetrics);
     }
 
     /// <inheritdoc/>
-    public async Task<List<ComplexityMetric>> AnalyzeProjectComplexityAsync(string projectPath)
+    public async Task<(List<ComplexityMetric> ComplexityMetrics, List<HalsteadMetric> HalsteadMetrics, List<MaintainabilityMetric> MaintainabilityMetrics)> AnalyzeProjectComplexityAsync(string projectPath)
     {
-        var metrics = new List<ComplexityMetric>();
-        
+        var complexityMetrics = new List<ComplexityMetric>();
+        var halsteadMetrics = new List<HalsteadMetric>();
+        var maintainabilityMetrics = new List<MaintainabilityMetric>();
+
         try
         {
             var csharpFiles = Directory.GetFiles(projectPath, "*.cs", SearchOption.AllDirectories);
-            
+
             foreach (var file in csharpFiles)
             {
-                metrics.AddRange(await AnalyzeCyclomaticComplexityAsync(file, "C#"));
+                // Analyze all metrics for each file
+                var fileMetrics = await AnalyzeAllComplexityMetricsAsync(file, "C#");
+
+                // Add file metrics to project metrics
+                complexityMetrics.AddRange(fileMetrics.ComplexityMetrics);
+                halsteadMetrics.AddRange(fileMetrics.HalsteadMetrics);
+                maintainabilityMetrics.AddRange(fileMetrics.MaintainabilityMetrics);
             }
-            
+
             // Calculate project-level metrics
             var projectName = Path.GetFileName(projectPath);
-            
-            var projectCyclomaticComplexity = metrics
+
+            // Calculate project-level cyclomatic complexity
+            var projectCyclomaticComplexity = complexityMetrics
                 .Where(m => m.Type == ComplexityType.Cyclomatic && m.TargetType == TargetType.File)
                 .Sum(m => m.Value);
-            
-            var projectMetric = new ComplexityMetric
+
+            var cyclomaticMetric = new ComplexityMetric
             {
                 Name = $"Cyclomatic Complexity - {projectName}",
                 Description = $"McCabe's cyclomatic complexity for project {projectName}",
@@ -224,15 +275,65 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
                 TargetType = TargetType.Project,
                 Timestamp = DateTime.UtcNow
             };
-            
-            metrics.Add(projectMetric);
+
+            complexityMetrics.Add(cyclomaticMetric);
+
+            // Calculate project-level Halstead volume
+            var projectHalsteadVolume = halsteadMetrics
+                .Where(m => m.Type == HalsteadType.Volume && m.TargetType == TargetType.File)
+                .Sum(m => m.Value);
+
+            var halsteadMetric = new HalsteadMetric
+            {
+                Name = $"Halstead Volume - {projectName}",
+                Description = $"Halstead volume for project {projectName}",
+                Value = projectHalsteadVolume,
+                Type = HalsteadType.Volume,
+                FilePath = projectPath,
+                Language = "C#",
+                Target = projectName,
+                TargetType = TargetType.Project,
+                Timestamp = DateTime.UtcNow
+            };
+
+            halsteadMetrics.Add(halsteadMetric);
+
+            // Calculate project-level maintainability index
+            // Use average of file maintainability indices
+            var fileMaintenanceIndices = maintainabilityMetrics
+                .Where(m => m.TargetType == TargetType.File)
+                .ToList();
+
+            if (fileMaintenanceIndices.Any())
+            {
+                var averageMaintainabilityIndex = fileMaintenanceIndices.Average(m => m.Value);
+
+                var maintainabilityMetric = new MaintainabilityMetric
+                {
+                    Name = $"Maintainability Index - {projectName}",
+                    Description = $"Maintainability index for project {projectName}",
+                    Value = averageMaintainabilityIndex,
+                    HalsteadVolume = projectHalsteadVolume,
+                    CyclomaticComplexity = projectCyclomaticComplexity,
+                    LinesOfCode = fileMaintenanceIndices.Sum(m => m.LinesOfCode),
+                    CommentPercentage = fileMaintenanceIndices.Average(m => m.CommentPercentage),
+                    FilePath = projectPath,
+                    Language = "C#",
+                    Target = projectName,
+                    TargetType = TargetType.Project,
+                    Timestamp = DateTime.UtcNow,
+                    UseMicrosoftFormula = true
+                };
+
+                maintainabilityMetrics.Add(maintainabilityMetric);
+            }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error analyzing project complexity for {ProjectPath}", projectPath);
         }
-        
-        return metrics;
+
+        return (complexityMetrics, halsteadMetrics, maintainabilityMetrics);
     }
 
     /// <inheritdoc/>
@@ -243,8 +344,41 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
         {
             return Task.FromResult(typeThresholds);
         }
-        
+
         return Task.FromResult(new Dictionary<string, double>());
+    }
+
+    /// <inheritdoc/>
+    public Task<Dictionary<string, double>> GetHalsteadThresholdsAsync(string language, HalsteadType halsteadType)
+    {
+        if (language != "C#")
+        {
+            _logger.LogWarning("Language {Language} not supported by CSharpComplexityAnalyzer", language);
+            return Task.FromResult(new Dictionary<string, double>());
+        }
+
+        // Create Halstead analyzer
+        var halsteadAnalyzer = new CSharpHalsteadAnalyzer(_logger);
+
+        // Get Halstead thresholds
+        return Task.FromResult(halsteadAnalyzer.GetHalsteadThresholds(halsteadType));
+    }
+
+    /// <inheritdoc/>
+    public Task<Dictionary<string, double>> GetMaintainabilityThresholdsAsync(string language)
+    {
+        if (language != "C#")
+        {
+            _logger.LogWarning("Language {Language} not supported by CSharpComplexityAnalyzer", language);
+            return Task.FromResult(new Dictionary<string, double>());
+        }
+
+        // Create maintainability analyzer
+        var halsteadAnalyzer = new CSharpHalsteadAnalyzer(_logger);
+        var maintainabilityAnalyzer = new CSharpMaintainabilityAnalyzer(_logger, this, halsteadAnalyzer);
+
+        // Get maintainability thresholds
+        return Task.FromResult(maintainabilityAnalyzer.GetMaintainabilityThresholds());
     }
 
     /// <inheritdoc/>
@@ -256,23 +390,73 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
             {
                 _thresholds[language] = new Dictionary<ComplexityType, Dictionary<string, double>>();
             }
-            
+
             if (!_thresholds[language].ContainsKey(complexityType))
             {
                 _thresholds[language][complexityType] = new Dictionary<string, double>();
             }
-            
+
             _thresholds[language][complexityType][targetType] = threshold;
             return Task.FromResult(true);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error setting complexity threshold for {Language}, {ComplexityType}, {TargetType}", 
+            _logger.LogError(ex, "Error setting complexity threshold for {Language}, {ComplexityType}, {TargetType}",
                 language, complexityType, targetType);
             return Task.FromResult(false);
         }
     }
-    
+
+    /// <inheritdoc/>
+    public Task<bool> SetHalsteadThresholdAsync(string language, HalsteadType halsteadType, string targetType, double threshold)
+    {
+        if (language != "C#")
+        {
+            _logger.LogWarning("Language {Language} not supported by CSharpComplexityAnalyzer", language);
+            return Task.FromResult(false);
+        }
+
+        try
+        {
+            // Create Halstead analyzer
+            var halsteadAnalyzer = new CSharpHalsteadAnalyzer(_logger);
+
+            // Set Halstead threshold
+            return Task.FromResult(halsteadAnalyzer.SetHalsteadThreshold(halsteadType, targetType, threshold));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error setting Halstead threshold for {HalsteadType}, {TargetType}",
+                halsteadType, targetType);
+            return Task.FromResult(false);
+        }
+    }
+
+    /// <inheritdoc/>
+    public Task<bool> SetMaintainabilityThresholdAsync(string language, string targetType, double threshold)
+    {
+        if (language != "C#")
+        {
+            _logger.LogWarning("Language {Language} not supported by CSharpComplexityAnalyzer", language);
+            return Task.FromResult(false);
+        }
+
+        try
+        {
+            // Create maintainability analyzer
+            var halsteadAnalyzer = new CSharpHalsteadAnalyzer(_logger);
+            var maintainabilityAnalyzer = new CSharpMaintainabilityAnalyzer(_logger, this, halsteadAnalyzer);
+
+            // Set maintainability threshold
+            return Task.FromResult(maintainabilityAnalyzer.SetMaintainabilityThreshold(targetType, threshold));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error setting maintainability threshold for {TargetType}", targetType);
+            return Task.FromResult(false);
+        }
+    }
+
     /// <summary>
     /// Calculates the cyclomatic complexity of a method
     /// </summary>
@@ -285,39 +469,39 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
         // E = number of edges in the control flow graph
         // N = number of nodes in the control flow graph
         // P = number of connected components (usually 1 for a method)
-        
+
         // For practical purposes, we can count:
         // 1 (base complexity) +
         // number of decision points (if, while, for, foreach, case, &&, ||, ?:, etc.)
-        
+
         // Start with base complexity of 1
         int complexity = 1;
-        
+
         // Count if statements
         complexity += method.DescendantNodes().OfType<IfStatementSyntax>().Count();
-        
+
         // Count switch sections
         complexity += method.DescendantNodes().OfType<SwitchSectionSyntax>().Count();
-        
+
         // Count loops
         complexity += method.DescendantNodes().OfType<WhileStatementSyntax>().Count();
         complexity += method.DescendantNodes().OfType<ForStatementSyntax>().Count();
         complexity += method.DescendantNodes().OfType<ForEachStatementSyntax>().Count();
         complexity += method.DescendantNodes().OfType<DoStatementSyntax>().Count();
-        
+
         // Count conditional expressions
         complexity += method.DescendantNodes().OfType<ConditionalExpressionSyntax>().Count();
-        
+
         // Count logical operators (&&, ||)
         complexity += method.DescendantNodes().OfType<BinaryExpressionSyntax>()
             .Count(b => b.Kind() == SyntaxKind.LogicalAndExpression || b.Kind() == SyntaxKind.LogicalOrExpression);
-        
+
         // Count catch clauses
         complexity += method.DescendantNodes().OfType<CatchClauseSyntax>().Count();
-        
+
         return complexity;
     }
-    
+
     /// <summary>
     /// Gets the class name for a method
     /// </summary>
@@ -328,7 +512,7 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
         var classDecl = method.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault();
         return classDecl?.Identifier.Text ?? "Unknown";
     }
-    
+
     /// <summary>
     /// Gets the namespace for a class
     /// </summary>
@@ -339,7 +523,7 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
         var namespaceDecl = classDecl.Ancestors().OfType<NamespaceDeclarationSyntax>().FirstOrDefault();
         return namespaceDecl?.Name.ToString() ?? string.Empty;
     }
-    
+
     /// <summary>
     /// Gets the threshold value for a specific language, complexity type, and target type
     /// </summary>
@@ -355,7 +539,7 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
         {
             return threshold;
         }
-        
+
         // Default thresholds if not configured
         return complexityType switch
         {
