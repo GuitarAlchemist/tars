@@ -1,0 +1,334 @@
+@page "/autonomous-execution"
+@using TarsEngine.Models
+@using TarsEngine.Services
+@using TarsEngine.Services.Interfaces
+@using TarsApp.Models
+@using TarsApp.Helpers
+@using Microsoft.AspNetCore.Components
+@inject IExecutionPlannerService ExecutionPlannerService
+@inject IImprovementPrioritizerService ImprovementPrioritizerService
+@inject SafeExecutionEnvironment SafeExecutionEnvironment
+@inject ChangeValidator ChangeValidator
+@inject RollbackManager RollbackManager
+@inject ILogger<AutonomousExecution> Logger
+
+<PageTitle>Autonomous Execution</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudText Typo="Typo.h3" Class="mb-4">Autonomous Execution System</MudText>
+
+    <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
+        <MudTabPanel Text="Dashboard" Icon="@Icons.Material.Filled.Dashboard">
+            <ExecutionDashboard />
+        </MudTabPanel>
+        <MudTabPanel Text="Improvements" Icon="@Icons.Material.Filled.Lightbulb">
+            <ImprovementsList @ref="improvementsList" OnExecute="ExecuteImprovement" />
+        </MudTabPanel>
+        <MudTabPanel Text="Executions" Icon="@Icons.Material.Filled.PlayArrow">
+            <ExecutionsList @ref="executionsList" OnView="ViewExecution" OnMonitor="MonitorExecution" OnRollback="RollbackExecution" />
+        </MudTabPanel>
+        <MudTabPanel Text="Reports" Icon="@Icons.Material.Filled.Assessment">
+            <ReportsPanel />
+        </MudTabPanel>
+        <MudTabPanel Text="Settings" Icon="@Icons.Material.Filled.Settings">
+            <SettingsPanel />
+        </MudTabPanel>
+    </MudTabs>
+
+    <MudDialog @bind-IsVisible="isExecutionDialogVisible" Options="dialogOptions">
+        <TitleContent>
+            <MudText Typo="Typo.h6">
+                <MudIcon Icon="@Icons.Material.Filled.PlayArrow" Class="mr-2" />
+                Execute Improvement
+            </MudText>
+        </TitleContent>
+        <DialogContent>
+            <ExecutionDialog Improvement="@selectedImprovement" OnExecute="@(args => HandleExecuteImprovement(args))" />
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="CloseExecutionDialog">Cancel</MudButton>
+        </DialogActions>
+    </MudDialog>
+
+    <MudDialog @bind-IsVisible="isMonitorDialogVisible" Options="dialogOptions">
+        <TitleContent>
+            <MudText Typo="Typo.h6">
+                <MudIcon Icon="@Icons.Material.Filled.Visibility" Class="mr-2" />
+                Monitor Execution
+            </MudText>
+        </TitleContent>
+        <DialogContent>
+            <ExecutionMonitor ContextId="@selectedContextId" />
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="CloseMonitorDialog">Close</MudButton>
+        </DialogActions>
+    </MudDialog>
+
+    <MudDialog @bind-IsVisible="isViewDialogVisible" Options="dialogOptions">
+        <TitleContent>
+            <MudText Typo="Typo.h6">
+                <MudIcon Icon="@Icons.Material.Filled.Info" Class="mr-2" />
+                Execution Details
+            </MudText>
+        </TitleContent>
+        <DialogContent>
+            <ExecutionDetails ContextId="@selectedContextId" />
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="CloseViewDialog">Close</MudButton>
+        </DialogActions>
+    </MudDialog>
+
+    <MudDialog @bind-IsVisible="isRollbackDialogVisible" Options="dialogOptions">
+        <TitleContent>
+            <MudText Typo="Typo.h6">
+                <MudIcon Icon="@Icons.Material.Filled.Undo" Class="mr-2" />
+                Rollback Execution
+            </MudText>
+        </TitleContent>
+        <DialogContent>
+            <RollbackDialog ContextId="@selectedContextId" OnRollback="RollbackCallback" />
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="CloseRollbackDialog">Cancel</MudButton>
+        </DialogActions>
+    </MudDialog>
+</MudContainer>
+
+@code {
+    private ImprovementsList? improvementsList;
+    private ExecutionsList? executionsList;
+    private PrioritizedImprovement? selectedImprovement;
+    private string? selectedContextId;
+    private bool isExecutionDialogVisible;
+    private bool isMonitorDialogVisible;
+    private bool isViewDialogVisible;
+    private bool isRollbackDialogVisible;
+
+    private EventCallback RollbackCallback => EventCallback.Factory.Create(this, HandleRollback);
+
+    private DialogOptions dialogOptions = new DialogOptions
+    {
+        MaxWidth = MaxWidth.Medium,
+        FullWidth = true,
+        CloseOnEscapeKey = true,
+        BackdropClick = false // Replaces DisableBackdropClick = true in MudBlazor 8.x
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        // Initialize any data needed for the page
+    }
+
+    private void ExecuteImprovement(PrioritizedImprovement improvement)
+    {
+        selectedImprovement = improvement;
+        isExecutionDialogVisible = true;
+    }
+
+    private void ViewExecution(string contextId)
+    {
+        selectedContextId = contextId;
+        isViewDialogVisible = true;
+    }
+
+    private void MonitorExecution(string contextId)
+    {
+        selectedContextId = contextId;
+        isMonitorDialogVisible = true;
+    }
+
+    private void RollbackExecution(string contextId)
+    {
+        selectedContextId = contextId;
+        isRollbackDialogVisible = true;
+    }
+
+    private async Task HandleExecuteImprovement(ExecutionOptions options)
+    {
+        try
+        {
+            if (selectedImprovement == null)
+                return;
+
+            Logger.LogInformation("Executing improvement: {ImprovementId}", selectedImprovement.Id);
+
+            // Create execution plan
+            var executionPlan = await ExecutionPlannerService.CreateExecutionPlanAsync(selectedImprovement);
+            if (executionPlan == null)
+            {
+                ShowError("Failed to create execution plan");
+                return;
+            }
+
+            // Validate execution plan
+            var isValid = await ExecutionPlannerService.ValidateExecutionPlanAsync(executionPlan);
+            if (!isValid)
+            {
+                ShowError("Execution plan validation failed");
+                return;
+            }
+
+            // Create execution context
+            var executionMode = options.DryRun ? ExecutionMode.DryRun : ExecutionMode.Real;
+            var executionContext = await ExecutionPlannerService.CreateExecutionContextAsync(executionPlan, new Dictionary<string, string>
+            {
+                { "Mode", executionMode.ToString() },
+                { "Environment", options.Environment.ToString() },
+                { "OutputDirectory", options.OutputDirectory ?? Path.Combine(Path.GetTempPath(), "TARS", "Output", executionPlan.Id) }
+            });
+
+            // Create rollback context if backup is enabled
+            if (options.Backup)
+            {
+                var backupDirectory = Path.Combine(Path.GetTempPath(), "TARS", "Backup", executionPlan.Id);
+                var result = RollbackManager.CreateRollbackContext(executionContext.Id, "TARS", $"Execution of improvement: {selectedImprovement.Id}", backupDirectory);
+                if (!result)
+                {
+                    ShowError("Failed to create rollback context");
+                    return;
+                }
+            }
+
+            // Execute plan
+            var executionResult = await ExecutionPlannerService.ExecuteExecutionPlanAsync(executionPlan, new Dictionary<string, string>
+            {
+                { "Validate", options.Validate.ToString() },
+                { "AutoRollback", options.AutoRollback.ToString() }
+            });
+
+            // Show result
+            if (executionResult.IsSuccessful)
+            {
+                ShowSuccess("Execution started successfully");
+
+                // Refresh executions list
+                if (executionsList != null)
+                {
+                    await executionsList.RefreshExecutionsAsync();
+                }
+
+                // Close dialog
+                isExecutionDialogVisible = false;
+
+                // Open monitor dialog
+                selectedContextId = executionContext.Id;
+                isMonitorDialogVisible = true;
+            }
+            else
+            {
+                ShowError($"Execution failed: {executionResult.Error}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error executing improvement: {ImprovementId}", selectedImprovement?.Id);
+            ShowError($"Error executing improvement: {ex.Message}");
+        }
+    }
+
+    private async Task HandleRollback()
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(selectedContextId))
+                return;
+
+            Logger.LogInformation("Rolling back execution: {ContextId}", selectedContextId);
+
+            bool result = false;
+
+            // Create a default rollback options
+            var options = new RollbackOptions
+            {
+                All = true,
+                Force = false
+            };
+
+            if (options.All)
+            {
+                result = await RollbackManager.RestoreAllFilesAsync(selectedContextId);
+            }
+            else if (!string.IsNullOrEmpty(options.TransactionId))
+            {
+                result = await RollbackManager.RollbackTransactionAsync(selectedContextId, options.TransactionId);
+            }
+            else if (!string.IsNullOrEmpty(options.FilePath))
+            {
+                result = await RollbackManager.RestoreFileAsync(selectedContextId, string.Empty, options.FilePath);
+            }
+            else
+            {
+                ShowError("No rollback target specified");
+                return;
+            }
+
+            if (result)
+            {
+                ShowSuccess("Rollback completed successfully");
+
+                // Refresh executions list
+                if (executionsList != null)
+                {
+                    await executionsList.RefreshExecutionsAsync();
+                }
+
+                // Close dialog
+                isRollbackDialogVisible = false;
+            }
+            else
+            {
+                ShowError("Rollback failed");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error rolling back execution: {ContextId}", selectedContextId);
+            ShowError($"Error rolling back execution: {ex.Message}");
+        }
+    }
+
+    private void CloseExecutionDialog()
+    {
+        isExecutionDialogVisible = false;
+    }
+
+    private void CloseMonitorDialog()
+    {
+        isMonitorDialogVisible = false;
+    }
+
+    private void CloseViewDialog()
+    {
+        isViewDialogVisible = false;
+    }
+
+    private void CloseRollbackDialog()
+    {
+        isRollbackDialogVisible = false;
+    }
+
+    private void ShowSuccess(string message)
+    {
+        // In a real implementation, this would show a toast notification
+        Logger.LogInformation(message);
+    }
+
+    private void ShowError(string message)
+    {
+        // In a real implementation, this would show a toast notification
+        Logger.LogError(message);
+    }
+
+    // ExecutionOptions class moved to TarsApp.Models namespace
+
+    public class RollbackOptions
+    {
+        public bool All { get; set; }
+        public string? TransactionId { get; set; }
+        public string? FilePath { get; set; }
+        public bool Force { get; set; }
+    }
+}
