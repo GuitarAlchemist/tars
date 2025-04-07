@@ -7,6 +7,7 @@ using System.CommandLine.Parsing;
 using TarsCli.Controllers;
 using TarsCli.Services;
 using TarsEngine.Consciousness;
+using TarsEngine.Extensions;
 
 namespace TarsCli;
 
@@ -181,6 +182,13 @@ internal static class Program
 
                 // Consciousness services
                 .AddConsciousnessServices()
+
+                // Intelligence progression measurement services
+                .AddIntelligenceProgressionMeasurement()
+
+                // Code complexity command
+                .AddSingleton<Commands.CodeComplexityCommand>()
+
                 .BuildServiceProvider();
 
             // Get services
