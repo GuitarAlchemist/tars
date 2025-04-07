@@ -58,6 +58,13 @@ public class CodeComplexityCommand : Command
             IsRequired = false
         };
 
+        var readabilityTypeOption = new Option<string>(
+            aliases: new[] { "--readability-type", "-r" },
+            description: "Readability metric type (IdentifierQuality, CommentQuality, CodeStructure, Overall)")
+        {
+            IsRequired = false
+        };
+
         var outputOption = new Option<string>(
             aliases: new[] { "--output", "-o" },
             description: "Output format (Console, Json, or Csv)")
@@ -69,6 +76,7 @@ public class CodeComplexityCommand : Command
         AddOption(languageOption);
         AddOption(typeOption);
         AddOption(halsteadTypeOption);
+        AddOption(readabilityTypeOption);
         AddOption(outputOption);
 
         this.SetHandler(HandleCommandAsync);
@@ -87,6 +95,7 @@ public class CodeComplexityCommand : Command
             var language = context.ParseResult.GetValueForOption<string>("--language");
             var type = context.ParseResult.GetValueForOption<string>("--type") ?? "All";
             var halsteadType = context.ParseResult.GetValueForOption<string>("--halstead-type");
+            var readabilityType = context.ParseResult.GetValueForOption<string>("--readability-type");
             var output = context.ParseResult.GetValueForOption<string>("--output") ?? "Console";
 
             if (string.IsNullOrEmpty(path))
@@ -114,7 +123,7 @@ public class CodeComplexityCommand : Command
             }
 
             // Analyze complexity
-            var metrics = await AnalyzeComplexityAsync(path, language, type, halsteadType);
+            var metrics = await AnalyzeComplexityAsync(path, language, type, halsteadType, readabilityType);
 
             if (metrics.Count == 0)
             {
@@ -139,18 +148,19 @@ public class CodeComplexityCommand : Command
     /// <param name="language">Programming language</param>
     /// <param name="type">Complexity type</param>
     /// <param name="halsteadType">Halstead metric type</param>
+    /// <param name="readabilityType">Readability metric type</param>
     /// <returns>Complexity metrics</returns>
-    private async Task<List<BaseMetric>> AnalyzeComplexityAsync(string path, string language, string type, string halsteadType = null)
+    private async Task<List<BaseMetric>> AnalyzeComplexityAsync(string path, string language, string type, string halsteadType = null, string readabilityType = null)
     {
         if (File.Exists(path))
         {
             // Analyze a single file
-            return await AnalyzeFileComplexityAsync(path, language, type, halsteadType);
+            return await AnalyzeFileComplexityAsync(path, language, type, halsteadType, readabilityType);
         }
         else if (Directory.Exists(path))
         {
             // Analyze a directory
-            return await AnalyzeDirectoryComplexityAsync(path, language, type, halsteadType);
+            return await AnalyzeDirectoryComplexityAsync(path, language, type, halsteadType, readabilityType);
         }
 
         return new List<BaseMetric>();
@@ -163,8 +173,9 @@ public class CodeComplexityCommand : Command
     /// <param name="language">Programming language</param>
     /// <param name="type">Complexity type</param>
     /// <param name="halsteadType">Halstead metric type</param>
+    /// <param name="readabilityType">Readability metric type</param>
     /// <returns>Complexity metrics</returns>
-    private async Task<List<BaseMetric>> AnalyzeFileComplexityAsync(string filePath, string language, string type, string halsteadType = null)
+    private async Task<List<BaseMetric>> AnalyzeFileComplexityAsync(string filePath, string language, string type, string halsteadType = null, string readabilityType = null)
     {
         var result = new List<BaseMetric>();
 
@@ -190,6 +201,18 @@ public class CodeComplexityCommand : Command
 
                 result.AddRange(halsteadMetrics);
                 break;
+            case "readability":
+                // Parse readability type if specified
+                if (!string.IsNullOrEmpty(readabilityType) && Enum.TryParse<ReadabilityType>(readabilityType, true, out var parsedReadabilityType))
+                {
+                    result.AddRange(await _complexityAnalyzer.AnalyzeReadabilityAsync(filePath, language, parsedReadabilityType));
+                }
+                else
+                {
+                    // If no specific readability type is specified, analyze all readability metrics
+                    result.AddRange(await _complexityAnalyzer.AnalyzeReadabilityAsync(filePath, language, ReadabilityType.Overall));
+                }
+                break;
             default: // "all"
                 var allMetrics = await _complexityAnalyzer.AnalyzeAllComplexityMetricsAsync(filePath, language);
                 result.AddRange(allMetrics.ComplexityMetrics);
@@ -203,6 +226,15 @@ public class CodeComplexityCommand : Command
 
                 result.AddRange(filteredHalsteadMetrics);
                 result.AddRange(allMetrics.MaintainabilityMetrics);
+
+                // Filter readability metrics by type if specified
+                var filteredReadabilityMetrics = allMetrics.ReadabilityMetrics;
+                if (!string.IsNullOrEmpty(readabilityType) && Enum.TryParse<ReadabilityType>(readabilityType, true, out var parsedReadabilityType))
+                {
+                    filteredReadabilityMetrics = filteredReadabilityMetrics.Where(m => m.Type == parsedReadabilityType).ToList();
+                }
+
+                result.AddRange(filteredReadabilityMetrics);
                 break;
         }
 
@@ -216,8 +248,9 @@ public class CodeComplexityCommand : Command
     /// <param name="language">Programming language</param>
     /// <param name="type">Complexity type</param>
     /// <param name="halsteadType">Halstead metric type</param>
+    /// <param name="readabilityType">Readability metric type</param>
     /// <returns>Complexity metrics</returns>
-    private async Task<List<BaseMetric>> AnalyzeDirectoryComplexityAsync(string directoryPath, string language, string type, string halsteadType = null)
+    private async Task<List<BaseMetric>> AnalyzeDirectoryComplexityAsync(string directoryPath, string language, string type, string halsteadType = null, string readabilityType = null)
     {
         var metrics = new List<BaseMetric>();
 
@@ -248,12 +281,12 @@ public class CodeComplexityCommand : Command
 
             foreach (var file in csharpFiles)
             {
-                metrics.AddRange(await AnalyzeFileComplexityAsync(file, "C#", type, halsteadType));
+                metrics.AddRange(await AnalyzeFileComplexityAsync(file, "C#", type, halsteadType, readabilityType));
             }
 
             foreach (var file in fsharpFiles)
             {
-                metrics.AddRange(await AnalyzeFileComplexityAsync(file, "F#", type, halsteadType));
+                metrics.AddRange(await AnalyzeFileComplexityAsync(file, "F#", type, halsteadType, readabilityType));
             }
         }
 
@@ -281,6 +314,17 @@ public class CodeComplexityCommand : Command
 
                 metrics.AddRange(halsteadMetrics);
                 break;
+            case "readability":
+                var readabilityMetrics = projectMetrics.ReadabilityMetrics;
+
+                // Filter by readability type if specified
+                if (!string.IsNullOrEmpty(readabilityType) && Enum.TryParse<ReadabilityType>(readabilityType, true, out var parsedReadabilityType))
+                {
+                    readabilityMetrics = readabilityMetrics.Where(m => m.Type == parsedReadabilityType).ToList();
+                }
+
+                metrics.AddRange(readabilityMetrics);
+                break;
             default: // "all"
                 metrics.AddRange(projectMetrics.ComplexityMetrics);
 
@@ -293,6 +337,15 @@ public class CodeComplexityCommand : Command
 
                 metrics.AddRange(filteredHalsteadMetrics);
                 metrics.AddRange(projectMetrics.MaintainabilityMetrics);
+
+                // Filter readability metrics by type if specified
+                var filteredReadabilityMetrics = projectMetrics.ReadabilityMetrics;
+                if (!string.IsNullOrEmpty(readabilityType) && Enum.TryParse<ReadabilityType>(readabilityType, true, out var parsedReadabilityType))
+                {
+                    filteredReadabilityMetrics = filteredReadabilityMetrics.Where(m => m.Type == parsedReadabilityType).ToList();
+                }
+
+                metrics.AddRange(filteredReadabilityMetrics);
                 break;
         }
 

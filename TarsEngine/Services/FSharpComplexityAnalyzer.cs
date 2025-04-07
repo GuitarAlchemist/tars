@@ -270,11 +270,20 @@ public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
     }
 
     /// <inheritdoc/>
-    public async Task<(List<ComplexityMetric> ComplexityMetrics, List<HalsteadMetric> HalsteadMetrics, List<MaintainabilityMetric> MaintainabilityMetrics)> AnalyzeAllComplexityMetricsAsync(string filePath, string language)
+    public Task<List<ReadabilityMetric>> AnalyzeReadabilityAsync(string filePath, string language, ReadabilityType readabilityType)
+    {
+        // Implementation will be added in a future task
+        _logger.LogInformation("F# readability analysis not yet implemented");
+        return Task.FromResult(new List<ReadabilityMetric>());
+    }
+
+    /// <inheritdoc/>
+    public async Task<(List<ComplexityMetric> ComplexityMetrics, List<HalsteadMetric> HalsteadMetrics, List<MaintainabilityMetric> MaintainabilityMetrics, List<ReadabilityMetric> ReadabilityMetrics)> AnalyzeAllComplexityMetricsAsync(string filePath, string language)
     {
         var complexityMetrics = new List<ComplexityMetric>();
         var halsteadMetrics = new List<HalsteadMetric>();
         var maintainabilityMetrics = new List<MaintainabilityMetric>();
+        var readabilityMetrics = new List<ReadabilityMetric>();
 
         // Get cyclomatic complexity metrics
         complexityMetrics.AddRange(await AnalyzeCyclomaticComplexityAsync(filePath, language));
@@ -288,17 +297,18 @@ public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
         // Get maintainability index metrics
         maintainabilityMetrics.AddRange(await AnalyzeMaintainabilityIndexAsync(filePath, language));
 
-        return (complexityMetrics, halsteadMetrics, maintainabilityMetrics);
+        return (complexityMetrics, halsteadMetrics, maintainabilityMetrics, readabilityMetrics);
     }
 
     /// <inheritdoc/>
-    public async Task<(List<ComplexityMetric> ComplexityMetrics, List<HalsteadMetric> HalsteadMetrics, List<MaintainabilityMetric> MaintainabilityMetrics)> AnalyzeProjectComplexityAsync(string projectPath)
+    public async Task<(List<ComplexityMetric> ComplexityMetrics, List<HalsteadMetric> HalsteadMetrics, List<MaintainabilityMetric> MaintainabilityMetrics, List<ReadabilityMetric> ReadabilityMetrics)> AnalyzeProjectComplexityAsync(string projectPath)
     {
         try
         {
             var complexityMetrics = new List<ComplexityMetric>();
             var halsteadMetrics = new List<HalsteadMetric>();
             var maintainabilityMetrics = new List<MaintainabilityMetric>();
+            var readabilityMetrics = new List<ReadabilityMetric>();
 
             // Analyze F# files
             var fsharpFiles = Directory.GetFiles(projectPath, "*.fs", SearchOption.AllDirectories);
@@ -308,6 +318,7 @@ public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
                 complexityMetrics.AddRange(fileMetrics.ComplexityMetrics);
                 halsteadMetrics.AddRange(fileMetrics.HalsteadMetrics);
                 maintainabilityMetrics.AddRange(fileMetrics.MaintainabilityMetrics);
+                readabilityMetrics.AddRange(fileMetrics.ReadabilityMetrics);
             }
 
             // Calculate project-level metrics
@@ -383,12 +394,12 @@ public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
                 maintainabilityMetrics.Add(maintainabilityMetric);
             }
 
-            return (complexityMetrics, halsteadMetrics, maintainabilityMetrics);
+            return (complexityMetrics, halsteadMetrics, maintainabilityMetrics, readabilityMetrics);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error analyzing F# project complexity for {ProjectPath}", projectPath);
-            return (new List<ComplexityMetric>(), new List<HalsteadMetric>(), new List<MaintainabilityMetric>());
+            return (new List<ComplexityMetric>(), new List<HalsteadMetric>(), new List<MaintainabilityMetric>(), new List<ReadabilityMetric>());
         }
     }
 

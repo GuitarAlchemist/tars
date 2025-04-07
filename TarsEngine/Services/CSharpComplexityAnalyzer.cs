@@ -212,11 +212,42 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
     }
 
     /// <inheritdoc/>
-    public async Task<(List<ComplexityMetric> ComplexityMetrics, List<HalsteadMetric> HalsteadMetrics, List<MaintainabilityMetric> MaintainabilityMetrics)> AnalyzeAllComplexityMetricsAsync(string filePath, string language)
+    public Task<List<ReadabilityMetric>> AnalyzeReadabilityAsync(string filePath, string language, ReadabilityType readabilityType)
+    {
+        if (language != "C#")
+        {
+            _logger.LogWarning("Language {Language} not supported by CSharpComplexityAnalyzer", language);
+            return Task.FromResult(new List<ReadabilityMetric>());
+        }
+
+        try
+        {
+            // Use the readability analyzer service
+            var readabilityAnalyzer = new CSharpReadabilityAnalyzer(_logger);
+
+            return readabilityType switch
+            {
+                ReadabilityType.IdentifierQuality => readabilityAnalyzer.AnalyzeIdentifierQualityAsync(filePath, language),
+                ReadabilityType.CommentQuality => readabilityAnalyzer.AnalyzeCommentQualityAsync(filePath, language),
+                ReadabilityType.CodeStructure => readabilityAnalyzer.AnalyzeCodeStructureAsync(filePath, language),
+                ReadabilityType.Overall => readabilityAnalyzer.AnalyzeOverallReadabilityAsync(filePath, language),
+                _ => readabilityAnalyzer.AnalyzeAllReadabilityMetricsAsync(filePath, language)
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error analyzing readability for file {FilePath}", filePath);
+            return Task.FromResult(new List<ReadabilityMetric>());
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task<(List<ComplexityMetric> ComplexityMetrics, List<HalsteadMetric> HalsteadMetrics, List<MaintainabilityMetric> MaintainabilityMetrics, List<ReadabilityMetric> ReadabilityMetrics)> AnalyzeAllComplexityMetricsAsync(string filePath, string language)
     {
         var complexityMetrics = new List<ComplexityMetric>();
         var halsteadMetrics = new List<HalsteadMetric>();
         var maintainabilityMetrics = new List<MaintainabilityMetric>();
+        var readabilityMetrics = new List<ReadabilityMetric>();
 
         // Get cyclomatic complexity metrics
         complexityMetrics.AddRange(await AnalyzeCyclomaticComplexityAsync(filePath, language));
@@ -230,15 +261,20 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
         // Get maintainability index metrics
         maintainabilityMetrics.AddRange(await AnalyzeMaintainabilityIndexAsync(filePath, language));
 
-        return (complexityMetrics, halsteadMetrics, maintainabilityMetrics);
+        // Get readability metrics
+        var readabilityAnalyzer = new CSharpReadabilityAnalyzer(_logger);
+        readabilityMetrics.AddRange(await readabilityAnalyzer.AnalyzeAllReadabilityMetricsAsync(filePath, language));
+
+        return (complexityMetrics, halsteadMetrics, maintainabilityMetrics, readabilityMetrics);
     }
 
     /// <inheritdoc/>
-    public async Task<(List<ComplexityMetric> ComplexityMetrics, List<HalsteadMetric> HalsteadMetrics, List<MaintainabilityMetric> MaintainabilityMetrics)> AnalyzeProjectComplexityAsync(string projectPath)
+    public async Task<(List<ComplexityMetric> ComplexityMetrics, List<HalsteadMetric> HalsteadMetrics, List<MaintainabilityMetric> MaintainabilityMetrics, List<ReadabilityMetric> ReadabilityMetrics)> AnalyzeProjectComplexityAsync(string projectPath)
     {
         var complexityMetrics = new List<ComplexityMetric>();
         var halsteadMetrics = new List<HalsteadMetric>();
         var maintainabilityMetrics = new List<MaintainabilityMetric>();
+        var readabilityMetrics = new List<ReadabilityMetric>();
 
         try
         {
@@ -253,6 +289,7 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
                 complexityMetrics.AddRange(fileMetrics.ComplexityMetrics);
                 halsteadMetrics.AddRange(fileMetrics.HalsteadMetrics);
                 maintainabilityMetrics.AddRange(fileMetrics.MaintainabilityMetrics);
+                readabilityMetrics.AddRange(fileMetrics.ReadabilityMetrics);
             }
 
             // Calculate project-level metrics
@@ -333,7 +370,7 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
             _logger.LogError(ex, "Error analyzing project complexity for {ProjectPath}", projectPath);
         }
 
-        return (complexityMetrics, halsteadMetrics, maintainabilityMetrics);
+        return (complexityMetrics, halsteadMetrics, maintainabilityMetrics, readabilityMetrics);
     }
 
     /// <inheritdoc/>
