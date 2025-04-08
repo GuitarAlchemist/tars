@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using TarsEngine.Consciousness.Intelligence;
-using Insight = TarsEngine.Consciousness.Intelligence.InsightModel;
+using Insight = TarsEngine.Consciousness.Intelligence.Insight.InsightModel;
 
 namespace TarsEngine.Consciousness.Intelligence.Insight;
 
@@ -14,7 +14,7 @@ namespace TarsEngine.Consciousness.Intelligence.Insight;
 public class ConnectionDiscovery
 {
     private readonly ILogger<ConnectionDiscovery> _logger;
-    private readonly Random _random = new();
+    private readonly System.Random _random = new();
     private double _connectionDiscoveryLevel = 0.5; // Starting with moderate connection discovery
     private readonly Dictionary<string, List<string>> _conceptRelations = new();
     private readonly List<DiscoveredConnection> _discoveredConnections = [];

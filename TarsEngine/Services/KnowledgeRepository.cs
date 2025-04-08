@@ -34,7 +34,7 @@ public class KnowledgeRepository : IKnowledgeRepository
     }
 
     /// <inheritdoc/>
-    public async Task<TarsEngine.Services.Interfaces.KnowledgeItem> AddItemAsync(TarsEngine.Services.Interfaces.KnowledgeItem item)
+    public async Task<TarsEngine.Models.KnowledgeItem> AddItemAsync(TarsEngine.Models.KnowledgeItem item)
     {
         try
         {
@@ -67,7 +67,7 @@ public class KnowledgeRepository : IKnowledgeRepository
     }
 
     /// <inheritdoc/>
-    public async Task<IEnumerable<TarsEngine.Services.Interfaces.KnowledgeItem>> AddItemsAsync(IEnumerable<TarsEngine.Services.Interfaces.KnowledgeItem> items)
+    public async Task<IEnumerable<TarsEngine.Models.KnowledgeItem>> AddItemsAsync(IEnumerable<TarsEngine.Models.KnowledgeItem> items)
     {
         try
         {
@@ -96,7 +96,7 @@ public class KnowledgeRepository : IKnowledgeRepository
     }
 
     /// <inheritdoc/>
-    public async Task<TarsEngine.Services.Interfaces.KnowledgeItem?> GetItemAsync(string id)
+    public async Task<TarsEngine.Models.KnowledgeItem?> GetItemAsync(string id)
     {
         try
         {
@@ -126,7 +126,7 @@ public class KnowledgeRepository : IKnowledgeRepository
     }
 
     /// <inheritdoc/>
-    public async Task<TarsEngine.Services.Interfaces.KnowledgeItem> UpdateItemAsync(TarsEngine.Services.Interfaces.KnowledgeItem item)
+    public async Task<TarsEngine.Models.KnowledgeItem> UpdateItemAsync(TarsEngine.Models.KnowledgeItem item)
     {
         try
         {
@@ -210,7 +210,7 @@ public class KnowledgeRepository : IKnowledgeRepository
     }
 
     /// <inheritdoc/>
-    public async Task<IEnumerable<TarsEngine.Services.Interfaces.KnowledgeItem>> SearchItemsAsync(string query, Dictionary<string, string>? options = null)
+    public async Task<IEnumerable<TarsEngine.Models.KnowledgeItem>> SearchItemsAsync(string query, Dictionary<string, string>? options = null)
     {
         try
         {
@@ -264,7 +264,7 @@ public class KnowledgeRepository : IKnowledgeRepository
     }
 
     /// <inheritdoc/>
-    public async Task<IEnumerable<TarsEngine.Services.Interfaces.KnowledgeItem>> GetItemsByTypeAsync(TarsEngine.Services.Interfaces.KnowledgeType type, Dictionary<string, string>? options = null)
+    public async Task<IEnumerable<TarsEngine.Models.KnowledgeItem>> GetItemsByTypeAsync(TarsEngine.Models.KnowledgeType type, Dictionary<string, string>? options = null)
     {
         try
         {
@@ -309,7 +309,7 @@ public class KnowledgeRepository : IKnowledgeRepository
     }
 
     /// <inheritdoc/>
-    public async Task<IEnumerable<TarsEngine.Services.Interfaces.KnowledgeItem>> GetItemsByTagAsync(string tag, Dictionary<string, string>? options = null)
+    public async Task<IEnumerable<TarsEngine.Models.KnowledgeItem>> GetItemsByTagAsync(string tag, Dictionary<string, string>? options = null)
     {
         try
         {
@@ -358,7 +358,7 @@ public class KnowledgeRepository : IKnowledgeRepository
     }
 
     /// <inheritdoc/>
-    public async Task<IEnumerable<TarsEngine.Services.Interfaces.KnowledgeItem>> GetItemsBySourceAsync(string source, Dictionary<string, string>? options = null)
+    public async Task<IEnumerable<TarsEngine.Models.KnowledgeItem>> GetItemsBySourceAsync(string source, Dictionary<string, string>? options = null)
     {
         try
         {

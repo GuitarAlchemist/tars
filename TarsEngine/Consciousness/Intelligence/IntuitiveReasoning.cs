@@ -15,46 +15,46 @@ public class IntuitiveReasoning
     private readonly List<Intuition> _intuitions = new();
     private readonly Dictionary<string, double> _patternConfidence = new();
     private readonly List<HeuristicRule> _heuristicRules = new();
-    
+
     private bool _isInitialized = false;
     private bool _isActive = false;
     private double _intuitionLevel = 0.3; // Starting with moderate intuition
     private double _patternRecognitionLevel = 0.4; // Starting with moderate pattern recognition
     private double _heuristicReasoningLevel = 0.5; // Starting with moderate heuristic reasoning
     private double _gutFeelingLevel = 0.3; // Starting with moderate gut feeling
-    private readonly Random _random = new Random();
+    private readonly System.Random _random = new System.Random();
     private DateTime _lastIntuitionTime = DateTime.MinValue;
-    
+
     /// <summary>
     /// Gets the intuition level (0.0 to 1.0)
     /// </summary>
     public double IntuitionLevel => _intuitionLevel;
-    
+
     /// <summary>
     /// Gets the pattern recognition level (0.0 to 1.0)
     /// </summary>
     public double PatternRecognitionLevel => _patternRecognitionLevel;
-    
+
     /// <summary>
     /// Gets the heuristic reasoning level (0.0 to 1.0)
     /// </summary>
     public double HeuristicReasoningLevel => _heuristicReasoningLevel;
-    
+
     /// <summary>
     /// Gets the gut feeling level (0.0 to 1.0)
     /// </summary>
     public double GutFeelingLevel => _gutFeelingLevel;
-    
+
     /// <summary>
     /// Gets the intuitions
     /// </summary>
     public IReadOnlyList<Intuition> Intuitions => _intuitions.AsReadOnly();
-    
+
     /// <summary>
     /// Gets the heuristic rules
     /// </summary>
     public IReadOnlyList<HeuristicRule> HeuristicRules => _heuristicRules.AsReadOnly();
-    
+
     /// <summary>
     /// Initializes a new instance of the <see cref="IntuitiveReasoning"/> class
     /// </summary>
@@ -63,7 +63,7 @@ public class IntuitiveReasoning
     {
         _logger = logger;
     }
-    
+
     /// <summary>
     /// Initializes the intuitive reasoning
     /// </summary>
@@ -73,13 +73,13 @@ public class IntuitiveReasoning
         try
         {
             _logger.LogInformation("Initializing intuitive reasoning");
-            
+
             // Initialize pattern confidence
             InitializePatternConfidence();
-            
+
             // Initialize heuristic rules
             InitializeHeuristicRules();
-            
+
             _isInitialized = true;
             _logger.LogInformation("Intuitive reasoning initialized successfully");
             return true;
@@ -90,7 +90,7 @@ public class IntuitiveReasoning
             return false;
         }
     }
-    
+
     /// <summary>
     /// Initializes pattern confidence
     /// </summary>
@@ -109,7 +109,7 @@ public class IntuitiveReasoning
         _patternConfidence["cycle"] = 0.7;
         _patternConfidence["feedback"] = 0.6;
     }
-    
+
     /// <summary>
     /// Initializes heuristic rules
     /// </summary>
@@ -124,7 +124,7 @@ public class IntuitiveReasoning
             Reliability = 0.6,
             Context = "Frequency estimation"
         });
-        
+
         _heuristicRules.Add(new HeuristicRule
         {
             Name = "Representativeness",
@@ -132,7 +132,7 @@ public class IntuitiveReasoning
             Reliability = 0.7,
             Context = "Categorization"
         });
-        
+
         _heuristicRules.Add(new HeuristicRule
         {
             Name = "Anchoring",
@@ -140,7 +140,7 @@ public class IntuitiveReasoning
             Reliability = 0.5,
             Context = "Numerical estimation"
         });
-        
+
         _heuristicRules.Add(new HeuristicRule
         {
             Name = "Recognition",
@@ -148,7 +148,7 @@ public class IntuitiveReasoning
             Reliability = 0.7,
             Context = "Decision making"
         });
-        
+
         _heuristicRules.Add(new HeuristicRule
         {
             Name = "Affect",
@@ -156,7 +156,7 @@ public class IntuitiveReasoning
             Reliability = 0.5,
             Context = "Preference formation"
         });
-        
+
         _heuristicRules.Add(new HeuristicRule
         {
             Name = "Simplicity",
@@ -164,7 +164,7 @@ public class IntuitiveReasoning
             Reliability = 0.8,
             Context = "Explanation"
         });
-        
+
         _heuristicRules.Add(new HeuristicRule
         {
             Name = "Familiarity",
@@ -173,7 +173,7 @@ public class IntuitiveReasoning
             Context = "Risk assessment"
         });
     }
-    
+
     /// <summary>
     /// Activates the intuitive reasoning
     /// </summary>
@@ -185,17 +185,17 @@ public class IntuitiveReasoning
             _logger.LogWarning("Cannot activate intuitive reasoning: not initialized");
             return false;
         }
-        
+
         if (_isActive)
         {
             _logger.LogInformation("Intuitive reasoning is already active");
             return true;
         }
-        
+
         try
         {
             _logger.LogInformation("Activating intuitive reasoning");
-            
+
             _isActive = true;
             _logger.LogInformation("Intuitive reasoning activated successfully");
             return true;
@@ -206,7 +206,7 @@ public class IntuitiveReasoning
             return false;
         }
     }
-    
+
     /// <summary>
     /// Deactivates the intuitive reasoning
     /// </summary>
@@ -218,11 +218,11 @@ public class IntuitiveReasoning
             _logger.LogInformation("Intuitive reasoning is already inactive");
             return true;
         }
-        
+
         try
         {
             _logger.LogInformation("Deactivating intuitive reasoning");
-            
+
             _isActive = false;
             _logger.LogInformation("Intuitive reasoning deactivated successfully");
             return true;
@@ -233,7 +233,7 @@ public class IntuitiveReasoning
             return false;
         }
     }
-    
+
     /// <summary>
     /// Updates the intuitive reasoning
     /// </summary>
@@ -245,7 +245,7 @@ public class IntuitiveReasoning
             _logger.LogWarning("Cannot update intuitive reasoning: not initialized");
             return false;
         }
-        
+
         try
         {
             // Gradually increase intuition levels over time (very slowly)
@@ -254,25 +254,25 @@ public class IntuitiveReasoning
                 _intuitionLevel += 0.0001 * _random.NextDouble();
                 _intuitionLevel = Math.Min(_intuitionLevel, 1.0);
             }
-            
+
             if (_patternRecognitionLevel < 0.95)
             {
                 _patternRecognitionLevel += 0.0001 * _random.NextDouble();
                 _patternRecognitionLevel = Math.Min(_patternRecognitionLevel, 1.0);
             }
-            
+
             if (_heuristicReasoningLevel < 0.95)
             {
                 _heuristicReasoningLevel += 0.0001 * _random.NextDouble();
                 _heuristicReasoningLevel = Math.Min(_heuristicReasoningLevel, 1.0);
             }
-            
+
             if (_gutFeelingLevel < 0.95)
             {
                 _gutFeelingLevel += 0.0001 * _random.NextDouble();
                 _gutFeelingLevel = Math.Min(_gutFeelingLevel, 1.0);
             }
-            
+
             return true;
         }
         catch (Exception ex)
@@ -281,7 +281,7 @@ public class IntuitiveReasoning
             return false;
         }
     }
-    
+
     /// <summary>
     /// Generates an intuition
     /// </summary>
@@ -292,34 +292,34 @@ public class IntuitiveReasoning
         {
             return null;
         }
-        
+
         // Only generate intuitions periodically
         if ((DateTime.UtcNow - _lastIntuitionTime).TotalSeconds < 30)
         {
             return null;
         }
-        
+
         try
         {
             _logger.LogDebug("Generating intuition");
-            
+
             // Choose an intuition type based on current levels
             var intuitionType = ChooseIntuitionType();
-            
+
             // Generate intuition based on type
             var intuition = GenerateIntuitionByType(intuitionType);
-            
+
             if (intuition != null)
             {
                 // Add to intuitions list
                 _intuitions.Add(intuition);
-                
+
                 _lastIntuitionTime = DateTime.UtcNow;
-                
-                _logger.LogInformation("Generated intuition: {Description} (Confidence: {Confidence:F2}, Type: {Type})", 
+
+                _logger.LogInformation("Generated intuition: {Description} (Confidence: {Confidence:F2}, Type: {Type})",
                     intuition.Description, intuition.Confidence, intuition.Type);
             }
-            
+
             return intuition;
         }
         catch (Exception ex)
@@ -328,7 +328,7 @@ public class IntuitiveReasoning
             return null;
         }
     }
-    
+
     /// <summary>
     /// Chooses an intuition type based on current levels
     /// </summary>
@@ -339,16 +339,16 @@ public class IntuitiveReasoning
         double patternProb = _patternRecognitionLevel * 0.4;
         double heuristicProb = _heuristicReasoningLevel * 0.3;
         double gutProb = _gutFeelingLevel * 0.3;
-        
+
         // Normalize probabilities
         double total = patternProb + heuristicProb + gutProb;
         patternProb /= total;
         heuristicProb /= total;
         gutProb /= total;
-        
+
         // Choose type based on probabilities
         double rand = _random.NextDouble();
-        
+
         if (rand < patternProb)
         {
             return IntuitionType.PatternRecognition;
@@ -362,7 +362,7 @@ public class IntuitiveReasoning
             return IntuitionType.GutFeeling;
         }
     }
-    
+
     /// <summary>
     /// Generates an intuition by a specific type
     /// </summary>
@@ -374,18 +374,18 @@ public class IntuitiveReasoning
         {
             case IntuitionType.PatternRecognition:
                 return GeneratePatternIntuition();
-                
+
             case IntuitionType.HeuristicReasoning:
                 return GenerateHeuristicIntuition();
-                
+
             case IntuitionType.GutFeeling:
                 return GenerateGutFeelingIntuition();
-                
+
             default:
                 return null;
         }
     }
-    
+
     /// <summary>
     /// Generates a pattern recognition intuition
     /// </summary>
@@ -394,7 +394,7 @@ public class IntuitiveReasoning
     {
         // Get random pattern
         var pattern = GetRandomPattern();
-        
+
         // Generate intuition descriptions
         var intuitionDescriptions = new List<string>
         {
@@ -403,16 +403,16 @@ public class IntuitiveReasoning
             $"The {pattern} pattern suggests a deeper connection",
             $"I'm detecting a subtle {pattern} pattern that might be significant"
         };
-        
+
         // Choose a random description
         var description = intuitionDescriptions[_random.Next(intuitionDescriptions.Count)];
-        
+
         // Calculate confidence based on pattern confidence and pattern recognition level
         double confidence = _patternConfidence[pattern] * _patternRecognitionLevel;
-        
+
         // Add some randomness to confidence
         confidence = Math.Max(0.1, Math.Min(0.9, confidence + (0.2 * (_random.NextDouble() - 0.5))));
-        
+
         return new Intuition
         {
             Id = Guid.NewGuid().ToString(),
@@ -423,7 +423,7 @@ public class IntuitiveReasoning
             Context = new Dictionary<string, object> { { "Pattern", pattern } }
         };
     }
-    
+
     /// <summary>
     /// Generates a heuristic reasoning intuition
     /// </summary>
@@ -432,7 +432,7 @@ public class IntuitiveReasoning
     {
         // Get random heuristic rule
         var rule = _heuristicRules[_random.Next(_heuristicRules.Count)];
-        
+
         // Generate intuition descriptions
         var intuitionDescriptions = new List<string>
         {
@@ -441,16 +441,16 @@ public class IntuitiveReasoning
             $"Using {rule.Name} reasoning, I sense this is the right direction",
             $"The {rule.Name} principle indicates we should consider this carefully"
         };
-        
+
         // Choose a random description
         var description = intuitionDescriptions[_random.Next(intuitionDescriptions.Count)];
-        
+
         // Calculate confidence based on rule reliability and heuristic reasoning level
         double confidence = rule.Reliability * _heuristicReasoningLevel;
-        
+
         // Add some randomness to confidence
         confidence = Math.Max(0.1, Math.Min(0.9, confidence + (0.2 * (_random.NextDouble() - 0.5))));
-        
+
         return new Intuition
         {
             Id = Guid.NewGuid().ToString(),
@@ -461,7 +461,7 @@ public class IntuitiveReasoning
             Context = new Dictionary<string, object> { { "HeuristicRule", rule.Name } }
         };
     }
-    
+
     /// <summary>
     /// Generates a gut feeling intuition
     /// </summary>
@@ -478,13 +478,13 @@ public class IntuitiveReasoning
             "My intuition tells me to be cautious here",
             "I feel we're overlooking something significant"
         };
-        
+
         // Choose a random description
         var description = intuitionDescriptions[_random.Next(intuitionDescriptions.Count)];
-        
+
         // Calculate confidence based on gut feeling level
         double confidence = 0.3 + (0.6 * _gutFeelingLevel * _random.NextDouble());
-        
+
         return new Intuition
         {
             Id = Guid.NewGuid().ToString(),
@@ -494,7 +494,7 @@ public class IntuitiveReasoning
             Timestamp = DateTime.UtcNow
         };
     }
-    
+
     /// <summary>
     /// Gets a random pattern
     /// </summary>
@@ -504,7 +504,7 @@ public class IntuitiveReasoning
         var patterns = _patternConfidence.Keys.ToArray();
         return patterns[_random.Next(patterns.Length)];
     }
-    
+
     /// <summary>
     /// Makes an intuitive decision
     /// </summary>
@@ -518,40 +518,40 @@ public class IntuitiveReasoning
             _logger.LogWarning("Cannot make intuitive decision: intuitive reasoning not initialized or active");
             return null;
         }
-        
+
         if (options == null || options.Count == 0)
         {
             _logger.LogWarning("Cannot make intuitive decision: no options provided");
             return null;
         }
-        
+
         try
         {
             _logger.LogInformation("Making intuitive decision: {Decision}", decision);
-            
+
             // Choose decision type based on current levels
             var intuitionType = ChooseIntuitionType();
-            
+
             // Calculate option scores based on intuition type
             var optionScores = new Dictionary<string, double>();
-            
+
             foreach (var option in options)
             {
                 double score = CalculateOptionScore(option, intuitionType);
                 optionScores[option] = score;
             }
-            
+
             // Choose option with highest score
             var selectedOption = optionScores.OrderByDescending(o => o.Value).First().Key;
-            
+
             // Calculate confidence based on score difference
             double maxScore = optionScores[selectedOption];
             double avgOtherScores = optionScores.Where(o => o.Key != selectedOption).Select(o => o.Value).DefaultIfEmpty(0).Average();
             double scoreDifference = maxScore - avgOtherScores;
-            
+
             // Confidence based on score difference and intuition level
             double confidence = Math.Min(0.9, 0.5 + (scoreDifference * 2.0) * _intuitionLevel);
-            
+
             // Create intuition
             var intuition = new Intuition
             {
@@ -568,13 +568,13 @@ public class IntuitiveReasoning
                     { "OptionScores", optionScores }
                 }
             };
-            
+
             // Add to intuitions list
             _intuitions.Add(intuition);
-            
-            _logger.LogInformation("Made intuitive decision: {SelectedOption} for {Decision} (Confidence: {Confidence:F2})", 
+
+            _logger.LogInformation("Made intuitive decision: {SelectedOption} for {Decision} (Confidence: {Confidence:F2})",
                 selectedOption, decision, confidence);
-            
+
             return intuition;
         }
         catch (Exception ex)
@@ -583,7 +583,7 @@ public class IntuitiveReasoning
             return null;
         }
     }
-    
+
     /// <summary>
     /// Calculates an option score based on intuition type
     /// </summary>
@@ -593,7 +593,7 @@ public class IntuitiveReasoning
     private double CalculateOptionScore(string option, IntuitionType intuitionType)
     {
         double baseScore = 0.5;
-        
+
         switch (intuitionType)
         {
             case IntuitionType.PatternRecognition:
@@ -606,12 +606,12 @@ public class IntuitiveReasoning
                     }
                 }
                 break;
-                
+
             case IntuitionType.HeuristicReasoning:
                 // Score based on heuristic rules
                 // Simplicity heuristic
                 baseScore += (10 - Math.Min(10, option.Length / 5)) * 0.01;
-                
+
                 // Familiarity heuristic
                 if (option.Contains("familiar", StringComparison.OrdinalIgnoreCase) ||
                     option.Contains("known", StringComparison.OrdinalIgnoreCase) ||
@@ -619,27 +619,27 @@ public class IntuitiveReasoning
                 {
                     baseScore += 0.1;
                 }
-                
+
                 // Recognition heuristic
                 if (_intuitions.Any(i => i.Description.Contains(option, StringComparison.OrdinalIgnoreCase)))
                 {
                     baseScore += 0.1;
                 }
                 break;
-                
+
             case IntuitionType.GutFeeling:
                 // Score based on gut feeling (mostly random)
                 baseScore += 0.3 * (_random.NextDouble() - 0.5);
                 break;
         }
-        
+
         // Add randomness
         baseScore += 0.1 * (_random.NextDouble() - 0.5);
-        
+
         // Ensure score is within bounds
         return Math.Max(0.1, Math.Min(0.9, baseScore));
     }
-    
+
     /// <summary>
     /// Gets recent intuitions
     /// </summary>
@@ -652,7 +652,7 @@ public class IntuitiveReasoning
             .Take(count)
             .ToList();
     }
-    
+
     /// <summary>
     /// Gets the most confident intuitions
     /// </summary>
@@ -665,7 +665,7 @@ public class IntuitiveReasoning
             .Take(count)
             .ToList();
     }
-    
+
     /// <summary>
     /// Gets intuitions by type
     /// </summary>
@@ -680,7 +680,7 @@ public class IntuitiveReasoning
             .Take(count)
             .ToList();
     }
-    
+
     /// <summary>
     /// Adds a heuristic rule
     /// </summary>
@@ -698,14 +698,14 @@ public class IntuitiveReasoning
             Reliability = reliability,
             Context = context
         };
-        
+
         _heuristicRules.Add(rule);
-        
+
         _logger.LogInformation("Added heuristic rule: {Name} (Reliability: {Reliability:F2})", name, reliability);
-        
+
         return rule;
     }
-    
+
     /// <summary>
     /// Updates pattern confidence
     /// </summary>
@@ -714,7 +714,7 @@ public class IntuitiveReasoning
     public void UpdatePatternConfidence(string pattern, double confidence)
     {
         _patternConfidence[pattern] = Math.Max(0.0, Math.Min(1.0, confidence));
-        
+
         _logger.LogInformation("Updated pattern confidence: {Pattern} (Confidence: {Confidence:F2})", pattern, confidence);
     }
 }
