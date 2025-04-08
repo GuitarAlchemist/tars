@@ -30,62 +30,69 @@ public class DuplicationDemoCommand : Command
         {
             IsRequired = true
         };
-        
+
         var languageOption = new Option<string>(
             aliases: new[] { "--language", "-l" },
             description: "Programming language (C# or F#)",
             getDefaultValue: () => string.Empty);
-        
+
         var typeOption = new Option<string>(
             aliases: new[] { "--type", "-t" },
             description: "Duplication type (token, semantic, or all)",
             getDefaultValue: () => "all");
-        
+
         var outputOption = new Option<string>(
             aliases: new[] { "--output", "-o" },
             description: "Output format (console, json, csv, or html)",
             getDefaultValue: () => "console");
-        
+
         var outputPathOption = new Option<string>(
             aliases: new[] { "--output-path" },
             description: "Path to save the output file",
             getDefaultValue: () => string.Empty);
-        
+
         AddOption(pathOption);
         AddOption(languageOption);
         AddOption(typeOption);
         AddOption(outputOption);
         AddOption(outputPathOption);
-        
+
         this.SetHandler(HandleCommand);
     }
-    
+
     private async Task HandleCommand(InvocationContext context)
     {
-        var path = context.ParseResult.GetValueForOption<string>("--path");
-        var language = context.ParseResult.GetValueForOption<string>("--language");
-        var type = context.ParseResult.GetValueForOption<string>("--type");
-        var output = context.ParseResult.GetValueForOption<string>("--output");
-        var outputPath = context.ParseResult.GetValueForOption<string>("--output-path");
-        
+        // Store options as class fields
+        Option<string> pathOption = new Option<string>("--path");
+        Option<string> languageOption = new Option<string>("--language");
+        Option<string> typeOption = new Option<string>("--type");
+        Option<string> outputOption = new Option<string>("--output");
+        Option<string> outputPathOption = new Option<string>("--output-path");
+
+        var path = context.ParseResult.GetValueForOption(pathOption);
+        var language = context.ParseResult.GetValueForOption(languageOption);
+        var type = context.ParseResult.GetValueForOption(typeOption);
+        var output = context.ParseResult.GetValueForOption(outputOption);
+        var outputPath = context.ParseResult.GetValueForOption(outputPathOption);
+
         var serviceProvider = context.BindingContext.GetService<IServiceProvider>();
         var logger = serviceProvider.GetRequiredService<ILogger<DuplicationDemoCommand>>();
         var duplicationAnalyzer = serviceProvider.GetRequiredService<IDuplicationAnalyzer>();
-        
+
         try
         {
             logger.LogInformation("Analyzing duplication in {Path}", path);
-            
+
             // Determine if path is a file or directory
             var isDirectory = Directory.Exists(path);
             var isFile = File.Exists(path);
-            
+
             if (!isDirectory && !isFile)
             {
                 logger.LogError("Path {Path} does not exist", path);
                 return;
             }
-            
+
             // Determine language if not specified
             if (string.IsNullOrEmpty(language))
             {
@@ -99,10 +106,10 @@ public class DuplicationDemoCommand : Command
                     language = "C#";
                 }
             }
-            
+
             // Analyze duplication
             List<DuplicationMetric> metrics;
-            
+
             if (isFile)
             {
                 metrics = await AnalyzeFile(duplicationAnalyzer, path, language, type);
@@ -111,10 +118,10 @@ public class DuplicationDemoCommand : Command
             {
                 metrics = await AnalyzeDirectory(duplicationAnalyzer, path);
             }
-            
+
             // Output results
             await OutputResults(metrics, output, outputPath);
-            
+
             logger.LogInformation("Duplication analysis completed successfully");
         }
         catch (Exception ex)
@@ -122,7 +129,7 @@ public class DuplicationDemoCommand : Command
             logger.LogError(ex, "Error analyzing duplication");
         }
     }
-    
+
     private async Task<List<DuplicationMetric>> AnalyzeFile(IDuplicationAnalyzer analyzer, string filePath, string language, string type)
     {
         return type.ToLowerInvariant() switch
@@ -132,12 +139,12 @@ public class DuplicationDemoCommand : Command
             _ => await analyzer.AnalyzeAllDuplicationMetricsAsync(filePath, language)
         };
     }
-    
+
     private async Task<List<DuplicationMetric>> AnalyzeDirectory(IDuplicationAnalyzer analyzer, string directoryPath)
     {
         return await analyzer.AnalyzeProjectDuplicationAsync(directoryPath);
     }
-    
+
     private async Task OutputResults(List<DuplicationMetric> metrics, string format, string outputPath)
     {
         var output = format.ToLowerInvariant() switch
@@ -147,7 +154,7 @@ public class DuplicationDemoCommand : Command
             "html" => FormatAsHtml(metrics),
             _ => FormatAsConsole(metrics)
         };
-        
+
         if (!string.IsNullOrEmpty(outputPath))
         {
             await File.WriteAllTextAsync(outputPath, output);
@@ -158,23 +165,23 @@ public class DuplicationDemoCommand : Command
             Console.WriteLine(output);
         }
     }
-    
+
     private string FormatAsConsole(List<DuplicationMetric> metrics)
     {
         var sb = new StringBuilder();
-        
+
         sb.AppendLine("=== Duplication Analysis Results ===");
         sb.AppendLine();
-        
+
         // Group metrics by type
         var tokenBasedMetrics = metrics.Where(m => m.Type == DuplicationType.TokenBased).ToList();
         var semanticMetrics = metrics.Where(m => m.Type == DuplicationType.Semantic).ToList();
-        
+
         if (tokenBasedMetrics.Any())
         {
             sb.AppendLine("=== Token-Based Duplication ===");
             sb.AppendLine();
-            
+
             foreach (var metric in tokenBasedMetrics.OrderByDescending(m => m.DuplicationPercentage))
             {
                 sb.AppendLine($"Target: {metric.Target} ({metric.TargetType})");
@@ -182,7 +189,7 @@ public class DuplicationDemoCommand : Command
                 sb.AppendLine($"Duplicated Blocks: {metric.DuplicatedBlockCount}");
                 sb.AppendLine($"Duplication Level: {metric.DuplicationLevel}");
                 sb.AppendLine();
-                
+
                 if (metric.DuplicatedBlocks.Any())
                 {
                     sb.AppendLine("Top Duplicated Blocks:");
@@ -194,16 +201,16 @@ public class DuplicationDemoCommand : Command
                         sb.AppendLine();
                     }
                 }
-                
+
                 sb.AppendLine(new string('-', 50));
             }
         }
-        
+
         if (semanticMetrics.Any())
         {
             sb.AppendLine("=== Semantic Duplication ===");
             sb.AppendLine();
-            
+
             foreach (var metric in semanticMetrics.OrderByDescending(m => m.DuplicationPercentage))
             {
                 sb.AppendLine($"Target: {metric.Target} ({metric.TargetType})");
@@ -211,7 +218,7 @@ public class DuplicationDemoCommand : Command
                 sb.AppendLine($"Duplicated Blocks: {metric.DuplicatedBlockCount}");
                 sb.AppendLine($"Duplication Level: {metric.DuplicationLevel}");
                 sb.AppendLine();
-                
+
                 if (metric.DuplicatedBlocks.Any())
                 {
                     sb.AppendLine("Top Semantically Similar Blocks:");
@@ -223,14 +230,14 @@ public class DuplicationDemoCommand : Command
                         sb.AppendLine();
                     }
                 }
-                
+
                 sb.AppendLine(new string('-', 50));
             }
         }
-        
+
         return sb.ToString();
     }
-    
+
     private string FormatAsJson(List<DuplicationMetric> metrics)
     {
         return System.Text.Json.JsonSerializer.Serialize(metrics, new System.Text.Json.JsonSerializerOptions
@@ -238,27 +245,27 @@ public class DuplicationDemoCommand : Command
             WriteIndented = true
         });
     }
-    
+
     private string FormatAsCsv(List<DuplicationMetric> metrics)
     {
         var sb = new StringBuilder();
-        
+
         // Header
         sb.AppendLine("Type,Target,TargetType,FilePath,TotalLinesOfCode,DuplicatedLinesOfCode,DuplicationPercentage,DuplicatedBlockCount,DuplicationLevel");
-        
+
         // Data
         foreach (var metric in metrics)
         {
             sb.AppendLine($"{metric.Type},{metric.Target},{metric.TargetType},{metric.FilePath},{metric.TotalLinesOfCode},{metric.DuplicatedLinesOfCode},{metric.DuplicationPercentage:F2},{metric.DuplicatedBlockCount},{metric.DuplicationLevel}");
         }
-        
+
         return sb.ToString();
     }
-    
+
     private string FormatAsHtml(List<DuplicationMetric> metrics)
     {
         var sb = new StringBuilder();
-        
+
         sb.AppendLine("<!DOCTYPE html>");
         sb.AppendLine("<html>");
         sb.AppendLine("<head>");
@@ -279,11 +286,11 @@ public class DuplicationDemoCommand : Command
         sb.AppendLine("</head>");
         sb.AppendLine("<body>");
         sb.AppendLine("  <h1>Duplication Analysis Results</h1>");
-        
+
         // Group metrics by type
         var tokenBasedMetrics = metrics.Where(m => m.Type == DuplicationType.TokenBased).ToList();
         var semanticMetrics = metrics.Where(m => m.Type == DuplicationType.Semantic).ToList();
-        
+
         if (tokenBasedMetrics.Any())
         {
             sb.AppendLine("  <h2>Token-Based Duplication</h2>");
@@ -297,7 +304,7 @@ public class DuplicationDemoCommand : Command
             sb.AppendLine("      <th>Blocks</th>");
             sb.AppendLine("      <th>Level</th>");
             sb.AppendLine("    </tr>");
-            
+
             foreach (var metric in tokenBasedMetrics.OrderByDescending(m => m.DuplicationPercentage))
             {
                 var levelClass = metric.DuplicationLevel.ToString().ToLowerInvariant();
@@ -311,17 +318,17 @@ public class DuplicationDemoCommand : Command
                 sb.AppendLine($"      <td class=\"{levelClass}\">{metric.DuplicationLevel}</td>");
                 sb.AppendLine("    </tr>");
             }
-            
+
             sb.AppendLine("  </table>");
-            
+
             sb.AppendLine("  <h3>Top Duplicated Blocks</h3>");
-            
+
             foreach (var metric in tokenBasedMetrics.OrderByDescending(m => m.DuplicationPercentage).Take(3))
             {
                 if (metric.DuplicatedBlocks.Any())
                 {
                     sb.AppendLine($"  <h4>{metric.Target} ({metric.TargetType})</h4>");
-                    
+
                     foreach (var block in metric.DuplicatedBlocks.OrderByDescending(b => b.DuplicatedLines).Take(3))
                     {
                         sb.AppendLine("  <div class=\"block\">");
@@ -336,7 +343,7 @@ public class DuplicationDemoCommand : Command
                 }
             }
         }
-        
+
         if (semanticMetrics.Any())
         {
             sb.AppendLine("  <h2>Semantic Duplication</h2>");
@@ -350,7 +357,7 @@ public class DuplicationDemoCommand : Command
             sb.AppendLine("      <th>Blocks</th>");
             sb.AppendLine("      <th>Level</th>");
             sb.AppendLine("    </tr>");
-            
+
             foreach (var metric in semanticMetrics.OrderByDescending(m => m.DuplicationPercentage))
             {
                 var levelClass = metric.DuplicationLevel.ToString().ToLowerInvariant();
@@ -364,17 +371,17 @@ public class DuplicationDemoCommand : Command
                 sb.AppendLine($"      <td class=\"{levelClass}\">{metric.DuplicationLevel}</td>");
                 sb.AppendLine("    </tr>");
             }
-            
+
             sb.AppendLine("  </table>");
-            
+
             sb.AppendLine("  <h3>Top Semantically Similar Blocks</h3>");
-            
+
             foreach (var metric in semanticMetrics.OrderByDescending(m => m.DuplicationPercentage).Take(3))
             {
                 if (metric.DuplicatedBlocks.Any())
                 {
                     sb.AppendLine($"  <h4>{metric.Target} ({metric.TargetType})</h4>");
-                    
+
                     foreach (var block in metric.DuplicatedBlocks.OrderByDescending(b => b.SimilarityPercentage).Take(3))
                     {
                         sb.AppendLine("  <div class=\"block\">");
@@ -389,17 +396,17 @@ public class DuplicationDemoCommand : Command
                 }
             }
         }
-        
+
         sb.AppendLine("</body>");
         sb.AppendLine("</html>");
-        
+
         return sb.ToString();
     }
-    
+
     private string GetLanguageFromFilePath(string filePath)
     {
         var extension = Path.GetExtension(filePath).ToLowerInvariant();
-        
+
         return extension switch
         {
             ".cs" => "C#",
