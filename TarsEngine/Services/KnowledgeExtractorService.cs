@@ -69,7 +69,7 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
             };
 
             // Extract knowledge items from text
-            var items = new List<KnowledgeItem>();
+            var items = new List<TarsEngine.Models.KnowledgeItem>();
 
             // Extract concepts
             var concepts = ExtractConcepts(content);
@@ -122,7 +122,7 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
             };
 
             // Extract knowledge items from each section
-            var items = new List<KnowledgeItem>();
+            var items = new List<TarsEngine.Models.KnowledgeItem>();
             foreach (var section in document.Sections)
             {
                 var sectionItems = await ExtractFromSectionAsync(section, document);
@@ -181,7 +181,7 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
             };
 
             // Extract knowledge items from code
-            var items = new List<KnowledgeItem>();
+            var items = new List<TarsEngine.Models.KnowledgeItem>();
 
             // Extract code patterns based on language
             var codePatterns = ExtractCodePatterns(code, language);
@@ -232,7 +232,7 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
             };
 
             // Extract knowledge items based on classification category
-            var items = new List<KnowledgeItem>();
+            var items = new List<TarsEngine.Models.KnowledgeItem>();
             var item = CreateKnowledgeItemFromClassification(classification);
             if (item != null)
             {
@@ -282,7 +282,7 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
             };
 
             // Extract knowledge items from each classification
-            var items = new List<KnowledgeItem>();
+            var items = new List<TarsEngine.Models.KnowledgeItem>();
             foreach (var classification in batch.Classifications)
             {
                 var extractionResult = await ExtractFromClassificationAsync(classification, options);
@@ -340,7 +340,7 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
                 if (!isValid)
                 {
                     result.IsValid = false;
-                    result.Issues.Add(new ValidationIssue
+                    result.Issues.Add(new TarsEngine.Models.ValidationIssue
                     {
                         RuleId = rule.Id,
                         RuleName = rule.Name,
@@ -360,9 +360,9 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
             {
                 Item = item,
                 IsValid = false,
-                Issues = new List<ValidationIssue>
+                Issues = new List<TarsEngine.Models.ValidationIssue>
                 {
-                    new ValidationIssue
+                    new TarsEngine.Models.ValidationIssue
                     {
                         RuleId = "error",
                         RuleName = "Error",
@@ -541,9 +541,9 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
                 break;
 
             case ContentType.Question:
-                var questionItem = new KnowledgeItem
+                var questionItem = new TarsEngine.Models.KnowledgeItem
                 {
-                    Type = KnowledgeType.Question,
+                    Type = TarsEngine.Models.KnowledgeType.Question,
                     Content = section.RawContent,
                     Source = document.DocumentPath,
                     Context = section.Heading,
@@ -555,9 +555,9 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
                 break;
 
             case ContentType.Answer:
-                var answerItem = new KnowledgeItem
+                var answerItem = new TarsEngine.Models.KnowledgeItem
                 {
-                    Type = KnowledgeType.Answer,
+                    Type = TarsEngine.Models.KnowledgeType.Answer,
                     Content = section.RawContent,
                     Source = document.DocumentPath,
                     Context = section.Heading,
@@ -569,9 +569,9 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
                 break;
 
             case ContentType.Example:
-                var exampleItem = new KnowledgeItem
+                var exampleItem = new TarsEngine.Models.KnowledgeItem
                 {
-                    Type = KnowledgeType.CodePattern,
+                    Type = TarsEngine.Models.KnowledgeType.CodePattern,
                     Content = section.RawContent,
                     Source = document.DocumentPath,
                     Context = section.Heading,
@@ -858,7 +858,7 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
         {
             Name = "Minimum Content Length",
             Description = "Ensures that knowledge items have a minimum content length",
-            ApplicableTypes = new List<KnowledgeType> { KnowledgeType.Concept, KnowledgeType.Insight, KnowledgeType.BestPractice },
+            ApplicableTypes = new List<TarsEngine.Models.KnowledgeType> { TarsEngine.Models.KnowledgeType.Concept, TarsEngine.Models.KnowledgeType.Insight, TarsEngine.Models.KnowledgeType.BestPractice },
             ValidationCriteria = "MinLength=10",
             ErrorMessage = "Content is too short (minimum 10 characters)",
             Severity = ValidationSeverity.Warning
@@ -868,7 +868,7 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
         {
             Name = "Minimum Confidence",
             Description = "Ensures that knowledge items have a minimum confidence score",
-            ApplicableTypes = new List<KnowledgeType>(),
+            ApplicableTypes = new List<TarsEngine.Models.KnowledgeType>(),
             ValidationCriteria = "MinConfidence=0.5",
             ErrorMessage = "Confidence score is too low (minimum 0.5)",
             Severity = ValidationSeverity.Warning
@@ -878,7 +878,7 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
         {
             Name = "Minimum Relevance",
             Description = "Ensures that knowledge items have a minimum relevance score",
-            ApplicableTypes = new List<KnowledgeType>(),
+            ApplicableTypes = new List<TarsEngine.Models.KnowledgeType>(),
             ValidationCriteria = "MinRelevance=0.3",
             ErrorMessage = "Relevance score is too low (minimum 0.3)",
             Severity = ValidationSeverity.Info
