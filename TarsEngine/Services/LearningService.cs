@@ -15,14 +15,14 @@ public class LearningService
     public LearningService(ILogger<LearningService> logger)
     {
         _logger = logger;
-            
+
         // Set the path for learning data
         string appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "TARS");
         _learningDataPath = Path.Combine(appDataPath, "learning_data.json");
-            
+
         // Ensure the directory exists
         Directory.CreateDirectory(appDataPath);
-            
+
         // Load learning data
         LoadLearningData();
     }
@@ -37,16 +37,16 @@ public class LearningService
         try
         {
             _logger.LogInformation($"Recording feedback for {feedback.Type} with rating {feedback.Rating}");
-                
+
             // Add the feedback to the learning data
             _learningData.Feedback.Add(feedback);
-                
+
             // Update pattern scores based on the feedback
             UpdatePatternScores(feedback);
-                
+
             // Save the learning data
             await SaveLearningDataAsync();
-                
+
             return true;
         }
         catch (Exception ex)
@@ -62,19 +62,19 @@ public class LearningService
     /// <param name="context">The context to get patterns for</param>
     /// <param name="count">The number of patterns to return</param>
     /// <returns>A list of the top patterns</returns>
-    public List<CodePattern> GetTopPatternsForContext(string context, int count = 5)
+    public List<LearningCodePattern> GetTopPatternsForContext(string context, int count = 5)
     {
         try
         {
             _logger.LogInformation($"Getting top {count} patterns for context: {context}");
-                
+
             // Filter patterns by context
             var matchingPatterns = _learningData.Patterns
                 .Where(p => p.Context.Equals(context, StringComparison.OrdinalIgnoreCase))
                 .OrderByDescending(p => p.Score)
                 .Take(count)
                 .ToList();
-                
+
             return matchingPatterns;
         }
         catch (Exception ex)
@@ -89,17 +89,17 @@ public class LearningService
     /// </summary>
     /// <param name="pattern">The pattern to add</param>
     /// <returns>True if the pattern was added successfully</returns>
-    public async Task<bool> AddPatternAsync(CodePattern pattern)
+    public async Task<bool> AddPatternAsync(LearningCodePattern pattern)
     {
         try
         {
             _logger.LogInformation($"Adding new pattern for context: {pattern.Context}");
-                
+
             // Check if the pattern already exists
             var existingPattern = _learningData.Patterns
                 .FirstOrDefault(p => p.Context.Equals(pattern.Context, StringComparison.OrdinalIgnoreCase) &&
                                      p.Pattern.Equals(pattern.Pattern, StringComparison.OrdinalIgnoreCase));
-                
+
             if (existingPattern != null)
             {
                 // Update the existing pattern
@@ -114,13 +114,13 @@ public class LearningService
                 pattern.CreatedAt = DateTime.Now;
                 pattern.LastUsed = DateTime.Now;
                 pattern.UsageCount = 1;
-                    
+
                 _learningData.Patterns.Add(pattern);
             }
-                
+
             // Save the learning data
             await SaveLearningDataAsync();
-                
+
             return true;
         }
         catch (Exception ex)
@@ -139,7 +139,7 @@ public class LearningService
         try
         {
             _logger.LogInformation("Getting learning statistics");
-                
+
             var stats = new LearningStatistics
             {
                 TotalFeedbackCount = _learningData.Feedback.Count,
@@ -156,7 +156,7 @@ public class LearningService
                     .GroupBy(f => f.Rating)
                     .ToDictionary(g => g.Key, g => g.Count())
             };
-                
+
             return stats;
         }
         catch (Exception ex)
@@ -175,26 +175,26 @@ public class LearningService
         try
         {
             _logger.LogInformation("Analyzing feedback for patterns");
-                
+
             // Get positive feedback (rating >= 4)
             var positiveFeedback = _learningData.Feedback
                 .Where(f => f.Rating >= 4)
                 .ToList();
-                
+
             // Group feedback by context
             var feedbackByContext = positiveFeedback
                 .GroupBy(f => f.Context)
                 .ToDictionary(g => g.Key, g => g.ToList());
-                
+
             // Extract patterns from each context group
             foreach (var contextGroup in feedbackByContext)
             {
                 string context = contextGroup.Key;
                 var feedbackItems = contextGroup.Value;
-                    
+
                 // Extract common patterns from the code
                 var patterns = ExtractPatternsFromCode(feedbackItems);
-                    
+
                 // Add each pattern to the learning data
                 foreach (var pattern in patterns)
                 {
@@ -202,7 +202,7 @@ public class LearningService
                     await AddPatternAsync(pattern);
                 }
             }
-                
+
             return true;
         }
         catch (Exception ex)
@@ -236,7 +236,7 @@ public class LearningService
         catch (Exception ex)
         {
             _logger.LogError(ex, $"Error loading learning data: {ex.Message}");
-                
+
             // Create a new learning data object if loading fails
             _learningData = new LearningData
             {
@@ -257,7 +257,7 @@ public class LearningService
             {
                 WriteIndented = true
             });
-                
+
             await File.WriteAllTextAsync(_learningDataPath, json);
         }
         catch (Exception ex)
@@ -277,7 +277,7 @@ public class LearningService
             var matchingPatterns = _learningData.Patterns
                 .Where(p => p.Context.Equals(feedback.Context, StringComparison.OrdinalIgnoreCase))
                 .ToList();
-                
+
             foreach (var pattern in matchingPatterns)
             {
                 // Check if the pattern is present in the code
@@ -300,22 +300,22 @@ public class LearningService
     /// <summary>
     /// Extracts patterns from code feedback
     /// </summary>
-    private List<CodePattern> ExtractPatternsFromCode(List<CodeFeedback> feedbackItems)
+    private List<LearningCodePattern> ExtractPatternsFromCode(List<CodeFeedback> feedbackItems)
     {
-        var patterns = new List<CodePattern>();
-            
+        var patterns = new List<LearningCodePattern>();
+
         try
         {
             // This is a simplified implementation
             // In a real implementation, we would use more sophisticated pattern extraction techniques
-                
+
             // Extract common code blocks
             var codeBlocks = new List<string>();
             foreach (var feedback in feedbackItems)
             {
                 // Split the code into lines
                 var lines = feedback.Code.Split(["\r\n", "\r", "\n"], StringSplitOptions.None);
-                    
+
                 // Extract blocks of 3-5 lines
                 for (int i = 0; i < lines.Length - 2; i++)
                 {
@@ -326,7 +326,7 @@ public class LearningService
                     }
                 }
             }
-                
+
             // Count occurrences of each block
             var blockCounts = codeBlocks
                 .GroupBy(b => b)
@@ -335,11 +335,11 @@ public class LearningService
                 .OrderByDescending(b => b.Count)
                 .Take(10) // Take the top 10 blocks
                 .ToList();
-                
+
             // Create patterns from the blocks
             foreach (var block in blockCounts)
             {
-                patterns.Add(new CodePattern
+                patterns.Add(new LearningCodePattern
                 {
                     Pattern = block.Block,
                     Description = $"Common code pattern (found in {block.Count} feedback items)",
@@ -352,7 +352,7 @@ public class LearningService
         {
             _logger.LogError(ex, $"Error extracting patterns from code: {ex.Message}");
         }
-            
+
         return patterns;
     }
 }
@@ -363,7 +363,7 @@ public class LearningService
 public class LearningData
 {
     public List<CodeFeedback> Feedback { get; set; } = [];
-    public List<CodePattern> Patterns { get; set; } = [];
+    public List<LearningCodePattern> Patterns { get; set; } = [];
 }
 
 /// <summary>
@@ -383,7 +383,7 @@ public class CodeFeedback
 /// <summary>
 /// Represents a code pattern
 /// </summary>
-public class CodePattern
+public class LearningCodePattern
 {
     public string Id { get; set; }
     public string Context { get; set; } // Language, project type, etc.
@@ -403,7 +403,7 @@ public class LearningStatistics
     public int TotalFeedbackCount { get; set; }
     public int TotalPatternCount { get; set; }
     public double AverageFeedbackRating { get; set; }
-    public List<CodePattern> TopPatterns { get; set; } = [];
+    public List<LearningCodePattern> TopPatterns { get; set; } = [];
     public Dictionary<string, int> FeedbackByType { get; set; } = new Dictionary<string, int>();
     public Dictionary<int, int> FeedbackByRating { get; set; } = new Dictionary<int, int>();
 }

@@ -115,7 +115,7 @@ public class PatternLibrary
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting patterns");
-            return new List<CodePattern>();
+            return new List<TarsEngine.Models.CodePattern>();
         }
     }
 
@@ -173,7 +173,7 @@ public class PatternLibrary
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting patterns by tag: {Tag}", tag);
-            return new List<CodePattern>();
+            return new List<TarsEngine.Models.CodePattern>();
         }
     }
 
@@ -203,7 +203,7 @@ public class PatternLibrary
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting patterns by category: {Category}", category);
-            return new List<CodePattern>();
+            return new List<TarsEngine.Models.CodePattern>();
         }
     }
 
