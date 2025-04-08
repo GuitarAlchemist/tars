@@ -510,9 +510,9 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
         }
     }
 
-    private async Task<List<KnowledgeItem>> ExtractFromSectionAsync(ContentSection section, DocumentParsingResult document)
+    private async Task<List<TarsEngine.Models.KnowledgeItem>> ExtractFromSectionAsync(ContentSection section, DocumentParsingResult document)
     {
-        var items = new List<KnowledgeItem>();
+        var items = new List<TarsEngine.Models.KnowledgeItem>();
 
         // Extract based on content type
         switch (section.ContentType)
@@ -606,9 +606,9 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
         return items;
     }
 
-    private List<KnowledgeItem> ExtractConcepts(string content)
+    private List<TarsEngine.Models.KnowledgeItem> ExtractConcepts(string content)
     {
-        var concepts = new List<KnowledgeItem>();
+        var concepts = new List<TarsEngine.Models.KnowledgeItem>();
 
         // Extract concepts using regex
         var matches = _conceptRegex.Matches(content);
@@ -619,9 +619,9 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
                 var conceptText = match.Groups[1].Value.Trim();
                 if (!string.IsNullOrWhiteSpace(conceptText))
                 {
-                    var item = new KnowledgeItem
+                    var item = new TarsEngine.Models.KnowledgeItem
                     {
-                        Type = KnowledgeType.Concept,
+                        Type = TarsEngine.Models.KnowledgeType.Concept,
                         Content = conceptText,
                         Confidence = 0.8,
                         Relevance = 0.7,
@@ -635,9 +635,9 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
         return concepts;
     }
 
-    private List<KnowledgeItem> ExtractInsights(string content)
+    private List<TarsEngine.Models.KnowledgeItem> ExtractInsights(string content)
     {
-        var insights = new List<KnowledgeItem>();
+        var insights = new List<TarsEngine.Models.KnowledgeItem>();
 
         // Extract insights using regex
         var matches = _insightRegex.Matches(content);
@@ -648,9 +648,9 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
                 var insightText = match.Groups[1].Value.Trim();
                 if (!string.IsNullOrWhiteSpace(insightText))
                 {
-                    var item = new KnowledgeItem
+                    var item = new TarsEngine.Models.KnowledgeItem
                     {
-                        Type = KnowledgeType.Insight,
+                        Type = TarsEngine.Models.KnowledgeType.Insight,
                         Content = insightText,
                         Confidence = 0.7,
                         Relevance = 0.6,
@@ -664,9 +664,9 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
         return insights;
     }
 
-    private List<KnowledgeItem> ExtractCodePatterns(string code, string language)
+    private List<TarsEngine.Models.KnowledgeItem> ExtractCodePatterns(string code, string language)
     {
-        var patterns = new List<KnowledgeItem>();
+        var patterns = new List<TarsEngine.Models.KnowledgeItem>();
 
         // Extract class/interface definitions
         var classMatches = _codePatternRegex.Matches(code);
@@ -677,9 +677,9 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
                 var className = match.Groups[1].Value.Trim();
                 if (!string.IsNullOrWhiteSpace(className))
                 {
-                    var item = new KnowledgeItem
+                    var item = new TarsEngine.Models.KnowledgeItem
                     {
-                        Type = KnowledgeType.CodePattern,
+                        Type = TarsEngine.Models.KnowledgeType.CodePattern,
                         Content = $"Class/Interface: {className}",
                         Confidence = 0.9,
                         Relevance = 0.8,
@@ -699,9 +699,9 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
                 var functionName = match.Groups[1].Value.Trim();
                 if (!string.IsNullOrWhiteSpace(functionName))
                 {
-                    var item = new KnowledgeItem
+                    var item = new TarsEngine.Models.KnowledgeItem
                     {
-                        Type = KnowledgeType.CodePattern,
+                        Type = TarsEngine.Models.KnowledgeType.CodePattern,
                         Content = $"Function/Method: {functionName}",
                         Confidence = 0.9,
                         Relevance = 0.7,
@@ -715,7 +715,7 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
         return patterns;
     }
 
-    private KnowledgeItem? CreateKnowledgeItemFromClassification(ContentClassification classification)
+    private TarsEngine.Models.KnowledgeItem? CreateKnowledgeItemFromClassification(ContentClassification classification)
     {
         // Skip if content is empty
         if (string.IsNullOrWhiteSpace(classification.Content))
@@ -726,29 +726,29 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
         // Map classification category to knowledge type
         var knowledgeType = classification.PrimaryCategory switch
         {
-            ContentCategory.Concept => KnowledgeType.Concept,
-            ContentCategory.CodeExample => KnowledgeType.CodePattern,
-            ContentCategory.Algorithm => KnowledgeType.Algorithm,
-            ContentCategory.DesignPattern => KnowledgeType.DesignPattern,
-            ContentCategory.BestPractice => KnowledgeType.BestPractice,
-            ContentCategory.ApiDoc => KnowledgeType.ApiUsage,
-            ContentCategory.Question => KnowledgeType.Question,
-            ContentCategory.Answer => KnowledgeType.Answer,
-            ContentCategory.Insight => KnowledgeType.Insight,
-            ContentCategory.Performance => KnowledgeType.Performance,
-            ContentCategory.Security => KnowledgeType.Security,
-            ContentCategory.Testing => KnowledgeType.Testing,
-            _ => KnowledgeType.Unknown
+            ContentCategory.Concept => TarsEngine.Models.KnowledgeType.Concept,
+            ContentCategory.CodeExample => TarsEngine.Models.KnowledgeType.CodePattern,
+            ContentCategory.Algorithm => TarsEngine.Models.KnowledgeType.Algorithm,
+            ContentCategory.DesignPattern => TarsEngine.Models.KnowledgeType.DesignPattern,
+            ContentCategory.BestPractice => TarsEngine.Models.KnowledgeType.BestPractice,
+            ContentCategory.ApiDoc => TarsEngine.Models.KnowledgeType.ApiUsage,
+            ContentCategory.Question => TarsEngine.Models.KnowledgeType.Question,
+            ContentCategory.Answer => TarsEngine.Models.KnowledgeType.Answer,
+            ContentCategory.Insight => TarsEngine.Models.KnowledgeType.Insight,
+            ContentCategory.Performance => TarsEngine.Models.KnowledgeType.Performance,
+            ContentCategory.Security => TarsEngine.Models.KnowledgeType.Security,
+            ContentCategory.Testing => TarsEngine.Models.KnowledgeType.Testing,
+            _ => TarsEngine.Models.KnowledgeType.Unknown
         };
 
         // Skip unknown types
-        if (knowledgeType == KnowledgeType.Unknown)
+        if (knowledgeType == TarsEngine.Models.KnowledgeType.Unknown)
         {
             return null;
         }
 
         // Create knowledge item
-        var item = new KnowledgeItem
+        var item = new TarsEngine.Models.KnowledgeItem
         {
             Type = knowledgeType,
             Content = classification.Content,
@@ -763,7 +763,7 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
         return item;
     }
 
-    private (RelationshipType Type, double Strength) DetectRelationship(KnowledgeItem item1, KnowledgeItem item2)
+    private (RelationshipType Type, double Strength) DetectRelationship(TarsEngine.Models.KnowledgeItem item1, TarsEngine.Models.KnowledgeItem item2)
     {
         // Check for same type
         if (item1.Type == item2.Type)
@@ -777,31 +777,31 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
         }
 
         // Check for question-answer relationship
-        if (item1.Type == KnowledgeType.Question && item2.Type == KnowledgeType.Answer)
+        if (item1.Type == TarsEngine.Models.KnowledgeType.Question && item2.Type == TarsEngine.Models.KnowledgeType.Answer)
         {
             return (RelationshipType.Answers, 0.9);
         }
-        if (item1.Type == KnowledgeType.Answer && item2.Type == KnowledgeType.Question)
+        if (item1.Type == TarsEngine.Models.KnowledgeType.Answer && item2.Type == TarsEngine.Models.KnowledgeType.Question)
         {
             return (RelationshipType.Questions, 0.9);
         }
 
         // Check for implementation relationship
-        if (item1.Type == KnowledgeType.CodePattern && item2.Type == KnowledgeType.Algorithm)
+        if (item1.Type == TarsEngine.Models.KnowledgeType.CodePattern && item2.Type == TarsEngine.Models.KnowledgeType.Algorithm)
         {
             return (RelationshipType.Implements, 0.8);
         }
-        if (item1.Type == KnowledgeType.Algorithm && item2.Type == KnowledgeType.CodePattern)
+        if (item1.Type == TarsEngine.Models.KnowledgeType.Algorithm && item2.Type == TarsEngine.Models.KnowledgeType.CodePattern)
         {
             return (RelationshipType.IsImplementedBy, 0.8);
         }
 
         // Check for concept-example relationship
-        if (item1.Type == KnowledgeType.Concept && item2.Type == KnowledgeType.CodePattern)
+        if (item1.Type == TarsEngine.Models.KnowledgeType.Concept && item2.Type == TarsEngine.Models.KnowledgeType.CodePattern)
         {
             return (RelationshipType.IsImplementedBy, 0.7);
         }
-        if (item1.Type == KnowledgeType.CodePattern && item2.Type == KnowledgeType.Concept)
+        if (item1.Type == TarsEngine.Models.KnowledgeType.CodePattern && item2.Type == TarsEngine.Models.KnowledgeType.Concept)
         {
             return (RelationshipType.Implements, 0.7);
         }
@@ -825,7 +825,7 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
         return union > 0 ? (double)intersection / union : 0;
     }
 
-    private bool ValidateAgainstRule(KnowledgeItem item, KnowledgeValidationRule rule)
+    private bool ValidateAgainstRule(TarsEngine.Models.KnowledgeItem item, TarsEngine.Models.KnowledgeValidationRule rule)
     {
         // Simple validation based on content length
         if (rule.ValidationCriteria.Contains("MinLength"))
