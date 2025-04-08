@@ -19,7 +19,7 @@ public class KnowledgeRepository : IKnowledgeRepository
     private readonly ILogger<KnowledgeRepository> _logger;
     private readonly string _dataDirectory;
     private readonly Dictionary<string, TarsEngine.Models.KnowledgeItem> _itemsCache = new();
-    private readonly Dictionary<string, List<KnowledgeRelationship>> _relationshipsCache = new();
+    private readonly Dictionary<string, List<TarsEngine.Models.KnowledgeRelationship>> _relationshipsCache = new();
     private readonly object _lockObject = new();
     private bool _isInitialized = false;
 
