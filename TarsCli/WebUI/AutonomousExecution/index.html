@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TARS Autonomous Execution System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <img src="../assets/tars-logo.png" alt="TARS Logo" height="30" class="d-inline-block align-text-top me-2">
+                TARS Autonomous Execution
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#dashboard">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#improvements">Improvements</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#executions">Executions</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#reports">Reports</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#settings">Settings</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#help">
+                            <i class="bi bi-question-circle"></i> Help
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <div id="dashboard" class="content-section active">
+            <div class="row">
+                <div class="col-md-12">
+                    <h2>Dashboard</h2>
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="card-title">Execution Summary</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="stat-card">
+                                        <div class="stat-card-title">Total Executions</div>
+                                        <div class="stat-card-value">24</div>
+                                        <div class="stat-card-change positive">+3 today</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="stat-card">
+                                        <div class="stat-card-title">Success Rate</div>
+                                        <div class="stat-card-value">87%</div>
+                                        <div class="stat-card-change positive">+2% this week</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="stat-card">
+                                        <div class="stat-card-title">Pending Reviews</div>
+                                        <div class="stat-card-value">5</div>
+                                        <div class="stat-card-change negative">+2 since yesterday</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="stat-card">
+                                        <div class="stat-card-title">Rollbacks</div>
+                                        <div class="stat-card-value">3</div>
+                                        <div class="stat-card-change neutral">No change</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="card-title">Recent Executions</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Improvement</th>
+                                            <th>Status</th>
+                                            <th>Started</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>CTX-123</td>
+                                            <td>Refactor Authentication Service</td>
+                                            <td><span class="badge bg-success">Completed</span></td>
+                                            <td>2 hours ago</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary">View</button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>CTX-122</td>
+                                            <td>Optimize Database Queries</td>
+                                            <td><span class="badge bg-warning">In Progress</span></td>
+                                            <td>3 hours ago</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary">View</button>
+                                                <button class="btn btn-sm btn-outline-secondary">Monitor</button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>CTX-121</td>
+                                            <td>Fix Memory Leak in Cache Service</td>
+                                            <td><span class="badge bg-danger">Failed</span></td>
+                                            <td>5 hours ago</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary">View</button>
+                                                <button class="btn btn-sm btn-outline-danger">Rollback</button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>CTX-120</td>
+                                            <td>Add Logging to API Endpoints</td>
+                                            <td><span class="badge bg-info">Awaiting Review</span></td>
+                                            <td>1 day ago</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary">View</button>
+                                                <button class="btn btn-sm btn-outline-success">Approve</button>
+                                                <button class="btn btn-sm btn-outline-danger">Reject</button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="text-end">
+                                <a href="#executions" class="btn btn-link">View All Executions</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="card-title">Execution Performance</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="executionPerformanceChart" height="250"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="card-title">Pending Improvements</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Name</th>
+                                            <th>Category</th>
+                                            <th>Priority</th>
+                                            <th>Impact</th>
+                                            <th>Effort</th>
+                                            <th>Risk</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>IMP-456</td>
+                                            <td>Implement Caching for API Responses</td>
+                                            <td>Performance</td>
+                                            <td><span class="badge bg-danger">High</span></td>
+                                            <td>High</td>
+                                            <td>Medium</td>
+                                            <td>Low</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-primary">Execute</button>
+                                                <button class="btn btn-sm btn-outline-primary">View</button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>IMP-455</td>
+                                            <td>Refactor Error Handling</td>
+                                            <td>Maintainability</td>
+                                            <td><span class="badge bg-warning">Medium</span></td>
+                                            <td>Medium</td>
+                                            <td>Medium</td>
+                                            <td>Medium</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-primary">Execute</button>
+                                                <button class="btn btn-sm btn-outline-primary">View</button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>IMP-454</td>
+                                            <td>Add Unit Tests for User Service</td>
+                                            <td>Testing</td>
+                                            <td><span class="badge bg-warning">Medium</span></td>
+                                            <td>Medium</td>
+                                            <td>High</td>
+                                            <td>Low</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-primary">Execute</button>
+                                                <button class="btn btn-sm btn-outline-primary">View</button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>IMP-453</td>
+                                            <td>Update Documentation for API Endpoints</td>
+                                            <td>Documentation</td>
+                                            <td><span class="badge bg-info">Low</span></td>
+                                            <td>Low</td>
+                                            <td>Low</td>
+                                            <td>Low</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-primary">Execute</button>
+                                                <button class="btn btn-sm btn-outline-primary">View</button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="text-end">
+                                <a href="#improvements" class="btn btn-link">View All Improvements</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="improvements" class="content-section">
+            <h2>Improvements</h2>
+            <div class="card mb-4">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">All Improvements</h5>
+                        <div>
+                            <button class="btn btn-primary">
+                                <i class="bi bi-plus"></i> New Improvement
+                            </button>
+                            <button class="btn btn-outline-secondary ms-2">
+                                <i class="bi bi-filter"></i> Filter
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Category</th>
+                                    <th>Status</th>
+                                    <th>Priority</th>
+                                    <th>Impact</th>
+                                    <th>Effort</th>
+                                    <th>Risk</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Improvement rows would be dynamically generated -->
+                                <tr>
+                                    <td>IMP-456</td>
+                                    <td>Implement Caching for API Responses</td>
+                                    <td>Performance</td>
+                                    <td><span class="badge bg-primary">Pending</span></td>
+                                    <td><span class="badge bg-danger">High</span></td>
+                                    <td>High</td>
+                                    <td>Medium</td>
+                                    <td>Low</td>
+                                    <td>2023-06-15</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary">Execute</button>
+                                        <button class="btn btn-sm btn-outline-primary">View</button>
+                                        <button class="btn btn-sm btn-outline-secondary">Edit</button>
+                                    </td>
+                                </tr>
+                                <!-- More improvement rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <nav>
+                        <ul class="pagination justify-content-center">
+                            <li class="page-item disabled">
+                                <a class="page-link" href="#" tabindex="-1">Previous</a>
+                            </li>
+                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                            <li class="page-item"><a class="page-link" href="#">2</a></li>
+                            <li class="page-item"><a class="page-link" href="#">3</a></li>
+                            <li class="page-item">
+                                <a class="page-link" href="#">Next</a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+
+        <div id="executions" class="content-section">
+            <h2>Executions</h2>
+            <div class="card mb-4">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">All Executions</h5>
+                        <div>
+                            <button class="btn btn-outline-secondary">
+                                <i class="bi bi-filter"></i> Filter
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Improvement</th>
+                                    <th>Status</th>
+                                    <th>Started</th>
+                                    <th>Completed</th>
+                                    <th>Duration</th>
+                                    <th>Mode</th>
+                                    <th>Environment</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Execution rows would be dynamically generated -->
+                                <tr>
+                                    <td>CTX-123</td>
+                                    <td>Refactor Authentication Service</td>
+                                    <td><span class="badge bg-success">Completed</span></td>
+                                    <td>2023-06-15 10:30</td>
+                                    <td>2023-06-15 10:45</td>
+                                    <td>15m</td>
+                                    <td>Real</td>
+                                    <td>Development</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary">View</button>
+                                        <button class="btn btn-sm btn-outline-secondary">Report</button>
+                                    </td>
+                                </tr>
+                                <!-- More execution rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <nav>
+                        <ul class="pagination justify-content-center">
+                            <li class="page-item disabled">
+                                <a class="page-link" href="#" tabindex="-1">Previous</a>
+                            </li>
+                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                            <li class="page-item"><a class="page-link" href="#">2</a></li>
+                            <li class="page-item"><a class="page-link" href="#">3</a></li>
+                            <li class="page-item">
+                                <a class="page-link" href="#">Next</a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+
+        <div id="reports" class="content-section">
+            <h2>Reports</h2>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="card-title">Report Types</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="list-group">
+                                <a href="#" class="list-group-item list-group-item-action active">
+                                    Execution Summary
+                                </a>
+                                <a href="#" class="list-group-item list-group-item-action">
+                                    Validation Report
+                                </a>
+                                <a href="#" class="list-group-item list-group-item-action">
+                                    Rollback Report
+                                </a>
+                                <a href="#" class="list-group-item list-group-item-action">
+                                    File Change Report
+                                </a>
+                                <a href="#" class="list-group-item list-group-item-action">
+                                    Performance Report
+                                </a>
+                                <a href="#" class="list-group-item list-group-item-action">
+                                    Custom Report
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="card-title">Execution Summary Report</h5>
+                        </div>
+                        <div class="card-body">
+                            <form>
+                                <div class="mb-3">
+                                    <label for="contextId" class="form-label">Execution Context ID</label>
+                                    <input type="text" class="form-control" id="contextId" placeholder="Enter context ID">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="reportFormat" class="form-label">Report Format</label>
+                                    <select class="form-select" id="reportFormat">
+                                        <option value="html">HTML</option>
+                                        <option value="pdf">PDF</option>
+                                        <option value="json">JSON</option>
+                                        <option value="csv">CSV</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="includeDetails" class="form-check-label">
+                                        <input type="checkbox" class="form-check-input" id="includeDetails">
+                                        Include Details
+                                    </label>
+                                </div>
+                                <div class="text-end">
+                                    <button type="submit" class="btn btn-primary">Generate Report</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="settings" class="content-section">
+            <h2>Settings</h2>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="card-title">Setting Categories</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="list-group">
+                                <a href="#" class="list-group-item list-group-item-action active">
+                                    General Settings
+                                </a>
+                                <a href="#" class="list-group-item list-group-item-action">
+                                    Execution Settings
+                                </a>
+                                <a href="#" class="list-group-item list-group-item-action">
+                                    Validation Settings
+                                </a>
+                                <a href="#" class="list-group-item list-group-item-action">
+                                    Rollback Settings
+                                </a>
+                                <a href="#" class="list-group-item list-group-item-action">
+                                    Security Settings
+                                </a>
+                                <a href="#" class="list-group-item list-group-item-action">
+                                    Notification Settings
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="card-title">General Settings</h5>
+                        </div>
+                        <div class="card-body">
+                            <form>
+                                <div class="mb-3">
+                                    <label for="workingDirectory" class="form-label">Working Directory</label>
+                                    <input type="text" class="form-control" id="workingDirectory" value="C:\Projects\TARS">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="backupDirectory" class="form-label">Backup Directory</label>
+                                    <input type="text" class="form-control" id="backupDirectory" value="C:\Projects\TARS\Backup">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="outputDirectory" class="form-label">Output Directory</label>
+                                    <input type="text" class="form-control" id="outputDirectory" value="C:\Projects\TARS\Output">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="defaultExecutionMode" class="form-label">Default Execution Mode</label>
+                                    <select class="form-select" id="defaultExecutionMode">
+                                        <option value="dryRun">Dry Run</option>
+                                        <option value="real" selected>Real</option>
+                                        <option value="interactive">Interactive</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="defaultEnvironment" class="form-label">Default Environment</label>
+                                    <select class="form-select" id="defaultEnvironment">
+                                        <option value="development" selected>Development</option>
+                                        <option value="testing">Testing</option>
+                                        <option value="staging">Staging</option>
+                                        <option value="production">Production</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="logLevel" class="form-label">Log Level</label>
+                                    <select class="form-select" id="logLevel">
+                                        <option value="debug">Debug</option>
+                                        <option value="information" selected>Information</option>
+                                        <option value="warning">Warning</option>
+                                        <option value="error">Error</option>
+                                        <option value="critical">Critical</option>
+                                    </select>
+                                </div>
+                                <div class="text-end">
+                                    <button type="submit" class="btn btn-primary">Save Settings</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer mt-auto py-3 bg-light">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="text-muted">TARS Autonomous Execution System &copy; 2023</span>
+                <span class="text-muted">Version 1.0.0</span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
