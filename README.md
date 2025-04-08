@@ -397,9 +397,33 @@ TARS includes experimental support for WebGPU rendering in React Three.js applic
 
 ## Acknowledgements
 
+### Organizations and Tools
 - [Augment Code](https://www.augmentcode.com/) - For providing the revolutionary AI pair programming capabilities that made TARS possible
 - [Anthropic](https://www.anthropic.com/) - For the Model Context Protocol specification
 - [Ollama](https://ollama.ai/) - For local model inference capabilities
+- [Microsoft](https://www.microsoft.com/) - For .NET, C#, F#, and Visual Studio Code
+- [Coqui](https://coqui.ai/) - For text-to-speech technology
+
+### Academic and Technical References
+- Thomas J. McCabe - For cyclomatic complexity metric (1976)
+- Maurice Howard Halstead - For Halstead complexity measures (1977)
+- Coleman, Ash, Lowther, and Oman - For the original maintainability index formula
+- Microsoft Research - For the modified maintainability index formula
+- G. Ann Campbell - For cognitive complexity metric (SonarSource)
+- Levenshtein, Vladimir I. - For the Levenshtein distance algorithm used in similarity detection
+- Jaccard, Paul - For the Jaccard similarity coefficient used in code comparison
+- Markov, Andrey - For Markov chain concepts used in AI components
+- Nash, John Forbes - For Nash equilibrium concepts in dynamic systems
+
+### Open Source Projects
+- [Roslyn](https://github.com/dotnet/roslyn) - The .NET Compiler Platform for code analysis
+- [FSharp.Compiler.Service](https://github.com/fsharp/FSharp.Compiler.Service) - For F# code analysis
+- [Microsoft.CodeAnalysis](https://www.nuget.org/packages/Microsoft.CodeAnalysis) - For C# code analysis
+- [Three.js](https://threejs.org/) - For 3D visualization capabilities
+- [WebGPU](https://www.w3.org/TR/webgpu/) - For GPU acceleration in web applications
+- [Docker](https://www.docker.com/) - For containerization and deployment
+- [Kubernetes](https://kubernetes.io/) - For container orchestration
+- [Redis](https://redis.io/) - For vector storage and caching
 
 ## License
 
