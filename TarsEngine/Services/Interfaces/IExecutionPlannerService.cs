@@ -75,21 +75,21 @@ public interface IExecutionPlannerService
     /// <param name="plan">The execution plan</param>
     /// <param name="options">Optional context options</param>
     /// <returns>The execution context</returns>
-    Task<ExecutionContext> CreateExecutionContextAsync(ExecutionPlan plan, Dictionary<string, string>? options = null);
+    Task<TarsEngine.Models.ExecutionContext> CreateExecutionContextAsync(ExecutionPlan plan, Dictionary<string, string>? options = null);
 
     /// <summary>
     /// Gets an execution context by ID
     /// </summary>
     /// <param name="contextId">The execution context ID</param>
     /// <returns>The execution context, or null if not found</returns>
-    Task<ExecutionContext?> GetExecutionContextAsync(string contextId);
+    Task<TarsEngine.Models.ExecutionContext?> GetExecutionContextAsync(string contextId);
 
     /// <summary>
     /// Saves an execution context
     /// </summary>
     /// <param name="context">The execution context</param>
     /// <returns>True if the execution context was saved successfully, false otherwise</returns>
-    Task<bool> SaveExecutionContextAsync(ExecutionContext context);
+    Task<bool> SaveExecutionContextAsync(TarsEngine.Models.ExecutionContext context);
 
     /// <summary>
     /// Gets the execution result for an execution plan

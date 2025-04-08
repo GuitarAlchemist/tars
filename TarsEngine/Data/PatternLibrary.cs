@@ -18,7 +18,7 @@ public class PatternLibrary
     private readonly ILogger _logger;
     private readonly PatternParser _patternParser;
     private readonly string _patternDirectory;
-    private readonly Dictionary<string, CodePattern> _patterns = new();
+    private readonly Dictionary<string, TarsEngine.Models.CodePattern> _patterns = new();
     private readonly Dictionary<string, List<string>> _patternsByTag = new();
     private readonly Dictionary<string, List<string>> _patternsByLanguage = new();
     private readonly Dictionary<string, List<string>> _patternsByCategory = new();
@@ -89,7 +89,7 @@ public class PatternLibrary
     /// </summary>
     /// <param name="language">Optional language filter</param>
     /// <returns>The list of patterns</returns>
-    public async Task<List<CodePattern>> GetPatternsAsync(string? language = null)
+    public async Task<List<TarsEngine.Models.CodePattern>> GetPatternsAsync(string? language = null)
     {
         await EnsureInitializedAsync();
 
@@ -124,7 +124,7 @@ public class PatternLibrary
     /// </summary>
     /// <param name="patternId">The pattern ID</param>
     /// <returns>The pattern, or null if not found</returns>
-    public async Task<CodePattern?> GetPatternAsync(string patternId)
+    public async Task<TarsEngine.Models.CodePattern?> GetPatternAsync(string patternId)
     {
         await EnsureInitializedAsync();
 
@@ -152,7 +152,7 @@ public class PatternLibrary
     /// </summary>
     /// <param name="tag">The tag</param>
     /// <returns>The list of patterns</returns>
-    public async Task<List<CodePattern>> GetPatternsByTagAsync(string tag)
+    public async Task<List<TarsEngine.Models.CodePattern>> GetPatternsByTagAsync(string tag)
     {
         await EnsureInitializedAsync();
 
@@ -182,7 +182,7 @@ public class PatternLibrary
     /// </summary>
     /// <param name="category">The category</param>
     /// <returns>The list of patterns</returns>
-    public async Task<List<CodePattern>> GetPatternsByCategoryAsync(string category)
+    public async Task<List<TarsEngine.Models.CodePattern>> GetPatternsByCategoryAsync(string category)
     {
         await EnsureInitializedAsync();
 
@@ -212,7 +212,7 @@ public class PatternLibrary
     /// </summary>
     /// <param name="pattern">The pattern to add</param>
     /// <returns>True if the pattern was added successfully, false otherwise</returns>
-    public async Task<bool> AddPatternAsync(CodePattern pattern)
+    public async Task<bool> AddPatternAsync(TarsEngine.Models.CodePattern pattern)
     {
         await EnsureInitializedAsync();
 
@@ -247,7 +247,7 @@ public class PatternLibrary
     /// </summary>
     /// <param name="pattern">The pattern to update</param>
     /// <returns>True if the pattern was updated successfully, false otherwise</returns>
-    public async Task<bool> UpdatePatternAsync(CodePattern pattern)
+    public async Task<bool> UpdatePatternAsync(TarsEngine.Models.CodePattern pattern)
     {
         await EnsureInitializedAsync();
 
@@ -396,7 +396,7 @@ public class PatternLibrary
     /// Adds a pattern to the index
     /// </summary>
     /// <param name="pattern">The pattern to add</param>
-    private void AddPatternToIndex(CodePattern pattern)
+    private void AddPatternToIndex(TarsEngine.Models.CodePattern pattern)
     {
         _patterns[pattern.Id] = pattern;
 
@@ -435,7 +435,7 @@ public class PatternLibrary
     /// Removes a pattern from the index
     /// </summary>
     /// <param name="pattern">The pattern to remove</param>
-    private void RemovePatternFromIndex(CodePattern pattern)
+    private void RemovePatternFromIndex(TarsEngine.Models.CodePattern pattern)
     {
         _patterns.Remove(pattern.Id);
 
@@ -484,7 +484,7 @@ public class PatternLibrary
     /// </summary>
     /// <param name="pattern">The pattern to save</param>
     /// <returns>A task representing the asynchronous operation</returns>
-    private async Task SavePatternToFileAsync(CodePattern pattern)
+    private async Task SavePatternToFileAsync(TarsEngine.Models.CodePattern pattern)
     {
         var filePath = GetPatternFilePath(pattern);
         var directory = Path.GetDirectoryName(filePath);
@@ -506,7 +506,7 @@ public class PatternLibrary
     /// </summary>
     /// <param name="pattern">The pattern</param>
     /// <returns>The file path</returns>
-    private string GetPatternFilePath(CodePattern pattern)
+    private string GetPatternFilePath(TarsEngine.Models.CodePattern pattern)
     {
         var language = pattern.Language.ToLowerInvariant();
         var category = pattern.Metadata.TryGetValue("Category", out var cat) ? cat.ToLowerInvariant() : "general";

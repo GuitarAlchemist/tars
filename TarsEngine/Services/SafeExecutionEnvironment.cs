@@ -16,7 +16,7 @@ public class SafeExecutionEnvironment
     private readonly ILogger<SafeExecutionEnvironment> _logger;
     private readonly PermissionManager _permissionManager;
     private readonly VirtualFileSystem _virtualFileSystem;
-    private readonly Dictionary<string, ExecutionContext> _executionContexts = new();
+    private readonly Dictionary<string, TarsEngine.Models.ExecutionContext> _executionContexts = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SafeExecutionEnvironment"/> class
@@ -44,7 +44,7 @@ public class SafeExecutionEnvironment
     /// <param name="environment">The execution environment</param>
     /// <param name="options">Optional context options</param>
     /// <returns>The execution context</returns>
-    public async Task<ExecutionContext> CreateExecutionContextAsync(
+    public async Task<TarsEngine.Models.ExecutionContext> CreateExecutionContextAsync(
         string executionPlanId,
         string improvementId,
         string metascriptId,
@@ -57,7 +57,7 @@ public class SafeExecutionEnvironment
             _logger.LogInformation("Creating execution context for plan: {ExecutionPlanId}", executionPlanId);
 
             // Create execution context
-            var context = new ExecutionContext
+            var context = new TarsEngine.Models.ExecutionContext
             {
                 ExecutionPlanId = executionPlanId,
                 ImprovementId = improvementId,
@@ -130,7 +130,7 @@ public class SafeExecutionEnvironment
     /// </summary>
     /// <param name="contextId">The execution context ID</param>
     /// <returns>The execution context, or null if not found</returns>
-    public ExecutionContext? GetExecutionContext(string contextId)
+    public TarsEngine.Models.ExecutionContext? GetExecutionContext(string contextId)
     {
         if (_executionContexts.TryGetValue(contextId, out var context))
         {
@@ -201,11 +201,11 @@ public class SafeExecutionEnvironment
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error reading file: {FilePath}", filePath);
-            
+
             // Update context with error
             var context = GetExecutionContext(contextId);
             context?.AddError($"Error reading file: {filePath}", "SafeExecutionEnvironment", ex);
-            
+
             throw;
         }
     }
@@ -252,11 +252,11 @@ public class SafeExecutionEnvironment
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error writing file: {FilePath}", filePath);
-            
+
             // Update context with error
             var context = GetExecutionContext(contextId);
             context?.AddError($"Error writing file: {filePath}", "SafeExecutionEnvironment", ex);
-            
+
             throw;
         }
     }
@@ -295,11 +295,11 @@ public class SafeExecutionEnvironment
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting file: {FilePath}", filePath);
-            
+
             // Update context with error
             var context = GetExecutionContext(contextId);
             context?.AddError($"Error deleting file: {filePath}", "SafeExecutionEnvironment", ex);
-            
+
             throw;
         }
     }
@@ -338,11 +338,11 @@ public class SafeExecutionEnvironment
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error backing up file: {FilePath}", filePath);
-            
+
             // Update context with error
             var context = GetExecutionContext(contextId);
             context?.AddError($"Error backing up file: {filePath}", "SafeExecutionEnvironment", ex);
-            
+
             throw;
         }
     }
@@ -376,11 +376,11 @@ public class SafeExecutionEnvironment
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error restoring file: {FilePath}", filePath);
-            
+
             // Update context with error
             var context = GetExecutionContext(contextId);
             context?.AddError($"Error restoring file: {filePath}", "SafeExecutionEnvironment", ex);
-            
+
             throw;
         }
     }
@@ -413,11 +413,11 @@ public class SafeExecutionEnvironment
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error committing changes for context: {ContextId}", contextId);
-            
+
             // Update context with error
             var context = GetExecutionContext(contextId);
             context?.AddError("Error committing changes", "SafeExecutionEnvironment", ex);
-            
+
             throw;
         }
     }
@@ -450,11 +450,11 @@ public class SafeExecutionEnvironment
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error rolling back changes for context: {ContextId}", contextId);
-            
+
             // Update context with error
             var context = GetExecutionContext(contextId);
             context?.AddError("Error rolling back changes", "SafeExecutionEnvironment", ex);
-            
+
             throw;
         }
     }
@@ -533,11 +533,11 @@ public class SafeExecutionEnvironment
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error executing command: {Command}", command);
-            
+
             // Update context with error
             var context = GetExecutionContext(contextId);
             context?.AddError($"Error executing command: {command}", "SafeExecutionEnvironment", ex);
-            
+
             throw;
         }
     }
