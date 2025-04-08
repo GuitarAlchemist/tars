@@ -683,7 +683,7 @@ public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
     /// <param name="complexityType">Type of complexity</param>
     /// <param name="targetType">Type of target (function, module, etc.)</param>
     /// <returns>Threshold value</returns>
-    private double GetThreshold(string language, ComplexityType complexityType, string targetType)
+    private double GetThreshold(string language, TarsEngine.Services.Interfaces.ComplexityType complexityType, string targetType)
     {
         if (_thresholds.TryGetValue(language, out var languageThresholds) &&
             languageThresholds.TryGetValue(complexityType, out var typeThresholds) &&
@@ -695,21 +695,21 @@ public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
         // Default thresholds if not configured
         return complexityType switch
         {
-            ComplexityType.Cyclomatic => targetType switch
+            TarsEngine.Services.Interfaces.ComplexityType.Cyclomatic => targetType switch
             {
                 "Function" => 8,
                 "Module" => 15,
                 "File" => 40,
                 _ => 8
             },
-            ComplexityType.Cognitive => targetType switch
+            TarsEngine.Services.Interfaces.ComplexityType.Cognitive => targetType switch
             {
                 "Function" => 12,
                 "Module" => 25,
                 "File" => 60,
                 _ => 12
             },
-            ComplexityType.MaintainabilityIndex => 20,
+            TarsEngine.Services.Interfaces.ComplexityType.MaintainabilityIndex => 20,
             _ => 8
         };
     }

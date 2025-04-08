@@ -14,28 +14,28 @@ public interface IKnowledgeRepository
     /// </summary>
     /// <param name="item">The knowledge item to add</param>
     /// <returns>The added knowledge item</returns>
-    Task<KnowledgeItem> AddItemAsync(KnowledgeItem item);
+    Task<TarsEngine.Models.KnowledgeItem> AddItemAsync(TarsEngine.Models.KnowledgeItem item);
 
     /// <summary>
     /// Adds multiple knowledge items to the repository
     /// </summary>
     /// <param name="items">The knowledge items to add</param>
     /// <returns>The added knowledge items</returns>
-    Task<IEnumerable<KnowledgeItem>> AddItemsAsync(IEnumerable<KnowledgeItem> items);
+    Task<IEnumerable<TarsEngine.Models.KnowledgeItem>> AddItemsAsync(IEnumerable<TarsEngine.Models.KnowledgeItem> items);
 
     /// <summary>
     /// Gets a knowledge item by ID
     /// </summary>
     /// <param name="id">The ID of the knowledge item to get</param>
     /// <returns>The knowledge item, or null if not found</returns>
-    Task<KnowledgeItem?> GetItemAsync(string id);
+    Task<TarsEngine.Models.KnowledgeItem?> GetItemAsync(string id);
 
     /// <summary>
     /// Updates a knowledge item in the repository
     /// </summary>
     /// <param name="item">The knowledge item to update</param>
     /// <returns>The updated knowledge item</returns>
-    Task<KnowledgeItem> UpdateItemAsync(KnowledgeItem item);
+    Task<TarsEngine.Models.KnowledgeItem> UpdateItemAsync(TarsEngine.Models.KnowledgeItem item);
 
     /// <summary>
     /// Deletes a knowledge item from the repository
@@ -50,7 +50,7 @@ public interface IKnowledgeRepository
     /// <param name="query">The search query</param>
     /// <param name="options">Optional search options</param>
     /// <returns>The matching knowledge items</returns>
-    Task<IEnumerable<KnowledgeItem>> SearchItemsAsync(string query, Dictionary<string, string>? options = null);
+    Task<IEnumerable<TarsEngine.Models.KnowledgeItem>> SearchItemsAsync(string query, Dictionary<string, string>? options = null);
 
     /// <summary>
     /// Gets all knowledge items of a specific type
@@ -58,7 +58,7 @@ public interface IKnowledgeRepository
     /// <param name="type">The type of knowledge items to get</param>
     /// <param name="options">Optional retrieval options</param>
     /// <returns>The knowledge items of the specified type</returns>
-    Task<IEnumerable<KnowledgeItem>> GetItemsByTypeAsync(KnowledgeType type, Dictionary<string, string>? options = null);
+    Task<IEnumerable<TarsEngine.Models.KnowledgeItem>> GetItemsByTypeAsync(TarsEngine.Models.KnowledgeType type, Dictionary<string, string>? options = null);
 
     /// <summary>
     /// Gets all knowledge items with a specific tag
@@ -66,7 +66,7 @@ public interface IKnowledgeRepository
     /// <param name="tag">The tag to search for</param>
     /// <param name="options">Optional retrieval options</param>
     /// <returns>The knowledge items with the specified tag</returns>
-    Task<IEnumerable<KnowledgeItem>> GetItemsByTagAsync(string tag, Dictionary<string, string>? options = null);
+    Task<IEnumerable<TarsEngine.Models.KnowledgeItem>> GetItemsByTagAsync(string tag, Dictionary<string, string>? options = null);
 
     /// <summary>
     /// Gets all knowledge items from a specific source
@@ -74,21 +74,21 @@ public interface IKnowledgeRepository
     /// <param name="source">The source to search for</param>
     /// <param name="options">Optional retrieval options</param>
     /// <returns>The knowledge items from the specified source</returns>
-    Task<IEnumerable<KnowledgeItem>> GetItemsBySourceAsync(string source, Dictionary<string, string>? options = null);
+    Task<IEnumerable<TarsEngine.Models.KnowledgeItem>> GetItemsBySourceAsync(string source, Dictionary<string, string>? options = null);
 
     /// <summary>
     /// Adds a relationship between knowledge items
     /// </summary>
     /// <param name="relationship">The relationship to add</param>
     /// <returns>The added relationship</returns>
-    Task<KnowledgeRelationship> AddRelationshipAsync(KnowledgeRelationship relationship);
+    Task<TarsEngine.Models.KnowledgeRelationship> AddRelationshipAsync(TarsEngine.Models.KnowledgeRelationship relationship);
 
     /// <summary>
     /// Gets all relationships for a knowledge item
     /// </summary>
     /// <param name="itemId">The ID of the knowledge item</param>
     /// <returns>The relationships for the knowledge item</returns>
-    Task<IEnumerable<KnowledgeRelationship>> GetRelationshipsForItemAsync(string itemId);
+    Task<IEnumerable<TarsEngine.Models.KnowledgeRelationship>> GetRelationshipsForItemAsync(string itemId);
 
     /// <summary>
     /// Deletes a relationship between knowledge items
