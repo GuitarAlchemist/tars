@@ -2,6 +2,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using TarsEngine.Services;
 using TarsEngine.Services.Interfaces;
+using Microsoft.Extensions.Logging;
+using TarsEngine.Models.Metrics;
 
 namespace TarsCli.Services;
 
@@ -24,8 +26,14 @@ public static class ServiceProviderFactory
         services.AddSingleton<IConfiguration>(configuration);
 
         // Register services
-        services.AddSingleton<ICodeComplexityAnalyzer, CodeComplexityAnalyzerService>();
+        services.AddSingleton<ICodeComplexityAnalyzer, CSharpComplexityAnalyzer>();
         services.AddSingleton<ICodeAnalysisService, CodeAnalysisService>();
+        // Temporarily comment out the duplication analyzer
+        // services.AddSingleton<IDuplicationAnalyzer>(provider => {
+        //     var logger = provider.GetRequiredService<ILogger<DuplicationAnalyzer>>();
+        //     return new DuplicationAnalyzer(logger);
+        // });
+        services.AddLogging();
 
         // Build the service provider
         _serviceProvider = services.BuildServiceProvider();

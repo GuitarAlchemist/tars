@@ -15,7 +15,7 @@ namespace TarsEngine.Services;
 public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
 {
     private readonly ILogger<FSharpComplexityAnalyzer> _logger;
-    private readonly Dictionary<string, Dictionary<ComplexityType, Dictionary<string, double>>> _thresholds;
+    private readonly Dictionary<string, Dictionary<TarsEngine.Models.Metrics.ComplexityType, Dictionary<string, double>>> _thresholds;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="FSharpComplexityAnalyzer"/> class
@@ -24,23 +24,23 @@ public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
     public FSharpComplexityAnalyzer(ILogger<FSharpComplexityAnalyzer> logger)
     {
         _logger = logger;
-        _thresholds = new Dictionary<string, Dictionary<ComplexityType, Dictionary<string, double>>>
+        _thresholds = new Dictionary<string, Dictionary<TarsEngine.Models.Metrics.ComplexityType, Dictionary<string, double>>>
         {
-            ["F#"] = new Dictionary<ComplexityType, Dictionary<string, double>>
+            ["F#"] = new Dictionary<TarsEngine.Models.Metrics.ComplexityType, Dictionary<string, double>>
             {
-                [ComplexityType.Cyclomatic] = new Dictionary<string, double>
+                [TarsEngine.Models.Metrics.ComplexityType.Cyclomatic] = new Dictionary<string, double>
                 {
                     ["Function"] = 8,
                     ["Module"] = 15,
                     ["File"] = 40
                 },
-                [ComplexityType.Cognitive] = new Dictionary<string, double>
+                [TarsEngine.Models.Metrics.ComplexityType.Cognitive] = new Dictionary<string, double>
                 {
                     ["Function"] = 12,
                     ["Module"] = 25,
                     ["File"] = 60
                 },
-                [ComplexityType.MaintainabilityIndex] = new Dictionary<string, double>
+                [TarsEngine.Models.Metrics.ComplexityType.Maintainability] = new Dictionary<string, double>
                 {
                     ["Function"] = 20,
                     ["Module"] = 20,
@@ -301,7 +301,7 @@ public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
     }
 
     /// <inheritdoc/>
-    public async Task<(List<ComplexityMetric> ComplexityMetrics, List<HalsteadMetric> HalsteadMetrics, List<MaintainabilityMetric> MaintainabilityMetrics, List<ReadabilityMetric> ReadabilityMetrics)> AnalyzeProjectComplexityAsync(string projectPath)
+    public async Task<(List<ComplexityMetric> ComplexityMetrics, List<HalsteadMetric> HalsteadMetrics, List<MaintainabilityMetric> MaintainabilityMetrics)> AnalyzeProjectComplexityAsync(string projectPath)
     {
         try
         {
@@ -394,20 +394,29 @@ public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
                 maintainabilityMetrics.Add(maintainabilityMetric);
             }
 
-            return (complexityMetrics, halsteadMetrics, maintainabilityMetrics, readabilityMetrics);
+            return (complexityMetrics, halsteadMetrics, maintainabilityMetrics);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error analyzing F# project complexity for {ProjectPath}", projectPath);
-            return (new List<ComplexityMetric>(), new List<HalsteadMetric>(), new List<MaintainabilityMetric>(), new List<ReadabilityMetric>());
+            return (new List<ComplexityMetric>(), new List<HalsteadMetric>(), new List<MaintainabilityMetric>());
         }
     }
 
     /// <inheritdoc/>
-    public Task<Dictionary<string, double>> GetComplexityThresholdsAsync(string language, ComplexityType complexityType)
+    public Task<Dictionary<string, double>> GetComplexityThresholdsAsync(string language, TarsEngine.Services.Interfaces.ComplexityType complexityType)
     {
+        // Convert from interface ComplexityType to model ComplexityType
+        var modelComplexityType = complexityType switch
+        {
+            TarsEngine.Services.Interfaces.ComplexityType.Cyclomatic => TarsEngine.Models.Metrics.ComplexityType.Cyclomatic,
+            TarsEngine.Services.Interfaces.ComplexityType.Cognitive => TarsEngine.Models.Metrics.ComplexityType.Cognitive,
+            TarsEngine.Services.Interfaces.ComplexityType.Maintainability => TarsEngine.Models.Metrics.ComplexityType.Maintainability,
+            _ => TarsEngine.Models.Metrics.ComplexityType.Cyclomatic
+        };
+
         if (_thresholds.TryGetValue(language, out var languageThresholds) &&
-            languageThresholds.TryGetValue(complexityType, out var typeThresholds))
+            languageThresholds.TryGetValue(modelComplexityType, out var typeThresholds))
         {
             return Task.FromResult(typeThresholds);
         }
@@ -462,21 +471,30 @@ public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
     }
 
     /// <inheritdoc/>
-    public Task<bool> SetComplexityThresholdAsync(string language, ComplexityType complexityType, string targetType, double threshold)
+    public Task<bool> SetComplexityThresholdAsync(string language, TarsEngine.Services.Interfaces.ComplexityType complexityType, string targetType, double threshold)
     {
         try
         {
+            // Convert from interface ComplexityType to model ComplexityType
+            var modelComplexityType = complexityType switch
+            {
+                TarsEngine.Services.Interfaces.ComplexityType.Cyclomatic => TarsEngine.Models.Metrics.ComplexityType.Cyclomatic,
+                TarsEngine.Services.Interfaces.ComplexityType.Cognitive => TarsEngine.Models.Metrics.ComplexityType.Cognitive,
+                TarsEngine.Services.Interfaces.ComplexityType.Maintainability => TarsEngine.Models.Metrics.ComplexityType.Maintainability,
+                _ => TarsEngine.Models.Metrics.ComplexityType.Cyclomatic
+            };
+
             if (!_thresholds.ContainsKey(language))
             {
-                _thresholds[language] = new Dictionary<ComplexityType, Dictionary<string, double>>();
+                _thresholds[language] = new Dictionary<TarsEngine.Models.Metrics.ComplexityType, Dictionary<string, double>>();
             }
 
-            if (!_thresholds[language].ContainsKey(complexityType))
+            if (!_thresholds[language].ContainsKey(modelComplexityType))
             {
-                _thresholds[language][complexityType] = new Dictionary<string, double>();
+                _thresholds[language][modelComplexityType] = new Dictionary<string, double>();
             }
 
-            _thresholds[language][complexityType][targetType] = threshold;
+            _thresholds[language][modelComplexityType][targetType] = threshold;
             return Task.FromResult(true);
         }
         catch (Exception ex)

@@ -739,18 +739,34 @@ public class ImprovementGenerationCommand : Command
         }
     }
 
-    private async Task<Dictionary<string, List<CodeAnalysisResult>>> AnalyzePathAsync(ICodeAnalyzerService codeAnalyzer, string path, bool recursive, string filePattern)
+    private async Task<Dictionary<string, List<TarsEngine.Models.CodeAnalysisResult>>> AnalyzePathAsync(ICodeAnalyzerService codeAnalyzer, string path, bool recursive, string filePattern)
     {
         if (File.Exists(path))
         {
             // Analyze single file
-            var results = await codeAnalyzer.AnalyzeFileAsync(path);
-            return new Dictionary<string, List<CodeAnalysisResult>> { { path, results } };
+            var result = await codeAnalyzer.AnalyzeFileAsync(path);
+            var resultList = new List<TarsEngine.Models.CodeAnalysisResult> { result };
+            return new Dictionary<string, List<TarsEngine.Models.CodeAnalysisResult>> { { path, resultList } };
         }
         else if (Directory.Exists(path))
         {
             // Analyze directory
-            return await codeAnalyzer.AnalyzeDirectoryAsync(path, recursive, filePattern);
+            var results = await codeAnalyzer.AnalyzeDirectoryAsync(path, recursive, filePattern);
+            var resultDict = new Dictionary<string, List<TarsEngine.Models.CodeAnalysisResult>>();
+
+            // Create a dictionary with file paths as keys and lists of analysis results as values
+            for (int i = 0; i < results.Count; i++)
+            {
+                var result = results[i];
+                var filePath = result.FilePath;
+                if (!resultDict.ContainsKey(filePath))
+                {
+                    resultDict[filePath] = new List<TarsEngine.Models.CodeAnalysisResult>();
+                }
+                resultDict[filePath].Add(result);
+            }
+
+            return resultDict;
         }
         else
         {
