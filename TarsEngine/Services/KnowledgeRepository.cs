@@ -223,9 +223,9 @@ public class KnowledgeRepository : IKnowledgeRepository
             var maxResults = options != null && options.TryGetValue("MaxResults", out var maxResultsStr) && int.TryParse(maxResultsStr, out var maxResultsInt)
                 ? maxResultsInt
                 : 100;
-            var typeFilter = options != null && options.TryGetValue("Type", out var typeStr) && Enum.TryParse<KnowledgeType>(typeStr, out var typeEnum)
+            var typeFilter = options != null && options.TryGetValue("Type", out var typeStr) && Enum.TryParse<TarsEngine.Models.KnowledgeType>(typeStr, out var typeEnum)
                 ? typeEnum
-                : (KnowledgeType?)null;
+                : (TarsEngine.Models.KnowledgeType?)null;
             var minConfidence = options != null && options.TryGetValue("MinConfidence", out var minConfidenceStr) && double.TryParse(minConfidenceStr, out var minConfidenceDouble)
                 ? minConfidenceDouble
                 : 0.0;
@@ -322,9 +322,9 @@ public class KnowledgeRepository : IKnowledgeRepository
             var maxResults = options != null && options.TryGetValue("MaxResults", out var maxResultsStr) && int.TryParse(maxResultsStr, out var maxResultsInt)
                 ? maxResultsInt
                 : 100;
-            var typeFilter = options != null && options.TryGetValue("Type", out var typeStr) && Enum.TryParse<TarsEngine.Services.Interfaces.KnowledgeType>(typeStr, out var typeEnum)
+            var typeFilter = options != null && options.TryGetValue("Type", out var typeStr) && Enum.TryParse<TarsEngine.Models.KnowledgeType>(typeStr, out var typeEnum)
                 ? typeEnum
-                : (TarsEngine.Services.Interfaces.KnowledgeType?)null;
+                : (TarsEngine.Models.KnowledgeType?)null;
             var minConfidence = options != null && options.TryGetValue("MinConfidence", out var minConfidenceStr) && double.TryParse(minConfidenceStr, out var minConfidenceDouble)
                 ? minConfidenceDouble
                 : 0.0;
@@ -371,9 +371,9 @@ public class KnowledgeRepository : IKnowledgeRepository
             var maxResults = options != null && options.TryGetValue("MaxResults", out var maxResultsStr) && int.TryParse(maxResultsStr, out var maxResultsInt)
                 ? maxResultsInt
                 : 100;
-            var typeFilter = options != null && options.TryGetValue("Type", out var typeStr) && Enum.TryParse<TarsEngine.Services.Interfaces.KnowledgeType>(typeStr, out var typeEnum)
+            var typeFilter = options != null && options.TryGetValue("Type", out var typeStr) && Enum.TryParse<TarsEngine.Models.KnowledgeType>(typeStr, out var typeEnum)
                 ? typeEnum
-                : (TarsEngine.Services.Interfaces.KnowledgeType?)null;
+                : (TarsEngine.Models.KnowledgeType?)null;
             var minConfidence = options != null && options.TryGetValue("MinConfidence", out var minConfidenceStr) && double.TryParse(minConfidenceStr, out var minConfidenceDouble)
                 ? minConfidenceDouble
                 : 0.0;

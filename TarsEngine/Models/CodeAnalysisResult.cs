@@ -397,6 +397,16 @@ public enum IssueSeverity
     Minor,
 
     /// <summary>
+    /// Trivial severity
+    /// </summary>
+    Trivial,
+
+    /// <summary>
+    /// Error severity
+    /// </summary>
+    Error,
+
+    /// <summary>
     /// Info severity
     /// </summary>
     Info

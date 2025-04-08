@@ -27,42 +27,42 @@ public class CodeExecutionService
         try
         {
             _logger.LogInformation($"Running tests for project: {projectPath}");
-                
+
             // Determine if the path is a directory or a file
             bool isDirectory = Directory.Exists(projectPath);
             bool isFile = File.Exists(projectPath);
-                
+
             if (!isDirectory && !isFile)
             {
                 _logger.LogError($"Project path not found: {projectPath}");
                 return new TestExecutionResult
                 {
-                    Success = false,
+                    IsSuccessful = false,
                     ErrorMessage = $"Project path not found: {projectPath}"
                 };
             }
-                
+
             // Build the command
             var command = new StringBuilder("dotnet test");
-                
+
             // Add the project path if it's a file
             if (isFile)
             {
                 command.Append($" \"{projectPath}\"");
             }
-                
+
             // Add the test filter if provided
             if (!string.IsNullOrEmpty(testFilter))
             {
                 command.Append($" --filter \"{testFilter}\"");
             }
-                
+
             // Add verbosity
             command.Append(" --verbosity normal");
-                
+
             // Run the command
             var result = await ExecuteCommandAsync(command.ToString(), isDirectory ? projectPath : Path.GetDirectoryName(projectPath));
-                
+
             // Parse the test results
             return ParseTestResults(result);
         }
@@ -88,11 +88,11 @@ public class CodeExecutionService
         try
         {
             _logger.LogInformation($"Building project: {projectPath}");
-                
+
             // Determine if the path is a directory or a file
             bool isDirectory = Directory.Exists(projectPath);
             bool isFile = File.Exists(projectPath);
-                
+
             if (!isDirectory && !isFile)
             {
                 _logger.LogError($"Project path not found: {projectPath}");
@@ -102,22 +102,22 @@ public class CodeExecutionService
                     ErrorMessage = $"Project path not found: {projectPath}"
                 };
             }
-                
+
             // Build the command
             var command = new StringBuilder("dotnet build");
-                
+
             // Add the project path if it's a file
             if (isFile)
             {
                 command.Append($" \"{projectPath}\"");
             }
-                
+
             // Add configuration
             command.Append($" --configuration {configuration}");
-                
+
             // Run the command
             var result = await ExecuteCommandAsync(command.ToString(), isDirectory ? projectPath : Path.GetDirectoryName(projectPath));
-                
+
             // Parse the build results
             return ParseBuildResults(result);
         }
@@ -143,7 +143,7 @@ public class CodeExecutionService
         try
         {
             _logger.LogInformation($"Running test {testName} in project: {testProjectPath}");
-                
+
             // Ensure the test project exists
             if (!Directory.Exists(testProjectPath) && !File.Exists(testProjectPath))
             {
@@ -154,25 +154,25 @@ public class CodeExecutionService
                     ErrorMessage = $"Test project not found: {testProjectPath}"
                 };
             }
-                
+
             // Build the command
             var command = new StringBuilder("dotnet test");
-                
+
             // Add the project path if it's a file
             if (File.Exists(testProjectPath))
             {
                 command.Append($" \"{testProjectPath}\"");
             }
-                
+
             // Add the test filter
             command.Append($" --filter \"FullyQualifiedName~{testName}\"");
-                
+
             // Add verbosity
             command.Append(" --verbosity normal");
-                
+
             // Run the command
             var result = await ExecuteCommandAsync(command.ToString(), Directory.Exists(testProjectPath) ? testProjectPath : Path.GetDirectoryName(testProjectPath));
-                
+
             // Parse the test results
             return ParseTestResults(result);
         }
@@ -195,7 +195,7 @@ public class CodeExecutionService
         try
         {
             _logger.LogInformation($"Executing command: {command}");
-                
+
             // Create the process start info
             var startInfo = new ProcessStartInfo
             {
@@ -207,14 +207,14 @@ public class CodeExecutionService
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
-                
+
             // Create the process
             using var process = new Process { StartInfo = startInfo };
-                
+
             // Create string builders for output and error
             var outputBuilder = new StringBuilder();
             var errorBuilder = new StringBuilder();
-                
+
             // Set up output and error handlers
             process.OutputDataReceived += (sender, e) =>
             {
@@ -223,7 +223,7 @@ public class CodeExecutionService
                     outputBuilder.AppendLine(e.Data);
                 }
             };
-                
+
             process.ErrorDataReceived += (sender, e) =>
             {
                 if (e.Data != null)
@@ -231,21 +231,21 @@ public class CodeExecutionService
                     errorBuilder.AppendLine(e.Data);
                 }
             };
-                
+
             // Start the process
             process.Start();
-                
+
             // Begin reading output and error
             process.BeginOutputReadLine();
             process.BeginErrorReadLine();
-                
+
             // Wait for the process to exit
             await process.WaitForExitAsync();
-                
+
             // Get the output and error
             string output = outputBuilder.ToString();
             string error = errorBuilder.ToString();
-                
+
             // Create the result
             var result = new CommandExecutionResult
             {
@@ -254,9 +254,9 @@ public class CodeExecutionService
                 Error = error,
                 Success = process.ExitCode == 0
             };
-                
+
             _logger.LogInformation($"Command executed with exit code: {result.ExitCode}");
-                
+
             return result;
         }
         catch (Exception ex)
@@ -277,11 +277,13 @@ public class CodeExecutionService
     {
         var result = new TestExecutionResult
         {
-            Success = commandResult.Success,
+            IsSuccessful = commandResult.Success,
             Output = commandResult.Output,
-            Error = commandResult.Error
+            ErrorMessage = commandResult.Error,
+            StartedAt = DateTime.UtcNow,
+            CompletedAt = DateTime.UtcNow
         };
-            
+
         // Parse the test results
         if (commandResult.Success)
         {
@@ -291,37 +293,41 @@ public class CodeExecutionService
             {
                 result.TotalTests = int.Parse(totalTestsMatch.Groups[1].Value);
             }
-                
+
             var passedTestsMatch = System.Text.RegularExpressions.Regex.Match(commandResult.Output, @"Passed: (\d+)");
             if (passedTestsMatch.Success)
             {
                 result.PassedTests = int.Parse(passedTestsMatch.Groups[1].Value);
             }
-                
+
             var failedTestsMatch = System.Text.RegularExpressions.Regex.Match(commandResult.Output, @"Failed: (\d+)");
             if (failedTestsMatch.Success)
             {
                 result.FailedTests = int.Parse(failedTestsMatch.Groups[1].Value);
             }
-                
+
             var skippedTestsMatch = System.Text.RegularExpressions.Regex.Match(commandResult.Output, @"Skipped: (\d+)");
             if (skippedTestsMatch.Success)
             {
                 result.SkippedTests = int.Parse(skippedTestsMatch.Groups[1].Value);
             }
-                
+
             // Extract test duration
             var durationMatch = System.Text.RegularExpressions.Regex.Match(commandResult.Output, @"Time: (.+)");
             if (durationMatch.Success)
             {
-                result.Duration = durationMatch.Groups[1].Value;
+                // Try to parse the duration
+                if (TimeSpan.TryParse(durationMatch.Groups[1].Value, out var duration))
+                {
+                    result.DurationMs = (long)duration.TotalMilliseconds;
+                }
             }
         }
         else
         {
             result.ErrorMessage = commandResult.Error;
         }
-            
+
         return result;
     }
 
@@ -336,7 +342,7 @@ public class CodeExecutionService
             Output = commandResult.Output,
             Error = commandResult.Error
         };
-            
+
         // Parse the build results
         if (commandResult.Success)
         {
@@ -346,7 +352,7 @@ public class CodeExecutionService
             {
                 result.WarningCount = int.Parse(warningCountMatch.Groups[1].Value);
             }
-                
+
             // Extract error count
             var errorCountMatch = System.Text.RegularExpressions.Regex.Match(commandResult.Output, @"(\d+) Error\(s\)");
             if (errorCountMatch.Success)
@@ -357,7 +363,7 @@ public class CodeExecutionService
         else
         {
             result.ErrorMessage = commandResult.Error;
-                
+
             // Extract error count
             var errorCountMatch = System.Text.RegularExpressions.Regex.Match(commandResult.Output, @"(\d+) Error\(s\)");
             if (errorCountMatch.Success)
@@ -365,7 +371,7 @@ public class CodeExecutionService
                 result.ErrorCount = int.Parse(errorCountMatch.Groups[1].Value);
             }
         }
-            
+
         return result;
     }
 }
