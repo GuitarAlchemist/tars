@@ -14,7 +14,7 @@ namespace TarsEngine.Consciousness.Intelligence.Insight;
 public class ConnectionDiscovery
 {
     private readonly ILogger<ConnectionDiscovery> _logger;
-    private readonly System.Random _random = new();
+    private readonly Random _random = new();
     private double _connectionDiscoveryLevel = 0.5; // Starting with moderate connection discovery
     private readonly Dictionary<string, List<string>> _conceptRelations = new();
     private readonly List<DiscoveredConnection> _discoveredConnections = [];
