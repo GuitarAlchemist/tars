@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using TarsEngine.Models.Metrics;
 using TarsEngine.Services.Interfaces;
+using TarsCli.Extensions;
 
 namespace TarsCli.Commands;
 
@@ -30,54 +31,54 @@ public class CodeComplexityCommand : Command
         _complexityAnalyzer = complexityAnalyzer;
 
         // Add options
-        var pathOption = new Option<string>(
+        _pathOption = new Option<string>(
             aliases: new[] { "--path", "-p" },
             description: "Path to the file or directory to analyze")
         {
             IsRequired = true
         };
 
-        var languageOption = new Option<string>(
+        _languageOption = new Option<string>(
             aliases: new[] { "--language", "-l" },
             description: "Programming language (C# or F#)")
         {
             IsRequired = false
         };
 
-        var typeOption = new Option<string>(
+        _typeOption = new Option<string>(
             aliases: new[] { "--type", "-t" },
             description: "Complexity type (Cyclomatic, Cognitive, Maintainability, Halstead, or All)")
         {
             IsRequired = false
         };
 
-        var halsteadTypeOption = new Option<string>(
+        _halsteadTypeOption = new Option<string>(
             aliases: new[] { "--halstead-type", "-h" },
             description: "Halstead metric type (Vocabulary, Length, Volume, Difficulty, Effort, TimeRequired, DeliveredBugs)")
         {
             IsRequired = false
         };
 
-        var readabilityTypeOption = new Option<string>(
+        _readabilityTypeOption = new Option<string>(
             aliases: new[] { "--readability-type", "-r" },
             description: "Readability metric type (IdentifierQuality, CommentQuality, CodeStructure, Overall)")
         {
             IsRequired = false
         };
 
-        var outputOption = new Option<string>(
+        _outputOption = new Option<string>(
             aliases: new[] { "--output", "-o" },
             description: "Output format (Console, Json, or Csv)")
         {
             IsRequired = false
         };
 
-        AddOption(pathOption);
-        AddOption(languageOption);
-        AddOption(typeOption);
-        AddOption(halsteadTypeOption);
-        AddOption(readabilityTypeOption);
-        AddOption(outputOption);
+        AddOption(_pathOption);
+        AddOption(_languageOption);
+        AddOption(_typeOption);
+        AddOption(_halsteadTypeOption);
+        AddOption(_readabilityTypeOption);
+        AddOption(_outputOption);
 
         this.SetHandler(HandleCommandAsync);
     }
@@ -87,16 +88,24 @@ public class CodeComplexityCommand : Command
     /// </summary>
     /// <param name="context">Command context</param>
     /// <returns>A task representing the asynchronous operation</returns>
+    // Store options as class fields
+    private readonly Option<string> _pathOption;
+    private readonly Option<string> _languageOption;
+    private readonly Option<string> _typeOption;
+    private readonly Option<string> _halsteadTypeOption;
+    private readonly Option<string> _readabilityTypeOption;
+    private readonly Option<string> _outputOption;
+
     private async Task HandleCommandAsync(InvocationContext context)
     {
         try
         {
-            var path = context.ParseResult.GetValueForOption<string>("--path");
-            var language = context.ParseResult.GetValueForOption<string>("--language");
-            var type = context.ParseResult.GetValueForOption<string>("--type") ?? "All";
-            var halsteadType = context.ParseResult.GetValueForOption<string>("--halstead-type");
-            var readabilityType = context.ParseResult.GetValueForOption<string>("--readability-type");
-            var output = context.ParseResult.GetValueForOption<string>("--output") ?? "Console";
+            var path = context.ParseResult.GetValueForOption(_pathOption);
+            var language = context.ParseResult.GetValueForOption(_languageOption);
+            var type = context.ParseResult.GetValueForOption(_typeOption) ?? "All";
+            var halsteadType = context.ParseResult.GetValueForOption(_halsteadTypeOption);
+            var readabilityType = context.ParseResult.GetValueForOption(_readabilityTypeOption);
+            var output = context.ParseResult.GetValueForOption(_outputOption) ?? "Console";
 
             if (string.IsNullOrEmpty(path))
             {
@@ -229,9 +238,9 @@ public class CodeComplexityCommand : Command
 
                 // Filter readability metrics by type if specified
                 var filteredReadabilityMetrics = allMetrics.ReadabilityMetrics;
-                if (!string.IsNullOrEmpty(readabilityType) && Enum.TryParse<ReadabilityType>(readabilityType, true, out var parsedReadabilityType))
+                if (!string.IsNullOrEmpty(readabilityType) && Enum.TryParse<ReadabilityType>(readabilityType, true, out var parsedReadabilityTypeValue))
                 {
-                    filteredReadabilityMetrics = filteredReadabilityMetrics.Where(m => m.Type == parsedReadabilityType).ToList();
+                    filteredReadabilityMetrics = filteredReadabilityMetrics.Where(m => m.Type == parsedReadabilityTypeValue).ToList();
                 }
 
                 result.AddRange(filteredReadabilityMetrics);
@@ -340,9 +349,9 @@ public class CodeComplexityCommand : Command
 
                 // Filter readability metrics by type if specified
                 var filteredReadabilityMetrics = projectMetrics.ReadabilityMetrics;
-                if (!string.IsNullOrEmpty(readabilityType) && Enum.TryParse<ReadabilityType>(readabilityType, true, out var parsedReadabilityType))
+                if (!string.IsNullOrEmpty(readabilityType) && Enum.TryParse<ReadabilityType>(readabilityType, true, out var parsedReadabilityTypeForProject))
                 {
-                    filteredReadabilityMetrics = filteredReadabilityMetrics.Where(m => m.Type == parsedReadabilityType).ToList();
+                    filteredReadabilityMetrics = filteredReadabilityMetrics.Where(m => m.Type == parsedReadabilityTypeForProject).ToList();
                 }
 
                 metrics.AddRange(filteredReadabilityMetrics);
@@ -418,11 +427,11 @@ public class CodeComplexityCommand : Command
                     var value = metric.Value.ToString("F2").PadRight(maxValueLength);
                     var threshold = metric.ThresholdValue.ToString("F2").PadRight(maxValueLength);
 
-                    var status = metric.IsAboveThreshold
+                    var status = metric.IsAboveThreshold()
                         ? "EXCEEDS THRESHOLD"
                         : "OK";
 
-                    var statusColor = metric.IsAboveThreshold
+                    var statusColor = metric.IsAboveThreshold()
                         ? ConsoleColor.Red
                         : ConsoleColor.Green;
 
@@ -528,7 +537,7 @@ public class CodeComplexityCommand : Command
         Console.WriteLine(new string('-', 80));
 
         var totalMetrics = metrics.Count;
-        var complexityExceedingThreshold = complexityMetrics.Count(m => m.IsAboveThreshold);
+        var complexityExceedingThreshold = complexityMetrics.Count(m => m.IsAboveThreshold());
         var halsteadExceedingThreshold = halsteadMetrics.Count(m => m.IsAboveThreshold);
         var maintainabilityBelowThreshold = maintainabilityMetrics.Count(m => m.IsBelowThreshold);
 
@@ -578,7 +587,7 @@ public class CodeComplexityCommand : Command
             if (metric is ComplexityMetric complexityMetric)
             {
                 metricType = $"Complexity_{complexityMetric.Type}";
-                hasIssue = complexityMetric.IsAboveThreshold;
+                hasIssue = complexityMetric.IsAboveThreshold();
             }
             else if (metric is HalsteadMetric halsteadMetric)
             {
@@ -591,7 +600,7 @@ public class CodeComplexityCommand : Command
                 hasIssue = maintainabilityMetric.IsBelowThreshold;
             }
 
-            Console.WriteLine($"{metricType},\"{metric.Name}\",\"{metric.Target}\",{metric.Value},{metric.ThresholdValue},{hasIssue},\"{metric.FilePath}\",\"{metric.Language}\"");
+            Console.WriteLine($"{metricType},\"{metric.Name}\",\"{metric.Target()}\",{metric.Value},{metric.ThresholdValue()},{hasIssue},\"{metric.FilePath()}\",\"{metric.Language()}\"");
         }
     }
 }

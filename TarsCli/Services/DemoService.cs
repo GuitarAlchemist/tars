@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
+using TarsCli.Extensions;
 
 namespace TarsCli.Services;
 
@@ -1499,7 +1500,8 @@ namespace DemoCode
             Console.WriteLine();
 
             // Get the code complexity analyzer service
-            var codeComplexityAnalyzer = _serviceProvider.GetRequiredService<TarsEngine.Services.Interfaces.ICodeComplexityAnalyzer>();
+            var serviceProvider = ServiceProviderFactory.CreateServiceProvider();
+            var codeComplexityAnalyzer = (TarsEngine.Services.Interfaces.ICodeComplexityAnalyzer)serviceProvider.GetService(typeof(TarsEngine.Services.Interfaces.ICodeComplexityAnalyzer));
 
             // Step 1: Analyze a simple C# file
             CliSupport.WriteColorLine("Step 1: Analyzing a simple C# file...", ConsoleColor.Green);
@@ -1546,7 +1548,7 @@ namespace TarsDemo
                 Console.WriteLine($"Target: {metric.Target}");
                 Console.WriteLine($"Complexity: {metric.Value:F2}");
                 Console.WriteLine($"Threshold: {metric.ThresholdValue:F2}");
-                Console.WriteLine($"Status: {(metric.IsAboveThreshold ? "EXCEEDS THRESHOLD" : "OK")}");
+                Console.WriteLine($"Status: {(metric.IsAboveThreshold() ? "EXCEEDS THRESHOLD" : "OK")}");
                 Console.WriteLine();
             }
 
@@ -1673,13 +1675,13 @@ namespace TarsDemo
 
             foreach (var metric in complexMetrics)
             {
-                var statusColor = metric.IsAboveThreshold ? ConsoleColor.Red : ConsoleColor.Green;
+                var statusColor = metric.IsAboveThreshold() ? ConsoleColor.Red : ConsoleColor.Green;
 
                 Console.WriteLine($"Target: {metric.Target}");
                 Console.WriteLine($"Complexity: {metric.Value:F2}");
                 Console.WriteLine($"Threshold: {metric.ThresholdValue:F2}");
                 Console.Write($"Status: ");
-                CliSupport.WriteColorLine(metric.IsAboveThreshold ? "EXCEEDS THRESHOLD" : "OK", statusColor);
+                CliSupport.WriteColorLine(metric.IsAboveThreshold() ? "EXCEEDS THRESHOLD" : "OK", statusColor);
                 Console.WriteLine();
             }
 
@@ -1723,7 +1725,7 @@ namespace TarsDemo
             Console.WriteLine();
 
             var methodsExceedingThreshold = complexMetrics
-                .Where(m => m.IsAboveThreshold && m.TargetType == TarsEngine.Models.Metrics.TargetType.Method)
+                .Where(m => m.IsAboveThreshold() && m.TargetType == TarsEngine.Models.Metrics.TargetType.Method)
                 .ToList();
 
             if (methodsExceedingThreshold.Any())

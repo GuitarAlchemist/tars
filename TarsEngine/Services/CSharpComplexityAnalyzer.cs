@@ -7,6 +7,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using TarsEngine.Models.Metrics;
 using TarsEngine.Services.Interfaces;
 
@@ -29,7 +30,7 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
         _logger = logger;
         _thresholds = new Dictionary<string, Dictionary<ComplexityType, Dictionary<string, double>>>
         {
-            ["C#"] = new Dictionary<ComplexityType, Dictionary<string, double>>
+            ["C#"] = new()
             {
                 [ComplexityType.Cyclomatic] = new Dictionary<string, double>
                 {
@@ -43,7 +44,7 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
                     ["Class"] = 30,
                     ["File"] = 75
                 },
-                [ComplexityType.MaintainabilityIndex] = new Dictionary<string, double>
+                [ComplexityType.Maintainability] = new Dictionary<string, double>
                 {
                     ["Method"] = 20,
                     ["Class"] = 20,
@@ -174,8 +175,8 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
             }
 
             // Create maintainability analyzer
-            var halsteadAnalyzer = new CSharpHalsteadAnalyzer(_logger);
-            var maintainabilityAnalyzer = new CSharpMaintainabilityAnalyzer(_logger, this, halsteadAnalyzer);
+            var halsteadAnalyzer = new CSharpHalsteadAnalyzer(null);
+            var maintainabilityAnalyzer = new CSharpMaintainabilityAnalyzer(null, this, halsteadAnalyzer);
 
             // Analyze maintainability index
             return await maintainabilityAnalyzer.AnalyzeMaintainabilityIndexAsync(filePath);
@@ -199,7 +200,7 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
             }
 
             // Create Halstead analyzer
-            var halsteadAnalyzer = new CSharpHalsteadAnalyzer(_logger);
+            var halsteadAnalyzer = new CSharpHalsteadAnalyzer(null);
 
             // Analyze Halstead complexity
             return await halsteadAnalyzer.AnalyzeHalsteadComplexityAsync(filePath);
@@ -223,7 +224,7 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
         try
         {
             // Use the readability analyzer service
-            var readabilityAnalyzer = new CSharpReadabilityAnalyzer(_logger);
+            var readabilityAnalyzer = new CSharpReadabilityAnalyzer(null);
 
             return readabilityType switch
             {
@@ -242,7 +243,7 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
     }
 
     /// <inheritdoc/>
-    public async Task<(List<ComplexityMetric> ComplexityMetrics, List<HalsteadMetric> HalsteadMetrics, List<MaintainabilityMetric> MaintainabilityMetrics, List<ReadabilityMetric> ReadabilityMetrics)> AnalyzeAllComplexityMetricsAsync(string filePath, string language)
+    public async Task<TarsEngine.Models.Metrics.ComplexityAnalysisResult> AnalyzeAllComplexityMetricsAsync(string filePath, string language)
     {
         var complexityMetrics = new List<ComplexityMetric>();
         var halsteadMetrics = new List<HalsteadMetric>();
@@ -262,14 +263,20 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
         maintainabilityMetrics.AddRange(await AnalyzeMaintainabilityIndexAsync(filePath, language));
 
         // Get readability metrics
-        var readabilityAnalyzer = new CSharpReadabilityAnalyzer(_logger);
+        var readabilityAnalyzer = new CSharpReadabilityAnalyzer(null);
         readabilityMetrics.AddRange(await readabilityAnalyzer.AnalyzeAllReadabilityMetricsAsync(filePath, language));
 
-        return (complexityMetrics, halsteadMetrics, maintainabilityMetrics, readabilityMetrics);
+        return new TarsEngine.Models.Metrics.ComplexityAnalysisResult
+        {
+            ComplexityMetrics = complexityMetrics,
+            HalsteadMetrics = halsteadMetrics,
+            MaintainabilityMetrics = maintainabilityMetrics,
+            ReadabilityMetrics = readabilityMetrics
+        };
     }
 
     /// <inheritdoc/>
-    public async Task<(List<ComplexityMetric> ComplexityMetrics, List<HalsteadMetric> HalsteadMetrics, List<MaintainabilityMetric> MaintainabilityMetrics, List<ReadabilityMetric> ReadabilityMetrics)> AnalyzeProjectComplexityAsync(string projectPath)
+    public async Task<TarsEngine.Models.Metrics.ComplexityAnalysisResult> AnalyzeProjectComplexityAsync(string projectPath)
     {
         var complexityMetrics = new List<ComplexityMetric>();
         var halsteadMetrics = new List<HalsteadMetric>();
@@ -370,7 +377,13 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
             _logger.LogError(ex, "Error analyzing project complexity for {ProjectPath}", projectPath);
         }
 
-        return (complexityMetrics, halsteadMetrics, maintainabilityMetrics, readabilityMetrics);
+        return new TarsEngine.Models.Metrics.ComplexityAnalysisResult
+        {
+            ComplexityMetrics = complexityMetrics,
+            HalsteadMetrics = halsteadMetrics,
+            MaintainabilityMetrics = maintainabilityMetrics,
+            ReadabilityMetrics = readabilityMetrics
+        };
     }
 
     /// <inheritdoc/>
@@ -395,7 +408,7 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
         }
 
         // Create Halstead analyzer
-        var halsteadAnalyzer = new CSharpHalsteadAnalyzer(_logger);
+        var halsteadAnalyzer = new CSharpHalsteadAnalyzer(null);
 
         // Get Halstead thresholds
         return Task.FromResult(halsteadAnalyzer.GetHalsteadThresholds(halsteadType));
@@ -410,9 +423,11 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
             return Task.FromResult(new Dictionary<string, double>());
         }
 
-        // Create maintainability analyzer
-        var halsteadAnalyzer = new CSharpHalsteadAnalyzer(_logger);
-        var maintainabilityAnalyzer = new CSharpMaintainabilityAnalyzer(_logger, this, halsteadAnalyzer);
+        // Create maintainability analyzer with null logger instances
+        var halsteadLogger = NullLoggerFactory.Instance.CreateLogger<CSharpHalsteadAnalyzer>();
+        var maintainabilityLogger = NullLoggerFactory.Instance.CreateLogger<CSharpMaintainabilityAnalyzer>();
+        var halsteadAnalyzer = new CSharpHalsteadAnalyzer(halsteadLogger);
+        var maintainabilityAnalyzer = new CSharpMaintainabilityAnalyzer(maintainabilityLogger, this, halsteadAnalyzer);
 
         // Get maintainability thresholds
         return Task.FromResult(maintainabilityAnalyzer.GetMaintainabilityThresholds());
@@ -455,8 +470,9 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
 
         try
         {
-            // Create Halstead analyzer
-            var halsteadAnalyzer = new CSharpHalsteadAnalyzer(_logger);
+            // Create Halstead analyzer with a null logger instance
+            var halsteadLogger = NullLoggerFactory.Instance.CreateLogger<CSharpHalsteadAnalyzer>();
+            var halsteadAnalyzer = new CSharpHalsteadAnalyzer(halsteadLogger);
 
             // Set Halstead threshold
             return Task.FromResult(halsteadAnalyzer.SetHalsteadThreshold(halsteadType, targetType, threshold));
@@ -480,9 +496,11 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
 
         try
         {
-            // Create maintainability analyzer
-            var halsteadAnalyzer = new CSharpHalsteadAnalyzer(_logger);
-            var maintainabilityAnalyzer = new CSharpMaintainabilityAnalyzer(_logger, this, halsteadAnalyzer);
+            // Create maintainability analyzer with null logger instances
+            var halsteadLogger = NullLoggerFactory.Instance.CreateLogger<CSharpHalsteadAnalyzer>();
+            var maintainabilityLogger = NullLoggerFactory.Instance.CreateLogger<CSharpMaintainabilityAnalyzer>();
+            var halsteadAnalyzer = new CSharpHalsteadAnalyzer(halsteadLogger);
+            var maintainabilityAnalyzer = new CSharpMaintainabilityAnalyzer(maintainabilityLogger, this, halsteadAnalyzer);
 
             // Set maintainability threshold
             return Task.FromResult(maintainabilityAnalyzer.SetMaintainabilityThreshold(targetType, threshold));
@@ -594,7 +612,7 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
                 "File" => 75,
                 _ => 15
             },
-            ComplexityType.MaintainabilityIndex => 20,
+            ComplexityType.Maintainability => 20,
             _ => 10
         };
     }
