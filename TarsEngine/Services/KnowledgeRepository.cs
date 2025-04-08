@@ -78,7 +78,7 @@ public class KnowledgeRepository : IKnowledgeRepository
             await EnsureInitializedAsync();
 
             // Add each item
-            var addedItems = new List<KnowledgeItem>();
+            var addedItems = new List<TarsEngine.Models.KnowledgeItem>();
             foreach (var item in itemsList)
             {
                 var addedItem = await AddItemAsync(item);
@@ -237,7 +237,7 @@ public class KnowledgeRepository : IKnowledgeRepository
             var searchRegex = new Regex(query, RegexOptions.IgnoreCase);
 
             // Search in cache
-            List<KnowledgeItem> results;
+            List<TarsEngine.Models.KnowledgeItem> results;
             lock (_lockObject)
             {
                 results = _itemsCache.Values
@@ -245,7 +245,7 @@ public class KnowledgeRepository : IKnowledgeRepository
                         (searchRegex.IsMatch(item.Content) ||
                          searchRegex.IsMatch(item.Source) ||
                          item.Tags.Any(tag => searchRegex.IsMatch(tag))) &&
-                        (typeFilter == null || item.Type == typeFilter) &&
+                        (typeFilter == null || item.Type.Equals(typeFilter.Value)) &&
                         item.Confidence >= minConfidence &&
                         item.Relevance >= minRelevance)
                     .OrderByDescending(item => item.Relevance)
@@ -259,7 +259,7 @@ public class KnowledgeRepository : IKnowledgeRepository
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error searching for knowledge items with query: {Query}", query);
-            return Enumerable.Empty<KnowledgeItem>();
+            return Enumerable.Empty<TarsEngine.Models.KnowledgeItem>();
         }
     }
 
@@ -285,12 +285,12 @@ public class KnowledgeRepository : IKnowledgeRepository
                 : 0.0;
 
             // Get items from cache
-            List<KnowledgeItem> results;
+            List<TarsEngine.Models.KnowledgeItem> results;
             lock (_lockObject)
             {
                 results = _itemsCache.Values
                     .Where(item =>
-                        item.Type == type &&
+                        item.Type.Equals(type) &&
                         item.Confidence >= minConfidence &&
                         item.Relevance >= minRelevance)
                     .OrderByDescending(item => item.Relevance)
@@ -304,7 +304,7 @@ public class KnowledgeRepository : IKnowledgeRepository
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting knowledge items of type: {Type}", type);
-            return Enumerable.Empty<KnowledgeItem>();
+            return Enumerable.Empty<TarsEngine.Models.KnowledgeItem>();
         }
     }
 
@@ -333,13 +333,13 @@ public class KnowledgeRepository : IKnowledgeRepository
                 : 0.0;
 
             // Get items from cache
-            List<KnowledgeItem> results;
+            List<TarsEngine.Models.KnowledgeItem> results;
             lock (_lockObject)
             {
                 results = _itemsCache.Values
                     .Where(item =>
                         item.Tags.Contains(tag) &&
-                        (typeFilter == null || item.Type == typeFilter) &&
+                        (typeFilter == null || item.Type.Equals(typeFilter.Value)) &&
                         item.Confidence >= minConfidence &&
                         item.Relevance >= minRelevance)
                     .OrderByDescending(item => item.Relevance)
@@ -353,7 +353,7 @@ public class KnowledgeRepository : IKnowledgeRepository
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting knowledge items with tag: {Tag}", tag);
-            return Enumerable.Empty<KnowledgeItem>();
+            return Enumerable.Empty<TarsEngine.Models.KnowledgeItem>();
         }
     }
 
@@ -382,13 +382,13 @@ public class KnowledgeRepository : IKnowledgeRepository
                 : 0.0;
 
             // Get items from cache
-            List<KnowledgeItem> results;
+            List<TarsEngine.Models.KnowledgeItem> results;
             lock (_lockObject)
             {
                 results = _itemsCache.Values
                     .Where(item =>
                         item.Source.Equals(source, StringComparison.OrdinalIgnoreCase) &&
-                        (typeFilter == null || item.Type == typeFilter) &&
+                        (typeFilter == null || item.Type.Equals(typeFilter.Value)) &&
                         item.Confidence >= minConfidence &&
                         item.Relevance >= minRelevance)
                     .OrderByDescending(item => item.Relevance)
@@ -402,7 +402,7 @@ public class KnowledgeRepository : IKnowledgeRepository
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting knowledge items from source: {Source}", source);
-            return Enumerable.Empty<KnowledgeItem>();
+            return Enumerable.Empty<TarsEngine.Models.KnowledgeItem>();
         }
     }
 
@@ -562,7 +562,7 @@ public class KnowledgeRepository : IKnowledgeRepository
                 // Items by type
                 foreach (var type in Enum.GetValues<KnowledgeType>())
                 {
-                    var count = _itemsCache.Values.Count(item => item.Type == type);
+                    var count = _itemsCache.Values.Count(item => item.Type.Equals(type));
                     if (count > 0)
                     {
                         stats.ItemsByType[type] = count;
@@ -592,7 +592,7 @@ public class KnowledgeRepository : IKnowledgeRepository
                 // Relationships by type
                 foreach (var type in Enum.GetValues<RelationshipType>())
                 {
-                    var count = allRelationships.Count(r => r.Type == type);
+                    var count = allRelationships.Count(r => r.Type.Equals(type));
                     if (count > 0)
                     {
                         stats.RelationshipsByType[type] = count;
@@ -648,7 +648,7 @@ public class KnowledgeRepository : IKnowledgeRepository
                 try
                 {
                     var json = File.ReadAllText(filePath);
-                    var item = JsonSerializer.Deserialize<KnowledgeItem>(json);
+                    var item = JsonSerializer.Deserialize<TarsEngine.Models.KnowledgeItem>(json);
                     if (item != null)
                     {
                         _itemsCache[item.Id] = item;
