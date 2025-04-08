@@ -17,7 +17,7 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
     private readonly ILogger<KnowledgeExtractorService> _logger;
     private readonly IDocumentParserService _documentParserService;
     private readonly IContentClassifierService _contentClassifierService;
-    private readonly List<KnowledgeValidationRule> _validationRules = new();
+    private readonly List<TarsEngine.Models.KnowledgeValidationRule> _validationRules = new();
 
     // Regular expressions for pattern extraction
     private static readonly Regex _codePatternRegex = new(@"(?:public|private|protected|internal|static)?\s+(?:class|interface|struct|enum|record)\s+(\w+)", RegexOptions.Compiled);
@@ -321,13 +321,13 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
     }
 
     /// <inheritdoc/>
-    public async Task<KnowledgeValidationResult> ValidateKnowledgeItemAsync(KnowledgeItem item, Dictionary<string, string>? options = null)
+    public async Task<TarsEngine.Models.KnowledgeValidationResult> ValidateKnowledgeItemAsync(TarsEngine.Models.KnowledgeItem item, Dictionary<string, string>? options = null)
     {
         try
         {
             _logger.LogInformation("Validating knowledge item: {ItemId}", item.Id);
 
-            var result = new KnowledgeValidationResult
+            var result = new TarsEngine.Models.KnowledgeValidationResult
             {
                 Item = item,
                 IsValid = true
@@ -375,13 +375,13 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
     }
 
     /// <inheritdoc/>
-    public async Task<List<KnowledgeRelationship>> DetectRelationshipsAsync(List<KnowledgeItem> items, Dictionary<string, string>? options = null)
+    public async Task<List<TarsEngine.Models.KnowledgeRelationship>> DetectRelationshipsAsync(List<TarsEngine.Models.KnowledgeItem> items, Dictionary<string, string>? options = null)
     {
         try
         {
             _logger.LogInformation("Detecting relationships between {ItemCount} knowledge items", items.Count);
 
-            var relationships = new List<KnowledgeRelationship>();
+            var relationships = new List<TarsEngine.Models.KnowledgeRelationship>();
 
             // Skip if there are too few items
             if (items.Count < 2)
