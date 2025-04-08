@@ -12,122 +12,122 @@ public class IntelligenceReport
     /// Gets or sets the report timestamp
     /// </summary>
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
-    
+
     /// <summary>
     /// Gets or sets whether the intelligence spark is initialized
     /// </summary>
     public bool IsInitialized { get; set; }
-    
+
     /// <summary>
     /// Gets or sets whether the intelligence spark is active
     /// </summary>
     public bool IsActive { get; set; }
-    
+
     /// <summary>
     /// Gets or sets the intelligence level
     /// </summary>
     public double IntelligenceLevel { get; set; }
-    
+
     /// <summary>
     /// Gets or sets the creativity level
     /// </summary>
     public double CreativityLevel { get; set; }
-    
+
     /// <summary>
     /// Gets or sets the intuition level
     /// </summary>
     public double IntuitionLevel { get; set; }
-    
+
     /// <summary>
     /// Gets or sets the curiosity level
     /// </summary>
     public double CuriosityLevel { get; set; }
-    
+
     /// <summary>
     /// Gets or sets the insight level
     /// </summary>
     public double InsightLevel { get; set; }
-    
+
     /// <summary>
     /// Gets or sets the recent events
     /// </summary>
     public List<IntelligenceEvent> RecentEvents { get; set; } = new List<IntelligenceEvent>();
-    
+
     /// <summary>
     /// Gets or sets the creative ideas
     /// </summary>
     public List<CreativeIdea> CreativeIdeas { get; set; } = new List<CreativeIdea>();
-    
+
     /// <summary>
     /// Gets or sets the intuitions
     /// </summary>
     public List<Intuition> Intuitions { get; set; } = new List<Intuition>();
-    
+
     /// <summary>
     /// Gets or sets the spontaneous thoughts
     /// </summary>
     public List<SpontaneousThought> SpontaneousThoughts { get; set; } = new List<SpontaneousThought>();
-    
+
     /// <summary>
     /// Gets or sets the curiosity questions
     /// </summary>
     public List<CuriosityQuestion> CuriosityQuestions { get; set; } = new List<CuriosityQuestion>();
-    
+
     /// <summary>
     /// Gets or sets the insights
     /// </summary>
-    public List<Insight> Insights { get; set; } = new List<Insight>();
-    
+    public List<InsightLegacy> Insights { get; set; } = new List<InsightLegacy>();
+
     /// <summary>
     /// Gets or sets the report summary
     /// </summary>
     public string Summary { get; set; } = string.Empty;
-    
+
     /// <summary>
     /// Gets or sets the report insights
     /// </summary>
     public List<string> ReportInsights { get; set; } = new List<string>();
-    
+
     /// <summary>
     /// Gets or sets the report recommendations
     /// </summary>
     public List<string> Recommendations { get; set; } = new List<string>();
-    
+
     /// <summary>
     /// Gets or sets the intelligence growth rate
     /// </summary>
     public double IntelligenceGrowthRate { get; set; }
-    
+
     /// <summary>
     /// Gets or sets the creativity growth rate
     /// </summary>
     public double CreativityGrowthRate { get; set; }
-    
+
     /// <summary>
     /// Gets or sets the intuition growth rate
     /// </summary>
     public double IntuitionGrowthRate { get; set; }
-    
+
     /// <summary>
     /// Gets or sets the curiosity growth rate
     /// </summary>
     public double CuriosityGrowthRate { get; set; }
-    
+
     /// <summary>
     /// Gets or sets the insight growth rate
     /// </summary>
     public double InsightGrowthRate { get; set; }
-    
+
     /// <summary>
     /// Gets or sets the intelligence potential
     /// </summary>
     public double IntelligencePotential { get; set; }
-    
+
     /// <summary>
     /// Gets or sets the intelligence development stage
     /// </summary>
     public string DevelopmentStage { get; set; } = string.Empty;
-    
+
     /// <summary>
     /// Gets or sets the intelligence evolution progress
     /// </summary>

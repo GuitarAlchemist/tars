@@ -63,7 +63,7 @@ public interface ICodeComplexityAnalyzer
     /// </summary>
     /// <param name="projectPath">Path to the project</param>
     /// <returns>All complexity metrics for the project</returns>
-    Task<(List<ComplexityMetric> ComplexityMetrics, List<HalsteadMetric> HalsteadMetrics, List<MaintainabilityMetric> MaintainabilityMetrics)> AnalyzeProjectComplexityAsync(string projectPath);
+    Task<(List<ComplexityMetric> ComplexityMetrics, List<HalsteadMetric> HalsteadMetrics, List<MaintainabilityMetric> MaintainabilityMetrics, List<ReadabilityMetric> ReadabilityMetrics)> AnalyzeProjectComplexityAsync(string projectPath);
 
     /// <summary>
     /// Gets complexity thresholds for a specific language and complexity type

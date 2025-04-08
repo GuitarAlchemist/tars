@@ -15,46 +15,46 @@ public class CreativeThinking
     private readonly List<CreativeIdea> _creativeIdeas = new();
     private readonly List<CreativeProcess> _creativeProcesses = new();
     private readonly Dictionary<string, double> _conceptAssociations = new();
-    
+
     private bool _isInitialized = false;
     private bool _isActive = false;
     private double _creativityLevel = 0.4; // Starting with moderate creativity
     private double _divergentThinkingLevel = 0.5; // Starting with moderate divergent thinking
     private double _conceptualBlendingLevel = 0.3; // Starting with moderate conceptual blending
     private double _patternDisruptionLevel = 0.4; // Starting with moderate pattern disruption
-    private readonly Random _random = new Random();
+    private readonly System.Random _random = new System.Random();
     private DateTime _lastIdeaGenerationTime = DateTime.MinValue;
-    
+
     /// <summary>
     /// Gets the creativity level (0.0 to 1.0)
     /// </summary>
     public double CreativityLevel => _creativityLevel;
-    
+
     /// <summary>
     /// Gets the divergent thinking level (0.0 to 1.0)
     /// </summary>
     public double DivergentThinkingLevel => _divergentThinkingLevel;
-    
+
     /// <summary>
     /// Gets the conceptual blending level (0.0 to 1.0)
     /// </summary>
     public double ConceptualBlendingLevel => _conceptualBlendingLevel;
-    
+
     /// <summary>
     /// Gets the pattern disruption level (0.0 to 1.0)
     /// </summary>
     public double PatternDisruptionLevel => _patternDisruptionLevel;
-    
+
     /// <summary>
     /// Gets the creative ideas
     /// </summary>
     public IReadOnlyList<CreativeIdea> CreativeIdeas => _creativeIdeas.AsReadOnly();
-    
+
     /// <summary>
     /// Gets the creative processes
     /// </summary>
     public IReadOnlyList<CreativeProcess> CreativeProcesses => _creativeProcesses.AsReadOnly();
-    
+
     /// <summary>
     /// Initializes a new instance of the <see cref="CreativeThinking"/> class
     /// </summary>
@@ -63,7 +63,7 @@ public class CreativeThinking
     {
         _logger = logger;
     }
-    
+
     /// <summary>
     /// Initializes the creative thinking
     /// </summary>
@@ -73,10 +73,10 @@ public class CreativeThinking
         try
         {
             _logger.LogInformation("Initializing creative thinking");
-            
+
             // Initialize concept associations
             InitializeConceptAssociations();
-            
+
             _isInitialized = true;
             _logger.LogInformation("Creative thinking initialized successfully");
             return true;
@@ -87,7 +87,7 @@ public class CreativeThinking
             return false;
         }
     }
-    
+
     /// <summary>
     /// Initializes concept associations
     /// </summary>
@@ -98,28 +98,28 @@ public class CreativeThinking
         AddConceptAssociation("problem", "solution", 0.8);
         AddConceptAssociation("problem", "challenge", 0.7);
         AddConceptAssociation("problem", "opportunity", 0.6);
-        
+
         AddConceptAssociation("creativity", "innovation", 0.9);
         AddConceptAssociation("creativity", "imagination", 0.8);
         AddConceptAssociation("creativity", "originality", 0.7);
-        
+
         AddConceptAssociation("data", "information", 0.8);
         AddConceptAssociation("information", "knowledge", 0.7);
         AddConceptAssociation("knowledge", "wisdom", 0.6);
-        
+
         AddConceptAssociation("learning", "growth", 0.8);
         AddConceptAssociation("learning", "adaptation", 0.7);
         AddConceptAssociation("learning", "improvement", 0.7);
-        
+
         AddConceptAssociation("pattern", "structure", 0.7);
         AddConceptAssociation("pattern", "regularity", 0.6);
         AddConceptAssociation("pattern", "prediction", 0.5);
-        
+
         AddConceptAssociation("randomness", "chaos", 0.7);
         AddConceptAssociation("randomness", "unpredictability", 0.8);
         AddConceptAssociation("randomness", "novelty", 0.6);
     }
-    
+
     /// <summary>
     /// Adds a concept association
     /// </summary>
@@ -131,7 +131,7 @@ public class CreativeThinking
         string key = GetAssociationKey(concept1, concept2);
         _conceptAssociations[key] = strength;
     }
-    
+
     /// <summary>
     /// Gets the association key for two concepts
     /// </summary>
@@ -144,7 +144,7 @@ public class CreativeThinking
         var concepts = new[] { concept1, concept2 }.OrderBy(c => c).ToArray();
         return $"{concepts[0]}:{concepts[1]}";
     }
-    
+
     /// <summary>
     /// Gets the association strength between two concepts
     /// </summary>
@@ -156,7 +156,7 @@ public class CreativeThinking
         string key = GetAssociationKey(concept1, concept2);
         return _conceptAssociations.TryGetValue(key, out var strength) ? strength : 0.0;
     }
-    
+
     /// <summary>
     /// Activates the creative thinking
     /// </summary>
@@ -168,17 +168,17 @@ public class CreativeThinking
             _logger.LogWarning("Cannot activate creative thinking: not initialized");
             return false;
         }
-        
+
         if (_isActive)
         {
             _logger.LogInformation("Creative thinking is already active");
             return true;
         }
-        
+
         try
         {
             _logger.LogInformation("Activating creative thinking");
-            
+
             _isActive = true;
             _logger.LogInformation("Creative thinking activated successfully");
             return true;
@@ -189,7 +189,7 @@ public class CreativeThinking
             return false;
         }
     }
-    
+
     /// <summary>
     /// Deactivates the creative thinking
     /// </summary>
@@ -201,11 +201,11 @@ public class CreativeThinking
             _logger.LogInformation("Creative thinking is already inactive");
             return true;
         }
-        
+
         try
         {
             _logger.LogInformation("Deactivating creative thinking");
-            
+
             _isActive = false;
             _logger.LogInformation("Creative thinking deactivated successfully");
             return true;
@@ -216,7 +216,7 @@ public class CreativeThinking
             return false;
         }
     }
-    
+
     /// <summary>
     /// Updates the creative thinking
     /// </summary>
@@ -228,7 +228,7 @@ public class CreativeThinking
             _logger.LogWarning("Cannot update creative thinking: not initialized");
             return false;
         }
-        
+
         try
         {
             // Gradually increase creativity levels over time (very slowly)
@@ -237,25 +237,25 @@ public class CreativeThinking
                 _creativityLevel += 0.0001 * _random.NextDouble();
                 _creativityLevel = Math.Min(_creativityLevel, 1.0);
             }
-            
+
             if (_divergentThinkingLevel < 0.95)
             {
                 _divergentThinkingLevel += 0.0001 * _random.NextDouble();
                 _divergentThinkingLevel = Math.Min(_divergentThinkingLevel, 1.0);
             }
-            
+
             if (_conceptualBlendingLevel < 0.95)
             {
                 _conceptualBlendingLevel += 0.0001 * _random.NextDouble();
                 _conceptualBlendingLevel = Math.Min(_conceptualBlendingLevel, 1.0);
             }
-            
+
             if (_patternDisruptionLevel < 0.95)
             {
                 _patternDisruptionLevel += 0.0001 * _random.NextDouble();
                 _patternDisruptionLevel = Math.Min(_patternDisruptionLevel, 1.0);
             }
-            
+
             return true;
         }
         catch (Exception ex)
@@ -264,7 +264,7 @@ public class CreativeThinking
             return false;
         }
     }
-    
+
     /// <summary>
     /// Generates a creative idea
     /// </summary>
@@ -275,28 +275,28 @@ public class CreativeThinking
         {
             return null;
         }
-        
+
         // Only generate ideas periodically
         if ((DateTime.UtcNow - _lastIdeaGenerationTime).TotalSeconds < 30)
         {
             return null;
         }
-        
+
         try
         {
             _logger.LogDebug("Generating creative idea");
-            
+
             // Choose a creative process based on current levels
             var processType = ChooseCreativeProcess();
-            
+
             // Generate idea based on process type
             var idea = GenerateIdeaByProcess(processType);
-            
+
             if (idea != null)
             {
                 // Add to ideas list
                 _creativeIdeas.Add(idea);
-                
+
                 // Add creative process
                 var process = new CreativeProcess
                 {
@@ -307,15 +307,15 @@ public class CreativeThinking
                     IdeaId = idea.Id,
                     Effectiveness = idea.Originality * idea.Value
                 };
-                
+
                 _creativeProcesses.Add(process);
-                
+
                 _lastIdeaGenerationTime = DateTime.UtcNow;
-                
-                _logger.LogInformation("Generated creative idea: {Description} (Originality: {Originality:F2}, Value: {Value:F2})", 
+
+                _logger.LogInformation("Generated creative idea: {Description} (Originality: {Originality:F2}, Value: {Value:F2})",
                     idea.Description, idea.Originality, idea.Value);
             }
-            
+
             return idea;
         }
         catch (Exception ex)
@@ -324,7 +324,7 @@ public class CreativeThinking
             return null;
         }
     }
-    
+
     /// <summary>
     /// Chooses a creative process based on current levels
     /// </summary>
@@ -335,16 +335,16 @@ public class CreativeThinking
         double divergentProb = _divergentThinkingLevel * 0.4;
         double blendingProb = _conceptualBlendingLevel * 0.3;
         double disruptionProb = _patternDisruptionLevel * 0.3;
-        
+
         // Normalize probabilities
         double total = divergentProb + blendingProb + disruptionProb;
         divergentProb /= total;
         blendingProb /= total;
         disruptionProb /= total;
-        
+
         // Choose process based on probabilities
         double rand = _random.NextDouble();
-        
+
         if (rand < divergentProb)
         {
             return CreativeProcessType.DivergentThinking;
@@ -358,7 +358,7 @@ public class CreativeThinking
             return CreativeProcessType.PatternDisruption;
         }
     }
-    
+
     /// <summary>
     /// Generates an idea by a specific creative process
     /// </summary>
@@ -370,18 +370,18 @@ public class CreativeThinking
         {
             case CreativeProcessType.DivergentThinking:
                 return GenerateDivergentIdea();
-                
+
             case CreativeProcessType.ConceptualBlending:
                 return GenerateConceptualBlendIdea();
-                
+
             case CreativeProcessType.PatternDisruption:
                 return GeneratePatternDisruptionIdea();
-                
+
             default:
                 return null;
         }
     }
-    
+
     /// <summary>
     /// Generates a divergent thinking idea
     /// </summary>
@@ -390,7 +390,7 @@ public class CreativeThinking
     {
         // Get random seed concepts
         var seedConcepts = GetRandomConcepts(2);
-        
+
         // Generate multiple perspectives on the concepts
         var perspectives = new List<string>
         {
@@ -399,20 +399,20 @@ public class CreativeThinking
             $"Applying {seedConcepts[1]} principles to {seedConcepts[0]}",
             $"Reimagining {seedConcepts[0]} through the lens of {seedConcepts[1]}"
         };
-        
+
         // Choose a random perspective
         var perspective = perspectives[_random.Next(perspectives.Count)];
-        
+
         // Generate idea description
         string description = $"What if we {perspective}?";
-        
+
         // Calculate originality based on association strength (lower association = higher originality)
         double associationStrength = GetAssociationStrength(seedConcepts[0], seedConcepts[1]);
         double originality = 0.5 + (0.5 * (1.0 - associationStrength)) * _divergentThinkingLevel;
-        
+
         // Calculate value (somewhat random but influenced by creativity level)
         double value = 0.3 + (0.7 * _random.NextDouble() * _creativityLevel);
-        
+
         return new CreativeIdea
         {
             Id = Guid.NewGuid().ToString(),
@@ -424,7 +424,7 @@ public class CreativeThinking
             Concepts = seedConcepts.ToList()
         };
     }
-    
+
     /// <summary>
     /// Generates a conceptual blend idea
     /// </summary>
@@ -433,7 +433,7 @@ public class CreativeThinking
     {
         // Get random seed concepts
         var seedConcepts = GetRandomConcepts(3);
-        
+
         // Create blend space
         var blendDescriptions = new List<string>
         {
@@ -442,14 +442,14 @@ public class CreativeThinking
             $"A {seedConcepts[0]}-{seedConcepts[1]} fusion system with {seedConcepts[2]} characteristics",
             $"A {seedConcepts[2]}-inspired blend of {seedConcepts[0]} and {seedConcepts[1]}"
         };
-        
+
         // Choose a random blend description
         var description = blendDescriptions[_random.Next(blendDescriptions.Count)];
-        
+
         // Calculate average association strength between all concept pairs
         double totalAssociation = 0.0;
         int pairs = 0;
-        
+
         for (int i = 0; i < seedConcepts.Length; i++)
         {
             for (int j = i + 1; j < seedConcepts.Length; j++)
@@ -458,15 +458,15 @@ public class CreativeThinking
                 pairs++;
             }
         }
-        
+
         double avgAssociation = pairs > 0 ? totalAssociation / pairs : 0.5;
-        
+
         // Calculate originality (lower average association = higher originality)
         double originality = 0.6 + (0.4 * (1.0 - avgAssociation)) * _conceptualBlendingLevel;
-        
+
         // Calculate value (somewhat random but influenced by creativity level)
         double value = 0.4 + (0.6 * _random.NextDouble() * _creativityLevel);
-        
+
         return new CreativeIdea
         {
             Id = Guid.NewGuid().ToString(),
@@ -478,7 +478,7 @@ public class CreativeThinking
             Concepts = seedConcepts.ToList()
         };
     }
-    
+
     /// <summary>
     /// Generates a pattern disruption idea
     /// </summary>
@@ -487,7 +487,7 @@ public class CreativeThinking
     {
         // Get random seed concepts
         var seedConcepts = GetRandomConcepts(2);
-        
+
         // Generate pattern disruption descriptions
         var disruptionDescriptions = new List<string>
         {
@@ -496,16 +496,16 @@ public class CreativeThinking
             $"What if we eliminated {seedConcepts[1]} from {seedConcepts[0]} entirely?",
             $"What if {seedConcepts[0]} and {seedConcepts[1]} were opposites rather than related?"
         };
-        
+
         // Choose a random disruption description
         var description = disruptionDescriptions[_random.Next(disruptionDescriptions.Count)];
-        
+
         // Calculate originality (higher for pattern disruption)
         double originality = 0.7 + (0.3 * _random.NextDouble() * _patternDisruptionLevel);
-        
+
         // Calculate value (more variable for pattern disruption)
         double value = 0.2 + (0.8 * _random.NextDouble() * _creativityLevel);
-        
+
         return new CreativeIdea
         {
             Id = Guid.NewGuid().ToString(),
@@ -517,7 +517,7 @@ public class CreativeThinking
             Concepts = seedConcepts.ToList()
         };
     }
-    
+
     /// <summary>
     /// Gets random concepts from the concept associations
     /// </summary>
@@ -527,27 +527,27 @@ public class CreativeThinking
     {
         // Get all unique concepts from associations
         var allConcepts = new HashSet<string>();
-        
+
         foreach (var key in _conceptAssociations.Keys)
         {
             var parts = key.Split(':');
             allConcepts.Add(parts[0]);
             allConcepts.Add(parts[1]);
         }
-        
+
         // Convert to array for random selection
         var conceptArray = allConcepts.ToArray();
-        
+
         // Select random concepts
         var selectedConcepts = new string[count];
         for (int i = 0; i < count; i++)
         {
             selectedConcepts[i] = conceptArray[_random.Next(conceptArray.Length)];
         }
-        
+
         return selectedConcepts;
     }
-    
+
     /// <summary>
     /// Generates a creative solution to a problem
     /// </summary>
@@ -561,25 +561,25 @@ public class CreativeThinking
             _logger.LogWarning("Cannot generate creative solution: creative thinking not initialized or active");
             return null;
         }
-        
+
         try
         {
             _logger.LogInformation("Generating creative solution for problem: {Problem}", problem);
-            
+
             // Extract key concepts from problem
             var problemConcepts = ExtractConcepts(problem);
-            
+
             // Choose a creative process based on problem
             var processType = ChooseSolutionProcess(problem, constraints);
-            
+
             // Generate solution based on process type
             var solution = GenerateSolutionByProcess(processType, problem, problemConcepts, constraints);
-            
+
             if (solution != null)
             {
                 // Add to ideas list
                 _creativeIdeas.Add(solution);
-                
+
                 // Add creative process
                 var process = new CreativeProcess
                 {
@@ -590,13 +590,13 @@ public class CreativeThinking
                     IdeaId = solution.Id,
                     Effectiveness = solution.Originality * solution.Value
                 };
-                
+
                 _creativeProcesses.Add(process);
-                
-                _logger.LogInformation("Generated creative solution: {Description} (Originality: {Originality:F2}, Value: {Value:F2})", 
+
+                _logger.LogInformation("Generated creative solution: {Description} (Originality: {Originality:F2}, Value: {Value:F2})",
                     solution.Description, solution.Originality, solution.Value);
             }
-            
+
             return solution;
         }
         catch (Exception ex)
@@ -605,7 +605,7 @@ public class CreativeThinking
             return null;
         }
     }
-    
+
     /// <summary>
     /// Extracts concepts from text
     /// </summary>
@@ -615,17 +615,17 @@ public class CreativeThinking
     {
         // Simple concept extraction based on known concepts
         var allConcepts = new HashSet<string>();
-        
+
         foreach (var key in _conceptAssociations.Keys)
         {
             var parts = key.Split(':');
             allConcepts.Add(parts[0]);
             allConcepts.Add(parts[1]);
         }
-        
+
         // Find concepts in text
         var foundConcepts = new List<string>();
-        
+
         foreach (var concept in allConcepts)
         {
             if (text.Contains(concept, StringComparison.OrdinalIgnoreCase))
@@ -633,17 +633,17 @@ public class CreativeThinking
                 foundConcepts.Add(concept);
             }
         }
-        
+
         // If no concepts found, add some default ones
         if (foundConcepts.Count == 0)
         {
             foundConcepts.Add("problem");
             foundConcepts.Add("solution");
         }
-        
+
         return foundConcepts;
     }
-    
+
     /// <summary>
     /// Chooses a solution process based on problem and constraints
     /// </summary>
@@ -657,7 +657,7 @@ public class CreativeThinking
         {
             return CreativeProcessType.ConceptualBlending;
         }
-        
+
         // If problem seems to need radical thinking, use pattern disruption
         if (problem.Contains("innovative", StringComparison.OrdinalIgnoreCase) ||
             problem.Contains("breakthrough", StringComparison.OrdinalIgnoreCase) ||
@@ -665,11 +665,11 @@ public class CreativeThinking
         {
             return CreativeProcessType.PatternDisruption;
         }
-        
+
         // Default to divergent thinking
         return CreativeProcessType.DivergentThinking;
     }
-    
+
     /// <summary>
     /// Generates a solution by a specific creative process
     /// </summary>
@@ -679,21 +679,21 @@ public class CreativeThinking
     /// <param name="constraints">The constraints</param>
     /// <returns>The generated creative solution</returns>
     private CreativeIdea? GenerateSolutionByProcess(
-        CreativeProcessType processType, 
-        string problem, 
-        List<string> problemConcepts, 
+        CreativeProcessType processType,
+        string problem,
+        List<string> problemConcepts,
         List<string>? constraints)
     {
         // Get additional concepts beyond problem concepts
         var additionalConcepts = GetRandomConcepts(2);
         var allConcepts = new List<string>(problemConcepts);
         allConcepts.AddRange(additionalConcepts);
-        
+
         // Generate solution based on process type
         string description;
         double originality;
         double value;
-        
+
         switch (processType)
         {
             case CreativeProcessType.DivergentThinking:
@@ -702,14 +702,14 @@ public class CreativeThinking
                 originality = 0.5 + (0.5 * _divergentThinkingLevel);
                 value = 0.6 + (0.4 * _creativityLevel);
                 break;
-                
+
             case CreativeProcessType.ConceptualBlending:
                 description = $"Solution approach: Create a hybrid solution that blends {problemConcepts[0]} with {additionalConcepts[0]}, " +
                               $"incorporating elements of {additionalConcepts[1]} to address the constraints.";
                 originality = 0.6 + (0.4 * _conceptualBlendingLevel);
                 value = 0.7 + (0.3 * _creativityLevel);
                 break;
-                
+
             case CreativeProcessType.PatternDisruption:
                 description = $"Solution approach: Challenge the fundamental assumptions about {problemConcepts[0]}. " +
                               $"What if we reversed the relationship between {problemConcepts[0]} and {additionalConcepts[0]}? " +
@@ -717,17 +717,17 @@ public class CreativeThinking
                 originality = 0.7 + (0.3 * _patternDisruptionLevel);
                 value = 0.5 + (0.5 * _creativityLevel);
                 break;
-                
+
             default:
                 return null;
         }
-        
+
         // Apply constraints if provided
         if (constraints != null && constraints.Count > 0)
         {
             description += $" While ensuring {String.Join(" and ", constraints)}.";
         }
-        
+
         return new CreativeIdea
         {
             Id = Guid.NewGuid().ToString(),
@@ -741,7 +741,7 @@ public class CreativeThinking
             Constraints = constraints?.ToList() ?? new List<string>()
         };
     }
-    
+
     /// <summary>
     /// Gets recent creative ideas
     /// </summary>
@@ -754,7 +754,7 @@ public class CreativeThinking
             .Take(count)
             .ToList();
     }
-    
+
     /// <summary>
     /// Gets the most original ideas
     /// </summary>
@@ -767,7 +767,7 @@ public class CreativeThinking
             .Take(count)
             .ToList();
     }
-    
+
     /// <summary>
     /// Gets the most valuable ideas
     /// </summary>
@@ -780,7 +780,7 @@ public class CreativeThinking
             .Take(count)
             .ToList();
     }
-    
+
     /// <summary>
     /// Gets ideas by process type
     /// </summary>

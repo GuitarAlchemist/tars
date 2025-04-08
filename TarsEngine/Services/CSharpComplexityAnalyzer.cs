@@ -270,7 +270,7 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
     }
 
     /// <inheritdoc/>
-    public async Task<(List<ComplexityMetric> ComplexityMetrics, List<HalsteadMetric> HalsteadMetrics, List<MaintainabilityMetric> MaintainabilityMetrics)> AnalyzeProjectComplexityAsync(string projectPath)
+    public async Task<(List<ComplexityMetric> ComplexityMetrics, List<HalsteadMetric> HalsteadMetrics, List<MaintainabilityMetric> MaintainabilityMetrics, List<ReadabilityMetric> ReadabilityMetrics)> AnalyzeProjectComplexityAsync(string projectPath)
     {
         var complexityMetrics = new List<ComplexityMetric>();
         var halsteadMetrics = new List<HalsteadMetric>();
@@ -371,7 +371,7 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
             _logger.LogError(ex, "Error analyzing project complexity for {ProjectPath}", projectPath);
         }
 
-        return (ComplexityMetrics: complexityMetrics, HalsteadMetrics: halsteadMetrics, MaintainabilityMetrics: maintainabilityMetrics);
+        return (ComplexityMetrics: complexityMetrics, HalsteadMetrics: halsteadMetrics, MaintainabilityMetrics: maintainabilityMetrics, ReadabilityMetrics: readabilityMetrics);
     }
 
     /// <inheritdoc/>

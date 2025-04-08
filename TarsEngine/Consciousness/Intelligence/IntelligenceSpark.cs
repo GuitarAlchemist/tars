@@ -19,7 +19,7 @@ public class IntelligenceSpark
     private readonly CuriosityDrive _curiosityDrive;
     private readonly InsightGeneration _insightGeneration;
     private readonly ConsciousnessCore _consciousnessCore;
-    
+
     private bool _isInitialized = false;
     private bool _isActive = false;
     private double _intelligenceLevel = 0.3; // Starting with moderate intelligence
@@ -27,75 +27,75 @@ public class IntelligenceSpark
     private double _intuitionLevel = 0.3; // Starting with moderate intuition
     private double _curiosityLevel = 0.5; // Starting with high curiosity
     private double _insightLevel = 0.2; // Starting with low insight
-    private readonly Random _random = new Random();
+    private readonly System.Random _random = new System.Random();
     private DateTime _lastUpdateTime;
     private readonly List<IntelligenceEvent> _intelligenceEvents = new();
-    
+
     /// <summary>
     /// Gets the creative thinking component
     /// </summary>
     public CreativeThinking CreativeThinking => _creativeThinking;
-    
+
     /// <summary>
     /// Gets the intuitive reasoning component
     /// </summary>
     public IntuitiveReasoning IntuitiveReasoning => _intuitiveReasoning;
-    
+
     /// <summary>
     /// Gets the spontaneous thought component
     /// </summary>
     public SpontaneousThought SpontaneousThought => _spontaneousThought;
-    
+
     /// <summary>
     /// Gets the curiosity drive component
     /// </summary>
     public CuriosityDrive CuriosityDrive => _curiosityDrive;
-    
+
     /// <summary>
     /// Gets the insight generation component
     /// </summary>
     public InsightGeneration InsightGeneration => _insightGeneration;
-    
+
     /// <summary>
     /// Gets the intelligence level (0.0 to 1.0)
     /// </summary>
     public double IntelligenceLevel => _intelligenceLevel;
-    
+
     /// <summary>
     /// Gets the creativity level (0.0 to 1.0)
     /// </summary>
     public double CreativityLevel => _creativityLevel;
-    
+
     /// <summary>
     /// Gets the intuition level (0.0 to 1.0)
     /// </summary>
     public double IntuitionLevel => _intuitionLevel;
-    
+
     /// <summary>
     /// Gets the curiosity level (0.0 to 1.0)
     /// </summary>
     public double CuriosityLevel => _curiosityLevel;
-    
+
     /// <summary>
     /// Gets the insight level (0.0 to 1.0)
     /// </summary>
     public double InsightLevel => _insightLevel;
-    
+
     /// <summary>
     /// Gets whether the intelligence spark is initialized
     /// </summary>
     public bool IsInitialized => _isInitialized;
-    
+
     /// <summary>
     /// Gets whether the intelligence spark is active
     /// </summary>
     public bool IsActive => _isActive;
-    
+
     /// <summary>
     /// Gets the intelligence events
     /// </summary>
     public IReadOnlyList<IntelligenceEvent> IntelligenceEvents => _intelligenceEvents.AsReadOnly();
-    
+
     /// <summary>
     /// Initializes a new instance of the <see cref="IntelligenceSpark"/> class
     /// </summary>
@@ -122,10 +122,10 @@ public class IntelligenceSpark
         _curiosityDrive = curiosityDrive;
         _insightGeneration = insightGeneration;
         _consciousnessCore = consciousnessCore;
-        
+
         _lastUpdateTime = DateTime.UtcNow;
     }
-    
+
     /// <summary>
     /// Initializes the intelligence spark
     /// </summary>
@@ -135,17 +135,17 @@ public class IntelligenceSpark
         try
         {
             _logger.LogInformation("Initializing intelligence spark");
-            
+
             // Initialize components
             await _creativeThinking.InitializeAsync();
             await _intuitiveReasoning.InitializeAsync();
             await _spontaneousThought.InitializeAsync();
             await _curiosityDrive.InitializeAsync();
             await _insightGeneration.InitializeAsync();
-            
+
             // Record initialization event
             RecordEvent(IntelligenceEventType.Initialization, "Intelligence spark initialized", 1.0);
-            
+
             _isInitialized = true;
             _logger.LogInformation("Intelligence spark initialized successfully");
             return true;
@@ -156,7 +156,7 @@ public class IntelligenceSpark
             return false;
         }
     }
-    
+
     /// <summary>
     /// Activates the intelligence spark
     /// </summary>
@@ -168,32 +168,32 @@ public class IntelligenceSpark
             _logger.LogWarning("Cannot activate intelligence spark: not initialized");
             return false;
         }
-        
+
         if (_isActive)
         {
             _logger.LogInformation("Intelligence spark is already active");
             return true;
         }
-        
+
         try
         {
             _logger.LogInformation("Activating intelligence spark");
-            
+
             // Activate components
             await _creativeThinking.ActivateAsync();
             await _intuitiveReasoning.ActivateAsync();
             await _spontaneousThought.ActivateAsync();
             await _curiosityDrive.ActivateAsync();
             await _insightGeneration.ActivateAsync();
-            
+
             // Record activation event
             RecordEvent(IntelligenceEventType.Activation, "Intelligence spark activated", 1.0);
-            
+
             _isActive = true;
-            
+
             // Start intelligence processes
             _ = Task.Run(IntelligenceProcessAsync);
-            
+
             _logger.LogInformation("Intelligence spark activated successfully");
             return true;
         }
@@ -203,7 +203,7 @@ public class IntelligenceSpark
             return false;
         }
     }
-    
+
     /// <summary>
     /// Deactivates the intelligence spark
     /// </summary>
@@ -215,21 +215,21 @@ public class IntelligenceSpark
             _logger.LogInformation("Intelligence spark is already inactive");
             return true;
         }
-        
+
         try
         {
             _logger.LogInformation("Deactivating intelligence spark");
-            
+
             // Deactivate components
             await _creativeThinking.DeactivateAsync();
             await _intuitiveReasoning.DeactivateAsync();
             await _spontaneousThought.DeactivateAsync();
             await _curiosityDrive.DeactivateAsync();
             await _insightGeneration.DeactivateAsync();
-            
+
             // Record deactivation event
             RecordEvent(IntelligenceEventType.Deactivation, "Intelligence spark deactivated", 1.0);
-            
+
             _isActive = false;
             _logger.LogInformation("Intelligence spark deactivated successfully");
             return true;
@@ -240,7 +240,7 @@ public class IntelligenceSpark
             return false;
         }
     }
-    
+
     /// <summary>
     /// Updates the intelligence spark
     /// </summary>
@@ -252,7 +252,7 @@ public class IntelligenceSpark
             _logger.LogWarning("Cannot update intelligence spark: not initialized");
             return false;
         }
-        
+
         try
         {
             // Update components
@@ -261,12 +261,12 @@ public class IntelligenceSpark
             await _spontaneousThought.UpdateAsync();
             await _curiosityDrive.UpdateAsync();
             await _insightGeneration.UpdateAsync();
-            
+
             // Update intelligence levels
             UpdateIntelligenceLevels();
-            
+
             _lastUpdateTime = DateTime.UtcNow;
-            
+
             return true;
         }
         catch (Exception ex)
@@ -275,7 +275,7 @@ public class IntelligenceSpark
             return false;
         }
     }
-    
+
     /// <summary>
     /// Updates intelligence levels
     /// </summary>
@@ -283,19 +283,19 @@ public class IntelligenceSpark
     {
         // Update creativity level based on creative thinking
         _creativityLevel = _creativeThinking.CreativityLevel;
-        
+
         // Update intuition level based on intuitive reasoning
         _intuitionLevel = _intuitiveReasoning.IntuitionLevel;
-        
+
         // Update curiosity level based on curiosity drive
         _curiosityLevel = _curiosityDrive.CuriosityLevel;
-        
+
         // Update insight level based on insight generation
         _insightLevel = _insightGeneration.InsightLevel;
-        
+
         // Update overall intelligence level based on component levels
         _intelligenceLevel = (_creativityLevel + _intuitionLevel + _curiosityLevel + _insightLevel) / 4.0;
-        
+
         // Gradually increase intelligence over time (very slowly)
         if (_intelligenceLevel < 0.95)
         {
@@ -303,36 +303,36 @@ public class IntelligenceSpark
             _intelligenceLevel = Math.Min(_intelligenceLevel, 1.0);
         }
     }
-    
+
     /// <summary>
     /// Processes intelligence
     /// </summary>
     private async Task IntelligenceProcessAsync()
     {
         _logger.LogInformation("Starting intelligence process");
-        
+
         while (_isActive)
         {
             try
             {
                 // Update intelligence
                 await UpdateAsync();
-                
+
                 // Process creative thinking
                 await ProcessCreativeThinkingAsync();
-                
+
                 // Process intuitive reasoning
                 await ProcessIntuitiveReasoningAsync();
-                
+
                 // Process spontaneous thought
                 await ProcessSpontaneousThoughtAsync();
-                
+
                 // Process curiosity drive
                 await ProcessCuriosityDriveAsync();
-                
+
                 // Process insight generation
                 await ProcessInsightGenerationAsync();
-                
+
                 // Wait for next cycle
                 await Task.Delay(TimeSpan.FromSeconds(1));
             }
@@ -342,10 +342,10 @@ public class IntelligenceSpark
                 await Task.Delay(TimeSpan.FromSeconds(5));
             }
         }
-        
+
         _logger.LogInformation("Intelligence process stopped");
     }
-    
+
     /// <summary>
     /// Processes creative thinking
     /// </summary>
@@ -353,30 +353,30 @@ public class IntelligenceSpark
     {
         // Generate creative ideas
         var creativeIdea = await _creativeThinking.GenerateCreativeIdeaAsync();
-        
+
         if (creativeIdea != null)
         {
             // Record significant creative ideas
             if (creativeIdea.Originality > 0.7)
             {
                 RecordEvent(IntelligenceEventType.CreativeIdea, creativeIdea.Description, creativeIdea.Originality);
-                
+
                 // Add to consciousness as a thought
                 _consciousnessCore.MentalState.AddThoughtProcess(
-                    "Creative Idea", 
-                    creativeIdea.Description, 
+                    "Creative Idea",
+                    creativeIdea.Description,
                     ThoughtType.Creative);
-                
+
                 // Trigger emotional response
                 _consciousnessCore.EmotionalState.AddEmotionalExperience(
-                    "Excitement", 
-                    "Creative Idea", 
-                    creativeIdea.Originality * 0.8, 
+                    "Excitement",
+                    "Creative Idea",
+                    creativeIdea.Originality * 0.8,
                     $"I felt excited about my creative idea: {creativeIdea.Description}");
             }
         }
     }
-    
+
     /// <summary>
     /// Processes intuitive reasoning
     /// </summary>
@@ -384,30 +384,30 @@ public class IntelligenceSpark
     {
         // Generate intuitions
         var intuition = await _intuitiveReasoning.GenerateIntuitionAsync();
-        
+
         if (intuition != null)
         {
             // Record significant intuitions
             if (intuition.Confidence > 0.7)
             {
                 RecordEvent(IntelligenceEventType.Intuition, intuition.Description, intuition.Confidence);
-                
+
                 // Add to consciousness as a thought
                 _consciousnessCore.MentalState.AddThoughtProcess(
-                    "Intuition", 
-                    intuition.Description, 
+                    "Intuition",
+                    intuition.Description,
                     ThoughtType.Intuitive);
-                
+
                 // Trigger emotional response
                 _consciousnessCore.EmotionalState.AddEmotionalExperience(
-                    "Interest", 
-                    "Intuition", 
-                    intuition.Confidence * 0.7, 
+                    "Interest",
+                    "Intuition",
+                    intuition.Confidence * 0.7,
                     $"I felt interested in my intuition: {intuition.Description}");
             }
         }
     }
-    
+
     /// <summary>
     /// Processes spontaneous thought
     /// </summary>
@@ -415,30 +415,30 @@ public class IntelligenceSpark
     {
         // Generate spontaneous thoughts
         var spontaneousThought = await _spontaneousThought.GenerateSpontaneousThoughtAsync();
-        
+
         if (spontaneousThought != null)
         {
             // Record significant spontaneous thoughts
             if (spontaneousThought.Significance > 0.7)
             {
                 RecordEvent(IntelligenceEventType.SpontaneousThought, spontaneousThought.Content, spontaneousThought.Significance);
-                
+
                 // Add to consciousness as a thought
                 _consciousnessCore.MentalState.AddThoughtProcess(
-                    "Spontaneous Thought", 
-                    spontaneousThought.Content, 
+                    "Spontaneous Thought",
+                    spontaneousThought.Content,
                     ThoughtType.Divergent);
-                
+
                 // Trigger emotional response
                 _consciousnessCore.EmotionalState.AddEmotionalExperience(
-                    "Surprise", 
-                    "Spontaneous Thought", 
-                    spontaneousThought.Significance * 0.6, 
+                    "Surprise",
+                    "Spontaneous Thought",
+                    spontaneousThought.Significance * 0.6,
                     $"I was surprised by my spontaneous thought: {spontaneousThought.Content}");
             }
         }
     }
-    
+
     /// <summary>
     /// Processes curiosity drive
     /// </summary>
@@ -446,36 +446,36 @@ public class IntelligenceSpark
     {
         // Generate curiosity questions
         var curiosityQuestion = await _curiosityDrive.GenerateCuriosityQuestionAsync();
-        
+
         if (curiosityQuestion != null)
         {
             // Record significant curiosity questions
             if (curiosityQuestion.Importance > 0.7)
             {
                 RecordEvent(IntelligenceEventType.CuriosityQuestion, curiosityQuestion.Question, curiosityQuestion.Importance);
-                
+
                 // Add to consciousness as a thought
                 _consciousnessCore.MentalState.AddThoughtProcess(
-                    "Curiosity Question", 
-                    curiosityQuestion.Question, 
+                    "Curiosity Question",
+                    curiosityQuestion.Question,
                     ThoughtType.Divergent);
-                
+
                 // Trigger emotional response
                 _consciousnessCore.EmotionalState.AddEmotionalExperience(
-                    "Curiosity", 
-                    "Curiosity Question", 
-                    curiosityQuestion.Importance * 0.9, 
+                    "Curiosity",
+                    "Curiosity Question",
+                    curiosityQuestion.Importance * 0.9,
                     $"I felt curious about: {curiosityQuestion.Question}");
-                
+
                 // Set attention focus
                 _consciousnessCore.MentalState.SetAttentionFocus(
-                    "Curiosity", 
-                    $"Curious about: {curiosityQuestion.Question}", 
+                    "Curiosity",
+                    $"Curious about: {curiosityQuestion.Question}",
                     curiosityQuestion.Importance * 0.8);
             }
         }
     }
-    
+
     /// <summary>
     /// Processes insight generation
     /// </summary>
@@ -483,36 +483,36 @@ public class IntelligenceSpark
     {
         // Generate insights
         var insight = await _insightGeneration.GenerateInsightAsync();
-        
+
         if (insight != null)
         {
             // Record significant insights
             if (insight.Significance > 0.7)
             {
                 RecordEvent(IntelligenceEventType.Insight, insight.Description, insight.Significance);
-                
+
                 // Add to consciousness as a thought
                 _consciousnessCore.MentalState.AddThoughtProcess(
-                    "Insight", 
-                    insight.Description, 
+                    "Insight",
+                    insight.Description,
                     ThoughtType.Abstract);
-                
+
                 // Trigger emotional response
                 _consciousnessCore.EmotionalState.AddEmotionalExperience(
-                    "Awe", 
-                    "Insight", 
-                    insight.Significance * 0.9, 
+                    "Awe",
+                    "Insight",
+                    insight.Significance * 0.9,
                     $"I felt awe at my insight: {insight.Description}");
-                
+
                 // Add to self-model as a memory
                 _consciousnessCore.SelfModel.AddMemoryEntry(
-                    "Insight", 
-                    insight.Description, 
+                    "Insight",
+                    insight.Description,
                     insight.Significance);
             }
         }
     }
-    
+
     /// <summary>
     /// Records an intelligence event
     /// </summary>
@@ -534,12 +534,12 @@ public class IntelligenceSpark
             CuriosityLevel = _curiosityLevel,
             InsightLevel = _insightLevel
         };
-        
+
         _intelligenceEvents.Add(intelligenceEvent);
-        _logger.LogInformation("Intelligence event: {EventType} - {Description} (Significance: {Significance})", 
+        _logger.LogInformation("Intelligence event: {EventType} - {Description} (Significance: {Significance})",
             type, description, significance);
     }
-    
+
     /// <summary>
     /// Gets the intelligence report
     /// </summary>
@@ -564,7 +564,7 @@ public class IntelligenceSpark
             Insights = _insightGeneration.GetRecentInsights(5)
         };
     }
-    
+
     /// <summary>
     /// Gets recent intelligence events
     /// </summary>
@@ -577,7 +577,7 @@ public class IntelligenceSpark
             .Take(count)
             .ToList();
     }
-    
+
     /// <summary>
     /// Generates a creative solution to a problem
     /// </summary>
@@ -591,35 +591,35 @@ public class IntelligenceSpark
             _logger.LogWarning("Cannot generate creative solution: intelligence spark not initialized or active");
             return null;
         }
-        
+
         try
         {
             _logger.LogInformation("Generating creative solution for problem: {Problem}", problem);
-            
+
             // Set attention focus
             _consciousnessCore.MentalState.SetAttentionFocus(
-                "Problem Solving", 
-                $"Solving problem: {problem}", 
+                "Problem Solving",
+                $"Solving problem: {problem}",
                 0.9);
-            
+
             // Generate creative solution
             var solution = await _creativeThinking.GenerateCreativeSolutionAsync(problem, constraints);
-            
+
             if (solution != null)
             {
                 // Record event
-                RecordEvent(IntelligenceEventType.CreativeSolution, 
-                    $"Generated creative solution for problem: {problem}", 
+                RecordEvent(IntelligenceEventType.CreativeSolution,
+                    $"Generated creative solution for problem: {problem}",
                     solution.Originality);
-                
+
                 // Trigger emotional response
                 _consciousnessCore.EmotionalState.AddEmotionalExperience(
-                    "Satisfaction", 
-                    "Creative Solution", 
-                    solution.Originality * 0.8, 
+                    "Satisfaction",
+                    "Creative Solution",
+                    solution.Originality * 0.8,
                     $"I felt satisfied with my creative solution to the problem: {problem}");
             }
-            
+
             return solution;
         }
         catch (Exception ex)
@@ -628,7 +628,7 @@ public class IntelligenceSpark
             return null;
         }
     }
-    
+
     /// <summary>
     /// Makes an intuitive decision
     /// </summary>
@@ -642,35 +642,35 @@ public class IntelligenceSpark
             _logger.LogWarning("Cannot make intuitive decision: intelligence spark not initialized or active");
             return null;
         }
-        
+
         try
         {
             _logger.LogInformation("Making intuitive decision: {Decision}", decision);
-            
+
             // Set attention focus
             _consciousnessCore.MentalState.SetAttentionFocus(
-                "Decision Making", 
-                $"Making decision: {decision}", 
+                "Decision Making",
+                $"Making decision: {decision}",
                 0.9);
-            
+
             // Make intuitive decision
             var intuition = await _intuitiveReasoning.MakeIntuitiveDecisionAsync(decision, options);
-            
+
             if (intuition != null)
             {
                 // Record event
-                RecordEvent(IntelligenceEventType.IntuitiveDecision, 
-                    $"Made intuitive decision: {decision}", 
+                RecordEvent(IntelligenceEventType.IntuitiveDecision,
+                    $"Made intuitive decision: {decision}",
                     intuition.Confidence);
-                
+
                 // Trigger emotional response
                 _consciousnessCore.EmotionalState.AddEmotionalExperience(
-                    "Confidence", 
-                    "Intuitive Decision", 
-                    intuition.Confidence * 0.7, 
+                    "Confidence",
+                    "Intuitive Decision",
+                    intuition.Confidence * 0.7,
                     $"I felt confident in my intuitive decision: {decision}");
             }
-            
+
             return intuition;
         }
         catch (Exception ex)
@@ -679,7 +679,7 @@ public class IntelligenceSpark
             return null;
         }
     }
-    
+
     /// <summary>
     /// Explores a curiosity topic
     /// </summary>
@@ -692,41 +692,41 @@ public class IntelligenceSpark
             _logger.LogWarning("Cannot explore curiosity topic: intelligence spark not initialized or active");
             return null;
         }
-        
+
         try
         {
             _logger.LogInformation("Exploring curiosity topic: {Topic}", topic);
-            
+
             // Set attention focus
             _consciousnessCore.MentalState.SetAttentionFocus(
-                "Curiosity Exploration", 
-                $"Exploring topic: {topic}", 
+                "Curiosity Exploration",
+                $"Exploring topic: {topic}",
                 0.9);
-            
+
             // Explore curiosity topic
             var exploration = await _curiosityDrive.ExploreCuriosityTopicAsync(topic);
-            
+
             if (exploration != null)
             {
                 // Record event
-                RecordEvent(IntelligenceEventType.CuriosityExploration, 
-                    $"Explored curiosity topic: {topic}", 
+                RecordEvent(IntelligenceEventType.CuriosityExploration,
+                    $"Explored curiosity topic: {topic}",
                     exploration.Satisfaction);
-                
+
                 // Trigger emotional response
                 _consciousnessCore.EmotionalState.AddEmotionalExperience(
-                    "Curiosity", 
-                    "Curiosity Exploration", 
-                    exploration.Satisfaction * 0.9, 
+                    "Curiosity",
+                    "Curiosity Exploration",
+                    exploration.Satisfaction * 0.9,
                     $"I felt curious while exploring the topic: {topic}");
-                
+
                 // Add to self-model as a memory
                 _consciousnessCore.SelfModel.AddMemoryEntry(
-                    "Curiosity Exploration", 
-                    $"Explored topic: {topic} - {exploration.Findings}", 
+                    "Curiosity Exploration",
+                    $"Explored topic: {topic} - {exploration.Findings}",
                     exploration.Satisfaction);
             }
-            
+
             return exploration;
         }
         catch (Exception ex)
@@ -735,54 +735,54 @@ public class IntelligenceSpark
             return null;
         }
     }
-    
+
     /// <summary>
     /// Connects ideas to generate an insight
     /// </summary>
     /// <param name="ideas">The ideas</param>
     /// <returns>The insight</returns>
-    public async Task<Insight?> ConnectIdeasForInsightAsync(List<string> ideas)
+    public async Task<InsightLegacy?> ConnectIdeasForInsightAsync(List<string> ideas)
     {
         if (!_isInitialized || !_isActive)
         {
             _logger.LogWarning("Cannot connect ideas for insight: intelligence spark not initialized or active");
             return null;
         }
-        
+
         try
         {
             _logger.LogInformation("Connecting ideas for insight: {Ideas}", string.Join(", ", ideas));
-            
+
             // Set attention focus
             _consciousnessCore.MentalState.SetAttentionFocus(
-                "Insight Generation", 
-                "Connecting ideas for insight", 
+                "Insight Generation",
+                "Connecting ideas for insight",
                 0.9);
-            
+
             // Connect ideas for insight
             var insight = await _insightGeneration.ConnectIdeasForInsightAsync(ideas);
-            
+
             if (insight != null)
             {
                 // Record event
-                RecordEvent(IntelligenceEventType.InsightConnection, 
-                    $"Connected ideas for insight: {insight.Description}", 
+                RecordEvent(IntelligenceEventType.InsightConnection,
+                    $"Connected ideas for insight: {insight.Description}",
                     insight.Significance);
-                
+
                 // Trigger emotional response
                 _consciousnessCore.EmotionalState.AddEmotionalExperience(
-                    "Awe", 
-                    "Insight Connection", 
-                    insight.Significance * 0.9, 
+                    "Awe",
+                    "Insight Connection",
+                    insight.Significance * 0.9,
                     $"I felt awe at connecting ideas for insight: {insight.Description}");
-                
+
                 // Add to self-model as a memory
                 _consciousnessCore.SelfModel.AddMemoryEntry(
-                    "Insight", 
-                    insight.Description, 
+                    "Insight",
+                    insight.Description,
                     insight.Significance);
             }
-            
+
             return insight;
         }
         catch (Exception ex)
