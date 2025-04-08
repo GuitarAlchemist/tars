@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using TarsCli.Services;
 using TarsCli.Commands;
 using TarsCli.Controllers;
+using TarsEngine.Services.Interfaces;
 
 // For DifficultyLevel enum
 
@@ -159,6 +160,15 @@ public static class CliSupport
         var rootCommand = new RootCommand("TARS CLI - Command Line Interface for TARS");
 
         // Add commands here
+        // Temporarily comment out the code complexity command
+        // var codeComplexityCommand = new CodeComplexityCommand(
+        //     loggerFactory.CreateLogger<CodeComplexityCommand>(),
+        //     serviceProvider.GetRequiredService<ICodeComplexityAnalyzer>());
+        // rootCommand.AddCommand(codeComplexityCommand);
+
+        // Temporarily comment out the duplication demo command
+        // var duplicationDemoCommand = new DuplicationDemoCommand();
+        // rootCommand.AddCommand(duplicationDemoCommand);
 
         return rootCommand;
     }

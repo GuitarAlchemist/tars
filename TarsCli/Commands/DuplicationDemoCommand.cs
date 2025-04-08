@@ -62,18 +62,19 @@ public class DuplicationDemoCommand : Command
 
     private async Task HandleCommand(InvocationContext context)
     {
-        // Store options as class fields
-        Option<string> pathOption = new Option<string>("--path");
-        Option<string> languageOption = new Option<string>("--language");
-        Option<string> typeOption = new Option<string>("--type");
-        Option<string> outputOption = new Option<string>("--output");
-        Option<string> outputPathOption = new Option<string>("--output-path");
+        // Get options from the command
+        var pathOption = this.Options.OfType<Option<string>>().FirstOrDefault(o => o.Name == "path");
+        var languageOption = this.Options.OfType<Option<string>>().FirstOrDefault(o => o.Name == "language");
+        var typeOption = this.Options.OfType<Option<string>>().FirstOrDefault(o => o.Name == "type");
+        var outputOption = this.Options.OfType<Option<string>>().FirstOrDefault(o => o.Name == "output");
+        var outputPathOption = this.Options.OfType<Option<string>>().FirstOrDefault(o => o.Name == "output-path");
 
-        var path = context.ParseResult.GetValueForOption(pathOption);
-        var language = context.ParseResult.GetValueForOption(languageOption);
-        var type = context.ParseResult.GetValueForOption(typeOption);
-        var output = context.ParseResult.GetValueForOption(outputOption);
-        var outputPath = context.ParseResult.GetValueForOption(outputPathOption);
+        // Get option values from the context
+        var path = context.ParseResult.GetValueForOption(pathOption) ?? "";
+        var language = context.ParseResult.GetValueForOption(languageOption) ?? "";
+        var type = context.ParseResult.GetValueForOption(typeOption) ?? "all";
+        var output = context.ParseResult.GetValueForOption(outputOption) ?? "console";
+        var outputPath = context.ParseResult.GetValueForOption(outputPathOption) ?? "";
 
         var serviceProvider = context.BindingContext.GetService<IServiceProvider>();
         var logger = serviceProvider.GetRequiredService<ILogger<DuplicationDemoCommand>>();

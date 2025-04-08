@@ -19,7 +19,7 @@ namespace TarsEngine.Services;
 public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
 {
     private readonly ILogger<CSharpComplexityAnalyzer> _logger;
-    private readonly Dictionary<string, Dictionary<ComplexityType, Dictionary<string, double>>> _thresholds;
+    private readonly Dictionary<string, Dictionary<TarsEngine.Models.Metrics.ComplexityType, Dictionary<string, double>>> _thresholds;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CSharpComplexityAnalyzer"/> class
@@ -28,23 +28,23 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
     public CSharpComplexityAnalyzer(ILogger<CSharpComplexityAnalyzer> logger)
     {
         _logger = logger;
-        _thresholds = new Dictionary<string, Dictionary<ComplexityType, Dictionary<string, double>>>
+        _thresholds = new Dictionary<string, Dictionary<TarsEngine.Models.Metrics.ComplexityType, Dictionary<string, double>>>
         {
             ["C#"] = new()
             {
-                [ComplexityType.Cyclomatic] = new Dictionary<string, double>
+                [TarsEngine.Models.Metrics.ComplexityType.Cyclomatic] = new Dictionary<string, double>
                 {
                     ["Method"] = 10,
                     ["Class"] = 20,
                     ["File"] = 50
                 },
-                [ComplexityType.Cognitive] = new Dictionary<string, double>
+                [TarsEngine.Models.Metrics.ComplexityType.Cognitive] = new Dictionary<string, double>
                 {
                     ["Method"] = 15,
                     ["Class"] = 30,
                     ["File"] = 75
                 },
-                [ComplexityType.Maintainability] = new Dictionary<string, double>
+                [TarsEngine.Models.Metrics.ComplexityType.Maintainability] = new Dictionary<string, double>
                 {
                     ["Method"] = 20,
                     ["Class"] = 20,
@@ -85,7 +85,7 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
                     Name = $"Cyclomatic Complexity - {fullMethodName}",
                     Description = $"McCabe's cyclomatic complexity for method {fullMethodName}",
                     Value = complexity,
-                    Type = ComplexityType.Cyclomatic,
+                    Type = TarsEngine.Models.Metrics.ComplexityType.Cyclomatic,
                     FilePath = filePath,
                     Language = language,
                     Target = fullMethodName,
@@ -114,7 +114,7 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
                     Name = $"Cyclomatic Complexity - {fullClassName}",
                     Description = $"McCabe's cyclomatic complexity for class {fullClassName}",
                     Value = classComplexity,
-                    Type = ComplexityType.Cyclomatic,
+                    Type = TarsEngine.Models.Metrics.ComplexityType.Cyclomatic,
                     FilePath = filePath,
                     Language = language,
                     Target = fullClassName,
@@ -135,7 +135,7 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
                 Name = $"Cyclomatic Complexity - {fileName}",
                 Description = $"McCabe's cyclomatic complexity for file {fileName}",
                 Value = fileComplexity,
-                Type = ComplexityType.Cyclomatic,
+                Type = TarsEngine.Models.Metrics.ComplexityType.Cyclomatic,
                 FilePath = filePath,
                 Language = language,
                 Target = fileName,
@@ -243,7 +243,7 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
     }
 
     /// <inheritdoc/>
-    public async Task<TarsEngine.Models.Metrics.ComplexityAnalysisResult> AnalyzeAllComplexityMetricsAsync(string filePath, string language)
+    public async Task<(List<ComplexityMetric> ComplexityMetrics, List<HalsteadMetric> HalsteadMetrics, List<MaintainabilityMetric> MaintainabilityMetrics, List<ReadabilityMetric> ReadabilityMetrics)> AnalyzeAllComplexityMetricsAsync(string filePath, string language)
     {
         var complexityMetrics = new List<ComplexityMetric>();
         var halsteadMetrics = new List<HalsteadMetric>();
@@ -266,17 +266,11 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
         var readabilityAnalyzer = new CSharpReadabilityAnalyzer(null);
         readabilityMetrics.AddRange(await readabilityAnalyzer.AnalyzeAllReadabilityMetricsAsync(filePath, language));
 
-        return new TarsEngine.Models.Metrics.ComplexityAnalysisResult
-        {
-            ComplexityMetrics = complexityMetrics,
-            HalsteadMetrics = halsteadMetrics,
-            MaintainabilityMetrics = maintainabilityMetrics,
-            ReadabilityMetrics = readabilityMetrics
-        };
+        return (ComplexityMetrics: complexityMetrics, HalsteadMetrics: halsteadMetrics, MaintainabilityMetrics: maintainabilityMetrics, ReadabilityMetrics: readabilityMetrics);
     }
 
     /// <inheritdoc/>
-    public async Task<TarsEngine.Models.Metrics.ComplexityAnalysisResult> AnalyzeProjectComplexityAsync(string projectPath)
+    public async Task<(List<ComplexityMetric> ComplexityMetrics, List<HalsteadMetric> HalsteadMetrics, List<MaintainabilityMetric> MaintainabilityMetrics)> AnalyzeProjectComplexityAsync(string projectPath)
     {
         var complexityMetrics = new List<ComplexityMetric>();
         var halsteadMetrics = new List<HalsteadMetric>();
@@ -304,7 +298,7 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
 
             // Calculate project-level cyclomatic complexity
             var projectCyclomaticComplexity = complexityMetrics
-                .Where(m => m.Type == ComplexityType.Cyclomatic && m.TargetType == TargetType.File)
+                .Where(m => m.Type == TarsEngine.Models.Metrics.ComplexityType.Cyclomatic && m.TargetType == TargetType.File)
                 .Sum(m => m.Value);
 
             var cyclomaticMetric = new ComplexityMetric
@@ -312,7 +306,7 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
                 Name = $"Cyclomatic Complexity - {projectName}",
                 Description = $"McCabe's cyclomatic complexity for project {projectName}",
                 Value = projectCyclomaticComplexity,
-                Type = ComplexityType.Cyclomatic,
+                Type = TarsEngine.Models.Metrics.ComplexityType.Cyclomatic,
                 FilePath = projectPath,
                 Language = "C#",
                 Target = projectName,
@@ -377,17 +371,11 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
             _logger.LogError(ex, "Error analyzing project complexity for {ProjectPath}", projectPath);
         }
 
-        return new TarsEngine.Models.Metrics.ComplexityAnalysisResult
-        {
-            ComplexityMetrics = complexityMetrics,
-            HalsteadMetrics = halsteadMetrics,
-            MaintainabilityMetrics = maintainabilityMetrics,
-            ReadabilityMetrics = readabilityMetrics
-        };
+        return (ComplexityMetrics: complexityMetrics, HalsteadMetrics: halsteadMetrics, MaintainabilityMetrics: maintainabilityMetrics);
     }
 
     /// <inheritdoc/>
-    public Task<Dictionary<string, double>> GetComplexityThresholdsAsync(string language, ComplexityType complexityType)
+    public Task<Dictionary<string, double>> GetComplexityThresholdsAsync(string language, TarsEngine.Services.Interfaces.ComplexityType complexityType)
     {
         if (_thresholds.TryGetValue(language, out var languageThresholds) &&
             languageThresholds.TryGetValue(complexityType, out var typeThresholds))
@@ -434,7 +422,7 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
     }
 
     /// <inheritdoc/>
-    public Task<bool> SetComplexityThresholdAsync(string language, ComplexityType complexityType, string targetType, double threshold)
+    public Task<bool> SetComplexityThresholdAsync(string language, TarsEngine.Services.Interfaces.ComplexityType complexityType, string targetType, double threshold)
     {
         try
         {
@@ -586,7 +574,7 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
     /// <param name="complexityType">Type of complexity</param>
     /// <param name="targetType">Type of target (method, class, etc.)</param>
     /// <returns>Threshold value</returns>
-    private double GetThreshold(string language, ComplexityType complexityType, string targetType)
+    private double GetThreshold(string language, TarsEngine.Models.Metrics.ComplexityType complexityType, string targetType)
     {
         if (_thresholds.TryGetValue(language, out var languageThresholds) &&
             languageThresholds.TryGetValue(complexityType, out var typeThresholds) &&
@@ -598,21 +586,21 @@ public class CSharpComplexityAnalyzer : ICodeComplexityAnalyzer
         // Default thresholds if not configured
         return complexityType switch
         {
-            ComplexityType.Cyclomatic => targetType switch
+            TarsEngine.Models.Metrics.ComplexityType.Cyclomatic => targetType switch
             {
                 "Method" => 10,
                 "Class" => 20,
                 "File" => 50,
                 _ => 10
             },
-            ComplexityType.Cognitive => targetType switch
+            TarsEngine.Models.Metrics.ComplexityType.Cognitive => targetType switch
             {
                 "Method" => 15,
                 "Class" => 30,
                 "File" => 75,
                 _ => 15
             },
-            ComplexityType.Maintainability => 20,
+            TarsEngine.Models.Metrics.ComplexityType.Maintainability => 20,
             _ => 10
         };
     }

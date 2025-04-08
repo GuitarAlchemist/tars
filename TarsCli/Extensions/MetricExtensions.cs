@@ -65,6 +65,11 @@ public static class MetricExtensions
             return maintainabilityMetric.Target;
         }
 
+        if (metric is DuplicationMetric duplicationMetric)
+        {
+            return duplicationMetric.Target;
+        }
+
         // Default implementation for other metric types
         return string.Empty;
     }
@@ -89,6 +94,11 @@ public static class MetricExtensions
         if (metric is MaintainabilityMetric maintainabilityMetric)
         {
             return maintainabilityMetric.ThresholdValue;
+        }
+
+        if (metric is DuplicationMetric duplicationMetric)
+        {
+            return duplicationMetric.ThresholdValue;
         }
 
         // Default implementation for other metric types
@@ -117,6 +127,11 @@ public static class MetricExtensions
             return maintainabilityMetric.FilePath;
         }
 
+        if (metric is DuplicationMetric duplicationMetric)
+        {
+            return duplicationMetric.FilePath;
+        }
+
         // Default implementation for other metric types
         return string.Empty;
     }
@@ -141,6 +156,11 @@ public static class MetricExtensions
         if (metric is MaintainabilityMetric maintainabilityMetric)
         {
             return maintainabilityMetric.Language;
+        }
+
+        if (metric is DuplicationMetric duplicationMetric)
+        {
+            return duplicationMetric.Language;
         }
 
         // Default implementation for other metric types

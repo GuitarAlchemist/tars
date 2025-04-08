@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
+using System.CommandLine.Invocation;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -88,21 +89,31 @@ public class ImprovementWorkflowCommand : Command
         AddOption(verboseOption);
 
         // Set handler
-        SetHandler(async (string path, bool recursive, string filePattern, int maxImprovements, bool execute, bool dryRun, string? output, string format, bool verbose) =>
+        this.SetHandler(async (InvocationContext context) =>
         {
+            var path = context.ParseResult.GetValueForOption(pathOption) ?? "";
+            var recursive = context.ParseResult.GetValueForOption(recursiveOption);
+            var filePattern = context.ParseResult.GetValueForOption(filePatternOption) ?? "*.cs";
+            var maxImprovements = context.ParseResult.GetValueForOption(maxImprovementsOption);
+            var execute = context.ParseResult.GetValueForOption(executeOption);
+            var dryRun = context.ParseResult.GetValueForOption(dryRunOption);
+            var output = context.ParseResult.GetValueForOption(outputOption);
+            var format = context.ParseResult.GetValueForOption(formatOption) ?? "json";
+            var verbose = context.ParseResult.GetValueForOption(verboseOption);
+
             await RunWorkflowAsync(path, recursive, filePattern, maxImprovements, execute, dryRun, output, format, verbose);
-        }, pathOption, recursiveOption, filePatternOption, maxImprovementsOption, executeOption, dryRunOption, outputOption, formatOption, verboseOption);
+        });
     }
 
     private async Task RunWorkflowAsync(
-        string path, 
-        bool recursive, 
-        string filePattern, 
-        int maxImprovements, 
-        bool execute, 
-        bool dryRun, 
-        string? output, 
-        string format, 
+        string path,
+        bool recursive,
+        string filePattern,
+        int maxImprovements,
+        bool execute,
+        bool dryRun,
+        string? output,
+        string format,
         bool verbose)
     {
         try

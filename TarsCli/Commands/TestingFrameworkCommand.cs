@@ -224,14 +224,15 @@ public class TestingFrameworkCommand : TarsCommand
                 _consoleService.WriteColorLine("Issues:", ConsoleColor.Yellow);
                 foreach (var issue in qualityResult.Issues)
                 {
-                    ConsoleColor color = issue.Severity switch
-                    {
-                        TarsEngine.Services.Interfaces.IssueSeverity.Info => ConsoleColor.Blue,
-                        TarsEngine.Services.Interfaces.IssueSeverity.Warning => ConsoleColor.Yellow,
-                        TarsEngine.Services.Interfaces.IssueSeverity.Error => ConsoleColor.Red,
-                        TarsEngine.Services.Interfaces.IssueSeverity.Critical => ConsoleColor.DarkRed,
-                        _ => ConsoleColor.White
-                    };
+                    ConsoleColor color = ConsoleColor.White;
+                    if (issue.Severity.ToString() == "Info")
+                        color = ConsoleColor.Blue;
+                    else if (issue.Severity.ToString() == "Warning")
+                        color = ConsoleColor.Yellow;
+                    else if (issue.Severity.ToString() == "Error")
+                        color = ConsoleColor.Red;
+                    else if (issue.Severity.ToString() == "Critical")
+                        color = ConsoleColor.DarkRed;
 
                     _consoleService.WriteColorLine($"  [{issue.Severity}] {issue.Description}", color);
                     _consoleService.WriteColorLine($"    Location: {issue.Location}", color);
