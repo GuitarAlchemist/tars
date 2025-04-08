@@ -164,7 +164,7 @@ public class CodeAnalyzerService : ICodeAnalyzerService
             }
 
             var result = await analyzer.AnalyzeAsync(content, options);
-            
+
             // Apply metric thresholds
             foreach (var metric in result.Metrics)
             {
@@ -293,7 +293,7 @@ public class CodeAnalyzerService : ICodeAnalyzerService
     }
 
     /// <inheritdoc/>
-    public async Task<List<CodeIssue>> GetIssuesForFileAsync(string filePath, List<CodeIssueType>? issueTypes = null, IssueSeverity minSeverity = IssueSeverity.Info, Dictionary<string, string>? options = null)
+    public async Task<List<CodeIssue>> GetIssuesForFileAsync(string filePath, List<CodeIssueType>? issueTypes = null, TarsEngine.Models.IssueSeverity minSeverity = TarsEngine.Models.IssueSeverity.Info, Dictionary<string, string>? options = null)
     {
         try
         {
@@ -418,7 +418,7 @@ public class CodeAnalyzerService : ICodeAnalyzerService
         // Register language analyzers
         _languageAnalyzers["csharp"] = new CSharpAnalyzer(_logger);
         _languageAnalyzers["fsharp"] = new FSharpAnalyzer(_logger);
-        
+
         // Add placeholder analyzers for other languages
         _languageAnalyzers["javascript"] = new GenericAnalyzer(_logger, "javascript");
         _languageAnalyzers["typescript"] = new GenericAnalyzer(_logger, "typescript");

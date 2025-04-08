@@ -4,9 +4,9 @@ using System.Collections.Generic;
 namespace TarsEngine.Consciousness.Intelligence;
 
 /// <summary>
-/// Represents an insight
+/// Represents an insight (legacy version)
 /// </summary>
-public class Insight
+public class InsightLegacy
 {
     /// <summary>
     /// Gets or sets the insight ID

@@ -93,16 +93,7 @@ public class ValidationIssue
     public string? SuggestedFix { get; set; }
 }
 
-/// <summary>
-/// Severity of a validation issue
-/// </summary>
-public enum IssueSeverity
-{
-    Info,
-    Warning,
-    Error,
-    Critical
-}
+// Using IssueSeverity from TarsEngine.Models
 
 /// <summary>
 /// Represents a test result

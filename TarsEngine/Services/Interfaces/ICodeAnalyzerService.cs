@@ -84,7 +84,7 @@ public interface ICodeAnalyzerService
     /// <param name="minSeverity">The minimum severity of issues to get</param>
     /// <param name="options">Optional filtering options</param>
     /// <returns>The list of issues</returns>
-    Task<List<CodeIssue>> GetIssuesForFileAsync(string filePath, List<CodeIssueType>? issueTypes = null, IssueSeverity minSeverity = IssueSeverity.Info, Dictionary<string, string>? options = null);
+    Task<List<CodeIssue>> GetIssuesForFileAsync(string filePath, List<CodeIssueType>? issueTypes = null, TarsEngine.Models.IssueSeverity minSeverity = TarsEngine.Models.IssueSeverity.Info, Dictionary<string, string>? options = null);
 
     /// <summary>
     /// Gets the metrics for a specific file
