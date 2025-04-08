@@ -1,0 +1,42 @@
+{
+  "Id": "03d5e7ce-7129-4e36-89da-ce9660c5f9f5",
+  "Name": "TARS Development Learning Plan",
+  "Topic": "Building AI-powered CLI applications",
+  "SkillLevel": "Intermediate",
+  "CreatedDate": "2025-04-07T02:50:19.8507517Z",
+  "LastModifiedDate": "2025-04-07T02:50:19.850763Z",
+  "Content": {
+    "Introduction": "A comprehensive learning plan for Building AI-powered CLI applications designed for Intermediate skill level.",
+    "Prerequisites": [
+      "Basic understanding of programming concepts"
+    ],
+    "Modules": [],
+    "Timeline": [],
+    "Milestones": [
+      {
+        "Title": "Basic Proficiency in Building AI-powered CLI applications",
+        "Description": "Demonstrate understanding of fundamental concepts",
+        "CompletionCriteria": "Complete introductory modules and exercises"
+      },
+      {
+        "Title": "Advanced Mastery of Building AI-powered CLI applications",
+        "Description": "Demonstrate ability to apply advanced concepts",
+        "CompletionCriteria": "Complete advanced modules and final project"
+      }
+    ],
+    "PracticeProjects": [
+      {
+        "Title": "Simple Building AI-powered CLI applications Application",
+        "Description": "Build a basic application to practice fundamental concepts",
+        "Difficulty": "Beginner",
+        "EstimatedHours": 5
+      },
+      {
+        "Title": "Advanced Building AI-powered CLI applications Project",
+        "Description": "Build a comprehensive project showcasing advanced skills",
+        "Difficulty": "Advanced",
+        "EstimatedHours": 10
+      }
+    ]
+  }
+}
