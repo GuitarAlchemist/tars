@@ -1,10 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using TarsEngine.Models;
 using TarsEngine.Services.Interfaces;
@@ -560,7 +555,7 @@ public class KnowledgeRepository : IKnowledgeRepository
                 stats.TotalItems = _itemsCache.Count;
 
                 // Items by type
-                foreach (var type in Enum.GetValues<KnowledgeType>())
+                foreach (var type in Enum.GetValues<TarsEngine.Models.KnowledgeType>())
                 {
                     var count = _itemsCache.Values.Count(item => item.Type.Equals(type));
                     if (count > 0)
