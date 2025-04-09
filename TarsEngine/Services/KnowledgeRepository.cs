@@ -1,10 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using TarsEngine.Models;
 using TarsEngine.Services.Interfaces;
@@ -34,7 +29,7 @@ public class KnowledgeRepository : IKnowledgeRepository
     }
 
     /// <inheritdoc/>
-    public async Task<TarsEngine.Services.Interfaces.KnowledgeItem> AddItemAsync(TarsEngine.Services.Interfaces.KnowledgeItem item)
+    public async Task<TarsEngine.Models.KnowledgeItem> AddItemAsync(TarsEngine.Models.KnowledgeItem item)
     {
         try
         {
@@ -67,7 +62,7 @@ public class KnowledgeRepository : IKnowledgeRepository
     }
 
     /// <inheritdoc/>
-    public async Task<IEnumerable<TarsEngine.Services.Interfaces.KnowledgeItem>> AddItemsAsync(IEnumerable<TarsEngine.Services.Interfaces.KnowledgeItem> items)
+    public async Task<IEnumerable<TarsEngine.Models.KnowledgeItem>> AddItemsAsync(IEnumerable<TarsEngine.Models.KnowledgeItem> items)
     {
         try
         {
@@ -96,7 +91,7 @@ public class KnowledgeRepository : IKnowledgeRepository
     }
 
     /// <inheritdoc/>
-    public async Task<TarsEngine.Services.Interfaces.KnowledgeItem?> GetItemAsync(string id)
+    public async Task<TarsEngine.Models.KnowledgeItem?> GetItemAsync(string id)
     {
         try
         {
@@ -126,7 +121,7 @@ public class KnowledgeRepository : IKnowledgeRepository
     }
 
     /// <inheritdoc/>
-    public async Task<TarsEngine.Services.Interfaces.KnowledgeItem> UpdateItemAsync(TarsEngine.Services.Interfaces.KnowledgeItem item)
+    public async Task<TarsEngine.Models.KnowledgeItem> UpdateItemAsync(TarsEngine.Models.KnowledgeItem item)
     {
         try
         {
@@ -210,7 +205,7 @@ public class KnowledgeRepository : IKnowledgeRepository
     }
 
     /// <inheritdoc/>
-    public async Task<IEnumerable<TarsEngine.Services.Interfaces.KnowledgeItem>> SearchItemsAsync(string query, Dictionary<string, string>? options = null)
+    public async Task<IEnumerable<TarsEngine.Models.KnowledgeItem>> SearchItemsAsync(string query, Dictionary<string, string>? options = null)
     {
         try
         {
@@ -223,9 +218,9 @@ public class KnowledgeRepository : IKnowledgeRepository
             var maxResults = options != null && options.TryGetValue("MaxResults", out var maxResultsStr) && int.TryParse(maxResultsStr, out var maxResultsInt)
                 ? maxResultsInt
                 : 100;
-            var typeFilter = options != null && options.TryGetValue("Type", out var typeStr) && Enum.TryParse<KnowledgeType>(typeStr, out var typeEnum)
+            var typeFilter = options != null && options.TryGetValue("Type", out var typeStr) && Enum.TryParse<TarsEngine.Models.KnowledgeType>(typeStr, out var typeEnum)
                 ? typeEnum
-                : (KnowledgeType?)null;
+                : (TarsEngine.Models.KnowledgeType?)null;
             var minConfidence = options != null && options.TryGetValue("MinConfidence", out var minConfidenceStr) && double.TryParse(minConfidenceStr, out var minConfidenceDouble)
                 ? minConfidenceDouble
                 : 0.0;
@@ -264,7 +259,7 @@ public class KnowledgeRepository : IKnowledgeRepository
     }
 
     /// <inheritdoc/>
-    public async Task<IEnumerable<TarsEngine.Services.Interfaces.KnowledgeItem>> GetItemsByTypeAsync(TarsEngine.Services.Interfaces.KnowledgeType type, Dictionary<string, string>? options = null)
+    public async Task<IEnumerable<TarsEngine.Models.KnowledgeItem>> GetItemsByTypeAsync(TarsEngine.Models.KnowledgeType type, Dictionary<string, string>? options = null)
     {
         try
         {
@@ -309,7 +304,7 @@ public class KnowledgeRepository : IKnowledgeRepository
     }
 
     /// <inheritdoc/>
-    public async Task<IEnumerable<TarsEngine.Services.Interfaces.KnowledgeItem>> GetItemsByTagAsync(string tag, Dictionary<string, string>? options = null)
+    public async Task<IEnumerable<TarsEngine.Models.KnowledgeItem>> GetItemsByTagAsync(string tag, Dictionary<string, string>? options = null)
     {
         try
         {
@@ -322,9 +317,9 @@ public class KnowledgeRepository : IKnowledgeRepository
             var maxResults = options != null && options.TryGetValue("MaxResults", out var maxResultsStr) && int.TryParse(maxResultsStr, out var maxResultsInt)
                 ? maxResultsInt
                 : 100;
-            var typeFilter = options != null && options.TryGetValue("Type", out var typeStr) && Enum.TryParse<TarsEngine.Services.Interfaces.KnowledgeType>(typeStr, out var typeEnum)
+            var typeFilter = options != null && options.TryGetValue("Type", out var typeStr) && Enum.TryParse<TarsEngine.Models.KnowledgeType>(typeStr, out var typeEnum)
                 ? typeEnum
-                : (TarsEngine.Services.Interfaces.KnowledgeType?)null;
+                : (TarsEngine.Models.KnowledgeType?)null;
             var minConfidence = options != null && options.TryGetValue("MinConfidence", out var minConfidenceStr) && double.TryParse(minConfidenceStr, out var minConfidenceDouble)
                 ? minConfidenceDouble
                 : 0.0;
@@ -358,7 +353,7 @@ public class KnowledgeRepository : IKnowledgeRepository
     }
 
     /// <inheritdoc/>
-    public async Task<IEnumerable<TarsEngine.Services.Interfaces.KnowledgeItem>> GetItemsBySourceAsync(string source, Dictionary<string, string>? options = null)
+    public async Task<IEnumerable<TarsEngine.Models.KnowledgeItem>> GetItemsBySourceAsync(string source, Dictionary<string, string>? options = null)
     {
         try
         {
@@ -371,9 +366,9 @@ public class KnowledgeRepository : IKnowledgeRepository
             var maxResults = options != null && options.TryGetValue("MaxResults", out var maxResultsStr) && int.TryParse(maxResultsStr, out var maxResultsInt)
                 ? maxResultsInt
                 : 100;
-            var typeFilter = options != null && options.TryGetValue("Type", out var typeStr) && Enum.TryParse<TarsEngine.Services.Interfaces.KnowledgeType>(typeStr, out var typeEnum)
+            var typeFilter = options != null && options.TryGetValue("Type", out var typeStr) && Enum.TryParse<TarsEngine.Models.KnowledgeType>(typeStr, out var typeEnum)
                 ? typeEnum
-                : (TarsEngine.Services.Interfaces.KnowledgeType?)null;
+                : (TarsEngine.Models.KnowledgeType?)null;
             var minConfidence = options != null && options.TryGetValue("MinConfidence", out var minConfidenceStr) && double.TryParse(minConfidenceStr, out var minConfidenceDouble)
                 ? minConfidenceDouble
                 : 0.0;
@@ -560,7 +555,7 @@ public class KnowledgeRepository : IKnowledgeRepository
                 stats.TotalItems = _itemsCache.Count;
 
                 // Items by type
-                foreach (var type in Enum.GetValues<KnowledgeType>())
+                foreach (var type in Enum.GetValues<TarsEngine.Models.KnowledgeType>())
                 {
                     var count = _itemsCache.Values.Count(item => item.Type == type);
                     if (count > 0)

@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using TarsEngine.Models.Metrics;
 using TarsEngine.Services.Interfaces;
@@ -218,14 +213,13 @@ public class CodeComplexityAnalyzerService : ICodeComplexityAnalyzer
     }
 
     /// <inheritdoc/>
-    public async Task<(List<ComplexityMetric> ComplexityMetrics, List<HalsteadMetric> HalsteadMetrics, List<MaintainabilityMetric> MaintainabilityMetrics, List<ReadabilityMetric> ReadabilityMetrics)> AnalyzeProjectComplexityAsync(string projectPath)
+    public async Task<(List<ComplexityMetric> ComplexityMetrics, List<HalsteadMetric> HalsteadMetrics, List<MaintainabilityMetric> MaintainabilityMetrics)> AnalyzeProjectComplexityAsync(string projectPath)
     {
         try
         {
             var complexityMetrics = new List<ComplexityMetric>();
             var halsteadMetrics = new List<HalsteadMetric>();
             var maintainabilityMetrics = new List<MaintainabilityMetric>();
-            var readabilityMetrics = new List<ReadabilityMetric>();
 
             // Analyze C# files
             var csharpFiles = Directory.GetFiles(projectPath, "*.cs", SearchOption.AllDirectories);
@@ -235,7 +229,7 @@ public class CodeComplexityAnalyzerService : ICodeComplexityAnalyzer
                 complexityMetrics.AddRange(fileMetrics.ComplexityMetrics);
                 halsteadMetrics.AddRange(fileMetrics.HalsteadMetrics);
                 maintainabilityMetrics.AddRange(fileMetrics.MaintainabilityMetrics);
-                readabilityMetrics.AddRange(fileMetrics.ReadabilityMetrics);
+
             }
 
             // Analyze F# files
@@ -246,7 +240,7 @@ public class CodeComplexityAnalyzerService : ICodeComplexityAnalyzer
                 complexityMetrics.AddRange(fileMetrics.ComplexityMetrics);
                 halsteadMetrics.AddRange(fileMetrics.HalsteadMetrics);
                 maintainabilityMetrics.AddRange(fileMetrics.MaintainabilityMetrics);
-                readabilityMetrics.AddRange(fileMetrics.ReadabilityMetrics);
+
             }
 
             // Calculate project-level metrics
@@ -322,12 +316,12 @@ public class CodeComplexityAnalyzerService : ICodeComplexityAnalyzer
                 maintainabilityMetrics.Add(maintainabilityMetric);
             }
 
-            return (complexityMetrics, halsteadMetrics, maintainabilityMetrics, readabilityMetrics);
+            return (complexityMetrics, halsteadMetrics, maintainabilityMetrics);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error analyzing project complexity for {ProjectPath}", projectPath);
-            return (new List<ComplexityMetric>(), new List<HalsteadMetric>(), new List<MaintainabilityMetric>(), new List<ReadabilityMetric>());
+            return (new List<ComplexityMetric>(), new List<HalsteadMetric>(), new List<MaintainabilityMetric>());
         }
     }
 

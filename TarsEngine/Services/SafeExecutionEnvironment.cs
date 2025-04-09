@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using TarsEngine.Models;
+using TarsEngine.Utilities;
 
 namespace TarsEngine.Services;
 
@@ -192,7 +193,7 @@ public class SafeExecutionEnvironment
 
             // Update context
             context.UpdatedAt = DateTime.UtcNow;
-            context.AddLog(LogLevel.Information, $"Reading file: {filePath}");
+            context.AddLog(LogLevelConverter.ToTarsLogLevel(Microsoft.Extensions.Logging.LogLevel.Information), $"Reading file: {filePath}");
             context.AddAffectedFile(filePath);
 
             // Read file
@@ -232,7 +233,7 @@ public class SafeExecutionEnvironment
 
             // Update context
             context.UpdatedAt = DateTime.UtcNow;
-            context.AddLog(LogLevel.Information, $"Writing file: {filePath}");
+            context.AddLog(LogLevelConverter.ToTarsLogLevel(Microsoft.Extensions.Logging.LogLevel.Information), $"Writing file: {filePath}");
 
             // Write file
             var result = await _virtualFileSystem.WriteFileAsync(contextId, filePath, content);
@@ -282,7 +283,7 @@ public class SafeExecutionEnvironment
 
             // Update context
             context.UpdatedAt = DateTime.UtcNow;
-            context.AddLog(LogLevel.Information, $"Deleting file: {filePath}");
+            context.AddLog(LogLevelConverter.ToTarsLogLevel(Microsoft.Extensions.Logging.LogLevel.Information), $"Deleting file: {filePath}");
 
             // Delete file
             var result = await _virtualFileSystem.DeleteFileAsync(contextId, filePath);
@@ -325,7 +326,7 @@ public class SafeExecutionEnvironment
 
             // Update context
             context.UpdatedAt = DateTime.UtcNow;
-            context.AddLog(LogLevel.Information, $"Backing up file: {filePath}");
+            context.AddLog(LogLevelConverter.ToTarsLogLevel(Microsoft.Extensions.Logging.LogLevel.Information), $"Backing up file: {filePath}");
 
             // Backup file
             var backupFilePath = await _virtualFileSystem.BackupFileAsync(contextId, filePath);
@@ -368,7 +369,7 @@ public class SafeExecutionEnvironment
 
             // Update context
             context.UpdatedAt = DateTime.UtcNow;
-            context.AddLog(LogLevel.Information, $"Restoring file: {filePath}");
+            context.AddLog(LogLevelConverter.ToTarsLogLevel(Microsoft.Extensions.Logging.LogLevel.Information), $"Restoring file: {filePath}");
 
             // Restore file
             return await _virtualFileSystem.RestoreFileAsync(contextId, filePath);
@@ -405,7 +406,7 @@ public class SafeExecutionEnvironment
 
             // Update context
             context.UpdatedAt = DateTime.UtcNow;
-            context.AddLog(LogLevel.Information, "Committing changes");
+            context.AddLog(LogLevelConverter.ToTarsLogLevel(Microsoft.Extensions.Logging.LogLevel.Information), "Committing changes");
 
             // Commit changes
             return await _virtualFileSystem.CommitChangesAsync(contextId);
@@ -442,7 +443,7 @@ public class SafeExecutionEnvironment
 
             // Update context
             context.UpdatedAt = DateTime.UtcNow;
-            context.AddLog(LogLevel.Information, "Rolling back changes");
+            context.AddLog(LogLevelConverter.ToTarsLogLevel(Microsoft.Extensions.Logging.LogLevel.Information), "Rolling back changes");
 
             // Rollback changes
             return await _virtualFileSystem.RollbackChangesAsync(contextId);
@@ -488,7 +489,7 @@ public class SafeExecutionEnvironment
 
             // Update context
             context.UpdatedAt = DateTime.UtcNow;
-            context.AddLog(LogLevel.Information, $"Executing command: {command} {arguments}");
+            context.AddLog(LogLevelConverter.ToTarsLogLevel(Microsoft.Extensions.Logging.LogLevel.Information), $"Executing command: {command} {arguments}");
 
             // Set working directory
             workingDirectory ??= context.WorkingDirectory;
@@ -525,7 +526,7 @@ public class SafeExecutionEnvironment
             {
                 _logger.LogWarning("Command exited with non-zero code: {ExitCode}", process.ExitCode);
                 context.AddWarning($"Command exited with non-zero code: {process.ExitCode}");
-                context.AddLog(LogLevel.Warning, $"Command error output: {error}");
+                context.AddLog(LogLevelConverter.ToTarsLogLevel(Microsoft.Extensions.Logging.LogLevel.Warning), $"Command error output: {error}");
             }
 
             return string.IsNullOrEmpty(error) ? output : $"{output}\n{error}";
