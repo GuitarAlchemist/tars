@@ -238,7 +238,7 @@ public class DiagnosticReportService
             return new GpuDiagnosticsResult
             {
                 IsGpuAvailable = false,
-                GpuInfo = new List<GpuInfo>(),
+                GpuInfo = [],
                 OllamaGpuParameters = new Dictionary<string, object>(),
                 ErrorMessage = ex.Message
             };
@@ -364,7 +364,7 @@ public class DiagnosticReportService
                     var output = stringWriter.ToString();
 
                     // Add a summary of the output (first 20 lines)
-                    var outputLines = output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                    var outputLines = output.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
                     var summaryLines = outputLines.Take(20).ToArray();
 
                     reportBuilder.AppendLine("```");

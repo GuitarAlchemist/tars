@@ -62,8 +62,8 @@ public class SyntaxValidator
 
             // No validator for this file type, return success
             _logger.LogInformation("No syntax validator available for file type: {Extension}", extension);
-            return new List<ValidationResult>
-            {
+            return
+            [
                 new ValidationResult
                 {
                     RuleName = "SyntaxValidation",
@@ -73,13 +73,13 @@ public class SyntaxValidator
                     Target = filePath,
                     Timestamp = DateTime.UtcNow
                 }
-            };
+            ];
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error validating syntax of file: {FilePath}", filePath);
-            return new List<ValidationResult>
-            {
+            return
+            [
                 new ValidationResult
                 {
                     RuleName = "SyntaxValidation",
@@ -91,7 +91,7 @@ public class SyntaxValidator
                     Details = ex.ToString(),
                     Exception = ex
                 }
-            };
+            ];
         }
     }
 
@@ -187,8 +187,8 @@ public class SyntaxValidator
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error validating C# syntax of file: {FilePath}", filePath);
-            return new List<ValidationResult>
-            {
+            return
+            [
                 new ValidationResult
                 {
                     RuleName = "CSharpSyntaxValidation",
@@ -200,7 +200,7 @@ public class SyntaxValidator
                     Details = ex.ToString(),
                     Exception = ex
                 }
-            };
+            ];
         }
     }
 
@@ -263,8 +263,8 @@ public class SyntaxValidator
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error validating F# syntax of file: {FilePath}", filePath);
-            return new List<ValidationResult>
-            {
+            return
+            [
                 new ValidationResult
                 {
                     RuleName = "FSharpSyntaxValidation",
@@ -276,7 +276,7 @@ public class SyntaxValidator
                     Details = ex.ToString(),
                     Exception = ex
                 }
-            };
+            ];
         }
     }
 
@@ -460,8 +460,8 @@ public class SyntaxValidator
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error validating JSON syntax of file: {FilePath}", filePath);
-            return new List<ValidationResult>
-            {
+            return
+            [
                 new ValidationResult
                 {
                     RuleName = "JsonSyntaxValidation",
@@ -473,7 +473,7 @@ public class SyntaxValidator
                     Details = ex.ToString(),
                     Exception = ex
                 }
-            };
+            ];
         }
     }
 
@@ -533,8 +533,8 @@ public class SyntaxValidator
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error validating XML syntax of file: {FilePath}", filePath);
-            return new List<ValidationResult>
-            {
+            return
+            [
                 new ValidationResult
                 {
                     RuleName = "XmlSyntaxValidation",
@@ -546,7 +546,7 @@ public class SyntaxValidator
                     Details = ex.ToString(),
                     Exception = ex
                 }
-            };
+            ];
         }
     }
 
@@ -606,8 +606,8 @@ public class SyntaxValidator
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error validating SLN syntax of file: {FilePath}", filePath);
-            return new List<ValidationResult>
-            {
+            return
+            [
                 new ValidationResult
                 {
                     RuleName = "SlnSyntaxValidation",
@@ -619,7 +619,7 @@ public class SyntaxValidator
                     Details = ex.ToString(),
                     Exception = ex
                 }
-            };
+            ];
         }
     }
 

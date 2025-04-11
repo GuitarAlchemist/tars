@@ -491,11 +491,11 @@ public class SelfImprovementService : ISelfImprovementService
 /// </summary>
 public class ImprovementSuggestion
 {
-    public string FilePath { get; set; }
+    public string FilePath { get; set; } = string.Empty;
     public int LineNumber { get; set; }
-    public string Issue { get; set; }
-    public string Improvement { get; set; }
-    public string ReplacementCode { get; set; }
+    public string Issue { get; set; } = string.Empty;
+    public string Improvement { get; set; } = string.Empty;
+    public string ReplacementCode { get; set; } = string.Empty;
 }
 
 /// <summary>
@@ -503,7 +503,7 @@ public class ImprovementSuggestion
 /// </summary>
 public class ImprovedFile
 {
-    public string FilePath { get; set; }
+    public string FilePath { get; set; } = string.Empty;
     public int SuggestionsApplied { get; set; }
 }
 
@@ -512,10 +512,10 @@ public class ImprovedFile
 /// </summary>
 public class SelfImprovementSummary
 {
-    public string ProjectPath { get; set; }
-    public DateTime StartTime { get; set; }
-    public DateTime EndTime { get; set; }
-    public TimeSpan Duration { get; set; }
+    public string ProjectPath { get; set; } = string.Empty;
+    public DateTime StartTime { get; set; } = DateTime.UtcNow;
+    public DateTime EndTime { get; set; } = DateTime.UtcNow;
+    public TimeSpan Duration { get; set; } = TimeSpan.Zero;
     public List<ImprovedFile> ImprovedFiles { get; set; } = [];
     public List<string> Errors { get; set; } = [];
 }

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using TarsEngine.Models;
 using TarsEngine.Services.Interfaces;
+using TarsEngine.Utilities;
 
 namespace TarsEngine.Services;
 
@@ -34,6 +35,11 @@ public class FSharpAnalyzer : ILanguageAnalyzer
     /// <inheritdoc/>
     public string Language => "fsharp";
 
+    /// <summary>
+    /// Gets the programming language enum value
+    /// </summary>
+    public ProgrammingLanguage LanguageEnum => ProgrammingLanguage.FSharp;
+
     /// <inheritdoc/>
     public async Task<CodeAnalysisResult> AnalyzeAsync(string content, Dictionary<string, string>? options = null)
     {
@@ -43,7 +49,7 @@ public class FSharpAnalyzer : ILanguageAnalyzer
 
             var result = new CodeAnalysisResult
             {
-                Language = Language,
+                Language = LanguageEnum,
                 AnalyzedAt = DateTime.UtcNow,
                 IsSuccessful = true
             };
@@ -76,19 +82,19 @@ public class FSharpAnalyzer : ILanguageAnalyzer
                 // Detect code smells
                 if (analyzeMaintainability || analyzeStyle)
                 {
-                    result.Issues.AddRange(_codeSmellDetector.DetectCodeSmells(content, Language));
+                    result.Issues.AddRange(_codeSmellDetector.DetectCodeSmells(content, "fsharp"));
                 }
 
                 // Detect complexity issues
                 if (analyzeComplexity)
                 {
-                    result.Issues.AddRange(_complexityAnalyzer.DetectComplexityIssues(content, Language, result.Structures));
+                    result.Issues.AddRange(_complexityAnalyzer.DetectComplexityIssues(content, "fsharp", result.Structures));
                 }
 
                 // Detect performance issues
                 if (analyzePerformance)
                 {
-                    result.Issues.AddRange(_performanceAnalyzer.DetectPerformanceIssues(content, Language));
+                    result.Issues.AddRange(_performanceAnalyzer.DetectPerformanceIssues(content, "fsharp"));
                 }
 
                 // Detect security issues
@@ -108,7 +114,7 @@ public class FSharpAnalyzer : ILanguageAnalyzer
             _logger.LogError(ex, "Error analyzing F# code");
             return new CodeAnalysisResult
             {
-                Language = Language,
+                Language = LanguageEnum,
                 IsSuccessful = false,
                 Errors = { $"Error analyzing F# code: {ex.Message}" }
             };
@@ -219,7 +225,7 @@ public class FSharpAnalyzer : ILanguageAnalyzer
                     var isRecursive = match.Groups[1].Success;
                     var namespaceName = GetNamespaceForPosition(structures, match.Index, content);
                     var className = GetClassForPosition(structures, match.Index, content);
-                    
+
                     structures.Add(new CodeStructure
                     {
                         Type = StructureType.Method, // Using Method type for functions
@@ -378,29 +384,29 @@ public class FSharpAnalyzer : ILanguageAnalyzer
         {
             // Extract the type content
             var typeContent = ExtractStructureContent(content, structure);
-            
+
             double complexity = 0;
-            
+
             // Count union cases
             var unionCaseRegex = new Regex(@"\|\s*[a-zA-Z0-9_]+", RegexOptions.Compiled);
             complexity += unionCaseRegex.Matches(typeContent).Count * 0.5;
-            
+
             // Count record fields
             var recordFieldRegex = new Regex(@"[a-zA-Z0-9_]+\s*:\s*[a-zA-Z0-9_<>]+", RegexOptions.Compiled);
             complexity += recordFieldRegex.Matches(typeContent).Count * 0.3;
-            
+
             // Count generic type parameters
             var genericParamRegex = new Regex(@"<[^>]+>", RegexOptions.Compiled);
             complexity += genericParamRegex.Matches(typeContent).Count * 1.0;
-            
+
             // Count interface implementations
             var interfaceRegex = new Regex(@"interface\s+[a-zA-Z0-9_<>]+", RegexOptions.Compiled);
             complexity += interfaceRegex.Matches(typeContent).Count * 1.5;
-            
+
             // Count member definitions
             var memberRegex = new Regex(@"member\s+[a-zA-Z0-9_]+\.", RegexOptions.Compiled);
             complexity += memberRegex.Matches(typeContent).Count * 0.7;
-            
+
             return complexity;
         }
         catch (Exception ex)
@@ -416,25 +422,25 @@ public class FSharpAnalyzer : ILanguageAnalyzer
         {
             // Extract the function content
             var functionContent = ExtractStructureContent(content, structure);
-            
+
             double complexity = 0;
-            
+
             // Count match expressions
             var matchRegex = new Regex(@"\bmatch\b", RegexOptions.Compiled);
             complexity += matchRegex.Matches(functionContent).Count * 1.0;
-            
+
             // Count pattern cases
             var caseRegex = new Regex(@"\|\s*[^-]+\s*->", RegexOptions.Compiled);
             complexity += caseRegex.Matches(functionContent).Count * 0.5;
-            
+
             // Count active patterns
             var activePatternRegex = new Regex(@"\(\|[^|]+\|\)", RegexOptions.Compiled);
             complexity += activePatternRegex.Matches(functionContent).Count * 1.5;
-            
+
             // Count nested patterns (simplified)
             var nestedPatternRegex = new Regex(@"match\s+[^w]+\s+with\s+[^m]+match", RegexOptions.Compiled);
             complexity += nestedPatternRegex.Matches(functionContent).Count * 2.0;
-            
+
             return complexity;
         }
         catch (Exception ex)
@@ -458,7 +464,7 @@ public class FSharpAnalyzer : ILanguageAnalyzer
                 issues.Add(new CodeIssue
                 {
                     Type = CodeIssueType.SecurityHotspot,
-                    Severity = IssueSeverity.Major,
+                    Severity = TarsEngine.Models.IssueSeverity.Critical,
                     Title = "Unsafe Code Usage",
                     Description = "Using unsafe code can lead to memory corruption and security vulnerabilities.",
                     Location = new CodeLocation
@@ -481,7 +487,7 @@ public class FSharpAnalyzer : ILanguageAnalyzer
                 issues.Add(new CodeIssue
                 {
                     Type = CodeIssueType.SecurityHotspot,
-                    Severity = IssueSeverity.Minor,
+                    Severity = TarsEngine.Models.IssueSeverity.Major,
                     Title = "Unverified External Data",
                     Description = "Reading external data without validation can lead to security vulnerabilities.",
                     Location = new CodeLocation
@@ -504,7 +510,7 @@ public class FSharpAnalyzer : ILanguageAnalyzer
                 issues.Add(new CodeIssue
                 {
                     Type = CodeIssueType.SecurityHotspot,
-                    Severity = IssueSeverity.Critical,
+                    Severity = TarsEngine.Models.IssueSeverity.Critical,
                     Title = "Hardcoded Credentials",
                     Description = "Hardcoded credentials can lead to security vulnerabilities.",
                     Location = new CodeLocation
@@ -536,11 +542,11 @@ public class FSharpAnalyzer : ILanguageAnalyzer
             var lines = content.Split('\n');
             var startLine = structure.Location.StartLine;
             var endLine = structure.Location.EndLine;
-            
+
             // Ensure valid line numbers
             startLine = Math.Max(0, Math.Min(startLine, lines.Length - 1));
             endLine = Math.Max(startLine, Math.Min(endLine, lines.Length - 1));
-            
+
             // Extract the content
             var structureLines = lines.Skip(startLine).Take(endLine - startLine + 1);
             return string.Join("\n", structureLines);
@@ -558,26 +564,26 @@ public class FSharpAnalyzer : ILanguageAnalyzer
         {
             // Sort structures by start line
             var sortedStructures = structures.OrderBy(s => s.Location.StartLine).ToList();
-            
+
             // Calculate sizes and end lines
             for (int i = 0; i < sortedStructures.Count; i++)
             {
                 var structure = sortedStructures[i];
-                
+
                 // Find the next structure at the same or higher level
                 var nextStructureIndex = -1;
                 for (int j = i + 1; j < sortedStructures.Count; j++)
                 {
                     var nextStructure = sortedStructures[j];
-                    
+
                     // If this is a child structure, skip it
                     if (nextStructure.ParentName == structure.Name)
                     {
                         continue;
                     }
-                    
+
                     // If this is at the same level or higher, use it
-                    if (nextStructure.Type == structure.Type || 
+                    if (nextStructure.Type == structure.Type ||
                         (structure.Type == StructureType.Namespace && nextStructure.Type == StructureType.Namespace) ||
                         (structure.Type == StructureType.Class && nextStructure.Type == StructureType.Class))
                     {
@@ -585,7 +591,7 @@ public class FSharpAnalyzer : ILanguageAnalyzer
                         break;
                     }
                 }
-                
+
                 // Calculate end line
                 int endLine;
                 if (nextStructureIndex != -1)
@@ -597,7 +603,7 @@ public class FSharpAnalyzer : ILanguageAnalyzer
                     // If no next structure, use the end of the file
                     endLine = content.Split('\n').Length - 1;
                 }
-                
+
                 // Update structure
                 structure.Location.EndLine = endLine;
                 structure.Size = endLine - structure.Location.StartLine + 1;
@@ -618,28 +624,28 @@ public class FSharpAnalyzer : ILanguageAnalyzer
     private string GetNamespaceForPosition(List<CodeStructure> structures, int position, string content)
     {
         var lineNumber = GetLineNumber(content, position);
-        
+
         // Find the namespace that contains this position
         var containingNamespace = structures
             .Where(s => s.Type == StructureType.Namespace)
             .Where(s => s.Location.StartLine <= lineNumber && s.Location.EndLine >= lineNumber)
             .OrderByDescending(s => s.Location.StartLine) // In case of nested namespaces, get the innermost one
             .FirstOrDefault();
-        
+
         return containingNamespace?.Name ?? string.Empty;
     }
 
     private string GetClassForPosition(List<CodeStructure> structures, int position, string content)
     {
         var lineNumber = GetLineNumber(content, position);
-        
+
         // Find the class that contains this position
         var containingClass = structures
             .Where(s => s.Type == StructureType.Class)
             .Where(s => s.Location.StartLine <= lineNumber && s.Location.EndLine >= lineNumber)
             .OrderByDescending(s => s.Location.StartLine) // In case of nested classes, get the innermost one
             .FirstOrDefault();
-        
+
         return containingClass?.Name ?? string.Empty;
     }
 
@@ -649,11 +655,11 @@ public class FSharpAnalyzer : ILanguageAnalyzer
         {
             var lines = content.Split('\n');
             var lineNumber = GetLineNumber(content, position);
-            
+
             // Get a few lines before and after
             var startLine = Math.Max(0, lineNumber - 1);
             var endLine = Math.Min(lines.Length - 1, lineNumber + 1);
-            
+
             var snippetLines = lines.Skip(startLine).Take(endLine - startLine + 1);
             return string.Join("\n", snippetLines);
         }
@@ -670,7 +676,7 @@ public class FSharpAnalyzer : ILanguageAnalyzer
         {
             return defaultValue;
         }
-        
+
         return value.Equals("true", StringComparison.OrdinalIgnoreCase);
     }
 }

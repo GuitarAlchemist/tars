@@ -52,33 +52,33 @@ public class ImprovementGenerationCommand : Command
 
         // Add options
         var pathOption = new Option<string>(
-            new[] { "--path", "-p" },
+            ["--path", "-p"],
             "Path to the file or directory to analyze")
         {
             IsRequired = true
         };
 
         var recursiveOption = new Option<bool>(
-            new[] { "--recursive", "-r" },
+            ["--recursive", "-r"],
             () => true,
             "Whether to analyze directories recursively");
 
         var filePatternOption = new Option<string>(
-            new[] { "--pattern", "-f" },
+            ["--pattern", "-f"],
             () => "*.cs;*.fs",
             "File pattern to match (semicolon-separated)");
 
         var outputOption = new Option<string>(
-            new[] { "--output", "-o" },
+            ["--output", "-o"],
             "Path to the output file");
 
         var formatOption = new Option<string>(
-            new[] { "--format" },
+            ["--format"],
             () => "json",
             "Output format (json, yaml, or text)");
 
         var verboseOption = new Option<bool>(
-            new[] { "--verbose", "-v" },
+            ["--verbose", "-v"],
             "Show verbose output");
 
         // Add options to command
@@ -104,37 +104,37 @@ public class ImprovementGenerationCommand : Command
 
         // Add options
         var pathOption = new Option<string>(
-            new[] { "--path", "-p" },
+            ["--path", "-p"],
             "Path to the file or directory to match patterns in")
         {
             IsRequired = true
         };
 
         var recursiveOption = new Option<bool>(
-            new[] { "--recursive", "-r" },
+            ["--recursive", "-r"],
             () => true,
             "Whether to match patterns in directories recursively");
 
         var filePatternOption = new Option<string>(
-            new[] { "--pattern", "-f" },
+            ["--pattern", "-f"],
             () => "*.cs;*.fs",
             "File pattern to match (semicolon-separated)");
 
         var languageOption = new Option<string>(
-            new[] { "--language", "-l" },
+            ["--language", "-l"],
             "Language filter for patterns");
 
         var outputOption = new Option<string>(
-            new[] { "--output", "-o" },
+            ["--output", "-o"],
             "Path to the output file");
 
         var formatOption = new Option<string>(
-            new[] { "--format" },
+            ["--format"],
             () => "json",
             "Output format (json, yaml, or text)");
 
         var verboseOption = new Option<bool>(
-            new[] { "--verbose", "-v" },
+            ["--verbose", "-v"],
             "Show verbose output");
 
         // Add options to command
@@ -161,24 +161,24 @@ public class ImprovementGenerationCommand : Command
 
         // Add options
         var matchIdOption = new Option<string>(
-            new[] { "--match-id", "-m" },
+            ["--match-id", "-m"],
             "ID of the pattern match to generate a metascript for");
 
         var matchFileOption = new Option<string>(
-            new[] { "--match-file", "-f" },
+            ["--match-file", "-f"],
             "Path to a file containing pattern matches");
 
         var outputOption = new Option<string>(
-            new[] { "--output", "-o" },
+            ["--output", "-o"],
             "Path to the output directory");
 
         var formatOption = new Option<string>(
-            new[] { "--format" },
+            ["--format"],
             () => "json",
             "Output format (json, yaml, or text)");
 
         var verboseOption = new Option<bool>(
-            new[] { "--verbose", "-v" },
+            ["--verbose", "-v"],
             "Show verbose output");
 
         // Add options to command
@@ -203,24 +203,24 @@ public class ImprovementGenerationCommand : Command
 
         // Add options
         var metascriptIdOption = new Option<string>(
-            new[] { "--metascript-id", "-m" },
+            ["--metascript-id", "-m"],
             "ID of the metascript to prioritize");
 
         var metascriptFileOption = new Option<string>(
-            new[] { "--metascript-file", "-f" },
+            ["--metascript-file", "-f"],
             "Path to a file containing metascripts");
 
         var outputOption = new Option<string>(
-            new[] { "--output", "-o" },
+            ["--output", "-o"],
             "Path to the output file");
 
         var formatOption = new Option<string>(
-            new[] { "--format" },
+            ["--format"],
             () => "json",
             "Output format (json, yaml, or text)");
 
         var verboseOption = new Option<bool>(
-            new[] { "--verbose", "-v" },
+            ["--verbose", "-v"],
             "Show verbose output");
 
         // Add options to command
@@ -245,38 +245,38 @@ public class ImprovementGenerationCommand : Command
 
         // Add options
         var categoryOption = new Option<string>(
-            new[] { "--category", "-c" },
+            ["--category", "-c"],
             "Filter by category");
 
         var statusOption = new Option<string>(
-            new[] { "--status", "-s" },
+            ["--status", "-s"],
             "Filter by status");
 
         var tagOption = new Option<string>(
-            new[] { "--tag", "-t" },
+            ["--tag", "-t"],
             "Filter by tag");
 
         var limitOption = new Option<int>(
-            new[] { "--limit", "-l" },
+            ["--limit", "-l"],
             () => 10,
             "Maximum number of improvements to list");
 
         var sortByOption = new Option<string>(
-            new[] { "--sort-by" },
+            ["--sort-by"],
             () => "priority",
             "Sort by field (priority, impact, effort, risk, alignment, date, name)");
 
         var outputOption = new Option<string>(
-            new[] { "--output", "-o" },
+            ["--output", "-o"],
             "Path to the output file");
 
         var formatOption = new Option<string>(
-            new[] { "--format" },
+            ["--format"],
             () => "text",
             "Output format (json, yaml, or text)");
 
         var verboseOption = new Option<bool>(
-            new[] { "--verbose", "-v" },
+            ["--verbose", "-v"],
             "Show verbose output");
 
         // Add options to command
@@ -304,18 +304,18 @@ public class ImprovementGenerationCommand : Command
 
         // Add options
         var improvementIdOption = new Option<string>(
-            new[] { "--id", "-i" },
+            ["--id", "-i"],
             "ID of the improvement to execute")
         {
             IsRequired = true
         };
 
         var dryRunOption = new Option<bool>(
-            new[] { "--dry-run", "-d" },
+            ["--dry-run", "-d"],
             "Perform a dry run without making changes");
 
         var verboseOption = new Option<bool>(
-            new[] { "--verbose", "-v" },
+            ["--verbose", "-v"],
             "Show verbose output");
 
         // Add options to command
@@ -338,7 +338,7 @@ public class ImprovementGenerationCommand : Command
 
         // Add options
         var verboseOption = new Option<bool>(
-            new[] { "--verbose", "-v" },
+            ["--verbose", "-v"],
             "Show verbose output");
 
         // Add options to command
@@ -444,7 +444,7 @@ public class ImprovementGenerationCommand : Command
             {
                 // Load pattern matches from file
                 var json = await File.ReadAllTextAsync(matchFile);
-                patternMatches = System.Text.Json.JsonSerializer.Deserialize<List<PatternMatch>>(json) ?? new List<PatternMatch>();
+                patternMatches = System.Text.Json.JsonSerializer.Deserialize<List<PatternMatch>>(json) ?? [];
             }
             else
             {
@@ -498,7 +498,7 @@ public class ImprovementGenerationCommand : Command
             {
                 // Load metascripts from file
                 var json = await File.ReadAllTextAsync(metascriptFile);
-                metascripts = System.Text.Json.JsonSerializer.Deserialize<List<GeneratedMetascript>>(json) ?? new List<GeneratedMetascript>();
+                metascripts = System.Text.Json.JsonSerializer.Deserialize<List<GeneratedMetascript>>(json) ?? [];
             }
             else
             {
@@ -745,7 +745,7 @@ public class ImprovementGenerationCommand : Command
         {
             // Analyze single file
             var result = await codeAnalyzer.AnalyzeFileAsync(path);
-            var resultList = new List<TarsEngine.Models.CodeAnalysisResult> { result };
+            var resultList = new List<TarsEngine.Models.CodeAnalysisResult> { ConvertToModelResult(result) };
             return new Dictionary<string, List<TarsEngine.Models.CodeAnalysisResult>> { { path, resultList } };
         }
         else if (Directory.Exists(path))
@@ -754,16 +754,15 @@ public class ImprovementGenerationCommand : Command
             var results = await codeAnalyzer.AnalyzeDirectoryAsync(path, recursive, filePattern);
             var resultDict = new Dictionary<string, List<TarsEngine.Models.CodeAnalysisResult>>();
 
-            // Create a dictionary with file paths as keys and lists of analysis results as values
-            for (int i = 0; i < results.Count; i++)
+            // Group results by file path
+            foreach (var result in results)
             {
-                var result = results[i];
                 var filePath = result.FilePath;
                 if (!resultDict.ContainsKey(filePath))
                 {
-                    resultDict[filePath] = new List<TarsEngine.Models.CodeAnalysisResult>();
+                    resultDict[filePath] = [];
                 }
-                resultDict[filePath].Add(result);
+                resultDict[filePath].Add(ConvertToModelResult(result));
             }
 
             return resultDict;
@@ -828,5 +827,24 @@ public class ImprovementGenerationCommand : Command
             // Write to console
             Console.WriteLine(output);
         }
+    }
+
+    /// <summary>
+    /// Converts a TarsEngine.Services.CodeAnalysisResult to a TarsEngine.Models.CodeAnalysisResult
+    /// </summary>
+    private TarsEngine.Models.CodeAnalysisResult ConvertToModelResult(TarsEngine.Services.CodeAnalysisResult serviceResult)
+    {
+        return new TarsEngine.Models.CodeAnalysisResult
+        {
+            Id = Guid.NewGuid().ToString(),
+            Path = serviceResult.FilePath,
+            Language = serviceResult.Language.ToString(),
+            IsSuccessful = serviceResult.Success,
+            Errors = serviceResult.Success ? [] : [serviceResult.ErrorMessage],
+            Issues = serviceResult.Issues,
+            Metrics = serviceResult.Metrics,
+            Structures = serviceResult.Structures,
+            AnalyzedAt = serviceResult.AnalyzedAt
+        };
     }
 }

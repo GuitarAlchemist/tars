@@ -254,7 +254,7 @@ public class KnowledgeRepository : IKnowledgeRepository
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error searching for knowledge items with query: {Query}", query);
-            return Enumerable.Empty<TarsEngine.Models.KnowledgeItem>();
+            return [];
         }
     }
 
@@ -299,7 +299,7 @@ public class KnowledgeRepository : IKnowledgeRepository
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting knowledge items of type: {Type}", type);
-            return Enumerable.Empty<TarsEngine.Models.KnowledgeItem>();
+            return [];
         }
     }
 
@@ -348,7 +348,7 @@ public class KnowledgeRepository : IKnowledgeRepository
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting knowledge items with tag: {Tag}", tag);
-            return Enumerable.Empty<TarsEngine.Models.KnowledgeItem>();
+            return [];
         }
     }
 
@@ -397,7 +397,7 @@ public class KnowledgeRepository : IKnowledgeRepository
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting knowledge items from source: {Source}", source);
-            return Enumerable.Empty<TarsEngine.Models.KnowledgeItem>();
+            return [];
         }
     }
 
@@ -419,13 +419,13 @@ public class KnowledgeRepository : IKnowledgeRepository
             {
                 if (!_relationshipsCache.ContainsKey(relationship.SourceId))
                 {
-                    _relationshipsCache[relationship.SourceId] = new List<KnowledgeRelationship>();
+                    _relationshipsCache[relationship.SourceId] = [];
                 }
                 _relationshipsCache[relationship.SourceId].Add(relationship);
 
                 if (!_relationshipsCache.ContainsKey(relationship.TargetId))
                 {
-                    _relationshipsCache[relationship.TargetId] = new List<KnowledgeRelationship>();
+                    _relationshipsCache[relationship.TargetId] = [];
                 }
                 _relationshipsCache[relationship.TargetId].Add(relationship);
             }
@@ -463,7 +463,7 @@ public class KnowledgeRepository : IKnowledgeRepository
                 }
                 else
                 {
-                    results = new List<KnowledgeRelationship>();
+                    results = [];
                 }
             }
 
@@ -473,7 +473,7 @@ public class KnowledgeRepository : IKnowledgeRepository
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting relationships for item: {ItemId}", itemId);
-            return Enumerable.Empty<KnowledgeRelationship>();
+            return [];
         }
     }
 
@@ -555,12 +555,13 @@ public class KnowledgeRepository : IKnowledgeRepository
                 stats.TotalItems = _itemsCache.Count;
 
                 // Items by type
-                foreach (var type in Enum.GetValues<TarsEngine.Models.KnowledgeType>())
+                foreach (var type in Enum.GetValues<TarsEngine.Services.Interfaces.KnowledgeType>())
                 {
-                    var count = _itemsCache.Values.Count(item => item.Type.Equals(type));
+                    var knowledgeType = (TarsEngine.Services.Interfaces.KnowledgeType)type;
+                    var count = _itemsCache.Values.Count(item => TarsEngine.Services.Adapters.KnowledgeTypeAdapter.ToInterfaceType(item.Type).Equals(knowledgeType));
                     if (count > 0)
                     {
-                        stats.ItemsByType[type] = count;
+                        stats.ItemsByType[knowledgeType] = count;
                     }
                 }
 
@@ -667,13 +668,13 @@ public class KnowledgeRepository : IKnowledgeRepository
                     {
                         if (!_relationshipsCache.ContainsKey(relationship.SourceId))
                         {
-                            _relationshipsCache[relationship.SourceId] = new List<KnowledgeRelationship>();
+                            _relationshipsCache[relationship.SourceId] = [];
                         }
                         _relationshipsCache[relationship.SourceId].Add(relationship);
 
                         if (!_relationshipsCache.ContainsKey(relationship.TargetId))
                         {
-                            _relationshipsCache[relationship.TargetId] = new List<KnowledgeRelationship>();
+                            _relationshipsCache[relationship.TargetId] = [];
                         }
                         _relationshipsCache[relationship.TargetId].Add(relationship);
                     }

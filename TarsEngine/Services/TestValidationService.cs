@@ -137,14 +137,14 @@ function checkRegressions(original, improved, tests, language) {{
             return new TestValidationResult
             {
                 IsValid = false,
-                Issues = new List<ValidationIssue>
-                {
+                Issues =
+                [
                     new ValidationIssue
                     {
                         Description = $"Error validating improved code: {ex.Message}",
                         Severity = IssueSeverity.Error
                     }
-                }
+                ]
             };
         }
     }
@@ -208,15 +208,15 @@ function checkRegressions(original, improved, tests, language) {{
                 FailedTests = 1,
                 SkippedTests = 0,
                 ExecutionTimeMs = 0,
-                Failures = new List<TestFailure>
-                {
+                Failures =
+                [
                     new TestFailure
                     {
                         TestName = "TestExecution",
                         ErrorMessage = ex.Message,
                         StackTrace = ex.StackTrace ?? string.Empty
                     }
-                },
+                ],
                 RawOutput = $"Error: {ex.Message}"
             };
         }
@@ -274,16 +274,16 @@ function checkRegressions(original, improved, tests, language) {{
                 IsSuccessful = false,
                 NewPassingTests = 0,
                 NewFailingTests = 0,
-                NewFailures = new List<TestFailure>
-                {
+                NewFailures =
+                [
                     new TestFailure
                     {
                         TestName = "TestComparison",
                         ErrorMessage = ex.Message,
                         StackTrace = ex.StackTrace ?? string.Empty
                     }
-                },
-                FixedFailures = new List<string>(),
+                ],
+                FixedFailures = [],
                 ExecutionTimeChange = 0
             };
         }
@@ -298,7 +298,7 @@ function checkRegressions(original, improved, tests, language) {{
 
             if (testResult.FailedTests == 0)
             {
-                return new List<TestFix>();
+                return [];
             }
 
             if (!File.Exists(codeFilePath))
@@ -384,12 +384,12 @@ function suggestFixesForFailingTests(code, tests, failures, language) {{
                 }
             }
 
-            return fixes ?? new List<TestFix>();
+            return fixes ?? [];
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error suggesting fixes for failing tests");
-            return new List<TestFix>();
+            return [];
         }
     }
 
@@ -569,15 +569,15 @@ function suggestFixesForFailingTests(code, tests, failures, language) {{
                 FailedTests = 1,
                 SkippedTests = 0,
                 ExecutionTimeMs = 0,
-                Failures = new List<TestFailure>
-                {
+                Failures =
+                [
                     new TestFailure
                     {
                         TestName = "TestExecution",
                         ErrorMessage = ex.Message,
                         StackTrace = ex.StackTrace ?? string.Empty
                     }
-                },
+                ],
                 RawOutput = $"Error: {ex.Message}"
             };
         }

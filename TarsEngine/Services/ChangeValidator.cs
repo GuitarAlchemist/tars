@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using TarsEngine.Models;
+using TarsEngine.Services.Adapters;
 
 namespace TarsEngine.Services;
 
@@ -114,7 +115,7 @@ public class ChangeValidator
                 var testResult = await _testExecutor.ExecuteTestsAsync(contextId, projectPath, testFilter, options);
                 var testValidationResults = _testExecutor.ConvertToValidationResults(testResult, filePath);
                 result.ValidationResults.AddRange(testValidationResults);
-                result.TestResult = testResult;
+                result.TestResult = TestExecutionResultAdapter.ToModel(testResult);
 
                 // Check if tests failed
                 if (!testResult.IsSuccessful)
@@ -145,8 +146,8 @@ public class ChangeValidator
                 StartedAt = DateTime.UtcNow,
                 CompletedAt = DateTime.UtcNow,
                 DurationMs = 0,
-                ValidationResults = new List<ValidationResult>
-                {
+                ValidationResults =
+                [
                     new ValidationResult
                     {
                         RuleName = "ChangeValidation",
@@ -158,7 +159,7 @@ public class ChangeValidator
                         Details = ex.ToString(),
                         Exception = ex
                     }
-                }
+                ]
             };
         }
     }
@@ -240,7 +241,7 @@ public class ChangeValidator
                 var testResult = await _testExecutor.ExecuteTestsAsync(contextId, projectPath, testFilter, options);
                 var testValidationResults = _testExecutor.ConvertToValidationResults(testResult, projectPath);
                 result.ValidationResults.AddRange(testValidationResults);
-                result.TestResult = testResult;
+                result.TestResult = TestExecutionResultAdapter.ToModel(testResult);
 
                 // Check if tests failed
                 if (!testResult.IsSuccessful)
@@ -270,8 +271,8 @@ public class ChangeValidator
                 StartedAt = DateTime.UtcNow,
                 CompletedAt = DateTime.UtcNow,
                 DurationMs = 0,
-                ValidationResults = new List<ValidationResult>
-                {
+                ValidationResults =
+                [
                     new ValidationResult
                     {
                         RuleName = "ProjectValidation",
@@ -283,7 +284,7 @@ public class ChangeValidator
                         Details = ex.ToString(),
                         Exception = ex
                     }
-                }
+                ]
             };
         }
     }
@@ -322,7 +323,7 @@ public class ChangeValidator
                 var testResult = await _testExecutor.ExecuteTestsAsync(contextId, solutionPath, testFilter, options);
                 var testValidationResults = _testExecutor.ConvertToValidationResults(testResult, solutionPath);
                 result.ValidationResults.AddRange(testValidationResults);
-                result.TestResult = testResult;
+                result.TestResult = TestExecutionResultAdapter.ToModel(testResult);
 
                 // Check if tests failed
                 if (!testResult.IsSuccessful)
@@ -352,8 +353,8 @@ public class ChangeValidator
                 StartedAt = DateTime.UtcNow,
                 CompletedAt = DateTime.UtcNow,
                 DurationMs = 0,
-                ValidationResults = new List<ValidationResult>
-                {
+                ValidationResults =
+                [
                     new ValidationResult
                     {
                         RuleName = "SolutionValidation",
@@ -365,7 +366,7 @@ public class ChangeValidator
                         Details = ex.ToString(),
                         Exception = ex
                     }
-                }
+                ]
             };
         }
     }

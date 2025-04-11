@@ -75,6 +75,12 @@ namespace TarsEngine.Monads
             _isSuccess ? Result<TResult, TError>.Success(mapper(_value)) : Result<TResult, TError>.Failure(_error);
 
         /// <summary>
+        /// Applies a function to the error if failed, or returns a success with the same value if not
+        /// </summary>
+        public Result<T, TNewError> MapError<TNewError>(Func<TError, TNewError> mapper) =>
+            _isSuccess ? Result<T, TNewError>.Success(_value) : Result<T, TNewError>.Failure(mapper(_error));
+
+        /// <summary>
         /// Applies a function that returns a Result to the value if successful, or returns a failure with the same error if not
         /// </summary>
         public Result<TResult, TError> Bind<TResult>(Func<T, Result<TResult, TError>> binder) =>

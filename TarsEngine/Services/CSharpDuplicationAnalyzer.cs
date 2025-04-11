@@ -8,7 +8,10 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Extensions.Logging;
 using TarsEngine.Models.Metrics;
+using TarsEngine.Models.Unified;
 using TarsEngine.Services.Interfaces;
+using TarsEngine.Utilities;
+using InterfaceDuplicatedBlock = TarsEngine.Services.Interfaces.DuplicatedBlock;
 
 namespace TarsEngine.Services;
 
@@ -302,7 +305,7 @@ public class CSharpDuplicationAnalyzer : IDuplicationAnalyzer
             FilePath = filePath,
             Language = "C#",
             Target = fileName,
-            TargetType = TargetType.File,
+            TargetType = "File",
             TotalLinesOfCode = lines.Length,
             DuplicatedLinesOfCode = duplicatedLinesOfCode,
             DuplicationPercentage = duplicationPercentage,
@@ -351,7 +354,7 @@ public class CSharpDuplicationAnalyzer : IDuplicationAnalyzer
             FilePath = filePath,
             Language = "C#",
             Target = fullClassName,
-            TargetType = TargetType.Class,
+            TargetType = "Class",
             TotalLinesOfCode = lines.Length,
             DuplicatedLinesOfCode = duplicatedLinesOfCode,
             DuplicationPercentage = duplicationPercentage,
@@ -400,7 +403,7 @@ public class CSharpDuplicationAnalyzer : IDuplicationAnalyzer
             FilePath = filePath,
             Language = "C#",
             Target = fullMethodName,
-            TargetType = TargetType.Method,
+            TargetType = "Method",
             TotalLinesOfCode = lines.Length,
             DuplicatedLinesOfCode = duplicatedLinesOfCode,
             DuplicationPercentage = duplicationPercentage,
@@ -426,7 +429,7 @@ public class CSharpDuplicationAnalyzer : IDuplicationAnalyzer
     private async Task<DuplicationMetric> CalculateProjectDuplicationAsync(string projectPath, string projectName, List<DuplicationMetric> fileMetrics)
     {
         // Get file-level metrics
-        var fileLevelMetrics = fileMetrics.Where(m => m.TargetType == TargetType.File && m.Type == DuplicationType.TokenBased).ToList();
+        var fileLevelMetrics = fileMetrics.Where(m => m.TargetType == "File" && m.Type == DuplicationType.TokenBased).ToList();
 
         // Calculate total lines of code
         var totalLinesOfCode = fileLevelMetrics.Sum(m => m.TotalLinesOfCode);
@@ -446,7 +449,7 @@ public class CSharpDuplicationAnalyzer : IDuplicationAnalyzer
             FilePath = projectPath,
             Language = "C#",
             Target = projectName,
-            TargetType = TargetType.Project,
+            TargetType = "Project",
             TotalLinesOfCode = totalLinesOfCode,
             DuplicatedLinesOfCode = duplicatedLinesOfCode,
             DuplicationPercentage = duplicationPercentage,
@@ -480,12 +483,12 @@ public class CSharpDuplicationAnalyzer : IDuplicationAnalyzer
         var similarBlocks = analyzer.FindSimilarCodeBlocks(filePath, sourceCode);
 
         // Convert to duplicated blocks
-        var duplicatedBlocks = new List<DuplicatedBlock>();
+        var duplicatedBlocks = new List<InterfaceDuplicatedBlock>();
         foreach (var block in similarBlocks)
         {
             var duplicatedCode = GetCodeBetweenLines(sourceCode, block.StartLine, block.EndLine);
 
-            var duplicatedBlock = new DuplicatedBlock
+            var duplicatedBlock = new InterfaceDuplicatedBlock
             {
                 SourceFilePath = filePath,
                 SourceStartLine = block.StartLine,
@@ -501,7 +504,7 @@ public class CSharpDuplicationAnalyzer : IDuplicationAnalyzer
         }
 
         // Calculate duplicated lines of code
-        var duplicatedLinesOfCode = duplicatedBlocks.Sum(b => b.DuplicatedLines);
+        var duplicatedLinesOfCode = duplicatedBlocks.Sum(b => b.SourceEndLine - b.SourceStartLine + 1);
 
         // Calculate duplication percentage
         var duplicationPercentage = lines.Length > 0 ? (double)duplicatedLinesOfCode / lines.Length * 100 : 0;
@@ -515,12 +518,21 @@ public class CSharpDuplicationAnalyzer : IDuplicationAnalyzer
             FilePath = filePath,
             Language = "C#",
             Target = fileName,
-            TargetType = TargetType.File,
+            TargetType = "File",
             TotalLinesOfCode = lines.Length,
             DuplicatedLinesOfCode = duplicatedLinesOfCode,
             DuplicationPercentage = duplicationPercentage,
             DuplicatedBlockCount = duplicatedBlocks.Count,
-            DuplicatedBlocks = duplicatedBlocks,
+            DuplicatedBlocks = duplicatedBlocks.Select(b => new TarsEngine.Models.Metrics.DuplicatedBlock {
+                SourceFilePath = b.SourceFilePath,
+                SourceStartLine = b.SourceStartLine,
+                SourceEndLine = b.SourceEndLine,
+                TargetFilePath = b.TargetFilePath,
+                TargetStartLine = b.TargetStartLine,
+                TargetEndLine = b.TargetEndLine,
+                SimilarityPercentage = b.SimilarityPercentage,
+                DuplicatedCode = b.DuplicatedCode
+            }).ToList(),
             Timestamp = DateTime.UtcNow,
             ThresholdValue = GetThreshold("C#", DuplicationType.Semantic, "File")
         };
@@ -550,12 +562,12 @@ public class CSharpDuplicationAnalyzer : IDuplicationAnalyzer
         var similarBlocks = analyzer.FindSimilarCodeBlocks(filePath, sourceCode);
 
         // Convert to duplicated blocks
-        var duplicatedBlocks = new List<DuplicatedBlock>();
+        var duplicatedBlocks = new List<InterfaceDuplicatedBlock>();
         foreach (var block in similarBlocks)
         {
             var duplicatedCode = GetCodeBetweenLines(sourceCode, block.StartLine, block.EndLine);
 
-            var duplicatedBlock = new DuplicatedBlock
+            var duplicatedBlock = new InterfaceDuplicatedBlock
             {
                 SourceFilePath = filePath,
                 SourceStartLine = block.StartLine,
@@ -571,7 +583,7 @@ public class CSharpDuplicationAnalyzer : IDuplicationAnalyzer
         }
 
         // Calculate duplicated lines of code
-        var duplicatedLinesOfCode = duplicatedBlocks.Sum(b => b.DuplicatedLines);
+        var duplicatedLinesOfCode = duplicatedBlocks.Sum(b => b.TargetEndLine - b.TargetStartLine + 1);
 
         // Calculate duplication percentage
         var duplicationPercentage = lines.Length > 0 ? (double)duplicatedLinesOfCode / lines.Length * 100 : 0;
@@ -585,12 +597,22 @@ public class CSharpDuplicationAnalyzer : IDuplicationAnalyzer
             FilePath = filePath,
             Language = "C#",
             Target = fullClassName,
-            TargetType = TargetType.Class,
+            TargetType = "Class",
             TotalLinesOfCode = lines.Length,
             DuplicatedLinesOfCode = duplicatedLinesOfCode,
             DuplicationPercentage = duplicationPercentage,
             DuplicatedBlockCount = duplicatedBlocks.Count,
-            DuplicatedBlocks = duplicatedBlocks,
+            DuplicatedBlocks = duplicatedBlocks.Select(b => new TarsEngine.Models.Metrics.DuplicatedBlock
+            {
+                SourceFilePath = b.SourceFilePath,
+                SourceStartLine = b.SourceStartLine,
+                SourceEndLine = b.SourceEndLine,
+                TargetFilePath = b.TargetFilePath,
+                TargetStartLine = b.TargetStartLine,
+                TargetEndLine = b.TargetEndLine,
+                DuplicatedCode = b.DuplicatedCode,
+                SimilarityPercentage = b.SimilarityPercentage
+            }).ToList(),
             Timestamp = DateTime.UtcNow,
             ThresholdValue = GetThreshold("C#", DuplicationType.Semantic, "Class")
         };
@@ -620,12 +642,12 @@ public class CSharpDuplicationAnalyzer : IDuplicationAnalyzer
         var similarBlocks = analyzer.FindSimilarCodeBlocks(filePath, sourceCode);
 
         // Convert to duplicated blocks
-        var duplicatedBlocks = new List<DuplicatedBlock>();
+        var duplicatedBlocks = new List<InterfaceDuplicatedBlock>();
         foreach (var block in similarBlocks)
         {
             var duplicatedCode = GetCodeBetweenLines(sourceCode, block.StartLine, block.EndLine);
 
-            var duplicatedBlock = new DuplicatedBlock
+            var duplicatedBlock = new InterfaceDuplicatedBlock
             {
                 SourceFilePath = filePath,
                 SourceStartLine = block.StartLine,
@@ -641,7 +663,7 @@ public class CSharpDuplicationAnalyzer : IDuplicationAnalyzer
         }
 
         // Calculate duplicated lines of code
-        var duplicatedLinesOfCode = duplicatedBlocks.Sum(b => b.DuplicatedLines);
+        var duplicatedLinesOfCode = duplicatedBlocks.Sum(b => b.TargetEndLine - b.TargetStartLine + 1);
 
         // Calculate duplication percentage
         var duplicationPercentage = lines.Length > 0 ? (double)duplicatedLinesOfCode / lines.Length * 100 : 0;
@@ -655,12 +677,21 @@ public class CSharpDuplicationAnalyzer : IDuplicationAnalyzer
             FilePath = filePath,
             Language = "C#",
             Target = fullMethodName,
-            TargetType = TargetType.Method,
+            TargetType = "Method",
             TotalLinesOfCode = lines.Length,
             DuplicatedLinesOfCode = duplicatedLinesOfCode,
             DuplicationPercentage = duplicationPercentage,
             DuplicatedBlockCount = duplicatedBlocks.Count,
-            DuplicatedBlocks = duplicatedBlocks,
+            DuplicatedBlocks = duplicatedBlocks.Select(b => new TarsEngine.Models.Metrics.DuplicatedBlock {
+                SourceFilePath = b.SourceFilePath,
+                SourceStartLine = b.SourceStartLine,
+                SourceEndLine = b.SourceEndLine,
+                TargetFilePath = b.TargetFilePath,
+                TargetStartLine = b.TargetStartLine,
+                TargetEndLine = b.TargetEndLine,
+                SimilarityPercentage = b.SimilarityPercentage,
+                DuplicatedCode = b.DuplicatedCode
+            }).ToList(),
             Timestamp = DateTime.UtcNow,
             ThresholdValue = GetThreshold("C#", DuplicationType.Semantic, "Method")
         };

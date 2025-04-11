@@ -173,7 +173,7 @@ public class TemplateFiller
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error validating parameters for template: {TemplateName} ({TemplateId})", template.Name, template.Id);
-            return (false, new List<string> { ex.Message });
+            return (false, [ex.Message]);
         }
     }
 

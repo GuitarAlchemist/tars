@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using TarsEngine.Models;
+using MsLogLevel = Microsoft.Extensions.Logging.LogLevel;
+using TarsLogLevel = TarsEngine.Models.LogLevel;
 
 namespace TarsApp.Models
 {
@@ -20,7 +22,7 @@ namespace TarsApp.Models
             return new ExecutionLog
             {
                 Timestamp = logEntry.Timestamp,
-                Level = (LogLevel)logEntry.LogLevel,
+                Level = ConvertToTarsLogLevel(logEntry.LogLevel),
                 Message = logEntry.Message,
                 Source = logEntry.Category ?? "System"
             };
@@ -46,7 +48,7 @@ namespace TarsApp.Models
             return new LogEntry
             {
                 Timestamp = executionLog.Timestamp,
-                LogLevel = (Microsoft.Extensions.Logging.LogLevel)executionLog.Level,
+                LogLevel = ConvertToMsLogLevel(executionLog.Level),
                 Message = executionLog.Message,
                 Category = executionLog.Source
             };
@@ -60,6 +62,40 @@ namespace TarsApp.Models
         public static IEnumerable<LogEntry> ToLogEntries(this IEnumerable<ExecutionLog> executionLogs)
         {
             return executionLogs.Select(executionLog => executionLog.ToLogEntry());
+        }
+
+        /// <summary>
+        /// Converts Microsoft.Extensions.Logging.LogLevel to TarsEngine.Models.LogLevel
+        /// </summary>
+        private static TarsLogLevel ConvertToTarsLogLevel(MsLogLevel level)
+        {
+            return level switch
+            {
+                MsLogLevel.Trace => TarsLogLevel.Trace,
+                MsLogLevel.Debug => TarsLogLevel.Debug,
+                MsLogLevel.Information => TarsLogLevel.Information,
+                MsLogLevel.Warning => TarsLogLevel.Warning,
+                MsLogLevel.Error => TarsLogLevel.Error,
+                MsLogLevel.Critical => TarsLogLevel.Critical,
+                _ => TarsLogLevel.Information
+            };
+        }
+
+        /// <summary>
+        /// Converts TarsEngine.Models.LogLevel to Microsoft.Extensions.Logging.LogLevel
+        /// </summary>
+        private static MsLogLevel ConvertToMsLogLevel(TarsLogLevel level)
+        {
+            return level switch
+            {
+                TarsLogLevel.Trace => MsLogLevel.Trace,
+                TarsLogLevel.Debug => MsLogLevel.Debug,
+                TarsLogLevel.Information => MsLogLevel.Information,
+                TarsLogLevel.Warning => MsLogLevel.Warning,
+                TarsLogLevel.Error => MsLogLevel.Error,
+                TarsLogLevel.Critical => MsLogLevel.Critical,
+                _ => MsLogLevel.None
+            };
         }
     }
 }

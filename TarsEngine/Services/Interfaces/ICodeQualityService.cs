@@ -319,22 +319,62 @@ public class DuplicationMetrics
 public class DuplicatedBlock
 {
     /// <summary>
-    /// File path
+    /// Source file path
+    /// </summary>
+    public string SourceFilePath { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Source start line
+    /// </summary>
+    public int SourceStartLine { get; set; }
+
+    /// <summary>
+    /// Source end line
+    /// </summary>
+    public int SourceEndLine { get; set; }
+
+    /// <summary>
+    /// Target file path
+    /// </summary>
+    public string TargetFilePath { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Target start line
+    /// </summary>
+    public int TargetStartLine { get; set; }
+
+    /// <summary>
+    /// Target end line
+    /// </summary>
+    public int TargetEndLine { get; set; }
+
+    /// <summary>
+    /// Duplicated code
+    /// </summary>
+    public string DuplicatedCode { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Similarity percentage
+    /// </summary>
+    public double SimilarityPercentage { get; set; }
+
+    /// <summary>
+    /// File path (for backward compatibility)
     /// </summary>
     public string FilePath { get; set; } = string.Empty;
 
     /// <summary>
-    /// Start line
+    /// Start line (for backward compatibility)
     /// </summary>
     public int StartLine { get; set; }
 
     /// <summary>
-    /// End line
+    /// End line (for backward compatibility)
     /// </summary>
     public int EndLine { get; set; }
 
     /// <summary>
-    /// Duplicated content
+    /// Duplicated content (for backward compatibility)
     /// </summary>
     public string Content { get; set; } = string.Empty;
 
@@ -344,26 +384,7 @@ public class DuplicatedBlock
     public List<DuplicateLocation> DuplicateLocations { get; set; } = new();
 }
 
-/// <summary>
-/// Represents a duplicate location
-/// </summary>
-public class DuplicateLocation
-{
-    /// <summary>
-    /// File path
-    /// </summary>
-    public string FilePath { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Start line
-    /// </summary>
-    public int StartLine { get; set; }
-
-    /// <summary>
-    /// End line
-    /// </summary>
-    public int EndLine { get; set; }
-}
+// This class has been moved to TarsEngine.Services.Interfaces.DuplicateLocation
 
 /// <summary>
 /// Represents a quality trend result

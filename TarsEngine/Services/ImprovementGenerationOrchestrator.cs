@@ -115,9 +115,9 @@ public class ImprovementGenerationOrchestrator
     /// <param name="options">Optional analysis options</param>
     /// <returns>The analysis results</returns>
     public async Task<Dictionary<string, List<CodeAnalysisResult>>> AnalyzeCodeAsync(
-        string path, 
-        bool recursive, 
-        string filePattern, 
+        string path,
+        bool recursive,
+        string filePattern,
         Dictionary<string, string>? options = null)
     {
         try
@@ -132,13 +132,26 @@ public class ImprovementGenerationOrchestrator
                 // Analyze single file
                 _progressReporter.ReportProgress($"Analyzing file: {Path.GetFileName(path)}", 50);
                 var fileResults = await _codeAnalyzer.AnalyzeFileAsync(path, options);
-                results = new Dictionary<string, List<CodeAnalysisResult>> { { path, fileResults } };
+                var resultList = new List<CodeAnalysisResult> { fileResults };
+                results = new Dictionary<string, List<CodeAnalysisResult>> { { path, resultList } };
             }
             else if (Directory.Exists(path))
             {
                 // Analyze directory
                 _progressReporter.ReportProgress($"Analyzing directory: {path}", 10);
-                results = await _codeAnalyzer.AnalyzeDirectoryAsync(path, recursive, filePattern, options);
+                var directoryResults = await _codeAnalyzer.AnalyzeDirectoryAsync(path, recursive, filePattern, options);
+
+                // Convert List<CodeAnalysisResult> to Dictionary<string, List<CodeAnalysisResult>>
+                results = new Dictionary<string, List<CodeAnalysisResult>>();
+                foreach (var result in directoryResults)
+                {
+                    var filePath = result.FilePath ?? string.Empty;
+                    if (!results.ContainsKey(filePath))
+                    {
+                        results[filePath] = new List<CodeAnalysisResult>();
+                    }
+                    results[filePath].Add(result);
+                }
             }
             else
             {
@@ -147,7 +160,7 @@ public class ImprovementGenerationOrchestrator
 
             // Count total issues
             var totalIssues = results.Values.Sum(list => list.Count);
-            _logger.LogInformation("Code analysis completed. Found {IssueCount} issues in {FileCount} files", 
+            _logger.LogInformation("Code analysis completed. Found {IssueCount} issues in {FileCount} files",
                 totalIssues, results.Count);
             _progressReporter.ReportProgress($"Code analysis completed. Found {totalIssues} issues in {results.Count} files", 100);
 
@@ -170,9 +183,9 @@ public class ImprovementGenerationOrchestrator
     /// <param name="options">Optional matching options</param>
     /// <returns>The pattern matches</returns>
     public async Task<List<PatternMatch>> MatchPatternsAsync(
-        string path, 
-        bool recursive, 
-        string filePattern, 
+        string path,
+        bool recursive,
+        string filePattern,
         Dictionary<string, string>? options = null)
     {
         try
@@ -207,7 +220,7 @@ public class ImprovementGenerationOrchestrator
             var confidenceThreshold = ParseOption(options, "ConfidenceThreshold", 0.7);
             matches = matches.Where(m => m.Confidence >= confidenceThreshold).ToList();
 
-            _logger.LogInformation("Pattern matching completed. Found {MatchCount} matches in {FileCount} files", 
+            _logger.LogInformation("Pattern matching completed. Found {MatchCount} matches in {FileCount} files",
                 matches.Count, results.Count);
             _progressReporter.ReportProgress($"Pattern matching completed. Found {matches.Count} matches in {results.Count} files", 100);
 
@@ -228,7 +241,7 @@ public class ImprovementGenerationOrchestrator
     /// <param name="options">Optional generation options</param>
     /// <returns>The generated metascripts</returns>
     public async Task<List<GeneratedMetascript>> GenerateMetascriptsAsync(
-        List<PatternMatch> patternMatches, 
+        List<PatternMatch> patternMatches,
         Dictionary<string, string>? options = null)
     {
         try
@@ -251,12 +264,12 @@ public class ImprovementGenerationOrchestrator
                     var metascript = await _metascriptGenerator.GenerateMetascriptAsync(match, options);
                     metascripts.Add(metascript);
 
-                    _logger.LogInformation("Generated metascript: {MetascriptName} ({MetascriptId})", 
+                    _logger.LogInformation("Generated metascript: {MetascriptName} ({MetascriptId})",
                         metascript.Name, metascript.Id);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error generating metascript for pattern: {PatternName} ({PatternId})", 
+                    _logger.LogError(ex, "Error generating metascript for pattern: {PatternName} ({PatternId})",
                         match.PatternName, match.PatternId);
                     _progressReporter.ReportWarning($"Error generating metascript for pattern: {match.PatternName}", ex);
                 }
@@ -282,7 +295,7 @@ public class ImprovementGenerationOrchestrator
     /// <param name="options">Optional prioritization options</param>
     /// <returns>The prioritized improvements</returns>
     public async Task<List<PrioritizedImprovement>> PrioritizeImprovementsAsync(
-        List<GeneratedMetascript> metascripts, 
+        List<GeneratedMetascript> metascripts,
         Dictionary<string, string>? options = null)
     {
         try
@@ -305,12 +318,12 @@ public class ImprovementGenerationOrchestrator
                     var improvement = await _improvementPrioritizer.CreateImprovementFromMetascriptAsync(metascript, options);
                     improvements.Add(improvement);
 
-                    _logger.LogInformation("Created improvement: {ImprovementName} ({ImprovementId})", 
+                    _logger.LogInformation("Created improvement: {ImprovementName} ({ImprovementId})",
                         improvement.Name, improvement.Id);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error creating improvement for metascript: {MetascriptName} ({MetascriptId})", 
+                    _logger.LogError(ex, "Error creating improvement for metascript: {MetascriptName} ({MetascriptId})",
                         metascript.Name, metascript.Id);
                     _progressReporter.ReportWarning($"Error creating improvement for metascript: {metascript.Name}", ex);
                 }
@@ -345,9 +358,9 @@ public class ImprovementGenerationOrchestrator
     /// <param name="options">Optional execution options</param>
     /// <returns>The execution results</returns>
     public async Task<List<MetascriptExecutionResult>> ExecuteImprovementsAsync(
-        List<PrioritizedImprovement> improvements, 
-        int maxImprovements, 
-        bool dryRun, 
+        List<PrioritizedImprovement> improvements,
+        int maxImprovements,
+        bool dryRun,
         Dictionary<string, string>? options = null)
     {
         try
@@ -402,12 +415,12 @@ public class ImprovementGenerationOrchestrator
                         await _improvementPrioritizer.UpdateImprovementAsync(improvement);
                     }
 
-                    _logger.LogInformation("Executed improvement: {ImprovementName} ({ImprovementId}), Status: {Status}", 
+                    _logger.LogInformation("Executed improvement: {ImprovementName} ({ImprovementId}), Status: {Status}",
                         improvement.Name, improvement.Id, result.Status);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error executing improvement: {ImprovementName} ({ImprovementId})", 
+                    _logger.LogError(ex, "Error executing improvement: {ImprovementName} ({ImprovementId})",
                         improvement.Name, improvement.Id);
                     _progressReporter.ReportWarning($"Error executing improvement: {improvement.Name}", ex);
                 }

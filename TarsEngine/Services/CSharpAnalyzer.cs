@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using TarsEngine.Models;
 using TarsEngine.Services.Interfaces;
+using TarsEngine.Utilities;
 
 namespace TarsEngine.Services;
 
@@ -34,6 +35,11 @@ public class CSharpAnalyzer : ILanguageAnalyzer
     /// <inheritdoc/>
     public string Language => "csharp";
 
+    /// <summary>
+    /// Gets the programming language enum value
+    /// </summary>
+    public ProgrammingLanguage LanguageEnum => ProgrammingLanguage.CSharp;
+
     /// <inheritdoc/>
     public async Task<CodeAnalysisResult> AnalyzeAsync(string content, Dictionary<string, string>? options = null)
     {
@@ -43,7 +49,7 @@ public class CSharpAnalyzer : ILanguageAnalyzer
 
             var result = new CodeAnalysisResult
             {
-                Language = Language,
+                Language = LanguageEnum,
                 AnalyzedAt = DateTime.UtcNow,
                 IsSuccessful = true
             };
@@ -76,19 +82,19 @@ public class CSharpAnalyzer : ILanguageAnalyzer
                 // Detect code smells
                 if (analyzeMaintainability || analyzeStyle)
                 {
-                    result.Issues.AddRange(_codeSmellDetector.DetectCodeSmells(content, Language));
+                    result.Issues.AddRange(_codeSmellDetector.DetectCodeSmells(content, "C#"));
                 }
 
                 // Detect complexity issues
                 if (analyzeComplexity)
                 {
-                    result.Issues.AddRange(_complexityAnalyzer.DetectComplexityIssues(content, Language, result.Structures));
+                    result.Issues.AddRange(_complexityAnalyzer.DetectComplexityIssues(content, "C#", result.Structures));
                 }
 
                 // Detect performance issues
                 if (analyzePerformance)
                 {
-                    result.Issues.AddRange(_performanceAnalyzer.DetectPerformanceIssues(content, Language));
+                    result.Issues.AddRange(_performanceAnalyzer.DetectPerformanceIssues(content, "C#"));
                 }
 
                 // Detect security issues
@@ -108,7 +114,7 @@ public class CSharpAnalyzer : ILanguageAnalyzer
             _logger.LogError(ex, "Error analyzing C# code");
             return new CodeAnalysisResult
             {
-                Language = Language,
+                Language = LanguageEnum,
                 IsSuccessful = false,
                 Errors = { $"Error analyzing C# code: {ex.Message}" }
             };
@@ -241,7 +247,7 @@ public class CSharpAnalyzer : ILanguageAnalyzer
                     var methodName = match.Groups[4].Value;
                     var className = GetClassForPosition(structures, match.Index, content);
                     var namespaceName = GetNamespaceForPosition(structures, match.Index, content);
-                    
+
                     // Skip if this is a constructor (method name same as class name)
                     if (methodName == className)
                     {
@@ -280,7 +286,7 @@ public class CSharpAnalyzer : ILanguageAnalyzer
                     var propertyName = match.Groups[4].Value;
                     var className = GetClassForPosition(structures, match.Index, content);
                     var namespaceName = GetNamespaceForPosition(structures, match.Index, content);
-                    
+
                     structures.Add(new CodeStructure
                     {
                         Type = StructureType.Property,
@@ -435,7 +441,7 @@ public class CSharpAnalyzer : ILanguageAnalyzer
                 issues.Add(new CodeIssue
                 {
                     Type = CodeIssueType.Vulnerability,
-                    Severity = IssueSeverity.Critical,
+                    Severity = TarsEngine.Models.IssueSeverity.Critical,
                     Title = "Potential SQL Injection",
                     Description = "String concatenation in SQL commands can lead to SQL injection vulnerabilities.",
                     Location = new CodeLocation
@@ -458,7 +464,7 @@ public class CSharpAnalyzer : ILanguageAnalyzer
                 issues.Add(new CodeIssue
                 {
                     Type = CodeIssueType.Vulnerability,
-                    Severity = IssueSeverity.Critical,
+                    Severity = TarsEngine.Models.IssueSeverity.Critical,
                     Title = "Potential Cross-Site Scripting (XSS)",
                     Description = "Directly writing user input to the response can lead to XSS vulnerabilities.",
                     Location = new CodeLocation
@@ -481,7 +487,7 @@ public class CSharpAnalyzer : ILanguageAnalyzer
                 issues.Add(new CodeIssue
                 {
                     Type = CodeIssueType.SecurityHotspot,
-                    Severity = IssueSeverity.Critical,
+                    Severity = TarsEngine.Models.IssueSeverity.Critical,
                     Title = "Hardcoded Credentials",
                     Description = "Hardcoded credentials can lead to security vulnerabilities.",
                     Location = new CodeLocation
@@ -511,23 +517,23 @@ public class CSharpAnalyzer : ILanguageAnalyzer
         {
             // Extract the structure's content
             var structureContent = ExtractStructureContent(content, structure);
-            
+
             // Calculate Halstead volume (simplified)
             var halsteadVolume = CalculateHalsteadVolume(structureContent);
-            
+
             // Calculate cyclomatic complexity
             var cyclomaticComplexity = _complexityAnalyzer.CalculateClassComplexity(content, structure);
-            
+
             // Calculate lines of code
             var linesOfCode = structure.Size;
-            
+
             // Calculate maintainability index using the formula:
             // MI = 171 - 5.2 * ln(HV) - 0.23 * CC - 16.2 * ln(LOC)
             var maintainabilityIndex = 171 - 5.2 * Math.Log(halsteadVolume) - 0.23 * cyclomaticComplexity - 16.2 * Math.Log(linesOfCode);
-            
+
             // Normalize to 0-100 scale
             maintainabilityIndex = Math.Max(0, Math.Min(100, maintainabilityIndex));
-            
+
             return maintainabilityIndex;
         }
         catch (Exception ex)
@@ -549,7 +555,7 @@ public class CSharpAnalyzer : ILanguageAnalyzer
             {
                 uniqueOperators.Add(match.Value);
             }
-            
+
             // Count unique operands (identifiers and literals)
             var operandRegex = new Regex(@"\b[a-zA-Z_][a-zA-Z0-9_]*\b|""[^""]*""|'[^']*'|\d+(\.\d+)?", RegexOptions.Compiled);
             var operandMatches = operandRegex.Matches(content);
@@ -558,26 +564,26 @@ public class CSharpAnalyzer : ILanguageAnalyzer
             {
                 uniqueOperands.Add(match.Value);
             }
-            
+
             // Calculate Halstead metrics
             var n1 = uniqueOperators.Count;
             var n2 = uniqueOperands.Count;
             var N1 = operatorMatches.Count;
             var N2 = operandMatches.Count;
-            
+
             // Avoid division by zero or log of zero
             if (n1 == 0 || n2 == 0)
             {
                 return 0;
             }
-            
+
             // Calculate vocabulary and length
             var vocabulary = n1 + n2;
             var length = N1 + N2;
-            
+
             // Calculate volume
             var volume = length * Math.Log2(vocabulary);
-            
+
             return volume;
         }
         catch (Exception ex)
@@ -595,11 +601,11 @@ public class CSharpAnalyzer : ILanguageAnalyzer
             var lines = content.Split('\n');
             var startLine = structure.Location.StartLine;
             var endLine = startLine + structure.Size - 1;
-            
+
             // Ensure valid line numbers
             startLine = Math.Max(0, Math.Min(startLine, lines.Length - 1));
             endLine = Math.Max(startLine, Math.Min(endLine, lines.Length - 1));
-            
+
             // Extract the content
             var structureLines = lines.Skip(startLine).Take(endLine - startLine + 1);
             return string.Join("\n", structureLines);
@@ -617,26 +623,26 @@ public class CSharpAnalyzer : ILanguageAnalyzer
         {
             // Sort structures by start line
             var sortedStructures = structures.OrderBy(s => s.Location.StartLine).ToList();
-            
+
             // Calculate sizes and end lines
             for (int i = 0; i < sortedStructures.Count; i++)
             {
                 var structure = sortedStructures[i];
-                
+
                 // Find the next structure at the same or higher level
                 var nextStructureIndex = -1;
                 for (int j = i + 1; j < sortedStructures.Count; j++)
                 {
                     var nextStructure = sortedStructures[j];
-                    
+
                     // If this is a child structure, skip it
                     if (nextStructure.ParentName == structure.Name)
                     {
                         continue;
                     }
-                    
+
                     // If this is at the same level or higher, use it
-                    if (nextStructure.Type == structure.Type || 
+                    if (nextStructure.Type == structure.Type ||
                         (structure.Type == StructureType.Namespace && nextStructure.Type == StructureType.Namespace) ||
                         (structure.Type == StructureType.Class && nextStructure.Type == StructureType.Class) ||
                         (structure.Type == StructureType.Interface && nextStructure.Type == StructureType.Interface))
@@ -645,7 +651,7 @@ public class CSharpAnalyzer : ILanguageAnalyzer
                         break;
                     }
                 }
-                
+
                 // Calculate end line
                 int endLine;
                 if (nextStructureIndex != -1)
@@ -657,7 +663,7 @@ public class CSharpAnalyzer : ILanguageAnalyzer
                     // If no next structure, use the end of the file
                     endLine = content.Split('\n').Length - 1;
                 }
-                
+
                 // Update structure
                 structure.Location.EndLine = endLine;
                 structure.Size = endLine - structure.Location.StartLine + 1;
@@ -678,28 +684,28 @@ public class CSharpAnalyzer : ILanguageAnalyzer
     private string GetNamespaceForPosition(List<CodeStructure> structures, int position, string content)
     {
         var lineNumber = GetLineNumber(content, position);
-        
+
         // Find the namespace that contains this position
         var containingNamespace = structures
             .Where(s => s.Type == StructureType.Namespace)
             .Where(s => s.Location.StartLine <= lineNumber && s.Location.EndLine >= lineNumber)
             .OrderByDescending(s => s.Location.StartLine) // In case of nested namespaces, get the innermost one
             .FirstOrDefault();
-        
+
         return containingNamespace?.Name ?? string.Empty;
     }
 
     private string GetClassForPosition(List<CodeStructure> structures, int position, string content)
     {
         var lineNumber = GetLineNumber(content, position);
-        
+
         // Find the class that contains this position
         var containingClass = structures
             .Where(s => s.Type == StructureType.Class || s.Type == StructureType.Interface)
             .Where(s => s.Location.StartLine <= lineNumber && s.Location.EndLine >= lineNumber)
             .OrderByDescending(s => s.Location.StartLine) // In case of nested classes, get the innermost one
             .FirstOrDefault();
-        
+
         return containingClass?.Name ?? string.Empty;
     }
 
@@ -709,11 +715,11 @@ public class CSharpAnalyzer : ILanguageAnalyzer
         {
             var lines = content.Split('\n');
             var lineNumber = GetLineNumber(content, position);
-            
+
             // Get a few lines before and after
             var startLine = Math.Max(0, lineNumber - 1);
             var endLine = Math.Min(lines.Length - 1, lineNumber + 1);
-            
+
             var snippetLines = lines.Skip(startLine).Take(endLine - startLine + 1);
             return string.Join("\n", snippetLines);
         }
@@ -730,7 +736,7 @@ public class CSharpAnalyzer : ILanguageAnalyzer
         {
             return defaultValue;
         }
-        
+
         return value.Equals("true", StringComparison.OrdinalIgnoreCase);
     }
 }

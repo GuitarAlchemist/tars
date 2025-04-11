@@ -6,14 +6,9 @@ namespace TarsEngine.Services.Interfaces
     public enum IssueSeverity
     {
         /// <summary>
-        /// Critical issue
+        /// Trivial issue
         /// </summary>
-        Critical,
-
-        /// <summary>
-        /// Major issue
-        /// </summary>
-        Major,
+        Trivial,
 
         /// <summary>
         /// Minor issue
@@ -21,8 +16,23 @@ namespace TarsEngine.Services.Interfaces
         Minor,
 
         /// <summary>
-        /// Trivial issue
+        /// Major issue
         /// </summary>
-        Trivial
+        Major,
+
+        /// <summary>
+        /// Critical issue
+        /// </summary>
+        Critical,
+
+        /// <summary>
+        /// Warning issue
+        /// </summary>
+        Warning,
+
+        /// <summary>
+        /// Error issue
+        /// </summary>
+        Error
     }
 }

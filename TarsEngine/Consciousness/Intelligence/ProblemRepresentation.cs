@@ -26,17 +26,17 @@ public class ProblemRepresentation
     /// <summary>
     /// Gets or sets the representation elements
     /// </summary>
-    public List<RepresentationElement> Elements { get; set; } = new List<RepresentationElement>();
+    public List<RepresentationElement> Elements { get; set; } = [];
     
     /// <summary>
     /// Gets or sets the representation constraints
     /// </summary>
-    public List<string> Constraints { get; set; } = new List<string>();
+    public List<string> Constraints { get; set; } = [];
     
     /// <summary>
     /// Gets or sets the representation assumptions
     /// </summary>
-    public List<string> Assumptions { get; set; } = new List<string>();
+    public List<string> Assumptions { get; set; } = [];
     
     /// <summary>
     /// Gets or sets the representation creation timestamp
@@ -51,7 +51,7 @@ public class ProblemRepresentation
     /// <summary>
     /// Gets or sets the representation tags
     /// </summary>
-    public List<string> Tags { get; set; } = new List<string>();
+    public List<string> Tags { get; set; } = [];
     
     /// <summary>
     /// Gets or sets the representation effectiveness (0.0 to 1.0)
@@ -71,7 +71,7 @@ public class ProblemRepresentation
     /// <summary>
     /// Gets or sets the representation child IDs
     /// </summary>
-    public List<string> ChildIds { get; set; } = new List<string>();
+    public List<string> ChildIds { get; set; } = [];
     
     /// <summary>
     /// Adds an element
@@ -134,10 +134,10 @@ public class ProblemRepresentation
         {
             ProblemStatement = ProblemStatement,
             Type = Type,
-            Constraints = new List<string>(Constraints),
-            Assumptions = new List<string>(Assumptions),
+            Constraints = [..Constraints],
+            Assumptions = [..Assumptions],
             Context = new Dictionary<string, object>(Context),
-            Tags = new List<string>(Tags),
+            Tags = [..Tags],
             Effectiveness = Effectiveness,
             Novelty = Novelty,
             ParentId = Id

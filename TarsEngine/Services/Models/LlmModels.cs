@@ -8,10 +8,10 @@ namespace TarsEngine.Services.Models;
 public class ChatMessage
 {
     [JsonPropertyName("role")]
-    public string Role { get; set; }
-        
+    public string Role { get; set; } = "user";
+
     [JsonPropertyName("content")]
-    public string Content { get; set; }
+    public string Content { get; set; } = string.Empty;
 }
 
 /// <summary>
@@ -20,11 +20,11 @@ public class ChatMessage
 public class OllamaResponse
 {
     [JsonPropertyName("model")]
-    public string Model { get; set; }
-        
+    public string Model { get; set; } = string.Empty;
+
     [JsonPropertyName("response")]
-    public string Response { get; set; }
-        
+    public string Response { get; set; } = string.Empty;
+
     [JsonPropertyName("done")]
     public bool Done { get; set; }
 }
@@ -35,5 +35,5 @@ public class OllamaResponse
 public class OllamaTagsResponse
 {
     [JsonPropertyName("models")]
-    public List<string> Models { get; set; }
+    public List<string> Models { get; set; } = new List<string>();
 }

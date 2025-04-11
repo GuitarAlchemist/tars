@@ -17,7 +17,7 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
     private readonly ILogger<KnowledgeExtractorService> _logger;
     private readonly IDocumentParserService _documentParserService;
     private readonly IContentClassifierService _contentClassifierService;
-    private readonly List<TarsEngine.Models.KnowledgeValidationRule> _validationRules = new();
+    private readonly List<TarsEngine.Models.KnowledgeValidationRule> _validationRules = [];
 
     // Regular expressions for pattern extraction
     private static readonly Regex _codePatternRegex = new(@"(?:public|private|protected|internal|static)?\s+(?:class|interface|struct|enum|record)\s+(\w+)", RegexOptions.Compiled);
@@ -360,8 +360,8 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
             {
                 Item = item,
                 IsValid = false,
-                Issues = new List<TarsEngine.Models.ValidationIssue>
-                {
+                Issues =
+                [
                     new TarsEngine.Models.ValidationIssue
                     {
                         RuleId = "error",
@@ -369,7 +369,7 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
                         Message = $"Error validating knowledge item: {ex.Message}",
                         Severity = ValidationSeverity.Error
                     }
-                }
+                ]
             };
         }
     }
@@ -425,7 +425,7 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error detecting relationships between knowledge items");
-            return new List<KnowledgeRelationship>();
+            return [];
         }
     }
 
@@ -754,11 +754,14 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
             Content = classification.Content,
             Confidence = classification.ConfidenceScore,
             Relevance = classification.RelevanceScore,
-            Tags = new List<string>(classification.Tags)
+            Tags =
+            [
+                ..classification.Tags,
+                classification.PrimaryCategory.ToString().ToLowerInvariant()
+            ]
         };
 
         // Add tag for the primary category
-        item.Tags.Add(classification.PrimaryCategory.ToString().ToLowerInvariant());
 
         return item;
     }
@@ -813,8 +816,8 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
     private double CalculateContentSimilarity(string content1, string content2)
     {
         // Simple word overlap similarity
-        var words1 = content1.ToLowerInvariant().Split(new[] { ' ', '\t', '\n', '\r', '.', ',', ';', ':', '!', '?' }, StringSplitOptions.RemoveEmptyEntries);
-        var words2 = content2.ToLowerInvariant().Split(new[] { ' ', '\t', '\n', '\r', '.', ',', ';', ':', '!', '?' }, StringSplitOptions.RemoveEmptyEntries);
+        var words1 = content1.ToLowerInvariant().Split([' ', '\t', '\n', '\r', '.', ',', ';', ':', '!', '?'], StringSplitOptions.RemoveEmptyEntries);
+        var words2 = content2.ToLowerInvariant().Split([' ', '\t', '\n', '\r', '.', ',', ';', ':', '!', '?'], StringSplitOptions.RemoveEmptyEntries);
 
         var set1 = new HashSet<string>(words1);
         var set2 = new HashSet<string>(words2);
@@ -858,7 +861,11 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
         {
             Name = "Minimum Content Length",
             Description = "Ensures that knowledge items have a minimum content length",
-            ApplicableTypes = new List<TarsEngine.Models.KnowledgeType> { TarsEngine.Models.KnowledgeType.Concept, TarsEngine.Models.KnowledgeType.Insight, TarsEngine.Models.KnowledgeType.BestPractice },
+            ApplicableTypes =
+            [
+                TarsEngine.Models.KnowledgeType.Concept, TarsEngine.Models.KnowledgeType.Insight,
+                TarsEngine.Models.KnowledgeType.BestPractice
+            ],
             ValidationCriteria = "MinLength=10",
             ErrorMessage = "Content is too short (minimum 10 characters)",
             Severity = ValidationSeverity.Warning
@@ -868,7 +875,7 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
         {
             Name = "Minimum Confidence",
             Description = "Ensures that knowledge items have a minimum confidence score",
-            ApplicableTypes = new List<TarsEngine.Models.KnowledgeType>(),
+            ApplicableTypes = [],
             ValidationCriteria = "MinConfidence=0.5",
             ErrorMessage = "Confidence score is too low (minimum 0.5)",
             Severity = ValidationSeverity.Warning
@@ -878,7 +885,7 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
         {
             Name = "Minimum Relevance",
             Description = "Ensures that knowledge items have a minimum relevance score",
-            ApplicableTypes = new List<TarsEngine.Models.KnowledgeType>(),
+            ApplicableTypes = [],
             ValidationCriteria = "MinRelevance=0.3",
             ErrorMessage = "Relevance score is too low (minimum 0.3)",
             Severity = ValidationSeverity.Info

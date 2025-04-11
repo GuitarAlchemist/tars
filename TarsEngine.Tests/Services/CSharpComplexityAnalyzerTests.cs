@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Moq;
 using TarsEngine.Models.Metrics;
+using TarsEngine.Models.Unified;
 using TarsEngine.Services;
 using Xunit;
 
@@ -131,7 +132,7 @@ namespace TestNamespace
     public async Task GetComplexityThresholdsAsync_CSharp_ReturnsThresholds()
     {
         // Act
-        var thresholds = await _analyzer.GetComplexityThresholdsAsync("C#", ComplexityType.Cyclomatic);
+        var thresholds = await _analyzer.GetComplexityThresholdsAsync("C#", ComplexityTypeUnified.Cyclomatic);
 
         // Assert
         Assert.NotEmpty(thresholds);
@@ -150,8 +151,8 @@ namespace TestNamespace
         const double newThreshold = 15.0;
 
         // Act
-        var result = await _analyzer.SetComplexityThresholdAsync("C#", ComplexityType.Cyclomatic, "Method", newThreshold);
-        var thresholds = await _analyzer.GetComplexityThresholdsAsync("C#", ComplexityType.Cyclomatic);
+        var result = await _analyzer.SetComplexityThresholdAsync("C#", ComplexityTypeUnified.Cyclomatic, "Method", newThreshold);
+        var thresholds = await _analyzer.GetComplexityThresholdsAsync("C#", ComplexityTypeUnified.Cyclomatic);
 
         // Assert
         Assert.True(result);

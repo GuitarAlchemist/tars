@@ -26,6 +26,8 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\TarsEngineFSharp.Core\TarsEngineFSharp.Core.fsproj" />
         <ProjectReference Include="..\TarsEngineFSharp\TarsEngineFSharp.fsproj" />
+        <ProjectReference Include="..\TarsEngine.Unified\TarsEngine.Unified.csproj" />
     </ItemGroup>
 </Project>

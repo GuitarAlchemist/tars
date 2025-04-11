@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using TarsEngine.Models;
 using TarsEngine.Services.Interfaces;
+using TarsEngine.Services.Adapters;
 
 namespace TarsEngine.Services;
 
@@ -39,28 +40,37 @@ public class CodeAnalyzerService : ICodeAnalyzerService
 
             if (!File.Exists(filePath))
             {
-                return new CodeAnalysisResult
+                var analysisResult = new CodeAnalysisResult
                 {
-                    Path = filePath,
+                    // Path property removed
                     IsSuccessful = false,
                     Errors = { "File does not exist" }
                 };
+                return analysisResult;
             }
 
             var language = GetLanguageFromFilePath(filePath);
             if (string.IsNullOrEmpty(language))
             {
-                return new CodeAnalysisResult
+                var analysisResult = new CodeAnalysisResult
                 {
-                    Path = filePath,
+                    // Path property removed
                     IsSuccessful = false,
                     Errors = { "Unsupported file type" }
                 };
+                return analysisResult;
             }
 
             var content = await File.ReadAllTextAsync(filePath);
             var result = await AnalyzeContentAsync(content, language, options);
-            result.Path = filePath;
+            // Set FilePath property instead of Path
+
+            // Ensure FilePath is also set for compatibility
+            var filePathProperty = result.GetType().GetProperty("FilePath");
+            if (filePathProperty != null)
+            {
+                filePathProperty.SetValue(result, filePath);
+            }
 
             _logger.LogInformation("Completed analysis of file: {FilePath}. Found {IssueCount} issues, {MetricCount} metrics, {StructureCount} structures",
                 filePath, result.Issues.Count, result.Metrics.Count, result.Structures.Count);
@@ -70,12 +80,21 @@ public class CodeAnalyzerService : ICodeAnalyzerService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error analyzing file: {FilePath}", filePath);
-            return new CodeAnalysisResult
+            var result = new CodeAnalysisResult
             {
-                Path = filePath,
+                // FilePath will be set below
                 IsSuccessful = false,
                 Errors = { $"Error analyzing file: {ex.Message}" }
             };
+
+            // Ensure FilePath is also set for compatibility
+            var filePathProperty = result.GetType().GetProperty("FilePath");
+            if (filePathProperty != null)
+            {
+                filePathProperty.SetValue(result, filePath);
+            }
+
+            return result;
         }
     }
 
@@ -89,15 +108,21 @@ public class CodeAnalyzerService : ICodeAnalyzerService
 
             if (!Directory.Exists(directoryPath))
             {
-                return new List<CodeAnalysisResult>
+                var result = new CodeAnalysisResult
                 {
-                    new CodeAnalysisResult
-                    {
-                        Path = directoryPath,
-                        IsSuccessful = false,
-                        Errors = { "Directory does not exist" }
-                    }
+                    // Path property removed
+                    IsSuccessful = false,
+                    Errors = { "Directory does not exist" }
                 };
+
+                // Ensure FilePath is also set for compatibility
+                var filePathProperty = result.GetType().GetProperty("FilePath");
+                if (filePathProperty != null)
+                {
+                    filePathProperty.SetValue(result, directoryPath);
+                }
+
+                return [result];
             }
 
             var results = new List<CodeAnalysisResult>();
@@ -124,15 +149,15 @@ public class CodeAnalyzerService : ICodeAnalyzerService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error analyzing directory: {DirectoryPath}", directoryPath);
-            return new List<CodeAnalysisResult>
-            {
+            return
+            [
                 new CodeAnalysisResult
                 {
-                    Path = directoryPath,
+                    // Path property removed
                     IsSuccessful = false,
                     Errors = { $"Error analyzing directory: {ex.Message}" }
                 }
-            };
+            ];
         }
     }
 
@@ -147,7 +172,7 @@ public class CodeAnalyzerService : ICodeAnalyzerService
             {
                 return new CodeAnalysisResult
                 {
-                    Language = language,
+                    Language = ProgrammingLanguage.Unknown,
                     IsSuccessful = false,
                     Errors = { "Content is empty or whitespace" }
                 };
@@ -157,7 +182,7 @@ public class CodeAnalyzerService : ICodeAnalyzerService
             {
                 return new CodeAnalysisResult
                 {
-                    Language = language,
+                    Language = ProgrammingLanguage.Unknown,
                     IsSuccessful = false,
                     Errors = { $"Unsupported language: {language}" }
                 };
@@ -186,7 +211,7 @@ public class CodeAnalyzerService : ICodeAnalyzerService
             _logger.LogError(ex, "Error analyzing content of language: {Language}", language);
             return new CodeAnalysisResult
             {
-                Language = language,
+                Language = ProgrammingLanguage.Unknown,
                 IsSuccessful = false,
                 Errors = { $"Error analyzing content: {ex.Message}" }
             };
@@ -303,7 +328,7 @@ public class CodeAnalyzerService : ICodeAnalyzerService
             if (!result.IsSuccessful)
             {
                 _logger.LogWarning("Analysis of file {FilePath} was not successful", filePath);
-                return new List<CodeIssue>();
+                return [];
             }
 
             var issues = result.Issues
@@ -317,7 +342,7 @@ public class CodeAnalyzerService : ICodeAnalyzerService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting issues for file: {FilePath}", filePath);
-            return new List<CodeIssue>();
+            return [];
         }
     }
 
@@ -332,7 +357,7 @@ public class CodeAnalyzerService : ICodeAnalyzerService
             if (!result.IsSuccessful)
             {
                 _logger.LogWarning("Analysis of file {FilePath} was not successful", filePath);
-                return new List<CodeMetric>();
+                return [];
             }
 
             var metrics = result.Metrics
@@ -346,7 +371,7 @@ public class CodeAnalyzerService : ICodeAnalyzerService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting metrics for file: {FilePath}", filePath);
-            return new List<CodeMetric>();
+            return [];
         }
     }
 
@@ -361,7 +386,7 @@ public class CodeAnalyzerService : ICodeAnalyzerService
             if (!result.IsSuccessful)
             {
                 _logger.LogWarning("Analysis of file {FilePath} was not successful", filePath);
-                return new List<CodeStructure>();
+                return [];
             }
 
             var structures = result.Structures
@@ -374,7 +399,7 @@ public class CodeAnalyzerService : ICodeAnalyzerService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting structures for file: {FilePath}", filePath);
-            return new List<CodeStructure>();
+            return [];
         }
     }
 

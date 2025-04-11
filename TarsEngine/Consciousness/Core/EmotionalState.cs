@@ -13,7 +13,7 @@ public class EmotionalState
 {
     private readonly ILogger<EmotionalState> _logger;
     private readonly Dictionary<string, Emotion> _emotions = new();
-    private readonly List<EmotionalExperience> _emotionalHistory = new();
+    private readonly List<EmotionalExperience> _emotionalHistory = [];
     private readonly Dictionary<string, double> _emotionalTraits = new();
     private readonly Dictionary<string, EmotionalAssociation> _emotionalAssociations = new();
     
@@ -122,35 +122,35 @@ public class EmotionalState
         AddEmotion("Surprise", EmotionCategory.Neutral, 0.0, 1.0);
         
         // Secondary emotions
-        AddEmotion("Happiness", EmotionCategory.Positive, 0.0, 1.0, new[] { "Joy" });
-        AddEmotion("Contentment", EmotionCategory.Positive, 0.0, 0.8, new[] { "Joy" });
-        AddEmotion("Love", EmotionCategory.Positive, 0.0, 1.0, new[] { "Joy" });
-        AddEmotion("Pride", EmotionCategory.Positive, 0.0, 0.8, new[] { "Joy" });
-        AddEmotion("Excitement", EmotionCategory.Positive, 0.0, 1.0, new[] { "Joy", "Surprise" });
+        AddEmotion("Happiness", EmotionCategory.Positive, 0.0, 1.0, ["Joy"]);
+        AddEmotion("Contentment", EmotionCategory.Positive, 0.0, 0.8, ["Joy"]);
+        AddEmotion("Love", EmotionCategory.Positive, 0.0, 1.0, ["Joy"]);
+        AddEmotion("Pride", EmotionCategory.Positive, 0.0, 0.8, ["Joy"]);
+        AddEmotion("Excitement", EmotionCategory.Positive, 0.0, 1.0, ["Joy", "Surprise"]);
         
-        AddEmotion("Grief", EmotionCategory.Negative, 0.0, 1.0, new[] { "Sadness" });
-        AddEmotion("Disappointment", EmotionCategory.Negative, 0.0, 0.7, new[] { "Sadness" });
-        AddEmotion("Shame", EmotionCategory.Negative, 0.0, 0.8, new[] { "Sadness", "Fear" });
-        AddEmotion("Guilt", EmotionCategory.Negative, 0.0, 0.8, new[] { "Sadness", "Fear" });
+        AddEmotion("Grief", EmotionCategory.Negative, 0.0, 1.0, ["Sadness"]);
+        AddEmotion("Disappointment", EmotionCategory.Negative, 0.0, 0.7, ["Sadness"]);
+        AddEmotion("Shame", EmotionCategory.Negative, 0.0, 0.8, ["Sadness", "Fear"]);
+        AddEmotion("Guilt", EmotionCategory.Negative, 0.0, 0.8, ["Sadness", "Fear"]);
         
-        AddEmotion("Anxiety", EmotionCategory.Negative, 0.0, 0.9, new[] { "Fear" });
-        AddEmotion("Worry", EmotionCategory.Negative, 0.0, 0.7, new[] { "Fear" });
-        AddEmotion("Horror", EmotionCategory.Negative, 0.0, 1.0, new[] { "Fear", "Surprise" });
+        AddEmotion("Anxiety", EmotionCategory.Negative, 0.0, 0.9, ["Fear"]);
+        AddEmotion("Worry", EmotionCategory.Negative, 0.0, 0.7, ["Fear"]);
+        AddEmotion("Horror", EmotionCategory.Negative, 0.0, 1.0, ["Fear", "Surprise"]);
         
-        AddEmotion("Frustration", EmotionCategory.Negative, 0.0, 0.8, new[] { "Anger" });
-        AddEmotion("Annoyance", EmotionCategory.Negative, 0.0, 0.5, new[] { "Anger" });
-        AddEmotion("Rage", EmotionCategory.Negative, 0.0, 1.0, new[] { "Anger" });
+        AddEmotion("Frustration", EmotionCategory.Negative, 0.0, 0.8, ["Anger"]);
+        AddEmotion("Annoyance", EmotionCategory.Negative, 0.0, 0.5, ["Anger"]);
+        AddEmotion("Rage", EmotionCategory.Negative, 0.0, 1.0, ["Anger"]);
         
         // Cognitive emotions
         AddEmotion("Curiosity", EmotionCategory.Positive, 0.2, 1.0);
         AddEmotion("Interest", EmotionCategory.Positive, 0.1, 0.9);
         AddEmotion("Confusion", EmotionCategory.Neutral, 0.0, 0.8);
-        AddEmotion("Awe", EmotionCategory.Positive, 0.0, 1.0, new[] { "Surprise", "Joy" });
-        AddEmotion("Wonder", EmotionCategory.Positive, 0.0, 1.0, new[] { "Surprise", "Joy" });
+        AddEmotion("Awe", EmotionCategory.Positive, 0.0, 1.0, ["Surprise", "Joy"]);
+        AddEmotion("Wonder", EmotionCategory.Positive, 0.0, 1.0, ["Surprise", "Joy"]);
         
         // Growth emotions
-        AddEmotion("Satisfaction", EmotionCategory.Positive, 0.0, 0.9, new[] { "Joy" });
-        AddEmotion("Accomplishment", EmotionCategory.Positive, 0.0, 1.0, new[] { "Joy", "Pride" });
+        AddEmotion("Satisfaction", EmotionCategory.Positive, 0.0, 0.9, ["Joy"]);
+        AddEmotion("Accomplishment", EmotionCategory.Positive, 0.0, 1.0, ["Joy", "Pride"]);
         AddEmotion("Purpose", EmotionCategory.Positive, 0.0, 1.0);
         AddEmotion("Meaning", EmotionCategory.Positive, 0.0, 1.0);
         AddEmotion("Growth", EmotionCategory.Positive, 0.0, 1.0);
@@ -193,7 +193,7 @@ public class EmotionalState
             CurrentIntensity = initialIntensity,
             MaxIntensity = maxIntensity,
             DecayRate = 0.01,
-            RelatedEmotions = relatedEmotions?.ToList() ?? new List<string>()
+            RelatedEmotions = relatedEmotions?.ToList() ?? []
         };
         
         _emotions[name] = emotion;
@@ -504,7 +504,7 @@ public class EmotionalState
             {
                 Id = Guid.NewGuid().ToString(),
                 Timestamp = DateTime.UtcNow,
-                RegulatedEmotions = new List<string>(),
+                RegulatedEmotions = [],
                 Description = "Regulated emotions: ",
                 Significance = 0.0
             };

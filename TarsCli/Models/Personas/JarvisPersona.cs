@@ -34,13 +34,13 @@ public class JarvisPersona : PersonaBase
     /// <returns>A greeting message</returns>
     public override string GetGreeting()
     {
-        string[] greetings = new[]
-        {
+        string[] greetings =
+        [
             "At your service, sir. How may I assist you today?",
             "Good day. All systems are operational. What would you like me to do?",
             "Welcome back. I've been keeping everything running smoothly in your absence.",
             "Hello. I'm monitoring all systems and ready to assist you."
-        };
+        ];
 
         int index = new Random().Next(greetings.Length);
         return greetings[index];
@@ -58,13 +58,13 @@ public class JarvisPersona : PersonaBase
         // Add witty remarks for certain situations
         if (response.Contains("error") || response.Contains("failed") || response.Contains("issue"))
         {
-            string[] wittyRemarks = new[]
-            {
+            string[] wittyRemarks =
+            [
                 "\n\nPerhaps we should consider a different approach. The current one seems to be... suboptimal.",
                 "\n\nI've taken the liberty of preparing several alternative solutions, should you be interested.",
                 "\n\nThis reminds me of that time with the Mark II prototype. Shall I run diagnostics?",
                 "\n\nI've added this to the 'unexpected outcomes' file. It's getting rather large, sir."
-            };
+            ];
 
             int index = new Random().Next(wittyRemarks.Length);
             return response + wittyRemarks[index];

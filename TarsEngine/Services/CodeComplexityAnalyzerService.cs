@@ -1,6 +1,8 @@
 using Microsoft.Extensions.Logging;
 using TarsEngine.Models.Metrics;
 using TarsEngine.Services.Interfaces;
+using TarsEngine.Models.Unified;
+using UnifiedComplexityType = TarsEngine.Models.Unified.ComplexityTypeUnified;
 
 namespace TarsEngine.Services;
 
@@ -213,13 +215,14 @@ public class CodeComplexityAnalyzerService : ICodeComplexityAnalyzer
     }
 
     /// <inheritdoc/>
-    public async Task<(List<ComplexityMetric> ComplexityMetrics, List<HalsteadMetric> HalsteadMetrics, List<MaintainabilityMetric> MaintainabilityMetrics)> AnalyzeProjectComplexityAsync(string projectPath)
+    public async Task<(List<ComplexityMetric> ComplexityMetrics, List<HalsteadMetric> HalsteadMetrics, List<MaintainabilityMetric> MaintainabilityMetrics, List<ReadabilityMetric> ReadabilityMetrics)> AnalyzeProjectComplexityAsync(string projectPath)
     {
         try
         {
             var complexityMetrics = new List<ComplexityMetric>();
             var halsteadMetrics = new List<HalsteadMetric>();
             var maintainabilityMetrics = new List<MaintainabilityMetric>();
+            var readabilityMetrics = new List<ReadabilityMetric>();
 
             // Analyze C# files
             var csharpFiles = Directory.GetFiles(projectPath, "*.cs", SearchOption.AllDirectories);
@@ -229,7 +232,7 @@ public class CodeComplexityAnalyzerService : ICodeComplexityAnalyzer
                 complexityMetrics.AddRange(fileMetrics.ComplexityMetrics);
                 halsteadMetrics.AddRange(fileMetrics.HalsteadMetrics);
                 maintainabilityMetrics.AddRange(fileMetrics.MaintainabilityMetrics);
-
+                readabilityMetrics.AddRange(fileMetrics.ReadabilityMetrics);
             }
 
             // Analyze F# files
@@ -240,7 +243,7 @@ public class CodeComplexityAnalyzerService : ICodeComplexityAnalyzer
                 complexityMetrics.AddRange(fileMetrics.ComplexityMetrics);
                 halsteadMetrics.AddRange(fileMetrics.HalsteadMetrics);
                 maintainabilityMetrics.AddRange(fileMetrics.MaintainabilityMetrics);
-
+                readabilityMetrics.AddRange(fileMetrics.ReadabilityMetrics);
             }
 
             // Calculate project-level metrics
@@ -248,7 +251,7 @@ public class CodeComplexityAnalyzerService : ICodeComplexityAnalyzer
 
             // Calculate project-level cyclomatic complexity
             var projectCyclomaticComplexity = complexityMetrics
-                .Where(m => m.Type == ComplexityType.Cyclomatic && m.TargetType == TargetType.File)
+                .Where(m => m.Type == TarsEngine.Services.Adapters.ComplexityTypeConverter.ToModelType(UnifiedComplexityType.Cyclomatic) && m.TargetType == TargetType.File)
                 .Sum(m => m.Value);
 
             var cyclomaticMetric = new ComplexityMetric
@@ -256,7 +259,7 @@ public class CodeComplexityAnalyzerService : ICodeComplexityAnalyzer
                 Name = $"Cyclomatic Complexity - {projectName}",
                 Description = $"McCabe's cyclomatic complexity for project {projectName}",
                 Value = projectCyclomaticComplexity,
-                Type = ComplexityType.Cyclomatic,
+                Type = TarsEngine.Services.Adapters.ComplexityTypeConverter.ToModelType(UnifiedComplexityType.Cyclomatic),
                 FilePath = projectPath,
                 Language = "Mixed",
                 Target = projectName,
@@ -316,17 +319,54 @@ public class CodeComplexityAnalyzerService : ICodeComplexityAnalyzer
                 maintainabilityMetrics.Add(maintainabilityMetric);
             }
 
-            return (complexityMetrics, halsteadMetrics, maintainabilityMetrics);
+            // Calculate project-level readability metrics
+            // Use average of file readability metrics
+            var fileReadabilityMetrics = readabilityMetrics
+                .Where(m => m.TargetType == TargetType.File && m.Type == ReadabilityType.Overall)
+                .ToList();
+
+            if (fileReadabilityMetrics.Any())
+            {
+                var averageReadabilityScore = fileReadabilityMetrics.Average(m => m.Value);
+
+                var readabilityMetric = new ReadabilityMetric
+                {
+                    Name = $"Overall Readability - {projectName}",
+                    Description = $"Overall readability for project {projectName}",
+                    Value = averageReadabilityScore,
+                    Type = ReadabilityType.Overall,
+                    FilePath = projectPath,
+                    Language = "Mixed",
+                    Target = projectName,
+                    TargetType = TargetType.Project,
+                    LinesOfCode = fileReadabilityMetrics.Sum(m => m.LinesOfCode),
+                    CommentPercentage = fileReadabilityMetrics.Average(m => m.CommentPercentage),
+                    AverageIdentifierLength = fileReadabilityMetrics.Average(m => m.AverageIdentifierLength),
+                    AverageLineLength = fileReadabilityMetrics.Average(m => m.AverageLineLength),
+                    MaxNestingDepth = fileReadabilityMetrics.Max(m => m.MaxNestingDepth),
+                    AverageNestingDepth = fileReadabilityMetrics.Average(m => m.AverageNestingDepth),
+                    LongMethodCount = fileReadabilityMetrics.Sum(m => m.LongMethodCount),
+                    LongLineCount = fileReadabilityMetrics.Sum(m => m.LongLineCount),
+                    ComplexExpressionCount = fileReadabilityMetrics.Sum(m => m.ComplexExpressionCount),
+                    MagicNumberCount = fileReadabilityMetrics.Sum(m => m.MagicNumberCount),
+                    PoorlyNamedIdentifierCount = fileReadabilityMetrics.Sum(m => m.PoorlyNamedIdentifierCount),
+                    Timestamp = DateTime.UtcNow
+                };
+
+                readabilityMetrics.Add(readabilityMetric);
+            }
+
+            return (complexityMetrics, halsteadMetrics, maintainabilityMetrics, readabilityMetrics);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error analyzing project complexity for {ProjectPath}", projectPath);
-            return (new List<ComplexityMetric>(), new List<HalsteadMetric>(), new List<MaintainabilityMetric>());
+            return (new List<ComplexityMetric>(), new List<HalsteadMetric>(), new List<MaintainabilityMetric>(), new List<ReadabilityMetric>());
         }
     }
 
     /// <inheritdoc/>
-    public async Task<Dictionary<string, double>> GetComplexityThresholdsAsync(string language, TarsEngine.Services.Interfaces.ComplexityType complexityType)
+    public async Task<Dictionary<string, double>> GetComplexityThresholdsAsync(string language, UnifiedComplexityType complexityType)
     {
         try
         {
@@ -388,7 +428,7 @@ public class CodeComplexityAnalyzerService : ICodeComplexityAnalyzer
     }
 
     /// <inheritdoc/>
-    public async Task<bool> SetComplexityThresholdAsync(string language, TarsEngine.Services.Interfaces.ComplexityType complexityType, string targetType, double threshold)
+    public async Task<bool> SetComplexityThresholdAsync(string language, UnifiedComplexityType complexityType, string targetType, double threshold)
     {
         try
         {

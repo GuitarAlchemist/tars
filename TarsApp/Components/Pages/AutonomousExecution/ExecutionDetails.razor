@@ -1,5 +1,7 @@
 @using TarsEngine.Models
-@using TarsEngine.Services
+@using TarsApp.Services.Interfaces
+@using TarsApp.ViewModels
+@using TarsApp.Models
 @inject IExecutionPlannerService ExecutionPlannerService
 @inject ILogger<ExecutionDetails> Logger
 
@@ -17,7 +19,7 @@
                     </MudItem>
                     <MudItem xs="12" md="6">
                         <MudField Label="Status" Variant="Variant.Outlined">
-                            <MudChip Color="@statusColor" Size="Size.Small">@status</MudChip>
+                            <MudChip T="string" Color="@statusColor" Size="Size.Small" Text="@status"></MudChip>
                         </MudField>
                     </MudItem>
                     <MudItem xs="12" md="6">
@@ -39,7 +41,7 @@
             </MudCardContent>
         </MudCard>
     </MudItem>
-    
+
     <MudItem xs="12">
         <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-0">
             <MudTabPanel Text="Files" Icon="@Icons.Material.Filled.Folder">
@@ -49,10 +51,10 @@
                             @if (context?.ModifiedFiles.Count > 0)
                             {
                                 <MudTabPanel Text="Modified" Icon="@Icons.Material.Filled.Edit">
-                                    <MudList Dense="true">
+                                    <MudList T="string" Dense="true" Items="context.ModifiedFiles">
                                         @foreach (var file in context.ModifiedFiles)
                                         {
-                                            <MudListItem Icon="@Icons.Material.Filled.Edit" IconColor="Color.Warning">
+                                            <MudListItem T="string" Text="@file" Icon="@Icons.Material.Filled.Edit" IconColor="Color.Warning">
                                                 @file
                                             </MudListItem>
                                         }
@@ -62,10 +64,10 @@
                             @if (context?.CreatedFiles.Count > 0)
                             {
                                 <MudTabPanel Text="Created" Icon="@Icons.Material.Filled.Add">
-                                    <MudList Dense="true">
+                                    <MudList T="string" Dense="true" Items="context.CreatedFiles">
                                         @foreach (var file in context.CreatedFiles)
                                         {
-                                            <MudListItem Icon="@Icons.Material.Filled.Add" IconColor="Color.Success">
+                                            <MudListItem T="string" Text="@file" Icon="@Icons.Material.Filled.Add" IconColor="Color.Success">
                                                 @file
                                             </MudListItem>
                                         }
@@ -75,10 +77,10 @@
                             @if (context?.DeletedFiles.Count > 0)
                             {
                                 <MudTabPanel Text="Deleted" Icon="@Icons.Material.Filled.Delete">
-                                    <MudList Dense="true">
+                                    <MudList T="string" Dense="true" Items="context.DeletedFiles">
                                         @foreach (var file in context.DeletedFiles)
                                         {
-                                            <MudListItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error">
+                                            <MudListItem T="string" Text="@file" Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error">
                                                 @file
                                             </MudListItem>
                                         }
@@ -89,12 +91,12 @@
                     </MudCardContent>
                 </MudCard>
             </MudTabPanel>
-            
+
             <MudTabPanel Text="Logs" Icon="@Icons.Material.Filled.List">
                 <MudCard Elevation="0">
                     <MudCardContent>
                         <MudPaper Class="pa-4" Style="max-height: 400px; overflow-y: auto; background-color: #1e1e1e;">
-                            @foreach (var log in context?.Logs.OrderByDescending(l => l.Timestamp).Take(100) ?? Enumerable.Empty<LogEntry>())
+                            @foreach (var log in context?.Logs.OrderByDescending(l => l.Timestamp).Take(100) ?? [])
                             {
                                 <MudText Style="@GetLogStyle(log)">[@log.Timestamp.ToString("HH:mm:ss")] [@log.Level] @log.Message</MudText>
                             }
@@ -102,16 +104,16 @@
                     </MudCardContent>
                 </MudCard>
             </MudTabPanel>
-            
+
             <MudTabPanel Text="Errors" Icon="@Icons.Material.Filled.Error">
                 <MudCard Elevation="0">
                     <MudCardContent>
                         @if (context?.Errors.Count > 0)
                         {
-                            <MudList Dense="true">
+                            <MudList T="TarsEngine.Models.ExecutionError" Dense="true" Items="context.Errors">
                                 @foreach (var error in context.Errors.OrderByDescending(e => e.Timestamp))
                                 {
-                                    <MudListItem Icon="@Icons.Material.Filled.Error" IconColor="Color.Error">
+                                    <MudListItem T="TarsEngine.Models.ExecutionError" Text="@error.Message" Icon="@Icons.Material.Filled.Error" IconColor="Color.Error">
                                         <div>
                                             <MudText Typo="Typo.body1">@error.Message</MudText>
                                             <MudText Typo="Typo.caption">@error.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")</MudText>
@@ -138,7 +140,7 @@
                     </MudCardContent>
                 </MudCard>
             </MudTabPanel>
-            
+
             <MudTabPanel Text="Metrics" Icon="@Icons.Material.Filled.ShowChart">
                 <MudCard Elevation="0">
                     <MudCardContent>
@@ -155,7 +157,7 @@
                     </MudCardContent>
                 </MudCard>
             </MudTabPanel>
-            
+
             <MudTabPanel Text="State" Icon="@Icons.Material.Filled.Storage">
                 <MudCard Elevation="0">
                     <MudCardContent>
@@ -179,28 +181,28 @@
 @code {
     [Parameter]
     public string ContextId { get; set; } = string.Empty;
-    
+
     private ExecutionContext? context;
     private string improvementName = "N/A";
     private string status = "Unknown";
     private Color statusColor = Color.Default;
     private DateTime? completedAt;
     private string duration = "N/A";
-    private List<KeyValuePair<string, string>> metrics = new();
-    private List<KeyValuePair<string, string>> state = new();
-    
+    private List<KeyValuePair<string, string>> metrics = [];
+    private List<KeyValuePair<string, string>> state = [];
+
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
         await LoadContextAsync();
     }
-    
+
     protected override async Task OnParametersSetAsync()
     {
         await base.OnParametersSetAsync();
         await LoadContextAsync();
     }
-    
+
     private async Task LoadContextAsync()
     {
         try
@@ -208,19 +210,19 @@
             // In a real implementation, this would get the execution context from the service
             // For now, use mock data
             context = await GetExecutionContextAsync();
-            
+
             if (context != null)
             {
                 // Set improvement name
                 improvementName = GetImprovementName(context.ImprovementId);
-                
+
                 // Set status
                 status = GetStatusText(context);
                 statusColor = GetStatusColor(context);
-                
+
                 // Set completed at
                 completedAt = context.GetState<DateTime?>("CompletedAt");
-                
+
                 // Set duration
                 if (completedAt != null)
                 {
@@ -232,10 +234,10 @@
                     var durationTime = DateTime.UtcNow - context.CreatedAt;
                     duration = $"{durationTime.TotalMinutes:F0}m (ongoing)";
                 }
-                
+
                 // Set metrics
                 metrics = context.Metrics.Select(m => new KeyValuePair<string, string>(m.Key, m.Value.ToString())).ToList();
-                
+
                 // Set state
                 state = context.State.Select(s => new KeyValuePair<string, string>(s.Key, s.Value.ToString() ?? "null")).ToList();
             }
@@ -245,12 +247,12 @@
             Logger.LogError(ex, "Error loading execution context");
         }
     }
-    
+
     private async Task<ExecutionContext?> GetExecutionContextAsync()
     {
         // In a real implementation, this would get the execution context from the service
         // For now, return a mock context based on the ID
-        
+
         if (ContextId == "CTX-123")
         {
             return new ExecutionContext
@@ -261,11 +263,11 @@
                 Mode = ExecutionMode.Real,
                 Environment = ExecutionEnvironment.Development,
                 CreatedAt = DateTime.UtcNow.AddHours(-2),
-                ModifiedFiles = new List<string> { "src/Services/AuthService.cs", "src/Controllers/AuthController.cs" },
-                CreatedFiles = new List<string>(),
-                DeletedFiles = new List<string>(),
-                Metrics = new Dictionary<string, double> 
-                { 
+                ModifiedFiles = ["src/Services/AuthService.cs", "src/Controllers/AuthController.cs"],
+                CreatedFiles = [],
+                DeletedFiles = [],
+                Metrics = new Dictionary<string, double>
+                {
                     { "Progress", 1.0 },
                     { "SuccessRate", 1.0 },
                     { "TestCoverage", 0.85 },
@@ -280,20 +282,20 @@
                     { "ApprovedBy", "TARS" },
                     { "ApprovedAt", DateTime.UtcNow.AddMinutes(-30) }
                 },
-                Logs = new List<LogEntry>
-                {
-                    new LogEntry { Timestamp = DateTime.UtcNow.AddHours(-2), Level = LogLevel.Information, Message = "Starting execution" },
-                    new LogEntry { Timestamp = DateTime.UtcNow.AddHours(-1.9), Level = LogLevel.Information, Message = "Analyzing code" },
-                    new LogEntry { Timestamp = DateTime.UtcNow.AddHours(-1.8), Level = LogLevel.Information, Message = "Creating execution plan" },
-                    new LogEntry { Timestamp = DateTime.UtcNow.AddHours(-1.7), Level = LogLevel.Information, Message = "Backing up files" },
-                    new LogEntry { Timestamp = DateTime.UtcNow.AddHours(-1.6), Level = LogLevel.Information, Message = "Modifying src/Services/AuthService.cs" },
-                    new LogEntry { Timestamp = DateTime.UtcNow.AddHours(-1.5), Level = LogLevel.Information, Message = "Modifying src/Controllers/AuthController.cs" },
-                    new LogEntry { Timestamp = DateTime.UtcNow.AddHours(-1.4), Level = LogLevel.Information, Message = "Running tests" },
-                    new LogEntry { Timestamp = DateTime.UtcNow.AddHours(-1.3), Level = LogLevel.Information, Message = "Tests passed: 42/42" },
-                    new LogEntry { Timestamp = DateTime.UtcNow.AddHours(-1.2), Level = LogLevel.Information, Message = "Validating changes" },
-                    new LogEntry { Timestamp = DateTime.UtcNow.AddHours(-1.1), Level = LogLevel.Information, Message = "Validation successful" },
-                    new LogEntry { Timestamp = DateTime.UtcNow.AddHours(-1), Level = LogLevel.Information, Message = "Execution completed successfully" }
-                }
+                Logs =
+                [
+                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-2), Level = TarsEngine.Models.LogLevel.Information, Message = "Starting execution", Source = "Execution" },
+                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-1.9), Level = TarsEngine.Models.LogLevel.Information, Message = "Analyzing code", Source = "Execution" },
+                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-1.8), Level = TarsEngine.Models.LogLevel.Information, Message = "Creating execution plan", Source = "Execution" },
+                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-1.7), Level = TarsEngine.Models.LogLevel.Information, Message = "Backing up files", Source = "Execution" },
+                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-1.6), Level = TarsEngine.Models.LogLevel.Information, Message = "Modifying src/Services/AuthService.cs", Source = "Execution" },
+                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-1.5), Level = TarsEngine.Models.LogLevel.Information, Message = "Modifying src/Controllers/AuthController.cs", Source = "Execution" },
+                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-1.4), Level = TarsEngine.Models.LogLevel.Information, Message = "Running tests", Source = "Execution" },
+                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-1.3), Level = TarsEngine.Models.LogLevel.Information, Message = "Tests passed: 42/42", Source = "Execution" },
+                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-1.2), Level = TarsEngine.Models.LogLevel.Information, Message = "Validating changes", Source = "Execution" },
+                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-1.1), Level = TarsEngine.Models.LogLevel.Information, Message = "Validation successful", Source = "Execution" },
+                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-1), Level = TarsEngine.Models.LogLevel.Information, Message = "Execution completed successfully", Source = "Execution" }
+                ]
             };
         }
         else if (ContextId == "CTX-122")
@@ -306,24 +308,24 @@
                 Mode = ExecutionMode.Real,
                 Environment = ExecutionEnvironment.Development,
                 CreatedAt = DateTime.UtcNow.AddHours(-3),
-                ModifiedFiles = new List<string> { "src/Services/DatabaseService.cs" },
-                CreatedFiles = new List<string>(),
-                DeletedFiles = new List<string>(),
+                ModifiedFiles = ["src/Services/DatabaseService.cs"],
+                CreatedFiles = [],
+                DeletedFiles = [],
                 Metrics = new Dictionary<string, double> { { "Progress", 0.75 } },
                 State = new Dictionary<string, object>
                 {
                     { "Completed", false },
                     { "Success", null }
                 },
-                Logs = new List<LogEntry>
-                {
-                    new LogEntry { Timestamp = DateTime.UtcNow.AddHours(-3), Level = LogLevel.Information, Message = "Starting execution" },
-                    new LogEntry { Timestamp = DateTime.UtcNow.AddHours(-2.9), Level = LogLevel.Information, Message = "Analyzing code" },
-                    new LogEntry { Timestamp = DateTime.UtcNow.AddHours(-2.8), Level = LogLevel.Information, Message = "Creating execution plan" },
-                    new LogEntry { Timestamp = DateTime.UtcNow.AddHours(-2.7), Level = LogLevel.Information, Message = "Backing up files" },
-                    new LogEntry { Timestamp = DateTime.UtcNow.AddHours(-2.6), Level = LogLevel.Information, Message = "Modifying src/Services/DatabaseService.cs" },
-                    new LogEntry { Timestamp = DateTime.UtcNow.AddHours(-2.5), Level = LogLevel.Information, Message = "Running tests" }
-                }
+                Logs =
+                [
+                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-3), Level = TarsEngine.Models.LogLevel.Information, Message = "Starting execution", Source = "Execution" },
+                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-2.9), Level = TarsEngine.Models.LogLevel.Information, Message = "Analyzing code", Source = "Execution" },
+                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-2.8), Level = TarsEngine.Models.LogLevel.Information, Message = "Creating execution plan", Source = "Execution" },
+                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-2.7), Level = TarsEngine.Models.LogLevel.Information, Message = "Backing up files", Source = "Execution" },
+                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-2.6), Level = TarsEngine.Models.LogLevel.Information, Message = "Modifying src/Services/DatabaseService.cs", Source = "Execution" },
+                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-2.5), Level = TarsEngine.Models.LogLevel.Information, Message = "Running tests", Source = "Execution" }
+                ]
             };
         }
         else if (ContextId == "CTX-121")
@@ -336,9 +338,9 @@
                 Mode = ExecutionMode.Real,
                 Environment = ExecutionEnvironment.Development,
                 CreatedAt = DateTime.UtcNow.AddHours(-5),
-                ModifiedFiles = new List<string> { "src/Services/CacheService.cs" },
-                CreatedFiles = new List<string>(),
-                DeletedFiles = new List<string>(),
+                ModifiedFiles = ["src/Services/CacheService.cs"],
+                CreatedFiles = [],
+                DeletedFiles = [],
                 Metrics = new Dictionary<string, double> { { "Progress", 0.5 } },
                 State = new Dictionary<string, object>
                 {
@@ -347,35 +349,35 @@
                     { "CompletedAt", DateTime.UtcNow.AddHours(-4) },
                     { "Error", "Memory leak fix failed validation" }
                 },
-                Logs = new List<LogEntry>
-                {
-                    new LogEntry { Timestamp = DateTime.UtcNow.AddHours(-5), Level = LogLevel.Information, Message = "Starting execution" },
-                    new LogEntry { Timestamp = DateTime.UtcNow.AddHours(-4.9), Level = LogLevel.Information, Message = "Analyzing code" },
-                    new LogEntry { Timestamp = DateTime.UtcNow.AddHours(-4.8), Level = LogLevel.Information, Message = "Creating execution plan" },
-                    new LogEntry { Timestamp = DateTime.UtcNow.AddHours(-4.7), Level = LogLevel.Information, Message = "Backing up files" },
-                    new LogEntry { Timestamp = DateTime.UtcNow.AddHours(-4.6), Level = LogLevel.Information, Message = "Modifying src/Services/CacheService.cs" },
-                    new LogEntry { Timestamp = DateTime.UtcNow.AddHours(-4.5), Level = LogLevel.Information, Message = "Running tests" },
-                    new LogEntry { Timestamp = DateTime.UtcNow.AddHours(-4.4), Level = LogLevel.Error, Message = "Test failed: CacheService_ShouldReleaseMemory" },
-                    new LogEntry { Timestamp = DateTime.UtcNow.AddHours(-4.3), Level = LogLevel.Error, Message = "Memory leak detected in CacheService" },
-                    new LogEntry { Timestamp = DateTime.UtcNow.AddHours(-4.2), Level = LogLevel.Warning, Message = "Validation failed" },
-                    new LogEntry { Timestamp = DateTime.UtcNow.AddHours(-4.1), Level = LogLevel.Information, Message = "Rolling back changes" },
-                    new LogEntry { Timestamp = DateTime.UtcNow.AddHours(-4), Level = LogLevel.Information, Message = "Execution failed" }
-                },
-                Errors = new List<ErrorInfo>
-                {
+                Logs =
+                [
+                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-5), Level = TarsEngine.Models.LogLevel.Information, Message = "Starting execution", Source = "Execution" },
+                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-4.9), Level = TarsEngine.Models.LogLevel.Information, Message = "Analyzing code", Source = "Execution" },
+                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-4.8), Level = TarsEngine.Models.LogLevel.Information, Message = "Creating execution plan", Source = "Execution" },
+                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-4.7), Level = TarsEngine.Models.LogLevel.Information, Message = "Backing up files", Source = "Execution" },
+                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-4.6), Level = TarsEngine.Models.LogLevel.Information, Message = "Modifying src/Services/CacheService.cs", Source = "Execution" },
+                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-4.5), Level = TarsEngine.Models.LogLevel.Information, Message = "Running tests", Source = "Execution" },
+                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-4.4), Level = TarsEngine.Models.LogLevel.Error, Message = "Test failed: CacheService_ShouldReleaseMemory", Source = "Execution" },
+                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-4.3), Level = TarsEngine.Models.LogLevel.Error, Message = "Memory leak detected in CacheService", Source = "Execution" },
+                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-4.2), Level = TarsEngine.Models.LogLevel.Warning, Message = "Validation failed", Source = "Execution" },
+                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-4.1), Level = TarsEngine.Models.LogLevel.Information, Message = "Rolling back changes", Source = "Execution" },
+                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-4), Level = TarsEngine.Models.LogLevel.Information, Message = "Execution failed", Source = "Execution" }
+                ],
+                Errors = ModelConverters.ConvertToExecutionErrors([
                     new ErrorInfo
                     {
                         Message = "Test failed: CacheService_ShouldReleaseMemory",
                         Timestamp = DateTime.UtcNow.AddHours(-4.4),
                         StackTrace = "at CacheServiceTests.CacheService_ShouldReleaseMemory() in /src/Tests/CacheServiceTests.cs:line 42\nat TestRunner.RunTest() in /src/TestRunner.cs:line 123"
                     },
+
                     new ErrorInfo
                     {
                         Message = "Memory leak detected in CacheService",
                         Timestamp = DateTime.UtcNow.AddHours(-4.3),
                         StackTrace = "at MemoryAnalyzer.DetectLeaks() in /src/MemoryAnalyzer.cs:line 78\nat ValidationService.ValidateMemoryUsage() in /src/ValidationService.cs:line 56"
                     }
-                }
+                ])
             };
         }
         else if (ContextId == "CTX-120")
@@ -388,9 +390,9 @@
                 Mode = ExecutionMode.Real,
                 Environment = ExecutionEnvironment.Development,
                 CreatedAt = DateTime.UtcNow.AddDays(-1),
-                ModifiedFiles = new List<string> { "src/Controllers/ApiController.cs" },
-                CreatedFiles = new List<string>(),
-                DeletedFiles = new List<string>(),
+                ModifiedFiles = ["src/Controllers/ApiController.cs"],
+                CreatedFiles = [],
+                DeletedFiles = [],
                 Metrics = new Dictionary<string, double> { { "Progress", 1.0 } },
                 State = new Dictionary<string, object>
                 {
@@ -400,27 +402,27 @@
                     { "Approved", false },
                     { "Rejected", false }
                 },
-                Logs = new List<LogEntry>
-                {
-                    new LogEntry { Timestamp = DateTime.UtcNow.AddDays(-1), Level = LogLevel.Information, Message = "Starting execution" },
-                    new LogEntry { Timestamp = DateTime.UtcNow.AddDays(-1).AddMinutes(10), Level = LogLevel.Information, Message = "Analyzing code" },
-                    new LogEntry { Timestamp = DateTime.UtcNow.AddDays(-1).AddMinutes(20), Level = LogLevel.Information, Message = "Creating execution plan" },
-                    new LogEntry { Timestamp = DateTime.UtcNow.AddDays(-1).AddMinutes(30), Level = LogLevel.Information, Message = "Backing up files" },
-                    new LogEntry { Timestamp = DateTime.UtcNow.AddDays(-1).AddMinutes(40), Level = LogLevel.Information, Message = "Modifying src/Controllers/ApiController.cs" },
-                    new LogEntry { Timestamp = DateTime.UtcNow.AddDays(-1).AddMinutes(50), Level = LogLevel.Information, Message = "Running tests" },
-                    new LogEntry { Timestamp = DateTime.UtcNow.AddDays(-1).AddHours(1), Level = LogLevel.Information, Message = "Execution completed successfully" }
-                }
+                Logs =
+                [
+                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddDays(-1), Level = TarsEngine.Models.LogLevel.Information, Message = "Starting execution", Source = "Execution" },
+                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddDays(-1).AddMinutes(10), Level = TarsEngine.Models.LogLevel.Information, Message = "Analyzing code", Source = "Execution" },
+                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddDays(-1).AddMinutes(20), Level = TarsEngine.Models.LogLevel.Information, Message = "Creating execution plan", Source = "Execution" },
+                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddDays(-1).AddMinutes(30), Level = TarsEngine.Models.LogLevel.Information, Message = "Backing up files", Source = "Execution" },
+                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddDays(-1).AddMinutes(40), Level = TarsEngine.Models.LogLevel.Information, Message = "Modifying src/Controllers/ApiController.cs", Source = "Execution" },
+                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddDays(-1).AddMinutes(50), Level = TarsEngine.Models.LogLevel.Information, Message = "Running tests", Source = "Execution" },
+                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddDays(-1).AddHours(1), Level = TarsEngine.Models.LogLevel.Information, Message = "Execution completed successfully", Source = "Execution" }
+                ]
             };
         }
-        
+
         return null;
     }
-    
+
     private string GetImprovementName(string? improvementId)
     {
         if (string.IsNullOrEmpty(improvementId))
             return "N/A";
-            
+
         var improvementNames = new Dictionary<string, string>
         {
             { "IMP-456", "Implement Caching for API Responses" },
@@ -428,10 +430,10 @@
             { "IMP-454", "Fix Memory Leak in Cache Service" },
             { "IMP-453", "Add Logging to API Endpoints" }
         };
-        
+
         return improvementNames.TryGetValue(improvementId, out var name) ? name : improvementId;
     }
-    
+
     private string GetStatusText(ExecutionContext context)
     {
         if (context.GetState<bool>("Completed", false))
@@ -455,7 +457,7 @@
             return "In Progress";
         }
     }
-    
+
     private Color GetStatusColor(ExecutionContext context)
     {
         var status = GetStatusText(context);
@@ -469,18 +471,33 @@
             _ => Color.Default
         };
     }
-    
-    private string GetLogStyle(LogEntry log)
+
+    private string GetLogStyle(LogEntryViewModel log)
+    {
+        var color = log.LogLevel switch
+        {
+            Microsoft.Extensions.Logging.LogLevel.Error => "#ff5252",
+            Microsoft.Extensions.Logging.LogLevel.Warning => "#fb8c00",
+            Microsoft.Extensions.Logging.LogLevel.Information => "#2196f3",
+            Microsoft.Extensions.Logging.LogLevel.Debug => "#757575",
+            _ => "#ffffff"
+        };
+
+        return $"color: {color}; font-family: monospace; white-space: pre-wrap;";
+    }
+
+    private string GetLogStyle(TarsEngine.Models.ExecutionLog log)
     {
         var color = log.Level switch
         {
-            LogLevel.Error => "#ff5252",
-            LogLevel.Warning => "#fb8c00",
-            LogLevel.Information => "#2196f3",
-            LogLevel.Debug => "#757575",
+            TarsEngine.Models.LogLevel.Error => "#ff5252",
+            TarsEngine.Models.LogLevel.Warning => "#fb8c00",
+            TarsEngine.Models.LogLevel.Information => "#2196f3",
+            TarsEngine.Models.LogLevel.Debug => "#757575",
+            TarsEngine.Models.LogLevel.Trace => "#9e9e9e",
             _ => "#ffffff"
         };
-        
+
         return $"color: {color}; font-family: monospace; white-space: pre-wrap;";
     }
 }

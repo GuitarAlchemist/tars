@@ -13,11 +13,11 @@ public class IntelligenceMeasurement
 {
     private readonly ILogger<IntelligenceMeasurement> _logger;
     private readonly string _storageBasePath;
-    private readonly List<IntelligenceSnapshot> _snapshots = new();
+    private readonly List<IntelligenceSnapshot> _snapshots = [];
     private readonly Dictionary<string, double> _currentMetrics = new();
     private readonly Dictionary<string, double> _baselineHumanMetrics = new();
     private readonly Dictionary<string, double> _metricWeights = new();
-    private readonly List<string> _intelligenceDimensions = new();
+    private readonly List<string> _intelligenceDimensions = [];
     
     /// <summary>
     /// Gets the current intelligence score
@@ -95,8 +95,7 @@ public class IntelligenceMeasurement
     /// </summary>
     private void InitializeIntelligenceDimensions()
     {
-        _intelligenceDimensions.AddRange(new[]
-        {
+        _intelligenceDimensions.AddRange([
             // Knowledge dimensions
             "KnowledgeBreadth",
             "KnowledgeDepth",
@@ -152,7 +151,7 @@ public class IntelligenceMeasurement
             "ParallelProcessing",
             "ResourceEfficiency",
             "ScalabilityPotential"
-        });
+        ]);
     }
     
     /// <summary>
@@ -458,7 +457,7 @@ public class IntelligenceMeasurement
     /// <returns>The intelligence dimensions</returns>
     public List<string> GetIntelligenceDimensions()
     {
-        return new List<string>(_intelligenceDimensions);
+        return [.._intelligenceDimensions];
     }
     
     /// <summary>
@@ -563,7 +562,7 @@ public class IntelligenceMeasurement
     {
         if (_snapshots.Count < 2)
         {
-            return new List<DimensionGrowth>();
+            return [];
         }
         
         var sortedSnapshots = _snapshots.OrderBy(s => s.Timestamp).ToList();
@@ -573,7 +572,7 @@ public class IntelligenceMeasurement
         
         if (daysDifference <= 0)
         {
-            return new List<DimensionGrowth>();
+            return [];
         }
         
         var growthRates = new Dictionary<string, double>();
@@ -609,7 +608,7 @@ public class IntelligenceMeasurement
     {
         if (_snapshots.Count < 2)
         {
-            return new List<DimensionGrowth>();
+            return [];
         }
         
         var sortedSnapshots = _snapshots.OrderBy(s => s.Timestamp).ToList();
@@ -619,7 +618,7 @@ public class IntelligenceMeasurement
         
         if (daysDifference <= 0)
         {
-            return new List<DimensionGrowth>();
+            return [];
         }
         
         var growthRates = new Dictionary<string, double>();

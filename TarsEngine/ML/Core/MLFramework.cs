@@ -19,7 +19,7 @@ public class MLFramework
     private readonly MLContext _mlContext;
     private readonly string _modelBasePath;
     private readonly Dictionary<string, ITransformer> _loadedModels = new();
-    private readonly Dictionary<string, PredictionEngine<object, object>> _predictionEngines = new();
+    private readonly Dictionary<string, PredictionEngine<object, object>?> _predictionEngines = new();
     private readonly Dictionary<string, DateTime> _modelLastUpdated = new();
     private readonly Dictionary<string, ModelMetadata> _modelMetadata = new();
 
@@ -32,7 +32,7 @@ public class MLFramework
         _logger = logger;
         _mlContext = new MLContext(seed: 42);
         _modelBasePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Models");
-        
+
         // Ensure model directory exists
         Directory.CreateDirectory(_modelBasePath);
     }
@@ -56,68 +56,68 @@ public class MLFramework
         try
         {
             var modelPath = Path.Combine(_modelBasePath, $"{modelName}.zip");
-            
+
             // Check if model exists and is up to date
             if (File.Exists(modelPath))
             {
                 var fileInfo = new FileInfo(modelPath);
-                
+
                 // If model is already loaded and hasn't changed, return
-                if (_loadedModels.ContainsKey(modelName) && 
-                    _modelLastUpdated.TryGetValue(modelName, out var lastUpdated) && 
+                if (_loadedModels.ContainsKey(modelName) &&
+                    _modelLastUpdated.TryGetValue(modelName, out var lastUpdated) &&
                     lastUpdated >= fileInfo.LastWriteTimeUtc)
                 {
                     return true;
                 }
-                
+
                 // Load model
                 _logger.LogInformation("Loading model: {ModelName}", modelName);
-                var model = _mlContext.Model.Load(modelPath, out var modelSchema);
-                
+                var loadedModel = _mlContext.Model.Load(modelPath, out var modelSchema);
+
                 // Store model
-                _loadedModels[modelName] = model;
+                _loadedModels[modelName] = loadedModel;
                 _modelLastUpdated[modelName] = fileInfo.LastWriteTimeUtc;
-                
+
                 // Create prediction engine
-                var predictionEngine = _mlContext.Model.CreatePredictionEngine<TData, TPrediction>(model);
-                _predictionEngines[modelName] = predictionEngine as PredictionEngine<object, object>;
-                
+                var typedPredictionEngine = _mlContext.Model.CreatePredictionEngine<TData, TPrediction>(loadedModel);
+                _predictionEngines[modelName] = typedPredictionEngine as PredictionEngine<object, object>;
+
                 // Load metadata if exists
                 await LoadModelMetadataAsync(modelName);
-                
+
                 return true;
             }
-            
+
             // If no training data provided, can't create model
             if (trainingData == null || !trainingData.Any())
             {
                 _logger.LogWarning("No model exists and no training data provided for: {ModelName}", modelName);
                 return false;
             }
-            
+
             // Create and train model
             _logger.LogInformation("Creating new model: {ModelName}", modelName);
-            
+
             // Create data view
             var dataView = _mlContext.Data.LoadFromEnumerable(trainingData);
-            
+
             // Create pipeline
             var pipeline = createModelPipeline(_mlContext);
-            
+
             // Train model
             var model = pipeline.Fit(dataView);
-            
+
             // Save model
             _mlContext.Model.Save(model, dataView.Schema, modelPath);
-            
+
             // Store model
             _loadedModels[modelName] = model;
             _modelLastUpdated[modelName] = DateTime.UtcNow;
-            
+
             // Create prediction engine
             var predictionEngine = _mlContext.Model.CreatePredictionEngine<TData, TPrediction>(model);
             _predictionEngines[modelName] = predictionEngine as PredictionEngine<object, object>;
-            
+
             // Create and save metadata
             var metadata = new ModelMetadata
             {
@@ -132,10 +132,10 @@ public class MLFramework
                 HyperParameters = new Dictionary<string, string>(),
                 Tags = new List<string>()
             };
-            
+
             _modelMetadata[modelName] = metadata;
             await SaveModelMetadataAsync(modelName);
-            
+
             return true;
         }
         catch (Exception ex)
@@ -168,43 +168,43 @@ public class MLFramework
         try
         {
             _logger.LogInformation("Training model: {ModelName}", modelName);
-            
+
             var modelPath = Path.Combine(_modelBasePath, $"{modelName}.zip");
-            
+
             // Create data view
             var dataView = _mlContext.Data.LoadFromEnumerable(trainingData);
-            
+
             // Split data for training and evaluation
             var dataSplit = _mlContext.Data.TrainTestSplit(dataView, testFraction: 0.2);
             var trainData = dataSplit.TrainSet;
             var testData = dataSplit.TestSet;
-            
+
             // Create pipeline
             var pipeline = createModelPipeline(_mlContext);
-            
+
             // Train model
             var model = pipeline.Fit(trainData);
-            
+
             // Evaluate model if evaluator provided
             Dictionary<string, double> metrics = new();
             if (evaluateModel != null)
             {
                 metrics = evaluateModel(model, testData);
-                _logger.LogInformation("Model evaluation metrics: {Metrics}", 
+                _logger.LogInformation("Model evaluation metrics: {Metrics}",
                     string.Join(", ", metrics.Select(m => $"{m.Key}={m.Value:F4}")));
             }
-            
+
             // Save model
             _mlContext.Model.Save(model, dataView.Schema, modelPath);
-            
+
             // Store model
             _loadedModels[modelName] = model;
             _modelLastUpdated[modelName] = DateTime.UtcNow;
-            
+
             // Create prediction engine
             var predictionEngine = _mlContext.Model.CreatePredictionEngine<TData, TPrediction>(model);
             _predictionEngines[modelName] = predictionEngine as PredictionEngine<object, object>;
-            
+
             // Update metadata
             var metadata = _modelMetadata.TryGetValue(modelName, out var existingMetadata)
                 ? existingMetadata
@@ -219,19 +219,19 @@ public class MLFramework
                     HyperParameters = new Dictionary<string, string>(),
                     Tags = new List<string>()
                 };
-            
+
             metadata.LastUpdatedAt = DateTime.UtcNow;
             metadata.TrainingExamples = trainingData.Count();
             metadata.Metrics = metrics;
-            
+
             if (hyperParameters != null)
             {
                 metadata.HyperParameters = hyperParameters;
             }
-            
+
             _modelMetadata[modelName] = metadata;
             await SaveModelMetadataAsync(modelName);
-            
+
             return true;
         }
         catch (Exception ex)
@@ -260,14 +260,14 @@ public class MLFramework
                 _logger.LogWarning("Prediction engine not found for model: {ModelName}", modelName);
                 return null;
             }
-            
+
             var typedEngine = engine as PredictionEngine<TData, TPrediction>;
             if (typedEngine == null)
             {
                 _logger.LogWarning("Invalid prediction engine type for model: {ModelName}", modelName);
                 return null;
             }
-            
+
             return typedEngine.Predict(data);
         }
         catch (Exception ex)
@@ -307,24 +307,24 @@ public class MLFramework
         {
             var modelPath = Path.Combine(_modelBasePath, $"{modelName}.zip");
             var metadataPath = Path.Combine(_modelBasePath, $"{modelName}.metadata.json");
-            
+
             // Remove from dictionaries
             _loadedModels.Remove(modelName);
             _predictionEngines.Remove(modelName);
             _modelLastUpdated.Remove(modelName);
             _modelMetadata.Remove(modelName);
-            
+
             // Delete files
             if (File.Exists(modelPath))
             {
                 File.Delete(modelPath);
             }
-            
+
             if (File.Exists(metadataPath))
             {
                 File.Delete(metadataPath);
             }
-            
+
             return true;
         }
         catch (Exception ex)
@@ -347,10 +347,10 @@ public class MLFramework
             {
                 return;
             }
-            
+
             var json = await File.ReadAllTextAsync(metadataPath);
             var metadata = System.Text.Json.JsonSerializer.Deserialize<ModelMetadata>(json);
-            
+
             if (metadata != null)
             {
                 _modelMetadata[modelName] = metadata;
@@ -374,13 +374,13 @@ public class MLFramework
             {
                 return;
             }
-            
+
             var metadataPath = Path.Combine(_modelBasePath, $"{modelName}.metadata.json");
             var json = System.Text.Json.JsonSerializer.Serialize(metadata, new System.Text.Json.JsonSerializerOptions
             {
                 WriteIndented = true
             });
-            
+
             await File.WriteAllTextAsync(metadataPath, json);
         }
         catch (Exception ex)

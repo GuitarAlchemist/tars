@@ -12,7 +12,7 @@ namespace TarsEngine.Consciousness.Intelligence;
 public class EurekaMomentSimulator
 {
     private readonly ILogger<EurekaMomentSimulator> _logger;
-    private readonly List<IncubationProcess> _incubationProcesses = new();
+    private readonly List<IncubationProcess> _incubationProcesses = [];
     private readonly System.Random _random = new System.Random();
 
     private bool _isInitialized = false;
@@ -307,7 +307,7 @@ public class EurekaMomentSimulator
             double significance = 0.7 + (0.3 * process.Complexity * _incubationEfficiency);
 
             // Create insight
-            var insight = new Insight
+            var insight = new InsightLegacy
             {
                 Id = Guid.NewGuid().ToString(),
                 Description = description,
@@ -322,7 +322,7 @@ public class EurekaMomentSimulator
                     { "Problem", process.Problem },
                     { "IncubationDuration", (process.BreakthroughTimestamp ?? process.CompletionTimestamp ?? DateTime.UtcNow) - process.StartTimestamp }
                 },
-                Tags = new List<string> { "eureka", "breakthrough", "incubation" }
+                Tags = ["eureka", "breakthrough", "incubation"]
             };
 
             // Update incubation process

@@ -468,7 +468,7 @@ public class ImprovementPrioritizerService : IImprovementPrioritizerService
         {
             Id = Guid.NewGuid().ToString(),
             Name = $"Pattern match: {patternMatch.PatternName}",
-            Description = patternMatch.Description,
+            Description = patternMatch.ExpectedImprovement ?? $"Improvement based on pattern: {patternMatch.PatternName}",
             PatternMatchId = patternMatch.Id,
             CreatedAt = DateTime.UtcNow,
             Status = ImprovementStatus.Pending

@@ -32,42 +32,42 @@ public class CodeComplexityCommand : Command
 
         // Add options
         _pathOption = new Option<string>(
-            aliases: new[] { "--path", "-p" },
+            aliases: ["--path", "-p"],
             description: "Path to the file or directory to analyze")
         {
             IsRequired = true
         };
 
         _languageOption = new Option<string>(
-            aliases: new[] { "--language", "-l" },
+            aliases: ["--language", "-l"],
             description: "Programming language (C# or F#)")
         {
             IsRequired = false
         };
 
         _typeOption = new Option<string>(
-            aliases: new[] { "--type", "-t" },
+            aliases: ["--type", "-t"],
             description: "Complexity type (Cyclomatic, Cognitive, Maintainability, Halstead, or All)")
         {
             IsRequired = false
         };
 
         _halsteadTypeOption = new Option<string>(
-            aliases: new[] { "--halstead-type", "-h" },
+            aliases: ["--halstead-type", "-h"],
             description: "Halstead metric type (Vocabulary, Length, Volume, Difficulty, Effort, TimeRequired, DeliveredBugs)")
         {
             IsRequired = false
         };
 
         _readabilityTypeOption = new Option<string>(
-            aliases: new[] { "--readability-type", "-r" },
+            aliases: ["--readability-type", "-r"],
             description: "Readability metric type (IdentifierQuality, CommentQuality, CodeStructure, Overall)")
         {
             IsRequired = false
         };
 
         _outputOption = new Option<string>(
-            aliases: new[] { "--output", "-o" },
+            aliases: ["--output", "-o"],
             description: "Output format (Console, Json, or Csv)")
         {
             IsRequired = false
@@ -172,7 +172,7 @@ public class CodeComplexityCommand : Command
             return await AnalyzeDirectoryComplexityAsync(path, language, type, halsteadType, readabilityType);
         }
 
-        return new List<BaseMetric>();
+        return [];
     }
 
     /// <summary>

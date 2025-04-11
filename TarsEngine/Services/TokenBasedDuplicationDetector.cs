@@ -15,13 +15,13 @@ namespace TarsEngine.Services;
 public class TokenBasedDuplicationDetector
 {
     private readonly ILogger _logger;
-    
+
     // Minimum sequence length to consider as duplication (in tokens)
     private readonly int _minimumDuplicateTokens;
-    
+
     // Minimum sequence length to consider as duplication (in lines)
     private readonly int _minimumDuplicateLines;
-    
+
     /// <summary>
     /// Initializes a new instance of the <see cref="TokenBasedDuplicationDetector"/> class
     /// </summary>
@@ -34,7 +34,7 @@ public class TokenBasedDuplicationDetector
         _minimumDuplicateTokens = minimumDuplicateTokens;
         _minimumDuplicateLines = minimumDuplicateLines;
     }
-    
+
     /// <summary>
     /// Detects duplicated code in a single file
     /// </summary>
@@ -47,13 +47,13 @@ public class TokenBasedDuplicationDetector
         {
             // Tokenize the source code
             var tokens = TokenizeCode(sourceCode);
-            
+
             // Find duplicated token sequences
             var duplicatedSequences = FindDuplicatedSequences(tokens, _minimumDuplicateTokens);
-            
+
             // Convert token sequences to line ranges
             var duplicatedBlocks = ConvertToLineRanges(filePath, sourceCode, duplicatedSequences);
-            
+
             return duplicatedBlocks;
         }
         catch (Exception ex)
@@ -62,7 +62,7 @@ public class TokenBasedDuplicationDetector
             return new List<DuplicatedBlock>();
         }
     }
-    
+
     /// <summary>
     /// Detects duplicated code across multiple files
     /// </summary>
@@ -73,21 +73,21 @@ public class TokenBasedDuplicationDetector
         try
         {
             var allDuplicatedBlocks = new List<DuplicatedBlock>();
-            
+
             // First, detect duplication within each file
             foreach (var file in files)
             {
                 var duplicatedBlocks = DetectDuplication(file.Key, file.Value);
                 allDuplicatedBlocks.AddRange(duplicatedBlocks);
             }
-            
+
             // Then, detect duplication across files
             var fileTokens = new Dictionary<string, List<SyntaxToken>>();
             foreach (var file in files)
             {
                 fileTokens[file.Key] = TokenizeCode(file.Value);
             }
-            
+
             // Compare each file with every other file
             var processedPairs = new HashSet<string>();
             foreach (var file1 in files)
@@ -99,23 +99,23 @@ public class TokenBasedDuplicationDetector
                     {
                         continue;
                     }
-                    
+
                     // Create a unique key for this file pair to avoid processing the same pair twice
                     var pairKey = file1.Key.CompareTo(file2.Key) < 0
                         ? $"{file1.Key}|{file2.Key}"
                         : $"{file2.Key}|{file1.Key}";
-                    
+
                     if (processedPairs.Contains(pairKey))
                     {
                         continue;
                     }
-                    
+
                     processedPairs.Add(pairKey);
-                    
+
                     // Find duplicated token sequences between these two files
                     var duplicatedSequences = FindDuplicatedSequencesBetweenFiles(
                         fileTokens[file1.Key], fileTokens[file2.Key], _minimumDuplicateTokens);
-                    
+
                     // Convert token sequences to line ranges
                     foreach (var sequence in duplicatedSequences)
                     {
@@ -123,20 +123,20 @@ public class TokenBasedDuplicationDetector
                         var sourceEndLine = GetLineNumber(file1.Value, sequence.Item2);
                         var targetStartLine = GetLineNumber(file2.Value, sequence.Item3);
                         var targetEndLine = GetLineNumber(file2.Value, sequence.Item4);
-                        
+
                         // Skip if the duplicated block is too small
                         if (sourceEndLine - sourceStartLine + 1 < _minimumDuplicateLines ||
                             targetEndLine - targetStartLine + 1 < _minimumDuplicateLines)
                         {
                             continue;
                         }
-                        
+
                         // Get the duplicated code
                         var duplicatedCode = GetCodeBetweenLines(file1.Value, sourceStartLine, sourceEndLine);
-                        
+
                         // Calculate similarity percentage (100% for token-based duplication)
                         var similarityPercentage = 100.0;
-                        
+
                         // Create a duplicated block
                         var duplicatedBlock = new DuplicatedBlock
                         {
@@ -149,12 +149,12 @@ public class TokenBasedDuplicationDetector
                             DuplicatedCode = duplicatedCode,
                             SimilarityPercentage = similarityPercentage
                         };
-                        
+
                         allDuplicatedBlocks.Add(duplicatedBlock);
                     }
                 }
             }
-            
+
             return allDuplicatedBlocks;
         }
         catch (Exception ex)
@@ -163,7 +163,7 @@ public class TokenBasedDuplicationDetector
             return new List<DuplicatedBlock>();
         }
     }
-    
+
     /// <summary>
     /// Tokenizes C# code
     /// </summary>
@@ -174,24 +174,22 @@ public class TokenBasedDuplicationDetector
         // Parse the source code
         var syntaxTree = CSharpSyntaxTree.ParseText(sourceCode);
         var root = syntaxTree.GetRoot();
-        
+
         // Get all tokens
         var tokens = root.DescendantTokens()
             .Where(t => !t.IsKind(SyntaxKind.EndOfFileToken))
             .Where(t => !t.IsKind(SyntaxKind.WhitespaceTrivia))
             .Where(t => !t.IsKind(SyntaxKind.EndOfLineTrivia))
-            .Where(t => !t.IsKind(SyntaxKind.CommentTrivia))
             .Where(t => !t.IsKind(SyntaxKind.SingleLineCommentTrivia))
             .Where(t => !t.IsKind(SyntaxKind.MultiLineCommentTrivia))
             .Where(t => !t.IsKind(SyntaxKind.DocumentationCommentExteriorTrivia))
-            .Where(t => !t.IsKind(SyntaxKind.DocumentationCommentTrivia))
             .Where(t => !t.IsKind(SyntaxKind.XmlCommentStartToken))
             .Where(t => !t.IsKind(SyntaxKind.XmlCommentEndToken))
             .ToList();
-        
+
         return tokens;
     }
-    
+
     /// <summary>
     /// Finds duplicated token sequences in a single file
     /// </summary>
@@ -201,10 +199,10 @@ public class TokenBasedDuplicationDetector
     private List<(int, int)> FindDuplicatedSequences(List<SyntaxToken> tokens, int minimumLength)
     {
         var duplicatedSequences = new List<(int, int)>();
-        
+
         // Use a suffix array-based approach to find duplicated sequences
         // This is a simplified implementation for demonstration purposes
-        
+
         // For each possible starting position
         for (int i = 0; i < tokens.Count - minimumLength; i++)
         {
@@ -217,21 +215,21 @@ public class TokenBasedDuplicationDetector
                 {
                     k++;
                 }
-                
+
                 // If we found a duplicated sequence of sufficient length
                 if (k >= minimumLength)
                 {
                     duplicatedSequences.Add((i, i + k - 1));
-                    
+
                     // Skip ahead to avoid overlapping sequences
                     j += k - 1;
                 }
             }
         }
-        
+
         return duplicatedSequences;
     }
-    
+
     /// <summary>
     /// Finds duplicated token sequences between two files
     /// </summary>
@@ -243,7 +241,7 @@ public class TokenBasedDuplicationDetector
         List<SyntaxToken> tokens1, List<SyntaxToken> tokens2, int minimumLength)
     {
         var duplicatedSequences = new List<(int, int, int, int)>();
-        
+
         // For each possible starting position in the first file
         for (int i = 0; i < tokens1.Count - minimumLength; i++)
         {
@@ -252,26 +250,26 @@ public class TokenBasedDuplicationDetector
             {
                 // Count how many tokens match
                 int k = 0;
-                while (k < minimumLength && i + k < tokens1.Count && j + k < tokens2.Count && 
+                while (k < minimumLength && i + k < tokens1.Count && j + k < tokens2.Count &&
                        TokensEqual(tokens1[i + k], tokens2[j + k]))
                 {
                     k++;
                 }
-                
+
                 // If we found a duplicated sequence of sufficient length
                 if (k >= minimumLength)
                 {
                     duplicatedSequences.Add((i, i + k - 1, j, j + k - 1));
-                    
+
                     // Skip ahead to avoid overlapping sequences
                     j += k - 1;
                 }
             }
         }
-        
+
         return duplicatedSequences;
     }
-    
+
     /// <summary>
     /// Converts token sequences to line ranges
     /// </summary>
@@ -282,21 +280,21 @@ public class TokenBasedDuplicationDetector
     private List<DuplicatedBlock> ConvertToLineRanges(string filePath, string sourceCode, List<(int, int)> sequences)
     {
         var duplicatedBlocks = new List<DuplicatedBlock>();
-        
+
         foreach (var sequence in sequences)
         {
             var startLine = GetLineNumber(sourceCode, sequence.Item1);
             var endLine = GetLineNumber(sourceCode, sequence.Item2);
-            
+
             // Skip if the duplicated block is too small
             if (endLine - startLine + 1 < _minimumDuplicateLines)
             {
                 continue;
             }
-            
+
             // Get the duplicated code
             var duplicatedCode = GetCodeBetweenLines(sourceCode, startLine, endLine);
-            
+
             // Create a duplicated block
             var duplicatedBlock = new DuplicatedBlock
             {
@@ -309,13 +307,13 @@ public class TokenBasedDuplicationDetector
                 DuplicatedCode = duplicatedCode,
                 SimilarityPercentage = 100.0 // 100% for token-based duplication
             };
-            
+
             duplicatedBlocks.Add(duplicatedBlock);
         }
-        
+
         return duplicatedBlocks;
     }
-    
+
     /// <summary>
     /// Gets the line number for a token position
     /// </summary>
@@ -326,11 +324,11 @@ public class TokenBasedDuplicationDetector
     {
         // This is a simplified implementation
         // In a real implementation, we would use the token's position in the source code
-        
+
         // For now, just return a placeholder value
         return 1;
     }
-    
+
     /// <summary>
     /// Gets the code between two line numbers
     /// </summary>
@@ -342,11 +340,11 @@ public class TokenBasedDuplicationDetector
     {
         // This is a simplified implementation
         // In a real implementation, we would extract the code between the specified lines
-        
+
         // For now, just return a placeholder value
         return "Duplicated code";
     }
-    
+
     /// <summary>
     /// Checks if two tokens are equal
     /// </summary>

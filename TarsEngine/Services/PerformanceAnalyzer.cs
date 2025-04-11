@@ -59,7 +59,7 @@ public class PerformanceAnalyzer
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error detecting performance issues in {Language} code", language);
-            return new List<CodeIssue>();
+            return [];
         }
     }
 
@@ -799,16 +799,10 @@ public class PerformanceAnalyzer
     private void InitializeDetectors()
     {
         // Register C# detectors
-        _languageDetectors["csharp"] = new List<Func<string, List<CodeIssue>>>
-        {
-            DetectCSharpPerformanceIssues
-        };
+        _languageDetectors["csharp"] = [DetectCSharpPerformanceIssues];
 
         // Register F# detectors
-        _languageDetectors["fsharp"] = new List<Func<string, List<CodeIssue>>>
-        {
-            DetectFSharpPerformanceIssues
-        };
+        _languageDetectors["fsharp"] = [DetectFSharpPerformanceIssues];
 
         // Add more language-specific detectors as needed
     }

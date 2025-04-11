@@ -72,7 +72,7 @@ public class ImprovementPrioritizerService : IImprovementPrioritizerService
             // Update the improvement
             await _improvementQueue.UpdateImprovementAsync(improvement);
 
-            _logger.LogInformation("Prioritized improvement: {ImprovementName} ({ImprovementId}), Priority: {PriorityScore}", 
+            _logger.LogInformation("Prioritized improvement: {ImprovementName} ({ImprovementId}), Priority: {PriorityScore}",
                 improvement.Name, improvement.Id, improvement.PriorityScore);
 
             return improvement;
@@ -408,6 +408,21 @@ public class ImprovementPrioritizerService : IImprovementPrioritizerService
         }
 
         return options;
+    }
+
+    /// <inheritdoc/>
+    public async Task<bool> SaveImprovementAsync(PrioritizedImprovement improvement)
+    {
+        try
+        {
+            _logger.LogInformation("Saving improvement: {ImprovementName} ({ImprovementId})", improvement.Name, improvement.Id);
+            return await _improvementQueue.AddImprovementAsync(improvement);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error saving improvement: {ImprovementName} ({ImprovementId})", improvement.Name, improvement.Id);
+            throw;
+        }
     }
 
     private ImprovementCategory DetermineCategory(List<string> tags)

@@ -49,31 +49,34 @@ public class DuplicationAnalyzer : IDuplicationAnalyzer
                     DuplicatedLinesOfCode = 15,
                     DuplicationPercentage = 15,
                     DuplicatedBlockCount = 2,
-                    DuplicationLevel = DuplicationLevel.Moderate,
+                    // DuplicationLevel is calculated from DuplicationPercentage
                     Timestamp = DateTime.UtcNow,
-                    DuplicatedBlocks = new List<DuplicatedBlock>
-                    {
-                        new DuplicatedBlock
+                    DuplicatedBlocks =
+                    [
+                        new TarsEngine.Models.Metrics.DuplicatedBlock
                         {
                             SourceStartLine = 10,
                             SourceEndLine = 15,
                             TargetStartLine = 50,
                             TargetEndLine = 55,
-                            DuplicatedLines = 6,
+                            // DuplicatedLines is calculated from SourceStartLine and SourceEndLine
                             SimilarityPercentage = 100,
-                            DuplicatedCode = "// Sample duplicated code\nvar x = 10;\nvar y = 20;\nvar z = x + y;\nConsole.WriteLine(z);"
+                            DuplicatedCode =
+                                "// Sample duplicated code\nvar x = 10;\nvar y = 20;\nvar z = x + y;\nConsole.WriteLine(z);"
                         },
-                        new DuplicatedBlock
+
+                        new TarsEngine.Models.Metrics.DuplicatedBlock
                         {
                             SourceStartLine = 25,
                             SourceEndLine = 33,
                             TargetStartLine = 75,
                             TargetEndLine = 83,
-                            DuplicatedLines = 9,
+                            // DuplicatedLines is calculated from SourceStartLine and SourceEndLine
                             SimilarityPercentage = 95,
-                            DuplicatedCode = "// Another sample\nfor (int i = 0; i < 10; i++)\n{\n    Console.WriteLine(i);\n}"
+                            DuplicatedCode =
+                                "// Another sample\nfor (int i = 0; i < 10; i++)\n{\n    Console.WriteLine(i);\n}"
                         }
-                    }
+                    ]
                 }
             };
 
@@ -109,21 +112,22 @@ public class DuplicationAnalyzer : IDuplicationAnalyzer
                     DuplicatedLinesOfCode = 10,
                     DuplicationPercentage = 10,
                     DuplicatedBlockCount = 1,
-                    DuplicationLevel = DuplicationLevel.Low,
+                    // DuplicationLevel is calculated from DuplicationPercentage
                     Timestamp = DateTime.UtcNow,
-                    DuplicatedBlocks = new List<DuplicatedBlock>
-                    {
-                        new DuplicatedBlock
+                    DuplicatedBlocks =
+                    [
+                        new TarsEngine.Models.Metrics.DuplicatedBlock
                         {
                             SourceStartLine = 40,
                             SourceEndLine = 49,
                             TargetStartLine = 60,
                             TargetEndLine = 69,
-                            DuplicatedLines = 10,
+                            // DuplicatedLines is calculated from SourceStartLine and SourceEndLine
                             SimilarityPercentage = 85,
-                            DuplicatedCode = "// Semantically similar code\nvar result = 0;\nfor (int i = 0; i < items.Length; i++)\n{\n    result += items[i];\n}"
+                            DuplicatedCode =
+                                "// Semantically similar code\nvar result = 0;\nfor (int i = 0; i < items.Length; i++)\n{\n    result += items[i];\n}"
                         }
-                    }
+                    ]
                 }
             };
 
@@ -181,9 +185,8 @@ public class DuplicationAnalyzer : IDuplicationAnalyzer
                     Language = "C#",
                     TotalLinesOfCode = 1000,
                     DuplicatedLinesOfCode = 150,
-                    DuplicationPercentage = 15,
+                    DuplicationPercentage = 8, // This will result in Moderate DuplicationLevel
                     DuplicatedBlockCount = 12,
-                    DuplicationLevel = DuplicationLevel.Moderate,
                     Timestamp = DateTime.UtcNow
                 },
                 new DuplicationMetric
@@ -197,9 +200,8 @@ public class DuplicationAnalyzer : IDuplicationAnalyzer
                     Language = "C#",
                     TotalLinesOfCode = 1000,
                     DuplicatedLinesOfCode = 100,
-                    DuplicationPercentage = 10,
+                    DuplicationPercentage = 15, // This will result in High DuplicationLevel
                     DuplicatedBlockCount = 8,
-                    DuplicationLevel = DuplicationLevel.Low,
                     Timestamp = DateTime.UtcNow
                 }
             };

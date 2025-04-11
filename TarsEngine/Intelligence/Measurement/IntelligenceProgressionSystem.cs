@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using TarsEngine.Models.Metrics;
+using TarsEngine.Models.Unified;
+using UnifiedComplexityType = TarsEngine.Models.Unified.ComplexityTypeUnified;
 
 namespace TarsEngine.Intelligence.Measurement;
 
@@ -108,7 +110,7 @@ public class IntelligenceProgressionSystem
     /// <param name="value">The complexity value</param>
     /// <param name="threshold">The complexity threshold</param>
     /// <returns>A task representing the asynchronous operation</returns>
-    public async Task RecordComplexityMetricAsync(string target, ComplexityType complexityType, double value, double threshold)
+    public async Task RecordComplexityMetricAsync(string target, UnifiedComplexityType complexityType, double value, double threshold)
     {
         _logger.LogInformation("Recording complexity metric: {Target} - {ComplexityType} with value {Value}",
             target, complexityType, value);
@@ -117,7 +119,7 @@ public class IntelligenceProgressionSystem
         {
             Name = $"Complexity.{complexityType}.{target}",
             Value = value,
-            Type = complexityType,
+            Type = TarsEngine.Services.Adapters.ComplexityTypeConverter.ToModelType(complexityType),
             Target = target,
             Threshold = threshold,
             Dimension = complexityType.ToString(),

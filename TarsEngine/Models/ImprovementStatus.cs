@@ -51,6 +51,11 @@ public enum ImprovementStatus
     Approved,
 
     /// <summary>
+    /// Improvement has failed
+    /// </summary>
+    Failed,
+
+    /// <summary>
     /// Improvement is cancelled
     /// </summary>
     Cancelled,

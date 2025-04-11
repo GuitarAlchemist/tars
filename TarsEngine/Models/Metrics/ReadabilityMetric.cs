@@ -316,27 +316,27 @@ public enum ReadabilityType
 public enum ReadabilityLevel
 {
     /// <summary>
-    /// Excellent readability (score >= 80)
+    /// Excellent readability (score greater than or equal to 80)
     /// </summary>
     Excellent,
 
     /// <summary>
-    /// Good readability (60 <= score < 80)
+    /// Good readability (60 less than or equal to score less than 80)
     /// </summary>
     Good,
 
     /// <summary>
-    /// Fair readability (40 <= score < 60)
+    /// Fair readability (40 less than or equal to score less than 60)
     /// </summary>
     Fair,
 
     /// <summary>
-    /// Poor readability (20 <= score < 40)
+    /// Poor readability (20 less than or equal to score less than 40)
     /// </summary>
     Poor,
 
     /// <summary>
-    /// Very poor readability (score < 20)
+    /// Very poor readability (score less than 20)
     /// </summary>
     VeryPoor
 }

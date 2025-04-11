@@ -170,7 +170,7 @@ public class StrategicAlignmentService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting strategic goals");
-            return new List<StrategicGoal>();
+            return [];
         }
     }
 
@@ -457,7 +457,7 @@ public class StrategicAlignmentService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error finding strategic goals for improvement: {ImprovementName} ({ImprovementId})", improvement.Name, improvement.Id);
-            return new List<StrategicGoal>();
+            return [];
         }
     }
 
@@ -475,8 +475,8 @@ public class StrategicAlignmentService
                     Description = "Improve the overall quality of the codebase",
                     Category = "Quality",
                     Weight = 0.8,
-                    Tags = new List<string> { "quality", "maintainability", "reliability" },
-                    Keywords = new List<string> { "quality", "clean", "maintainable", "reliable", "testable" }
+                    Tags = ["quality", "maintainability", "reliability"],
+                    Keywords = ["quality", "clean", "maintainable", "reliable", "testable"]
                 },
                 new StrategicGoal
                 {
@@ -484,8 +484,8 @@ public class StrategicAlignmentService
                     Description = "Improve the performance of the application",
                     Category = "Performance",
                     Weight = 0.9,
-                    Tags = new List<string> { "performance", "optimization", "speed" },
-                    Keywords = new List<string> { "performance", "fast", "efficient", "optimize", "speed" }
+                    Tags = ["performance", "optimization", "speed"],
+                    Keywords = ["performance", "fast", "efficient", "optimize", "speed"]
                 },
                 new StrategicGoal
                 {
@@ -493,8 +493,8 @@ public class StrategicAlignmentService
                     Description = "Enhance the security of the application",
                     Category = "Security",
                     Weight = 1.0,
-                    Tags = new List<string> { "security", "vulnerability", "protection" },
-                    Keywords = new List<string> { "security", "secure", "vulnerability", "protect", "encryption" }
+                    Tags = ["security", "vulnerability", "protection"],
+                    Keywords = ["security", "secure", "vulnerability", "protect", "encryption"]
                 },
                 new StrategicGoal
                 {
@@ -502,8 +502,8 @@ public class StrategicAlignmentService
                     Description = "Enhance the architecture of the application",
                     Category = "Architecture",
                     Weight = 0.8,
-                    Tags = new List<string> { "architecture", "design", "structure" },
-                    Keywords = new List<string> { "architecture", "design", "structure", "pattern", "solid" }
+                    Tags = ["architecture", "design", "structure"],
+                    Keywords = ["architecture", "design", "structure", "pattern", "solid"]
                 },
                 new StrategicGoal
                 {
@@ -511,8 +511,8 @@ public class StrategicAlignmentService
                     Description = "Improve the user experience of the application",
                     Category = "UX",
                     Weight = 0.7,
-                    Tags = new List<string> { "ux", "usability", "user-friendly" },
-                    Keywords = new List<string> { "ux", "user", "experience", "usability", "friendly", "interface" }
+                    Tags = ["ux", "usability", "user-friendly"],
+                    Keywords = ["ux", "user", "experience", "usability", "friendly", "interface"]
                 },
                 new StrategicGoal
                 {
@@ -520,8 +520,8 @@ public class StrategicAlignmentService
                     Description = "Improve the test coverage of the codebase",
                     Category = "Testing",
                     Weight = 0.8,
-                    Tags = new List<string> { "testing", "coverage", "quality" },
-                    Keywords = new List<string> { "test", "coverage", "unit", "integration", "automated" }
+                    Tags = ["testing", "coverage", "quality"],
+                    Keywords = ["test", "coverage", "unit", "integration", "automated"]
                 },
                 new StrategicGoal
                 {
@@ -529,8 +529,8 @@ public class StrategicAlignmentService
                     Description = "Enhance the documentation of the codebase",
                     Category = "Documentation",
                     Weight = 0.6,
-                    Tags = new List<string> { "documentation", "comments", "readme" },
-                    Keywords = new List<string> { "documentation", "comment", "readme", "wiki", "guide" }
+                    Tags = ["documentation", "comments", "readme"],
+                    Keywords = ["documentation", "comment", "readme", "wiki", "guide"]
                 },
                 new StrategicGoal
                 {
@@ -538,8 +538,8 @@ public class StrategicAlignmentService
                     Description = "Improve the scalability of the application",
                     Category = "Scalability",
                     Weight = 0.8,
-                    Tags = new List<string> { "scalability", "performance", "architecture" },
-                    Keywords = new List<string> { "scale", "scalable", "load", "throughput", "capacity" }
+                    Tags = ["scalability", "performance", "architecture"],
+                    Keywords = ["scale", "scalable", "load", "throughput", "capacity"]
                 },
                 new StrategicGoal
                 {
@@ -547,8 +547,8 @@ public class StrategicAlignmentService
                     Description = "Reduce the technical debt in the codebase",
                     Category = "Maintenance",
                     Weight = 0.7,
-                    Tags = new List<string> { "technical-debt", "maintenance", "quality" },
-                    Keywords = new List<string> { "debt", "technical", "maintenance", "legacy", "refactor" }
+                    Tags = ["technical-debt", "maintenance", "quality"],
+                    Keywords = ["debt", "technical", "maintenance", "legacy", "refactor"]
                 },
                 new StrategicGoal
                 {
@@ -556,8 +556,8 @@ public class StrategicAlignmentService
                     Description = "Enhance the accessibility of the application",
                     Category = "Accessibility",
                     Weight = 0.6,
-                    Tags = new List<string> { "accessibility", "a11y", "usability" },
-                    Keywords = new List<string> { "accessibility", "a11y", "wcag", "aria", "inclusive" }
+                    Tags = ["accessibility", "a11y", "usability"],
+                    Keywords = ["accessibility", "a11y", "wcag", "aria", "inclusive"]
                 }
             };
 

@@ -151,8 +151,8 @@ public class MetascriptGeneratorService : IMetascriptGeneratorService
                 ExpectedImprovement = patternMatch.ExpectedImprovement,
                 ImpactScore = patternMatch.ImpactScore,
                 DifficultyScore = patternMatch.DifficultyScore,
-                Tags = new List<string>(patternMatch.Tags),
-                AffectedFiles = new List<string> { patternMatch.FilePath }
+                Tags = [..patternMatch.Tags],
+                AffectedFiles = [patternMatch.FilePath]
             };
 
             // Validate metascript

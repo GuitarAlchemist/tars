@@ -26,4 +26,6 @@ public class ExecutionError
     /// Gets or sets the exception that caused the error
     /// </summary>
     public Exception? Exception { get; set; }
+
+    public string? StackTrace { get; set; }
 }

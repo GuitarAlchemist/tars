@@ -119,6 +119,8 @@ public class HalsteadMetric : BaseMetric
     /// Gets whether the value is above the threshold
     /// </summary>
     public bool IsAboveThreshold => Value > ThresholdValue && ThresholdValue > 0;
+
+    public string Description { get; set; }
 }
 
 /// <summary>

@@ -26,15 +26,15 @@ public class PatternLanguage
     /// <summary>
     /// Gets the supported pattern languages
     /// </summary>
-    public List<string> SupportedLanguages => new()
-    {
-        "Regex",      // Regular expression patterns
-        "Literal",    // Literal string matching
-        "AST",        // Abstract Syntax Tree patterns
-        "Semantic",   // Semantic patterns (using semantic analysis)
-        "Fuzzy",      // Fuzzy matching patterns
-        "Template"    // Template-based patterns with placeholders
-    };
+    public List<string> SupportedLanguages =>
+    [
+        "Regex", // Regular expression patterns
+        "Literal", // Literal string matching
+        "AST", // Abstract Syntax Tree patterns
+        "Semantic", // Semantic patterns (using semantic analysis)
+        "Fuzzy", // Fuzzy matching patterns
+        "Template"
+    ];
 
     /// <summary>
     /// Gets the available options for pattern matching

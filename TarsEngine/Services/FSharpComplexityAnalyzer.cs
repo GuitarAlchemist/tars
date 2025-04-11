@@ -5,7 +5,12 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using TarsEngine.Models.Metrics;
+using TarsEngine.Models.Unified;
+using TarsEngine.Utilities;
 using TarsEngine.Services.Interfaces;
+using TarsEngine.Services.Adapters;
+using UnifiedComplexityType = TarsEngine.Models.Unified.ComplexityTypeUnified;
+using ModelComplexityType = TarsEngine.Models.Metrics.ComplexityType;
 
 namespace TarsEngine.Services;
 
@@ -15,7 +20,7 @@ namespace TarsEngine.Services;
 public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
 {
     private readonly ILogger<FSharpComplexityAnalyzer> _logger;
-    private readonly Dictionary<string, Dictionary<TarsEngine.Models.Metrics.ComplexityType, Dictionary<string, double>>> _thresholds;
+    private readonly Dictionary<string, Dictionary<ModelComplexityType, Dictionary<string, double>>> _thresholds;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="FSharpComplexityAnalyzer"/> class
@@ -24,23 +29,23 @@ public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
     public FSharpComplexityAnalyzer(ILogger<FSharpComplexityAnalyzer> logger)
     {
         _logger = logger;
-        _thresholds = new Dictionary<string, Dictionary<TarsEngine.Models.Metrics.ComplexityType, Dictionary<string, double>>>
+        _thresholds = new Dictionary<string, Dictionary<ModelComplexityType, Dictionary<string, double>>>
         {
-            ["F#"] = new Dictionary<TarsEngine.Models.Metrics.ComplexityType, Dictionary<string, double>>
+            ["F#"] = new Dictionary<ModelComplexityType, Dictionary<string, double>>
             {
-                [TarsEngine.Models.Metrics.ComplexityType.Cyclomatic] = new Dictionary<string, double>
+                [ModelComplexityType.Cyclomatic] = new Dictionary<string, double>
                 {
                     ["Function"] = 8,
                     ["Module"] = 15,
                     ["File"] = 40
                 },
-                [TarsEngine.Models.Metrics.ComplexityType.Cognitive] = new Dictionary<string, double>
+                [ModelComplexityType.Cognitive] = new Dictionary<string, double>
                 {
                     ["Function"] = 12,
                     ["Module"] = 25,
                     ["File"] = 60
                 },
-                [TarsEngine.Models.Metrics.ComplexityType.Maintainability] = new Dictionary<string, double>
+                [ModelComplexityType.MaintainabilityIndex] = new Dictionary<string, double>
                 {
                     ["Function"] = 20,
                     ["Module"] = 20,
@@ -58,7 +63,7 @@ public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
             if (language != "F#")
             {
                 _logger.LogWarning("Language {Language} not supported by FSharpComplexityAnalyzer", language);
-                return new List<ComplexityMetric>();
+                return [];
             }
 
             var sourceCode = await File.ReadAllTextAsync(filePath);
@@ -84,13 +89,13 @@ public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
                 Name = $"Cyclomatic Complexity - {fileName}",
                 Description = $"Estimated cyclomatic complexity for F# file {fileName}",
                 Value = fileComplexity,
-                Type = ComplexityType.Cyclomatic,
+                Type = TarsEngine.Utilities.ComplexityTypeConverter.ToModelType(UnifiedComplexityType.Cyclomatic),
                 FilePath = filePath,
                 Language = language,
                 Target = fileName,
                 TargetType = TargetType.File,
                 Timestamp = DateTime.UtcNow,
-                ThresholdValue = GetThreshold(language, ComplexityType.Cyclomatic, "File")
+                ThresholdValue = GetThreshold(language, UnifiedComplexityType.Cyclomatic, "File")
             };
 
             metrics.Add(fileMetric);
@@ -105,7 +110,7 @@ public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error analyzing cyclomatic complexity for F# file {FilePath}", filePath);
-            return new List<ComplexityMetric>();
+            return [];
         }
     }
 
@@ -114,7 +119,7 @@ public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
     {
         // Implementation will be added in a future task
         _logger.LogInformation("F# cognitive complexity analysis not yet implemented");
-        return new List<ComplexityMetric>();
+        return [];
     }
 
     /// <inheritdoc/>
@@ -139,7 +144,7 @@ public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
             var halsteadVolume = linesOfCode * 10; // Simple estimation
 
             // Estimate cyclomatic complexity based on keywords
-            var cyclomaticComplexity = fileContent.Split(new[] { "if", "match", "for", "while" }, StringSplitOptions.None).Length - 1;
+            var cyclomaticComplexity = fileContent.Split(["if", "match", "for", "while"], StringSplitOptions.None).Length - 1;
 
             var metric = new MaintainabilityMetric
             {
@@ -155,7 +160,7 @@ public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
                 TargetType = TargetType.File,
                 Timestamp = DateTime.UtcNow,
                 UseMicrosoftFormula = true,
-                ThresholdValue = GetThreshold(language, ComplexityType.MaintainabilityIndex, "File")
+                ThresholdValue = GetThreshold(language, UnifiedComplexityType.MaintainabilityIndex, "File")
             };
 
             // Calculate maintainability index
@@ -168,7 +173,7 @@ public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error analyzing maintainability index for F# file {FilePath}", filePath);
-            return new List<MaintainabilityMetric>();
+            return [];
         }
     }
 
@@ -192,7 +197,7 @@ public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
             var totalOperators = operators.Sum(op => fileContent.Split(op).Length - 1);
 
             // Count distinct operands (simplified for F#)
-            var words = fileContent.Split(new[] { ' ', '\n', '\r', '\t', '(', ')', '{', '}', '[', ']', ',', ';', ':', '"' }, StringSplitOptions.RemoveEmptyEntries);
+            var words = fileContent.Split([' ', '\n', '\r', '\t', '(', ')', '{', '}', '[', ']', ',', ';', ':', '"'], StringSplitOptions.RemoveEmptyEntries);
             var operands = words.Where(w => !operators.Contains(w) && !new[] { "let", "if", "then", "else", "match", "with", "for", "while", "do", "done", "in", "rec", "fun", "function", "type", "module", "open" }.Contains(w)).ToList();
             var distinctOperands = operands.Distinct().Count();
             var totalOperands = operands.Count;
@@ -265,7 +270,7 @@ public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error analyzing Halstead complexity for F# file {FilePath}", filePath);
-            return new List<HalsteadMetric>();
+            return [];
         }
     }
 
@@ -326,7 +331,7 @@ public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
 
             // Calculate project-level cyclomatic complexity
             var projectCyclomaticComplexity = complexityMetrics
-                .Where(m => m.Type == ComplexityType.Cyclomatic && m.TargetType == TargetType.File)
+                .Where(m => m.Type == TarsEngine.Services.Adapters.ComplexityTypeConverter.ToModelType(UnifiedComplexityType.Cyclomatic) && m.TargetType == TargetType.File)
                 .Sum(m => m.Value);
 
             var cyclomaticMetric = new ComplexityMetric
@@ -334,7 +339,7 @@ public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
                 Name = $"Cyclomatic Complexity - {projectName}",
                 Description = $"Estimated cyclomatic complexity for F# project {projectName}",
                 Value = projectCyclomaticComplexity,
-                Type = ComplexityType.Cyclomatic,
+                Type = TarsEngine.Services.Adapters.ComplexityTypeConverter.ToModelType(UnifiedComplexityType.Cyclomatic),
                 FilePath = projectPath,
                 Language = "F#",
                 Target = projectName,
@@ -399,21 +404,15 @@ public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error analyzing F# project complexity for {ProjectPath}", projectPath);
-            return (new List<ComplexityMetric>(), new List<HalsteadMetric>(), new List<MaintainabilityMetric>(), new List<ReadabilityMetric>());
+            return ([], [], [], []);
         }
     }
 
     /// <inheritdoc/>
-    public Task<Dictionary<string, double>> GetComplexityThresholdsAsync(string language, TarsEngine.Services.Interfaces.ComplexityType complexityType)
+    public Task<Dictionary<string, double>> GetComplexityThresholdsAsync(string language, UnifiedComplexityType complexityType)
     {
-        // Convert from interface ComplexityType to model ComplexityType
-        var modelComplexityType = complexityType switch
-        {
-            TarsEngine.Services.Interfaces.ComplexityType.Cyclomatic => TarsEngine.Models.Metrics.ComplexityType.Cyclomatic,
-            TarsEngine.Services.Interfaces.ComplexityType.Cognitive => TarsEngine.Models.Metrics.ComplexityType.Cognitive,
-            TarsEngine.Services.Interfaces.ComplexityType.Maintainability => TarsEngine.Models.Metrics.ComplexityType.Maintainability,
-            _ => TarsEngine.Models.Metrics.ComplexityType.Cyclomatic
-        };
+        // Convert to Models.Metrics.ComplexityType
+        var modelComplexityType = TarsEngine.Utilities.ComplexityTypeConverter.ToModelType(complexityType);
 
         if (_thresholds.TryGetValue(language, out var languageThresholds) &&
             languageThresholds.TryGetValue(modelComplexityType, out var typeThresholds))
@@ -471,22 +470,16 @@ public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
     }
 
     /// <inheritdoc/>
-    public Task<bool> SetComplexityThresholdAsync(string language, TarsEngine.Services.Interfaces.ComplexityType complexityType, string targetType, double threshold)
+    public Task<bool> SetComplexityThresholdAsync(string language, UnifiedComplexityType complexityType, string targetType, double threshold)
     {
         try
         {
-            // Convert from interface ComplexityType to model ComplexityType
-            var modelComplexityType = complexityType switch
-            {
-                TarsEngine.Services.Interfaces.ComplexityType.Cyclomatic => TarsEngine.Models.Metrics.ComplexityType.Cyclomatic,
-                TarsEngine.Services.Interfaces.ComplexityType.Cognitive => TarsEngine.Models.Metrics.ComplexityType.Cognitive,
-                TarsEngine.Services.Interfaces.ComplexityType.Maintainability => TarsEngine.Models.Metrics.ComplexityType.Maintainability,
-                _ => TarsEngine.Models.Metrics.ComplexityType.Cyclomatic
-            };
+            // Convert to Models.Metrics.ComplexityType
+            var modelComplexityType = TarsEngine.Utilities.ComplexityTypeConverter.ToModelType(complexityType);
 
             if (!_thresholds.ContainsKey(language))
             {
-                _thresholds[language] = new Dictionary<TarsEngine.Models.Metrics.ComplexityType, Dictionary<string, double>>();
+                _thresholds[language] = new Dictionary<ModelComplexityType, Dictionary<string, double>>();
             }
 
             if (!_thresholds[language].ContainsKey(modelComplexityType))
@@ -521,15 +514,15 @@ public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
         {
             if (!_thresholds.ContainsKey(language))
             {
-                _thresholds[language] = new Dictionary<ComplexityType, Dictionary<string, double>>();
+                _thresholds[language] = new Dictionary<ModelComplexityType, Dictionary<string, double>>();
             }
 
-            if (!_thresholds[language].ContainsKey(ComplexityType.MaintainabilityIndex))
+            if (!_thresholds[language].ContainsKey(ModelComplexityType.MaintainabilityIndex))
             {
-                _thresholds[language][ComplexityType.MaintainabilityIndex] = new Dictionary<string, double>();
+                _thresholds[language][ModelComplexityType.MaintainabilityIndex] = new Dictionary<string, double>();
             }
 
-            _thresholds[language][ComplexityType.MaintainabilityIndex][targetType] = threshold;
+            _thresholds[language][ModelComplexityType.MaintainabilityIndex][targetType] = threshold;
             return Task.FromResult(true);
         }
         catch (Exception ex)
@@ -683,33 +676,36 @@ public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
     /// <param name="complexityType">Type of complexity</param>
     /// <param name="targetType">Type of target (function, module, etc.)</param>
     /// <returns>Threshold value</returns>
-    private double GetThreshold(string language, TarsEngine.Services.Interfaces.ComplexityType complexityType, string targetType)
+    private double GetThreshold(string language, UnifiedComplexityType complexityType, string targetType)
     {
+        // Convert to Models.Metrics.ComplexityType
+        var modelComplexityType = TarsEngine.Utilities.ComplexityTypeConverter.ToModelType(complexityType);
+
         if (_thresholds.TryGetValue(language, out var languageThresholds) &&
-            languageThresholds.TryGetValue(complexityType, out var typeThresholds) &&
+            languageThresholds.TryGetValue(modelComplexityType, out var typeThresholds) &&
             typeThresholds.TryGetValue(targetType, out var threshold))
         {
             return threshold;
         }
 
         // Default thresholds if not configured
-        return complexityType switch
+        return modelComplexityType switch
         {
-            TarsEngine.Services.Interfaces.ComplexityType.Cyclomatic => targetType switch
+            ModelComplexityType.Cyclomatic => targetType switch
             {
                 "Function" => 8,
                 "Module" => 15,
                 "File" => 40,
                 _ => 8
             },
-            TarsEngine.Services.Interfaces.ComplexityType.Cognitive => targetType switch
+            ModelComplexityType.Cognitive => targetType switch
             {
                 "Function" => 12,
                 "Module" => 25,
                 "File" => 60,
                 _ => 12
             },
-            TarsEngine.Services.Interfaces.ComplexityType.MaintainabilityIndex => 20,
+            ModelComplexityType.Halstead => 20,
             _ => 8
         };
     }

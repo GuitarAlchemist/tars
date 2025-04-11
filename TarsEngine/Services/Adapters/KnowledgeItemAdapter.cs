@@ -29,7 +29,7 @@ namespace TarsEngine.Services.Adapters
                 Source = model.Source,
                 Confidence = model.Confidence,
                 Timestamp = model.CreatedAt,
-                RelatedItems = model.Tags ?? new List<string>(),
+                RelatedItems = model.Tags ?? [],
                 Metadata = model.Metadata ?? new Dictionary<string, string>()
             };
         }
@@ -67,7 +67,7 @@ namespace TarsEngine.Services.Adapters
                 Confidence = interfaceItem.Confidence,
                 CreatedAt = interfaceItem.Timestamp,
                 UpdatedAt = DateTime.UtcNow,
-                Tags = interfaceItem.RelatedItems != null ? new List<string>(interfaceItem.RelatedItems) : new List<string>(),
+                Tags = interfaceItem.RelatedItems != null ? [..interfaceItem.RelatedItems] : [],
                 Metadata = interfaceItem.Metadata != null ? new Dictionary<string, string>(interfaceItem.Metadata) : new Dictionary<string, string>()
             };
 

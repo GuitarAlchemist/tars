@@ -34,47 +34,47 @@ public class ImprovementWorkflowCommand : Command
 
         // Add options
         var pathOption = new Option<string>(
-            new[] { "--path", "-p" },
+            ["--path", "-p"],
             "Path to the file or directory to analyze")
         {
             IsRequired = true
         };
 
         var recursiveOption = new Option<bool>(
-            new[] { "--recursive", "-r" },
+            ["--recursive", "-r"],
             () => true,
             "Whether to analyze directories recursively");
 
         var filePatternOption = new Option<string>(
-            new[] { "--pattern", "-f" },
+            ["--pattern", "-f"],
             () => "*.cs;*.fs",
             "File pattern to match (semicolon-separated)");
 
         var maxImprovementsOption = new Option<int>(
-            new[] { "--max-improvements", "-m" },
+            ["--max-improvements", "-m"],
             () => 10,
             "Maximum number of improvements to generate");
 
         var executeOption = new Option<bool>(
-            new[] { "--execute", "-e" },
+            ["--execute", "-e"],
             "Whether to execute the improvements");
 
         var dryRunOption = new Option<bool>(
-            new[] { "--dry-run", "-d" },
+            ["--dry-run", "-d"],
             () => true,
             "Whether to perform a dry run without making changes");
 
         var outputOption = new Option<string>(
-            new[] { "--output", "-o" },
+            ["--output", "-o"],
             "Path to the output file");
 
         var formatOption = new Option<string>(
-            new[] { "--format" },
+            ["--format"],
             () => "json",
             "Output format (json, yaml, or text)");
 
         var verboseOption = new Option<bool>(
-            new[] { "--verbose", "-v" },
+            ["--verbose", "-v"],
             "Show verbose output");
 
         // Add options to command

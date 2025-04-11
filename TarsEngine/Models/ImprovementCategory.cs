@@ -101,6 +101,11 @@ public enum ImprovementCategory
     Reusability,
 
     /// <summary>
+    /// Testing improvement
+    /// </summary>
+    Testing,
+
+    /// <summary>
     /// Modularity improvement
     /// </summary>
     Modularity,

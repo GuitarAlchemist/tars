@@ -366,6 +366,11 @@ public enum CodeIssueType
     DeadCode,
 
     /// <summary>
+    /// Security issue
+    /// </summary>
+    Security,
+
+    /// <summary>
     /// Other issue
     /// </summary>
     Other
