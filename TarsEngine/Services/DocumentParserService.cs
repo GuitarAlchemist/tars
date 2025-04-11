@@ -427,7 +427,7 @@ public class DocumentParserService : IDocumentParserService
             };
             section.CodeBlocks.Add(codeBlock);
 
-            result.Sections = new List<ContentSection> { section };
+            result.Sections = [section];
 
             // Extract comments from the code
             var comments = ExtractCommentsFromCode(content, language);
@@ -491,7 +491,7 @@ public class DocumentParserService : IDocumentParserService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error extracting code blocks");
-            return new List<CodeBlock>();
+            return [];
         }
     }
 
@@ -586,7 +586,7 @@ public class DocumentParserService : IDocumentParserService
             var codeBlocks = await ExtractCodeBlocksAsync(content, options);
             section.CodeBlocks.AddRange(codeBlocks);
 
-            result.Sections = new List<ContentSection> { section };
+            result.Sections = [section];
 
             _logger.LogInformation("Successfully parsed generic document with {CodeBlockCount} code blocks", codeBlocks.Count);
             return result;

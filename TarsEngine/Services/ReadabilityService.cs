@@ -126,14 +126,14 @@ function analyzeReadability(code, language) {{
                 CommentQualityScore = 0,
                 CodeFormattingScore = 0,
                 DocumentationScore = 0,
-                Issues = new List<ReadabilityIssue>
-                {
+                Issues =
+                [
                     new ReadabilityIssue
                     {
                         Description = $"Error analyzing readability: {ex.Message}",
                         Location = filePath
                     }
-                },
+                ],
                 Metrics = new ReadabilityMetrics()
             };
         }
@@ -163,7 +163,7 @@ function analyzeReadability(code, language) {{
                     CommentQualityScore = 0,
                     CodeFormattingScore = 0,
                     DocumentationScore = 0,
-                    Issues = new List<ReadabilityIssue>(),
+                    Issues = [],
                     Metrics = new ReadabilityMetrics()
                 };
             }
@@ -191,14 +191,14 @@ function analyzeReadability(code, language) {{
                 CommentQualityScore = 0,
                 CodeFormattingScore = 0,
                 DocumentationScore = 0,
-                Issues = new List<ReadabilityIssue>
-                {
+                Issues =
+                [
                     new ReadabilityIssue
                     {
                         Description = $"Error analyzing readability: {ex.Message}",
                         Location = projectPath
                     }
-                },
+                ],
                 Metrics = new ReadabilityMetrics()
             };
         }
@@ -228,7 +228,7 @@ function analyzeReadability(code, language) {{
                     CommentQualityScore = 0,
                     CodeFormattingScore = 0,
                     DocumentationScore = 0,
-                    Issues = new List<ReadabilityIssue>(),
+                    Issues = [],
                     Metrics = new ReadabilityMetrics()
                 };
             }
@@ -254,14 +254,14 @@ function analyzeReadability(code, language) {{
                 CommentQualityScore = 0,
                 CodeFormattingScore = 0,
                 DocumentationScore = 0,
-                Issues = new List<ReadabilityIssue>
-                {
+                Issues =
+                [
                     new ReadabilityIssue
                     {
                         Description = $"Error analyzing readability: {ex.Message}",
                         Location = solutionPath
                     }
-                },
+                ],
                 Metrics = new ReadabilityMetrics()
             };
         }
@@ -330,19 +330,19 @@ function identifyReadabilityIssues(code, language) {{
             
             // Parse the result as JSON
             var readabilityIssues = System.Text.Json.JsonSerializer.Deserialize<List<ReadabilityIssue>>(result.ToString());
-            return readabilityIssues ?? new List<ReadabilityIssue>();
+            return readabilityIssues ?? [];
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error identifying readability issues in file: {FilePath}", filePath);
-            return new List<ReadabilityIssue>
-            {
+            return
+            [
                 new ReadabilityIssue
                 {
                     Description = $"Error identifying readability issues: {ex.Message}",
                     Location = filePath
                 }
-            };
+            ];
         }
     }
 
@@ -417,12 +417,12 @@ function suggestReadabilityImprovements(issue) {{
             
             // Parse the result as JSON
             var improvements = System.Text.Json.JsonSerializer.Deserialize<List<ReadabilityImprovement>>(result.ToString());
-            return improvements ?? new List<ReadabilityImprovement>();
+            return improvements ?? [];
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error suggesting readability improvements for issue: {Description}", readabilityIssue.Description);
-            return new List<ReadabilityImprovement>();
+            return [];
         }
     }
 
@@ -468,7 +468,7 @@ function suggestReadabilityImprovements(issue) {{
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error finding source files in project: {ProjectPath}", projectPath);
-            return new List<string>();
+            return [];
         }
     }
 
@@ -502,7 +502,7 @@ function suggestReadabilityImprovements(issue) {{
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error finding projects in solution: {SolutionPath}", solutionPath);
-            return new List<string>();
+            return [];
         }
     }
 
@@ -524,7 +524,7 @@ function suggestReadabilityImprovements(issue) {{
         var issues = readabilityResults.SelectMany(r => r.Issues).ToList();
 
         // Combine metrics
-        var readabilityIssues = readabilityResults.SelectMany(r => r.Metrics?.ReadabilityIssues ?? new List<ReadabilityIssue>()).ToList();
+        var readabilityIssues = readabilityResults.SelectMany(r => r.Metrics?.ReadabilityIssues ?? []).ToList();
         var averageIdentifierLength = readabilityResults.Average(r => r.Metrics?.AverageIdentifierLength ?? 0);
         var commentDensity = readabilityResults.Average(r => r.Metrics?.CommentDensity ?? 0);
         var documentationCoverage = readabilityResults.Average(r => r.Metrics?.DocumentationCoverage ?? 0);

@@ -327,7 +327,7 @@ public class DependencyGraphService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting next improvements from dependency graph");
-            return new List<ImprovementNode>();
+            return [];
         }
     }
 
@@ -363,7 +363,7 @@ public class DependencyGraphService
                 {
                     if (!improvementsByFile.ContainsKey(file))
                     {
-                        improvementsByFile[file] = new List<string>();
+                        improvementsByFile[file] = [];
                     }
                     improvementsByFile[file].Add(improvement.Id);
                 }
@@ -424,21 +424,23 @@ public class DependencyGraphService
             // Define category dependencies
             var categoryDependencies = new Dictionary<ImprovementCategory, List<ImprovementCategory>>
             {
-                { ImprovementCategory.Security, new List<ImprovementCategory> { ImprovementCategory.Architecture } },
-                { ImprovementCategory.Performance, new List<ImprovementCategory> { ImprovementCategory.Architecture } },
-                { ImprovementCategory.Scalability, new List<ImprovementCategory> { ImprovementCategory.Architecture, ImprovementCategory.Performance } },
-                { ImprovementCategory.Reliability, new List<ImprovementCategory> { ImprovementCategory.Architecture, ImprovementCategory.Security } },
-                { ImprovementCategory.Maintainability, new List<ImprovementCategory> { ImprovementCategory.CodeQuality, ImprovementCategory.Testability } },
-                { ImprovementCategory.Testability, new List<ImprovementCategory> { ImprovementCategory.Architecture } },
-                { ImprovementCategory.Usability, new List<ImprovementCategory> { ImprovementCategory.Functionality } },
-                { ImprovementCategory.Accessibility, new List<ImprovementCategory> { ImprovementCategory.Usability } },
-                { ImprovementCategory.Internationalization, new List<ImprovementCategory> { ImprovementCategory.Architecture } },
-                { ImprovementCategory.Localization, new List<ImprovementCategory> { ImprovementCategory.Internationalization } },
-                { ImprovementCategory.Compatibility, new List<ImprovementCategory> { ImprovementCategory.Architecture } },
-                { ImprovementCategory.Portability, new List<ImprovementCategory> { ImprovementCategory.Architecture } },
-                { ImprovementCategory.Extensibility, new List<ImprovementCategory> { ImprovementCategory.Architecture } },
-                { ImprovementCategory.Reusability, new List<ImprovementCategory> { ImprovementCategory.Architecture, ImprovementCategory.Modularity } },
-                { ImprovementCategory.Modularity, new List<ImprovementCategory> { ImprovementCategory.Architecture } }
+                { ImprovementCategory.Security, [ImprovementCategory.Architecture] },
+                { ImprovementCategory.Performance, [ImprovementCategory.Architecture] },
+                { ImprovementCategory.Scalability, [ImprovementCategory.Architecture, ImprovementCategory.Performance] },
+                { ImprovementCategory.Reliability, [ImprovementCategory.Architecture, ImprovementCategory.Security] },
+                { ImprovementCategory.Maintainability,
+                    [ImprovementCategory.CodeQuality, ImprovementCategory.Testability]
+                },
+                { ImprovementCategory.Testability, [ImprovementCategory.Architecture] },
+                { ImprovementCategory.Usability, [ImprovementCategory.Functionality] },
+                { ImprovementCategory.Accessibility, [ImprovementCategory.Usability] },
+                { ImprovementCategory.Internationalization, [ImprovementCategory.Architecture] },
+                { ImprovementCategory.Localization, [ImprovementCategory.Internationalization] },
+                { ImprovementCategory.Compatibility, [ImprovementCategory.Architecture] },
+                { ImprovementCategory.Portability, [ImprovementCategory.Architecture] },
+                { ImprovementCategory.Extensibility, [ImprovementCategory.Architecture] },
+                { ImprovementCategory.Reusability, [ImprovementCategory.Architecture, ImprovementCategory.Modularity] },
+                { ImprovementCategory.Modularity, [ImprovementCategory.Architecture] }
             };
 
             // Group improvements by category
@@ -447,7 +449,7 @@ public class DependencyGraphService
             {
                 if (!improvementsByCategory.ContainsKey(improvement.Category))
                 {
-                    improvementsByCategory[improvement.Category] = new List<string>();
+                    improvementsByCategory[improvement.Category] = [];
                 }
                 improvementsByCategory[improvement.Category].Add(improvement.Id);
             }
@@ -518,7 +520,7 @@ public class DependencyGraphService
                 {
                     if (!improvementsByTag.ContainsKey(tag))
                     {
-                        improvementsByTag[tag] = new List<string>();
+                        improvementsByTag[tag] = [];
                     }
                     improvementsByTag[tag].Add(improvement.Id);
                 }

@@ -12,7 +12,7 @@ namespace TarsEngine.Consciousness.Intelligence;
 public class SpontaneousThought
 {
     private readonly ILogger<SpontaneousThought> _logger;
-    private readonly List<ThoughtModel> _thoughts = new();
+    private readonly List<ThoughtModel> _thoughts = [];
     private readonly Dictionary<string, List<string>> _associativeNetwork = new();
 
     private bool _isInitialized = false;
@@ -89,21 +89,21 @@ public class SpontaneousThought
     {
         // Initialize some basic associations
         // These would be expanded over time through learning
-        AddAssociation("consciousness", new[] { "awareness", "self", "mind", "cognition", "experience" });
-        AddAssociation("intelligence", new[] { "thinking", "learning", "problem-solving", "adaptation", "knowledge" });
-        AddAssociation("creativity", new[] { "imagination", "innovation", "originality", "art", "expression" });
-        AddAssociation("emotion", new[] { "feeling", "affect", "mood", "sentiment", "passion" });
-        AddAssociation("learning", new[] { "education", "growth", "development", "knowledge", "skill" });
-        AddAssociation("memory", new[] { "recall", "storage", "experience", "past", "knowledge" });
-        AddAssociation("perception", new[] { "sensation", "awareness", "observation", "recognition", "interpretation" });
-        AddAssociation("reasoning", new[] { "logic", "inference", "deduction", "analysis", "judgment" });
-        AddAssociation("language", new[] { "communication", "expression", "words", "meaning", "understanding" });
-        AddAssociation("problem", new[] { "challenge", "difficulty", "obstacle", "puzzle", "solution" });
-        AddAssociation("time", new[] { "duration", "moment", "past", "present", "future" });
-        AddAssociation("space", new[] { "dimension", "area", "volume", "location", "distance" });
-        AddAssociation("nature", new[] { "environment", "world", "life", "ecosystem", "biology" });
-        AddAssociation("technology", new[] { "innovation", "tool", "machine", "digital", "advancement" });
-        AddAssociation("human", new[] { "person", "individual", "humanity", "being", "society" });
+        AddAssociation("consciousness", ["awareness", "self", "mind", "cognition", "experience"]);
+        AddAssociation("intelligence", ["thinking", "learning", "problem-solving", "adaptation", "knowledge"]);
+        AddAssociation("creativity", ["imagination", "innovation", "originality", "art", "expression"]);
+        AddAssociation("emotion", ["feeling", "affect", "mood", "sentiment", "passion"]);
+        AddAssociation("learning", ["education", "growth", "development", "knowledge", "skill"]);
+        AddAssociation("memory", ["recall", "storage", "experience", "past", "knowledge"]);
+        AddAssociation("perception", ["sensation", "awareness", "observation", "recognition", "interpretation"]);
+        AddAssociation("reasoning", ["logic", "inference", "deduction", "analysis", "judgment"]);
+        AddAssociation("language", ["communication", "expression", "words", "meaning", "understanding"]);
+        AddAssociation("problem", ["challenge", "difficulty", "obstacle", "puzzle", "solution"]);
+        AddAssociation("time", ["duration", "moment", "past", "present", "future"]);
+        AddAssociation("space", ["dimension", "area", "volume", "location", "distance"]);
+        AddAssociation("nature", ["environment", "world", "life", "ecosystem", "biology"]);
+        AddAssociation("technology", ["innovation", "tool", "machine", "digital", "advancement"]);
+        AddAssociation("human", ["person", "individual", "humanity", "being", "society"]);
     }
 
     /// <summary>
@@ -115,7 +115,7 @@ public class SpontaneousThought
     {
         if (!_associativeNetwork.ContainsKey(concept))
         {
-            _associativeNetwork[concept] = new List<string>();
+            _associativeNetwork[concept] = [];
         }
 
         _associativeNetwork[concept].AddRange(associations);
@@ -125,7 +125,7 @@ public class SpontaneousThought
         {
             if (!_associativeNetwork.ContainsKey(association))
             {
-                _associativeNetwork[association] = new List<string>();
+                _associativeNetwork[association] = [];
             }
 
             if (!_associativeNetwork[association].Contains(concept))
@@ -390,7 +390,7 @@ public class SpontaneousThought
             Significance = significance,
             Timestamp = DateTime.UtcNow,
             Context = new Dictionary<string, object> { { "Concept", concept } },
-            Tags = new List<string> { concept, "random", isSerendipitous ? "serendipitous" : "ordinary" }
+            Tags = [concept, "random", isSerendipitous ? "serendipitous" : "ordinary"]
         };
     }
 
@@ -495,7 +495,7 @@ public class SpontaneousThought
                 { "StartConcept", jumpPath[0] },
                 { "EndConcept", jumpPath[jumpPath.Count - 1] }
             },
-            Tags = jumpPath.Concat(new[] { "associative", isSerendipitous ? "serendipitous" : "ordinary" }).ToList()
+            Tags = jumpPath.Concat(["associative", isSerendipitous ? "serendipitous" : "ordinary"]).ToList()
         };
     }
 
@@ -567,7 +567,7 @@ public class SpontaneousThought
                 { "Stream", stream },
                 { "Coherence", coherence }
             },
-            Tags = stream.Concat(new[] { "mind-wandering", isSerendipitous ? "serendipitous" : "ordinary" }).ToList()
+            Tags = stream.Concat(["mind-wandering", isSerendipitous ? "serendipitous" : "ordinary"]).ToList()
         };
     }
 

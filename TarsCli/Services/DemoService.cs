@@ -1318,7 +1318,7 @@ namespace DemoCode
 
             // Show a visual representation of creative thinking
             Console.WriteLine("\nCreative Thinking Process:");
-            string[] concepts = { "Neural Networks", "Quantum Computing", "Optimization", "Parallel Processing" };
+            string[] concepts = ["Neural Networks", "Quantum Computing", "Optimization", "Parallel Processing"];
 
             // Display concepts
             for (int i = 0; i < concepts.Length; i++)
@@ -1358,13 +1358,14 @@ namespace DemoCode
 
             // Show a visual representation of intuitive reasoning
             Console.WriteLine("\nIntuitive Pattern Recognition:");
-            string[] codePatterns = {
+            string[] codePatterns =
+            [
                 "function recursiveProcess(data) {",
                 "  if (data.length === 0) return [];",
                 "  const result = heavyComputation(data);",
                 "  return [result, ...recursiveProcess(data.slice(1))];" ,
                 "}"
-            };
+            ];
 
             // Display code with highlighting
             for (int i = 0; i < codePatterns.Length; i++)
@@ -1442,13 +1443,14 @@ namespace DemoCode
 
             // Display a visual representation of consciousness emergence
             Console.WriteLine("\nConsciousness Emergence Indicators:");
-            string[] indicators = {
+            string[] indicators =
+            [
                 "Self-reference capability",
                 "Recursive self-improvement",
                 "Goal-directed behavior",
                 "Adaptive learning",
                 "Spontaneous thought generation"
-            };
+            ];
 
             // Display indicators with progress bars
             for (int i = 0; i < indicators.Length; i++)

@@ -12,7 +12,7 @@ namespace TarsEngine.Consciousness.Intelligence;
 public class InsightGeneration
 {
     private readonly ILogger<InsightGeneration> _logger;
-    private readonly List<InsightLegacy> _insights = new();
+    private readonly List<InsightLegacy> _insights = [];
     private readonly Dictionary<string, List<string>> _conceptConnections = new();
 
     private bool _isInitialized = false;
@@ -89,17 +89,18 @@ public class InsightGeneration
     {
         // Initialize some basic concept connections
         // These would be expanded over time through learning
-        AddConceptConnection("consciousness", new[] { "awareness", "self", "mind", "experience", "qualia" });
-        AddConceptConnection("intelligence", new[] { "learning", "adaptation", "problem-solving", "cognition", "knowledge" });
-        AddConceptConnection("creativity", new[] { "imagination", "innovation", "originality", "divergent-thinking", "insight" });
-        AddConceptConnection("learning", new[] { "memory", "adaptation", "knowledge", "experience", "growth" });
-        AddConceptConnection("emotion", new[] { "feeling", "affect", "motivation", "valence", "arousal" });
-        AddConceptConnection("memory", new[] { "encoding", "storage", "retrieval", "forgetting", "consolidation" });
-        AddConceptConnection("perception", new[] { "sensation", "attention", "recognition", "interpretation", "awareness" });
-        AddConceptConnection("reasoning", new[] { "logic", "inference", "deduction", "induction", "abduction" });
-        AddConceptConnection("language", new[] { "communication", "symbols", "grammar", "semantics", "pragmatics" });
-        AddConceptConnection("problem", new[] { "challenge", "obstacle", "difficulty", "solution", "opportunity" });
-        AddConceptConnection("insight", new[] { "eureka", "understanding", "realization", "discovery", "breakthrough" });
+        AddConceptConnection("consciousness", ["awareness", "self", "mind", "experience", "qualia"]);
+        AddConceptConnection("intelligence", ["learning", "adaptation", "problem-solving", "cognition", "knowledge"]);
+        AddConceptConnection("creativity", ["imagination", "innovation", "originality", "divergent-thinking", "insight"
+        ]);
+        AddConceptConnection("learning", ["memory", "adaptation", "knowledge", "experience", "growth"]);
+        AddConceptConnection("emotion", ["feeling", "affect", "motivation", "valence", "arousal"]);
+        AddConceptConnection("memory", ["encoding", "storage", "retrieval", "forgetting", "consolidation"]);
+        AddConceptConnection("perception", ["sensation", "attention", "recognition", "interpretation", "awareness"]);
+        AddConceptConnection("reasoning", ["logic", "inference", "deduction", "induction", "abduction"]);
+        AddConceptConnection("language", ["communication", "symbols", "grammar", "semantics", "pragmatics"]);
+        AddConceptConnection("problem", ["challenge", "obstacle", "difficulty", "solution", "opportunity"]);
+        AddConceptConnection("insight", ["eureka", "understanding", "realization", "discovery", "breakthrough"]);
     }
 
     /// <summary>
@@ -111,7 +112,7 @@ public class InsightGeneration
     {
         if (!_conceptConnections.ContainsKey(concept))
         {
-            _conceptConnections[concept] = new List<string>();
+            _conceptConnections[concept] = [];
         }
 
         _conceptConnections[concept].AddRange(connections);
@@ -121,7 +122,7 @@ public class InsightGeneration
         {
             if (!_conceptConnections.ContainsKey(connection))
             {
-                _conceptConnections[connection] = new List<string>();
+                _conceptConnections[connection] = [];
             }
 
             if (!_conceptConnections[connection].Contains(concept))
@@ -372,7 +373,7 @@ public class InsightGeneration
         double conceptDistance = CalculateConceptDistance(concept1, concept2);
         double significance = Math.Min(1.0, (0.4 + (0.3 * conceptDistance) + (0.3 * _random.NextDouble())) * _connectionDiscoveryLevel);
 
-        return new Insight
+        return new InsightLegacy
         {
             Id = Guid.NewGuid().ToString(),
             Description = description,
@@ -386,7 +387,7 @@ public class InsightGeneration
                 { "Concept2", concept2 },
                 { "ConceptDistance", conceptDistance }
             },
-            Tags = new List<string> { concept1, concept2, "connection", "discovery" }
+            Tags = [concept1, concept2, "connection", "discovery"]
         };
     }
 
@@ -427,7 +428,7 @@ public class InsightGeneration
         // Calculate significance based on problem restructuring level
         double significance = Math.Min(1.0, (0.5 + (0.5 * _random.NextDouble())) * _problemRestructuringLevel);
 
-        return new Insight
+        return new InsightLegacy
         {
             Id = Guid.NewGuid().ToString(),
             Description = description,
@@ -437,7 +438,7 @@ public class InsightGeneration
             NewPerspective = newPerspective,
             Implications = implications,
             Context = new Dictionary<string, object> { { "ProblemDomain", problemDomain } },
-            Tags = new List<string> { problemDomain, "restructuring", "reframing" }
+            Tags = [problemDomain, "restructuring", "reframing"]
         };
     }
 
@@ -479,7 +480,7 @@ public class InsightGeneration
         // Calculate significance based on incubation level
         double significance = Math.Min(1.0, (0.6 + (0.4 * _random.NextDouble())) * _incubationLevel);
 
-        return new Insight
+        return new InsightLegacy
         {
             Id = Guid.NewGuid().ToString(),
             Description = description,
@@ -489,7 +490,7 @@ public class InsightGeneration
             Breakthrough = breakthrough,
             Implications = implications,
             Context = new Dictionary<string, object> { { "Concept", concept } },
-            Tags = new List<string> { concept, "incubation", "eureka" }
+            Tags = [concept, "incubation", "eureka"]
         };
     }
 
@@ -698,7 +699,7 @@ public class InsightGeneration
             double significance = Math.Min(1.0, (0.5 + (0.3 * conceptDistance) + (0.2 * _random.NextDouble())) * _connectionDiscoveryLevel);
 
             // Create insight
-            var insight = new Insight
+            var insight = new InsightLegacy
             {
                 Id = Guid.NewGuid().ToString(),
                 Description = description,
@@ -714,7 +715,7 @@ public class InsightGeneration
                     { "Concept2", concept2 },
                     { "ConceptDistance", conceptDistance }
                 },
-                Tags = new List<string> { concept1, concept2, "connection", "synthesis" }
+                Tags = [concept1, concept2, "connection", "synthesis"]
             };
 
             // Add to insights list

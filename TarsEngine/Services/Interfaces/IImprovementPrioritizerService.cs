@@ -124,4 +124,11 @@ public interface IImprovementPrioritizerService
     /// </summary>
     /// <returns>The dictionary of available options and their descriptions</returns>
     Task<Dictionary<string, string>> GetAvailableOptionsAsync();
+
+    /// <summary>
+    /// Saves an improvement
+    /// </summary>
+    /// <param name="improvement">The improvement to save</param>
+    /// <returns>True if the improvement was saved successfully, false otherwise</returns>
+    Task<bool> SaveImprovementAsync(PrioritizedImprovement improvement);
 }

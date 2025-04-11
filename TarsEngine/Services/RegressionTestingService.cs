@@ -50,7 +50,7 @@ public class RegressionTestingService : IRegressionTestingService
                 return new RegressionTestResult
                 {
                     Passed = true,
-                    TestResults = new List<TestResult>()
+                    TestResults = []
                 };
             }
 
@@ -103,8 +103,8 @@ public class RegressionTestingService : IRegressionTestingService
             return new RegressionTestResult
             {
                 Passed = false,
-                Issues = new List<RegressionIssue>
-                {
+                Issues =
+                [
                     new RegressionIssue
                     {
                         Description = $"Error running regression tests: {ex.Message}",
@@ -114,8 +114,8 @@ public class RegressionTestingService : IRegressionTestingService
                         SuggestedFix = null,
                         Confidence = 1.0f
                     }
-                },
-                TestResults = new List<TestResult>()
+                ],
+                TestResults = []
             };
         }
     }
@@ -140,7 +140,7 @@ public class RegressionTestingService : IRegressionTestingService
                 return new RegressionTestResult
                 {
                     Passed = true,
-                    TestResults = new List<TestResult>()
+                    TestResults = []
                 };
             }
 
@@ -176,8 +176,8 @@ public class RegressionTestingService : IRegressionTestingService
             return new RegressionTestResult
             {
                 Passed = false,
-                Issues = new List<RegressionIssue>
-                {
+                Issues =
+                [
                     new RegressionIssue
                     {
                         Description = $"Error running regression tests: {ex.Message}",
@@ -187,8 +187,8 @@ public class RegressionTestingService : IRegressionTestingService
                         SuggestedFix = null,
                         Confidence = 1.0f
                     }
-                },
-                TestResults = new List<TestResult>()
+                ],
+                TestResults = []
             };
         }
     }
@@ -213,7 +213,7 @@ public class RegressionTestingService : IRegressionTestingService
                 return new RegressionTestResult
                 {
                     Passed = true,
-                    TestResults = new List<TestResult>()
+                    TestResults = []
                 };
             }
 
@@ -249,8 +249,8 @@ public class RegressionTestingService : IRegressionTestingService
             return new RegressionTestResult
             {
                 Passed = false,
-                Issues = new List<RegressionIssue>
-                {
+                Issues =
+                [
                     new RegressionIssue
                     {
                         Description = $"Error running regression tests: {ex.Message}",
@@ -260,8 +260,8 @@ public class RegressionTestingService : IRegressionTestingService
                         SuggestedFix = null,
                         Confidence = 1.0f
                     }
-                },
-                TestResults = new List<TestResult>()
+                ],
+                TestResults = []
             };
         }
     }
@@ -400,13 +400,13 @@ function extractMethods(code, language) {{
 
             // Parse the result as JSON
             var issues = System.Text.Json.JsonSerializer.Deserialize<List<RegressionIssue>>(result.ToString());
-            return issues ?? new List<RegressionIssue>();
+            return issues ?? [];
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error identifying potential regression issues");
-            return new List<RegressionIssue>
-            {
+            return
+            [
                 new RegressionIssue
                 {
                     Description = $"Error identifying potential regression issues: {ex.Message}",
@@ -416,7 +416,7 @@ function extractMethods(code, language) {{
                     SuggestedFix = null,
                     Confidence = 1.0f
                 }
-            };
+            ];
         }
     }
 
@@ -437,17 +437,17 @@ function extractMethods(code, language) {{
                 BranchCoverage = 0.65f,
                 MethodCoverage = 0.80f,
                 ClassCoverage = 0.85f,
-                UncoveredLines = new List<UncoveredLine>
-                {
+                UncoveredLines =
+                [
                     new UncoveredLine
                     {
                         FilePath = Path.Combine(projectPath, "SampleClass.cs"),
                         LineNumber = 42,
                         LineContent = "    if (value == null) throw new ArgumentNullException(nameof(value));"
                     }
-                },
-                UncoveredBranches = new List<UncoveredBranch>
-                {
+                ],
+                UncoveredBranches =
+                [
                     new UncoveredBranch
                     {
                         FilePath = Path.Combine(projectPath, "SampleClass.cs"),
@@ -455,9 +455,9 @@ function extractMethods(code, language) {{
                         BranchContent = "value == null",
                         MethodName = "ProcessValue"
                     }
-                },
-                UncoveredMethods = new List<UncoveredMethod>
-                {
+                ],
+                UncoveredMethods =
+                [
                     new UncoveredMethod
                     {
                         FilePath = Path.Combine(projectPath, "SampleClass.cs"),
@@ -465,7 +465,7 @@ function extractMethods(code, language) {{
                         ClassName = "SampleClass",
                         LineNumber = 100
                     }
-                }
+                ]
             };
         }
         catch (Exception ex)
@@ -546,12 +546,12 @@ function suggestAdditionalTests(coverage, projectPath) {{
 
             // Parse the result as JSON
             var suggestedTests = System.Text.Json.JsonSerializer.Deserialize<List<SuggestedTest>>(result.ToString());
-            return suggestedTests ?? new List<SuggestedTest>();
+            return suggestedTests ?? [];
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error suggesting additional tests for project: {ProjectPath}", projectPath);
-            return new List<SuggestedTest>();
+            return [];
         }
     }
 
@@ -583,7 +583,7 @@ function suggestAdditionalTests(coverage, projectPath) {{
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error finding test files for file: {FilePath}", filePath);
-            return new List<string>();
+            return [];
         }
     }
 
@@ -609,7 +609,7 @@ function suggestAdditionalTests(coverage, projectPath) {{
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error finding source files in project: {ProjectPath}", projectPath);
-            return new List<string>();
+            return [];
         }
     }
 
@@ -643,7 +643,7 @@ function suggestAdditionalTests(coverage, projectPath) {{
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error finding projects in solution: {SolutionPath}", solutionPath);
-            return new List<string>();
+            return [];
         }
     }
 }

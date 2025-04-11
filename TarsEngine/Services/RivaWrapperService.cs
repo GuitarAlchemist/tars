@@ -6,13 +6,13 @@ namespace TarsEngine.Services;
 
 public class RivaWrapperService : IDisposable, ISpeechService
 {
-    private readonly RivaService.RivaClient _client;
-    
+    private readonly TarsEngineFSharp.RivaService.RivaClient _client;
+
     public string ServiceName => "Riva";
-    
+
     public RivaWrapperService()
     {
-        _client = RivaService.createDefaultClient();
+        _client = TarsEngineFSharp.RivaService.createDefaultClient();
     }
 
     public async Task<string> TranscribeAudioAsync(byte[] audioData)

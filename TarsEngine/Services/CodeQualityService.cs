@@ -177,8 +177,8 @@ function analyzeCodeQuality(code, language) {{
                 ReliabilityScore = 0,
                 SecurityScore = 0,
                 PerformanceScore = 0,
-                Issues = new List<QualityIssue>
-                {
+                Issues =
+                [
                     new QualityIssue
                     {
                         Description = $"Error analyzing code quality: {ex.Message}",
@@ -186,7 +186,7 @@ function analyzeCodeQuality(code, language) {{
                         Category = "Error",
                         Location = filePath
                     }
-                }
+                ]
             };
         }
     }
@@ -241,8 +241,8 @@ function analyzeCodeQuality(code, language) {{
                 ReliabilityScore = 0,
                 SecurityScore = 0,
                 PerformanceScore = 0,
-                Issues = new List<QualityIssue>
-                {
+                Issues =
+                [
                     new QualityIssue
                     {
                         Description = $"Error analyzing code quality: {ex.Message}",
@@ -250,7 +250,7 @@ function analyzeCodeQuality(code, language) {{
                         Category = "Error",
                         Location = projectPath
                     }
-                }
+                ]
             };
         }
     }
@@ -303,8 +303,8 @@ function analyzeCodeQuality(code, language) {{
                 ReliabilityScore = 0,
                 SecurityScore = 0,
                 PerformanceScore = 0,
-                Issues = new List<QualityIssue>
-                {
+                Issues =
+                [
                     new QualityIssue
                     {
                         Description = $"Error analyzing code quality: {ex.Message}",
@@ -312,7 +312,7 @@ function analyzeCodeQuality(code, language) {{
                         Category = "Error",
                         Location = solutionPath
                     }
-                }
+                ]
             };
         }
     }
@@ -330,8 +330,8 @@ function analyzeCodeQuality(code, language) {{
 
             return new QualityTrendResult
             {
-                Snapshots = new List<QualitySnapshot>
-                {
+                Snapshots =
+                [
                     new QualitySnapshot
                     {
                         Timestamp = DateTime.Now.AddDays(-30),
@@ -343,6 +343,7 @@ function analyzeCodeQuality(code, language) {{
                         IssueCount = 15,
                         CommitHash = "abc123"
                     },
+
                     new QualitySnapshot
                     {
                         Timestamp = DateTime.Now.AddDays(-15),
@@ -354,6 +355,7 @@ function analyzeCodeQuality(code, language) {{
                         IssueCount = 12,
                         CommitHash = "def456"
                     },
+
                     new QualitySnapshot
                     {
                         Timestamp = DateTime.Now,
@@ -365,7 +367,7 @@ function analyzeCodeQuality(code, language) {{
                         IssueCount = 10,
                         CommitHash = "ghi789"
                     }
-                },
+                ],
                 OverallTrend = TrendDirection.Improving,
                 MaintainabilityTrend = TrendDirection.Improving,
                 ReliabilityTrend = TrendDirection.Improving,
@@ -378,7 +380,7 @@ function analyzeCodeQuality(code, language) {{
             _logger.LogError(ex, "Error tracking quality scores for project: {ProjectPath}", projectPath);
             return new QualityTrendResult
             {
-                Snapshots = new List<QualitySnapshot>(),
+                Snapshots = [],
                 OverallTrend = TrendDirection.Stable,
                 MaintainabilityTrend = TrendDirection.Stable,
                 ReliabilityTrend = TrendDirection.Stable,
@@ -491,12 +493,12 @@ function suggestQualityImprovements(qualityResult) {{
             
             // Parse the result as JSON
             var improvements = System.Text.Json.JsonSerializer.Deserialize<List<QualityImprovement>>(result.ToString());
-            return improvements ?? new List<QualityImprovement>();
+            return improvements ?? [];
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error suggesting quality improvements");
-            return new List<QualityImprovement>();
+            return [];
         }
     }
 
@@ -542,7 +544,7 @@ function suggestQualityImprovements(qualityResult) {{
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error finding source files in project: {ProjectPath}", projectPath);
-            return new List<string>();
+            return [];
         }
     }
 
@@ -576,7 +578,7 @@ function suggestQualityImprovements(qualityResult) {{
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error finding projects in solution: {SolutionPath}", solutionPath);
-            return new List<string>();
+            return [];
         }
     }
 
@@ -598,7 +600,7 @@ function suggestQualityImprovements(qualityResult) {{
         var issues = qualityResults.SelectMany(r => r.Issues).ToList();
 
         // Combine complexity metrics
-        var complexMethods = qualityResults.SelectMany(r => r.ComplexityMetrics?.ComplexMethods ?? new List<ComplexMethod>()).ToList();
+        var complexMethods = qualityResults.SelectMany(r => r.ComplexityMetrics?.ComplexMethods ?? []).ToList();
         var averageCyclomaticComplexity = qualityResults.Average(r => r.ComplexityMetrics?.AverageCyclomaticComplexity ?? 0);
         var maxCyclomaticComplexity = qualityResults.Max(r => r.ComplexityMetrics?.MaxCyclomaticComplexity ?? 0);
         var averageCognitiveComplexity = qualityResults.Average(r => r.ComplexityMetrics?.AverageCognitiveComplexity ?? 0);
@@ -609,7 +611,7 @@ function suggestQualityImprovements(qualityResult) {{
         var maxClassLength = qualityResults.Max(r => r.ComplexityMetrics?.MaxClassLength ?? 0);
 
         // Combine readability metrics
-        var readabilityIssues = qualityResults.SelectMany(r => r.ReadabilityMetrics?.ReadabilityIssues ?? new List<ReadabilityIssue>()).ToList();
+        var readabilityIssues = qualityResults.SelectMany(r => r.ReadabilityMetrics?.ReadabilityIssues ?? []).ToList();
         var averageIdentifierLength = qualityResults.Average(r => r.ReadabilityMetrics?.AverageIdentifierLength ?? 0);
         var commentDensity = qualityResults.Average(r => r.ReadabilityMetrics?.CommentDensity ?? 0);
         var documentationCoverage = qualityResults.Average(r => r.ReadabilityMetrics?.DocumentationCoverage ?? 0);
@@ -617,7 +619,7 @@ function suggestQualityImprovements(qualityResult) {{
         var maxParameterCount = qualityResults.Max(r => r.ReadabilityMetrics?.MaxParameterCount ?? 0);
 
         // Combine duplication metrics
-        var duplicatedBlocksList = qualityResults.SelectMany(r => r.DuplicationMetrics?.DuplicatedBlocksList ?? new List<DuplicatedBlock>()).ToList();
+        var duplicatedBlocksList = qualityResults.SelectMany(r => r.DuplicationMetrics?.DuplicatedBlocksList ?? []).ToList();
         var duplicationPercentage = qualityResults.Average(r => r.DuplicationMetrics?.DuplicationPercentage ?? 0);
         var duplicatedBlocks = qualityResults.Sum(r => r.DuplicationMetrics?.DuplicatedBlocks ?? 0);
         var duplicatedLines = qualityResults.Sum(r => r.DuplicationMetrics?.DuplicatedLines ?? 0);

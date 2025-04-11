@@ -214,7 +214,15 @@ public class KnowledgeExtractionCommand : Command
                     // No Timestamp property in the interface
                 }).ToList();
 
-                var savedItems = await _knowledgeRepository.AddItemsAsync(interfaceItems);
+                var savedItems = await _knowledgeRepository.AddItemsAsync(interfaceItems.Select(item => new TarsEngine.Models.KnowledgeItem
+                {
+                    Id = item.Id,
+                    Type = (TarsEngine.Models.KnowledgeType)Enum.Parse(typeof(TarsEngine.Models.KnowledgeType), item.Type.ToString()),
+                    Content = item.Content,
+                    Source = item.Source,
+                    Confidence = item.Confidence,
+                    CreatedAt = DateTime.UtcNow
+                }).ToList());
                 Console.WriteLine($"Saved {savedItems.Count()} knowledge items to repository");
 
                 // Detect and save relationships

@@ -121,7 +121,10 @@ public class LearningPlanService
             Content = new LearningPlanContent
             {
                 Introduction = introduction.Length > 0 ? introduction : $"A comprehensive learning plan for {topic} designed for {skillLevel} skill level.",
-                Prerequisites = prerequisites.Count > 0 ? prerequisites : new List<string> { "Basic understanding of programming concepts" },
+                Prerequisites = prerequisites.Count > 0 ? prerequisites :
+                [
+                    "Basic understanding of programming concepts"
+                ],
                 Modules = CreateModulesFromText(modules, estimatedHours),
                 Timeline = CreateTimelineFromText(timeline),
                 Milestones = CreateDefaultMilestones(topic),
@@ -157,16 +160,17 @@ public class LearningPlanService
             Content = new LearningPlanContent
             {
                 Introduction = $"A comprehensive learning plan for {topic} designed for {skillLevel} skill level.",
-                Prerequisites = new List<string> { "Basic understanding of programming concepts" },
-                Modules = new List<Module>
-                {
+                Prerequisites = ["Basic understanding of programming concepts"],
+                Modules =
+                [
                     new Module
                     {
                         Title = "Getting Started with " + topic,
-                        Objectives = new List<string> { "Understand the basics", "Set up your development environment" },
+                        Objectives =
+                            ["Understand the basics", "Set up your development environment"],
                         EstimatedHours = estimatedHours / 4,
-                        Resources = new List<Resource>
-                        {
+                        Resources =
+                        [
                             new Resource
                             {
                                 Type = "Article",
@@ -174,16 +178,17 @@ public class LearningPlanService
                                 Url = "https://example.com/intro",
                                 Description = "A beginner-friendly introduction to the topic."
                             }
-                        },
+                        ],
                         Assessment = "Complete a simple project demonstrating basic concepts."
                     },
+
                     new Module
                     {
                         Title = "Advanced Concepts in " + topic,
-                        Objectives = new List<string> { "Master advanced techniques", "Build a complex project" },
+                        Objectives = ["Master advanced techniques", "Build a complex project"],
                         EstimatedHours = estimatedHours / 2,
-                        Resources = new List<Resource>
-                        {
+                        Resources =
+                        [
                             new Resource
                             {
                                 Type = "Video",
@@ -191,40 +196,42 @@ public class LearningPlanService
                                 Url = "https://example.com/advanced",
                                 Description = "In-depth coverage of advanced concepts."
                             }
-                        },
+                        ],
                         Assessment = "Build a comprehensive project showcasing advanced skills."
                     }
-                },
-                Timeline = new List<TimelineItem>
-                {
+                ],
+                Timeline =
+                [
                     new TimelineItem
                     {
                         Week = "1-2",
-                        Activities = new List<string> { "Complete Module 1", "Set up development environment" }
+                        Activities = ["Complete Module 1", "Set up development environment"]
                     },
+
                     new TimelineItem
                     {
                         Week = "3-4",
-                        Activities = new List<string> { "Complete Module 2", "Work on final project" }
+                        Activities = ["Complete Module 2", "Work on final project"]
                     }
-                },
-                Milestones = new List<Milestone>
-                {
+                ],
+                Milestones =
+                [
                     new Milestone
                     {
                         Title = "Basic Proficiency",
                         Description = "Demonstrate understanding of fundamental concepts",
                         CompletionCriteria = "Complete Module 1 and pass assessment"
                     },
+
                     new Milestone
                     {
                         Title = "Advanced Mastery",
                         Description = "Demonstrate ability to apply advanced concepts",
                         CompletionCriteria = "Complete Module 2 and final project"
                     }
-                },
-                PracticeProjects = new List<PracticeProject>
-                {
+                ],
+                PracticeProjects =
+                [
                     new PracticeProject
                     {
                         Title = "Simple " + topic + " Application",
@@ -232,6 +239,7 @@ public class LearningPlanService
                         Difficulty = "Beginner",
                         EstimatedHours = estimatedHours / 5
                     },
+
                     new PracticeProject
                     {
                         Title = "Advanced " + topic + " Project",
@@ -239,7 +247,7 @@ public class LearningPlanService
                         Difficulty = "Advanced",
                         EstimatedHours = estimatedHours / 3
                     }
-                }
+                ]
             }
         };
 
@@ -339,10 +347,10 @@ public class LearningPlanService
                 modules.Add(new Module
                 {
                     Title = moduleText,
-                    Objectives = new List<string> { "Master the concepts in this module" },
+                    Objectives = ["Master the concepts in this module"],
                     EstimatedHours = hoursPerModule,
-                    Resources = new List<Resource>
-                    {
+                    Resources =
+                    [
                         new Resource
                         {
                             Type = "Article",
@@ -350,7 +358,7 @@ public class LearningPlanService
                             Url = "https://example.com/resource",
                             Description = "A resource for this module."
                         }
-                    },
+                    ],
                     Assessment = "Complete the exercises for this module."
                 });
             }
@@ -385,7 +393,7 @@ public class LearningPlanService
                 timeline.Add(new TimelineItem
                 {
                     Week = weekNumber.ToString(),
-                    Activities = new List<string> { timelineTexts[i] }
+                    Activities = [timelineTexts[i]]
                 });
             }
 
@@ -403,21 +411,22 @@ public class LearningPlanService
     /// </summary>
     private List<Milestone> CreateDefaultMilestones(string topic)
     {
-        return new List<Milestone>
-        {
+        return
+        [
             new Milestone
             {
                 Title = "Basic Proficiency in " + topic,
                 Description = "Demonstrate understanding of fundamental concepts",
                 CompletionCriteria = "Complete introductory modules and exercises"
             },
+
             new Milestone
             {
                 Title = "Advanced Mastery of " + topic,
                 Description = "Demonstrate ability to apply advanced concepts",
                 CompletionCriteria = "Complete advanced modules and final project"
             }
-        };
+        ];
     }
 
     /// <summary>
@@ -425,8 +434,8 @@ public class LearningPlanService
     /// </summary>
     private List<PracticeProject> CreateDefaultProjects(string topic)
     {
-        return new List<PracticeProject>
-        {
+        return
+        [
             new PracticeProject
             {
                 Title = "Simple " + topic + " Application",
@@ -434,6 +443,7 @@ public class LearningPlanService
                 Difficulty = "Beginner",
                 EstimatedHours = 5
             },
+
             new PracticeProject
             {
                 Title = "Advanced " + topic + " Project",
@@ -441,7 +451,7 @@ public class LearningPlanService
                 Difficulty = "Advanced",
                 EstimatedHours = 10
             }
-        };
+        ];
     }
 
     /// <summary>
@@ -747,35 +757,37 @@ Ensure the learning plan is tailored to the specified skill level and preference
             return new LearningPlanContent
             {
                 Introduction = "A learning plan for " + (jsonContent.Contains("CLI") ? "building CLI applications" : "software development"),
-                Prerequisites = new List<string> { "Basic programming knowledge", "Familiarity with C#" },
-                Modules = new List<Module>
-                {
+                Prerequisites = ["Basic programming knowledge", "Familiarity with C#"],
+                Modules =
+                [
                     new Module
                     {
                         Title = "Getting Started",
-                        Objectives = new List<string> { "Set up development environment", "Create a basic project" },
+                        Objectives = ["Set up development environment", "Create a basic project"],
                         EstimatedHours = 4
                     },
+
                     new Module
                     {
                         Title = "Core Concepts",
-                        Objectives = new List<string> { "Learn fundamental principles", "Practice with exercises" },
+                        Objectives = ["Learn fundamental principles", "Practice with exercises"],
                         EstimatedHours = 8
                     }
-                },
-                Timeline = new List<TimelineItem>
-                {
+                ],
+                Timeline =
+                [
                     new TimelineItem
                     {
                         Week = "1",
-                        Activities = new List<string> { "Complete Module 1", "Start Module 2" }
+                        Activities = ["Complete Module 1", "Start Module 2"]
                     },
+
                     new TimelineItem
                     {
                         Week = "2",
-                        Activities = new List<string> { "Complete Module 2", "Work on project" }
+                        Activities = ["Complete Module 2", "Work on project"]
                     }
-                }
+                ]
             };
         }
     }
@@ -924,11 +936,11 @@ public class LearningPlan
 public class LearningPlanContent
 {
     public string Introduction { get; set; } = string.Empty;
-    public List<string> Prerequisites { get; set; } = new List<string>();
-    public List<Module> Modules { get; set; } = new List<Module>();
-    public List<TimelineItem> Timeline { get; set; } = new List<TimelineItem>();
-    public List<Milestone> Milestones { get; set; } = new List<Milestone>();
-    public List<PracticeProject> PracticeProjects { get; set; } = new List<PracticeProject>();
+    public List<string> Prerequisites { get; set; } = [];
+    public List<Module> Modules { get; set; } = [];
+    public List<TimelineItem> Timeline { get; set; } = [];
+    public List<Milestone> Milestones { get; set; } = [];
+    public List<PracticeProject> PracticeProjects { get; set; } = [];
 }
 
 /// <summary>
@@ -937,9 +949,9 @@ public class LearningPlanContent
 public class Module
 {
     public string Title { get; set; } = string.Empty;
-    public List<string> Objectives { get; set; } = new List<string>();
+    public List<string> Objectives { get; set; } = [];
     public int EstimatedHours { get; set; }
-    public List<Resource> Resources { get; set; } = new List<Resource>();
+    public List<Resource> Resources { get; set; } = [];
     public string Assessment { get; set; } = string.Empty;
 }
 
@@ -961,7 +973,7 @@ public class TimelineItem
 {
     // Changed from int to string to handle ranges like "1-2"
     public string Week { get; set; } = string.Empty;
-    public List<string> Activities { get; set; } = new List<string>();
+    public List<string> Activities { get; set; } = [];
 }
 
 /// <summary>

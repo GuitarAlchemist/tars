@@ -18,7 +18,7 @@ public class ContentClassifierService : IContentClassifierService
 {
     private readonly ILogger<ContentClassifierService> _logger;
     private readonly IMetascriptService _metascriptService;
-    private readonly List<ClassificationRule> _rules = new();
+    private readonly List<ClassificationRule> _rules = [];
     private readonly Dictionary<string, ContentClassification> _classificationCache = new();
     private readonly string _rulesFilePath;
     private bool _rulesLoaded = false;
@@ -496,7 +496,7 @@ public class ContentClassifierService : IContentClassifierService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting tags for content");
-            return Enumerable.Empty<string>();
+            return [];
         }
     }
 
@@ -604,143 +604,165 @@ public class ContentClassifierService : IContentClassifierService
 
     private List<ClassificationRule> CreateDefaultRules()
     {
-        return new List<ClassificationRule>
-        {
+        return
+        [
             new ClassificationRule
             {
                 Name = "Concept Rule",
                 Description = "Identifies conceptual explanations",
                 Category = ContentCategory.Concept,
-                Keywords = new List<string> { "concept", "explanation", "understand", "theory", "principle", "idea", "notion" },
-                Patterns = new List<string> { @"what\s+is", @"how\s+does.+work", @"why\s+is" },
-                Tags = new List<string> { "concept", "explanation" }
+                Keywords = ["concept", "explanation", "understand", "theory", "principle", "idea", "notion"],
+                Patterns = [@"what\s+is", @"how\s+does.+work", @"why\s+is"],
+                Tags = ["concept", "explanation"]
             },
+
             new ClassificationRule
             {
                 Name = "Code Example Rule",
                 Description = "Identifies code examples",
                 Category = ContentCategory.CodeExample,
-                Keywords = new List<string> { "example", "code", "snippet", "implementation", "function", "method", "class" },
-                Patterns = new List<string> { @"```[a-zA-Z0-9]*\n[\s\S]*?\n```", @"public\s+class", @"public\s+void", @"function\s+\w+" },
-                Tags = new List<string> { "code", "example", "implementation" }
+                Keywords = ["example", "code", "snippet", "implementation", "function", "method", "class"],
+                Patterns = [@"```[a-zA-Z0-9]*\n[\s\S]*?\n```", @"public\s+class", @"public\s+void", @"function\s+\w+"],
+                Tags = ["code", "example", "implementation"]
             },
+
             new ClassificationRule
             {
                 Name = "Algorithm Rule",
                 Description = "Identifies algorithm descriptions",
                 Category = ContentCategory.Algorithm,
-                Keywords = new List<string> { "algorithm", "complexity", "time", "space", "O(n)", "O(1)", "O(log n)", "O(n log n)", "O(n²)" },
-                Patterns = new List<string> { @"O\([a-zA-Z0-9\s\^]+\)", @"step\s+\d+", @"algorithm\s+works" },
-                Tags = new List<string> { "algorithm", "complexity" }
+                Keywords =
+                [
+                    "algorithm", "complexity", "time", "space", "O(n)", "O(1)", "O(log n)", "O(n log n)", "O(n²)"
+                ],
+                Patterns = [@"O\([a-zA-Z0-9\s\^]+\)", @"step\s+\d+", @"algorithm\s+works"],
+                Tags = ["algorithm", "complexity"]
             },
+
             new ClassificationRule
             {
                 Name = "Design Pattern Rule",
                 Description = "Identifies design pattern descriptions",
                 Category = ContentCategory.DesignPattern,
-                Keywords = new List<string> { "pattern", "design pattern", "singleton", "factory", "observer", "strategy", "decorator", "adapter" },
-                Patterns = new List<string> { @"design\s+pattern", @"implements\s+the\s+\w+\s+pattern" },
-                Tags = new List<string> { "design pattern", "architecture" }
+                Keywords =
+                [
+                    "pattern", "design pattern", "singleton", "factory", "observer", "strategy", "decorator", "adapter"
+                ],
+                Patterns = [@"design\s+pattern", @"implements\s+the\s+\w+\s+pattern"],
+                Tags = ["design pattern", "architecture"]
             },
+
             new ClassificationRule
             {
                 Name = "Architecture Rule",
                 Description = "Identifies architecture descriptions",
                 Category = ContentCategory.Architecture,
-                Keywords = new List<string> { "architecture", "system", "component", "module", "service", "layer", "tier", "microservice" },
-                Patterns = new List<string> { @"system\s+architecture", @"component\s+diagram", @"service\s+oriented" },
-                Tags = new List<string> { "architecture", "system design" }
+                Keywords =
+                    ["architecture", "system", "component", "module", "service", "layer", "tier", "microservice"],
+                Patterns = [@"system\s+architecture", @"component\s+diagram", @"service\s+oriented"],
+                Tags = ["architecture", "system design"]
             },
+
             new ClassificationRule
             {
                 Name = "Best Practice Rule",
                 Description = "Identifies best practices",
                 Category = ContentCategory.BestPractice,
-                Keywords = new List<string> { "best practice", "recommended", "should", "avoid", "prefer", "better", "improve" },
-                Patterns = new List<string> { @"best\s+practice", @"should\s+(not\s+)?use", @"recommended\s+approach" },
-                Tags = new List<string> { "best practice", "recommendation" }
+                Keywords = ["best practice", "recommended", "should", "avoid", "prefer", "better", "improve"],
+                Patterns = [@"best\s+practice", @"should\s+(not\s+)?use", @"recommended\s+approach"],
+                Tags = ["best practice", "recommendation"]
             },
+
             new ClassificationRule
             {
                 Name = "Tutorial Rule",
                 Description = "Identifies tutorials or guides",
                 Category = ContentCategory.Tutorial,
-                Keywords = new List<string> { "tutorial", "guide", "how to", "step by step", "walkthrough", "learn" },
-                Patterns = new List<string> { @"step\s+\d+", @"how\s+to", @"tutorial" },
-                Tags = new List<string> { "tutorial", "guide", "how-to" }
+                Keywords = ["tutorial", "guide", "how to", "step by step", "walkthrough", "learn"],
+                Patterns = [@"step\s+\d+", @"how\s+to", @"tutorial"],
+                Tags = ["tutorial", "guide", "how-to"]
             },
+
             new ClassificationRule
             {
                 Name = "API Documentation Rule",
                 Description = "Identifies API documentation",
                 Category = ContentCategory.ApiDoc,
-                Keywords = new List<string> { "api", "endpoint", "parameter", "return", "response", "request", "method", "property" },
-                Patterns = new List<string> { @"GET\s+/\w+", @"POST\s+/\w+", @"public\s+\w+\s+\w+\(", @"@param", @"@return" },
-                Tags = new List<string> { "api", "documentation" }
+                Keywords = ["api", "endpoint", "parameter", "return", "response", "request", "method", "property"],
+                Patterns = [@"GET\s+/\w+", @"POST\s+/\w+", @"public\s+\w+\s+\w+\(", @"@param", @"@return"],
+                Tags = ["api", "documentation"]
             },
+
             new ClassificationRule
             {
                 Name = "Question Rule",
                 Description = "Identifies questions",
                 Category = ContentCategory.Question,
-                Keywords = new List<string> { "question", "ask", "how", "what", "why", "when", "where", "who", "which" },
-                Patterns = new List<string> { @"^[^.!?]*\?", @"can\s+you", @"how\s+do\s+I" },
-                Tags = new List<string> { "question", "inquiry" }
+                Keywords =
+                    ["question", "ask", "how", "what", "why", "when", "where", "who", "which"],
+                Patterns = [@"^[^.!?]*\?", @"can\s+you", @"how\s+do\s+I"],
+                Tags = ["question", "inquiry"]
             },
+
             new ClassificationRule
             {
                 Name = "Answer Rule",
                 Description = "Identifies answers",
                 Category = ContentCategory.Answer,
-                Keywords = new List<string> { "answer", "response", "solution", "result", "output" },
-                Patterns = new List<string> { @"^(Yes|No)", @"the\s+answer\s+is", @"to\s+solve\s+this" },
-                Tags = new List<string> { "answer", "response" }
+                Keywords = ["answer", "response", "solution", "result", "output"],
+                Patterns = [@"^(Yes|No)", @"the\s+answer\s+is", @"to\s+solve\s+this"],
+                Tags = ["answer", "response"]
             },
+
             new ClassificationRule
             {
                 Name = "Insight Rule",
                 Description = "Identifies insights or reflections",
                 Category = ContentCategory.Insight,
-                Keywords = new List<string> { "insight", "reflection", "learned", "realized", "discovered", "understand", "perspective" },
-                Patterns = new List<string> { @"I\s+realized", @"key\s+takeaway", @"important\s+insight" },
-                Tags = new List<string> { "insight", "reflection", "learning" }
+                Keywords = ["insight", "reflection", "learned", "realized", "discovered", "understand", "perspective"],
+                Patterns = [@"I\s+realized", @"key\s+takeaway", @"important\s+insight"],
+                Tags = ["insight", "reflection", "learning"]
             },
+
             new ClassificationRule
             {
                 Name = "Problem Rule",
                 Description = "Identifies problem descriptions",
                 Category = ContentCategory.Problem,
-                Keywords = new List<string> { "problem", "issue", "bug", "error", "exception", "fail", "crash", "incorrect" },
-                Patterns = new List<string> { @"the\s+problem\s+is", @"error\s+message", @"exception\s+occurred" },
-                Tags = new List<string> { "problem", "issue", "bug" }
+                Keywords = ["problem", "issue", "bug", "error", "exception", "fail", "crash", "incorrect"],
+                Patterns = [@"the\s+problem\s+is", @"error\s+message", @"exception\s+occurred"],
+                Tags = ["problem", "issue", "bug"]
             },
+
             new ClassificationRule
             {
                 Name = "Solution Rule",
                 Description = "Identifies solution descriptions",
                 Category = ContentCategory.Solution,
-                Keywords = new List<string> { "solution", "fix", "resolve", "solved", "fixed", "workaround", "approach" },
-                Patterns = new List<string> { @"the\s+solution\s+is", @"to\s+fix\s+this", @"can\s+be\s+resolved" },
-                Tags = new List<string> { "solution", "fix", "resolution" }
+                Keywords = ["solution", "fix", "resolve", "solved", "fixed", "workaround", "approach"],
+                Patterns = [@"the\s+solution\s+is", @"to\s+fix\s+this", @"can\s+be\s+resolved"],
+                Tags = ["solution", "fix", "resolution"]
             },
+
             new ClassificationRule
             {
                 Name = "Testing Rule",
                 Description = "Identifies testing approaches",
                 Category = ContentCategory.Testing,
-                Keywords = new List<string> { "test", "unit test", "integration test", "e2e test", "assert", "mock", "stub", "verify" },
-                Patterns = new List<string> { @"test\s+case", @"assert\.", @"\[Test\]", @"\[Fact\]" },
-                Tags = new List<string> { "testing", "verification", "validation" }
+                Keywords = ["test", "unit test", "integration test", "e2e test", "assert", "mock", "stub", "verify"],
+                Patterns = [@"test\s+case", @"assert\.", @"\[Test\]", @"\[Fact\]"],
+                Tags = ["testing", "verification", "validation"]
             },
+
             new ClassificationRule
             {
                 Name = "Performance Rule",
                 Description = "Identifies performance optimizations",
                 Category = ContentCategory.Performance,
-                Keywords = new List<string> { "performance", "optimize", "efficient", "speed", "fast", "slow", "bottleneck", "latency" },
-                Patterns = new List<string> { @"performance\s+issue", @"optimize\s+for", @"reduce\s+latency" },
-                Tags = new List<string> { "performance", "optimization", "efficiency" }
+                Keywords = ["performance", "optimize", "efficient", "speed", "fast", "slow", "bottleneck", "latency"],
+                Patterns = [@"performance\s+issue", @"optimize\s+for", @"reduce\s+latency"],
+                Tags = ["performance", "optimization", "efficiency"]
             }
-        };
+        ];
     }
 }

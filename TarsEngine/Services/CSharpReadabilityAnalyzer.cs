@@ -22,18 +22,15 @@ public class CSharpReadabilityAnalyzer : IReadabilityAnalyzer
     private readonly Dictionary<string, Dictionary<ReadabilityType, Dictionary<string, double>>> _thresholds;
 
     // List of common poor identifier names
-    private static readonly HashSet<string> PoorIdentifierNames = new HashSet<string>
-    {
+    private static readonly HashSet<string> PoorIdentifierNames =
+    [
         "temp", "tmp", "foo", "bar", "baz", "x", "y", "z", "a", "b", "c", "i", "j", "k",
         "val", "value", "obj", "object", "str", "string", "num", "number", "var", "variable",
         "param", "parameter", "arg", "argument", "item", "element", "data", "result", "ret"
-    };
+    ];
 
     // Exceptions for single-letter variables that are commonly used
-    private static readonly HashSet<string> SingleLetterExceptions = new HashSet<string>
-    {
-        "i", "j", "k", "x", "y", "z", "t"
-    };
+    private static readonly HashSet<string> SingleLetterExceptions = ["i", "j", "k", "x", "y", "z", "t"];
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CSharpReadabilityAnalyzer"/> class
@@ -82,7 +79,7 @@ public class CSharpReadabilityAnalyzer : IReadabilityAnalyzer
             if (language != "C#")
             {
                 _logger.LogWarning("Language {Language} not supported by CSharpReadabilityAnalyzer", language);
-                return new List<ReadabilityMetric>();
+                return [];
             }
 
             var sourceCode = await File.ReadAllTextAsync(filePath);
@@ -125,7 +122,7 @@ public class CSharpReadabilityAnalyzer : IReadabilityAnalyzer
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error analyzing identifier quality for file {FilePath}", filePath);
-            return new List<ReadabilityMetric>();
+            return [];
         }
     }
 
@@ -137,7 +134,7 @@ public class CSharpReadabilityAnalyzer : IReadabilityAnalyzer
             if (language != "C#")
             {
                 _logger.LogWarning("Language {Language} not supported by CSharpReadabilityAnalyzer", language);
-                return new List<ReadabilityMetric>();
+                return [];
             }
 
             var sourceCode = await File.ReadAllTextAsync(filePath);
@@ -180,7 +177,7 @@ public class CSharpReadabilityAnalyzer : IReadabilityAnalyzer
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error analyzing comment quality for file {FilePath}", filePath);
-            return new List<ReadabilityMetric>();
+            return [];
         }
     }
 
@@ -192,7 +189,7 @@ public class CSharpReadabilityAnalyzer : IReadabilityAnalyzer
             if (language != "C#")
             {
                 _logger.LogWarning("Language {Language} not supported by CSharpReadabilityAnalyzer", language);
-                return new List<ReadabilityMetric>();
+                return [];
             }
 
             var sourceCode = await File.ReadAllTextAsync(filePath);
@@ -235,7 +232,7 @@ public class CSharpReadabilityAnalyzer : IReadabilityAnalyzer
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error analyzing code structure for file {FilePath}", filePath);
-            return new List<ReadabilityMetric>();
+            return [];
         }
     }
 
@@ -247,7 +244,7 @@ public class CSharpReadabilityAnalyzer : IReadabilityAnalyzer
             if (language != "C#")
             {
                 _logger.LogWarning("Language {Language} not supported by CSharpReadabilityAnalyzer", language);
-                return new List<ReadabilityMetric>();
+                return [];
             }
 
             // Get all metrics first
@@ -392,7 +389,7 @@ public class CSharpReadabilityAnalyzer : IReadabilityAnalyzer
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error analyzing overall readability for file {FilePath}", filePath);
-            return new List<ReadabilityMetric>();
+            return [];
         }
     }
 
@@ -453,7 +450,7 @@ public class CSharpReadabilityAnalyzer : IReadabilityAnalyzer
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error analyzing project readability for {ProjectPath}", projectPath);
-            return new List<ReadabilityMetric>();
+            return [];
         }
     }
 

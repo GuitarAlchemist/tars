@@ -29,7 +29,7 @@ public class IntelligenceSpark
     private double _insightLevel = 0.2; // Starting with low insight
     private readonly System.Random _random = new System.Random();
     private DateTime _lastUpdateTime;
-    private readonly List<IntelligenceEvent> _intelligenceEvents = new();
+    private readonly List<IntelligenceEvent> _intelligenceEvents = [];
 
     /// <summary>
     /// Gets the creative thinking component
@@ -559,7 +559,7 @@ public class IntelligenceSpark
             RecentEvents = GetRecentEvents(10),
             CreativeIdeas = _creativeThinking.GetRecentIdeas(5),
             Intuitions = _intuitiveReasoning.GetRecentIntuitions(5),
-            SpontaneousThoughts = _spontaneousThought.GetRecentThoughts(5),
+            SpontaneousThoughts = [.._spontaneousThought.GetRecentThoughts(5)],
             CuriosityQuestions = _curiosityDrive.GetRecentQuestions(5),
             Insights = _insightGeneration.GetRecentInsights(5)
         };

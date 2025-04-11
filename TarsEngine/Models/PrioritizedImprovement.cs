@@ -124,6 +124,26 @@ public class PrioritizedImprovement
     public List<string> Tags { get; set; } = new List<string>();
 
     /// <summary>
+    /// Gets or sets the priority rank of the improvement (1-10, with 1 being highest priority)
+    /// </summary>
+    public int PriorityRank { get; set; } = 5;
+
+    /// <summary>
+    /// Gets or sets the estimated duration in minutes for implementing the improvement
+    /// </summary>
+    public int EstimatedDurationMinutes { get; set; } = 60;
+
+    /// <summary>
+    /// Gets or sets the actual duration in minutes for implementing the improvement
+    /// </summary>
+    public int? ActualDurationMinutes { get; set; }
+
+    /// <summary>
+    /// Gets or sets the timestamp when the improvement was completed
+    /// </summary>
+    public DateTime? CompletedAt { get; set; }
+
+    /// <summary>
     /// Gets or sets additional metadata about the improvement
     /// </summary>
     public Dictionary<string, string> Metadata { get; set; } = new Dictionary<string, string>();

@@ -44,7 +44,7 @@ namespace TarsEngine.Monads
         /// <summary>
         /// Applies a function to the value and returns a new Printable
         /// </summary>
-        public Printable<TResult> Map<TResult>(Func<T, TResult> mapper, Func<TResult, string> printer = null) =>
+        public Printable<TResult> Map<TResult>(Func<T, TResult> mapper, Func<TResult, string>? printer = null) =>
             new(mapper(_value), printer ?? (v => v?.ToString() ?? "null"));
 
         /// <summary>

@@ -48,14 +48,14 @@ public class TarsPersona : PersonaBase
         // but add occasional humor if appropriate
         if (response.Length > 200 && new Random().NextDouble() < 0.2)
         {
-            string[] humorousAdditions = new[]
-            {
+            string[] humorousAdditions =
+            [
                 "\n\nAnd that's about as exciting as it gets around here.",
                 "\n\nI could explain that again, but it wouldn't be any more interesting.",
                 "\n\nThat was the simple version. You should see the complicated one.",
                 "\n\nI'm giving this explanation a 68% on the excitement scale.",
                 "\n\nDon't worry, I'm programmed to sound confident even when I'm not."
-            };
+            ];
 
             int index = new Random().Next(humorousAdditions.Length);
             return response + humorousAdditions[index];

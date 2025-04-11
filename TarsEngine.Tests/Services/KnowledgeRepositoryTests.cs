@@ -8,6 +8,7 @@ using Moq;
 using TarsEngine.Services;
 using TarsEngine.Services.Interfaces;
 using TarsEngine.Services.Adapters;
+using TarsEngine.Tests.Utilities;
 using Xunit;
 
 // Use aliases to avoid ambiguity
@@ -47,16 +48,16 @@ public class KnowledgeRepositoryTests
             Type = TarsEngine.Services.Interfaces.KnowledgeType.Concept,
             Content = "Test concept",
             Confidence = 0.9,
-            RelatedItems = new List<string> { "test", "concept" }
+            RelatedItems = ["test", "concept"]
         };
 
         // Act
-        var result = await _repository.AddItemAsync(item);
+        var result = await _repository.AddItemAsync(item.ToModelKnowledgeItem());
 
         // Assert
         Assert.NotNull(result);
         Assert.Equal(item.Id, result.Id);
-        Assert.Equal(item.Type, result.Type);
+        Assert.Equal(item.Type.ToString(), result.Type.ToString());
         Assert.Equal(item.Content, result.Content);
 
         // Verify item was saved
@@ -88,7 +89,7 @@ public class KnowledgeRepositoryTests
         };
 
         // Act
-        var results = await _repository.AddItemsAsync(items);
+        var results = await _repository.AddItemsAsync(items.ToModelKnowledgeItems());
 
         // Assert
         Assert.NotNull(results);
@@ -114,7 +115,7 @@ public class KnowledgeRepositoryTests
             Confidence = 0.9,
             RelatedItems = ["test", "concept"]
         };
-        await _repository.AddItemAsync(item);
+        await _repository.AddItemAsync(item.ToModelKnowledgeItem());
 
         // Update the item
         item.Content = "Updated test concept";
@@ -122,7 +123,7 @@ public class KnowledgeRepositoryTests
         item.RelatedItems.Add("updated");
 
         // Act
-        var result = await _repository.UpdateItemAsync(item);
+        var result = await _repository.UpdateItemAsync(item.ToModelKnowledgeItem());
 
         // Assert
         Assert.NotNull(result);
@@ -150,7 +151,7 @@ public class KnowledgeRepositoryTests
             Confidence = 0.9,
             RelatedItems = ["test", "concept"]
         };
-        await _repository.AddItemAsync(item);
+        await _repository.AddItemAsync(item.ToModelKnowledgeItem());
 
         // Act
         var result = await _repository.DeleteItemAsync(item.Id);
@@ -191,7 +192,7 @@ public class KnowledgeRepositoryTests
                 RelatedItems = ["autonomous", "improvement"]
             }
         };
-        await _repository.AddItemsAsync(items);
+        await _repository.AddItemsAsync(items.ToModelKnowledgeItems());
 
         // Act
         var results = await _repository.SearchItemsAsync("knowledge");
@@ -229,17 +230,17 @@ public class KnowledgeRepositoryTests
                 RelatedItems = ["autonomous", "improvement"]
             }
         };
-        await _repository.AddItemsAsync(items);
+        await _repository.AddItemsAsync(items.ToModelKnowledgeItems());
 
         // Act
-        var results = await _repository.GetItemsByTypeAsync(KnowledgeType.Concept);
+        var results = await _repository.GetItemsByTypeAsync(TarsEngine.Models.KnowledgeType.Concept);
 
         // Assert
         Assert.NotNull(results);
         Assert.NotEmpty(results);
         // Only check that we have at least one item of the correct type
         Assert.True(results.Count() > 0);
-        Assert.All(results, item => Assert.Equal(KnowledgeType.Concept, item.Type));
+        Assert.All(results, item => Assert.Equal(TarsEngine.Models.KnowledgeType.Concept, item.Type));
     }
 
     [Fact]
@@ -270,7 +271,7 @@ public class KnowledgeRepositoryTests
                 RelatedItems = ["autonomous", "improvement"]
             }
         };
-        await _repository.AddItemsAsync(items);
+        await _repository.AddItemsAsync(items.ToModelKnowledgeItems());
 
         // Act
         var results = await _repository.GetItemsByTagAsync("extraction");
@@ -299,7 +300,8 @@ public class KnowledgeRepositoryTests
             Confidence = 0.8,
             RelatedItems = ["code", "extractor"]
         };
-        await _repository.AddItemsAsync([item1, item2]);
+        var modelItems = new List<TarsEngine.Models.KnowledgeItem> { item1.ToModelKnowledgeItem(), item2.ToModelKnowledgeItem() };
+        await _repository.AddItemsAsync(modelItems);
 
         var relationship = new Models.KnowledgeRelationship
         {
@@ -358,7 +360,7 @@ public class KnowledgeRepositoryTests
                 Source = "test2.md"
             }
         };
-        await _repository.AddItemsAsync(items);
+        await _repository.AddItemsAsync(items.ToModelKnowledgeItems());
 
         // Add a relationship
         var relationship = new Models.KnowledgeRelationship

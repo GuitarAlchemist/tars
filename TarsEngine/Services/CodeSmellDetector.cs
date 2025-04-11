@@ -60,7 +60,7 @@ public class CodeSmellDetector
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error detecting code smells in {Language} code", language);
-            return new List<CodeIssue>();
+            return [];
         }
     }
 
@@ -118,7 +118,7 @@ public class CodeSmellDetector
 
             if (!lineHashes.ContainsKey(line))
             {
-                lineHashes[line] = new List<int>();
+                lineHashes[line] = [];
             }
             
             lineHashes[line].Add(i);
@@ -549,16 +549,10 @@ public class CodeSmellDetector
     private void InitializeDetectors()
     {
         // Register C# detectors
-        _languageDetectors["csharp"] = new List<Func<string, List<CodeIssue>>>
-        {
-            DetectCSharpCodeSmells
-        };
+        _languageDetectors["csharp"] = [DetectCSharpCodeSmells];
 
         // Register F# detectors
-        _languageDetectors["fsharp"] = new List<Func<string, List<CodeIssue>>>
-        {
-            DetectFSharpCodeSmells
-        };
+        _languageDetectors["fsharp"] = [DetectFSharpCodeSmells];
 
         // Add more language-specific detectors as needed
     }

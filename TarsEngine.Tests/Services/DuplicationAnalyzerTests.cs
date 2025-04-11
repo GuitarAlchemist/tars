@@ -14,13 +14,13 @@ public class DuplicationAnalyzerTests
 {
     private readonly Mock<ILogger<CSharpDuplicationAnalyzer>> _mockLogger;
     private readonly CSharpDuplicationAnalyzer _analyzer;
-    
+
     public DuplicationAnalyzerTests()
     {
         _mockLogger = new Mock<ILogger<CSharpDuplicationAnalyzer>>();
         _analyzer = new CSharpDuplicationAnalyzer(_mockLogger.Object);
     }
-    
+
     [Fact]
     public async Task AnalyzeTokenBasedDuplication_ShouldReturnMetrics()
     {
@@ -39,7 +39,7 @@ namespace TestNamespace
             int c = a + b;
             Console.WriteLine(c);
         }
-        
+
         public void Method2()
         {
             int a = 1;
@@ -51,28 +51,28 @@ namespace TestNamespace
 }";
         var filePath = Path.GetTempFileName();
         File.WriteAllText(filePath, testCode);
-        
+
         try
         {
             // Act
             var metrics = await _analyzer.AnalyzeTokenBasedDuplicationAsync(filePath, "C#");
-            
+
             // Assert
             Assert.NotNull(metrics);
             Assert.NotEmpty(metrics);
-            
+
             // File-level metric
-            var fileMetric = metrics.FirstOrDefault(m => m.TargetType == TargetType.File);
+            var fileMetric = metrics.FirstOrDefault(m => m.TargetType.ToString() == "File");
             Assert.NotNull(fileMetric);
             Assert.Equal(DuplicationType.TokenBased, fileMetric.Type);
-            
+
             // Class-level metric
-            var classMetric = metrics.FirstOrDefault(m => m.TargetType == TargetType.Class);
+            var classMetric = metrics.FirstOrDefault(m => m.TargetType.ToString() == "Class");
             Assert.NotNull(classMetric);
             Assert.Equal(DuplicationType.TokenBased, classMetric.Type);
-            
+
             // Method-level metrics
-            var methodMetrics = metrics.Where(m => m.TargetType == TargetType.Method).ToList();
+            var methodMetrics = metrics.Where(m => m.TargetType.ToString() == "Method").ToList();
             Assert.NotEmpty(methodMetrics);
             Assert.All(methodMetrics, m => Assert.Equal(DuplicationType.TokenBased, m.Type));
         }
@@ -85,7 +85,7 @@ namespace TestNamespace
             }
         }
     }
-    
+
     [Fact]
     public async Task AnalyzeSemanticDuplication_ShouldReturnMetrics()
     {
@@ -104,7 +104,7 @@ namespace TestNamespace
             int z = x + y;
             Console.WriteLine(z);
         }
-        
+
         public void Method2()
         {
             int a = 10;
@@ -116,28 +116,28 @@ namespace TestNamespace
 }";
         var filePath = Path.GetTempFileName();
         File.WriteAllText(filePath, testCode);
-        
+
         try
         {
             // Act
             var metrics = await _analyzer.AnalyzeSemanticDuplicationAsync(filePath, "C#");
-            
+
             // Assert
             Assert.NotNull(metrics);
             Assert.NotEmpty(metrics);
-            
+
             // File-level metric
-            var fileMetric = metrics.FirstOrDefault(m => m.TargetType == TargetType.File);
+            var fileMetric = metrics.FirstOrDefault(m => m.TargetType.ToString() == "File");
             Assert.NotNull(fileMetric);
             Assert.Equal(DuplicationType.Semantic, fileMetric.Type);
-            
+
             // Class-level metric
-            var classMetric = metrics.FirstOrDefault(m => m.TargetType == TargetType.Class);
+            var classMetric = metrics.FirstOrDefault(m => m.TargetType.ToString() == "Class");
             Assert.NotNull(classMetric);
             Assert.Equal(DuplicationType.Semantic, classMetric.Type);
-            
+
             // Method-level metrics
-            var methodMetrics = metrics.Where(m => m.TargetType == TargetType.Method).ToList();
+            var methodMetrics = metrics.Where(m => m.TargetType.ToString() == "Method").ToList();
             Assert.NotEmpty(methodMetrics);
             Assert.All(methodMetrics, m => Assert.Equal(DuplicationType.Semantic, m.Type));
         }
@@ -150,7 +150,7 @@ namespace TestNamespace
             }
         }
     }
-    
+
     [Fact]
     public async Task AnalyzeAllDuplicationMetrics_ShouldReturnAllMetrics()
     {
@@ -169,7 +169,7 @@ namespace TestNamespace
             int c = a + b;
             Console.WriteLine(c);
         }
-        
+
         public void Method2()
         {
             int a = 1;
@@ -181,20 +181,20 @@ namespace TestNamespace
 }";
         var filePath = Path.GetTempFileName();
         File.WriteAllText(filePath, testCode);
-        
+
         try
         {
             // Act
             var metrics = await _analyzer.AnalyzeAllDuplicationMetricsAsync(filePath, "C#");
-            
+
             // Assert
             Assert.NotNull(metrics);
             Assert.NotEmpty(metrics);
-            
+
             // Should have both token-based and semantic metrics
             var tokenBasedMetrics = metrics.Where(m => m.Type == DuplicationType.TokenBased).ToList();
             var semanticMetrics = metrics.Where(m => m.Type == DuplicationType.Semantic).ToList();
-            
+
             Assert.NotEmpty(tokenBasedMetrics);
             Assert.NotEmpty(semanticMetrics);
         }
@@ -207,13 +207,13 @@ namespace TestNamespace
             }
         }
     }
-    
+
     [Fact]
     public async Task GetDuplicationThresholds_ShouldReturnThresholds()
     {
         // Act
         var thresholds = await _analyzer.GetDuplicationThresholdsAsync("C#", DuplicationType.TokenBased);
-        
+
         // Assert
         Assert.NotNull(thresholds);
         Assert.NotEmpty(thresholds);
@@ -221,7 +221,7 @@ namespace TestNamespace
         Assert.Contains("Class", thresholds.Keys);
         Assert.Contains("File", thresholds.Keys);
     }
-    
+
     [Fact]
     public async Task SetDuplicationThreshold_ShouldUpdateThreshold()
     {
@@ -230,11 +230,11 @@ namespace TestNamespace
         var duplicationType = DuplicationType.TokenBased;
         var targetType = "Method";
         var newThreshold = 10.0;
-        
+
         // Act
         var result = await _analyzer.SetDuplicationThresholdAsync(language, duplicationType, targetType, newThreshold);
         var thresholds = await _analyzer.GetDuplicationThresholdsAsync(language, duplicationType);
-        
+
         // Assert
         Assert.True(result);
         Assert.Equal(newThreshold, thresholds[targetType]);

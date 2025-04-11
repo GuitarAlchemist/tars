@@ -18,11 +18,10 @@ public class CSharpHalsteadAnalyzer
 {
     private readonly ILogger<CSharpHalsteadAnalyzer> _logger;
     private readonly Dictionary<string, Dictionary<HalsteadType, Dictionary<string, double>>> _thresholds;
-    
+
     // C# operators for Halstead complexity calculation
-    private static readonly HashSet<SyntaxKind> Operators = new HashSet<SyntaxKind>
-    {
-        // Arithmetic operators
+    private static readonly HashSet<SyntaxKind> Operators =
+    [
         SyntaxKind.PlusToken,
         SyntaxKind.MinusToken,
         SyntaxKind.AsteriskToken,
@@ -30,7 +29,7 @@ public class CSharpHalsteadAnalyzer
         SyntaxKind.PercentToken,
         SyntaxKind.PlusPlusToken,
         SyntaxKind.MinusMinusToken,
-        
+
         // Assignment operators
         SyntaxKind.EqualsToken,
         SyntaxKind.PlusEqualsToken,
@@ -43,7 +42,7 @@ public class CSharpHalsteadAnalyzer
         SyntaxKind.CaretEqualsToken,
         SyntaxKind.LessThanLessThanEqualsToken,
         SyntaxKind.GreaterThanGreaterThanEqualsToken,
-        
+
         // Comparison operators
         SyntaxKind.EqualsEqualsToken,
         SyntaxKind.ExclamationEqualsToken,
@@ -51,12 +50,12 @@ public class CSharpHalsteadAnalyzer
         SyntaxKind.LessThanEqualsToken,
         SyntaxKind.GreaterThanToken,
         SyntaxKind.GreaterThanEqualsToken,
-        
+
         // Logical operators
         SyntaxKind.AmpersandAmpersandToken,
         SyntaxKind.BarBarToken,
         SyntaxKind.ExclamationToken,
-        
+
         // Bitwise operators
         SyntaxKind.AmpersandToken,
         SyntaxKind.BarToken,
@@ -64,18 +63,17 @@ public class CSharpHalsteadAnalyzer
         SyntaxKind.TildeToken,
         SyntaxKind.LessThanLessThanToken,
         SyntaxKind.GreaterThanGreaterThanToken,
-        
+
         // Other operators
         SyntaxKind.QuestionToken,
         SyntaxKind.ColonToken,
         SyntaxKind.DotToken,
-        SyntaxKind.QuestionQuestionToken,
-        SyntaxKind.QuestionDotToken
-    };
-    
+        SyntaxKind.QuestionQuestionToken
+    ];
+
     // C# keywords that are considered operators for Halstead complexity
-    private static readonly HashSet<SyntaxKind> KeywordOperators = new HashSet<SyntaxKind>
-    {
+    private static readonly HashSet<SyntaxKind> KeywordOperators =
+    [
         SyntaxKind.NewKeyword,
         SyntaxKind.TypeOfKeyword,
         SyntaxKind.CheckedKeyword,
@@ -87,8 +85,8 @@ public class CSharpHalsteadAnalyzer
         SyntaxKind.AwaitKeyword,
         SyntaxKind.ThrowKeyword,
         SyntaxKind.NameOfKeyword
-    };
-    
+    ];
+
     /// <summary>
     /// Initializes a new instance of the <see cref="CSharpHalsteadAnalyzer"/> class
     /// </summary>
@@ -121,7 +119,7 @@ public class CSharpHalsteadAnalyzer
             }
         };
     }
-    
+
     /// <summary>
     /// Analyzes Halstead complexity of a C# file
     /// </summary>
@@ -134,9 +132,9 @@ public class CSharpHalsteadAnalyzer
             var sourceCode = await File.ReadAllTextAsync(filePath);
             var syntaxTree = CSharpSyntaxTree.ParseText(sourceCode);
             var root = await syntaxTree.GetRootAsync();
-            
+
             var metrics = new List<HalsteadMetric>();
-            
+
             // Analyze methods
             var methodDeclarations = root.DescendantNodes().OfType<MethodDeclarationSyntax>();
             foreach (var method in methodDeclarations)
@@ -145,14 +143,14 @@ public class CSharpHalsteadAnalyzer
                 var className = GetClassName(method);
                 var methodName = method.Identifier.Text;
                 var fullMethodName = $"{className}.{methodName}";
-                
+
                 foreach (var halsteadType in Enum.GetValues<HalsteadType>())
                 {
                     var metric = CreateHalsteadMetric(halsteadMetrics, halsteadType, filePath, "C#", fullMethodName, TargetType.Method);
                     metrics.Add(metric);
                 }
             }
-            
+
             // Analyze classes
             var classDeclarations = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
             foreach (var classDecl in classDeclarations)
@@ -161,33 +159,33 @@ public class CSharpHalsteadAnalyzer
                 var className = classDecl.Identifier.Text;
                 var namespaceName = GetNamespace(classDecl);
                 var fullClassName = string.IsNullOrEmpty(namespaceName) ? className : $"{namespaceName}.{className}";
-                
+
                 foreach (var halsteadType in Enum.GetValues<HalsteadType>())
                 {
                     var metric = CreateHalsteadMetric(halsteadMetrics, halsteadType, filePath, "C#", fullClassName, TargetType.Class);
                     metrics.Add(metric);
                 }
             }
-            
+
             // Analyze file
             var fileHalsteadMetrics = CalculateHalsteadMetrics(root);
             var fileName = Path.GetFileName(filePath);
-            
+
             foreach (var halsteadType in Enum.GetValues<HalsteadType>())
             {
                 var metric = CreateHalsteadMetric(fileHalsteadMetrics, halsteadType, filePath, "C#", fileName, TargetType.File);
                 metrics.Add(metric);
             }
-            
+
             return metrics;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error analyzing Halstead complexity for file {FilePath}", filePath);
-            return new List<HalsteadMetric>();
+            return [];
         }
     }
-    
+
     /// <summary>
     /// Gets Halstead complexity thresholds for a specific Halstead type
     /// </summary>
@@ -200,10 +198,10 @@ public class CSharpHalsteadAnalyzer
         {
             return typeThresholds;
         }
-        
+
         return new Dictionary<string, double>();
     }
-    
+
     /// <summary>
     /// Sets Halstead complexity threshold for a specific Halstead type and target type
     /// </summary>
@@ -219,23 +217,23 @@ public class CSharpHalsteadAnalyzer
             {
                 _thresholds["C#"] = new Dictionary<HalsteadType, Dictionary<string, double>>();
             }
-            
+
             if (!_thresholds["C#"].ContainsKey(halsteadType))
             {
                 _thresholds["C#"][halsteadType] = new Dictionary<string, double>();
             }
-            
+
             _thresholds["C#"][halsteadType][targetType] = threshold;
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error setting Halstead threshold for {HalsteadType}, {TargetType}", 
+            _logger.LogError(ex, "Error setting Halstead threshold for {HalsteadType}, {TargetType}",
                 halsteadType, targetType);
             return false;
         }
     }
-    
+
     /// <summary>
     /// Calculates Halstead metrics for a syntax node
     /// </summary>
@@ -247,7 +245,7 @@ public class CSharpHalsteadAnalyzer
         var operands = new HashSet<string>();
         var operatorCount = 0;
         var operandCount = 0;
-        
+
         // Process all tokens in the node
         foreach (var token in node.DescendantTokens())
         {
@@ -258,7 +256,7 @@ public class CSharpHalsteadAnalyzer
                 operatorCount++;
             }
             // Check if token is an identifier or literal (operand)
-            else if (token.IsKind(SyntaxKind.IdentifierToken) || 
+            else if (token.IsKind(SyntaxKind.IdentifierToken) ||
                      token.IsKind(SyntaxKind.StringLiteralToken) ||
                      token.IsKind(SyntaxKind.NumericLiteralToken) ||
                      token.IsKind(SyntaxKind.CharacterLiteralToken) ||
@@ -270,10 +268,10 @@ public class CSharpHalsteadAnalyzer
                 operandCount++;
             }
         }
-        
+
         return (operators.Count, operands.Count, operatorCount, operandCount);
     }
-    
+
     /// <summary>
     /// Creates a Halstead metric
     /// </summary>
@@ -305,7 +303,7 @@ public class CSharpHalsteadAnalyzer
             TotalOperands = halsteadMetrics.TotalOperands,
             Timestamp = DateTime.UtcNow
         };
-        
+
         // Set name, description, and value based on Halstead type
         switch (halsteadType)
         {
@@ -348,10 +346,10 @@ public class CSharpHalsteadAnalyzer
                 metric.Value = metric.DeliveredBugs;
                 break;
         }
-        
+
         return metric;
     }
-    
+
     /// <summary>
     /// Gets the class name for a method
     /// </summary>
@@ -362,7 +360,7 @@ public class CSharpHalsteadAnalyzer
         var classDecl = method.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault();
         return classDecl?.Identifier.Text ?? "Unknown";
     }
-    
+
     /// <summary>
     /// Gets the namespace for a class
     /// </summary>
@@ -373,7 +371,7 @@ public class CSharpHalsteadAnalyzer
         var namespaceDecl = classDecl.Ancestors().OfType<NamespaceDeclarationSyntax>().FirstOrDefault();
         return namespaceDecl?.Name.ToString() ?? string.Empty;
     }
-    
+
     /// <summary>
     /// Gets the threshold value for a specific Halstead type and target type
     /// </summary>
@@ -388,7 +386,7 @@ public class CSharpHalsteadAnalyzer
         {
             return threshold;
         }
-        
+
         // Default thresholds if not configured
         return halsteadType switch
         {

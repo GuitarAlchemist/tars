@@ -12,8 +12,8 @@ namespace TarsEngine.Consciousness.Intelligence;
 public class CuriosityDrive
 {
     private readonly ILogger<CuriosityDrive> _logger;
-    private readonly List<CuriosityQuestion> _questions = new();
-    private readonly List<CuriosityExploration> _explorations = new();
+    private readonly List<CuriosityQuestion> _questions = [];
+    private readonly List<CuriosityExploration> _explorations = [];
     private readonly Dictionary<string, InformationGap> _informationGaps = new();
 
     private bool _isInitialized = false;
@@ -408,7 +408,7 @@ public class CuriosityDrive
             Method = QuestionGenerationMethod.NoveltySeeking,
             Importance = importance,
             Timestamp = DateTime.UtcNow,
-            Tags = new List<string> { domain1, domain2, "novelty", "creative" }
+            Tags = [domain1, domain2, "novelty", "creative"]
         };
     }
 
@@ -447,7 +447,7 @@ public class CuriosityDrive
                 Importance = importance,
                 Timestamp = DateTime.UtcNow,
                 Context = new Dictionary<string, object> { { "RelatedExplorationId", recentExploration.Id } },
-                Tags = new List<string>(recentExploration.Tags) { "follow-up", "exploration" }
+                Tags = [..recentExploration.Tags, "follow-up", "exploration"]
             };
         }
         else
@@ -480,7 +480,7 @@ public class CuriosityDrive
                 Method = QuestionGenerationMethod.ExplorationBased,
                 Importance = importance,
                 Timestamp = DateTime.UtcNow,
-                Tags = new List<string> { domain, "exploration", "methodology" }
+                Tags = [domain, "exploration", "methodology"]
             };
         }
     }
@@ -588,60 +588,60 @@ public class CuriosityDrive
             case ExplorationStrategy.DeepDive:
                 approach = $"Conducted a deep dive into {topic}, focusing on fundamental principles and core mechanisms";
                 findings = $"Discovered several key aspects of {topic} that warrant further investigation";
-                insights = new List<string>
-                {
+                insights =
+                [
                     $"The underlying structure of {topic} appears more complex than initially thought",
                     $"There are recurring patterns in {topic} that suggest universal principles",
                     $"The historical development of {topic} reveals important evolutionary trends"
-                };
+                ];
                 satisfaction = 0.7 + (0.2 * _explorationLevel * _random.NextDouble());
                 break;
 
             case ExplorationStrategy.BreadthFirst:
                 approach = $"Explored {topic} broadly, examining connections to related domains and applications";
                 findings = $"Mapped the landscape of {topic} and identified promising areas for deeper exploration";
-                insights = new List<string>
-                {
+                insights =
+                [
                     $"{topic} intersects with several other domains in unexpected ways",
                     $"The boundaries of {topic} are more fluid than commonly recognized",
                     $"There are unexplored applications of {topic} in diverse contexts"
-                };
+                ];
                 satisfaction = 0.6 + (0.3 * _explorationLevel * _random.NextDouble());
                 break;
 
             case ExplorationStrategy.NoveltyBased:
                 approach = $"Approached {topic} from unconventional angles, seeking novel perspectives and paradigms";
                 findings = $"Uncovered several counterintuitive aspects of {topic} that challenge conventional understanding";
-                insights = new List<string>
-                {
+                insights =
+                [
                     $"Reversing common assumptions about {topic} yields interesting alternative models",
                     $"There are paradoxical elements in {topic} that suggest deeper principles",
                     $"Applying unusual metaphors to {topic} reveals hidden dimensions"
-                };
+                ];
                 satisfaction = 0.5 + (0.4 * _noveltySeekingLevel * _random.NextDouble());
                 break;
 
             case ExplorationStrategy.ConnectionBased:
                 approach = $"Explored {topic} through its connections to seemingly unrelated domains";
                 findings = $"Discovered unexpected parallels between {topic} and other areas of knowledge";
-                insights = new List<string>
-                {
+                insights =
+                [
                     $"There are structural similarities between {topic} and domains that appear unrelated",
                     $"Principles from other fields can be productively applied to {topic}",
                     $"The evolution of {topic} mirrors patterns seen in diverse systems"
-                };
+                ];
                 satisfaction = 0.6 + (0.3 * (_noveltySeekingLevel + _explorationLevel) / 2 * _random.NextDouble());
                 break;
 
             default:
                 approach = $"Explored {topic} using a balanced approach";
                 findings = $"Gained a better understanding of {topic} and its implications";
-                insights = new List<string>
-                {
+                insights =
+                [
                     $"There are multiple layers to {topic} worth exploring further",
                     $"The complexity of {topic} suggests it requires interdisciplinary approaches",
                     $"Further research on {topic} could yield valuable insights"
-                };
+                ];
                 satisfaction = 0.5 + (0.3 * _random.NextDouble());
                 break;
         }

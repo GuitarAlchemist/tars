@@ -192,7 +192,7 @@ public class ImprovementQueue
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting improvements");
-            return new List<PrioritizedImprovement>();
+            return [];
         }
     }
 
@@ -252,7 +252,7 @@ public class ImprovementQueue
             // Update dependency graph
             if (_dependencyGraph != null)
             {
-                _dependencyGraph = _dependencyGraphService.UpdateDependencyGraph(_dependencyGraph, new List<PrioritizedImprovement> { improvement });
+                _dependencyGraph = _dependencyGraphService.UpdateDependencyGraph(_dependencyGraph, [improvement]);
             }
             else
             {
@@ -298,7 +298,7 @@ public class ImprovementQueue
             // Update dependency graph
             if (_dependencyGraph != null)
             {
-                _dependencyGraph = _dependencyGraphService.UpdateDependencyGraph(_dependencyGraph, new List<PrioritizedImprovement> { improvement });
+                _dependencyGraph = _dependencyGraphService.UpdateDependencyGraph(_dependencyGraph, [improvement]);
             }
             else
             {
@@ -395,7 +395,7 @@ public class ImprovementQueue
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting next improvements");
-            return new List<PrioritizedImprovement>();
+            return [];
         }
     }
 

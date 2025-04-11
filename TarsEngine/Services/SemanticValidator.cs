@@ -57,8 +57,8 @@ public class SemanticValidator
 
             // No validator for this file type, return success
             _logger.LogInformation("No semantic validator available for file type: {Extension}", extension);
-            return new List<ValidationResult>
-            {
+            return
+            [
                 new ValidationResult
                 {
                     RuleName = "SemanticValidation",
@@ -68,13 +68,13 @@ public class SemanticValidator
                     Target = filePath,
                     Timestamp = DateTime.UtcNow
                 }
-            };
+            ];
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error validating semantics of file: {FilePath}", filePath);
-            return new List<ValidationResult>
-            {
+            return
+            [
                 new ValidationResult
                 {
                     RuleName = "SemanticValidation",
@@ -86,7 +86,7 @@ public class SemanticValidator
                     Details = ex.ToString(),
                     Exception = ex
                 }
-            };
+            ];
         }
     }
 
@@ -197,8 +197,8 @@ public class SemanticValidator
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error validating C# semantics of file: {FilePath}", filePath);
-            return new List<ValidationResult>
-            {
+            return
+            [
                 new ValidationResult
                 {
                     RuleName = "CSharpSemanticValidation",
@@ -210,7 +210,7 @@ public class SemanticValidator
                     Details = ex.ToString(),
                     Exception = ex
                 }
-            };
+            ];
         }
     }
 
@@ -535,8 +535,8 @@ public class SemanticValidator
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error validating F# semantics of file: {FilePath}", filePath);
-            return new List<ValidationResult>
-            {
+            return
+            [
                 new ValidationResult
                 {
                     RuleName = "FSharpSemanticValidation",
@@ -548,7 +548,7 @@ public class SemanticValidator
                     Details = ex.ToString(),
                     Exception = ex
                 }
-            };
+            ];
         }
     }
 

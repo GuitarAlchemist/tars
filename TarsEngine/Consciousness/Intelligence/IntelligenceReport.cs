@@ -66,7 +66,7 @@ public class IntelligenceReport
     /// <summary>
     /// Gets or sets the spontaneous thoughts
     /// </summary>
-    public List<SpontaneousThought> SpontaneousThoughts { get; set; } = new List<SpontaneousThought>();
+    public List<ThoughtModel> SpontaneousThoughts { get; set; } = new List<ThoughtModel>();
 
     /// <summary>
     /// Gets or sets the curiosity questions

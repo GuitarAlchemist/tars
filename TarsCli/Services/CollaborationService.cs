@@ -97,47 +97,48 @@ public class CollaborationService
                         ["vscode"] = new ComponentConfig
                         {
                             Role = "user_interface",
-                            Capabilities = new List<string> { "file_editing", "terminal_execution", "agent_coordination" }
+                            Capabilities = ["file_editing", "terminal_execution", "agent_coordination"]
                         },
                         ["augment"] = new ComponentConfig
                         {
                             Role = "code_understanding",
-                            Capabilities = new List<string> { "codebase_analysis", "code_generation", "refactoring" }
+                            Capabilities = ["codebase_analysis", "code_generation", "refactoring"]
                         },
                         ["tars"] = new ComponentConfig
                         {
                             Role = "specialized_processing",
-                            Capabilities = new List<string> { "metascript_execution", "dsl_processing", "self_improvement" }
+                            Capabilities = ["metascript_execution", "dsl_processing", "self_improvement"]
                         }
                     },
-                    Workflows = new List<WorkflowConfig>
-                    {
+                    Workflows =
+                    [
                         new WorkflowConfig
                         {
                             Name = "code_generation",
                             Coordinator = "vscode",
-                            Steps = new List<WorkflowStep>
-                            {
+                            Steps =
+                            [
                                 new WorkflowStep { Component = "vscode", Action = "get_user_request" },
                                 new WorkflowStep { Component = "augment", Action = "analyze_codebase_context" },
                                 new WorkflowStep { Component = "tars", Action = "generate_metascript" },
                                 new WorkflowStep { Component = "tars", Action = "execute_metascript" },
                                 new WorkflowStep { Component = "vscode", Action = "apply_changes" }
-                            }
+                            ]
                         },
+
                         new WorkflowConfig
                         {
                             Name = "self_improvement",
                             Coordinator = "tars",
-                            Steps = new List<WorkflowStep>
-                            {
+                            Steps =
+                            [
                                 new WorkflowStep { Component = "tars", Action = "identify_improvement_areas" },
                                 new WorkflowStep { Component = "augment", Action = "analyze_code_quality" },
                                 new WorkflowStep { Component = "tars", Action = "generate_improvement_plan" },
                                 new WorkflowStep { Component = "vscode", Action = "apply_improvements" }
-                            }
+                            ]
                         }
-                    }
+                    ]
                 }
             };
 

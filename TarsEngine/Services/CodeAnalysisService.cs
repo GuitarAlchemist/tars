@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
+using TarsEngine.Models;
 using TarsEngine.Services.Interfaces;
 
 namespace TarsEngine.Services;
@@ -290,7 +291,16 @@ public class CodeAnalysisResult
     public ProgrammingLanguage Language { get; set; }
     public bool Success { get; set; }
     public string ErrorMessage { get; set; }
+    public DateTime AnalyzedAt { get; set; } = DateTime.UtcNow;
+    public bool IsSuccessful { get { return Success; } set { Success = value; } }
 
+    // Collections for compatibility with Models.CodeAnalysisResult
+    public List<CodeIssue> Issues { get; set; } = new List<CodeIssue>();
+    public List<CodeMetric> Metrics { get; set; } = new List<CodeMetric>();
+    public List<CodeStructure> Structures { get; set; } = new List<CodeStructure>();
+    public List<string> Errors { get; set; } = new List<string>();
+
+    // Original collections
     public List<string> Namespaces { get; set; } = new List<string>();
     public List<string> Classes { get; set; } = new List<string>();
     public List<string> Interfaces { get; set; } = new List<string>();

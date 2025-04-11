@@ -85,29 +85,30 @@ public class ContentClassifierServiceTests
         {
             DocumentType = DocumentType.Markdown,
             Title = "Test Document",
-            Sections = new List<ContentSection>
-            {
+            Sections =
+            [
                 new ContentSection
                 {
                     Heading = "Introduction",
                     ContentType = ContentType.Text,
                     RawContent = "This is an introduction to the document."
                 },
+
                 new ContentSection
                 {
                     Heading = "Code Example",
                     ContentType = ContentType.Code,
                     RawContent = "```csharp\nConsole.WriteLine(\"Hello, World!\");\n```",
-                    CodeBlocks = new List<CodeBlock>
-                    {
+                    CodeBlocks =
+                    [
                         new CodeBlock
                         {
                             Language = "csharp",
                             Code = "Console.WriteLine(\"Hello, World!\");"
                         }
-                    }
+                    ]
                 }
-            }
+            ]
         };
 
         // Set up metascript service to return a relevance score

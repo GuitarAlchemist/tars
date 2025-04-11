@@ -1,0 +1,83 @@
+# TARS Build Fixes - Focused Approach
+
+## Priority 1: Fix Core Type Conflicts
+
+1. Create a unified model for CodeAnalysisResult
+   - Create a new class that combines properties from all versions
+   - Add extension methods to convert between different versions
+   - Focus on fixing the most common properties first: FilePath, IsSuccessful, Errors, etc.
+
+2. Fix ambiguous type references
+   - Create explicit conversion methods between:
+     - TarsEngine.Services.Interfaces.IssueSeverity and TarsEngine.Models.IssueSeverity
+     - TarsEngine.Services.Interfaces.ComplexityType and TarsEngine.Models.Metrics.ComplexityType
+     - TarsEngine.Services.Interfaces.DuplicatedBlock and TarsEngine.Models.Metrics.DuplicatedBlock
+   - Use fully qualified names in ambiguous contexts
+
+3. Fix Insight namespace/class conflict
+   - Rename the Insight class to InsightClass or InsightData
+   - Update all references to use the new name
+
+## Priority 2: Fix Missing Properties
+
+1. Create extension methods for missing properties
+   - Add extension methods for CodeAnalysisResult to provide:
+     - FilePath, IsSuccessful, Errors, Metrics, Issues, Structures
+   - Add extension methods for ComplexityMetric to provide:
+     - Description, FilePath, Language, TargetType, ThresholdValue
+   - Add extension methods for TestExecutionResult to provide:
+     - IsSuccessful, StartedAt, CompletedAt, DurationMs, etc.
+
+2. Fix read-only property assignments
+   - For properties like DuplicationMetric.DuplicationLevel that are read-only but being assigned to:
+     - Create factory methods to create new instances with desired values
+     - Or modify the property to have a setter
+
+## Priority 3: Fix Method Signature Mismatches
+
+1. Fix LogLevel conversion issues
+   - Create conversion methods between Microsoft.Extensions.Logging.LogLevel and TarsEngine.Models.LogLevel
+
+2. Fix dictionary initialization issues
+   - Modify ImprovementGenerationOrchestrator to use proper dictionary initialization
+
+## Priority 4: Fix Nullable Reference Issues
+
+1. Add null checks where needed
+   - Add null checks before dereferencing potentially null references
+   - Use the null-conditional operator (?.) where appropriate
+
+2. Initialize non-nullable properties
+   - Add required modifier to properties that should be non-null
+   - Initialize properties in constructors
+
+## Implementation Strategy
+
+1. Start with the most critical files:
+   - CodeAnalysisResult and related adapters
+   - ComplexityMetric and related classes
+   - TestExecutionResult and related classes
+
+2. Create a unified model for each critical type
+   - Define a common interface
+   - Implement extension methods for compatibility
+
+3. Fix one file at a time, starting with the most referenced files
+   - Fix CodeAnalyzerService.cs first
+   - Then fix CSharpAnalyzer.cs
+   - Then fix FSharpAnalyzer.cs
+
+4. Test incrementally
+   - Build after fixing each major file
+   - Focus on reducing the error count gradually
+
+## Files to Focus On First
+
+1. TarsEngine/Utilities/CodeAnalysisResultExtensions.cs (create this)
+2. TarsEngine/Utilities/ComplexityMetricExtensions.cs (create this)
+3. TarsEngine/Utilities/TestExecutionResultExtensions.cs (create this)
+4. TarsEngine/Services/CodeAnalyzerService.cs
+5. TarsEngine/Services/CSharpAnalyzer.cs
+6. TarsEngine/Services/FSharpAnalyzer.cs
+7. TarsEngine/Services/CodeComplexityAnalyzerService.cs
+8. TarsEngine/Services/TestExecutor.cs

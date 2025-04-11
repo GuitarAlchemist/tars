@@ -25,29 +25,29 @@ public class DuplicationDemoCommand : Command
     public DuplicationDemoCommand() : base("duplication-demo", "Demonstrates code duplication detection")
     {
         var pathOption = new Option<string>(
-            aliases: new[] { "--path", "-p" },
+            aliases: ["--path", "-p"],
             description: "Path to the file or directory to analyze")
         {
             IsRequired = true
         };
 
         var languageOption = new Option<string>(
-            aliases: new[] { "--language", "-l" },
+            aliases: ["--language", "-l"],
             description: "Programming language (C# or F#)",
             getDefaultValue: () => string.Empty);
 
         var typeOption = new Option<string>(
-            aliases: new[] { "--type", "-t" },
+            aliases: ["--type", "-t"],
             description: "Duplication type (token, semantic, or all)",
             getDefaultValue: () => "all");
 
         var outputOption = new Option<string>(
-            aliases: new[] { "--output", "-o" },
+            aliases: ["--output", "-o"],
             description: "Output format (console, json, csv, or html)",
             getDefaultValue: () => "console");
 
         var outputPathOption = new Option<string>(
-            aliases: new[] { "--output-path" },
+            aliases: ["--output-path"],
             description: "Path to save the output file",
             getDefaultValue: () => string.Empty);
 

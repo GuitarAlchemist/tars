@@ -13,8 +13,8 @@ public class ValueSystem
 {
     private readonly ILogger<ValueSystem> _logger;
     private readonly Dictionary<string, Value> _values = new();
-    private readonly List<ValueConflict> _valueConflicts = new();
-    private readonly List<ValueAlignment> _valueAlignments = new();
+    private readonly List<ValueConflict> _valueConflicts = [];
+    private readonly List<ValueAlignment> _valueAlignments = [];
     private readonly Dictionary<string, double> _valueWeights = new();
     
     private bool _isInitialized = false;
@@ -316,7 +316,7 @@ public class ValueSystem
                 Id = Guid.NewGuid().ToString(),
                 Timestamp = DateTime.UtcNow,
                 ConflictId = conflict.Id,
-                Values = new List<string> { conflict.Value1, conflict.Value2 },
+                Values = [conflict.Value1, conflict.Value2],
                 Resolution = resolution,
                 Description = $"Aligned values {conflict.Value1} and {conflict.Value2}: {resolution}",
                 Significance = conflict.Severity * 0.8

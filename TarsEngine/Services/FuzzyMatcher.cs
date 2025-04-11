@@ -289,6 +289,41 @@ public class FuzzyMatcher
     }
 
     /// <summary>
+    /// Calculates the similarity between two code snippets
+    /// </summary>
+    /// <param name="source">The source code snippet</param>
+    /// <param name="target">The target code snippet</param>
+    /// <returns>The similarity score (0.0 to 1.0)</returns>
+    public double CalculateSimilarity(string source, string target)
+    {
+        try
+        {
+            _logger.LogInformation("Calculating similarity between code snippets");
+
+            if (string.IsNullOrWhiteSpace(source) || string.IsNullOrWhiteSpace(target))
+            {
+                return 0.0;
+            }
+
+            // Calculate different similarity metrics
+            var tokenSimilarity = CalculateTokenSimilarity(source, target);
+            var structuralSimilarity = CalculateStructuralSimilarity(source, target);
+            var semanticSimilarity = CalculateSemanticSimilarity(source, target);
+
+            // Combine similarity scores with weights
+            var combinedSimilarity = (tokenSimilarity * 0.4) + (structuralSimilarity * 0.4) + (semanticSimilarity * 0.2);
+
+            _logger.LogInformation("Similarity between code snippets: {Similarity}", combinedSimilarity);
+            return combinedSimilarity;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error calculating similarity between code snippets");
+            return 0.0;
+        }
+    }
+
+    /// <summary>
     /// Calculates the Levenshtein distance between two strings
     /// </summary>
     /// <param name="s">The first string</param>

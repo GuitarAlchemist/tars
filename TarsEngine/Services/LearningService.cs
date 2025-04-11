@@ -10,7 +10,7 @@ public class LearningService
 {
     private readonly ILogger<LearningService> _logger;
     private readonly string _learningDataPath;
-    private LearningData _learningData;
+    private LearningData _learningData = new LearningData();
 
     public LearningService(ILogger<LearningService> logger)
     {
@@ -373,11 +373,11 @@ public class CodeFeedback
 {
     public string Id { get; set; } = Guid.NewGuid().ToString();
     public DateTime Timestamp { get; set; } = DateTime.Now;
-    public string Type { get; set; } // "Generation", "Improvement", "Test", etc.
-    public string Context { get; set; } // Language, project type, etc.
-    public string Code { get; set; } // The code that was generated or improved
+    public string Type { get; set; } = "Improvement"; // "Generation", "Improvement", "Test", etc.
+    public string Context { get; set; } = string.Empty; // Language, project type, etc.
+    public string Code { get; set; } = string.Empty; // The code that was generated or improved
     public int Rating { get; set; } // 1-5 rating
-    public string Comment { get; set; } // Optional comment
+    public string Comment { get; set; } = string.Empty; // Optional comment
 }
 
 /// <summary>
@@ -385,10 +385,10 @@ public class CodeFeedback
 /// </summary>
 public class LearningCodePattern
 {
-    public string Id { get; set; }
-    public string Context { get; set; } // Language, project type, etc.
-    public string Pattern { get; set; } // The code pattern
-    public string Description { get; set; } // Description of the pattern
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+    public string Context { get; set; } = string.Empty; // Language, project type, etc.
+    public string Pattern { get; set; } = string.Empty; // The code pattern
+    public string Description { get; set; } = string.Empty; // Description of the pattern
     public double Score { get; set; } // Score for the pattern (higher is better)
     public int UsageCount { get; set; } // Number of times the pattern has been used
     public DateTime CreatedAt { get; set; }

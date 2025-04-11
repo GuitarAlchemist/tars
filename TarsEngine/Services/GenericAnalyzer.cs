@@ -5,6 +5,8 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using TarsEngine.Models;
+using TarsEngine.Models.Unified;
+using TarsEngine.Utilities;
 using TarsEngine.Services.Interfaces;
 
 namespace TarsEngine.Services;
@@ -37,6 +39,11 @@ public class GenericAnalyzer : ILanguageAnalyzer
     /// <inheritdoc/>
     public string Language => _language;
 
+    /// <summary>
+    /// Gets the programming language enum value
+    /// </summary>
+    public ProgrammingLanguage LanguageEnum => ProgrammingLanguageConverter.FromString(_language);
+
     /// <inheritdoc/>
     public async Task<CodeAnalysisResult> AnalyzeAsync(string content, Dictionary<string, string>? options = null)
     {
@@ -46,7 +53,7 @@ public class GenericAnalyzer : ILanguageAnalyzer
 
             var result = new CodeAnalysisResult
             {
-                Language = Language,
+                Language = LanguageEnum,
                 AnalyzedAt = DateTime.UtcNow,
                 IsSuccessful = true
             };
@@ -111,7 +118,7 @@ public class GenericAnalyzer : ILanguageAnalyzer
             _logger.LogError(ex, "Error analyzing {Language} code", Language);
             return new CodeAnalysisResult
             {
-                Language = Language,
+                Language = LanguageEnum,
                 IsSuccessful = false,
                 Errors = { $"Error analyzing {Language} code: {ex.Message}" }
             };
@@ -185,23 +192,23 @@ public class GenericAnalyzer : ILanguageAnalyzer
             var braceStack = new Stack<(int Line, string Name, StructureType Type)>();
             var currentIndentation = 0;
             var inComment = false;
-            
+
             for (int i = 0; i < lines.Length; i++)
             {
                 var line = lines[i].TrimEnd();
-                
+
                 // Skip empty lines
                 if (string.IsNullOrWhiteSpace(line))
                 {
                     continue;
                 }
-                
+
                 // Handle comments
                 if (line.Trim().StartsWith("/*"))
                 {
                     inComment = true;
                 }
-                
+
                 if (inComment)
                 {
                     if (line.Contains("*/"))
@@ -210,20 +217,20 @@ public class GenericAnalyzer : ILanguageAnalyzer
                     }
                     continue;
                 }
-                
+
                 if (line.Trim().StartsWith("//"))
                 {
                     continue;
                 }
-                
+
                 // Calculate indentation
                 var indentation = line.Length - line.TrimStart().Length;
-                
+
                 // If indentation decreased, we might have exited a structure
                 if (indentation < currentIndentation && braceStack.Count > 0)
                 {
                     var (startLine, name, type) = braceStack.Pop();
-                    
+
                     // Add the structure
                     structures.Add(new CodeStructure
                     {
@@ -237,59 +244,59 @@ public class GenericAnalyzer : ILanguageAnalyzer
                         Size = i - startLine
                     });
                 }
-                
+
                 currentIndentation = indentation;
-                
+
                 // Try to identify structures based on common patterns
                 if (line.Contains("{") && !line.Contains("}"))
                 {
                     var structureName = "Unknown";
                     var structureType = StructureType.Other;
-                    
+
                     // Try to identify the structure type and name
                     if (line.Contains("class ") || line.Contains("interface ") || line.Contains("struct "))
                     {
-                        structureType = line.Contains("class ") ? StructureType.Class : 
+                        structureType = line.Contains("class ") ? StructureType.Class :
                                        (line.Contains("interface ") ? StructureType.Interface : StructureType.Class);
-                        
+
                         var match = Regex.Match(line, @"(class|interface|struct)\s+([a-zA-Z0-9_]+)");
                         if (match.Success && match.Groups.Count > 2)
                         {
                             structureName = match.Groups[2].Value;
                         }
                     }
-                    else if (line.Contains("function ") || line.Contains("def ") || 
+                    else if (line.Contains("function ") || line.Contains("def ") ||
                              Regex.IsMatch(line, @"(public|private|protected)\s+[a-zA-Z0-9_]+\s*\("))
                     {
                         structureType = StructureType.Method;
-                        
+
                         var match = Regex.Match(line, @"(function|def)\s+([a-zA-Z0-9_]+)|\s+([a-zA-Z0-9_]+)\s*\(");
                         if (match.Success)
                         {
-                            structureName = match.Groups[2].Success ? match.Groups[2].Value : 
+                            structureName = match.Groups[2].Success ? match.Groups[2].Value :
                                            (match.Groups[3].Success ? match.Groups[3].Value : "Unknown");
                         }
                     }
                     else if (line.Contains("namespace ") || line.Contains("package "))
                     {
                         structureType = StructureType.Namespace;
-                        
+
                         var match = Regex.Match(line, @"(namespace|package)\s+([a-zA-Z0-9_.]+)");
                         if (match.Success && match.Groups.Count > 2)
                         {
                             structureName = match.Groups[2].Value;
                         }
                     }
-                    
+
                     braceStack.Push((i, structureName, structureType));
                 }
             }
-            
+
             // Handle any remaining structures
             while (braceStack.Count > 0)
             {
                 var (startLine, name, type) = braceStack.Pop();
-                
+
                 structures.Add(new CodeStructure
                 {
                     Type = type,
@@ -302,7 +309,7 @@ public class GenericAnalyzer : ILanguageAnalyzer
                     Size = lines.Length - startLine
                 });
             }
-            
+
             return structures;
         }
         catch (Exception ex)
@@ -331,21 +338,21 @@ public class GenericAnalyzer : ILanguageAnalyzer
             var nonEmptyLines = 0;
             var lines = content.Split('\n');
             var inComment = false;
-            
+
             foreach (var line in lines)
             {
                 var trimmedLine = line.Trim();
-                
+
                 if (string.IsNullOrWhiteSpace(trimmedLine))
                 {
                     continue;
                 }
-                
+
                 if (trimmedLine.StartsWith("/*"))
                 {
                     inComment = true;
                 }
-                
+
                 if (inComment)
                 {
                     if (trimmedLine.Contains("*/"))
@@ -354,15 +361,15 @@ public class GenericAnalyzer : ILanguageAnalyzer
                     }
                     continue;
                 }
-                
+
                 if (trimmedLine.StartsWith("//"))
                 {
                     continue;
                 }
-                
+
                 nonEmptyLines++;
             }
-            
+
             metrics.Add(new CodeMetric
             {
                 Name = "Non-Empty Lines",
@@ -380,7 +387,7 @@ public class GenericAnalyzer : ILanguageAnalyzer
                     Name = $"{structure.Type} Size",
                     Value = structure.Size,
                     Type = MetricType.Size,
-                    Scope = structure.Type == StructureType.Method ? MetricScope.Method : 
+                    Scope = structure.Type == StructureType.Method ? MetricScope.Method :
                            (structure.Type == StructureType.Class || structure.Type == StructureType.Interface ? MetricScope.Class : MetricScope.Namespace),
                     Target = structure.Name,
                     Location = structure.Location
@@ -410,7 +417,7 @@ public class GenericAnalyzer : ILanguageAnalyzer
                 issues.Add(new CodeIssue
                 {
                     Type = CodeIssueType.SecurityHotspot,
-                    Severity = IssueSeverity.Critical,
+                    Severity = TarsEngine.Models.IssueSeverity.Critical,
                     Title = "Hardcoded Credentials",
                     Description = "Hardcoded credentials can lead to security vulnerabilities.",
                     Location = new CodeLocation
@@ -433,7 +440,7 @@ public class GenericAnalyzer : ILanguageAnalyzer
                 issues.Add(new CodeIssue
                 {
                     Type = CodeIssueType.Vulnerability,
-                    Severity = IssueSeverity.Critical,
+                    Severity = TarsEngine.Models.IssueSeverity.Critical,
                     Title = "Potential SQL Injection",
                     Description = "String concatenation in SQL queries can lead to SQL injection vulnerabilities.",
                     Location = new CodeLocation
@@ -456,7 +463,7 @@ public class GenericAnalyzer : ILanguageAnalyzer
                 issues.Add(new CodeIssue
                 {
                     Type = CodeIssueType.Vulnerability,
-                    Severity = IssueSeverity.Critical,
+                    Severity = TarsEngine.Models.IssueSeverity.Critical,
                     Title = "Potential Command Injection",
                     Description = "String concatenation in command execution can lead to command injection vulnerabilities.",
                     Location = new CodeLocation
@@ -492,11 +499,11 @@ public class GenericAnalyzer : ILanguageAnalyzer
         {
             var lines = content.Split('\n');
             var lineNumber = GetLineNumber(content, position);
-            
+
             // Get a few lines before and after
             var startLine = Math.Max(0, lineNumber - 1);
             var endLine = Math.Min(lines.Length - 1, lineNumber + 1);
-            
+
             var snippetLines = lines.Skip(startLine).Take(endLine - startLine + 1);
             return string.Join("\n", snippetLines);
         }
@@ -513,7 +520,7 @@ public class GenericAnalyzer : ILanguageAnalyzer
         {
             return defaultValue;
         }
-        
+
         return value.Equals("true", StringComparison.OrdinalIgnoreCase);
     }
 }

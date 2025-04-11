@@ -1,9 +1,9 @@
 @using Microsoft.Extensions.Logging.Abstractions
 @using TarsEngine.Models
-@using TarsEngine.Services
-@using TarsEngine.Services.Interfaces
 @using TarsApp.Models
 @using TarsApp.Helpers
+@using TarsApp.Services.Interfaces
+@using TarsApp.ViewModels
 
 // Use alias to avoid ambiguity
 @using MsLogLevel = Microsoft.Extensions.Logging.LogLevel
@@ -134,7 +134,7 @@
     private Color progressColor = Color.Info;
     private string duration = "0m";
     private string currentStep = "Initializing";
-    private List<LogEntry> logs = new();
+    private List<LogEntryViewModel> logs = new();
     private List<ErrorInfo> errors = new();
     private List<string> modifiedFiles = new();
     private List<string> createdFiles = new();
@@ -211,7 +211,14 @@
                 currentStep = context.GetState<string>("CurrentStep", "Initializing");
 
                 // Update logs
-                logs = ModelConverters.ConvertToLogEntries(context.Logs.OrderByDescending(l => l.Timestamp).Take(100).ToList());
+                logs = context.Logs.OrderByDescending(l => l.Timestamp).Take(100).ToList()
+                    .Select(log => new LogEntryViewModel
+                    {
+                        Timestamp = log.Timestamp,
+                        LogLevel = ConvertToMsLogLevel(log.Level),
+                        Message = log.Message,
+                        Source = log.Source ?? "System"
+                    }).ToList();
 
                 // Update errors
                 errors = ModelConverters.ConvertToErrorInfos(context.Errors.OrderByDescending(e => e.Timestamp).ToList());
@@ -261,21 +268,13 @@
         // Add logs
         for (int i = 0; i < Math.Ceiling(simulatedProgress * 20); i++)
         {
-            // Create a LogEntry and convert it to ExecutionLog
-            var logEntry = new LogEntry
-            {
-                Timestamp = startTime.AddSeconds(i * 1.5),
-                LogLevel = i % 5 == 0 ? Microsoft.Extensions.Logging.LogLevel.Warning : Microsoft.Extensions.Logging.LogLevel.Information,
-                Message = $"Executing step {i + 1}: {GetStepForProgress((i + 1) / 20.0)}"
-            };
-
-            // Convert LogEntry to ExecutionLog
+            // Create an ExecutionLog directly
             var executionLog = new ExecutionLog
             {
-                Timestamp = logEntry.Timestamp,
-                Level = (LogLevel)logEntry.LogLevel,
-                Message = logEntry.Message,
-                Source = logEntry.Category ?? "System"
+                Timestamp = startTime.AddSeconds(i * 1.5),
+                Level = i % 5 == 0 ? LogLevel.Warning : LogLevel.Information,
+                Message = $"Executing step {i + 1}: {GetStepForProgress((i + 1) / 20.0)}",
+                Source = "System"
             };
 
             context.Logs.Add(executionLog);
@@ -325,7 +324,7 @@
             return "Finalizing changes";
     }
 
-    private string GetLogStyle(LogEntry log)
+    private string GetLogStyle(LogEntryViewModel log)
     {
         var color = log.LogLevel switch
         {
@@ -337,6 +336,20 @@
         };
 
         return $"color: {color}; font-family: monospace; white-space: pre-wrap;";
+    }
+
+    private MsLogLevel ConvertToMsLogLevel(TarsEngine.Models.LogLevel level)
+    {
+        return level switch
+        {
+            TarsEngine.Models.LogLevel.Trace => MsLogLevel.Trace,
+            TarsEngine.Models.LogLevel.Debug => MsLogLevel.Debug,
+            TarsEngine.Models.LogLevel.Information => MsLogLevel.Information,
+            TarsEngine.Models.LogLevel.Warning => MsLogLevel.Warning,
+            TarsEngine.Models.LogLevel.Error => MsLogLevel.Error,
+            TarsEngine.Models.LogLevel.Critical => MsLogLevel.Critical,
+            _ => MsLogLevel.None
+        };
     }
 
     public void Dispose()

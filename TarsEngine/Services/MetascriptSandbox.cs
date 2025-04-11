@@ -207,8 +207,8 @@ public class MetascriptSandbox
             {
                 result.IsValid = false;
                 result.Status = MetascriptValidationStatus.Invalid;
-                result.Errors = new List<string> { ex.ToString() };
-                result.Messages = new List<string> { ex.ToString() };
+                result.Errors = [ex.ToString()];
+                result.Messages = [ex.ToString()];
             }
             finally
             {
@@ -231,8 +231,8 @@ public class MetascriptSandbox
                 MetascriptId = metascript.Id,
                 IsValid = false,
                 Status = MetascriptValidationStatus.Invalid,
-                Errors = new List<string> { ex.ToString() },
-                Messages = new List<string> { ex.ToString() },
+                Errors = [ex.ToString()],
+                Messages = [ex.ToString()],
                 ValidatedAt = DateTime.UtcNow
             };
         }

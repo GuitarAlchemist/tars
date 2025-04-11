@@ -13,12 +13,12 @@ public class MetaAnalysisResult
     /// <summary>
     /// Error message if the analysis failed
     /// </summary>
-    public string ErrorMessage { get; set; }
+    public string ErrorMessage { get; set; } = string.Empty;
 
     /// <summary>
     /// The root path of the codebase
     /// </summary>
-    public string RootPath { get; set; }
+    public string RootPath { get; set; } = string.Empty;
 
     /// <summary>
     /// The components in the codebase
@@ -49,17 +49,17 @@ public class CodeComponent
     /// <summary>
     /// The name of the component
     /// </summary>
-    public string Name { get; set; }
+    public string Name { get; set; } = string.Empty;
 
     /// <summary>
     /// The path to the component
     /// </summary>
-    public string Path { get; set; }
+    public string Path { get; set; } = string.Empty;
 
     /// <summary>
     /// The type of the component (e.g., Service, Controller, Model)
     /// </summary>
-    public string Type { get; set; }
+    public string Type { get; set; } = string.Empty;
 
     /// <summary>
     /// The programming language of the component
@@ -85,17 +85,17 @@ public class ComponentDependency
     /// <summary>
     /// The source component
     /// </summary>
-    public string SourceComponent { get; set; }
+    public string SourceComponent { get; set; } = string.Empty;
 
     /// <summary>
     /// The target component
     /// </summary>
-    public string TargetComponent { get; set; }
+    public string TargetComponent { get; set; } = string.Empty;
 
     /// <summary>
     /// The type of dependency
     /// </summary>
-    public string DependencyType { get; set; }
+    public string DependencyType { get; set; } = string.Empty;
 
     /// <summary>
     /// The strength of the dependency (0.0 to 1.0)
@@ -218,7 +218,7 @@ public class ComponentToImprove
     /// <summary>
     /// The component to improve
     /// </summary>
-    public CodeComponent Component { get; set; }
+    public CodeComponent Component { get; set; } = new CodeComponent();
 
     /// <summary>
     /// The priority of the improvement (0.0 to 1.0)
@@ -254,7 +254,7 @@ public class ImprovementArea
     /// <summary>
     /// Description of the issue
     /// </summary>
-    public string Description { get; set; }
+    public string Description { get; set; } = string.Empty;
 
     /// <summary>
     /// Specific files affected by the issue
@@ -311,7 +311,7 @@ public class ImprovementStrategy
     /// <summary>
     /// The component to improve
     /// </summary>
-    public ComponentToImprove Component { get; set; }
+    public ComponentToImprove Component { get; set; } = new ComponentToImprove();
 
     /// <summary>
     /// The type of strategy
@@ -388,7 +388,7 @@ public class ImprovementStep
     /// <summary>
     /// The description of the step
     /// </summary>
-    public string Description { get; set; }
+    public string Description { get; set; } = string.Empty;
 
     /// <summary>
     /// The files affected by the step
@@ -450,12 +450,12 @@ public class ImpactAssessment
     /// <summary>
     /// The component that was improved
     /// </summary>
-    public ComponentToImprove Component { get; set; }
+    public ComponentToImprove Component { get; set; } = new ComponentToImprove();
 
     /// <summary>
     /// The strategy that was used
     /// </summary>
-    public ImprovementStrategy Strategy { get; set; }
+    public ImprovementStrategy Strategy { get; set; } = new ImprovementStrategy();
 
     /// <summary>
     /// Whether the improvement was successful
@@ -465,12 +465,12 @@ public class ImpactAssessment
     /// <summary>
     /// The metrics before the improvement
     /// </summary>
-    public ComponentMetrics BeforeMetrics { get; set; }
+    public ComponentMetrics BeforeMetrics { get; set; } = new ComponentMetrics();
 
     /// <summary>
     /// The metrics after the improvement
     /// </summary>
-    public ComponentMetrics AfterMetrics { get; set; }
+    public ComponentMetrics AfterMetrics { get; set; } = new ComponentMetrics();
 
     /// <summary>
     /// The actual impact of the improvement

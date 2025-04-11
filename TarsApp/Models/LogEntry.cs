@@ -1,5 +1,5 @@
 using System;
-using Microsoft.Extensions.Logging;
+using MsLogLevel = Microsoft.Extensions.Logging.LogLevel;
 using TarsEngine.Models;
 
 namespace TarsApp.Models;
@@ -12,7 +12,7 @@ public class LogEntry
     /// <summary>
     /// Gets or sets the log level
     /// </summary>
-    public LogLevel LogLevel { get; set; }
+    public MsLogLevel LogLevel { get; set; }
 
     /// <summary>
     /// Gets or sets the log message
@@ -47,10 +47,29 @@ public class LogEntry
     /// <param name="log">The execution log to create the log entry from</param>
     public LogEntry(ExecutionLog log)
     {
-        LogLevel = (LogLevel)log.LogLevel;
+        LogLevel = ConvertToMsLogLevel(log.Level);
         Message = log.Message;
         Timestamp = log.Timestamp;
-        Category = log.Category;
-        EventId = log.EventId;
+        Category = log.Source; // ExecutionLog uses Source instead of Category
+        EventId = 0; // ExecutionLog doesn't have EventId
+    }
+
+    /// <summary>
+    /// Converts TarsEngine.Models.LogLevel to Microsoft.Extensions.Logging.LogLevel
+    /// </summary>
+    /// <param name="level">The TarsEngine log level</param>
+    /// <returns>The Microsoft log level</returns>
+    private static MsLogLevel ConvertToMsLogLevel(TarsEngine.Models.LogLevel level)
+    {
+        return level switch
+        {
+            TarsEngine.Models.LogLevel.Trace => MsLogLevel.Trace,
+            TarsEngine.Models.LogLevel.Debug => MsLogLevel.Debug,
+            TarsEngine.Models.LogLevel.Information => MsLogLevel.Information,
+            TarsEngine.Models.LogLevel.Warning => MsLogLevel.Warning,
+            TarsEngine.Models.LogLevel.Error => MsLogLevel.Error,
+            TarsEngine.Models.LogLevel.Critical => MsLogLevel.Critical,
+            _ => MsLogLevel.None
+        };
     }
 }

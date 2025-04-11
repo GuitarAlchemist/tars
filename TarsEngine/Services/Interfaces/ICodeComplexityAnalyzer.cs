@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using TarsEngine.Models.Metrics;
+using UnifiedComplexityType = TarsEngine.Models.Unified.ComplexityTypeUnified;
 
 namespace TarsEngine.Services.Interfaces;
 
@@ -71,7 +72,7 @@ public interface ICodeComplexityAnalyzer
     /// <param name="language">Programming language</param>
     /// <param name="complexityType">Type of complexity</param>
     /// <returns>Threshold values for the complexity type</returns>
-    Task<Dictionary<string, double>> GetComplexityThresholdsAsync(string language, ComplexityType complexityType);
+    Task<Dictionary<string, double>> GetComplexityThresholdsAsync(string language, UnifiedComplexityType complexityType);
 
     /// <summary>
     /// Gets Halstead complexity thresholds for a specific language and Halstead type
@@ -96,7 +97,7 @@ public interface ICodeComplexityAnalyzer
     /// <param name="targetType">Type of target (method, class, etc.)</param>
     /// <param name="threshold">Threshold value</param>
     /// <returns>True if threshold was set successfully</returns>
-    Task<bool> SetComplexityThresholdAsync(string language, ComplexityType complexityType, string targetType, double threshold);
+    Task<bool> SetComplexityThresholdAsync(string language, UnifiedComplexityType complexityType, string targetType, double threshold);
 
     /// <summary>
     /// Sets Halstead complexity threshold for a specific language, Halstead type, and target type

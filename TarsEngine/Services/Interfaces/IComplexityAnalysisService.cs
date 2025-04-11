@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using UnifiedComplexityType = TarsEngine.Unified.ComplexityType;
 
 namespace TarsEngine.Services.Interfaces;
 
@@ -224,7 +225,7 @@ public class ComplexCodeSection
     /// <summary>
     /// Complexity type
     /// </summary>
-    public ComplexityType ComplexityType { get; set; } = ComplexityType.Cyclomatic;
+    public UnifiedComplexityType ComplexityType { get; set; } = UnifiedComplexityType.Cyclomatic;
 
     /// <summary>
     /// Complexity value
@@ -278,11 +279,48 @@ public class CodeSimplification
 /// </summary>
 public enum ComplexityType
 {
+    /// <summary>
+    /// Cyclomatic complexity
+    /// </summary>
     Cyclomatic,
+
+    /// <summary>
+    /// Cognitive complexity
+    /// </summary>
     Cognitive,
+
+    /// <summary>
+    /// Halstead complexity
+    /// </summary>
     Halstead,
+
+    /// <summary>
+    /// Method length
+    /// </summary>
     MethodLength,
+
+    /// <summary>
+    /// Class length
+    /// </summary>
     ClassLength,
+
+    /// <summary>
+    /// Parameter count
+    /// </summary>
     ParameterCount,
-    NestingDepth
+
+    /// <summary>
+    /// Nesting depth
+    /// </summary>
+    NestingDepth,
+
+    /// <summary>
+    /// Maintainability index
+    /// </summary>
+    Maintainability,
+
+    /// <summary>
+    /// Maintainability index (alternative name)
+    /// </summary>
+    MaintainabilityIndex
 }

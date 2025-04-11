@@ -137,11 +137,11 @@ public class KnowledgeTestGenerationService
         // Map of project names to relevant contexts
         var projectContextMap = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
         {
-            { "TarsEngine", new[] { "CSharp", "C#", ".NET", "TarsEngine" } },
-            { "TarsEngineFSharp", new[] { "FSharp", "F#", ".NET", "TarsEngineFSharp" } },
-            { "TarsEngine.DSL", new[] { "FSharp", "F#", ".NET", "DSL", "TarsEngine.DSL" } },
-            { "TarsEngine.SelfImprovement", new[] { "FSharp", "F#", ".NET", "SelfImprovement", "TarsEngine.SelfImprovement" } },
-            { "TarsCli", new[] { "CSharp", "C#", ".NET", "CLI", "TarsCli" } }
+            { "TarsEngine", ["CSharp", "C#", ".NET", "TarsEngine"] },
+            { "TarsEngineFSharp", ["FSharp", "F#", ".NET", "TarsEngineFSharp"] },
+            { "TarsEngine.DSL", ["FSharp", "F#", ".NET", "DSL", "TarsEngine.DSL"] },
+            { "TarsEngine.SelfImprovement", ["FSharp", "F#", ".NET", "SelfImprovement", "TarsEngine.SelfImprovement"] },
+            { "TarsCli", ["CSharp", "C#", ".NET", "CLI", "TarsCli"] }
         };
 
         // Check if the project exists in the map

@@ -48,7 +48,7 @@ public class ErrorInfo
     {
         Message = error.Message;
         ErrorType = error.Exception?.GetType().Name ?? "Unknown";
-        StackTrace = error.GetStackTrace();
+        StackTrace = error.Exception?.StackTrace ?? string.Empty;
         Timestamp = error.Timestamp;
         Source = error.Source;
     }

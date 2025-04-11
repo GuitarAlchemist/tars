@@ -22,7 +22,7 @@ public class CodeExecutionService
     /// <param name="projectPath">Path to the project</param>
     /// <param name="testFilter">Optional filter for tests to run</param>
     /// <returns>The test execution result</returns>
-    public async Task<TestExecutionResult> RunTestsAsync(string projectPath, string testFilter = null)
+    public async Task<TestExecutionResult> RunTestsAsync(string projectPath, string? testFilter = null)
     {
         try
         {
@@ -319,7 +319,7 @@ public class CodeExecutionService
                 // Try to parse the duration
                 if (TimeSpan.TryParse(durationMatch.Groups[1].Value, out var duration))
                 {
-                    result.DurationMs = (long)duration.TotalMilliseconds;
+                    result.Duration = duration.ToString();
                 }
             }
         }
@@ -393,6 +393,7 @@ public class CommandExecutionResult
 public class TestExecutionResult
 {
     public bool Success { get; set; }
+    public bool IsSuccessful { get { return Success; } set { Success = value; } }
     public string ErrorMessage { get; set; }
     public string Output { get; set; }
     public string Error { get; set; }
@@ -401,6 +402,12 @@ public class TestExecutionResult
     public int FailedTests { get; set; }
     public int SkippedTests { get; set; }
     public string Duration { get; set; }
+    public DateTime StartedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CompletedAt { get; set; } = DateTime.UtcNow;
+    public long DurationMs { get { return string.IsNullOrEmpty(Duration) ? 0 : TimeSpan.TryParse(Duration, out var duration) ? (long)duration.TotalMilliseconds : 0; } }
+    public string ProjectPath { get; set; } = string.Empty;
+    public string TestFilter { get; set; } = string.Empty;
+    public List<TarsEngine.Models.TestFailure> TestFailures { get; set; } = new List<TarsEngine.Models.TestFailure>();
 }
 
 /// <summary>

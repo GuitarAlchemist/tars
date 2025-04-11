@@ -62,7 +62,8 @@ public class TestExecutor
                 result.IsSuccessful = false;
                 result.ErrorMessage = $"Project not found: {projectPath}";
                 result.CompletedAt = DateTime.UtcNow;
-                result.DurationMs = (long)(result.CompletedAt - result.StartedAt).TotalMilliseconds;
+                // Set the Duration property
+                result.Duration = (result.CompletedAt - result.StartedAt).ToString();
                 return result;
             }
 
@@ -76,7 +77,25 @@ public class TestExecutor
             result.Output = output;
             result.IsSuccessful = !output.Contains("Failed:") && !output.Contains("Error:") && !output.Contains("Aborted:");
             result.CompletedAt = DateTime.UtcNow;
-            result.DurationMs = (long)(result.CompletedAt - result.StartedAt).TotalMilliseconds;
+            // Calculate duration in milliseconds
+            var duration = (long)(result.CompletedAt - result.StartedAt).TotalMilliseconds;
+
+            // Use reflection to set the DurationMs property if it's writable
+            var durationMsProperty = result.GetType().GetProperty("DurationMs");
+            if (durationMsProperty != null && durationMsProperty.CanWrite)
+            {
+                durationMsProperty.SetValue(result, duration);
+            }
+            else
+            {
+                // Try to set the Duration property as a string if DurationMs is not writable
+                var durationProperty = result.GetType().GetProperty("Duration");
+                if (durationProperty != null && durationProperty.CanWrite)
+                {
+                    var timeSpan = TimeSpan.FromMilliseconds(duration);
+                    durationProperty.SetValue(result, timeSpan.ToString());
+                }
+            }
 
             // Parse test counts
             result.TotalTests = ParseTestCount(output, "Total:");
@@ -103,7 +122,9 @@ public class TestExecutor
                 ErrorMessage = ex.Message,
                 StartedAt = DateTime.UtcNow,
                 CompletedAt = DateTime.UtcNow,
-                DurationMs = 0
+                // Duration is set to 0 for error cases
+                // Use reflection to set the DurationMs property if it's writable
+                // This will be handled by the adapter when converting between types
             };
         }
     }
@@ -140,7 +161,8 @@ public class TestExecutor
                 result.IsSuccessful = false;
                 result.ErrorMessage = $"Project not found: {projectPath}";
                 result.CompletedAt = DateTime.UtcNow;
-                result.DurationMs = (long)(result.CompletedAt - result.StartedAt).TotalMilliseconds;
+                // Set the Duration property
+                result.Duration = (result.CompletedAt - result.StartedAt).ToString();
                 return result;
             }
 
@@ -154,7 +176,7 @@ public class TestExecutor
             result.Output = output;
             result.IsSuccessful = !output.Contains("Failed:") && !output.Contains("Error:") && !output.Contains("Aborted:");
             result.CompletedAt = DateTime.UtcNow;
-            result.DurationMs = (long)(result.CompletedAt - result.StartedAt).TotalMilliseconds;
+            result.Duration = (result.CompletedAt - result.StartedAt).ToString();
 
             // Parse test counts
             result.TotalTests = ParseTestCount(output, "Total:");
@@ -181,7 +203,9 @@ public class TestExecutor
                 ErrorMessage = ex.Message,
                 StartedAt = DateTime.UtcNow,
                 CompletedAt = DateTime.UtcNow,
-                DurationMs = 0
+                // Duration is set to 0 for error cases
+                // Use reflection to set the DurationMs property if it's writable
+                // This will be handled by the adapter when converting between types
             };
         }
     }
@@ -316,7 +340,7 @@ public class TestExecutor
                 { "PassedTests", testResult.PassedTests.ToString() },
                 { "FailedTests", testResult.FailedTests.ToString() },
                 { "SkippedTests", testResult.SkippedTests.ToString() },
-                { "DurationMs", testResult.DurationMs.ToString() }
+                { "Duration", $"{testResult.DurationMs} ms" }
             }
         });
 

@@ -389,12 +389,12 @@ public class ProjectAnalysisService : IProjectAnalysisService
 /// </summary>
 public class ProjectAnalysisResult
 {
-    public string ProjectPath { get; set; }
-    public string ProjectName { get; set; }
+    public string ProjectPath { get; set; } = string.Empty;
+    public string ProjectName { get; set; } = string.Empty;
     public ProjectType ProjectType { get; set; }
-    public string TargetFramework { get; set; }
+    public string TargetFramework { get; set; } = string.Empty;
     public bool Success { get; set; }
-    public string ErrorMessage { get; set; }
+    public string ErrorMessage { get; set; } = string.Empty;
 
     public List<string> Namespaces { get; set; } = new List<string>();
     public List<string> Classes { get; set; } = new List<string>();
@@ -411,10 +411,10 @@ public class ProjectAnalysisResult
 /// </summary>
 public class SolutionAnalysisResult
 {
-    public string SolutionPath { get; set; }
-    public string SolutionName { get; set; }
+    public string SolutionPath { get; set; } = string.Empty;
+    public string SolutionName { get; set; } = string.Empty;
     public bool Success { get; set; }
-    public string ErrorMessage { get; set; }
+    public string ErrorMessage { get; set; } = string.Empty;
 
     public List<ProjectAnalysisResult> ProjectResults { get; set; } = new List<ProjectAnalysisResult>();
 }
@@ -424,8 +424,8 @@ public class SolutionAnalysisResult
 /// </summary>
 public class PackageReference
 {
-    public string Name { get; set; }
-    public string Version { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Version { get; set; } = string.Empty;
 }
 
 /// <summary>
