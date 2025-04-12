@@ -11,7 +11,7 @@ public class DistributedAgentService
 {
     private readonly ILogger<DistributedAgentService> _logger;
     private readonly IHttpClientFactory _httpClientFactory;
-    private readonly List<AgentNode> _registeredNodes = new List<AgentNode>();
+    private readonly List<AgentNode> _registeredNodes = new();
     private readonly JsonSerializerOptions _jsonOptions;
 
     public DistributedAgentService(
@@ -221,7 +221,7 @@ public class DistributedAgentService
 public class AgentNode
 {
     public string Url { get; set; }
-    public List<string> Capabilities { get; set; } = new List<string>();
+    public List<string> Capabilities { get; set; } = new();
     public NodeStatus Status { get; set; }
 }
 
@@ -242,7 +242,7 @@ public class AgentTask
 {
     public string TaskType { get; set; }
     public string TaskId { get; set; } = Guid.NewGuid().ToString();
-    public Dictionary<string, object> Parameters { get; set; } = new Dictionary<string, object>();
+    public Dictionary<string, object> Parameters { get; set; } = new();
 }
 
 /// <summary>
@@ -252,6 +252,6 @@ public class AgentTaskResult
 {
     public bool Success { get; set; }
     public string TaskId { get; set; }
-    public Dictionary<string, object> Results { get; set; } = new Dictionary<string, object>();
+    public Dictionary<string, object> Results { get; set; } = new();
     public string ErrorMessage { get; set; }
 }

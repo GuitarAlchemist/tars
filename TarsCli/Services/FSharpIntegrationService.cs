@@ -214,6 +214,6 @@ public class CodeFix
 public class AnalysisResult
 {
     public string FilePath { get; set; }
-    public List<CodeIssue> Issues { get; set; } = new List<CodeIssue>();
-    public List<CodeFix> SuggestedFixes { get; set; } = new List<CodeFix>();
+    public List<CodeIssue> Issues { get; set; } = new();
+    public List<CodeFix> SuggestedFixes { get; set; } = new();
 }

@@ -36,7 +36,7 @@ public class ExecutionStep
     /// <summary>
     /// Gets or sets the dependencies of the execution step
     /// </summary>
-    public List<string> Dependencies { get; set; } = new List<string>();
+    public List<string> Dependencies { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the status of the execution step
@@ -71,12 +71,12 @@ public class ExecutionStep
     /// <summary>
     /// Gets or sets the parameters for the action
     /// </summary>
-    public Dictionary<string, string> Parameters { get; set; } = new Dictionary<string, string>();
+    public Dictionary<string, string> Parameters { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the validation rules for the execution step
     /// </summary>
-    public List<ValidationRule> ValidationRules { get; set; } = new List<ValidationRule>();
+    public List<ValidationRule> ValidationRules { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the rollback action
@@ -86,12 +86,12 @@ public class ExecutionStep
     /// <summary>
     /// Gets or sets the parameters for the rollback action
     /// </summary>
-    public Dictionary<string, string> RollbackParameters { get; set; } = new Dictionary<string, string>();
+    public Dictionary<string, string> RollbackParameters { get; set; } = new();
 
     /// <summary>
     /// Gets or sets additional metadata about the execution step
     /// </summary>
-    public Dictionary<string, string> Metadata { get; set; } = new Dictionary<string, string>();
+    public Dictionary<string, string> Metadata { get; set; } = new();
 
     /// <summary>
     /// Gets whether the execution step is completed

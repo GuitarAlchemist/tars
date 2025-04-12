@@ -212,7 +212,7 @@ public class MaintainabilityMetric : BaseMetric
     /// </summary>
     public bool IsBelowThreshold => Value < ThresholdValue && ThresholdValue > 0;
 
-    public string Description { get; set; }
+    public string Description { get; set; } = string.Empty;
 }
 
 /// <summary>

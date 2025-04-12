@@ -38,7 +38,7 @@ public class CSharpDuplicationAnalyzer : IDuplicationAnalyzer
         _logger = logger;
         _thresholds = new Dictionary<string, Dictionary<DuplicationType, Dictionary<string, double>>>
         {
-            ["C#"] = new Dictionary<DuplicationType, Dictionary<string, double>>
+            ["C#"] = new()
             {
                 [DuplicationType.TokenBased] = new Dictionary<string, double>
                 {

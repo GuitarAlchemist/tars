@@ -927,7 +927,7 @@ public class LearningPlan
     public SkillLevel SkillLevel { get; set; } = SkillLevel.Beginner;
     public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
     public DateTime LastModifiedDate { get; set; } = DateTime.UtcNow;
-    public LearningPlanContent Content { get; set; } = new LearningPlanContent();
+    public LearningPlanContent Content { get; set; } = new();
 }
 
 /// <summary>

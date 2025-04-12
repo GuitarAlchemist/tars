@@ -96,7 +96,7 @@ public class CSharpHalsteadAnalyzer
         _logger = logger;
         _thresholds = new Dictionary<string, Dictionary<HalsteadType, Dictionary<string, double>>>
         {
-            ["C#"] = new Dictionary<HalsteadType, Dictionary<string, double>>
+            ["C#"] = new()
             {
                 [HalsteadType.Volume] = new Dictionary<string, double>
                 {

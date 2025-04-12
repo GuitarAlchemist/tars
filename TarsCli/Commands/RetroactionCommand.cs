@@ -391,7 +391,7 @@ public class RetroactionCommand
             // Create a simple analysis result
             var issues = new List<CodeIssue>
             {
-                new CodeIssue
+                new()
                 {
                     Type = IssueType.MissingExceptionHandling,
                     Location = "Line 10",
@@ -417,7 +417,7 @@ public class RetroactionCommand
             // Create a simple analysis result
             var issues = new List<CodeIssue>
             {
-                new CodeIssue
+                new()
                 {
                     Type = IssueType.IneffectiveCode,
                     Location = "Line 20",

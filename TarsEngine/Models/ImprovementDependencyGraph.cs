@@ -12,12 +12,12 @@ public class ImprovementDependencyGraph
     /// <summary>
     /// Gets or sets the nodes in the graph
     /// </summary>
-    public List<ImprovementNode> Nodes { get; set; } = new List<ImprovementNode>();
+    public List<ImprovementNode> Nodes { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the edges in the graph
     /// </summary>
-    public List<ImprovementEdge> Edges { get; set; } = new List<ImprovementEdge>();
+    public List<ImprovementEdge> Edges { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the timestamp when the graph was created

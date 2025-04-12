@@ -41,12 +41,12 @@ public abstract class BaseMetric
     /// <summary>
     /// Gets or sets the metric tags
     /// </summary>
-    public List<string> Tags { get; set; } = new List<string>();
+    public List<string> Tags { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the metric metadata
     /// </summary>
-    public Dictionary<string, string> Metadata { get; set; } = new Dictionary<string, string>();
+    public Dictionary<string, string> Metadata { get; set; } = new();
 }
 
 /// <summary>

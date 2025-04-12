@@ -26,12 +26,12 @@ public class ContentClassification
     /// <summary>
     /// Gets or sets the secondary categories of the content
     /// </summary>
-    public List<ContentCategory> SecondaryCategories { get; set; } = new List<ContentCategory>();
+    public List<ContentCategory> SecondaryCategories { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the tags associated with the content
     /// </summary>
-    public List<string> Tags { get; set; } = new List<string>();
+    public List<string> Tags { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the relevance score (0-1) of the content
@@ -61,12 +61,12 @@ public class ContentClassification
     /// <summary>
     /// Gets or sets the metadata associated with the classification
     /// </summary>
-    public Dictionary<string, string> Metadata { get; set; } = new Dictionary<string, string>();
+    public Dictionary<string, string> Metadata { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the related content IDs
     /// </summary>
-    public List<string> RelatedContentIds { get; set; } = new List<string>();
+    public List<string> RelatedContentIds { get; set; } = new();
 }
 
 /// <summary>
@@ -238,12 +238,12 @@ public class ClassificationRule
     /// <summary>
     /// Gets or sets the keywords that trigger this rule
     /// </summary>
-    public List<string> Keywords { get; set; } = new List<string>();
+    public List<string> Keywords { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the regular expression patterns that trigger this rule
     /// </summary>
-    public List<string> Patterns { get; set; } = new List<string>();
+    public List<string> Patterns { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the minimum confidence score for this rule to apply
@@ -263,7 +263,7 @@ public class ClassificationRule
     /// <summary>
     /// Gets or sets the tags to apply if the rule matches
     /// </summary>
-    public List<string> Tags { get; set; } = new List<string>();
+    public List<string> Tags { get; set; } = new();
 }
 
 /// <summary>
@@ -279,7 +279,7 @@ public class ContentClassificationBatch
     /// <summary>
     /// Gets or sets the classifications in the batch
     /// </summary>
-    public List<ContentClassification> Classifications { get; set; } = new List<ContentClassification>();
+    public List<ContentClassification> Classifications { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the timestamp when the batch was created
@@ -294,5 +294,5 @@ public class ContentClassificationBatch
     /// <summary>
     /// Gets or sets the metadata associated with the batch
     /// </summary>
-    public Dictionary<string, string> Metadata { get; set; } = new Dictionary<string, string>();
+    public Dictionary<string, string> Metadata { get; set; } = new();
 }

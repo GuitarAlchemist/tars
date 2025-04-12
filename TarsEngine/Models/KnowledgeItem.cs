@@ -57,17 +57,17 @@ public class KnowledgeItem
     /// <summary>
     /// Gets or sets the tags associated with the knowledge item
     /// </summary>
-    public List<string> Tags { get; set; } = new List<string>();
+    public List<string> Tags { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the metadata associated with the knowledge item
     /// </summary>
-    public Dictionary<string, string> Metadata { get; set; } = new Dictionary<string, string>();
+    public Dictionary<string, string> Metadata { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the related knowledge item IDs
     /// </summary>
-    public List<string> RelatedIds { get; set; } = new List<string>();
+    public List<string> RelatedIds { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the validation status of the knowledge item
@@ -205,7 +205,7 @@ public class KnowledgeExtractionResult
     /// <summary>
     /// Gets or sets the extracted knowledge items
     /// </summary>
-    public List<KnowledgeItem> Items { get; set; } = new List<KnowledgeItem>();
+    public List<KnowledgeItem> Items { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the source of the extraction
@@ -220,17 +220,17 @@ public class KnowledgeExtractionResult
     /// <summary>
     /// Gets or sets the errors that occurred during extraction
     /// </summary>
-    public List<string> Errors { get; set; } = new List<string>();
+    public List<string> Errors { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the warnings that occurred during extraction
     /// </summary>
-    public List<string> Warnings { get; set; } = new List<string>();
+    public List<string> Warnings { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the metadata associated with the extraction
     /// </summary>
-    public Dictionary<string, string> Metadata { get; set; } = new Dictionary<string, string>();
+    public Dictionary<string, string> Metadata { get; set; } = new();
 }
 
 /// <summary>
@@ -256,7 +256,7 @@ public class KnowledgeValidationRule
     /// <summary>
     /// Gets or sets the knowledge types this rule applies to
     /// </summary>
-    public List<KnowledgeType> ApplicableTypes { get; set; } = new List<KnowledgeType>();
+    public List<KnowledgeType> ApplicableTypes { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the validation criteria
@@ -318,12 +318,12 @@ public class KnowledgeValidationResult
     /// <summary>
     /// Gets or sets the validation issues
     /// </summary>
-    public List<ValidationIssue> Issues { get; set; } = new List<ValidationIssue>();
+    public List<ValidationIssue> Issues { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the knowledge item being validated
     /// </summary>
-    public KnowledgeItem Item { get; set; } = new KnowledgeItem();
+    public KnowledgeItem Item { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the timestamp when the validation was performed

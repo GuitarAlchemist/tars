@@ -782,7 +782,7 @@ public class TutorialOrganizerService
 /// </summary>
 public class TutorialCatalog
 {
-    public List<TutorialCategory> Categories { get; set; } = new List<TutorialCategory>();
+    public List<TutorialCategory> Categories { get; set; } = new();
     public DateTime LastUpdated { get; set; }
 }
 
@@ -792,7 +792,7 @@ public class TutorialCatalog
 public class TutorialCategory
 {
     public required string Name { get; set; }
-    public List<Tutorial> Tutorials { get; set; } = new List<Tutorial>();
+    public List<Tutorial> Tutorials { get; set; } = new();
 }
 
 /// <summary>
@@ -805,8 +805,8 @@ public class Tutorial
     public required string Description { get; set; }
     public required string Category { get; set; }
     public DifficultyLevel DifficultyLevel { get; set; }
-    public List<string> Tags { get; set; } = new List<string>();
-    public List<string> Prerequisites { get; set; } = new List<string>();
+    public List<string> Tags { get; set; } = new();
+    public List<string> Prerequisites { get; set; } = new();
     public DateTime CreatedDate { get; set; }
     public DateTime LastModifiedDate { get; set; }
 }

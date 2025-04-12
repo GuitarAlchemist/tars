@@ -56,47 +56,47 @@ public class ExecutionContext
     /// <summary>
     /// Gets or sets the execution variables
     /// </summary>
-    public Dictionary<string, object> Variables { get; set; } = new Dictionary<string, object>();
+    public Dictionary<string, object> Variables { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the execution state
     /// </summary>
-    public Dictionary<string, object> State { get; set; } = new Dictionary<string, object>();
+    public Dictionary<string, object> State { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the execution permissions
     /// </summary>
-    public ExecutionPermissions Permissions { get; set; } = new ExecutionPermissions();
+    public ExecutionPermissions Permissions { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the execution options
     /// </summary>
-    public Dictionary<string, string> Options { get; set; } = new Dictionary<string, string>();
+    public Dictionary<string, string> Options { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the execution logs
     /// </summary>
-    public List<ExecutionLog> Logs { get; set; } = new List<ExecutionLog>();
+    public List<ExecutionLog> Logs { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the execution errors
     /// </summary>
-    public List<ExecutionError> Errors { get; set; } = new List<ExecutionError>();
+    public List<ExecutionError> Errors { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the execution warnings
     /// </summary>
-    public List<ExecutionWarning> Warnings { get; set; } = new List<ExecutionWarning>();
+    public List<ExecutionWarning> Warnings { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the execution metrics
     /// </summary>
-    public Dictionary<string, double> Metrics { get; set; } = new Dictionary<string, double>();
+    public Dictionary<string, double> Metrics { get; set; } = new();
 
     /// <summary>
     /// Gets or sets additional metadata about the execution context
     /// </summary>
-    public Dictionary<string, string> Metadata { get; set; } = new Dictionary<string, string>();
+    public Dictionary<string, string> Metadata { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the working directory for the execution
@@ -116,27 +116,27 @@ public class ExecutionContext
     /// <summary>
     /// Gets or sets the list of files affected by the execution
     /// </summary>
-    public List<string> AffectedFiles { get; set; } = new List<string>();
+    public List<string> AffectedFiles { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the list of files backed up by the execution
     /// </summary>
-    public List<string> BackedUpFiles { get; set; } = new List<string>();
+    public List<string> BackedUpFiles { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the list of files modified by the execution
     /// </summary>
-    public List<string> ModifiedFiles { get; set; } = new List<string>();
+    public List<string> ModifiedFiles { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the list of files created by the execution
     /// </summary>
-    public List<string> CreatedFiles { get; set; } = new List<string>();
+    public List<string> CreatedFiles { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the list of files deleted by the execution
     /// </summary>
-    public List<string> DeletedFiles { get; set; } = new List<string>();
+    public List<string> DeletedFiles { get; set; } = new();
 
     /// <summary>
     /// Gets or sets whether the execution is in dry run mode

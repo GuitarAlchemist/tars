@@ -356,6 +356,6 @@ If the file doesn't need improvement based on this knowledge, return it unchange
     private class RelevanceResult
     {
         [JsonPropertyName("relevant_indices")]
-        public List<int> RelevantIndices { get; set; } = new List<int>();
+        public List<int> RelevantIndices { get; set; } = new();
     }
 }

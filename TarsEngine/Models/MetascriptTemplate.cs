@@ -61,25 +61,25 @@ public class MetascriptTemplate
     /// <summary>
     /// Gets or sets the parameters required by the template
     /// </summary>
-    public List<MetascriptParameter> Parameters { get; set; } = new List<MetascriptParameter>();
+    public List<MetascriptParameter> Parameters { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the pattern IDs that can use this template
     /// </summary>
-    public List<string> ApplicablePatterns { get; set; } = new List<string>();
+    public List<string> ApplicablePatterns { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the list of tags associated with the template
     /// </summary>
-    public List<string> Tags { get; set; } = new List<string>();
+    public List<string> Tags { get; set; } = new();
 
     /// <summary>
     /// Gets or sets additional metadata about the template
     /// </summary>
-    public Dictionary<string, string> Metadata { get; set; } = new Dictionary<string, string>();
+    public Dictionary<string, string> Metadata { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the list of example metascripts generated from this template
     /// </summary>
-    public List<string> Examples { get; set; } = new List<string>();
+    public List<string> Examples { get; set; } = new();
 }

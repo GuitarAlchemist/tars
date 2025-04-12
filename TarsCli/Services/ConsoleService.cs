@@ -1,4 +1,5 @@
 using System.Text;
+using Spectre.Console;
 
 namespace TarsCli.Services;
 
@@ -101,6 +102,18 @@ public class ConsoleService
     }
 
     /// <summary>
+    /// Write a line to the console
+    /// </summary>
+    /// <param name="text">The text to write</param>
+    public void WriteLine(string text = "")
+    {
+        lock (_lock)
+        {
+            Console.WriteLine($"  {text}");
+        }
+    }
+
+    /// <summary>
     /// Write a colored line to the console
     /// </summary>
     /// <param name="text">The text to write</param>
@@ -186,6 +199,83 @@ public class ConsoleService
             }
 
             Console.WriteLine();
+        }
+    }
+
+    /// <summary>
+    /// Show a progress bar
+    /// </summary>
+    /// <param name="totalSteps">The total number of steps</param>
+    /// <param name="action">The action to perform with the progress context</param>
+    public void ShowProgress(int totalSteps, Action<ProgressContext> action)
+    {
+        lock (_lock)
+        {
+            AnsiConsole.Progress()
+                .AutoClear(true)
+                .HideCompleted(false)
+                .Columns(new ProgressColumn[]
+                {
+                    new TaskDescriptionColumn(),
+                    new ProgressBarColumn(),
+                    new PercentageColumn(),
+                    new RemainingTimeColumn(),
+                    new SpinnerColumn()
+                })
+                .Start(action);
+        }
+    }
+
+    /// <summary>
+    /// Show a spinner while performing an action
+    /// </summary>
+    /// <param name="message">The message to display</param>
+    /// <param name="action">The action to perform</param>
+    public void ShowSpinner(string message, Action action)
+    {
+        lock (_lock)
+        {
+            AnsiConsole.Status()
+                .AutoRefresh(true)
+                .Spinner(Spinner.Known.Dots)
+                .Start(message, ctx =>
+                {
+                    action();
+                });
+        }
+    }
+
+    /// <summary>
+    /// Show a spinner while performing an async action
+    /// </summary>
+    /// <param name="message">The message to display</param>
+    /// <param name="action">The async action to perform</param>
+    /// <returns>A task representing the asynchronous operation</returns>
+    public async Task ShowSpinnerAsync(string message, Func<Task> action)
+    {
+        // We can't use lock with await, so we'll use a semaphore instead
+        await AnsiConsole.Status()
+            .AutoRefresh(true)
+            .Spinner(Spinner.Known.Dots)
+            .StartAsync(message, async ctx =>
+            {
+                await action();
+            });
+    }
+
+    /// <summary>
+    /// Show a live output panel
+    /// </summary>
+    /// <param name="title">The panel title</param>
+    /// <param name="action">The action to perform with the live display</param>
+    public void ShowLiveOutput(string title, Action<LiveDisplayContext> action)
+    {
+        lock (_lock)
+        {
+            AnsiConsole.Live(new Panel(string.Empty)
+                .Header(title)
+                .Expand())
+                .Start(action);
         }
     }
 }

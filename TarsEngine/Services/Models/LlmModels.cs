@@ -35,5 +35,5 @@ public class OllamaResponse
 public class OllamaTagsResponse
 {
     [JsonPropertyName("models")]
-    public List<string> Models { get; set; } = new List<string>();
+    public List<string> Models { get; set; } = new();
 }

@@ -10,7 +10,7 @@ public class LearningService
 {
     private readonly ILogger<LearningService> _logger;
     private readonly string _learningDataPath;
-    private LearningData _learningData = new LearningData();
+    private LearningData _learningData = new();
 
     public LearningService(ILogger<LearningService> logger)
     {
@@ -404,6 +404,6 @@ public class LearningStatistics
     public int TotalPatternCount { get; set; }
     public double AverageFeedbackRating { get; set; }
     public List<LearningCodePattern> TopPatterns { get; set; } = [];
-    public Dictionary<string, int> FeedbackByType { get; set; } = new Dictionary<string, int>();
-    public Dictionary<int, int> FeedbackByRating { get; set; } = new Dictionary<int, int>();
+    public Dictionary<string, int> FeedbackByType { get; set; } = new();
+    public Dictionary<int, int> FeedbackByRating { get; set; } = new();
 }

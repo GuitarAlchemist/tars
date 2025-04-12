@@ -399,43 +399,43 @@ public class ImprovementPrioritizerService : IImprovementPrioritizerService
         return prioritizedImprovements;
     }
 
-    public async Task<PrioritizedImprovement?> GetImprovementAsync(string improvementId)
+    public Task<PrioritizedImprovement?> GetImprovementAsync(string improvementId)
     {
-        return _improvements.TryGetValue(improvementId, out var improvement) ? improvement : null;
+        return Task.FromResult(_improvements.TryGetValue(improvementId, out var improvement) ? improvement : null);
     }
 
-    public async Task<List<PrioritizedImprovement>> GetImprovementsAsync(Dictionary<string, string>? options = null)
+    public Task<List<PrioritizedImprovement>> GetImprovementsAsync(Dictionary<string, string>? options = null)
     {
-        return [.._improvements.Values];
+        return Task.FromResult(new List<PrioritizedImprovement>(_improvements.Values));
     }
 
-    public async Task<bool> SaveImprovementAsync(PrioritizedImprovement improvement)
+    public Task<bool> SaveImprovementAsync(PrioritizedImprovement improvement)
     {
         _improvements[improvement.Id] = improvement;
-        return true;
+        return Task.FromResult(true);
     }
 
-    public async Task<bool> RemoveImprovementAsync(string improvementId)
+    public Task<bool> RemoveImprovementAsync(string improvementId)
     {
-        return _improvements.Remove(improvementId);
+        return Task.FromResult(_improvements.Remove(improvementId));
     }
 
-    public async Task<Dictionary<string, string>> GetAvailablePrioritizationOptionsAsync()
+    public Task<Dictionary<string, string>> GetAvailablePrioritizationOptionsAsync()
     {
-        return new Dictionary<string, string>
+        return Task.FromResult(new Dictionary<string, string>
         {
             { "ImpactWeight", "Weight for impact (0.0-1.0)" },
             { "EffortWeight", "Weight for effort (0.0-1.0)" },
             { "RiskWeight", "Weight for risk (0.0-1.0)" }
-        };
+        });
     }
 
     // Implement the missing methods from the interface
-    public async Task<PrioritizedImprovement> PrioritizeImprovementAsync(PrioritizedImprovement improvement, Dictionary<string, string>? options = null)
+    public Task<PrioritizedImprovement> PrioritizeImprovementAsync(PrioritizedImprovement improvement, Dictionary<string, string>? options = null)
     {
         improvement.PriorityScore = 0.5; // Default priority score
         improvement.PrioritizedAt = DateTime.UtcNow;
-        return improvement;
+        return Task.FromResult(improvement);
     }
 
     public async Task<List<PrioritizedImprovement>> PrioritizeImprovementsAsync(List<PrioritizedImprovement> improvements, Dictionary<string, string>? options = null)

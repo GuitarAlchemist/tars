@@ -31,12 +31,12 @@ public class DocumentParsingResult
     /// <summary>
     /// Gets or sets the parsed content sections
     /// </summary>
-    public List<ContentSection> Sections { get; set; } = new List<ContentSection>();
+    public List<ContentSection> Sections { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the metadata extracted from the document
     /// </summary>
-    public Dictionary<string, string> Metadata { get; set; } = new Dictionary<string, string>();
+    public Dictionary<string, string> Metadata { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the timestamp when the document was parsed
@@ -46,12 +46,12 @@ public class DocumentParsingResult
     /// <summary>
     /// Gets or sets any errors that occurred during parsing
     /// </summary>
-    public List<string> Errors { get; set; } = new List<string>();
+    public List<string> Errors { get; set; } = new();
 
     /// <summary>
     /// Gets or sets any warnings that occurred during parsing
     /// </summary>
-    public List<string> Warnings { get; set; } = new List<string>();
+    public List<string> Warnings { get; set; } = new();
 
     /// <summary>
     /// Gets whether the parsing was successful
@@ -92,7 +92,7 @@ public class ContentSection
     /// <summary>
     /// Gets or sets the code blocks in the section (if any)
     /// </summary>
-    public List<CodeBlock> CodeBlocks { get; set; } = new List<CodeBlock>();
+    public List<CodeBlock> CodeBlocks { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the order of the section in the document
@@ -107,7 +107,7 @@ public class ContentSection
     /// <summary>
     /// Gets or sets the metadata for the section
     /// </summary>
-    public Dictionary<string, string> Metadata { get; set; } = new Dictionary<string, string>();
+    public Dictionary<string, string> Metadata { get; set; } = new();
 }
 
 /// <summary>
@@ -153,7 +153,7 @@ public class CodeBlock
     /// <summary>
     /// Gets or sets the metadata for the code block
     /// </summary>
-    public Dictionary<string, string> Metadata { get; set; } = new Dictionary<string, string>();
+    public Dictionary<string, string> Metadata { get; set; } = new();
 }
 
 /// <summary>

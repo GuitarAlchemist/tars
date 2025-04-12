@@ -94,17 +94,17 @@ public class CollaborationService
                     Enabled = true,
                     Components = new Dictionary<string, ComponentConfig>
                     {
-                        ["vscode"] = new ComponentConfig
+                        ["vscode"] = new()
                         {
                             Role = "user_interface",
                             Capabilities = ["file_editing", "terminal_execution", "agent_coordination"]
                         },
-                        ["augment"] = new ComponentConfig
+                        ["augment"] = new()
                         {
                             Role = "code_understanding",
                             Capabilities = ["codebase_analysis", "code_generation", "refactoring"]
                         },
-                        ["tars"] = new ComponentConfig
+                        ["tars"] = new()
                         {
                             Role = "specialized_processing",
                             Capabilities = ["metascript_execution", "dsl_processing", "self_improvement"]

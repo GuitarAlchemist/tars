@@ -36,7 +36,7 @@ public class DuplicationAnalyzer : IDuplicationAnalyzer
             // This is a demo implementation
             var metrics = new List<DuplicationMetric>
             {
-                new DuplicationMetric
+                new()
                 {
                     Name = "Token-Based Duplication",
                     Description = "Token-based duplication analysis",
@@ -99,7 +99,7 @@ public class DuplicationAnalyzer : IDuplicationAnalyzer
             // This is a demo implementation
             var metrics = new List<DuplicationMetric>
             {
-                new DuplicationMetric
+                new()
                 {
                     Name = "Semantic Duplication",
                     Description = "Semantic duplication analysis",
@@ -174,7 +174,7 @@ public class DuplicationAnalyzer : IDuplicationAnalyzer
             // This is a demo implementation
             var metrics = new List<DuplicationMetric>
             {
-                new DuplicationMetric
+                new()
                 {
                     Name = "Project Duplication",
                     Description = "Project-level duplication analysis",
@@ -189,7 +189,7 @@ public class DuplicationAnalyzer : IDuplicationAnalyzer
                     DuplicatedBlockCount = 12,
                     Timestamp = DateTime.UtcNow
                 },
-                new DuplicationMetric
+                new()
                 {
                     Name = "Project Semantic Duplication",
                     Description = "Project-level semantic duplication analysis",

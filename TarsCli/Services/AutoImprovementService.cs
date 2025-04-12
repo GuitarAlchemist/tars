@@ -576,12 +576,12 @@ public class AutoImprovementState
     /// <summary>
     /// Files that have been processed
     /// </summary>
-    public List<string> ProcessedFiles { get; set; } = new List<string>();
+    public List<string> ProcessedFiles { get; set; } = new();
 
     /// <summary>
     /// Files that are pending processing
     /// </summary>
-    public List<string> PendingFiles { get; set; } = new List<string>();
+    public List<string> PendingFiles { get; set; } = new();
 
     /// <summary>
     /// Current file being processed
@@ -596,7 +596,7 @@ public class AutoImprovementState
     /// <summary>
     /// Files that were successfully improved
     /// </summary>
-    public List<string> ImprovedFiles { get; set; } = new List<string>();
+    public List<string> ImprovedFiles { get; set; } = new();
 
     /// <summary>
     /// Total number of improvements made
@@ -606,7 +606,7 @@ public class AutoImprovementState
     /// <summary>
     /// The file priority scores
     /// </summary>
-    public Dictionary<string, FilePriorityScore> FilePriorityScores { get; set; } = new Dictionary<string, FilePriorityScore>();
+    public Dictionary<string, FilePriorityScore> FilePriorityScores { get; set; } = new();
 
     /// <summary>
     /// The last time the state was updated
@@ -616,7 +616,7 @@ public class AutoImprovementState
     /// <summary>
     /// The history of improvements made
     /// </summary>
-    public List<ImprovementRecord> ImprovementHistory { get; set; } = new List<ImprovementRecord>();
+    public List<ImprovementRecord> ImprovementHistory { get; set; } = new();
 }
 
 /// <summary>
@@ -713,12 +713,12 @@ public class AutoImprovementStatus
     /// <summary>
     /// The top priority files (up to 5)
     /// </summary>
-    public List<FilePriorityInfo> TopPriorityFiles { get; set; } = new List<FilePriorityInfo>();
+    public List<FilePriorityInfo> TopPriorityFiles { get; set; } = new();
 
     /// <summary>
     /// The recent improvements (up to 5)
     /// </summary>
-    public List<ImprovementInfo> RecentImprovements { get; set; } = new List<ImprovementInfo>();
+    public List<ImprovementInfo> RecentImprovements { get; set; } = new();
 }
 
 /// <summary>

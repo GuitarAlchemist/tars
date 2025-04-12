@@ -42,7 +42,8 @@ public class CodeAnalyzerService : ICodeAnalyzerService
             {
                 var analysisResult = new CodeAnalysisResult
                 {
-                    // Path property removed
+                    FilePath = filePath,
+                    ErrorMessage = "File does not exist",
                     IsSuccessful = false,
                     Errors = { "File does not exist" }
                 };
@@ -54,7 +55,8 @@ public class CodeAnalyzerService : ICodeAnalyzerService
             {
                 var analysisResult = new CodeAnalysisResult
                 {
-                    // Path property removed
+                    FilePath = filePath,
+                    ErrorMessage = "Unsupported file type",
                     IsSuccessful = false,
                     Errors = { "Unsupported file type" }
                 };
@@ -82,7 +84,8 @@ public class CodeAnalyzerService : ICodeAnalyzerService
             _logger.LogError(ex, "Error analyzing file: {FilePath}", filePath);
             var result = new CodeAnalysisResult
             {
-                // FilePath will be set below
+                FilePath = filePath,
+                ErrorMessage = $"Error analyzing file: {ex.Message}",
                 IsSuccessful = false,
                 Errors = { $"Error analyzing file: {ex.Message}" }
             };
@@ -110,7 +113,8 @@ public class CodeAnalyzerService : ICodeAnalyzerService
             {
                 var result = new CodeAnalysisResult
                 {
-                    // Path property removed
+                    FilePath = directoryPath,
+                    ErrorMessage = "Directory does not exist",
                     IsSuccessful = false,
                     Errors = { "Directory does not exist" }
                 };
@@ -153,7 +157,8 @@ public class CodeAnalyzerService : ICodeAnalyzerService
             [
                 new CodeAnalysisResult
                 {
-                    // Path property removed
+                    FilePath = directoryPath,
+                    ErrorMessage = $"Error analyzing directory: {ex.Message}",
                     IsSuccessful = false,
                     Errors = { $"Error analyzing directory: {ex.Message}" }
                 }
@@ -172,6 +177,8 @@ public class CodeAnalyzerService : ICodeAnalyzerService
             {
                 return new CodeAnalysisResult
                 {
+                    FilePath = string.Empty,
+                    ErrorMessage = "Content is empty or whitespace",
                     Language = ProgrammingLanguage.Unknown,
                     IsSuccessful = false,
                     Errors = { "Content is empty or whitespace" }
@@ -182,6 +189,8 @@ public class CodeAnalyzerService : ICodeAnalyzerService
             {
                 return new CodeAnalysisResult
                 {
+                    FilePath = string.Empty,
+                    ErrorMessage = $"Unsupported language: {language}",
                     Language = ProgrammingLanguage.Unknown,
                     IsSuccessful = false,
                     Errors = { $"Unsupported language: {language}" }
@@ -211,6 +220,8 @@ public class CodeAnalyzerService : ICodeAnalyzerService
             _logger.LogError(ex, "Error analyzing content of language: {Language}", language);
             return new CodeAnalysisResult
             {
+                FilePath = string.Empty,
+                ErrorMessage = $"Error analyzing content: {ex.Message}",
                 Language = ProgrammingLanguage.Unknown,
                 IsSuccessful = false,
                 Errors = { $"Error analyzing content: {ex.Message}" }

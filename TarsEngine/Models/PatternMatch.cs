@@ -36,7 +36,7 @@ public class PatternMatch
     /// <summary>
     /// Gets or sets the location of the match in the code
     /// </summary>
-    public CodeLocation Location { get; set; } = new CodeLocation();
+    public CodeLocation Location { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the matched text
@@ -86,10 +86,10 @@ public class PatternMatch
     /// <summary>
     /// Gets or sets the list of tags associated with the match
     /// </summary>
-    public List<string> Tags { get; set; } = new List<string>();
+    public List<string> Tags { get; set; } = new();
 
     /// <summary>
     /// Gets or sets additional metadata about the match
     /// </summary>
-    public Dictionary<string, string> Metadata { get; set; } = new Dictionary<string, string>();
+    public Dictionary<string, string> Metadata { get; set; } = new();
 }

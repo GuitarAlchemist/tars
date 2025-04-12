@@ -40,7 +40,7 @@ public class ValidationRule
     /// <summary>
     /// Gets or sets the parameters of the validation rule
     /// </summary>
-    public Dictionary<string, string> Parameters { get; set; } = new Dictionary<string, string>();
+    public Dictionary<string, string> Parameters { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the error message of the validation rule
@@ -55,5 +55,5 @@ public class ValidationRule
     /// <summary>
     /// Gets or sets additional metadata about the validation rule
     /// </summary>
-    public Dictionary<string, string> Metadata { get; set; } = new Dictionary<string, string>();
+    public Dictionary<string, string> Metadata { get; set; } = new();
 }

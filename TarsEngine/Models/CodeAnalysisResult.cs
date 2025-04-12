@@ -31,17 +31,17 @@ public class CodeAnalysisResult
     /// <summary>
     /// Gets or sets the list of code issues found during analysis
     /// </summary>
-    public List<CodeIssue> Issues { get; set; } = new List<CodeIssue>();
+    public List<CodeIssue> Issues { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the list of code metrics calculated during analysis
     /// </summary>
-    public List<CodeMetric> Metrics { get; set; } = new List<CodeMetric>();
+    public List<CodeMetric> Metrics { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the list of code structures identified during analysis
     /// </summary>
-    public List<CodeStructure> Structures { get; set; } = new List<CodeStructure>();
+    public List<CodeStructure> Structures { get; set; } = new();
 
     /// <summary>
     /// Gets or sets whether the analysis was successful
@@ -51,73 +51,12 @@ public class CodeAnalysisResult
     /// <summary>
     /// Gets or sets the list of errors that occurred during analysis
     /// </summary>
-    public List<string> Errors { get; set; } = new List<string>();
+    public List<string> Errors { get; set; } = new();
 
     /// <summary>
     /// Gets or sets additional metadata about the analysis
     /// </summary>
-    public Dictionary<string, string> Metadata { get; set; } = new Dictionary<string, string>();
-}
-
-/// <summary>
-/// Represents an issue found in code during analysis
-/// </summary>
-public class CodeIssue
-{
-    /// <summary>
-    /// Gets or sets the ID of the issue
-    /// </summary>
-    public string Id { get; set; } = Guid.NewGuid().ToString();
-
-    /// <summary>
-    /// Gets or sets the type of the issue
-    /// </summary>
-    public CodeIssueType Type { get; set; }
-
-    /// <summary>
-    /// Gets or sets the severity of the issue
-    /// </summary>
-    public IssueSeverity Severity { get; set; }
-
-    /// <summary>
-    /// Gets or sets the title of the issue
-    /// </summary>
-    public string Title { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Gets or sets the description of the issue
-    /// </summary>
-    public string Description { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Gets or sets the location of the issue in the code
-    /// </summary>
-    public CodeLocation Location { get; set; } = new CodeLocation();
-
-    /// <summary>
-    /// Gets or sets the code snippet containing the issue
-    /// </summary>
-    public string CodeSnippet { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Gets or sets the suggested fix for the issue
-    /// </summary>
-    public string SuggestedFix { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Gets or sets the impact score of the issue (0.0 to 1.0)
-    /// </summary>
-    public double ImpactScore { get; set; }
-
-    /// <summary>
-    /// Gets or sets the fix difficulty score of the issue (0.0 to 1.0)
-    /// </summary>
-    public double FixDifficultyScore { get; set; }
-
-    /// <summary>
-    /// Gets or sets additional tags for the issue
-    /// </summary>
-    public List<string> Tags { get; set; } = new List<string>();
+    public Dictionary<string, string> Metadata { get; set; } = new();
 }
 
 /// <summary>
@@ -153,7 +92,7 @@ public class CodeMetric
     /// <summary>
     /// Gets or sets the location of the code for which the metric was calculated
     /// </summary>
-    public CodeLocation Location { get; set; } = new CodeLocation();
+    public CodeLocation Location { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the threshold for good values of this metric
@@ -191,57 +130,6 @@ public class CodeMetric
             }
         }
     }
-}
-
-/// <summary>
-/// Represents a code structure identified during analysis
-/// </summary>
-public class CodeStructure
-{
-    /// <summary>
-    /// Gets or sets the type of the structure
-    /// </summary>
-    public StructureType Type { get; set; }
-
-    /// <summary>
-    /// Gets or sets the name of the structure
-    /// </summary>
-    public string Name { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Gets or sets the location of the structure in the code
-    /// </summary>
-    public CodeLocation Location { get; set; } = new CodeLocation();
-
-    /// <summary>
-    /// Gets or sets the parent structure, if any
-    /// </summary>
-    public string? ParentName { get; set; }
-
-    /// <summary>
-    /// Gets or sets the list of child structure names
-    /// </summary>
-    public List<string> ChildNames { get; set; } = new List<string>();
-
-    /// <summary>
-    /// Gets or sets the list of dependencies for this structure
-    /// </summary>
-    public List<string> Dependencies { get; set; } = new List<string>();
-
-    /// <summary>
-    /// Gets or sets the complexity score of the structure
-    /// </summary>
-    public double ComplexityScore { get; set; }
-
-    /// <summary>
-    /// Gets or sets the size of the structure (lines of code)
-    /// </summary>
-    public int Size { get; set; }
-
-    /// <summary>
-    /// Gets or sets additional properties of the structure
-    /// </summary>
-    public Dictionary<string, string> Properties { get; set; } = new Dictionary<string, string>();
 }
 
 /// <summary>
@@ -288,92 +176,6 @@ public class CodeLocation
     /// Gets or sets the method name
     /// </summary>
     public string MethodName { get; set; } = string.Empty;
-}
-
-/// <summary>
-/// Represents the type of a code issue
-/// </summary>
-public enum CodeIssueType
-{
-    /// <summary>
-    /// Code smell
-    /// </summary>
-    CodeSmell,
-
-    /// <summary>
-    /// Bug
-    /// </summary>
-    Bug,
-
-    /// <summary>
-    /// Vulnerability
-    /// </summary>
-    Vulnerability,
-
-    /// <summary>
-    /// Security hotspot
-    /// </summary>
-    SecurityHotspot,
-
-    /// <summary>
-    /// Performance issue
-    /// </summary>
-    Performance,
-
-    /// <summary>
-    /// Maintainability issue
-    /// </summary>
-    Maintainability,
-
-    /// <summary>
-    /// Design issue
-    /// </summary>
-    Design,
-
-    /// <summary>
-    /// Documentation issue
-    /// </summary>
-    Documentation,
-
-    /// <summary>
-    /// Duplication
-    /// </summary>
-    Duplication,
-
-    /// <summary>
-    /// Complexity
-    /// </summary>
-    Complexity,
-
-    /// <summary>
-    /// Style
-    /// </summary>
-    Style,
-
-    /// <summary>
-    /// Naming
-    /// </summary>
-    Naming,
-
-    /// <summary>
-    /// Unused code
-    /// </summary>
-    UnusedCode,
-
-    /// <summary>
-    /// Dead code
-    /// </summary>
-    DeadCode,
-
-    /// <summary>
-    /// Security issue
-    /// </summary>
-    Security,
-
-    /// <summary>
-    /// Other issue
-    /// </summary>
-    Other
 }
 
 /// <summary>

@@ -7,7 +7,7 @@
     <Nullable>enable</Nullable>
     <AssemblyName>tarscli</AssemblyName>
     <!-- Suppress non-critical warnings -->
-    <NoWarn>$(NoWarn);CS1591;CS1998;CS8618;CS8601;CS8602;CS8603;CS8604;CS8619;CS0168;CS0414;CS8600;CS8625</NoWarn>
+    <NoWarn>$(NoWarn);CS1591;CS1998;CS8618;CS8601;CS8602;CS8603;CS8604;CS8619;CS0168;CS0414;CS8600;CS8625;CS9113;NU1608</NoWarn>
     <!-- Generate XML documentation for IntelliSense but don't require all members to be documented -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
@@ -24,11 +24,10 @@
     <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.0" />
     <PackageReference Include="NLog" Version="5.4.0" />
     <PackageReference Include="NLog.Extensions.Logging" Version="5.3.5" />
+    <PackageReference Include="Spectre.Console" Version="0.50.0" />
     <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
     <PackageReference Include="FSharp.Core" Version="9.0.201" />
-    <PackageReference Include="FSharp.Compiler.Service" Version="43.8.200">
-      <NoWarn>NU1608</NoWarn>
-    </PackageReference>
+    <PackageReference Include="FSharp.Compiler.Service" Version="43.8.200" />
     <PackageReference Include="NAudio" Version="2.2.1" Condition="'$(OS)' == 'Windows_NT'" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Core" Version="2.2.5" />
   </ItemGroup>

@@ -11,7 +11,7 @@ namespace TarsCli.Services
         /// <summary>
         /// Gets the default JSON serializer options for the application
         /// </summary>
-        public static JsonSerializerOptions DefaultOptions => new JsonSerializerOptions
+        public static JsonSerializerOptions DefaultOptions => new()
         {
             WriteIndented = true,
             PropertyNameCaseInsensitive = true,
@@ -25,7 +25,7 @@ namespace TarsCli.Services
         /// <summary>
         /// Gets JSON serializer options optimized for deserializing AI responses
         /// </summary>
-        public static JsonSerializerOptions AiResponseOptions => new JsonSerializerOptions
+        public static JsonSerializerOptions AiResponseOptions => new()
         {
             PropertyNameCaseInsensitive = true,
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,

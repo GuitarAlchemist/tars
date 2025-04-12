@@ -60,5 +60,8 @@ public class CodeIssue
     /// </summary>
     public List<string> Tags { get; set; } = new();
 
-    public string Code { get; set; }
+    /// <summary>
+    /// Gets or sets the code that caused the issue
+    /// </summary>
+    public string Code { get; set; } = string.Empty;
 }

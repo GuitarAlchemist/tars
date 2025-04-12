@@ -56,35 +56,35 @@ public class ExecutionPlanResult
     /// <summary>
     /// Gets or sets the step results of the execution plan
     /// </summary>
-    public List<ExecutionStepResult> StepResults { get; set; } = new List<ExecutionStepResult>();
+    public List<ExecutionStepResult> StepResults { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the list of files modified by the execution plan
     /// </summary>
-    public List<string> ModifiedFiles { get; set; } = new List<string>();
+    public List<string> ModifiedFiles { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the list of files created by the execution plan
     /// </summary>
-    public List<string> CreatedFiles { get; set; } = new List<string>();
+    public List<string> CreatedFiles { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the list of files deleted by the execution plan
     /// </summary>
-    public List<string> DeletedFiles { get; set; } = new List<string>();
+    public List<string> DeletedFiles { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the list of files backed up by the execution plan
     /// </summary>
-    public List<string> BackedUpFiles { get; set; } = new List<string>();
+    public List<string> BackedUpFiles { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the metrics of the execution plan
     /// </summary>
-    public Dictionary<string, double> Metrics { get; set; } = new Dictionary<string, double>();
+    public Dictionary<string, double> Metrics { get; set; } = new();
 
     /// <summary>
     /// Gets or sets additional metadata about the execution plan result
     /// </summary>
-    public Dictionary<string, string> Metadata { get; set; } = new Dictionary<string, string>();
+    public Dictionary<string, string> Metadata { get; set; } = new();
 }

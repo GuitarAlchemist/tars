@@ -46,5 +46,5 @@ public class Transaction
     /// <summary>
     /// Gets or sets the operations in the transaction
     /// </summary>
-    public List<Operation> Operations { get; set; } = new List<Operation>();
+    public List<Operation> Operations { get; set; } = new();
 }

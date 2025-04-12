@@ -31,7 +31,7 @@ public class FSharpComplexityAnalyzer : ICodeComplexityAnalyzer
         _logger = logger;
         _thresholds = new Dictionary<string, Dictionary<ModelComplexityType, Dictionary<string, double>>>
         {
-            ["F#"] = new Dictionary<ModelComplexityType, Dictionary<string, double>>
+            ["F#"] = new()
             {
                 [ModelComplexityType.Cyclomatic] = new Dictionary<string, double>
                 {

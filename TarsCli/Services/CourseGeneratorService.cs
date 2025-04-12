@@ -466,10 +466,10 @@ public class Course
 public class CourseContent
 {
     public required string Overview { get; set; }
-    public List<string> LearningObjectives { get; set; } = new List<string>();
-    public List<Lesson> Lessons { get; set; } = new List<Lesson>();
+    public List<string> LearningObjectives { get; set; } = new();
+    public List<Lesson> Lessons { get; set; } = new();
     public required FinalAssessment FinalAssessment { get; set; }
-    public List<AdditionalResource> AdditionalResources { get; set; } = new List<AdditionalResource>();
+    public List<AdditionalResource> AdditionalResources { get; set; } = new();
 }
 
 /// <summary>
@@ -478,11 +478,11 @@ public class CourseContent
 public class Lesson
 {
     public required string Title { get; set; }
-    public List<string> Objectives { get; set; } = new List<string>();
+    public List<string> Objectives { get; set; } = new();
     public int EstimatedMinutes { get; set; }
     public required string Content { get; set; }
-    public List<Exercise> Exercises { get; set; } = new List<Exercise>();
-    public List<QuizQuestion> QuizQuestions { get; set; } = new List<QuizQuestion>();
+    public List<Exercise> Exercises { get; set; } = new();
+    public List<QuizQuestion> QuizQuestions { get; set; } = new();
 }
 
 /// <summary>
@@ -501,7 +501,7 @@ public class Exercise
 public class QuizQuestion
 {
     public required string Question { get; set; }
-    public List<string> Options { get; set; } = new List<string>();
+    public List<string> Options { get; set; } = new();
     public int CorrectAnswerIndex { get; set; }
     public required string Explanation { get; set; }
 }
@@ -513,7 +513,7 @@ public class FinalAssessment
 {
     public required string Title { get; set; }
     public required string Description { get; set; }
-    public List<string> Criteria { get; set; } = new List<string>();
+    public List<string> Criteria { get; set; } = new();
     public int EstimatedHours { get; set; }
 }
 

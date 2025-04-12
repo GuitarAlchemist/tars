@@ -41,25 +41,25 @@ public class VirtualFileSystemContext
     /// <summary>
     /// Gets or sets the virtual files
     /// </summary>
-    public Dictionary<string, VirtualFile> VirtualFiles { get; set; } = new Dictionary<string, VirtualFile>();
+    public Dictionary<string, VirtualFile> VirtualFiles { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the list of modified files
     /// </summary>
-    public HashSet<string> ModifiedFiles { get; set; } = new HashSet<string>();
+    public HashSet<string> ModifiedFiles { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the list of created files
     /// </summary>
-    public HashSet<string> CreatedFiles { get; set; } = new HashSet<string>();
+    public HashSet<string> CreatedFiles { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the list of deleted files
     /// </summary>
-    public HashSet<string> DeletedFiles { get; set; } = new HashSet<string>();
+    public HashSet<string> DeletedFiles { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the list of backed up files
     /// </summary>
-    public HashSet<string> BackedUpFiles { get; set; } = new HashSet<string>();
+    public HashSet<string> BackedUpFiles { get; set; } = new();
 }

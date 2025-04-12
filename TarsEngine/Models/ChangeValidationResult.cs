@@ -46,7 +46,7 @@ public class ChangeValidationResult
     /// <summary>
     /// Gets or sets the validation results
     /// </summary>
-    public List<ValidationResult> ValidationResults { get; set; } = new List<ValidationResult>();
+    public List<ValidationResult> ValidationResults { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the test result

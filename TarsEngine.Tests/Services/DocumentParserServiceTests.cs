@@ -97,9 +97,9 @@ This is section 2.";
         Assert.Equal(DocumentType.Markdown, result.DocumentType);
         Assert.Equal("Test Document", result.Title);
         Assert.Equal(3, result.Sections.Count);
-        Assert.Equal(1, result.Sections[1].CodeBlocks.Count);
+        Assert.Single(result.Sections[1].CodeBlocks);
         Assert.Equal("csharp", result.Sections[1].CodeBlocks[0].Language);
-        Assert.Equal("Console.WriteLine(\"Hello, World!\");", result.Sections[1].CodeBlocks[0].Code);
+        Assert.Equal("Console.WriteLine(\"Hello, World!\");".TrimEnd('\r'), result.Sections[1].CodeBlocks[0].Code.TrimEnd('\r'));
     }
 
     [Fact]
@@ -129,13 +129,7 @@ Assistant: You can use the CLI commands to interact with TARS.";
     public async Task ExtractCodeBlocksAsync_ShouldExtractCodeBlocks()
     {
         // Arrange
-        var content = @"```csharp
-Console.WriteLine(""Hello, World!"");
-```
-
-```fsharp
-printfn ""Hello, World!""
-```";
+        var content = "```csharp\nConsole.WriteLine(\"Hello, World!\");\n```\n\n```fsharp\nprintfn \"Hello, World!\"\n```";
 
         // Act
         var codeBlocks = await _documentParserService.ExtractCodeBlocksAsync(content);
@@ -143,8 +137,8 @@ printfn ""Hello, World!""
         // Assert
         Assert.Equal(2, codeBlocks.Count);
         Assert.Equal("csharp", codeBlocks[0].Language);
-        Assert.Equal("Console.WriteLine(\"Hello, World!\");", codeBlocks[0].Code);
+        Assert.Equal("Console.WriteLine(\"Hello, World!\");".TrimEnd('\r'), codeBlocks[0].Code.TrimEnd('\r'));
         Assert.Equal("fsharp", codeBlocks[1].Language);
-        Assert.Equal("printfn \"Hello, World!\"", codeBlocks[1].Code);
+        Assert.Equal("printfn \"Hello, World!\"".TrimEnd('\r'), codeBlocks[1].Code.TrimEnd('\r'));
     }
 }

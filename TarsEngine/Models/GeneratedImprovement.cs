@@ -56,15 +56,15 @@ public class GeneratedImprovement
     /// <summary>
     /// Gets or sets the list of files affected by the improvement
     /// </summary>
-    public List<string> AffectedFiles { get; set; } = new List<string>();
+    public List<string> AffectedFiles { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the list of tags associated with the improvement
     /// </summary>
-    public List<string> Tags { get; set; } = new List<string>();
+    public List<string> Tags { get; set; } = new();
 
     /// <summary>
     /// Gets or sets additional metadata about the improvement
     /// </summary>
-    public Dictionary<string, string> Metadata { get; set; } = new Dictionary<string, string>();
+    public Dictionary<string, string> Metadata { get; set; } = new();
 }

@@ -65,7 +65,7 @@ namespace TarsEngine.Models.Unified
         /// <summary>
         /// Gets or sets the list of duplicate locations
         /// </summary>
-        public List<DuplicateLocation> DuplicateLocations { get; set; } = new List<DuplicateLocation>();
+        public List<DuplicateLocation> DuplicateLocations { get; set; } = new();
     }
 
     /// <summary>

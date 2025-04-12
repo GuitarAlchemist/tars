@@ -41,7 +41,7 @@ public class CSharpReadabilityAnalyzer : IReadabilityAnalyzer
         _logger = logger;
         _thresholds = new Dictionary<string, Dictionary<ReadabilityType, Dictionary<string, double>>>
         {
-            ["C#"] = new Dictionary<ReadabilityType, Dictionary<string, double>>
+            ["C#"] = new()
             {
                 [ReadabilityType.IdentifierQuality] = new Dictionary<string, double>
                 {

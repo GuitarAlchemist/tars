@@ -26,17 +26,17 @@ public class MetascriptValidationResult
     /// <summary>
     /// Gets or sets the validation messages
     /// </summary>
-    public List<string> Messages { get; set; } = new List<string>();
+    public List<string> Messages { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the validation errors
     /// </summary>
-    public List<string> Errors { get; set; } = new List<string>();
+    public List<string> Errors { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the validation warnings
     /// </summary>
-    public List<string> Warnings { get; set; } = new List<string>();
+    public List<string> Warnings { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the timestamp when the validation was performed
@@ -51,5 +51,5 @@ public class MetascriptValidationResult
     /// <summary>
     /// Gets or sets additional metadata about the validation
     /// </summary>
-    public Dictionary<string, string> Metadata { get; set; } = new Dictionary<string, string>();
+    public Dictionary<string, string> Metadata { get; set; } = new();
 }

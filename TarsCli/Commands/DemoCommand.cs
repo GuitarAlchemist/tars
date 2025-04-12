@@ -9,14 +9,21 @@ namespace TarsCli.Commands;
 /// </summary>
 public class DemoCommand : Command
 {
+    private readonly IServiceProvider? _serviceProvider;
+
     /// <summary>
     /// Create a new demo command
     /// </summary>
-    public DemoCommand() : base("demo", "Run demos of TARS features")
+    /// <param name="serviceProvider">Service provider (optional)</param>
+    public DemoCommand(IServiceProvider? serviceProvider = null) : base("demo", "Run demos of TARS features")
     {
+        _serviceProvider = serviceProvider;
         // Add subcommands
-        AddCommand(new ModelProvidersCommand());
-        AddCommand(new AllFeaturesCommand());
+        AddCommand(new ModelProvidersCommand(_serviceProvider));
+        AddCommand(new AllFeaturesCommand(_serviceProvider));
+        AddCommand(new AugmentVSCodeDemoCommand(
+            _serviceProvider?.GetService<ILogger<AugmentVSCodeDemoCommand>>(),
+            _serviceProvider));
     }
 
     /// <summary>
@@ -24,12 +31,21 @@ public class DemoCommand : Command
     /// </summary>
     private class ModelProvidersCommand : Command
     {
-        public ModelProvidersCommand() : base("model-providers", "Demo model providers (Ollama and Docker Model Runner)")
+        private readonly IServiceProvider? _serviceProvider;
+
+        public ModelProvidersCommand(IServiceProvider? serviceProvider) : base("model-providers", "Demo model providers (Ollama and Docker Model Runner)")
         {
+            _serviceProvider = serviceProvider;
             this.SetHandler(async (context) =>
             {
-                var serviceProvider = context.BindingContext.GetService<IServiceProvider>()
-                    ?? throw new InvalidOperationException("Service provider not found");
+                var serviceProvider = _serviceProvider ?? context.BindingContext.GetService<IServiceProvider>();
+
+                if (serviceProvider == null)
+                {
+                    Console.WriteLine("Error: Service provider not found. Please run the command through the TarsCli application.");
+                    context.ExitCode = 1;
+                    return;
+                }
                 var logger = serviceProvider.GetRequiredService<ILogger<DemoCommand>>();
                 var consoleService = serviceProvider.GetRequiredService<ConsoleService>();
                 var modelProviderFactory = serviceProvider.GetRequiredService<ModelProviderFactory>();
@@ -136,12 +152,21 @@ public class DemoCommand : Command
     /// </summary>
     private class AllFeaturesCommand : Command
     {
-        public AllFeaturesCommand() : base("all", "Demo all TARS features")
+        private readonly IServiceProvider? _serviceProvider;
+
+        public AllFeaturesCommand(IServiceProvider? serviceProvider) : base("all", "Demo all TARS features")
         {
+            _serviceProvider = serviceProvider;
             this.SetHandler(async (context) =>
             {
-                var serviceProvider = context.BindingContext.GetService<IServiceProvider>()
-                    ?? throw new InvalidOperationException("Service provider not found");
+                var serviceProvider = _serviceProvider ?? context.BindingContext.GetService<IServiceProvider>();
+
+                if (serviceProvider == null)
+                {
+                    Console.WriteLine("Error: Service provider not found. Please run the command through the TarsCli application.");
+                    context.ExitCode = 1;
+                    return;
+                }
                 var logger = serviceProvider.GetRequiredService<ILogger<DemoCommand>>();
                 var consoleService = serviceProvider.GetRequiredService<ConsoleService>();
                 var modelProviderFactory = serviceProvider.GetRequiredService<ModelProviderFactory>();

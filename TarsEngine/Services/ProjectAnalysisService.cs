@@ -396,14 +396,14 @@ public class ProjectAnalysisResult
     public bool Success { get; set; }
     public string ErrorMessage { get; set; } = string.Empty;
 
-    public List<string> Namespaces { get; set; } = new List<string>();
-    public List<string> Classes { get; set; } = new List<string>();
-    public List<string> Interfaces { get; set; } = new List<string>();
+    public List<string> Namespaces { get; set; } = new();
+    public List<string> Classes { get; set; } = new();
+    public List<string> Interfaces { get; set; } = new();
 
-    public List<PackageReference> PackageReferences { get; set; } = new List<PackageReference>();
-    public List<string> ProjectReferences { get; set; } = new List<string>();
-    public List<CodeAnalysisResult> CodeAnalysisResults { get; set; } = new List<CodeAnalysisResult>();
-    public Dictionary<string, List<string>> ClassDependencies { get; set; } = new Dictionary<string, List<string>>();
+    public List<PackageReference> PackageReferences { get; set; } = new();
+    public List<string> ProjectReferences { get; set; } = new();
+    public List<CodeAnalysisResult> CodeAnalysisResults { get; set; } = new();
+    public Dictionary<string, List<string>> ClassDependencies { get; set; } = new();
 }
 
 /// <summary>
@@ -416,7 +416,7 @@ public class SolutionAnalysisResult
     public bool Success { get; set; }
     public string ErrorMessage { get; set; } = string.Empty;
 
-    public List<ProjectAnalysisResult> ProjectResults { get; set; } = new List<ProjectAnalysisResult>();
+    public List<ProjectAnalysisResult> ProjectResults { get; set; } = new();
 }
 
 /// <summary>

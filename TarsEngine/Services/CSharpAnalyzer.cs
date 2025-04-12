@@ -38,7 +38,7 @@ public class CSharpAnalyzer : ILanguageAnalyzer
     /// <summary>
     /// Gets the programming language enum value
     /// </summary>
-    public ProgrammingLanguage LanguageEnum => ProgrammingLanguage.CSharp;
+    public static ProgrammingLanguage LanguageEnum => ProgrammingLanguage.CSharp;
 
     /// <inheritdoc/>
     public async Task<CodeAnalysisResult> AnalyzeAsync(string content, Dictionary<string, string>? options = null)
@@ -49,10 +49,21 @@ public class CSharpAnalyzer : ILanguageAnalyzer
 
             var result = new CodeAnalysisResult
             {
+                FilePath = "memory",
+                ErrorMessage = string.Empty,
                 Language = LanguageEnum,
                 AnalyzedAt = DateTime.UtcNow,
                 IsSuccessful = true
             };
+
+            // Handle null content
+            if (content == null)
+            {
+                result.ErrorMessage = "Content is null";
+                result.IsSuccessful = false;
+                result.Errors.Add("Content is null");
+                return result;
+            }
 
             // Parse options
             var includeMetrics = ParseOption(options, "IncludeMetrics", true);
@@ -114,6 +125,8 @@ public class CSharpAnalyzer : ILanguageAnalyzer
             _logger.LogError(ex, "Error analyzing C# code");
             return new CodeAnalysisResult
             {
+                FilePath = "memory",
+                ErrorMessage = $"Error analyzing C# code: {ex.Message}",
                 Language = LanguageEnum,
                 IsSuccessful = false,
                 Errors = { $"Error analyzing C# code: {ex.Message}" }
@@ -675,10 +688,10 @@ public class CSharpAnalyzer : ILanguageAnalyzer
         }
     }
 
-    private int GetLineNumber(string content, int position)
+    private static int GetLineNumber(string content, int position)
     {
         // Count newlines before the position
-        return content.Substring(0, position).Count(c => c == '\n');
+        return content[..position].Count(c => c == '\n');
     }
 
     private string GetNamespaceForPosition(List<CodeStructure> structures, int position, string content)
@@ -730,7 +743,7 @@ public class CSharpAnalyzer : ILanguageAnalyzer
         }
     }
 
-    private bool ParseOption(Dictionary<string, string>? options, string key, bool defaultValue)
+    private static bool ParseOption(Dictionary<string, string>? options, string key, bool defaultValue)
     {
         if (options == null || !options.TryGetValue(key, out var value))
         {

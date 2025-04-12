@@ -42,47 +42,47 @@ namespace TarsEngine.Models.Unified
         /// <summary>
         /// Gets or sets the errors
         /// </summary>
-        public List<string> Errors { get; set; } = new List<string>();
+        public List<string> Errors { get; set; } = new();
 
         /// <summary>
         /// Gets or sets the namespaces
         /// </summary>
-        public List<string> Namespaces { get; set; } = new List<string>();
+        public List<string> Namespaces { get; set; } = new();
 
         /// <summary>
         /// Gets or sets the classes
         /// </summary>
-        public List<string> Classes { get; set; } = new List<string>();
+        public List<string> Classes { get; set; } = new();
 
         /// <summary>
         /// Gets or sets the interfaces
         /// </summary>
-        public List<string> Interfaces { get; set; } = new List<string>();
+        public List<string> Interfaces { get; set; } = new();
 
         /// <summary>
         /// Gets or sets the methods
         /// </summary>
-        public List<string> Methods { get; set; } = new List<string>();
+        public List<string> Methods { get; set; } = new();
 
         /// <summary>
         /// Gets or sets the properties
         /// </summary>
-        public List<string> Properties { get; set; } = new List<string>();
+        public List<string> Properties { get; set; } = new();
 
         /// <summary>
         /// Gets or sets the metrics
         /// </summary>
-        public List<CodeMetric> Metrics { get; set; } = new List<CodeMetric>();
+        public List<CodeMetric> Metrics { get; set; } = new();
 
         /// <summary>
         /// Gets or sets the issues
         /// </summary>
-        public List<CodeIssue> Issues { get; set; } = new List<CodeIssue>();
+        public List<CodeIssue> Issues { get; set; } = new();
 
         /// <summary>
         /// Gets or sets the structures
         /// </summary>
-        public List<CodeStructure> Structures { get; set; } = new List<CodeStructure>();
+        public List<CodeStructure> Structures { get; set; } = new();
 
         /// <summary>
         /// Gets or sets the analyzed at timestamp

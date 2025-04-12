@@ -383,8 +383,8 @@ public class CommandExecutionResult
 {
     public bool Success { get; set; }
     public int ExitCode { get; set; }
-    public string Output { get; set; }
-    public string Error { get; set; }
+    public string Output { get; set; } = string.Empty;
+    public string Error { get; set; } = string.Empty;
 }
 
 /// <summary>
@@ -394,20 +394,20 @@ public class TestExecutionResult
 {
     public bool Success { get; set; }
     public bool IsSuccessful { get { return Success; } set { Success = value; } }
-    public string ErrorMessage { get; set; }
-    public string Output { get; set; }
-    public string Error { get; set; }
+    public string ErrorMessage { get; set; } = string.Empty;
+    public string Output { get; set; } = string.Empty;
+    public string Error { get; set; } = string.Empty;
     public int TotalTests { get; set; }
     public int PassedTests { get; set; }
     public int FailedTests { get; set; }
     public int SkippedTests { get; set; }
-    public string Duration { get; set; }
+    public string Duration { get; set; } = string.Empty;
     public DateTime StartedAt { get; set; } = DateTime.UtcNow;
     public DateTime CompletedAt { get; set; } = DateTime.UtcNow;
     public long DurationMs { get { return string.IsNullOrEmpty(Duration) ? 0 : TimeSpan.TryParse(Duration, out var duration) ? (long)duration.TotalMilliseconds : 0; } }
     public string ProjectPath { get; set; } = string.Empty;
     public string TestFilter { get; set; } = string.Empty;
-    public List<TarsEngine.Models.TestFailure> TestFailures { get; set; } = new List<TarsEngine.Models.TestFailure>();
+    public List<TarsEngine.Models.TestFailure> TestFailures { get; set; } = [];
 }
 
 /// <summary>
