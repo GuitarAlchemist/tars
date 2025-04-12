@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  model-runner:
+    image: ollama/ollama:latest
+    ports:
+      - "8080:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+volumes:
+  ollama_data:
