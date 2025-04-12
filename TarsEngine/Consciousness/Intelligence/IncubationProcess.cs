@@ -21,7 +21,7 @@ public class IncubationProcess
     /// <summary>
     /// Gets or sets the process context
     /// </summary>
-    public Dictionary<string, object> Context { get; set; } = new Dictionary<string, object>();
+    public Dictionary<string, object> Context { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the start timestamp
@@ -61,12 +61,12 @@ public class IncubationProcess
     /// <summary>
     /// Gets or sets the process tags
     /// </summary>
-    public List<string> Tags { get; set; } = new List<string>();
+    public List<string> Tags { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the process notes
     /// </summary>
-    public List<string> Notes { get; set; } = new List<string>();
+    public List<string> Notes { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the subconscious processing intensity (0.0 to 1.0)

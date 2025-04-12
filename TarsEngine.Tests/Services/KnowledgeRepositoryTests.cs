@@ -72,14 +72,14 @@ public class KnowledgeRepositoryTests
         // Arrange
         var items = new List<KnowledgeItem>
         {
-            new KnowledgeItem
+            new()
             {
                 Type = KnowledgeType.Concept,
                 Content = "Test concept 1",
                 Confidence = 0.9,
                 RelatedItems = ["test", "concept"]
             },
-            new KnowledgeItem
+            new()
             {
                 Type = KnowledgeType.Code,
                 Content = "Test code pattern",
@@ -170,21 +170,21 @@ public class KnowledgeRepositoryTests
         // Arrange
         var items = new List<KnowledgeItem>
         {
-            new KnowledgeItem
+            new()
             {
                 Type = KnowledgeType.Concept,
                 Content = "Knowledge extraction is important",
                 Confidence = 0.9,
                 RelatedItems = ["knowledge", "extraction"]
             },
-            new KnowledgeItem
+            new()
             {
                 Type = KnowledgeType.Code,
                 Content = "public class KnowledgeExtractor { }",
                 Confidence = 0.8,
                 RelatedItems = ["code", "extractor"]
             },
-            new KnowledgeItem
+            new()
             {
                 Type = KnowledgeType.Fact, // Using Fact instead of Insight which doesn't exist in the interface
                 Content = "Autonomous systems can improve over time",
@@ -208,21 +208,21 @@ public class KnowledgeRepositoryTests
         // Arrange
         var items = new List<KnowledgeItem>
         {
-            new KnowledgeItem
+            new()
             {
                 Type = KnowledgeType.Concept,
                 Content = "Knowledge extraction is important",
                 Confidence = 0.9,
                 RelatedItems = ["knowledge", "extraction"]
             },
-            new KnowledgeItem
+            new()
             {
                 Type = KnowledgeType.Code,
                 Content = "public class KnowledgeExtractor { }",
                 Confidence = 0.8,
                 RelatedItems = ["code", "extractor"]
             },
-            new KnowledgeItem
+            new()
             {
                 Type = KnowledgeType.Concept,
                 Content = "Autonomous systems can improve over time",
@@ -249,21 +249,21 @@ public class KnowledgeRepositoryTests
         // Arrange
         var items = new List<KnowledgeItem>
         {
-            new KnowledgeItem
+            new()
             {
                 Type = KnowledgeType.Concept,
                 Content = "Knowledge extraction is important",
                 Confidence = 0.9,
                 RelatedItems = ["knowledge", "extraction"]
             },
-            new KnowledgeItem
+            new()
             {
                 Type = KnowledgeType.Code,
                 Content = "public class KnowledgeExtractor { }",
                 Confidence = 0.8,
                 RelatedItems = ["code", "extractor"]
             },
-            new KnowledgeItem
+            new()
             {
                 Type = KnowledgeType.Fact, // Using Fact instead of Insight which doesn't exist in the interface
                 Content = "Autonomous systems can improve over time",
@@ -335,7 +335,7 @@ public class KnowledgeRepositoryTests
         // Arrange
         var items = new List<KnowledgeItem>
         {
-            new KnowledgeItem
+            new()
             {
                 Type = KnowledgeType.Concept,
                 Content = "Knowledge extraction is important",
@@ -343,7 +343,7 @@ public class KnowledgeRepositoryTests
                 RelatedItems = ["knowledge", "extraction"],
                 Source = "test1.md"
             },
-            new KnowledgeItem
+            new()
             {
                 Type = KnowledgeType.Code,
                 Content = "public class KnowledgeExtractor { }",
@@ -351,7 +351,7 @@ public class KnowledgeRepositoryTests
                 RelatedItems = ["code", "extractor"],
                 Source = "test1.md"
             },
-            new KnowledgeItem
+            new()
             {
                 Type = KnowledgeType.Fact, // Using Fact instead of Insight which doesn't exist in the interface
                 Content = "Autonomous systems can improve over time",

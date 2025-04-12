@@ -36,7 +36,7 @@ public class ElementRelationship
     /// <summary>
     /// Gets or sets the relationship properties
     /// </summary>
-    public Dictionary<string, object> Properties { get; set; } = new Dictionary<string, object>();
+    public Dictionary<string, object> Properties { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the relationship bidirectional flag

@@ -21,7 +21,7 @@ public class ValueEvaluation
     /// <summary>
     /// Gets or sets the context
     /// </summary>
-    public Dictionary<string, object> Context { get; set; } = new Dictionary<string, object>();
+    public Dictionary<string, object> Context { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the timestamp
@@ -31,7 +31,7 @@ public class ValueEvaluation
     /// <summary>
     /// Gets or sets the value alignments (value name to alignment level)
     /// </summary>
-    public Dictionary<string, double> ValueAlignments { get; set; } = new Dictionary<string, double>();
+    public Dictionary<string, double> ValueAlignments { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the overall alignment (0.0 to 1.0)
@@ -51,7 +51,7 @@ public class ValueEvaluation
     /// <summary>
     /// Gets or sets the evaluation tags
     /// </summary>
-    public List<string> Tags { get; set; } = new List<string>();
+    public List<string> Tags { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the evaluation category
@@ -71,7 +71,7 @@ public class ValueEvaluation
     /// <summary>
     /// Gets or sets the evaluation alternatives
     /// </summary>
-    public List<string> Alternatives { get; set; } = new List<string>();
+    public List<string> Alternatives { get; set; } = new();
     
     /// <summary>
     /// Gets the most aligned values

@@ -25,7 +25,7 @@ TARS now features a powerful integration between TARS, VSCode Agent Mode, and Au
 
 The integration is built on the Model Context Protocol (MCP), which enables AI models to interact with external tools and services through a unified interface.
 
-To get started with the integration, see [VS Code Integration](docs/vscode-integration.md).
+To get started with the integration, see [VS Code Integration](docs/vscode-integration.md) and [Augment VS Code Integration](docs/features/augment-vscode-integration.md).
 
 <div align="center">
   <img src="docs/images/ChatGPT Image Mar 29, 2025, 10_57_07 AM.png" alt="TARS AI Logo" width="600"/>
@@ -329,6 +329,12 @@ dotnet run --project TarsCli/TarsCli.csproj -- mcp start --port 8999 --model-pro
 
 # Configure Docker Model Runner
 dotnet run --project TarsCli/TarsCli.csproj -- docker-model config --base-url http://localhost:8080 --default-model llama3:8b
+
+# Start collaboration between TARS, Augment Code, and VS Code
+dotnet run --project TarsCli/TarsCli.csproj -- mcp collaborate start
+
+# Run the Augment VS Code demo
+dotnet run --project TarsCli/TarsCli.csproj -- demo augment-vscode-demo --task "Analyze the codebase and suggest improvements"
 ```
 
 ### Multi-Agent Workflows

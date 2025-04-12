@@ -58,12 +58,12 @@ public class AutoImprovementStatus
     /// <summary>
     /// The top priority files (up to 5)
     /// </summary>
-    public List<FilePriorityInfo> TopPriorityFiles { get; set; } = new List<FilePriorityInfo>();
+    public List<FilePriorityInfo> TopPriorityFiles { get; set; } = new();
 
     /// <summary>
     /// The recent improvements (up to 5)
     /// </summary>
-    public List<ImprovementInfo> RecentImprovements { get; set; } = new List<ImprovementInfo>();
+    public List<ImprovementInfo> RecentImprovements { get; set; } = new();
 }
 
 /// <summary>

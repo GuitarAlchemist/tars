@@ -51,32 +51,32 @@ public class IntelligenceReport
     /// <summary>
     /// Gets or sets the recent events
     /// </summary>
-    public List<IntelligenceEvent> RecentEvents { get; set; } = new List<IntelligenceEvent>();
+    public List<IntelligenceEvent> RecentEvents { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the creative ideas
     /// </summary>
-    public List<CreativeIdea> CreativeIdeas { get; set; } = new List<CreativeIdea>();
+    public List<CreativeIdea> CreativeIdeas { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the intuitions
     /// </summary>
-    public List<Intuition> Intuitions { get; set; } = new List<Intuition>();
+    public List<Intuition> Intuitions { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the spontaneous thoughts
     /// </summary>
-    public List<ThoughtModel> SpontaneousThoughts { get; set; } = new List<ThoughtModel>();
+    public List<ThoughtModel> SpontaneousThoughts { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the curiosity questions
     /// </summary>
-    public List<CuriosityQuestion> CuriosityQuestions { get; set; } = new List<CuriosityQuestion>();
+    public List<CuriosityQuestion> CuriosityQuestions { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the insights
     /// </summary>
-    public List<InsightLegacy> Insights { get; set; } = new List<InsightLegacy>();
+    public List<InsightLegacy> Insights { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the report summary
@@ -86,12 +86,12 @@ public class IntelligenceReport
     /// <summary>
     /// Gets or sets the report insights
     /// </summary>
-    public List<string> ReportInsights { get; set; } = new List<string>();
+    public List<string> ReportInsights { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the report recommendations
     /// </summary>
-    public List<string> Recommendations { get; set; } = new List<string>();
+    public List<string> Recommendations { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the intelligence growth rate

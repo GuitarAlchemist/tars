@@ -77,7 +77,7 @@ public class ConsciousnessReport
     /// <summary>
     /// Gets or sets the dominant values
     /// </summary>
-    public List<string> DominantValues { get; set; } = new List<string>();
+    public List<string> DominantValues { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the current attention focus
@@ -92,17 +92,17 @@ public class ConsciousnessReport
     /// <summary>
     /// Gets or sets the recent events
     /// </summary>
-    public List<ConsciousnessEvent> RecentEvents { get; set; } = new List<ConsciousnessEvent>();
+    public List<ConsciousnessEvent> RecentEvents { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the consciousness metrics
     /// </summary>
-    public Dictionary<string, double> ConsciousnessMetrics { get; set; } = new Dictionary<string, double>();
+    public Dictionary<string, double> ConsciousnessMetrics { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the intelligence report
     /// </summary>
-    public IntelligenceReport IntelligenceReport { get; set; } = new IntelligenceReport();
+    public IntelligenceReport IntelligenceReport { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the report summary
@@ -112,12 +112,12 @@ public class ConsciousnessReport
     /// <summary>
     /// Gets or sets the report insights
     /// </summary>
-    public List<string> Insights { get; set; } = new List<string>();
+    public List<string> Insights { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the report recommendations
     /// </summary>
-    public List<string> Recommendations { get; set; } = new List<string>();
+    public List<string> Recommendations { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the happiness level

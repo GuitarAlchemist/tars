@@ -40,7 +40,7 @@ namespace TarsEngine.Examples
         private static Option<string> GetNameOption()
         {
             // Simulate getting a name that might be null
-            string name = null; // or "John"
+            string? name = null; // or "John"
             return name != null ? Option<string>.Some(name) : Option<string>.None;
         }
 
@@ -104,7 +104,7 @@ namespace TarsEngine.Examples
             //         _logger.LogInformation("Connection discovery is already inactive");
             //         return true;
             //     }
-            //     
+            //
             //     try
             //     {
             //         _logger.LogInformation("Deactivating connection discovery");
@@ -127,13 +127,13 @@ namespace TarsEngine.Examples
         private static AsyncResult<bool> DeactivateAsyncResult()
         {
             bool isActive = true;
-            
+
             if (!isActive)
             {
                 Console.WriteLine("Connection discovery is already inactive");
                 return AsyncResult<bool>.FromResult(true);
             }
-            
+
             try
             {
                 Console.WriteLine("Deactivating connection discovery");
@@ -188,7 +188,7 @@ namespace TarsEngine.Examples
             // 4. Needs custom formatting (Printable)
 
             AsyncResultError<Option<DateTime>, Exception> result = GetLastLoginTimeAsync("user123");
-            
+
             await result.RunAsync().ContinueWith(t => {
                 string message = t.Result.Match(
                     success: option => option.Match(
@@ -197,7 +197,7 @@ namespace TarsEngine.Examples
                     ),
                     failure: ex => $"Error retrieving login time: {ex.Message}"
                 );
-                
+
                 Console.WriteLine(message);
             });
         }

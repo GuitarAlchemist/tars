@@ -12,8 +12,8 @@ namespace TarsApp.ViewModels
         public DateTime StartTime { get; set; }
         public DateTime? EndTime { get; set; }
         public double Progress { get; set; }
-        public List<string> Tags { get; set; } = new List<string>();
-        public List<LogEntryViewModel> Logs { get; set; } = new List<LogEntryViewModel>();
-        public List<ExecutionStepViewModel> Steps { get; set; } = new List<ExecutionStepViewModel>();
+        public List<string> Tags { get; set; } = new();
+        public List<LogEntryViewModel> Logs { get; set; } = new();
+        public List<ExecutionStepViewModel> Steps { get; set; } = new();
     }
 }

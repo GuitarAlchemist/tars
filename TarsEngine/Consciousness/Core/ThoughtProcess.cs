@@ -46,17 +46,17 @@ public class ThoughtProcess
     /// <summary>
     /// Gets or sets the thought tags
     /// </summary>
-    public List<string> Tags { get; set; } = new List<string>();
+    public List<string> Tags { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the thought context
     /// </summary>
-    public Dictionary<string, object> Context { get; set; } = new Dictionary<string, object>();
+    public Dictionary<string, object> Context { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the related thought IDs
     /// </summary>
-    public List<string> RelatedThoughtIds { get; set; } = new List<string>();
+    public List<string> RelatedThoughtIds { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the thought depth (0.0 to 1.0)

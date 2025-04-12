@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using TarsEngine.Models;
 using TarsEngine.Services.Interfaces;
 using TarsEngine.SelfImprovement;
+using CodeLanguage = TarsEngine.Models.CodeLanguage;
 
 namespace TarsEngine.Services;
 
@@ -39,8 +40,9 @@ public class AutoImplementationService : IAutoImplementationService
         _codeGenerationService = codeGenerationService;
         _testGenerationService = testGenerationService;
         _mcpService = mcpService;
+        var todosLogger = (ILogger<TodosUpdater>)(object)logger;
         _todosUpdater = new TodosUpdater(
-            logger.BeginScope<TodosUpdater>() as ILogger<TodosUpdater>, 
+            todosLogger,
             todosFilePath);
     }
 
@@ -51,7 +53,7 @@ public class AutoImplementationService : IAutoImplementationService
     /// <param name="progressCallback">A callback for reporting progress</param>
     /// <returns>The result of the implementation</returns>
     public async Task<ImplementationResult> ImplementTaskAsync(
-        string taskDescription, 
+        string taskDescription,
         Action<string, int>? progressCallback = null)
     {
         _logger.LogInformation($"Starting auto-implementation of task: {taskDescription}");
@@ -78,15 +80,15 @@ public class AutoImplementationService : IAutoImplementationService
             {
                 var step = implementationPlan.ImplementationSteps[i];
                 int progressPercentage = 10 + (i * 80 / totalSteps); // Progress from 10% to 90%
-                
+
                 ReportProgress(progressCallback, $"Executing step {i + 1}/{totalSteps}: {step.Description.Split(Environment.NewLine)[0]}", progressPercentage);
-                
+
                 try
                 {
                     // Execute the step using the appropriate method based on the change type
-                    var stepResult = await ExecuteImplementationStepAsync(step, implementationPlan);
+                    var stepResult = await ExecuteImplementationStepAsync(step);
                     result.StepResults.Add(stepResult);
-                    
+
                     if (!stepResult.Success)
                     {
                         _logger.LogWarning($"Step {i + 1} failed: {stepResult.ErrorMessage}");
@@ -108,12 +110,12 @@ public class AutoImplementationService : IAutoImplementationService
             if (result.Success)
             {
                 ReportProgress(progressCallback, "Implementation completed. Generating tests...", 90);
-                
+
                 try
                 {
                     var testResults = await GenerateAndRunTestsAsync(implementationPlan);
                     result.TestResults = testResults;
-                    
+
                     if (!testResults.Success)
                     {
                         _logger.LogWarning($"Tests failed: {testResults.ErrorMessage}");
@@ -133,7 +135,7 @@ public class AutoImplementationService : IAutoImplementationService
             if (result.Success)
             {
                 ReportProgress(progressCallback, "Tests passed. Marking task as completed...", 95);
-                
+
                 try
                 {
                     await _todosUpdater.MarkTaskAsCompletedAsync(taskDescription);
@@ -148,17 +150,17 @@ public class AutoImplementationService : IAutoImplementationService
 
             result.EndTime = DateTime.Now;
             result.Duration = result.EndTime - result.StartTime;
-            
-            ReportProgress(progressCallback, result.Success 
-                ? "Task implementation completed successfully!" 
+
+            ReportProgress(progressCallback, result.Success
+                ? "Task implementation completed successfully!"
                 : $"Task implementation failed: {result.ErrorMessage}", 100);
-            
+
             return result;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, $"Error implementing task: {taskDescription}");
-            
+
             return new ImplementationResult
             {
                 TaskDescription = taskDescription,
@@ -175,12 +177,11 @@ public class AutoImplementationService : IAutoImplementationService
     /// Execute a single implementation step
     /// </summary>
     /// <param name="step">The implementation step</param>
-    /// <param name="plan">The overall implementation plan</param>
     /// <returns>The result of the step execution</returns>
-    private async Task<StepResult> ExecuteImplementationStepAsync(ImplementationStep step, ImplementationPlan plan)
+    private async Task<StepResult> ExecuteImplementationStepAsync(ImplementationStep step)
     {
         _logger.LogInformation($"Executing step {step.StepNumber}: {step.Description.Split(Environment.NewLine)[0]}");
-        
+
         var result = new StepResult
         {
             StepNumber = step.StepNumber,
@@ -188,47 +189,60 @@ public class AutoImplementationService : IAutoImplementationService
             FilePath = step.FilePath,
             StartTime = DateTime.Now
         };
-        
+
         try
         {
             // Generate code for the step
+            // Determine the language from the file extension
+            string extension = Path.GetExtension(step.FilePath).ToLowerInvariant();
+            var language = extension switch
+            {
+                ".cs" => CodeLanguage.CSharp,
+                ".fs" => CodeLanguage.FSharp,
+                ".js" => CodeLanguage.JavaScript,
+                ".ts" => CodeLanguage.TypeScript,
+                ".py" => CodeLanguage.Python,
+                _ => CodeLanguage.CSharp
+            };
+
             var codeGeneration = await _codeGenerationService.GenerateCodeAsync(
                 step.Description,
-                step.FilePath,
-                step.ChangeType);
-            
+                Path.GetDirectoryName(step.FilePath) ?? ".",
+                language,
+                step.FilePath);
+
             if (!codeGeneration.Success)
             {
                 result.Success = false;
                 result.ErrorMessage = $"Code generation failed: {codeGeneration.ErrorMessage}";
                 return result;
             }
-            
+
             // Apply the changes using MCP
             var mcpResult = await ApplyChangesViaMcpAsync(step, codeGeneration.GeneratedCode);
-            
+
             if (!mcpResult)
             {
                 result.Success = false;
                 result.ErrorMessage = "Failed to apply changes via MCP";
                 return result;
             }
-            
+
             result.Success = true;
             result.EndTime = DateTime.Now;
             result.Duration = result.EndTime - result.StartTime;
-            
+
             return result;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, $"Error executing step {step.StepNumber}");
-            
+
             result.Success = false;
             result.ErrorMessage = ex.Message;
             result.EndTime = DateTime.Now;
             result.Duration = result.EndTime - result.StartTime;
-            
+
             return result;
         }
     }
@@ -247,7 +261,7 @@ public class AutoImplementationService : IAutoImplementationService
             if (step.ChangeType.Contains("Create") || step.ChangeType.Contains("Add"))
             {
                 // If we're creating a new file
-                if (step.FilePath.Contains(".cs") || step.FilePath.Contains(".fs") || 
+                if (step.FilePath.Contains(".cs") || step.FilePath.Contains(".fs") ||
                     step.FilePath.Contains(".csproj") || step.FilePath.Contains(".fsproj"))
                 {
                     // Use MCP to create the file
@@ -257,7 +271,7 @@ public class AutoImplementationService : IAutoImplementationService
                         {
                             ["command"] = "workbench.action.files.newUntitledFile"
                         });
-                    
+
                     // Insert the generated code
                     var insertCodeResult = await _mcpService.ExecuteCommandAsync(
                         "vscode.executeCommand",
@@ -269,7 +283,7 @@ public class AutoImplementationService : IAutoImplementationService
                                 ["snippet"] = generatedCode
                             }
                         });
-                    
+
                     // Save the file with the correct path
                     var saveFileResult = await _mcpService.ExecuteCommandAsync(
                         "vscode.executeCommand",
@@ -281,7 +295,7 @@ public class AutoImplementationService : IAutoImplementationService
                                 ["path"] = step.FilePath
                             }
                         });
-                    
+
                     return true;
                 }
             }
@@ -294,7 +308,7 @@ public class AutoImplementationService : IAutoImplementationService
                     {
                         ["uri"] = step.FilePath
                     });
-                
+
                 // For now, we'll just append the code at the end of the file
                 // In a real implementation, we would need to be more sophisticated
                 // about where to insert the code
@@ -308,7 +322,7 @@ public class AutoImplementationService : IAutoImplementationService
                             ["snippet"] = generatedCode
                         }
                     });
-                
+
                 // Save the file
                 var saveFileResult = await _mcpService.ExecuteCommandAsync(
                     "vscode.executeCommand",
@@ -316,7 +330,7 @@ public class AutoImplementationService : IAutoImplementationService
                     {
                         ["command"] = "workbench.action.files.save"
                     });
-                
+
                 return true;
             }
             else if (step.ChangeType.Contains("Delete"))
@@ -328,7 +342,7 @@ public class AutoImplementationService : IAutoImplementationService
                     {
                         ["uri"] = step.FilePath
                     });
-                
+
                 // Select all content
                 var selectAllResult = await _mcpService.ExecuteCommandAsync(
                     "vscode.executeCommand",
@@ -336,7 +350,7 @@ public class AutoImplementationService : IAutoImplementationService
                     {
                         ["command"] = "editor.action.selectAll"
                     });
-                
+
                 // Delete the selected content
                 var deleteResult = await _mcpService.ExecuteCommandAsync(
                     "vscode.executeCommand",
@@ -344,7 +358,7 @@ public class AutoImplementationService : IAutoImplementationService
                     {
                         ["command"] = "deleteLeft"
                     });
-                
+
                 // Save the file
                 var saveFileResult = await _mcpService.ExecuteCommandAsync(
                     "vscode.executeCommand",
@@ -352,10 +366,10 @@ public class AutoImplementationService : IAutoImplementationService
                     {
                         ["command"] = "workbench.action.files.save"
                     });
-                
+
                 return true;
             }
-            
+
             // If we couldn't determine the change type, return false
             _logger.LogWarning($"Unknown change type: {step.ChangeType}");
             return false;
@@ -375,12 +389,12 @@ public class AutoImplementationService : IAutoImplementationService
     private async Task<TestResults> GenerateAndRunTestsAsync(ImplementationPlan plan)
     {
         _logger.LogInformation("Generating and running tests");
-        
+
         var results = new TestResults
         {
             StartTime = DateTime.Now
         };
-        
+
         try
         {
             // Generate tests for each affected component
@@ -391,68 +405,71 @@ public class AutoImplementationService : IAutoImplementationService
                 {
                     continue;
                 }
-                
+
                 // Generate tests for the component
-                var testGeneration = await _testGenerationService.GenerateTestsAsync(
-                    component.FilePath,
-                    component.Description);
-                
-                if (!testGeneration.Success)
+                try {
+                    // Generate tests for the component
+                    var testCode = await _testGenerationService.GenerateTestsForFileAsync(
+                        component.FilePath,
+                        Path.GetDirectoryName(component.FilePath) ?? ".");
+
+                    // Apply the test changes using MCP
+                    var testFilePath = component.FilePath.Replace(".cs", "Tests.cs")
+                        .Replace(".fs", "Tests.fs")
+                        .Replace("/src/", "/tests/")
+                        .Replace("\\src\\", "\\tests\\");
+
+                    var mcpResult = await ApplyTestsViaMcpAsync(testFilePath, testCode);
+
+                    if (!mcpResult)
+                    {
+                        results.Success = false;
+                        results.ErrorMessage = $"Failed to apply tests for {component.Name}";
+                        return results;
+                    }
+
+                    // Add the test to the results
+                    results.Tests.Add(new TarsEngine.Models.TestResult
+                    {
+                        ComponentName = component.Name,
+                        TestFilePath = testFilePath,
+                        Success = true
+                    });
+                }
+                catch (Exception ex)
                 {
+                    _logger.LogError(ex, "Error generating tests for component: {ComponentName}", component.Name);
                     results.Success = false;
-                    results.ErrorMessage = $"Test generation failed for {component.Name}: {testGeneration.ErrorMessage}";
+                    results.ErrorMessage = $"Test generation failed for {component.Name}: {ex.Message}";
                     return results;
                 }
-                
-                // Apply the test changes using MCP
-                var testFilePath = component.FilePath.Replace(".cs", "Tests.cs")
-                    .Replace(".fs", "Tests.fs")
-                    .Replace("/src/", "/tests/")
-                    .Replace("\\src\\", "\\tests\\");
-                
-                var mcpResult = await ApplyTestsViaMcpAsync(testFilePath, testGeneration.GeneratedTests);
-                
-                if (!mcpResult)
-                {
-                    results.Success = false;
-                    results.ErrorMessage = $"Failed to apply tests for {component.Name}";
-                    return results;
-                }
-                
-                // Add the test to the results
-                results.Tests.Add(new TestResult
-                {
-                    ComponentName = component.Name,
-                    TestFilePath = testFilePath,
-                    Success = true
-                });
             }
-            
+
             // Run the tests
             var testRunResult = await RunTestsViaMcpAsync();
-            
+
             if (!testRunResult)
             {
                 results.Success = false;
                 results.ErrorMessage = "Tests failed to run";
                 return results;
             }
-            
+
             results.Success = true;
             results.EndTime = DateTime.Now;
             results.Duration = results.EndTime - results.StartTime;
-            
+
             return results;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error generating or running tests");
-            
+
             results.Success = false;
             results.ErrorMessage = ex.Message;
             results.EndTime = DateTime.Now;
             results.Duration = results.EndTime - results.StartTime;
-            
+
             return results;
         }
     }
@@ -474,7 +491,7 @@ public class AutoImplementationService : IAutoImplementationService
                 {
                     ["command"] = "workbench.action.files.newUntitledFile"
                 });
-            
+
             // Insert the generated tests
             var insertCodeResult = await _mcpService.ExecuteCommandAsync(
                 "vscode.executeCommand",
@@ -486,7 +503,7 @@ public class AutoImplementationService : IAutoImplementationService
                         ["snippet"] = generatedTests
                     }
                 });
-            
+
             // Save the file with the correct path
             var saveFileResult = await _mcpService.ExecuteCommandAsync(
                 "vscode.executeCommand",
@@ -498,7 +515,7 @@ public class AutoImplementationService : IAutoImplementationService
                         ["path"] = testFilePath
                     }
                 });
-            
+
             return true;
         }
         catch (Exception ex)
@@ -523,7 +540,7 @@ public class AutoImplementationService : IAutoImplementationService
                 {
                     ["command"] = "workbench.action.terminal.new"
                 });
-            
+
             // Send the test command to the terminal
             var sendCommandResult = await _mcpService.ExecuteCommandAsync(
                 "vscode.executeCommand",
@@ -535,7 +552,7 @@ public class AutoImplementationService : IAutoImplementationService
                         ["text"] = "dotnet test\n"
                     }
                 });
-            
+
             // For now, we'll assume the tests passed
             // In a real implementation, we would need to parse the test output
             return true;

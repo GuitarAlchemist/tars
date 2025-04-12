@@ -50,7 +50,7 @@ public class Emotion
     /// <summary>
     /// Gets or sets the related emotions
     /// </summary>
-    public List<string> RelatedEmotions { get; set; } = new List<string>();
+    public List<string> RelatedEmotions { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the emotion description
@@ -60,22 +60,22 @@ public class Emotion
     /// <summary>
     /// Gets or sets the emotion tags
     /// </summary>
-    public List<string> Tags { get; set; } = new List<string>();
+    public List<string> Tags { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the emotion triggers
     /// </summary>
-    public List<string> Triggers { get; set; } = new List<string>();
+    public List<string> Triggers { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the emotion expressions
     /// </summary>
-    public List<string> Expressions { get; set; } = new List<string>();
+    public List<string> Expressions { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the emotion action tendencies
     /// </summary>
-    public List<string> ActionTendencies { get; set; } = new List<string>();
+    public List<string> ActionTendencies { get; set; } = new();
     
     /// <summary>
     /// Gets the sustained duration (how long the emotion has been at current intensity)

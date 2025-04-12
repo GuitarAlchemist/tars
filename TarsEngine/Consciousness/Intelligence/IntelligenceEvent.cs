@@ -61,12 +61,12 @@ public class IntelligenceEvent
     /// <summary>
     /// Gets or sets the event tags
     /// </summary>
-    public List<string> Tags { get; set; } = new List<string>();
+    public List<string> Tags { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the event context
     /// </summary>
-    public Dictionary<string, object> Context { get; set; } = new Dictionary<string, object>();
+    public Dictionary<string, object> Context { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the event source
@@ -91,5 +91,5 @@ public class IntelligenceEvent
     /// <summary>
     /// Gets or sets the related events
     /// </summary>
-    public List<string> RelatedEventIds { get; set; } = new List<string>();
+    public List<string> RelatedEventIds { get; set; } = new();
 }

@@ -40,11 +40,7 @@ namespace TarsEngine.Monads
         /// Creates an AsyncResultError from a task that returns a value
         /// </summary>
         public static AsyncResultError<T, TError> FromValueTask(Task<T> task, Func<Exception, TError> errorMapper) =>
-            new(task.ContinueWith(t => {
-                if (t.IsFaulted)
-                    return Result<T, TError>.Failure(errorMapper(t.Exception.InnerException));
-                return Result<T, TError>.Success(t.Result);
-            }));
+            new(task.ContinueWith(t => t.IsFaulted ? Result<T, TError>.Failure(errorMapper(t.Exception!.InnerException!)) : Result<T, TError>.Success(t.Result)));
 
         /// <summary>
         /// Runs the async operation and returns the result

@@ -108,7 +108,7 @@
 
     private EventCallback RollbackCallback => EventCallback.Factory.Create(this, HandleRollback);
 
-    private DialogOptions dialogOptions = new DialogOptions
+    private DialogOptions dialogOptions = new()
     {
         MaxWidth = MaxWidth.Medium,
         FullWidth = true,

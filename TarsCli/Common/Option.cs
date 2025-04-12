@@ -28,7 +28,7 @@ public readonly struct Option<T>
     /// <summary>
     /// Creates an Option with no value
     /// </summary>
-    public static Option<T> None => new Option<T>(default, false);
+    public static Option<T> None => new(default, false);
 
     /// <summary>
     /// Returns true if the option has a value

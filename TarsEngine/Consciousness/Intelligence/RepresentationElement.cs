@@ -26,12 +26,12 @@ public class RepresentationElement
     /// <summary>
     /// Gets or sets the element properties
     /// </summary>
-    public Dictionary<string, object> Properties { get; set; } = new Dictionary<string, object>();
+    public Dictionary<string, object> Properties { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the element relationships
     /// </summary>
-    public List<ElementRelationship> Relationships { get; set; } = new List<ElementRelationship>();
+    public List<ElementRelationship> Relationships { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the element importance (0.0 to 1.0)
@@ -46,7 +46,7 @@ public class RepresentationElement
     /// <summary>
     /// Gets or sets the element context
     /// </summary>
-    public Dictionary<string, object> Context { get; set; } = new Dictionary<string, object>();
+    public Dictionary<string, object> Context { get; set; } = new();
     
     /// <summary>
     /// Adds a property

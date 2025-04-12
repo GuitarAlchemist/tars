@@ -28,12 +28,12 @@ public class DebuggerStatus
     /// <summary>
     /// The list of breakpoints
     /// </summary>
-    public List<(string, int)> Breakpoints { get; set; } = new List<(string, int)>();
+    public List<(string, int)> Breakpoints { get; set; } = new();
         
     /// <summary>
     /// The list of watched variables
     /// </summary>
-    public List<string> Watches { get; set; } = new List<string>();
+    public List<string> Watches { get; set; } = new();
 }
     
 /// <summary>

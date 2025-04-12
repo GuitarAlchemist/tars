@@ -31,27 +31,27 @@ public class Value
     /// <summary>
     /// Gets or sets the value tags
     /// </summary>
-    public List<string> Tags { get; set; } = new List<string>();
+    public List<string> Tags { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the related values
     /// </summary>
-    public List<string> RelatedValues { get; set; } = new List<string>();
+    public List<string> RelatedValues { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the value examples
     /// </summary>
-    public List<string> Examples { get; set; } = new List<string>();
+    public List<string> Examples { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the value counter-examples
     /// </summary>
-    public List<string> CounterExamples { get; set; } = new List<string>();
+    public List<string> CounterExamples { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the value principles
     /// </summary>
-    public List<string> Principles { get; set; } = new List<string>();
+    public List<string> Principles { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the value source
@@ -81,5 +81,5 @@ public class Value
     /// <summary>
     /// Gets or sets the value context
     /// </summary>
-    public Dictionary<string, object> Context { get; set; } = new Dictionary<string, object>();
+    public Dictionary<string, object> Context { get; set; } = new();
 }

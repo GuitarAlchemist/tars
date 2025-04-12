@@ -23,7 +23,7 @@ public class MentalState
     private double _mentalCapacity = 0.7; // Starting with moderate mental capacity
     private string _currentAttentionFocus = "Initialization";
     private int _workingMemoryCapacity = 7; // Miller's Law: 7 ± 2 items
-    private readonly Random _random = new Random();
+    private readonly Random _random = new();
     private DateTime _lastOptimizationTime = DateTime.MinValue;
     
     /// <summary>

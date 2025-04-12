@@ -41,17 +41,17 @@ public class CreativeIdea
     /// <summary>
     /// Gets or sets the concepts involved in the idea
     /// </summary>
-    public List<string> Concepts { get; set; } = new List<string>();
+    public List<string> Concepts { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the idea tags
     /// </summary>
-    public List<string> Tags { get; set; } = new List<string>();
+    public List<string> Tags { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the idea context
     /// </summary>
-    public Dictionary<string, object> Context { get; set; } = new Dictionary<string, object>();
+    public Dictionary<string, object> Context { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the problem the idea addresses
@@ -61,12 +61,12 @@ public class CreativeIdea
     /// <summary>
     /// Gets or sets the constraints on the idea
     /// </summary>
-    public List<string> Constraints { get; set; } = new List<string>();
+    public List<string> Constraints { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the idea implementation steps
     /// </summary>
-    public List<string> ImplementationSteps { get; set; } = new List<string>();
+    public List<string> ImplementationSteps { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the idea potential impact
@@ -76,7 +76,7 @@ public class CreativeIdea
     /// <summary>
     /// Gets or sets the idea limitations
     /// </summary>
-    public List<string> Limitations { get; set; } = new List<string>();
+    public List<string> Limitations { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the idea evaluation score (0.0 to 1.0)

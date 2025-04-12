@@ -22,7 +22,7 @@ public class CuriosityDrive
     private double _noveltySeekingLevel = 0.6; // Starting with moderate novelty seeking
     private double _questionGenerationLevel = 0.4; // Starting with moderate question generation
     private double _explorationLevel = 0.5; // Starting with moderate exploration
-    private readonly System.Random _random = new System.Random();
+    private readonly System.Random _random = new();
     private DateTime _lastQuestionTime = DateTime.MinValue;
 
     /// <summary>

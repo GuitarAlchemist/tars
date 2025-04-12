@@ -543,6 +543,163 @@ namespace TarsEngine.Intelligence.Measurement
             // Save the updated thresholds
             await SaveBaselineThresholdsAsync();
         }
+
+        /// <summary>
+        /// Compares metrics between TARS-generated code and human-written code
+        /// </summary>
+        /// <param name="tarsCodePath">The path to TARS-generated code</param>
+        /// <param name="humanCodePath">The path to human-written code</param>
+        /// <returns>The comparison results</returns>
+        public async Task<CodeComparisonResults> CompareMetricsAsync(string tarsCodePath, string humanCodePath)
+        {
+            _logger.LogInformation("Comparing metrics between TARS code at {TarsPath} and human code at {HumanPath}",
+                tarsCodePath, humanCodePath);
+
+            var results = new CodeComparisonResults
+            {
+                TarsCodePath = tarsCodePath,
+                HumanCodePath = humanCodePath,
+                StartTime = DateTime.UtcNow
+            };
+
+            try
+            {
+                // Run benchmarks on TARS code
+                var tarsResults = await RunCodebaseBenchmarksAsync(tarsCodePath);
+
+                // Run benchmarks on human code
+                var humanResults = await RunCodebaseBenchmarksAsync(humanCodePath);
+
+                // Compare complexity metrics
+                results.ComplexityComparison = CompareMetricStatistics(
+                    tarsResults.ComplexityStatistics,
+                    humanResults.ComplexityStatistics);
+
+                // Compare maintainability metrics
+                results.MaintainabilityComparison = CompareMetricStatistics(
+                    tarsResults.MaintainabilityStatistics,
+                    humanResults.MaintainabilityStatistics);
+
+                // Compare Halstead metrics
+                results.HalsteadComparison = CompareMetricStatistics(
+                    tarsResults.HalsteadStatistics,
+                    humanResults.HalsteadStatistics);
+
+                // Calculate quality benchmarks based on human code
+                await CalculateQualityBenchmarksAsync(humanResults);
+
+                results.EndTime = DateTime.UtcNow;
+                results.Success = true;
+
+                _logger.LogInformation("Comparison completed successfully");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error comparing metrics between TARS and human code");
+                results.EndTime = DateTime.UtcNow;
+                results.Success = false;
+                results.ErrorMessage = ex.Message;
+            }
+
+            return results;
+        }
+
+        /// <summary>
+        /// Compares metric statistics between two sets of metrics
+        /// </summary>
+        /// <param name="tarsStats">The TARS metrics statistics</param>
+        /// <param name="humanStats">The human metrics statistics</param>
+        /// <returns>The comparison results</returns>
+        private Dictionary<string, MetricComparisonResult> CompareMetricStatistics(
+            Dictionary<string, MetricTypeStatistics> tarsStats,
+            Dictionary<string, MetricTypeStatistics> humanStats)
+        {
+            var comparison = new Dictionary<string, MetricComparisonResult>();
+
+            // Get all unique targets from both sets
+            var allTargets = tarsStats.Keys.Union(humanStats.Keys).ToList();
+
+            foreach (var target in allTargets)
+            {
+                var hasTarsStats = tarsStats.TryGetValue(target, out var tarsTargetStats);
+                var hasHumanStats = humanStats.TryGetValue(target, out var humanTargetStats);
+
+                if (!hasTarsStats || !hasHumanStats)
+                    continue;
+
+                var comparisonResult = new MetricComparisonResult
+                {
+                    TarsStats = tarsTargetStats!,
+                    HumanStats = humanTargetStats!,
+                    AverageDifference = tarsTargetStats!.AverageValue - humanTargetStats!.AverageValue,
+                    MedianDifference = tarsTargetStats.MedianValue - humanTargetStats.MedianValue,
+                    StandardDeviationDifference = tarsTargetStats.StandardDeviation - humanTargetStats.StandardDeviation,
+                    PercentileDifferences = CalculatePercentileDifferences(tarsTargetStats.Percentiles, humanTargetStats.Percentiles)
+                };
+
+                comparison[target] = comparisonResult;
+            }
+
+            return comparison;
+        }
+
+        /// <summary>
+        /// Calculates differences between percentiles
+        /// </summary>
+        /// <param name="tarsPercentiles">The TARS percentiles</param>
+        /// <param name="humanPercentiles">The human percentiles</param>
+        /// <returns>The percentile differences</returns>
+        private Dictionary<int, double> CalculatePercentileDifferences(
+            Dictionary<int, double> tarsPercentiles,
+            Dictionary<int, double> humanPercentiles)
+        {
+            var differences = new Dictionary<int, double>();
+
+            // Get all unique percentiles from both sets
+            var allPercentiles = tarsPercentiles.Keys.Union(humanPercentiles.Keys).ToList();
+
+            foreach (var percentile in allPercentiles)
+            {
+                var hasTarsPercentile = tarsPercentiles.TryGetValue(percentile, out var tarsValue);
+                var hasHumanPercentile = humanPercentiles.TryGetValue(percentile, out var humanValue);
+
+                if (!hasTarsPercentile || !hasHumanPercentile)
+                    continue;
+
+                differences[percentile] = tarsValue - humanValue;
+            }
+
+            return differences;
+        }
+
+        /// <summary>
+        /// Calculates quality benchmarks based on human-written code
+        /// </summary>
+        /// <param name="humanResults">The benchmark results for human-written code</param>
+        /// <returns>A task representing the asynchronous operation</returns>
+        private async Task CalculateQualityBenchmarksAsync(BenchmarkResults humanResults)
+        {
+            _logger.LogInformation("Calculating quality benchmarks from human-written code");
+
+            // Store human code metrics as quality benchmarks
+            var benchmarksPath = Path.Combine(_baselinePath, "quality_benchmarks.json");
+
+            var benchmarks = new Dictionary<string, Dictionary<string, MetricTypeStatistics>>
+            {
+                { "Complexity", humanResults.ComplexityStatistics },
+                { "Maintainability", humanResults.MaintainabilityStatistics },
+                { "Halstead", humanResults.HalsteadStatistics }
+            };
+
+            var json = System.Text.Json.JsonSerializer.Serialize(benchmarks, new System.Text.Json.JsonSerializerOptions
+            {
+                WriteIndented = true
+            });
+
+            await File.WriteAllTextAsync(benchmarksPath, json);
+
+            _logger.LogInformation("Quality benchmarks saved to {BenchmarksPath}", benchmarksPath);
+        }
     }
 
     /// <summary>
@@ -640,5 +797,109 @@ namespace TarsEngine.Intelligence.Measurement
         /// Gets or sets the percentiles
         /// </summary>
         public Dictionary<int, double> Percentiles { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Represents the results of comparing metrics between TARS-generated code and human-written code
+    /// </summary>
+    public class CodeComparisonResults
+    {
+        /// <summary>
+        /// Gets or sets the path to the TARS-generated code
+        /// </summary>
+        public string TarsCodePath { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the path to the human-written code
+        /// </summary>
+        public string HumanCodePath { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the start time
+        /// </summary>
+        public DateTime StartTime { get; set; }
+
+        /// <summary>
+        /// Gets or sets the end time
+        /// </summary>
+        public DateTime EndTime { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether the comparison was successful
+        /// </summary>
+        public bool Success { get; set; }
+
+        /// <summary>
+        /// Gets or sets the error message
+        /// </summary>
+        public string ErrorMessage { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the complexity comparison results
+        /// </summary>
+        public Dictionary<string, MetricComparisonResult> ComplexityComparison { get; set; } = new();
+
+        /// <summary>
+        /// Gets or sets the maintainability comparison results
+        /// </summary>
+        public Dictionary<string, MetricComparisonResult> MaintainabilityComparison { get; set; } = new();
+
+        /// <summary>
+        /// Gets or sets the Halstead comparison results
+        /// </summary>
+        public Dictionary<string, MetricComparisonResult> HalsteadComparison { get; set; } = new();
+
+        /// <summary>
+        /// Gets the duration of the comparison
+        /// </summary>
+        public TimeSpan Duration => EndTime - StartTime;
+    }
+
+    /// <summary>
+    /// Represents the result of comparing a specific metric between TARS-generated code and human-written code
+    /// </summary>
+    public class MetricComparisonResult
+    {
+        /// <summary>
+        /// Gets or sets the TARS metrics statistics
+        /// </summary>
+        public MetricTypeStatistics TarsStats { get; set; } = new();
+
+        /// <summary>
+        /// Gets or sets the human metrics statistics
+        /// </summary>
+        public MetricTypeStatistics HumanStats { get; set; } = new();
+
+        /// <summary>
+        /// Gets or sets the difference in average values (TARS - Human)
+        /// </summary>
+        public double AverageDifference { get; set; }
+
+        /// <summary>
+        /// Gets or sets the difference in median values (TARS - Human)
+        /// </summary>
+        public double MedianDifference { get; set; }
+
+        /// <summary>
+        /// Gets or sets the difference in standard deviations (TARS - Human)
+        /// </summary>
+        public double StandardDeviationDifference { get; set; }
+
+        /// <summary>
+        /// Gets or sets the differences in percentiles (TARS - Human)
+        /// </summary>
+        public Dictionary<int, double> PercentileDifferences { get; set; } = new();
+
+        /// <summary>
+        /// Gets the relative difference in average values ((TARS - Human) / Human)
+        /// </summary>
+        public double RelativeAverageDifference =>
+            HumanStats.AverageValue != 0 ? AverageDifference / Math.Abs(HumanStats.AverageValue) : 0;
+
+        /// <summary>
+        /// Gets the relative difference in median values ((TARS - Human) / Human)
+        /// </summary>
+        public double RelativeMedianDifference =>
+            HumanStats.MedianValue != 0 ? MedianDifference / Math.Abs(HumanStats.MedianValue) : 0;
     }
 }

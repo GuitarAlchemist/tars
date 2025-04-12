@@ -14,7 +14,7 @@ public class ConnectionDiscovery
     private readonly ILogger<ConnectionDiscovery> _logger;
     private readonly Dictionary<string, ConceptNode> _semanticNetwork = new();
     private readonly List<ConceptConnection> _connections = new();
-    private readonly System.Random _random = new System.Random();
+    private readonly System.Random _random = new();
 
     private bool _isInitialized = false;
     private bool _isActive = false;

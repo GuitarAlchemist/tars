@@ -41,12 +41,12 @@ public class CuriosityQuestion
     /// <summary>
     /// Gets or sets the question context
     /// </summary>
-    public Dictionary<string, object> Context { get; set; } = new Dictionary<string, object>();
+    public Dictionary<string, object> Context { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the question tags
     /// </summary>
-    public List<string> Tags { get; set; } = new List<string>();
+    public List<string> Tags { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the question status
@@ -76,12 +76,12 @@ public class CuriosityQuestion
     /// <summary>
     /// Gets or sets the follow-up questions
     /// </summary>
-    public List<string> FollowUpQuestions { get; set; } = new List<string>();
+    public List<string> FollowUpQuestions { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the related question IDs
     /// </summary>
-    public List<string> RelatedQuestionIds { get; set; } = new List<string>();
+    public List<string> RelatedQuestionIds { get; set; } = new();
     
     /// <summary>
     /// Records an answer to the question

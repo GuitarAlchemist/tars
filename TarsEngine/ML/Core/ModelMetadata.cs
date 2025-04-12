@@ -46,17 +46,17 @@ public class ModelMetadata
     /// <summary>
     /// Gets or sets the model metrics
     /// </summary>
-    public Dictionary<string, double> Metrics { get; set; } = new Dictionary<string, double>();
+    public Dictionary<string, double> Metrics { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the model hyperparameters
     /// </summary>
-    public Dictionary<string, string> HyperParameters { get; set; } = new Dictionary<string, string>();
+    public Dictionary<string, string> HyperParameters { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the model tags
     /// </summary>
-    public List<string> Tags { get; set; } = new List<string>();
+    public List<string> Tags { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the model description
@@ -81,17 +81,17 @@ public class ModelMetadata
     /// <summary>
     /// Gets or sets the model capabilities
     /// </summary>
-    public List<string> Capabilities { get; set; } = new List<string>();
+    public List<string> Capabilities { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the model limitations
     /// </summary>
-    public List<string> Limitations { get; set; } = new List<string>();
+    public List<string> Limitations { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the model dependencies
     /// </summary>
-    public List<string> Dependencies { get; set; } = new List<string>();
+    public List<string> Dependencies { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the model training time in seconds
@@ -126,5 +126,5 @@ public class ModelMetadata
     /// <summary>
     /// Gets or sets the model improvement history
     /// </summary>
-    public List<ModelImprovement> ImprovementHistory { get; set; } = new List<ModelImprovement>();
+    public List<ModelImprovement> ImprovementHistory { get; set; } = new();
 }

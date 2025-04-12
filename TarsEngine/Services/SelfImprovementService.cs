@@ -165,14 +165,12 @@ public class SelfImprovementService : ISelfImprovementService
             string extension = Path.GetExtension(filePath).ToLowerInvariant();
             var language = extension switch
             {
-                ".cs" => ProgrammingLanguage.CSharp,
-                ".fs" => ProgrammingLanguage.FSharp,
-                ".js" => ProgrammingLanguage.JavaScript,
-                ".ts" => ProgrammingLanguage.TypeScript,
-                ".py" => ProgrammingLanguage.Python,
-                ".java" => ProgrammingLanguage.Java,
-                ".cpp" or ".h" or ".hpp" => ProgrammingLanguage.Cpp,
-                _ => ProgrammingLanguage.Unknown
+                ".cs" => TarsEngine.Models.CodeLanguage.CSharp,
+                ".fs" => TarsEngine.Models.CodeLanguage.FSharp,
+                ".js" => TarsEngine.Models.CodeLanguage.JavaScript,
+                ".ts" => TarsEngine.Models.CodeLanguage.TypeScript,
+                ".py" => TarsEngine.Models.CodeLanguage.Python,
+                _ => TarsEngine.Models.CodeLanguage.CSharp // Default to CSharp if unknown
             };
 
             // Generate the implementation

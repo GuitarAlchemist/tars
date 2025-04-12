@@ -131,8 +131,51 @@ public class OllamaSetupService
 
     public async Task<List<string>> GetMissingModelsAsync()
     {
-        var missingModels = new List<string>(_requiredModels);
+        var missingModels = new List<string>();
 
+        try
+        {
+            // Check each required model individually
+            foreach (var model in _requiredModels)
+            {
+                var normalizedModel = NormalizeModelName(model);
+                var isInstalled = await IsModelInstalledAsync(normalizedModel);
+
+                if (!isInstalled)
+                {
+                    // Special handling for embedding models
+                    if (model.Contains("all-minilm") || model.Contains("nomic-embed"))
+                    {
+                        // Check if any embedding model is installed
+                        var anyEmbeddingModelInstalled = await IsAnyEmbeddingModelInstalledAsync();
+                        if (!anyEmbeddingModelInstalled)
+                        {
+                            missingModels.Add(model);
+                        }
+                    }
+                    else
+                    {
+                        missingModels.Add(model);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error checking installed models");
+            // In case of error, assume all models are missing to be safe
+            missingModels.AddRange(_requiredModels);
+        }
+
+        return missingModels;
+    }
+
+    /// <summary>
+    /// Check if any embedding model is installed
+    /// </summary>
+    /// <returns>True if any embedding model is installed, false otherwise</returns>
+    private async Task<bool> IsAnyEmbeddingModelInstalledAsync()
+    {
         try
         {
             var response = await _httpClient.GetAsync($"{_baseUrl}/api/tags");
@@ -144,27 +187,21 @@ public class OllamaSetupService
                 if (tagsResponse?.Models != null)
                 {
                     var installedModels = tagsResponse.Models.Select(m => m.Name).ToList();
-
-                    // Remove models that are installed
-                    missingModels.RemoveAll(m => installedModels.Contains(m));
-
-                    // Special handling for embedding models
-                    if (missingModels.Any(m => m.Contains("all-minilm") || m.Contains("nomic-embed")) &&
-                        installedModels.Any(m => m.Contains("all-minilm") || m.Contains("nomic-embed") ||
-                                               m.Contains("gte-small") || m.Contains("e5-small")))
-                    {
-                        // Remove all embedding models from missing list if any embedding model is installed
-                        missingModels.RemoveAll(m => m.Contains("all-minilm") || m.Contains("nomic-embed"));
-                    }
+                    return installedModels.Any(m =>
+                        m.Contains("all-minilm") ||
+                        m.Contains("nomic-embed") ||
+                        m.Contains("gte-small") ||
+                        m.Contains("e5-small"));
                 }
             }
+
+            return false;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking installed models");
+            _logger.LogError(ex, "Error checking if any embedding model is installed");
+            return false;
         }
-
-        return missingModels;
     }
 
     public Task<List<string>> GetRequiredModelsAsync()
@@ -181,6 +218,15 @@ public class OllamaSetupService
             // Normalize model name to ensure proper format
             var normalizedModel = NormalizeModelName(modelName);
             _logger.LogInformation($"Using normalized model name: {normalizedModel}");
+
+            // Check if model is already installed
+            var isInstalled = await IsModelInstalledAsync(normalizedModel);
+            if (isInstalled)
+            {
+                _logger.LogInformation($"Model {normalizedModel} is already installed. Skipping installation.");
+                Console.WriteLine($"Model {normalizedModel} is already installed. Skipping installation.");
+                return true;
+            }
 
             // Special handling for embedding models
             if (modelName.Contains("all-minilm") || modelName.Contains("nomic-embed"))
@@ -487,6 +533,37 @@ public class OllamaSetupService
         {
             _logger.LogError(ex, "Error updating configuration");
             Console.WriteLine($"Error updating configuration: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Check if a model is already installed
+    /// </summary>
+    /// <param name="modelName">The model name to check</param>
+    /// <returns>True if the model is installed, false otherwise</returns>
+    private async Task<bool> IsModelInstalledAsync(string modelName)
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync($"{_baseUrl}/api/tags");
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                var tagsResponse = JsonSerializer.Deserialize<TagsResponse>(content);
+
+                if (tagsResponse?.Models != null)
+                {
+                    var installedModels = tagsResponse.Models.Select(m => m.Name).ToList();
+                    return installedModels.Contains(modelName);
+                }
+            }
+
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error checking if model {modelName} is installed");
+            return false;
         }
     }
 

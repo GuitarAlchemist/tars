@@ -66,7 +66,7 @@
                 
                 var messages = new List<ChatMessage>
                 {
-                    new ChatMessage(ChatRole.System, systemPrompt)
+                    new(ChatRole.System, systemPrompt)
                 };
                 
                 // Add the last few messages from chat history (up to 5)

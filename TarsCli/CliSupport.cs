@@ -176,6 +176,24 @@ public static class CliSupport
         var dockerModelRunnerCommand = new DockerModelRunnerCommand(serviceProvider);
         rootCommand.AddCommand(dockerModelRunnerCommand);
 
+        // Add the Benchmark command
+        var benchmarkCommand = new BenchmarkCommand(serviceProvider);
+        rootCommand.AddCommand(benchmarkCommand);
+
+        // Add the Todos command
+        var todosCommand = new TodosCommand(serviceProvider);
+        rootCommand.AddCommand(todosCommand);
+
+        // Add the LLM command
+        var llmCommand = new LlmCommand(serviceProvider);
+        rootCommand.AddCommand(llmCommand);
+
+        // Add the VS Code control command
+        var vsCodeControlCommand = serviceProvider.GetRequiredService<VSCodeControlCommand>();
+        rootCommand.AddCommand(vsCodeControlCommand);
+
+        // Auto-Implement command removed
+
         return rootCommand;
     }
 

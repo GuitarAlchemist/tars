@@ -61,12 +61,12 @@ namespace TarsEngine.Utilities
             var sourceMethodProp = type.GetProperty("SourceMethod");
             var targetMethodProp = type.GetProperty("TargetMethod");
 
-            if (sourceStartProp != null) sourceStartLine = (int)sourceStartProp.GetValue(block);
-            if (sourceEndProp != null) sourceEndLine = (int)sourceEndProp.GetValue(block);
-            if (targetStartProp != null) targetStartLine = (int)targetStartProp.GetValue(block);
-            if (targetEndProp != null) targetEndLine = (int)targetEndProp.GetValue(block);
-            if (sourceMethodProp != null) sourceMethod = (string)sourceMethodProp.GetValue(block);
-            if (targetMethodProp != null) targetMethod = (string)targetMethodProp.GetValue(block);
+            if (sourceStartProp != null) sourceStartLine = (int)sourceStartProp.GetValue(block)!;
+            if (sourceEndProp != null) sourceEndLine = (int)sourceEndProp.GetValue(block)!;
+            if (targetStartProp != null) targetStartLine = (int)targetStartProp.GetValue(block)!;
+            if (targetEndProp != null) targetEndLine = (int)targetEndProp.GetValue(block)!;
+            if (sourceMethodProp != null) sourceMethod = (string)sourceMethodProp.GetValue(block)!;
+            if (targetMethodProp != null) targetMethod = (string)targetMethodProp.GetValue(block)!;
 
             // Calculate duplicated lines
             int duplicatedLines = targetEndLine - targetStartLine + 1;

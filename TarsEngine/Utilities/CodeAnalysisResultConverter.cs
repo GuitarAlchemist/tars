@@ -239,6 +239,7 @@ namespace TarsEngine.Utilities
             {
                 return new ServiceCodeAnalysisResult
                 {
+                    FilePath = "unknown",
                     Success = false,
                     ErrorMessage = "Null unified result"
                 };

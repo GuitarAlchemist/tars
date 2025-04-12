@@ -90,6 +90,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionIt
 		docs\Explorations\v1\Chats\ChatGPT-Video to Text Models.md = docs\Explorations\v1\Chats\ChatGPT-Video to Text Models.md
 		docs\Explorations\v1\Chats\ChatGPT-DSLs for Visualization Engines.md = docs\Explorations\v1\Chats\ChatGPT-DSLs for Visualization Engines.md
 		docs\Explorations\v1\Chats\ChatGPT-Text to DSL for TARS.md = docs\Explorations\v1\Chats\ChatGPT-Text to DSL for TARS.md
+		docs\Explorations\v1\Chats\ChatGPT-Integrating Sequential Thinking in TARS.md = docs\Explorations\v1\Chats\ChatGPT-Integrating Sequential Thinking in TARS.md
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TarsEngine", "TarsEngine\TarsEngine.csproj", "{B0A629F0-DC3A-4A88-AF1D-CDF891784B22}"

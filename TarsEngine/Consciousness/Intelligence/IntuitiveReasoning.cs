@@ -22,7 +22,7 @@ public class IntuitiveReasoning
     private double _patternRecognitionLevel = 0.4; // Starting with moderate pattern recognition
     private double _heuristicReasoningLevel = 0.5; // Starting with moderate heuristic reasoning
     private double _gutFeelingLevel = 0.3; // Starting with moderate gut feeling
-    private readonly System.Random _random = new System.Random();
+    private readonly System.Random _random = new();
     private DateTime _lastIntuitionTime = DateTime.MinValue;
 
     /// <summary>

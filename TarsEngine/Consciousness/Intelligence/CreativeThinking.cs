@@ -22,7 +22,7 @@ public class CreativeThinking
     private double _divergentThinkingLevel = 0.5; // Starting with moderate divergent thinking
     private double _conceptualBlendingLevel = 0.3; // Starting with moderate conceptual blending
     private double _patternDisruptionLevel = 0.4; // Starting with moderate pattern disruption
-    private readonly System.Random _random = new System.Random();
+    private readonly System.Random _random = new();
     private DateTime _lastIdeaGenerationTime = DateTime.MinValue;
 
     /// <summary>

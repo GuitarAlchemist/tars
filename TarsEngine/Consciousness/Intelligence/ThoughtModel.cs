@@ -36,12 +36,12 @@ public class ThoughtModel
     /// <summary>
     /// Gets or sets the thought context
     /// </summary>
-    public Dictionary<string, object> Context { get; set; } = new Dictionary<string, object>();
+    public Dictionary<string, object> Context { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the thought tags
     /// </summary>
-    public List<string> Tags { get; set; } = new List<string>();
+    public List<string> Tags { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the thought source
@@ -71,7 +71,7 @@ public class ThoughtModel
     /// <summary>
     /// Gets or sets the related thought IDs
     /// </summary>
-    public List<string> RelatedThoughtIds { get; set; } = new List<string>();
+    public List<string> RelatedThoughtIds { get; set; } = new();
     
     /// <summary>
     /// Gets or sets whether the thought led to an insight

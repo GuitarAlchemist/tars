@@ -184,13 +184,13 @@ public class TestClass
         // Arrange
         var items = new List<ServicesModelKnowledgeItem>
         {
-            new ServicesModelKnowledgeItem
+            new()
             {
                 Id = "1",
                 Type = ServicesModelKnowledgeType.Concept,
                 Content = "Knowledge extraction is the process of deriving structured information from unstructured data."
             },
-            new ServicesModelKnowledgeItem
+            new()
             {
                 Id = "2",
                 Type = ServicesModelKnowledgeType.CodePattern,

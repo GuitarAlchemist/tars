@@ -16,6 +16,8 @@ This directory contains comprehensive documentation for the TARS project.
 
 - [Contributing](CONTRIBUTING.md) - Guidelines for contributing to the TARS project
 - [Roadmap](ROADMAP.md) - Future plans and milestones for the TARS project
+- [TODOs](TODOs.md) - List of tasks to be completed for the TARS project
+- [Build Fixes](build-fixes.md) - Documentation of fixes made to resolve build errors
 
 ## Explorations
 

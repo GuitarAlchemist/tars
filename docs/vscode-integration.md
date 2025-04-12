@@ -49,6 +49,22 @@ Once the TARS MCP server is running, you can use Agent Mode in VS Code:
 
 VS Code Agent Mode will use the TARS MCP server to execute the command.
 
+## Using Augment Agent from TARS through VS Code
+
+TARS includes a demo command that shows how to use Augment Agent through VS Code:
+
+```bash
+tarscli demo augment-vscode-demo
+```
+
+This command will:
+1. Start the TARS MCP server
+2. Enable collaboration between TARS, VS Code, and Augment Agent
+3. Open VS Code and guide you through enabling Agent Mode
+4. Show you how to use Augment Agent through VS Code
+
+For more details, see [Augment VS Code Integration](features/augment-vscode-integration.md).
+
 ## Available Commands
 
 Here are some commands you can try in Agent Mode:

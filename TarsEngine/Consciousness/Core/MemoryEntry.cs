@@ -41,12 +41,12 @@ public class MemoryEntry
     /// <summary>
     /// Gets or sets the memory tags
     /// </summary>
-    public List<string> Tags { get; set; } = new List<string>();
+    public List<string> Tags { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the memory context
     /// </summary>
-    public Dictionary<string, object> Context { get; set; } = new Dictionary<string, object>();
+    public Dictionary<string, object> Context { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the emotional association
@@ -76,7 +76,7 @@ public class MemoryEntry
     /// <summary>
     /// Gets or sets the related memory IDs
     /// </summary>
-    public List<string> RelatedMemoryIds { get; set; } = new List<string>();
+    public List<string> RelatedMemoryIds { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the last accessed timestamp

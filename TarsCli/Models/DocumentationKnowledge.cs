@@ -21,29 +21,29 @@ public class DocumentationKnowledge
     /// Key concepts and their definitions
     /// </summary>
     [JsonPropertyName("key_concepts")]
-    public List<Concept> KeyConcepts { get; set; } = new List<Concept>();
+    public List<Concept> KeyConcepts { get; set; } = new();
 
     /// <summary>
     /// Important insights and conclusions
     /// </summary>
-    public List<Insight> Insights { get; set; } = new List<Insight>();
+    public List<Insight> Insights { get; set; } = new();
 
     /// <summary>
     /// Technical details and specifications
     /// </summary>
     [JsonPropertyName("technical_details")]
-    public List<TechnicalDetail> TechnicalDetails { get; set; } = new List<TechnicalDetail>();
+    public List<TechnicalDetail> TechnicalDetails { get; set; } = new();
 
     /// <summary>
     /// Design decisions and rationales
     /// </summary>
     [JsonPropertyName("design_decisions")]
-    public List<DesignDecision> DesignDecisions { get; set; } = new List<DesignDecision>();
+    public List<DesignDecision> DesignDecisions { get; set; } = new();
 
     /// <summary>
     /// Relationships between concepts
     /// </summary>
-    public List<Relationship> Relationships { get; set; } = new List<Relationship>();
+    public List<Relationship> Relationships { get; set; } = new();
 
     /// <summary>
     /// The source file from which the knowledge was extracted
@@ -75,7 +75,7 @@ public class Concept
     /// Related concepts
     /// </summary>
     [JsonPropertyName("related_concepts")]
-    public List<string> RelatedConcepts { get; set; } = new List<string>();
+    public List<string> RelatedConcepts { get; set; } = new();
 }
 
 /// <summary>
@@ -96,7 +96,7 @@ public class Insight
     /// <summary>
     /// Applications of this insight
     /// </summary>
-    public List<string> Applications { get; set; } = new List<string>();
+    public List<string> Applications { get; set; } = new();
 }
 
 /// <summary>
@@ -118,7 +118,7 @@ public class TechnicalDetail
     /// Code examples related to the technical detail
     /// </summary>
     [JsonPropertyName("code_examples")]
-    public List<string> CodeExamples { get; set; } = new List<string>();
+    public List<string> CodeExamples { get; set; } = new();
 }
 
 /// <summary>
@@ -139,7 +139,7 @@ public class DesignDecision
     /// <summary>
     /// Alternative options that were considered
     /// </summary>
-    public List<string> Alternatives { get; set; } = new List<string>();
+    public List<string> Alternatives { get; set; } = new();
 }
 
 /// <summary>
