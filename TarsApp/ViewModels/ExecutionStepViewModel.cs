@@ -12,6 +12,6 @@ namespace TarsApp.ViewModels
         public DateTime? StartTime { get; set; }
         public DateTime? EndTime { get; set; }
         public double Progress { get; set; }
-        public List<LogEntryViewModel> Logs { get; set; } = new List<LogEntryViewModel>();
+        public List<LogEntryViewModel> Logs { get; set; } = new();
     }
 }

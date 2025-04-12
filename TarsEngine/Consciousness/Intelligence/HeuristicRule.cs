@@ -56,17 +56,17 @@ public class HeuristicRule
     /// <summary>
     /// Gets or sets the rule tags
     /// </summary>
-    public List<string> Tags { get; set; } = new List<string>();
+    public List<string> Tags { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the rule examples
     /// </summary>
-    public List<string> Examples { get; set; } = new List<string>();
+    public List<string> Examples { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the rule counter-examples
     /// </summary>
-    public List<string> CounterExamples { get; set; } = new List<string>();
+    public List<string> CounterExamples { get; set; } = new();
     
     /// <summary>
     /// Gets the rule success rate

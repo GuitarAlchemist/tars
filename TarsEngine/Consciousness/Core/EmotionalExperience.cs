@@ -51,17 +51,17 @@ public class EmotionalExperience
     /// <summary>
     /// Gets or sets the experience tags
     /// </summary>
-    public List<string> Tags { get; set; } = new List<string>();
+    public List<string> Tags { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the experience context
     /// </summary>
-    public Dictionary<string, object> Context { get; set; } = new Dictionary<string, object>();
+    public Dictionary<string, object> Context { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the related experience IDs
     /// </summary>
-    public List<string> RelatedExperienceIds { get; set; } = new List<string>();
+    public List<string> RelatedExperienceIds { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the duration in seconds

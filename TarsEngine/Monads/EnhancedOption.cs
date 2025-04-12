@@ -33,7 +33,7 @@ namespace TarsEngine.Monads
         /// <summary>
         /// Creates an Option with no value
         /// </summary>
-        public static EnhancedOption<T> None => new EnhancedOption<T>(default, false);
+        public static EnhancedOption<T> None => new(default!, false);
 
         /// <summary>
         /// Returns true if the option has a value

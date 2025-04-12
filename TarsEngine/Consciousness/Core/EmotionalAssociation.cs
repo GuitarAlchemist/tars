@@ -16,7 +16,7 @@ public class EmotionalAssociation
     /// <summary>
     /// Gets or sets the emotion associations (emotion name to intensity)
     /// </summary>
-    public Dictionary<string, double> EmotionAssociations { get; set; } = new Dictionary<string, double>();
+    public Dictionary<string, double> EmotionAssociations { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the last experienced timestamp
@@ -36,12 +36,12 @@ public class EmotionalAssociation
     /// <summary>
     /// Gets or sets the association context
     /// </summary>
-    public Dictionary<string, object> Context { get; set; } = new Dictionary<string, object>();
+    public Dictionary<string, object> Context { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the association tags
     /// </summary>
-    public List<string> Tags { get; set; } = new List<string>();
+    public List<string> Tags { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the association category

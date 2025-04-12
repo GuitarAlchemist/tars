@@ -1,5 +1,7 @@
 using System.Text;
 using Microsoft.Extensions.Logging;
+using TarsEngine.Models;
+using TarsEngine.Monads;
 using TarsEngine.Services.Interfaces;
 
 namespace TarsEngine.Services;
@@ -34,8 +36,8 @@ public class CodeGenerationService : ICodeGenerationService
     public virtual async Task<CodeGenerationResult> GenerateCodeAsync(
         string description,
         string projectPath,
-        ProgrammingLanguage language,
-        string outputPath = null)
+        CodeLanguage language,
+        Option<string> outputPath = default)
     {
         try
         {
@@ -62,16 +64,15 @@ public class CodeGenerationService : ICodeGenerationService
             string generatedCode = ExtractCodeFromLlmResponse(llmResponse, language);
 
             // Save the code if an output path is provided
-            if (!string.IsNullOrEmpty(outputPath))
-            {
-                await SaveGeneratedCodeAsync(generatedCode, outputPath);
-            }
+            outputPath.IfSome(async path => {
+                await SaveGeneratedCodeAsync(generatedCode, path);
+            });
 
             return new CodeGenerationResult
             {
                 Success = true,
                 GeneratedCode = generatedCode,
-                OutputPath = outputPath
+                OutputPath = outputPath.ValueOr(string.Empty)
             };
         }
         catch (Exception ex)
@@ -95,7 +96,7 @@ public class CodeGenerationService : ICodeGenerationService
     public virtual async Task<CodeGenerationResult> GenerateUnitTestAsync(
         string sourceFilePath,
         string projectPath,
-        string outputPath = null)
+        Option<string> outputPath = default)
     {
         try
         {
@@ -129,14 +130,12 @@ public class CodeGenerationService : ICodeGenerationService
             string extension = Path.GetExtension(sourceFilePath).ToLowerInvariant();
             var language = extension switch
             {
-                ".cs" => ProgrammingLanguage.CSharp,
-                ".fs" => ProgrammingLanguage.FSharp,
-                ".js" => ProgrammingLanguage.JavaScript,
-                ".ts" => ProgrammingLanguage.TypeScript,
-                ".py" => ProgrammingLanguage.Python,
-                ".java" => ProgrammingLanguage.Java,
-                ".cpp" or ".h" or ".hpp" => ProgrammingLanguage.Cpp,
-                _ => ProgrammingLanguage.Unknown
+                ".cs" => CodeLanguage.CSharp,
+                ".fs" => CodeLanguage.FSharp,
+                ".js" => CodeLanguage.JavaScript,
+                ".ts" => CodeLanguage.TypeScript,
+                ".py" => CodeLanguage.Python,
+                _ => CodeLanguage.CSharp
             };
 
             // Create a prompt for the LLM
@@ -149,37 +148,35 @@ public class CodeGenerationService : ICodeGenerationService
             string generatedTestCode = ExtractCodeFromLlmResponse(llmResponse, language);
 
             // Determine the output path if not provided
-            if (string.IsNullOrEmpty(outputPath))
-            {
+            string finalOutputPath = outputPath.ValueOr(() => {
                 string fileName = Path.GetFileNameWithoutExtension(sourceFilePath);
                 string directory = Path.GetDirectoryName(sourceFilePath);
 
                 // Determine the test file name based on the language
                 string testFileName = language switch
                 {
-                    ProgrammingLanguage.CSharp => $"{fileName}Tests.cs",
-                    ProgrammingLanguage.FSharp => $"{fileName}Tests.fs",
-                    ProgrammingLanguage.JavaScript => $"{fileName}.test.js",
-                    ProgrammingLanguage.TypeScript => $"{fileName}.test.ts",
-                    ProgrammingLanguage.Python => $"test_{fileName}.py",
-                    ProgrammingLanguage.Java => $"{fileName}Test.java",
-                    ProgrammingLanguage.Cpp => $"{fileName}_test.cpp",
+                    CodeLanguage.CSharp => $"{fileName}Tests.cs",
+                    CodeLanguage.FSharp => $"{fileName}Tests.fs",
+                    CodeLanguage.JavaScript => $"{fileName}.test.js",
+                    CodeLanguage.TypeScript => $"{fileName}.test.ts",
+                    CodeLanguage.Python => $"test_{fileName}.py",
+                    CodeLanguage.Rust => $"{fileName}_test.rs",
                     _ => $"{fileName}_test{extension}"
                 };
 
                 // Try to find a test directory
                 string testDirectory = FindTestDirectory(directory, projectPath);
-                outputPath = Path.Combine(testDirectory, testFileName);
-            }
+                return Path.Combine(testDirectory, testFileName);
+            });
 
             // Save the test code
-            await SaveGeneratedCodeAsync(generatedTestCode, outputPath);
+            await SaveGeneratedCodeAsync(generatedTestCode, finalOutputPath);
 
             return new CodeGenerationResult
             {
                 Success = true,
                 GeneratedCode = generatedTestCode,
-                OutputPath = outputPath
+                OutputPath = finalOutputPath
             };
         }
         catch (Exception ex)
@@ -199,7 +196,7 @@ public class CodeGenerationService : ICodeGenerationService
     private string CreateCodeGenerationPrompt(
         string description,
         ProjectAnalysisResult projectAnalysis,
-        ProgrammingLanguage language)
+        CodeLanguage language)
     {
         var sb = new StringBuilder();
 
@@ -263,7 +260,7 @@ public class CodeGenerationService : ICodeGenerationService
         string sourceCode,
         string sourceFilePath,
         ProjectAnalysisResult projectAnalysis,
-        ProgrammingLanguage language)
+        CodeLanguage language)
     {
         var sb = new StringBuilder();
 
@@ -292,13 +289,12 @@ public class CodeGenerationService : ICodeGenerationService
         // Determine the testing framework based on the language
         string testingFramework = language switch
         {
-            ProgrammingLanguage.CSharp => "xUnit",
-            ProgrammingLanguage.FSharp => "xUnit with FsUnit",
-            ProgrammingLanguage.JavaScript => "Jest",
-            ProgrammingLanguage.TypeScript => "Jest with TypeScript",
-            ProgrammingLanguage.Python => "pytest",
-            ProgrammingLanguage.Java => "JUnit 5",
-            ProgrammingLanguage.Cpp => "Google Test",
+            CodeLanguage.CSharp => "xUnit",
+            CodeLanguage.FSharp => "xUnit with FsUnit",
+            CodeLanguage.JavaScript => "Jest",
+            CodeLanguage.TypeScript => "Jest with TypeScript",
+            CodeLanguage.Python => "pytest",
+            CodeLanguage.Rust => "Rust Test",
             _ => "appropriate testing framework"
         };
 
@@ -318,7 +314,7 @@ public class CodeGenerationService : ICodeGenerationService
     /// <summary>
     /// Extracts code from an LLM response
     /// </summary>
-    private string ExtractCodeFromLlmResponse(string llmResponse, ProgrammingLanguage language)
+    private string ExtractCodeFromLlmResponse(string llmResponse, CodeLanguage language)
     {
         // Check if the response is wrapped in markdown code blocks
         var codeBlockStart = "```";

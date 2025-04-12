@@ -47,16 +47,16 @@ public class TaskAnalysisService : ITaskAnalysisService
         {
             // Step 1: Extract key requirements from the task description
             var requirements = await ExtractRequirementsAsync(taskDescription);
-            
+
             // Step 2: Identify affected components and files
             var affectedComponents = await IdentifyAffectedComponentsAsync(taskDescription, requirements);
-            
+
             // Step 3: Generate implementation steps
             var implementationSteps = await GenerateImplementationStepsAsync(taskDescription, requirements, affectedComponents);
-            
+
             // Step 4: Estimate complexity and effort
             var complexity = EstimateComplexity(requirements, affectedComponents, implementationSteps);
-            
+
             // Create the implementation plan
             var plan = new ImplementationPlan
             {
@@ -67,7 +67,7 @@ public class TaskAnalysisService : ITaskAnalysisService
                 Complexity = complexity,
                 CreatedAt = DateTime.Now
             };
-            
+
             _logger.LogInformation($"Generated implementation plan for task: {taskDescription}");
             return plan;
         }
@@ -86,16 +86,16 @@ public class TaskAnalysisService : ITaskAnalysisService
     private async Task<List<string>> ExtractRequirementsAsync(string taskDescription)
     {
         _logger.LogDebug($"Extracting requirements from task: {taskDescription}");
-        
+
         var prompt = new StringBuilder();
         prompt.AppendLine("Extract the key requirements from the following task description.");
         prompt.AppendLine("Format each requirement as a separate bullet point.");
         prompt.AppendLine("Focus on functional requirements, technical constraints, and expected outcomes.");
         prompt.AppendLine();
         prompt.AppendLine($"Task: {taskDescription}");
-        
-        var response = await _llmService.GenerateTextAsync(prompt.ToString());
-        
+
+        var response = await _llmService.GetCompletionAsync(prompt.ToString());
+
         // Parse the response into a list of requirements
         var requirements = new List<string>();
         foreach (var line in response.Split('\n'))
@@ -106,7 +106,7 @@ public class TaskAnalysisService : ITaskAnalysisService
                 requirements.Add(trimmedLine.Substring(1).Trim());
             }
         }
-        
+
         _logger.LogDebug($"Extracted {requirements.Count} requirements from task");
         return requirements;
     }
@@ -120,10 +120,10 @@ public class TaskAnalysisService : ITaskAnalysisService
     private async Task<List<AffectedComponent>> IdentifyAffectedComponentsAsync(string taskDescription, List<string> requirements)
     {
         _logger.LogDebug($"Identifying affected components for task: {taskDescription}");
-        
+
         // Get project structure
-        var projectStructure = await _projectAnalysisService.GetProjectStructureAsync();
-        
+        var projectStructure = await _projectAnalysisService.AnalyzeProjectAsync(".");
+
         // Build a prompt to identify affected components
         var prompt = new StringBuilder();
         prompt.AppendLine("Identify the components and files that need to be modified to implement the following task:");
@@ -143,12 +143,12 @@ public class TaskAnalysisService : ITaskAnalysisService
         prompt.AppendLine("2. The file path");
         prompt.AppendLine("3. The type of change needed (Create, Modify, Delete)");
         prompt.AppendLine("4. A brief description of the changes needed");
-        
-        var response = await _llmService.GenerateTextAsync(prompt.ToString());
-        
+
+        var response = await _llmService.GetCompletionAsync(prompt.ToString());
+
         // Parse the response into a list of affected components
         var affectedComponents = ParseAffectedComponents(response);
-        
+
         _logger.LogDebug($"Identified {affectedComponents.Count} affected components for task");
         return affectedComponents;
     }
@@ -162,15 +162,15 @@ public class TaskAnalysisService : ITaskAnalysisService
     {
         var components = new List<AffectedComponent>();
         var lines = response.Split('\n');
-        
+
         AffectedComponent? currentComponent = null;
-        
+
         foreach (var line in lines)
         {
             var trimmedLine = line.Trim();
-            
+
             // Check for component name (usually starts with a number or has "Component:" in it)
-            if (trimmedLine.StartsWith("Component:") || 
+            if (trimmedLine.StartsWith("Component:") ||
                 (trimmedLine.Length > 2 && char.IsDigit(trimmedLine[0]) && trimmedLine[1] == '.'))
             {
                 // Save previous component if exists
@@ -178,7 +178,7 @@ public class TaskAnalysisService : ITaskAnalysisService
                 {
                     components.Add(currentComponent);
                 }
-                
+
                 // Create new component
                 currentComponent = new AffectedComponent
                 {
@@ -215,7 +215,7 @@ public class TaskAnalysisService : ITaskAnalysisService
                 }
             }
             // If line contains a file path pattern
-            else if (trimmedLine.Contains(".cs") || trimmedLine.Contains(".fs") || 
+            else if (trimmedLine.Contains(".cs") || trimmedLine.Contains(".fs") ||
                      trimmedLine.Contains(".csproj") || trimmedLine.Contains(".fsproj"))
             {
                 if (currentComponent != null && string.IsNullOrEmpty(currentComponent.FilePath))
@@ -224,13 +224,13 @@ public class TaskAnalysisService : ITaskAnalysisService
                 }
             }
         }
-        
+
         // Add the last component if exists
         if (currentComponent != null)
         {
             components.Add(currentComponent);
         }
-        
+
         return components;
     }
 
@@ -246,13 +246,13 @@ public class TaskAnalysisService : ITaskAnalysisService
         {
             return line.Substring(label.Length).Trim();
         }
-        
+
         // If the line starts with a number (like "1. Component Name")
         if (line.Length > 2 && char.IsDigit(line[0]) && line[1] == '.')
         {
             return line.Substring(2).Trim();
         }
-        
+
         return line;
     }
 
@@ -264,12 +264,12 @@ public class TaskAnalysisService : ITaskAnalysisService
     /// <param name="affectedComponents">The list of affected components</param>
     /// <returns>The list of implementation steps</returns>
     private async Task<List<ImplementationStep>> GenerateImplementationStepsAsync(
-        string taskDescription, 
-        List<string> requirements, 
+        string taskDescription,
+        List<string> requirements,
         List<AffectedComponent> affectedComponents)
     {
         _logger.LogDebug($"Generating implementation steps for task: {taskDescription}");
-        
+
         // Build a prompt to generate implementation steps
         var prompt = new StringBuilder();
         prompt.AppendLine("Generate a detailed step-by-step implementation plan for the following task:");
@@ -294,12 +294,12 @@ public class TaskAnalysisService : ITaskAnalysisService
         prompt.AppendLine("3. The type of change (e.g., add method, modify class, create file)");
         prompt.AppendLine("4. Any dependencies on other steps");
         prompt.AppendLine("5. Estimated complexity (Low, Medium, High)");
-        
-        var response = await _llmService.GenerateTextAsync(prompt.ToString());
-        
+
+        var response = await _llmService.GetCompletionAsync(prompt.ToString());
+
         // Parse the response into a list of implementation steps
         var implementationSteps = ParseImplementationSteps(response);
-        
+
         _logger.LogDebug($"Generated {implementationSteps.Count} implementation steps for task");
         return implementationSteps;
     }
@@ -313,16 +313,16 @@ public class TaskAnalysisService : ITaskAnalysisService
     {
         var steps = new List<ImplementationStep>();
         var lines = response.Split('\n');
-        
+
         ImplementationStep? currentStep = null;
         int stepNumber = 1;
-        
+
         foreach (var line in lines)
         {
             var trimmedLine = line.Trim();
-            
+
             // Check for step number (usually starts with "Step X:" or just a number)
-            if (trimmedLine.StartsWith("Step ") || 
+            if (trimmedLine.StartsWith("Step ") ||
                 (trimmedLine.Length > 2 && char.IsDigit(trimmedLine[0]) && trimmedLine[1] == '.'))
             {
                 // Save previous step if exists
@@ -330,7 +330,7 @@ public class TaskAnalysisService : ITaskAnalysisService
                 {
                     steps.Add(currentStep);
                 }
-                
+
                 // Create new step
                 currentStep = new ImplementationStep
                 {
@@ -339,7 +339,7 @@ public class TaskAnalysisService : ITaskAnalysisService
                 };
             }
             // Check for file information
-            else if (trimmedLine.StartsWith("File:") || trimmedLine.Contains(".cs") || 
+            else if (trimmedLine.StartsWith("File:") || trimmedLine.Contains(".cs") ||
                      trimmedLine.Contains(".fs") || trimmedLine.Contains(".csproj"))
             {
                 if (currentStep != null)
@@ -387,13 +387,13 @@ public class TaskAnalysisService : ITaskAnalysisService
                 currentStep.Description += Environment.NewLine + trimmedLine;
             }
         }
-        
+
         // Add the last step if exists
         if (currentStep != null)
         {
             steps.Add(currentStep);
         }
-        
+
         return steps;
     }
 
@@ -413,13 +413,13 @@ public class TaskAnalysisService : ITaskAnalysisService
                 return line.Substring(colonIndex + 1).Trim();
             }
         }
-        
+
         // If line starts with a number (like "1. Description")
         if (line.Length > 2 && char.IsDigit(line[0]) && line[1] == '.')
         {
             return line.Substring(2).Trim();
         }
-        
+
         return line;
     }
 
@@ -431,29 +431,29 @@ public class TaskAnalysisService : ITaskAnalysisService
     /// <param name="implementationSteps">The list of implementation steps</param>
     /// <returns>The estimated complexity</returns>
     private TaskComplexity EstimateComplexity(
-        List<string> requirements, 
-        List<AffectedComponent> affectedComponents, 
+        List<string> requirements,
+        List<AffectedComponent> affectedComponents,
         List<ImplementationStep> implementationSteps)
     {
         // Count high complexity steps
         var highComplexitySteps = implementationSteps.Count(s => s.Complexity == TaskComplexity.High);
-        
+
         // Count medium complexity steps
         var mediumComplexitySteps = implementationSteps.Count(s => s.Complexity == TaskComplexity.Medium);
-        
+
         // Count the number of affected components
         var componentCount = affectedComponents.Count;
-        
+
         // Count the number of requirements
         var requirementCount = requirements.Count;
-        
+
         // Calculate a complexity score
-        var complexityScore = 
-            (highComplexitySteps * 3) + 
-            (mediumComplexitySteps * 2) + 
-            (componentCount * 1.5) + 
+        var complexityScore =
+            (highComplexitySteps * 3) +
+            (mediumComplexitySteps * 2) +
+            (componentCount * 1.5) +
             (requirementCount * 1);
-        
+
         // Determine the overall complexity based on the score
         if (complexityScore >= 10)
         {

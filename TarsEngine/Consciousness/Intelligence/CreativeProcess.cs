@@ -46,27 +46,27 @@ public class CreativeProcess
     /// <summary>
     /// Gets or sets the process steps
     /// </summary>
-    public List<string> Steps { get; set; } = new List<string>();
+    public List<string> Steps { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the process inputs
     /// </summary>
-    public List<string> Inputs { get; set; } = new List<string>();
+    public List<string> Inputs { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the process outputs
     /// </summary>
-    public List<string> Outputs { get; set; } = new List<string>();
+    public List<string> Outputs { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the process context
     /// </summary>
-    public Dictionary<string, object> Context { get; set; } = new Dictionary<string, object>();
+    public Dictionary<string, object> Context { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the process tags
     /// </summary>
-    public List<string> Tags { get; set; } = new List<string>();
+    public List<string> Tags { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the process learning
@@ -76,12 +76,12 @@ public class CreativeProcess
     /// <summary>
     /// Gets or sets the process challenges
     /// </summary>
-    public List<string> Challenges { get; set; } = new List<string>();
+    public List<string> Challenges { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the process insights
     /// </summary>
-    public List<string> Insights { get; set; } = new List<string>();
+    public List<string> Insights { get; set; } = new();
     
     /// <summary>
     /// Adds a process step

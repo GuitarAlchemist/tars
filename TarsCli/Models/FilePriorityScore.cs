@@ -43,7 +43,7 @@ public class FilePriorityScore
     /// <summary>
     /// The factors that contributed to the score
     /// </summary>
-    public Dictionary<string, double> ScoreFactors { get; } = new Dictionary<string, double>();
+    public Dictionary<string, double> ScoreFactors { get; } = new();
 
     /// <summary>
     /// Constructor

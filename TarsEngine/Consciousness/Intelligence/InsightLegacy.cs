@@ -36,17 +36,17 @@ public class InsightLegacy
     /// <summary>
     /// Gets or sets the insight context
     /// </summary>
-    public Dictionary<string, object> Context { get; set; } = new Dictionary<string, object>();
+    public Dictionary<string, object> Context { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the insight tags
     /// </summary>
-    public List<string> Tags { get; set; } = new List<string>();
+    public List<string> Tags { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the insight implications
     /// </summary>
-    public List<string> Implications { get; set; } = new List<string>();
+    public List<string> Implications { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the insight new perspective
@@ -86,12 +86,12 @@ public class InsightLegacy
     /// <summary>
     /// Gets or sets the insight application areas
     /// </summary>
-    public List<string> ApplicationAreas { get; set; } = new List<string>();
+    public List<string> ApplicationAreas { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the insight related insight IDs
     /// </summary>
-    public List<string> RelatedInsightIds { get; set; } = new List<string>();
+    public List<string> RelatedInsightIds { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the insight source

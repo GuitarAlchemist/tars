@@ -79,7 +79,7 @@ public class CollaborationMessage
     /// Additional metadata for the message
     /// </summary>
     [JsonPropertyName("metadata")]
-    public Dictionary<string, object> Metadata { get; set; } = new Dictionary<string, object>();
+    public Dictionary<string, object> Metadata { get; set; } = new();
 }
 
 /// <summary>
@@ -133,7 +133,7 @@ public class KnowledgeTransferMessage
     /// The knowledge items being transferred
     /// </summary>
     [JsonPropertyName("knowledge_items")]
-    public List<DocumentationKnowledge> KnowledgeItems { get; set; } = new List<DocumentationKnowledge>();
+    public List<DocumentationKnowledge> KnowledgeItems { get; set; } = new();
 
     /// <summary>
     /// The context for the knowledge transfer
@@ -175,7 +175,7 @@ public class CodeImprovementSuggestion
     /// The changes made to the file
     /// </summary>
     [JsonPropertyName("changes")]
-    public List<CodeChange> Changes { get; set; } = new List<CodeChange>();
+    public List<CodeChange> Changes { get; set; } = new();
 
     /// <summary>
     /// The rationale for the improvements
@@ -187,7 +187,7 @@ public class CodeImprovementSuggestion
     /// The knowledge items used for the improvement
     /// </summary>
     [JsonPropertyName("knowledge_references")]
-    public List<string> KnowledgeReferences { get; set; } = new List<string>();
+    public List<string> KnowledgeReferences { get; set; } = new();
 
     /// <summary>
     /// The quality score for the improvement (0-100)
@@ -259,13 +259,13 @@ public class ImprovementFeedback
     /// Specific feedback on parts of the improvement
     /// </summary>
     [JsonPropertyName("specific_feedback")]
-    public List<SpecificFeedback> SpecificFeedback { get; set; } = new List<SpecificFeedback>();
+    public List<SpecificFeedback> SpecificFeedback { get; set; } = new();
 
     /// <summary>
     /// Suggestions for future improvements
     /// </summary>
     [JsonPropertyName("suggestions")]
-    public List<string> Suggestions { get; set; } = new List<string>();
+    public List<string> Suggestions { get; set; } = new();
 }
 
 /// <summary>

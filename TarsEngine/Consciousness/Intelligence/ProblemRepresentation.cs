@@ -46,7 +46,7 @@ public class ProblemRepresentation
     /// <summary>
     /// Gets or sets the representation context
     /// </summary>
-    public Dictionary<string, object> Context { get; set; } = new Dictionary<string, object>();
+    public Dictionary<string, object> Context { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the representation tags

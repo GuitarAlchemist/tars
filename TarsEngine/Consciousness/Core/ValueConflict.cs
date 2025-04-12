@@ -41,7 +41,7 @@ public class ValueConflict
     /// <summary>
     /// Gets or sets the conflict context
     /// </summary>
-    public Dictionary<string, object> Context { get; set; } = new Dictionary<string, object>();
+    public Dictionary<string, object> Context { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the conflict resolution
@@ -61,7 +61,7 @@ public class ValueConflict
     /// <summary>
     /// Gets or sets the conflict tags
     /// </summary>
-    public List<string> Tags { get; set; } = new List<string>();
+    public List<string> Tags { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the conflict category
@@ -71,7 +71,7 @@ public class ValueConflict
     /// <summary>
     /// Gets or sets the conflict examples
     /// </summary>
-    public List<string> Examples { get; set; } = new List<string>();
+    public List<string> Examples { get; set; } = new();
     
     /// <summary>
     /// Resolves the conflict

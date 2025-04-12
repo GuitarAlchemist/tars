@@ -41,12 +41,12 @@ public class ConceptConnection
     /// <summary>
     /// Gets or sets the connection attributes
     /// </summary>
-    public Dictionary<string, double> Attributes { get; set; } = new Dictionary<string, double>();
+    public Dictionary<string, double> Attributes { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the connection tags
     /// </summary>
-    public List<string> Tags { get; set; } = new List<string>();
+    public List<string> Tags { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the connection description

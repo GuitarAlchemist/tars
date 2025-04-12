@@ -21,7 +21,7 @@ public class SpontaneousThought
     private double _associativeJumpingLevel = 0.5; // Starting with moderate associative jumping
     private double _mindWanderingLevel = 0.3; // Starting with moderate mind wandering
     private double _serendipityLevel = 0.2; // Starting with low serendipity
-    private readonly System.Random _random = new System.Random();
+    private readonly System.Random _random = new();
     private DateTime _lastThoughtTime = DateTime.MinValue;
 
     /// <summary>

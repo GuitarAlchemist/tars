@@ -31,12 +31,12 @@ public class ModelImprovement
     /// <summary>
     /// Gets or sets the previous metrics
     /// </summary>
-    public Dictionary<string, double> PreviousMetrics { get; set; } = new Dictionary<string, double>();
+    public Dictionary<string, double> PreviousMetrics { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the new metrics
     /// </summary>
-    public Dictionary<string, double> NewMetrics { get; set; } = new Dictionary<string, double>();
+    public Dictionary<string, double> NewMetrics { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the improvement magnitude
@@ -46,7 +46,7 @@ public class ModelImprovement
     /// <summary>
     /// Gets or sets the changes made
     /// </summary>
-    public List<string> Changes { get; set; } = new List<string>();
+    public List<string> Changes { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the training examples added
@@ -56,7 +56,7 @@ public class ModelImprovement
     /// <summary>
     /// Gets or sets the hyperparameters changed
     /// </summary>
-    public Dictionary<string, string> HyperParametersChanged { get; set; } = new Dictionary<string, string>();
+    public Dictionary<string, string> HyperParametersChanged { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the intelligence increase

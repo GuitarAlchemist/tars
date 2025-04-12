@@ -21,7 +21,7 @@ public class InsightGeneration
     private double _connectionDiscoveryLevel = 0.3; // Starting with moderate connection discovery
     private double _problemRestructuringLevel = 0.4; // Starting with moderate problem restructuring
     private double _incubationLevel = 0.3; // Starting with moderate incubation
-    private readonly System.Random _random = new System.Random();
+    private readonly System.Random _random = new();
     private DateTime _lastInsightTime = DateTime.MinValue;
 
     /// <summary>

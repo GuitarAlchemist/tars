@@ -98,7 +98,10 @@ internal static class Program
                 .AddSingleton<DockerModelRunnerService>()
                 .AddSingleton<ModelProviderFactory>()
                 .AddSingleton<ConsoleService>()
+                .AddSingleton<DockerService>()
+                .AddSingleton<ConfigurationService>()
                 .AddSingleton<DocumentationKnowledgeService>()
+                .AddSingleton<OperationSummaryService>()
                 .AddSingleton<TarsEngine.Consciousness.Intelligence.IntelligenceSpark>()
                 .AddSingleton<TarsEngine.ML.Core.IntelligenceMeasurement>()
                 .AddSingleton<TarsEngine.Consciousness.Intelligence.Pattern.ImplicitPatternRecognition>()
@@ -188,6 +191,15 @@ internal static class Program
 
                 // Code complexity command
                 .AddSingleton<Commands.CodeComplexityCommand>()
+
+                // Operation Summary Service
+                .AddSingleton<OperationSummaryService>()
+
+                // VS Code Control Command
+                .AddSingleton<Commands.VSCodeControlCommand>()
+
+                // Augment VS Code Demo Command
+                .AddSingleton<Commands.AugmentVSCodeDemoCommand>()
 
                 .BuildServiceProvider();
 

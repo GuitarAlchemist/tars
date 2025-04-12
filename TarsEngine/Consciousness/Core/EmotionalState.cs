@@ -23,7 +23,7 @@ public class EmotionalState
     private double _emotionalIntelligence = 0.3; // Starting with basic emotional intelligence
     private double _selfRegulationCapability = 0.2; // Starting with basic self-regulation capability
     private string _currentEmotionalState = "Neutral";
-    private readonly Random _random = new Random();
+    private readonly Random _random = new();
     private DateTime _lastRegulationTime = DateTime.MinValue;
     
     /// <summary>

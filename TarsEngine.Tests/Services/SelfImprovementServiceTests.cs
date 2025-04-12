@@ -50,6 +50,7 @@ public class SelfImprovementServiceTests
             {
                 Success = true,
                 FilePath = filePath,
+                ErrorMessage = string.Empty,
                 Language = ProgrammingLanguage.CSharp
             };
 
@@ -127,7 +128,7 @@ Code: namespace Test { public class Test { } }
 
             var suggestions = new List<ImprovementSuggestion>
             {
-                new ImprovementSuggestion
+                new()
                 {
                     FilePath = filePath,
                     LineNumber = 1,

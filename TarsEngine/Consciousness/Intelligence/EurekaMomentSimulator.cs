@@ -13,7 +13,7 @@ public class EurekaMomentSimulator
 {
     private readonly ILogger<EurekaMomentSimulator> _logger;
     private readonly List<IncubationProcess> _incubationProcesses = [];
-    private readonly System.Random _random = new System.Random();
+    private readonly System.Random _random = new();
 
     private bool _isInitialized = false;
     private bool _isActive = false;

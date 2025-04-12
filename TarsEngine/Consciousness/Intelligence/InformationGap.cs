@@ -51,17 +51,17 @@ public class InformationGap
     /// <summary>
     /// Gets or sets the exploration IDs
     /// </summary>
-    public List<string> ExplorationIds { get; set; } = new List<string>();
+    public List<string> ExplorationIds { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the gap tags
     /// </summary>
-    public List<string> Tags { get; set; } = new List<string>();
+    public List<string> Tags { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the gap context
     /// </summary>
-    public Dictionary<string, object> Context { get; set; } = new Dictionary<string, object>();
+    public Dictionary<string, object> Context { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the gap status
@@ -76,7 +76,7 @@ public class InformationGap
     /// <summary>
     /// Gets or sets the related gap IDs
     /// </summary>
-    public List<string> RelatedGapIds { get; set; } = new List<string>();
+    public List<string> RelatedGapIds { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the gap notes

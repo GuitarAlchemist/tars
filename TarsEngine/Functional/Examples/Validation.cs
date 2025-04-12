@@ -123,8 +123,8 @@ namespace TarsEngine.Functional.Examples
         /// <summary>
         /// Gets the value or a default value if the validation result is invalid
         /// </summary>
-        public T ValueOrDefault(T defaultValue = default) =>
-            this is Valid<T, TError> valid ? valid.Value : defaultValue;
+        public T ValueOrDefault(T? defaultValue = default) =>
+            this is Valid<T, TError> valid ? valid.Value : defaultValue!;
 
         /// <summary>
         /// Gets the errors or an empty list if the validation result is valid
@@ -138,7 +138,7 @@ namespace TarsEngine.Functional.Examples
     /// </summary>
     public sealed record Valid<T, TError> : Validation<T, TError>
     {
-        public T Value { get; }
+        public new T Value { get; }
 
         public Valid(T value)
         {
@@ -151,7 +151,7 @@ namespace TarsEngine.Functional.Examples
     /// </summary>
     public sealed record Invalid<T, TError> : Validation<T, TError>
     {
-        public IReadOnlyList<TError> Errors { get; }
+        public new IReadOnlyList<TError> Errors { get; }
 
         public Invalid(IReadOnlyList<TError> errors)
         {
@@ -210,8 +210,8 @@ namespace TarsEngine.Functional.Examples
             foreach (var validation in validations)
             {
                 validation.Match<object>(
-                    validFunc: value => { values.Add(value); return null; },
-                    invalidFunc: errs => { errors.AddRange(errs); return null; }
+                    validFunc: value => { values.Add(value); return null!; },
+                    invalidFunc: errs => { errors.AddRange(errs); return null!; }
                 );
             }
 

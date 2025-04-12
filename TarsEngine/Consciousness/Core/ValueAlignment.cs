@@ -21,7 +21,7 @@ public class ValueAlignment
     /// <summary>
     /// Gets or sets the values
     /// </summary>
-    public List<string> Values { get; set; } = new List<string>();
+    public List<string> Values { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the resolution
@@ -46,12 +46,12 @@ public class ValueAlignment
     /// <summary>
     /// Gets or sets the alignment context
     /// </summary>
-    public Dictionary<string, object> Context { get; set; } = new Dictionary<string, object>();
+    public Dictionary<string, object> Context { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the alignment tags
     /// </summary>
-    public List<string> Tags { get; set; } = new List<string>();
+    public List<string> Tags { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the alignment category
@@ -61,12 +61,12 @@ public class ValueAlignment
     /// <summary>
     /// Gets or sets the alignment examples
     /// </summary>
-    public List<string> Examples { get; set; } = new List<string>();
+    public List<string> Examples { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the alignment principles
     /// </summary>
-    public List<string> Principles { get; set; } = new List<string>();
+    public List<string> Principles { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the alignment learning

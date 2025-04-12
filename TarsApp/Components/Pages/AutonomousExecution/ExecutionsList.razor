@@ -133,7 +133,7 @@
     private bool isFilterDialogVisible;
     private FilterOptions filterOptions = new();
 
-    private DialogOptions dialogOptions = new DialogOptions
+    private DialogOptions dialogOptions = new()
     {
         MaxWidth = MaxWidth.Medium,
         FullWidth = true,
@@ -508,6 +508,6 @@
         public string? Status { get; set; }
         public ExecutionMode? Mode { get; set; }
         public ExecutionEnvironment? Environment { get; set; }
-        public DateRange DateRange { get; set; } = new DateRange();
+        public DateRange DateRange { get; set; } = new();
     }
 }

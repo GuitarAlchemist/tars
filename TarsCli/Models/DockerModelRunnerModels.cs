@@ -30,6 +30,24 @@ public record ModelInfo
     /// </summary>
     [JsonPropertyName("owned_by")]
     public string OwnedBy { get; init; } = string.Empty;
+
+    /// <summary>
+    /// The model provider (e.g., OpenAI, Anthropic, Meta, Google)
+    /// </summary>
+    [JsonPropertyName("provider")]
+    public string Provider { get; init; } = string.Empty;
+
+    /// <summary>
+    /// The model description
+    /// </summary>
+    [JsonPropertyName("description")]
+    public string Description { get; init; } = string.Empty;
+
+    /// <summary>
+    /// The model context length in tokens
+    /// </summary>
+    [JsonPropertyName("context_length")]
+    public int ContextLength { get; init; }
 }
 
 /// <summary>

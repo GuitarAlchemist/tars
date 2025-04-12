@@ -147,7 +147,7 @@ namespace TarsEngine.Monads
         /// <summary>
         /// Prints a collection with a custom separator and item formatter
         /// </summary>
-        public static string Collection<T>(IEnumerable<T> collection, Func<T, string> itemFormatter = null, string separator = ", ") =>
+        public static string Collection<T>(IEnumerable<T> collection, Func<T, string>? itemFormatter = null, string separator = ", ") =>
             string.Join(separator, Enumerable.Select(collection, itemFormatter ?? (v => v?.ToString() ?? "null")));
     }
 }

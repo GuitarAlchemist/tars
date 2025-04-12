@@ -36,12 +36,12 @@ public class CuriosityExploration
     /// <summary>
     /// Gets or sets the insights
     /// </summary>
-    public List<string> Insights { get; set; } = new List<string>();
+    public List<string> Insights { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the follow-up questions
     /// </summary>
-    public List<string> FollowUpQuestions { get; set; } = new List<string>();
+    public List<string> FollowUpQuestions { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the satisfaction (0.0 to 1.0)
@@ -56,12 +56,12 @@ public class CuriosityExploration
     /// <summary>
     /// Gets or sets the exploration context
     /// </summary>
-    public Dictionary<string, object> Context { get; set; } = new Dictionary<string, object>();
+    public Dictionary<string, object> Context { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the exploration tags
     /// </summary>
-    public List<string> Tags { get; set; } = new List<string>();
+    public List<string> Tags { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the question ID
@@ -71,7 +71,7 @@ public class CuriosityExploration
     /// <summary>
     /// Gets or sets the related exploration IDs
     /// </summary>
-    public List<string> RelatedExplorationIds { get; set; } = new List<string>();
+    public List<string> RelatedExplorationIds { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the exploration duration in seconds
@@ -81,12 +81,12 @@ public class CuriosityExploration
     /// <summary>
     /// Gets or sets the exploration resources
     /// </summary>
-    public List<string> Resources { get; set; } = new List<string>();
+    public List<string> Resources { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the exploration challenges
     /// </summary>
-    public List<string> Challenges { get; set; } = new List<string>();
+    public List<string> Challenges { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the exploration learning

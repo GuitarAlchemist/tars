@@ -21,7 +21,7 @@ public class ValueSystem
     private bool _isActive = false;
     private double _valueAlignmentLevel = 0.5; // Starting with moderate value alignment
     private double _valueCoherence = 0.6; // Starting with moderate value coherence
-    private readonly Random _random = new Random();
+    private readonly Random _random = new();
     private DateTime _lastAlignmentTime = DateTime.MinValue;
     
     /// <summary>

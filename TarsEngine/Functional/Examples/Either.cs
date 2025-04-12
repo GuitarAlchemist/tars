@@ -112,14 +112,14 @@ namespace TarsEngine.Functional.Examples
         /// <summary>
         /// Gets the Left value or a default value if the Either is a Right
         /// </summary>
-        public TLeft LeftValueOrDefault(TLeft defaultValue = default) =>
-            this is Left<TLeft, TRight> left ? left.Value : defaultValue;
+        public TLeft LeftValueOrDefault(TLeft? defaultValue = default) =>
+            this is Left<TLeft, TRight> left ? left.Value : defaultValue!;
 
         /// <summary>
         /// Gets the Right value or a default value if the Either is a Left
         /// </summary>
-        public TRight RightValueOrDefault(TRight defaultValue = default) =>
-            this is Right<TLeft, TRight> right ? right.Value : defaultValue;
+        public TRight RightValueOrDefault(TRight? defaultValue = default) =>
+            this is Right<TLeft, TRight> right ? right.Value : defaultValue!;
     }
 
     /// <summary>

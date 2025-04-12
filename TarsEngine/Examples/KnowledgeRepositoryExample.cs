@@ -53,7 +53,7 @@ namespace TarsEngine.Examples
                         Confidence = item.Confidence,
                         CreatedAt = item.Timestamp,
                         UpdatedAt = DateTime.UtcNow,
-                        Tags = item.RelatedItems ?? [],
+                        Tags = item.RelatedItems ?? new List<string>(),
                         Metadata = item.Metadata ?? new Dictionary<string, string>()
                     };
 

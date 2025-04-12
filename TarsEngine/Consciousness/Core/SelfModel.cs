@@ -22,7 +22,7 @@ public class SelfModel
     private double _selfAwarenessLevel = 0.1; // Starting with minimal self-awareness
     private double _selfImprovementCapability = 0.2; // Starting with basic self-improvement capability
     private DateTime _lastReflectionTime = DateTime.MinValue;
-    private readonly Random _random = new Random();
+    private readonly Random _random = new();
     
     /// <summary>
     /// Gets the self-awareness level (0.0 to 1.0)

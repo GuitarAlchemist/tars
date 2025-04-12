@@ -25,13 +25,13 @@ namespace TarsEngine.Monads
         /// Creates a successful Result with a value
         /// </summary>
         public static Result<T, TError> Success(T value) =>
-            new(value, default, true);
+            new(value, default!, true);
 
         /// <summary>
         /// Creates a failed Result with an error
         /// </summary>
         public static Result<T, TError> Failure(TError error) =>
-            new(default, error, false);
+            new(default!, error, false);
 
         /// <summary>
         /// Returns true if the result is successful

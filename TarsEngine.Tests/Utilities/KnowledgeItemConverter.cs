@@ -23,7 +23,7 @@ namespace TarsEngine.Tests.Utilities
             return new ModelKnowledgeItem
             {
                 Id = item.Id,
-                Type = (ModelKnowledgeType)Enum.Parse(typeof(ModelKnowledgeType), item.Type.ToString()),
+                Type = TarsEngine.Services.Adapters.KnowledgeTypeAdapter.ToModelType(item.Type),
                 Content = item.Content,
                 Source = item.Source,
                 Confidence = item.Confidence,
@@ -42,7 +42,7 @@ namespace TarsEngine.Tests.Utilities
             return new InterfaceKnowledgeItem
             {
                 Id = item.Id,
-                Type = (InterfaceKnowledgeType)Enum.Parse(typeof(InterfaceKnowledgeType), item.Type.ToString()),
+                Type = TarsEngine.Services.Adapters.KnowledgeTypeAdapter.ToInterfaceType(item.Type),
                 Content = item.Content,
                 Source = item.Source,
                 Confidence = item.Confidence,

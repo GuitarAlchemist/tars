@@ -21,12 +21,12 @@ public class ConceptNode
     /// <summary>
     /// Gets or sets the node attributes
     /// </summary>
-    public Dictionary<string, double> Attributes { get; set; } = new Dictionary<string, double>();
+    public Dictionary<string, double> Attributes { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the connection IDs
     /// </summary>
-    public List<string> ConnectionIds { get; set; } = new List<string>();
+    public List<string> ConnectionIds { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the node creation timestamp
@@ -36,7 +36,7 @@ public class ConceptNode
     /// <summary>
     /// Gets or sets the node tags
     /// </summary>
-    public List<string> Tags { get; set; } = new List<string>();
+    public List<string> Tags { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the node category

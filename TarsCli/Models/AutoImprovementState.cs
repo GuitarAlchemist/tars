@@ -10,17 +10,17 @@ public class AutoImprovementState
     /// <summary>
     /// The list of files pending processing
     /// </summary>
-    public List<string> PendingFiles { get; set; } = new List<string>();
+    public List<string> PendingFiles { get; set; } = new();
 
     /// <summary>
     /// The list of files that have been processed
     /// </summary>
-    public List<string> ProcessedFiles { get; set; } = new List<string>();
+    public List<string> ProcessedFiles { get; set; } = new();
 
     /// <summary>
     /// The list of files that have been improved
     /// </summary>
-    public List<string> ImprovedFiles { get; set; } = new List<string>();
+    public List<string> ImprovedFiles { get; set; } = new();
 
     /// <summary>
     /// The current file being processed
@@ -41,7 +41,7 @@ public class AutoImprovementState
     /// The file priority scores
     /// </summary>
     [JsonIgnore] // Don't serialize this property as it can be recalculated
-    public Dictionary<string, FilePriorityScore> FilePriorityScores { get; set; } = new Dictionary<string, FilePriorityScore>();
+    public Dictionary<string, FilePriorityScore> FilePriorityScores { get; set; } = new();
 
     /// <summary>
     /// The last time the state was updated
@@ -51,7 +51,7 @@ public class AutoImprovementState
     /// <summary>
     /// The history of improvements made
     /// </summary>
-    public List<ImprovementRecord> ImprovementHistory { get; set; } = new List<ImprovementRecord>();
+    public List<ImprovementRecord> ImprovementHistory { get; set; } = new();
 }
 
 /// <summary>

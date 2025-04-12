@@ -222,7 +222,7 @@ namespace TarsEngine.Monads
         public static EnhancedAsyncResultError<T, TError> FromValueTask(Task<T> task, Func<Exception, TError> errorMapper) =>
             new(task.ContinueWith(t => {
                 if (t.IsFaulted)
-                    return Result<T, TError>.Failure(errorMapper(t.Exception.InnerException));
+                    return Result<T, TError>.Failure(errorMapper(t.Exception!.InnerException!));
                 if (t.IsCanceled)
                     return Result<T, TError>.Failure(errorMapper(new TaskCanceledException()));
                 return Result<T, TError>.Success(t.Result);

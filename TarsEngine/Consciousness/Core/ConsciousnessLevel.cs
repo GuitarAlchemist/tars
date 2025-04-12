@@ -18,7 +18,7 @@ public class ConsciousnessLevel
     private string _currentLevel = "Basic Awareness";
     private double _consciousnessDepth = 0.2; // Starting with basic consciousness depth
     private double _adaptabilityLevel = 0.3; // Starting with basic adaptability
-    private readonly Random _random = new Random();
+    private readonly Random _random = new();
     private DateTime _lastEvolutionTime = DateTime.MinValue;
     
     // Consciousness level thresholds

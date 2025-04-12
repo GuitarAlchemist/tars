@@ -36,8 +36,17 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<CSharpDuplicationAnalyzer>();
         services.AddSingleton<IDuplicationAnalyzer, DuplicationAnalyzerService>();
 
+        // Add file service
+        services.AddSingleton<IFileService, FileService>();
+
+        // Add readability analyzer
+        services.AddSingleton<IReadabilityAnalyzer, ReadabilityAnalyzer>();
+
         // Add the main system
         services.AddSingleton<IntelligenceProgressionSystem>();
+
+        // Add benchmark system
+        services.AddSingleton<BenchmarkSystem>();
 
         return services;
     }

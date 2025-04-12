@@ -31,7 +31,7 @@ public class IntelligenceSnapshot
     /// <summary>
     /// Gets or sets the metrics
     /// </summary>
-    public Dictionary<string, double> Metrics { get; set; } = new Dictionary<string, double>();
+    public Dictionary<string, double> Metrics { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the source of the snapshot
@@ -46,12 +46,12 @@ public class IntelligenceSnapshot
     /// <summary>
     /// Gets or sets the tags
     /// </summary>
-    public List<string> Tags { get; set; } = new List<string>();
+    public List<string> Tags { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the improvement factors
     /// </summary>
-    public List<string> ImprovementFactors { get; set; } = new List<string>();
+    public List<string> ImprovementFactors { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the improvement magnitude
@@ -66,20 +66,20 @@ public class IntelligenceSnapshot
     /// <summary>
     /// Gets or sets the strongest dimensions
     /// </summary>
-    public List<string> StrongestDimensions { get; set; } = new List<string>();
+    public List<string> StrongestDimensions { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the weakest dimensions
     /// </summary>
-    public List<string> WeakestDimensions { get; set; } = new List<string>();
+    public List<string> WeakestDimensions { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the fastest growing dimensions
     /// </summary>
-    public List<string> FastestGrowingDimensions { get; set; } = new List<string>();
+    public List<string> FastestGrowingDimensions { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the slowest growing dimensions
     /// </summary>
-    public List<string> SlowestGrowingDimensions { get; set; } = new List<string>();
+    public List<string> SlowestGrowingDimensions { get; set; } = new();
 }

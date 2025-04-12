@@ -66,6 +66,12 @@ public class OllamaOptions
     /// </summary>
     [JsonPropertyName("num_predict")]
     public int NumPredict { get; set; } = 2048;
+
+    /// <summary>
+    /// Whether to stream the response
+    /// </summary>
+    [JsonPropertyName("stream")]
+    public bool Stream { get; set; } = true;
 }
 
 /// <summary>

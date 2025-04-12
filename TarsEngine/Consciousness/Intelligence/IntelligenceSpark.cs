@@ -27,7 +27,7 @@ public class IntelligenceSpark
     private double _intuitionLevel = 0.3; // Starting with moderate intuition
     private double _curiosityLevel = 0.5; // Starting with high curiosity
     private double _insightLevel = 0.2; // Starting with low insight
-    private readonly System.Random _random = new System.Random();
+    private readonly System.Random _random = new();
     private DateTime _lastUpdateTime;
     private readonly List<IntelligenceEvent> _intelligenceEvents = [];
 
