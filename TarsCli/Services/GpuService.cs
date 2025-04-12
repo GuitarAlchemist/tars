@@ -37,13 +37,25 @@ public class GpuService
 
         try
         {
-            // Check configuration override
-            var configOverride = _configuration["Ollama:EnableGpu"];
-            if (!string.IsNullOrEmpty(configOverride))
+            // Check configuration override for Ollama
+            var ollamaConfigOverride = _configuration["Ollama:EnableGpu"];
+            if (!string.IsNullOrEmpty(ollamaConfigOverride))
             {
-                if (bool.TryParse(configOverride, out bool enableGpu))
+                if (bool.TryParse(ollamaConfigOverride, out bool enableGpu))
                 {
-                    _logger.LogInformation($"Using GPU acceleration setting from configuration: {enableGpu}");
+                    _logger.LogInformation($"Using GPU acceleration setting from Ollama configuration: {enableGpu}");
+                    _isGpuAvailable = enableGpu;
+                    return enableGpu;
+                }
+            }
+
+            // Check configuration override for Docker Model Runner
+            var dockerModelRunnerConfigOverride = _configuration[Constants.ConfigurationKeys.DockerModelRunner.EnableGpu];
+            if (!string.IsNullOrEmpty(dockerModelRunnerConfigOverride))
+            {
+                if (bool.TryParse(dockerModelRunnerConfigOverride, out bool enableGpu))
+                {
+                    _logger.LogInformation($"Using GPU acceleration setting from Docker Model Runner configuration: {enableGpu}");
                     _isGpuAvailable = enableGpu;
                     return enableGpu;
                 }
@@ -123,6 +135,24 @@ public class GpuService
     /// </summary>
     /// <returns>Dictionary of GPU parameters for Ollama</returns>
     public Dictionary<string, object> GetOllamaGpuParameters()
+    {
+        return GetGpuParameters();
+    }
+
+    /// <summary>
+    /// Get Docker Model Runner GPU parameters based on available GPUs
+    /// </summary>
+    /// <returns>Dictionary of GPU parameters for Docker Model Runner</returns>
+    public Dictionary<string, object> GetDockerModelRunnerGpuParameters()
+    {
+        return GetGpuParameters();
+    }
+
+    /// <summary>
+    /// Get GPU parameters based on available GPUs
+    /// </summary>
+    /// <returns>Dictionary of GPU parameters</returns>
+    private Dictionary<string, object> GetGpuParameters()
     {
         var parameters = new Dictionary<string, object>();
 
