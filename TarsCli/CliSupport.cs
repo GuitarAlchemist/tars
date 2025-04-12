@@ -97,7 +97,7 @@ public static class CliSupport
         }
     }
 
-    private static IServiceProvider? _serviceProvider;
+    // Removed unused field: private static IServiceProvider? _serviceProvider;
 
     // Color output helpers
     public static void WriteColorLine(string text, ConsoleColor color)
@@ -160,15 +160,21 @@ public static class CliSupport
         var rootCommand = new RootCommand("TARS CLI - Command Line Interface for TARS");
 
         // Add commands here
-        // Temporarily comment out the code complexity command
-        // var codeComplexityCommand = new CodeComplexityCommand(
-        //     loggerFactory.CreateLogger<CodeComplexityCommand>(),
-        //     serviceProvider.GetRequiredService<ICodeComplexityAnalyzer>());
-        // rootCommand.AddCommand(codeComplexityCommand);
+        // Add the demo command
+        var demoCommand = new DemoCommand(serviceProvider);
+        rootCommand.AddCommand(demoCommand);
 
-        // Temporarily comment out the duplication demo command
-        // var duplicationDemoCommand = new DuplicationDemoCommand();
-        // rootCommand.AddCommand(duplicationDemoCommand);
+        // Add the code complexity command
+        var codeComplexityCommand = serviceProvider.GetRequiredService<CodeComplexityCommand>();
+        rootCommand.AddCommand(codeComplexityCommand);
+
+        // Add the duplication demo command
+        var duplicationDemoCommand = new DuplicationDemoCommand();
+        rootCommand.AddCommand(duplicationDemoCommand);
+
+        // Add the Docker Model Runner command
+        var dockerModelRunnerCommand = new DockerModelRunnerCommand(serviceProvider);
+        rootCommand.AddCommand(dockerModelRunnerCommand);
 
         return rootCommand;
     }
