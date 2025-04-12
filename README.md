@@ -134,7 +134,7 @@ TARS now supports running LLMs in Docker containers:
 - **Consistent Environment**: Ensure consistent model behavior across different systems
 - **MCP Integration**: Seamless integration with the Model Context Protocol
 
-[View Docker integration documentation](docs/features/docker-integration.md)
+[View Docker Model Runner documentation](docs/Docker-Model-Runner.md)
 
 ### Text-to-Speech Capabilities
 
@@ -369,6 +369,16 @@ TARS is designed with a hybrid approach:
 - **C#** for CLI and application interfaces
 
 This combination provides both functional programming benefits and strong integration with .NET ecosystem.
+
+### Recent Build Fixes
+
+We've recently fixed several build errors in the TARS solution related to model class compatibility. These fixes include:
+
+- Resolved ambiguous references to IssueSeverity enum
+- Fixed property mismatches in CodeIssue, CodeStructure, and other model classes
+- Updated enum values in CodeIssueType and MetricType to match the codebase
+
+See the [build fixes documentation](docs/build-fixes.md) for more details.
 
 ### Testing
 
