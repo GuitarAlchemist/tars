@@ -71,5 +71,5 @@ public class TestExecutionResult
     /// <summary>
     /// Gets or sets the test failures
     /// </summary>
-    public List<TestFailure> TestFailures { get; set; } = new List<TestFailure>();
+    public List<TestFailure> TestFailures { get; set; } = new();
 }

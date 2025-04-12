@@ -5,7 +5,7 @@ namespace TarsEngine.Services;
 public class WebSpeechService : ISpeechService
 {
     private readonly IJSRuntime _jsRuntime;
-    
+
     public string ServiceName => "Web Speech API";
 
     public WebSpeechService(IJSRuntime jsRuntime)
@@ -13,11 +13,11 @@ public class WebSpeechService : ISpeechService
         _jsRuntime = jsRuntime;
     }
 
-    public async Task<string> TranscribeAudioAsync(byte[] audioData)
+    public Task<string> TranscribeAudioAsync(byte[] audioData)
     {
         // Web Speech API doesn't support direct audio buffer transcription
         // We'll need to stream it through the microphone
-        throw new NotImplementedException("Direct audio transcription not supported in Web Speech API");
+        return Task.FromException<string>(new NotImplementedException("Direct audio transcription not supported in Web Speech API"));
     }
 
     public async Task<byte[]> SynthesizeSpeechAsync(string text, string? voiceName = null, float? rate = null, float? pitch = null)
@@ -25,13 +25,13 @@ public class WebSpeechService : ISpeechService
         try
         {
             // Use improved speech synthesis with better parameters
-            await _jsRuntime.InvokeVoidAsync("speechService.speak", 
-                text, 
+            await _jsRuntime.InvokeVoidAsync("speechService.speak",
+                text,
                 voiceName ?? "Google US English", // Default to a high-quality voice if available
                 rate ?? 1.0f,  // Normal rate
                 pitch ?? 1.0f  // Normal pitch
             );
-            
+
             return [];
         }
         catch (Exception ex)
@@ -39,7 +39,7 @@ public class WebSpeechService : ISpeechService
             throw new Exception($"Speech synthesis failed: {ex.Message}", ex);
         }
     }
-    
+
     public async Task<List<VoiceInfo>> GetAvailableVoicesAsync()
     {
         try

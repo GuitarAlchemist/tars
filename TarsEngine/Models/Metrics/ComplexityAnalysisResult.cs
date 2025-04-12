@@ -10,20 +10,20 @@ public class ComplexityAnalysisResult
     /// <summary>
     /// Gets or sets the complexity metrics
     /// </summary>
-    public List<ComplexityMetric> ComplexityMetrics { get; set; } = new List<ComplexityMetric>();
+    public List<ComplexityMetric> ComplexityMetrics { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the Halstead metrics
     /// </summary>
-    public List<HalsteadMetric> HalsteadMetrics { get; set; } = new List<HalsteadMetric>();
+    public List<HalsteadMetric> HalsteadMetrics { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the maintainability metrics
     /// </summary>
-    public List<MaintainabilityMetric> MaintainabilityMetrics { get; set; } = new List<MaintainabilityMetric>();
+    public List<MaintainabilityMetric> MaintainabilityMetrics { get; set; } = new();
     
     /// <summary>
     /// Gets or sets the readability metrics
     /// </summary>
-    public List<ReadabilityMetric> ReadabilityMetrics { get; set; } = new List<ReadabilityMetric>();
+    public List<ReadabilityMetric> ReadabilityMetrics { get; set; } = new();
 }

@@ -23,17 +23,17 @@ public class MetaAnalysisResult
     /// <summary>
     /// The components in the codebase
     /// </summary>
-    public List<CodeComponent> Components { get; set; } = new List<CodeComponent>();
+    public List<CodeComponent> Components { get; set; } = new();
 
     /// <summary>
     /// The dependencies between components
     /// </summary>
-    public List<ComponentDependency> Dependencies { get; set; } = new List<ComponentDependency>();
+    public List<ComponentDependency> Dependencies { get; set; } = new();
 
     /// <summary>
     /// Overall metrics for the codebase
     /// </summary>
-    public CodebaseMetrics Metrics { get; set; } = new CodebaseMetrics();
+    public CodebaseMetrics Metrics { get; set; } = new();
 
     /// <summary>
     /// The time the analysis was performed
@@ -69,12 +69,12 @@ public class CodeComponent
     /// <summary>
     /// The files in the component
     /// </summary>
-    public List<string> Files { get; set; } = new List<string>();
+    public List<string> Files { get; set; } = new();
 
     /// <summary>
     /// Metrics for the component
     /// </summary>
-    public ComponentMetrics Metrics { get; set; } = new ComponentMetrics();
+    public ComponentMetrics Metrics { get; set; } = new();
 }
 
 /// <summary>
@@ -218,7 +218,7 @@ public class ComponentToImprove
     /// <summary>
     /// The component to improve
     /// </summary>
-    public CodeComponent Component { get; set; } = new CodeComponent();
+    public CodeComponent Component { get; set; } = new();
 
     /// <summary>
     /// The priority of the improvement (0.0 to 1.0)
@@ -228,12 +228,12 @@ public class ComponentToImprove
     /// <summary>
     /// The reasons why the component needs improvement
     /// </summary>
-    public List<string> ImprovementReasons { get; set; } = new List<string>();
+    public List<string> ImprovementReasons { get; set; } = new();
 
     /// <summary>
     /// The areas that need improvement
     /// </summary>
-    public List<ImprovementArea> ImprovementAreas { get; set; } = new List<ImprovementArea>();
+    public List<ImprovementArea> ImprovementAreas { get; set; } = new();
 }
 
 /// <summary>
@@ -259,7 +259,7 @@ public class ImprovementArea
     /// <summary>
     /// Specific files affected by the issue
     /// </summary>
-    public List<string> AffectedFiles { get; set; } = new List<string>();
+    public List<string> AffectedFiles { get; set; } = new();
 }
 
 /// <summary>
@@ -311,7 +311,7 @@ public class ImprovementStrategy
     /// <summary>
     /// The component to improve
     /// </summary>
-    public ComponentToImprove Component { get; set; } = new ComponentToImprove();
+    public ComponentToImprove Component { get; set; } = new();
 
     /// <summary>
     /// The type of strategy
@@ -321,12 +321,12 @@ public class ImprovementStrategy
     /// <summary>
     /// The steps to follow for the improvement
     /// </summary>
-    public List<ImprovementStep> Steps { get; set; } = new List<ImprovementStep>();
+    public List<ImprovementStep> Steps { get; set; } = new();
 
     /// <summary>
     /// The expected impact of the improvement
     /// </summary>
-    public ExpectedImpact ExpectedImpact { get; set; } = new ExpectedImpact();
+    public ExpectedImpact ExpectedImpact { get; set; } = new();
 
     /// <summary>
     /// The estimated effort required for the improvement (in hours)
@@ -393,7 +393,7 @@ public class ImprovementStep
     /// <summary>
     /// The files affected by the step
     /// </summary>
-    public List<string> AffectedFiles { get; set; } = new List<string>();
+    public List<string> AffectedFiles { get; set; } = new();
 
     /// <summary>
     /// Whether the step requires testing
@@ -450,12 +450,12 @@ public class ImpactAssessment
     /// <summary>
     /// The component that was improved
     /// </summary>
-    public ComponentToImprove Component { get; set; } = new ComponentToImprove();
+    public ComponentToImprove Component { get; set; } = new();
 
     /// <summary>
     /// The strategy that was used
     /// </summary>
-    public ImprovementStrategy Strategy { get; set; } = new ImprovementStrategy();
+    public ImprovementStrategy Strategy { get; set; } = new();
 
     /// <summary>
     /// Whether the improvement was successful
@@ -465,17 +465,17 @@ public class ImpactAssessment
     /// <summary>
     /// The metrics before the improvement
     /// </summary>
-    public ComponentMetrics BeforeMetrics { get; set; } = new ComponentMetrics();
+    public ComponentMetrics BeforeMetrics { get; set; } = new();
 
     /// <summary>
     /// The metrics after the improvement
     /// </summary>
-    public ComponentMetrics AfterMetrics { get; set; } = new ComponentMetrics();
+    public ComponentMetrics AfterMetrics { get; set; } = new();
 
     /// <summary>
     /// The actual impact of the improvement
     /// </summary>
-    public ActualImpact ActualImpact { get; set; } = new ActualImpact();
+    public ActualImpact ActualImpact { get; set; } = new();
 
     /// <summary>
     /// The time taken for the improvement (in hours)
@@ -485,12 +485,12 @@ public class ImpactAssessment
     /// <summary>
     /// Any issues encountered during the improvement
     /// </summary>
-    public List<string> Issues { get; set; } = new List<string>();
+    public List<string> Issues { get; set; } = new();
 
     /// <summary>
     /// Lessons learned from the improvement
     /// </summary>
-    public List<string> LessonsLearned { get; set; } = new List<string>();
+    public List<string> LessonsLearned { get; set; } = new();
 }
 
 /// <summary>
@@ -536,5 +536,5 @@ public class ActualImpact
     /// <summary>
     /// Reasons why the impact did or did not meet expectations
     /// </summary>
-    public List<string> Reasons { get; set; } = new List<string>();
+    public List<string> Reasons { get; set; } = new();
 }

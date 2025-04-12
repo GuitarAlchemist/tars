@@ -281,7 +281,7 @@ Limit your response to the top {maxFiles} files.";
     private class PrioritizationResult
     {
         [JsonPropertyName("prioritized_files")]
-        public List<PrioritizedFile> PrioritizedFiles { get; set; } = new List<PrioritizedFile>();
+        public List<PrioritizedFile> PrioritizedFiles { get; set; } = new();
     }
 }
 

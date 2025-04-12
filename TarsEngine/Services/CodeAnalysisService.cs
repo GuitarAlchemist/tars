@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using TarsEngine.Models;
 using TarsEngine.Services.Interfaces;
+using TarsEngine.Unified;
 
 namespace TarsEngine.Services;
 
@@ -33,6 +34,7 @@ public class CodeAnalysisService : ICodeAnalysisService
                 _logger.LogError($"File not found: {filePath}");
                 return new CodeAnalysisResult
                 {
+                    FilePath = filePath,
                     Success = false,
                     ErrorMessage = $"File not found: {filePath}"
                 };
@@ -45,7 +47,8 @@ public class CodeAnalysisService : ICodeAnalysisService
             {
                 FilePath = filePath,
                 Language = DetermineLanguage(extension),
-                Success = true
+                Success = true,
+                ErrorMessage = string.Empty
             };
 
             // Analyze the code based on the language
@@ -77,6 +80,7 @@ public class CodeAnalysisService : ICodeAnalysisService
             _logger.LogError(ex, $"Error analyzing file {filePath}");
             return new CodeAnalysisResult
             {
+                FilePath = filePath,
                 Success = false,
                 ErrorMessage = $"Error analyzing file: {ex.Message}"
             };
@@ -98,7 +102,8 @@ public class CodeAnalysisService : ICodeAnalysisService
             if (!Directory.Exists(directoryPath))
             {
                 _logger.LogError($"Directory not found: {directoryPath}");
-                return new List<CodeAnalysisResult>();
+                return [];
+
             }
 
             var results = new List<CodeAnalysisResult>();
@@ -121,14 +126,14 @@ public class CodeAnalysisService : ICodeAnalysisService
         catch (Exception ex)
         {
             _logger.LogError(ex, $"Error analyzing directory {directoryPath}");
-            return new List<CodeAnalysisResult>();
+            return [];
         }
     }
 
     /// <summary>
     /// Determines the programming language based on the file extension
     /// </summary>
-    private ProgrammingLanguage DetermineLanguage(string extension)
+    private static ProgrammingLanguage DetermineLanguage(string extension)
     {
         return extension switch
         {
@@ -146,32 +151,32 @@ public class CodeAnalysisService : ICodeAnalysisService
     /// <summary>
     /// Analyzes C# code and extracts information about its structure
     /// </summary>
-    private void AnalyzeCSharpCode(string content, CodeAnalysisResult result)
+    private static void AnalyzeCSharpCode(string content, CodeAnalysisResult result)
     {
         // Extract namespaces
         var namespaceRegex = new Regex(@"namespace\s+([^\s{]+)");
         var namespaceMatches = namespaceRegex.Matches(content);
-        result.Namespaces = namespaceMatches.Select(m => m.Groups[1].Value).ToList();
+        result.Namespaces = [.. namespaceMatches.Select(m => m.Groups[1].Value)];
 
         // Extract classes
         var classRegex = new Regex(@"(?:public|private|protected|internal)?\s*(?:static|abstract|sealed)?\s*class\s+([^\s:<]+)");
         var classMatches = classRegex.Matches(content);
-        result.Classes = classMatches.Select(m => m.Groups[1].Value).ToList();
+        result.Classes = [.. classMatches.Select(m => m.Groups[1].Value)];
 
         // Extract interfaces
         var interfaceRegex = new Regex(@"(?:public|private|protected|internal)?\s*interface\s+([^\s:<]+)");
         var interfaceMatches = interfaceRegex.Matches(content);
-        result.Interfaces = interfaceMatches.Select(m => m.Groups[1].Value).ToList();
+        result.Interfaces = [.. interfaceMatches.Select(m => m.Groups[1].Value)];
 
         // Extract methods
         var methodRegex = new Regex(@"(?:public|private|protected|internal)?\s*(?:static|virtual|abstract|override)?\s*(?:[a-zA-Z0-9_<>]+)\s+([a-zA-Z0-9_]+)\s*\(");
         var methodMatches = methodRegex.Matches(content);
-        result.Methods = methodMatches.Select(m => m.Groups[1].Value).ToList();
+        result.Methods = [.. methodMatches.Select(m => m.Groups[1].Value)];
 
         // Extract using statements
         var usingRegex = new Regex(@"using\s+([^;]+);");
         var usingMatches = usingRegex.Matches(content);
-        result.Imports = usingMatches.Select(m => m.Groups[1].Value).ToList();
+        result.Imports = [.. usingMatches.Select(m => m.Groups[1].Value)];
 
         // Extract dependencies (types used in the code)
         var dependencies = new HashSet<string>();
@@ -184,54 +189,54 @@ public class CodeAnalysisService : ICodeAnalysisService
                 dependencies.Add(className);
             }
         }
-        result.Dependencies = dependencies.ToList();
+        result.Dependencies = [.. dependencies];
     }
 
     /// <summary>
     /// Analyzes F# code and extracts information about its structure
     /// </summary>
-    private void AnalyzeFSharpCode(string content, CodeAnalysisResult result)
+    private static void AnalyzeFSharpCode(string content, CodeAnalysisResult result)
     {
         // Extract namespaces
         var namespaceRegex = new Regex(@"namespace\s+([^\s]+)");
         var namespaceMatches = namespaceRegex.Matches(content);
-        result.Namespaces = namespaceMatches.Select(m => m.Groups[1].Value).ToList();
+        result.Namespaces = [.. namespaceMatches.Select(m => m.Groups[1].Value)];
 
         // Extract modules
         var moduleRegex = new Regex(@"module\s+([^\s=]+)");
         var moduleMatches = moduleRegex.Matches(content);
-        result.Modules = moduleMatches.Select(m => m.Groups[1].Value).ToList();
+        result.Modules = [.. moduleMatches.Select(m => m.Groups[1].Value)];
 
         // Extract types
         var typeRegex = new Regex(@"type\s+([^\s<=(]+)");
         var typeMatches = typeRegex.Matches(content);
-        result.Types = typeMatches.Select(m => m.Groups[1].Value).ToList();
+        result.Types = [.. typeMatches.Select(m => m.Groups[1].Value)];
 
         // Extract functions
         var functionRegex = new Regex(@"let\s+(?:rec\s+)?([a-zA-Z0-9_]+)\s*(?:<[^>]*>)?\s*(?:\([^)]*\))?\s*=");
         var functionMatches = functionRegex.Matches(content);
-        result.Functions = functionMatches.Select(m => m.Groups[1].Value).ToList();
+        result.Functions = [.. functionMatches.Select(m => m.Groups[1].Value)];
 
         // Extract open statements
         var openRegex = new Regex(@"open\s+([^\s]+)");
         var openMatches = openRegex.Matches(content);
-        result.Imports = openMatches.Select(m => m.Groups[1].Value).ToList();
+        result.Imports = [.. openMatches.Select(m => m.Groups[1].Value)];
     }
 
     /// <summary>
     /// Analyzes JavaScript/TypeScript code and extracts information about its structure
     /// </summary>
-    private void AnalyzeJavaScriptCode(string content, CodeAnalysisResult result)
+    private static void AnalyzeJavaScriptCode(string content, CodeAnalysisResult result)
     {
         // Extract classes
         var classRegex = new Regex(@"class\s+([a-zA-Z0-9_]+)");
         var classMatches = classRegex.Matches(content);
-        result.Classes = classMatches.Select(m => m.Groups[1].Value).ToList();
+        result.Classes = [.. classMatches.Select(m => m.Groups[1].Value)];
 
         // Extract functions
         var functionRegex = new Regex(@"function\s+([a-zA-Z0-9_]+)\s*\(");
         var functionMatches = functionRegex.Matches(content);
-        result.Functions = functionMatches.Select(m => m.Groups[1].Value).ToList();
+        result.Functions = [.. functionMatches.Select(m => m.Groups[1].Value)];
 
         // Extract arrow functions with names
         var arrowFunctionRegex = new Regex(@"(?:const|let|var)\s+([a-zA-Z0-9_]+)\s*=\s*(?:\([^)]*\)|[a-zA-Z0-9_]+)\s*=>");
@@ -241,44 +246,44 @@ public class CodeAnalysisService : ICodeAnalysisService
         // Extract imports
         var importRegex = new Regex(@"import\s+(?:{[^}]*}|[^;]*)\s+from\s+['""]([^'""]+)['""];");
         var importMatches = importRegex.Matches(content);
-        result.Imports = importMatches.Select(m => m.Groups[1].Value).ToList();
+        result.Imports = [.. importMatches.Select(m => m.Groups[1].Value)];
     }
 
     /// <summary>
     /// Analyzes Python code and extracts information about its structure
     /// </summary>
-    private void AnalyzePythonCode(string content, CodeAnalysisResult result)
+    private static void AnalyzePythonCode(string content, CodeAnalysisResult result)
     {
         // Extract classes
         var classRegex = new Regex(@"class\s+([a-zA-Z0-9_]+)");
         var classMatches = classRegex.Matches(content);
-        result.Classes = classMatches.Select(m => m.Groups[1].Value).ToList();
+        result.Classes = [.. classMatches.Select(m => m.Groups[1].Value)];
 
         // Extract functions
         var functionRegex = new Regex(@"def\s+([a-zA-Z0-9_]+)\s*\(");
         var functionMatches = functionRegex.Matches(content);
-        result.Functions = functionMatches.Select(m => m.Groups[1].Value).ToList();
+        result.Functions = [.. functionMatches.Select(m => m.Groups[1].Value)];
 
         // Extract imports
         var importRegex = new Regex(@"(?:import|from)\s+([a-zA-Z0-9_.]+)");
         var importMatches = importRegex.Matches(content);
-        result.Imports = importMatches.Select(m => m.Groups[1].Value).ToList();
+        result.Imports = [.. importMatches.Select(m => m.Groups[1].Value)];
     }
 
     /// <summary>
     /// Generic code analysis for languages without specific analyzers
     /// </summary>
-    private void AnalyzeGenericCode(string content, CodeAnalysisResult result)
+    private static void AnalyzeGenericCode(string content, CodeAnalysisResult result)
     {
         // Extract function-like patterns
         var functionRegex = new Regex(@"(?:function|def|void|int|string|bool|float|double|var|let)\s+([a-zA-Z0-9_]+)\s*\(");
         var functionMatches = functionRegex.Matches(content);
-        result.Functions = functionMatches.Select(m => m.Groups[1].Value).ToList();
+        result.Functions = [.. functionMatches.Select(m => m.Groups[1].Value)];
 
         // Extract class-like patterns
         var classRegex = new Regex(@"(?:class|struct|interface|enum)\s+([a-zA-Z0-9_]+)");
         var classMatches = classRegex.Matches(content);
-        result.Classes = classMatches.Select(m => m.Groups[1].Value).ToList();
+        result.Classes = [.. classMatches.Select(m => m.Groups[1].Value)];
     }
 }
 
@@ -287,29 +292,52 @@ public class CodeAnalysisService : ICodeAnalysisService
 /// </summary>
 public class CodeAnalysisResult
 {
-    public string FilePath { get; set; }
+    /// <summary>
+    /// Gets or sets the file path
+    /// </summary>
+    public required string FilePath { get; set; }
+
+    /// <summary>
+    /// Gets or sets the programming language
+    /// </summary>
     public ProgrammingLanguage Language { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether the analysis was successful
+    /// </summary>
     public bool Success { get; set; }
-    public string ErrorMessage { get; set; }
+
+    /// <summary>
+    /// Gets or sets the error message if the analysis failed
+    /// </summary>
+    public required string ErrorMessage { get; set; }
+
+    /// <summary>
+    /// Gets or sets the timestamp when the analysis was performed
+    /// </summary>
     public DateTime AnalyzedAt { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// Gets or sets whether the analysis was successful (alias for Success)
+    /// </summary>
     public bool IsSuccessful { get { return Success; } set { Success = value; } }
 
     // Collections for compatibility with Models.CodeAnalysisResult
-    public List<CodeIssue> Issues { get; set; } = new List<CodeIssue>();
-    public List<CodeMetric> Metrics { get; set; } = new List<CodeMetric>();
-    public List<CodeStructure> Structures { get; set; } = new List<CodeStructure>();
-    public List<string> Errors { get; set; } = new List<string>();
+    public List<CodeIssue> Issues { get; set; } = [];
+    public List<CodeMetric> Metrics { get; set; } = [];
+    public List<CodeStructure> Structures { get; set; } = [];
+    public List<string> Errors { get; set; } = [];
 
     // Original collections
-    public List<string> Namespaces { get; set; } = new List<string>();
-    public List<string> Classes { get; set; } = new List<string>();
-    public List<string> Interfaces { get; set; } = new List<string>();
-    public List<string> Methods { get; set; } = new List<string>();
-    public List<string> Functions { get; set; } = new List<string>();
-    public List<string> Types { get; set; } = new List<string>();
-    public List<string> Modules { get; set; } = new List<string>();
-    public List<string> Imports { get; set; } = new List<string>();
-    public List<string> Dependencies { get; set; } = new List<string>();
+    public List<string> Namespaces { get; set; } = [];
+    public List<string> Classes { get; set; } = [];
+    public List<string> Interfaces { get; set; } = [];
+    public List<string> Methods { get; set; } = [];
+    public List<string> Functions { get; set; } = [];
+    public List<string> Types { get; set; } = [];
+    public List<string> Modules { get; set; } = [];
+    public List<string> Imports { get; set; } = [];
+    public List<string> Dependencies { get; set; } = [];
 }
 
 /// <summary>

@@ -33,10 +33,10 @@ public class RetroactionLoopService(ILogger<RetroactionLoopService> logger, Cons
 
             // Display some statistics
             var stats = RetroactionLoop.getStatistics(result);
-            consoleService.WriteInfo($"Total patterns: {stats.TotalPatterns}");
-            consoleService.WriteInfo($"Active patterns: {stats.ActivePatterns}");
-            consoleService.WriteInfo($"Success rate: {stats.SuccessRate:P2}");
-            consoleService.WriteInfo($"Average pattern score: {stats.AveragePatternScore:F2}");
+            consoleService.WriteInfo($"Total patterns: {stats.TotalPatterns.ToString()}");
+            consoleService.WriteInfo($"Active patterns: {stats.ActivePatterns.ToString()}");
+            consoleService.WriteInfo($"Success rate: {stats.SuccessRate.ToString("P2")}");
+            consoleService.WriteInfo($"Average pattern score: {stats.AveragePatternScore.ToString("F2")}");
 
             return true;
         }

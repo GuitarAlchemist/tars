@@ -101,27 +101,27 @@ public class PrioritizedImprovement
     /// <summary>
     /// Gets or sets the list of files affected by the improvement
     /// </summary>
-    public List<string> AffectedFiles { get; set; } = new List<string>();
+    public List<string> AffectedFiles { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the list of dependencies for the improvement
     /// </summary>
-    public List<string> Dependencies { get; set; } = new List<string>();
+    public List<string> Dependencies { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the list of dependents for the improvement
     /// </summary>
-    public List<string> Dependents { get; set; } = new List<string>();
+    public List<string> Dependents { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the list of strategic goals aligned with the improvement
     /// </summary>
-    public List<string> StrategicGoals { get; set; } = new List<string>();
+    public List<string> StrategicGoals { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the list of tags associated with the improvement
     /// </summary>
-    public List<string> Tags { get; set; } = new List<string>();
+    public List<string> Tags { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the priority rank of the improvement (1-10, with 1 being highest priority)
@@ -146,5 +146,5 @@ public class PrioritizedImprovement
     /// <summary>
     /// Gets or sets additional metadata about the improvement
     /// </summary>
-    public Dictionary<string, string> Metadata { get; set; } = new Dictionary<string, string>();
+    public Dictionary<string, string> Metadata { get; set; } = new();
 }

@@ -35,5 +35,5 @@ public class ImprovementNode
     /// <summary>
     /// Gets or sets additional metadata about the node
     /// </summary>
-    public Dictionary<string, string> Metadata { get; set; } = new Dictionary<string, string>();
+    public Dictionary<string, string> Metadata { get; set; } = new();
 }

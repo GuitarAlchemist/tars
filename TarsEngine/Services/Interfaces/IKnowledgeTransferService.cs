@@ -90,12 +90,12 @@ public class KnowledgeItem
     /// <summary>
     /// Gets or sets the metadata associated with the knowledge item
     /// </summary>
-    public Dictionary<string, string> Metadata { get; set; } = new Dictionary<string, string>();
+    public Dictionary<string, string> Metadata { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the related knowledge items
     /// </summary>
-    public List<string> RelatedItems { get; set; } = new List<string>();
+    public List<string> RelatedItems { get; set; } = new();
 }
 
 /// <summary>
@@ -177,12 +177,12 @@ public class KnowledgeTransferResult
     /// <summary>
     /// Gets or sets the errors that occurred during transfer
     /// </summary>
-    public List<string> Errors { get; set; } = new List<string>();
+    public List<string> Errors { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the warnings that occurred during transfer
     /// </summary>
-    public List<string> Warnings { get; set; } = new List<string>();
+    public List<string> Warnings { get; set; } = new();
 }
 
 /// <summary>
@@ -203,12 +203,12 @@ public class OrganizedKnowledge
     /// <summary>
     /// Gets or sets the structure of the organized knowledge
     /// </summary>
-    public Dictionary<string, object> Structure { get; set; } = new Dictionary<string, object>();
+    public Dictionary<string, object> Structure { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the metadata associated with the organized knowledge
     /// </summary>
-    public Dictionary<string, string> Metadata { get; set; } = new Dictionary<string, string>();
+    public Dictionary<string, string> Metadata { get; set; } = new();
 }
 
 /// <summary>
@@ -229,15 +229,15 @@ public class KnowledgeApplicationResult
     /// <summary>
     /// Gets or sets the changes made during application
     /// </summary>
-    public List<string> Changes { get; set; } = new List<string>();
+    public List<string> Changes { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the errors that occurred during application
     /// </summary>
-    public List<string> Errors { get; set; } = new List<string>();
+    public List<string> Errors { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the warnings that occurred during application
     /// </summary>
-    public List<string> Warnings { get; set; } = new List<string>();
+    public List<string> Warnings { get; set; } = new();
 }

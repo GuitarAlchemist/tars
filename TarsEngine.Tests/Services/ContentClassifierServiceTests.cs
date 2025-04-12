@@ -65,10 +65,10 @@ public class ContentClassifierServiceTests
     public async Task ClassifyContentAsync_ShouldHandleEmptyContent()
     {
         // Arrange
-        string content = null;
+        string? content = null;
 
         // Act
-        var result = await _contentClassifierService.ClassifyContentAsync(content);
+        var result = await _contentClassifierService.ClassifyContentAsync(content ?? string.Empty);
 
         // Assert
         Assert.Equal(ContentCategory.Unknown, result.PrimaryCategory);

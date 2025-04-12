@@ -17,7 +17,7 @@ public class TarsSpeechService
     private readonly IConfiguration _configuration;
     private Process? _serverProcess;
     private bool _isInitialized = false;
-    private readonly HttpClient _httpClient = new HttpClient();
+    private readonly HttpClient _httpClient = new();
 
     public TarsSpeechService(
         ILogger<TarsSpeechService> logger,

@@ -6,8 +6,8 @@ namespace TarsCli.Services;
 public class MultiAgentCollaborationService(
     ILogger<MultiAgentCollaborationService> logger,
     DynamicFSharpCompilerService fsharpCompiler,
-    MetascriptEngine metascriptEngine,
-    TransformationLearningService learningService)
+    MetascriptEngine _metascriptEngine,  // Not used but required for dependency injection
+    TransformationLearningService _transformationLearningService)  // Not used but required for dependency injection
 {
     private readonly List<ICodeAgent> _registeredAgents = [];
 

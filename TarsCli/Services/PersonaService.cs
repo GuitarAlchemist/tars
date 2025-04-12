@@ -13,7 +13,7 @@ namespace TarsCli.Services;
 public class PersonaService
 {
     private readonly ILogger<PersonaService> _logger;
-    private readonly Dictionary<string, IPersona> _personas = new Dictionary<string, IPersona>(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, IPersona> _personas = new(StringComparer.OrdinalIgnoreCase);
     private IPersona _currentPersona;
 
     /// <summary>

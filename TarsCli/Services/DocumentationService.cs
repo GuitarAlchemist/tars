@@ -12,9 +12,8 @@ namespace TarsCli.Services;
 public class DocumentationService
 {
     private readonly ILogger<DocumentationService> _logger;
-    private readonly IConfiguration _configuration;
     private readonly string _docsPath;
-    private readonly Dictionary<string, DocEntry> _docEntries = new Dictionary<string, DocEntry>();
+    private readonly Dictionary<string, DocEntry> _docEntries = new();
     private readonly MarkdownPipeline _pipeline;
 
     public DocumentationService(
@@ -22,13 +21,12 @@ public class DocumentationService
         IConfiguration configuration)
     {
         _logger = logger;
-        _configuration = configuration;
-            
+
         // Get the docs path from configuration or use default
-        var projectRoot = _configuration["Tars:ProjectRoot"] ?? Directory.GetCurrentDirectory();
+        var projectRoot = configuration["Tars:ProjectRoot"] ?? Directory.GetCurrentDirectory();
         _docsPath = Path.Combine(projectRoot, "docs");
             
-        // Create Markdig pipeline
+        // Create Markdown pipeline
         _pipeline = new MarkdownPipelineBuilder()
             .UseAdvancedExtensions()
             .Build();
@@ -66,7 +64,7 @@ public class DocumentationService
                     var document = Markdown.Parse(content, _pipeline);
                         
                     // Get the title (first h1)
-                    var title = GetTitle(document) ?? Path.GetFileNameWithoutExtension(file);
+                    var title = GetTitle(document);
                         
                     // Get the summary (first paragraph after the title)
                     var summary = GetSummary(document);
@@ -190,7 +188,7 @@ public class DocumentationService
         foreach (var entry in _docEntries.Values)
         {
             if (entry.Title.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-                entry.Summary?.Contains(query, StringComparison.OrdinalIgnoreCase) == true ||
+                entry.Summary.Contains(query, StringComparison.OrdinalIgnoreCase) == true ||
                 entry.Content.Contains(query, StringComparison.OrdinalIgnoreCase))
             {
                 results.Add(entry);
@@ -280,7 +278,7 @@ public class DocumentationService
     /// <summary>
     /// Get text from inline elements
     /// </summary>
-    private string GetInlineText(ContainerInline inline)
+    private static string GetInlineText(ContainerInline? inline)
     {
         if (inline == null)
         {
@@ -291,35 +289,40 @@ public class DocumentationService
             
         foreach (var item in inline)
         {
-            if (item is LiteralInline literal)
+            switch (item)
             {
-                result.Append(literal.Content);
-            }
-            else if (item is EmphasisInline emphasis)
-            {
-                var text = GetInlineText(emphasis);
-                if (emphasis.DelimiterCount == 2)
+                case LiteralInline literal:
+                    result.Append(literal.Content);
+                    break;
+                case EmphasisInline emphasis:
                 {
-                    result.Append("**" + text + "**");
+                    var text = GetInlineText(emphasis);
+                    if (emphasis.DelimiterCount == 2)
+                    {
+                        result.Append("**" + text + "**");
+                    }
+                    else
+                    {
+                        result.Append("*" + text + "*");
+                    }
+
+                    break;
                 }
-                else
+                case LinkInline link:
                 {
-                    result.Append("*" + text + "*");
-                }
-            }
-            else if (item is LinkInline link)
-            {
-                var text = GetInlineText(link);
-                result.Append(text);
+                    var text = GetInlineText(link);
+                    result.Append(text);
                     
-                if (!string.IsNullOrWhiteSpace(link.Url))
-                {
-                    result.Append(" [" + link.Url + "]");
+                    if (!string.IsNullOrWhiteSpace(link.Url))
+                    {
+                        result.Append(" [" + link.Url + "]");
+                    }
+
+                    break;
                 }
-            }
-            else if (item is ContainerInline container)
-            {
-                result.Append(GetInlineText(container));
+                case ContainerInline container:
+                    result.Append(GetInlineText(container));
+                    break;
             }
         }
             

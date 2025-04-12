@@ -19,7 +19,7 @@ public class OllamaSetupService
     private readonly string[] _requiredModels;
 
     // Regular expression to match ANSI escape sequences
-    private static readonly Regex _ansiRegex = new Regex(@"\x1B\[[^@-~]*[@-~]", RegexOptions.Compiled);
+    private static readonly Regex _ansiRegex = new(@"\x1B\[[^@-~]*[@-~]", RegexOptions.Compiled);
 
     public OllamaSetupService(
         ILogger<OllamaSetupService> logger,

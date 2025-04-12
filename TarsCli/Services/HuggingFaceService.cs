@@ -422,7 +422,7 @@ public class HuggingFaceModel
     public int Likes { get; set; }
 
     [JsonPropertyName("tags")]
-    public List<string> Tags { get; set; } = new List<string>();
+    public List<string> Tags { get; set; } = new();
 
     [JsonPropertyName("pipeline_tag")]
     public string PipelineTag { get; set; } = string.Empty;
@@ -454,7 +454,7 @@ public class HuggingFaceModelDetails
     public string LastModified { get; set; } = string.Empty;
 
     [JsonPropertyName("tags")]
-    public List<string> Tags { get; set; } = new List<string>();
+    public List<string> Tags { get; set; } = new();
 
     [JsonPropertyName("pipeline_tag")]
     public string PipelineTag { get; set; } = string.Empty;
@@ -469,10 +469,10 @@ public class HuggingFaceModelDetails
     public bool Private { get; set; }
 
     [JsonPropertyName("siblings")]
-    public List<ModelFile> Siblings { get; set; } = new List<ModelFile>();
+    public List<ModelFile> Siblings { get; set; } = new();
 
     [JsonPropertyName("cardData")]
-    public ModelCardData CardData { get; set; } = new ModelCardData();
+    public ModelCardData CardData { get; set; } = new();
 }
 
 public class ModelFile
@@ -493,19 +493,19 @@ public class ModelCardData
     public string License { get; set; } = string.Empty;
 
     [JsonPropertyName("language")]
-    public List<string> Languages { get; set; } = new List<string>();
+    public List<string> Languages { get; set; } = new();
 
     [JsonPropertyName("tags")]
-    public List<string> Tags { get; set; } = new List<string>();
+    public List<string> Tags { get; set; } = new();
 
     [JsonPropertyName("datasets")]
-    public List<string> Datasets { get; set; } = new List<string>();
+    public List<string> Datasets { get; set; } = new();
 
     [JsonPropertyName("metrics")]
-    public List<string> Metrics { get; set; } = new List<string>();
+    public List<string> Metrics { get; set; } = new();
 
     [JsonPropertyName("model-index")]
-    public List<ModelIndexEntry> ModelIndex { get; set; } = new List<ModelIndexEntry>();
+    public List<ModelIndexEntry> ModelIndex { get; set; } = new();
 }
 
 public class ModelIndexEntry
@@ -514,19 +514,19 @@ public class ModelIndexEntry
     public string Name { get; set; } = string.Empty;
 
     [JsonPropertyName("results")]
-    public List<ModelResult> Results { get; set; } = new List<ModelResult>();
+    public List<ModelResult> Results { get; set; } = new();
 }
 
 public class ModelResult
 {
     [JsonPropertyName("task")]
-    public ModelTask Task { get; set; } = new ModelTask();
+    public ModelTask Task { get; set; } = new();
 
     [JsonPropertyName("dataset")]
-    public ModelDataset Dataset { get; set; } = new ModelDataset();
+    public ModelDataset Dataset { get; set; } = new();
 
     [JsonPropertyName("metrics")]
-    public List<ModelMetric> Metrics { get; set; } = new List<ModelMetric>();
+    public List<ModelMetric> Metrics { get; set; } = new();
 }
 
 public class ModelTask

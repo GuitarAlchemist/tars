@@ -51,15 +51,15 @@ public class MetascriptExecutionResult
     /// <summary>
     /// Gets or sets the list of files affected by the execution
     /// </summary>
-    public List<string> AffectedFiles { get; set; } = new List<string>();
+    public List<string> AffectedFiles { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the list of changes made by the execution
     /// </summary>
-    public List<MetascriptChange> Changes { get; set; } = new List<MetascriptChange>();
+    public List<MetascriptChange> Changes { get; set; } = new();
 
     /// <summary>
     /// Gets or sets additional metadata about the execution
     /// </summary>
-    public Dictionary<string, string> Metadata { get; set; } = new Dictionary<string, string>();
+    public Dictionary<string, string> Metadata { get; set; } = new();
 }

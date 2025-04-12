@@ -117,17 +117,17 @@ public class KnowledgeRepositoryStats
     /// <summary>
     /// Gets or sets the number of items by type
     /// </summary>
-    public Dictionary<KnowledgeType, int> ItemsByType { get; set; } = new Dictionary<KnowledgeType, int>();
+    public Dictionary<KnowledgeType, int> ItemsByType { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the number of items by tag
     /// </summary>
-    public Dictionary<string, int> ItemsByTag { get; set; } = new Dictionary<string, int>();
+    public Dictionary<string, int> ItemsByTag { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the number of items by source
     /// </summary>
-    public Dictionary<string, int> ItemsBySource { get; set; } = new Dictionary<string, int>();
+    public Dictionary<string, int> ItemsBySource { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the total number of relationships
@@ -137,7 +137,7 @@ public class KnowledgeRepositoryStats
     /// <summary>
     /// Gets or sets the number of relationships by type
     /// </summary>
-    public Dictionary<RelationshipType, int> RelationshipsByType { get; set; } = new Dictionary<RelationshipType, int>();
+    public Dictionary<RelationshipType, int> RelationshipsByType { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the average confidence score

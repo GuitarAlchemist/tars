@@ -28,6 +28,7 @@ public static class CodeAnalysisResultAdapter
         {
             return new ServiceCodeAnalysisResult
             {
+                FilePath = "unknown",
                 Success = false,
                 ErrorMessage = "Source result was null"
             };

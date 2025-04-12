@@ -50,7 +50,7 @@ public class LearningStatistics
     public int TotalPatternCount { get; set; }
     public double AverageFeedbackRating { get; set; }
     public List<PatternStatistics> TopPatterns { get; set; } = [];
-    public Dictionary<string, int> FeedbackByType { get; set; } = new Dictionary<string, int>();
+    public Dictionary<string, int> FeedbackByType { get; set; } = new();
 }
 
 /// <summary>

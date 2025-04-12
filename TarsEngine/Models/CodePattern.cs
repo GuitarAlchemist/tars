@@ -106,25 +106,25 @@ public class CodePattern
     /// <summary>
     /// Gets or sets the list of example code snippets that match the pattern
     /// </summary>
-    public List<string> Examples { get; set; } = new List<string>();
+    public List<string> Examples { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the list of tags associated with the pattern
     /// </summary>
-    public List<string> Tags { get; set; } = new List<string>();
+    public List<string> Tags { get; set; } = new();
 
     /// <summary>
     /// Gets or sets additional metadata about the pattern
     /// </summary>
-    public Dictionary<string, string> Metadata { get; set; } = new Dictionary<string, string>();
+    public Dictionary<string, string> Metadata { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the pattern-specific options
     /// </summary>
-    public Dictionary<string, string> Options { get; set; } = new Dictionary<string, string>();
+    public Dictionary<string, string> Options { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the related patterns
     /// </summary>
-    public List<string> RelatedPatterns { get; set; } = new List<string>();
+    public List<string> RelatedPatterns { get; set; } = new();
 }

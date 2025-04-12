@@ -28,12 +28,12 @@ public class CodeStructure
     /// <summary>
     /// Gets or sets the list of child structure names
     /// </summary>
-    public List<string> ChildNames { get; set; } = new();
+    public List<string> ChildNames { get; set; } = [];
 
     /// <summary>
     /// Gets or sets the list of dependencies for this structure
     /// </summary>
-    public List<string> Dependencies { get; set; } = new();
+    public List<string> Dependencies { get; set; } = [];
 
     /// <summary>
     /// Gets or sets the complexity score of the structure

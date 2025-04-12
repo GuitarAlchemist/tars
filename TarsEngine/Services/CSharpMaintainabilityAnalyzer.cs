@@ -37,7 +37,7 @@ public class CSharpMaintainabilityAnalyzer
         _halsteadAnalyzer = halsteadAnalyzer;
         _thresholds = new Dictionary<string, Dictionary<string, double>>
         {
-            ["C#"] = new Dictionary<string, double>
+            ["C#"] = new()
             {
                 ["Method"] = 60,
                 ["Class"] = 50,

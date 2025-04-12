@@ -1,3 +1,6 @@
+using TarsEngine.Models;
+using TarsEngine.Monads;
+
 namespace TarsEngine.Services.Interfaces;
 
 /// <summary>
@@ -16,8 +19,8 @@ public interface ICodeGenerationService
     Task<CodeGenerationResult> GenerateCodeAsync(
         string description,
         string projectPath,
-        ProgrammingLanguage language,
-        string outputPath = null);
+        CodeLanguage language,
+        Option<string> outputPath = default);
 
     /// <summary>
     /// Generates a unit test for a given code file
@@ -29,5 +32,5 @@ public interface ICodeGenerationService
     Task<CodeGenerationResult> GenerateUnitTestAsync(
         string sourceFilePath,
         string projectPath,
-        string outputPath = null);
+        Option<string> outputPath = default);
 }

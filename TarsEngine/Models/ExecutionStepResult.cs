@@ -56,35 +56,35 @@ public class ExecutionStepResult
     /// <summary>
     /// Gets or sets the validation results of the execution step
     /// </summary>
-    public List<ValidationResult> ValidationResults { get; set; } = new List<ValidationResult>();
+    public List<ValidationResult> ValidationResults { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the list of files modified by the execution step
     /// </summary>
-    public List<string> ModifiedFiles { get; set; } = new List<string>();
+    public List<string> ModifiedFiles { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the list of files created by the execution step
     /// </summary>
-    public List<string> CreatedFiles { get; set; } = new List<string>();
+    public List<string> CreatedFiles { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the list of files deleted by the execution step
     /// </summary>
-    public List<string> DeletedFiles { get; set; } = new List<string>();
+    public List<string> DeletedFiles { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the list of files backed up by the execution step
     /// </summary>
-    public List<string> BackedUpFiles { get; set; } = new List<string>();
+    public List<string> BackedUpFiles { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the metrics of the execution step
     /// </summary>
-    public Dictionary<string, double> Metrics { get; set; } = new Dictionary<string, double>();
+    public Dictionary<string, double> Metrics { get; set; } = new();
 
     /// <summary>
     /// Gets or sets additional metadata about the execution step result
     /// </summary>
-    public Dictionary<string, string> Metadata { get; set; } = new Dictionary<string, string>();
+    public Dictionary<string, string> Metadata { get; set; } = new();
 }

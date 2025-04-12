@@ -53,10 +53,21 @@ public class GenericAnalyzer : ILanguageAnalyzer
 
             var result = new CodeAnalysisResult
             {
+                FilePath = "memory",
+                ErrorMessage = string.Empty,
                 Language = LanguageEnum,
                 AnalyzedAt = DateTime.UtcNow,
                 IsSuccessful = true
             };
+
+            // Handle null content
+            if (content == null)
+            {
+                result.ErrorMessage = "Content is null";
+                result.IsSuccessful = false;
+                result.Errors.Add("Content is null");
+                return result;
+            }
 
             // Parse options
             var includeMetrics = ParseOption(options, "IncludeMetrics", true);
@@ -118,6 +129,8 @@ public class GenericAnalyzer : ILanguageAnalyzer
             _logger.LogError(ex, "Error analyzing {Language} code", Language);
             return new CodeAnalysisResult
             {
+                FilePath = "memory",
+                ErrorMessage = $"Error analyzing {Language} code: {ex.Message}",
                 Language = LanguageEnum,
                 IsSuccessful = false,
                 Errors = { $"Error analyzing {Language} code: {ex.Message}" }

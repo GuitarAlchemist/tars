@@ -13,7 +13,7 @@ public class ConversationLoggingService
     private readonly string _logDirectory;
     private readonly string _conversationLogPath;
     private readonly string _augmentLogPath;
-    private readonly object _fileLock = new object();
+    private readonly object _fileLock = new();
 
     public ConversationLoggingService(
         ILogger<ConversationLoggingService> logger,

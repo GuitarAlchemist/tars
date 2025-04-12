@@ -286,8 +286,8 @@ public class CodeUnderstandingData
 {
     public string Purpose { get; set; }
     public CodeStructure Structure { get; set; }
-    public List<CodeIssue> Issues { get; set; } = new List<CodeIssue>();
-    public List<CodeSuggestion> Suggestions { get; set; } = new List<CodeSuggestion>();
+    public List<CodeIssue> Issues { get; set; } = new();
+    public List<CodeSuggestion> Suggestions { get; set; } = new();
 }
 
 /// <summary>
@@ -295,9 +295,9 @@ public class CodeUnderstandingData
 /// </summary>
 public class CodeStructure
 {
-    public List<string> Classes { get; set; } = new List<string>();
-    public List<string> Methods { get; set; } = new List<string>();
-    public List<string> Dependencies { get; set; } = new List<string>();
+    public List<string> Classes { get; set; } = new();
+    public List<string> Methods { get; set; } = new();
+    public List<string> Dependencies { get; set; } = new();
 }
 
 /// <summary>
@@ -315,7 +315,7 @@ public class CodeImprovementResult
 /// </summary>
 public class CodeImprovementData
 {
-    public List<CodeImprovement> Improvements { get; set; } = new List<CodeImprovement>();
+    public List<CodeImprovement> Improvements { get; set; } = new();
 }
 
 /// <summary>
@@ -347,7 +347,7 @@ public class TestGenerationResult
 public class TestGenerationData
 {
     public string TestFramework { get; set; }
-    public List<TestCase> Tests { get; set; } = new List<TestCase>();
+    public List<TestCase> Tests { get; set; } = new();
 }
 
 /// <summary>

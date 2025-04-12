@@ -48,42 +48,42 @@ public class ExecutionPermissions
     /// <summary>
     /// Gets or sets the list of allowed file paths
     /// </summary>
-    public List<string> AllowedFilePaths { get; set; } = new List<string>();
+    public List<string> AllowedFilePaths { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the list of denied file paths
     /// </summary>
-    public List<string> DeniedFilePaths { get; set; } = new List<string>();
+    public List<string> DeniedFilePaths { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the list of allowed file extensions
     /// </summary>
-    public List<string> AllowedFileExtensions { get; set; } = new List<string>();
+    public List<string> AllowedFileExtensions { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the list of denied file extensions
     /// </summary>
-    public List<string> DeniedFileExtensions { get; set; } = new List<string>();
+    public List<string> DeniedFileExtensions { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the list of allowed process names
     /// </summary>
-    public List<string> AllowedProcessNames { get; set; } = new List<string>();
+    public List<string> AllowedProcessNames { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the list of denied process names
     /// </summary>
-    public List<string> DeniedProcessNames { get; set; } = new List<string>();
+    public List<string> DeniedProcessNames { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the list of allowed network hosts
     /// </summary>
-    public List<string> AllowedNetworkHosts { get; set; } = new List<string>();
+    public List<string> AllowedNetworkHosts { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the list of denied network hosts
     /// </summary>
-    public List<string> DeniedNetworkHosts { get; set; } = new List<string>();
+    public List<string> DeniedNetworkHosts { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the maximum file size in bytes

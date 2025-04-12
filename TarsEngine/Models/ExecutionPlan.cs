@@ -37,7 +37,7 @@ public class ExecutionPlan
     /// <summary>
     /// Gets or sets the steps in the execution plan
     /// </summary>
-    public List<ExecutionStep> Steps { get; set; } = new List<ExecutionStep>();
+    public List<ExecutionStep> Steps { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the timestamp when the execution plan was created
@@ -72,7 +72,7 @@ public class ExecutionPlan
     /// <summary>
     /// Gets or sets additional metadata about the execution plan
     /// </summary>
-    public Dictionary<string, string> Metadata { get; set; } = new Dictionary<string, string>();
+    public Dictionary<string, string> Metadata { get; set; } = new();
 
     /// <summary>
     /// Gets the total number of steps in the execution plan

@@ -83,5 +83,6 @@ public enum CodeIssueType
     /// <summary>
     /// Other issue
     /// </summary>
-    Other
+    Other,
+    ComplexityIssue
 }

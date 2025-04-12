@@ -469,7 +469,7 @@ public class StrategicAlignmentService
 
             var defaultGoals = new List<StrategicGoal>
             {
-                new StrategicGoal
+                new()
                 {
                     Name = "Improve Code Quality",
                     Description = "Improve the overall quality of the codebase",
@@ -478,7 +478,7 @@ public class StrategicAlignmentService
                     Tags = ["quality", "maintainability", "reliability"],
                     Keywords = ["quality", "clean", "maintainable", "reliable", "testable"]
                 },
-                new StrategicGoal
+                new()
                 {
                     Name = "Enhance Performance",
                     Description = "Improve the performance of the application",
@@ -487,7 +487,7 @@ public class StrategicAlignmentService
                     Tags = ["performance", "optimization", "speed"],
                     Keywords = ["performance", "fast", "efficient", "optimize", "speed"]
                 },
-                new StrategicGoal
+                new()
                 {
                     Name = "Strengthen Security",
                     Description = "Enhance the security of the application",
@@ -496,7 +496,7 @@ public class StrategicAlignmentService
                     Tags = ["security", "vulnerability", "protection"],
                     Keywords = ["security", "secure", "vulnerability", "protect", "encryption"]
                 },
-                new StrategicGoal
+                new()
                 {
                     Name = "Improve Architecture",
                     Description = "Enhance the architecture of the application",
@@ -505,7 +505,7 @@ public class StrategicAlignmentService
                     Tags = ["architecture", "design", "structure"],
                     Keywords = ["architecture", "design", "structure", "pattern", "solid"]
                 },
-                new StrategicGoal
+                new()
                 {
                     Name = "Enhance User Experience",
                     Description = "Improve the user experience of the application",
@@ -514,7 +514,7 @@ public class StrategicAlignmentService
                     Tags = ["ux", "usability", "user-friendly"],
                     Keywords = ["ux", "user", "experience", "usability", "friendly", "interface"]
                 },
-                new StrategicGoal
+                new()
                 {
                     Name = "Increase Test Coverage",
                     Description = "Improve the test coverage of the codebase",
@@ -523,7 +523,7 @@ public class StrategicAlignmentService
                     Tags = ["testing", "coverage", "quality"],
                     Keywords = ["test", "coverage", "unit", "integration", "automated"]
                 },
-                new StrategicGoal
+                new()
                 {
                     Name = "Improve Documentation",
                     Description = "Enhance the documentation of the codebase",
@@ -532,7 +532,7 @@ public class StrategicAlignmentService
                     Tags = ["documentation", "comments", "readme"],
                     Keywords = ["documentation", "comment", "readme", "wiki", "guide"]
                 },
-                new StrategicGoal
+                new()
                 {
                     Name = "Enhance Scalability",
                     Description = "Improve the scalability of the application",
@@ -541,7 +541,7 @@ public class StrategicAlignmentService
                     Tags = ["scalability", "performance", "architecture"],
                     Keywords = ["scale", "scalable", "load", "throughput", "capacity"]
                 },
-                new StrategicGoal
+                new()
                 {
                     Name = "Reduce Technical Debt",
                     Description = "Reduce the technical debt in the codebase",
@@ -550,7 +550,7 @@ public class StrategicAlignmentService
                     Tags = ["technical-debt", "maintenance", "quality"],
                     Keywords = ["debt", "technical", "maintenance", "legacy", "refactor"]
                 },
-                new StrategicGoal
+                new()
                 {
                     Name = "Improve Accessibility",
                     Description = "Enhance the accessibility of the application",

@@ -83,11 +83,6 @@ public class CodeComplexityCommand : Command
         this.SetHandler(HandleCommandAsync);
     }
 
-    /// <summary>
-    /// Handles the command
-    /// </summary>
-    /// <param name="context">Command context</param>
-    /// <returns>A task representing the asynchronous operation</returns>
     // Store options as class fields
     private readonly Option<string> _pathOption;
     private readonly Option<string> _languageOption;
@@ -95,6 +90,11 @@ public class CodeComplexityCommand : Command
     private readonly Option<string> _halsteadTypeOption;
     private readonly Option<string> _readabilityTypeOption;
     private readonly Option<string> _outputOption;
+
+    /// <summary>
+    /// Handles the command
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation</returns>
 
     private async Task HandleCommandAsync(InvocationContext context)
     {

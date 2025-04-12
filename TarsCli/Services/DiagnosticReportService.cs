@@ -16,7 +16,7 @@ public class DiagnosticReportService
     private readonly OllamaService _ollamaService;
     private readonly GpuService _gpuService;
     private readonly string _reportDirectory;
-    private readonly Stopwatch _stopwatch = new Stopwatch();
+    private readonly Stopwatch _stopwatch = new();
 
     public DiagnosticReportService(
         ILogger<DiagnosticReportService> logger,

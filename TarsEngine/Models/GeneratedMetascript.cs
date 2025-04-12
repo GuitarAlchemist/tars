@@ -46,7 +46,7 @@ public class GeneratedMetascript
     /// <summary>
     /// Gets or sets the parameters used to generate the metascript
     /// </summary>
-    public Dictionary<string, string> Parameters { get; set; } = new Dictionary<string, string>();
+    public Dictionary<string, string> Parameters { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the timestamp when the metascript was generated
@@ -81,7 +81,7 @@ public class GeneratedMetascript
     /// <summary>
     /// Gets or sets the validation messages for the metascript
     /// </summary>
-    public List<string> ValidationMessages { get; set; } = new List<string>();
+    public List<string> ValidationMessages { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the expected improvement from applying the metascript
@@ -106,15 +106,15 @@ public class GeneratedMetascript
     /// <summary>
     /// Gets or sets the list of files affected by the metascript
     /// </summary>
-    public List<string> AffectedFiles { get; set; } = new List<string>();
+    public List<string> AffectedFiles { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the list of tags associated with the metascript
     /// </summary>
-    public List<string> Tags { get; set; } = new List<string>();
+    public List<string> Tags { get; set; } = new();
 
     /// <summary>
     /// Gets or sets additional metadata about the metascript
     /// </summary>
-    public Dictionary<string, string> Metadata { get; set; } = new Dictionary<string, string>();
+    public Dictionary<string, string> Metadata { get; set; } = new();
 }

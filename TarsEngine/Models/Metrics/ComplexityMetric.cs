@@ -50,9 +50,9 @@ public class ComplexityMetric : BaseMetric
     /// </summary>
     public double LogThreshold { get; set; }
 
-    public string Description { get; set; }
-    public string FilePath { get; set; }
-    public string Language { get; set; }
+    public string Description { get; set; } = string.Empty;
+    public string FilePath { get; set; } = string.Empty;
+    public string Language { get; set; } = string.Empty;
     public TargetType TargetType { get; set; }
     public double ThresholdValue { get; set; }
 }

@@ -416,7 +416,7 @@ public class CodeGenerationService : ICodeGenerationService
 public class CodeGenerationResult
 {
     public bool Success { get; set; }
-    public string ErrorMessage { get; set; }
-    public string GeneratedCode { get; set; }
-    public string OutputPath { get; set; }
+    public string ErrorMessage { get; set; } = string.Empty;
+    public string GeneratedCode { get; set; } = string.Empty;
+    public string OutputPath { get; set; } = string.Empty;
 }
