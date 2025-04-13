@@ -1,0 +1,22 @@
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+
+WORKDIR /app
+
+# Copy the TARS CLI code
+COPY TarsCli/bin/Debug/net9.0/ .
+
+# Create directories for shared data
+RUN mkdir -p /app/workspace /app/shared
+
+# Set environment variables
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
+ENV ASPNETCORE_URLS=http://+:8991
+ENV OLLAMA_USE_DOCKER=true
+ENV MCP_AUTO_EXECUTE=true
+ENV MCP_AUTO_CODE=true
+
+# Expose the agent port
+EXPOSE 8991
+
+# Set the entry point
+ENTRYPOINT ["dotnet", "tarscli.dll", "swarm-improve", "agent", "--port", "${TARS_PORT}", "--role", "${TARS_ROLE}", "--coordinator", "${TARS_COORDINATOR_URL}"]

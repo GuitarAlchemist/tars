@@ -1,0 +1,111 @@
+version: '3.8'
+
+services:
+  # Coordinator service - manages the swarm and coordinates the auto-coding process
+  tars-coordinator:
+    build:
+      context: .
+      dockerfile: Dockerfile.coordinator
+    container_name: tars-coordinator
+    ports:
+      - "8990:8990"
+    volumes:
+      - ./:/app/workspace
+      - tars-shared:/app/shared
+    environment:
+      - TARS_ROLE=coordinator
+      - TARS_PORT=8990
+      - TARS_MODEL=llama3
+      - OLLAMA_BASE_URL=http://tars-model-runner:11434
+      - OLLAMA_USE_DOCKER=true
+      - DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
+    depends_on:
+      - tars-model-runner
+    networks:
+      - tars-network
+
+  # Analyzer service - analyzes code for potential improvements
+  tars-analyzer:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent
+    container_name: tars-analyzer
+    volumes:
+      - ./:/app/workspace
+      - tars-shared:/app/shared
+    environment:
+      - TARS_ROLE=analyzer
+      - TARS_PORT=8991
+      - TARS_MODEL=llama3
+      - OLLAMA_BASE_URL=http://tars-model-runner:11434
+      - TARS_COORDINATOR_URL=http://tars-coordinator:8990
+      - OLLAMA_USE_DOCKER=true
+      - DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
+    depends_on:
+      - tars-coordinator
+      - tars-model-runner
+    networks:
+      - tars-network
+
+  # Generator service - generates improved code
+  tars-generator:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent
+    container_name: tars-generator
+    volumes:
+      - ./:/app/workspace
+      - tars-shared:/app/shared
+    environment:
+      - TARS_ROLE=generator
+      - TARS_PORT=8992
+      - TARS_MODEL=llama3
+      - OLLAMA_BASE_URL=http://tars-model-runner:11434
+      - TARS_COORDINATOR_URL=http://tars-coordinator:8990
+      - OLLAMA_USE_DOCKER=true
+      - DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
+    depends_on:
+      - tars-coordinator
+      - tars-model-runner
+    networks:
+      - tars-network
+
+  # Tester service - builds and tests the improved code
+  tars-tester:
+    build:
+      context: .
+      dockerfile: Dockerfile.tester
+    container_name: tars-tester
+    volumes:
+      - ./:/app/workspace
+      - tars-shared:/app/shared
+    environment:
+      - TARS_ROLE=tester
+      - TARS_PORT=8993
+      - TARS_COORDINATOR_URL=http://tars-coordinator:8990
+      - DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
+    depends_on:
+      - tars-coordinator
+    networks:
+      - tars-network
+
+  # Model runner service - provides the language model
+  tars-model-runner:
+    image: ollama/ollama:latest
+    container_name: tars-model-runner
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    networks:
+      - tars-network
+
+networks:
+  tars-network:
+    external: true
+
+volumes:
+  tars-shared:
+    driver: local
+  ollama-data:
+    driver: local

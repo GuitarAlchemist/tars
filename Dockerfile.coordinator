@@ -1,0 +1,22 @@
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+
+WORKDIR /app
+
+# Copy the TARS CLI code
+COPY TarsCli/bin/Debug/net9.0/ .
+
+# Create directories for shared data
+RUN mkdir -p /app/workspace /app/shared /app/shared/improvements /app/shared/tests /app/shared/backups
+
+# Set environment variables
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
+ENV ASPNETCORE_URLS=http://+:8990
+ENV OLLAMA_USE_DOCKER=true
+ENV MCP_AUTO_EXECUTE=true
+ENV MCP_AUTO_CODE=true
+
+# Expose the coordinator port
+EXPOSE 8990
+
+# Set the entry point
+ENTRYPOINT ["dotnet", "tarscli.dll", "swarm-improve", "coordinator", "--port", "8990"]

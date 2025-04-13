@@ -1,0 +1,31 @@
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+
+WORKDIR /app
+
+# Copy the TARS CLI code
+COPY TarsCli/bin/Debug/net9.0/ .
+
+# Install additional tools for testing
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install .NET tools
+RUN dotnet tool install --global dotnet-coverage
+RUN dotnet tool install --global dotnet-reportgenerator-globaltool
+
+# Create directories for shared data
+RUN mkdir -p /app/workspace /app/shared /app/shared/tests /app/shared/reports
+
+# Set environment variables
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
+ENV ASPNETCORE_URLS=http://+:8993
+ENV PATH="${PATH}:/root/.dotnet/tools"
+
+# Expose the tester port
+EXPOSE 8993
+
+# Set the entry point
+ENTRYPOINT ["dotnet", "tarscli.dll", "swarm-improve", "tester", "--port", "${TARS_PORT}", "--coordinator", "${TARS_COORDINATOR_URL}"]
