@@ -2,6 +2,8 @@
 
 This directory contains scripts for demonstrating and using TARS capabilities.
 
+> **Note**: The scripts in this directory are organized into categories to make them easier to find and use.
+
 ## Working Demo Scripts
 
 These scripts demonstrate TARS capabilities using only commands that are known to work correctly:
@@ -9,15 +11,55 @@ These scripts demonstrate TARS capabilities using only commands that are known t
 - **Working-Demo.bat** - A simplified Windows batch file that works reliably
 - **Working-Demo.ps1** - A simplified PowerShell script that works reliably
 
-## Available Scripts
+## Script Categories
 
-### Auto-Coding Scripts
+### [Auto-Coding Scripts](AutoCoding/README.md)
 
-The [AutoCoding](AutoCoding/README.md) directory contains scripts for TARS Auto-Coding:
+Scripts for TARS Auto-Coding capabilities:
 
 - **Docker Auto-Coding**: Scripts for Docker auto-coding
 - **Swarm Auto-Coding**: Scripts for Swarm auto-coding
 - **Auto-Coding Demos**: Demo scripts for auto-coding
+
+### [Autonomous Improvement Scripts](AutonomousImprovement/README.md)
+
+Scripts for TARS autonomous improvement capabilities.
+
+### [Retroaction Scripts](Retroaction/README.md)
+
+Scripts for TARS retroaction capabilities.
+
+### [Metascript Scripts](Metascripts/README.md)
+
+Scripts for working with TARS metascripts.
+
+### [Knowledge Management Scripts](Knowledge/README.md)
+
+Scripts for TARS knowledge management capabilities.
+
+### [Code Generation Scripts](CodeGeneration/README.md)
+
+Scripts for TARS code generation capabilities.
+
+### [Demo Scripts](Demos/README.md)
+
+Scripts for demonstrating TARS capabilities.
+
+### [Utility Scripts](Utilities/README.md)
+
+Utility scripts for TARS.
+
+### [Test Scripts](Tests/README.md)
+
+Scripts for testing TARS capabilities.
+
+### [Workflow Scripts](Workflows/README.md)
+
+Scripts for TARS workflows.
+
+### [Prompt Engineering Scripts](PromptEngineering/README.md)
+
+Scripts for TARS prompt engineering.
 
 ### Demo-TARS.ps1
 
