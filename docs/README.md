@@ -2,6 +2,8 @@
 
 This directory contains comprehensive documentation for the TARS project.
 
+> **Note**: For information on how the documentation is organized, see [Documentation Organization](DOCUMENTATION_ORGANIZATION.md).
+
 ## Features
 
 - [Metascripts](features/Metascripts.md) - Documentation for the TARS Metascript system
