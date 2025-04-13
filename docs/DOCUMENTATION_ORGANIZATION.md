@@ -122,6 +122,40 @@ When linking to other documentation files, use the following guidelines:
    | Cell 1   | Cell 2   |
    ```
 
+## Script Organization
+
+Scripts are organized into the following directories:
+
+```
+Scripts/
+├── README.md                     # Main scripts index
+├── AutoCoding/                   # Auto-coding scripts
+│   ├── README.md                 # Auto-coding scripts overview
+│   ├── Docker/                   # Docker auto-coding scripts
+│   ├── Swarm/                    # Swarm auto-coding scripts
+│   └── Demos/                    # Auto-coding demo scripts
+├── AutonomousImprovement/        # Autonomous improvement scripts
+│   └── README.md                 # Autonomous improvement scripts overview
+├── CodeGeneration/               # Code generation scripts
+│   └── README.md                 # Code generation scripts overview
+├── Demos/                        # Demo scripts
+│   └── README.md                 # Demo scripts overview
+├── Knowledge/                    # Knowledge management scripts
+│   └── README.md                 # Knowledge management scripts overview
+├── Metascripts/                  # Metascript scripts
+│   └── README.md                 # Metascript scripts overview
+├── PromptEngineering/            # Prompt engineering scripts
+│   └── README.md                 # Prompt engineering scripts overview
+├── Retroaction/                  # Retroaction scripts
+│   └── README.md                 # Retroaction scripts overview
+├── Tests/                        # Test scripts
+│   └── README.md                 # Test scripts overview
+├── Utilities/                    # Utility scripts
+│   └── README.md                 # Utility scripts overview
+└── Workflows/                    # Workflow scripts
+    └── README.md                 # Workflow scripts overview
+```
+
 ## Documentation Maintenance
 
 To maintain the documentation:
