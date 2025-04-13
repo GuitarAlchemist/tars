@@ -21,6 +21,11 @@ public class TarsMcpService
     private readonly ILogger<TarsMcpService> _logger;
     private readonly IConfiguration _configuration;
     private readonly McpService _mcpService;
+
+    /// <summary>
+    /// Gets the underlying MCP service
+    /// </summary>
+    public McpService McpService => _mcpService;
     private readonly OllamaService _ollamaService;
     private readonly SelfImprovementService _selfImprovementService;
     private readonly SlackIntegrationService _slackIntegrationService;

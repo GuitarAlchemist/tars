@@ -15,9 +15,13 @@
 
 # TARS Project
 
-## MCP Integration for TARS/VSCode/Augment Collaboration
+## MCP and A2A Integration for Agent Collaboration
 
-TARS now features a powerful integration between TARS, VSCode Agent Mode, and Augment Code through the Model Context Protocol (MCP). This integration enables a seamless collaboration between these three systems, leveraging their respective strengths:
+TARS now features powerful integrations through both the Model Context Protocol (MCP) and the Agent-to-Agent (A2A) protocol:
+
+### MCP Integration
+
+TARS integrates with VSCode Agent Mode and Augment Code through the Model Context Protocol (MCP). This integration enables a seamless collaboration between these three systems, leveraging their respective strengths:
 
 - **TARS**: Provides domain-specific capabilities like metascript processing, DSL handling, and self-improvement
 - **VSCode Agent Mode**: Provides the user interface and autonomous agent capabilities within the editor
@@ -25,7 +29,21 @@ TARS now features a powerful integration between TARS, VSCode Agent Mode, and Au
 
 The integration is built on the Model Context Protocol (MCP), which enables AI models to interact with external tools and services through a unified interface.
 
-To get started with the integration, see [VS Code Integration](docs/vscode-integration.md) and [Augment VS Code Integration](docs/features/augment-vscode-integration.md).
+To get started with the MCP integration, see [VS Code Integration](docs/vscode-integration.md) and [Augment VS Code Integration](docs/features/augment-vscode-integration.md).
+
+### A2A Protocol Support
+
+TARS now supports the Agent-to-Agent (A2A) protocol, an open standard developed by Google to enable interoperability between AI agents. This allows TARS to communicate with other A2A-compatible agents and expose its capabilities through a standardized interface.
+
+Key features of the A2A implementation include:
+
+- **Agent Discovery**: Expose TARS capabilities through agent cards
+- **Task Submission**: Send and receive tasks between agents
+- **Streaming Responses**: Real-time updates during task execution
+- **Push Notifications**: Notify agents of task status changes
+- **MCP Bridge**: Seamless integration between A2A and MCP
+
+To get started with the A2A protocol, see [A2A Protocol Documentation](docs/A2A-Protocol.md).
 
 <div align="center">
   <img src="docs/images/ChatGPT Image Mar 29, 2025, 10_57_07 AM.png" alt="TARS AI Logo" width="600"/>
@@ -90,7 +108,8 @@ TARS implements Anthropic's Model Context Protocol (MCP), enabling powerful coll
 - **Triple-Quoted Syntax**: Use `"""..."""` syntax for multi-line code blocks
 - **Terminal Command Execution**: Execute terminal commands with proper authorization
 - **Structured Communication**: Standardized JSON format for tool requests and responses
-- **Auto-Coding**: Automatic code generation and implementation through Augment Code's advanced capabilities
+- **Auto-Coding**: Automatic code generation and implementation through Docker containers and swarm architecture
+- **Docker Swarm**: Run a swarm of specialized Docker containers for auto-coding
 
 [View Model Context Protocol documentation](docs/features/model-context-protocol.md)
 
@@ -124,15 +143,20 @@ TARS can generate in-depth explorations on complex topics:
 - **Version Evolution**: Build on previous explorations to deepen understanding
 - **Consolidated Organization**: Explorations are organized by topic for easy reference
 
-### Docker Model Runner Integration
+### Docker Integration
 
-TARS now supports running LLMs in Docker containers:
+TARS now supports running LLMs and auto-coding in Docker containers:
 
 - **Containerized Models**: Run LLMs in isolated Docker containers
 - **GPU Passthrough**: Utilize GPU acceleration in Docker containers
 - **Simplified Deployment**: Easy setup with docker-compose
 - **Consistent Environment**: Ensure consistent model behavior across different systems
 - **MCP Integration**: Seamless integration with the Model Context Protocol
+- **Auto-Coding**: Automatic code generation and improvement through Docker containers
+- **Swarm Architecture**: Run a swarm of specialized Docker containers for auto-coding
+- **Safe Testing**: Test improvements in isolation before applying them to the codebase
+
+[View Docker Auto-Coding documentation](docs/AutoCoding/README.md)
 
 [View Docker Model Runner documentation](docs/Docker-Model-Runner.md)
 
@@ -282,6 +306,12 @@ dotnet run --project TarsCli/TarsCli.csproj -- self-improve feedback path/to/fil
 # Run autonomous improvement for 60 minutes (legacy command)
 dotnet run --project TarsCli/TarsCli.csproj -- auto-improve --time-limit 60 --model llama3
 
+# Run Docker auto-coding
+dotnet run --project TarsCli/TarsCli.csproj -- auto-code --docker
+
+# Run Swarm auto-coding
+dotnet run --project TarsCli/TarsCli.csproj -- auto-code --swarm
+
 # Check the status of autonomous improvement (legacy command)
 dotnet run --project TarsCli/TarsCli.csproj -- auto-improve --status
 
@@ -326,6 +356,15 @@ dotnet run --project TarsCli/TarsCli.csproj -- mcp config --auto-execute true --
 
 # Start the MCP service with Docker Model Runner
 dotnet run --project TarsCli/TarsCli.csproj -- mcp start --port 8999 --model-provider DockerModelRunner
+
+# Start the A2A server
+dotnet run --project TarsCli/TarsCli.csproj -- a2a start
+
+# Send a task to an A2A agent
+dotnet run --project TarsCli/TarsCli.csproj -- a2a send --agent-url "http://localhost:8998/" --message "Generate a C# class for a customer entity" --skill-id "code_generation"
+
+# Get an agent card
+dotnet run --project TarsCli/TarsCli.csproj -- a2a get-agent-card --agent-url "http://localhost:8998/"
 
 # Configure Docker Model Runner
 dotnet run --project TarsCli/TarsCli.csproj -- docker-model config --base-url http://localhost:8080 --default-model llama3:8b
@@ -378,13 +417,15 @@ This combination provides both functional programming benefits and strong integr
 
 ### Recent Build Fixes
 
-We've recently fixed several build errors in the TARS solution related to model class compatibility. These fixes include:
+We've recently fixed several build errors in the TARS solution related to model class compatibility, service conflicts, and nullability warnings. These fixes include:
 
 - Resolved ambiguous references to IssueSeverity enum
 - Fixed property mismatches in CodeIssue, CodeStructure, and other model classes
 - Updated enum values in CodeIssueType and MetricType to match the codebase
+- Fixed conflicts between TestRunnerService classes in different namespaces
+- Resolved nullability warnings in the LoggerAdapter class
 
-See the [build fixes documentation](docs/build-fixes.md) for more details.
+See the [build fixes documentation](docs/build-fixes.md) for more details and try the [build fixes demo](docs/demos/Build-Fixes-Demo.md) to learn how these issues were resolved.
 
 ### Testing
 
