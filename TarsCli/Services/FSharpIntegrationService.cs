@@ -1,4 +1,6 @@
-using TarsEngineFSharp;
+using Microsoft.Extensions.Logging;
+using TarsCli.Services.CodeAnalysis;
+using TarsCli.Services.Adapters;
 
 namespace TarsCli.Services;
 
@@ -24,7 +26,7 @@ public class FSharpIntegrationService
             _logger.LogInformation($"Analyzing file: {filePath}");
 
             // Call the F# module
-            var result = CodeAnalysis.analyzeFile(filePath);
+            var result = FSharpAnalysisWrapper.analyzeFile(filePath);
 
             return new AnalysisResult
             {
@@ -59,7 +61,7 @@ public class FSharpIntegrationService
             _logger.LogInformation($"Analyzing project: {projectPath}");
 
             // Call the F# module
-            var results = CodeAnalysis.analyzeProject(projectPath, maxFiles);
+            var results = FSharpAnalysisWrapper.analyzeProject(projectPath, maxFiles);
 
             return results.Select(r => new AnalysisResult
             {
@@ -145,41 +147,41 @@ public class FSharpIntegrationService
 
         foreach (var issue in issues)
         {
-            if (issue is CodeAnalysis.CodeIssue.MissingExceptionHandling meh)
+            if (issue.Type == CodeIssueType.Security)
             {
                 result.Add(new CodeIssue
                 {
                     Type = IssueType.MissingExceptionHandling,
-                    Location = meh.location,
-                    Description = meh.description
+                    Location = issue.LineNumber + ":" + issue.ColumnNumber,
+                    Description = issue.Description
                 });
             }
-            else if (issue is CodeAnalysis.CodeIssue.IneffectiveCode iec)
+            else if (issue.Type == CodeIssueType.Performance)
             {
                 result.Add(new CodeIssue
                 {
                     Type = IssueType.IneffectiveCode,
-                    Location = iec.location,
-                    Description = iec.description,
-                    Suggestion = iec.suggestion
+                    Location = issue.LineNumber + ":" + issue.ColumnNumber,
+                    Description = issue.Description,
+                    Suggestion = issue.SuggestedFix
                 });
             }
-            else if (issue is CodeAnalysis.CodeIssue.StyleViolation sv)
+            else if (issue.Type == CodeIssueType.Style)
             {
                 result.Add(new CodeIssue
                 {
                     Type = IssueType.StyleViolation,
-                    Location = sv.location,
-                    Description = sv.rule
+                    Location = issue.LineNumber + ":" + issue.ColumnNumber,
+                    Description = issue.Description
                 });
             }
-            else if (issue is CodeAnalysis.CodeIssue.DocumentationIssue di)
+            else if (issue.Type == CodeIssueType.Documentation)
             {
                 result.Add(new CodeIssue
                 {
                     Type = IssueType.DocumentationIssue,
-                    Location = di.location,
-                    Description = $"Missing documentation: {di.missingElement}"
+                    Location = issue.LineNumber + ":" + issue.ColumnNumber,
+                    Description = $"Missing documentation: {issue.Description}"
                 });
             }
         }

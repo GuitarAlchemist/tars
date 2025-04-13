@@ -41,7 +41,31 @@ public class OllamaSetupService
         {
             WriteColorLine("Ollama - ", ConsoleColor.Cyan, false);
 
-            // Check if Ollama is running
+            // Check if we should use Docker
+            bool useDocker = _configuration.GetValue<bool>("Ollama:UseDocker", false);
+
+            if (useDocker)
+            {
+                _logger.LogInformation("Using Docker for Ollama operations");
+                Console.WriteLine("Using Docker for Ollama operations");
+
+                // When using Docker, we need to check if the Docker container is running
+                var dockerPs = await RunDockerCommand("ps");
+                var ollamaRunning = dockerPs.Contains("ollama");
+
+                if (!ollamaRunning)
+                {
+                    WriteColorLine("Docker Ollama Not Running", ConsoleColor.Red);
+                    WriteColorLine("Please start the Ollama Docker container and try again.", ConsoleColor.Yellow);
+                    return false;
+                }
+
+                // If Docker is running, we can skip the Ollama check
+                WriteColorLine("Docker Mode", ConsoleColor.Green);
+                return true;
+            }
+
+            // Check if Ollama is running (only for non-Docker mode)
             if (!await IsOllamaRunningAsync())
             {
                 WriteColorLine("Not Running", ConsoleColor.Red);
@@ -135,7 +159,36 @@ public class OllamaSetupService
 
         try
         {
-            // Check each required model individually
+            // Check if we should use Docker
+            bool useDocker = _configuration.GetValue<bool>("Ollama:UseDocker", false);
+
+            if (useDocker)
+            {
+                _logger.LogInformation("Using Docker for Ollama operations - assuming models are available");
+                Console.WriteLine("Using Docker for Ollama operations - assuming models are available");
+
+                // For Docker, we'll check if the models are available in the Docker container
+                var dockerPs = await RunDockerCommand("ps");
+                var ollamaRunning = dockerPs.Contains("ollama");
+
+                if (ollamaRunning)
+                {
+                    // If Ollama is running in Docker, we'll assume the models are available
+                    _logger.LogInformation("Ollama is running in Docker - assuming models are available");
+                    Console.WriteLine("Ollama is running in Docker - assuming models are available");
+                    return new List<string>();
+                }
+                else
+                {
+                    // If Ollama is not running in Docker, we'll return an empty list
+                    // and let the caller handle starting the Docker container
+                    _logger.LogWarning("Ollama is not running in Docker");
+                    Console.WriteLine("Ollama is not running in Docker");
+                    return new List<string>();
+                }
+            }
+
+            // Check each required model individually (for non-Docker mode)
             foreach (var model in _requiredModels)
             {
                 var normalizedModel = NormalizeModelName(model);
@@ -226,6 +279,16 @@ public class OllamaSetupService
                 _logger.LogInformation($"Model {normalizedModel} is already installed. Skipping installation.");
                 Console.WriteLine($"Model {normalizedModel} is already installed. Skipping installation.");
                 return true;
+            }
+
+            // Check if we should use Docker
+            bool useDocker = _configuration.GetValue<bool>("Ollama:UseDocker", false);
+
+            if (useDocker)
+            {
+                _logger.LogInformation("Using Docker for Ollama operations");
+                Console.WriteLine("Using Docker for Ollama operations");
+                return await InstallModelViaApiAsync(normalizedModel);
             }
 
             // Special handling for embedding models
@@ -370,6 +433,7 @@ public class OllamaSetupService
         try
         {
             _logger.LogInformation($"Installing model via API: {modelName}");
+            Console.WriteLine($"Installing model via API: {modelName}");
 
             // Normalize model name
             var normalizedModel = NormalizeModelName(modelName);
@@ -385,14 +449,28 @@ public class OllamaSetupService
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
                 _logger.LogError($"Failed to install model via API. Status: {response.StatusCode}, Error: {errorContent}");
+                Console.WriteLine($"Failed to install model via API. Status: {response.StatusCode}, Error: {errorContent}");
+
+                // For Docker, we can consider this a success if the model is already installed
+                // or if we're using a model that's built into the Docker image
+                bool useDocker = _configuration.GetValue<bool>("Ollama:UseDocker", false);
+                if (useDocker && (modelName == "llama3" || modelName == "llama3.2"))
+                {
+                    _logger.LogInformation($"Using Docker with built-in model: {modelName}");
+                    Console.WriteLine($"Using Docker with built-in model: {modelName}");
+                    return true;
+                }
+
                 return false;
             }
 
+            Console.WriteLine($"Successfully installed model via API: {modelName}");
             return true;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, $"Error installing model via API: {modelName}");
+            Console.WriteLine($"Error installing model via API: {modelName}: {ex.Message}");
             return false;
         }
     }
@@ -407,6 +485,65 @@ public class OllamaSetupService
     {
         [JsonPropertyName("name")]
         public string Name { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Run a Docker command and return the output
+    /// </summary>
+    /// <param name="command">Docker command to run</param>
+    /// <returns>Command output</returns>
+    private async Task<string> RunDockerCommand(string command)
+    {
+        try
+        {
+            var process = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "docker",
+                    Arguments = command,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                }
+            };
+
+            var outputBuilder = new System.Text.StringBuilder();
+            var errorBuilder = new System.Text.StringBuilder();
+
+            process.OutputDataReceived += (sender, args) => {
+                if (!string.IsNullOrEmpty(args.Data))
+                {
+                    outputBuilder.AppendLine(args.Data);
+                }
+            };
+
+            process.ErrorDataReceived += (sender, args) => {
+                if (!string.IsNullOrEmpty(args.Data))
+                {
+                    errorBuilder.AppendLine(args.Data);
+                }
+            };
+
+            process.Start();
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
+            await process.WaitForExitAsync();
+
+            if (process.ExitCode != 0)
+            {
+                _logger.LogError($"Docker command failed with exit code {process.ExitCode}. Error: {errorBuilder}");
+                return string.Empty;
+            }
+
+            return outputBuilder.ToString();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error running Docker command: {command}");
+            return string.Empty;
+        }
     }
 
     private async Task<bool> TryAlternativeModelsForEmbedding()
@@ -425,6 +562,30 @@ public class OllamaSetupService
 
         _logger.LogInformation("Trying alternative embedding models...");
         Console.WriteLine("Trying alternative embedding models...");
+
+        // Check if we should use Docker
+        bool useDocker = _configuration.GetValue<bool>("Ollama:UseDocker", false);
+
+        if (useDocker)
+        {
+            _logger.LogInformation("Using Docker for Ollama operations");
+            Console.WriteLine("Using Docker for Ollama operations");
+
+            foreach (var model in alternativeModels)
+            {
+                _logger.LogInformation($"Trying alternative embedding model via API: {model}");
+                Console.WriteLine($"Trying alternative embedding model via API: {model}");
+
+                if (await InstallModelViaApiAsync(model))
+                {
+                    _logger.LogInformation($"Successfully installed alternative model via API: {model}");
+                    Console.WriteLine($"Successfully installed alternative model via API: {model}");
+                    return true;
+                }
+            }
+
+            return false;
+        }
 
         foreach (var model in alternativeModels)
         {

@@ -1,8 +1,6 @@
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using System.Text;
 using System.Text.Json;
-using TarsCli.Constants;
 
 namespace TarsCli.Services;
 

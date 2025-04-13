@@ -1,9 +1,7 @@
-using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Net.Http.Json;
 using System.Text;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using TarsCli.Constants;
 using TarsCli.Services;
 

@@ -24,6 +24,17 @@ public class DemoCommand : Command
         AddCommand(new AugmentVSCodeDemoCommand(
             _serviceProvider?.GetService<ILogger<AugmentVSCodeDemoCommand>>(),
             _serviceProvider));
+        AddCommand(new A2ADemoCommand(
+            _serviceProvider?.GetService<ILogger<A2ADemoCommand>>(),
+            _serviceProvider));
+        AddCommand(new McpSwarmDemoCommand(_serviceProvider));
+        AddCommand(new SelfCodingDemoCommand(_serviceProvider));
+        AddCommand(new DockerAIAgentDemoCommand(
+            _serviceProvider?.GetService<ILogger<DockerAIAgentDemoCommand>>(),
+            _serviceProvider));
+        AddCommand(new BuildFixesDemoCommand(
+            _serviceProvider?.GetService<ILogger<BuildFixesDemoCommand>>(),
+            _serviceProvider));
     }
 
     /// <summary>

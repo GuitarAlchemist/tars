@@ -87,7 +87,7 @@ module WorkflowEngine =
                 | Some index -> index
                 | None -> 0
 
-            // Execute the workflow steps
+            // Execute the workflow steps recursively
             let rec executeSteps (currentState: WorkflowState) (index: int) =
                 task {
                     // Check if we've reached the end of the steps

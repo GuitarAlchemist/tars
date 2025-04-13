@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  tars-docker-ai-agent:
+    image: tars-docker-ai-agent:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.docker-ai-agent
+    container_name: tars-docker-ai-agent
+    ports:
+      - "8997:8999"
+    volumes:
+      - ./config:/app/config
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - TARS_AGENT_ID=docker-ai-agent
+      - TARS_AGENT_NAME=DockerAIAgent
+      - TARS_AGENT_ROLE=docker_ai_agent
+      - TARS_AGENT_PORT=8997
+      - ModelProvider__Default=DockerModelRunner
+      - DockerModelRunner__BaseUrl=http://model-runner:8080
+      - DockerModelRunner__DefaultModel=llama3:8b
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    depends_on:
+      - model-runner
+    networks:
+      - tars-network
+
+  model-runner:
+    image: ollama/ollama:latest
+    container_name: tars-model-runner
+    ports:
+      - "8080:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    networks:
+      - tars-network
+
+networks:
+  tars-network:
+    external: true
+
+volumes:
+  ollama_data:

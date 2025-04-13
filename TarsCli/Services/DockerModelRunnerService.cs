@@ -4,7 +4,6 @@ using Microsoft.Extensions.Configuration;
 using TarsCli.Constants;
 using TarsCli.Models;
 using ModelInfoType = TarsCli.Models.ModelInfo;
-using System.Text.Json;
 
 namespace TarsCli.Services;
 
@@ -560,31 +559,31 @@ public class DockerModelRunnerService
     {
         return new Dictionary<string, List<string>>
         {
-            ["General Purpose"] = new List<string>
+            ["General Purpose"] = new()
             {
                 ModelProviders.OpenAI.GPT4o,
                 ModelProviders.Anthropic.Claude3Opus,
                 ModelProviders.Meta.Llama3_70B_Instruct
             },
-            ["Code Generation"] = new List<string>
+            ["Code Generation"] = new()
             {
                 ModelProviders.OpenAI.GPT4o,
                 ModelProviders.Anthropic.Claude3Opus,
                 ModelProviders.Meta.Llama3_70B_Instruct
             },
-            ["Long Context"] = new List<string>
+            ["Long Context"] = new()
             {
                 ModelProviders.Google.Gemini15Pro,
                 ModelProviders.Anthropic.Claude3Opus,
                 ModelProviders.OpenAI.GPT4o
             },
-            ["Fast Response"] = new List<string>
+            ["Fast Response"] = new()
             {
                 ModelProviders.Anthropic.Claude3Haiku,
                 ModelProviders.Meta.Llama3_8B_Instruct,
                 ModelProviders.Google.Gemini15Flash
             },
-            ["Local Deployment"] = new List<string>
+            ["Local Deployment"] = new()
             {
                 ModelProviders.Meta.Llama3_8B_Instruct,
                 ModelProviders.Meta.Llama3_70B_Instruct

@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace TarsEngine.Consciousness.Core;
 
 /// <summary>

@@ -1,5 +1,3 @@
-using System.CommandLine;
-using Microsoft.Extensions.Logging;
 using TarsCli.Services;
 
 namespace TarsCli.Commands;

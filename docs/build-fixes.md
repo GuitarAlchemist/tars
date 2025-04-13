@@ -62,6 +62,16 @@ This document describes the changes made to fix build errors in the TARS solutio
    - Updated assertions to check for the correct metric types and names
    - Updated assertions to check for the correct issue types and descriptions
 
+### 6. TestRunnerService Method Conflicts
+- There were conflicts between two `TestRunnerService` classes in different namespaces
+- Fixed by explicitly using the fully qualified name `Testing.TestRunnerService` in all references
+- Updated method calls to use the correct methods (`RunTestFileAsync` instead of `RunTestsAsync`)
+
+### 7. LoggerAdapter Nullability Warnings
+- The `LoggerAdapter<T>` class had nullability warnings related to interface implementation
+- Fixed by implementing the interface methods explicitly and adding proper nullable annotations
+- Added proper XML documentation comments to the class and its methods
+
 ## Remaining Issues
 
 1. **Async Methods Without Await**
@@ -71,6 +81,16 @@ This document describes the changes made to fix build errors in the TARS solutio
 2. **Null Reference Warnings**
    - Some methods don't properly check for null references, causing CS8600 and CS8604 warnings
    - These methods should be updated to use proper null checks or nullable reference types
+
+## Completed Fixes
+
+1. ✅ Fixed ambiguous references to IssueSeverity
+2. ✅ Fixed CodeIssue class property mismatches
+3. ✅ Fixed CodeIssueType enum value mismatches
+4. ✅ Fixed MetricType enum value mismatches
+5. ✅ Fixed CodeStructure class property mismatches
+6. ✅ Fixed TestRunnerService method conflicts
+7. ✅ Fixed LoggerAdapter nullability warnings
 
 ## Next Steps
 

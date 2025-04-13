@@ -1,7 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Console;
-using System.Reflection;
 using TarsEngine.Models;
 using TarsEngine.Services;
 using TarsEngine.Services.Interfaces;

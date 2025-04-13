@@ -1,5 +1,25 @@
 # TARS Project TODOs
 
+## Build Fixes (Completed)
+
+### Model Class Compatibility
+- [x] Fix ambiguous references to IssueSeverity
+- [x] Fix CodeIssue class property mismatches
+- [x] Fix CodeIssueType enum value mismatches
+- [x] Fix MetricType enum value mismatches
+- [x] Fix CodeStructure class property mismatches
+
+### Service Conflicts
+- [x] Fix TestRunnerService method conflicts
+  - [x] Update references to use fully qualified name `Testing.TestRunnerService`
+  - [x] Update method calls to use the correct methods (`RunTestFileAsync` instead of `RunTestsAsync`)
+
+### Nullability Warnings
+- [x] Fix LoggerAdapter nullability warnings
+  - [x] Implement interface methods explicitly
+  - [x] Add proper nullable annotations
+  - [x] Add proper XML documentation comments
+
 ## Autonomous Self-Improvement System (High Priority)
 
 ### Knowledge Extraction System

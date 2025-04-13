@@ -3,12 +3,10 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.VectorData;
 using TarsApp.Components;
 using TarsApp.Services;
-using TarsApp.Services.Interfaces;
 using TarsApp.Services.Ingestion;
 using TarsApp.ViewModels;
 using OllamaSharp;
 using MudBlazor.Services;
-using TarsEngine.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();

@@ -1,9 +1,5 @@
-using System;
-using System.CommandLine;
 using System.Diagnostics;
-using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using TarsCli.Services;
 
 namespace TarsCli.Commands;

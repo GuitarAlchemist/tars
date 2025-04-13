@@ -1,28 +1,27 @@
-using System.Linq;
 using Microsoft.Extensions.Logging;
 using Moq;
 using TarsEngine.Models;
 using TarsEngine.Services;
 using Xunit;
 
-namespace TarsEngine.Tests.Services
+namespace TarsEngine.Tests.Services;
+
+public class FSharpStructureExtractorTests
 {
-    public class FSharpStructureExtractorTests
+    private readonly Mock<ILogger<FSharpStructureExtractor>> _loggerMock;
+    private readonly FSharpStructureExtractor _extractor;
+
+    public FSharpStructureExtractorTests()
     {
-        private readonly Mock<ILogger<FSharpStructureExtractor>> _loggerMock;
-        private readonly FSharpStructureExtractor _extractor;
+        _loggerMock = new Mock<ILogger<FSharpStructureExtractor>>();
+        _extractor = new FSharpStructureExtractor(_loggerMock.Object);
+    }
 
-        public FSharpStructureExtractorTests()
-        {
-            _loggerMock = new Mock<ILogger<FSharpStructureExtractor>>();
-            _extractor = new FSharpStructureExtractor(_loggerMock.Object);
-        }
-
-        [Fact]
-        public void ExtractStructures_WithValidCode_ReturnsCorrectStructures()
-        {
-            // Arrange
-            var code = @"
+    [Fact]
+    public void ExtractStructures_WithValidCode_ReturnsCorrectStructures()
+    {
+        // Arrange
+        var code = @"
 module TestModule
 
 // Record type
@@ -54,32 +53,32 @@ let rec factorial n =
 let (|Even|Odd|) n = if n % 2 = 0 then Even else Odd
 ";
 
-            // Act
-            var structures = _extractor.ExtractStructures(code);
+        // Act
+        var structures = _extractor.ExtractStructures(code);
 
-            // Assert
-            // Just check that we have some structures
-            Assert.NotEmpty(structures);
-        }
+        // Assert
+        // Just check that we have some structures
+        Assert.NotEmpty(structures);
+    }
 
-        [Fact]
-        public void ExtractStructures_WithEmptyCode_ReturnsEmptyList()
-        {
-            // Arrange
-            var code = string.Empty;
+    [Fact]
+    public void ExtractStructures_WithEmptyCode_ReturnsEmptyList()
+    {
+        // Arrange
+        var code = string.Empty;
 
-            // Act
-            var structures = _extractor.ExtractStructures(code);
+        // Act
+        var structures = _extractor.ExtractStructures(code);
 
-            // Assert
-            Assert.Empty(structures);
-        }
+        // Assert
+        Assert.Empty(structures);
+    }
 
-        [Fact]
-        public void GetNamespaceForPosition_WithValidPosition_ReturnsCorrectNamespace()
-        {
-            // Arrange
-            var code = @"
+    [Fact]
+    public void GetNamespaceForPosition_WithValidPosition_ReturnsCorrectNamespace()
+    {
+        // Arrange
+        var code = @"
 module TestModule
 
 type Person = {
@@ -87,44 +86,44 @@ type Person = {
     Age: int
 }
 ";
-            var structures = _extractor.ExtractStructures(code);
-            var position = code.IndexOf("type Person");
+        var structures = _extractor.ExtractStructures(code);
+        var position = code.IndexOf("type Person");
 
-            // Act
-            var namespaceName = _extractor.GetNamespaceForPosition(structures, position, code);
+        // Act
+        var namespaceName = _extractor.GetNamespaceForPosition(structures, position, code);
 
-            // Assert
-            // Skip this test for now as the implementation is not complete
-            // Assert.Equal("TestModule", namespaceName);
-        }
+        // Assert
+        // Skip this test for now as the implementation is not complete
+        // Assert.Equal("TestModule", namespaceName);
+    }
 
-        [Fact]
-        public void GetClassForPosition_WithValidPosition_ReturnsCorrectClass()
-        {
-            // Arrange
-            var code = @"
+    [Fact]
+    public void GetClassForPosition_WithValidPosition_ReturnsCorrectClass()
+    {
+        // Arrange
+        var code = @"
 module TestModule
 
 type MyClass() =
     member this.MyMethod() =
         printfn ""Hello, world!""
 ";
-            var structures = _extractor.ExtractStructures(code);
-            var position = code.IndexOf("member this.MyMethod");
+        var structures = _extractor.ExtractStructures(code);
+        var position = code.IndexOf("member this.MyMethod");
 
-            // Act
-            var className = _extractor.GetClassForPosition(structures, position, code);
+        // Act
+        var className = _extractor.GetClassForPosition(structures, position, code);
 
-            // Assert
-            // Skip this test for now as the implementation is not complete
-            // Assert.Equal("MyClass", className);
-        }
+        // Assert
+        // Skip this test for now as the implementation is not complete
+        // Assert.Equal("MyClass", className);
+    }
 
-        [Fact]
-        public void CalculateStructureSizes_UpdatesStructureSizesCorrectly()
-        {
-            // Arrange
-            var code = @"
+    [Fact]
+    public void CalculateStructureSizes_UpdatesStructureSizesCorrectly()
+    {
+        // Arrange
+        var code = @"
 module TestModule
 
 type Person = {
@@ -134,21 +133,20 @@ type Person = {
 
 let add x y = x + y
 ";
-            var structures = _extractor.ExtractStructures(code);
+        var structures = _extractor.ExtractStructures(code);
 
-            // Act - CalculateStructureSizes is called inside ExtractStructures
+        // Act - CalculateStructureSizes is called inside ExtractStructures
 
-            // Assert
-            var moduleStructure = structures.First(s => s.Type == StructureType.Module);
-            var recordStructure = structures.First(s => s.Type == StructureType.Record);
-            var functionStructure = structures.First(s => s.Type == StructureType.Function);
+        // Assert
+        var moduleStructure = structures.First(s => s.Type == StructureType.Module);
+        var recordStructure = structures.First(s => s.Type == StructureType.Record);
+        var functionStructure = structures.First(s => s.Type == StructureType.Function);
 
-            // Skip these assertions for now as the implementation is not complete
-            // Assert.True(moduleStructure.Size > 0);
-            // Assert.True(recordStructure.Size > 0);
-            // Assert.True(functionStructure.Size > 0);
-            // Assert.True(moduleStructure.Location.EndLine >= recordStructure.Location.EndLine);
-            // Assert.True(recordStructure.Location.EndLine < functionStructure.Location.StartLine);
-        }
+        // Skip these assertions for now as the implementation is not complete
+        // Assert.True(moduleStructure.Size > 0);
+        // Assert.True(recordStructure.Size > 0);
+        // Assert.True(functionStructure.Size > 0);
+        // Assert.True(moduleStructure.Location.EndLine >= recordStructure.Location.EndLine);
+        // Assert.True(recordStructure.Location.EndLine < functionStructure.Location.StartLine);
     }
 }

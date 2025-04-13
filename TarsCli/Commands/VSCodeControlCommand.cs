@@ -1,8 +1,4 @@
-using Microsoft.Extensions.Logging;
-using System.CommandLine;
-using System.CommandLine.Invocation;
 using System.Diagnostics;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace TarsCli.Commands;
 

@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;

@@ -1,6 +1,3 @@
-using System;
-using System.CommandLine;
-using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using TarsCli.Services;
 

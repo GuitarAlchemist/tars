@@ -18,10 +18,10 @@ public class ProjectDirectory
     /// <summary>
     /// The list of files in the directory
     /// </summary>
-    public List<ProjectFile> Files { get; set; } = new List<ProjectFile>();
+    public List<ProjectFile> Files { get; set; } = new();
     
     /// <summary>
     /// The list of subdirectories in the directory
     /// </summary>
-    public List<ProjectDirectory> Subdirectories { get; set; } = new List<ProjectDirectory>();
+    public List<ProjectDirectory> Subdirectories { get; set; } = new();
 }
