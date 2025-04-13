@@ -1,0 +1,23 @@
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+
+WORKDIR /app
+
+# Copy the MCP server code
+COPY TarsCli/bin/Debug/net9.0/tarscli.exe .
+COPY TarsCli/bin/Debug/net9.0/*.dll .
+COPY TarsCli/bin/Debug/net9.0/*.json .
+COPY TarsCli/bin/Debug/net9.0/*.config .
+
+# Set environment variables
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
+ENV ASPNETCORE_URLS=http://+:8999
+ENV OLLAMA_USE_DOCKER=true
+ENV OLLAMA_BASE_URL=http://tars-model-runner:11434
+ENV MCP_AUTO_EXECUTE=true
+ENV MCP_AUTO_CODE=true
+
+# Expose the MCP port
+EXPOSE 8999
+
+# Set the entry point
+ENTRYPOINT ["./tarscli.exe", "mcp", "--server", "--auto-execute", "--auto-code"]

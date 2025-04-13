@@ -1,17 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using TarsEngine.Models.Metrics;
 using TarsEngine.Services.Interfaces;
-using TarsEngine.Services.Adapters;
-using TarsEngine.Models.Unified;
 using UnifiedComplexityType = TarsEngine.Models.Unified.ComplexityTypeUnified;
 using ModelComplexityType = TarsEngine.Models.Metrics.ComplexityType;
 

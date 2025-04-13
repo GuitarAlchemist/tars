@@ -1,5 +1,3 @@
-using System;
-
 namespace TarsEngine.Models.Metrics;
 
 /// <summary>

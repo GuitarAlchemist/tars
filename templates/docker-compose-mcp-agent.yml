@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  {{CONTAINER_NAME}}:
+    image: tars-mcp-agent:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp-agent
+    container_name: {{CONTAINER_NAME}}
+    ports:
+      - "{{AGENT_PORT}}:8999"
+    volumes:
+      - ./config:/app/config
+      - ./data:/app/data
+      - ./logs:/app/logs
+    environment:
+      - TARS_AGENT_ID={{AGENT_ID}}
+      - TARS_AGENT_NAME={{AGENT_NAME}}
+      - TARS_AGENT_ROLE={{AGENT_ROLE}}
+      - TARS_AGENT_PORT={{AGENT_PORT}}
+      - ModelProvider__Default=DockerModelRunner
+      - DockerModelRunner__BaseUrl=http://model-runner:8080
+      - DockerModelRunner__DefaultModel=llama3:8b
+    depends_on:
+      - model-runner
+    networks:
+      - tars-network
+
+networks:
+  tars-network:
+    external: true

@@ -1,0 +1,48 @@
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+
+# Set working directory
+WORKDIR /app
+
+# Copy csproj and restore dependencies
+COPY TarsCli/*.csproj TarsCli/
+COPY TarsEngine/*.csproj TarsEngine/
+COPY TarsEngine.Interfaces/*.csproj TarsEngine.Interfaces/
+COPY TarsEngine.Unified/*.csproj TarsEngine.Unified/
+COPY TarsEngine.SelfImprovement/*.csproj TarsEngine.SelfImprovement/
+COPY TarsEngine.DSL/*.csproj TarsEngine.DSL/
+COPY TarsEngineFSharp/*.fsproj TarsEngineFSharp/
+COPY TarsEngineFSharp.Core/*.fsproj TarsEngineFSharp.Core/
+COPY *.sln ./
+
+# Restore packages
+RUN dotnet restore
+
+# Copy everything else and build
+COPY . ./
+RUN dotnet publish TarsCli/TarsCli.csproj -c Release -o out
+
+# Build runtime image
+FROM mcr.microsoft.com/dotnet/aspnet:9.0
+WORKDIR /app
+COPY --from=build /app/out .
+
+# Install additional tools for coordination
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set environment variables
+ENV TARS_REPLICA_ID=
+ENV TARS_REPLICA_ROLE=coordinator
+ENV TARS_REPLICA_NAME=
+ENV TARS_REPLICA_PORT=
+ENV TARS_MODEL=
+ENV TARS_CAPABILITIES=coordinate_workflow,prioritize_tasks,track_progress
+
+# Expose port
+EXPOSE 8999
+
+# Set entry point
+ENTRYPOINT ["dotnet", "tarscli.dll", "mcp", "serve", "--port", "8999"]

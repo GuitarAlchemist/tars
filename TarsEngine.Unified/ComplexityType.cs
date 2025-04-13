@@ -1,70 +1,67 @@
-using System;
+namespace TarsEngine.Unified;
 
-namespace TarsEngine.Unified
+/// <summary>
+/// Represents a complexity type
+/// </summary>
+public enum ComplexityType
 {
     /// <summary>
-    /// Represents a complexity type
+    /// Cyclomatic complexity
     /// </summary>
-    public enum ComplexityType
-    {
-        /// <summary>
-        /// Cyclomatic complexity
-        /// </summary>
-        Cyclomatic,
+    Cyclomatic,
 
-        /// <summary>
-        /// Cognitive complexity
-        /// </summary>
-        Cognitive,
+    /// <summary>
+    /// Cognitive complexity
+    /// </summary>
+    Cognitive,
 
-        /// <summary>
-        /// Halstead complexity
-        /// </summary>
-        Halstead,
+    /// <summary>
+    /// Halstead complexity
+    /// </summary>
+    Halstead,
 
-        /// <summary>
-        /// Maintainability index
-        /// </summary>
-        Maintainability,
+    /// <summary>
+    /// Maintainability index
+    /// </summary>
+    Maintainability,
 
-        /// <summary>
-        /// Maintainability index (alternative name)
-        /// </summary>
-        MaintainabilityIndex,
+    /// <summary>
+    /// Maintainability index (alternative name)
+    /// </summary>
+    MaintainabilityIndex,
 
-        /// <summary>
-        /// Method length
-        /// </summary>
-        MethodLength,
+    /// <summary>
+    /// Method length
+    /// </summary>
+    MethodLength,
 
-        /// <summary>
-        /// Class length
-        /// </summary>
-        ClassLength,
+    /// <summary>
+    /// Class length
+    /// </summary>
+    ClassLength,
 
-        /// <summary>
-        /// Parameter count
-        /// </summary>
-        ParameterCount,
+    /// <summary>
+    /// Parameter count
+    /// </summary>
+    ParameterCount,
 
-        /// <summary>
-        /// Nesting depth
-        /// </summary>
-        NestingDepth,
+    /// <summary>
+    /// Nesting depth
+    /// </summary>
+    NestingDepth,
 
-        /// <summary>
-        /// Structural complexity
-        /// </summary>
-        Structural,
+    /// <summary>
+    /// Structural complexity
+    /// </summary>
+    Structural,
 
-        /// <summary>
-        /// Algorithmic complexity
-        /// </summary>
-        Algorithmic,
+    /// <summary>
+    /// Algorithmic complexity
+    /// </summary>
+    Algorithmic,
 
-        /// <summary>
-        /// Other complexity
-        /// </summary>
-        Other
-    }
+    /// <summary>
+    /// Other complexity
+    /// </summary>
+    Other
 }

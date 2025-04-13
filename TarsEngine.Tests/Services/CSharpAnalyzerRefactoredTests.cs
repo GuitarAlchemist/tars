@@ -1,30 +1,27 @@
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Moq;
 using TarsEngine.Models;
 using TarsEngine.Services;
 using Xunit;
 
-namespace TarsEngine.Tests.Services
+namespace TarsEngine.Tests.Services;
+
+public class CSharpAnalyzerRefactoredTests
 {
-    public class CSharpAnalyzerRefactoredTests
+    private readonly Mock<ILogger<CSharpAnalyzerRefactored>> _loggerMock;
+    private readonly CSharpAnalyzerRefactored _analyzer;
+
+    public CSharpAnalyzerRefactoredTests()
     {
-        private readonly Mock<ILogger<CSharpAnalyzerRefactored>> _loggerMock;
-        private readonly CSharpAnalyzerRefactored _analyzer;
+        _loggerMock = new Mock<ILogger<CSharpAnalyzerRefactored>>();
+        _analyzer = new CSharpAnalyzerRefactored(_loggerMock.Object);
+    }
 
-        public CSharpAnalyzerRefactoredTests()
-        {
-            _loggerMock = new Mock<ILogger<CSharpAnalyzerRefactored>>();
-            _analyzer = new CSharpAnalyzerRefactored(_loggerMock.Object);
-        }
-
-        [Fact]
-        public async Task AnalyzeAsync_WithValidCode_ReturnsSuccessfulResult()
-        {
-            // Arrange
-            var code = @"
+    [Fact]
+    public async Task AnalyzeAsync_WithValidCode_ReturnsSuccessfulResult()
+    {
+        // Arrange
+        var code = @"
 namespace TestNamespace
 {
     public class TestClass
@@ -41,55 +38,55 @@ namespace TestNamespace
     }
 }";
 
-            // Act
-            var result = await _analyzer.AnalyzeAsync(code);
+        // Act
+        var result = await _analyzer.AnalyzeAsync(code);
 
-            // Assert
-            Assert.NotNull(result);
-            Assert.True(result.IsSuccessful);
-            Assert.Equal(ProgrammingLanguage.CSharp, result.Language);
-            Assert.NotEmpty(result.Structures);
-            Assert.NotEmpty(result.Metrics);
-        }
+        // Assert
+        Assert.NotNull(result);
+        Assert.True(result.IsSuccessful);
+        Assert.Equal(ProgrammingLanguage.CSharp, result.Language);
+        Assert.NotEmpty(result.Structures);
+        Assert.NotEmpty(result.Metrics);
+    }
 
-        [Fact]
-        public async Task AnalyzeAsync_WithNullContent_ReturnsFailureResult()
-        {
-            // Arrange
-            string? code = null;
+    [Fact]
+    public async Task AnalyzeAsync_WithNullContent_ReturnsFailureResult()
+    {
+        // Arrange
+        string? code = null;
 
-            // Act
-            var result = await _analyzer.AnalyzeAsync(code!);
+        // Act
+        var result = await _analyzer.AnalyzeAsync(code!);
 
-            // Assert
-            Assert.NotNull(result);
-            Assert.False(result.IsSuccessful);
-            Assert.Equal(ProgrammingLanguage.CSharp, result.Language);
-            Assert.Equal("Content is null", result.ErrorMessage);
-            Assert.Contains("Content is null", result.Errors);
-        }
+        // Assert
+        Assert.NotNull(result);
+        Assert.False(result.IsSuccessful);
+        Assert.Equal(ProgrammingLanguage.CSharp, result.Language);
+        Assert.Equal("Content is null", result.ErrorMessage);
+        Assert.Contains("Content is null", result.Errors);
+    }
 
-        [Fact]
-        public async Task AnalyzeAsync_WithEmptyContent_ReturnsSuccessfulResultWithNoStructures()
-        {
-            // Arrange
-            var code = string.Empty;
+    [Fact]
+    public async Task AnalyzeAsync_WithEmptyContent_ReturnsSuccessfulResultWithNoStructures()
+    {
+        // Arrange
+        var code = string.Empty;
 
-            // Act
-            var result = await _analyzer.AnalyzeAsync(code);
+        // Act
+        var result = await _analyzer.AnalyzeAsync(code);
 
-            // Assert
-            Assert.NotNull(result);
-            Assert.True(result.IsSuccessful);
-            Assert.Equal(ProgrammingLanguage.CSharp, result.Language);
-            Assert.Empty(result.Structures);
-        }
+        // Assert
+        Assert.NotNull(result);
+        Assert.True(result.IsSuccessful);
+        Assert.Equal(ProgrammingLanguage.CSharp, result.Language);
+        Assert.Empty(result.Structures);
+    }
 
-        [Fact]
-        public void ExtractStructures_WithValidCode_ReturnsCorrectStructures()
-        {
-            // Arrange
-            var code = @"
+    [Fact]
+    public void ExtractStructures_WithValidCode_ReturnsCorrectStructures()
+    {
+        // Arrange
+        var code = @"
 namespace TestNamespace
 {
     public class TestClass
@@ -103,22 +100,22 @@ namespace TestNamespace
     }
 }";
 
-            // Act
-            var structures = _analyzer.ExtractStructures(code);
+        // Act
+        var structures = _analyzer.ExtractStructures(code);
 
-            // Assert
-            Assert.NotEmpty(structures);
-            Assert.Contains(structures, s => s.Type == StructureType.Namespace && s.Name == "TestNamespace");
-            Assert.Contains(structures, s => s.Type == StructureType.Class && s.Name == "TestClass");
-            Assert.Contains(structures, s => s.Type == StructureType.Method && s.Name == "TestMethod");
-            Assert.Contains(structures, s => s.Type == StructureType.Property && s.Name == "TestProperty");
-        }
+        // Assert
+        Assert.NotEmpty(structures);
+        Assert.Contains(structures, s => s.Type == StructureType.Namespace && s.Name == "TestNamespace");
+        Assert.Contains(structures, s => s.Type == StructureType.Class && s.Name == "TestClass");
+        Assert.Contains(structures, s => s.Type == StructureType.Method && s.Name == "TestMethod");
+        Assert.Contains(structures, s => s.Type == StructureType.Property && s.Name == "TestProperty");
+    }
 
-        [Fact]
-        public void CalculateMetrics_WithValidCode_ReturnsCorrectMetrics()
-        {
-            // Arrange
-            var code = @"
+    [Fact]
+    public void CalculateMetrics_WithValidCode_ReturnsCorrectMetrics()
+    {
+        // Arrange
+        var code = @"
 namespace TestNamespace
 {
     public class TestClass
@@ -131,23 +128,23 @@ namespace TestNamespace
         }
     }
 }";
-            var structures = _analyzer.ExtractStructures(code);
+        var structures = _analyzer.ExtractStructures(code);
 
-            // Act
-            var metrics = _analyzer.CalculateMetrics(code, structures, true, true);
+        // Act
+        var metrics = _analyzer.CalculateMetrics(code, structures, true, true);
 
-            // Assert
-            Assert.NotEmpty(metrics);
-            Assert.Contains(metrics, m => m.Type == MetricType.Size && m.Name == "Lines of Code");
-            Assert.Contains(metrics, m => m.Type == MetricType.Size && m.Name == "Class Count");
-            Assert.Contains(metrics, m => m.Type == MetricType.Size && m.Name == "Method Count");
-        }
+        // Assert
+        Assert.NotEmpty(metrics);
+        Assert.Contains(metrics, m => m.Type == MetricType.Size && m.Name == "Lines of Code");
+        Assert.Contains(metrics, m => m.Type == MetricType.Size && m.Name == "Class Count");
+        Assert.Contains(metrics, m => m.Type == MetricType.Size && m.Name == "Method Count");
+    }
 
-        [Fact]
-        public void DetectSecurityIssues_WithVulnerableCode_ReturnsIssues()
-        {
-            // Arrange
-            var code = @"
+    [Fact]
+    public void DetectSecurityIssues_WithVulnerableCode_ReturnsIssues()
+    {
+        // Arrange
+        var code = @"
 namespace TestNamespace
 {
     public class TestClass
@@ -164,60 +161,59 @@ namespace TestNamespace
     }
 }";
 
-            // Act
-            var issues = _analyzer.DetectSecurityIssues(code);
+        // Act
+        var issues = _analyzer.DetectSecurityIssues(code);
 
-            // Assert
-            Assert.NotEmpty(issues);
-            // Check that we have at least one security issue
-            Assert.Contains(issues, i => i.Type == CodeIssueType.Security);
-        }
+        // Assert
+        Assert.NotEmpty(issues);
+        // Check that we have at least one security issue
+        Assert.Contains(issues, i => i.Type == CodeIssueType.Security);
+    }
 
-        [Fact]
-        public async Task GetAvailableOptionsAsync_ReturnsCorrectOptions()
-        {
-            // Act
-            var options = await _analyzer.GetAvailableOptionsAsync();
+    [Fact]
+    public async Task GetAvailableOptionsAsync_ReturnsCorrectOptions()
+    {
+        // Act
+        var options = await _analyzer.GetAvailableOptionsAsync();
 
-            // Assert
-            Assert.NotEmpty(options);
-            Assert.Contains("IncludeMetrics", options.Keys);
-            Assert.Contains("IncludeStructures", options.Keys);
-            Assert.Contains("IncludeIssues", options.Keys);
-            Assert.Contains("AnalyzePerformance", options.Keys);
-            Assert.Contains("AnalyzeComplexity", options.Keys);
-            Assert.Contains("AnalyzeMaintainability", options.Keys);
-            Assert.Contains("AnalyzeSecurity", options.Keys);
-            Assert.Contains("AnalyzeStyle", options.Keys);
-        }
+        // Assert
+        Assert.NotEmpty(options);
+        Assert.Contains("IncludeMetrics", options.Keys);
+        Assert.Contains("IncludeStructures", options.Keys);
+        Assert.Contains("IncludeIssues", options.Keys);
+        Assert.Contains("AnalyzePerformance", options.Keys);
+        Assert.Contains("AnalyzeComplexity", options.Keys);
+        Assert.Contains("AnalyzeMaintainability", options.Keys);
+        Assert.Contains("AnalyzeSecurity", options.Keys);
+        Assert.Contains("AnalyzeStyle", options.Keys);
+    }
 
-        [Fact]
-        public async Task GetLanguageSpecificIssueTypesAsync_ReturnsCorrectIssueTypes()
-        {
-            // Act
-            var issueTypes = await _analyzer.GetLanguageSpecificIssueTypesAsync();
+    [Fact]
+    public async Task GetLanguageSpecificIssueTypesAsync_ReturnsCorrectIssueTypes()
+    {
+        // Act
+        var issueTypes = await _analyzer.GetLanguageSpecificIssueTypesAsync();
 
-            // Assert
-            Assert.NotEmpty(issueTypes);
-            Assert.Contains(CodeIssueType.CodeSmell, issueTypes.Keys);
-            Assert.Contains(CodeIssueType.Security, issueTypes.Keys);
-            Assert.Contains(CodeIssueType.Performance, issueTypes.Keys);
-            Assert.Contains(CodeIssueType.Complexity, issueTypes.Keys);
-            Assert.Contains(CodeIssueType.Style, issueTypes.Keys);
-        }
+        // Assert
+        Assert.NotEmpty(issueTypes);
+        Assert.Contains(CodeIssueType.CodeSmell, issueTypes.Keys);
+        Assert.Contains(CodeIssueType.Security, issueTypes.Keys);
+        Assert.Contains(CodeIssueType.Performance, issueTypes.Keys);
+        Assert.Contains(CodeIssueType.Complexity, issueTypes.Keys);
+        Assert.Contains(CodeIssueType.Style, issueTypes.Keys);
+    }
 
-        [Fact]
-        public async Task GetLanguageSpecificMetricTypesAsync_ReturnsCorrectMetricTypes()
-        {
-            // Act
-            var metricTypes = await _analyzer.GetLanguageSpecificMetricTypesAsync();
+    [Fact]
+    public async Task GetLanguageSpecificMetricTypesAsync_ReturnsCorrectMetricTypes()
+    {
+        // Act
+        var metricTypes = await _analyzer.GetLanguageSpecificMetricTypesAsync();
 
-            // Assert
-            Assert.NotEmpty(metricTypes);
-            Assert.Contains(MetricType.Size, metricTypes.Keys);
-            Assert.Contains(MetricType.Complexity, metricTypes.Keys);
-            Assert.Contains(MetricType.Maintainability, metricTypes.Keys);
-            Assert.Contains(MetricType.Performance, metricTypes.Keys);
-        }
+        // Assert
+        Assert.NotEmpty(metricTypes);
+        Assert.Contains(MetricType.Size, metricTypes.Keys);
+        Assert.Contains(MetricType.Complexity, metricTypes.Keys);
+        Assert.Contains(MetricType.Maintainability, metricTypes.Keys);
+        Assert.Contains(MetricType.Performance, metricTypes.Keys);
     }
 }

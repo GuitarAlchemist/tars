@@ -1,6 +1,4 @@
 using System.Text;
-using System.Linq;
-using TarsCli.Common;
 using Option = TarsCli.Common.Option;
 
 namespace TarsCli.Services;

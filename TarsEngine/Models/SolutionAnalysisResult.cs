@@ -18,5 +18,5 @@ public class SolutionAnalysisResult
     /// <summary>
     /// The list of projects in the solution
     /// </summary>
-    public List<ProjectAnalysisResult> Projects { get; set; } = new List<ProjectAnalysisResult>();
+    public List<ProjectAnalysisResult> Projects { get; set; } = new();
 }

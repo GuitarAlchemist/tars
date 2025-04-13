@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  tars-mcp-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp-agent-simple
+    container_name: tars-mcp-agent
+    ports:
+      - "8999:8999"
+    volumes:
+      - ./:/app/workspace
+    environment:
+      - TARS_AGENT_ID=mcp-agent
+      - TARS_AGENT_NAME=McpAgent
+      - TARS_AGENT_ROLE=mcp_agent
+      - TARS_AGENT_PORT=8999
+      - OLLAMA_USE_DOCKER=true
+      - OLLAMA_BASE_URL=http://tars-model-runner:11434
+      - MCP_AUTO_EXECUTE=true
+      - MCP_AUTO_CODE=true
+    depends_on:
+      - tars-model-runner
+    networks:
+      - tars-network
+
+  tars-model-runner:
+    image: ollama/ollama:latest
+    container_name: tars-model-runner
+    ports:
+      - "8080:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - tars-network
+
+networks:
+  tars-network:
+    external: true
+
+volumes:
+  ollama_data:

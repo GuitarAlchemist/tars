@@ -1,0 +1,84 @@
+{
+  "replicas": [
+    {
+      "Id": "192908e0b7f1445581c5b58c4df1e184",
+      "Name": "CodeAnalyzer",
+      "Role": "analyzer",
+      "Port": 9001,
+      "ContainerName": "tars-replica-192908e0",
+      "DockerComposePath": "docker/tars-replicas\\docker-compose-192908e0.yml",
+      "Status": "running",
+      "CreatedAt": "2025-04-12T18:40:23.1166354Z",
+      "LastActiveAt": "2025-04-12T18:40:24.2168424Z",
+      "Capabilities": [
+        "analyze_code",
+        "detect_issues",
+        "suggest_improvements"
+      ],
+      "Metadata": {},
+      "Metrics": {},
+      "IsHealthy": true,
+      "Version": "1.0.0.0"
+    },
+    {
+      "Id": "fe5f04bb923f4f1e9f5525b53549a05a",
+      "Name": "CodeGenerator",
+      "Role": "generator",
+      "Port": 9002,
+      "ContainerName": "tars-replica-fe5f04bb",
+      "DockerComposePath": "docker/tars-replicas\\docker-compose-fe5f04bb.yml",
+      "Status": "running",
+      "CreatedAt": "2025-04-12T18:40:23.388908Z",
+      "LastActiveAt": "2025-04-12T18:40:24.5402404Z",
+      "Capabilities": [
+        "generate_code",
+        "refactor_code",
+        "optimize_code"
+      ],
+      "Metadata": {},
+      "Metrics": {},
+      "IsHealthy": true,
+      "Version": "1.0.0.0"
+    },
+    {
+      "Id": "db0bb90a76ed42a799c9727b881bd006",
+      "Name": "TestGenerator",
+      "Role": "tester",
+      "Port": 9003,
+      "ContainerName": "tars-replica-db0bb90a",
+      "DockerComposePath": "docker/tars-replicas\\docker-compose-db0bb90a.yml",
+      "Status": "running",
+      "CreatedAt": "2025-04-12T18:40:23.6639436Z",
+      "LastActiveAt": "2025-04-12T18:40:24.8632262Z",
+      "Capabilities": [
+        "generate_tests",
+        "run_tests",
+        "analyze_test_results"
+      ],
+      "Metadata": {},
+      "Metrics": {},
+      "IsHealthy": true,
+      "Version": "1.0.0.0"
+    },
+    {
+      "Id": "bb67723180604a46a9257def5d33e6f7",
+      "Name": "Coordinator",
+      "Role": "coordinator",
+      "Port": 9004,
+      "ContainerName": "tars-replica-bb677231",
+      "DockerComposePath": "docker/tars-replicas\\docker-compose-bb677231.yml",
+      "Status": "running",
+      "CreatedAt": "2025-04-12T18:40:23.9390142Z",
+      "LastActiveAt": "2025-04-12T18:40:25.1841772Z",
+      "Capabilities": [
+        "coordinate_workflow",
+        "prioritize_tasks",
+        "track_progress"
+      ],
+      "Metadata": {},
+      "Metrics": {},
+      "IsHealthy": true,
+      "Version": "1.0.0.0"
+    }
+  ]
+}

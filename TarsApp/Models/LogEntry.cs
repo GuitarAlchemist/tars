@@ -1,4 +1,3 @@
-using System;
 using MsLogLevel = Microsoft.Extensions.Logging.LogLevel;
 using TarsEngine.Models;
 

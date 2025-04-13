@@ -1,7 +1,3 @@
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
-using TarsCli.Models;
-
 namespace TarsCli.Services;
 
 /// <summary>

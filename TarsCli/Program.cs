@@ -6,6 +6,7 @@ using System.CommandLine.Builder;
 using System.CommandLine.Parsing;
 using TarsCli.Controllers;
 using TarsCli.Services;
+using TarsCli.Services.Mcp;
 using TarsEngine.Consciousness;
 using TarsEngine.Extensions;
 
@@ -89,6 +90,54 @@ internal static class Program
                 .AddSingleton<DeepThinkingService>()
                 .AddSingleton<McpService>()
                 .AddSingleton<TarsMcpService>()
+                .AddSingleton<Services.Mcp.ReplicaCommunicationProtocol>()
+                .AddSingleton<Services.Mcp.ResponseProcessor>()
+                .AddSingleton<IMcpActionHandler, Services.Mcp.AnalyzerReplicaActionHandler>()
+                .AddSingleton<IMcpActionHandler, Services.Mcp.GeneratorReplicaActionHandler>()
+                .AddSingleton<IMcpActionHandler, Services.Mcp.TesterReplicaActionHandler>()
+                .AddSingleton<IMcpActionHandler, Services.Mcp.CoordinatorReplicaActionHandler>()
+                .AddSingleton<TarsMcpSwarmService>()
+                .AddSingleton<SwarmSelfImprovementService>()
+                .AddSingleton<DockerService>()
+                .AddSingleton<TarsReplicaManager>()
+                .AddSingleton<SelfCodingWorkflow>()
+                .AddSingleton<TarsA2AService>()
+
+                // Code Analysis services
+                .AddSingleton<Services.CodeAnalysis.SecurityVulnerabilityAnalyzer>()
+                .AddSingleton<Services.CodeAnalysis.ICodeAnalyzer, Services.CodeAnalysis.CSharpCodeAnalyzer>()
+                .AddSingleton<Services.CodeAnalysis.ICodeAnalyzer, Services.CodeAnalysis.FSharpCodeAnalyzer>()
+                .AddSingleton<Services.CodeAnalysis.CodeAnalyzerService>()
+                .AddSingleton<Services.CodeAnalysis.ImprovementSuggestionGenerator>()
+
+                // Code Generation services
+                .AddSingleton<Services.CodeGeneration.ICodeGenerator, Services.CodeGeneration.CSharpCodeGenerator>()
+                .AddSingleton<Services.CodeGeneration.ICodeGenerator, Services.CodeGeneration.FSharpCodeGenerator>()
+                .AddSingleton<Services.CodeGeneration.CodeGeneratorService>()
+
+                // Testing services
+                .AddSingleton<Services.Testing.ITestGenerator, Services.Testing.CSharpTestGenerator>()
+                .AddSingleton<Services.Testing.ITestGenerator, Services.Testing.FSharpTestGenerator>()
+                .AddSingleton<Services.Testing.TestGeneratorService>()
+                .AddSingleton<Services.Testing.TestRunnerService>()
+                .AddSingleton<Services.Testing.TestResultAnalyzer>()
+
+                // Workflow services
+                .AddSingleton<Services.Workflow.IWorkflowDefinition, Services.Workflow.SelfCodingWorkflowDefinition>()
+                .AddSingleton<Services.Workflow.IWorkflowCoordinator, Services.Workflow.WorkflowCoordinator>()
+                .AddSingleton<Services.Workflow.TaskPrioritizer>()
+                .AddSingleton<Services.Workflow.ProgressTracker>()
+
+                // Self-coding services
+                .AddSingleton<Services.SelfCoding.FileProcessor>()
+                .AddSingleton<Services.SelfCoding.AnalysisProcessor>()
+                .AddSingleton<Services.SelfCoding.CodeGenerationProcessor>()
+                .AddSingleton<Services.SelfCoding.TestProcessor>()
+                .AddSingleton<Services.SelfCoding.SelfCodingWorkflow>()
+                .AddSingleton<Commands.A2ACommands>()
+                .AddSingleton<Commands.McpSwarmCommand>()
+                .AddSingleton<Commands.SwarmSelfImprovementCommand>()
+                .AddSingleton<Commands.SelfCodingCommand>()
                 .AddSingleton<LearningPlanService>()
                 .AddSingleton<CourseGeneratorService>()
                 .AddSingleton<TutorialOrganizerService>()
@@ -96,6 +145,7 @@ internal static class Program
                 .AddSingleton<DslService>()
                 .AddSingleton<DslDebuggerService>()
                 .AddSingleton<DockerModelRunnerService>()
+                .AddSingleton<DockerAIAgentService>()
                 .AddSingleton<ModelProviderFactory>()
                 .AddSingleton<ConsoleService>()
                 .AddSingleton<DockerService>()
@@ -242,12 +292,25 @@ internal static class Program
                 logger.LogInformation("System is ready for TARS operations");
             }
 
-            // Check Ollama setup
-            if (!await setupService.CheckOllamaSetupAsync())
+            // Check if we should use Docker for Ollama
+            bool useDocker = configuration.GetValue<bool>("Ollama:UseDocker", false);
+            bool skipOllamaCheck = configuration.GetValue<bool>("OLLAMA_SKIP_SETUP", false) ||
+                                 Environment.GetEnvironmentVariable("OLLAMA_SKIP_SETUP") == "true";
+
+            if (useDocker || skipOllamaCheck)
             {
-                logger.LogError("Failed to set up Ollama. Please run the Install-Prerequisites.ps1 script or set up Ollama manually.");
-                logger.LogInformation("You can find the script in the Scripts directory.");
-                return 1;
+                logger.LogInformation("Using Docker for Ollama operations - skipping Ollama setup check");
+                Console.WriteLine("Using Docker for Ollama operations - skipping Ollama setup check");
+            }
+            else
+            {
+                // Check Ollama setup
+                if (!await setupService.CheckOllamaSetupAsync())
+                {
+                    logger.LogError("Failed to set up Ollama. Please run the Install-Prerequisites.ps1 script or set up Ollama manually.");
+                    logger.LogInformation("You can find the script in the Scripts directory.");
+                    return 1;
+                }
             }
 
             // Setup and run command line

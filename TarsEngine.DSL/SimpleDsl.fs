@@ -658,8 +658,6 @@ module SimpleDsl =
                     let actionOpt = block.Properties.TryFind("action")
                     let parametersOpt = block.Properties.TryFind("parameters")
                     let resultVarOpt = block.Properties.TryFind("result_variable")
-                    // Prevent unused warning
-                    let _ = resultVarOpt
 
                     match targetOpt, actionOpt with
                     | Some (StringValue target), Some (StringValue action) ->
@@ -704,8 +702,6 @@ module SimpleDsl =
                     let sourceOpt = block.Properties.TryFind("source")
                     let timeoutOpt = block.Properties.TryFind("timeout")
                     let resultVarOpt = block.Properties.TryFind("result_variable")
-                    // Prevent unused warning
-                    let _ = resultVarOpt
 
                     match sourceOpt, resultVarOpt with
                     | Some (StringValue source), Some (StringValue resultVar) ->

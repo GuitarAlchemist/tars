@@ -1,19 +1,11 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Moq;
 using TarsEngine.Services;
 using TarsEngine.Services.Interfaces;
-using TarsEngine.Services.Adapters;
 using TarsEngine.Tests.Utilities;
 using Xunit;
 
 // Use aliases to avoid ambiguity
-using ModelKnowledgeItem = TarsEngine.Models.KnowledgeItem;
-using ModelKnowledgeType = TarsEngine.Models.KnowledgeType;
 using ModelRelationshipType = TarsEngine.Models.RelationshipType;
 
 namespace TarsEngine.Tests.Services;

@@ -18,7 +18,7 @@ public class ImplementationResult
     /// <summary>
     /// The list of step results
     /// </summary>
-    public List<StepResult> StepResults { get; set; } = new List<StepResult>();
+    public List<StepResult> StepResults { get; set; } = new();
     
     /// <summary>
     /// The test results

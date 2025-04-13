@@ -18,12 +18,12 @@ public class ProjectStructure
     /// <summary>
     /// The list of files in the project
     /// </summary>
-    public List<ProjectFile> Files { get; set; } = new List<ProjectFile>();
+    public List<ProjectFile> Files { get; set; } = new();
     
     /// <summary>
     /// The list of directories in the project
     /// </summary>
-    public List<ProjectDirectory> Directories { get; set; } = new List<ProjectDirectory>();
+    public List<ProjectDirectory> Directories { get; set; } = new();
     
     /// <summary>
     /// Convert the project structure to a string

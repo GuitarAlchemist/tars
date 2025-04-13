@@ -41,7 +41,7 @@ public class OllamaChatRequest
     /// The messages to generate a completion for
     /// </summary>
     [JsonPropertyName("messages")]
-    public List<OllamaMessage> Messages { get; set; } = new List<OllamaMessage>();
+    public List<OllamaMessage> Messages { get; set; } = new();
 
     /// <summary>
     /// Options for the completion

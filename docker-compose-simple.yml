@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  tars-docker-ai-agent:
+    image: ollama/ollama:latest
+    container_name: tars-docker-ai-agent
+    ports:
+      - "8997:11434"
+    volumes:
+      - ./config:/app/config
+      - ./data:/app/data
+      - ./logs:/app/logs
+    environment:
+      - TARS_AGENT_ID=docker-ai-agent
+      - TARS_AGENT_NAME=DockerAIAgent
+      - TARS_AGENT_ROLE=docker_ai_agent
+      - TARS_AGENT_PORT=8997
+    networks:
+      - tars-network
+
+networks:
+  tars-network:
+    external: true

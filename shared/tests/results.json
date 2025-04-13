@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "results": [
+    {
+      "name": "Calculator.cs",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "name": "StringUtils.cs",
+      "passed": true,
+      "failures": []
+    }
+  ]
+}

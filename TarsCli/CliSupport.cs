@@ -1,14 +1,7 @@
-using System.CommandLine;
-using System.CommandLine.Invocation;
-using System.Diagnostics;
-using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using TarsCli.Services;
 using TarsCli.Commands;
-using TarsCli.Controllers;
-using TarsEngine.Services.Interfaces;
 
 // For DifficultyLevel enum
 
@@ -100,11 +93,22 @@ public static class CliSupport
     // Removed unused field: private static IServiceProvider? _serviceProvider;
 
     // Color output helpers
+    /// <summary>
+    /// Writes a line of text to the console with the specified color
+    /// </summary>
+    /// <param name="text">The text to write</param>
+    /// <param name="color">The color to use</param>
     public static void WriteColorLine(string text, ConsoleColor color)
     {
         WriteColorLine(text, color, true);
     }
 
+    /// <summary>
+    /// Writes text to the console with the specified color
+    /// </summary>
+    /// <param name="text">The text to write</param>
+    /// <param name="color">The color to use</param>
+    /// <param name="addNewLine">Whether to add a new line after the text</param>
     public static void WriteColorLine(string text, ConsoleColor color, bool addNewLine)
     {
         var originalColor = Console.ForegroundColor;
@@ -118,6 +122,10 @@ public static class CliSupport
         Console.ForegroundColor = originalColor;
     }
 
+    /// <summary>
+    /// Writes a header to the console with cyan color and underlined with '=' characters
+    /// </summary>
+    /// <param name="text">The header text</param>
     public static void WriteHeader(string text)
     {
         Console.WriteLine();
@@ -125,6 +133,10 @@ public static class CliSupport
         WriteColorLine(new string('=', text.Length), ConsoleColor.Cyan);
     }
 
+    /// <summary>
+    /// Writes a sub-header to the console with yellow color and underlined with '-' characters
+    /// </summary>
+    /// <param name="text">The sub-header text</param>
     public static void WriteSubHeader(string text)
     {
         Console.WriteLine();
@@ -132,21 +144,44 @@ public static class CliSupport
         WriteColorLine(new string('-', text.Length), ConsoleColor.Yellow);
     }
 
+    /// <summary>
+    /// Writes an error message to the console with red color
+    /// </summary>
+    /// <param name="text">The error message</param>
     public static void WriteError(string text)
     {
         WriteColorLine($"Error: {text}", ConsoleColor.Red);
     }
 
+    /// <summary>
+    /// Writes a warning message to the console with yellow color
+    /// </summary>
+    /// <param name="text">The warning message</param>
     public static void WriteWarning(string text)
     {
         WriteColorLine($"Warning: {text}", ConsoleColor.Yellow);
     }
 
+    /// <summary>
+    /// Writes a success message to the console with green color
+    /// </summary>
+    /// <param name="text">The success message</param>
     public static void WriteSuccess(string text)
     {
         WriteColorLine(text, ConsoleColor.Green);
     }
 
+    /// <summary>
+    /// Sets up the command line interface with all available commands
+    /// </summary>
+    /// <param name="configuration">The application configuration</param>
+    /// <param name="logger">The logger instance</param>
+    /// <param name="loggerFactory">The logger factory</param>
+    /// <param name="diagnosticsService">The diagnostics service</param>
+    /// <param name="retroactionService">The retroaction service</param>
+    /// <param name="setupService">The Ollama setup service</param>
+    /// <param name="serviceProvider">The service provider</param>
+    /// <returns>The configured root command</returns>
     public static RootCommand SetupCommandLine(
         IConfiguration configuration,
         ILogger logger,
@@ -176,6 +211,10 @@ public static class CliSupport
         var dockerModelRunnerCommand = new DockerModelRunnerCommand(serviceProvider);
         rootCommand.AddCommand(dockerModelRunnerCommand);
 
+        // Add the Docker AI Agent command
+        var dockerAIAgentCommand = new DockerAIAgentCommand(serviceProvider);
+        rootCommand.AddCommand(dockerAIAgentCommand);
+
         // Add the Benchmark command
         var benchmarkCommand = new BenchmarkCommand(serviceProvider);
         rootCommand.AddCommand(benchmarkCommand);
@@ -188,9 +227,25 @@ public static class CliSupport
         var llmCommand = new LlmCommand(serviceProvider);
         rootCommand.AddCommand(llmCommand);
 
+        // Add the A2A command
+        var a2aCommand = serviceProvider.GetRequiredService<A2ACommands>();
+        rootCommand.AddCommand(a2aCommand.GetCommand());
+
         // Add the VS Code control command
         var vsCodeControlCommand = serviceProvider.GetRequiredService<VSCodeControlCommand>();
         rootCommand.AddCommand(vsCodeControlCommand);
+
+        // Add the MCP Swarm command
+        var mcpSwarmCommand = serviceProvider.GetRequiredService<McpSwarmCommand>();
+        rootCommand.AddCommand(mcpSwarmCommand);
+
+        // Add the Swarm Self-Improvement command
+        var swarmSelfImprovementCommand = serviceProvider.GetRequiredService<SwarmSelfImprovementCommand>();
+        rootCommand.AddCommand(swarmSelfImprovementCommand);
+
+        // Add the Self-Coding command
+        var selfCodingCommand = serviceProvider.GetRequiredService<SelfCodingCommand>();
+        rootCommand.AddCommand(selfCodingCommand);
 
         // Auto-Implement command removed
 

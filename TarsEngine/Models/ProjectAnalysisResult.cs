@@ -18,15 +18,15 @@ public class ProjectAnalysisResult
     /// <summary>
     /// The list of files in the project
     /// </summary>
-    public List<string> Files { get; set; } = new List<string>();
+    public List<string> Files { get; set; } = new();
     
     /// <summary>
     /// The list of references in the project
     /// </summary>
-    public List<string> References { get; set; } = new List<string>();
+    public List<string> References { get; set; } = new();
     
     /// <summary>
     /// The list of packages in the project
     /// </summary>
-    public List<string> Packages { get; set; } = new List<string>();
+    public List<string> Packages { get; set; } = new();
 }

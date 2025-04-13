@@ -1,4 +1,3 @@
-using System;
 using TarsEngine.Models;
 
 namespace TarsApp.Models;

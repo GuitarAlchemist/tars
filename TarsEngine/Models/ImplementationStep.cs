@@ -28,7 +28,7 @@ public class ImplementationStep
     /// <summary>
     /// The list of dependencies for the step
     /// </summary>
-    public List<string> Dependencies { get; set; } = new List<string>();
+    public List<string> Dependencies { get; set; } = new();
     
     /// <summary>
     /// The estimated complexity of the step

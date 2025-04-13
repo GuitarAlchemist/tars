@@ -1,0 +1,30 @@
+version: '3.8'
+
+volumes:
+  tars-config:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${PWD}/docker/volumes/config
+  
+  tars-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${PWD}/docker/volumes/data
+  
+  tars-logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${PWD}/docker/volumes/logs
+  
+  tars-codebase:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${PWD}/docker/volumes/codebase

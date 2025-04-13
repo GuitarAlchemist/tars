@@ -1,12 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Moq;
 using TarsEngine.Models;
 using TarsEngine.Services;
 using TarsEngine.Services.Interfaces;
-using TarsEngine.Services.Adapters;
 using Xunit;
 
 // Use aliases to avoid ambiguity

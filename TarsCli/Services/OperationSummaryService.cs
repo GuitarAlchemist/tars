@@ -1,5 +1,4 @@
 using System.Text;
-using Microsoft.Extensions.Logging;
 
 namespace TarsCli.Services;
 
@@ -286,7 +285,7 @@ public class OperationSummaryService
         /// <summary>
         /// Additional data for the operation
         /// </summary>
-        public Dictionary<string, string> AdditionalData { get; set; } = new Dictionary<string, string>();
+        public Dictionary<string, string> AdditionalData { get; set; } = new();
     }
 
     /// <summary>

@@ -13,17 +13,17 @@ public class ImplementationPlan
     /// <summary>
     /// The list of requirements extracted from the task
     /// </summary>
-    public List<string> Requirements { get; set; } = new List<string>();
+    public List<string> Requirements { get; set; } = new();
     
     /// <summary>
     /// The list of components affected by the task
     /// </summary>
-    public List<AffectedComponent> AffectedComponents { get; set; } = new List<AffectedComponent>();
+    public List<AffectedComponent> AffectedComponents { get; set; } = new();
     
     /// <summary>
     /// The list of implementation steps
     /// </summary>
-    public List<ImplementationStep> ImplementationSteps { get; set; } = new List<ImplementationStep>();
+    public List<ImplementationStep> ImplementationSteps { get; set; } = new();
     
     /// <summary>
     /// The estimated complexity of the task

@@ -8,7 +8,7 @@ public class TestResults
     /// <summary>
     /// The list of test results
     /// </summary>
-    public List<TestResult> Tests { get; set; } = new List<TestResult>();
+    public List<TestResult> Tests { get; set; } = new();
     
     /// <summary>
     /// Whether the tests were successful
