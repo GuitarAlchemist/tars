@@ -43,7 +43,7 @@ Key features of the A2A implementation include:
 - **Push Notifications**: Notify agents of task status changes
 - **MCP Bridge**: Seamless integration between A2A and MCP
 
-To get started with the A2A protocol, see [A2A Protocol Documentation](docs/A2A-Protocol.md).
+To get started with the A2A protocol, see [A2A Protocol Documentation](https://github.com/GuitarAlchemist/tars/blob/main/docs/A2A-Protocol.md).
 
 <div align="center">
   <img src="docs/images/ChatGPT Image Mar 29, 2025, 10_57_07 AM.png" alt="TARS AI Logo" width="600"/>
