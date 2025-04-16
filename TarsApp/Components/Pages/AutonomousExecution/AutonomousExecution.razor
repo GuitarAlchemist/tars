@@ -236,7 +236,7 @@
 
             Logger.LogInformation("Rolling back execution: {ContextId}", selectedContextId);
 
-            bool result = false;
+            var result = false;
 
             // Create a default rollback options
             var options = new RollbackOptions

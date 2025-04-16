@@ -1,4 +1,7 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
+using TarsEngine.Models;
 using TarsEngine.Services.Interfaces;
 
 namespace TarsEngine.Services;
@@ -533,13 +536,38 @@ function suggestTestCasesForMethod(method) {{
             var result = await _metascriptService.ExecuteMetascriptAsync(metascript);
 
             // Parse the result as JSON
-            var testCases = System.Text.Json.JsonSerializer.Deserialize<List<TestCase>>(result.ToString());
-            return testCases ?? new List<TestCase>();
+            var testCases = ParseTestCases(result.ToString());
+            return testCases;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error suggesting test cases for file: {FilePath}", filePath);
             throw;
+        }
+    }
+
+    private List<TestCase> ParseTestCases(string? json)
+    {
+        if (string.IsNullOrEmpty(json))
+        {
+            _logger.LogWarning("Received null or empty JSON for test cases");
+            return [];
+        }
+
+        try
+        {
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            };
+
+            var testCases = JsonSerializer.Deserialize<List<TestCase>>(json, options);
+            return testCases ?? [];
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "Failed to parse test cases JSON");
+            return [];
         }
     }
 

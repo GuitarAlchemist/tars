@@ -323,16 +323,16 @@ public class MockExecutionService : IExecutionService
         return Task.FromResult(false);
     }
 
-    public Task<List<TarsEngine.Models.LogEntry>> GetExecutionLogsAsync(string id)
+    public Task<List<LogEntry>> GetExecutionLogsAsync(string id)
     {
         var plan = _executionPlans.Find(p => p.Id == id);
         if (plan?.Context?.Logs == null)
         {
-            return Task.FromResult(new List<TarsEngine.Models.LogEntry>());
+            return Task.FromResult(new List<LogEntry>());
         }
 
         // Convert ExecutionLog to TarsEngine.Models.LogEntry
-        var logEntries = plan.Context.Logs.Select(log => new TarsEngine.Models.LogEntry
+        var logEntries = plan.Context.Logs.Select(log => new LogEntry
         {
             Timestamp = log.Timestamp,
             Level = log.Level,

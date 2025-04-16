@@ -68,7 +68,7 @@ public class ComplexityIssueDetector(ILogger<ComplexityIssueDetector> logger) : 
                 }
 
                 // Calculate cyclomatic complexity
-                int complexity = CalculateCyclomaticComplexity(methodContent);
+                var complexity = CalculateCyclomaticComplexity(methodContent);
 
                 // Add issue if complexity is too high
                 if (complexity > 10)
@@ -212,7 +212,7 @@ public class ComplexityIssueDetector(ILogger<ComplexityIssueDetector> logger) : 
 
             // Find all opening braces
             var bracePositions = new List<int>();
-            for (int i = 0; i < content.Length; i++)
+            for (var i = 0; i < content.Length; i++)
             {
                 if (content[i] == '{')
                 {
@@ -223,8 +223,8 @@ public class ComplexityIssueDetector(ILogger<ComplexityIssueDetector> logger) : 
             // Check nesting level at each brace position
             foreach (var position in bracePositions)
             {
-                int nestingLevel = 0;
-                for (int i = 0; i < position; i++)
+                var nestingLevel = 0;
+                for (var i = 0; i < position; i++)
                 {
                     if (content[i] == '{')
                     {
@@ -242,9 +242,9 @@ public class ComplexityIssueDetector(ILogger<ComplexityIssueDetector> logger) : 
                     var lineNumber = GetLineNumber(content, position);
 
                     // Get some context around the position
-                    int contextStart = Math.Max(0, position - 50);
-                    int contextEnd = Math.Min(content.Length, position + 50);
-                    string contextCode = content.Substring(contextStart, contextEnd - contextStart);
+                    var contextStart = Math.Max(0, position - 50);
+                    var contextEnd = Math.Min(content.Length, position + 50);
+                    var contextCode = content.Substring(contextStart, contextEnd - contextStart);
 
                     issues.Add(new CodeIssue
                     {
@@ -271,15 +271,15 @@ public class ComplexityIssueDetector(ILogger<ComplexityIssueDetector> logger) : 
     }
 
     /// <inheritdoc/>
-    public Dictionary<TarsEngine.Services.Interfaces.IssueSeverity, string> GetAvailableSeverities()
+    public Dictionary<Interfaces.IssueSeverity, string> GetAvailableSeverities()
     {
-        return new Dictionary<TarsEngine.Services.Interfaces.IssueSeverity, string>
+        return new Dictionary<Interfaces.IssueSeverity, string>
         {
-            { TarsEngine.Services.Interfaces.IssueSeverity.Critical, "Critical complexity issue that makes code unmaintainable" },
-            { TarsEngine.Services.Interfaces.IssueSeverity.Major, "High-impact complexity issue that should be fixed soon" },
-            { TarsEngine.Services.Interfaces.IssueSeverity.Minor, "Medium-impact complexity issue" },
-            { TarsEngine.Services.Interfaces.IssueSeverity.Trivial, "Low-impact complexity issue" },
-            { TarsEngine.Services.Interfaces.IssueSeverity.Warning, "Informational complexity suggestion" }
+            { Interfaces.IssueSeverity.Critical, "Critical complexity issue that makes code unmaintainable" },
+            { Interfaces.IssueSeverity.Major, "High-impact complexity issue that should be fixed soon" },
+            { Interfaces.IssueSeverity.Minor, "Medium-impact complexity issue" },
+            { Interfaces.IssueSeverity.Trivial, "Low-impact complexity issue" },
+            { Interfaces.IssueSeverity.Warning, "Informational complexity suggestion" }
         };
     }
 
@@ -308,7 +308,7 @@ public class ComplexityIssueDetector(ILogger<ComplexityIssueDetector> logger) : 
         }
 
         // Start with 1 (base complexity)
-        int complexity = 1;
+        var complexity = 1;
 
         // Count decision points
         complexity += Regex.Matches(methodContent, @"\bif\b").Count;
@@ -349,14 +349,14 @@ public class ComplexityIssueDetector(ILogger<ComplexityIssueDetector> logger) : 
             }
 
             // Find the opening brace
-            int openBracePos = content.IndexOf('{', match.Index);
+            var openBracePos = content.IndexOf('{', match.Index);
             if (openBracePos == -1)
             {
                 return string.Empty;
             }
 
             // Find the matching closing brace
-            int closeBracePos = FindMatchingBrace(content, openBracePos);
+            var closeBracePos = FindMatchingBrace(content, openBracePos);
             if (closeBracePos == -1)
             {
                 return string.Empty;
@@ -380,8 +380,8 @@ public class ComplexityIssueDetector(ILogger<ComplexityIssueDetector> logger) : 
     /// <returns>The position of the matching closing brace, or -1 if not found</returns>
     private static int FindMatchingBrace(string content, int openBracePos)
     {
-        int braceCount = 1;
-        for (int i = openBracePos + 1; i < content.Length; i++)
+        var braceCount = 1;
+        for (var i = openBracePos + 1; i < content.Length; i++)
         {
             if (content[i] == '{')
             {

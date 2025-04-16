@@ -210,7 +210,7 @@ public class MetascriptCommand : Command
                     if (verbose)
                     {
                         var blocks = program.Blocks;
-                        int blockCount = blocks.Length;
+                        var blockCount = blocks.Length;
                         consoleService.WriteInfo($"Found {blockCount} top-level blocks");
                         foreach (var block in program.Blocks)
                         {

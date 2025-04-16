@@ -108,6 +108,74 @@ public class CodeGenerationProcessor
     }
 
     /// <summary>
+    /// Generates improved code for a file
+    /// </summary>
+    /// <param name="filePath">Path to the file</param>
+    /// <param name="fileContent">Content of the file</param>
+    /// <param name="analysisResult">Analysis result</param>
+    /// <param name="model">Model to use for code generation</param>
+    /// <returns>Code generation result</returns>
+    public async Task<CodeGenerationResult> GenerateCodeAsync(string filePath, string fileContent, CodeAnalysisResult analysisResult, string model = "llama3")
+    {
+        _logger.LogInformation($"Generating improved code for file content: {filePath}");
+
+        try
+        {
+            // Validate parameters
+            if (string.IsNullOrEmpty(filePath))
+            {
+                throw new ArgumentException("File path is required", nameof(filePath));
+            }
+
+            if (string.IsNullOrEmpty(fileContent))
+            {
+                throw new ArgumentException("File content is required", nameof(fileContent));
+            }
+
+            if (analysisResult == null)
+            {
+                throw new ArgumentNullException(nameof(analysisResult));
+            }
+
+            // Create a temporary file with the content and proper extension
+            var fileExtension = Path.GetExtension(filePath);
+            var tempFilePath = Path.Combine(Path.GetTempPath(), $"{Path.GetFileNameWithoutExtension(Path.GetTempFileName())}{fileExtension}");
+            await File.WriteAllTextAsync(tempFilePath, fileContent);
+
+            try
+            {
+                // Generate improved code
+                var generationResult = await _codeGeneratorService.GenerateCodeAsync(tempFilePath);
+                if (generationResult == null)
+                {
+                    _logger.LogWarning($"Failed to generate improved code for file content: {filePath}");
+                    return null;
+                }
+
+                // Update the file path in the result
+                generationResult.FilePath = filePath;
+                generationResult.OriginalContent = fileContent;
+
+                _logger.LogInformation($"Generated improved code for file content: {filePath}, with {generationResult.Changes.Count} changes");
+                return generationResult;
+            }
+            finally
+            {
+                // Delete the temporary file
+                if (File.Exists(tempFilePath))
+                {
+                    File.Delete(tempFilePath);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error generating improved code for file content: {filePath}");
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Generates improved code for a file using a generator replica
     /// </summary>
     /// <param name="filePath">Path to the file</param>

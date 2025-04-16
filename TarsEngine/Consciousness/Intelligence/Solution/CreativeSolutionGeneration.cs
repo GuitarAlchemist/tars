@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using TarsEngine.Consciousness.Intelligence.Divergent;
 using TarsEngine.Consciousness.Intelligence.Conceptual;
 using TarsEngine.Consciousness.Intelligence.Pattern;
+using TarsEngine.Monads;
 
 namespace TarsEngine.Consciousness.Intelligence.Solution;
 
@@ -18,12 +19,12 @@ public class CreativeSolutionGeneration
     private double _creativityLevel = 0.5; // Starting with moderate creativity
     private readonly List<ProblemModel> _problemHistory = [];
     private readonly List<SolutionStrategy> _solutionStrategies = [];
-    
+
     /// <summary>
     /// Gets the creativity level (0.0 to 1.0)
     /// </summary>
     public double CreativityLevel => _creativityLevel;
-    
+
     /// <summary>
     /// Initializes a new instance of the <see cref="CreativeSolutionGeneration"/> class
     /// </summary>
@@ -41,10 +42,10 @@ public class CreativeSolutionGeneration
         _divergentThinking = divergentThinking;
         _conceptualBlending = conceptualBlending;
         _patternDisruption = patternDisruption;
-        
+
         InitializeSolutionStrategies();
     }
-    
+
     /// <summary>
     /// Initializes the solution strategies
     /// </summary>
@@ -55,74 +56,132 @@ public class CreativeSolutionGeneration
             Name = "Divergent Exploration",
             Description = "Generate multiple alternative approaches to the problem",
             ProcessType = CreativeProcessType.DivergentThinking,
-            GenerateFunction = async (problem, constraints) => 
+            GenerateFunction = (problem, constraints) =>
             {
                 var alternatives = _divergentThinking.GenerateAlternatives(problem, 3);
-                return alternatives.OrderByDescending(a => a.QualityScore).FirstOrDefault() 
-                    ?? _divergentThinking.GenerateDivergentIdea();
+                var bestAlternative = alternatives.OrderByDescending(a => a.QualityScore).FirstOrDefault();
+                var result = bestAlternative ?? new CreativeIdea
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Description = "A divergent approach to the problem",
+                    Originality = 0.5,
+                    Value = 0.5,
+                    Timestamp = DateTime.UtcNow,
+                    ProcessType = CreativeProcessType.DivergentThinking,
+                    Problem = problem,
+                    Constraints = constraints?.ToList() ?? []
+                };
+                return AsyncMonad.Return(result);
             }
         });
-        
+
         _solutionStrategies.Add(new SolutionStrategy
         {
             Name = "Conceptual Blending",
             Description = "Create a hybrid solution by blending concepts",
             ProcessType = CreativeProcessType.ConceptualBlending,
-            GenerateFunction = async (problem, constraints) => 
-                _conceptualBlending.GenerateBlendedSolution(problem, constraints)
+            GenerateFunction = (problem, constraints) =>
+            {
+                var blendedSolution = _conceptualBlending.GenerateBlendedSolution(problem, constraints);
+                var result = blendedSolution ?? new CreativeIdea
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Description = "A conceptual blending approach to the problem",
+                    Originality = 0.6,
+                    Value = 0.5,
+                    Timestamp = DateTime.UtcNow,
+                    ProcessType = CreativeProcessType.ConceptualBlending,
+                    Problem = problem,
+                    Constraints = constraints?.ToList() ?? []
+                };
+                return AsyncMonad.Return(result);
+            }
         });
-        
+
         _solutionStrategies.Add(new SolutionStrategy
         {
             Name = "Pattern Disruption",
             Description = "Challenge assumptions and break patterns",
             ProcessType = CreativeProcessType.PatternDisruption,
-            GenerateFunction = async (problem, constraints) => 
-                _patternDisruption.GenerateDisruptiveSolution(problem, constraints)
+            GenerateFunction = (problem, constraints) =>
+            {
+                var disruptiveSolution = _patternDisruption.GenerateDisruptiveSolution(problem, constraints);
+                var result = disruptiveSolution ?? new CreativeIdea
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Description = "A pattern-breaking approach to the problem",
+                    Originality = 0.7,
+                    Value = 0.5,
+                    Timestamp = DateTime.UtcNow,
+                    ProcessType = CreativeProcessType.PatternDisruption,
+                    Problem = problem,
+                    Constraints = constraints?.ToList() ?? [],
+                    ImplementationSteps =
+                    [
+                        "1. Identify existing patterns",
+                        "2. Challenge core assumptions",
+                        "3. Generate alternative perspectives"
+                    ]
+                };
+                return AsyncMonad.Return(result);
+            }
         });
-        
+
         _solutionStrategies.Add(new SolutionStrategy
         {
             Name = "Comprehensive Approach",
             Description = "Combine multiple creative processes for a comprehensive solution",
             ProcessType = CreativeProcessType.CombinatorialCreativity,
-            GenerateFunction = async (problem, constraints) => 
+            GenerateFunction = (problem, constraints) =>
             {
                 // Generate solutions using each approach
-                var divergentSolution = _divergentThinking.GenerateAlternatives(problem, 1).FirstOrDefault();
-                var blendedSolution = _conceptualBlending.GenerateBlendedSolution(problem, constraints);
-                var disruptiveSolution = _patternDisruption.GenerateDisruptiveSolution(problem, constraints);
-                
-                // Combine the best elements of each solution
-                var solutions = new List<CreativeIdea> { divergentSolution, blendedSolution, disruptiveSolution }
-                    .Where(s => s != null)
-                    .ToList();
-                
-                if (solutions.Count == 0)
+                var divergentSolution = _divergentThinking.GenerateAlternatives(problem, 1).FirstOrDefault() ?? new CreativeIdea
                 {
-                    return new CreativeIdea
-                    {
-                        Id = Guid.NewGuid().ToString(),
-                        Description = "A comprehensive approach to solving the problem",
-                        Originality = 0.5,
-                        Value = 0.5,
-                        Timestamp = DateTime.UtcNow,
-                        ProcessType = CreativeProcessType.CombinatorialCreativity,
-                        Problem = problem
-                    };
-                }
-                
+                    Id = Guid.NewGuid().ToString(),
+                    Description = "Divergent thinking approach",
+                    Originality = 0.5,
+                    Value = 0.5,
+                    ProcessType = CreativeProcessType.DivergentThinking,
+                    Problem = problem,
+                    Constraints = constraints?.ToList() ?? []
+                };
+
+                var blendedSolution = _conceptualBlending.GenerateBlendedSolution(problem, constraints) ?? new CreativeIdea
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Description = "Conceptual blending approach",
+                    Originality = 0.6,
+                    Value = 0.5,
+                    ProcessType = CreativeProcessType.ConceptualBlending,
+                    Problem = problem,
+                    Constraints = constraints?.ToList() ?? []
+                };
+
+                var disruptiveSolution = _patternDisruption.GenerateDisruptiveSolution(problem, constraints) ?? new CreativeIdea
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Description = "Pattern disruption approach",
+                    Originality = 0.7,
+                    Value = 0.5,
+                    ProcessType = CreativeProcessType.PatternDisruption,
+                    Problem = problem,
+                    Constraints = constraints?.ToList() ?? []
+                };
+
+                // Combine the solutions
+                var solutions = new List<CreativeIdea> { divergentSolution, blendedSolution, disruptiveSolution };
+
                 // Get the best solution based on quality score
                 var bestSolution = solutions.OrderByDescending(s => s.QualityScore).First();
-                
+
                 // Combine implementation steps from all solutions
                 var allSteps = solutions
                     .SelectMany(s => s.ImplementationSteps)
                     .Distinct()
                     .ToList();
-                
+
                 // Create combined solution
-                return new CreativeIdea
+                return AsyncMonad.Return(new CreativeIdea
                 {
                     Id = Guid.NewGuid().ToString(),
                     Description = $"Comprehensive solution approach: {bestSolution.Description}",
@@ -136,13 +195,13 @@ public class CreativeSolutionGeneration
                     ImplementationSteps = allSteps,
                     PotentialImpact = bestSolution.PotentialImpact,
                     Limitations = solutions.SelectMany(s => s.Limitations).Distinct().ToList()
-                };
+                });
             }
         });
-        
+
         _logger.LogInformation("Initialized solution strategies: {Count}", _solutionStrategies.Count);
     }
-    
+
     /// <summary>
     /// Updates the creativity level
     /// </summary>
@@ -157,12 +216,12 @@ public class CreativeSolutionGeneration
                 _creativityLevel += 0.0001 * _random.NextDouble();
                 _creativityLevel = Math.Min(_creativityLevel, 1.0);
             }
-            
+
             // Update component creativity levels
             _divergentThinking.Update();
             _conceptualBlending.Update();
             _patternDisruption.Update();
-            
+
             return true;
         }
         catch (Exception ex)
@@ -171,68 +230,58 @@ public class CreativeSolutionGeneration
             return false;
         }
     }
-    
+
     /// <summary>
-    /// Generates a creative solution for a problem
+    /// Generates a solution for a problem
     /// </summary>
     /// <param name="problem">The problem description</param>
-    /// <param name="constraints">The constraints</param>
-    /// <returns>The creative solution</returns>
-    public async Task<CreativeIdea> GenerateCreativeSolutionAsync(string problem, List<string>? constraints = null)
+    /// <param name="constraints">Optional constraints for the solution</param>
+    /// <returns>The generated solution</returns>
+    public async Task<CreativeIdea?> GenerateSolutionAsync(string problem, List<string>? constraints = null)
     {
         try
         {
-            _logger.LogInformation("Generating creative solution for problem: {Problem}", problem);
-            
-            // Add to problem history
+            _logger.LogInformation("Generating solution for problem: {Problem}", problem);
+
+            // Create problem model
             var problemModel = new ProblemModel
             {
+                Id = Guid.NewGuid().ToString(),
                 Description = problem,
                 Constraints = constraints?.ToList() ?? [],
                 Timestamp = DateTime.UtcNow
             };
-            
+
             _problemHistory.Add(problemModel);
-            
+
             // Choose a solution strategy based on problem characteristics
             var strategy = ChooseSolutionStrategy(problem, constraints);
-            
+
             _logger.LogInformation("Chosen solution strategy: {StrategyName}", strategy.Name);
-            
+
             // Generate solution using the chosen strategy
-            var solution = await strategy.GenerateFunction(problem, constraints);
-            
+            // Ensure constraints is never null when passed to GenerateFunction
+            var solution = await strategy.GenerateFunction(problem, constraints ?? []);
+
             if (solution != null)
             {
                 // Update problem model with solution
                 problemModel.SolutionId = solution.Id;
                 problemModel.StrategyName = strategy.Name;
-                
-                _logger.LogInformation("Generated creative solution: {Description} (Originality: {Originality:F2}, Value: {Value:F2})", 
+
+                _logger.LogInformation("Generated creative solution: {Description} (Originality: {Originality:F2}, Value: {Value:F2})",
                     solution.Description, solution.Originality, solution.Value);
             }
-            
+
             return solution;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error generating creative solution");
-            
-            // Return basic idea
-            return new CreativeIdea
-            {
-                Id = Guid.NewGuid().ToString(),
-                Description = "A creative approach to solving the problem",
-                Originality = 0.5,
-                Value = 0.5,
-                Timestamp = DateTime.UtcNow,
-                ProcessType = CreativeProcessType.DivergentThinking,
-                Problem = problem,
-                Constraints = constraints?.ToList() ?? []
-            };
+            _logger.LogError(ex, "Error generating solution");
+            return null;
         }
     }
-    
+
     /// <summary>
     /// Chooses a solution strategy based on problem characteristics
     /// </summary>
@@ -249,7 +298,7 @@ public class CreativeSolutionGeneration
         {
             return _solutionStrategies.First(s => s.ProcessType == CreativeProcessType.PatternDisruption);
         }
-        
+
         // If problem contains keywords suggesting combination, use conceptual blending
         if (problem.Contains("combine", StringComparison.OrdinalIgnoreCase) ||
             problem.Contains("integrate", StringComparison.OrdinalIgnoreCase) ||
@@ -258,7 +307,7 @@ public class CreativeSolutionGeneration
         {
             return _solutionStrategies.First(s => s.ProcessType == CreativeProcessType.ConceptualBlending);
         }
-        
+
         // If problem contains keywords suggesting exploration, use divergent thinking
         if (problem.Contains("explore", StringComparison.OrdinalIgnoreCase) ||
             problem.Contains("alternative", StringComparison.OrdinalIgnoreCase) ||
@@ -267,22 +316,22 @@ public class CreativeSolutionGeneration
         {
             return _solutionStrategies.First(s => s.ProcessType == CreativeProcessType.DivergentThinking);
         }
-        
+
         // If many constraints, use conceptual blending
         if (constraints != null && constraints.Count > 2)
         {
             return _solutionStrategies.First(s => s.ProcessType == CreativeProcessType.ConceptualBlending);
         }
-        
+
         // For complex problems, use comprehensive approach
         if (problem.Length > 100)
         {
             return _solutionStrategies.First(s => s.ProcessType == CreativeProcessType.CombinatorialCreativity);
         }
-        
+
         // Choose randomly based on creativity level
-        double rand = _random.NextDouble();
-        
+        var rand = _random.NextDouble();
+
         if (rand < 0.25 * _creativityLevel)
         {
             return _solutionStrategies.First(s => s.ProcessType == CreativeProcessType.PatternDisruption);
@@ -300,54 +349,57 @@ public class CreativeSolutionGeneration
             return _solutionStrategies.First(s => s.ProcessType == CreativeProcessType.DivergentThinking);
         }
     }
-    
+
     /// <summary>
     /// Generates multiple solution alternatives for a problem
     /// </summary>
     /// <param name="problem">The problem description</param>
-    /// <param name="constraints">The constraints</param>
+    /// <param name="constraints">Optional constraints for the solutions</param>
     /// <param name="count">The number of alternatives to generate</param>
     /// <returns>The solution alternatives</returns>
-    public async Task<List<CreativeIdea>> GenerateSolutionAlternativesAsync(string problem, List<string>? constraints, int count)
+    public async Task<List<CreativeIdea>> GenerateSolutionAlternativesAsync(string problem, List<string>? constraints = null, int count = 3)
     {
         var alternatives = new List<CreativeIdea>();
-        
+
         try
         {
             _logger.LogInformation("Generating {Count} solution alternatives for problem: {Problem}", count, problem);
-            
+
+            // Ensure constraints is never null when passed to strategies
+            var safeConstraints = constraints ?? [];
+
             // Generate alternatives using different strategies
             foreach (var strategy in _solutionStrategies)
             {
-                var solution = await strategy.GenerateFunction(problem, constraints);
+                var solution = await strategy.GenerateFunction(problem, safeConstraints);
                 if (solution != null)
                 {
                     alternatives.Add(solution);
-                    
+
                     if (alternatives.Count >= count)
                     {
                         break;
                     }
                 }
             }
-            
+
             // If we need more alternatives, use divergent thinking to generate more
             if (alternatives.Count < count)
             {
                 var divergentAlternatives = _divergentThinking.GenerateAlternatives(problem, count - alternatives.Count);
-                alternatives.AddRange(divergentAlternatives);
+                alternatives.AddRange(divergentAlternatives.Where(a => a != null));
             }
-            
+
             _logger.LogInformation("Generated {Count} solution alternatives", alternatives.Count);
+            return alternatives;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error generating solution alternatives");
+            return alternatives;
         }
-        
-        return alternatives.Take(count).ToList();
     }
-    
+
     /// <summary>
     /// Refines a solution based on feedback
     /// </summary>
@@ -359,43 +411,43 @@ public class CreativeSolutionGeneration
         try
         {
             _logger.LogInformation("Refining solution based on feedback: {Feedback}", feedback);
-            
+
             // Create a new problem description incorporating the feedback
-            string refinementProblem = $"Refine the solution '{solution.Description}' based on this feedback: {feedback}";
-            
+            var refinementProblem = $"Refine the solution '{solution.Description}' based on this feedback: {feedback}";
+
             // Use the original constraints
             var constraints = solution.Constraints;
-            
+
             // Choose a strategy based on the feedback
             var strategy = ChooseSolutionStrategy(refinementProblem, constraints);
-            
+
             // Generate refined solution
             var refinedSolution = await strategy.GenerateFunction(refinementProblem, constraints);
-            
+
             if (refinedSolution != null)
             {
                 // Preserve the original problem
                 refinedSolution.Problem = solution.Problem;
-                
+
                 // Add refinement context
                 refinedSolution.Context["OriginalSolutionId"] = solution.Id;
                 refinedSolution.Context["Feedback"] = feedback;
-                
+
                 _logger.LogInformation("Refined solution: {Description}", refinedSolution.Description);
             }
-            
+
             return refinedSolution;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error refining solution");
-            
+
             // Return the original solution with a note
             solution.Description += $" (Refinement attempted based on feedback: {feedback})";
             return solution;
         }
     }
-    
+
     /// <summary>
     /// Evaluates a solution against criteria
     /// </summary>
@@ -407,14 +459,14 @@ public class CreativeSolutionGeneration
         try
         {
             _logger.LogInformation("Evaluating solution against criteria");
-            
-            double score = 0.0;
-            double totalWeight = 0.0;
-            
+
+            var score = 0.0;
+            var totalWeight = 0.0;
+
             // Evaluate based on criteria
             foreach (var (criterion, weight) in criteria)
             {
-                double criterionScore = criterion.ToLowerInvariant() switch
+                var criterionScore = criterion.ToLowerInvariant() switch
                 {
                     "originality" => solution.Originality,
                     "value" => solution.Value,
@@ -425,16 +477,16 @@ public class CreativeSolutionGeneration
                     "completeness" => solution.ImplementationSteps.Count > 0 ? 0.7 : 0.3, // More complete if implementation steps provided
                     _ => 0.5 // Default score for unknown criteria
                 };
-                
+
                 score += criterionScore * weight;
                 totalWeight += weight;
             }
-            
+
             // Calculate final score
-            double finalScore = totalWeight > 0 ? score / totalWeight : 0.5;
-            
+            var finalScore = totalWeight > 0 ? score / totalWeight : 0.5;
+
             _logger.LogInformation("Solution evaluation score: {Score:F2}", finalScore);
-            
+
             return finalScore;
         }
         catch (Exception ex)
@@ -443,7 +495,7 @@ public class CreativeSolutionGeneration
             return 0.5; // Default score
         }
     }
-    
+
     /// <summary>
     /// Gets similar problems from history
     /// </summary>
@@ -453,14 +505,14 @@ public class CreativeSolutionGeneration
     public List<ProblemModel> GetSimilarProblems(string problem, int count)
     {
         var similarProblems = new List<ProblemModel>();
-        
+
         try
         {
             // Extract concepts from the problem
             var problemConcepts = ExtractConcepts(problem);
-            
+
             // Calculate similarity scores for each historical problem
-            var scoredProblems = _problemHistory.Select(p => 
+            var scoredProblems = _problemHistory.Select(p =>
             {
                 var historicalConcepts = ExtractConcepts(p.Description);
                 var commonConcepts = problemConcepts.Intersect(historicalConcepts, StringComparer.OrdinalIgnoreCase).Count();
@@ -470,19 +522,19 @@ public class CreativeSolutionGeneration
             .OrderByDescending(p => p.Similarity)
             .Take(count)
             .ToList();
-            
+
             similarProblems = scoredProblems.Select(p => p.Problem).ToList();
-            
+
             _logger.LogInformation("Found {Count} similar problems", similarProblems.Count);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting similar problems");
         }
-        
+
         return similarProblems;
     }
-    
+
     /// <summary>
     /// Extracts concepts from text
     /// </summary>
@@ -491,11 +543,11 @@ public class CreativeSolutionGeneration
     private List<string> ExtractConcepts(string text)
     {
         var concepts = new List<string>();
-        
+
         // Simple concept extraction by splitting and filtering
-        var words = text.Split([' ', ',', '.', ':', ';', '(', ')', '[', ']', '{', '}', '\n', '\r', '\t'], 
+        var words = text.Split([' ', ',', '.', ':', ';', '(', ')', '[', ']', '{', '}', '\n', '\r', '\t'],
             StringSplitOptions.RemoveEmptyEntries);
-        
+
         foreach (var word in words)
         {
             // Only consider words of reasonable length
@@ -503,7 +555,7 @@ public class CreativeSolutionGeneration
             {
                 // Convert to lowercase
                 var concept = word.ToLowerInvariant();
-                
+
                 // Add if not already in list
                 if (!concepts.Contains(concept))
                 {
@@ -511,14 +563,14 @@ public class CreativeSolutionGeneration
                 }
             }
         }
-        
+
         // If no concepts found, add some default ones
         if (concepts.Count == 0)
         {
             concepts.Add("problem");
             concepts.Add("solution");
         }
-        
+
         return concepts;
     }
 }
@@ -529,25 +581,30 @@ public class CreativeSolutionGeneration
 public class ProblemModel
 {
     /// <summary>
+    /// Gets or sets the problem ID
+    /// </summary>
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+
+    /// <summary>
     /// Gets or sets the problem description
     /// </summary>
     public string Description { get; set; } = string.Empty;
-    
+
     /// <summary>
     /// Gets or sets the problem constraints
     /// </summary>
     public List<string> Constraints { get; set; } = [];
-    
+
     /// <summary>
     /// Gets or sets the timestamp
     /// </summary>
     public DateTime Timestamp { get; set; }
-    
+
     /// <summary>
     /// Gets or sets the solution ID
     /// </summary>
     public string SolutionId { get; set; } = string.Empty;
-    
+
     /// <summary>
     /// Gets or sets the strategy name
     /// </summary>
@@ -563,20 +620,20 @@ public class SolutionStrategy
     /// Gets or sets the strategy name
     /// </summary>
     public string Name { get; set; } = string.Empty;
-    
+
     /// <summary>
     /// Gets or sets the strategy description
     /// </summary>
     public string Description { get; set; } = string.Empty;
-    
+
     /// <summary>
     /// Gets or sets the process type
     /// </summary>
     public CreativeProcessType ProcessType { get; set; }
-    
+
     /// <summary>
     /// Gets or sets the generate function
     /// </summary>
-    public Func<string, List<string>, Task<CreativeIdea>> GenerateFunction { get; set; } = (_, __) => Task.FromResult<CreativeIdea>(null);
+    public Func<string, List<string>, Task<CreativeIdea>> GenerateFunction { get; set; } = (_, __) => AsyncMonad.Return<CreativeIdea>(null);
 }
 

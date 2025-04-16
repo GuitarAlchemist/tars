@@ -111,7 +111,7 @@ public class FSharpAnalysisCommand(FSharpIntegrationService fsharpService)
                 if (!string.IsNullOrEmpty(transformedCode))
                 {
                     // Save the transformed code
-                    string outputFilePath = string.IsNullOrEmpty(outputPath)
+                    var outputFilePath = string.IsNullOrEmpty(outputPath)
                         ? Path.Combine(Path.GetDirectoryName(path), $"{Path.GetFileNameWithoutExtension(path)}_transformed{Path.GetExtension(path)}")
                         : Path.Combine(outputPath, Path.GetFileName(path));
                         
@@ -128,8 +128,8 @@ public class FSharpAnalysisCommand(FSharpIntegrationService fsharpService)
                 // Save the transformed files
                 foreach (var result in results)
                 {
-                    string relativePath = result.Key.Substring(path.Length).TrimStart('\\', '/');
-                    string outputFilePath = string.IsNullOrEmpty(outputPath)
+                    var relativePath = result.Key.Substring(path.Length).TrimStart('\\', '/');
+                    var outputFilePath = string.IsNullOrEmpty(outputPath)
                         ? Path.Combine(Path.GetDirectoryName(result.Key), $"{Path.GetFileNameWithoutExtension(result.Key)}_transformed{Path.GetExtension(result.Key)}")
                         : Path.Combine(outputPath, relativePath);
                         

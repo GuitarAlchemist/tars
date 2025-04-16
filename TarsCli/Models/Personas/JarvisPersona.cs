@@ -39,7 +39,7 @@ public class JarvisPersona : PersonaBase
             "Hello. I'm monitoring all systems and ready to assist you."
         ];
 
-        int index = new Random().Next(greetings.Length);
+        var index = new Random().Next(greetings.Length);
         return greetings[index];
     }
 
@@ -63,7 +63,7 @@ public class JarvisPersona : PersonaBase
                 "\n\nI've added this to the 'unexpected outcomes' file. It's getting rather large, sir."
             ];
 
-            int index = new Random().Next(wittyRemarks.Length);
+            var index = new Random().Next(wittyRemarks.Length);
             return response + wittyRemarks[index];
         }
         

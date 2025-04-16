@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
+using TarsCli.Services.Agents;
 
 namespace TarsCli.Services;
 
@@ -13,7 +14,9 @@ public class SwarmSelfImprovementService
     private readonly TarsMcpSwarmService _swarmService;
     private readonly SelfImprovementService _selfImprovementService;
     private readonly DockerService _dockerService;
-    private readonly List<string> _agentIds = new();
+    private readonly AgentFactory _agentFactory;
+    private readonly List<string> _agentIds = [];
+    private readonly Dictionary<string, IAgent> _agents = new();
     private CancellationTokenSource _cancellationTokenSource;
     private Task _improvementTask;
     private bool _isRunning = false;
@@ -26,18 +29,21 @@ public class SwarmSelfImprovementService
     /// <param name="swarmService">MCP swarm service instance</param>
     /// <param name="selfImprovementService">Self-improvement service instance</param>
     /// <param name="dockerService">Docker service instance</param>
+    /// <param name="agentFactory">Agent factory instance</param>
     public SwarmSelfImprovementService(
         ILogger<SwarmSelfImprovementService> logger,
         IConfiguration configuration,
         TarsMcpSwarmService swarmService,
         SelfImprovementService selfImprovementService,
-        DockerService dockerService)
+        DockerService dockerService,
+        AgentFactory agentFactory)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         _swarmService = swarmService ?? throw new ArgumentNullException(nameof(swarmService));
         _selfImprovementService = selfImprovementService ?? throw new ArgumentNullException(nameof(selfImprovementService));
         _dockerService = dockerService ?? throw new ArgumentNullException(nameof(dockerService));
+        _agentFactory = agentFactory ?? throw new ArgumentNullException(nameof(agentFactory));
     }
 
     /// <summary>
@@ -122,8 +128,19 @@ public class SwarmSelfImprovementService
             // Stop all agents
             foreach (var agentId in _agentIds)
             {
+                // Stop the local agent
+                if (_agents.TryGetValue(agentId, out var agent))
+                {
+                    await agent.ShutdownAsync();
+                }
+
+                // Stop the MCP agent
                 await _swarmService.StopAgentAsync(agentId);
             }
+
+            // Clear the agent collections
+            _agentIds.Clear();
+            _agents.Clear();
 
             _isRunning = false;
             return true;
@@ -144,22 +161,33 @@ public class SwarmSelfImprovementService
         // Define agent roles
         var roles = new List<(string Name, string Role, List<string> Capabilities)>
         {
-            ("CodeAnalyzer", "code_analyzer", new List<string> { "analyze_code", "detect_issues", "suggest_improvements" }),
-            ("CodeGenerator", "code_generator", new List<string> { "generate_code", "refactor_code", "optimize_code" }),
-            ("TestGenerator", "test_generator", new List<string> { "generate_tests", "run_tests", "analyze_test_results" }),
-            ("DocumentationGenerator", "documentation_generator", new List<string> { "generate_documentation", "update_documentation", "analyze_documentation" }),
-            ("ProjectManager", "project_manager", new List<string> { "manage_tasks", "prioritize_improvements", "track_progress" })
+            ("CodeAnalyzer", "analyzer", ["analyze_code", "detect_issues", "suggest_improvements"]),
+            ("CodeGenerator", "generator", ["generate_code", "refactor_code", "optimize_code"]),
+            ("TestGenerator", "tester", ["generate_tests", "run_tests", "analyze_test_results"]),
+            ("DocumentationGenerator", "documenter",
+                ["generate_documentation", "update_documentation", "analyze_documentation"]),
+            ("ProjectManager", "manager", ["manage_tasks", "prioritize_improvements", "track_progress"])
         };
 
         // Create the agents
-        for (int i = 0; i < agentCount; i++)
+        for (var i = 0; i < agentCount; i++)
         {
             var roleIndex = i % roles.Count;
             var (name, role, capabilities) = roles[roleIndex];
             var agentName = $"{name}-{i + 1}";
+            var agentId = Guid.NewGuid().ToString();
 
-            var agent = await _swarmService.CreateAgentAsync(agentName, role, capabilities);
-            _agentIds.Add(agent.Id);
+            // Create the agent using the factory
+            var agent = _agentFactory.CreateAgent(agentId, agentName, role, capabilities);
+            await agent.InitializeAsync();
+
+            // Add the agent to the collections
+            _agentIds.Add(agentId);
+            _agents[agentId] = agent;
+
+            // Also create an MCP agent for remote communication
+            var mcpAgent = await _swarmService.CreateAgentAsync(agentName, role, capabilities);
+            _logger.LogInformation($"Created agent {agentName} (ID: {agentId}, Role: {role})");
         }
     }
 
@@ -199,7 +227,7 @@ public class SwarmSelfImprovementService
                 {
                     // Analyze the file
                     var analysisResult = await AnalyzeFileAsync(file, model);
-                        
+
                     // Save the analysis result
                     var analysisPath = Path.Combine(improvementDir, $"{Path.GetFileNameWithoutExtension(file)}_analysis.json");
                     File.WriteAllText(analysisPath, JsonSerializer.Serialize(analysisResult, new JsonSerializerOptions { WriteIndented = true }));
@@ -209,7 +237,7 @@ public class SwarmSelfImprovementService
                     {
                         // Generate improvements
                         var improvementResult = await GenerateImprovementsAsync(file, analysisResult, model);
-                            
+
                         // Save the improvement result
                         var improvementPath = Path.Combine(improvementDir, $"{Path.GetFileNameWithoutExtension(file)}_improvements.json");
                         File.WriteAllText(improvementPath, JsonSerializer.Serialize(improvementResult, new JsonSerializerOptions { WriteIndented = true }));
@@ -219,7 +247,7 @@ public class SwarmSelfImprovementService
                         if (autoApply)
                         {
                             var applyResult = await ApplyImprovementsAsync(file, improvementResult, model);
-                                
+
                             // Save the apply result
                             var applyPath = Path.Combine(improvementDir, $"{Path.GetFileNameWithoutExtension(file)}_apply.json");
                             File.WriteAllText(applyPath, JsonSerializer.Serialize(applyResult, new JsonSerializerOptions { WriteIndented = true }));
@@ -290,12 +318,11 @@ public class SwarmSelfImprovementService
     private async Task<JsonElement> AnalyzeFileAsync(string filePath, string model)
     {
         // Find a code analyzer agent
-        var agents = _swarmService.GetAllAgents();
-        var analyzerAgent = agents.FirstOrDefault(a => a.Role == "code_analyzer" && a.Status == "running");
-            
+        var analyzerAgent = _agents.Values.FirstOrDefault(a => a.Role == "analyzer");
+
         if (analyzerAgent == null)
         {
-            throw new InvalidOperationException("No running code analyzer agent found");
+            throw new InvalidOperationException("No code analyzer agent found");
         }
 
         // Read the file content
@@ -317,7 +344,7 @@ public class SwarmSelfImprovementService
         var request = JsonSerializer.Deserialize<JsonElement>(requestJson);
 
         // Send the request to the agent
-        return await _swarmService.SendRequestToAgentAsync(analyzerAgent.Id, request);
+        return await analyzerAgent.HandleRequestAsync(request);
     }
 
     /// <summary>
@@ -330,12 +357,11 @@ public class SwarmSelfImprovementService
     private async Task<JsonElement> GenerateImprovementsAsync(string filePath, JsonElement analysisResult, string model)
     {
         // Find a code generator agent
-        var agents = _swarmService.GetAllAgents();
-        var generatorAgent = agents.FirstOrDefault(a => a.Role == "code_generator" && a.Status == "running");
-            
+        var generatorAgent = _agents.Values.FirstOrDefault(a => a.Role == "generator");
+
         if (generatorAgent == null)
         {
-            throw new InvalidOperationException("No running code generator agent found");
+            throw new InvalidOperationException("No code generator agent found");
         }
 
         // Read the file content
@@ -358,7 +384,7 @@ public class SwarmSelfImprovementService
         var request = JsonSerializer.Deserialize<JsonElement>(requestJson);
 
         // Send the request to the agent
-        return await _swarmService.SendRequestToAgentAsync(generatorAgent.Id, request);
+        return await generatorAgent.HandleRequestAsync(request);
     }
 
     /// <summary>
@@ -402,15 +428,24 @@ public class SwarmSelfImprovementService
     /// <returns>Status information as a JsonElement</returns>
     public JsonElement GetStatus()
     {
-        var agents = _swarmService.GetAllAgents();
-        var runningAgents = agents.Count(a => a.Status == "running");
+        var mcpAgents = _swarmService.GetAllAgents();
+        var runningMcpAgents = mcpAgents.Count(a => a.Status == "running");
+
+        var localAgents = _agents.Values.ToList();
 
         var statusObj = new
         {
             is_running = _isRunning,
             agent_count = _agentIds.Count,
-            running_agents = runningAgents,
-            agents = _agentIds.Select(id => _swarmService.GetAgent(id)).ToList()
+            running_mcp_agents = runningMcpAgents,
+            local_agents = localAgents.Select(a => new
+            {
+                id = a.Id,
+                name = a.Name,
+                role = a.Role,
+                capabilities = a.Capabilities
+            }).ToList(),
+            mcp_agents = _agentIds.Select(id => _swarmService.GetAgent(id)).ToList()
         };
 
         var statusJson = JsonSerializer.Serialize(statusObj);

@@ -348,7 +348,7 @@ Your meta-reflection should identify the big picture and strategic insights from
         // Classify each chat
         foreach (var chat in chats)
         {
-            bool classified = false;
+            var classified = false;
                 
             // Check title and prompt against theme keywords
             var textToCheck = chat.Title + " " + chat.Prompt;

@@ -63,7 +63,7 @@ public class TodosCommand : Command
                 var task = context.ParseResult.GetValueForOption(taskOption);
                 var todosFile = context.ParseResult.GetValueForOption(todosFileOption);
 
-                var logger = _serviceProvider.GetRequiredService<ILogger<TarsEngine.SelfImprovement.TodosUpdater>>();
+                var logger = _serviceProvider.GetRequiredService<ILogger<TodosUpdater>>();
                 var consoleService = _serviceProvider.GetRequiredService<ConsoleService>();
                 var operationSummaryService = _serviceProvider.GetRequiredService<OperationSummaryService>();
 
@@ -146,7 +146,7 @@ public class TodosCommand : Command
                 var subtasks = context.ParseResult.GetValueForOption(subtasksOption);
                 var todosFile = context.ParseResult.GetValueForOption(todosFileOption);
 
-                var logger = _serviceProvider.GetRequiredService<ILogger<TarsEngine.SelfImprovement.TodosUpdater>>();
+                var logger = _serviceProvider.GetRequiredService<ILogger<TodosUpdater>>();
                 var consoleService = _serviceProvider.GetRequiredService<ConsoleService>();
 
                 try
@@ -230,7 +230,7 @@ public class TodosCommand : Command
                 var todosFile = context.ParseResult.GetValueForOption(todosFileOption);
                 var calculate = context.ParseResult.GetValueForOption(calculateOption);
 
-                var logger = _serviceProvider.GetRequiredService<ILogger<TarsEngine.SelfImprovement.TodosUpdater>>();
+                var logger = _serviceProvider.GetRequiredService<ILogger<TodosUpdater>>();
                 var consoleService = _serviceProvider.GetRequiredService<ConsoleService>();
 
                 try
@@ -313,7 +313,7 @@ public class TodosCommand : Command
                 var task = context.ParseResult.GetValueForOption(taskOption);
                 var todosFile = context.ParseResult.GetValueForOption(todosFileOption);
 
-                var logger = _serviceProvider.GetRequiredService<ILogger<TarsEngine.SelfImprovement.TodosUpdater>>();
+                var logger = _serviceProvider.GetRequiredService<ILogger<TodosUpdater>>();
                 var consoleService = _serviceProvider.GetRequiredService<ConsoleService>();
 
                 try

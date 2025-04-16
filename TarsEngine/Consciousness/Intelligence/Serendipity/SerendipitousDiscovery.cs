@@ -65,7 +65,7 @@ public class SerendipitousDiscovery
             // Update domain serendipity levels
             foreach (var domain in _domainSerendipityLevels.Keys.ToList())
             {
-                double level = _domainSerendipityLevels[domain];
+                var level = _domainSerendipityLevels[domain];
 
                 if (level < 0.95)
                 {
@@ -116,8 +116,8 @@ public class SerendipitousDiscovery
     /// <returns>True if a serendipitous event should occur, false otherwise</returns>
     public bool ShouldSerendipitousEventOccur(string domain)
     {
-        double domainLevel = GetDomainSerendipityLevel(domain);
-        double combinedLevel = (domainLevel + _serendipityLevel) / 2.0;
+        var domainLevel = GetDomainSerendipityLevel(domain);
+        var combinedLevel = (domainLevel + _serendipityLevel) / 2.0;
 
         return _random.NextDouble() < combinedLevel;
     }
@@ -145,7 +145,7 @@ public class SerendipitousDiscovery
         // Increase domain serendipity level slightly
         if (_domainSerendipityLevels.ContainsKey(domain))
         {
-            double level = _domainSerendipityLevels[domain];
+            var level = _domainSerendipityLevels[domain];
             _domainSerendipityLevels[domain] = Math.Min(1.0, level + (0.01 * significance));
         }
 
@@ -171,7 +171,7 @@ public class SerendipitousDiscovery
             }
 
             // Determine domain
-            string domain = thought.Category;
+            var domain = thought.Category;
             if (string.IsNullOrEmpty(domain))
             {
                 domain = thought.Tags.FirstOrDefault(t => _domainSerendipityLevels.ContainsKey(t)) ?? "General";
@@ -241,10 +241,10 @@ public class SerendipitousDiscovery
             "In a moment of unexpected connection, I see that "
         };
 
-        string prefix = serendipitousPrefixes[_random.Next(serendipitousPrefixes.Length)];
+        var prefix = serendipitousPrefixes[_random.Next(serendipitousPrefixes.Length)];
 
         // Modify content to emphasize the serendipitous nature
-        string enhancedContent = prefix + content;
+        var enhancedContent = prefix + content;
 
         return enhancedContent;
     }
@@ -261,14 +261,14 @@ public class SerendipitousDiscovery
             _logger.LogDebug("Generating serendipitous thought based on: {Content}", baseThought.Content);
 
             // Determine domain
-            string domain = baseThought.Category;
+            var domain = baseThought.Category;
             if (string.IsNullOrEmpty(domain))
             {
                 domain = baseThought.Tags.FirstOrDefault(t => _domainSerendipityLevels.ContainsKey(t)) ?? "General";
             }
 
             // Generate serendipitous insight
-            string insight = GenerateSerendipitousInsight(baseThought.Content, domain);
+            var insight = GenerateSerendipitousInsight(baseThought.Content, domain);
 
             // Create serendipitous thought
             var serendipitousThought = new ThoughtModel
@@ -373,10 +373,10 @@ public class SerendipitousDiscovery
             ];
 
         // Choose a random template
-        string template = templates[_random.Next(templates.Count)];
+        var template = templates[_random.Next(templates.Count)];
 
         // Generate insight
-        string insight = string.Format(template, baseContent);
+        var insight = string.Format(template, baseContent);
 
         return insight;
     }

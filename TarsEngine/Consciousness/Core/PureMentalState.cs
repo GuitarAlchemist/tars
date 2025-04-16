@@ -52,9 +52,9 @@ public class PureMentalState : PureState<PureMentalState>
     /// </summary>
     public PureMentalState()
     {
-        _thoughtProcesses = new List<ThoughtProcess>();
-        _attentionHistory = new List<AttentionFocus>();
-        _optimizations = new List<MentalOptimization>();
+        _thoughtProcesses = [];
+        _attentionHistory = [];
+        _optimizations = [];
         _workingMemory = new Dictionary<string, object>();
         _isInitialized = false;
         _isActive = false;
@@ -113,9 +113,9 @@ public class PureMentalState : PureState<PureMentalState>
     public override PureMentalState Copy()
     {
         return new PureMentalState(
-            new List<ThoughtProcess>(_thoughtProcesses),
-            new List<AttentionFocus>(_attentionHistory),
-            new List<MentalOptimization>(_optimizations),
+            [.._thoughtProcesses],
+            [.._attentionHistory],
+            [.._optimizations],
             new Dictionary<string, object>(_workingMemory),
             _isInitialized,
             _isActive,

@@ -48,14 +48,14 @@ namespace TarsCli.Services.Adapters
         /// </summary>
         /// <param name="type">The CodeAnalysis issue type to convert</param>
         /// <returns>The converted issue type</returns>
-        public static IssueType ConvertIssueType(CodeAnalysis.CodeIssueType type)
+        public static IssueType ConvertIssueType(CodeIssueType type)
         {
             return type switch
             {
-                CodeAnalysis.CodeIssueType.Security => IssueType.MissingExceptionHandling,
-                CodeAnalysis.CodeIssueType.Performance => IssueType.IneffectiveCode,
-                CodeAnalysis.CodeIssueType.Style => IssueType.StyleViolation,
-                CodeAnalysis.CodeIssueType.Documentation => IssueType.DocumentationIssue,
+                CodeIssueType.Security => IssueType.MissingExceptionHandling,
+                CodeIssueType.Performance => IssueType.IneffectiveCode,
+                CodeIssueType.Style => IssueType.StyleViolation,
+                CodeIssueType.Documentation => IssueType.DocumentationIssue,
                 _ => IssueType.IneffectiveCode // Default
             };
         }
@@ -65,15 +65,15 @@ namespace TarsCli.Services.Adapters
         /// </summary>
         /// <param name="type">The service issue type to convert</param>
         /// <returns>The converted issue type</returns>
-        public static CodeAnalysis.CodeIssueType ConvertIssueType(IssueType type)
+        public static CodeIssueType ConvertIssueType(IssueType type)
         {
             return type switch
             {
-                IssueType.MissingExceptionHandling => CodeAnalysis.CodeIssueType.Security,
-                IssueType.IneffectiveCode => CodeAnalysis.CodeIssueType.Performance,
-                IssueType.StyleViolation => CodeAnalysis.CodeIssueType.Style,
-                IssueType.DocumentationIssue => CodeAnalysis.CodeIssueType.Documentation,
-                _ => CodeAnalysis.CodeIssueType.Performance // Default
+                IssueType.MissingExceptionHandling => CodeIssueType.Security,
+                IssueType.IneffectiveCode => CodeIssueType.Performance,
+                IssueType.StyleViolation => CodeIssueType.Style,
+                IssueType.DocumentationIssue => CodeIssueType.Documentation,
+                _ => CodeIssueType.Performance // Default
             };
         }
 

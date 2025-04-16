@@ -7,55 +7,56 @@ namespace TarsEngine.Services;
 /// <summary>
 /// Service for analyzing project structure and dependencies
 /// </summary>
-public class ProjectAnalysisService : IProjectAnalysisService
+public class ProjectAnalysisService(
+    ILogger<ProjectAnalysisService> logger,
+    ICodeAnalysisService codeAnalysisService)
+    : IProjectAnalysisService
 {
-    private readonly ILogger<ProjectAnalysisService> _logger;
-    private readonly ICodeAnalysisService _codeAnalysisService;
-
-    public ProjectAnalysisService(
-        ILogger<ProjectAnalysisService> logger,
-        ICodeAnalysisService codeAnalysisService)
-    {
-        _logger = logger;
-        _codeAnalysisService = codeAnalysisService;
-    }
-
     /// <summary>
     /// Analyzes a project and extracts information about its structure
     /// </summary>
     /// <param name="projectPath">Path to the project file or directory</param>
     /// <returns>A ProjectAnalysisResult containing information about the project</returns>
-    public virtual async Task<ProjectAnalysisResult> AnalyzeProjectAsync(string projectPath)
+    public virtual async Task<TarsEngine.Models.ProjectAnalysisResult> AnalyzeProjectAsync(string projectPath)
     {
         try
         {
-            _logger.LogInformation($"Analyzing project: {projectPath}");
+            logger.LogInformation($"Analyzing project: {projectPath}");
 
-            var result = new ProjectAnalysisResult
+            var result = new TarsEngine.Models.ProjectAnalysisResult
             {
-                ProjectPath = projectPath,
-                Success = true
+                ProjectPath = projectPath
             };
 
             // Determine if the path is a file or directory
-            bool isDirectory = Directory.Exists(projectPath);
-            bool isFile = File.Exists(projectPath);
+            var isDirectory = Directory.Exists(projectPath);
+            var isFile = File.Exists(projectPath);
 
             if (!isDirectory && !isFile)
             {
-                _logger.LogError($"Project path not found: {projectPath}");
-                return new ProjectAnalysisResult
+                logger.LogError($"Project path not found: {projectPath}");
+                var errorResult = new TarsEngine.Models.ProjectAnalysisResult
                 {
-                    Success = false,
-                    ErrorMessage = $"Project path not found: {projectPath}"
+                    ProjectPath = projectPath,
+                    ProjectName = Path.GetFileName(projectPath)
                 };
+
+                // Add an issue to indicate the error
+                errorResult.Issues.Add(new TarsEngine.Models.CodeIssue
+                {
+                    Title = "Project Not Found",
+                    Description = $"Project path not found: {projectPath}",
+                    Severity = TarsEngine.Models.IssueSeverity.Error
+                });
+
+                return errorResult;
             }
 
             // If it's a file, determine the project type
             if (isFile)
             {
-                string extension = Path.GetExtension(projectPath).ToLowerInvariant();
-                result.ProjectType = DetermineProjectType(extension);
+                var extension = Path.GetExtension(projectPath).ToLowerInvariant();
+                result.ProjectType = DetermineProjectType(extension).ToString();
                 result.ProjectName = Path.GetFileNameWithoutExtension(projectPath);
 
                 // Parse the project file
@@ -71,9 +72,9 @@ public class ProjectAnalysisService : IProjectAnalysisService
                 if (projectFiles.Length > 0)
                 {
                     // Use the first project file found
-                    string projectFile = projectFiles[0];
-                    string extension = Path.GetExtension(projectFile).ToLowerInvariant();
-                    result.ProjectType = DetermineProjectType(extension);
+                    var projectFile = projectFiles[0];
+                    var extension = Path.GetExtension(projectFile).ToLowerInvariant();
+                    result.ProjectType = DetermineProjectType(extension).ToString();
                     result.ProjectName = Path.GetFileNameWithoutExtension(projectFile);
 
                     // Parse the project file
@@ -82,27 +83,31 @@ public class ProjectAnalysisService : IProjectAnalysisService
                 else
                 {
                     // No project file found, try to determine project type from directory structure
-                    result.ProjectType = DetermineProjectTypeFromDirectory(projectPath);
+                    result.ProjectType = DetermineProjectTypeFromDirectory(projectPath).ToString();
                     result.ProjectName = new DirectoryInfo(projectPath).Name;
                 }
             }
 
             // Analyze the code files in the project
-            var codeAnalysisResults = await _codeAnalysisService.AnalyzeDirectoryAsync(projectPath);
-            result.CodeAnalysisResults = codeAnalysisResults;
-
-            // Extract namespaces, classes, etc. from code analysis results
-            foreach (var codeResult in codeAnalysisResults.Where(r => r.Success))
+            if (string.IsNullOrEmpty(projectPath))
             {
-                result.Namespaces.AddRange(codeResult.Namespaces);
-                result.Classes.AddRange(codeResult.Classes);
-                result.Interfaces.AddRange(codeResult.Interfaces);
+                throw new ArgumentNullException(nameof(projectPath), "Project path cannot be null or empty");
             }
 
-            // Remove duplicates
-            result.Namespaces = result.Namespaces.Distinct().ToList();
-            result.Classes = result.Classes.Distinct().ToList();
-            result.Interfaces = result.Interfaces.Distinct().ToList();
+            var codeAnalysisResults = await codeAnalysisService.AnalyzeDirectoryAsync(projectPath);
+
+            // Extract file information
+            result.FileCount = codeAnalysisResults.Count;
+            result.Files = codeAnalysisResults.Select(r => r.FilePath).ToList();
+
+            // Count total lines
+            result.TotalLines = codeAnalysisResults.Count;
+
+            // Extract issues
+            foreach (var codeResult in codeAnalysisResults.Where(r => r.Success))
+            {
+                result.Issues.AddRange(codeResult.Issues);
+            }
 
             // Analyze project dependencies
             await AnalyzeProjectDependenciesAsync(projectPath, result);
@@ -111,12 +116,22 @@ public class ProjectAnalysisService : IProjectAnalysisService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Error analyzing project {projectPath}");
-            return new ProjectAnalysisResult
+            logger.LogError(ex, $"Error analyzing project {projectPath}");
+            var errorResult = new TarsEngine.Models.ProjectAnalysisResult
             {
-                Success = false,
-                ErrorMessage = $"Error analyzing project: {ex.Message}"
+                ProjectPath = projectPath,
+                ProjectName = Path.GetFileName(projectPath)
             };
+
+            // Add an issue to indicate the error
+            errorResult.Issues.Add(new TarsEngine.Models.CodeIssue
+            {
+                Title = "Analysis Error",
+                Description = $"Error analyzing project: {ex.Message}",
+                Severity = TarsEngine.Models.IssueSeverity.Error
+            });
+
+            return errorResult;
         }
     }
 
@@ -125,27 +140,28 @@ public class ProjectAnalysisService : IProjectAnalysisService
     /// </summary>
     /// <param name="solutionPath">Path to the solution file</param>
     /// <returns>A SolutionAnalysisResult containing information about the solution</returns>
-    public virtual async Task<SolutionAnalysisResult> AnalyzeSolutionAsync(string solutionPath)
+    public virtual async Task<TarsEngine.Models.SolutionAnalysisResult> AnalyzeSolutionAsync(string solutionPath)
     {
         try
         {
-            _logger.LogInformation($"Analyzing solution: {solutionPath}");
+            logger.LogInformation($"Analyzing solution: {solutionPath}");
 
             if (!File.Exists(solutionPath))
             {
-                _logger.LogError($"Solution file not found: {solutionPath}");
-                return new SolutionAnalysisResult
+                logger.LogError($"Solution file not found: {solutionPath}");
+                var errorResult = new TarsEngine.Models.SolutionAnalysisResult
                 {
-                    Success = false,
-                    ErrorMessage = $"Solution file not found: {solutionPath}"
+                    SolutionPath = solutionPath,
+                    SolutionName = Path.GetFileName(solutionPath)
                 };
+
+                return errorResult;
             }
 
-            var result = new SolutionAnalysisResult
+            var result = new TarsEngine.Models.SolutionAnalysisResult
             {
                 SolutionPath = solutionPath,
-                SolutionName = Path.GetFileNameWithoutExtension(solutionPath),
-                Success = true
+                SolutionName = Path.GetFileNameWithoutExtension(solutionPath)
             };
 
             // Parse the solution file to extract project references
@@ -155,44 +171,43 @@ public class ProjectAnalysisService : IProjectAnalysisService
             foreach (var projectPath in projectPaths)
             {
                 var projectResult = await AnalyzeProjectAsync(projectPath);
-                result.ProjectResults.Add(projectResult);
+                result.Projects.Add(projectResult);
             }
 
             return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Error analyzing solution {solutionPath}");
-            return new SolutionAnalysisResult
+            logger.LogError(ex, $"Error analyzing solution {solutionPath}");
+            var errorResult = new TarsEngine.Models.SolutionAnalysisResult
             {
-                Success = false,
-                ErrorMessage = $"Error analyzing solution: {ex.Message}"
+                SolutionPath = solutionPath,
+                SolutionName = Path.GetFileName(solutionPath)
             };
+
+            return errorResult;
         }
     }
 
     /// <summary>
     /// Determines the project type based on the file extension
     /// </summary>
-    private ProjectType DetermineProjectType(string extension)
+    private static ProjectType DetermineProjectType(string extension) => extension switch
     {
-        return extension switch
-        {
-            ".csproj" => ProjectType.CSharp,
-            ".fsproj" => ProjectType.FSharp,
-            ".vbproj" => ProjectType.VisualBasic,
-            ".vcxproj" => ProjectType.Cpp,
-            ".pyproj" => ProjectType.Python,
-            ".njsproj" => ProjectType.Node,
-            ".wapproj" => ProjectType.WindowsApp,
-            _ => ProjectType.Unknown
-        };
-    }
+        ".csproj" => ProjectType.CSharp,
+        ".fsproj" => ProjectType.FSharp,
+        ".vbproj" => ProjectType.VisualBasic,
+        ".vcxproj" => ProjectType.Cpp,
+        ".pyproj" => ProjectType.Python,
+        ".njsproj" => ProjectType.Node,
+        ".wapproj" => ProjectType.WindowsApp,
+        _ => ProjectType.Unknown
+    };
 
     /// <summary>
     /// Determines the project type based on the directory structure
     /// </summary>
-    private ProjectType DetermineProjectTypeFromDirectory(string directoryPath)
+    private static ProjectType DetermineProjectTypeFromDirectory(string directoryPath)
     {
         // Check for package.json (Node.js)
         if (File.Exists(Path.Combine(directoryPath, "package.json")))
@@ -234,12 +249,14 @@ public class ProjectAnalysisService : IProjectAnalysisService
         // Check file extensions in the directory
         var files = Directory.GetFiles(directoryPath, "*.*", SearchOption.TopDirectoryOnly);
 
-        int csharpCount = files.Count(f => Path.GetExtension(f).ToLowerInvariant() == ".cs");
-        int fsharpCount = files.Count(f => Path.GetExtension(f).ToLowerInvariant() == ".fs");
-        int vbCount = files.Count(f => Path.GetExtension(f).ToLowerInvariant() == ".vb");
-        int cppCount = files.Count(f => new[] { ".cpp", ".h", ".hpp", ".c" }.Contains(Path.GetExtension(f).ToLowerInvariant()));
-        int pythonCount = files.Count(f => Path.GetExtension(f).ToLowerInvariant() == ".py");
-        int jsCount = files.Count(f => new[] { ".js", ".ts", ".jsx", ".tsx" }.Contains(Path.GetExtension(f).ToLowerInvariant()));
+        var csharpCount = files.Count(f => Path.GetExtension(f).ToLowerInvariant() == ".cs");
+        var fsharpCount = files.Count(f => Path.GetExtension(f).ToLowerInvariant() == ".fs");
+        var vbCount = files.Count(f => Path.GetExtension(f).ToLowerInvariant() == ".vb");
+        var cppCount = files.Count(f =>
+            new[] { ".cpp", ".h", ".hpp", ".c" }.Contains(Path.GetExtension(f).ToLowerInvariant()));
+        var pythonCount = files.Count(f => Path.GetExtension(f).ToLowerInvariant() == ".py");
+        var jsCount = files.Count(f =>
+            new[] { ".js", ".ts", ".jsx", ".tsx" }.Contains(Path.GetExtension(f).ToLowerInvariant()));
 
         // Return the project type with the most files
         var counts = new Dictionary<ProjectType, int>
@@ -264,46 +281,34 @@ public class ProjectAnalysisService : IProjectAnalysisService
     /// <summary>
     /// Parses a project file to extract information
     /// </summary>
-    private async Task ParseProjectFileAsync(string projectFilePath, ProjectAnalysisResult result)
+    private async Task ParseProjectFileAsync(string projectFilePath, TarsEngine.Models.ProjectAnalysisResult result)
     {
         try
         {
-            string content = await File.ReadAllTextAsync(projectFilePath);
-
-            // Extract target framework
-            var targetFrameworkRegex = new Regex(@"<TargetFramework>(.*?)</TargetFramework>");
-            var targetFrameworkMatch = targetFrameworkRegex.Match(content);
-            if (targetFrameworkMatch.Success)
-            {
-                result.TargetFramework = targetFrameworkMatch.Groups[1].Value;
-            }
+            var content = await File.ReadAllTextAsync(projectFilePath);
 
             // Extract package references
-            var packageReferenceRegex = new Regex(@"<PackageReference\s+Include=""([^""]+)""\s+Version=""([^""]+)""");
+            var packageReferenceRegex = new Regex("<PackageReference\\s+Include=\"([^\"]+)\"\\s+Version=\"([^\"]+)\"");
             var packageReferenceMatches = packageReferenceRegex.Matches(content);
             foreach (Match match in packageReferenceMatches)
             {
-                result.PackageReferences.Add(new PackageReference
-                {
-                    Name = match.Groups[1].Value,
-                    Version = match.Groups[2].Value
-                });
+                result.Packages.Add($"{match.Groups[1].Value} {match.Groups[2].Value}");
             }
 
             // Extract project references
-            var projectReferenceRegex = new Regex(@"<ProjectReference\s+Include=""([^""]+)""");
+            var projectReferenceRegex = new Regex("<ProjectReference\\s+Include=\"([^\"]+)\"");
             var projectReferenceMatches = projectReferenceRegex.Matches(content);
             foreach (Match match in projectReferenceMatches)
             {
-                string referencePath = match.Groups[1].Value;
-                // Convert relative path to absolute path
-                string absolutePath = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(projectFilePath), referencePath));
-                result.ProjectReferences.Add(absolutePath);
+                result.References.Add(match.Groups[1].Value);
             }
+
+            // Add dependencies to the result
+            result.Dependencies = result.Packages.Concat(result.References).ToList();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Error parsing project file {projectFilePath}");
+            logger.LogError(ex, $"Error parsing project file {projectFilePath}");
         }
     }
 
@@ -316,8 +321,14 @@ public class ProjectAnalysisService : IProjectAnalysisService
 
         try
         {
-            string content = File.ReadAllText(solutionFilePath);
-            string solutionDir = Path.GetDirectoryName(solutionFilePath);
+            var content = File.ReadAllText(solutionFilePath);
+            var solutionDir = Path.GetDirectoryName(solutionFilePath);
+            
+            if (solutionDir == null)
+            {
+                logger.LogError("Unable to determine solution directory for path: {SolutionFilePath}", solutionFilePath);
+                return projectPaths;
+            }
 
             // Extract project paths
             var projectRegex = new Regex(@"Project\(""\{[^}]+\}""\)\s*=\s*""[^""]*"",\s*""([^""]+)""");
@@ -325,9 +336,9 @@ public class ProjectAnalysisService : IProjectAnalysisService
 
             foreach (Match match in projectMatches)
             {
-                string relativePath = match.Groups[1].Value;
+                var relativePath = match.Groups[1].Value;
                 // Convert relative path to absolute path
-                string absolutePath = Path.GetFullPath(Path.Combine(solutionDir, relativePath));
+                var absolutePath = Path.GetFullPath(Path.Combine(solutionDir, relativePath));
                 if (File.Exists(absolutePath))
                 {
                     projectPaths.Add(absolutePath);
@@ -336,7 +347,7 @@ public class ProjectAnalysisService : IProjectAnalysisService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Error parsing solution file {solutionFilePath}");
+            logger.LogError(ex, "Error parsing solution file {SolutionFilePath}", solutionFilePath);
         }
 
         return projectPaths;
@@ -345,78 +356,47 @@ public class ProjectAnalysisService : IProjectAnalysisService
     /// <summary>
     /// Analyzes project dependencies
     /// </summary>
-    private async Task AnalyzeProjectDependenciesAsync(string projectPath, ProjectAnalysisResult result)
+    private async Task AnalyzeProjectDependenciesAsync(string projectPath,
+        TarsEngine.Models.ProjectAnalysisResult result)
     {
         try
         {
-            // Analyze dependencies between classes
-            var dependencies = new Dictionary<string, List<string>>();
+            // Extract package references from project file
+            var projectFiles = Directory.GetFiles(projectPath, "*.csproj", SearchOption.TopDirectoryOnly);
+            projectFiles = projectFiles.Concat(Directory.GetFiles(projectPath, "*.fsproj", SearchOption.TopDirectoryOnly)).ToArray();
 
-            foreach (var codeResult in result.CodeAnalysisResults.Where(r => r.Success))
+            if (projectFiles.Length > 0)
             {
-                foreach (var className in codeResult.Classes)
-                {
-                    if (!dependencies.ContainsKey(className))
-                    {
-                        dependencies[className] = new List<string>();
-                    }
+                var projectFile = projectFiles[0];
+                var content = await File.ReadAllTextAsync(projectFile);
 
-                    // Add dependencies for this class
-                    dependencies[className].AddRange(codeResult.Dependencies);
+                // Extract package references
+                var packageReferenceRegex = new Regex("<PackageReference\\s+Include=\"([^\"]+)\"\\s+Version=\"([^\"]+)\"");
+                var packageReferenceMatches = packageReferenceRegex.Matches(content);
+
+                foreach (Match match in packageReferenceMatches)
+                {
+                    result.Packages.Add($"{match.Groups[1].Value} {match.Groups[2].Value}");
+                }
+
+                // Extract project references
+                var projectReferenceRegex = new Regex("<ProjectReference\\s+Include=\"([^\"]+)\"");
+                var projectReferenceMatches = projectReferenceRegex.Matches(content);
+
+                foreach (Match match in projectReferenceMatches)
+                {
+                    result.References.Add(match.Groups[1].Value);
                 }
             }
 
-            // Remove self-references and duplicates
-            foreach (var className in dependencies.Keys.ToList())
-            {
-                dependencies[className] = dependencies[className]
-                    .Where(d => d != className)
-                    .Distinct()
-                    .ToList();
-            }
-
-            result.ClassDependencies = dependencies;
+            // Add dependencies to the result
+            result.Dependencies = result.Packages.Concat(result.References).ToList();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Error analyzing project dependencies {projectPath}");
+            logger.LogError(ex, $"Error analyzing project dependencies {projectPath}");
         }
     }
-}
-
-/// <summary>
-/// Represents the result of a project analysis
-/// </summary>
-public class ProjectAnalysisResult
-{
-    public string ProjectPath { get; set; } = string.Empty;
-    public string ProjectName { get; set; } = string.Empty;
-    public ProjectType ProjectType { get; set; }
-    public string TargetFramework { get; set; } = string.Empty;
-    public bool Success { get; set; }
-    public string ErrorMessage { get; set; } = string.Empty;
-
-    public List<string> Namespaces { get; set; } = new();
-    public List<string> Classes { get; set; } = new();
-    public List<string> Interfaces { get; set; } = new();
-
-    public List<PackageReference> PackageReferences { get; set; } = new();
-    public List<string> ProjectReferences { get; set; } = new();
-    public List<CodeAnalysisResult> CodeAnalysisResults { get; set; } = new();
-    public Dictionary<string, List<string>> ClassDependencies { get; set; } = new();
-}
-
-/// <summary>
-/// Represents the result of a solution analysis
-/// </summary>
-public class SolutionAnalysisResult
-{
-    public string SolutionPath { get; set; } = string.Empty;
-    public string SolutionName { get; set; } = string.Empty;
-    public bool Success { get; set; }
-    public string ErrorMessage { get; set; } = string.Empty;
-
-    public List<ProjectAnalysisResult> ProjectResults { get; set; } = new();
 }
 
 /// <summary>

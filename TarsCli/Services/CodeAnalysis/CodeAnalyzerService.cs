@@ -64,8 +64,8 @@ public class CodeAnalyzerService
             {
                 FilePath = filePath,
                 NeedsImprovement = false,
-                Issues = new List<CodeIssue>
-                {
+                Issues =
+                [
                     new()
                     {
                         Type = CodeIssueType.Functional,
@@ -74,7 +74,7 @@ public class CodeAnalyzerService
                         LineNumber = 1,
                         ColumnNumber = 1
                     }
-                }
+                ]
             };
         }
     }

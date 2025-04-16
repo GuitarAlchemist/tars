@@ -100,14 +100,15 @@ public class A2ADemoCommand : Command
             var message = new A2AMessage
             {
                 Role = "user",
-                Parts = new System.Collections.Generic.List<A2APart>
-                {
+                Parts =
+                [
                     new A2ATextPart
                     {
-                        Text = "Generate a C# class for a Logger with methods for logging different levels (Info, Warning, Error)"
+                        Text =
+                            "Generate a C# class for a Logger with methods for logging different levels (Info, Warning, Error)"
                     }
-                },
-                Metadata = new System.Collections.Generic.Dictionary<string, object>
+                ],
+                Metadata = new Dictionary<string, object>
                 {
                     { "skillId", "code_generation" }
                 }
@@ -139,14 +140,14 @@ public class A2ADemoCommand : Command
             message = new A2AMessage
             {
                 Role = "user",
-                Parts = new System.Collections.Generic.List<A2APart>
-                {
+                Parts =
+                [
                     new A2ATextPart
                     {
                         Text = $"Analyze this code for potential issues: {codeToAnalyze}"
                     }
-                },
-                Metadata = new System.Collections.Generic.Dictionary<string, object>
+                ],
+                Metadata = new Dictionary<string, object>
                 {
                     { "skillId", "code_analysis" }
                 }
@@ -186,14 +187,14 @@ public class A2ADemoCommand : Command
             message = new A2AMessage
             {
                 Role = "user",
-                Parts = new System.Collections.Generic.List<A2APart>
-                {
+                Parts =
+                [
                     new A2ATextPart
                     {
                         Text = "Generate a simple utility class for string operations"
                     }
-                },
-                Metadata = new System.Collections.Generic.Dictionary<string, object>
+                ],
+                Metadata = new Dictionary<string, object>
                 {
                     { "skillId", "code_generation" }
                 }

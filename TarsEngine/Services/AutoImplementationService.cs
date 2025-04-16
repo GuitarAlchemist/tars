@@ -75,11 +75,11 @@ public class AutoImplementationService : IAutoImplementationService
             };
 
             // Execute each step in the implementation plan
-            int totalSteps = implementationPlan.ImplementationSteps.Count;
-            for (int i = 0; i < totalSteps; i++)
+            var totalSteps = implementationPlan.ImplementationSteps.Count;
+            for (var i = 0; i < totalSteps; i++)
             {
                 var step = implementationPlan.ImplementationSteps[i];
-                int progressPercentage = 10 + (i * 80 / totalSteps); // Progress from 10% to 90%
+                var progressPercentage = 10 + (i * 80 / totalSteps); // Progress from 10% to 90%
 
                 ReportProgress(progressCallback, $"Executing step {i + 1}/{totalSteps}: {step.Description.Split(Environment.NewLine)[0]}", progressPercentage);
 
@@ -194,7 +194,7 @@ public class AutoImplementationService : IAutoImplementationService
         {
             // Generate code for the step
             // Determine the language from the file extension
-            string extension = Path.GetExtension(step.FilePath).ToLowerInvariant();
+            var extension = Path.GetExtension(step.FilePath).ToLowerInvariant();
             var language = extension switch
             {
                 ".cs" => CodeLanguage.CSharp,

@@ -124,71 +124,75 @@ public class TarsA2AService
                 StateTransitionHistory = true
             },
             Authentication = null, // No authentication required for now
-            DefaultInputModes = new List<string> { "text" },
-            DefaultOutputModes = new List<string> { "text" },
-            Skills = new List<AgentSkill>
-            {
+            DefaultInputModes = ["text"],
+            DefaultOutputModes = ["text"],
+            Skills =
+            [
                 new()
                 {
                     Id = "code_generation",
                     Name = "Code Generation",
                     Description = "Generate code based on natural language descriptions",
-                    Tags = new List<string> { "code", "generation", "programming" },
-                    Examples = new List<string>
-                    {
+                    Tags = ["code", "generation", "programming"],
+                    Examples =
+                    [
                         "Generate a C# class for a customer entity",
                         "Create a function to calculate Fibonacci numbers"
-                    }
+                    ]
                 },
+
                 new()
                 {
                     Id = "code_analysis",
                     Name = "Code Analysis",
                     Description = "Analyze code for quality, complexity, and issues",
-                    Tags = new List<string> { "code", "analysis", "quality" },
-                    Examples = new List<string>
-                    {
+                    Tags = ["code", "analysis", "quality"],
+                    Examples =
+                    [
                         "Analyze this C# code for potential issues",
                         "Review this function for performance problems"
-                    }
+                    ]
                 },
+
                 new()
                 {
                     Id = "metascript_execution",
                     Name = "Metascript Execution",
                     Description = "Execute TARS metascripts",
-                    Tags = new List<string> { "metascript", "execution", "automation" },
-                    Examples = new List<string>
-                    {
+                    Tags = ["metascript", "execution", "automation"],
+                    Examples =
+                    [
                         "Execute this metascript to analyze a project",
                         "Run a metascript to generate documentation"
-                    }
+                    ]
                 },
+
                 new()
                 {
                     Id = "knowledge_extraction",
                     Name = "Knowledge Extraction",
                     Description = "Extract knowledge from documents and code",
-                    Tags = new List<string> { "knowledge", "extraction", "documentation" },
-                    Examples = new List<string>
-                    {
+                    Tags = ["knowledge", "extraction", "documentation"],
+                    Examples =
+                    [
                         "Extract key concepts from this documentation",
                         "Identify important patterns in this codebase"
-                    }
+                    ]
                 },
+
                 new()
                 {
                     Id = "self_improvement",
                     Name = "Self Improvement",
                     Description = "Improve TARS capabilities through self-analysis",
-                    Tags = new List<string> { "self-improvement", "learning", "optimization" },
-                    Examples = new List<string>
-                    {
+                    Tags = ["self-improvement", "learning", "optimization"],
+                    Examples =
+                    [
                         "Analyze TARS performance and suggest improvements",
                         "Identify areas where TARS can be enhanced"
-                    }
+                    ]
                 }
-            }
+            ]
         };
 
         return agentCard;

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using TarsEngine.Monads;
 
 namespace TarsEngine.Consciousness.Intelligence;
 
@@ -69,7 +70,7 @@ public class CuriosityDrive
     /// Initializes the curiosity drive
     /// </summary>
     /// <returns>True if initialization was successful</returns>
-    public async Task<bool> InitializeAsync()
+    public Task<bool> InitializeAsync()
     {
         try
         {
@@ -80,12 +81,12 @@ public class CuriosityDrive
 
             _isInitialized = true;
             _logger.LogInformation("Curiosity drive initialized successfully");
-            return true;
+            return AsyncMonad.Return(true);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error initializing curiosity drive");
-            return false;
+            return AsyncMonad.Return(false);
         }
     }
 
@@ -132,18 +133,18 @@ public class CuriosityDrive
     /// Activates the curiosity drive
     /// </summary>
     /// <returns>True if activation was successful</returns>
-    public async Task<bool> ActivateAsync()
+    public Task<bool> ActivateAsync()
     {
         if (!_isInitialized)
         {
             _logger.LogWarning("Cannot activate curiosity drive: not initialized");
-            return false;
+            return AsyncMonad.Return(false);
         }
 
         if (_isActive)
         {
             _logger.LogInformation("Curiosity drive is already active");
-            return true;
+            return AsyncMonad.Return(true);
         }
 
         try
@@ -152,12 +153,12 @@ public class CuriosityDrive
 
             _isActive = true;
             _logger.LogInformation("Curiosity drive activated successfully");
-            return true;
+            return AsyncMonad.Return(true);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error activating curiosity drive");
-            return false;
+            return AsyncMonad.Return(false);
         }
     }
 
@@ -165,12 +166,12 @@ public class CuriosityDrive
     /// Deactivates the curiosity drive
     /// </summary>
     /// <returns>True if deactivation was successful</returns>
-    public async Task<bool> DeactivateAsync()
+    public Task<bool> DeactivateAsync()
     {
         if (!_isActive)
         {
             _logger.LogInformation("Curiosity drive is already inactive");
-            return true;
+            return AsyncMonad.Return(true);
         }
 
         try
@@ -179,12 +180,12 @@ public class CuriosityDrive
 
             _isActive = false;
             _logger.LogInformation("Curiosity drive deactivated successfully");
-            return true;
+            return AsyncMonad.Return(true);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deactivating curiosity drive");
-            return false;
+            return AsyncMonad.Return(false);
         }
     }
 
@@ -192,12 +193,12 @@ public class CuriosityDrive
     /// Updates the curiosity drive
     /// </summary>
     /// <returns>True if update was successful</returns>
-    public async Task<bool> UpdateAsync()
+    public Task<bool> UpdateAsync()
     {
         if (!_isInitialized)
         {
             _logger.LogWarning("Cannot update curiosity drive: not initialized");
-            return false;
+            return AsyncMonad.Return(false);
         }
 
         try
@@ -227,12 +228,12 @@ public class CuriosityDrive
                 _explorationLevel = Math.Min(_explorationLevel, 1.0);
             }
 
-            return true;
+            return AsyncMonad.Return(true);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating curiosity drive");
-            return false;
+            return AsyncMonad.Return(false);
         }
     }
 
@@ -240,17 +241,17 @@ public class CuriosityDrive
     /// Generates a curiosity question
     /// </summary>
     /// <returns>The generated curiosity question</returns>
-    public async Task<CuriosityQuestion?> GenerateCuriosityQuestionAsync()
+    public Task<CuriosityQuestion?> GenerateCuriosityQuestionAsync()
     {
         if (!_isInitialized || !_isActive)
         {
-            return null;
+            return AsyncMonad.Return<CuriosityQuestion?>(null);
         }
 
         // Only generate questions periodically
         if ((DateTime.UtcNow - _lastQuestionTime).TotalSeconds < 30)
         {
-            return null;
+            return AsyncMonad.Return<CuriosityQuestion?>(null);
         }
 
         try
@@ -274,12 +275,12 @@ public class CuriosityDrive
                     question.Question, question.Importance, method);
             }
 
-            return question;
+            return AsyncMonad.Return(question);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error generating curiosity question");
-            return null;
+            return AsyncMonad.Return<CuriosityQuestion?>(null);
         }
     }
 
@@ -290,18 +291,18 @@ public class CuriosityDrive
     private QuestionGenerationMethod ChooseQuestionGenerationMethod()
     {
         // Calculate probabilities based on current levels
-        double gapProb = 0.4;
-        double noveltyProb = _noveltySeekingLevel * 0.3;
-        double explorationProb = _explorationLevel * 0.3;
+        var gapProb = 0.4;
+        var noveltyProb = _noveltySeekingLevel * 0.3;
+        var explorationProb = _explorationLevel * 0.3;
 
         // Normalize probabilities
-        double total = gapProb + noveltyProb + explorationProb;
+        var total = gapProb + noveltyProb + explorationProb;
         gapProb /= total;
         noveltyProb /= total;
         explorationProb /= total;
 
         // Choose method based on probabilities
-        double rand = _random.NextDouble();
+        var rand = _random.NextDouble();
 
         if (rand < gapProb)
         {
@@ -351,7 +352,7 @@ public class CuriosityDrive
         var gap = gaps[_random.Next(gaps.Length)];
 
         // Calculate importance based on gap importance and question generation level
-        double importance = gap.Importance * _questionGenerationLevel;
+        var importance = gap.Importance * _questionGenerationLevel;
 
         // Add some randomness to importance
         importance = Math.Max(0.1, Math.Min(0.9, importance + (0.2 * (_random.NextDouble() - 0.5))));
@@ -394,7 +395,7 @@ public class CuriosityDrive
         var question = string.Format(template, domain1, domain2);
 
         // Calculate importance based on novelty seeking level
-        double importance = 0.5 + (0.4 * _noveltySeekingLevel * _random.NextDouble());
+        var importance = 0.5 + (0.4 * _noveltySeekingLevel * _random.NextDouble());
 
         return new CuriosityQuestion
         {
@@ -432,7 +433,7 @@ public class CuriosityDrive
             var question = followUpTemplates[_random.Next(followUpTemplates.Count)];
 
             // Calculate importance based on exploration level and previous satisfaction
-            double importance = 0.4 + (0.3 * _explorationLevel) + (0.3 * recentExploration.Satisfaction);
+            var importance = 0.4 + (0.3 * _explorationLevel) + (0.3 * recentExploration.Satisfaction);
 
             return new CuriosityQuestion
             {
@@ -466,7 +467,7 @@ public class CuriosityDrive
             var question = string.Format(template, domain);
 
             // Calculate importance based on exploration level
-            double importance = 0.4 + (0.5 * _explorationLevel * _random.NextDouble());
+            var importance = 0.4 + (0.5 * _explorationLevel * _random.NextDouble());
 
             return new CuriosityQuestion
             {
@@ -486,12 +487,12 @@ public class CuriosityDrive
     /// </summary>
     /// <param name="topic">The topic</param>
     /// <returns>The exploration result</returns>
-    public async Task<CuriosityExploration?> ExploreCuriosityTopicAsync(string topic)
+    public Task<CuriosityExploration?> ExploreCuriosityTopicAsync(string topic)
     {
         if (!_isInitialized || !_isActive)
         {
             _logger.LogWarning("Cannot explore curiosity topic: curiosity drive not initialized or active");
-            return null;
+            return AsyncMonad.Return<CuriosityExploration?>(null);
         }
 
         try
@@ -516,12 +517,12 @@ public class CuriosityDrive
                     topic, exploration.Satisfaction, strategy);
             }
 
-            return exploration;
+            return AsyncMonad.Return(exploration);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error exploring curiosity topic");
-            return null;
+            return AsyncMonad.Return<CuriosityExploration?>(null);
         }
     }
 
@@ -533,12 +534,12 @@ public class CuriosityDrive
     private ExplorationStrategy ChooseExplorationStrategy(string topic)
     {
         // Check if topic matches any known domains
-        bool isKnownDomain = _informationGaps.Keys.Any(d => topic.Contains(d, StringComparison.OrdinalIgnoreCase));
+        var isKnownDomain = _informationGaps.Keys.Any(d => topic.Contains(d, StringComparison.OrdinalIgnoreCase));
 
         // If known domain, balance between exploitation and exploration
         if (isKnownDomain)
         {
-            double exploitProb = 0.6 - (0.3 * _noveltySeekingLevel); // Lower with higher novelty seeking
+            var exploitProb = 0.6 - (0.3 * _noveltySeekingLevel); // Lower with higher novelty seeking
 
             if (_random.NextDouble() < exploitProb)
             {
@@ -552,7 +553,7 @@ public class CuriosityDrive
         // If unknown domain, favor novelty-based approaches
         else
         {
-            double noveltyProb = 0.7 * _noveltySeekingLevel;
+            var noveltyProb = 0.7 * _noveltySeekingLevel;
 
             if (_random.NextDouble() < noveltyProb)
             {

@@ -39,7 +39,7 @@ public static class FunctionalProgrammingExamples
         var noneValue = EnhancedOption.None<string>();
 
         // Pattern matching
-        string greeting = someValue.Match(
+        var greeting = someValue.Match(
             some: value => $"Value: {value}",
             none: () => "No value"
         );
@@ -163,13 +163,13 @@ public static class FunctionalProgrammingExamples
         var left = Either<string, int>.Left("Something went wrong");
 
         // Pattern matching
-        string rightResult = right.Match(
+        var rightResult = right.Match(
             leftFunc: error => $"Error: {error}",
             rightFunc: value => $"Value: {value}"
         );
         Console.WriteLine(rightResult); // Output: Value: 42
 
-        string leftResult = left.Match(
+        var leftResult = left.Match(
             leftFunc: error => $"Error: {error}",
             rightFunc: value => $"Value: {value}"
         );
@@ -191,7 +191,7 @@ public static class FunctionalProgrammingExamples
         var tryFailure = EitherExtensions.Try(() => {
             // This would cause a division by zero exception
             // but it's safely handled by the Try method
-            int divisor = 0;
+            var divisor = 0;
             return 10 / divisor;
         });
 
@@ -343,7 +343,7 @@ public static class FunctionalProgrammingExamples
                     : Validation<int, string>.Valid(age);
 
         // Combine all patterns
-        int userId = 1;
+        var userId = 1;
 
         // 1. Get the username (Option)
         var usernameOption = GetUsername(userId);

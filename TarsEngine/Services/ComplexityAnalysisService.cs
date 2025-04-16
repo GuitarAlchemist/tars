@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using TarsEngine.Services.Interfaces;
 
@@ -63,85 +64,6 @@ function analyzeComplexity(code, language) {{
     const averageMaintainabilityIndex = 65.2;
     const minMaintainabilityIndex = 48.5;
     
-    // Identify complex methods
-    const complexMethods = [
-        {{
-            methodName: 'ProcessData',
-            className: 'DataProcessor',
-            filePath: 'DataProcessor.cs',
-            lineNumber: 42,
-            cyclomaticComplexity: 8,
-            cognitiveComplexity: 6,
-            methodLength: 42
-        }},
-        {{
-            methodName: 'ValidateInput',
-            className: 'InputValidator',
-            filePath: 'InputValidator.cs',
-            lineNumber: 25,
-            cyclomaticComplexity: 6,
-            cognitiveComplexity: 4,
-            methodLength: 30
-        }}
-    ];
-    
-    // Identify complex classes
-    const complexClasses = [
-        {{
-            className: 'DataProcessor',
-            filePath: 'DataProcessor.cs',
-            lineNumber: 10,
-            classLength: 250,
-            methodCount: 15,
-            propertyCount: 8,
-            fieldCount: 5,
-            weightedMethodCount: 45,
-            inheritanceDepth: 2,
-            childrenCount: 0
-        }}
-    ];
-    
-    // Calculate complexity distribution
-    const cyclomaticComplexityDistribution = {{
-        '1-5': 20,
-        '6-10': 5,
-        '11-15': 2,
-        '16-20': 1,
-        '21+': 0
-    }};
-    
-    const cognitiveComplexityDistribution = {{
-        '1-5': 22,
-        '6-10': 4,
-        '11-15': 1,
-        '16-20': 1,
-        '21+': 0
-    }};
-    
-    const maintainabilityIndexDistribution = {{
-        '0-19': 0,
-        '20-39': 2,
-        '40-59': 5,
-        '60-79': 15,
-        '80-100': 6
-    }};
-    
-    const methodLengthDistribution = {{
-        '1-10': 15,
-        '11-20': 8,
-        '21-30': 3,
-        '31-40': 1,
-        '41+': 1
-    }};
-    
-    const classLengthDistribution = {{
-        '1-100': 3,
-        '101-200': 1,
-        '201-300': 1,
-        '301-400': 0,
-        '401+': 0
-    }};
-    
     return {{
         averageCyclomaticComplexity,
         maxCyclomaticComplexity,
@@ -151,43 +73,56 @@ function analyzeComplexity(code, language) {{
         maxHalsteadComplexity,
         averageMaintainabilityIndex,
         minMaintainabilityIndex,
-        complexMethods,
-        complexClasses,
+        complexMethods: [],
+        complexClasses: [],
         complexityDistribution: {{
-            cyclomaticComplexityDistribution,
-            cognitiveComplexityDistribution,
-            maintainabilityIndexDistribution,
-            methodLengthDistribution,
-            classLengthDistribution
+            cyclomaticComplexityDistribution: [],
+            cognitiveComplexityDistribution: [],
+            maintainabilityIndexDistribution: [],
+            methodLengthDistribution: [],
+            classLengthDistribution: []
         }}
     }};
-}}
-";
+}}";
 
             // Execute the metascript
             var result = await _metascriptService.ExecuteMetascriptAsync(metascript);
             
-            // Parse the result as JSON
-            var complexityResult = System.Text.Json.JsonSerializer.Deserialize<ComplexityAnalysisResult>(result.ToString());
-            return complexityResult ?? new ComplexityAnalysisResult();
+            if (result == null)
+            {
+                _logger.LogWarning("Metascript execution returned null result for file: {FilePath}", filePath);
+                return CreateEmptyComplexityResult();
+            }
+
+            var resultString = result.ToString();
+            if (string.IsNullOrEmpty(resultString))
+            {
+                _logger.LogWarning("Metascript execution returned empty result for file: {FilePath}", filePath);
+                return CreateEmptyComplexityResult();
+            }
+
+            try
+            {
+                // Parse the result as JSON
+                var complexityResult = JsonSerializer.Deserialize<ComplexityAnalysisResult>(
+                    resultString,
+                    new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
+
+                return complexityResult ?? CreateEmptyComplexityResult();
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "Error deserializing complexity result for file: {FilePath}", filePath);
+                return CreateEmptyComplexityResult();
+            }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error analyzing complexity for file: {FilePath}", filePath);
-            return new ComplexityAnalysisResult
-            {
-                AverageCyclomaticComplexity = 0,
-                MaxCyclomaticComplexity = 0,
-                AverageCognitiveComplexity = 0,
-                MaxCognitiveComplexity = 0,
-                AverageHalsteadComplexity = 0,
-                MaxHalsteadComplexity = 0,
-                AverageMaintainabilityIndex = 0,
-                MinMaintainabilityIndex = 0,
-                ComplexMethods = new List<ComplexMethod>(),
-                ComplexClasses = new List<ComplexClass>(),
-                ComplexityDistribution = new ComplexityDistribution()
-            };
+            return CreateEmptyComplexityResult();
         }
     }
 
@@ -348,45 +283,30 @@ let sourceCode = `{fileContent.Replace("`", "\\`")}`;
 let complexSections = identifyComplexCode(sourceCode, '{language}', {threshold});
 
 // Return the complex sections
-return JSON.stringify(complexSections);
-
-// Helper function to identify complex code
-function identifyComplexCode(code, language, threshold) {{
-    // This would be implemented with a more sophisticated analysis
-    // For now, we'll use a simple placeholder
-    
-    const complexSections = [
-        {{
-            filePath: 'DataProcessor.cs',
-            startLine: 42,
-            endLine: 84,
-            content: '// Complex code section',
-            complexityType: 'Cyclomatic',
-            complexityValue: 12,
-            methodName: 'ProcessData',
-            className: 'DataProcessor'
-        }},
-        {{
-            filePath: 'InputValidator.cs',
-            startLine: 25,
-            endLine: 55,
-            content: '// Complex code section',
-            complexityType: 'Cognitive',
-            complexityValue: 8,
-            methodName: 'ValidateInput',
-            className: 'InputValidator'
-        }}
-    ];
-    
-    return complexSections;
-}}
-";
+return JSON.stringify(complexSections);";
 
             // Execute the metascript
             var result = await _metascriptService.ExecuteMetascriptAsync(metascript);
             
+            if (result == null)
+            {
+                _logger.LogWarning("Metascript execution returned null result for file: {FilePath}", filePath);
+                return new List<ComplexCodeSection>();
+            }
+
+            var resultString = result.ToString();
+            if (string.IsNullOrEmpty(resultString))
+            {
+                _logger.LogWarning("Metascript execution returned empty result for file: {FilePath}", filePath);
+                return new List<ComplexCodeSection>();
+            }
+
             // Parse the result as JSON
-            var complexSections = System.Text.Json.JsonSerializer.Deserialize<List<ComplexCodeSection>>(result.ToString());
+            var complexSections = JsonSerializer.Deserialize<List<ComplexCodeSection>>(
+                resultString,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+            );
+            
             return complexSections ?? new List<ComplexCodeSection>();
         }
         catch (Exception ex)
@@ -408,49 +328,36 @@ function identifyComplexCode(code, language, threshold) {{
 // Simplification suggestion metascript
 
 // Complex code section
-let complexSection = {System.Text.Json.JsonSerializer.Serialize(complexCodeSection)};
+let complexSection = {JsonSerializer.Serialize(complexCodeSection)};
 
 // Suggest simplifications
 let simplifications = suggestSimplifications(complexSection);
 
 // Return the suggested simplifications
-return JSON.stringify(simplifications);
-
-// Helper function to suggest simplifications
-function suggestSimplifications(complexSection) {{
-    // This would be implemented with a more sophisticated analysis
-    // For now, we'll use a simple placeholder
-    
-    const simplifications = [
-        {{
-            description: 'Extract method for nested conditional',
-            simplifiedCode: '// Simplified code',
-            complexityReduction: 3,
-            confidence: 0.8,
-            potentialRisks: [
-                'May affect performance slightly'
-            ]
-        }},
-        {{
-            description: 'Use LINQ instead of loops',
-            simplifiedCode: '// Simplified code using LINQ',
-            complexityReduction: 2,
-            confidence: 0.7,
-            potentialRisks: [
-                'May be less readable for developers unfamiliar with LINQ'
-            ]
-        }}
-    ];
-    
-    return simplifications;
-}}
-";
+return JSON.stringify(simplifications);";
 
             // Execute the metascript
             var result = await _metascriptService.ExecuteMetascriptAsync(metascript);
             
+            if (result == null)
+            {
+                _logger.LogWarning("Metascript execution returned null result for code section");
+                return new List<CodeSimplification>();
+            }
+
+            var resultString = result.ToString();
+            if (string.IsNullOrEmpty(resultString))
+            {
+                _logger.LogWarning("Metascript execution returned empty result for code section");
+                return new List<CodeSimplification>();
+            }
+
             // Parse the result as JSON
-            var simplifications = System.Text.Json.JsonSerializer.Deserialize<List<CodeSimplification>>(result.ToString());
+            var simplifications = JsonSerializer.Deserialize<List<CodeSimplification>>(
+                resultString,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+            );
+            
             return simplifications ?? new List<CodeSimplification>();
         }
         catch (Exception ex)
@@ -591,6 +498,34 @@ function suggestSimplifications(complexSection) {{
             ".py" => "python",
             ".java" => "java",
             _ => "unknown"
+        };
+    }
+
+    /// <summary>
+    /// Creates an empty complexity analysis result
+    /// </summary>
+    private static ComplexityAnalysisResult CreateEmptyComplexityResult()
+    {
+        return new ComplexityAnalysisResult
+        {
+            AverageCyclomaticComplexity = 0,
+            MaxCyclomaticComplexity = 0,
+            AverageCognitiveComplexity = 0,
+            MaxCognitiveComplexity = 0,
+            AverageHalsteadComplexity = 0,
+            MaxHalsteadComplexity = 0,
+            AverageMaintainabilityIndex = 0,
+            MinMaintainabilityIndex = 0,
+            ComplexMethods = [],
+            ComplexClasses = [],
+            ComplexityDistribution = new ComplexityDistribution
+            {
+                CyclomaticComplexityDistribution = [],
+                CognitiveComplexityDistribution = [],
+                MaintainabilityIndexDistribution = [],
+                MethodLengthDistribution = [],
+                ClassLengthDistribution = []
+            }
         };
     }
 }

@@ -35,11 +35,11 @@ public class DynamicFSharpCompilerService
             _logger.LogInformation($"Compiling F# code to assembly '{assemblyName}'");
 
             // Create a temporary file for the F# code
-            string tempFilePath = Path.Combine(_tempDirectory, $"{Guid.NewGuid()}.fs");
+            var tempFilePath = Path.Combine(_tempDirectory, $"{Guid.NewGuid()}.fs");
             await File.WriteAllTextAsync(tempFilePath, fsharpCode);
 
             // Output assembly path
-            string outputPath = Path.Combine(_tempDirectory, $"{assemblyName}.dll");
+            var outputPath = Path.Combine(_tempDirectory, $"{assemblyName}.dll");
 
             // Create F# compiler arguments
             var compilerArgs = new List<string>

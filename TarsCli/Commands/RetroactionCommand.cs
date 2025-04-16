@@ -192,7 +192,7 @@ public class RetroactionCommand
             var transformedCode = await _metascriptEngine.ApplyTransformationsAsync(code, rules);
 
             // Check if any changes were made
-            bool hasChanges = code != transformedCode;
+            var hasChanges = code != transformedCode;
 
             if (!hasChanges)
             {
@@ -355,7 +355,7 @@ public class RetroactionCommand
         // Use a simple line-by-line comparison
         var diff = new List<(int LineNumber, string OriginalLine, string ModifiedLine)>();
 
-        for (int i = 0; i < Math.Max(originalLines.Length, modifiedLines.Length); i++)
+        for (var i = 0; i < Math.Max(originalLines.Length, modifiedLines.Length); i++)
         {
             var originalLine = i < originalLines.Length ? originalLines[i] : "";
             var modifiedLine = i < modifiedLines.Length ? modifiedLines[i] : "";

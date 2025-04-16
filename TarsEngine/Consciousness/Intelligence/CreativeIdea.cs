@@ -107,8 +107,8 @@ public class CreativeIdea
     /// <returns>The evaluation score</returns>
     public double Evaluate(Dictionary<string, double> criteria)
     {
-        double score = 0.0;
-        double totalWeight = 0.0;
+        var score = 0.0;
+        var totalWeight = 0.0;
         
         // Default criteria if none provided
         if (criteria == null || criteria.Count == 0)
@@ -124,7 +124,7 @@ public class CreativeIdea
         // Evaluate based on criteria
         foreach (var (criterion, weight) in criteria)
         {
-            double criterionScore = criterion.ToLowerInvariant() switch
+            var criterionScore = criterion.ToLowerInvariant() switch
             {
                 "originality" => Originality,
                 "value" => Value,

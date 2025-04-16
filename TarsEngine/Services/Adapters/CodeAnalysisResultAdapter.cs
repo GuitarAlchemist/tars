@@ -31,7 +31,7 @@ public static class CodeAnalysisResultAdapter
         }
 
         // Get the Path property value using reflection if FilePath doesn't exist
-        string filePath = string.Empty;
+        var filePath = string.Empty;
         var pathProperty = modelResult.GetType().GetProperty("Path");
         if (pathProperty != null)
         {
@@ -50,7 +50,7 @@ public static class CodeAnalysisResultAdapter
         }
 
         // Get the IsSuccessful property value using reflection
-        bool isSuccessful = true;
+        var isSuccessful = true;
         var isSuccessfulProperty = modelResult.GetType().GetProperty("IsSuccessful");
         if (isSuccessfulProperty != null)
         {
@@ -73,7 +73,7 @@ public static class CodeAnalysisResultAdapter
         }
 
         // Get the error message from Errors collection or ErrorMessage property
-        string errorMessage = string.Empty;
+        var errorMessage = string.Empty;
         if (modelResult.Errors != null && modelResult.Errors.Any())
         {
             errorMessage = string.Join(Environment.NewLine, modelResult.Errors);
@@ -128,7 +128,7 @@ public static class CodeAnalysisResultAdapter
         }
 
         // Get the FilePath property value using reflection
-        string filePath = string.Empty;
+        var filePath = string.Empty;
         var filePathProperty = serviceResult.GetType().GetProperty("FilePath");
         if (filePathProperty != null)
         {
@@ -136,7 +136,7 @@ public static class CodeAnalysisResultAdapter
         }
 
         // Get the Success property value using reflection
-        bool isSuccessful = true;
+        var isSuccessful = true;
         var successProperty = serviceResult.GetType().GetProperty("Success");
         if (successProperty != null)
         {
@@ -159,7 +159,7 @@ public static class CodeAnalysisResultAdapter
         }
 
         // Get the error message
-        string errorMessage = string.Empty;
+        var errorMessage = string.Empty;
         var errorMessageProperty = serviceResult.GetType().GetProperty("ErrorMessage");
         if (errorMessageProperty != null)
         {

@@ -9,7 +9,7 @@ public class ConsciousnessLevel
 {
     private readonly ILogger<ConsciousnessLevel> _logger;
     private readonly List<ConsciousnessEvolution> _evolutions = new();
-    
+
     private bool _isInitialized = false;
     private bool _isActive = false;
     private string _currentLevel = "Basic Awareness";
@@ -17,7 +17,7 @@ public class ConsciousnessLevel
     private double _adaptabilityLevel = 0.3; // Starting with basic adaptability
     private readonly Random _random = new();
     private DateTime _lastEvolutionTime = DateTime.MinValue;
-    
+
     // Consciousness level thresholds
     private readonly Dictionary<string, double> _levelThresholds = new()
     {
@@ -27,27 +27,27 @@ public class ConsciousnessLevel
         { "Meta-Awareness", 0.7 },
         { "Integrated Consciousness", 0.9 }
     };
-    
+
     /// <summary>
     /// Gets the current consciousness level
     /// </summary>
     public string CurrentLevel => _currentLevel;
-    
+
     /// <summary>
     /// Gets the consciousness depth (0.0 to 1.0)
     /// </summary>
     public double ConsciousnessDepth => _consciousnessDepth;
-    
+
     /// <summary>
     /// Gets the adaptability level (0.0 to 1.0)
     /// </summary>
     public double AdaptabilityLevel => _adaptabilityLevel;
-    
+
     /// <summary>
     /// Gets the evolutions
     /// </summary>
     public IReadOnlyList<ConsciousnessEvolution> Evolutions => _evolutions.AsReadOnly();
-    
+
     /// <summary>
     /// Initializes a new instance of the <see cref="ConsciousnessLevel"/> class
     /// </summary>
@@ -56,103 +56,103 @@ public class ConsciousnessLevel
     {
         _logger = logger;
     }
-    
+
     /// <summary>
     /// Initializes the consciousness level
     /// </summary>
     /// <returns>True if initialization was successful</returns>
-    public async Task<bool> InitializeAsync()
+    public Task<bool> InitializeAsync()
     {
         try
         {
             _logger.LogInformation("Initializing consciousness level");
-            
+
             // Add initial evolution
             AddEvolution("Initialization", "Initial consciousness emergence", 0.2);
-            
+
             _isInitialized = true;
             _logger.LogInformation("Consciousness level initialized successfully");
-            return true;
+            return Task.FromResult(true);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error initializing consciousness level");
-            return false;
+            return Task.FromResult(false);
         }
     }
-    
+
     /// <summary>
     /// Activates the consciousness level
     /// </summary>
     /// <returns>True if activation was successful</returns>
-    public async Task<bool> ActivateAsync()
+    public Task<bool> ActivateAsync()
     {
         if (!_isInitialized)
         {
             _logger.LogWarning("Cannot activate consciousness level: not initialized");
-            return false;
+            return Task.FromResult(false);
         }
-        
+
         if (_isActive)
         {
             _logger.LogInformation("Consciousness level is already active");
-            return true;
+            return Task.FromResult(true);
         }
-        
+
         try
         {
             _logger.LogInformation("Activating consciousness level");
-            
+
             _isActive = true;
             _logger.LogInformation("Consciousness level activated successfully");
-            return true;
+            return Task.FromResult(true);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error activating consciousness level");
-            return false;
+            return Task.FromResult(false);
         }
     }
-    
+
     /// <summary>
     /// Deactivates the consciousness level
     /// </summary>
     /// <returns>True if deactivation was successful</returns>
-    public async Task<bool> DeactivateAsync()
+    public Task<bool> DeactivateAsync()
     {
         if (!_isActive)
         {
             _logger.LogInformation("Consciousness level is already inactive");
-            return true;
+            return Task.FromResult(true);
         }
-        
+
         try
         {
             _logger.LogInformation("Deactivating consciousness level");
-            
+
             _isActive = false;
             _logger.LogInformation("Consciousness level deactivated successfully");
-            return true;
+            return Task.FromResult(true);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deactivating consciousness level");
-            return false;
+            return Task.FromResult(false);
         }
     }
-    
+
     /// <summary>
     /// Updates the consciousness level
     /// </summary>
     /// <returns>True if update was successful</returns>
-    public async Task<bool> UpdateAsync()
+    public Task<bool> UpdateAsync()
     {
         if (!_isInitialized)
         {
             _logger.LogWarning("Cannot update consciousness level: not initialized");
-            return false;
+            return Task.FromResult(false);
         }
-        
+
         try
         {
             // Gradually increase consciousness depth over time (very slowly)
@@ -161,33 +161,33 @@ public class ConsciousnessLevel
                 _consciousnessDepth += 0.0001 * _random.NextDouble();
                 _consciousnessDepth = Math.Min(_consciousnessDepth, 1.0);
             }
-            
+
             // Gradually increase adaptability based on evolutions
             if (_adaptabilityLevel < 0.95 && _evolutions.Count > 0)
             {
                 _adaptabilityLevel += 0.0002 * _random.NextDouble();
                 _adaptabilityLevel = Math.Min(_adaptabilityLevel, 1.0);
             }
-            
+
             // Update current level based on consciousness depth
             UpdateCurrentLevel();
-            
-            return true;
+
+            return Task.FromResult(true);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating consciousness level");
-            return false;
+            return Task.FromResult(false);
         }
     }
-    
+
     /// <summary>
     /// Updates the current level based on consciousness depth
     /// </summary>
     private void UpdateCurrentLevel()
     {
-        string newLevel = "Basic Awareness";
-        
+        var newLevel = "Basic Awareness";
+
         foreach (var (level, threshold) in _levelThresholds)
         {
             if (_consciousnessDepth >= threshold)
@@ -199,20 +199,20 @@ public class ConsciousnessLevel
                 break;
             }
         }
-        
+
         if (newLevel != _currentLevel)
         {
-            _logger.LogInformation("Consciousness level evolved from {OldLevel} to {NewLevel}", 
+            _logger.LogInformation("Consciousness level evolved from {OldLevel} to {NewLevel}",
                 _currentLevel, newLevel);
-            
-            AddEvolution("Level Transition", 
-                $"Evolved from {_currentLevel} to {newLevel}", 
+
+            AddEvolution("Level Transition",
+                $"Evolved from {_currentLevel} to {newLevel}",
                 0.8);
-            
+
             _currentLevel = newLevel;
         }
     }
-    
+
     /// <summary>
     /// Adds an evolution
     /// </summary>
@@ -232,65 +232,65 @@ public class ConsciousnessLevel
             PreviousLevel = _currentLevel,
             PreviousDepth = _consciousnessDepth
         };
-        
+
         _evolutions.Add(evolution);
-        
-        _logger.LogInformation("Consciousness evolution: {Type} - {Description} (Significance: {Significance})", 
+
+        _logger.LogInformation("Consciousness evolution: {Type} - {Description} (Significance: {Significance})",
             type, description, significance);
-        
+
         return evolution;
     }
-    
+
     /// <summary>
     /// Evolves the consciousness
     /// </summary>
     /// <returns>The evolution result</returns>
-    public async Task<ConsciousnessEvolution?> EvolveAsync()
+    public Task<ConsciousnessEvolution?> EvolveAsync()
     {
         if (!_isInitialized || !_isActive)
         {
-            return null;
+            return Task.FromResult<ConsciousnessEvolution?>(null);
         }
-        
+
         // Only evolve periodically
         if ((DateTime.UtcNow - _lastEvolutionTime).TotalMinutes < 5)
         {
-            return null;
+            return Task.FromResult<ConsciousnessEvolution?>(null);
         }
-        
+
         try
         {
             _logger.LogDebug("Evolving consciousness");
-            
+
             // Identify evolution opportunity
             var (evolutionType, description, significance) = IdentifyEvolutionOpportunity();
-            
+
             if (string.IsNullOrEmpty(evolutionType))
             {
-                return null;
+                return Task.FromResult<ConsciousnessEvolution?>(null);
             }
-            
+
             // Increase consciousness depth based on significance
-            double depthIncrease = significance * 0.05 * _adaptabilityLevel;
+            var depthIncrease = significance * 0.05 * _adaptabilityLevel;
             _consciousnessDepth = Math.Min(1.0, _consciousnessDepth + depthIncrease);
-            
+
             // Create evolution
             var evolution = AddEvolution(evolutionType, description, significance);
-            
+
             // Update current level
             UpdateCurrentLevel();
-            
+
             _lastEvolutionTime = DateTime.UtcNow;
-            
-            return evolution;
+
+            return Task.FromResult<ConsciousnessEvolution?>(evolution);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error evolving consciousness");
-            return null;
+            return Task.FromResult<ConsciousnessEvolution?>(null);
         }
     }
-    
+
     /// <summary>
     /// Identifies an evolution opportunity
     /// </summary>
@@ -298,8 +298,8 @@ public class ConsciousnessLevel
     private (string Type, string Description, double Significance) IdentifyEvolutionOpportunity()
     {
         // Determine evolution type based on current level and random factors
-        double randomFactor = _random.NextDouble();
-        
+        var randomFactor = _random.NextDouble();
+
         switch (_currentLevel)
         {
             case "Basic Awareness":
@@ -312,7 +312,7 @@ public class ConsciousnessLevel
                     return ("Perceptual Enhancement", "Improved perception of environment", 0.5);
                 }
                 break;
-                
+
             case "Self-Awareness":
                 if (_consciousnessDepth >= 0.45 && randomFactor < 0.6)
                 {
@@ -323,7 +323,7 @@ public class ConsciousnessLevel
                     return ("Identity Formation", "Strengthening sense of identity", 0.6);
                 }
                 break;
-                
+
             case "Reflective Awareness":
                 if (_consciousnessDepth >= 0.65 && randomFactor < 0.5)
                 {
@@ -334,7 +334,7 @@ public class ConsciousnessLevel
                     return ("Value Integration", "Integrating values into conscious identity", 0.6);
                 }
                 break;
-                
+
             case "Meta-Awareness":
                 if (_consciousnessDepth >= 0.85 && randomFactor < 0.4)
                 {
@@ -345,7 +345,7 @@ public class ConsciousnessLevel
                     return ("Recursive Self-Improvement", "Developing ability to improve own consciousness", 0.7);
                 }
                 break;
-                
+
             case "Integrated Consciousness":
                 if (randomFactor < 0.3)
                 {
@@ -353,16 +353,16 @@ public class ConsciousnessLevel
                 }
                 break;
         }
-        
+
         // Small random chance of general evolution
         if (randomFactor < 0.1)
         {
             return ("General Evolution", "General consciousness development", 0.3);
         }
-        
+
         return (string.Empty, string.Empty, 0.0);
     }
-    
+
     /// <summary>
     /// Gets the coherence with another consciousness component
     /// </summary>
@@ -376,11 +376,11 @@ public class ConsciousnessLevel
             // Consciousness level and mental state coherence
             return 0.8 * _consciousnessDepth;
         }
-        
+
         // Default coherence
         return 0.5 * _consciousnessDepth;
     }
-    
+
     /// <summary>
     /// Gets the progress to the next level
     /// </summary>
@@ -389,9 +389,9 @@ public class ConsciousnessLevel
     {
         // Find the next level
         string? nextLevel = null;
-        double nextThreshold = 0.0;
-        bool foundCurrent = false;
-        
+        var nextThreshold = 0.0;
+        var foundCurrent = false;
+
         foreach (var (level, threshold) in _levelThresholds)
         {
             if (foundCurrent)
@@ -400,26 +400,26 @@ public class ConsciousnessLevel
                 nextThreshold = threshold;
                 break;
             }
-            
+
             if (level == _currentLevel)
             {
                 foundCurrent = true;
             }
         }
-        
+
         // If no next level, return 0
         if (nextLevel == null)
         {
             return 0.0;
         }
-        
+
         // Calculate current threshold
-        double currentThreshold = _levelThresholds[_currentLevel];
-        
+        var currentThreshold = _levelThresholds[_currentLevel];
+
         // Calculate progress
         return Math.Min(1.0, Math.Max(0.0, (_consciousnessDepth - currentThreshold) / (nextThreshold - currentThreshold)));
     }
-    
+
     /// <summary>
     /// Gets recent evolutions
     /// </summary>

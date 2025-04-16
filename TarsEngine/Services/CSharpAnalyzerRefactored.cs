@@ -60,6 +60,9 @@ public class CSharpAnalyzerRefactored(ILogger<CSharpAnalyzerRefactored> logger)
         {
             _logger.LogInformation("Analyzing C# code of length {Length}", content?.Length ?? 0);
 
+            // Add a small delay to ensure proper async/await behavior
+            await Task.Yield();
+
             var result = new CodeAnalysisResult
             {
                 FilePath = "memory",
@@ -88,45 +91,49 @@ public class CSharpAnalyzerRefactored(ILogger<CSharpAnalyzerRefactored> logger)
             var analyzeSecurity = ParseOption(options, "AnalyzeSecurity", true);
             var analyzeStyle = ParseOption(options, "AnalyzeStyle", true);
 
-            // Extract structures (classes, methods, etc.)
-            if (includeStructures)
+            // Move CPU-intensive operations to a background thread
+            await Task.Run(() =>
             {
-                result.Structures.AddRange(ExtractStructures(content));
-            }
-
-            // Calculate metrics
-            if (includeMetrics)
-            {
-                result.Metrics.AddRange(CalculateMetrics(content, result.Structures, analyzeComplexity, analyzeMaintainability));
-            }
-
-            // Detect issues
-            if (includeIssues)
-            {
-                // Detect code smells
-                if (analyzeMaintainability || analyzeStyle)
+                // Extract structures (classes, methods, etc.)
+                if (includeStructures)
                 {
-                    result.Issues.AddRange(_codeSmellDetector.DetectCodeSmells(content, "C#"));
+                    result.Structures.AddRange(ExtractStructures(content));
                 }
 
-                // Detect complexity issues
-                if (analyzeComplexity)
+                // Calculate metrics
+                if (includeMetrics)
                 {
-                    result.Issues.AddRange(_complexityAnalyzer.DetectComplexityIssues(content, "C#", result.Structures));
+                    result.Metrics.AddRange(CalculateMetrics(content, result.Structures, analyzeComplexity, analyzeMaintainability));
                 }
 
-                // Detect performance issues
-                if (analyzePerformance)
+                // Detect issues
+                if (includeIssues)
                 {
-                    result.Issues.AddRange(_performanceAnalyzer.DetectPerformanceIssues(content, "C#"));
-                }
+                    // Detect code smells
+                    if (analyzeMaintainability || analyzeStyle)
+                    {
+                        result.Issues.AddRange(_codeSmellDetector.DetectCodeSmells(content, "C#"));
+                    }
 
-                // Detect security issues
-                if (analyzeSecurity)
-                {
-                    result.Issues.AddRange(DetectSecurityIssues(content));
+                    // Detect complexity issues
+                    if (analyzeComplexity)
+                    {
+                        result.Issues.AddRange(_complexityAnalyzer.DetectComplexityIssues(content, "C#", result.Structures));
+                    }
+
+                    // Detect performance issues
+                    if (analyzePerformance)
+                    {
+                        result.Issues.AddRange(_performanceAnalyzer.DetectPerformanceIssues(content, "C#"));
+                    }
+
+                    // Detect security issues
+                    if (analyzeSecurity)
+                    {
+                        result.Issues.AddRange(DetectSecurityIssues(content));
+                    }
                 }
-            }
+            });
 
             _logger.LogInformation("Completed analysis of C# code. Found {IssueCount} issues, {MetricCount} metrics, {StructureCount} structures",
                 result.Issues.Count, result.Metrics.Count, result.Structures.Count);
@@ -603,7 +610,7 @@ public class CSharpAnalyzerRefactored(ILogger<CSharpAnalyzerRefactored> logger)
     private static int CalculateCyclomaticComplexity(string methodContent)
     {
         // Start with 1 (base complexity)
-        int complexity = 1;
+        var complexity = 1;
 
         // Count decision points
         complexity += Regex.Matches(methodContent, @"\bif\b").Count;
@@ -625,8 +632,8 @@ public class CSharpAnalyzerRefactored(ILogger<CSharpAnalyzerRefactored> logger)
     /// </summary>
     private static int FindMatchingBrace(string content, int openBracePos)
     {
-        int braceCount = 1;
-        for (int i = openBracePos + 1; i < content.Length; i++)
+        var braceCount = 1;
+        for (var i = openBracePos + 1; i < content.Length; i++)
         {
             if (content[i] == '{')
             {
@@ -682,19 +689,28 @@ public class CSharpAnalyzerRefactored(ILogger<CSharpAnalyzerRefactored> logger)
     /// <summary>
     /// Gets the available options for the analyzer
     /// </summary>
-    public Task<Dictionary<string, string>> GetAvailableOptionsAsync()
+    public async Task<Dictionary<string, string>> GetAvailableOptionsAsync()
     {
-        return Task.FromResult(new Dictionary<string, string>
+        try
         {
-            { "IncludeMetrics", "true/false - Include code metrics in the analysis" },
-            { "IncludeStructures", "true/false - Include code structures in the analysis" },
-            { "IncludeIssues", "true/false - Include code issues in the analysis" },
-            { "AnalyzePerformance", "true/false - Analyze performance issues" },
-            { "AnalyzeComplexity", "true/false - Analyze code complexity" },
-            { "AnalyzeMaintainability", "true/false - Analyze code maintainability" },
-            { "AnalyzeSecurity", "true/false - Analyze security issues" },
-            { "AnalyzeStyle", "true/false - Analyze code style issues" }
-        });
+            // Since this is CPU-bound work, we'll move it to a background thread
+            return await Task.Run(() => new Dictionary<string, string>
+            {
+                { "IncludeMetrics", "true/false - Include code metrics in the analysis" },
+                { "IncludeStructures", "true/false - Include code structures in the analysis" },
+                { "IncludeIssues", "true/false - Include code issues in the analysis" },
+                { "AnalyzePerformance", "true/false - Analyze performance issues" },
+                { "AnalyzeComplexity", "true/false - Analyze code complexity" },
+                { "AnalyzeMaintainability", "true/false - Analyze code maintainability" },
+                { "AnalyzeSecurity", "true/false - Analyze security issues" },
+                { "AnalyzeStyle", "true/false - Analyze code style issues" }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting available options for C# analyzer");
+            return new Dictionary<string, string>();
+        }
     }
 
     /// <summary>

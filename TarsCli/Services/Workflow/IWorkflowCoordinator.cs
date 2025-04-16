@@ -98,12 +98,12 @@ public class WorkflowInstance
     /// <summary>
     /// Start time of the workflow
     /// </summary>
-    public System.DateTime StartTime { get; set; }
+    public DateTime StartTime { get; set; }
 
     /// <summary>
     /// End time of the workflow
     /// </summary>
-    public System.DateTime? EndTime { get; set; }
+    public DateTime? EndTime { get; set; }
 }
 
 /// <summary>
@@ -124,7 +124,7 @@ public class WorkflowStateTransition
     /// <summary>
     /// Timestamp of the transition
     /// </summary>
-    public System.DateTime Timestamp { get; set; }
+    public DateTime Timestamp { get; set; }
 
     /// <summary>
     /// Result of the state

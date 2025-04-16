@@ -35,7 +35,7 @@ public class FSharpCodeGenerator : ICodeGenerator
         try
         {
             // Split the file content into lines for processing
-            var lines = originalContent.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+            var lines = originalContent.Split(["\r\n", "\r", "\n"], StringSplitOptions.None);
             var newLines = new string[lines.Length];
             Array.Copy(lines, newLines, lines.Length);
 
@@ -126,7 +126,7 @@ public class FSharpCodeGenerator : ICodeGenerator
     /// <inheritdoc/>
     public IEnumerable<string> GetSupportedFileExtensions()
     {
-        return new[] { ".fs", ".fsx" };
+        return [".fs", ".fsx"];
     }
 
     /// <summary>
@@ -142,8 +142,8 @@ public class FSharpCodeGenerator : ICodeGenerator
         var line = lines[lineIndex];
 
         // Extract the member name
-        string memberName = ExtractMemberName(line);
-        string memberType = DetermineMemberType(line);
+        var memberName = ExtractMemberName(line);
+        var memberType = DetermineMemberType(line);
 
         // Create the documentation
         var docLines = new List<string>
@@ -553,7 +553,7 @@ public class FSharpCodeGenerator : ICodeGenerator
     /// <returns>Index of the module declaration, or -1 if not found</returns>
     private int FindModuleDeclaration(string[] lines)
     {
-        for (int i = 0; i < lines.Length; i++)
+        for (var i = 0; i < lines.Length; i++)
         {
             if (Regex.IsMatch(lines[i], @"module\s+[a-zA-Z0-9_\.]+"))
             {

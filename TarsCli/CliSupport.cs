@@ -243,6 +243,10 @@ public static class CliSupport
         var swarmSelfImprovementCommand = serviceProvider.GetRequiredService<SwarmSelfImprovementCommand>();
         rootCommand.AddCommand(swarmSelfImprovementCommand);
 
+        // Add the Test Generator command
+        var testGeneratorCommand = serviceProvider.GetRequiredService<TestGeneratorCommand>();
+        rootCommand.AddCommand(testGeneratorCommand);
+
         // Add the Self-Coding command
         var selfCodingCommand = serviceProvider.GetRequiredService<SelfCodingCommand>();
         rootCommand.AddCommand(selfCodingCommand);

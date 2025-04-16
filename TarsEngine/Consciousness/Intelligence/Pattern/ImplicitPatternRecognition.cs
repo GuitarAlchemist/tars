@@ -196,7 +196,7 @@ public class ImplicitPatternRecognition
             // Check each pattern for matches
             foreach (var pattern in patternsToCheck)
             {
-                double matchScore = CalculatePatternMatchScore(situation, pattern);
+                var matchScore = CalculatePatternMatchScore(situation, pattern);
                 
                 // Apply pattern recognition level to the match score
                 matchScore *= _patternRecognitionLevel;
@@ -243,7 +243,7 @@ public class ImplicitPatternRecognition
     private double CalculatePatternMatchScore(string situation, PatternData pattern)
     {
         // Count how many indicators are present in the situation
-        int indicatorsPresent = 0;
+        var indicatorsPresent = 0;
         
         foreach (var indicator in pattern.Indicators)
         {
@@ -254,15 +254,15 @@ public class ImplicitPatternRecognition
         }
         
         // Calculate match score based on percentage of indicators present
-        double indicatorScore = pattern.Indicators.Count > 0
+        var indicatorScore = pattern.Indicators.Count > 0
             ? (double)indicatorsPresent / pattern.Indicators.Count
             : 0.0;
         
         // Add some randomness to simulate intuitive recognition
-        double randomFactor = 0.2 * (_random.NextDouble() - 0.5);
+        var randomFactor = 0.2 * (_random.NextDouble() - 0.5);
         
         // Calculate final score
-        double score = indicatorScore + randomFactor;
+        var score = indicatorScore + randomFactor;
         
         // Ensure score is within bounds
         return Math.Max(0.0, Math.Min(1.0, score));
@@ -328,7 +328,7 @@ public class ImplicitPatternRecognition
             var topMatch = matches.First();
             
             // Generate intuition description
-            string description = $"I intuitively recognize a {topMatch.PatternName} pattern in this situation";
+            var description = $"I intuitively recognize a {topMatch.PatternName} pattern in this situation";
             
             // Add explanation if confidence is high
             if (topMatch.Confidence > 0.7)
@@ -414,7 +414,7 @@ public class ImplicitPatternRecognition
                     foreach (var description in outcomeDescriptions)
                     {
                         // Calculate probability based on match confidence and pattern reliability
-                        double probability = match.Confidence * pattern.Reliability;
+                        var probability = match.Confidence * pattern.Reliability;
                         
                         // Add some randomness to probability
                         probability = Math.Max(0.1, Math.Min(0.9, probability + (0.1 * (_random.NextDouble() - 0.5))));

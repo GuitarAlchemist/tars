@@ -53,7 +53,7 @@ public class KnowledgeTestGenerationCommand : Command
     {
         try
         {
-            int testsGenerated = await _knowledgeTestGenerationService.GenerateTestsAsync(project, maxTests);
+            var testsGenerated = await _knowledgeTestGenerationService.GenerateTestsAsync(project, maxTests);
             
             if (testsGenerated > 0)
             {

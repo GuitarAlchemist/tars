@@ -11,7 +11,7 @@ public class ConnectionDiscoveryExample
 {
     private readonly ILogger<ConnectionDiscoveryExample> _logger;
     private bool _isActive;
-    private bool _isInitialized;
+    private bool _isInitialized = false; // Initialize the field
     private double _connectionDiscoveryLevel;
     private readonly Random _random = new();
 
@@ -214,7 +214,7 @@ public class ConnectionDiscoveryExample
     public AsyncResult<List<ConceptConnection>> DiscoverDistantConnectionsAsyncAdvanced()
     {
         // Use Option monad to handle the case where discovery is not initialized or active
-        Option<bool> canDiscover = CanDiscover();
+        var canDiscover = CanDiscover();
             
         // Convert to Result
         Result<bool, string> canDiscoverResult = canDiscover.Match(

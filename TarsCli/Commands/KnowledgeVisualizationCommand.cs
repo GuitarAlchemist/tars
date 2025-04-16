@@ -47,11 +47,11 @@ public class KnowledgeVisualizationCommand : Command
     {
         try
         {
-            bool success = await _knowledgeVisualizationService.GenerateVisualizationAsync();
+            var success = await _knowledgeVisualizationService.GenerateVisualizationAsync();
 
             if (success && open)
             {
-                string htmlPath = Path.Combine("visualizations", "knowledge_base.html");
+                var htmlPath = Path.Combine("visualizations", "knowledge_base.html");
                 if (File.Exists(htmlPath))
                 {
                     _consoleService.WriteInfo($"Opening visualization in browser: {Path.GetFullPath(htmlPath)}");

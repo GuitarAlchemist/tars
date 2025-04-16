@@ -219,19 +219,19 @@ public class RandomThoughtGeneration
             _logger.LogDebug("Generating random thought");
             
             // Get random concept
-            string concept = GetRandomConcept();
+            var concept = GetRandomConcept();
             
             // Get random template
-            string template = GetRandomThoughtTemplate();
+            var template = GetRandomThoughtTemplate();
             
             // Generate thought content
-            string content = string.Format(template, concept);
+            var content = string.Format(template, concept);
             
             // Calculate significance (somewhat random for random thoughts)
-            double significance = 0.3 + (0.5 * _random.NextDouble() * _randomThoughtLevel);
+            var significance = 0.3 + (0.5 * _random.NextDouble() * _randomThoughtLevel);
             
             // Determine if this is a serendipitous thought
-            bool isSerendipitous = _random.NextDouble() < serendipityLevel;
+            var isSerendipitous = _random.NextDouble() < serendipityLevel;
             
             // If serendipitous, increase significance
             if (isSerendipitous)
@@ -252,13 +252,13 @@ public class RandomThoughtGeneration
             }
             
             // Calculate originality
-            double originality = 0.4 + (0.6 * _random.NextDouble() * _randomThoughtLevel);
+            var originality = 0.4 + (0.6 * _random.NextDouble() * _randomThoughtLevel);
             
             // Calculate coherence (random thoughts have variable coherence)
-            double coherence = 0.3 + (0.4 * _random.NextDouble());
+            var coherence = 0.3 + (0.4 * _random.NextDouble());
             
             // Get concept category
-            string category = _conceptCategories.FirstOrDefault(c => c.Value.Contains(concept)).Key ?? "General";
+            var category = _conceptCategories.FirstOrDefault(c => c.Value.Contains(concept)).Key ?? "General";
             
             // Create thought model
             var thought = new ThoughtModel
@@ -313,7 +313,7 @@ public class RandomThoughtGeneration
     {
         var thoughts = new List<ThoughtModel>();
         
-        for (int i = 0; i < count; i++)
+        for (var i = 0; i < count; i++)
         {
             var thought = GenerateRandomThought(serendipityLevel);
             thoughts.Add(thought);
@@ -338,17 +338,17 @@ public class RandomThoughtGeneration
             }
             
             // Calculate novelty based on content length and complexity
-            double novelty = Math.Min(1.0, thought.Content.Length / 100.0);
+            var novelty = Math.Min(1.0, thought.Content.Length / 100.0);
             
             // Calculate interestingness based on significance and originality
-            double interestingness = (thought.Significance + thought.Originality) / 2.0;
+            var interestingness = (thought.Significance + thought.Originality) / 2.0;
             
             // Calculate potential based on serendipity
-            bool isSerendipitous = thought.Tags.Contains("serendipitous");
-            double potential = isSerendipitous ? 0.8 : 0.5;
+            var isSerendipitous = thought.Tags.Contains("serendipitous");
+            var potential = isSerendipitous ? 0.8 : 0.5;
             
             // Calculate overall score
-            double score = (novelty * 0.3) + (interestingness * 0.4) + (potential * 0.3);
+            var score = (novelty * 0.3) + (interestingness * 0.4) + (potential * 0.3);
             
             return score;
         }

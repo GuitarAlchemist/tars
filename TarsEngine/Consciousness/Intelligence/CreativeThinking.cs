@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using TarsEngine.Monads;
 
 namespace TarsEngine.Consciousness.Intelligence;
 
@@ -64,7 +65,7 @@ public class CreativeThinking
     /// Initializes the creative thinking
     /// </summary>
     /// <returns>True if initialization was successful</returns>
-    public async Task<bool> InitializeAsync()
+    public Task<bool> InitializeAsync()
     {
         try
         {
@@ -75,12 +76,12 @@ public class CreativeThinking
 
             _isInitialized = true;
             _logger.LogInformation("Creative thinking initialized successfully");
-            return true;
+            return AsyncMonad.Return(true);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error initializing creative thinking");
-            return false;
+            return AsyncMonad.Return(false);
         }
     }
 
@@ -124,7 +125,7 @@ public class CreativeThinking
     /// <param name="strength">The association strength</param>
     private void AddConceptAssociation(string concept1, string concept2, double strength)
     {
-        string key = GetAssociationKey(concept1, concept2);
+        var key = GetAssociationKey(concept1, concept2);
         _conceptAssociations[key] = strength;
     }
 
@@ -149,7 +150,7 @@ public class CreativeThinking
     /// <returns>The association strength</returns>
     private double GetAssociationStrength(string concept1, string concept2)
     {
-        string key = GetAssociationKey(concept1, concept2);
+        var key = GetAssociationKey(concept1, concept2);
         return _conceptAssociations.TryGetValue(key, out var strength) ? strength : 0.0;
     }
 
@@ -157,18 +158,18 @@ public class CreativeThinking
     /// Activates the creative thinking
     /// </summary>
     /// <returns>True if activation was successful</returns>
-    public async Task<bool> ActivateAsync()
+    public Task<bool> ActivateAsync()
     {
         if (!_isInitialized)
         {
             _logger.LogWarning("Cannot activate creative thinking: not initialized");
-            return false;
+            return AsyncMonad.Return(false);
         }
 
         if (_isActive)
         {
             _logger.LogInformation("Creative thinking is already active");
-            return true;
+            return AsyncMonad.Return(true);
         }
 
         try
@@ -177,12 +178,12 @@ public class CreativeThinking
 
             _isActive = true;
             _logger.LogInformation("Creative thinking activated successfully");
-            return true;
+            return AsyncMonad.Return(true);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error activating creative thinking");
-            return false;
+            return AsyncMonad.Return(false);
         }
     }
 
@@ -190,12 +191,12 @@ public class CreativeThinking
     /// Deactivates the creative thinking
     /// </summary>
     /// <returns>True if deactivation was successful</returns>
-    public async Task<bool> DeactivateAsync()
+    public Task<bool> DeactivateAsync()
     {
         if (!_isActive)
         {
             _logger.LogInformation("Creative thinking is already inactive");
-            return true;
+            return AsyncMonad.Return(true);
         }
 
         try
@@ -204,12 +205,12 @@ public class CreativeThinking
 
             _isActive = false;
             _logger.LogInformation("Creative thinking deactivated successfully");
-            return true;
+            return AsyncMonad.Return(true);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deactivating creative thinking");
-            return false;
+            return AsyncMonad.Return(false);
         }
     }
 
@@ -217,12 +218,12 @@ public class CreativeThinking
     /// Updates the creative thinking
     /// </summary>
     /// <returns>True if update was successful</returns>
-    public async Task<bool> UpdateAsync()
+    public Task<bool> UpdateAsync()
     {
         if (!_isInitialized)
         {
             _logger.LogWarning("Cannot update creative thinking: not initialized");
-            return false;
+            return AsyncMonad.Return(false);
         }
 
         try
@@ -252,12 +253,12 @@ public class CreativeThinking
                 _patternDisruptionLevel = Math.Min(_patternDisruptionLevel, 1.0);
             }
 
-            return true;
+            return AsyncMonad.Return(true);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating creative thinking");
-            return false;
+            return AsyncMonad.Return(false);
         }
     }
 
@@ -265,17 +266,17 @@ public class CreativeThinking
     /// Generates a creative idea
     /// </summary>
     /// <returns>The generated creative idea</returns>
-    public async Task<CreativeIdea?> GenerateCreativeIdeaAsync()
+    public Task<CreativeIdea?> GenerateCreativeIdeaAsync()
     {
         if (!_isInitialized || !_isActive)
         {
-            return null;
+            return AsyncMonad.Return<CreativeIdea?>(null);
         }
 
         // Only generate ideas periodically
         if ((DateTime.UtcNow - _lastIdeaGenerationTime).TotalSeconds < 30)
         {
-            return null;
+            return AsyncMonad.Return<CreativeIdea?>(null);
         }
 
         try
@@ -312,12 +313,12 @@ public class CreativeThinking
                     idea.Description, idea.Originality, idea.Value);
             }
 
-            return idea;
+            return AsyncMonad.Return(idea);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error generating creative idea");
-            return null;
+            return AsyncMonad.Return<CreativeIdea?>(null);
         }
     }
 
@@ -328,18 +329,18 @@ public class CreativeThinking
     private CreativeProcessType ChooseCreativeProcess()
     {
         // Calculate probabilities based on current levels
-        double divergentProb = _divergentThinkingLevel * 0.4;
-        double blendingProb = _conceptualBlendingLevel * 0.3;
-        double disruptionProb = _patternDisruptionLevel * 0.3;
+        var divergentProb = _divergentThinkingLevel * 0.4;
+        var blendingProb = _conceptualBlendingLevel * 0.3;
+        var disruptionProb = _patternDisruptionLevel * 0.3;
 
         // Normalize probabilities
-        double total = divergentProb + blendingProb + disruptionProb;
+        var total = divergentProb + blendingProb + disruptionProb;
         divergentProb /= total;
         blendingProb /= total;
         disruptionProb /= total;
 
         // Choose process based on probabilities
-        double rand = _random.NextDouble();
+        var rand = _random.NextDouble();
 
         if (rand < divergentProb)
         {
@@ -400,14 +401,14 @@ public class CreativeThinking
         var perspective = perspectives[_random.Next(perspectives.Count)];
 
         // Generate idea description
-        string description = $"What if we {perspective}?";
+        var description = $"What if we {perspective}?";
 
         // Calculate originality based on association strength (lower association = higher originality)
-        double associationStrength = GetAssociationStrength(seedConcepts[0], seedConcepts[1]);
-        double originality = 0.5 + (0.5 * (1.0 - associationStrength)) * _divergentThinkingLevel;
+        var associationStrength = GetAssociationStrength(seedConcepts[0], seedConcepts[1]);
+        var originality = 0.5 + (0.5 * (1.0 - associationStrength)) * _divergentThinkingLevel;
 
         // Calculate value (somewhat random but influenced by creativity level)
-        double value = 0.3 + (0.7 * _random.NextDouble() * _creativityLevel);
+        var value = 0.3 + (0.7 * _random.NextDouble() * _creativityLevel);
 
         return new CreativeIdea
         {
@@ -443,25 +444,25 @@ public class CreativeThinking
         var description = blendDescriptions[_random.Next(blendDescriptions.Count)];
 
         // Calculate average association strength between all concept pairs
-        double totalAssociation = 0.0;
-        int pairs = 0;
+        var totalAssociation = 0.0;
+        var pairs = 0;
 
-        for (int i = 0; i < seedConcepts.Length; i++)
+        for (var i = 0; i < seedConcepts.Length; i++)
         {
-            for (int j = i + 1; j < seedConcepts.Length; j++)
+            for (var j = i + 1; j < seedConcepts.Length; j++)
             {
                 totalAssociation += GetAssociationStrength(seedConcepts[i], seedConcepts[j]);
                 pairs++;
             }
         }
 
-        double avgAssociation = pairs > 0 ? totalAssociation / pairs : 0.5;
+        var avgAssociation = pairs > 0 ? totalAssociation / pairs : 0.5;
 
         // Calculate originality (lower average association = higher originality)
-        double originality = 0.6 + (0.4 * (1.0 - avgAssociation)) * _conceptualBlendingLevel;
+        var originality = 0.6 + (0.4 * (1.0 - avgAssociation)) * _conceptualBlendingLevel;
 
         // Calculate value (somewhat random but influenced by creativity level)
-        double value = 0.4 + (0.6 * _random.NextDouble() * _creativityLevel);
+        var value = 0.4 + (0.6 * _random.NextDouble() * _creativityLevel);
 
         return new CreativeIdea
         {
@@ -497,10 +498,10 @@ public class CreativeThinking
         var description = disruptionDescriptions[_random.Next(disruptionDescriptions.Count)];
 
         // Calculate originality (higher for pattern disruption)
-        double originality = 0.7 + (0.3 * _random.NextDouble() * _patternDisruptionLevel);
+        var originality = 0.7 + (0.3 * _random.NextDouble() * _patternDisruptionLevel);
 
         // Calculate value (more variable for pattern disruption)
-        double value = 0.2 + (0.8 * _random.NextDouble() * _creativityLevel);
+        var value = 0.2 + (0.8 * _random.NextDouble() * _creativityLevel);
 
         return new CreativeIdea
         {
@@ -536,7 +537,7 @@ public class CreativeThinking
 
         // Select random concepts
         var selectedConcepts = new string[count];
-        for (int i = 0; i < count; i++)
+        for (var i = 0; i < count; i++)
         {
             selectedConcepts[i] = conceptArray[_random.Next(conceptArray.Length)];
         }
@@ -550,12 +551,12 @@ public class CreativeThinking
     /// <param name="problem">The problem description</param>
     /// <param name="constraints">The constraints</param>
     /// <returns>The creative solution</returns>
-    public async Task<CreativeIdea?> GenerateCreativeSolutionAsync(string problem, List<string>? constraints = null)
+    public Task<CreativeIdea?> GenerateCreativeSolutionAsync(string problem, List<string>? constraints = null)
     {
         if (!_isInitialized || !_isActive)
         {
             _logger.LogWarning("Cannot generate creative solution: creative thinking not initialized or active");
-            return null;
+            return AsyncMonad.Return<CreativeIdea?>(null);
         }
 
         try
@@ -593,12 +594,12 @@ public class CreativeThinking
                     solution.Description, solution.Originality, solution.Value);
             }
 
-            return solution;
+            return AsyncMonad.Return(solution);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error generating creative solution");
-            return null;
+            return AsyncMonad.Return<CreativeIdea?>(null);
         }
     }
 

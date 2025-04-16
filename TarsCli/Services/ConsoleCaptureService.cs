@@ -226,8 +226,8 @@ Finally, provide the complete improved code.
         // Look for the improved code section, which typically comes after "complete improved code"
         var lines = suggestions.Split('\n');
         var improvedCodeLines = new List<string>();
-        bool inImprovedCodeSection = false;
-        bool foundImprovedCodeMarker = false;
+        var inImprovedCodeSection = false;
+        var foundImprovedCodeMarker = false;
             
         foreach (var line in lines)
         {
@@ -342,7 +342,7 @@ Generate an improved version of the code that addresses all issues.
         // Look for code blocks in the response
         var lines = response.Split('\n');
         var codeLines = new List<string>();
-        bool inCodeBlock = false;
+        var inCodeBlock = false;
             
         foreach (var line in lines)
         {

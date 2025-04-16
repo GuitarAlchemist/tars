@@ -48,7 +48,7 @@ public class ConfigurationService
         try
         {
             // Read the current appsettings.json file
-            string json = await File.ReadAllTextAsync(_appSettingsPath);
+            var json = await File.ReadAllTextAsync(_appSettingsPath);
             var jsonDocument = JsonDocument.Parse(json);
             var root = jsonDocument.RootElement;
 

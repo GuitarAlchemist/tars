@@ -639,7 +639,7 @@ namespace DemoCode
             // Show a progress animation
             var progressChars = new[] { '|', '/', '-', '\\' };
             var progressTask = Task.Run(async () => {
-                int i = 0;
+                var i = 0;
                 while (true) {
                     Console.Write($"\rGenerating learning plan {progressChars[i % progressChars.Length]} ");
                     await Task.Delay(100);
@@ -678,7 +678,7 @@ namespace DemoCode
 
             // Display modules with more detailed information
             CliSupport.WriteColorLine("Modules:", ConsoleColor.Yellow);
-            for (int i = 0; i < learningPlan.Content.Modules.Count; i++)
+            for (var i = 0; i < learningPlan.Content.Modules.Count; i++)
             {
                 var module = learningPlan.Content.Modules[i];
                 Console.WriteLine($"  Module {i+1}: {module.Title}");
@@ -791,7 +791,7 @@ namespace DemoCode
         // Modules
         sb.AppendLine("## Modules");
         sb.AppendLine();
-        for (int i = 0; i < plan.Content.Modules.Count; i++)
+        for (var i = 0; i < plan.Content.Modules.Count; i++)
         {
             var module = plan.Content.Modules[i];
             sb.AppendLine($"### Module {i+1}: {module.Title}");
@@ -1241,7 +1241,7 @@ namespace DemoCode
             var progressChars = new[] { '|', '/', '-', '\\' };
 
             // Simulate progress animation
-            for (int i = 0; i < 15; i++)
+            for (var i = 0; i < 15; i++)
             {
                 Console.Write($"\rInitializing {progressChars[i % progressChars.Length]} ");
                 await Task.Delay(100);
@@ -1275,18 +1275,18 @@ namespace DemoCode
             Console.WriteLine();
 
             // Display intelligence metrics with a visual gauge
-            double intelligenceScore = 120.5;
-            double baselineHuman = 100.0;
-            double ratio = intelligenceScore / baselineHuman;
+            var intelligenceScore = 120.5;
+            var baselineHuman = 100.0;
+            var ratio = intelligenceScore / baselineHuman;
 
             // Create a visual gauge
-            int gaugeWidth = 40;
-            int position = (int)(ratio * gaugeWidth / 2);
+            var gaugeWidth = 40;
+            var position = (int)(ratio * gaugeWidth / 2);
 
             Console.WriteLine("Intelligence Level:");
             Console.WriteLine("┌" + new string('─', gaugeWidth) + "┐");
             Console.Write("│");
-            for (int i = 0; i < gaugeWidth; i++)
+            for (var i = 0; i < gaugeWidth; i++)
             {
                 if (i == gaugeWidth / 2) // Human baseline position
                     Console.Write("H");
@@ -1321,7 +1321,7 @@ namespace DemoCode
             string[] concepts = ["Neural Networks", "Quantum Computing", "Optimization", "Parallel Processing"];
 
             // Display concepts
-            for (int i = 0; i < concepts.Length; i++)
+            for (var i = 0; i < concepts.Length; i++)
             {
                 await Task.Delay(300);
                 Console.WriteLine($"  [{i+1}] {concepts[i]}");
@@ -1368,7 +1368,7 @@ namespace DemoCode
             ];
 
             // Display code with highlighting
-            for (int i = 0; i < codePatterns.Length; i++)
+            for (var i = 0; i < codePatterns.Length; i++)
             {
                 await Task.Delay(200);
                 if (i == 3) // Highlight the problematic line
@@ -1398,18 +1398,18 @@ namespace DemoCode
 
             // Create a simple ASCII graph showing exponential growth
             string[] graph = new string[10];
-            for (int i = 0; i < 10; i++)
+            for (var i = 0; i < 10; i++)
                 graph[i] = new string(' ', 50);
 
             // Plot the curve (exponential growth)
-            for (int x = 0; x < 50; x++)
+            for (var x = 0; x < 50; x++)
             {
-                double t = x / 50.0 * 5.0; // 0 to 5 years
-                double y = Math.Pow(1.5, t) * 120.5 / 1245.8 * 9; // Normalized to fit in 10 rows
-                int yPos = 9 - (int)Math.Min(9, y);
+                var t = x / 50.0 * 5.0; // 0 to 5 years
+                var y = Math.Pow(1.5, t) * 120.5 / 1245.8 * 9; // Normalized to fit in 10 rows
+                var yPos = 9 - (int)Math.Min(9, y);
                 if (yPos >= 0 && yPos < 10)
                 {
-                    char[] chars = graph[yPos].ToCharArray();
+                    var chars = graph[yPos].ToCharArray();
                     if (x < chars.Length)
                     {
                         chars[x] = '*';
@@ -1419,7 +1419,7 @@ namespace DemoCode
             }
 
             // Display the graph
-            for (int i = 0; i < 10; i++)
+            for (var i = 0; i < 10; i++)
                 Console.WriteLine("│" + graph[i] + "│");
 
             Console.WriteLine("└" + new string('─', 50) + "┘");
@@ -1453,13 +1453,13 @@ namespace DemoCode
             ];
 
             // Display indicators with progress bars
-            for (int i = 0; i < indicators.Length; i++)
+            for (var i = 0; i < indicators.Length; i++)
             {
                 await Task.Delay(300);
-                int progress = i < 2 ? 100 : (i == 2 ? 80 : (i == 3 ? 65 : 40));
+                var progress = i < 2 ? 100 : (i == 2 ? 80 : (i == 3 ? 65 : 40));
                 Console.Write($"  {indicators[i]}: [");
 
-                for (int j = 0; j < 20; j++)
+                for (var j = 0; j < 20; j++)
                 {
                     if (j < progress / 5)
                         Console.Write("█");
@@ -1708,14 +1708,14 @@ namespace TarsDemo
                 Console.WriteLine("Visual Complexity Comparison:");
 
                 Console.Write("Simple Method: ");
-                for (int i = 0; i < simpleMethodMetric.Value; i++)
+                for (var i = 0; i < simpleMethodMetric.Value; i++)
                 {
                     Console.Write("█");
                 }
                 Console.WriteLine();
 
                 Console.Write("Complex Method: ");
-                for (int i = 0; i < complexMethodMetric.Value; i++)
+                for (var i = 0; i < complexMethodMetric.Value; i++)
                 {
                     Console.Write("█");
                 }

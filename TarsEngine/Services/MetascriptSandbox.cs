@@ -1,8 +1,11 @@
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Microsoft.CodeAnalysis.Scripting;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using TarsEngine.Models;
+using TarsEngine.Interfaces.Compilation;
 
 namespace TarsEngine.Services;
 
@@ -11,20 +14,29 @@ namespace TarsEngine.Services;
 /// </summary>
 public class MetascriptSandbox
 {
-    private readonly ILogger _logger;
+    private readonly ILogger<MetascriptSandbox> _logger;
     private readonly string _sandboxDirectory;
-    private readonly Dictionary<string, ScriptOptions> _languageOptions = new();
-    private readonly Dictionary<string, Func<string, Dictionary<string, object>, CancellationToken, Task<object>>> _languageExecutors = new();
+    private readonly Dictionary<string, ScriptOptions> _languageOptions;
+    private readonly Dictionary<string, Func<string, Dictionary<string, object>, CancellationToken, Task<object>>> _languageExecutors;
+    private readonly IFSharpCompiler _fsharpCompiler;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="MetascriptSandbox"/> class
     /// </summary>
     /// <param name="logger">The logger</param>
-    /// <param name="sandboxDirectory">The directory for sandbox execution</param>
-    public MetascriptSandbox(ILogger logger, string sandboxDirectory)
+    /// <param name="configuration">The configuration</param>
+    /// <param name="fsharpCompiler">The F# compiler service</param>
+    public MetascriptSandbox(
+        ILogger<MetascriptSandbox> logger,
+        IConfiguration configuration,
+        IFSharpCompiler fsharpCompiler) // Ensure IFSharpCompiler is declared in the correct namespace
     {
         _logger = logger;
-        _sandboxDirectory = sandboxDirectory;
+        _fsharpCompiler = fsharpCompiler;
+        _sandboxDirectory = configuration.GetValue<string>("SandboxDirectory") ?? Path.Combine(Path.GetTempPath(), "TarsScriptSandbox");
+        _languageOptions = new Dictionary<string, ScriptOptions>();
+        _languageExecutors = new Dictionary<string, Func<string, Dictionary<string, object>, CancellationToken, Task<object>>>();
+        
         InitializeLanguageOptions();
         InitializeLanguageExecutors();
     }
@@ -178,54 +190,28 @@ public class MetascriptSandbox
                 Status = MetascriptValidationStatus.Validating
             };
 
-            // Validate metascript
-            try
-            {
-                // Validate metascript code
-                var (isValid, errors, warnings) = await ValidateMetascriptCodeAsync(metascript, options);
+            // Validate code based on language
+            var (isValid, errors, warnings) = await ValidateCodeAsync(metascript, options);
 
-                // Set validation result
-                result.IsValid = isValid;
-                result.Status = isValid
-                    ? (warnings.Count > 0 ? MetascriptValidationStatus.Warning : MetascriptValidationStatus.Valid)
-                    : MetascriptValidationStatus.Invalid;
-                result.Errors = errors;
-                result.Warnings = warnings;
-                result.Messages = new List<string>(errors.Count + warnings.Count);
-                result.Messages.AddRange(errors);
-                result.Messages.AddRange(warnings);
-            }
-            catch (Exception ex)
-            {
-                result.IsValid = false;
-                result.Status = MetascriptValidationStatus.Invalid;
-                result.Errors = [ex.ToString()];
-                result.Messages = [ex.ToString()];
-            }
-            finally
-            {
-                stopwatch.Stop();
-                result.ValidationTimeMs = stopwatch.ElapsedMilliseconds;
-                result.ValidatedAt = DateTime.UtcNow;
-            }
+            stopwatch.Stop();
 
-            _logger.LogInformation("Metascript validation completed: {MetascriptName} ({MetascriptId}), Status: {Status}, Time: {ValidationTimeMs}ms",
-                metascript.Name, metascript.Id, result.Status, result.ValidationTimeMs);
+            result.IsValid = isValid;
+            result.Errors = errors;
+            result.Warnings = warnings;
+            result.Status = isValid ? MetascriptValidationStatus.Valid : MetascriptValidationStatus.Invalid;
+            result.ValidationTimeMs = stopwatch.ElapsedMilliseconds;
 
             return result;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error validating metascript: {MetascriptName} ({MetascriptId})", metascript.Name, metascript.Id);
-
             return new MetascriptValidationResult
             {
                 MetascriptId = metascript.Id,
                 IsValid = false,
                 Status = MetascriptValidationStatus.Invalid,
-                Errors = [ex.ToString()],
-                Messages = [ex.ToString()],
-                ValidatedAt = DateTime.UtcNow
+                Errors = [ex.ToString()]
             };
         }
     }
@@ -359,10 +345,10 @@ public class MetascriptSandbox
     /// <summary>
     /// Validates metascript code
     /// </summary>
-    /// <param name="metascript">The metascript</param>
-    /// <param name="options">The validation options</param>
-    /// <returns>The validation result</returns>
-    private async Task<(bool IsValid, List<string> Errors, List<string> Warnings)> ValidateMetascriptCodeAsync(
+    /// <param name="metascript">The metascript to validate</param>
+    /// <param name="options">Optional validation options</param>
+    /// <returns>Validation result tuple (isValid, errors, warnings)</returns>
+    private Task<(bool IsValid, List<string> Errors, List<string> Warnings)> ValidateCodeAsync(
         GeneratedMetascript metascript,
         Dictionary<string, string>? options)
     {
@@ -371,41 +357,52 @@ public class MetascriptSandbox
 
         try
         {
-            // Check if language is supported
-            if (!_languageExecutors.ContainsKey(metascript.Language.ToLowerInvariant()))
-            {
-                errors.Add($"Language not supported: {metascript.Language}");
-                return (false, errors, warnings);
-            }
+            // Validate metascript code
+            return ValidateMetascriptCodeAsync(metascript, options);
+        }
+        catch (Exception ex)
+        {
+            errors.Add($"Error validating code: {ex.Message}");
+            return Task.FromResult((false, errors, warnings));
+        }
+    }
 
-            // Check if code is empty
-            if (string.IsNullOrWhiteSpace(metascript.Code))
-            {
-                errors.Add("Metascript code is empty");
-                return (false, errors, warnings);
-            }
+    /// <summary>
+    /// Validates metascript code
+    /// </summary>
+    /// <param name="metascript">The metascript to validate</param>
+    /// <param name="options">Optional validation options</param>
+    /// <returns>Validation result tuple (isValid, errors, warnings)</returns>
+    private Task<(bool IsValid, List<string> Errors, List<string> Warnings)> ValidateMetascriptCodeAsync(
+        GeneratedMetascript metascript,
+        Dictionary<string, string>? options)
+    {
+        var errors = new List<string>();
+        var warnings = new List<string>();
 
+        try
+        {
             // Validate code based on language
             switch (metascript.Language.ToLowerInvariant())
             {
                 case "csharp":
-                    return await ValidateCSharpCodeAsync(metascript.Code, options);
+                    return ValidateCSharpCodeAsync(metascript.Code, options);
 
                 case "fsharp":
-                    return await ValidateFSharpCodeAsync(metascript.Code, options);
+                    return ValidateFSharpCodeAsync(metascript.Code, options);
 
                 case "meta":
-                    return await ValidateMetaCodeAsync(metascript.Code, options);
+                    return ValidateMetaCodeAsync(metascript.Code, options);
 
                 default:
                     warnings.Add($"No specific validation for language: {metascript.Language}");
-                    return (true, errors, warnings);
+                    return Task.FromResult((true, errors, warnings));
             }
         }
         catch (Exception ex)
         {
             errors.Add($"Error validating metascript code: {ex.Message}");
-            return (false, errors, warnings);
+            return Task.FromResult((false, errors, warnings));
         }
     }
 
@@ -415,7 +412,7 @@ public class MetascriptSandbox
     /// <param name="code">The code</param>
     /// <param name="options">The validation options</param>
     /// <returns>The validation result</returns>
-    private async Task<(bool IsValid, List<string> Errors, List<string> Warnings)> ValidateCSharpCodeAsync(
+    private Task<(bool IsValid, List<string> Errors, List<string> Warnings)> ValidateCSharpCodeAsync(
         string code,
         Dictionary<string, string>? options)
     {
@@ -444,119 +441,119 @@ public class MetascriptSandbox
                 }
             }
 
-            return (errors.Count == 0, errors, warnings);
+            return Task.FromResult((errors.Count == 0, errors, warnings));
         }
         catch (Exception ex)
         {
             errors.Add($"Error validating C# code: {ex.Message}");
-            return (false, errors, warnings);
+            return Task.FromResult((false, errors, warnings));
         }
     }
 
     /// <summary>
     /// Validates F# code
     /// </summary>
-    /// <param name="code">The code</param>
-    /// <param name="options">The validation options</param>
-    /// <returns>The validation result</returns>
-    private async Task<(bool IsValid, List<string> Errors, List<string> Warnings)> ValidateFSharpCodeAsync(
+    /// <param name="code">The code to validate</param>
+    /// <param name="options">Optional validation options</param>
+    /// <returns>A tuple containing validation result, errors, and warnings</returns>
+    private Task<(bool IsValid, List<string> Errors, List<string> Warnings)> ValidateFSharpCodeAsync(
         string code,
         Dictionary<string, string>? options)
     {
-        // Note: F# script validation would require FSharp.Compiler.Service
-        // For now, we'll just do basic syntax checking
-        var errors = new List<string>();
-        var warnings = new List<string>();
-
-        try
+        return Task.Run(async () =>
         {
-            // Check for basic syntax errors
-            if (!code.Contains("let") && !code.Contains("module") && !code.Contains("type"))
+            var errors = new List<string>();
+            var warnings = new List<string>();
+
+            try
             {
-                warnings.Add("Code doesn't contain common F# keywords (let, module, type)");
+                // Try to compile the code using F# compiler service
+                var scriptOptions = _languageOptions["fsharp"];
+                var result = await _fsharpCompiler.CompileAsync(code, scriptOptions);
+                
+                foreach (var diagnostic in result.Diagnostics)
+                {
+                    if (diagnostic.IsError)
+                    {
+                        errors.Add($"Error: {diagnostic.Message}");
+                    }
+                    else if (diagnostic.IsWarning)
+                    {
+                        warnings.Add($"Warning: {diagnostic.Message}");
+                    }
+                }
+
+                // Check for unsafe operations
+                if (code.Contains("System.Reflection") || 
+                    code.Contains("System.Runtime") ||
+                    code.Contains("System.Diagnostics.Process"))
+                {
+                    warnings.Add("Code contains potentially unsafe operations");
+                }
+
+                return (errors.Count == 0, errors, warnings);
             }
-
-            // Check for unbalanced parentheses, brackets, and braces
-            var parenthesesCount = 0;
-            var bracketsCount = 0;
-            var bracesCount = 0;
-
-            foreach (var c in code)
+            catch (Exception ex)
             {
-                if (c == '(') parenthesesCount++;
-                else if (c == ')') parenthesesCount--;
-                else if (c == '[') bracketsCount++;
-                else if (c == ']') bracketsCount--;
-                else if (c == '{') bracesCount++;
-                else if (c == '}') bracesCount--;
+                errors.Add($"Error validating F# code: {ex.Message}");
+                return (false, errors, warnings);
             }
-
-            if (parenthesesCount != 0)
-            {
-                errors.Add("Unbalanced parentheses");
-            }
-
-            if (bracketsCount != 0)
-            {
-                errors.Add("Unbalanced brackets");
-            }
-
-            if (bracesCount != 0)
-            {
-                errors.Add("Unbalanced braces");
-            }
-
-            return (errors.Count == 0, errors, warnings);
-        }
-        catch (Exception ex)
-        {
-            errors.Add($"Error validating F# code: {ex.Message}");
-            return (false, errors, warnings);
-        }
+        });
     }
 
     /// <summary>
-    /// Validates meta code
+    /// Validates Meta code
     /// </summary>
-    /// <param name="code">The code</param>
-    /// <param name="options">The validation options</param>
-    /// <returns>The validation result</returns>
-    private async Task<(bool IsValid, List<string> Errors, List<string> Warnings)> ValidateMetaCodeAsync(
+    /// <param name="code">The code to validate</param>
+    /// <param name="options">Optional validation options</param>
+    /// <returns>A tuple containing validation result, errors, and warnings</returns>
+    private Task<(bool IsValid, List<string> Errors, List<string> Warnings)> ValidateMetaCodeAsync(
         string code,
         Dictionary<string, string>? options)
     {
-        var errors = new List<string>();
-        var warnings = new List<string>();
-
-        try
+        return Task.Run(() =>
         {
-            // Check for basic syntax errors
-            if (!code.Contains("rule") && !code.Contains("action") && !code.Contains("transform"))
+            var errors = new List<string>();
+            var warnings = new List<string>();
+
+            try
             {
-                warnings.Add("Code doesn't contain common meta keywords (rule, action, transform)");
+                // Check if code is empty
+                if (string.IsNullOrWhiteSpace(code))
+                {
+                    errors.Add("Meta code is empty");
+                    return (false, errors, warnings);
+                }
+
+                // Validate meta code structure
+                if (!code.Contains("@meta"))
+                {
+                    errors.Add("Missing @meta directive");
+                }
+
+                // Validate meta version
+                var versionMatch = Regex.Match(code, @"@version\s+(\d+\.\d+)");
+                if (!versionMatch.Success)
+                {
+                    errors.Add("Missing or invalid @version directive");
+                }
+
+                // Check for potential security issues
+                if (code.Contains("System.Diagnostics.Process") || 
+                    code.Contains("System.IO.File") ||
+                    code.Contains("System.Net.WebClient"))
+                {
+                    warnings.Add("Code contains potentially unsafe operations that require explicit permissions");
+                }
+
+                return (errors.Count == 0, errors, warnings);
             }
-
-            // Check for unbalanced braces
-            var bracesCount = 0;
-
-            foreach (var c in code)
+            catch (Exception ex)
             {
-                if (c == '{') bracesCount++;
-                else if (c == '}') bracesCount--;
+                errors.Add($"Error validating Meta code: {ex.Message}");
+                return (false, errors, warnings);
             }
-
-            if (bracesCount != 0)
-            {
-                errors.Add("Unbalanced braces");
-            }
-
-            return (errors.Count == 0, errors, warnings);
-        }
-        catch (Exception ex)
-        {
-            errors.Add($"Error validating meta code: {ex.Message}");
-            return (false, errors, warnings);
-        }
+        });
     }
 
     /// <summary>
@@ -569,9 +566,9 @@ public class MetascriptSandbox
             // C# options
             _languageOptions["csharp"] = ScriptOptions.Default
                 .WithReferences(
-                    typeof(System.IO.File).Assembly,
-                    typeof(System.Linq.Enumerable).Assembly,
-                    typeof(System.Text.RegularExpressions.Regex).Assembly)
+                    typeof(File).Assembly,
+                    typeof(Enumerable).Assembly,
+                    typeof(Regex).Assembly)
                 .WithImports(
                     "System",
                     "System.IO",
@@ -609,16 +606,12 @@ public class MetascriptSandbox
             };
 
             // F# executor (placeholder)
-            _languageExecutors["fsharp"] = async (code, context, cancellationToken) =>
-            {
-                throw new NotImplementedException("F# execution not implemented");
-            };
+            _languageExecutors["fsharp"] = (code, context, cancellationToken) =>
+                Task.FromException<object>(new NotImplementedException("F# execution not implemented"));
 
             // Meta executor (placeholder)
-            _languageExecutors["meta"] = async (code, context, cancellationToken) =>
-            {
-                throw new NotImplementedException("Meta execution not implemented");
-            };
+            _languageExecutors["meta"] = (code, context, cancellationToken) =>
+                Task.FromException<object>(new NotImplementedException("Meta execution not implemented"));
         }
         catch (Exception ex)
         {

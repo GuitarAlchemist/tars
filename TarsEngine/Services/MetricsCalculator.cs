@@ -227,7 +227,7 @@ public class MetricsCalculator(ILogger<MetricsCalculator> logger) : IMetricsCalc
         }
 
         // Start with 1 (base complexity)
-        int complexity = 1;
+        var complexity = 1;
 
         // Count decision points
         complexity += Regex.Matches(methodContent, @"\bif\b").Count;
@@ -303,14 +303,14 @@ public class MetricsCalculator(ILogger<MetricsCalculator> logger) : IMetricsCalc
             }
 
             // Find the opening brace
-            int openBracePos = content.IndexOf('{', match.Index);
+            var openBracePos = content.IndexOf('{', match.Index);
             if (openBracePos == -1)
             {
                 return string.Empty;
             }
 
             // Find the matching closing brace
-            int closeBracePos = FindMatchingBrace(content, openBracePos);
+            var closeBracePos = FindMatchingBrace(content, openBracePos);
             if (closeBracePos == -1)
             {
                 return string.Empty;
@@ -334,8 +334,8 @@ public class MetricsCalculator(ILogger<MetricsCalculator> logger) : IMetricsCalc
     /// <returns>The position of the matching closing brace, or -1 if not found</returns>
     private static int FindMatchingBrace(string content, int openBracePos)
     {
-        int braceCount = 1;
-        for (int i = openBracePos + 1; i < content.Length; i++)
+        var braceCount = 1;
+        for (var i = openBracePos + 1; i < content.Length; i++)
         {
             if (content[i] == '{')
             {

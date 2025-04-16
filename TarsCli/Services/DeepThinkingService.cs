@@ -500,7 +500,7 @@ Format your response as a numbered list with just the topic titles.";
 
             // Return fallback topics
             var fallbackTopics = new List<string>();
-            for (int i = 0; i < count; i++)
+            for (var i = 0; i < count; i++)
             {
                 fallbackTopics.Add($"{baseTopic} - Aspect {i + 1}");
             }

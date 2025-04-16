@@ -218,7 +218,7 @@ public class McpService
                 if (_conversationLoggingService != null)
                 {
                     // Try to determine the source from the request headers
-                    string source = "unknown";
+                    var source = "unknown";
                     if (request.Headers["User-Agent"] != null && request.Headers["User-Agent"].Contains("Augment"))
                     {
                         source = "augment";

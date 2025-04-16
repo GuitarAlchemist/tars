@@ -298,7 +298,7 @@ public class IntelligenceMeasurement
     /// <returns>True if the metrics were updated successfully</returns>
     public bool UpdateMetrics(Dictionary<string, double> metrics)
     {
-        bool success = true;
+        var success = true;
         
         foreach (var (dimension, value) in metrics)
         {
@@ -353,7 +353,7 @@ public class IntelligenceMeasurement
     /// <returns>The calculated intelligence score</returns>
     private double CalculateIntelligenceScore(Dictionary<string, double> metrics)
     {
-        double score = 0.0;
+        var score = 0.0;
         
         foreach (var dimension in _intelligenceDimensions)
         {

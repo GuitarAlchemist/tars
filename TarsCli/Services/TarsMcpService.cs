@@ -434,7 +434,7 @@ public class TarsMcpService
                             var mcpServers = JsonSerializer.Deserialize<List<object>>(advancedSettings["mcpServers"].ToString());
 
                             // Check if TARS is already in the list
-                            bool hasTars = false;
+                            var hasTars = false;
                             foreach (var server in mcpServers)
                             {
                                 var serverDict = JsonSerializer.Deserialize<Dictionary<string, object>>(server.ToString());
@@ -506,8 +506,8 @@ public class TarsMcpService
                     var statusJson = File.ReadAllText(statusSettingsPath);
                     var statusSettings = JsonDocument.Parse(statusJson);
 
-                    bool agentModeEnabled = false;
-                    bool mcpConfigured = false;
+                    var agentModeEnabled = false;
+                    var mcpConfigured = false;
 
                     if (statusSettings.RootElement.TryGetProperty("augment.advanced", out var advancedElement))
                     {

@@ -115,7 +115,7 @@ public class UserInteractionService
     {
         Console.WriteLine(prompt);
             
-        for (int i = 0; i < options.Count; i++)
+        for (var i = 0; i < options.Count; i++)
         {
             Console.WriteLine($"{i + 1}. {options[i]}{(i == defaultIndex ? " (default)" : "")}");
         }
@@ -129,7 +129,7 @@ public class UserInteractionService
             return options[defaultIndex];
         }
             
-        if (int.TryParse(input, out int selection) && selection >= 1 && selection <= options.Count)
+        if (int.TryParse(input, out var selection) && selection >= 1 && selection <= options.Count)
         {
             return options[selection - 1];
         }

@@ -304,15 +304,15 @@ public class SecurityIssueDetector(ILogger<SecurityIssueDetector> logger) : ISec
     }
 
     /// <inheritdoc/>
-    public Dictionary<TarsEngine.Services.Interfaces.IssueSeverity, string> GetAvailableSeverities()
+    public Dictionary<Interfaces.IssueSeverity, string> GetAvailableSeverities()
     {
-        return new Dictionary<TarsEngine.Services.Interfaces.IssueSeverity, string>
+        return new Dictionary<Interfaces.IssueSeverity, string>
         {
-            { TarsEngine.Services.Interfaces.IssueSeverity.Critical, "Critical security vulnerability that must be fixed immediately" },
-            { TarsEngine.Services.Interfaces.IssueSeverity.Major, "High-risk security vulnerability that should be fixed soon" },
-            { TarsEngine.Services.Interfaces.IssueSeverity.Minor, "Medium-risk security vulnerability" },
-            { TarsEngine.Services.Interfaces.IssueSeverity.Trivial, "Low-risk security vulnerability" },
-            { TarsEngine.Services.Interfaces.IssueSeverity.Warning, "Informational security issue" }
+            { Interfaces.IssueSeverity.Critical, "Critical security vulnerability that must be fixed immediately" },
+            { Interfaces.IssueSeverity.Major, "High-risk security vulnerability that should be fixed soon" },
+            { Interfaces.IssueSeverity.Minor, "Medium-risk security vulnerability" },
+            { Interfaces.IssueSeverity.Trivial, "Low-risk security vulnerability" },
+            { Interfaces.IssueSeverity.Warning, "Informational security issue" }
         };
     }
 

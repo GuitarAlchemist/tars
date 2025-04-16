@@ -42,7 +42,7 @@ public class OllamaSetupService
             WriteColorLine("Ollama - ", ConsoleColor.Cyan, false);
 
             // Check if we should use Docker
-            bool useDocker = _configuration.GetValue<bool>("Ollama:UseDocker", false);
+            var useDocker = _configuration.GetValue<bool>("Ollama:UseDocker", false);
 
             if (useDocker)
             {
@@ -160,7 +160,7 @@ public class OllamaSetupService
         try
         {
             // Check if we should use Docker
-            bool useDocker = _configuration.GetValue<bool>("Ollama:UseDocker", false);
+            var useDocker = _configuration.GetValue<bool>("Ollama:UseDocker", false);
 
             if (useDocker)
             {
@@ -282,7 +282,7 @@ public class OllamaSetupService
             }
 
             // Check if we should use Docker
-            bool useDocker = _configuration.GetValue<bool>("Ollama:UseDocker", false);
+            var useDocker = _configuration.GetValue<bool>("Ollama:UseDocker", false);
 
             if (useDocker)
             {
@@ -453,7 +453,7 @@ public class OllamaSetupService
 
                 // For Docker, we can consider this a success if the model is already installed
                 // or if we're using a model that's built into the Docker image
-                bool useDocker = _configuration.GetValue<bool>("Ollama:UseDocker", false);
+                var useDocker = _configuration.GetValue<bool>("Ollama:UseDocker", false);
                 if (useDocker && (modelName == "llama3" || modelName == "llama3.2"))
                 {
                     _logger.LogInformation($"Using Docker with built-in model: {modelName}");
@@ -564,7 +564,7 @@ public class OllamaSetupService
         Console.WriteLine("Trying alternative embedding models...");
 
         // Check if we should use Docker
-        bool useDocker = _configuration.GetValue<bool>("Ollama:UseDocker", false);
+        var useDocker = _configuration.GetValue<bool>("Ollama:UseDocker", false);
 
         if (useDocker)
         {

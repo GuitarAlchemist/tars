@@ -203,7 +203,7 @@ public class ConnectionDiscovery
             foreach (var path in paths)
             {
                 // Calculate connection strength based on path length
-                double strength = 1.0 / path.Count;
+                var strength = 1.0 / path.Count;
 
                 // Apply connection discovery level
                 strength *= _connectionDiscoveryLevel;
@@ -323,12 +323,12 @@ public class ConnectionDiscovery
             var concepts = _conceptRelations.Keys.ToList();
 
             // Try to find unexpected connections
-            int attempts = 0;
+            var attempts = 0;
             while (connections.Count < count && attempts < count * 3)
             {
                 // Choose random concepts
-                string concept1 = concepts[_random.Next(concepts.Count)];
-                string concept2 = concepts[_random.Next(concepts.Count)];
+                var concept1 = concepts[_random.Next(concepts.Count)];
+                var concept2 = concepts[_random.Next(concepts.Count)];
 
                 // Skip if same concept
                 if (concept1 == concept2)
@@ -397,24 +397,24 @@ public class ConnectionDiscovery
             };
 
             // Choose a random template
-            string template = insightTemplates[_random.Next(insightTemplates.Count)];
+            var template = insightTemplates[_random.Next(insightTemplates.Count)];
 
             // Generate implication
-            string implication = GenerateImplication(connection);
+            var implication = GenerateImplication(connection);
 
             // Format intermediate concepts
-            string intermediates = string.Join(" and ", connection.Path.Skip(1).Take(connection.Path.Count - 2));
+            var intermediates = string.Join(" and ", connection.Path.Skip(1).Take(connection.Path.Count - 2));
             if (string.IsNullOrEmpty(intermediates))
             {
                 intermediates = "direct association";
             }
 
             // Generate insight content
-            string content = string.Format(template, connection.Concept1, connection.Concept2, intermediates, implication);
+            var content = string.Format(template, connection.Concept1, connection.Concept2, intermediates, implication);
 
             // Calculate significance based on connection strength and unexpectedness
-            double unexpectedness = 1.0 - connection.Strength;
-            double significance = (0.3 + (0.7 * unexpectedness)) * _connectionDiscoveryLevel;
+            var unexpectedness = 1.0 - connection.Strength;
+            var significance = (0.3 + (0.7 * unexpectedness)) * _connectionDiscoveryLevel;
 
             // Create insight
             var insight = new InsightModel

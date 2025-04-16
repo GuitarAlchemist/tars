@@ -539,7 +539,7 @@ public class MetascriptGeneratorService : IMetascriptGeneratorService
     }
 
     /// <inheritdoc/>
-    public async Task<Dictionary<string, string>> GetAvailableOptionsAsync()
+    public Task<Dictionary<string, string>> GetAvailableOptionsAsync()
     {
         var options = new Dictionary<string, string>
         {
@@ -569,13 +569,22 @@ public class MetascriptGeneratorService : IMetascriptGeneratorService
             }
         }
 
-        return options;
+        return Task.FromResult(options);
     }
 
     /// <inheritdoc/>
-    public async Task<List<string>> GetSupportedLanguagesAsync()
+    public Task<List<string>> GetSupportedLanguagesAsync()
     {
-        return _metascriptSandbox.GetSupportedLanguages();
+        try
+        {
+            _logger.LogInformation("Getting supported languages");
+            return Task.FromResult(_metascriptSandbox.GetSupportedLanguages());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting supported languages");
+            throw;
+        }
     }
 
     /// <summary>

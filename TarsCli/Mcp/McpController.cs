@@ -253,7 +253,7 @@ public class McpController
 
             _logger.LogInformation("Extracted {Count} knowledge items", itemsList.Count);
 
-            return System.Text.Json.JsonSerializer.Serialize(itemsList, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+            return JsonSerializer.Serialize(itemsList, new JsonSerializerOptions { WriteIndented = true });
         }
         catch (Exception ex)
         {
@@ -274,7 +274,7 @@ public class McpController
             }
 
             // Parse the target as JSON
-            var targetData = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(target);
+            var targetData = JsonSerializer.Deserialize<Dictionary<string, object>>(target);
             if (targetData == null)
             {
                 return "Error: Invalid target data";
@@ -296,12 +296,12 @@ public class McpController
             Dictionary<string, string>? options = null;
             if (targetData.TryGetValue("options", out var optionsObj) && optionsObj != null)
             {
-                options = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(optionsObj.ToString() ?? "{}");
+                options = JsonSerializer.Deserialize<Dictionary<string, string>>(optionsObj.ToString() ?? "{}");
             }
 
             // Convert the items to KnowledgeItems
-            var itemsJson = System.Text.Json.JsonSerializer.Serialize(itemsObj);
-            var knowledgeItems = System.Text.Json.JsonSerializer.Deserialize<List<TarsEngine.Services.Interfaces.KnowledgeItem>>(itemsJson);
+            var itemsJson = JsonSerializer.Serialize(itemsObj);
+            var knowledgeItems = JsonSerializer.Deserialize<List<TarsEngine.Services.Interfaces.KnowledgeItem>>(itemsJson);
             if (knowledgeItems == null)
             {
                 return "Error: Invalid knowledge items";
@@ -310,7 +310,7 @@ public class McpController
             // Share the knowledge
             var result = await _knowledgeTransferService.ShareKnowledgeAsync(knowledgeItems, targetSystemObj.ToString() ?? "", options);
 
-            return System.Text.Json.JsonSerializer.Serialize(result, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+            return JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true });
         }
         catch (Exception ex)
         {
@@ -331,7 +331,7 @@ public class McpController
             }
 
             // Parse the target as JSON
-            var targetData = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(target);
+            var targetData = JsonSerializer.Deserialize<Dictionary<string, object>>(target);
             if (targetData == null)
             {
                 return "Error: Invalid target data";
@@ -353,7 +353,7 @@ public class McpController
             Dictionary<string, string>? options = null;
             if (targetData.TryGetValue("options", out var optionsObj) && optionsObj != null)
             {
-                options = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(optionsObj.ToString() ?? "{}");
+                options = JsonSerializer.Deserialize<Dictionary<string, string>>(optionsObj.ToString() ?? "{}");
             }
 
             // Retrieve the knowledge
@@ -362,7 +362,7 @@ public class McpController
 
             _logger.LogInformation("Retrieved {Count} knowledge items", itemsList.Count);
 
-            return System.Text.Json.JsonSerializer.Serialize(itemsList, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+            return JsonSerializer.Serialize(itemsList, new JsonSerializerOptions { WriteIndented = true });
         }
         catch (Exception ex)
         {
@@ -383,7 +383,7 @@ public class McpController
             }
 
             // Parse the target as JSON
-            var targetData = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(target);
+            var targetData = JsonSerializer.Deserialize<Dictionary<string, object>>(target);
             if (targetData == null)
             {
                 return "Error: Invalid target data";
@@ -405,12 +405,12 @@ public class McpController
             Dictionary<string, string>? options = null;
             if (targetData.TryGetValue("options", out var optionsObj) && optionsObj != null)
             {
-                options = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(optionsObj.ToString() ?? "{}");
+                options = JsonSerializer.Deserialize<Dictionary<string, string>>(optionsObj.ToString() ?? "{}");
             }
 
             // Convert the items to KnowledgeItems
-            var itemsJson = System.Text.Json.JsonSerializer.Serialize(itemsObj);
-            var knowledgeItems = System.Text.Json.JsonSerializer.Deserialize<List<TarsEngine.Services.Interfaces.KnowledgeItem>>(itemsJson);
+            var itemsJson = JsonSerializer.Serialize(itemsObj);
+            var knowledgeItems = JsonSerializer.Deserialize<List<TarsEngine.Services.Interfaces.KnowledgeItem>>(itemsJson);
             if (knowledgeItems == null)
             {
                 return "Error: Invalid knowledge items";
@@ -419,7 +419,7 @@ public class McpController
             // Apply the knowledge
             var result = await _knowledgeTransferService.ApplyKnowledgeAsync(knowledgeItems, targetSystemObj.ToString() ?? "", options);
 
-            return System.Text.Json.JsonSerializer.Serialize(result, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+            return JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true });
         }
         catch (Exception ex)
         {

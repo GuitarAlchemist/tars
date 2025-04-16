@@ -559,7 +559,7 @@ public class SemanticValidator
 
         // Check for type mismatches in function calls
         // This is a simplified check and would need to be more sophisticated in a real implementation
-        for (int i = 0; i < lines.Length; i++)
+        for (var i = 0; i < lines.Length; i++)
         {
             var line = lines[i];
             
@@ -605,10 +605,10 @@ public class SemanticValidator
                 if (letMatch.Success)
                 {
                     var variableName = letMatch.Groups[1].Value;
-                    bool isUsed = false;
+                    var isUsed = false;
                     
                     // Check if the variable is used in subsequent lines
-                    for (int j = i + 1; j < lines.Length; j++)
+                    for (var j = i + 1; j < lines.Length; j++)
                     {
                         if (lines[j].Contains(variableName))
                         {

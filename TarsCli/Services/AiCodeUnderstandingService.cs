@@ -31,10 +31,10 @@ public class AiCodeUnderstandingService
         try
         {
             _logger.LogInformation($"Analyzing {language} code using AI");
-                
+
             // Use the specified model or the default
             model = model ?? _defaultModel;
-                
+
             // Create the prompt
             var prompt = new StringBuilder();
             prompt.AppendLine($"Analyze the following {language} code and provide a detailed understanding of its purpose, structure, and potential issues:");
@@ -68,14 +68,14 @@ public class AiCodeUnderstandingService
             prompt.AppendLine("    }");
             prompt.AppendLine("  ]");
             prompt.AppendLine("}");
-                
+
             // Call the AI model
             var response = await _ollamaService.GenerateAsync(model, prompt.ToString());
-                
+
             // Extract the JSON from the response
             var jsonStart = response.IndexOf("{");
             var jsonEnd = response.LastIndexOf("}") + 1;
-                
+
             if (jsonStart < 0 || jsonEnd <= jsonStart)
             {
                 _logger.LogWarning("Failed to extract JSON from AI response");
@@ -85,15 +85,15 @@ public class AiCodeUnderstandingService
                     ErrorMessage = "Failed to extract JSON from AI response"
                 };
             }
-                
+
             var json = response.Substring(jsonStart, jsonEnd - jsonStart);
-                
+
             // Parse the JSON
             var result = JsonSerializer.Deserialize<CodeUnderstandingData>(json, new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
             });
-                
+
             return new CodeUnderstandingResult
             {
                 Success = true,
@@ -122,10 +122,10 @@ public class AiCodeUnderstandingService
         try
         {
             _logger.LogInformation($"Suggesting improvements for {language} code using AI");
-                
+
             // Use the specified model or the default
             model = model ?? _defaultModel;
-                
+
             // Create the prompt
             var prompt = new StringBuilder();
             prompt.AppendLine($"Suggest improvements for the following {language} code:");
@@ -147,14 +147,14 @@ public class AiCodeUnderstandingService
             prompt.AppendLine("    }");
             prompt.AppendLine("  ]");
             prompt.AppendLine("}");
-                
+
             // Call the AI model
             var response = await _ollamaService.GenerateAsync(model, prompt.ToString());
-                
+
             // Extract the JSON from the response
             var jsonStart = response.IndexOf("{");
             var jsonEnd = response.LastIndexOf("}") + 1;
-                
+
             if (jsonStart < 0 || jsonEnd <= jsonStart)
             {
                 _logger.LogWarning("Failed to extract JSON from AI response");
@@ -164,15 +164,15 @@ public class AiCodeUnderstandingService
                     ErrorMessage = "Failed to extract JSON from AI response"
                 };
             }
-                
+
             var json = response.Substring(jsonStart, jsonEnd - jsonStart);
-                
+
             // Parse the JSON
             var result = JsonSerializer.Deserialize<CodeImprovementData>(json, new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
             });
-                
+
             return new CodeImprovementResult
             {
                 Success = true,
@@ -201,10 +201,10 @@ public class AiCodeUnderstandingService
         try
         {
             _logger.LogInformation($"Generating tests for {language} code using AI");
-                
+
             // Use the specified model or the default
             model = model ?? _defaultModel;
-                
+
             // Create the prompt
             var prompt = new StringBuilder();
             prompt.AppendLine($"Generate unit tests for the following {language} code:");
@@ -225,14 +225,14 @@ public class AiCodeUnderstandingService
             prompt.AppendLine("    }");
             prompt.AppendLine("  ]");
             prompt.AppendLine("}");
-                
+
             // Call the AI model
             var response = await _ollamaService.GenerateAsync(model, prompt.ToString());
-                
+
             // Extract the JSON from the response
             var jsonStart = response.IndexOf("{");
             var jsonEnd = response.LastIndexOf("}") + 1;
-                
+
             if (jsonStart < 0 || jsonEnd <= jsonStart)
             {
                 _logger.LogWarning("Failed to extract JSON from AI response");
@@ -242,15 +242,15 @@ public class AiCodeUnderstandingService
                     ErrorMessage = "Failed to extract JSON from AI response"
                 };
             }
-                
+
             var json = response.Substring(jsonStart, jsonEnd - jsonStart);
-                
+
             // Parse the JSON
             var result = JsonSerializer.Deserialize<TestGenerationData>(json, new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
             });
-                
+
             return new TestGenerationResult
             {
                 Success = true,
@@ -339,6 +339,7 @@ public class TestGenerationResult
     public bool Success { get; set; }
     public string ErrorMessage { get; set; }
     public TestGenerationData Data { get; set; }
+    public string TestFilePath { get; set; }
 }
 
 /// <summary>

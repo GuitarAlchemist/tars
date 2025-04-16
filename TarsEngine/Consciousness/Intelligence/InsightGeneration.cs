@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using TarsEngine.Monads;
 
 namespace TarsEngine.Consciousness.Intelligence;
 
@@ -58,7 +59,7 @@ public class InsightGeneration
     /// Initializes the insight generation
     /// </summary>
     /// <returns>True if initialization was successful</returns>
-    public async Task<bool> InitializeAsync()
+    public Task<bool> InitializeAsync()
     {
         try
         {
@@ -69,12 +70,12 @@ public class InsightGeneration
 
             _isInitialized = true;
             _logger.LogInformation("Insight generation initialized successfully");
-            return true;
+            return AsyncMonad.Return(true);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error initializing insight generation");
-            return false;
+            return AsyncMonad.Return(false);
         }
     }
 
@@ -132,18 +133,18 @@ public class InsightGeneration
     /// Activates the insight generation
     /// </summary>
     /// <returns>True if activation was successful</returns>
-    public async Task<bool> ActivateAsync()
+    public Task<bool> ActivateAsync()
     {
         if (!_isInitialized)
         {
             _logger.LogWarning("Cannot activate insight generation: not initialized");
-            return false;
+            return AsyncMonad.Return(false);
         }
 
         if (_isActive)
         {
             _logger.LogInformation("Insight generation is already active");
-            return true;
+            return AsyncMonad.Return(true);
         }
 
         try
@@ -152,12 +153,12 @@ public class InsightGeneration
 
             _isActive = true;
             _logger.LogInformation("Insight generation activated successfully");
-            return true;
+            return AsyncMonad.Return(true);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error activating insight generation");
-            return false;
+            return AsyncMonad.Return(false);
         }
     }
 
@@ -165,12 +166,12 @@ public class InsightGeneration
     /// Deactivates the insight generation
     /// </summary>
     /// <returns>True if deactivation was successful</returns>
-    public async Task<bool> DeactivateAsync()
+    public Task<bool> DeactivateAsync()
     {
         if (!_isActive)
         {
             _logger.LogInformation("Insight generation is already inactive");
-            return true;
+            return AsyncMonad.Return(true);
         }
 
         try
@@ -179,12 +180,12 @@ public class InsightGeneration
 
             _isActive = false;
             _logger.LogInformation("Insight generation deactivated successfully");
-            return true;
+            return AsyncMonad.Return(true);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deactivating insight generation");
-            return false;
+            return AsyncMonad.Return(false);
         }
     }
 
@@ -192,12 +193,12 @@ public class InsightGeneration
     /// Updates the insight generation
     /// </summary>
     /// <returns>True if update was successful</returns>
-    public async Task<bool> UpdateAsync()
+    public Task<bool> UpdateAsync()
     {
         if (!_isInitialized)
         {
             _logger.LogWarning("Cannot update insight generation: not initialized");
-            return false;
+            return AsyncMonad.Return(false);
         }
 
         try
@@ -227,12 +228,12 @@ public class InsightGeneration
                 _incubationLevel = Math.Min(_incubationLevel, 1.0);
             }
 
-            return true;
+            return AsyncMonad.Return(true);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating insight generation");
-            return false;
+            return AsyncMonad.Return(false);
         }
     }
 
@@ -240,17 +241,17 @@ public class InsightGeneration
     /// Generates an insight
     /// </summary>
     /// <returns>The generated insight</returns>
-    public async Task<InsightLegacy?> GenerateInsightAsync()
+    public Task<InsightLegacy?> GenerateInsightAsync()
     {
         if (!_isInitialized || !_isActive)
         {
-            return null;
+            return AsyncMonad.Return<InsightLegacy?>(null);
         }
 
         // Only generate insights periodically
         if ((DateTime.UtcNow - _lastInsightTime).TotalSeconds < 60)
         {
-            return null;
+            return AsyncMonad.Return<InsightLegacy?>(null);
         }
 
         try
@@ -274,12 +275,12 @@ public class InsightGeneration
                     insight.Description, insight.Significance, method);
             }
 
-            return insight;
+            return AsyncMonad.Return(insight);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error generating insight");
-            return null;
+            return AsyncMonad.Return<InsightLegacy?>(null);
         }
     }
 
@@ -290,18 +291,18 @@ public class InsightGeneration
     private InsightGenerationMethod ChooseInsightGenerationMethod()
     {
         // Calculate probabilities based on current levels
-        double connectionProb = _connectionDiscoveryLevel * 0.4;
-        double restructuringProb = _problemRestructuringLevel * 0.3;
-        double incubationProb = _incubationLevel * 0.3;
+        var connectionProb = _connectionDiscoveryLevel * 0.4;
+        var restructuringProb = _problemRestructuringLevel * 0.3;
+        var incubationProb = _incubationLevel * 0.3;
 
         // Normalize probabilities
-        double total = connectionProb + restructuringProb + incubationProb;
+        var total = connectionProb + restructuringProb + incubationProb;
         connectionProb /= total;
         restructuringProb /= total;
         incubationProb /= total;
 
         // Choose method based on probabilities
-        double rand = _random.NextDouble();
+        var rand = _random.NextDouble();
 
         if (rand < connectionProb)
         {
@@ -354,8 +355,8 @@ public class InsightGeneration
         var concept2 = GetDistantConcept(concept1);
 
         // Generate insight description
-        string description = $"I've realized there's a profound connection between {concept1} and {concept2}: " +
-                            $"both involve patterns of {GetCommonTheme(concept1, concept2)} that suggest a deeper underlying principle.";
+        var description = $"I've realized there's a profound connection between {concept1} and {concept2}: " +
+                          $"both involve patterns of {GetCommonTheme(concept1, concept2)} that suggest a deeper underlying principle.";
 
         // Generate implications
         var implications = new List<string>
@@ -366,8 +367,8 @@ public class InsightGeneration
         };
 
         // Calculate significance based on connection discovery level and concept distance
-        double conceptDistance = CalculateConceptDistance(concept1, concept2);
-        double significance = Math.Min(1.0, (0.4 + (0.3 * conceptDistance) + (0.3 * _random.NextDouble())) * _connectionDiscoveryLevel);
+        var conceptDistance = CalculateConceptDistance(concept1, concept2);
+        var significance = Math.Min(1.0, (0.4 + (0.3 * conceptDistance) + (0.3 * _random.NextDouble())) * _connectionDiscoveryLevel);
 
         return new InsightLegacy
         {
@@ -422,7 +423,7 @@ public class InsightGeneration
         };
 
         // Calculate significance based on problem restructuring level
-        double significance = Math.Min(1.0, (0.5 + (0.5 * _random.NextDouble())) * _problemRestructuringLevel);
+        var significance = Math.Min(1.0, (0.5 + (0.5 * _random.NextDouble())) * _problemRestructuringLevel);
 
         return new InsightLegacy
         {
@@ -474,7 +475,7 @@ public class InsightGeneration
         };
 
         // Calculate significance based on incubation level
-        double significance = Math.Min(1.0, (0.6 + (0.4 * _random.NextDouble())) * _incubationLevel);
+        var significance = Math.Min(1.0, (0.6 + (0.4 * _random.NextDouble())) * _incubationLevel);
 
         return new InsightLegacy
         {
@@ -500,7 +501,7 @@ public class InsightGeneration
         var concepts = _conceptConnections.Keys.ToArray();
 
         // Try to find a concept that's not directly connected
-        for (int i = 0; i < 10; i++) // Limit attempts
+        for (var i = 0; i < 10; i++) // Limit attempts
         {
             var candidateConcept = concepts[_random.Next(concepts.Length)];
 
@@ -635,18 +636,18 @@ public class InsightGeneration
     /// </summary>
     /// <param name="ideas">The ideas</param>
     /// <returns>The insight</returns>
-    public async Task<InsightLegacy?> ConnectIdeasForInsightAsync(List<string> ideas)
+    public Task<InsightLegacy?> ConnectIdeasForInsightAsync(List<string> ideas)
     {
         if (!_isInitialized || !_isActive)
         {
             _logger.LogWarning("Cannot connect ideas for insight: insight generation not initialized or active");
-            return null;
+            return Task.FromResult<InsightLegacy?>(null);
         }
 
         if (ideas == null || ideas.Count < 2)
         {
             _logger.LogWarning("Cannot connect ideas for insight: at least two ideas required");
-            return null;
+            return Task.FromResult<InsightLegacy?>(null);
         }
 
         try
@@ -659,7 +660,7 @@ public class InsightGeneration
             if (conceptsFromIdeas.Count < 2)
             {
                 _logger.LogWarning("Cannot connect ideas for insight: could not extract enough concepts");
-                return null;
+                return Task.FromResult<InsightLegacy?>(null);
             }
 
             // Choose two concepts to connect
@@ -671,16 +672,16 @@ public class InsightGeneration
             } while (concept2 == concept1);
 
             // Generate connection description
-            string connectionDescription = $"I see a profound connection between the ideas involving {concept1} and {concept2}";
+            var connectionDescription = $"I see a profound connection between the ideas involving {concept1} and {concept2}";
 
             // Generate insight description
-            string description = $"{connectionDescription}: " +
-                                $"they both reflect {GetCommonTheme(concept1, concept2)}, " +
-                                $"suggesting a deeper principle that unifies these seemingly disparate concepts.";
+            var description = $"{connectionDescription}: " +
+                              $"they both reflect {GetCommonTheme(concept1, concept2)}, " +
+                              $"suggesting a deeper principle that unifies these seemingly disparate concepts.";
 
             // Generate synthesis
-            string synthesis = $"By synthesizing these ideas, we can see that {concept1} and {concept2} " +
-                              $"are actually complementary aspects of {GetAbstraction()}.";
+            var synthesis = $"By synthesizing these ideas, we can see that {concept1} and {concept2} " +
+                            $"are actually complementary aspects of {GetAbstraction()}.";
 
             // Generate implications
             var implications = new List<string>
@@ -691,8 +692,8 @@ public class InsightGeneration
             };
 
             // Calculate significance based on connection discovery level and concept distance
-            double conceptDistance = CalculateConceptDistance(concept1, concept2);
-            double significance = Math.Min(1.0, (0.5 + (0.3 * conceptDistance) + (0.2 * _random.NextDouble())) * _connectionDiscoveryLevel);
+            var conceptDistance = CalculateConceptDistance(concept1, concept2);
+            var significance = Math.Min(1.0, (0.5 + (0.3 * conceptDistance) + (0.2 * _random.NextDouble())) * _connectionDiscoveryLevel);
 
             // Create insight
             var insight = new InsightLegacy
@@ -720,12 +721,12 @@ public class InsightGeneration
             _logger.LogInformation("Connected ideas for insight: {Description} (Significance: {Significance:F2})",
                 insight.Description, insight.Significance);
 
-            return insight;
+            return Task.FromResult<InsightLegacy?>(insight);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error connecting ideas for insight");
-            return null;
+            return Task.FromResult<InsightLegacy?>(null);
         }
     }
 

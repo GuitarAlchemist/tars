@@ -90,7 +90,7 @@ public class AutoImproveCommand : Command
             _consoleService.WriteInfo($"Starting autonomous improvement with time limit of {timeLimit} minutes using model {model}");
 
             // Path to the metascript
-            string metascriptPath = Path.Combine("Examples", "metascripts", "autonomous_improvement.tars");
+            var metascriptPath = Path.Combine("Examples", "metascripts", "autonomous_improvement.tars");
 
             if (!File.Exists(metascriptPath))
             {
@@ -105,7 +105,7 @@ public class AutoImproveCommand : Command
             Environment.SetEnvironmentVariable("TARS_AUTO_IMPROVE_TIME_LIMIT", timeLimit.ToString());
             Environment.SetEnvironmentVariable("TARS_AUTO_IMPROVE_MODEL", model);
 
-            int result = await _dslService.RunDslFileAsync(metascriptPath, true);
+            var result = await _dslService.RunDslFileAsync(metascriptPath, true);
 
             if (result == 0)
             {
@@ -133,7 +133,7 @@ public class AutoImproveCommand : Command
             _consoleService.WriteHeader("TARS Autonomous Improvement - Status");
 
             // Check if state file exists
-            string stateFilePath = "autonomous_improvement_state.json";
+            var stateFilePath = "autonomous_improvement_state.json";
             if (!File.Exists(stateFilePath))
             {
                 _consoleService.WriteInfo("No autonomous improvement process has been run yet");
@@ -141,7 +141,7 @@ public class AutoImproveCommand : Command
             }
 
             // Read the state file
-            string stateJson = await File.ReadAllTextAsync(stateFilePath);
+            var stateJson = await File.ReadAllTextAsync(stateFilePath);
             var state = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(stateJson);
 
             // Display status
@@ -174,9 +174,9 @@ public class AutoImproveCommand : Command
 
                 foreach (var improvement in recentImprovements)
                 {
-                    string filePath = improvement.GetProperty("file_path").GetString();
-                    string timestamp = improvement.GetProperty("timestamp").GetString();
-                    int improvements = improvement.GetProperty("improvements").GetInt32();
+                    var filePath = improvement.GetProperty("file_path").GetString();
+                    var timestamp = improvement.GetProperty("timestamp").GetString();
+                    var improvements = improvement.GetProperty("improvements").GetInt32();
 
                     _consoleService.WriteInfo($"- {Path.GetFileName(filePath)}: {improvements} improvements at {DateTime.Parse(timestamp).ToLocalTime()}");
                 }
@@ -222,7 +222,7 @@ public class AutoImproveCommand : Command
             _consoleService.WriteHeader("TARS Autonomous Improvement - Report");
 
             // Check if state file exists
-            string stateFilePath = "autonomous_improvement_state.json";
+            var stateFilePath = "autonomous_improvement_state.json";
             if (!File.Exists(stateFilePath))
             {
                 _consoleService.WriteInfo("No autonomous improvement process has been run yet");
@@ -230,12 +230,12 @@ public class AutoImproveCommand : Command
             }
 
             // Read the state file
-            string stateJson = await File.ReadAllTextAsync(stateFilePath);
+            var stateJson = await File.ReadAllTextAsync(stateFilePath);
             var state = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(stateJson);
 
             // Generate report
-            string reportTimestamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
-            string reportPath = $"autonomous_improvement_report_{reportTimestamp}.md";
+            var reportTimestamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
+            var reportPath = $"autonomous_improvement_report_{reportTimestamp}.md";
 
             var report = new System.Text.StringBuilder();
             report.AppendLine("# TARS Autonomous Improvement Report");
@@ -258,10 +258,10 @@ public class AutoImproveCommand : Command
             report.AppendLine("## Improvement History");
             foreach (var improvement in state.GetProperty("improvement_history").EnumerateArray())
             {
-                string filePath = improvement.GetProperty("file_path").GetString();
-                string timestamp = improvement.GetProperty("timestamp").GetString();
-                int improvements = improvement.GetProperty("improvements").GetInt32();
-                string description = improvement.GetProperty("description").GetString();
+                var filePath = improvement.GetProperty("file_path").GetString();
+                var timestamp = improvement.GetProperty("timestamp").GetString();
+                var improvements = improvement.GetProperty("improvements").GetInt32();
+                var description = improvement.GetProperty("description").GetString();
 
                 report.AppendLine($"### {filePath}");
                 report.AppendLine($"- **Time:** {DateTime.Parse(timestamp).ToLocalTime()}");

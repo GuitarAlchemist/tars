@@ -75,13 +75,13 @@ public class LlmService : ILlmService
             // Check if the request was successful
             if (!response.IsSuccessStatusCode)
             {
-                string errorContent = await response.Content.ReadAsStringAsync();
+                var errorContent = await response.Content.ReadAsStringAsync();
                 _logger.LogError($"Error from LLM API: {errorContent}");
                 throw new Exception($"Error from LLM API: {response.StatusCode} - {errorContent}");
             }
 
             // Parse the response
-            string responseContent = await response.Content.ReadAsStringAsync();
+            var responseContent = await response.Content.ReadAsStringAsync();
             var responseObject = JsonSerializer.Deserialize<OllamaResponse>(responseContent);
 
             return responseObject?.Response ?? string.Empty;
@@ -136,13 +136,13 @@ public class LlmService : ILlmService
             // Check if the request was successful
             if (!response.IsSuccessStatusCode)
             {
-                string errorContent = await response.Content.ReadAsStringAsync();
+                var errorContent = await response.Content.ReadAsStringAsync();
                 _logger.LogError($"Error from LLM API: {errorContent}");
                 throw new Exception($"Error from LLM API: {response.StatusCode} - {errorContent}");
             }
 
             // Parse the response
-            string responseContent = await response.Content.ReadAsStringAsync();
+            var responseContent = await response.Content.ReadAsStringAsync();
             var responseObject = JsonSerializer.Deserialize<OllamaResponse>(responseContent);
 
             return responseObject?.Response ?? string.Empty;
@@ -170,13 +170,13 @@ public class LlmService : ILlmService
             // Check if the request was successful
             if (!response.IsSuccessStatusCode)
             {
-                string errorContent = await response.Content.ReadAsStringAsync();
+                var errorContent = await response.Content.ReadAsStringAsync();
                 _logger.LogError($"Error from LLM API: {errorContent}");
                 throw new Exception($"Error from LLM API: {response.StatusCode} - {errorContent}");
             }
 
             // Parse the response
-            string responseContent = await response.Content.ReadAsStringAsync();
+            var responseContent = await response.Content.ReadAsStringAsync();
             var responseObject = JsonSerializer.Deserialize<OllamaTagsResponse>(responseContent);
 
             return responseObject?.Models ?? new List<string>();

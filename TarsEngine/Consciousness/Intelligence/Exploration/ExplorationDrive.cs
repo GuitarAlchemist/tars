@@ -273,10 +273,10 @@ public class ExplorationDrive
             };
 
             // Choose a random template
-            string questionTemplate = questionTemplates[_random.Next(questionTemplates.Count)];
+            var questionTemplate = questionTemplates[_random.Next(questionTemplates.Count)];
 
             // Calculate importance based on interest level and exploration level
-            double importance = (topic.InterestLevel * 0.6) + ((1.0 - topic.ExplorationLevel) * 0.4);
+            var importance = (topic.InterestLevel * 0.6) + ((1.0 - topic.ExplorationLevel) * 0.4);
 
             // Create question
             var question = new CuriosityQuestion
@@ -329,7 +329,7 @@ public class ExplorationDrive
     {
         var questions = new List<CuriosityQuestion>();
 
-        for (int i = 0; i < count; i++)
+        for (var i = 0; i < count; i++)
         {
             var question = GenerateExplorationQuestion();
             questions.Add(question);
@@ -354,7 +354,7 @@ public class ExplorationDrive
             }
 
             // Get topic
-            string topic = question.Domain;
+            var topic = question.Domain;
 
             // Check if topic is a known exploration topic
             if (!_explorationTopics.TryGetValue(topic, out var explorationTopic))
@@ -363,19 +363,19 @@ public class ExplorationDrive
             }
 
             // Calculate relevance based on interest level
-            double relevance = explorationTopic.InterestLevel;
+            var relevance = explorationTopic.InterestLevel;
 
             // Calculate exploration potential based on exploration level
-            double explorationPotential = 1.0 - explorationTopic.ExplorationLevel;
+            var explorationPotential = 1.0 - explorationTopic.ExplorationLevel;
 
             // Calculate methodological focus based on question content
-            double methodologicalFocus = question.Question.Contains("how", StringComparison.OrdinalIgnoreCase) ||
-                                        question.Question.Contains("method", StringComparison.OrdinalIgnoreCase) ||
-                                        question.Question.Contains("approach", StringComparison.OrdinalIgnoreCase) ||
-                                        question.Question.Contains("systematic", StringComparison.OrdinalIgnoreCase) ? 0.8 : 0.4;
+            var methodologicalFocus = question.Question.Contains("how", StringComparison.OrdinalIgnoreCase) ||
+                                      question.Question.Contains("method", StringComparison.OrdinalIgnoreCase) ||
+                                      question.Question.Contains("approach", StringComparison.OrdinalIgnoreCase) ||
+                                      question.Question.Contains("systematic", StringComparison.OrdinalIgnoreCase) ? 0.8 : 0.4;
 
             // Calculate overall score
-            double score = (relevance * 0.3) + (explorationPotential * 0.4) + (methodologicalFocus * 0.3);
+            var score = (relevance * 0.3) + (explorationPotential * 0.4) + (methodologicalFocus * 0.3);
 
             return score;
         }

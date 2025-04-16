@@ -315,7 +315,7 @@ public class TemplateFiller
                     break;
 
                 case MetascriptParameterType.FilePath:
-                    if (!System.IO.Path.IsPathRooted(value) && !value.Contains('/') && !value.Contains('\\'))
+                    if (!Path.IsPathRooted(value) && !value.Contains('/') && !value.Contains('\\'))
                     {
                         isValid = false;
                         errors.Add($"Parameter {parameter.Name} must be a valid file path");
@@ -323,7 +323,7 @@ public class TemplateFiller
                     break;
 
                 case MetascriptParameterType.DirectoryPath:
-                    if (!System.IO.Path.IsPathRooted(value) && !value.Contains('/') && !value.Contains('\\'))
+                    if (!Path.IsPathRooted(value) && !value.Contains('/') && !value.Contains('\\'))
                     {
                         isValid = false;
                         errors.Add($"Parameter {parameter.Name} must be a valid directory path");
@@ -496,13 +496,13 @@ public class TemplateFiller
                 case "RandomNumber":
                     return new Random().Next(1000).ToString();
                 case "FileName":
-                    return System.IO.Path.GetFileName(patternMatch.FilePath);
+                    return Path.GetFileName(patternMatch.FilePath);
                 case "FileNameWithoutExtension":
-                    return System.IO.Path.GetFileNameWithoutExtension(patternMatch.FilePath);
+                    return Path.GetFileNameWithoutExtension(patternMatch.FilePath);
                 case "FileExtension":
-                    return System.IO.Path.GetExtension(patternMatch.FilePath);
+                    return Path.GetExtension(patternMatch.FilePath);
                 case "DirectoryName":
-                    return System.IO.Path.GetDirectoryName(patternMatch.FilePath) ?? string.Empty;
+                    return Path.GetDirectoryName(patternMatch.FilePath) ?? string.Empty;
                 default:
                     return string.Empty;
             }

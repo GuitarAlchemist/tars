@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using TarsEngine.Monads;
 
 namespace TarsEngine.Consciousness.Intelligence;
 
@@ -50,7 +51,7 @@ public class EurekaMomentSimulator
     /// Initializes the eureka moment simulator
     /// </summary>
     /// <returns>True if initialization was successful</returns>
-    public async Task<bool> InitializeAsync()
+    public Task<bool> InitializeAsync()
     {
         try
         {
@@ -58,12 +59,12 @@ public class EurekaMomentSimulator
 
             _isInitialized = true;
             _logger.LogInformation("Eureka moment simulator initialized successfully");
-            return true;
+            return AsyncMonad.Return(true);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error initializing eureka moment simulator");
-            return false;
+            return AsyncMonad.Return(false);
         }
     }
 
@@ -71,18 +72,18 @@ public class EurekaMomentSimulator
     /// Activates the eureka moment simulator
     /// </summary>
     /// <returns>True if activation was successful</returns>
-    public async Task<bool> ActivateAsync()
+    public Task<bool> ActivateAsync()
     {
         if (!_isInitialized)
         {
             _logger.LogWarning("Cannot activate eureka moment simulator: not initialized");
-            return false;
+            return AsyncMonad.Return(false);
         }
 
         if (_isActive)
         {
             _logger.LogInformation("Eureka moment simulator is already active");
-            return true;
+            return AsyncMonad.Return(true);
         }
 
         try
@@ -91,12 +92,12 @@ public class EurekaMomentSimulator
 
             _isActive = true;
             _logger.LogInformation("Eureka moment simulator activated successfully");
-            return true;
+            return AsyncMonad.Return(true);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error activating eureka moment simulator");
-            return false;
+            return AsyncMonad.Return(false);
         }
     }
 
@@ -104,12 +105,12 @@ public class EurekaMomentSimulator
     /// Deactivates the eureka moment simulator
     /// </summary>
     /// <returns>True if deactivation was successful</returns>
-    public async Task<bool> DeactivateAsync()
+    public Task<bool> DeactivateAsync()
     {
         if (!_isActive)
         {
             _logger.LogInformation("Eureka moment simulator is already inactive");
-            return true;
+            return AsyncMonad.Return(true);
         }
 
         try
@@ -118,12 +119,12 @@ public class EurekaMomentSimulator
 
             _isActive = false;
             _logger.LogInformation("Eureka moment simulator deactivated successfully");
-            return true;
+            return AsyncMonad.Return(true);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deactivating eureka moment simulator");
-            return false;
+            return AsyncMonad.Return(false);
         }
     }
 
@@ -135,7 +136,7 @@ public class EurekaMomentSimulator
     {
         if (!_isInitialized || !_isActive)
         {
-            return false;
+            return AsyncMonad.Return(false).Result;
         }
 
         try
@@ -157,25 +158,25 @@ public class EurekaMomentSimulator
                 _breakthroughProbability = Math.Min(_breakthroughProbability, 0.6);
             }
 
-            return true;
+            return AsyncMonad.Return(true).Result;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating eureka moment simulator");
-            return false;
+            return AsyncMonad.Return(false).Result;
         }
     }
 
     /// <summary>
     /// Updates incubation processes
     /// </summary>
-    private async Task UpdateIncubationProcessesAsync()
+    private Task UpdateIncubationProcessesAsync()
     {
         // Process each active incubation
         foreach (var process in _incubationProcesses.Where(p => p.Status == IncubationStatus.Active).ToList())
         {
             // Update incubation progress
-            double progressIncrement = _incubationEfficiency * (0.05 + (0.05 * _random.NextDouble()));
+            var progressIncrement = _incubationEfficiency * (0.05 + (0.05 * _random.NextDouble()));
             process.Progress = Math.Min(1.0, process.Progress + progressIncrement);
 
             // Check if incubation is complete
@@ -195,6 +196,8 @@ public class EurekaMomentSimulator
                 _logger.LogInformation("Breakthrough in incubation process: {Problem}", process.Problem);
             }
         }
+
+        return Task.CompletedTask;
     }
 
     /// <summary>
@@ -247,7 +250,7 @@ public class EurekaMomentSimulator
     private double CalculateProblemComplexity(string problem)
     {
         // Simple complexity calculation based on problem length and structure
-        double baseComplexity = 0.5;
+        var baseComplexity = 0.5;
 
         // Longer problems are more complex
         baseComplexity += Math.Min(0.3, problem.Length / 200.0);
@@ -291,16 +294,16 @@ public class EurekaMomentSimulator
             _logger.LogInformation("Generating breakthrough insight for problem: {Problem}", process.Problem);
 
             // Generate insight description
-            string description = GenerateBreakthroughDescription(process);
+            var description = GenerateBreakthroughDescription(process);
 
             // Generate breakthrough
-            string breakthrough = $"After incubating on this problem, I've had a sudden realization that changes everything!";
+            var breakthrough = $"After incubating on this problem, I've had a sudden realization that changes everything!";
 
             // Generate implications
             var implications = GenerateBreakthroughImplications(process);
 
             // Calculate significance based on problem complexity and incubation efficiency
-            double significance = 0.7 + (0.3 * process.Complexity * _incubationEfficiency);
+            var significance = 0.7 + (0.3 * process.Complexity * _incubationEfficiency);
 
             // Create insight
             var insight = new InsightLegacy
@@ -375,9 +378,9 @@ public class EurekaMomentSimulator
 
         // Choose random implications
         var implications = new List<string>();
-        int implicationCount = 2 + (int)(process.Complexity * 2);
+        var implicationCount = 2 + (int)(process.Complexity * 2);
 
-        for (int i = 0; i < implicationCount; i++)
+        for (var i = 0; i < implicationCount; i++)
         {
             implications.Add(implicationTemplates[_random.Next(implicationTemplates.Count)]);
         }

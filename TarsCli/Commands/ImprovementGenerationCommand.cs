@@ -730,20 +730,20 @@ public class ImprovementGenerationCommand : Command
         }
     }
 
-    private async Task<Dictionary<string, List<TarsEngine.Models.CodeAnalysisResult>>> AnalyzePathAsync(ICodeAnalyzerService codeAnalyzer, string path, bool recursive, string filePattern)
+    private async Task<Dictionary<string, List<CodeAnalysisResult>>> AnalyzePathAsync(ICodeAnalyzerService codeAnalyzer, string path, bool recursive, string filePattern)
     {
         if (File.Exists(path))
         {
             // Analyze single file
             var result = await codeAnalyzer.AnalyzeFileAsync(path);
-            var resultList = new List<TarsEngine.Models.CodeAnalysisResult> { ConvertToModelResult(result) };
-            return new Dictionary<string, List<TarsEngine.Models.CodeAnalysisResult>> { { path, resultList } };
+            var resultList = new List<CodeAnalysisResult> { ConvertToModelResult(result) };
+            return new Dictionary<string, List<CodeAnalysisResult>> { { path, resultList } };
         }
         else if (Directory.Exists(path))
         {
             // Analyze directory
             var results = await codeAnalyzer.AnalyzeDirectoryAsync(path, recursive, filePattern);
-            var resultDict = new Dictionary<string, List<TarsEngine.Models.CodeAnalysisResult>>();
+            var resultDict = new Dictionary<string, List<CodeAnalysisResult>>();
 
             // Group results by file path
             foreach (var result in results)
@@ -823,9 +823,9 @@ public class ImprovementGenerationCommand : Command
     /// <summary>
     /// Converts a TarsEngine.Services.CodeAnalysisResult to a TarsEngine.Models.CodeAnalysisResult
     /// </summary>
-    private TarsEngine.Models.CodeAnalysisResult ConvertToModelResult(TarsEngine.Services.CodeAnalysisResult serviceResult)
+    private CodeAnalysisResult ConvertToModelResult(TarsEngine.Services.CodeAnalysisResult serviceResult)
     {
-        return new TarsEngine.Models.CodeAnalysisResult
+        return new CodeAnalysisResult
         {
             Id = Guid.NewGuid().ToString(),
             Path = serviceResult.FilePath,

@@ -305,8 +305,8 @@ public class CSharpStructureExtractor(ILogger<CSharpStructureExtractor> logger) 
             return 0;
         }
 
-        int currentLine = 1;
-        int position = 0;
+        var currentLine = 1;
+        var position = 0;
 
         while (currentLine < lineNumber && position < content.Length)
         {
@@ -325,8 +325,8 @@ public class CSharpStructureExtractor(ILogger<CSharpStructureExtractor> logger) 
     /// </summary>
     private static int FindMatchingBrace(string content, int openBracePos)
     {
-        int braceCount = 1;
-        for (int i = openBracePos + 1; i < content.Length; i++)
+        var braceCount = 1;
+        for (var i = openBracePos + 1; i < content.Length; i++)
         {
             if (content[i] == '{')
             {
@@ -349,8 +349,8 @@ public class CSharpStructureExtractor(ILogger<CSharpStructureExtractor> logger) 
     /// </summary>
     private static int FindMatchingParenthesis(string content, int openParenPos)
     {
-        int parenCount = 1;
-        for (int i = openParenPos + 1; i < content.Length; i++)
+        var parenCount = 1;
+        for (var i = openParenPos + 1; i < content.Length; i++)
         {
             if (content[i] == '(')
             {

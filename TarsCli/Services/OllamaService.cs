@@ -24,7 +24,17 @@ public class OllamaService
         _configuration = configuration;
         _gpuService = gpuService;
 
-        _baseUrl = configuration["Ollama:BaseUrl"] ?? "http://localhost:11434";
+        // Check if we should use Docker for Ollama
+        var useDocker = configuration.GetValue<bool>("Ollama:UseDocker", false) ||
+                       Environment.GetEnvironmentVariable("OLLAMA_USE_DOCKER") == "true";
+
+        // Get the base URL from configuration or environment variable
+        var configBaseUrl = configuration["Ollama:BaseUrl"];
+        var envBaseUrl = Environment.GetEnvironmentVariable("OLLAMA_BASE_URL");
+
+        _baseUrl = envBaseUrl ?? configBaseUrl ?? (useDocker ? "http://localhost:8080" : "http://localhost:11434");
+
+        _logger.LogInformation($"Using Ollama base URL: {_baseUrl}");
         _defaultModel = configuration["Ollama:DefaultModel"] ?? "codellama:13b-code";
 
         // Check if GPU acceleration is available

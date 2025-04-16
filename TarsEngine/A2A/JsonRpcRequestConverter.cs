@@ -35,7 +35,7 @@ public class JsonRpcRequestConverter : JsonConverter<JsonRpcRequest>
                 throw new JsonException("Expected property name");
             }
 
-            string propertyName = reader.GetString();
+            var propertyName = reader.GetString();
             reader.Read();
 
             switch (propertyName)

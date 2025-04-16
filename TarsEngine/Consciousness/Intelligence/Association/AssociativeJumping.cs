@@ -232,9 +232,9 @@ public class AssociativeJumping
 
         try
         {
-            string currentConcept = startConcept;
+            var currentConcept = startConcept;
 
-            for (int i = 0; i < jumpDistance; i++)
+            for (var i = 0; i < jumpDistance; i++)
             {
                 // Get associated concepts
                 var associations = GetAssociatedConcepts(currentConcept);
@@ -277,9 +277,9 @@ public class AssociativeJumping
                     }
 
                     // Choose with probability proportional to association strength
-                    double totalStrength = availableAssociations.Sum(a => a.Value);
-                    double randomValue = _random.NextDouble() * totalStrength;
-                    double cumulativeStrength = 0.0;
+                    var totalStrength = availableAssociations.Sum(a => a.Value);
+                    var randomValue = _random.NextDouble() * totalStrength;
+                    var cumulativeStrength = 0.0;
 
                     nextConcept = availableAssociations.Last().Key; // Default
 
@@ -326,13 +326,13 @@ public class AssociativeJumping
         try
         {
             // Calculate average association strength along the path
-            double totalStrength = 0.0;
-            int connections = 0;
+            var totalStrength = 0.0;
+            var connections = 0;
 
-            for (int i = 0; i < jumpPath.Count - 1; i++)
+            for (var i = 0; i < jumpPath.Count - 1; i++)
             {
-                string concept1 = jumpPath[i];
-                string concept2 = jumpPath[i + 1];
+                var concept1 = jumpPath[i];
+                var concept2 = jumpPath[i + 1];
 
                 if (_associativeNetwork.ContainsKey(concept1) && _associativeNetwork[concept1].ContainsKey(concept2))
                 {
@@ -341,7 +341,7 @@ public class AssociativeJumping
                 }
             }
 
-            double avgStrength = connections > 0 ? totalStrength / connections : 0.0;
+            var avgStrength = connections > 0 ? totalStrength / connections : 0.0;
 
             // Calculate category diversity
             var categories = jumpPath
@@ -350,10 +350,10 @@ public class AssociativeJumping
                 .Distinct()
                 .Count();
 
-            double categoryDiversity = Math.Min(1.0, categories / 3.0);
+            var categoryDiversity = Math.Min(1.0, categories / 3.0);
 
             // Calculate unexpectedness (lower average strength and higher diversity = more unexpected)
-            double unexpectedness = ((1.0 - avgStrength) * 0.7) + (categoryDiversity * 0.3);
+            var unexpectedness = ((1.0 - avgStrength) * 0.7) + (categoryDiversity * 0.3);
 
             return unexpectedness;
         }
@@ -376,16 +376,16 @@ public class AssociativeJumping
             _logger.LogDebug("Generating associative thought");
 
             // Choose a random starting concept
-            string startConcept = GetRandomConcept();
+            var startConcept = GetRandomConcept();
 
             // Determine jump distance based on associative jumping level
-            int jumpDistance = 2 + (int)(_associativeJumpingLevel * 3);
+            var jumpDistance = 2 + (int)(_associativeJumpingLevel * 3);
 
             // Perform associative jump
             var jumpPath = PerformAssociativeJump(startConcept, jumpDistance);
 
             // Calculate unexpectedness
-            double unexpectedness = CalculateUnexpectedness(jumpPath);
+            var unexpectedness = CalculateUnexpectedness(jumpPath);
 
             // Generate thought content
             string content;
@@ -404,10 +404,10 @@ public class AssociativeJumping
             }
 
             // Calculate significance based on jump distance and unexpectedness
-            double significance = Math.Min(1.0, (0.3 + (0.1 * jumpDistance) + (0.2 * unexpectedness)) * _associativeJumpingLevel);
+            var significance = Math.Min(1.0, (0.3 + (0.1 * jumpDistance) + (0.2 * unexpectedness)) * _associativeJumpingLevel);
 
             // Determine if this is a serendipitous thought
-            bool isSerendipitous = unexpectedness > 0.7 && _random.NextDouble() < serendipityLevel;
+            var isSerendipitous = unexpectedness > 0.7 && _random.NextDouble() < serendipityLevel;
 
             // If serendipitous, increase significance and modify content
             if (isSerendipitous)
@@ -417,10 +417,10 @@ public class AssociativeJumping
             }
 
             // Calculate originality based on unexpectedness
-            double originality = 0.3 + (0.7 * unexpectedness);
+            var originality = 0.3 + (0.7 * unexpectedness);
 
             // Calculate coherence based on average association strength
-            double coherence = 0.4 + (0.6 * (1.0 - unexpectedness));
+            var coherence = 0.4 + (0.6 * (1.0 - unexpectedness));
 
             // Get categories for tags
             var categories = jumpPath
@@ -485,7 +485,7 @@ public class AssociativeJumping
     {
         var thoughts = new List<ThoughtModel>();
 
-        for (int i = 0; i < count; i++)
+        for (var i = 0; i < count; i++)
         {
             var thought = GenerateAssociativeThought(serendipityLevel);
             thoughts.Add(thought);
@@ -510,7 +510,7 @@ public class AssociativeJumping
             }
 
             // Get unexpectedness from context
-            double unexpectedness = thought.Context.ContainsKey("Unexpectedness")
+            var unexpectedness = thought.Context.ContainsKey("Unexpectedness")
                 ? (double)thought.Context["Unexpectedness"]
                 : 0.5;
 
@@ -520,19 +520,19 @@ public class AssociativeJumping
                 : [];
 
             // Calculate novelty based on unexpectedness
-            double novelty = unexpectedness;
+            var novelty = unexpectedness;
 
             // Calculate interestingness based on jump path length and significance
-            double interestingness = jumpPath.Count > 0
+            var interestingness = jumpPath.Count > 0
                 ? Math.Min(1.0, (jumpPath.Count / 5.0) * thought.Significance)
                 : thought.Significance;
 
             // Calculate potential based on serendipity
-            bool isSerendipitous = thought.Tags.Contains("serendipitous");
-            double potential = isSerendipitous ? 0.8 : 0.5;
+            var isSerendipitous = thought.Tags.Contains("serendipitous");
+            var potential = isSerendipitous ? 0.8 : 0.5;
 
             // Calculate overall score
-            double score = (novelty * 0.3) + (interestingness * 0.4) + (potential * 0.3);
+            var score = (novelty * 0.3) + (interestingness * 0.4) + (potential * 0.3);
 
             return score;
         }

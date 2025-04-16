@@ -188,7 +188,90 @@ public class FileProcessor
             return 0;
         }
 
-        return content.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None).Length;
+        return content.Split(["\r\n", "\r", "\n"], StringSplitOptions.None).Length;
+    }
+
+    /// <summary>
+    /// Reads a file
+    /// </summary>
+    /// <param name="filePath">Path to the file</param>
+    /// <returns>File content</returns>
+    public async Task<string?> ReadFileAsync(string filePath)
+    {
+        try
+        {
+            _logger.LogInformation("Reading file: {FilePath}", filePath);
+
+            // Validate file path
+            if (string.IsNullOrEmpty(filePath))
+            {
+                _logger.LogError("File path is null or empty");
+                return null;
+            }
+
+            // Check if file exists
+            if (!File.Exists(filePath))
+            {
+                _logger.LogError("File not found: {FilePath}", filePath);
+                return null;
+            }
+
+            // Read file content
+            var content = await File.ReadAllTextAsync(filePath);
+            _logger.LogInformation("File read successfully: {FilePath}", filePath);
+            return content;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error reading file: {FilePath}", filePath);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Writes content to a file
+    /// </summary>
+    /// <param name="filePath">Path to the file</param>
+    /// <param name="content">Content to write</param>
+    /// <returns>True if successful, false otherwise</returns>
+    public async Task<bool> WriteFileAsync(string filePath, string content)
+    {
+        try
+        {
+            _logger.LogInformation("Writing file: {FilePath}", filePath);
+
+            // Validate parameters
+            if (string.IsNullOrEmpty(filePath))
+            {
+                _logger.LogError("File path is null or empty");
+                return false;
+            }
+
+            // Create directory if it doesn't exist
+            var directory = Path.GetDirectoryName(filePath);
+            if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            // Create backup of the file if it exists
+            if (File.Exists(filePath))
+            {
+                var backupPath = $"{filePath}.bak";
+                File.Copy(filePath, backupPath, true);
+                _logger.LogInformation("Created backup of file: {BackupPath}", backupPath);
+            }
+
+            // Write content to file
+            await File.WriteAllTextAsync(filePath, content);
+            _logger.LogInformation("File written successfully: {FilePath}", filePath);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error writing file: {FilePath}", filePath);
+            return false;
+        }
     }
 }
 

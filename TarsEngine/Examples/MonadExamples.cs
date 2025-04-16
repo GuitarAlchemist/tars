@@ -27,7 +27,7 @@ public static class MonadExamples
 
         // Use:
         Option<string> nameOption = GetNameOption();
-        string greeting = nameOption.Match(
+        var greeting = nameOption.Match(
             some: name => $"Hello, {name}!",
             none: () => "Hello, anonymous user!"
         );
@@ -63,7 +63,7 @@ public static class MonadExamples
 
         // Use:
         Result<int, Exception> result = DivideResult(10, 0);
-        string message = result.Match(
+        var message = result.Match(
             success: value => $"Result: {value}",
             failure: ex => $"Error: {ex.Message}"
         );
@@ -116,14 +116,14 @@ public static class MonadExamples
         // }
 
         // Use:
-        AsyncResult<bool> result = DeactivateAsyncResult();
-        bool success = await result.RunAsync();
+        var result = DeactivateAsyncResult();
+        var success = await result.RunAsync();
         Console.WriteLine($"Deactivation {(success ? "succeeded" : "failed")}");
     }
 
     private static AsyncResult<bool> DeactivateAsyncResult()
     {
-        bool isActive = true;
+        var isActive = true;
 
         if (!isActive)
         {
@@ -158,8 +158,8 @@ public static class MonadExamples
         // Console.WriteLine($"Current time: {now:yyyy-MM-dd HH:mm:ss}");
 
         // Use:
-        DateTime now = DateTime.Now;
-        Printable<DateTime> printableNow = Printable<DateTime>.Create(now, dt => dt.ToString("yyyy-MM-dd HH:mm:ss"));
+        var now = DateTime.Now;
+        var printableNow = Printable<DateTime>.Create(now, dt => dt.ToString("yyyy-MM-dd HH:mm:ss"));
         Console.WriteLine($"Current time: {printableNow}");
 
         // Or with extension method:
@@ -187,7 +187,7 @@ public static class MonadExamples
         AsyncResultError<Option<DateTime>, Exception> result = GetLastLoginTimeAsync("user123");
 
         await result.RunAsync().ContinueWith(t => {
-            string message = t.Result.Match(
+            var message = t.Result.Match(
                 success: option => option.Match(
                     some: time => $"Last login: {time.ToPrintable(Printers.DateTime)}",
                     none: () => "No previous login found"

@@ -145,7 +145,7 @@ public class TransformationLearningService
             
         foreach (var transformation in successfulTransformations)
         {
-            bool addedToCluster = false;
+            var addedToCluster = false;
                 
             foreach (var cluster in clusters)
             {
@@ -257,10 +257,10 @@ public class TransformationLearningService
         var normalized2 = NormalizeCode(code2);
             
         // Calculate Levenshtein distance
-        int distance = LevenshteinDistance(normalized1, normalized2);
+        var distance = LevenshteinDistance(normalized1, normalized2);
             
         // Convert to similarity (0-1)
-        int maxLength = Math.Max(normalized1.Length, normalized2.Length);
+        var maxLength = Math.Max(normalized1.Length, normalized2.Length);
         if (maxLength == 0) return 1.0; // Both strings are empty
             
         return 1.0 - (double)distance / maxLength;
@@ -280,24 +280,24 @@ public class TransformationLearningService
     /// </summary>
     private int LevenshteinDistance(string s, string t)
     {
-        int n = s.Length;
-        int m = t.Length;
-        int[,] d = new int[n + 1, m + 1];
+        var n = s.Length;
+        var m = t.Length;
+        var d = new int[n + 1, m + 1];
             
         if (n == 0) return m;
         if (m == 0) return n;
             
-        for (int i = 0; i <= n; i++)
+        for (var i = 0; i <= n; i++)
             d[i, 0] = i;
             
-        for (int j = 0; j <= m; j++)
+        for (var j = 0; j <= m; j++)
             d[0, j] = j;
             
-        for (int j = 1; j <= m; j++)
+        for (var j = 1; j <= m; j++)
         {
-            for (int i = 1; i <= n; i++)
+            for (var i = 1; i <= n; i++)
             {
-                int cost = (s[i - 1] == t[j - 1]) ? 0 : 1;
+                var cost = (s[i - 1] == t[j - 1]) ? 0 : 1;
                 d[i, j] = Math.Min(
                     Math.Min(d[i - 1, j] + 1, d[i, j - 1] + 1),
                     d[i - 1, j - 1] + cost);
@@ -320,10 +320,10 @@ public class TransformationLearningService
         if (patterns.Count == 1) return patterns[0];
             
         // Start with the first pattern
-        string generalizedPattern = patterns[0];
+        var generalizedPattern = patterns[0];
             
         // For each subsequent pattern, find common parts
-        for (int i = 1; i < patterns.Count; i++)
+        for (var i = 1; i < patterns.Count; i++)
         {
             generalizedPattern = FindCommonPattern(generalizedPattern, patterns[i]);
         }
@@ -352,12 +352,12 @@ public class TransformationLearningService
     /// </summary>
     private string[] LongestCommonSubsequence(string[] a, string[] b)
     {
-        int[,] lengths = new int[a.Length + 1, b.Length + 1];
+        var lengths = new int[a.Length + 1, b.Length + 1];
             
         // Compute the length of the LCS
-        for (int i = 0; i <= a.Length; i++)
+        for (var i = 0; i <= a.Length; i++)
         {
-            for (int j = 0; j <= b.Length; j++)
+            for (var j = 0; j <= b.Length; j++)
             {
                 if (i == 0 || j == 0)
                     lengths[i, j] = 0;

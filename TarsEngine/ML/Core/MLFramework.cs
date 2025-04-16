@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.ML;
+using TarsEngine.Monads;
 
 namespace TarsEngine.ML.Core;
 
@@ -294,7 +295,7 @@ public class MLFramework
     /// </summary>
     /// <param name="modelName">The model name</param>
     /// <returns>True if the model was deleted successfully</returns>
-    public async Task<bool> DeleteModelAsync(string modelName)
+    public Task<bool> DeleteModelAsync(string modelName)
     {
         try
         {
@@ -318,12 +319,12 @@ public class MLFramework
                 File.Delete(metadataPath);
             }
 
-            return true;
+            return AsyncMonad.Return(true);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting model: {ModelName}", modelName);
-            return false;
+            return AsyncMonad.Return(false);
         }
     }
 

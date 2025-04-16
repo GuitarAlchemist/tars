@@ -55,11 +55,11 @@ public class DuplicationDemoCommand : Command
     private async Task HandleCommand(InvocationContext context)
     {
         // Get options from the command
-        var pathOption = this.Options.OfType<Option<string>>().FirstOrDefault(o => o.Name == "path");
-        var languageOption = this.Options.OfType<Option<string>>().FirstOrDefault(o => o.Name == "language");
-        var typeOption = this.Options.OfType<Option<string>>().FirstOrDefault(o => o.Name == "type");
-        var outputOption = this.Options.OfType<Option<string>>().FirstOrDefault(o => o.Name == "output");
-        var outputPathOption = this.Options.OfType<Option<string>>().FirstOrDefault(o => o.Name == "output-path");
+        var pathOption = Options.OfType<Option<string>>().FirstOrDefault(o => o.Name == "path");
+        var languageOption = Options.OfType<Option<string>>().FirstOrDefault(o => o.Name == "language");
+        var typeOption = Options.OfType<Option<string>>().FirstOrDefault(o => o.Name == "type");
+        var outputOption = Options.OfType<Option<string>>().FirstOrDefault(o => o.Name == "output");
+        var outputPathOption = Options.OfType<Option<string>>().FirstOrDefault(o => o.Name == "output-path");
 
         // Get option values from the context
         var path = context.ParseResult.GetValueForOption(pathOption) ?? "";

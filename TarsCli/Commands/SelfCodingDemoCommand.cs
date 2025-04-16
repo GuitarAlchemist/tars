@@ -58,28 +58,28 @@ public class SelfCodingDemoCommand : Command
                 var analyzerReplica = await replicaManager.CreateReplicaAsync(
                     "CodeAnalyzer",
                     "analyzer",
-                    new List<string> { "analyze_code", "detect_issues", "suggest_improvements" });
+                    ["analyze_code", "detect_issues", "suggest_improvements"]);
                 consoleService.WriteSuccess($"Analyzer replica created with ID: {analyzerReplica.Id}");
 
                 consoleService.WriteInfo("Creating generator replica...");
                 var generatorReplica = await replicaManager.CreateReplicaAsync(
                     "CodeGenerator",
                     "generator",
-                    new List<string> { "generate_code", "refactor_code", "optimize_code" });
+                    ["generate_code", "refactor_code", "optimize_code"]);
                 consoleService.WriteSuccess($"Generator replica created with ID: {generatorReplica.Id}");
 
                 consoleService.WriteInfo("Creating tester replica...");
                 var testerReplica = await replicaManager.CreateReplicaAsync(
                     "TestGenerator",
                     "tester",
-                    new List<string> { "generate_tests", "run_tests", "analyze_test_results" });
+                    ["generate_tests", "run_tests", "analyze_test_results"]);
                 consoleService.WriteSuccess($"Tester replica created with ID: {testerReplica.Id}");
 
                 consoleService.WriteInfo("Creating coordinator replica...");
                 var coordinatorReplica = await replicaManager.CreateReplicaAsync(
                     "Coordinator",
                     "coordinator",
-                    new List<string> { "coordinate_workflow", "prioritize_tasks", "track_progress" });
+                    ["coordinate_workflow", "prioritize_tasks", "track_progress"]);
                 consoleService.WriteSuccess($"Coordinator replica created with ID: {coordinatorReplica.Id}");
                 Console.WriteLine();
 

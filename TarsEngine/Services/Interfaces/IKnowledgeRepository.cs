@@ -79,14 +79,14 @@ public interface IKnowledgeRepository
     /// </summary>
     /// <param name="relationship">The relationship to add</param>
     /// <returns>The added relationship</returns>
-    Task<TarsEngine.Models.KnowledgeRelationship> AddRelationshipAsync(TarsEngine.Models.KnowledgeRelationship relationship);
+    Task<KnowledgeRelationship> AddRelationshipAsync(KnowledgeRelationship relationship);
 
     /// <summary>
     /// Gets all relationships for a knowledge item
     /// </summary>
     /// <param name="itemId">The ID of the knowledge item</param>
     /// <returns>The relationships for the knowledge item</returns>
-    Task<IEnumerable<TarsEngine.Models.KnowledgeRelationship>> GetRelationshipsForItemAsync(string itemId);
+    Task<IEnumerable<KnowledgeRelationship>> GetRelationshipsForItemAsync(string itemId);
 
     /// <summary>
     /// Deletes a relationship between knowledge items

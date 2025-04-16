@@ -41,14 +41,14 @@ public class A2AMcpBridge
             Name = "TARS Agent",
             Description = "TARS Agent with A2A protocol support",
             Url = "http://localhost:8998/",
-            Skills = new List<AgentSkill>
-            {
+            Skills =
+            [
                 new() { Id = "code_generation", Name = "Code Generation" },
                 new() { Id = "code_analysis", Name = "Code Analysis" },
                 new() { Id = "metascript_execution", Name = "Metascript Execution" },
                 new() { Id = "knowledge_extraction", Name = "Knowledge Extraction" },
                 new() { Id = "self_improvement", Name = "Self Improvement" }
-            }
+            ]
         };
 
         foreach (var skill in agentCard.Skills)
@@ -107,7 +107,7 @@ public class A2AMcpBridge
             using (var jsonDoc = JsonDocument.Parse("{}"))
             {
                 var root = jsonDoc.RootElement.Clone();
-                var memoryStream = new System.IO.MemoryStream();
+                var memoryStream = new MemoryStream();
                 var writer = new Utf8JsonWriter(memoryStream);
                 writer.WriteStartObject();
 
@@ -156,22 +156,22 @@ public class A2AMcpBridge
             {
                 TaskId = message.Metadata != null && message.Metadata.TryGetValue("taskId", out var tid) ? tid.ToString() : Guid.NewGuid().ToString(),
                 Status = A2ATaskStatus.Completed,
-                Messages = new List<Message>
-                {
+                Messages =
+                [
                     message, // Include the original message
                     new()
                     {
                         Role = "agent",
-                        Parts = new List<Part>
-                        {
+                        Parts =
+                        [
                             new TextPart
                             {
                                 Text = mcpResponse.GetProperty("result").ToString()
                             }
-                        }
+                        ]
                     }
-                },
-                Artifacts = new List<Artifact>()
+                ],
+                Artifacts = []
             };
 
             // Check if there are any artifacts in the MCP response
@@ -186,18 +186,18 @@ public class A2AMcpBridge
                     task.Artifacts.Add(new Artifact
                     {
                         Name = name,
-                        Parts = new List<Part>
-                        {
+                        Parts =
+                        [
                             new FilePart
                             {
                                 File = new FileContent
                                 {
                                     Name = name,
                                     MimeType = mimeType,
-                                    Bytes = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(content))
+                                    Bytes = Convert.ToBase64String(Encoding.UTF8.GetBytes(content))
                                 }
                             }
-                        }
+                        ]
                     });
                 }
             }
@@ -213,21 +213,21 @@ public class A2AMcpBridge
             {
                 TaskId = message.Metadata != null && message.Metadata.TryGetValue("taskId", out var tid) ? tid.ToString() : Guid.NewGuid().ToString(),
                 Status = A2ATaskStatus.Failed,
-                Messages = new List<Message>
-                {
+                Messages =
+                [
                     message, // Include the original message
                     new()
                     {
                         Role = "agent",
-                        Parts = new List<Part>
-                        {
+                        Parts =
+                        [
                             new TextPart
                             {
                                 Text = $"Error: {ex.Message}"
                             }
-                        }
+                        ]
                     }
-                }
+                ]
             };
         }
     }
@@ -323,13 +323,13 @@ public class A2AMcpBridge
             var message = new Message
             {
                 Role = "user",
-                Parts = new List<Part>
-                {
+                Parts =
+                [
                     new TextPart
                     {
                         Text = content
                     }
-                }
+                ]
             };
 
             // Add skill ID to metadata if provided

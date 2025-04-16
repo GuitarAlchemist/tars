@@ -33,6 +33,105 @@ public class ContentClassifierService : IContentClassifierService
     }
 
     /// <inheritdoc/>
+    public ContentClassification ClassifyContent(string content, Dictionary<string, string>? options = null)
+    {
+        try
+        {
+            _logger.LogInformation("Classifying content synchronously of length {Length}", content?.Length ?? 0);
+
+            // Check if we have a cached classification
+            var cacheKey = $"{content?.GetHashCode() ?? 0}_{string.Join("_", options?.Select(kv => $"{kv.Key}={kv.Value}") ?? Array.Empty<string>())}";
+            if (_classificationCache.TryGetValue(cacheKey, out var cachedClassification))
+            {
+                _logger.LogInformation("Using cached classification for content");
+                return cachedClassification;
+            }
+
+            // Ensure rules are loaded
+            if (!_rulesLoaded)
+            {
+                LoadRulesSync();
+            }
+
+            // Create a new classification
+            var classification = new ContentClassification
+            {
+                Content = content ?? string.Empty,
+                ClassificationSource = "rule-based"
+            };
+
+            // Apply rules to determine the primary category
+            var categoryScores = new Dictionary<ContentCategory, double>();
+            foreach (var rule in _rules.Where(r => r.IsEnabled))
+            {
+                var score = CalculateRuleScore(content ?? string.Empty, rule);
+                if (score >= rule.MinConfidence)
+                {
+                    if (!categoryScores.ContainsKey(rule.Category))
+                    {
+                        categoryScores[rule.Category] = 0;
+                    }
+                    categoryScores[rule.Category] += score * rule.Weight;
+
+                    // Add tags from the rule
+                    foreach (var tag in rule.Tags)
+                    {
+                        if (!classification.Tags.Contains(tag))
+                        {
+                            classification.Tags.Add(tag);
+                        }
+                    }
+                }
+            }
+
+            // Determine the primary category
+            if (categoryScores.Any())
+            {
+                var primaryCategory = categoryScores.OrderByDescending(kv => kv.Value).First().Key;
+                classification.PrimaryCategory = primaryCategory;
+                classification.ConfidenceScore = categoryScores[primaryCategory] / categoryScores.Sum(kv => kv.Value);
+
+                // Determine secondary categories
+                foreach (var category in categoryScores.OrderByDescending(kv => kv.Value).Skip(1).Take(2).Select(kv => kv.Key))
+                {
+                    classification.SecondaryCategories.Add(category);
+                }
+            }
+            else
+            {
+                classification.PrimaryCategory = ContentCategory.Unknown;
+                classification.ConfidenceScore = 0.0;
+            }
+
+            // Calculate relevance and quality scores
+            classification.RelevanceScore = CalculateRelevanceScoreSync(content ?? string.Empty, options);
+            classification.QualityScore = CalculateQualityScoreSync(content ?? string.Empty, options);
+
+            // Add to cache
+            _classificationCache[cacheKey] = classification;
+
+            _logger.LogInformation("Classified content as {Category} with confidence {Confidence}",
+                classification.PrimaryCategory, classification.ConfidenceScore);
+            return classification;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error classifying content");
+            return new ContentClassification
+            {
+                Content = content ?? string.Empty,
+                PrimaryCategory = ContentCategory.Unknown,
+                ConfidenceScore = 0.0,
+                ClassificationSource = "error",
+                Metadata = new Dictionary<string, string>
+                {
+                    { "Error", ex.Message }
+                }
+            };
+        }
+    }
+
+    /// <inheritdoc/>
     public async Task<ContentClassification> ClassifyContentAsync(string content, Dictionary<string, string>? options = null)
     {
         try
@@ -264,45 +363,48 @@ public class ContentClassifierService : IContentClassifierService
         {
             _logger.LogInformation("Calculating relevance score for content of length {Length}", content?.Length ?? 0);
 
-            // If no context is provided, assume medium relevance
-            if (context == null || !context.Any())
+            // Move the CPU-bound relevance calculation to a background thread
+            return await Task.Run(() =>
             {
-                return 0.5;
-            }
+                // If no context is provided, assume medium relevance
+                if (context == null || !context.Any())
+                {
+                    return 0.5;
+                }
 
-            // Simple relevance scoring based on keyword matching
-            if (string.IsNullOrWhiteSpace(content))
-            {
-                return 0.0;
-            }
+                // Simple relevance scoring based on keyword matching
+                if (string.IsNullOrWhiteSpace(content))
+                {
+                    return 0.0;
+                }
 
-            double relevanceScore = 0.5; // Default to medium relevance
+                var relevanceScore = 0.5; // Default to medium relevance
 
-            // Extract keywords from context
-            var keywords = new List<string>();
-            if (context.TryGetValue("Keywords", out var keywordsStr))
-            {
-                keywords.AddRange(keywordsStr.Split(',', ';').Select(k => k.Trim().ToLowerInvariant()));
-            }
+                // Extract keywords from context
+                var keywords = new List<string>();
+                if (context.TryGetValue("Keywords", out var keywordsStr))
+                {
+                    keywords.AddRange(keywordsStr.Split(',', ';').Select(k => k.Trim().ToLowerInvariant()));
+                }
 
-            if (context.TryGetValue("Topic", out var topic))
-            {
-                keywords.AddRange(topic.Split(' ').Where(w => w.Length > 3).Select(w => w.ToLowerInvariant()));
-            }
+                if (context.TryGetValue("Topic", out var topic))
+                {
+                    keywords.AddRange(topic.Split(' ').Where(w => w.Length > 3).Select(w => w.ToLowerInvariant()));
+                }
 
-            // If we have keywords, calculate relevance based on keyword matches
-            if (keywords.Any())
-            {
-                var contentLower = content.ToLowerInvariant();
-                int matches = keywords.Count(k => contentLower.Contains(k));
-                relevanceScore = Math.Min(1.0, (double)matches / keywords.Count * 1.5);
-            }
+                // If we have keywords, calculate relevance based on keyword matches
+                if (keywords.Any())
+                {
+                    var contentLower = content.ToLowerInvariant();
+                    var matches = keywords.Count(k => contentLower.Contains(k));
+                    relevanceScore = Math.Min(1.0, (double)matches / keywords.Count * 1.5);
+                }
 
-            // Ensure the score is between 0 and 1
-            relevanceScore = Math.Max(0, Math.Min(1, relevanceScore));
+                // Ensure the score is between 0 and 1
+                relevanceScore = Math.Max(0, Math.Min(1, relevanceScore));
 
-            _logger.LogInformation("Calculated relevance score: {RelevanceScore}", relevanceScore);
-            return relevanceScore;
+                return relevanceScore;
+            });
         }
         catch (Exception ex)
         {
@@ -318,55 +420,61 @@ public class ContentClassifierService : IContentClassifierService
         {
             _logger.LogInformation("Calculating quality score for content of length {Length}", content?.Length ?? 0);
 
-            // Simple quality scoring based on content length, structure, and complexity
-            if (string.IsNullOrWhiteSpace(content))
+            // Move CPU-bound quality calculations to a background thread
+            return await Task.Run(() =>
             {
-                return 0.0;
-            }
-
-            // Calculate basic metrics
-            var length = content.Length;
-            var sentences = Regex.Split(content, @"(?<=[.!?])\s+").Length;
-            var words = Regex.Matches(content, @"\b\w+\b").Count;
-            var uniqueWords = Regex.Matches(content, @"\b\w+\b")
-                .Select(m => m.Value.ToLowerInvariant())
-                .Distinct()
-                .Count();
-            var codeBlocks = Regex.Matches(content, @"```[a-zA-Z0-9]*\n[\s\S]*?\n```").Count;
-            var bulletPoints = Regex.Matches(content, @"^\s*[-*]\s+", RegexOptions.Multiline).Count;
-            var headings = Regex.Matches(content, @"^#{1,6}\s+.+$", RegexOptions.Multiline).Count;
-
-            // Calculate quality score components
-            var lengthScore = Math.Min(1.0, length / 1000.0); // Longer content is generally better, up to a point
-            var structureScore = Math.Min(1.0, (headings + bulletPoints + codeBlocks) / 10.0); // Structured content is better
-            var vocabularyScore = uniqueWords > 0 ? Math.Min(1.0, (double)uniqueWords / words) : 0.0; // Diverse vocabulary is better
-            var sentenceScore = sentences > 0 ? Math.Min(1.0, (double)words / sentences / 20.0) : 0.0; // Reasonable sentence length
-
-            // Combine scores with weights
-            var qualityScore = (lengthScore * 0.3) + (structureScore * 0.3) + (vocabularyScore * 0.2) + (sentenceScore * 0.2);
-
-            // Adjust based on options
-            if (options != null)
-            {
-                if (options.TryGetValue("ContentType", out var contentType))
+                if (string.IsNullOrWhiteSpace(content))
                 {
-                    // Adjust score based on content type
-                    if (contentType.Equals("CodeExample", StringComparison.OrdinalIgnoreCase) && codeBlocks > 0)
+                    return 0.0;
+                }
+
+                // Calculate basic metrics
+                var length = content.Length;
+                var lines = content.Split('\n').Length;
+                var words = content.Split([' ', '\n', '\r', '\t'], StringSplitOptions.RemoveEmptyEntries).Length;
+                var sentences = content.Split(['.', '!', '?'], StringSplitOptions.RemoveEmptyEntries).Length;
+                var uniqueWords = content.Split([' ', '\n', '\r', '\t'], StringSplitOptions.RemoveEmptyEntries)
+                    .Select(w => w.ToLowerInvariant())
+                    .Distinct()
+                    .Count();
+
+                // Count structural elements
+                var headings = Regex.Matches(content, @"^#+\s+.+$", RegexOptions.Multiline).Count;
+                var bulletPoints = Regex.Matches(content, @"^[-*]\s+.+$", RegexOptions.Multiline).Count;
+                var codeBlocks = Regex.Matches(content, @"```[\s\S]*?```").Count;
+
+                // Calculate quality score components
+                var lengthScore = Math.Min(1.0, length / 1000.0); // Longer content is generally better, up to a point
+                var structureScore = Math.Min(1.0, (headings + bulletPoints + codeBlocks) / 10.0); // Structured content is better
+                var vocabularyScore = uniqueWords > 0 ? Math.Min(1.0, (double)uniqueWords / words) : 0.0; // Diverse vocabulary is better
+                var sentenceScore = sentences > 0 ? Math.Min(1.0, (double)words / sentences / 20.0) : 0.0; // Reasonable sentence length
+
+                // Combine scores with weights
+                var qualityScore = (lengthScore * 0.3) + (structureScore * 0.3) + (vocabularyScore * 0.2) + (sentenceScore * 0.2);
+
+                // Adjust based on options
+                if (options != null)
+                {
+                    if (options.TryGetValue("ContentType", out var contentType))
                     {
-                        qualityScore += 0.2; // Bonus for code examples that actually contain code
-                    }
-                    else if (contentType.Equals("Concept", StringComparison.OrdinalIgnoreCase) && headings > 0)
-                    {
-                        qualityScore += 0.1; // Bonus for well-structured concepts
+                        // Adjust score based on content type
+                        if (contentType.Equals("CodeExample", StringComparison.OrdinalIgnoreCase) && codeBlocks > 0)
+                        {
+                            qualityScore += 0.2; // Bonus for code examples that actually contain code
+                        }
+                        else if (contentType.Equals("Concept", StringComparison.OrdinalIgnoreCase) && headings > 0)
+                        {
+                            qualityScore += 0.1; // Bonus for well-structured concepts
+                        }
                     }
                 }
-            }
 
-            // Ensure the score is between 0 and 1
-            qualityScore = Math.Max(0, Math.Min(1, qualityScore));
+                // Ensure the score is between 0 and 1
+                qualityScore = Math.Max(0, Math.Min(1, qualityScore));
 
-            _logger.LogInformation("Calculated quality score: {QualityScore}", qualityScore);
-            return qualityScore;
+                _logger.LogInformation("Calculated quality score: {QualityScore}", qualityScore);
+                return qualityScore;
+            });
         }
         catch (Exception ex)
         {
@@ -476,11 +584,18 @@ public class ContentClassifierService : IContentClassifierService
     }
 
     /// <inheritdoc/>
-    public async Task<IEnumerable<string>> GetTagsAsync(string content, Dictionary<string, string>? options = null)
+    public async Task<IEnumerable<string>> GetTagsAsync(string? content, Dictionary<string, string>? options = null)
     {
         try
         {
             _logger.LogInformation("Getting tags for content of length {Length}", content?.Length ?? 0);
+
+            // Handle null content
+            if (string.IsNullOrEmpty(content))
+            {
+                _logger.LogWarning("Content is null or empty, returning empty tags collection");
+                return Array.Empty<string>();
+            }
 
             // Classify the content to get tags
             var classification = await ClassifyContentAsync(content, options);
@@ -491,7 +606,7 @@ public class ContentClassifierService : IContentClassifierService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting tags for content");
-            return [];
+            return Array.Empty<string>();
         }
     }
 
@@ -562,6 +677,160 @@ public class ContentClassifierService : IContentClassifierService
         }
     }
 
+    private double CalculateRelevanceScoreSync(string content, Dictionary<string, string>? context = null)
+    {
+        try
+        {
+            // If no context is provided, assume medium relevance
+            if (context == null || !context.Any())
+            {
+                return 0.5;
+            }
+
+            // Simple relevance scoring based on keyword matching
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                return 0.0;
+            }
+
+            var relevanceScore = 0.5; // Default to medium relevance
+
+            // Extract keywords from context
+            var keywords = new List<string>();
+            if (context.TryGetValue("Keywords", out var keywordsStr))
+            {
+                keywords.AddRange(keywordsStr.Split(',', ';').Select(k => k.Trim().ToLowerInvariant()));
+            }
+
+            if (context.TryGetValue("Topic", out var topic))
+            {
+                keywords.AddRange(topic.Split(' ').Where(w => w.Length > 3).Select(w => w.ToLowerInvariant()));
+            }
+
+            // If we have keywords, calculate relevance based on keyword matches
+            if (keywords.Any())
+            {
+                var contentLower = content.ToLowerInvariant();
+                var matches = keywords.Count(k => contentLower.Contains(k));
+                relevanceScore = Math.Min(1.0, (double)matches / keywords.Count * 1.5);
+            }
+
+            // Ensure the score is between 0 and 1
+            relevanceScore = Math.Max(0, Math.Min(1, relevanceScore));
+
+            return relevanceScore;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error calculating relevance score");
+            return 0.5; // Default to medium relevance
+        }
+    }
+
+    private double CalculateQualityScoreSync(string content, Dictionary<string, string>? options = null)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                return 0.0;
+            }
+
+            // Calculate basic metrics
+            var length = content.Length;
+            var lines = content.Split('\n').Length;
+            var words = content.Split([' ', '\n', '\r', '\t'], StringSplitOptions.RemoveEmptyEntries).Length;
+            var sentences = content.Split(['.', '!', '?'], StringSplitOptions.RemoveEmptyEntries).Length;
+            var uniqueWords = content.Split([' ', '\n', '\r', '\t'], StringSplitOptions.RemoveEmptyEntries)
+                .Select(w => w.ToLowerInvariant())
+                .Distinct()
+                .Count();
+
+            // Count structural elements
+            var headings = Regex.Matches(content, @"^#+\s+.+$", RegexOptions.Multiline).Count;
+            var bulletPoints = Regex.Matches(content, @"^[-*]\s+.+$", RegexOptions.Multiline).Count;
+            var codeBlocks = Regex.Matches(content, @"```[\s\S]*?```").Count;
+
+            // Calculate quality score components
+            var lengthScore = Math.Min(1.0, length / 1000.0); // Longer content is generally better, up to a point
+            var structureScore = Math.Min(1.0, (headings + bulletPoints + codeBlocks) / 10.0); // Structured content is better
+            var vocabularyScore = uniqueWords > 0 ? Math.Min(1.0, (double)uniqueWords / words) : 0.0; // Diverse vocabulary is better
+            var sentenceScore = sentences > 0 ? Math.Min(1.0, (double)words / sentences / 20.0) : 0.0; // Reasonable sentence length
+
+            // Combine scores with weights
+            var qualityScore = (lengthScore * 0.3) + (structureScore * 0.3) + (vocabularyScore * 0.2) + (sentenceScore * 0.2);
+
+            // Adjust based on options
+            if (options != null)
+            {
+                if (options.TryGetValue("ContentType", out var contentType))
+                {
+                    // Adjust score based on content type
+                    if (contentType.Equals("CodeExample", StringComparison.OrdinalIgnoreCase) && codeBlocks > 0)
+                    {
+                        qualityScore += 0.2; // Bonus for code examples that actually contain code
+                    }
+                    else if (contentType.Equals("Concept", StringComparison.OrdinalIgnoreCase) && headings > 0)
+                    {
+                        qualityScore += 0.1; // Bonus for well-structured concepts
+                    }
+                }
+            }
+
+            // Ensure the score is between 0 and 1
+            qualityScore = Math.Max(0, Math.Min(1, qualityScore));
+
+            return qualityScore;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error calculating quality score");
+            return 0.5; // Default to medium quality
+        }
+    }
+
+    private void LoadRulesSync()
+    {
+        if (_rulesLoaded)
+        {
+            return;
+        }
+
+        try
+        {
+            _logger.LogInformation("Loading classification rules synchronously");
+
+            // Create default rules if the file doesn't exist
+            if (!File.Exists(_rulesFilePath))
+            {
+                _logger.LogInformation("Classification rules file not found, creating default rules");
+                _rules.Clear();
+                _rules.AddRange(CreateDefaultRules());
+            }
+            else
+            {
+                // Load rules from file
+                var json = File.ReadAllText(_rulesFilePath);
+                var rules = JsonSerializer.Deserialize<List<ClassificationRule>>(json);
+                if (rules != null)
+                {
+                    _rules.Clear();
+                    _rules.AddRange(rules);
+                }
+            }
+
+            _rulesLoaded = true;
+            _logger.LogInformation("Loaded {RuleCount} classification rules", _rules.Count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading classification rules");
+            _rules.Clear();
+            _rules.AddRange(CreateDefaultRules());
+            _rulesLoaded = true;
+        }
+    }
+
     private double CalculateRuleScore(string content, ClassificationRule rule)
     {
         if (string.IsNullOrWhiteSpace(content))
@@ -570,7 +839,7 @@ public class ContentClassifierService : IContentClassifierService
         }
 
         // Calculate keyword score
-        double keywordScore = 0.0;
+        var keywordScore = 0.0;
         if (rule.Keywords.Any())
         {
             var keywordMatches = rule.Keywords
@@ -580,7 +849,7 @@ public class ContentClassifierService : IContentClassifierService
         }
 
         // Calculate pattern score
-        double patternScore = 0.0;
+        var patternScore = 0.0;
         if (rule.Patterns.Any())
         {
             var patternMatches = rule.Patterns
@@ -590,7 +859,7 @@ public class ContentClassifierService : IContentClassifierService
         }
 
         // Combine scores
-        double score = rule.Keywords.Any() && rule.Patterns.Any()
+        var score = rule.Keywords.Any() && rule.Patterns.Any()
             ? (keywordScore + patternScore) / 2.0
             : rule.Keywords.Any() ? keywordScore : patternScore;
 

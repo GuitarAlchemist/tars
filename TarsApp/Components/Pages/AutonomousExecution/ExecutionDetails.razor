@@ -110,10 +110,10 @@
                     <MudCardContent>
                         @if (context?.Errors.Count > 0)
                         {
-                            <MudList T="TarsEngine.Models.ExecutionError" Dense="true" Items="context.Errors">
+                            <MudList T="ExecutionError" Dense="true" Items="context.Errors">
                                 @foreach (var error in context.Errors.OrderByDescending(e => e.Timestamp))
                                 {
-                                    <MudListItem T="TarsEngine.Models.ExecutionError" Text="@error.Message" Icon="@Icons.Material.Filled.Error" IconColor="Color.Error">
+                                    <MudListItem T="ExecutionError" Text="@error.Message" Icon="@Icons.Material.Filled.Error" IconColor="Color.Error">
                                         <div>
                                             <MudText Typo="Typo.body1">@error.Message</MudText>
                                             <MudText Typo="Typo.caption">@error.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")</MudText>
@@ -284,17 +284,17 @@
                 },
                 Logs =
                 [
-                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-2), Level = TarsEngine.Models.LogLevel.Information, Message = "Starting execution", Source = "Execution" },
-                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-1.9), Level = TarsEngine.Models.LogLevel.Information, Message = "Analyzing code", Source = "Execution" },
-                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-1.8), Level = TarsEngine.Models.LogLevel.Information, Message = "Creating execution plan", Source = "Execution" },
-                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-1.7), Level = TarsEngine.Models.LogLevel.Information, Message = "Backing up files", Source = "Execution" },
-                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-1.6), Level = TarsEngine.Models.LogLevel.Information, Message = "Modifying src/Services/AuthService.cs", Source = "Execution" },
-                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-1.5), Level = TarsEngine.Models.LogLevel.Information, Message = "Modifying src/Controllers/AuthController.cs", Source = "Execution" },
-                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-1.4), Level = TarsEngine.Models.LogLevel.Information, Message = "Running tests", Source = "Execution" },
-                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-1.3), Level = TarsEngine.Models.LogLevel.Information, Message = "Tests passed: 42/42", Source = "Execution" },
-                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-1.2), Level = TarsEngine.Models.LogLevel.Information, Message = "Validating changes", Source = "Execution" },
-                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-1.1), Level = TarsEngine.Models.LogLevel.Information, Message = "Validation successful", Source = "Execution" },
-                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-1), Level = TarsEngine.Models.LogLevel.Information, Message = "Execution completed successfully", Source = "Execution" }
+                    new ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-2), Level = LogLevel.Information, Message = "Starting execution", Source = "Execution" },
+                    new ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-1.9), Level = LogLevel.Information, Message = "Analyzing code", Source = "Execution" },
+                    new ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-1.8), Level = LogLevel.Information, Message = "Creating execution plan", Source = "Execution" },
+                    new ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-1.7), Level = LogLevel.Information, Message = "Backing up files", Source = "Execution" },
+                    new ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-1.6), Level = LogLevel.Information, Message = "Modifying src/Services/AuthService.cs", Source = "Execution" },
+                    new ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-1.5), Level = LogLevel.Information, Message = "Modifying src/Controllers/AuthController.cs", Source = "Execution" },
+                    new ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-1.4), Level = LogLevel.Information, Message = "Running tests", Source = "Execution" },
+                    new ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-1.3), Level = LogLevel.Information, Message = "Tests passed: 42/42", Source = "Execution" },
+                    new ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-1.2), Level = LogLevel.Information, Message = "Validating changes", Source = "Execution" },
+                    new ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-1.1), Level = LogLevel.Information, Message = "Validation successful", Source = "Execution" },
+                    new ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-1), Level = LogLevel.Information, Message = "Execution completed successfully", Source = "Execution" }
                 ]
             };
         }
@@ -319,12 +319,12 @@
                 },
                 Logs =
                 [
-                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-3), Level = TarsEngine.Models.LogLevel.Information, Message = "Starting execution", Source = "Execution" },
-                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-2.9), Level = TarsEngine.Models.LogLevel.Information, Message = "Analyzing code", Source = "Execution" },
-                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-2.8), Level = TarsEngine.Models.LogLevel.Information, Message = "Creating execution plan", Source = "Execution" },
-                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-2.7), Level = TarsEngine.Models.LogLevel.Information, Message = "Backing up files", Source = "Execution" },
-                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-2.6), Level = TarsEngine.Models.LogLevel.Information, Message = "Modifying src/Services/DatabaseService.cs", Source = "Execution" },
-                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-2.5), Level = TarsEngine.Models.LogLevel.Information, Message = "Running tests", Source = "Execution" }
+                    new ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-3), Level = LogLevel.Information, Message = "Starting execution", Source = "Execution" },
+                    new ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-2.9), Level = LogLevel.Information, Message = "Analyzing code", Source = "Execution" },
+                    new ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-2.8), Level = LogLevel.Information, Message = "Creating execution plan", Source = "Execution" },
+                    new ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-2.7), Level = LogLevel.Information, Message = "Backing up files", Source = "Execution" },
+                    new ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-2.6), Level = LogLevel.Information, Message = "Modifying src/Services/DatabaseService.cs", Source = "Execution" },
+                    new ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-2.5), Level = LogLevel.Information, Message = "Running tests", Source = "Execution" }
                 ]
             };
         }
@@ -351,17 +351,17 @@
                 },
                 Logs =
                 [
-                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-5), Level = TarsEngine.Models.LogLevel.Information, Message = "Starting execution", Source = "Execution" },
-                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-4.9), Level = TarsEngine.Models.LogLevel.Information, Message = "Analyzing code", Source = "Execution" },
-                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-4.8), Level = TarsEngine.Models.LogLevel.Information, Message = "Creating execution plan", Source = "Execution" },
-                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-4.7), Level = TarsEngine.Models.LogLevel.Information, Message = "Backing up files", Source = "Execution" },
-                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-4.6), Level = TarsEngine.Models.LogLevel.Information, Message = "Modifying src/Services/CacheService.cs", Source = "Execution" },
-                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-4.5), Level = TarsEngine.Models.LogLevel.Information, Message = "Running tests", Source = "Execution" },
-                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-4.4), Level = TarsEngine.Models.LogLevel.Error, Message = "Test failed: CacheService_ShouldReleaseMemory", Source = "Execution" },
-                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-4.3), Level = TarsEngine.Models.LogLevel.Error, Message = "Memory leak detected in CacheService", Source = "Execution" },
-                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-4.2), Level = TarsEngine.Models.LogLevel.Warning, Message = "Validation failed", Source = "Execution" },
-                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-4.1), Level = TarsEngine.Models.LogLevel.Information, Message = "Rolling back changes", Source = "Execution" },
-                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-4), Level = TarsEngine.Models.LogLevel.Information, Message = "Execution failed", Source = "Execution" }
+                    new ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-5), Level = LogLevel.Information, Message = "Starting execution", Source = "Execution" },
+                    new ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-4.9), Level = LogLevel.Information, Message = "Analyzing code", Source = "Execution" },
+                    new ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-4.8), Level = LogLevel.Information, Message = "Creating execution plan", Source = "Execution" },
+                    new ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-4.7), Level = LogLevel.Information, Message = "Backing up files", Source = "Execution" },
+                    new ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-4.6), Level = LogLevel.Information, Message = "Modifying src/Services/CacheService.cs", Source = "Execution" },
+                    new ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-4.5), Level = LogLevel.Information, Message = "Running tests", Source = "Execution" },
+                    new ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-4.4), Level = LogLevel.Error, Message = "Test failed: CacheService_ShouldReleaseMemory", Source = "Execution" },
+                    new ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-4.3), Level = LogLevel.Error, Message = "Memory leak detected in CacheService", Source = "Execution" },
+                    new ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-4.2), Level = LogLevel.Warning, Message = "Validation failed", Source = "Execution" },
+                    new ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-4.1), Level = LogLevel.Information, Message = "Rolling back changes", Source = "Execution" },
+                    new ExecutionLog { Timestamp = DateTime.UtcNow.AddHours(-4), Level = LogLevel.Information, Message = "Execution failed", Source = "Execution" }
                 ],
                 Errors = ModelConverters.ConvertToExecutionErrors([
                     new ErrorInfo
@@ -404,13 +404,13 @@
                 },
                 Logs =
                 [
-                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddDays(-1), Level = TarsEngine.Models.LogLevel.Information, Message = "Starting execution", Source = "Execution" },
-                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddDays(-1).AddMinutes(10), Level = TarsEngine.Models.LogLevel.Information, Message = "Analyzing code", Source = "Execution" },
-                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddDays(-1).AddMinutes(20), Level = TarsEngine.Models.LogLevel.Information, Message = "Creating execution plan", Source = "Execution" },
-                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddDays(-1).AddMinutes(30), Level = TarsEngine.Models.LogLevel.Information, Message = "Backing up files", Source = "Execution" },
-                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddDays(-1).AddMinutes(40), Level = TarsEngine.Models.LogLevel.Information, Message = "Modifying src/Controllers/ApiController.cs", Source = "Execution" },
-                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddDays(-1).AddMinutes(50), Level = TarsEngine.Models.LogLevel.Information, Message = "Running tests", Source = "Execution" },
-                    new TarsEngine.Models.ExecutionLog { Timestamp = DateTime.UtcNow.AddDays(-1).AddHours(1), Level = TarsEngine.Models.LogLevel.Information, Message = "Execution completed successfully", Source = "Execution" }
+                    new ExecutionLog { Timestamp = DateTime.UtcNow.AddDays(-1), Level = LogLevel.Information, Message = "Starting execution", Source = "Execution" },
+                    new ExecutionLog { Timestamp = DateTime.UtcNow.AddDays(-1).AddMinutes(10), Level = LogLevel.Information, Message = "Analyzing code", Source = "Execution" },
+                    new ExecutionLog { Timestamp = DateTime.UtcNow.AddDays(-1).AddMinutes(20), Level = LogLevel.Information, Message = "Creating execution plan", Source = "Execution" },
+                    new ExecutionLog { Timestamp = DateTime.UtcNow.AddDays(-1).AddMinutes(30), Level = LogLevel.Information, Message = "Backing up files", Source = "Execution" },
+                    new ExecutionLog { Timestamp = DateTime.UtcNow.AddDays(-1).AddMinutes(40), Level = LogLevel.Information, Message = "Modifying src/Controllers/ApiController.cs", Source = "Execution" },
+                    new ExecutionLog { Timestamp = DateTime.UtcNow.AddDays(-1).AddMinutes(50), Level = LogLevel.Information, Message = "Running tests", Source = "Execution" },
+                    new ExecutionLog { Timestamp = DateTime.UtcNow.AddDays(-1).AddHours(1), Level = LogLevel.Information, Message = "Execution completed successfully", Source = "Execution" }
                 ]
             };
         }
@@ -486,15 +486,15 @@
         return $"color: {color}; font-family: monospace; white-space: pre-wrap;";
     }
 
-    private string GetLogStyle(TarsEngine.Models.ExecutionLog log)
+    private string GetLogStyle(ExecutionLog log)
     {
         var color = log.Level switch
         {
-            TarsEngine.Models.LogLevel.Error => "#ff5252",
-            TarsEngine.Models.LogLevel.Warning => "#fb8c00",
-            TarsEngine.Models.LogLevel.Information => "#2196f3",
-            TarsEngine.Models.LogLevel.Debug => "#757575",
-            TarsEngine.Models.LogLevel.Trace => "#9e9e9e",
+            LogLevel.Error => "#ff5252",
+            LogLevel.Warning => "#fb8c00",
+            LogLevel.Information => "#2196f3",
+            LogLevel.Debug => "#757575",
+            LogLevel.Trace => "#9e9e9e",
             _ => "#ffffff"
         };
 

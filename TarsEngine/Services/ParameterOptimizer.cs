@@ -301,7 +301,7 @@ public class ParameterOptimizer
 
             if (!value.EndsWith(extension, StringComparison.OrdinalIgnoreCase))
             {
-                value = System.IO.Path.ChangeExtension(value, extension.TrimStart('.'));
+                value = Path.ChangeExtension(value, extension.TrimStart('.'));
             }
         }
 

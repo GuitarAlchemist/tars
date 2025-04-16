@@ -182,9 +182,9 @@ public class ConceptualBlending
             };
             
             // Create concept mappings
-            for (int i = 0; i < inputConcepts.Count; i++)
+            for (var i = 0; i < inputConcepts.Count; i++)
             {
-                for (int j = i + 1; j < inputConcepts.Count; j++)
+                for (var j = i + 1; j < inputConcepts.Count; j++)
                 {
                     var mapping = CreateConceptMapping(inputConcepts[i], inputConcepts[j]);
                     blendSpace.ConceptMappings.Add(mapping);
@@ -274,8 +274,8 @@ public class ConceptualBlending
         var description = blendDescriptions[_random.Next(blendDescriptions.Count)];
         
         // Calculate average association strength
-        double totalAssociation = 0.0;
-        int pairs = 0;
+        var totalAssociation = 0.0;
+        var pairs = 0;
         
         foreach (var mapping in blendSpace.ConceptMappings)
         {
@@ -285,13 +285,13 @@ public class ConceptualBlending
             pairs++;
         }
         
-        double avgAssociation = pairs > 0 ? totalAssociation / pairs : 0.5;
+        var avgAssociation = pairs > 0 ? totalAssociation / pairs : 0.5;
         
         // Calculate originality (lower average association = higher originality)
-        double originality = 0.6 + (0.4 * (1.0 - avgAssociation)) * _conceptualBlendingLevel;
+        var originality = 0.6 + (0.4 * (1.0 - avgAssociation)) * _conceptualBlendingLevel;
         
         // Calculate value (somewhat random but influenced by conceptual blending level)
-        double value = 0.4 + (0.6 * _random.NextDouble() * _conceptualBlendingLevel);
+        var value = 0.4 + (0.6 * _random.NextDouble() * _conceptualBlendingLevel);
         
         return new CreativeIdea
         {
@@ -335,8 +335,8 @@ public class ConceptualBlending
             var blendSpace = CreateBlendSpace(allConcepts);
             
             // Generate solution description
-            string description = $"Solution approach: Create a hybrid solution that blends {problemConcepts[0]} with {additionalConcepts[0]}, " +
-                                $"incorporating elements of {additionalConcepts[1]} to address the core challenge.";
+            var description = $"Solution approach: Create a hybrid solution that blends {problemConcepts[0]} with {additionalConcepts[0]}, " +
+                              $"incorporating elements of {additionalConcepts[1]} to address the core challenge.";
             
             // Apply constraints if provided
             if (constraints != null && constraints.Count > 0)
@@ -345,10 +345,10 @@ public class ConceptualBlending
             }
             
             // Calculate originality
-            double originality = 0.6 + (0.4 * _conceptualBlendingLevel);
+            var originality = 0.6 + (0.4 * _conceptualBlendingLevel);
             
             // Calculate value
-            double value = 0.7 + (0.3 * _conceptualBlendingLevel);
+            var value = 0.7 + (0.3 * _conceptualBlendingLevel);
             
             // Create implementation steps
             var implementationSteps = new List<string>
@@ -453,18 +453,18 @@ public class ConceptualBlending
             }
             
             // Calculate coherence
-            double coherence = blendSpace.ConceptMappings.Count > 0
+            var coherence = blendSpace.ConceptMappings.Count > 0
                 ? blendSpace.ConceptMappings.Average(m => m.AttributeMappings.Count) / 5.0
                 : 0.3;
             coherence = Math.Min(1.0, coherence);
             
             // Calculate integration
-            double integration = blendSpace.InputConcepts.Count > 0
+            var integration = blendSpace.InputConcepts.Count > 0
                 ? Math.Min(1.0, blendSpace.ConceptMappings.Count / (double)(blendSpace.InputConcepts.Count * (blendSpace.InputConcepts.Count - 1) / 2))
                 : 0.3;
             
             // Calculate emergent structure score
-            double emergentScore = (coherence * 0.6) + (integration * 0.4);
+            var emergentScore = (coherence * 0.6) + (integration * 0.4);
             
             return emergentScore;
         }

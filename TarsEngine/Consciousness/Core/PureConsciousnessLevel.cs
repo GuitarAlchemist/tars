@@ -48,7 +48,7 @@ public class PureConsciousnessLevel : PureState<PureConsciousnessLevel>
     /// </summary>
     public PureConsciousnessLevel()
     {
-        _evolutions = new List<ConsciousnessEvolution>();
+        _evolutions = [];
         _isInitialized = false;
         _isActive = false;
         _consciousnessDepth = 0.2;
@@ -97,7 +97,7 @@ public class PureConsciousnessLevel : PureState<PureConsciousnessLevel>
     public override PureConsciousnessLevel Copy()
     {
         return new PureConsciousnessLevel(
-            new List<ConsciousnessEvolution>(_evolutions),
+            [.._evolutions],
             _isInitialized,
             _isActive,
             _consciousnessDepth,
@@ -233,7 +233,7 @@ public class ConsciousnessLevelService
 
         var newState = state.With(s => {
             // Increase consciousness depth based on significance
-            double depthIncrease = significance * 0.05 * s.AdaptabilityLevel;
+            var depthIncrease = significance * 0.05 * s.AdaptabilityLevel;
             // Update current level
         });
 

@@ -247,8 +247,8 @@ public class NoveltySeeking
                     .ToList();
             }
 
-            string domain1 = domains[0].Name;
-            string domain2 = domains[1].Name;
+            var domain1 = domains[0].Name;
+            var domain2 = domains[1].Name;
 
             // Generate question templates
             var questionTemplates = new List<string>
@@ -266,10 +266,10 @@ public class NoveltySeeking
             };
 
             // Choose a random template
-            string questionTemplate = questionTemplates[_random.Next(questionTemplates.Count)];
+            var questionTemplate = questionTemplates[_random.Next(questionTemplates.Count)];
 
             // Calculate importance based on novelty levels and novelty seeking level
-            double importance = ((domains[0].NoveltyLevel + domains[1].NoveltyLevel) / 2.0 * 0.7) + (0.3 * _noveltySeekingLevel);
+            var importance = ((domains[0].NoveltyLevel + domains[1].NoveltyLevel) / 2.0 * 0.7) + (0.3 * _noveltySeekingLevel);
 
             // Create question
             var question = new CuriosityQuestion
@@ -322,7 +322,7 @@ public class NoveltySeeking
     {
         var questions = new List<CuriosityQuestion>();
 
-        for (int i = 0; i < count; i++)
+        for (var i = 0; i < count; i++)
         {
             var question = GenerateNoveltySeekingQuestion();
             questions.Add(question);
@@ -350,8 +350,8 @@ public class NoveltySeeking
             string[] domains = question.Domain.Split([',', ' '], StringSplitOptions.RemoveEmptyEntries);
 
             // Calculate domain novelty
-            double domainNovelty = 0.5;
-            int domainCount = 0;
+            var domainNovelty = 0.5;
+            var domainCount = 0;
 
             foreach (var domain in domains)
             {
@@ -365,13 +365,13 @@ public class NoveltySeeking
             domainNovelty = domainCount > 0 ? domainNovelty / domainCount : 0.5;
 
             // Calculate cross-domain factor (higher for more diverse domains)
-            double crossDomainFactor = domains.Length > 1 ? 0.8 : 0.4;
+            var crossDomainFactor = domains.Length > 1 ? 0.8 : 0.4;
 
             // Calculate potential based on importance
-            double potential = question.Importance;
+            var potential = question.Importance;
 
             // Calculate overall score
-            double score = (domainNovelty * 0.4) + (crossDomainFactor * 0.3) + (potential * 0.3);
+            var score = (domainNovelty * 0.4) + (crossDomainFactor * 0.3) + (potential * 0.3);
 
             return score;
         }

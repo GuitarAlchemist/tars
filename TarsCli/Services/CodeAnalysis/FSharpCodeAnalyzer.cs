@@ -37,7 +37,7 @@ public class FSharpCodeAnalyzer : ICodeAnalyzer
         try
         {
             // Split the file content into lines for analysis
-            var lines = fileContent.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+            var lines = fileContent.Split(["\r\n", "\r", "\n"], StringSplitOptions.None);
 
             // Calculate basic metrics
             result.Metrics["LineCount"] = lines.Length;
@@ -88,7 +88,7 @@ public class FSharpCodeAnalyzer : ICodeAnalyzer
     /// <inheritdoc/>
     public IEnumerable<string> GetSupportedFileExtensions()
     {
-        return new[] { ".fs", ".fsx" };
+        return [".fs", ".fsx"];
     }
 
     /// <summary>
@@ -98,7 +98,7 @@ public class FSharpCodeAnalyzer : ICodeAnalyzer
     /// <param name="result">Analysis result</param>
     private async Task CheckMissingDocumentationAsync(string[] lines, CodeAnalysisResult result)
     {
-        for (int i = 0; i < lines.Length; i++)
+        for (var i = 0; i < lines.Length; i++)
         {
             var line = lines[i].Trim();
 
@@ -106,8 +106,8 @@ public class FSharpCodeAnalyzer : ICodeAnalyzer
             if ((line.StartsWith("let ") || line.StartsWith("type ")) && !line.Contains("private"))
             {
                 // Check if the previous line has XML documentation
-                bool hasDocumentation = false;
-                for (int j = i - 1; j >= 0 && j >= i - 5; j--)
+                var hasDocumentation = false;
+                for (var j = i - 1; j >= 0 && j >= i - 5; j--)
                 {
                     if (lines[j].Trim().StartsWith("///"))
                     {
@@ -151,7 +151,7 @@ public class FSharpCodeAnalyzer : ICodeAnalyzer
 
         // Find all bindings
         var bindings = new Dictionary<string, int>();
-        for (int i = 0; i < lines.Length; i++)
+        for (var i = 0; i < lines.Length; i++)
         {
             var matches = bindingRegex.Matches(lines[i]);
             foreach (Match match in matches)
@@ -176,8 +176,8 @@ public class FSharpCodeAnalyzer : ICodeAnalyzer
                 continue;
             }
 
-            bool isUsed = false;
-            for (int i = 0; i < lines.Length; i++)
+            var isUsed = false;
+            for (var i = 0; i < lines.Length; i++)
             {
                 if (i == lineNumber)
                 {
@@ -219,10 +219,10 @@ public class FSharpCodeAnalyzer : ICodeAnalyzer
     {
         const int MaxFunctionLength = 30; // Maximum acceptable function length
 
-        int functionStartLine = -1;
-        string functionName = string.Empty;
+        var functionStartLine = -1;
+        var functionName = string.Empty;
 
-        for (int i = 0; i < lines.Length; i++)
+        for (var i = 0; i < lines.Length; i++)
         {
             var line = lines[i].Trim();
 
@@ -250,7 +250,7 @@ public class FSharpCodeAnalyzer : ICodeAnalyzer
             if (functionStartLine != -1 && (i > functionStartLine) &&
                 (line.StartsWith("let ") || line.StartsWith("type ") || line.StartsWith("module ") || i == lines.Length - 1))
             {
-                int functionLength = i - functionStartLine;
+                var functionLength = i - functionStartLine;
                 if (i == lines.Length - 1)
                 {
                     functionLength++; // Include the last line
@@ -291,7 +291,7 @@ public class FSharpCodeAnalyzer : ICodeAnalyzer
     /// <param name="result">Analysis result</param>
     private async Task CheckMutableVariablesAsync(string[] lines, CodeAnalysisResult result)
     {
-        for (int i = 0; i < lines.Length; i++)
+        for (var i = 0; i < lines.Length; i++)
         {
             var line = lines[i].Trim();
 
@@ -336,7 +336,7 @@ public class FSharpCodeAnalyzer : ICodeAnalyzer
     /// <param name="result">Analysis result</param>
     private async Task CheckImperativeCodeAsync(string[] lines, CodeAnalysisResult result)
     {
-        for (int i = 0; i < lines.Length; i++)
+        for (var i = 0; i < lines.Length; i++)
         {
             var line = lines[i].Trim();
 

@@ -181,7 +181,7 @@ public class A2AClient
 
         Task latestTask = null;
         string line;
-        StringBuilder eventData = new StringBuilder();
+        var eventData = new StringBuilder();
 
         while ((line = await reader.ReadLineAsync()) != null && !cancellationToken.IsCancellationRequested)
         {
@@ -201,7 +201,10 @@ public class A2AClient
                                 JsonSerializer.Serialize(eventResponse.Result, _jsonOptions),
                                 _jsonOptions);
 
-                            onUpdate?.Invoke(latestTask);
+                            if (onUpdate != null && latestTask != null)
+                            {
+                                onUpdate(latestTask);
+                            }
 
                             // If we've reached a terminal state, we can exit
                             if (latestTask.Status == TaskStatus.Completed ||

@@ -109,7 +109,8 @@ function analyzeReadability(code, language) {{
             var result = await _metascriptService.ExecuteMetascriptAsync(metascript);
             
             // Parse the result as JSON
-            var readabilityResult = System.Text.Json.JsonSerializer.Deserialize<ReadabilityAnalysisResult>(result.ToString());
+            var resultString = result?.ToString() ?? "{}";
+            var readabilityResult = System.Text.Json.JsonSerializer.Deserialize<ReadabilityAnalysisResult>(resultString);
             return readabilityResult ?? new ReadabilityAnalysisResult();
         }
         catch (Exception ex)
@@ -325,7 +326,8 @@ function identifyReadabilityIssues(code, language) {{
             var result = await _metascriptService.ExecuteMetascriptAsync(metascript);
             
             // Parse the result as JSON
-            var readabilityIssues = System.Text.Json.JsonSerializer.Deserialize<List<ReadabilityIssue>>(result.ToString());
+            var resultString = result?.ToString() ?? "[]";
+            var readabilityIssues = System.Text.Json.JsonSerializer.Deserialize<List<ReadabilityIssue>>(resultString);
             return readabilityIssues ?? [];
         }
         catch (Exception ex)
@@ -412,7 +414,8 @@ function suggestReadabilityImprovements(issue) {{
             var result = await _metascriptService.ExecuteMetascriptAsync(metascript);
             
             // Parse the result as JSON
-            var improvements = System.Text.Json.JsonSerializer.Deserialize<List<ReadabilityImprovement>>(result.ToString());
+            var resultString = result?.ToString() ?? "[]";
+            var improvements = System.Text.Json.JsonSerializer.Deserialize<List<ReadabilityImprovement>>(resultString);
             return improvements ?? [];
         }
         catch (Exception ex)

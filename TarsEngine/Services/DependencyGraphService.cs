@@ -372,9 +372,9 @@ public class DependencyGraphService
                 var improvementIds = improvementsByFile[file];
                 if (improvementIds.Count > 1)
                 {
-                    for (int i = 0; i < improvementIds.Count; i++)
+                    for (var i = 0; i < improvementIds.Count; i++)
                     {
-                        for (int j = i + 1; j < improvementIds.Count; j++)
+                        for (var j = i + 1; j < improvementIds.Count; j++)
                         {
                             var sourceId = improvementIds[i];
                             var targetId = improvementIds[j];
@@ -529,9 +529,9 @@ public class DependencyGraphService
                 var improvementIds = improvementsByTag[tag];
                 if (improvementIds.Count > 1)
                 {
-                    for (int i = 0; i < improvementIds.Count; i++)
+                    for (var i = 0; i < improvementIds.Count; i++)
                     {
-                        for (int j = i + 1; j < improvementIds.Count; j++)
+                        for (var j = i + 1; j < improvementIds.Count; j++)
                         {
                             var sourceId = improvementIds[i];
                             var targetId = improvementIds[j];
@@ -586,7 +586,7 @@ public class DependencyGraphService
                 var lowestWeight = double.MaxValue;
                 ImprovementEdge? edgeToRemove = null;
 
-                for (int i = 0; i < cycle.Count; i++)
+                for (var i = 0; i < cycle.Count; i++)
                 {
                     var sourceId = cycle[i].Id;
                     var targetId = cycle[(i + 1) % cycle.Count].Id;

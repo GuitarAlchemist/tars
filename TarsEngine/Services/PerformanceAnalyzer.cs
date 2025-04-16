@@ -37,16 +37,16 @@ public class PerformanceAnalyzer
             var issues = new List<CodeIssue>();
 
             // Apply common detectors
-            issues.AddRange(DetectLargeObjectCreation(content));
-            issues.AddRange(DetectStringConcatenationInLoops(content));
-            issues.AddRange(DetectNestedLoops(content));
+            issues.AddRange(DetectLargeObjectCreation(content ?? string.Empty));
+            issues.AddRange(DetectStringConcatenationInLoops(content ?? string.Empty));
+            issues.AddRange(DetectNestedLoops(content ?? string.Empty));
 
             // Apply language-specific detectors
             if (_languageDetectors.TryGetValue(language.ToLowerInvariant(), out var detectors))
             {
                 foreach (var detector in detectors)
                 {
-                    issues.AddRange(detector(content));
+                    issues.AddRange(detector(content ?? string.Empty));
                 }
             }
 
@@ -68,7 +68,7 @@ public class PerformanceAnalyzer
         // Look for large array or collection initializations
         var arrayInitRegex = new Regex(@"new\s+[a-zA-Z0-9_<>]+\s*\[\s*(\d+)\s*\]", RegexOptions.Compiled);
         
-        for (int i = 0; i < lines.Length; i++)
+        for (var i = 0; i < lines.Length; i++)
         {
             var line = lines[i];
             var matches = arrayInitRegex.Matches(line);
@@ -113,11 +113,11 @@ public class PerformanceAnalyzer
         var loopStartRegex = new Regex(@"\b(for|foreach|while)\b", RegexOptions.Compiled);
         var stringConcatRegex = new Regex(@"[a-zA-Z0-9_]+\s*\+=\s*[""']|[a-zA-Z0-9_]+\s*=\s*[a-zA-Z0-9_]+\s*\+\s*[""']", RegexOptions.Compiled);
         
-        int loopStartLine = -1;
-        int braceCount = 0;
-        bool inLoop = false;
+        var loopStartLine = -1;
+        var braceCount = 0;
+        var inLoop = false;
         
-        for (int i = 0; i < lines.Length; i++)
+        for (var i = 0; i < lines.Length; i++)
         {
             var line = lines[i];
             
@@ -183,7 +183,7 @@ public class PerformanceAnalyzer
         var loopStack = new Stack<int>();
         var braceStack = new Stack<int>();
         
-        for (int i = 0; i < lines.Length; i++)
+        for (var i = 0; i < lines.Length; i++)
         {
             var line = lines[i];
             
@@ -192,12 +192,12 @@ public class PerformanceAnalyzer
             var closeBraces = line.Count(c => c == '}');
             
             // Update brace stack
-            for (int j = 0; j < openBraces; j++)
+            for (var j = 0; j < openBraces; j++)
             {
                 braceStack.Push(i);
             }
             
-            for (int j = 0; j < closeBraces; j++)
+            for (var j = 0; j < closeBraces; j++)
             {
                 if (braceStack.Count > 0)
                 {
@@ -271,7 +271,7 @@ public class PerformanceAnalyzer
         // Look for multiple LINQ operations that could be combined
         var linqOperationRegex = new Regex(@"\.(Where|Select|OrderBy|OrderByDescending|GroupBy|Join|Skip|Take)\(", RegexOptions.Compiled);
         
-        for (int i = 0; i < lines.Length; i++)
+        for (var i = 0; i < lines.Length; i++)
         {
             var line = lines[i];
             var matches = linqOperationRegex.Matches(line);
@@ -301,7 +301,7 @@ public class PerformanceAnalyzer
         // Look for ToList/ToArray followed by LINQ operations
         var materializeRegex = new Regex(@"\.(ToList|ToArray)\(\)\s*\.\s*(Where|Select|OrderBy|OrderByDescending|GroupBy|Join|Skip|Take)\(", RegexOptions.Compiled);
         
-        for (int i = 0; i < lines.Length; i++)
+        for (var i = 0; i < lines.Length; i++)
         {
             var line = lines[i];
             var matches = materializeRegex.Matches(line);
@@ -365,7 +365,7 @@ public class PerformanceAnalyzer
         // Look for unboxing operations (simplified detection)
         var unboxingRegex = new Regex(@"\(\s*(int|double|float|bool|char|byte|short|long|decimal)\s*\)\s*[a-zA-Z0-9_]+", RegexOptions.Compiled);
         
-        for (int i = 0; i < lines.Length; i++)
+        for (var i = 0; i < lines.Length; i++)
         {
             var line = lines[i];
             var unboxingMatches = unboxingRegex.Matches(line);
@@ -429,7 +429,7 @@ public class PerformanceAnalyzer
         // Look for catching generic Exception
         var genericExceptionRegex = new Regex(@"catch\s*\(\s*Exception\s+[a-zA-Z0-9_]+\s*\)", RegexOptions.Compiled);
         
-        for (int i = 0; i < lines.Length; i++)
+        for (var i = 0; i < lines.Length; i++)
         {
             var line = lines[i];
             var exceptionMatches = genericExceptionRegex.Matches(line);
@@ -467,12 +467,12 @@ public class PerformanceAnalyzer
         var loopStartRegex = new Regex(@"\b(for|foreach|while)\b", RegexOptions.Compiled);
         var objectCreationRegex = new Regex(@"new\s+[a-zA-Z0-9_<>]+", RegexOptions.Compiled);
         
-        int loopStartLine = -1;
-        int braceCount = 0;
-        bool inLoop = false;
+        var loopStartLine = -1;
+        var braceCount = 0;
+        var inLoop = false;
         var objectsCreatedInLoop = new HashSet<string>();
         
-        for (int i = 0; i < lines.Length; i++)
+        for (var i = 0; i < lines.Length; i++)
         {
             var line = lines[i];
             
@@ -575,11 +575,11 @@ public class PerformanceAnalyzer
         var loopStartRegex = new Regex(@"\bfor\b|\bwhile\b", RegexOptions.Compiled);
         var listConcatRegex = new Regex(@"@|\+\+|List\.append", RegexOptions.Compiled);
         
-        int loopStartLine = -1;
-        int braceCount = 0;
-        bool inLoop = false;
+        var loopStartLine = -1;
+        var braceCount = 0;
+        var inLoop = false;
         
-        for (int i = 0; i < lines.Length; i++)
+        for (var i = 0; i < lines.Length; i++)
         {
             var line = lines[i];
             
@@ -688,10 +688,10 @@ public class PerformanceAnalyzer
         var matchRegex = new Regex(@"\bmatch\b", RegexOptions.Compiled);
         var withRegex = new Regex(@"\bwith\b", RegexOptions.Compiled);
         
-        int matchStartLine = -1;
-        int matchCount = 0;
+        var matchStartLine = -1;
+        var matchCount = 0;
         
-        for (int i = 0; i < lines.Length; i++)
+        for (var i = 0; i < lines.Length; i++)
         {
             var line = lines[i];
             
@@ -749,7 +749,7 @@ public class PerformanceAnalyzer
         var functionContent = new List<string>();
         
         // Start from the function definition
-        for (int i = startLine; i < lines.Length; i++)
+        for (var i = startLine; i < lines.Length; i++)
         {
             functionContent.Add(lines[i]);
             
@@ -770,7 +770,7 @@ public class PerformanceAnalyzer
         
         var lines = functionContent.Split('\n');
         
-        for (int i = lines.Length - 1; i >= 0; i--)
+        for (var i = lines.Length - 1; i >= 0; i--)
         {
             var line = lines[i].Trim();
             

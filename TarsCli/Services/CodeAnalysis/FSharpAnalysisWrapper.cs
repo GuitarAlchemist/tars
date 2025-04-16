@@ -32,15 +32,15 @@ namespace TarsCli.Services.CodeAnalysis
         public static List<FSharpAnalysisResult> analyzeProject(string projectPath, int maxFiles = 50)
         {
             // This is a mock implementation until the F# module is implemented
-            return new List<FSharpAnalysisResult>
-            {
+            return
+            [
                 new FSharpAnalysisResult
                 {
                     FilePath = Path.Combine(projectPath, "Program.cs"),
                     Issues = FSharpList<CodeIssue>.Empty,
                     SuggestedFixes = FSharpList<Tuple<string, string>>.Empty
                 }
-            };
+            ];
         }
     }
 

@@ -140,7 +140,7 @@ public class PerformanceIssueDetector(ILogger<PerformanceIssueDetector> logger) 
             var largeArrayMatches = largeArrayRegex.Matches(content);
             foreach (Match match in largeArrayMatches)
             {
-                if (match.Groups.Count > 1 && int.TryParse(match.Groups[1].Value, out int size) && size > 1000000)
+                if (match.Groups.Count > 1 && int.TryParse(match.Groups[1].Value, out var size) && size > 1000000)
                 {
                     var lineNumber = GetLineNumber(content, match.Index);
                     issues.Add(new CodeIssue
@@ -398,15 +398,15 @@ public class PerformanceIssueDetector(ILogger<PerformanceIssueDetector> logger) 
     }
 
     /// <inheritdoc/>
-    public Dictionary<TarsEngine.Services.Interfaces.IssueSeverity, string> GetAvailableSeverities()
+    public Dictionary<Interfaces.IssueSeverity, string> GetAvailableSeverities()
     {
-        return new Dictionary<TarsEngine.Services.Interfaces.IssueSeverity, string>
+        return new Dictionary<Interfaces.IssueSeverity, string>
         {
-            { TarsEngine.Services.Interfaces.IssueSeverity.Critical, "Critical performance issue that causes significant slowdowns" },
-            { TarsEngine.Services.Interfaces.IssueSeverity.Major, "High-impact performance issue that should be fixed soon" },
-            { TarsEngine.Services.Interfaces.IssueSeverity.Minor, "Medium-impact performance issue" },
-            { TarsEngine.Services.Interfaces.IssueSeverity.Trivial, "Low-impact performance issue" },
-            { TarsEngine.Services.Interfaces.IssueSeverity.Warning, "Informational performance suggestion" }
+            { Interfaces.IssueSeverity.Critical, "Critical performance issue that causes significant slowdowns" },
+            { Interfaces.IssueSeverity.Major, "High-impact performance issue that should be fixed soon" },
+            { Interfaces.IssueSeverity.Minor, "Medium-impact performance issue" },
+            { Interfaces.IssueSeverity.Trivial, "Low-impact performance issue" },
+            { Interfaces.IssueSeverity.Warning, "Informational performance suggestion" }
         };
     }
 

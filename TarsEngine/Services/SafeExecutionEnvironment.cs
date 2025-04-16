@@ -81,10 +81,12 @@ public class SafeExecutionEnvironment
                 : Path.Combine(Path.GetTempPath(), "TARS", "Output", executionPlanId);
             context.OutputDirectory = outputDirectory;
 
-            // Create directories
-            Directory.CreateDirectory(workingDirectory);
-            Directory.CreateDirectory(backupDirectory);
-            Directory.CreateDirectory(outputDirectory);
+            // Create directories asynchronously
+            await Task.WhenAll(
+                Task.Run(() => Directory.CreateDirectory(workingDirectory)),
+                Task.Run(() => Directory.CreateDirectory(backupDirectory)),
+                Task.Run(() => Directory.CreateDirectory(outputDirectory))
+            );
 
             // Set timeout
             if (options?.TryGetValue("TimeoutMs", out var timeoutStr) == true && int.TryParse(timeoutStr, out var timeout))
@@ -106,7 +108,7 @@ public class SafeExecutionEnvironment
             context.Permissions = permissions;
 
             // Create virtual file system context
-            var vfsContext = _virtualFileSystem.CreateContext(context.Id, workingDirectory, backupDirectory, mode == ExecutionMode.DryRun);
+            var vfsContext = await _virtualFileSystem.CreateContextAsync(context.Id, workingDirectory, backupDirectory, mode == ExecutionMode.DryRun);
 
             // Store execution context
             _executionContexts[context.Id] = context;

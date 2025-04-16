@@ -14,10 +14,10 @@ public class TripleQuotedArgumentParser
     public static string[] ParseTripleQuotedArguments(string[] args)
     {
         var result = new List<string>();
-        bool inTripleQuotedString = false;
+        var inTripleQuotedString = false;
         var tripleQuotedBuilder = new StringBuilder();
         
-        for (int i = 0; i < args.Length; i++)
+        for (var i = 0; i < args.Length; i++)
         {
             var arg = args[i];
             
