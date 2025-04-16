@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  tars-model-runner:
+    image: ollama/ollama:latest
+    container_name: tars-model-runner
+    ports:
+      - "8080:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - tars-network
+
+networks:
+  tars-network:
+    external: true
+
+volumes:
+  ollama_data:
