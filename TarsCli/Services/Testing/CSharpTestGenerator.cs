@@ -6,7 +6,7 @@ namespace TarsCli.Services.Testing;
 /// <summary>
 /// Generator for C# tests
 /// </summary>
-public class CSharpTestGenerator : ITestGenerator
+public partial class CSharpTestGenerator : ITestGenerator
 {
     private readonly ILogger<CSharpTestGenerator> _logger;
 
@@ -68,7 +68,7 @@ public class CSharpTestGenerator : ITestGenerator
     /// <inheritdoc/>
     public IEnumerable<string> GetSupportedFileExtensions()
     {
-        return new[] { ".cs" };
+        return [".cs"];
     }
 
     /// <summary>
@@ -97,7 +97,7 @@ public class CSharpTestGenerator : ITestGenerator
         }
 
         // Extract methods
-        var methodMatches = Regex.Matches(fileContent, @"(?:public|internal|protected)\s+(?:static\s+)?(?:virtual\s+)?(?:override\s+)?(?:async\s+)?([a-zA-Z0-9_<>]+)\s+([a-zA-Z0-9_]+)\s*\((.*?)\)(?:\s*=>\s*.*?;|\s*\{)");
+        var methodMatches = Regex.Matches(fileContent, @"(?:public|internal|protected)\s+(?:static\s+)?(?:virtual\s+)?(?:override\s+)?(?:async\s+)?([a-zA-Z0-9_<>\[\]\.]+(?:<[^>]+>)?)\s+([a-zA-Z0-9_]+)\s*\((.*?)\)(?:\s*=>\s*.*?;|\s*\{)");
         foreach (Match methodMatch in methodMatches)
         {
             var returnType = methodMatch.Groups[1].Value;
@@ -117,7 +117,7 @@ public class CSharpTestGenerator : ITestGenerator
                 var paramParts = SplitParameters(parameters);
                 foreach (var part in paramParts)
                 {
-                    var paramMatch = Regex.Match(part.Trim(), @"([a-zA-Z0-9_<>\.]+)\s+([a-zA-Z0-9_]+)(?:\s*=.*)?$");
+                    var paramMatch = Regex.Match(part.Trim(), @"([a-zA-Z0-9_<>\[\]\.]+)\s+([a-zA-Z0-9_]+)(?:\s*=.*)?$");
                     if (paramMatch.Success)
                     {
                         paramList.Add((paramMatch.Groups[1].Value, paramMatch.Groups[2].Value));
@@ -231,14 +231,68 @@ public class CSharpTestGenerator : ITestGenerator
             sb.AppendLine($"        public {(method.IsAsync ? "async Task" : "void")} {method.Name}_Should{GetTestScenario(method)}()");
             sb.AppendLine("        {");
             sb.AppendLine("            // Arrange");
-            sb.AppendLine($"            // TODO: Set up test data and dependencies for {method.Name}");
+
+            // Create instance of the class
+            sb.AppendLine($"            var sut = new {className}();");
+
+            // Generate test data based on method parameters
+            foreach (var param in method.Parameters)
+            {
+                sb.AppendLine($"            {GenerateTestDataForParameter(param.Type, param.Name)}");
+            }
+
             sb.AppendLine();
             sb.AppendLine("            // Act");
-            sb.AppendLine($"            // TODO: Call {method.Name} with test data");
+
+            // Generate method call
+            if (method.ReturnType != "void")
+            {
+                sb.Append("            var result = ");
+            }
+            else
+            {
+                sb.Append("            ");
+            }
+
+            if (method.IsAsync)
+            {
+                sb.Append("await ");
+            }
+
+            sb.Append($"sut.{method.Name}(");
+
+            // Add parameters to method call
+            for (int i = 0; i < method.Parameters.Count; i++)
+            {
+                sb.Append(method.Parameters[i].Name);
+                if (i < method.Parameters.Count - 1)
+                {
+                    sb.Append(", ");
+                }
+            }
+
+            sb.AppendLine(");");
+
             sb.AppendLine();
             sb.AppendLine("            // Assert");
-            sb.AppendLine("            // TODO: Verify the results");
-            sb.AppendLine("            Assert.Fail(\"Test not implemented\");");
+
+            // Generate assertions based on return type
+            if (method.ReturnType != "void")
+            {
+                var assertionsSb = new StringBuilder();
+                GenerateAssertionsForReturnType(assertionsSb, method.ReturnType);
+                string[] assertions = assertionsSb.ToString().Split([Environment.NewLine], StringSplitOptions.RemoveEmptyEntries);
+                foreach (var assertion in assertions)
+                {
+                    sb.AppendLine($"            {assertion}");
+                }
+            }
+            else
+            {
+                sb.AppendLine("            // Verify the method executed without exceptions");
+                sb.AppendLine("            Assert.IsTrue(true);");
+            }
+
             sb.AppendLine("        }");
             sb.AppendLine();
         }
@@ -263,14 +317,57 @@ public class CSharpTestGenerator : ITestGenerator
 
         var sb = new StringBuilder();
         sb.AppendLine("// Arrange");
-        sb.AppendLine($"// TODO: Set up test data and dependencies for {method.Name}");
+
+        // Create instance of the class
+        sb.AppendLine($"var sut = new {className}();");
+
+        // Generate test data based on method parameters
+        foreach (var param in method.Parameters)
+        {
+            sb.AppendLine(GenerateTestDataForParameter(param.Type, param.Name));
+        }
+
         sb.AppendLine();
         sb.AppendLine("// Act");
-        sb.AppendLine($"// TODO: Call {method.Name} with test data");
+
+        // Generate method call
+        if (method.ReturnType != "void")
+        {
+            sb.Append($"var result = ");
+        }
+
+        if (method.IsAsync)
+        {
+            sb.Append("await ");
+        }
+
+        sb.Append($"sut.{method.Name}(");
+
+        // Add parameters to method call
+        for (int i = 0; i < method.Parameters.Count; i++)
+        {
+            sb.Append(method.Parameters[i].Name);
+            if (i < method.Parameters.Count - 1)
+            {
+                sb.Append(", ");
+            }
+        }
+
+        sb.AppendLine(");");
+
         sb.AppendLine();
         sb.AppendLine("// Assert");
-        sb.AppendLine("// TODO: Verify the results");
-        sb.AppendLine("Assert.Fail(\"Test not implemented\");");
+
+        // Generate assertions based on return type
+        if (method.ReturnType != "void")
+        {
+            GenerateAssertionsForReturnType(sb, method.ReturnType);
+        }
+        else
+        {
+            sb.AppendLine("// Verify the method executed without exceptions");
+            sb.AppendLine("Assert.IsTrue(true);");
+        }
 
         return new TestCase
         {
@@ -287,7 +384,7 @@ public class CSharpTestGenerator : ITestGenerator
     /// </summary>
     /// <param name="method">Method information</param>
     /// <returns>Test scenario description</returns>
-    private string GetTestScenario(MethodInfo method)
+    private static string GetTestScenario(MethodInfo method)
     {
         // Generate a test scenario based on the method name and return type
         if (method.Name.StartsWith("Get"))
@@ -381,6 +478,154 @@ public class CSharpTestGenerator : ITestGenerator
     }
 
     /// <summary>
+    /// Generates test data for a parameter
+    /// </summary>
+    /// <param name="type">Parameter type</param>
+    /// <param name="name">Parameter name</param>
+    /// <returns>Code to create test data</returns>
+    private static string GenerateTestDataForParameter(string type, string name)
+    {
+        if (type.Contains("int") || type.Contains("Int32"))
+        {
+            return $"var {name} = 42;"; // Common test value
+        }
+        else if (type.Contains("long") || type.Contains("Int64"))
+        {
+            return $"var {name} = 42L;";
+        }
+        else if (type.Contains("double"))
+        {
+            return $"var {name} = 42.0;";
+        }
+        else if (type.Contains("float"))
+        {
+            return $"var {name} = 42.0f;";
+        }
+        else if (type.Contains("decimal"))
+        {
+            return $"var {name} = 42.0m;";
+        }
+        else if (type.Contains("bool") || type.Contains("Boolean"))
+        {
+            return $"var {name} = true;";
+        }
+        else if (type.Contains("string") || type.Contains("String"))
+        {
+            return $"var {name} = \"test\";";
+        }
+        else if (type.Contains("List<") || type.Contains("IList<"))
+        {
+            var innerType = ExtractGenericType(type);
+            return $"var {name} = new List<{innerType}>() {{ {GetDefaultValueForType(innerType)}, {GetDefaultValueForType(innerType)} }};";
+        }
+        else if (type.Contains("IEnumerable<"))
+        {
+            var innerType = ExtractGenericType(type);
+            return $"var {name} = new List<{innerType}>() {{ {GetDefaultValueForType(innerType)}, {GetDefaultValueForType(innerType)} }}.AsEnumerable();";
+        }
+        else if (type.Contains("[]"))
+        {
+            var arrayType = type.Replace("[]", "");
+            return $"var {name} = new {arrayType}[] {{ {GetDefaultValueForType(arrayType)}, {GetDefaultValueForType(arrayType)} }};";
+        }
+        else
+        {
+            return $"// TODO: Create test data for parameter '{name}' of type '{type}'";
+        }
+    }
+
+    /// <summary>
+    /// Regex for extracting generic type from a generic type declaration
+    /// </summary>
+    [GeneratedRegex(@"<([^>]+)>")]
+    private static partial Regex GenericTypeRegex();
+
+    private static string ExtractGenericType(string genericType)
+    {
+        var match = GenericTypeRegex().Match(genericType);
+        if (match.Success)
+        {
+            return match.Groups[1].Value;
+        }
+        return "object";
+    }
+
+    /// <summary>
+    /// Gets a default value for a type
+    /// </summary>
+    /// <param name="type">Type name</param>
+    /// <returns>Default value for the type</returns>
+    private static string GetDefaultValueForType(string type)
+    {
+        if (type.Contains("int") || type.Contains("Int32"))
+        {
+            return "42";
+        }
+        else if (type.Contains("long") || type.Contains("Int64"))
+        {
+            return "42L";
+        }
+        else if (type.Contains("double"))
+        {
+            return "42.0";
+        }
+        else if (type.Contains("float"))
+        {
+            return "42.0f";
+        }
+        else if (type.Contains("decimal"))
+        {
+            return "42.0m";
+        }
+        else if (type.Contains("bool") || type.Contains("Boolean"))
+        {
+            return "true";
+        }
+        else if (type.Contains("string") || type.Contains("String"))
+        {
+            return "\"test\"";
+        }
+        else
+        {
+            return "new()";
+        }
+    }
+
+    /// <summary>
+    /// Generates assertions based on the return type
+    /// </summary>
+    /// <param name="sb">StringBuilder to append to</param>
+    /// <param name="returnType">Return type of the method</param>
+    private static void GenerateAssertionsForReturnType(StringBuilder sb, string returnType)
+    {
+        if (returnType.Contains("bool") || returnType.Contains("Boolean"))
+        {
+            sb.AppendLine("Assert.IsTrue(result);");
+        }
+        else if (returnType.Contains("int") || returnType.Contains("Int32") ||
+                returnType.Contains("long") || returnType.Contains("Int64") ||
+                returnType.Contains("double") || returnType.Contains("float") ||
+                returnType.Contains("decimal"))
+        {
+            sb.AppendLine("Assert.AreEqual(42, result);");
+        }
+        else if (returnType.Contains("string") || returnType.Contains("String"))
+        {
+            sb.AppendLine("Assert.IsNotNull(result);");
+            sb.AppendLine("Assert.IsTrue(result.Length > 0);");
+        }
+        else if (returnType.Contains("List") || returnType.Contains("IEnumerable") || returnType.Contains("Array"))
+        {
+            sb.AppendLine("Assert.IsNotNull(result);");
+            sb.AppendLine("Assert.IsTrue(result.Any());");
+        }
+        else
+        {
+            sb.AppendLine("Assert.IsNotNull(result);");
+        }
+    }
+
+    /// <summary>
     /// Information about a method
     /// </summary>
     private class MethodInfo
@@ -398,7 +643,7 @@ public class CSharpTestGenerator : ITestGenerator
         /// <summary>
         /// Parameters of the method
         /// </summary>
-        public List<(string Type, string Name)> Parameters { get; set; } = new();
+        public List<(string Type, string Name)> Parameters { get; set; } = [];
 
         /// <summary>
         /// Whether the method is asynchronous

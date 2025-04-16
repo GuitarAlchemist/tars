@@ -44,12 +44,12 @@ public static class DuplicatedBlockConverter
         }
 
         // Get start and end lines from the interface block
-        int sourceStartLine = 0;
-        int sourceEndLine = 0;
-        int targetStartLine = 0;
-        int targetEndLine = 0;
-        string sourceMethod = string.Empty;
-        string targetMethod = string.Empty;
+        var sourceStartLine = 0;
+        var sourceEndLine = 0;
+        var targetStartLine = 0;
+        var targetEndLine = 0;
+        var sourceMethod = string.Empty;
+        var targetMethod = string.Empty;
 
         // Check if the properties exist using reflection
         var type = block.GetType();
@@ -68,7 +68,7 @@ public static class DuplicatedBlockConverter
         if (targetMethodProp != null) targetMethod = (string)targetMethodProp.GetValue(block)!;
 
         // Calculate duplicated lines
-        int duplicatedLines = targetEndLine - targetStartLine + 1;
+        var duplicatedLines = targetEndLine - targetStartLine + 1;
         if (duplicatedLines < 0) duplicatedLines = 0;
 
         return new DuplicatedBlockUnified

@@ -58,7 +58,7 @@ public class SpontaneousThought
     /// Initializes the spontaneous thought
     /// </summary>
     /// <returns>True if initialization was successful</returns>
-    public async Task<bool> InitializeAsync()
+    public Task<bool> InitializeAsync()
     {
         try
         {
@@ -69,12 +69,12 @@ public class SpontaneousThought
 
             _isInitialized = true;
             _logger.LogInformation("Spontaneous thought initialized successfully");
-            return true;
+            return Task.FromResult(true);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error initializing spontaneous thought");
-            return false;
+            return Task.FromResult(false);
         }
     }
 
@@ -135,18 +135,18 @@ public class SpontaneousThought
     /// Activates the spontaneous thought
     /// </summary>
     /// <returns>True if activation was successful</returns>
-    public async Task<bool> ActivateAsync()
+    public Task<bool> ActivateAsync()
     {
         if (!_isInitialized)
         {
             _logger.LogWarning("Cannot activate spontaneous thought: not initialized");
-            return false;
+            return Task.FromResult(false);
         }
 
         if (_isActive)
         {
             _logger.LogInformation("Spontaneous thought is already active");
-            return true;
+            return Task.FromResult(true);
         }
 
         try
@@ -155,12 +155,12 @@ public class SpontaneousThought
 
             _isActive = true;
             _logger.LogInformation("Spontaneous thought activated successfully");
-            return true;
+            return Task.FromResult(true);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error activating spontaneous thought");
-            return false;
+            return Task.FromResult(false);
         }
     }
 
@@ -168,12 +168,12 @@ public class SpontaneousThought
     /// Deactivates the spontaneous thought
     /// </summary>
     /// <returns>True if deactivation was successful</returns>
-    public async Task<bool> DeactivateAsync()
+    public Task<bool> DeactivateAsync()
     {
         if (!_isActive)
         {
             _logger.LogInformation("Spontaneous thought is already inactive");
-            return true;
+            return Task.FromResult(true);
         }
 
         try
@@ -182,12 +182,12 @@ public class SpontaneousThought
 
             _isActive = false;
             _logger.LogInformation("Spontaneous thought deactivated successfully");
-            return true;
+            return Task.FromResult(true);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deactivating spontaneous thought");
-            return false;
+            return Task.FromResult(false);
         }
     }
 
@@ -195,12 +195,12 @@ public class SpontaneousThought
     /// Updates the spontaneous thought
     /// </summary>
     /// <returns>True if update was successful</returns>
-    public async Task<bool> UpdateAsync()
+    public Task<bool> UpdateAsync()
     {
         if (!_isInitialized)
         {
             _logger.LogWarning("Cannot update spontaneous thought: not initialized");
-            return false;
+            return Task.FromResult(false);
         }
 
         try
@@ -230,12 +230,12 @@ public class SpontaneousThought
                 _serendipityLevel = Math.Min(_serendipityLevel, 1.0);
             }
 
-            return true;
+            return Task.FromResult(true);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating spontaneous thought");
-            return false;
+            return Task.FromResult(false);
         }
     }
 
@@ -243,17 +243,17 @@ public class SpontaneousThought
     /// Generates a spontaneous thought
     /// </summary>
     /// <returns>The generated spontaneous thought</returns>
-    public async Task<ThoughtModel?> GenerateSpontaneousThoughtAsync()
+    public Task<ThoughtModel?> GenerateSpontaneousThoughtAsync()
     {
         if (!_isInitialized || !_isActive)
         {
-            return null;
+            return Task.FromResult<ThoughtModel?>(null);
         }
 
         // Only generate thoughts periodically
         if ((DateTime.UtcNow - _lastThoughtTime).TotalSeconds < 30)
         {
-            return null;
+            return Task.FromResult<ThoughtModel?>(null);
         }
 
         try
@@ -277,12 +277,12 @@ public class SpontaneousThought
                     thought.Content, thought.Significance, method);
             }
 
-            return thought;
+            return Task.FromResult(thought);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error generating spontaneous thought");
-            return null;
+            return Task.FromResult<ThoughtModel?>(null);
         }
     }
 
@@ -293,18 +293,18 @@ public class SpontaneousThought
     private ThoughtGenerationMethod ChooseThoughtGenerationMethod()
     {
         // Calculate probabilities based on current levels
-        double randomProb = _spontaneityLevel * 0.3;
-        double associativeProb = _associativeJumpingLevel * 0.4;
-        double wanderingProb = _mindWanderingLevel * 0.3;
+        var randomProb = _spontaneityLevel * 0.3;
+        var associativeProb = _associativeJumpingLevel * 0.4;
+        var wanderingProb = _mindWanderingLevel * 0.3;
 
         // Normalize probabilities
-        double total = randomProb + associativeProb + wanderingProb;
+        var total = randomProb + associativeProb + wanderingProb;
         randomProb /= total;
         associativeProb /= total;
         wanderingProb /= total;
 
         // Choose method based on probabilities
-        double rand = _random.NextDouble();
+        var rand = _random.NextDouble();
 
         if (rand < randomProb)
         {
@@ -367,10 +367,10 @@ public class SpontaneousThought
         var content = thoughtTemplates[_random.Next(thoughtTemplates.Count)];
 
         // Calculate significance (somewhat random for random thoughts)
-        double significance = 0.3 + (0.5 * _random.NextDouble() * _spontaneityLevel);
+        var significance = 0.3 + (0.5 * _random.NextDouble() * _spontaneityLevel);
 
         // Determine if this is a serendipitous thought
-        bool isSerendipitous = _random.NextDouble() < _serendipityLevel;
+        var isSerendipitous = _random.NextDouble() < _serendipityLevel;
 
         // If serendipitous, increase significance
         if (isSerendipitous)
@@ -425,7 +425,7 @@ public class SpontaneousThought
         var currentConcept = startConcept;
         var jumpPath = new List<string> { currentConcept };
 
-        for (int i = 0; i < jumpCount; i++)
+        for (var i = 0; i < jumpCount; i++)
         {
             if (_associativeNetwork.TryGetValue(currentConcept, out var associations) && associations.Count > 0)
             {
@@ -456,7 +456,7 @@ public class SpontaneousThought
 
         // Calculate significance based on jump path length and unexpectedness
         double jumpDistance = jumpPath.Count;
-        double unexpectedness = 0.5; // Base unexpectedness
+        var unexpectedness = 0.5; // Base unexpectedness
 
         // If start and end concepts are not directly associated, it's more unexpected
         if (jumpPath.Count >= 3 &&
@@ -466,10 +466,10 @@ public class SpontaneousThought
             unexpectedness += 0.3;
         }
 
-        double significance = Math.Min(1.0, (0.3 + (0.1 * jumpDistance) + (0.2 * unexpectedness)) * _associativeJumpingLevel);
+        var significance = Math.Min(1.0, (0.3 + (0.1 * jumpDistance) + (0.2 * unexpectedness)) * _associativeJumpingLevel);
 
         // Determine if this is a serendipitous thought
-        bool isSerendipitous = unexpectedness > 0.7 && _random.NextDouble() < _serendipityLevel;
+        var isSerendipitous = unexpectedness > 0.7 && _random.NextDouble() < _serendipityLevel;
 
         // If serendipitous, increase significance and modify content
         if (isSerendipitous)
@@ -513,10 +513,10 @@ public class SpontaneousThought
         var stream = new List<string> { startConcept };
         var currentConcept = startConcept;
 
-        for (int i = 1; i < streamLength; i++)
+        for (var i = 1; i < streamLength; i++)
         {
             // Sometimes make a logical association, sometimes a random jump
-            bool makeLogicalJump = _random.NextDouble() < 0.7;
+            var makeLogicalJump = _random.NextDouble() < 0.7;
 
             if (makeLogicalJump && _associativeNetwork.TryGetValue(currentConcept, out var associations) && associations.Count > 0)
             {
@@ -533,16 +533,16 @@ public class SpontaneousThought
 
         // Generate thought based on stream
         var streamText = string.Join("... ", stream.Select(c => GetConceptPhrase(c)));
-        string content = $"My mind is wandering: {streamText}...";
+        var content = $"My mind is wandering: {streamText}...";
 
         // Calculate significance based on stream coherence and insight potential
-        double coherence = CalculateStreamCoherence(stream);
-        double insightPotential = _random.NextDouble() < _serendipityLevel ? 0.8 : 0.3;
+        var coherence = CalculateStreamCoherence(stream);
+        var insightPotential = _random.NextDouble() < _serendipityLevel ? 0.8 : 0.3;
 
-        double significance = Math.Min(1.0, (0.2 + (0.3 * (1.0 - coherence)) + (0.3 * insightPotential)) * _mindWanderingLevel);
+        var significance = Math.Min(1.0, (0.2 + (0.3 * (1.0 - coherence)) + (0.3 * insightPotential)) * _mindWanderingLevel);
 
         // Determine if this is a serendipitous thought
-        bool isSerendipitous = insightPotential > 0.7;
+        var isSerendipitous = insightPotential > 0.7;
 
         // If serendipitous, increase significance and modify content
         if (isSerendipitous)
@@ -598,16 +598,16 @@ public class SpontaneousThought
             return 1.0;
         }
 
-        double totalCoherence = 0.0;
-        int connections = 0;
+        var totalCoherence = 0.0;
+        var connections = 0;
 
-        for (int i = 0; i < stream.Count - 1; i++)
+        for (var i = 0; i < stream.Count - 1; i++)
         {
-            string concept1 = stream[i];
-            string concept2 = stream[i + 1];
+            var concept1 = stream[i];
+            var concept2 = stream[i + 1];
 
             // Check if concepts are directly associated
-            bool directlyAssociated = false;
+            var directlyAssociated = false;
             if (_associativeNetwork.TryGetValue(concept1, out var associations))
             {
                 directlyAssociated = associations.Contains(concept2);

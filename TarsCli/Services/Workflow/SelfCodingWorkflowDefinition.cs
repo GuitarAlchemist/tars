@@ -33,22 +33,22 @@ public class SelfCodingWorkflowDefinition : IWorkflowDefinition
     // Define valid transitions
     private readonly Dictionary<string, List<string>> _validTransitions = new()
     {
-        { STATE_INITIALIZE, new List<string> { STATE_SELECT_FILES, STATE_FAILED } },
-        { STATE_SELECT_FILES, new List<string> { STATE_ANALYZE_CODE, STATE_FAILED } },
-        { STATE_ANALYZE_CODE, new List<string> { STATE_GENERATE_CODE, STATE_COMPLETE, STATE_FAILED } },
-        { STATE_GENERATE_CODE, new List<string> { STATE_GENERATE_TESTS, STATE_FAILED } },
-        { STATE_GENERATE_TESTS, new List<string> { STATE_RUN_TESTS, STATE_FAILED } },
-        { STATE_RUN_TESTS, new List<string> { STATE_APPLY_CHANGES, STATE_GENERATE_CODE, STATE_FAILED } },
-        { STATE_APPLY_CHANGES, new List<string> { STATE_LEARN, STATE_FAILED } },
-        { STATE_LEARN, new List<string> { STATE_COMPLETE, STATE_FAILED } }
+        { STATE_INITIALIZE, [STATE_SELECT_FILES, STATE_FAILED] },
+        { STATE_SELECT_FILES, [STATE_ANALYZE_CODE, STATE_FAILED] },
+        { STATE_ANALYZE_CODE, [STATE_GENERATE_CODE, STATE_COMPLETE, STATE_FAILED] },
+        { STATE_GENERATE_CODE, [STATE_GENERATE_TESTS, STATE_FAILED] },
+        { STATE_GENERATE_TESTS, [STATE_RUN_TESTS, STATE_FAILED] },
+        { STATE_RUN_TESTS, [STATE_APPLY_CHANGES, STATE_GENERATE_CODE, STATE_FAILED] },
+        { STATE_APPLY_CHANGES, [STATE_LEARN, STATE_FAILED] },
+        { STATE_LEARN, [STATE_COMPLETE, STATE_FAILED] }
     };
 
     // Define final states
-    private readonly HashSet<string> _finalStates = new()
-    {
+    private readonly HashSet<string> _finalStates =
+    [
         STATE_COMPLETE,
         STATE_FAILED
-    };
+    ];
 
     /// <inheritdoc/>
     public string Type => "SelfCoding";
@@ -251,7 +251,8 @@ public class SelfCodingWorkflowDefinition : IWorkflowDefinition
 
         // Get parameters
         var targetDirectory = workflow.Parameters["TargetDirectory"].ToString();
-        var filePatterns = workflow.Parameters["FilePatterns"] as IEnumerable<string> ?? new[] { workflow.Parameters["FilePatterns"].ToString() };
+        var filePatterns = workflow.Parameters["FilePatterns"] as IEnumerable<string> ?? [workflow.Parameters["FilePatterns"].ToString()
+        ];
         var maxFiles = workflow.Parameters.TryGetValue("MaxFiles", out var maxFilesObj) && maxFilesObj != null
             ? int.Parse(maxFilesObj.ToString())
             : 10;

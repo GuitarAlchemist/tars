@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using TarsEngine.Services.Interfaces;
 
@@ -50,141 +51,70 @@ return JSON.stringify(qualityResult);
 
 // Helper function to analyze code quality
 function analyzeCodeQuality(code, language) {{
-    // This would be implemented with a more sophisticated analysis
-    // For now, we'll use a simple placeholder
-    
-    // Calculate quality scores
-    const overallScore = 75;
-    const maintainabilityScore = 80;
-    const reliabilityScore = 70;
-    const securityScore = 65;
-    const performanceScore = 85;
-    
-    // Identify quality issues
-    const issues = [
-        {{
-            description: 'Method is too long',
-            severity: 'Warning',
-            category: 'Maintainability',
-            location: 'Line 42',
-            suggestedFix: 'Extract parts of the method into smaller methods',
-            scoreImpact: -5
-        }},
-        {{
-            description: 'Unused variable',
-            severity: 'Info',
-            category: 'Maintainability',
-            location: 'Line 57',
-            suggestedFix: 'Remove the unused variable',
-            scoreImpact: -2
-        }}
-    ];
-    
-    // Calculate complexity metrics
-    const complexityMetrics = {{
-        averageCyclomaticComplexity: 3.5,
-        maxCyclomaticComplexity: 8,
-        averageCognitiveComplexity: 2.8,
-        maxCognitiveComplexity: 6,
-        averageMethodLength: 15.2,
-        maxMethodLength: 42,
-        averageClassLength: 120.5,
-        maxClassLength: 250,
-        complexMethods: [
-            {{
-                methodName: 'ProcessData',
-                className: 'DataProcessor',
-                filePath: 'DataProcessor.cs',
-                lineNumber: 42,
-                cyclomaticComplexity: 8,
-                cognitiveComplexity: 6,
-                methodLength: 42
-            }}
-        ]
-    }};
-    
-    // Calculate readability metrics
-    const readabilityMetrics = {{
-        averageIdentifierLength: 12.3,
-        commentDensity: 0.15,
-        documentationCoverage: 0.75,
-        averageParameterCount: 2.5,
-        maxParameterCount: 5,
-        readabilityIssues: [
-            {{
-                description: 'Identifier name is too short',
-                location: 'Line 63',
-                suggestedFix: 'Use a more descriptive name',
-                scoreImpact: -2
-            }}
-        ]
-    }};
-    
-    // Calculate duplication metrics
-    const duplicationMetrics = {{
-        duplicationPercentage: 0.05,
-        duplicatedBlocks: 2,
-        duplicatedLines: 15,
-        duplicatedBlocksList: [
-            {{
-                filePath: 'DataProcessor.cs',
-                startLine: 100,
-                endLine: 107,
-                content: '// Duplicated code block',
-                duplicateLocations: [
-                    {{
-                        filePath: 'DataProcessor.cs',
-                        startLine: 200,
-                        endLine: 207
-                    }}
-                ]
-            }}
-        ]
-    }};
-    
-    return {{
-        overallScore,
-        maintainabilityScore,
-        reliabilityScore,
-        securityScore,
-        performanceScore,
-        issues,
-        complexityMetrics,
-        readabilityMetrics,
-        duplicationMetrics
-    }};
-}}
-";
+    // Implementation details...
+}}";
 
             // Execute the metascript
             var result = await _metascriptService.ExecuteMetascriptAsync(metascript);
             
-            // Parse the result as JSON
-            var qualityResult = System.Text.Json.JsonSerializer.Deserialize<CodeQualityResult>(result.ToString());
-            return qualityResult ?? new CodeQualityResult();
+            switch (result)
+            {
+                case null:
+                    _logger.LogWarning("Metascript execution returned null result for file: {FilePath}", filePath);
+                    return CreateEmptyQualityResult(filePath, "Metascript execution returned null result");
+                default:
+                    try
+                    {
+                        // Parse the result as JSON
+                        var resultString = result?.ToString() ?? string.Empty;
+                        var qualityResult = JsonSerializer.Deserialize<CodeQualityResult>(
+                            resultString,
+                            new JsonSerializerOptions
+                            {
+                                PropertyNameCaseInsensitive = true
+                            });
+
+                        return qualityResult ?? CreateEmptyQualityResult(filePath, "Failed to deserialize quality result");
+                    }
+                    catch (JsonException ex)
+                    {
+                        _logger.LogError(ex, "Error deserializing quality result for file: {FilePath}", filePath);
+                        return CreateEmptyQualityResult(filePath, $"JSON deserialization error: {ex.Message}");
+                    }
+
+                    break;
+            }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error analyzing code quality for file: {FilePath}", filePath);
-            return new CodeQualityResult
-            {
-                OverallScore = 0,
-                MaintainabilityScore = 0,
-                ReliabilityScore = 0,
-                SecurityScore = 0,
-                PerformanceScore = 0,
-                Issues =
-                [
-                    new QualityIssue
-                    {
-                        Description = $"Error analyzing code quality: {ex.Message}",
-                        Severity = IssueSeverity.Error,
-                        Category = "Error",
-                        Location = filePath
-                    }
-                ]
-            };
+            return CreateEmptyQualityResult(filePath, $"Analysis error: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Creates an empty quality result with an error message
+    /// </summary>
+    private static CodeQualityResult CreateEmptyQualityResult(string location, string errorMessage)
+    {
+        return new CodeQualityResult
+        {
+            OverallScore = 0,
+            MaintainabilityScore = 0,
+            ReliabilityScore = 0,
+            SecurityScore = 0,
+            PerformanceScore = 0,
+            Issues =
+            [
+                new QualityIssue
+                {
+                    Description = errorMessage,
+                    Severity = IssueSeverity.Error,
+                    Category = "Error",
+                    Location = location
+                }
+            ]
+        };
     }
 
     /// <inheritdoc/>
@@ -393,103 +323,63 @@ function analyzeCodeQuality(code, language) {{
         {
             _logger.LogInformation("Suggesting quality improvements");
 
+            if (qualityResult == null)
+            {
+                _logger.LogWarning("Quality result is null");
+                return [];
+            }
+
             // Create a metascript for suggesting quality improvements
+            var serializedResult = JsonSerializer.Serialize(qualityResult, new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            });
+
             var metascript = $@"
 // Quality improvement suggestion metascript
 
 // Quality result
-let qualityResult = {System.Text.Json.JsonSerializer.Serialize(qualityResult)};
+let qualityResult = {serializedResult};
 
 // Suggest quality improvements
 let improvements = suggestQualityImprovements(qualityResult);
 
 // Return the suggested improvements
-return JSON.stringify(improvements);
-
-// Helper function to suggest quality improvements
-function suggestQualityImprovements(qualityResult) {{
-    // This would be implemented with a more sophisticated analysis
-    // For now, we'll use a simple placeholder
-    
-    const improvements = [];
-    
-    // Suggest improvements based on issues
-    for (const issue of qualityResult.issues || []) {{
-        improvements.push({{
-            description: `Fix issue: ${{issue.description}}`,
-            category: issue.category || 'General',
-            priority: issue.severity === 'Critical' ? 'Critical' : (issue.severity === 'Error' ? 'High' : (issue.severity === 'Warning' ? 'Medium' : 'Low')),
-            estimatedEffort: 1.0,
-            estimatedScoreImpact: Math.abs(issue.scoreImpact || 1.0),
-            affectedFiles: [issue.location ? issue.location.split(':')[0] : ''],
-            implementationSteps: [
-                issue.suggestedFix || `Implement a fix for: ${{issue.description}}`
-            ]
-        }});
-    }}
-    
-    // Suggest improvements based on complexity metrics
-    if (qualityResult.complexityMetrics && qualityResult.complexityMetrics.complexMethods && qualityResult.complexityMetrics.complexMethods.length > 0) {{
-        improvements.push({{
-            description: 'Reduce complexity in complex methods',
-            category: 'Complexity',
-            priority: 'High',
-            estimatedEffort: 4.0,
-            estimatedScoreImpact: 5.0,
-            affectedFiles: qualityResult.complexityMetrics.complexMethods.map(m => m.filePath),
-            implementationSteps: [
-                'Identify the most complex methods',
-                'Extract parts of the methods into smaller methods',
-                'Simplify conditional logic',
-                'Remove duplication'
-            ]
-        }});
-    }}
-    
-    // Suggest improvements based on readability metrics
-    if (qualityResult.readabilityMetrics && qualityResult.readabilityMetrics.documentationCoverage < 0.8) {{
-        improvements.push({{
-            description: 'Improve documentation coverage',
-            category: 'Readability',
-            priority: 'Medium',
-            estimatedEffort: 3.0,
-            estimatedScoreImpact: 3.0,
-            affectedFiles: [],
-            implementationSteps: [
-                'Add XML documentation to public methods and classes',
-                'Add comments to complex code sections',
-                'Improve existing documentation for clarity'
-            ]
-        }});
-    }}
-    
-    // Suggest improvements based on duplication metrics
-    if (qualityResult.duplicationMetrics && qualityResult.duplicationMetrics.duplicationPercentage > 0.03) {{
-        improvements.push({{
-            description: 'Reduce code duplication',
-            category: 'Duplication',
-            priority: 'Medium',
-            estimatedEffort: 2.0,
-            estimatedScoreImpact: 2.0,
-            affectedFiles: qualityResult.duplicationMetrics.duplicatedBlocksList ? qualityResult.duplicationMetrics.duplicatedBlocksList.map(b => b.filePath) : [],
-            implementationSteps: [
-                'Identify duplicated code blocks',
-                'Extract duplicated code into reusable methods',
-                'Create utility classes for common functionality'
-            ]
-        }});
-    }}
-    
-    return improvements;
-}}
-";
+return JSON.stringify(improvements);";
 
             // Execute the metascript
             var result = await _metascriptService.ExecuteMetascriptAsync(metascript);
             
-            // Parse the result as JSON
-            var improvements = System.Text.Json.JsonSerializer.Deserialize<List<QualityImprovement>>(result.ToString());
-            return improvements ?? [];
+            if (result == null)
+            {
+                _logger.LogWarning("Metascript execution returned null result");
+                return [];
+            }
+
+            var resultString = result.ToString();
+            if (string.IsNullOrEmpty(resultString))
+            {
+                _logger.LogWarning("Metascript execution returned empty result");
+                return [];
+            }
+
+            try
+            {
+                // Parse the result as JSON
+                var improvements = JsonSerializer.Deserialize<List<QualityImprovement>>(
+                    resultString,
+                    new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
+
+                return improvements ?? [];
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "Error deserializing quality improvements");
+                return [];
+            }
         }
         catch (Exception ex)
         {

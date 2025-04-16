@@ -35,6 +35,12 @@ public class FuzzyMatcher
         {
             _logger.LogInformation("Finding similar patterns for {Language} code of length {Length}", language, content?.Length ?? 0);
 
+            if (string.IsNullOrEmpty(content))
+            {
+                _logger.LogWarning("Content is null or empty");
+                return new List<(CodePattern Pattern, double Similarity)>();
+            }
+
             var results = new List<(CodePattern Pattern, double Similarity)>();
 
             // Filter patterns by language
@@ -341,19 +347,19 @@ public class FuzzyMatcher
             return n;
         }
 
-        for (int i = 0; i <= n; i++)
+        for (var i = 0; i <= n; i++)
         {
             d[i, 0] = i;
         }
 
-        for (int j = 0; j <= m; j++)
+        for (var j = 0; j <= m; j++)
         {
             d[0, j] = j;
         }
 
-        for (int i = 1; i <= n; i++)
+        for (var i = 1; i <= n; i++)
         {
-            for (int j = 1; j <= m; j++)
+            for (var j = 1; j <= m; j++)
             {
                 var cost = (t[j - 1] == s[i - 1]) ? 0 : 1;
                 d[i, j] = Math.Min(

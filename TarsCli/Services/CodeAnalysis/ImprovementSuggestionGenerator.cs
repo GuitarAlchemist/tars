@@ -184,7 +184,7 @@ public class ImprovementSuggestionGenerator
         {
             // Read the original content
             var originalContent = await File.ReadAllTextAsync(analysisResult.FilePath);
-            var lines = originalContent.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+            var lines = originalContent.Split(["\r\n", "\r", "\n"], StringSplitOptions.None);
 
             // Create a list of line modifications
             var lineModifications = new Dictionary<int, string>();
@@ -207,7 +207,7 @@ public class ImprovementSuggestionGenerator
 
             // Apply the modifications
             var improvedLines = new List<string>();
-            for (int i = 0; i < lines.Length; i++)
+            for (var i = 0; i < lines.Length; i++)
             {
                 if (lineModifications.ContainsKey(i))
                 {
@@ -262,7 +262,7 @@ public class ImprovementSuggestion
     /// <summary>
     /// List of issues found in the file
     /// </summary>
-    public List<CodeIssue> Issues { get; set; } = new();
+    public List<CodeIssue> Issues { get; set; } = [];
 
     /// <summary>
     /// List of metrics calculated for the file

@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using TarsEngine.Models;
+using TarsEngine.Models.Metrics;
 using TarsEngine.Services.Interfaces;
 
 namespace TarsEngine.Services;
@@ -364,46 +365,51 @@ public class ImprovementPrioritizerService : IImprovementPrioritizerService
     /// <inheritdoc/>
     public async Task<Dictionary<string, string>> GetAvailableOptionsAsync()
     {
-        var options = new Dictionary<string, string>();
-
-        // Add improvement queue options
-        var queueOptions = _improvementQueue.GetAvailableOptions();
-        foreach (var option in queueOptions)
+        // Since the underlying operations are synchronous, we'll use Task.Run
+        // to avoid blocking and maintain async contract
+        return await Task.Run(() =>
         {
-            options[option.Key] = option.Value;
-        }
+            var options = new Dictionary<string, string>();
 
-        // Add dependency graph options
-        var graphOptions = _dependencyGraphService.GetAvailableOptions();
-        foreach (var option in graphOptions)
-        {
-            if (!options.ContainsKey(option.Key))
+            // Add improvement queue options
+            var queueOptions = _improvementQueue.GetAvailableOptions();
+            foreach (var option in queueOptions)
             {
                 options[option.Key] = option.Value;
             }
-        }
 
-        // Add strategic alignment options
-        var alignmentOptions = _strategicAlignmentService.GetAvailableOptions();
-        foreach (var option in alignmentOptions)
-        {
-            if (!options.ContainsKey(option.Key))
+            // Add dependency graph options
+            var graphOptions = _dependencyGraphService.GetAvailableOptions();
+            foreach (var option in graphOptions)
             {
-                options[option.Key] = option.Value;
+                if (!options.ContainsKey(option.Key))
+                {
+                    options[option.Key] = option.Value;
+                }
             }
-        }
 
-        // Add improvement scorer options
-        var scorerOptions = _improvementScorer.GetAvailableOptions();
-        foreach (var option in scorerOptions)
-        {
-            if (!options.ContainsKey(option.Key))
+            // Add strategic alignment options
+            var alignmentOptions = _strategicAlignmentService.GetAvailableOptions();
+            foreach (var option in alignmentOptions)
             {
-                options[option.Key] = option.Value;
+                if (!options.ContainsKey(option.Key))
+                {
+                    options[option.Key] = option.Value;
+                }
             }
-        }
 
-        return options;
+            // Add improvement scorer options
+            var scorerOptions = _improvementScorer.GetAvailableOptions();
+            foreach (var option in scorerOptions)
+            {
+                if (!options.ContainsKey(option.Key))
+                {
+                    options[option.Key] = option.Value;
+                }
+            }
+
+            return options;
+        });
     }
 
     /// <inheritdoc/>
@@ -489,5 +495,59 @@ public class ImprovementPrioritizerService : IImprovementPrioritizerService
         if (riskScore >= 0.3) return ImprovementRisk.Medium;
         if (riskScore >= 0.1) return ImprovementRisk.Low;
         return ImprovementRisk.VeryLow;
+    }
+
+    /// <summary>
+    /// Calculates project-level duplication
+    /// </summary>
+    /// <param name="projectPath">Project path</param>
+    /// <param name="projectName">Project name</param>
+    /// <param name="fileMetrics">File metrics</param>
+    /// <returns>Duplication metric for the project</returns>
+    private DuplicationMetric CalculateProjectDuplication(string projectPath, string projectName, List<DuplicationMetric> fileMetrics)
+    {
+        // Get file-level metrics
+        var fileLevelMetrics = fileMetrics.Where(m => m.TargetType == "File" && m.Type == DuplicationType.TokenBased).ToList();
+
+        // Calculate total lines of code
+        var totalLinesOfCode = fileLevelMetrics.Sum(m => m.TotalLinesOfCode);
+
+        // Calculate duplicated lines of code
+        var duplicatedLinesOfCode = fileLevelMetrics.Sum(m => m.DuplicatedLinesOfCode);
+
+        // Calculate duplication percentage
+        var duplicationPercentage = totalLinesOfCode > 0 ? (double)duplicatedLinesOfCode / totalLinesOfCode * 100 : 0;
+
+        // Get thresholds
+        var thresholds = new Dictionary<string, double>
+        {
+            ["Method"] = 5,
+            ["Class"] = 10,
+            ["File"] = 15,
+            ["Project"] = 20
+        };
+
+        // Create a duplication metric
+        var metric = new DuplicationMetric
+        {
+            Name = $"Token-Based Duplication - {projectName}",
+            Description = $"Token-based duplication for project {projectName}",
+            Type = DuplicationType.TokenBased,
+            FilePath = projectPath,
+            Language = "C#",
+            Target = projectName,
+            TargetType = "Project",
+            TotalLinesOfCode = totalLinesOfCode,
+            DuplicatedLinesOfCode = duplicatedLinesOfCode,
+            DuplicationPercentage = duplicationPercentage,
+            DuplicatedBlockCount = fileLevelMetrics.Sum(m => m.DuplicatedBlockCount),
+            Timestamp = DateTime.UtcNow,
+            ThresholdValue = thresholds["Project"]
+        };
+
+        // Set the value to the duplication percentage
+        metric.Value = metric.DuplicationPercentage;
+
+        return metric;
     }
 }

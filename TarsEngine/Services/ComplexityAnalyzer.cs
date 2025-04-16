@@ -117,7 +117,7 @@ public class ComplexityAnalyzer
             var methodMatches = methodRegex.Matches(classContent);
 
             double totalComplexity = 0;
-            int methodCount = 0;
+            var methodCount = 0;
 
             foreach (Match match in methodMatches)
             {
@@ -149,7 +149,7 @@ public class ComplexityAnalyzer
             }
 
             // Calculate average method complexity and add a factor for the number of methods
-            double classComplexity = methodCount > 0 ? totalComplexity / methodCount : 0;
+            var classComplexity = methodCount > 0 ? totalComplexity / methodCount : 0;
             classComplexity += Math.Log10(Math.Max(1, methodCount)) * 2; // Factor for number of methods
 
             return classComplexity;
@@ -265,7 +265,7 @@ public class ComplexityAnalyzer
             var nestingStartLine = -1;
             var maxNestingLevelFound = 0;
 
-            for (int i = 0; i < lines.Length; i++)
+            for (var i = 0; i < lines.Length; i++)
             {
                 var line = lines[i].TrimEnd();
                 
@@ -501,7 +501,7 @@ public class ComplexityAnalyzer
             var braceCount = 0;
             var inMethod = false;
             
-            for (int i = startLine; i < lines.Length; i++)
+            for (var i = startLine; i < lines.Length; i++)
             {
                 var line = lines[i];
                 
@@ -532,7 +532,7 @@ public class ComplexityAnalyzer
             var braceCount = 0;
             var inClass = false;
             
-            for (int i = startLine; i < lines.Length; i++)
+            for (var i = startLine; i < lines.Length; i++)
             {
                 var line = lines[i];
                 

@@ -29,8 +29,8 @@ public class CodeExecutionService
             _logger.LogInformation($"Running tests for project: {projectPath}");
 
             // Determine if the path is a directory or a file
-            bool isDirectory = Directory.Exists(projectPath);
-            bool isFile = File.Exists(projectPath);
+            var isDirectory = Directory.Exists(projectPath);
+            var isFile = File.Exists(projectPath);
 
             if (!isDirectory && !isFile)
             {
@@ -60,8 +60,11 @@ public class CodeExecutionService
             // Add verbosity
             command.Append(" --verbosity normal");
 
+            // Get working directory, defaulting to current directory if null
+            var workingDirectory = isDirectory ? projectPath : Path.GetDirectoryName(projectPath) ?? Directory.GetCurrentDirectory();
+
             // Run the command
-            var result = await ExecuteCommandAsync(command.ToString(), isDirectory ? projectPath : Path.GetDirectoryName(projectPath));
+            var result = await ExecuteCommandAsync(command.ToString(), workingDirectory);
 
             // Parse the test results
             return ParseTestResults(result);
@@ -90,8 +93,8 @@ public class CodeExecutionService
             _logger.LogInformation($"Building project: {projectPath}");
 
             // Determine if the path is a directory or a file
-            bool isDirectory = Directory.Exists(projectPath);
-            bool isFile = File.Exists(projectPath);
+            var isDirectory = Directory.Exists(projectPath);
+            var isFile = File.Exists(projectPath);
 
             if (!isDirectory && !isFile)
             {
@@ -190,7 +193,7 @@ public class CodeExecutionService
     /// <summary>
     /// Executes a command and returns the result
     /// </summary>
-    private async Task<CommandExecutionResult> ExecuteCommandAsync(string command, string workingDirectory)
+    private async Task<CommandExecutionResult> ExecuteCommandAsync(string command, string? workingDirectory = null)
     {
         try
         {
@@ -201,21 +204,19 @@ public class CodeExecutionService
             {
                 FileName = "cmd.exe",
                 Arguments = $"/c {command}",
-                WorkingDirectory = workingDirectory,
+                WorkingDirectory = workingDirectory ?? Directory.GetCurrentDirectory(),
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
 
-            // Create the process
-            using var process = new Process { StartInfo = startInfo };
-
-            // Create string builders for output and error
             var outputBuilder = new StringBuilder();
             var errorBuilder = new StringBuilder();
 
-            // Set up output and error handlers
+            using var process = new Process { StartInfo = startInfo };
+
+            // Set up output and error handling
             process.OutputDataReceived += (sender, e) =>
             {
                 if (e.Data != null)
@@ -243,8 +244,8 @@ public class CodeExecutionService
             await process.WaitForExitAsync();
 
             // Get the output and error
-            string output = outputBuilder.ToString();
-            string error = errorBuilder.ToString();
+            var output = outputBuilder.ToString();
+            var error = errorBuilder.ToString();
 
             // Create the result
             var result = new CommandExecutionResult

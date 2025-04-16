@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using TarsEngine.Models.Metrics;
+using TarsEngine.Monads;
 
 namespace TarsEngine.Intelligence.Measurement;
 
@@ -90,7 +91,7 @@ public class ModificationAnalyzer
     /// <param name="startTime">The start time</param>
     /// <param name="endTime">The end time</param>
     /// <returns>The modification analysis</returns>
-    public async Task<ModificationAnalysis> GetModificationAnalysisAsync(DateTime? startTime = null, DateTime? endTime = null)
+    public Task<ModificationAnalysis> GetModificationAnalysisAsync(DateTime? startTime = null, DateTime? endTime = null)
     {
         _logger.LogInformation("Getting modification analysis");
 
@@ -126,7 +127,7 @@ public class ModificationAnalyzer
             ModificationTrend = CalculateModificationTrend(modifications)
         };
 
-        return analysis;
+        return AsyncMonad.Return(analysis);
     }
 
     /// <summary>
@@ -141,7 +142,7 @@ public class ModificationAnalyzer
         {
             Name = $"Modification.Complexity.{modification.FilePath}",
             Value = modification.ComplexityChange,
-            Type = (TarsEngine.Models.Metrics.ComplexityType)TarsEngine.Unified.ComplexityType.Cognitive,
+            Type = (ComplexityType)Unified.ComplexityType.Cognitive,
             Target = modification.FilePath,
             Threshold = 0,
             Dimension = "Complexity",
@@ -229,10 +230,10 @@ public class ModificationAnalyzer
         var originalLines = originalCode.Split('\n');
         var modifiedLines = modifiedCode.Split('\n');
 
-        int minLength = Math.Min(originalLines.Length, modifiedLines.Length);
-        int modifiedCount = 0;
+        var minLength = Math.Min(originalLines.Length, modifiedLines.Length);
+        var modifiedCount = 0;
 
-        for (int i = 0; i < minLength; i++)
+        for (var i = 0; i < minLength; i++)
         {
             if (originalLines[i] != modifiedLines[i])
             {
@@ -252,8 +253,8 @@ public class ModificationAnalyzer
     private double CalculateComplexityChange(string originalCode, string modifiedCode)
     {
         // Simple implementation: estimate complexity based on code length and structure
-        double originalComplexity = EstimateComplexity(originalCode);
-        double modifiedComplexity = EstimateComplexity(modifiedCode);
+        var originalComplexity = EstimateComplexity(originalCode);
+        var modifiedComplexity = EstimateComplexity(modifiedCode);
 
         // Return the change (negative is better - less complex)
         return modifiedComplexity - originalComplexity;
@@ -267,13 +268,13 @@ public class ModificationAnalyzer
     private double EstimateComplexity(string code)
     {
         // Simple implementation: count control structures and nesting levels
-        int controlStructureCount = CountOccurrences(code, "if ") +
-                                   CountOccurrences(code, "for ") +
-                                   CountOccurrences(code, "while ") +
-                                   CountOccurrences(code, "switch ") +
-                                   CountOccurrences(code, "catch ");
+        var controlStructureCount = CountOccurrences(code, "if ") +
+                                    CountOccurrences(code, "for ") +
+                                    CountOccurrences(code, "while ") +
+                                    CountOccurrences(code, "switch ") +
+                                    CountOccurrences(code, "catch ");
 
-        int nestingLevel = EstimateNestingLevel(code);
+        var nestingLevel = EstimateNestingLevel(code);
 
         // Combine factors
         return controlStructureCount * (1 + 0.1 * nestingLevel);
@@ -287,10 +288,10 @@ public class ModificationAnalyzer
     private int EstimateNestingLevel(string code)
     {
         // Simple implementation: count the maximum number of open braces at any point
-        int maxNesting = 0;
-        int currentNesting = 0;
+        var maxNesting = 0;
+        var currentNesting = 0;
 
-        foreach (char c in code)
+        foreach (var c in code)
         {
             if (c == '{')
             {
@@ -315,8 +316,8 @@ public class ModificationAnalyzer
     private double CalculateReadabilityChange(string originalCode, string modifiedCode)
     {
         // Simple implementation: estimate readability based on various factors
-        double originalReadability = EstimateReadability(originalCode);
-        double modifiedReadability = EstimateReadability(modifiedCode);
+        var originalReadability = EstimateReadability(originalCode);
+        var modifiedReadability = EstimateReadability(modifiedCode);
 
         // Return the change (positive is better - more readable)
         return modifiedReadability - originalReadability;
@@ -333,19 +334,19 @@ public class ModificationAnalyzer
         double score = 0;
 
         // Factor 1: Line length (shorter lines are more readable)
-        double avgLineLength = code.Split('\n').Where(line => !string.IsNullOrWhiteSpace(line))
+        var avgLineLength = code.Split('\n').Where(line => !string.IsNullOrWhiteSpace(line))
             .Average(line => line.Length);
         score -= Math.Max(0, (avgLineLength - 80) / 10); // Penalize lines longer than 80 characters
 
         // Factor 2: Comment density (more comments are more readable)
-        int commentCount = CountOccurrences(code, "//") + CountOccurrences(code, "/*");
-        int lineCount = code.Split('\n').Length;
-        double commentDensity = (double)commentCount / lineCount;
+        var commentCount = CountOccurrences(code, "//") + CountOccurrences(code, "/*");
+        var lineCount = code.Split('\n').Length;
+        var commentDensity = (double)commentCount / lineCount;
         score += commentDensity * 5; // Reward comments
 
         // Factor 3: Variable name length (longer names are generally more descriptive)
         // This is a very simplistic approach
-        double avgWordLength = code.Split(new[] { ' ', '\t', '\n', '\r', '(', ')', '{', '}', '[', ']', '.', ',', ';' })
+        var avgWordLength = code.Split(new[] { ' ', '\t', '\n', '\r', '(', ')', '{', '}', '[', ']', '.', ',', ';' })
             .Where(word => !string.IsNullOrWhiteSpace(word) && char.IsLetter(word[0]))
             .Average(word => word.Length);
         score += Math.Min(5, avgWordLength) / 2; // Reward longer names, up to a point
@@ -366,8 +367,8 @@ public class ModificationAnalyzer
         if (improvementType.Contains("performance", StringComparison.OrdinalIgnoreCase))
         {
             // For performance improvements, estimate based on code changes
-            double originalPerformance = EstimatePerformance(originalCode);
-            double modifiedPerformance = EstimatePerformance(modifiedCode);
+            var originalPerformance = EstimatePerformance(originalCode);
+            var modifiedPerformance = EstimatePerformance(modifiedCode);
 
             // Return the change (positive is better - more performant)
             return modifiedPerformance - originalPerformance;
@@ -390,17 +391,17 @@ public class ModificationAnalyzer
         double score = 0;
 
         // Factor 1: Loop count (fewer loops are generally more performant)
-        int loopCount = CountOccurrences(code, "for ") + CountOccurrences(code, "while ") +
-                       CountOccurrences(code, "foreach ");
+        var loopCount = CountOccurrences(code, "for ") + CountOccurrences(code, "while ") +
+                        CountOccurrences(code, "foreach ");
         score -= loopCount * 0.5; // Penalize loops
 
         // Factor 2: Allocation count (fewer allocations are generally more performant)
-        int allocationCount = CountOccurrences(code, "new ") + CountOccurrences(code, "malloc(") +
-                             CountOccurrences(code, "calloc(");
+        var allocationCount = CountOccurrences(code, "new ") + CountOccurrences(code, "malloc(") +
+                              CountOccurrences(code, "calloc(");
         score -= allocationCount * 0.3; // Penalize allocations
 
         // Factor 3: Recursion (recursion can be less performant)
-        bool hasRecursion = code.Contains("(") && code.Contains(")") &&
+        var hasRecursion = code.Contains("(") && code.Contains(")") &&
                            code.Contains("return") && code.Contains("(");
         if (hasRecursion)
         {
@@ -421,13 +422,13 @@ public class ModificationAnalyzer
         double score = 0;
 
         // Factor 1: Code change ratio
-        int originalLength = modification.OriginalCode.Length;
-        int modifiedLength = modification.ModifiedCode.Length;
-        double changeRatio = Math.Abs(modifiedLength - originalLength) / (double)Math.Max(1, originalLength);
+        var originalLength = modification.OriginalCode.Length;
+        var modifiedLength = modification.ModifiedCode.Length;
+        var changeRatio = Math.Abs(modifiedLength - originalLength) / (double)Math.Max(1, originalLength);
         score += changeRatio * 0.5; // More changes suggest more novelty
 
         // Factor 2: New patterns or structures
-        bool hasNewPatterns = modification.ModifiedCode.Contains("class ") && !modification.OriginalCode.Contains("class ") ||
+        var hasNewPatterns = modification.ModifiedCode.Contains("class ") && !modification.OriginalCode.Contains("class ") ||
                              modification.ModifiedCode.Contains("interface ") && !modification.OriginalCode.Contains("interface ") ||
                              modification.ModifiedCode.Contains("enum ") && !modification.OriginalCode.Contains("enum ");
         if (hasNewPatterns)
@@ -453,8 +454,8 @@ public class ModificationAnalyzer
     /// <returns>The number of occurrences</returns>
     private int CountOccurrences(string text, string substring)
     {
-        int count = 0;
-        int index = 0;
+        var count = 0;
+        var index = 0;
 
         while ((index = text.IndexOf(substring, index, StringComparison.Ordinal)) != -1)
         {
@@ -476,7 +477,7 @@ public class ModificationAnalyzer
 
         foreach (var modification in modifications)
         {
-            if (!result.TryGetValue(modification.ImprovementType, out int count))
+            if (!result.TryGetValue(modification.ImprovementType, out var count))
             {
                 result[modification.ImprovementType] = 1;
             }
@@ -500,7 +501,7 @@ public class ModificationAnalyzer
 
         foreach (var modification in modifications)
         {
-            if (!result.TryGetValue(modification.FilePath, out int count))
+            if (!result.TryGetValue(modification.FilePath, out var count))
             {
                 result[modification.FilePath] = 1;
             }
@@ -538,10 +539,10 @@ public class ModificationAnalyzer
         }
 
         // Calculate the trend
-        int increasing = 0;
-        int decreasing = 0;
+        var increasing = 0;
+        var decreasing = 0;
 
-        for (int i = 1; i < modificationsByDay.Count; i++)
+        for (var i = 1; i < modificationsByDay.Count; i++)
         {
             if (modificationsByDay[i].Count > modificationsByDay[i - 1].Count)
             {
@@ -553,8 +554,8 @@ public class ModificationAnalyzer
             }
         }
 
-        double increasingRatio = (double)increasing / (modificationsByDay.Count - 1);
-        double decreasingRatio = (double)decreasing / (modificationsByDay.Count - 1);
+        var increasingRatio = (double)increasing / (modificationsByDay.Count - 1);
+        var decreasingRatio = (double)decreasing / (modificationsByDay.Count - 1);
 
         if (increasingRatio > 0.7)
         {

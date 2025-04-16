@@ -341,7 +341,7 @@ public class LearningPlanService
             var hoursPerModule = totalEstimatedHours / Math.Max(1, moduleTexts.Count);
 
             // Create a module for each extracted text
-            for (int i = 0; i < moduleTexts.Count; i++)
+            for (var i = 0; i < moduleTexts.Count; i++)
             {
                 var moduleText = moduleTexts[i];
                 modules.Add(new Module
@@ -387,7 +387,7 @@ public class LearningPlanService
             }
 
             // Create a timeline item for each extracted text
-            for (int i = 0; i < timelineTexts.Count; i++)
+            for (var i = 0; i < timelineTexts.Count; i++)
             {
                 var weekNumber = i + 1;
                 timeline.Add(new TimelineItem

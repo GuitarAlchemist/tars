@@ -219,11 +219,11 @@ public class MindWandering
         try
         {
             // Start with a random concept
-            string currentConcept = GetRandomConcept();
+            var currentConcept = GetRandomConcept();
             stream.Add(currentConcept);
 
             // Generate the rest of the stream
-            for (int i = 1; i < length; i++)
+            for (var i = 1; i < length; i++)
             {
                 string nextConcept;
 
@@ -276,11 +276,11 @@ public class MindWandering
         try
         {
             // Calculate coherence based on concept repetition and transitions
-            int uniqueConcepts = stream.Distinct().Count();
-            double uniqueRatio = (double)uniqueConcepts / stream.Count;
+            var uniqueConcepts = stream.Distinct().Count();
+            var uniqueRatio = (double)uniqueConcepts / stream.Count;
 
             // More unique concepts = less coherent
-            double coherence = 1.0 - uniqueRatio;
+            var coherence = 1.0 - uniqueRatio;
 
             // Adjust coherence based on stream length (longer streams tend to be less coherent)
             coherence = Math.Max(0.1, coherence - (0.05 * Math.Min(10, stream.Count - 1)));
@@ -306,27 +306,27 @@ public class MindWandering
             _logger.LogDebug("Generating mind wandering thought");
 
             // Determine stream length based on mind wandering level
-            int streamLength = 3 + (int)(_mindWanderingLevel * 4);
+            var streamLength = 3 + (int)(_mindWanderingLevel * 4);
 
             // Determine coherence level (inversely related to mind wandering level)
-            double coherenceLevel = 0.8 - (0.6 * _mindWanderingLevel);
+            var coherenceLevel = 0.8 - (0.6 * _mindWanderingLevel);
 
             // Generate thought stream
             var stream = GenerateThoughtStream(streamLength, coherenceLevel);
 
             // Generate thought content
             var streamPhrases = stream.Select(c => GetRandomPhraseForConcept(c)).ToList();
-            string content = $"My mind is wandering: {string.Join("... ", streamPhrases)}...";
+            var content = $"My mind is wandering: {string.Join("... ", streamPhrases)}...";
 
             // Calculate coherence
-            double coherence = CalculateStreamCoherence(stream);
+            var coherence = CalculateStreamCoherence(stream);
 
             // Determine if this is a serendipitous thought
-            double insightPotential = _random.NextDouble();
-            bool isSerendipitous = insightPotential > 0.7 && _random.NextDouble() < serendipityLevel;
+            var insightPotential = _random.NextDouble();
+            var isSerendipitous = insightPotential > 0.7 && _random.NextDouble() < serendipityLevel;
 
             // Calculate significance based on stream coherence and insight potential
-            double significance = Math.Min(1.0, (0.2 + (0.3 * (1.0 - coherence)) + (0.3 * insightPotential)) * _mindWanderingLevel);
+            var significance = Math.Min(1.0, (0.2 + (0.3 * (1.0 - coherence)) + (0.3 * insightPotential)) * _mindWanderingLevel);
 
             // If serendipitous, increase significance and modify content
             if (isSerendipitous)
@@ -336,7 +336,7 @@ public class MindWandering
             }
 
             // Calculate originality (less coherent = more original)
-            double originality = 0.3 + (0.7 * (1.0 - coherence));
+            var originality = 0.3 + (0.7 * (1.0 - coherence));
 
             // Create thought model
             var thought = new ThoughtModel
@@ -394,7 +394,7 @@ public class MindWandering
     {
         var thoughts = new List<ThoughtModel>();
 
-        for (int i = 0; i < count; i++)
+        for (var i = 0; i < count; i++)
         {
             var thought = GenerateMindWanderingThought(serendipityLevel);
             thoughts.Add(thought);
@@ -419,24 +419,24 @@ public class MindWandering
             }
 
             // Get coherence from context
-            double coherence = thought.Context.ContainsKey("Coherence")
+            var coherence = thought.Context.ContainsKey("Coherence")
                 ? (double)thought.Context["Coherence"]
                 : 0.5;
 
             // Calculate novelty based on originality
-            double novelty = thought.Originality;
+            var novelty = thought.Originality;
 
             // Calculate interestingness based on coherence and significance
             // Moderate coherence is most interesting (neither too random nor too predictable)
-            double coherenceInterest = 1.0 - Math.Abs(coherence - 0.5) * 2.0;
-            double interestingness = (coherenceInterest * 0.5) + (thought.Significance * 0.5);
+            var coherenceInterest = 1.0 - Math.Abs(coherence - 0.5) * 2.0;
+            var interestingness = (coherenceInterest * 0.5) + (thought.Significance * 0.5);
 
             // Calculate potential based on serendipity
-            bool isSerendipitous = thought.Tags.Contains("serendipitous");
-            double potential = isSerendipitous ? 0.8 : 0.4;
+            var isSerendipitous = thought.Tags.Contains("serendipitous");
+            var potential = isSerendipitous ? 0.8 : 0.4;
 
             // Calculate overall score
-            double score = (novelty * 0.3) + (interestingness * 0.4) + (potential * 0.3);
+            var score = (novelty * 0.3) + (interestingness * 0.4) + (potential * 0.3);
 
             return score;
         }

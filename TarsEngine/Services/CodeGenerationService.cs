@@ -9,22 +9,12 @@ namespace TarsEngine.Services;
 /// <summary>
 /// Service for generating code based on project analysis and requirements
 /// </summary>
-public class CodeGenerationService : ICodeGenerationService
+public sealed class CodeGenerationService(
+    ILogger<CodeGenerationService> logger,
+    IProjectAnalysisService projectAnalysisService,
+    ILlmService llmService)
+    : ICodeGenerationService
 {
-    private readonly ILogger<CodeGenerationService> _logger;
-    private readonly IProjectAnalysisService _projectAnalysisService;
-    private readonly ILlmService _llmService;
-
-    public CodeGenerationService(
-        ILogger<CodeGenerationService> logger,
-        IProjectAnalysisService projectAnalysisService,
-        ILlmService llmService)
-    {
-        _logger = logger;
-        _projectAnalysisService = projectAnalysisService;
-        _llmService = llmService;
-    }
-
     /// <summary>
     /// Generates code based on a description and project context
     /// </summary>
@@ -33,7 +23,7 @@ public class CodeGenerationService : ICodeGenerationService
     /// <param name="language">Programming language to use</param>
     /// <param name="outputPath">Path where the generated code should be saved</param>
     /// <returns>A CodeGenerationResult containing the generated code</returns>
-    public virtual async Task<CodeGenerationResult> GenerateCodeAsync(
+    public async Task<CodeGenerationResult> GenerateCodeAsync(
         string description,
         string projectPath,
         CodeLanguage language,
@@ -41,27 +31,19 @@ public class CodeGenerationService : ICodeGenerationService
     {
         try
         {
-            _logger.LogInformation($"Generating code for: {description}");
+            logger.LogInformation($"Generating code for: {description}");
 
             // Analyze the project to get context
-            var projectAnalysis = await _projectAnalysisService.AnalyzeProjectAsync(projectPath);
-            if (!projectAnalysis.Success)
-            {
-                return new CodeGenerationResult
-                {
-                    Success = false,
-                    ErrorMessage = $"Failed to analyze project: {projectAnalysis.ErrorMessage}"
-                };
-            }
+            var projectAnalysis = await projectAnalysisService.AnalyzeProjectAsync(projectPath);
 
             // Create a prompt for the LLM
-            string prompt = CreateCodeGenerationPrompt(description, projectAnalysis, language);
+            var prompt = CreateCodeGenerationPrompt(description, projectAnalysis, language);
 
             // Generate code using the LLM
-            var llmResponse = await _llmService.GetCompletionAsync(prompt, temperature: 0.2, maxTokens: 2000);
+            var llmResponse = await llmService.GetCompletionAsync(prompt, temperature: 0.2, maxTokens: 2000);
 
             // Extract the code from the LLM response
-            string generatedCode = ExtractCodeFromLlmResponse(llmResponse, language);
+            var generatedCode = ExtractCodeFromLlmResponse(llmResponse, language);
 
             // Save the code if an output path is provided
             outputPath.IfSome(async path => {
@@ -77,7 +59,7 @@ public class CodeGenerationService : ICodeGenerationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Error generating code: {ex.Message}");
+            logger.LogError(ex, $"Error generating code: {ex.Message}");
             return new CodeGenerationResult
             {
                 Success = false,
@@ -93,14 +75,24 @@ public class CodeGenerationService : ICodeGenerationService
     /// <param name="projectPath">Path to the project</param>
     /// <param name="outputPath">Path where the generated test should be saved</param>
     /// <returns>A CodeGenerationResult containing the generated test code</returns>
-    public virtual async Task<CodeGenerationResult> GenerateUnitTestAsync(
+    public async Task<CodeGenerationResult> GenerateUnitTestAsync(
         string sourceFilePath,
         string projectPath,
         Option<string> outputPath = default)
     {
         try
         {
-            _logger.LogInformation($"Generating unit test for: {sourceFilePath}");
+            logger.LogInformation($"Generating unit test for: {sourceFilePath}");
+
+            var directory = Path.GetDirectoryName(sourceFilePath);
+            if (string.IsNullOrEmpty(directory))
+            {
+                return new CodeGenerationResult
+                {
+                    Success = false,
+                    ErrorMessage = $"Invalid source file path: {sourceFilePath}"
+                };
+            }
 
             // Ensure the source file exists
             if (!File.Exists(sourceFilePath))
@@ -113,21 +105,13 @@ public class CodeGenerationService : ICodeGenerationService
             }
 
             // Read the source file
-            string sourceCode = await File.ReadAllTextAsync(sourceFilePath);
+            var sourceCode = await File.ReadAllTextAsync(sourceFilePath);
 
             // Analyze the project to get context
-            var projectAnalysis = await _projectAnalysisService.AnalyzeProjectAsync(projectPath);
-            if (!projectAnalysis.Success)
-            {
-                return new CodeGenerationResult
-                {
-                    Success = false,
-                    ErrorMessage = $"Failed to analyze project: {projectAnalysis.ErrorMessage}"
-                };
-            }
+            var projectAnalysis = await projectAnalysisService.AnalyzeProjectAsync(projectPath);
 
             // Determine the language from the file extension
-            string extension = Path.GetExtension(sourceFilePath).ToLowerInvariant();
+            var extension = Path.GetExtension(sourceFilePath).ToLowerInvariant();
             var language = extension switch
             {
                 ".cs" => CodeLanguage.CSharp,
@@ -139,21 +123,20 @@ public class CodeGenerationService : ICodeGenerationService
             };
 
             // Create a prompt for the LLM
-            string prompt = CreateUnitTestGenerationPrompt(sourceCode, sourceFilePath, projectAnalysis, language);
+            var prompt = CreateUnitTestGenerationPrompt(sourceCode, sourceFilePath, projectAnalysis, language);
 
             // Generate test code using the LLM
-            var llmResponse = await _llmService.GetCompletionAsync(prompt, temperature: 0.2, maxTokens: 2000);
+            var llmResponse = await llmService.GetCompletionAsync(prompt, temperature: 0.2, maxTokens: 2000);
 
             // Extract the code from the LLM response
-            string generatedTestCode = ExtractCodeFromLlmResponse(llmResponse, language);
+            var generatedTestCode = ExtractCodeFromLlmResponse(llmResponse, language);
 
             // Determine the output path if not provided
-            string finalOutputPath = outputPath.ValueOr(() => {
-                string fileName = Path.GetFileNameWithoutExtension(sourceFilePath);
-                string directory = Path.GetDirectoryName(sourceFilePath);
+            var finalOutputPath = outputPath.ValueOr(() => {
+                var fileName = Path.GetFileNameWithoutExtension(sourceFilePath);
 
                 // Determine the test file name based on the language
-                string testFileName = language switch
+                var testFileName = language switch
                 {
                     CodeLanguage.CSharp => $"{fileName}Tests.cs",
                     CodeLanguage.FSharp => $"{fileName}Tests.fs",
@@ -165,7 +148,7 @@ public class CodeGenerationService : ICodeGenerationService
                 };
 
                 // Try to find a test directory
-                string testDirectory = FindTestDirectory(directory, projectPath);
+                var testDirectory = FindTestDirectory(directory, projectPath);
                 return Path.Combine(testDirectory, testFileName);
             });
 
@@ -181,7 +164,7 @@ public class CodeGenerationService : ICodeGenerationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Error generating unit test: {ex.Message}");
+            logger.LogError(ex, $"Error generating unit test: {ex.Message}");
             return new CodeGenerationResult
             {
                 Success = false,
@@ -214,30 +197,7 @@ public class CodeGenerationService : ICodeGenerationService
         sb.AppendLine("# Project Context");
         sb.AppendLine($"Project Name: {projectAnalysis.ProjectName}");
         sb.AppendLine($"Project Type: {projectAnalysis.ProjectType}");
-        sb.AppendLine($"Target Framework: {projectAnalysis.TargetFramework}");
         sb.AppendLine();
-
-        // Add namespaces
-        if (projectAnalysis.Namespaces.Any())
-        {
-            sb.AppendLine("## Namespaces");
-            foreach (var ns in projectAnalysis.Namespaces.Take(10))
-            {
-                sb.AppendLine($"- {ns}");
-            }
-            sb.AppendLine();
-        }
-
-        // Add classes
-        if (projectAnalysis.Classes.Any())
-        {
-            sb.AppendLine("## Key Classes");
-            foreach (var cls in projectAnalysis.Classes.Take(10))
-            {
-                sb.AppendLine($"- {cls}");
-            }
-            sb.AppendLine();
-        }
 
         // Add language-specific instructions
         sb.AppendLine("# Language");
@@ -280,14 +240,13 @@ public class CodeGenerationService : ICodeGenerationService
         sb.AppendLine("# Project Context");
         sb.AppendLine($"Project Name: {projectAnalysis.ProjectName}");
         sb.AppendLine($"Project Type: {projectAnalysis.ProjectType}");
-        sb.AppendLine($"Target Framework: {projectAnalysis.TargetFramework}");
         sb.AppendLine();
 
         // Add language-specific instructions
         sb.AppendLine("# Testing Framework");
 
         // Determine the testing framework based on the language
-        string testingFramework = language switch
+        var testingFramework = language switch
         {
             CodeLanguage.CSharp => "xUnit",
             CodeLanguage.FSharp => "xUnit with FsUnit",
@@ -321,11 +280,11 @@ public class CodeGenerationService : ICodeGenerationService
         var languageIdentifier = language.ToString().ToLowerInvariant();
 
         // Try to find a code block with the language identifier
-        int startIndex = llmResponse.IndexOf($"{codeBlockStart}{languageIdentifier}");
+        var startIndex = llmResponse.IndexOf($"{codeBlockStart}{languageIdentifier}");
         if (startIndex >= 0)
         {
             startIndex = llmResponse.IndexOf('\n', startIndex) + 1;
-            int endIndex = llmResponse.IndexOf(codeBlockStart, startIndex);
+            var endIndex = llmResponse.IndexOf(codeBlockStart, startIndex);
             if (endIndex >= 0)
             {
                 return llmResponse.Substring(startIndex, endIndex - startIndex).Trim();
@@ -337,7 +296,7 @@ public class CodeGenerationService : ICodeGenerationService
         if (startIndex >= 0)
         {
             startIndex = llmResponse.IndexOf('\n', startIndex) + 1;
-            int endIndex = llmResponse.IndexOf(codeBlockStart, startIndex);
+            var endIndex = llmResponse.IndexOf(codeBlockStart, startIndex);
             if (endIndex >= 0)
             {
                 return llmResponse.Substring(startIndex, endIndex - startIndex).Trim();
@@ -356,20 +315,24 @@ public class CodeGenerationService : ICodeGenerationService
         try
         {
             // Create the directory if it doesn't exist
-            string directory = Path.GetDirectoryName(outputPath);
-            if (!Directory.Exists(directory))
+            var directory = Path.GetDirectoryName(outputPath);
+            if (!string.IsNullOrEmpty(directory))
             {
                 Directory.CreateDirectory(directory);
+            }
+            else
+            {
+                throw new ArgumentException("Invalid output path: directory path is null or empty", nameof(outputPath));
             }
 
             // Write the code to the file
             await File.WriteAllTextAsync(outputPath, code);
 
-            _logger.LogInformation($"Generated code saved to: {outputPath}");
+            logger.LogInformation($"Generated code saved to: {outputPath}");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Error saving generated code to {outputPath}: {ex.Message}");
+            logger.LogError(ex, $"Error saving generated code to {outputPath}: {ex.Message}");
             throw;
         }
     }
@@ -377,8 +340,14 @@ public class CodeGenerationService : ICodeGenerationService
     /// <summary>
     /// Finds an appropriate test directory for a source file
     /// </summary>
+    /// <param name="sourceDirectory">The directory containing the source file</param>
+    /// <param name="projectPath">The project path</param>
+    /// <returns>The path to the test directory</returns>
     private string FindTestDirectory(string sourceDirectory, string projectPath)
     {
+        ArgumentNullException.ThrowIfNull(sourceDirectory);
+        ArgumentNullException.ThrowIfNull(projectPath);
+
         // Check if the source directory contains "test" in its name
         if (sourceDirectory.ToLowerInvariant().Contains("test"))
         {
@@ -386,13 +355,15 @@ public class CodeGenerationService : ICodeGenerationService
         }
 
         // Try to find a test directory in the project
-        string projectDirectory = Directory.Exists(projectPath) ? projectPath : Path.GetDirectoryName(projectPath);
+        var projectDirectory = Directory.Exists(projectPath) 
+            ? projectPath 
+            : Path.GetDirectoryName(projectPath) ?? throw new DirectoryNotFoundException($"Invalid project path: {projectPath}");
 
         // Look for common test directory names
         var testDirNames = new[] { "Tests", "Test", "tests", "test", "UnitTests", "unit-tests", "unit_tests" };
         foreach (var testDirName in testDirNames)
         {
-            string testDir = Path.Combine(projectDirectory, testDirName);
+            var testDir = Path.Combine(projectDirectory, testDirName);
             if (Directory.Exists(testDir))
             {
                 return testDir;
@@ -400,7 +371,7 @@ public class CodeGenerationService : ICodeGenerationService
         }
 
         // If no test directory is found, create one
-        string newTestDir = Path.Combine(projectDirectory, "Tests");
+        var newTestDir = Path.Combine(projectDirectory, "Tests");
         Directory.CreateDirectory(newTestDir);
         return newTestDir;
     }

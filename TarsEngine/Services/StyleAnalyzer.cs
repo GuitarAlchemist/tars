@@ -192,8 +192,8 @@ public class StyleAnalyzer(ILogger<StyleAnalyzer> logger)
             var lines = content.Split('\n');
                 
             // Check for inconsistent indentation
-            int expectedIndent = 0;
-            int lineNumber = 1;
+            var expectedIndent = 0;
+            var lineNumber = 1;
                 
             foreach (var line in lines)
             {
@@ -213,7 +213,7 @@ public class StyleAnalyzer(ILogger<StyleAnalyzer> logger)
                 }
                     
                 // Check indentation
-                int actualIndent = line.Length - trimmedLine.Length;
+                var actualIndent = line.Length - trimmedLine.Length;
                 if (actualIndent != expectedIndent && !trimmedLine.StartsWith("#"))
                 {
                     issues.Add(new CodeIssue
@@ -265,7 +265,7 @@ public class StyleAnalyzer(ILogger<StyleAnalyzer> logger)
             var lines = content.Split('\n');
                 
             // Check for inconsistent brace style
-            for (int i = 0; i < lines.Length - 1; i++)
+            for (var i = 0; i < lines.Length - 1; i++)
             {
                 var currentLine = lines[i].TrimEnd();
                 var nextLine = lines[i + 1].TrimStart();
@@ -278,7 +278,7 @@ public class StyleAnalyzer(ILogger<StyleAnalyzer> logger)
                     !currentLine.EndsWith("{"))
                 {
                     // Find the closing parenthesis
-                    int j = i + 1;
+                    var j = i + 1;
                     while (j < lines.Length && !lines[j].Contains(")"))
                     {
                         j++;
@@ -496,7 +496,7 @@ public class StyleAnalyzer(ILogger<StyleAnalyzer> logger)
         var parts = Regex.Split(s, @"[^a-zA-Z0-9]");
             
         // Convert each part to Pascal case
-        for (int i = 0; i < parts.Length; i++)
+        for (var i = 0; i < parts.Length; i++)
         {
             if (!string.IsNullOrEmpty(parts[i]))
             {
@@ -537,8 +537,8 @@ public class StyleAnalyzer(ILogger<StyleAnalyzer> logger)
             return string.Empty;
         }
 
-        int start = Math.Max(0, position - length);
-        int end = Math.Min(content.Length, position + length);
+        var start = Math.Max(0, position - length);
+        var end = Math.Min(content.Length, position + length);
             
         return content.Substring(start, end - start);
     }

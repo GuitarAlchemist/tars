@@ -575,8 +575,8 @@ public class CodeComplexityCommand : Command
         // Print metrics
         foreach (var metric in metrics)
         {
-            string metricType = "Unknown";
-            bool hasIssue = false;
+            var metricType = "Unknown";
+            var hasIssue = false;
 
             if (metric is ComplexityMetric complexityMetric)
             {

@@ -172,7 +172,7 @@ public class MultiAgentCollaborationService(
             }
 
             // Check if any transformations were applied
-            bool success = appliedTransformations.Count > 0;
+            var success = appliedTransformations.Count > 0;
 
             // Save the transformed file if requested
             string transformedFilePath = null;
@@ -185,9 +185,9 @@ public class MultiAgentCollaborationService(
                 else
                 {
                     // Create a new file with _transformed suffix
-                    string directory = Path.GetDirectoryName(filePath);
-                    string fileName = Path.GetFileNameWithoutExtension(filePath);
-                    string extension = Path.GetExtension(filePath);
+                    var directory = Path.GetDirectoryName(filePath);
+                    var fileName = Path.GetFileNameWithoutExtension(filePath);
+                    var extension = Path.GetExtension(filePath);
                     transformedFilePath = Path.Combine(directory, $"{fileName}_transformed{extension}");
                 }
 
@@ -241,7 +241,7 @@ public class MultiAgentCollaborationService(
 
             // Combine results
             var allIssues = validationResults.SelectMany(r => r.Issues).ToList();
-            bool isValid = !allIssues.Any(i => i.Severity == ValidationSeverity.Error);
+            var isValid = !allIssues.Any(i => i.Severity == ValidationSeverity.Error);
 
             return new ValidationResult
             {

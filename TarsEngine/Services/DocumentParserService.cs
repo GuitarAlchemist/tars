@@ -396,51 +396,62 @@ public class DocumentParserService : IDocumentParserService
         {
             _logger.LogInformation("Parsing code file with language: {Language}", language);
 
-            var result = new DocumentParsingResult
+            // Move CPU-intensive parsing operations to a background thread
+            return await Task.Run(async () =>
             {
-                DocumentType = DocumentType.CodeFile,
-                Title = $"Code File ({language})"
-            };
-
-            // Create a single section for the code
-            var section = new ContentSection
-            {
-                ContentType = ContentType.Code,
-                RawContent = content,
-                ProcessedContent = content,
-                Order = 0
-            };
-
-            // Create a code block for the entire file
-            var codeBlock = new CodeBlock
-            {
-                Language = language,
-                Code = content,
-                StartLine = 0,
-                EndLine = content.Split('\n').Length,
-                IsExecutable = IsExecutableLanguage(language)
-            };
-            section.CodeBlocks.Add(codeBlock);
-
-            result.Sections = [section];
-
-            // Extract comments from the code
-            var comments = ExtractCommentsFromCode(content, language);
-            if (comments.Any())
-            {
-                var commentSection = new ContentSection
+                var result = new DocumentParsingResult
                 {
-                    Heading = "Comments",
-                    ContentType = ContentType.Text,
-                    RawContent = string.Join("\n", comments),
-                    ProcessedContent = string.Join("\n", comments),
-                    Order = 1
+                    DocumentType = DocumentType.CodeFile,
+                    Title = $"Code File ({language})"
                 };
-                result.Sections.Add(commentSection);
-            }
 
-            _logger.LogInformation("Successfully parsed code file with {LineCount} lines", codeBlock.EndLine);
-            return result;
+                // Create a single section for the code
+                var section = new ContentSection
+                {
+                    ContentType = ContentType.Code,
+                    RawContent = content,
+                    ProcessedContent = content,
+                    Order = 0
+                };
+
+                // Create a code block for the entire file
+                var codeBlock = new CodeBlock
+                {
+                    Language = language,
+                    Code = content,
+                    StartLine = 0,
+                    EndLine = content.Split('\n').Length,
+                    IsExecutable = IsExecutableLanguage(language)
+                };
+                section.CodeBlocks.Add(codeBlock);
+
+                result.Sections = [section];
+
+                // Extract comments from the code
+                var comments = ExtractCommentsFromCode(content, language);
+                if (comments.Any())
+                {
+                    var commentSection = new ContentSection
+                    {
+                        Heading = "Comments",
+                        ContentType = ContentType.Text,
+                        RawContent = string.Join("\n", comments),
+                        ProcessedContent = string.Join("\n", comments),
+                        Order = 1
+                    };
+                    result.Sections.Add(commentSection);
+                }
+
+                // Extract code blocks if any special processing is needed
+                var codeBlocks = await ExtractCodeBlocksAsync(content, options);
+                if (codeBlocks.Any())
+                {
+                    section.CodeBlocks.AddRange(codeBlocks);
+                }
+
+                _logger.LogInformation("Successfully parsed code file with {LineCount} lines", codeBlock.EndLine);
+                return result;
+            });
         }
         catch (Exception ex)
         {
@@ -460,28 +471,33 @@ public class DocumentParserService : IDocumentParserService
         {
             _logger.LogInformation("Extracting code blocks from content");
 
-            var codeBlocks = new List<CodeBlock>();
-            var matches = _markdownCodeBlockRegex.Matches(content);
-
-            foreach (Match match in matches)
+            // Move regex matching and code block extraction to a background thread
+            // since it could be CPU-intensive for large documents
+            return await Task.Run(() =>
             {
-                var language = match.Groups[1].Value.Trim();
-                var code = match.Groups[2].Value;
+                var codeBlocks = new List<CodeBlock>();
+                var matches = _markdownCodeBlockRegex.Matches(content);
 
-                var codeBlock = new CodeBlock
+                foreach (Match match in matches)
                 {
-                    Language = language,
-                    Code = code,
-                    StartLine = content.Substring(0, match.Index).Count(c => c == '\n'),
-                    EndLine = content.Substring(0, match.Index + match.Length).Count(c => c == '\n'),
-                    IsExecutable = IsExecutableLanguage(language)
-                };
+                    var language = match.Groups[1].Value.Trim();
+                    var code = match.Groups[2].Value;
 
-                codeBlocks.Add(codeBlock);
-            }
+                    var codeBlock = new CodeBlock
+                    {
+                        Language = language,
+                        Code = code,
+                        StartLine = content.Substring(0, match.Index).Count(c => c == '\n'),
+                        EndLine = content.Substring(0, match.Index + match.Length).Count(c => c == '\n'),
+                        IsExecutable = IsExecutableLanguage(language)
+                    };
 
-            _logger.LogInformation("Extracted {CodeBlockCount} code blocks", codeBlocks.Count);
-            return codeBlocks;
+                    codeBlocks.Add(codeBlock);
+                }
+
+                _logger.LogInformation("Extracted {CodeBlockCount} code blocks", codeBlocks.Count);
+                return codeBlocks;
+            });
         }
         catch (Exception ex)
         {

@@ -315,7 +315,7 @@ public class TaskAnalysisService : ITaskAnalysisService
         var lines = response.Split('\n');
 
         ImplementationStep? currentStep = null;
-        int stepNumber = 1;
+        var stepNumber = 1;
 
         foreach (var line in lines)
         {

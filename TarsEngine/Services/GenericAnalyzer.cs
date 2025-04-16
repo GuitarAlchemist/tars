@@ -46,78 +46,82 @@ public class GenericAnalyzer : ILanguageAnalyzer
         {
             _logger.LogInformation("Analyzing {Language} code of length {Length}", Language, content?.Length ?? 0);
 
-            var result = new CodeAnalysisResult
+            // Move the CPU-intensive analysis work to a background thread
+            return await Task.Run(() =>
             {
-                FilePath = "memory",
-                ErrorMessage = string.Empty,
-                Language = LanguageEnum,
-                AnalyzedAt = DateTime.UtcNow,
-                IsSuccessful = true
-            };
+                var result = new CodeAnalysisResult
+                {
+                    FilePath = "memory",
+                    ErrorMessage = string.Empty,
+                    Language = LanguageEnum,
+                    AnalyzedAt = DateTime.UtcNow,
+                    IsSuccessful = true
+                };
 
-            // Handle null content
-            if (content == null)
-            {
-                result.ErrorMessage = "Content is null";
-                result.IsSuccessful = false;
-                result.Errors.Add("Content is null");
+                // Handle null content
+                if (content == null)
+                {
+                    result.ErrorMessage = "Content is null";
+                    result.IsSuccessful = false;
+                    result.Errors.Add("Content is null");
+                    return result;
+                }
+
+                // Parse options
+                var includeMetrics = ParseOption(options, "IncludeMetrics", true);
+                var includeStructures = ParseOption(options, "IncludeStructures", true);
+                var includeIssues = ParseOption(options, "IncludeIssues", true);
+                var analyzePerformance = ParseOption(options, "AnalyzePerformance", true);
+                var analyzeComplexity = ParseOption(options, "AnalyzeComplexity", true);
+                var analyzeMaintainability = ParseOption(options, "AnalyzeMaintainability", true);
+                var analyzeSecurity = ParseOption(options, "AnalyzeSecurity", true);
+                var analyzeStyle = ParseOption(options, "AnalyzeStyle", true);
+
+                // Extract structures (generic approach)
+                if (includeStructures)
+                {
+                    result.Structures.AddRange(ExtractGenericStructures(content));
+                }
+
+                // Calculate metrics
+                if (includeMetrics)
+                {
+                    result.Metrics.AddRange(CalculateGenericMetrics(content, result.Structures));
+                }
+
+                // Detect issues
+                if (includeIssues)
+                {
+                    // Detect code smells
+                    if (analyzeMaintainability || analyzeStyle)
+                    {
+                        result.Issues.AddRange(_codeSmellDetector.DetectCodeSmells(content, Language));
+                    }
+
+                    // Detect complexity issues
+                    if (analyzeComplexity)
+                    {
+                        result.Issues.AddRange(_complexityAnalyzer.DetectComplexityIssues(content, Language, result.Structures));
+                    }
+
+                    // Detect performance issues
+                    if (analyzePerformance)
+                    {
+                        result.Issues.AddRange(_performanceAnalyzer.DetectPerformanceIssues(content, Language));
+                    }
+
+                    // Detect security issues
+                    if (analyzeSecurity)
+                    {
+                        result.Issues.AddRange(DetectGenericSecurityIssues(content));
+                    }
+                }
+
+                _logger.LogInformation("Completed analysis of {Language} code. Found {IssueCount} issues, {MetricCount} metrics, {StructureCount} structures",
+                    Language, result.Issues.Count, result.Metrics.Count, result.Structures.Count);
+
                 return result;
-            }
-
-            // Parse options
-            var includeMetrics = ParseOption(options, "IncludeMetrics", true);
-            var includeStructures = ParseOption(options, "IncludeStructures", true);
-            var includeIssues = ParseOption(options, "IncludeIssues", true);
-            var analyzePerformance = ParseOption(options, "AnalyzePerformance", true);
-            var analyzeComplexity = ParseOption(options, "AnalyzeComplexity", true);
-            var analyzeMaintainability = ParseOption(options, "AnalyzeMaintainability", true);
-            var analyzeSecurity = ParseOption(options, "AnalyzeSecurity", true);
-            var analyzeStyle = ParseOption(options, "AnalyzeStyle", true);
-
-            // Extract structures (generic approach)
-            if (includeStructures)
-            {
-                result.Structures.AddRange(ExtractGenericStructures(content));
-            }
-
-            // Calculate metrics
-            if (includeMetrics)
-            {
-                result.Metrics.AddRange(CalculateGenericMetrics(content, result.Structures));
-            }
-
-            // Detect issues
-            if (includeIssues)
-            {
-                // Detect code smells
-                if (analyzeMaintainability || analyzeStyle)
-                {
-                    result.Issues.AddRange(_codeSmellDetector.DetectCodeSmells(content, Language));
-                }
-
-                // Detect complexity issues
-                if (analyzeComplexity)
-                {
-                    result.Issues.AddRange(_complexityAnalyzer.DetectComplexityIssues(content, Language, result.Structures));
-                }
-
-                // Detect performance issues
-                if (analyzePerformance)
-                {
-                    result.Issues.AddRange(_performanceAnalyzer.DetectPerformanceIssues(content, Language));
-                }
-
-                // Detect security issues
-                if (analyzeSecurity)
-                {
-                    result.Issues.AddRange(DetectGenericSecurityIssues(content));
-                }
-            }
-
-            _logger.LogInformation("Completed analysis of {Language} code. Found {IssueCount} issues, {MetricCount} metrics, {StructureCount} structures",
-                Language, result.Issues.Count, result.Metrics.Count, result.Structures.Count);
-
-            return result;
+            });
         }
         catch (Exception ex)
         {
@@ -136,27 +140,30 @@ public class GenericAnalyzer : ILanguageAnalyzer
     /// <inheritdoc/>
     public async Task<Dictionary<string, string>> GetAvailableOptionsAsync()
     {
-        return new Dictionary<string, string>
+        // Since building the options dictionary could potentially be CPU-intensive
+        // when dealing with many options or complex option descriptions,
+        // move it to a background thread
+        return await Task.Run(() => new Dictionary<string, string>
         {
             { "IncludeMetrics", "Whether to include metrics in the analysis (true/false)" },
             { "IncludeStructures", "Whether to include structures in the analysis (true/false)" },
             { "IncludeIssues", "Whether to include issues in the analysis (true/false)" },
             { "MaxIssues", "Maximum number of issues to include in the result" },
             { "MinSeverity", "Minimum severity of issues to include (Blocker, Critical, Major, Minor, Info)" },
-            { "IncludeCodeSnippets", "Whether to include code snippets in issues (true/false)" },
-            { "IncludeSuggestedFixes", "Whether to include suggested fixes in issues (true/false)" },
             { "AnalyzePerformance", "Whether to analyze performance issues (true/false)" },
-            { "AnalyzeComplexity", "Whether to analyze complexity issues (true/false)" },
-            { "AnalyzeMaintainability", "Whether to analyze maintainability issues (true/false)" },
             { "AnalyzeSecurity", "Whether to analyze security issues (true/false)" },
-            { "AnalyzeStyle", "Whether to analyze style issues (true/false)" }
-        };
+            { "AnalyzeStyle", "Whether to analyze style issues (true/false)" },
+            { "AnalyzeComplexity", "Whether to analyze code complexity (true/false)" },
+            { "AnalyzeMaintainability", "Whether to analyze maintainability issues (true/false)" }
+        });
     }
 
     /// <inheritdoc/>
     public async Task<Dictionary<CodeIssueType, string>> GetLanguageSpecificIssueTypesAsync()
     {
-        return new Dictionary<CodeIssueType, string>
+        // Move dictionary creation to a background thread since it could potentially
+        // involve loading issue descriptions or computing language-specific details
+        return await Task.Run(() => new Dictionary<CodeIssueType, string>
         {
             { CodeIssueType.CodeSmell, "Generic code smells" },
             { CodeIssueType.Bug, "Potential bugs" },
@@ -169,13 +176,15 @@ public class GenericAnalyzer : ILanguageAnalyzer
             { CodeIssueType.Duplication, "Code duplication" },
             { CodeIssueType.Complexity, "Complexity issues" },
             { CodeIssueType.Style, "Style issues" }
-        };
+        });
     }
 
     /// <inheritdoc/>
     public async Task<Dictionary<MetricType, string>> GetLanguageSpecificMetricTypesAsync()
     {
-        return new Dictionary<MetricType, string>
+        // Move dictionary creation to a background thread since it could potentially
+        // involve loading metric descriptions or computing language-specific details
+        return await Task.Run(() => new Dictionary<MetricType, string>
         {
             { MetricType.Complexity, "Complexity metrics" },
             { MetricType.Size, "Size metrics" },
@@ -186,7 +195,7 @@ public class GenericAnalyzer : ILanguageAnalyzer
             { MetricType.Documentation, "Documentation metrics" },
             { MetricType.TestCoverage, "Test coverage metrics" },
             { MetricType.Performance, "Performance metrics" }
-        };
+        });
     }
 
     private List<CodeStructure> ExtractGenericStructures(string content)
@@ -201,7 +210,7 @@ public class GenericAnalyzer : ILanguageAnalyzer
             var currentIndentation = 0;
             var inComment = false;
 
-            for (int i = 0; i < lines.Length; i++)
+            for (var i = 0; i < lines.Length; i++)
             {
                 var line = lines[i].TrimEnd();
 

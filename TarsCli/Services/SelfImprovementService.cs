@@ -159,7 +159,7 @@ public class SelfImprovementService
                 Console.WriteLine(proposal.Explanation);
 
                 // Apply changes automatically or ask for confirmation
-                bool shouldApply = false;
+                var shouldApply = false;
 
                 if (autoAccept)
                 {

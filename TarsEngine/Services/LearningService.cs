@@ -17,7 +17,7 @@ public class LearningService
         _logger = logger;
 
         // Set the path for learning data
-        string appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "TARS");
+        var appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "TARS");
         _learningDataPath = Path.Combine(appDataPath, "learning_data.json");
 
         // Ensure the directory exists
@@ -189,7 +189,7 @@ public class LearningService
             // Extract patterns from each context group
             foreach (var contextGroup in feedbackByContext)
             {
-                string context = contextGroup.Key;
+                var context = contextGroup.Key;
                 var feedbackItems = contextGroup.Value;
 
                 // Extract common patterns from the code
@@ -221,7 +221,7 @@ public class LearningService
         {
             if (File.Exists(_learningDataPath))
             {
-                string json = File.ReadAllText(_learningDataPath);
+                var json = File.ReadAllText(_learningDataPath);
                 _learningData = JsonSerializer.Deserialize<LearningData>(json);
             }
             else
@@ -253,7 +253,7 @@ public class LearningService
     {
         try
         {
-            string json = JsonSerializer.Serialize(_learningData, new JsonSerializerOptions
+            var json = JsonSerializer.Serialize(_learningData, new JsonSerializerOptions
             {
                 WriteIndented = true
             });
@@ -284,7 +284,7 @@ public class LearningService
                 if (feedback.Code.Contains(pattern.Pattern))
                 {
                     // Update the pattern score based on the feedback rating
-                    double scoreAdjustment = (feedback.Rating - 3) / 2.0; // Range: -1.0 to +1.0
+                    var scoreAdjustment = (feedback.Rating - 3) / 2.0; // Range: -1.0 to +1.0
                     pattern.Score += scoreAdjustment;
                     pattern.UsageCount += 1;
                     pattern.LastUsed = DateTime.Now;
@@ -317,9 +317,9 @@ public class LearningService
                 var lines = feedback.Code.Split(["\r\n", "\r", "\n"], StringSplitOptions.None);
 
                 // Extract blocks of 3-5 lines
-                for (int i = 0; i < lines.Length - 2; i++)
+                for (var i = 0; i < lines.Length - 2; i++)
                 {
-                    for (int blockSize = 3; blockSize <= Math.Min(5, lines.Length - i); blockSize++)
+                    for (var blockSize = 3; blockSize <= Math.Min(5, lines.Length - i); blockSize++)
                     {
                         var block = string.Join(Environment.NewLine, lines.Skip(i).Take(blockSize));
                         codeBlocks.Add(block);

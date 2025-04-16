@@ -68,7 +68,7 @@ public class FSharpTestGenerator : ITestGenerator
     /// <inheritdoc/>
     public IEnumerable<string> GetSupportedFileExtensions()
     {
-        return new[] { ".fs", ".fsx" };
+        return [".fs", ".fsx"];
     }
 
     /// <summary>
@@ -318,7 +318,7 @@ public class FSharpTestGenerator : ITestGenerator
         /// <summary>
         /// Parameters of the function
         /// </summary>
-        public List<(string Type, string Name)> Parameters { get; set; } = new();
+        public List<(string Type, string Name)> Parameters { get; set; } = [];
 
         /// <summary>
         /// Whether the function is asynchronous

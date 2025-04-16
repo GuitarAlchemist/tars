@@ -81,7 +81,7 @@ public class ImplementationPlan
             if (descriptionLines.Length > 1)
             {
                 result.AppendLine();
-                for (int i = 1; i < descriptionLines.Length; i++)
+                for (var i = 1; i < descriptionLines.Length; i++)
                 {
                     result.AppendLine(descriptionLines[i]);
                 }

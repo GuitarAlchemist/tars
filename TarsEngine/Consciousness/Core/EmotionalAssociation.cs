@@ -57,8 +57,8 @@ public class EmotionalAssociation
     {
         get
         {
-            string dominantEmotion = string.Empty;
-            double maxIntensity = 0.0;
+            var dominantEmotion = string.Empty;
+            var maxIntensity = 0.0;
             
             foreach (var (emotion, intensity) in EmotionAssociations)
             {
@@ -80,7 +80,7 @@ public class EmotionalAssociation
     {
         get
         {
-            double maxIntensity = 0.0;
+            var maxIntensity = 0.0;
             
             foreach (var (_, intensity) in EmotionAssociations)
             {
@@ -105,7 +105,7 @@ public class EmotionalAssociation
         if (EmotionAssociations.TryGetValue(emotionName, out var existingIntensity))
         {
             // Weighted average (giving more weight to existing association for stability)
-            double weight = Math.Min(0.8, (double)ExperienceCount / (ExperienceCount + 5));
+            var weight = Math.Min(0.8, (double)ExperienceCount / (ExperienceCount + 5));
             EmotionAssociations[emotionName] = (existingIntensity * weight) + (intensity * (1.0 - weight));
         }
         else

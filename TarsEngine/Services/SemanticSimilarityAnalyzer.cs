@@ -88,9 +88,9 @@ public class SemanticSimilarityAnalyzer
             var methodDeclarations = root.DescendantNodes().OfType<MethodDeclarationSyntax>().ToList();
             
             // Compare each method with every other method
-            for (int i = 0; i < methodDeclarations.Count; i++)
+            for (var i = 0; i < methodDeclarations.Count; i++)
             {
-                for (int j = i + 1; j < methodDeclarations.Count; j++)
+                for (var j = i + 1; j < methodDeclarations.Count; j++)
                 {
                     var method1 = methodDeclarations[i];
                     var method2 = methodDeclarations[j];
@@ -379,10 +379,10 @@ public class SemanticSimilarityAnalyzer
     /// <returns>Levenshtein distance</returns>
     private int LevenshteinDistance(string s, string t)
     {
-        int m = s.Length;
-        int n = t.Length;
+        var m = s.Length;
+        var n = t.Length;
         
-        int[,] d = new int[m + 1, n + 1];
+        var d = new int[m + 1, n + 1];
         
         if (m == 0)
         {
@@ -394,21 +394,21 @@ public class SemanticSimilarityAnalyzer
             return m;
         }
         
-        for (int i = 0; i <= m; i++)
+        for (var i = 0; i <= m; i++)
         {
             d[i, 0] = i;
         }
         
-        for (int j = 0; j <= n; j++)
+        for (var j = 0; j <= n; j++)
         {
             d[0, j] = j;
         }
         
-        for (int j = 1; j <= n; j++)
+        for (var j = 1; j <= n; j++)
         {
-            for (int i = 1; i <= m; i++)
+            for (var i = 1; i <= m; i++)
             {
-                int cost = (s[i - 1] == t[j - 1]) ? 0 : 1;
+                var cost = (s[i - 1] == t[j - 1]) ? 0 : 1;
                 
                 d[i, j] = Math.Min(
                     Math.Min(d[i - 1, j] + 1, d[i, j - 1] + 1),
@@ -468,7 +468,7 @@ public class SemanticSimilarityAnalyzer
     {
         // Count the number of newlines before the position
         var lineNumber = 1;
-        for (int i = 0; i < position && i < sourceCode.Length; i++)
+        for (var i = 0; i < position && i < sourceCode.Length; i++)
         {
             if (sourceCode[i] == '\n')
             {

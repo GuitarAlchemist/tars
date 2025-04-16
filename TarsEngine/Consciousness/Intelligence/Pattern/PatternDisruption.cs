@@ -229,13 +229,13 @@ public class PatternDisruption
         var strategy = GetRandomDisruptionStrategy();
         
         // Generate disruption description
-        string description = strategy.DisruptionFunction(pattern);
+        var description = strategy.DisruptionFunction(pattern);
         
         // Calculate originality (higher for pattern disruption)
-        double originality = 0.7 + (0.3 * _random.NextDouble() * _patternDisruptionLevel);
+        var originality = 0.7 + (0.3 * _random.NextDouble() * _patternDisruptionLevel);
         
         // Calculate value (more variable for pattern disruption)
-        double value = 0.2 + (0.8 * _random.NextDouble() * _patternDisruptionLevel);
+        var value = 0.2 + (0.8 * _random.NextDouble() * _patternDisruptionLevel);
         
         // Extract concepts from pattern
         var concepts = new List<string> { pattern.Name, pattern.Domain };
@@ -293,12 +293,12 @@ public class PatternDisruption
             var strategy = GetRandomDisruptionStrategy();
             
             // Generate disruption description
-            string disruptionDescription = strategy.DisruptionFunction(problemPattern);
+            var disruptionDescription = strategy.DisruptionFunction(problemPattern);
             
             // Generate solution description
-            string description = $"Solution approach: {disruptionDescription} " +
-                                $"Challenge the fundamental assumptions about {problemConcepts.FirstOrDefault() ?? "the problem"}. " +
-                                $"What if we reversed the relationship between {problemConcepts.FirstOrDefault() ?? "the problem"} and {additionalConcepts.FirstOrDefault() ?? "the solution"}?";
+            var description = $"Solution approach: {disruptionDescription} " +
+                              $"Challenge the fundamental assumptions about {problemConcepts.FirstOrDefault() ?? "the problem"}. " +
+                              $"What if we reversed the relationship between {problemConcepts.FirstOrDefault() ?? "the problem"} and {additionalConcepts.FirstOrDefault() ?? "the solution"}?";
             
             // Apply constraints if provided, but with a disruptive twist
             if (constraints != null && constraints.Count > 0)
@@ -307,10 +307,10 @@ public class PatternDisruption
             }
             
             // Calculate originality
-            double originality = 0.7 + (0.3 * _patternDisruptionLevel);
+            var originality = 0.7 + (0.3 * _patternDisruptionLevel);
             
             // Calculate value
-            double value = 0.5 + (0.5 * _patternDisruptionLevel);
+            var value = 0.5 + (0.5 * _patternDisruptionLevel);
             
             // Create all concepts list
             var allConcepts = new List<string>(problemConcepts);
@@ -327,7 +327,7 @@ public class PatternDisruption
             };
             
             // Create potential impact
-            string potentialImpact = $"This disruptive approach could lead to a breakthrough solution by challenging the fundamental assumptions that have limited previous approaches to {problemConcepts.FirstOrDefault() ?? "the problem"}.";
+            var potentialImpact = $"This disruptive approach could lead to a breakthrough solution by challenging the fundamental assumptions that have limited previous approaches to {problemConcepts.FirstOrDefault() ?? "the problem"}.";
             
             // Create limitations
             var limitations = new List<string>

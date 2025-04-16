@@ -286,7 +286,7 @@ public class KnowledgeExtractionCommand : Command
             Console.WriteLine($"Found {files.Count} files to process");
 
             // Process each file
-            int processedCount = 0;
+            var processedCount = 0;
             foreach (var file in files)
             {
                 await ProcessFileAsync(file, type, save);
@@ -352,7 +352,7 @@ public class KnowledgeExtractionCommand : Command
             Console.WriteLine();
 
             // Display results
-            for (int i = 0; i < resultsList.Count; i++)
+            for (var i = 0; i < resultsList.Count; i++)
             {
                 var item = resultsList[i];
                 Console.WriteLine($"[{i + 1}] {item.Type}: {TruncateContent(item.Content, 100)}");

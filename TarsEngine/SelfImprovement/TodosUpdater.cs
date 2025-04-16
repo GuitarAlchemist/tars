@@ -66,14 +66,14 @@ public class TodosUpdater
         {
             // Read the TODOs file
             var content = await File.ReadAllTextAsync(_todosFilePath);
-            var lines = content.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None).ToList();
+            var lines = content.Split(["\r\n", "\r", "\n"], StringSplitOptions.None).ToList();
                 
             // Find the parent task
             var parentTaskIndex = -1;
             var parentTaskIndentation = "";
             var regex = new Regex($"(\\s*)([*-]\\s+)({Regex.Escape(parentTaskPattern)})");
                 
-            for (int i = 0; i < lines.Count; i++)
+            for (var i = 0; i < lines.Count; i++)
             {
                 var match = regex.Match(lines[i]);
                 if (match.Success)
@@ -174,14 +174,14 @@ public class TodosUpdater
         {
             // Read the TODOs file
             var content = await File.ReadAllTextAsync(_todosFilePath);
-            var lines = content.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+            var lines = content.Split(["\r\n", "\r", "\n"], StringSplitOptions.None);
                 
             // Find the section
             var sectionStartIndex = -1;
             var sectionEndIndex = -1;
             var sectionRegex = new Regex($"^\\s*{Regex.Escape(sectionPattern)}");
                 
-            for (int i = 0; i < lines.Length; i++)
+            for (var i = 0; i < lines.Length; i++)
             {
                 if (sectionRegex.IsMatch(lines[i]))
                 {
@@ -199,7 +199,7 @@ public class TodosUpdater
             // Find the end of the section
             var sectionIndentation = Regex.Match(lines[sectionStartIndex], "^(\\s*)").Groups[1].Value.Length;
                 
-            for (int i = sectionStartIndex + 1; i < lines.Length; i++)
+            for (var i = sectionStartIndex + 1; i < lines.Length; i++)
             {
                 var line = lines[i];
                     
@@ -228,7 +228,7 @@ public class TodosUpdater
             var totalTasks = 0;
             var completedTasks = 0;
                 
-            for (int i = sectionStartIndex + 1; i <= sectionEndIndex; i++)
+            for (var i = sectionStartIndex + 1; i <= sectionEndIndex; i++)
             {
                 var line = lines[i];
                     
@@ -271,14 +271,14 @@ public class TodosUpdater
         {
             // Read the TODOs file
             var content = await File.ReadAllTextAsync(_todosFilePath);
-            var lines = content.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None).ToList();
+            var lines = content.Split(["\r\n", "\r", "\n"], StringSplitOptions.None).ToList();
                 
             // Find the section
             var sectionStartIndex = -1;
             var sectionEndIndex = -1;
             var sectionRegex = new Regex($"^\\s*{Regex.Escape(sectionPattern)}");
                 
-            for (int i = 0; i < lines.Count; i++)
+            for (var i = 0; i < lines.Count; i++)
             {
                 if (sectionRegex.IsMatch(lines[i]))
                 {
@@ -296,7 +296,7 @@ public class TodosUpdater
             // Find the end of the section
             var sectionIndentation = Regex.Match(lines[sectionStartIndex], "^(\\s*)").Groups[1].Value.Length;
                 
-            for (int i = sectionStartIndex + 1; i < lines.Count; i++)
+            for (var i = sectionStartIndex + 1; i < lines.Count; i++)
             {
                 var line = lines[i];
                     

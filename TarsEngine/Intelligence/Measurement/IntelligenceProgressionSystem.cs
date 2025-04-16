@@ -115,7 +115,7 @@ public class IntelligenceProgressionSystem
         {
             Name = $"Complexity.{complexityType}.{target}",
             Value = value,
-            Type = TarsEngine.Services.Adapters.ComplexityTypeConverter.ToModelType(complexityType),
+            Type = Services.Adapters.ComplexityTypeConverter.ToModelType(complexityType),
             Target = target,
             Threshold = threshold,
             Dimension = complexityType.ToString(),
@@ -287,20 +287,20 @@ public class IntelligenceProgressionSystem
         var latestScore = await _metricsCollector.GetLatestMetricValueAsync("Intelligence.OverallScore") ?? 1.0;
 
         // Calculate learning component (weighted average of learning metrics)
-        double learningComponent = CalculateLearningComponent(learningMetrics);
+        var learningComponent = CalculateLearningComponent(learningMetrics);
 
         // Calculate complexity component (weighted average of complexity metrics)
-        double complexityComponent = CalculateComplexityComponent(complexityMetrics);
+        var complexityComponent = CalculateComplexityComponent(complexityMetrics);
 
         // Calculate novelty component (weighted average of novelty metrics)
-        double noveltyComponent = CalculateNoveltyComponent(noveltyMetrics);
+        var noveltyComponent = CalculateNoveltyComponent(noveltyMetrics);
 
         // Calculate performance component (weighted average of performance metrics)
-        double performanceComponent = CalculatePerformanceComponent(performanceMetrics);
+        var performanceComponent = CalculatePerformanceComponent(performanceMetrics);
 
         // Calculate overall score using logarithmic scale
         // The formula ensures that intelligence growth is logarithmic rather than linear
-        double overallScore = latestScore * Math.Pow(10,
+        var overallScore = latestScore * Math.Pow(10,
             (0.4 * learningComponent +
              0.3 * complexityComponent +
              0.2 * noveltyComponent +
@@ -330,7 +330,7 @@ public class IntelligenceProgressionSystem
         // Implementation would calculate a weighted average of learning metrics
         // For now, return a simple average
         double sum = 0;
-        int count = 0;
+        var count = 0;
 
         foreach (var metric in learningMetrics)
         {
@@ -354,7 +354,7 @@ public class IntelligenceProgressionSystem
         // Implementation would calculate a weighted average of complexity metrics
         // For now, return a simple average
         double sum = 0;
-        int count = 0;
+        var count = 0;
 
         foreach (var metric in complexityMetrics)
         {
@@ -379,7 +379,7 @@ public class IntelligenceProgressionSystem
         // Implementation would calculate a weighted average of novelty metrics
         // For now, return a simple average
         double sum = 0;
-        int count = 0;
+        var count = 0;
 
         foreach (var metric in noveltyMetrics)
         {
@@ -403,7 +403,7 @@ public class IntelligenceProgressionSystem
         // Implementation would calculate a weighted average of performance metrics
         // For now, return a simple average
         double sum = 0;
-        int count = 0;
+        var count = 0;
 
         foreach (var metric in performanceMetrics)
         {

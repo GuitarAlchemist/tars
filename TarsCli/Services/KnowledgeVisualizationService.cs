@@ -45,19 +45,19 @@ public class KnowledgeVisualizationService
                 return false;
             }
 
-            string kbJson = await File.ReadAllTextAsync(_knowledgeBaseFile);
+            var kbJson = await File.ReadAllTextAsync(_knowledgeBaseFile);
             var kb = JsonSerializer.Deserialize<JsonElement>(kbJson);
 
             // Generate HTML visualization
-            string htmlPath = Path.Combine(_visualizationDir, "knowledge_base.html");
+            var htmlPath = Path.Combine(_visualizationDir, "knowledge_base.html");
             await GenerateHtmlVisualizationAsync(kb, htmlPath);
 
             // Generate Markdown summary
-            string mdPath = Path.Combine(_visualizationDir, "knowledge_base_summary.md");
+            var mdPath = Path.Combine(_visualizationDir, "knowledge_base_summary.md");
             await GenerateMarkdownSummaryAsync(kb, mdPath);
 
             // Generate JSON statistics
-            string statsPath = Path.Combine(_visualizationDir, "knowledge_base_stats.json");
+            var statsPath = Path.Combine(_visualizationDir, "knowledge_base_stats.json");
             await GenerateJsonStatisticsAsync(kb, statsPath);
 
             _consoleService.WriteSuccess("Visualization generated successfully");
@@ -151,14 +151,14 @@ public class KnowledgeVisualizationService
                     html.AppendLine($"        <p><strong>Description:</strong> {GetPropertyStringValue(pattern, "description")}</p>");
                     html.AppendLine($"        <p><strong>Context:</strong> {GetPropertyStringValue(pattern, "context")}</p>");
                     
-                    string example = GetPropertyStringValue(pattern, "example");
+                    var example = GetPropertyStringValue(pattern, "example");
                     if (!string.IsNullOrEmpty(example))
                     {
                         html.AppendLine($"        <p><strong>Example:</strong></p>");
                         html.AppendLine($"        <div class=\"code\">{example}</div>");
                     }
                     
-                    string source = GetPropertyStringValue(pattern, "source");
+                    var source = GetPropertyStringValue(pattern, "source");
                     if (!string.IsNullOrEmpty(source))
                     {
                         html.AppendLine($"        <p class=\"meta\">Source: {source}</p>");
@@ -185,7 +185,7 @@ public class KnowledgeVisualizationService
                     html.AppendLine($"        <p><strong>Description:</strong> {GetPropertyStringValue(practice, "description")}</p>");
                     html.AppendLine($"        <p><strong>Context:</strong> {GetPropertyStringValue(practice, "context")}</p>");
                     
-                    string source = GetPropertyStringValue(practice, "source");
+                    var source = GetPropertyStringValue(practice, "source");
                     if (!string.IsNullOrEmpty(source))
                     {
                         html.AppendLine($"        <p class=\"meta\">Source: {source}</p>");
@@ -211,13 +211,13 @@ public class KnowledgeVisualizationService
                     html.AppendLine($"        <h4>{GetPropertyStringValue(example, "description")}</h4>");
                     html.AppendLine($"        <p><strong>Language:</strong> {GetPropertyStringValue(example, "language")}</p>");
                     
-                    string code = GetPropertyStringValue(example, "code");
+                    var code = GetPropertyStringValue(example, "code");
                     if (!string.IsNullOrEmpty(code))
                     {
                         html.AppendLine($"        <div class=\"code\">{code}</div>");
                     }
                     
-                    string source = GetPropertyStringValue(example, "source");
+                    var source = GetPropertyStringValue(example, "source");
                     if (!string.IsNullOrEmpty(source))
                     {
                         html.AppendLine($"        <p class=\"meta\">Source: {source}</p>");
@@ -244,7 +244,7 @@ public class KnowledgeVisualizationService
                     html.AppendLine($"        <p><strong>Description:</strong> {GetPropertyStringValue(strategy, "description")}</p>");
                     html.AppendLine($"        <p><strong>Applicability:</strong> {GetPropertyStringValue(strategy, "applicability")}</p>");
                     
-                    string source = GetPropertyStringValue(strategy, "source");
+                    var source = GetPropertyStringValue(strategy, "source");
                     if (!string.IsNullOrEmpty(source))
                     {
                         html.AppendLine($"        <p class=\"meta\">Source: {source}</p>");
@@ -271,7 +271,7 @@ public class KnowledgeVisualizationService
                     html.AppendLine($"        <p><strong>Description:</strong> {GetPropertyStringValue(insight, "description")}</p>");
                     html.AppendLine($"        <p><strong>Context:</strong> {GetPropertyStringValue(insight, "context")}</p>");
                     
-                    string source = GetPropertyStringValue(insight, "source");
+                    var source = GetPropertyStringValue(insight, "source");
                     if (!string.IsNullOrEmpty(source))
                     {
                         html.AppendLine($"        <p class=\"meta\">Source: {source}</p>");
@@ -359,7 +359,7 @@ public class KnowledgeVisualizationService
                     md.AppendLine($"**Context:** {GetPropertyStringValue(pattern, "context")}");
                     md.AppendLine();
                     
-                    string example = GetPropertyStringValue(pattern, "example");
+                    var example = GetPropertyStringValue(pattern, "example");
                     if (!string.IsNullOrEmpty(example))
                     {
                         md.AppendLine("**Example:**");
@@ -370,7 +370,7 @@ public class KnowledgeVisualizationService
                         md.AppendLine();
                     }
                     
-                    string source = GetPropertyStringValue(pattern, "source");
+                    var source = GetPropertyStringValue(pattern, "source");
                     if (!string.IsNullOrEmpty(source))
                     {
                         md.AppendLine($"*Source: {source}*");
@@ -493,7 +493,7 @@ public class KnowledgeVisualizationService
             var contexts = new Dictionary<string, int>();
             foreach (var pattern in patterns)
             {
-                string context = GetPropertyStringValue(pattern, "context");
+                var context = GetPropertyStringValue(pattern, "context");
                 if (!string.IsNullOrEmpty(context))
                 {
                     if (contexts.ContainsKey(context))
@@ -507,7 +507,7 @@ public class KnowledgeVisualizationService
             var languages = new Dictionary<string, int>();
             foreach (var example in codeExamples)
             {
-                string language = GetPropertyStringValue(example, "language");
+                var language = GetPropertyStringValue(example, "language");
                 if (!string.IsNullOrEmpty(language))
                 {
                     if (languages.ContainsKey(language))
@@ -543,7 +543,7 @@ public class KnowledgeVisualizationService
                 timestamp = DateTime.UtcNow
             };
 
-            string json = JsonSerializer.Serialize(stats, new JsonSerializerOptions { WriteIndented = true });
+            var json = JsonSerializer.Serialize(stats, new JsonSerializerOptions { WriteIndented = true });
             await File.WriteAllTextAsync(outputPath, json);
             return true;
         }
@@ -559,7 +559,7 @@ public class KnowledgeVisualizationService
     /// </summary>
     private string GetPropertyStringValue(JsonElement element, string propertyName)
     {
-        if (element.TryGetProperty(propertyName, out JsonElement property))
+        if (element.TryGetProperty(propertyName, out var property))
         {
             return property.ValueKind == JsonValueKind.String ? property.GetString() ?? "" : "";
         }
@@ -573,7 +573,7 @@ public class KnowledgeVisualizationService
     {
         foreach (var element in elements)
         {
-            string source = GetPropertyStringValue(element, "source");
+            var source = GetPropertyStringValue(element, "source");
             if (!string.IsNullOrEmpty(source))
             {
                 if (sources.ContainsKey(source))

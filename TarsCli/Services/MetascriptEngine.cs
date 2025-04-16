@@ -123,7 +123,7 @@ public class MetascriptEngine
             sb.AppendLine();
                 
             // Define the transformation function for each rule
-            for (int i = 0; i < rules.Count; i++)
+            for (var i = 0; i < rules.Count; i++)
             {
                 var rule = rules[i];
                     
@@ -149,7 +149,7 @@ public class MetascriptEngine
             {
                 sb.Append("        code");
                     
-                for (int i = 0; i < rules.Count; i++)
+                for (var i = 0; i < rules.Count; i++)
                 {
                     sb.AppendLine();
                     sb.Append($"        |> applyRule{i}");

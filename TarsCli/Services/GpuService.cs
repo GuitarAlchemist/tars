@@ -41,7 +41,7 @@ public class GpuService
             var ollamaConfigOverride = _configuration["Ollama:EnableGpu"];
             if (!string.IsNullOrEmpty(ollamaConfigOverride))
             {
-                if (bool.TryParse(ollamaConfigOverride, out bool enableGpu))
+                if (bool.TryParse(ollamaConfigOverride, out var enableGpu))
                 {
                     _logger.LogInformation($"Using GPU acceleration setting from Ollama configuration: {enableGpu}");
                     _isGpuAvailable = enableGpu;
@@ -53,7 +53,7 @@ public class GpuService
             var dockerModelRunnerConfigOverride = _configuration[Constants.ConfigurationKeys.DockerModelRunner.EnableGpu];
             if (!string.IsNullOrEmpty(dockerModelRunnerConfigOverride))
             {
-                if (bool.TryParse(dockerModelRunnerConfigOverride, out bool enableGpu))
+                if (bool.TryParse(dockerModelRunnerConfigOverride, out var enableGpu))
                 {
                     _logger.LogInformation($"Using GPU acceleration setting from Docker Model Runner configuration: {enableGpu}");
                     _isGpuAvailable = enableGpu;

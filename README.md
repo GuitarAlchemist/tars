@@ -73,6 +73,7 @@ This repository contains the TARS (Transformative Autonomous Reasoning System) p
 - **TarsApp** - Main application with UI components
 - **TarsCli.Tests** - Test suite for the CLI components
 - **Experiments** - Various experimental implementations
+- **[TODOs](TODOs/README.md)** - Task lists for various aspects of the project
 
 ## Features
 

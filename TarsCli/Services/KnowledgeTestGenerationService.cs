@@ -49,7 +49,7 @@ public class KnowledgeTestGenerationService
                 return 0;
             }
 
-            string kbJson = await File.ReadAllTextAsync(_knowledgeBaseFile);
+            var kbJson = await File.ReadAllTextAsync(_knowledgeBaseFile);
             var kb = JsonSerializer.Deserialize<JsonElement>(kbJson);
 
             // Extract code examples and patterns from the knowledge base
@@ -63,12 +63,12 @@ public class KnowledgeTestGenerationService
             _consoleService.WriteInfo($"Found {relevantExamples.Count} relevant code examples and {relevantPatterns.Count} relevant patterns");
 
             // Generate tests from code examples
-            int exampleTestsCount = await GenerateTestsFromCodeExamplesAsync(relevantExamples, targetProject, maxTests / 2);
+            var exampleTestsCount = await GenerateTestsFromCodeExamplesAsync(relevantExamples, targetProject, maxTests / 2);
 
             // Generate tests from patterns
-            int patternTestsCount = await GenerateTestsFromPatternsAsync(relevantPatterns, targetProject, maxTests / 2);
+            var patternTestsCount = await GenerateTestsFromPatternsAsync(relevantPatterns, targetProject, maxTests / 2);
 
-            int totalTests = exampleTestsCount + patternTestsCount;
+            var totalTests = exampleTestsCount + patternTestsCount;
             _consoleService.WriteSuccess($"Generated {totalTests} tests ({exampleTestsCount} from examples, {patternTestsCount} from patterns)");
 
             return totalTests;
@@ -90,27 +90,27 @@ public class KnowledgeTestGenerationService
 
         foreach (var item in items)
         {
-            bool isRelevant = false;
+            var isRelevant = false;
 
             // Check if the item has a context/language property that matches the project
-            if (item.TryGetProperty("context", out JsonElement context) &&
+            if (item.TryGetProperty("context", out var context) &&
                 context.ValueKind == JsonValueKind.String)
             {
-                string contextValue = context.GetString() ?? "";
+                var contextValue = context.GetString() ?? "";
                 isRelevant = IsContextRelevantToProject(contextValue, targetProject);
             }
-            else if (item.TryGetProperty("language", out JsonElement language) &&
+            else if (item.TryGetProperty("language", out var language) &&
                      language.ValueKind == JsonValueKind.String)
             {
-                string languageValue = language.GetString() ?? "";
+                var languageValue = language.GetString() ?? "";
                 isRelevant = IsContextRelevantToProject(languageValue, targetProject);
             }
 
             // Check if the item has a description that mentions the project
-            if (!isRelevant && item.TryGetProperty("description", out JsonElement description) &&
+            if (!isRelevant && item.TryGetProperty("description", out var description) &&
                 description.ValueKind == JsonValueKind.String)
             {
-                string descriptionValue = description.GetString() ?? "";
+                var descriptionValue = description.GetString() ?? "";
                 isRelevant = descriptionValue.Contains(targetProject, StringComparison.OrdinalIgnoreCase);
             }
 
@@ -154,16 +154,16 @@ public class KnowledgeTestGenerationService
     /// </summary>
     private async Task<int> GenerateTestsFromCodeExamplesAsync(List<JsonElement> examples, string targetProject, int maxTests)
     {
-        int testsGenerated = 0;
+        var testsGenerated = 0;
 
         // Take only up to maxTests examples
         foreach (var example in examples.Take(maxTests))
         {
             try
             {
-                string description = example.GetProperty("description").GetString() ?? "Code Example";
-                string code = example.GetProperty("code").GetString() ?? "";
-                string language = example.GetProperty("language").GetString() ?? "CSharp";
+                var description = example.GetProperty("description").GetString() ?? "Code Example";
+                var code = example.GetProperty("code").GetString() ?? "";
+                var language = example.GetProperty("language").GetString() ?? "CSharp";
 
                 if (string.IsNullOrWhiteSpace(code))
                 {
@@ -171,13 +171,13 @@ public class KnowledgeTestGenerationService
                 }
 
                 // Generate a test for this example
-                string testCode = await GenerateTestForCodeAsync(code, description, language, targetProject);
+                var testCode = await GenerateTestForCodeAsync(code, description, language, targetProject);
 
                 if (!string.IsNullOrWhiteSpace(testCode))
                 {
                     // Save the test to a file
-                    string testFileName = SanitizeFileName($"{targetProject}_{description}_Test.cs");
-                    string testFilePath = Path.Combine(_testsOutputDir, testFileName);
+                    var testFileName = SanitizeFileName($"{targetProject}_{description}_Test.cs");
+                    var testFilePath = Path.Combine(_testsOutputDir, testFileName);
                     await File.WriteAllTextAsync(testFilePath, testCode);
 
                     _consoleService.WriteInfo($"Generated test: {testFilePath}");
@@ -198,17 +198,17 @@ public class KnowledgeTestGenerationService
     /// </summary>
     private async Task<int> GenerateTestsFromPatternsAsync(List<JsonElement> patterns, string targetProject, int maxTests)
     {
-        int testsGenerated = 0;
+        var testsGenerated = 0;
 
         // Take only up to maxTests patterns
         foreach (var pattern in patterns.Take(maxTests))
         {
             try
             {
-                string name = pattern.GetProperty("name").GetString() ?? "Pattern";
-                string description = pattern.GetProperty("description").GetString() ?? "";
-                string example = pattern.GetProperty("example").GetString() ?? "";
-                string context = pattern.GetProperty("context").GetString() ?? "CSharp";
+                var name = pattern.GetProperty("name").GetString() ?? "Pattern";
+                var description = pattern.GetProperty("description").GetString() ?? "";
+                var example = pattern.GetProperty("example").GetString() ?? "";
+                var context = pattern.GetProperty("context").GetString() ?? "CSharp";
 
                 if (string.IsNullOrWhiteSpace(example))
                 {
@@ -216,13 +216,13 @@ public class KnowledgeTestGenerationService
                 }
 
                 // Generate a test for this pattern
-                string testCode = await GenerateTestForPatternAsync(example, name, description, context, targetProject);
+                var testCode = await GenerateTestForPatternAsync(example, name, description, context, targetProject);
 
                 if (!string.IsNullOrWhiteSpace(testCode))
                 {
                     // Save the test to a file
-                    string testFileName = SanitizeFileName($"{targetProject}_{name}_Test.cs");
-                    string testFilePath = Path.Combine(_testsOutputDir, testFileName);
+                    var testFileName = SanitizeFileName($"{targetProject}_{name}_Test.cs");
+                    var testFilePath = Path.Combine(_testsOutputDir, testFileName);
                     await File.WriteAllTextAsync(testFilePath, testCode);
 
                     _consoleService.WriteInfo($"Generated test: {testFilePath}");
@@ -246,7 +246,7 @@ public class KnowledgeTestGenerationService
         try
         {
             // Create a prompt for the LLM to generate a test
-            string prompt = $@"You are an expert at writing unit tests for .NET applications.
+            var prompt = $@"You are an expert at writing unit tests for .NET applications.
 
 I'll provide you with a code example from the {targetProject} project, and I'd like you to generate a comprehensive unit test for it.
 
@@ -274,10 +274,10 @@ Return ONLY the C# test code without any explanations or markdown formatting.";
             if (!string.IsNullOrWhiteSpace(result))
             {
                 // Clean up the result (remove any markdown code blocks if present)
-                string cleanedResult = CleanupGeneratedCode(result);
+                var cleanedResult = CleanupGeneratedCode(result);
 
                 // Add a header comment with the source information
-                string headerComment = $@"// Generated test for code example: {description}
+                var headerComment = $@"// Generated test for code example: {description}
 // Source: Knowledge Base
 // Target Project: {targetProject}
 // Generated: {DateTime.Now}
@@ -303,7 +303,7 @@ Return ONLY the C# test code without any explanations or markdown formatting.";
         try
         {
             // Create a prompt for the LLM to generate a test
-            string prompt = $@"You are an expert at writing unit tests for .NET applications.
+            var prompt = $@"You are an expert at writing unit tests for .NET applications.
 
 I'll provide you with a pattern from the {targetProject} project, and I'd like you to generate a comprehensive unit test that verifies this pattern is correctly implemented.
 
@@ -333,10 +333,10 @@ Return ONLY the C# test code without any explanations or markdown formatting.";
             if (!string.IsNullOrWhiteSpace(result))
             {
                 // Clean up the result (remove any markdown code blocks if present)
-                string cleanedResult = CleanupGeneratedCode(result);
+                var cleanedResult = CleanupGeneratedCode(result);
 
                 // Add a header comment with the source information
-                string headerComment = $@"// Generated test for pattern: {name}
+                var headerComment = $@"// Generated test for pattern: {name}
 // Description: {description}
 // Context: {context}
 // Target Project: {targetProject}
@@ -364,11 +364,11 @@ Return ONLY the C# test code without any explanations or markdown formatting.";
         if (code.StartsWith("```") && code.EndsWith("```"))
         {
             // Find the first newline after the opening ```
-            int startIndex = code.IndexOf('\n');
+            var startIndex = code.IndexOf('\n');
             if (startIndex != -1)
             {
                 // Find the last ``` and remove everything after it
-                int endIndex = code.LastIndexOf("```");
+                var endIndex = code.LastIndexOf("```");
                 if (endIndex != -1)
                 {
                     return code.Substring(startIndex + 1, endIndex - startIndex - 1).Trim();
@@ -385,8 +385,8 @@ Return ONLY the C# test code without any explanations or markdown formatting.";
     private string SanitizeFileName(string fileName)
     {
         // Replace invalid file name characters with underscores
-        char[] invalidChars = Path.GetInvalidFileNameChars();
-        foreach (char c in invalidChars)
+        var invalidChars = Path.GetInvalidFileNameChars();
+        foreach (var c in invalidChars)
         {
             fileName = fileName.Replace(c, '_');
         }

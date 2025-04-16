@@ -16,6 +16,14 @@ public interface IContentClassifierService
     Task<ContentClassification> ClassifyContentAsync(string content, Dictionary<string, string>? options = null);
 
     /// <summary>
+    /// Classifies content synchronously
+    /// </summary>
+    /// <param name="content">The content to classify</param>
+    /// <param name="options">Optional classification options</param>
+    /// <returns>The content classification</returns>
+    ContentClassification ClassifyContent(string content, Dictionary<string, string>? options = null);
+
+    /// <summary>
     /// Classifies a document parsing result
     /// </summary>
     /// <param name="document">The document parsing result to classify</param>

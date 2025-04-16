@@ -14,7 +14,7 @@ public class KnowledgeRepository : IKnowledgeRepository
     private readonly ILogger<KnowledgeRepository> _logger;
     private readonly string _dataDirectory;
     private readonly Dictionary<string, TarsEngine.Models.KnowledgeItem> _itemsCache = new();
-    private readonly Dictionary<string, List<TarsEngine.Models.KnowledgeRelationship>> _relationshipsCache = new();
+    private readonly Dictionary<string, List<KnowledgeRelationship>> _relationshipsCache = new();
     private readonly object _lockObject = new();
     private bool _isInitialized = false;
 
@@ -555,10 +555,10 @@ public class KnowledgeRepository : IKnowledgeRepository
                 stats.TotalItems = _itemsCache.Count;
 
                 // Items by type
-                foreach (var type in Enum.GetValues<TarsEngine.Services.Interfaces.KnowledgeType>())
+                foreach (var type in Enum.GetValues<Interfaces.KnowledgeType>())
                 {
-                    var knowledgeType = (TarsEngine.Services.Interfaces.KnowledgeType)type;
-                    var count = _itemsCache.Values.Count(item => TarsEngine.Services.Adapters.KnowledgeTypeAdapter.ToInterfaceType(item.Type).Equals(knowledgeType));
+                    var knowledgeType = (Interfaces.KnowledgeType)type;
+                    var count = _itemsCache.Values.Count(item => Adapters.KnowledgeTypeAdapter.ToInterfaceType(item.Type).Equals(knowledgeType));
                     if (count > 0)
                     {
                         stats.ItemsByType[knowledgeType] = count;
@@ -614,18 +614,18 @@ public class KnowledgeRepository : IKnowledgeRepository
         }
     }
 
-    private async Task EnsureInitializedAsync()
+    private Task EnsureInitializedAsync()
     {
         if (_isInitialized)
         {
-            return;
+            return Task.CompletedTask;
         }
 
         lock (_lockObject)
         {
             if (_isInitialized)
             {
-                return;
+                return Task.CompletedTask;
             }
 
             _logger.LogInformation("Initializing knowledge repository");
@@ -690,6 +690,8 @@ public class KnowledgeRepository : IKnowledgeRepository
 
             _isInitialized = true;
         }
+
+        return Task.CompletedTask;
     }
 
     private async Task SaveItemToDiskAsync(TarsEngine.Models.KnowledgeItem item)

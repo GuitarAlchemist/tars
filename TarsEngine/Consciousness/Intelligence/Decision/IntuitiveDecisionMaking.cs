@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using TarsEngine.Consciousness.Intelligence.Pattern;
 using TarsEngine.Consciousness.Intelligence.Heuristic;
 using TarsEngine.Consciousness.Intelligence.Gut;
+using TarsEngine.Monads;
 using GutDecisionResult = TarsEngine.Consciousness.Intelligence.Gut.DecisionResult;
 
 namespace TarsEngine.Consciousness.Intelligence.Decision;
@@ -74,7 +75,7 @@ public class IntuitiveDecisionMaking
     /// <param name="options">The options</param>
     /// <param name="domain">The domain (optional)</param>
     /// <returns>The intuitive decision</returns>
-    public async Task<IntuitiveDecision> MakeIntuitiveDecisionAsync(string decision, List<string> options, string? domain = null)
+    public Task<IntuitiveDecision> MakeIntuitiveDecisionAsync(string decision, List<string> options, string? domain = null)
     {
         try
         {
@@ -131,14 +132,14 @@ public class IntuitiveDecisionMaking
             _logger.LogInformation("Made intuitive decision: {SelectedOption} for {Decision} (Confidence: {Confidence:F2})",
                 intuitiveDecision.SelectedOption, intuitiveDecision.Decision, intuitiveDecision.Confidence);
 
-            return intuitiveDecision;
+            return AsyncMonad.Return(intuitiveDecision);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error making intuitive decision");
 
             // Return basic decision
-            return new IntuitiveDecision
+            return AsyncMonad.Return(new IntuitiveDecision
             {
                 Decision = decision,
                 SelectedOption = options.FirstOrDefault() ?? string.Empty,
@@ -147,7 +148,7 @@ public class IntuitiveDecisionMaking
                 IntuitionType = IntuitionType.GutFeeling,
                 Timestamp = DateTime.UtcNow,
                 Explanation = "Decision made with low confidence due to an error in the decision-making process"
-            };
+            });
         }
     }
 
@@ -211,18 +212,18 @@ public class IntuitiveDecisionMaking
         }
 
         // Choose randomly based on current levels
-        double patternProb = _patternRecognition.PatternRecognitionLevel * 0.4;
-        double heuristicProb = _heuristicReasoning.HeuristicReasoningLevel * 0.4;
-        double gutProb = _gutFeeling.GutFeelingLevel * 0.2;
+        var patternProb = _patternRecognition.PatternRecognitionLevel * 0.4;
+        var heuristicProb = _heuristicReasoning.HeuristicReasoningLevel * 0.4;
+        var gutProb = _gutFeeling.GutFeelingLevel * 0.2;
 
         // Normalize probabilities
-        double total = patternProb + heuristicProb + gutProb;
+        var total = patternProb + heuristicProb + gutProb;
         patternProb /= total;
         heuristicProb /= total;
         gutProb /= total;
 
         // Choose type based on probabilities
-        double rand = _random.NextDouble();
+        var rand = _random.NextDouble();
 
         if (rand < patternProb)
         {
@@ -256,7 +257,7 @@ public class IntuitiveDecisionMaking
             var patterns = _patternRecognition.RecognizePatterns(option, domain);
 
             // Calculate score based on pattern matches
-            double score = patterns.Count > 0
+            var score = patterns.Count > 0
                 ? patterns.Average(p => p.Confidence)
                 : 0.3;
 
@@ -271,7 +272,7 @@ public class IntuitiveDecisionMaking
 
         // Choose the option with the highest score
         var selectedOption = optionScores.OrderByDescending(kvp => kvp.Value).First().Key;
-        double confidence = optionScores[selectedOption] * _patternRecognition.PatternRecognitionLevel;
+        var confidence = optionScores[selectedOption] * _patternRecognition.PatternRecognitionLevel;
 
         // Create decision result
         var result = new Gut.DecisionResult
@@ -331,7 +332,7 @@ public class IntuitiveDecisionMaking
 
             case IntuitionType.HeuristicReasoning:
                 var heuristicResult = result as Heuristic.DecisionResult;
-                string ruleText = "";
+                var ruleText = "";
                 if (heuristicResult != null && heuristicResult.AppliedRules != null && heuristicResult.AppliedRules.Count > 0)
                 {
                     ruleText = $" Key principles applied: {string.Join(", ", heuristicResult.AppliedRules)}.";

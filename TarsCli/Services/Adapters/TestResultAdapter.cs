@@ -30,7 +30,7 @@ namespace TarsCli.Services.Adapters
             return new Testing.TestResult
             {
                 TestName = string.Empty, // Default value
-                Status = Testing.TestStatus.Failed, // Default value
+                Status = TestStatus.Failed, // Default value
                 Duration = "0ms", // Default value
                 ErrorMessage = testResult.ErrorMessage
             };

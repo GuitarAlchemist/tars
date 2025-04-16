@@ -469,7 +469,7 @@ public class TarsMcpSwarmService
             SaveAgents();
 
             // Extract action from the request
-            string action = "code";
+            var action = "code";
             if (request.TryGetProperty("action", out var actionElement))
             {
                 action = actionElement.GetString();

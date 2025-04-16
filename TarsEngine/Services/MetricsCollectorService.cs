@@ -327,7 +327,7 @@ public class MetricsCollectorService : IMetricsCollectorService
         var firstDerivatives = new List<double>();
         var secondDerivatives = new List<double>();
         
-        for (int i = 1; i < values.Count; i++)
+        for (var i = 1; i < values.Count; i++)
         {
             var timeSpan = (timestamps[i] - timestamps[i - 1]).TotalDays;
             
@@ -337,7 +337,7 @@ public class MetricsCollectorService : IMetricsCollectorService
             }
         }
         
-        for (int i = 1; i < firstDerivatives.Count; i++)
+        for (var i = 1; i < firstDerivatives.Count; i++)
         {
             var timeSpan = (timestamps[i + 1] - timestamps[i]).TotalDays;
             
@@ -463,7 +463,7 @@ public class MetricsCollectorService : IMetricsCollectorService
         var forecast = new Dictionary<DateTime, double>();
         var lastTimestamp = timestamps.Last();
         
-        for (int i = 1; i <= days; i++)
+        for (var i = 1; i <= days; i++)
         {
             var forecastTimestamp = lastTimestamp.AddDays(i);
             var forecastX = (forecastTimestamp - timestamps[0]).TotalDays;

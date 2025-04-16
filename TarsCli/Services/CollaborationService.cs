@@ -368,7 +368,7 @@ public class CollaborationService
 
                 // In a real implementation, this would generate a metascript based on the template
                 // For now, we'll just create a simple metascript
-                string taskValue = parameters.TryGetValue("task", out var taskObj) ? taskObj.ToString() : "Default task";
+                var taskValue = parameters.TryGetValue("task", out var taskObj) ? taskObj.ToString() : "Default task";
                 var metascript = $@"DESCRIBE {{
     name: ""Generated Metascript""
     version: ""1.0""

@@ -292,10 +292,10 @@ public class SyntaxValidator
         var lastOpenBracket = (Line: 0, Column: 0);
         var lastOpenBrace = (Line: 0, Column: 0);
 
-        for (int i = 0; i < lines.Length; i++)
+        for (var i = 0; i < lines.Length; i++)
         {
             var line = lines[i];
-            for (int j = 0; j < line.Length; j++)
+            for (var j = 0; j < line.Length; j++)
             {
                 var c = line[j];
                 switch (c)
@@ -356,13 +356,13 @@ public class SyntaxValidator
         }
 
         // Check for string literal issues
-        for (int i = 0; i < lines.Length; i++)
+        for (var i = 0; i < lines.Length; i++)
         {
             var line = lines[i];
             var inString = false;
             var stringStart = 0;
 
-            for (int j = 0; j < line.Length; j++)
+            for (var j = 0; j < line.Length; j++)
             {
                 var c = line[j];
                 if (c == '"' && (j == 0 || line[j - 1] != '\\'))
@@ -422,8 +422,8 @@ public class SyntaxValidator
             {
                 // Extract line and position information from the exception message
                 var match = Regex.Match(ex.Message, @"LineNumber: (\d+) \| BytePositionInLine: (\d+)");
-                int line = 1;
-                int column = 1;
+                var line = 1;
+                var column = 1;
 
                 if (match.Success)
                 {
@@ -634,7 +634,7 @@ public class SyntaxValidator
         var hasGlobal = false;
         var hasEndGlobal = false;
 
-        for (int i = 0; i < lines.Length; i++)
+        for (var i = 0; i < lines.Length; i++)
         {
             var line = lines[i].Trim();
 
@@ -689,7 +689,7 @@ public class SyntaxValidator
         var projectRegex = new Regex(@"Project\(""\{([^}]+)\}""\) = ""([^""]+)"", ""([^""]+)"", ""\{([^}]+)\}""");
         var projectCount = 0;
 
-        for (int i = 0; i < lines.Length; i++)
+        for (var i = 0; i < lines.Length; i++)
         {
             var line = lines[i].Trim();
 

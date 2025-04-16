@@ -49,7 +49,7 @@ public class RetroactionLoopCommand : Command
         {
             try
             {
-                bool success = await _retroactionLoopService.RunRetroactionLoopAsync();
+                var success = await _retroactionLoopService.RunRetroactionLoopAsync();
                 return success ? 0 : 1;
             }
             catch (Exception ex)
@@ -132,7 +132,7 @@ public class RetroactionLoopCommand : Command
         {
             try
             {
-                bool success = await _retroactionLoopService.CreatePatternAsync(name, description, pattern, replacement, context);
+                var success = await _retroactionLoopService.CreatePatternAsync(name, description, pattern, replacement, context);
                 return success ? 0 : 1;
             }
             catch (Exception ex)
@@ -286,12 +286,12 @@ public class RetroactionLoopCommand : Command
                 }
 
                 // Read the file
-                string code = await File.ReadAllTextAsync(file);
+                var code = await File.ReadAllTextAsync(file);
 
                 // Determine the context if not provided
                 if (string.IsNullOrEmpty(context))
                 {
-                    string extension = Path.GetExtension(file).ToLowerInvariant();
+                    var extension = Path.GetExtension(file).ToLowerInvariant();
                     context = extension switch
                     {
                         ".cs" => "CSharp",
@@ -323,13 +323,13 @@ public class RetroactionLoopCommand : Command
                 // Create a backup if requested
                 if (backup)
                 {
-                    string backupFile = $"{file}.bak";
+                    var backupFile = $"{file}.bak";
                     await File.WriteAllTextAsync(backupFile, code);
                     _consoleService.WriteInfo($"Created backup: {backupFile}");
                 }
 
                 // Write the improved code
-                string outputFile = string.IsNullOrEmpty(output) ? file : output;
+                var outputFile = string.IsNullOrEmpty(output) ? file : output;
                 await File.WriteAllTextAsync(outputFile, improvedCode);
                 _consoleService.WriteSuccess($"Wrote improved code to {outputFile}");
 

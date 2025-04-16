@@ -168,7 +168,7 @@ public class BenchmarkSystem
         {
             // Filter metrics by type
             var complexityMetrics = codeAnalysisResult.Metrics
-                .Where(m => m.Type == TarsEngine.Models.MetricType.Complexity)
+                .Where(m => m.Type == Models.MetricType.Complexity)
                 .Select(m => new ComplexityMetric
                 {
                     Name = m.Name,
@@ -179,7 +179,7 @@ public class BenchmarkSystem
             metrics.AddRange(complexityMetrics);
 
             var maintainabilityMetrics = codeAnalysisResult.Metrics
-                .Where(m => m.Type == TarsEngine.Models.MetricType.Maintainability)
+                .Where(m => m.Type == Models.MetricType.Maintainability)
                 .Select(m => new MaintainabilityMetric
                 {
                     Name = m.Name,

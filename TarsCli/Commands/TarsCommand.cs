@@ -3,7 +3,7 @@ namespace TarsCli.Commands;
 /// <summary>
 /// Base class for all TARS CLI commands
 /// </summary>
-public class TarsCommand : System.CommandLine.Command
+public class TarsCommand : Command
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="TarsCommand"/> class.

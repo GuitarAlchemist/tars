@@ -32,7 +32,7 @@ public class VirtualFileSystem
     /// <param name="backupDirectory">The backup directory</param>
     /// <param name="isDryRun">Whether the context is in dry run mode</param>
     /// <returns>The virtual file system context</returns>
-    public VirtualFileSystemContext CreateContext(
+    public async Task<VirtualFileSystemContext> CreateContextAsync(
         string contextId,
         string workingDirectory,
         string backupDirectory,
@@ -42,16 +42,11 @@ public class VirtualFileSystem
         {
             _logger.LogInformation("Creating virtual file system context: {ContextId}", contextId);
 
-            // Create directories if they don't exist
-            if (!Directory.Exists(workingDirectory))
-            {
-                Directory.CreateDirectory(workingDirectory);
-            }
-
-            if (!Directory.Exists(backupDirectory))
-            {
-                Directory.CreateDirectory(backupDirectory);
-            }
+            // Create directories asynchronously
+            await Task.WhenAll(
+                Task.Run(() => Directory.CreateDirectory(workingDirectory)),
+                Task.Run(() => Directory.CreateDirectory(backupDirectory))
+            );
 
             // Create context
             var context = new VirtualFileSystemContext

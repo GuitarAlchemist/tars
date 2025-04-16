@@ -10,17 +10,17 @@ public static class IssueSeverityConverter
     /// <summary>
     /// Converts from Models.IssueSeverity to IssueSeverityUnified
     /// </summary>
-    public static IssueSeverityUnified ToUnified(Models.IssueSeverity severity)
+    public static IssueSeverityUnified ToUnified(IssueSeverity severity)
     {
         return severity switch
         {
-            Models.IssueSeverity.Blocker => IssueSeverityUnified.Blocker,
-            Models.IssueSeverity.Critical => IssueSeverityUnified.Critical,
-            Models.IssueSeverity.Major => IssueSeverityUnified.Major,
-            Models.IssueSeverity.Minor => IssueSeverityUnified.Minor,
-            Models.IssueSeverity.Trivial => IssueSeverityUnified.Trivial,
-            Models.IssueSeverity.Error => IssueSeverityUnified.Error,
-            Models.IssueSeverity.Info => IssueSeverityUnified.Info,
+            IssueSeverity.Blocker => IssueSeverityUnified.Blocker,
+            IssueSeverity.Critical => IssueSeverityUnified.Critical,
+            IssueSeverity.Major => IssueSeverityUnified.Major,
+            IssueSeverity.Minor => IssueSeverityUnified.Minor,
+            IssueSeverity.Trivial => IssueSeverityUnified.Trivial,
+            IssueSeverity.Error => IssueSeverityUnified.Error,
+            IssueSeverity.Info => IssueSeverityUnified.Info,
             _ => IssueSeverityUnified.Info
         };
     }
@@ -28,18 +28,18 @@ public static class IssueSeverityConverter
     /// <summary>
     /// Converts from IssueSeverityUnified to Models.IssueSeverity
     /// </summary>
-    public static Models.IssueSeverity FromUnified(IssueSeverityUnified severity)
+    public static IssueSeverity FromUnified(IssueSeverityUnified severity)
     {
         return severity switch
         {
-            IssueSeverityUnified.Blocker => Models.IssueSeverity.Blocker,
-            IssueSeverityUnified.Critical => Models.IssueSeverity.Critical,
-            IssueSeverityUnified.Major => Models.IssueSeverity.Major,
-            IssueSeverityUnified.Minor => Models.IssueSeverity.Minor,
-            IssueSeverityUnified.Trivial => Models.IssueSeverity.Trivial,
-            IssueSeverityUnified.Error => Models.IssueSeverity.Error,
-            IssueSeverityUnified.Info => Models.IssueSeverity.Info,
-            _ => Models.IssueSeverity.Info
+            IssueSeverityUnified.Blocker => IssueSeverity.Blocker,
+            IssueSeverityUnified.Critical => IssueSeverity.Critical,
+            IssueSeverityUnified.Major => IssueSeverity.Major,
+            IssueSeverityUnified.Minor => IssueSeverity.Minor,
+            IssueSeverityUnified.Trivial => IssueSeverity.Trivial,
+            IssueSeverityUnified.Error => IssueSeverity.Error,
+            IssueSeverityUnified.Info => IssueSeverity.Info,
+            _ => IssueSeverity.Info
         };
     }
 
@@ -117,7 +117,7 @@ public static class IssueSeverityConverter
     /// <summary>
     /// Direct conversion from Models.IssueSeverity to Services.Interfaces.IssueSeverity
     /// </summary>
-    public static Services.Interfaces.IssueSeverity ToInterfacesSeverity(Models.IssueSeverity severity)
+    public static Services.Interfaces.IssueSeverity ToInterfacesSeverity(IssueSeverity severity)
     {
         return ToInterfacesSeverity(ToUnified(severity));
     }
@@ -125,7 +125,7 @@ public static class IssueSeverityConverter
     /// <summary>
     /// Direct conversion from Services.Interfaces.IssueSeverity to Models.IssueSeverity
     /// </summary>
-    public static Models.IssueSeverity ToModelsSeverity(Services.Interfaces.IssueSeverity severity)
+    public static IssueSeverity ToModelsSeverity(Services.Interfaces.IssueSeverity severity)
     {
         return FromUnified(ToUnified(severity));
     }
@@ -133,7 +133,7 @@ public static class IssueSeverityConverter
     /// <summary>
     /// Direct conversion from Models.IssueSeverity to Services.Models.IssueSeverity
     /// </summary>
-    public static Services.Models.IssueSeverity ToServiceModelsSeverity(Models.IssueSeverity severity)
+    public static Services.Models.IssueSeverity ToServiceModelsSeverity(IssueSeverity severity)
     {
         return ToModelsSeverity(ToUnified(severity));
     }
@@ -141,7 +141,7 @@ public static class IssueSeverityConverter
     /// <summary>
     /// Direct conversion from Services.Models.IssueSeverity to Models.IssueSeverity
     /// </summary>
-    public static Models.IssueSeverity ToModelsSeverity(Services.Models.IssueSeverity severity)
+    public static IssueSeverity ToModelsSeverity(Services.Models.IssueSeverity severity)
     {
         return FromUnified(ToUnified(severity));
     }

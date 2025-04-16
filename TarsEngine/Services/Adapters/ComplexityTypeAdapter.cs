@@ -42,7 +42,7 @@ public static class ComplexityTypeAdapter
     public static ModelComplexityType ToModelType(InterfaceComplexityType interfaceType)
     {
         // Use reflection to safely convert the enum value
-        string enumName = Enum.GetName(typeof(InterfaceComplexityType), interfaceType) ?? "Cyclomatic";
+        var enumName = Enum.GetName(typeof(InterfaceComplexityType), interfaceType) ?? "Cyclomatic";
 
         return enumName switch
         {
@@ -69,7 +69,7 @@ public static class ComplexityTypeAdapter
         try
         {
             // Use reflection to safely convert the enum value
-            string enumName = Enum.GetName(typeof(ModelComplexityType), modelType) ?? "Cyclomatic";
+            var enumName = Enum.GetName(typeof(ModelComplexityType), modelType) ?? "Cyclomatic";
 
             return enumName switch
             {
@@ -99,7 +99,7 @@ public static class ComplexityTypeAdapter
     public static ComplexityTypeUnified ToUnified(InterfaceComplexityType interfaceType)
     {
         // Use reflection to safely convert the enum value
-        string enumName = Enum.GetName(typeof(InterfaceComplexityType), interfaceType) ?? "Cyclomatic";
+        var enumName = Enum.GetName(typeof(InterfaceComplexityType), interfaceType) ?? "Cyclomatic";
 
         return enumName switch
         {
@@ -124,7 +124,7 @@ public static class ComplexityTypeAdapter
     public static ComplexityTypeUnified ToUnified(ModelComplexityType modelType)
     {
         // Use reflection to safely convert the enum value
-        string enumName = Enum.GetName(typeof(ModelComplexityType), modelType) ?? "Other";
+        var enumName = Enum.GetName(typeof(ModelComplexityType), modelType) ?? "Other";
 
         return enumName switch
         {

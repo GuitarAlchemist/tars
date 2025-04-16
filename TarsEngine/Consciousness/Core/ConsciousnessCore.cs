@@ -473,10 +473,10 @@ public class ConsciousnessCore
     private double CalculateIntegrationLevel()
     {
         // Calculate integration level based on component coherence
-        double selfEmotionalCoherence = _selfModel.GetCoherenceWith(_emotionalState);
-        double selfValueCoherence = _selfModel.GetCoherenceWith(_valueSystem);
-        double emotionalValueCoherence = _emotionalState.GetCoherenceWith(_valueSystem);
-        double mentalConsciousnessCoherence = _mentalState.GetCoherenceWith(_consciousnessLevel);
+        var selfEmotionalCoherence = _selfModel.GetCoherenceWith(_emotionalState);
+        var selfValueCoherence = _selfModel.GetCoherenceWith(_valueSystem);
+        var emotionalValueCoherence = _emotionalState.GetCoherenceWith(_valueSystem);
+        var mentalConsciousnessCoherence = _mentalState.GetCoherenceWith(_consciousnessLevel);
         
         // Average coherence
         return (selfEmotionalCoherence + selfValueCoherence + emotionalValueCoherence + mentalConsciousnessCoherence) / 4.0;

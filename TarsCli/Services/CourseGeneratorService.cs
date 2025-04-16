@@ -347,7 +347,7 @@ Ensure the course is tailored to the specified difficulty level and target audie
         markdown.AppendLine("## Lessons");
         markdown.AppendLine();
 
-        for (int i = 0; i < course.Content.Lessons.Count; i++)
+        for (var i = 0; i < course.Content.Lessons.Count; i++)
         {
             var lesson = course.Content.Lessons[i];
 
@@ -383,14 +383,14 @@ Ensure the course is tailored to the specified difficulty level and target audie
 
             markdown.AppendLine("#### Quiz");
             markdown.AppendLine();
-            for (int j = 0; j < lesson.QuizQuestions.Count; j++)
+            for (var j = 0; j < lesson.QuizQuestions.Count; j++)
             {
                 var quiz = lesson.QuizQuestions[j];
 
                 markdown.AppendLine($"**Question {j + 1}:** {quiz.Question}");
                 markdown.AppendLine();
 
-                for (int k = 0; k < quiz.Options.Count; k++)
+                for (var k = 0; k < quiz.Options.Count; k++)
                 {
                     var option = quiz.Options[k];
                     markdown.AppendLine($"{k + 1}. {option}");

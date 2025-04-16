@@ -145,11 +145,11 @@ public class TransactionManager
                 else if (operation.Type == OperationType.FileCreation)
                 {
                     var filePath = operation.Target;
-                    if (System.IO.File.Exists(filePath))
+                    if (File.Exists(filePath))
                     {
                         try
                         {
-                            System.IO.File.Delete(filePath);
+                            File.Delete(filePath);
                         }
                         catch (Exception ex)
                         {

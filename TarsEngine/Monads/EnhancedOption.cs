@@ -397,7 +397,7 @@ public static class EnhancedOptionExtensions
     {
         if (source is IList<T> list)
         {
-            int count = list.Count;
+            var count = list.Count;
             if (count > 0)
             {
                 return EnhancedOption<T>.Some(list[count - 1]);
@@ -413,7 +413,7 @@ public static class EnhancedOptionExtensions
                     return EnhancedOption<T>.None;
                 }
 
-                T result = enumerator.Current;
+                var result = enumerator.Current;
                 while (enumerator.MoveNext())
                 {
                     result = enumerator.Current;
@@ -443,7 +443,7 @@ public static class EnhancedOptionExtensions
                 return EnhancedOption<T>.None;
             }
 
-            T result = enumerator.Current;
+            var result = enumerator.Current;
             if (enumerator.MoveNext())
             {
                 return EnhancedOption<T>.None;

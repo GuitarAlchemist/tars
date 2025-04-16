@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using TarsEngine.Models.Metrics;
 using TarsEngine.Services.Interfaces;
 using InterfaceDuplicatedBlock = TarsEngine.Services.Interfaces.DuplicatedBlock;
+using MetricsDuplicatedBlock = TarsEngine.Models.Metrics.DuplicatedBlock;
 
 namespace TarsEngine.Services;
 
@@ -149,7 +150,7 @@ public class CSharpDuplicationAnalyzer : IDuplicationAnalyzer
                 var namespaceName = GetNamespace(classDecl);
                 var fullClassName = string.IsNullOrEmpty(namespaceName) ? className : $"{namespaceName}.{className}";
 
-                var classMetric = await AnalyzeClassSemanticDuplicationAsync(filePath, classDecl, fullClassName);
+                var classMetric = AnalyzeClassSemanticDuplicationAsync(filePath, classDecl, fullClassName);
                 metrics.Add(classMetric);
 
                 // Analyze method-level semantic duplication
@@ -159,7 +160,7 @@ public class CSharpDuplicationAnalyzer : IDuplicationAnalyzer
                     var methodName = methodDecl.Identifier.Text;
                     var fullMethodName = $"{fullClassName}.{methodName}";
 
-                    var methodMetric = await AnalyzeMethodSemanticDuplicationAsync(filePath, methodDecl, fullMethodName);
+                    var methodMetric = AnalyzeMethodSemanticDuplicationAsync(filePath, methodDecl, fullMethodName);
                     metrics.Add(methodMetric);
                 }
             }
@@ -273,45 +274,52 @@ public class CSharpDuplicationAnalyzer : IDuplicationAnalyzer
     /// <returns>Duplication metric for the file</returns>
     private async Task<DuplicationMetric> AnalyzeFileDuplicationAsync(string filePath, SyntaxNode root)
     {
-        var fileName = Path.GetFileName(filePath);
-        var sourceCode = root.ToFullString();
-        var lines = sourceCode.Split('\n');
-
-        // Create a duplication detector
-        var detector = new TokenBasedDuplicationDetector(_logger, MinimumDuplicateTokens, MinimumDuplicateLines);
-
-        // Detect duplicated blocks
-        var duplicatedBlocks = detector.DetectDuplication(filePath, sourceCode);
-
-        // Calculate duplicated lines of code
-        var duplicatedLinesOfCode = duplicatedBlocks.Sum(b => b.DuplicatedLines);
-
-        // Calculate duplication percentage
-        var duplicationPercentage = lines.Length > 0 ? (double)duplicatedLinesOfCode / lines.Length * 100 : 0;
-
-        // Create a duplication metric
-        var metric = new DuplicationMetric
+        return await Task.Run(() =>
         {
-            Name = $"Token-Based Duplication - {fileName}",
-            Description = $"Token-based duplication for file {fileName}",
-            Type = DuplicationType.TokenBased,
-            FilePath = filePath,
-            Language = "C#",
-            Target = fileName,
-            TargetType = "File",
-            TotalLinesOfCode = lines.Length,
-            DuplicatedLinesOfCode = duplicatedLinesOfCode,
-            DuplicationPercentage = duplicationPercentage,
-            DuplicatedBlockCount = duplicatedBlocks.Count,
-            DuplicatedBlocks = duplicatedBlocks,
-            Timestamp = DateTime.UtcNow,
-            ThresholdValue = GetThreshold("C#", DuplicationType.TokenBased, "File")
-        };
+            var fileName = Path.GetFileName(filePath);
+            var sourceCode = root.ToFullString();
+            var lines = sourceCode.Split('\n');
 
-        // Set the value to the duplication percentage
-        metric.Value = metric.DuplicationPercentage;
+            // Create a duplication detector
+            var detector = new TokenBasedDuplicationDetector(_logger, MinimumDuplicateTokens, MinimumDuplicateLines);
 
-        return metric;
+            // Detect duplicated blocks
+            var duplicatedBlocks = detector.DetectDuplication(filePath, sourceCode);
+
+            // Calculate metrics
+            var duplicatedLinesOfCode = duplicatedBlocks.Sum(b => b.DuplicatedLines);
+            var duplicationPercentage = lines.Length > 0 ? (double)duplicatedLinesOfCode / lines.Length * 100 : 0;
+
+            var metric = new DuplicationMetric
+            {
+                Name = $"Token-Based Duplication - {fileName}",
+                Description = $"Token-based duplication for file {fileName}",
+                Type = DuplicationType.TokenBased,
+                FilePath = filePath,
+                Language = "C#",
+                Target = fileName,
+                TargetType = "File",
+                TotalLinesOfCode = lines.Length,
+                DuplicatedLinesOfCode = duplicatedLinesOfCode,
+                DuplicationPercentage = duplicationPercentage,
+                DuplicatedBlockCount = duplicatedBlocks.Count,
+                DuplicatedBlocks = duplicatedBlocks.Select(b => new MetricsDuplicatedBlock {
+                    SourceFilePath = b.SourceFilePath,
+                    SourceStartLine = b.SourceStartLine,
+                    SourceEndLine = b.SourceEndLine,
+                    TargetFilePath = b.TargetFilePath,
+                    TargetStartLine = b.TargetStartLine,
+                    TargetEndLine = b.TargetEndLine,
+                    DuplicatedCode = b.DuplicatedCode,
+                    SimilarityPercentage = b.SimilarityPercentage
+                }).ToList(),
+                Timestamp = DateTime.UtcNow,
+                ThresholdValue = GetThreshold("C#", DuplicationType.TokenBased, "File")
+            };
+
+            metric.Value = metric.DuplicationPercentage;
+            return metric;
+        });
     }
 
     /// <summary>
@@ -321,46 +329,53 @@ public class CSharpDuplicationAnalyzer : IDuplicationAnalyzer
     /// <param name="classDecl">Class declaration syntax</param>
     /// <param name="fullClassName">Full class name</param>
     /// <returns>Duplication metric for the class</returns>
-    private async Task<DuplicationMetric> AnalyzeClassDuplicationAsync(string filePath, ClassDeclarationSyntax classDecl, string fullClassName)
+    private Task<DuplicationMetric> AnalyzeClassDuplicationAsync(string filePath, ClassDeclarationSyntax classDecl, string fullClassName)
     {
-        var sourceCode = classDecl.ToFullString();
-        var lines = sourceCode.Split('\n');
-
-        // Create a duplication detector
-        var detector = new TokenBasedDuplicationDetector(_logger, MinimumDuplicateTokens, MinimumDuplicateLines);
-
-        // Detect duplicated blocks
-        var duplicatedBlocks = detector.DetectDuplication(filePath, sourceCode);
-
-        // Calculate duplicated lines of code
-        var duplicatedLinesOfCode = duplicatedBlocks.Sum(b => b.DuplicatedLines);
-
-        // Calculate duplication percentage
-        var duplicationPercentage = lines.Length > 0 ? (double)duplicatedLinesOfCode / lines.Length * 100 : 0;
-
-        // Create a duplication metric
-        var metric = new DuplicationMetric
+        return Task.Run(() =>
         {
-            Name = $"Token-Based Duplication - {fullClassName}",
-            Description = $"Token-based duplication for class {fullClassName}",
-            Type = DuplicationType.TokenBased,
-            FilePath = filePath,
-            Language = "C#",
-            Target = fullClassName,
-            TargetType = "Class",
-            TotalLinesOfCode = lines.Length,
-            DuplicatedLinesOfCode = duplicatedLinesOfCode,
-            DuplicationPercentage = duplicationPercentage,
-            DuplicatedBlockCount = duplicatedBlocks.Count,
-            DuplicatedBlocks = duplicatedBlocks,
-            Timestamp = DateTime.UtcNow,
-            ThresholdValue = GetThreshold("C#", DuplicationType.TokenBased, "Class")
-        };
+            var sourceCode = classDecl.ToFullString();
+            var lines = sourceCode.Split('\n');
 
-        // Set the value to the duplication percentage
-        metric.Value = metric.DuplicationPercentage;
+            // Create a duplication detector
+            var detector = new TokenBasedDuplicationDetector(_logger, MinimumDuplicateTokens, MinimumDuplicateLines);
 
-        return metric;
+            // Detect duplicated blocks
+            var duplicatedBlocks = detector.DetectDuplication(filePath, sourceCode);
+
+            // Calculate metrics
+            var duplicatedLinesOfCode = duplicatedBlocks.Sum(b => b.DuplicatedLines);
+            var duplicationPercentage = lines.Length > 0 ? (double)duplicatedLinesOfCode / lines.Length * 100 : 0;
+
+            var metric = new DuplicationMetric
+            {
+                Name = $"Token-Based Duplication - {fullClassName}",
+                Description = $"Token-based duplication for class {fullClassName}",
+                Type = DuplicationType.TokenBased,
+                FilePath = filePath,
+                Language = "C#",
+                Target = fullClassName,
+                TargetType = "Class",
+                TotalLinesOfCode = lines.Length,
+                DuplicatedLinesOfCode = duplicatedLinesOfCode,
+                DuplicationPercentage = duplicationPercentage,
+                DuplicatedBlockCount = duplicatedBlocks.Count,
+                DuplicatedBlocks = duplicatedBlocks.Select(b => new MetricsDuplicatedBlock {
+                    SourceFilePath = b.SourceFilePath,
+                    SourceStartLine = b.SourceStartLine,
+                    SourceEndLine = b.SourceEndLine,
+                    TargetFilePath = b.TargetFilePath,
+                    TargetStartLine = b.TargetStartLine,
+                    TargetEndLine = b.TargetEndLine,
+                    DuplicatedCode = b.DuplicatedCode,
+                    SimilarityPercentage = b.SimilarityPercentage
+                }).ToList(),
+                Timestamp = DateTime.UtcNow,
+                ThresholdValue = GetThreshold("C#", DuplicationType.TokenBased, "Class")
+            };
+
+            metric.Value = metric.DuplicationPercentage;
+            return metric;
+        });
     }
 
     /// <summary>
@@ -372,44 +387,74 @@ public class CSharpDuplicationAnalyzer : IDuplicationAnalyzer
     /// <returns>Duplication metric for the method</returns>
     private async Task<DuplicationMetric> AnalyzeMethodDuplicationAsync(string filePath, MethodDeclarationSyntax methodDecl, string fullMethodName)
     {
-        var sourceCode = methodDecl.ToFullString();
-        var lines = sourceCode.Split('\n');
-
-        // Create a duplication detector
-        var detector = new TokenBasedDuplicationDetector(_logger, MinimumDuplicateTokens, MinimumDuplicateLines);
-
-        // Detect duplicated blocks
-        var duplicatedBlocks = detector.DetectDuplication(filePath, sourceCode);
-
-        // Calculate duplicated lines of code
-        var duplicatedLinesOfCode = duplicatedBlocks.Sum(b => b.DuplicatedLines);
-
-        // Calculate duplication percentage
-        var duplicationPercentage = lines.Length > 0 ? (double)duplicatedLinesOfCode / lines.Length * 100 : 0;
-
-        // Create a duplication metric
-        var metric = new DuplicationMetric
+        try
         {
-            Name = $"Token-Based Duplication - {fullMethodName}",
-            Description = $"Token-based duplication for method {fullMethodName}",
-            Type = DuplicationType.TokenBased,
-            FilePath = filePath,
-            Language = "C#",
-            Target = fullMethodName,
-            TargetType = "Method",
-            TotalLinesOfCode = lines.Length,
-            DuplicatedLinesOfCode = duplicatedLinesOfCode,
-            DuplicationPercentage = duplicationPercentage,
-            DuplicatedBlockCount = duplicatedBlocks.Count,
-            DuplicatedBlocks = duplicatedBlocks,
-            Timestamp = DateTime.UtcNow,
-            ThresholdValue = GetThreshold("C#", DuplicationType.TokenBased, "Method")
-        };
+            return await Task.Run(() =>
+            {
+                var sourceCode = methodDecl.ToFullString();
+                var lines = sourceCode.Split('\n');
 
-        // Set the value to the duplication percentage
-        metric.Value = metric.DuplicationPercentage;
+                // Create a duplication detector
+                var detector = new TokenBasedDuplicationDetector(_logger, MinimumDuplicateTokens, MinimumDuplicateLines);
 
-        return metric;
+                // Detect duplicated blocks
+                var duplicatedBlocks = detector.DetectDuplication(filePath, sourceCode);
+                var duplicatedLinesOfCode = duplicatedBlocks.Sum(b => b.DuplicatedLines); // Changed from LineCount to DuplicatedLines
+                var duplicationPercentage = lines.Length > 0 
+                    ? (double)duplicatedLinesOfCode / lines.Length * 100 
+                    : 0;
+
+                // Create and return the duplication metric
+                return new DuplicationMetric
+                {
+                    Name = $"Token-Based Duplication - {fullMethodName}",
+                    Description = $"Token-based duplication for method {fullMethodName}",
+                    Type = DuplicationType.TokenBased,
+                    FilePath = filePath,
+                    Language = "C#",
+                    Target = fullMethodName,
+                    TargetType = "Method",
+                    TotalLinesOfCode = lines.Length,
+                    DuplicatedLinesOfCode = duplicatedLinesOfCode,
+                    DuplicationPercentage = duplicationPercentage,
+                    DuplicatedBlockCount = duplicatedBlocks.Count,
+                    DuplicatedBlocks = duplicatedBlocks.Select(b => new MetricsDuplicatedBlock {
+                        SourceFilePath = b.SourceFilePath,
+                        SourceStartLine = b.SourceStartLine,
+                        SourceEndLine = b.SourceEndLine,
+                        TargetFilePath = b.TargetFilePath,
+                        TargetStartLine = b.TargetStartLine,
+                        TargetEndLine = b.TargetEndLine,
+                        DuplicatedCode = b.DuplicatedCode,
+                        SimilarityPercentage = b.SimilarityPercentage
+                    }).ToList(),
+                    Timestamp = DateTime.UtcNow,
+                    ThresholdValue = GetThreshold("C#", DuplicationType.TokenBased, "Method"),
+                    Value = duplicationPercentage
+                };
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error analyzing method duplication for {MethodName} in {FilePath}", fullMethodName, filePath);
+            return new DuplicationMetric
+            {
+                Name = $"Token-Based Duplication - {fullMethodName}",
+                Description = $"Error analyzing method duplication",
+                Type = DuplicationType.TokenBased,
+                FilePath = filePath,
+                Language = "C#",
+                Target = fullMethodName,
+                TargetType = "Method",
+                TotalLinesOfCode = 0,
+                DuplicatedLinesOfCode = 0,
+                DuplicationPercentage = 0,
+                DuplicatedBlockCount = 0,
+                DuplicatedBlocks = new List<MetricsDuplicatedBlock>(),
+                Timestamp = DateTime.UtcNow,
+                Value = 0
+            };
+        }
     }
 
     /// <summary>
@@ -419,7 +464,7 @@ public class CSharpDuplicationAnalyzer : IDuplicationAnalyzer
     /// <param name="projectName">Project name</param>
     /// <param name="fileMetrics">File metrics</param>
     /// <returns>Duplication metric for the project</returns>
-    private async Task<DuplicationMetric> CalculateProjectDuplicationAsync(string projectPath, string projectName, List<DuplicationMetric> fileMetrics)
+    private Task<DuplicationMetric> CalculateProjectDuplicationAsync(string projectPath, string projectName, List<DuplicationMetric> fileMetrics)
     {
         // Get file-level metrics
         var fileLevelMetrics = fileMetrics.Where(m => m.TargetType == "File" && m.Type == DuplicationType.TokenBased).ToList();
@@ -454,7 +499,7 @@ public class CSharpDuplicationAnalyzer : IDuplicationAnalyzer
         // Set the value to the duplication percentage
         metric.Value = metric.DuplicationPercentage;
 
-        return metric;
+        return Task.FromResult(metric);
     }
 
     /// <summary>
@@ -465,75 +510,78 @@ public class CSharpDuplicationAnalyzer : IDuplicationAnalyzer
     /// <returns>Duplication metric for the file</returns>
     private async Task<DuplicationMetric> AnalyzeFileSemanticDuplicationAsync(string filePath, SyntaxNode root)
     {
-        var fileName = Path.GetFileName(filePath);
-        var sourceCode = root.ToFullString();
-        var lines = sourceCode.Split('\n');
-
-        // Create a semantic similarity analyzer
-        var analyzer = new SemanticSimilarityAnalyzer(_logger, 80, MinimumDuplicateLines);
-
-        // Find similar code blocks
-        var similarBlocks = analyzer.FindSimilarCodeBlocks(filePath, sourceCode);
-
-        // Convert to duplicated blocks
-        var duplicatedBlocks = new List<InterfaceDuplicatedBlock>();
-        foreach (var block in similarBlocks)
+        return await Task.Run(() =>
         {
-            var duplicatedCode = GetCodeBetweenLines(sourceCode, block.StartLine, block.EndLine);
+            var fileName = Path.GetFileName(filePath);
+            var sourceCode = root.ToFullString();
+            var lines = sourceCode.Split('\n');
 
-            var duplicatedBlock = new InterfaceDuplicatedBlock
+            // Create a semantic similarity analyzer
+            var analyzer = new SemanticSimilarityAnalyzer(_logger, 80, MinimumDuplicateLines);
+
+            // Find similar code blocks
+            var similarBlocks = analyzer.FindSimilarCodeBlocks(filePath, sourceCode);
+
+            // Convert to duplicated blocks
+            var duplicatedBlocks = new List<InterfaceDuplicatedBlock>();
+            foreach (var block in similarBlocks)
             {
-                SourceFilePath = filePath,
-                SourceStartLine = block.StartLine,
-                SourceEndLine = block.EndLine,
-                TargetFilePath = filePath,
-                TargetStartLine = block.SimilarStartLine,
-                TargetEndLine = block.SimilarEndLine,
-                DuplicatedCode = duplicatedCode,
-                SimilarityPercentage = block.SimilarityPercentage
+                var duplicatedCode = GetCodeBetweenLines(sourceCode, block.StartLine, block.EndLine);
+
+                var duplicatedBlock = new InterfaceDuplicatedBlock
+                {
+                    SourceFilePath = filePath,
+                    SourceStartLine = block.StartLine,
+                    SourceEndLine = block.EndLine,
+                    TargetFilePath = filePath,
+                    TargetStartLine = block.SimilarStartLine,
+                    TargetEndLine = block.SimilarEndLine,
+                    DuplicatedCode = duplicatedCode,
+                    SimilarityPercentage = block.SimilarityPercentage
+                };
+
+                duplicatedBlocks.Add(duplicatedBlock);
+            }
+
+            // Calculate duplicated lines of code
+            var duplicatedLinesOfCode = duplicatedBlocks.Sum(b => b.SourceEndLine - b.SourceStartLine + 1);
+
+            // Calculate duplication percentage
+            var duplicationPercentage = lines.Length > 0 ? (double)duplicatedLinesOfCode / lines.Length * 100 : 0;
+
+            // Create a duplication metric
+            var metric = new DuplicationMetric
+            {
+                Name = $"Semantic Duplication - {fileName}",
+                Description = $"Semantic duplication for file {fileName}",
+                Type = DuplicationType.Semantic,
+                FilePath = filePath,
+                Language = "C#",
+                Target = fileName,
+                TargetType = "File",
+                TotalLinesOfCode = lines.Length,
+                DuplicatedLinesOfCode = duplicatedLinesOfCode,
+                DuplicationPercentage = duplicationPercentage,
+                DuplicatedBlockCount = duplicatedBlocks.Count,
+                DuplicatedBlocks = duplicatedBlocks.Select(b => new MetricsDuplicatedBlock {
+                    SourceFilePath = b.SourceFilePath,
+                    SourceStartLine = b.SourceStartLine,
+                    SourceEndLine = b.SourceEndLine,
+                    TargetFilePath = b.TargetFilePath,
+                    TargetStartLine = b.TargetStartLine,
+                    TargetEndLine = b.TargetEndLine,
+                    SimilarityPercentage = b.SimilarityPercentage,
+                    DuplicatedCode = b.DuplicatedCode
+                }).ToList(),
+                Timestamp = DateTime.UtcNow,
+                ThresholdValue = GetThreshold("C#", DuplicationType.Semantic, "File")
             };
 
-            duplicatedBlocks.Add(duplicatedBlock);
-        }
+            // Set the value to the duplication percentage
+            metric.Value = metric.DuplicationPercentage;
 
-        // Calculate duplicated lines of code
-        var duplicatedLinesOfCode = duplicatedBlocks.Sum(b => b.SourceEndLine - b.SourceStartLine + 1);
-
-        // Calculate duplication percentage
-        var duplicationPercentage = lines.Length > 0 ? (double)duplicatedLinesOfCode / lines.Length * 100 : 0;
-
-        // Create a duplication metric
-        var metric = new DuplicationMetric
-        {
-            Name = $"Semantic Duplication - {fileName}",
-            Description = $"Semantic duplication for file {fileName}",
-            Type = DuplicationType.Semantic,
-            FilePath = filePath,
-            Language = "C#",
-            Target = fileName,
-            TargetType = "File",
-            TotalLinesOfCode = lines.Length,
-            DuplicatedLinesOfCode = duplicatedLinesOfCode,
-            DuplicationPercentage = duplicationPercentage,
-            DuplicatedBlockCount = duplicatedBlocks.Count,
-            DuplicatedBlocks = duplicatedBlocks.Select(b => new TarsEngine.Models.Metrics.DuplicatedBlock {
-                SourceFilePath = b.SourceFilePath,
-                SourceStartLine = b.SourceStartLine,
-                SourceEndLine = b.SourceEndLine,
-                TargetFilePath = b.TargetFilePath,
-                TargetStartLine = b.TargetStartLine,
-                TargetEndLine = b.TargetEndLine,
-                SimilarityPercentage = b.SimilarityPercentage,
-                DuplicatedCode = b.DuplicatedCode
-            }).ToList(),
-            Timestamp = DateTime.UtcNow,
-            ThresholdValue = GetThreshold("C#", DuplicationType.Semantic, "File")
-        };
-
-        // Set the value to the duplication percentage
-        metric.Value = metric.DuplicationPercentage;
-
-        return metric;
+            return metric;
+        });
     }
 
     /// <summary>
@@ -543,7 +591,7 @@ public class CSharpDuplicationAnalyzer : IDuplicationAnalyzer
     /// <param name="classDecl">Class declaration syntax</param>
     /// <param name="fullClassName">Full class name</param>
     /// <returns>Duplication metric for the class</returns>
-    private async Task<DuplicationMetric> AnalyzeClassSemanticDuplicationAsync(string filePath, ClassDeclarationSyntax classDecl, string fullClassName)
+    private DuplicationMetric AnalyzeClassSemanticDuplicationAsync(string filePath, ClassDeclarationSyntax classDecl, string fullClassName)
     {
         var sourceCode = classDecl.ToFullString();
         var lines = sourceCode.Split('\n');
@@ -554,66 +602,33 @@ public class CSharpDuplicationAnalyzer : IDuplicationAnalyzer
         // Find similar code blocks
         var similarBlocks = analyzer.FindSimilarCodeBlocks(filePath, sourceCode);
 
-        // Convert to duplicated blocks
-        var duplicatedBlocks = new List<InterfaceDuplicatedBlock>();
-        foreach (var block in similarBlocks)
+        // Create the metric
+        return new DuplicationMetric
         {
-            var duplicatedCode = GetCodeBetweenLines(sourceCode, block.StartLine, block.EndLine);
-
-            var duplicatedBlock = new InterfaceDuplicatedBlock
-            {
-                SourceFilePath = filePath,
-                SourceStartLine = block.StartLine,
-                SourceEndLine = block.EndLine,
-                TargetFilePath = filePath,
-                TargetStartLine = block.SimilarStartLine,
-                TargetEndLine = block.SimilarEndLine,
-                DuplicatedCode = duplicatedCode,
-                SimilarityPercentage = block.SimilarityPercentage
-            };
-
-            duplicatedBlocks.Add(duplicatedBlock);
-        }
-
-        // Calculate duplicated lines of code
-        var duplicatedLinesOfCode = duplicatedBlocks.Sum(b => b.TargetEndLine - b.TargetStartLine + 1);
-
-        // Calculate duplication percentage
-        var duplicationPercentage = lines.Length > 0 ? (double)duplicatedLinesOfCode / lines.Length * 100 : 0;
-
-        // Create a duplication metric
-        var metric = new DuplicationMetric
-        {
-            Name = $"Semantic Duplication - {fullClassName}",
-            Description = $"Semantic duplication for class {fullClassName}",
+            Name = "Semantic Duplication",
+            Description = "Semantic duplication analysis for class",
             Type = DuplicationType.Semantic,
-            FilePath = filePath,
-            Language = "C#",
             Target = fullClassName,
             TargetType = "Class",
+            FilePath = filePath,
+            Language = "C#",
             TotalLinesOfCode = lines.Length,
-            DuplicatedLinesOfCode = duplicatedLinesOfCode,
-            DuplicationPercentage = duplicationPercentage,
-            DuplicatedBlockCount = duplicatedBlocks.Count,
-            DuplicatedBlocks = duplicatedBlocks.Select(b => new TarsEngine.Models.Metrics.DuplicatedBlock
+            DuplicatedLinesOfCode = similarBlocks.Sum(b => b.EndLine - b.StartLine + 1),
+            DuplicatedBlockCount = similarBlocks.Count,
+            DuplicatedBlocks = similarBlocks.Select(b => new MetricsDuplicatedBlock
             {
-                SourceFilePath = b.SourceFilePath,
-                SourceStartLine = b.SourceStartLine,
-                SourceEndLine = b.SourceEndLine,
-                TargetFilePath = b.TargetFilePath,
-                TargetStartLine = b.TargetStartLine,
-                TargetEndLine = b.TargetEndLine,
-                DuplicatedCode = b.DuplicatedCode,
-                SimilarityPercentage = b.SimilarityPercentage
+                SourceFilePath = filePath,
+                SourceStartLine = b.StartLine,
+                SourceEndLine = b.EndLine,
+                TargetFilePath = filePath,
+                TargetStartLine = b.SimilarStartLine,
+                TargetEndLine = b.SimilarEndLine,
+                SimilarityPercentage = b.SimilarityPercentage,
+                DuplicatedCode = GetCodeBetweenLines(sourceCode, b.StartLine, b.EndLine)
             }).ToList(),
             Timestamp = DateTime.UtcNow,
             ThresholdValue = GetThreshold("C#", DuplicationType.Semantic, "Class")
         };
-
-        // Set the value to the duplication percentage
-        metric.Value = metric.DuplicationPercentage;
-
-        return metric;
     }
 
     /// <summary>
@@ -623,7 +638,7 @@ public class CSharpDuplicationAnalyzer : IDuplicationAnalyzer
     /// <param name="methodDecl">Method declaration syntax</param>
     /// <param name="fullMethodName">Full method name</param>
     /// <returns>Duplication metric for the method</returns>
-    private async Task<DuplicationMetric> AnalyzeMethodSemanticDuplicationAsync(string filePath, MethodDeclarationSyntax methodDecl, string fullMethodName)
+    private DuplicationMetric AnalyzeMethodSemanticDuplicationAsync(string filePath, MethodDeclarationSyntax methodDecl, string fullMethodName)
     {
         var sourceCode = methodDecl.ToFullString();
         var lines = sourceCode.Split('\n');
@@ -675,7 +690,7 @@ public class CSharpDuplicationAnalyzer : IDuplicationAnalyzer
             DuplicatedLinesOfCode = duplicatedLinesOfCode,
             DuplicationPercentage = duplicationPercentage,
             DuplicatedBlockCount = duplicatedBlocks.Count,
-            DuplicatedBlocks = duplicatedBlocks.Select(b => new TarsEngine.Models.Metrics.DuplicatedBlock {
+            DuplicatedBlocks = duplicatedBlocks.Select(b => new MetricsDuplicatedBlock {
                 SourceFilePath = b.SourceFilePath,
                 SourceStartLine = b.SourceStartLine,
                 SourceEndLine = b.SourceEndLine,
@@ -712,7 +727,7 @@ public class CSharpDuplicationAnalyzer : IDuplicationAnalyzer
 
         // Extract the lines
         var codeLines = new List<string>();
-        for (int i = startLine; i <= endLine; i++)
+        for (var i = startLine; i <= endLine; i++)
         {
             codeLines.Add(lines[i]);
         }

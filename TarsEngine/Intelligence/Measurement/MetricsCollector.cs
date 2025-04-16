@@ -251,7 +251,7 @@ public class MetricsCollector
             return 0;
         }
         
-        int middle = values.Count / 2;
+        var middle = values.Count / 2;
         
         if (values.Count % 2 == 0)
         {
@@ -275,12 +275,12 @@ public class MetricsCollector
             return 0;
         }
         
-        double average = CalculateAverage(values);
+        var average = CalculateAverage(values);
         double sumOfSquaredDifferences = 0;
         
         foreach (var value in values)
         {
-            double difference = value - average;
+            var difference = value - average;
             sumOfSquaredDifferences += difference * difference;
         }
         
@@ -299,10 +299,10 @@ public class MetricsCollector
             return TrendType.Unknown;
         }
         
-        int increasing = 0;
-        int decreasing = 0;
+        var increasing = 0;
+        var decreasing = 0;
         
-        for (int i = 1; i < values.Count; i++)
+        for (var i = 1; i < values.Count; i++)
         {
             if (values[i] > values[i - 1])
             {
@@ -314,8 +314,8 @@ public class MetricsCollector
             }
         }
         
-        double increasingRatio = (double)increasing / (values.Count - 1);
-        double decreasingRatio = (double)decreasing / (values.Count - 1);
+        var increasingRatio = (double)increasing / (values.Count - 1);
+        var decreasingRatio = (double)decreasing / (values.Count - 1);
         
         if (increasingRatio > 0.7)
         {
@@ -380,9 +380,9 @@ public class MetricsCollector
             return 0;
         }
         
-        double index = (percentile / 100.0) * (values.Count - 1);
-        int lowerIndex = (int)Math.Floor(index);
-        int upperIndex = (int)Math.Ceiling(index);
+        var index = (percentile / 100.0) * (values.Count - 1);
+        var lowerIndex = (int)Math.Floor(index);
+        var upperIndex = (int)Math.Ceiling(index);
         
         if (lowerIndex == upperIndex)
         {
@@ -390,7 +390,7 @@ public class MetricsCollector
         }
         else
         {
-            double weight = index - lowerIndex;
+            var weight = index - lowerIndex;
             return values[lowerIndex] * (1 - weight) + values[upperIndex] * weight;
         }
     }

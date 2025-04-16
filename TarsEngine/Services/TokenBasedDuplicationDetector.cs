@@ -200,13 +200,13 @@ public class TokenBasedDuplicationDetector
         // This is a simplified implementation for demonstration purposes
 
         // For each possible starting position
-        for (int i = 0; i < tokens.Count - minimumLength; i++)
+        for (var i = 0; i < tokens.Count - minimumLength; i++)
         {
             // For each possible comparison starting position
-            for (int j = i + 1; j < tokens.Count - minimumLength; j++)
+            for (var j = i + 1; j < tokens.Count - minimumLength; j++)
             {
                 // Count how many tokens match
-                int k = 0;
+                var k = 0;
                 while (k < minimumLength && j + k < tokens.Count && TokensEqual(tokens[i + k], tokens[j + k]))
                 {
                     k++;
@@ -239,13 +239,13 @@ public class TokenBasedDuplicationDetector
         var duplicatedSequences = new List<(int, int, int, int)>();
 
         // For each possible starting position in the first file
-        for (int i = 0; i < tokens1.Count - minimumLength; i++)
+        for (var i = 0; i < tokens1.Count - minimumLength; i++)
         {
             // For each possible starting position in the second file
-            for (int j = 0; j < tokens2.Count - minimumLength; j++)
+            for (var j = 0; j < tokens2.Count - minimumLength; j++)
             {
                 // Count how many tokens match
-                int k = 0;
+                var k = 0;
                 while (k < minimumLength && i + k < tokens1.Count && j + k < tokens2.Count &&
                        TokensEqual(tokens1[i + k], tokens2[j + k]))
                 {

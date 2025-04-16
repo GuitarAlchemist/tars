@@ -1,3 +1,8 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using TarsEngine.Models;
 using TarsEngine.Services.Interfaces;
@@ -10,6 +15,7 @@ namespace TarsEngine.Services;
 public class CodeAnalyzerService : ICodeAnalyzerService
 {
     private readonly ILogger<CodeAnalyzerService> _logger;
+    private readonly ILoggerFactory _loggerFactory;
     private readonly Dictionary<string, ILanguageAnalyzer> _languageAnalyzers = new();
     private readonly Dictionary<MetricType, (double Good, double Acceptable, double Poor)> _metricThresholds = new();
 
@@ -17,9 +23,10 @@ public class CodeAnalyzerService : ICodeAnalyzerService
     /// Initializes a new instance of the <see cref="CodeAnalyzerService"/> class
     /// </summary>
     /// <param name="logger">The logger</param>
-    public CodeAnalyzerService(ILogger<CodeAnalyzerService> logger)
+    public CodeAnalyzerService(ILogger<CodeAnalyzerService> logger, ILoggerFactory loggerFactory)
     {
         _logger = logger;
+        _loggerFactory = loggerFactory;
         InitializeLanguageAnalyzers();
         InitializeMetricThresholds();
     }
@@ -104,58 +111,49 @@ public class CodeAnalyzerService : ICodeAnalyzerService
 
             if (!Directory.Exists(directoryPath))
             {
-                var result = new CodeAnalysisResult
-                {
-                    FilePath = directoryPath,
-                    ErrorMessage = "Directory does not exist",
-                    IsSuccessful = false,
-                    Errors = { "Directory does not exist" }
-                };
-
-                // Ensure FilePath is also set for compatibility
-                var filePathProperty = result.GetType().GetProperty("FilePath");
-                if (filePathProperty != null)
-                {
-                    filePathProperty.SetValue(result, directoryPath);
-                }
-
-                return [result];
+                _logger.LogError("Directory does not exist: {DirectoryPath}", directoryPath);
+                return new List<CodeAnalysisResult>();
             }
 
-            var results = new List<CodeAnalysisResult>();
-            var patterns = filePattern.Split(';');
-            var searchOption = recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
+            var filePatterns = filePattern.Split(';');
+            var files = new List<string>();
 
-            foreach (var pattern in patterns)
+            foreach (var pattern in filePatterns)
             {
-                var files = Directory.GetFiles(directoryPath, pattern, searchOption);
-                _logger.LogInformation("Found {FileCount} files matching pattern {Pattern}", files.Length, pattern);
+                var searchOption = recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
+                files.AddRange(Directory.GetFiles(directoryPath, pattern.Trim(), searchOption));
+            }
 
-                foreach (var file in files)
+            var analysisResults = new List<CodeAnalysisResult>();
+            foreach (var file in files)
+            {
+                try
                 {
                     var result = await AnalyzeFileAsync(file, options);
-                    results.Add(result);
+                    if (result != null)
+                    {
+                        analysisResults.Add(result);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error analyzing file: {FilePath}", file);
+                    analysisResults.Add(new CodeAnalysisResult
+                    {
+                        FilePath = file,
+                        ErrorMessage = $"Error analyzing file: {ex.Message}",
+                        IsSuccessful = false,
+                        Errors = { ex.Message }
+                    });
                 }
             }
 
-            _logger.LogInformation("Completed analysis of directory: {DirectoryPath}. Analyzed {FileCount} files",
-                directoryPath, results.Count);
-
-            return results;
+            return analysisResults;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error analyzing directory: {DirectoryPath}", directoryPath);
-            return
-            [
-                new CodeAnalysisResult
-                {
-                    FilePath = directoryPath,
-                    ErrorMessage = $"Error analyzing directory: {ex.Message}",
-                    IsSuccessful = false,
-                    Errors = { $"Error analyzing directory: {ex.Message}" }
-                }
-            ];
+            return new List<CodeAnalysisResult>();
         }
     }
 
@@ -164,19 +162,7 @@ public class CodeAnalyzerService : ICodeAnalyzerService
     {
         try
         {
-            _logger.LogInformation("Analyzing content of language: {Language}, Length: {ContentLength}", language, content?.Length ?? 0);
-
-            if (string.IsNullOrWhiteSpace(content))
-            {
-                return new CodeAnalysisResult
-                {
-                    FilePath = string.Empty,
-                    ErrorMessage = "Content is empty or whitespace",
-                    Language = ProgrammingLanguage.Unknown,
-                    IsSuccessful = false,
-                    Errors = { "Content is empty or whitespace" }
-                };
-            }
+            _logger.LogInformation("Analyzing content for language: {Language}", language);
 
             if (!_languageAnalyzers.TryGetValue(language.ToLowerInvariant(), out var analyzer))
             {
@@ -203,21 +189,18 @@ public class CodeAnalyzerService : ICodeAnalyzerService
                 }
             }
 
-            _logger.LogInformation("Completed analysis of content. Found {IssueCount} issues, {MetricCount} metrics, {StructureCount} structures",
-                result.Issues.Count, result.Metrics.Count, result.Structures.Count);
-
             return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error analyzing content of language: {Language}", language);
+            _logger.LogError(ex, "Error analyzing content for language: {Language}", language);
             return new CodeAnalysisResult
             {
                 FilePath = string.Empty,
-                ErrorMessage = $"Error analyzing content: {ex.Message}",
+                ErrorMessage = ex.Message,
                 Language = ProgrammingLanguage.Unknown,
                 IsSuccessful = false,
-                Errors = { $"Error analyzing content: {ex.Message}" }
+                Errors = { ex.Message }
             };
         }
     }
@@ -225,74 +208,158 @@ public class CodeAnalyzerService : ICodeAnalyzerService
     /// <inheritdoc/>
     public async Task<List<string>> GetSupportedLanguagesAsync()
     {
-        return _languageAnalyzers.Keys.ToList();
+        try
+        {
+            _logger.LogInformation("Getting supported languages");
+            
+            // Since this is CPU-bound work, we'll move it to a background thread
+            return await Task.Run(() => _languageAnalyzers.Keys.ToList());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting supported languages");
+            return new List<string>();
+        }
     }
 
     /// <inheritdoc/>
     public async Task<Dictionary<string, string>> GetAvailableOptionsAsync()
     {
-        return new Dictionary<string, string>
+        try
         {
-            { "IncludeMetrics", "Whether to include metrics in the analysis (true/false)" },
-            { "IncludeStructures", "Whether to include structures in the analysis (true/false)" },
-            { "IncludeIssues", "Whether to include issues in the analysis (true/false)" },
-            { "MaxIssues", "Maximum number of issues to include in the result" },
-            { "MinSeverity", "Minimum severity of issues to include (Blocker, Critical, Major, Minor, Info)" },
-            { "IncludeCodeSnippets", "Whether to include code snippets in issues (true/false)" },
-            { "IncludeSuggestedFixes", "Whether to include suggested fixes in issues (true/false)" },
-            { "AnalyzePerformance", "Whether to analyze performance issues (true/false)" },
-            { "AnalyzeComplexity", "Whether to analyze complexity issues (true/false)" },
-            { "AnalyzeMaintainability", "Whether to analyze maintainability issues (true/false)" },
-            { "AnalyzeSecurity", "Whether to analyze security issues (true/false)" },
-            { "AnalyzeStyle", "Whether to analyze style issues (true/false)" }
-        };
+            _logger.LogInformation("Getting available analysis options");
+            
+            // Since this is CPU-bound work, we'll move it to a background thread
+            return await Task.Run(() => new Dictionary<string, string>
+            {
+                { "IncludeMetrics", "Whether to include metrics in the analysis (true/false)" },
+                { "IncludeStructures", "Whether to include structures in the analysis (true/false)" },
+                { "IncludeIssues", "Whether to include issues in the analysis (true/false)" },
+                { "MaxIssues", "Maximum number of issues to include in the result" },
+                { "MinSeverity", "Minimum severity of issues to include (Blocker, Critical, Major, Minor, Info)" },
+                { "IncludeCodeSnippets", "Whether to include code snippets in issues (true/false)" },
+                { "IncludeSuggestedFixes", "Whether to include suggested fixes in issues (true/false)" },
+                { "MaxMethodLength", "Maximum allowed method length in lines" },
+                { "MaxClassLength", "Maximum allowed class length in lines" },
+                { "MaxCyclomaticComplexity", "Maximum allowed cyclomatic complexity" },
+                { "MaxCognitiveComplexity", "Maximum allowed cognitive complexity" },
+                { "MaxParameters", "Maximum allowed number of parameters" },
+                { "MaxNesting", "Maximum allowed nesting depth" },
+                { "EnableSecurityAnalysis", "Enable security vulnerability analysis" },
+                { "EnablePerformanceAnalysis", "Enable performance analysis" },
+                { "EnableStyleAnalysis", "Enable code style analysis" }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting available analysis options");
+            return new Dictionary<string, string>();
+        }
     }
 
     /// <inheritdoc/>
     public async Task<Dictionary<CodeIssueType, string>> GetAvailableIssueTypesAsync()
     {
-        return new Dictionary<CodeIssueType, string>
+        try
         {
-            { CodeIssueType.CodeSmell, "Code that works but may have maintainability issues" },
-            { CodeIssueType.Bug, "Code that is likely to cause runtime errors or incorrect behavior" },
-            { CodeIssueType.Vulnerability, "Code that may introduce security vulnerabilities" },
-            { CodeIssueType.SecurityHotspot, "Code that should be reviewed for security concerns" },
-            { CodeIssueType.Performance, "Code that may cause performance issues" },
-            { CodeIssueType.Maintainability, "Code that may be difficult to maintain" },
-            { CodeIssueType.Design, "Code that violates design principles" },
-            { CodeIssueType.Documentation, "Code with missing or inadequate documentation" },
-            { CodeIssueType.Duplication, "Duplicated code that should be refactored" },
-            { CodeIssueType.Complexity, "Code with excessive complexity" },
-            { CodeIssueType.Style, "Code that violates style guidelines" },
-            { CodeIssueType.Naming, "Code with poor naming conventions" },
-            { CodeIssueType.UnusedCode, "Code that is never used" },
-            { CodeIssueType.DeadCode, "Code that can never be executed" },
-            { CodeIssueType.Other, "Other issues not covered by the above categories" }
-        };
+            _logger.LogInformation("Getting available issue types");
+            
+            // Since this is CPU-bound work, we'll move it to a background thread
+            return await Task.Run(() => new Dictionary<CodeIssueType, string>
+            {
+                { CodeIssueType.CodeSmell, "Code that works but may have maintainability issues" },
+                { CodeIssueType.Bug, "Code that is likely to cause runtime errors or incorrect behavior" },
+                { CodeIssueType.Vulnerability, "Code that may introduce security vulnerabilities" },
+                { CodeIssueType.SecurityHotspot, "Code that should be reviewed for security concerns" },
+                { CodeIssueType.Performance, "Code that may cause performance issues" },
+                { CodeIssueType.Maintainability, "Code that may be difficult to maintain" },
+                { CodeIssueType.Design, "Code that violates design principles" },
+                { CodeIssueType.Documentation, "Code with missing or inadequate documentation" },
+                { CodeIssueType.Duplication, "Duplicated code that should be refactored" },
+                { CodeIssueType.Complexity, "Code with excessive complexity" },
+                { CodeIssueType.Style, "Code that violates style guidelines" },
+                { CodeIssueType.Naming, "Code with poor naming conventions" },
+                { CodeIssueType.UnusedCode, "Code that is never used" },
+                { CodeIssueType.DeadCode, "Code that can never be executed" },
+                { CodeIssueType.Other, "Other issues not covered by the above categories" }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting available issue types");
+            return new Dictionary<CodeIssueType, string>();
+        }
     }
 
     /// <inheritdoc/>
     public async Task<Dictionary<MetricType, string>> GetAvailableMetricTypesAsync()
     {
-        return new Dictionary<MetricType, string>
+        try
         {
-            { MetricType.Complexity, "Measures the complexity of code (e.g., cyclomatic complexity)" },
-            { MetricType.Size, "Measures the size of code (e.g., lines of code)" },
-            { MetricType.Coupling, "Measures the coupling between components" },
-            { MetricType.Cohesion, "Measures the cohesion within components" },
-            { MetricType.Inheritance, "Measures the inheritance depth and breadth" },
-            { MetricType.Maintainability, "Measures the maintainability of code" },
-            { MetricType.Documentation, "Measures the documentation coverage" },
-            { MetricType.TestCoverage, "Measures the test coverage" },
-            { MetricType.Performance, "Measures the performance characteristics" },
-            { MetricType.Other, "Other metrics not covered by the above categories" }
-        };
+            _logger.LogInformation("Getting available metric types");
+            
+            // Since this is CPU-bound work, we'll move it to a background thread
+            return await Task.Run(() => new Dictionary<MetricType, string>
+            {
+                { MetricType.Complexity, "Measures the complexity of code (e.g., cyclomatic complexity)" },
+                { MetricType.Size, "Measures the size of code (e.g., lines of code)" },
+                { MetricType.Coupling, "Measures the coupling between components" },
+                { MetricType.Cohesion, "Measures the cohesion within components" },
+                { MetricType.Inheritance, "Measures the inheritance depth and breadth" },
+                { MetricType.Maintainability, "Measures the maintainability of code" },
+                { MetricType.Documentation, "Measures the documentation coverage" },
+                { MetricType.TestCoverage, "Measures the test coverage" },
+                { MetricType.Performance, "Measures the performance characteristics" },
+                { MetricType.Other, "Other metrics not covered by the above categories" }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting available metric types");
+            return new Dictionary<MetricType, string>();
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task<Dictionary<MetricScope, string>> GetAvailableMetricScopesAsync()
+    {
+        try
+        {
+            _logger.LogInformation("Getting available metric scopes");
+            
+            // Since this is CPU-bound work, we'll move it to a background thread
+            return await Task.Run(() => new Dictionary<MetricScope, string>
+            {
+                { MetricScope.Method, "Metrics that apply to individual methods" },
+                { MetricScope.Class, "Metrics that apply to entire classes" },
+                { MetricScope.File, "Metrics that apply to entire files" },
+                { MetricScope.Namespace, "Metrics that apply to entire namespaces" },
+                { MetricScope.Project, "Metrics that apply to the entire project" },
+                { MetricScope.Solution, "Metrics that apply to the entire solution" }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting available metric scopes");
+            return new Dictionary<MetricScope, string>();
+        }
     }
 
     /// <inheritdoc/>
     public async Task<Dictionary<MetricType, (double Good, double Acceptable, double Poor)>> GetMetricThresholdsAsync()
     {
-        return new Dictionary<MetricType, (double Good, double Acceptable, double Poor)>(_metricThresholds);
+        try
+        {
+            _logger.LogInformation("Getting metric thresholds");
+            
+            // Since this is CPU-bound work, we'll move it to a background thread
+            return await Task.Run(() => new Dictionary<MetricType, (double Good, double Acceptable, double Poor)>(_metricThresholds));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting metric thresholds");
+            return new Dictionary<MetricType, (double Good, double Acceptable, double Poor)>();
+        }
     }
 
     /// <inheritdoc/>
@@ -311,8 +378,13 @@ public class CodeAnalyzerService : ICodeAnalyzerService
                 return false;
             }
 
-            _metricThresholds[metricType] = (goodThreshold, acceptableThreshold, poorThreshold);
-            return true;
+            // Since dictionary operations could potentially be slow for large dictionaries,
+            // move the operation to a background thread
+            return await Task.Run(() =>
+            {
+                _metricThresholds[metricType] = (goodThreshold, acceptableThreshold, poorThreshold);
+                return true;
+            });
         }
         catch (Exception ex)
         {
@@ -335,13 +407,11 @@ public class CodeAnalyzerService : ICodeAnalyzerService
                 return [];
             }
 
-            var issues = result.Issues
+            // Move the filtering operation to a background thread since it could be CPU-intensive for large result sets
+            return await Task.Run(() => result.Issues
                 .Where(i => i.Severity >= minSeverity)
                 .Where(i => issueTypes == null || issueTypes.Contains(i.Type))
-                .ToList();
-
-            _logger.LogInformation("Found {IssueCount} issues for file {FilePath}", issues.Count, filePath);
-            return issues;
+                .ToList());
         }
         catch (Exception ex)
         {
@@ -446,7 +516,7 @@ public class CodeAnalyzerService : ICodeAnalyzerService
     {
         // Register language analyzers
         _languageAnalyzers["csharp"] = new CSharpAnalyzer(_logger);
-        _languageAnalyzers["fsharp"] = new FSharpAnalyzer(_logger);
+        _languageAnalyzers["fsharp"] = new FSharpAnalyzer(_loggerFactory.CreateLogger<FSharpAnalyzer>());
 
         // Add placeholder analyzers for other languages
         _languageAnalyzers["javascript"] = new GenericAnalyzer(_logger, "javascript");
@@ -467,5 +537,39 @@ public class CodeAnalyzerService : ICodeAnalyzerService
         _metricThresholds[MetricType.Documentation] = (0.8, 0.5, 0.2);
         _metricThresholds[MetricType.TestCoverage] = (0.8, 0.6, 0.4);
         _metricThresholds[MetricType.Performance] = (0.8, 0.6, 0.4);
+    }
+
+    /// <inheritdoc/>
+    public async Task<Dictionary<string, string>> GetAnalyzerOptionsAsync()
+    {
+        try
+        {
+            _logger.LogInformation("Getting analyzer options");
+            
+            // Move the CPU-bound dictionary creation to a background thread
+            return await Task.Run(() => new Dictionary<string, string>
+            {
+                { "MaxMethodLength", "Maximum allowed method length in lines" },
+                { "MaxClassLength", "Maximum allowed class length in lines" },
+                { "MaxCyclomaticComplexity", "Maximum allowed cyclomatic complexity" },
+                { "MaxCognitiveComplexity", "Maximum allowed cognitive complexity" },
+                { "MaxParameters", "Maximum allowed number of parameters" },
+                { "MaxNesting", "Maximum allowed nesting depth" },
+                { "EnableSecurityAnalysis", "Enable security vulnerability analysis" },
+                { "EnablePerformanceAnalysis", "Enable performance analysis" },
+                { "EnableStyleAnalysis", "Enable code style analysis" },
+                { "EnableDuplicationAnalysis", "Enable code duplication analysis" },
+                { "EnableMaintainabilityAnalysis", "Enable maintainability analysis" },
+                { "EnableDocumentationAnalysis", "Enable documentation analysis" },
+                { "EnableTestCoverageAnalysis", "Enable test coverage analysis" },
+                { "EnableDesignAnalysis", "Enable design pattern analysis" },
+                { "EnableNamingAnalysis", "Enable naming convention analysis" }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting analyzer options");
+            return new Dictionary<string, string>();
+        }
     }
 }

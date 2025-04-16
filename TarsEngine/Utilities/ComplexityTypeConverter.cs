@@ -32,7 +32,7 @@ public static class ComplexityTypeConverter
     public static ComplexityTypeUnified ToUnified(ModelComplexityType complexityType)
     {
         // Use reflection to safely convert the enum value
-        string enumName = Enum.GetName(typeof(ModelComplexityType), complexityType) ?? "Other";
+        var enumName = Enum.GetName(typeof(ModelComplexityType), complexityType) ?? "Other";
 
         return enumName switch
         {
@@ -53,7 +53,7 @@ public static class ComplexityTypeConverter
     public static ComplexityTypeUnified ToUnified(InterfaceComplexityType complexityType)
     {
         // Use reflection to safely convert the enum value
-        string enumName = Enum.GetName(typeof(InterfaceComplexityType), complexityType) ?? "Cyclomatic";
+        var enumName = Enum.GetName(typeof(InterfaceComplexityType), complexityType) ?? "Cyclomatic";
 
         return enumName switch
         {
@@ -73,7 +73,7 @@ public static class ComplexityTypeConverter
     /// <summary>
     /// Converts from ComplexityTypeUnified to Models.Metrics.ComplexityType
     /// </summary>
-    public static ModelComplexityType ToModelType(ComplexityTypeUnified complexityType)
+    public static ModelComplexityType ToModelTypeFromUnified(ComplexityTypeUnified complexityType)
     {
         return complexityType switch
         {
@@ -130,5 +130,27 @@ public static class ComplexityTypeConverter
     public static ModelComplexityType ToModelType(InterfaceComplexityType complexityType)
     {
         return ToModelType(ToUnified(complexityType));
+    }
+
+    public static Models.Metrics.ComplexityType ToModelType(Models.Unified.ComplexityTypeUnified unifiedType)
+    {
+        return unifiedType switch
+        {
+            Models.Unified.ComplexityTypeUnified.Cyclomatic => Models.Metrics.ComplexityType.Cyclomatic,
+            Models.Unified.ComplexityTypeUnified.Cognitive => Models.Metrics.ComplexityType.Cognitive,
+            Models.Unified.ComplexityTypeUnified.Maintainability => Models.Metrics.ComplexityType.MaintainabilityIndex,
+            _ => throw new ArgumentException($"Unsupported complexity type: {unifiedType}", nameof(unifiedType))
+        };
+    }
+
+    public static Models.Unified.ComplexityTypeUnified ToUnifiedType(Models.Metrics.ComplexityType modelType)
+    {
+        return modelType switch
+        {
+            Models.Metrics.ComplexityType.Cyclomatic => Models.Unified.ComplexityTypeUnified.Cyclomatic,
+            Models.Metrics.ComplexityType.Cognitive => Models.Unified.ComplexityTypeUnified.Cognitive,
+            Models.Metrics.ComplexityType.MaintainabilityIndex => Models.Unified.ComplexityTypeUnified.Maintainability,
+            _ => throw new ArgumentException($"Unsupported complexity type: {modelType}", nameof(modelType))
+        };
     }
 }

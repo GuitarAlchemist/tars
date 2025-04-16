@@ -272,9 +272,9 @@ public class ReadabilityMetric : BaseMetric
     private double CalculateOverallReadabilityScore()
     {
         // Calculate individual scores
-        double identifierScore = CalculateIdentifierQualityScore();
-        double commentScore = CalculateCommentQualityScore();
-        double structureScore = CalculateCodeStructureScore();
+        var identifierScore = CalculateIdentifierQualityScore();
+        var commentScore = CalculateCommentQualityScore();
+        var structureScore = CalculateCodeStructureScore();
 
         // Overall score is a weighted average of the individual scores
         // Structure is weighted more heavily as it has the most impact on readability

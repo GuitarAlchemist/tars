@@ -45,6 +45,12 @@ public class PatternMatcherService : IPatternMatcherService
         {
             _logger.LogInformation("Finding patterns in {Language} code of length {Length}", language, content?.Length ?? 0);
 
+            if (string.IsNullOrEmpty(content))
+            {
+                _logger.LogWarning("Content is null or empty");
+                return new List<PatternMatch>();
+            }
+
             // Get patterns from library
             var patterns = await _patternLibrary.GetPatternsAsync(language);
             _logger.LogInformation("Found {PatternCount} patterns for language {Language}", patterns.Count, language);
@@ -72,7 +78,7 @@ public class PatternMatcherService : IPatternMatcherService
             if (!File.Exists(filePath))
             {
                 _logger.LogWarning("File not found: {FilePath}", filePath);
-                return new List<PatternMatch>();
+                return [];
             }
 
             // Read file content
@@ -236,17 +242,17 @@ public class PatternMatcherService : IPatternMatcherService
     }
 
     /// <inheritdoc/>
-    public async Task<double> CalculateSimilarityAsync(string source, string target, string language)
+    public Task<double> CalculateSimilarityAsync(string source, string target, string language)
     {
         try
         {
             _logger.LogInformation("Calculating similarity between code snippets in language: {Language}", language);
-            return _fuzzyMatcher.CalculateSimilarity(source, target);
+            return Task.FromResult(_fuzzyMatcher.CalculateSimilarity(source, target));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error calculating similarity");
-            return 0.0;
+            return Task.FromResult(0.0);
         }
     }
 
@@ -255,7 +261,12 @@ public class PatternMatcherService : IPatternMatcherService
     {
         try
         {
-            _logger.LogInformation("Finding similar patterns for {Language} code of length {Length}", language, content?.Length ?? 0);
+            if (content == null)
+            {
+                throw new ArgumentNullException(nameof(content), "Content cannot be null");
+            }
+
+            _logger.LogInformation("Finding similar patterns for {Language} code of length {Length}", language, content.Length);
 
             // Get patterns from library
             var patterns = await _patternLibrary.GetPatternsAsync(language);
@@ -269,38 +280,38 @@ public class PatternMatcherService : IPatternMatcherService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error finding similar patterns for {Language} code", language);
+            _logger.LogError(ex, "Error finding similar patterns in {Language} code", language);
             return new List<(CodePattern, double)>();
         }
     }
 
     /// <inheritdoc/>
-    public async Task<Dictionary<string, string>> GetAvailableOptionsAsync()
+    public Task<Dictionary<string, string>> GetAvailableOptionsAsync()
     {
         try
         {
             _logger.LogInformation("Getting available options");
-            return _patternLanguage.AvailableOptions;
+            return Task.FromResult(_patternLanguage.AvailableOptions);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting available options");
-            return new Dictionary<string, string>();
+            return Task.FromResult(new Dictionary<string, string>());
         }
     }
 
     /// <inheritdoc/>
-    public async Task<List<string>> GetSupportedPatternLanguagesAsync()
+    public Task<List<string>> GetSupportedPatternLanguagesAsync()
     {
         try
         {
             _logger.LogInformation("Getting supported pattern languages");
-            return _patternLanguage.SupportedLanguages;
+            return Task.FromResult(_patternLanguage.SupportedLanguages);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting supported pattern languages");
-            return new List<string>();
+            return Task.FromResult(new List<string>());
         }
     }
 }

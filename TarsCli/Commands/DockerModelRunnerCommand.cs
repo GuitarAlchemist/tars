@@ -306,11 +306,11 @@ public class DockerModelRunnerCommand : Command
                     }
 
                     // Create the request
-                    var request = new TarsCli.Models.OllamaCompletionRequest
+                    var request = new Models.OllamaCompletionRequest
                     {
                         Model = model,
                         Prompt = prompt,
-                        Options = new TarsCli.Models.OllamaOptions
+                        Options = new Models.OllamaOptions
                         {
                             Temperature = temperature,
                             NumPredict = maxTokens

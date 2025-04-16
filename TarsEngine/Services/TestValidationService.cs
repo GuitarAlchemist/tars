@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using TarsEngine.Services.Interfaces;
@@ -29,6 +31,22 @@ public class TestValidationService : ITestValidationService
         try
         {
             _logger.LogInformation("Validating improved code");
+
+            if (string.IsNullOrEmpty(originalCode) || string.IsNullOrEmpty(improvedCode) || string.IsNullOrEmpty(testCode))
+            {
+                return new TestValidationResult 
+                { 
+                    IsValid = false,
+                    Issues = 
+                    [
+                        new ValidationIssue
+                        {
+                            Description = "Original code, improved code, or test code is empty",
+                            Severity = IssueSeverity.Error
+                        }
+                    ]
+                };
+            }
 
             // Create a metascript for test validation
             var metascript = $@"
@@ -123,9 +141,79 @@ function checkRegressions(original, improved, tests, language) {{
             // Execute the metascript
             var result = await _metascriptService.ExecuteMetascriptAsync(metascript);
 
-            // Parse the result as JSON
-            var validationResult = System.Text.Json.JsonSerializer.Deserialize<TestValidationResult>(result.ToString());
-            return validationResult ?? new TestValidationResult { IsValid = false };
+            if (result == null)
+            {
+                return new TestValidationResult 
+                { 
+                    IsValid = false,
+                    Issues = 
+                    [
+                        new ValidationIssue
+                        {
+                            Description = "Metascript execution returned null result",
+                            Severity = IssueSeverity.Error
+                        }
+                    ]
+                };
+            }
+
+            var resultString = result?.ToString() ?? string.Empty;
+            if (string.IsNullOrEmpty(resultString))
+            {
+                return new TestValidationResult 
+                { 
+                    IsValid = false,
+                    Issues = 
+                    [
+                        new ValidationIssue
+                        {
+                            Description = "Metascript execution returned empty result",
+                            Severity = IssueSeverity.Error
+                        }
+                    ]
+                };
+            }
+
+            try
+            {
+                // Parse the result as JSON
+                var validationResult = JsonSerializer.Deserialize<TestValidationResult>(
+                    resultString,
+                    new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true,
+                        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                    });
+
+                return validationResult ?? new TestValidationResult 
+                { 
+                    IsValid = false,
+                    Issues = 
+                    [
+                        new ValidationIssue
+                        {
+                            Description = "Failed to deserialize validation result",
+                            Severity = IssueSeverity.Error
+                        }
+                    ]
+                };
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "Error deserializing validation result");
+                return new TestValidationResult
+                {
+                    IsValid = false,
+                    Issues = 
+                    [
+                        new ValidationIssue
+                        {
+                            Description = $"Error deserializing validation result: {ex.Message}",
+                            Severity = IssueSeverity.Error
+                        }
+                    ]
+                };
+            }
         }
         catch (Exception ex)
         {
@@ -163,15 +251,15 @@ function checkRegressions(original, improved, tests, language) {{
             }
 
             // Determine the test framework
-            string testFramework = DetermineTestFramework(testFilePath);
+            var testFramework = DetermineTestFramework(testFilePath);
 
             // Create a temporary project for testing
-            string tempProjectPath = CreateTemporaryTestProject(filePath, testFilePath, projectPath, testFramework);
+            var tempProjectPath = CreateTemporaryTestProject(filePath, testFilePath, projectPath, testFramework);
 
             try
             {
                 // Build the project
-                bool buildSuccess = await BuildProjectAsync(tempProjectPath);
+                var buildSuccess = await BuildProjectAsync(tempProjectPath);
                 if (!buildSuccess)
                 {
                     return new TestResult
@@ -324,7 +412,7 @@ let codeContent = `{codeContent.Replace("`", "\\`")}`;
 let testContent = `{testContent.Replace("`", "\\`")}`;
 
 // Test failures
-let testFailures = {System.Text.Json.JsonSerializer.Serialize(testResult.Failures)};
+let testFailures = {JsonSerializer.Serialize(testResult.Failures)};
 
 // Suggest fixes for the failing tests
 let fixes = suggestFixesForFailingTests(codeContent, testContent, testFailures, '{language}');
@@ -369,7 +457,8 @@ function suggestFixesForFailingTests(code, tests, failures, language) {{
             var result = await _metascriptService.ExecuteMetascriptAsync(metascript);
 
             // Parse the result as JSON
-            var fixes = System.Text.Json.JsonSerializer.Deserialize<List<TestFix>>(result.ToString());
+            var resultString = result?.ToString() ?? string.Empty;
+            var fixes = JsonSerializer.Deserialize<List<TestFix>>(resultString);
 
             // Update the file paths
             if (fixes != null)

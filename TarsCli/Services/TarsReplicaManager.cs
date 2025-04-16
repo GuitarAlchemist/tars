@@ -211,7 +211,7 @@ public class TarsReplicaManager
                 Status = "creating",
                 CreatedAt = DateTime.UtcNow,
                 LastActiveAt = DateTime.UtcNow,
-                Capabilities = capabilities ?? new List<string>(),
+                Capabilities = capabilities ?? [],
                 Metadata = metadata ?? new Dictionary<string, string>(),
                 Metrics = new Dictionary<string, double>(),
                 IsHealthy = false,
@@ -472,7 +472,7 @@ public class TarsReplicaManager
             SaveReplicas();
 
             // Extract action from the request
-            string action = "code";
+            var action = "code";
             if (request.TryGetProperty("action", out var actionElement))
             {
                 action = actionElement.GetString();
@@ -549,25 +549,25 @@ public class TarsReplicaManager
             var analyzerReplica = await CreateReplicaAsync(
                 "CodeAnalyzer",
                 "analyzer",
-                new List<string> { "analyze_code", "detect_issues", "suggest_improvements" });
+                ["analyze_code", "detect_issues", "suggest_improvements"]);
 
             // Create generator replica
             var generatorReplica = await CreateReplicaAsync(
                 "CodeGenerator",
                 "generator",
-                new List<string> { "generate_code", "refactor_code", "optimize_code" });
+                ["generate_code", "refactor_code", "optimize_code"]);
 
             // Create tester replica
             var testerReplica = await CreateReplicaAsync(
                 "TestGenerator",
                 "tester",
-                new List<string> { "generate_tests", "run_tests", "analyze_test_results" });
+                ["generate_tests", "run_tests", "analyze_test_results"]);
 
             // Create coordinator replica
             var coordinatorReplica = await CreateReplicaAsync(
                 "Coordinator",
                 "coordinator",
-                new List<string> { "coordinate_workflow", "prioritize_tasks", "track_progress" });
+                ["coordinate_workflow", "prioritize_tasks", "track_progress"]);
 
             return analyzerReplica != null && generatorReplica != null && testerReplica != null && coordinatorReplica != null;
         }

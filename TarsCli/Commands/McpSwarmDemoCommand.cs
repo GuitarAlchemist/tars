@@ -82,21 +82,21 @@ public class McpSwarmDemoCommand : Command
                 var analyzerAgent = await swarmService.CreateAgentAsync(
                     "CodeAnalyzer",
                     "code_analyzer",
-                    new List<string> { "analyze_code", "detect_issues", "suggest_improvements" });
+                    ["analyze_code", "detect_issues", "suggest_improvements"]);
                 consoleService.WriteSuccess($"Code analyzer agent created with ID: {analyzerAgent.Id}");
 
                 consoleService.WriteInfo("Creating code generator agent...");
                 var generatorAgent = await swarmService.CreateAgentAsync(
                     "CodeGenerator",
                     "code_generator",
-                    new List<string> { "generate_code", "refactor_code", "optimize_code" });
+                    ["generate_code", "refactor_code", "optimize_code"]);
                 consoleService.WriteSuccess($"Code generator agent created with ID: {generatorAgent.Id}");
 
                 consoleService.WriteInfo("Creating test generator agent...");
                 var testAgent = await swarmService.CreateAgentAsync(
                     "TestGenerator",
                     "test_generator",
-                    new List<string> { "generate_tests", "run_tests", "analyze_test_results" });
+                    ["generate_tests", "run_tests", "analyze_test_results"]);
                 consoleService.WriteSuccess($"Test generator agent created with ID: {testAgent.Id}");
                 Console.WriteLine();
 

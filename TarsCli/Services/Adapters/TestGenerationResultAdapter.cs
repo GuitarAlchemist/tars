@@ -17,7 +17,8 @@ namespace TarsCli.Services.Adapters
             return new TestGenerationResult
             {
                 Success = result.Success,
-                ErrorMessage = result.ErrorMessage
+                ErrorMessage = result.ErrorMessage,
+                TestFilePath = result.TestFilePath
             };
         }
 

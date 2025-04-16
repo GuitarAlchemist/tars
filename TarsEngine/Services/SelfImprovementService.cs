@@ -51,29 +51,28 @@ public class SelfImprovementService : ISelfImprovementService
             }
 
             // Read the file content
-            string fileContent = await File.ReadAllTextAsync(filePath);
+            var fileContent = await File.ReadAllTextAsync(filePath);
 
-            // Analyze the file
-            var codeAnalysis = await _codeAnalysisService.AnalyzeFileAsync(filePath);
-            if (!codeAnalysis.Success)
+            // Determine the language from the file extension
+            var extension = Path.GetExtension(filePath).ToLowerInvariant();
+            var language = extension switch
             {
-                _logger.LogError($"Failed to analyze file: {codeAnalysis.ErrorMessage}");
-                throw new Exception($"Failed to analyze file: {codeAnalysis.ErrorMessage}");
-            }
+                ".cs" => "C#",
+                ".fs" => "F#",
+                ".js" => "JavaScript",
+                ".ts" => "TypeScript",
+                ".py" => "Python",
+                _ => "C#" // Default to C# if unknown
+            };
 
             // Analyze the project to get context
             var projectAnalysis = await _projectAnalysisService.AnalyzeProjectAsync(projectPath);
-            if (!projectAnalysis.Success)
-            {
-                _logger.LogError($"Failed to analyze project: {projectAnalysis.ErrorMessage}");
-                throw new Exception($"Failed to analyze project: {projectAnalysis.ErrorMessage}");
-            }
 
             // Create a prompt for the LLM
-            string prompt = CreateImprovementAnalysisPrompt(fileContent, filePath, codeAnalysis, projectAnalysis);
+            var prompt = CreateImprovementAnalysisPrompt(fileContent, filePath, language, projectAnalysis);
 
             // Get suggestions from the LLM
-            string llmResponse = await _llmService.GetCompletionAsync(prompt, temperature: 0.2, maxTokens: 2000);
+            var llmResponse = await _llmService.GetCompletionAsync(prompt, temperature: 0.2, maxTokens: 2000);
 
             // Parse the suggestions
             var suggestions = ParseImprovementSuggestions(llmResponse, filePath);
@@ -113,13 +112,13 @@ public class SelfImprovementService : ISelfImprovementService
             // Create a backup if requested
             if (createBackup)
             {
-                string backupPath = $"{filePath}.bak.{DateTime.Now:yyyyMMddHHmmss}";
+                var backupPath = $"{filePath}.bak.{DateTime.Now:yyyyMMddHHmmss}";
                 File.Copy(filePath, backupPath);
                 _logger.LogInformation($"Created backup at: {backupPath}");
             }
 
             // Read the file content
-            string fileContent = await File.ReadAllTextAsync(filePath);
+            var fileContent = await File.ReadAllTextAsync(filePath);
 
             // Apply each suggestion
             foreach (var suggestion in suggestions.OrderByDescending(s => s.LineNumber))
@@ -162,7 +161,7 @@ public class SelfImprovementService : ISelfImprovementService
             _logger.LogInformation($"Generating implementation for: {filePath}");
 
             // Determine the language from the file extension
-            string extension = Path.GetExtension(filePath).ToLowerInvariant();
+            var extension = Path.GetExtension(filePath).ToLowerInvariant();
             var language = extension switch
             {
                 ".cs" => TarsEngine.Models.CodeLanguage.CSharp,
@@ -221,17 +220,9 @@ public class SelfImprovementService : ISelfImprovementService
 
             // Analyze the project
             var projectAnalysis = await _projectAnalysisService.AnalyzeProjectAsync(projectPath);
-            if (!projectAnalysis.Success)
-            {
-                _logger.LogError($"Failed to analyze project: {projectAnalysis.ErrorMessage}");
-                throw new Exception($"Failed to analyze project: {projectAnalysis.ErrorMessage}");
-            }
 
             // Get all code files in the project
-            var codeFiles = projectAnalysis.CodeAnalysisResults
-                .Where(r => r.Success)
-                .Select(r => r.FilePath)
-                .ToList();
+            var codeFiles = projectAnalysis.Files;
 
             // Prioritize files for improvement
             var prioritizedFiles = await PrioritizeFilesForImprovementAsync(codeFiles, projectAnalysis);
@@ -250,7 +241,7 @@ public class SelfImprovementService : ISelfImprovementService
                     if (suggestions.Any())
                     {
                         // Apply the improvements
-                        string improvedFilePath = await ApplyImprovementsAsync(file, suggestions, createBackups);
+                        var improvedFilePath = await ApplyImprovementsAsync(file, suggestions, createBackups);
 
                         // Add to the summary
                         summary.ImprovedFiles.Add(new ImprovedFile
@@ -287,8 +278,8 @@ public class SelfImprovementService : ISelfImprovementService
     private string CreateImprovementAnalysisPrompt(
         string fileContent,
         string filePath,
-        CodeAnalysisResult codeAnalysis,
-        ProjectAnalysisResult projectAnalysis)
+        string language,
+        TarsEngine.Models.ProjectAnalysisResult projectAnalysis)
     {
         var sb = new StringBuilder();
 
@@ -307,7 +298,7 @@ public class SelfImprovementService : ISelfImprovementService
         // Add file information
         sb.AppendLine("# File Information");
         sb.AppendLine($"File Path: {filePath}");
-        sb.AppendLine($"Language: {codeAnalysis.Language}");
+        sb.AppendLine($"Language: {language}");
         sb.AppendLine();
 
         // Add project context
@@ -433,7 +424,7 @@ public class SelfImprovementService : ISelfImprovementService
     /// </summary>
     private async Task<List<string>> PrioritizeFilesForImprovementAsync(
         List<string> files,
-        ProjectAnalysisResult projectAnalysis)
+        TarsEngine.Models.ProjectAnalysisResult projectAnalysis)
     {
         try
         {
@@ -463,7 +454,7 @@ public class SelfImprovementService : ISelfImprovementService
             sb.AppendLine("Do not include any explanations or additional text.");
 
             // Get prioritization from the LLM
-            string llmResponse = await _llmService.GetCompletionAsync(sb.ToString(), temperature: 0.2, maxTokens: 2000);
+            var llmResponse = await _llmService.GetCompletionAsync(sb.ToString(), temperature: 0.2, maxTokens: 2000);
 
             // Parse the response
             var prioritizedFiles = llmResponse

@@ -122,7 +122,7 @@ public class DslService
         {
             _logger.LogInformation($"Generating DSL template: {templateName} to {outputPath}");
 
-            string template = templateName.ToLower() switch
+            var template = templateName.ToLower() switch
             {
                 "basic" => GetBasicTemplate(),
                 "chat" => GetChatTemplate(),
@@ -341,7 +341,7 @@ ACTION {
         try
         {
             // Create the EBNF grammar as a multi-line string to avoid escaping issues
-            string ebnfGrammar = @"(* TARS DSL EBNF Grammar Specification *)
+            var ebnfGrammar = @"(* TARS DSL EBNF Grammar Specification *)
 
 (* Top-level program *)
 Program = Block, {Block};

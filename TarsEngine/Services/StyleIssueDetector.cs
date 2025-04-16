@@ -191,8 +191,8 @@ public class StyleIssueDetector(ILogger<StyleIssueDetector> logger) : IStyleIssu
             var lines = content.Split('\n');
 
             // Check for inconsistent indentation
-            int expectedIndent = 0;
-            int lineNumber = 1;
+            var expectedIndent = 0;
+            var lineNumber = 1;
 
             foreach (var line in lines)
             {
@@ -212,7 +212,7 @@ public class StyleIssueDetector(ILogger<StyleIssueDetector> logger) : IStyleIssu
                 }
 
                 // Check indentation
-                int actualIndent = line.Length - trimmedLine.Length;
+                var actualIndent = line.Length - trimmedLine.Length;
                 if (actualIndent != expectedIndent && !trimmedLine.StartsWith("#"))
                 {
                     issues.Add(new CodeIssue
@@ -263,7 +263,7 @@ public class StyleIssueDetector(ILogger<StyleIssueDetector> logger) : IStyleIssu
             var lines = content.Split('\n');
 
             // Check for inconsistent brace style
-            for (int i = 0; i < lines.Length - 1; i++)
+            for (var i = 0; i < lines.Length - 1; i++)
             {
                 var currentLine = lines[i].TrimEnd();
                 var nextLine = lines[i + 1].TrimStart();
@@ -276,7 +276,7 @@ public class StyleIssueDetector(ILogger<StyleIssueDetector> logger) : IStyleIssu
                     !currentLine.EndsWith("{"))
                 {
                     // Find the closing parenthesis
-                    int j = i + 1;
+                    var j = i + 1;
                     while (j < lines.Length && !lines[j].Contains(")"))
                     {
                         j++;
@@ -403,15 +403,15 @@ public class StyleIssueDetector(ILogger<StyleIssueDetector> logger) : IStyleIssu
     }
 
     /// <inheritdoc/>
-    public Dictionary<TarsEngine.Services.Interfaces.IssueSeverity, string> GetAvailableSeverities()
+    public Dictionary<Interfaces.IssueSeverity, string> GetAvailableSeverities()
     {
-        return new Dictionary<TarsEngine.Services.Interfaces.IssueSeverity, string>
+        return new Dictionary<Interfaces.IssueSeverity, string>
         {
-            { TarsEngine.Services.Interfaces.IssueSeverity.Critical, "Critical style issue that violates team standards" },
-            { TarsEngine.Services.Interfaces.IssueSeverity.Major, "High-impact style issue that affects readability significantly" },
-            { TarsEngine.Services.Interfaces.IssueSeverity.Minor, "Medium-impact style issue" },
-            { TarsEngine.Services.Interfaces.IssueSeverity.Trivial, "Low-impact style issue" },
-            { TarsEngine.Services.Interfaces.IssueSeverity.Warning, "Informational style suggestion" }
+            { Interfaces.IssueSeverity.Critical, "Critical style issue that violates team standards" },
+            { Interfaces.IssueSeverity.Major, "High-impact style issue that affects readability significantly" },
+            { Interfaces.IssueSeverity.Minor, "Medium-impact style issue" },
+            { Interfaces.IssueSeverity.Trivial, "Low-impact style issue" },
+            { Interfaces.IssueSeverity.Warning, "Informational style suggestion" }
         };
     }
 
@@ -497,7 +497,7 @@ public class StyleIssueDetector(ILogger<StyleIssueDetector> logger) : IStyleIssu
         var parts = Regex.Split(s, @"[^a-zA-Z0-9]");
 
         // Convert each part to Pascal case
-        for (int i = 0; i < parts.Length; i++)
+        for (var i = 0; i < parts.Length; i++)
         {
             if (!string.IsNullOrEmpty(parts[i]))
             {
@@ -544,8 +544,8 @@ public class StyleIssueDetector(ILogger<StyleIssueDetector> logger) : IStyleIssu
             return string.Empty;
         }
 
-        int start = Math.Max(0, position - length);
-        int end = Math.Min(content.Length, position + length);
+        var start = Math.Max(0, position - length);
+        var end = Math.Min(content.Length, position + length);
 
         return content.Substring(start, end - start);
     }

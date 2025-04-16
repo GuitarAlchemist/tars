@@ -137,6 +137,7 @@ This document outlines the components, integration points, and status of the Aut
      * Safe Execution Environment: Isolated environment for applying changes
      * Change Validator: Verify changes meet quality and functionality requirements
      * Rollback Manager: Revert changes if validation fails
+     * Auto-Coding System: Automatically implement TODOs and improve code
    - Integration Points:
      * Input: Improvement plans from Improvement Generation System
      * Output: Applied changes to codebase and execution reports
@@ -145,6 +146,7 @@ This document outlines the components, integration points, and status of the Aut
      * 99.9% safety record (no breaking changes in production)
      * 90%+ successful execution of improvement plans
      * Automatic rollback for 100% of failed changes
+     * Successful auto-coding of TODOs with 80%+ pass rate
 
 ### 5. Testing and Validation Framework ✅
    - Components:

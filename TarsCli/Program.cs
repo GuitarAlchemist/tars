@@ -5,10 +5,12 @@ using NLog.Extensions.Logging;
 using System.CommandLine.Builder;
 using System.CommandLine.Parsing;
 using TarsCli.Controllers;
+using TarsCli.Extensions;
 using TarsCli.Services;
 using TarsCli.Services.Mcp;
 using TarsEngine.Consciousness;
 using TarsEngine.Extensions;
+using TarsEngine.Interfaces.Compilation;
 
 namespace TarsCli;
 
@@ -90,15 +92,13 @@ internal static class Program
                 .AddSingleton<DeepThinkingService>()
                 .AddSingleton<McpService>()
                 .AddSingleton<TarsMcpService>()
-                .AddSingleton<Services.Mcp.ReplicaCommunicationProtocol>()
-                .AddSingleton<Services.Mcp.ResponseProcessor>()
-                .AddSingleton<IMcpActionHandler, Services.Mcp.AnalyzerReplicaActionHandler>()
-                .AddSingleton<IMcpActionHandler, Services.Mcp.GeneratorReplicaActionHandler>()
-                .AddSingleton<IMcpActionHandler, Services.Mcp.TesterReplicaActionHandler>()
-                .AddSingleton<IMcpActionHandler, Services.Mcp.CoordinatorReplicaActionHandler>()
-                .AddSingleton<TarsMcpSwarmService>()
-                .AddSingleton<SwarmSelfImprovementService>()
-                .AddSingleton<DockerService>()
+                .AddSingleton<ReplicaCommunicationProtocol>()
+                .AddSingleton<ResponseProcessor>()
+                .AddSingleton<IMcpActionHandler, AnalyzerReplicaActionHandler>()
+                .AddSingleton<IMcpActionHandler, GeneratorReplicaActionHandler>()
+                .AddSingleton<IMcpActionHandler, TesterReplicaActionHandler>()
+                .AddSingleton<IMcpActionHandler, CoordinatorReplicaActionHandler>()
+                .AddTarsServices()
                 .AddSingleton<TarsReplicaManager>()
                 .AddSingleton<SelfCodingWorkflow>()
                 .AddSingleton<TarsA2AService>()
@@ -116,7 +116,9 @@ internal static class Program
                 .AddSingleton<Services.CodeGeneration.CodeGeneratorService>()
 
                 // Testing services
+                .AddSingleton<Services.Testing.ITestPatternRepository, Services.Testing.TestPatternRepository>()
                 .AddSingleton<Services.Testing.ITestGenerator, Services.Testing.CSharpTestGenerator>()
+                .AddSingleton<Services.Testing.ITestGenerator, Services.Testing.ImprovedCSharpTestGenerator>()
                 .AddSingleton<Services.Testing.ITestGenerator, Services.Testing.FSharpTestGenerator>()
                 .AddSingleton<Services.Testing.TestGeneratorService>()
                 .AddSingleton<Services.Testing.TestRunnerService>()
@@ -138,6 +140,7 @@ internal static class Program
                 .AddSingleton<Commands.McpSwarmCommand>()
                 .AddSingleton<Commands.SwarmSelfImprovementCommand>()
                 .AddSingleton<Commands.SelfCodingCommand>()
+                .AddSingleton<Commands.TestGeneratorCommand>()
                 .AddSingleton<LearningPlanService>()
                 .AddSingleton<CourseGeneratorService>()
                 .AddSingleton<TutorialOrganizerService>()
@@ -148,7 +151,6 @@ internal static class Program
                 .AddSingleton<DockerAIAgentService>()
                 .AddSingleton<ModelProviderFactory>()
                 .AddSingleton<ConsoleService>()
-                .AddSingleton<DockerService>()
                 .AddSingleton<ConfigurationService>()
                 .AddSingleton<DocumentationKnowledgeService>()
                 .AddSingleton<OperationSummaryService>()
@@ -165,7 +167,7 @@ internal static class Program
                 .AddSingleton<KnowledgeTestGenerationService>()
                 .AddSingleton<AutonomousImprovementService>()
                 .AddSingleton<TarsEngine.Services.Interfaces.ICodeAnalysisService, TarsEngine.Services.CodeAnalysisService>()
-                .AddSingleton<TarsEngine.Services.Interfaces.IProjectAnalysisService, TarsEngine.Services.ProjectAnalysisService>()
+                .AddSingleton<TarsEngine.Services.Interfaces.IProjectAnalysisService, TarsEngine.Services.SimpleProjectAnalysisService>()
                 .AddSingleton<TarsEngine.Services.Interfaces.ILlmService, TarsEngine.Services.LlmService>()
                 .AddSingleton<TarsEngine.Services.Interfaces.ICodeGenerationService, TarsEngine.Services.CodeGenerationService>()
                 .AddSingleton<TarsEngine.Services.CodeExecutionService>()
@@ -193,6 +195,9 @@ internal static class Program
                 .AddSingleton<TarsEngine.Services.GenericAnalyzer>()
                 .AddSingleton<TarsEngine.Services.CSharpAnalyzer>()
                 .AddSingleton<TarsEngine.Services.FSharpAnalyzer>()
+                .AddSingleton<TarsEngine.Services.ImprovementSuggestionGenerator>()
+                .AddSingleton<TarsEngine.Services.SecurityVulnerabilityAnalyzer>()
+                .AddSingleton<TarsEngine.Services.ImprovementPrioritizer>()
 
                 .AddSingleton<TarsEngine.Services.Interfaces.IPatternMatcherService, TarsEngine.Services.PatternMatcherService>()
                 .AddSingleton<TarsEngine.Services.PatternLanguage>()
@@ -210,9 +215,12 @@ internal static class Program
                     Path.Combine(Directory.GetCurrentDirectory(), "TarsEngine", "Data", "Templates")))
                 .AddSingleton<TarsEngine.Services.TemplateFiller>()
                 .AddSingleton<TarsEngine.Services.ParameterOptimizer>()
+                // Mock implementation of IFSharpCompiler for TarsCli
+                .AddSingleton<TarsEngine.Interfaces.Compilation.IFSharpCompiler>(sp => new MockFSharpCompiler())
                 .AddSingleton<TarsEngine.Services.MetascriptSandbox>(sp => new TarsEngine.Services.MetascriptSandbox(
                     sp.GetRequiredService<ILogger<TarsEngine.Services.MetascriptSandbox>>(),
-                    Path.Combine(Directory.GetCurrentDirectory(), "TarsEngine", "Data", "Sandbox")))
+                    sp.GetRequiredService<IConfiguration>(),
+                    sp.GetRequiredService<TarsEngine.Interfaces.Compilation.IFSharpCompiler>()))
 
                 .AddSingleton<TarsEngine.Services.Interfaces.IImprovementPrioritizerService, TarsEngine.Services.ImprovementPrioritizerService>()
                 .AddSingleton<TarsEngine.Services.ImprovementScorer>()
@@ -250,6 +258,10 @@ internal static class Program
 
                 // Augment VS Code Demo Command
                 .AddSingleton<Commands.AugmentVSCodeDemoCommand>()
+
+                // Agent implementations
+                .AddSingleton<Services.Agents.CodeAnalyzerAgent>()
+                .AddSingleton<Services.Agents.ProjectManagerAgent>()
 
                 .BuildServiceProvider();
 
@@ -293,9 +305,9 @@ internal static class Program
             }
 
             // Check if we should use Docker for Ollama
-            bool useDocker = configuration.GetValue<bool>("Ollama:UseDocker", false);
-            bool skipOllamaCheck = configuration.GetValue<bool>("OLLAMA_SKIP_SETUP", false) ||
-                                 Environment.GetEnvironmentVariable("OLLAMA_SKIP_SETUP") == "true";
+            var useDocker = configuration.GetValue<bool>("Ollama:UseDocker", false);
+            var skipOllamaCheck = configuration.GetValue<bool>("OLLAMA_SKIP_SETUP", false) ||
+                                  Environment.GetEnvironmentVariable("OLLAMA_SKIP_SETUP") == "true";
 
             if (useDocker || skipOllamaCheck)
             {

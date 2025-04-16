@@ -1,3 +1,6 @@
+using Microsoft.FSharp.Core;
+using TarsEngineFSharp.Core.Monads;
+
 namespace TarsEngine.Monads;
 
 /// <summary>
@@ -19,37 +22,26 @@ public readonly struct FSharpResult<TSuccess, TFailure> where TFailure : Excepti
     }
 
     /// <summary>
-    /// Creates a new FSharpResult from an F# Result.
-    /// </summary>
-    /// <param name="result">The F# Result</param>
-    public FSharpResult(TarsEngineFSharp.Core.Monads.Result<TSuccess, TFailure> result)
-    {
-        // Convert F# Result to Unified FSharpResult
-        _adapter = result switch
-        {
-            TarsEngineFSharp.Core.Monads.Result<TSuccess, TFailure>.Success success =>
-                TarsEngine.Unified.FSharpResult<TSuccess, TFailure>.Success(success.Item),
-            TarsEngineFSharp.Core.Monads.Result<TSuccess, TFailure>.Failure failure =>
-                TarsEngine.Unified.FSharpResult<TSuccess, TFailure>.Failure(failure.Item),
-            _ => throw new ArgumentException("Invalid F# Result type", nameof(result))
-        };
-    }
-
-    /// <summary>
     /// Creates a success result.
     /// </summary>
     /// <param name="value">The success value</param>
     /// <returns>A success result</returns>
-    public static FSharpResult<TSuccess, TFailure> Success(TSuccess value) =>
-        new(TarsEngine.Unified.FSharpResult<TSuccess, TFailure>.Success(value));
+    public static FSharpResult<TSuccess, TFailure> Success(TSuccess value)
+    {
+        var unifiedResult = Unified.FSharpResult<TSuccess, TFailure>.Success(value);
+        return new FSharpResult<TSuccess, TFailure>(unifiedResult);
+    }
 
     /// <summary>
     /// Creates a failure result.
     /// </summary>
     /// <param name="error">The error</param>
     /// <returns>A failure result</returns>
-    public static FSharpResult<TSuccess, TFailure> Failure(TFailure error) =>
-        new(TarsEngine.Unified.FSharpResult<TSuccess, TFailure>.Failure(error));
+    public static FSharpResult<TSuccess, TFailure> Failure(TFailure error)
+    {
+        var unifiedResult = Unified.FSharpResult<TSuccess, TFailure>.Failure(error);
+        return new FSharpResult<TSuccess, TFailure>(unifiedResult);
+    }
 
     /// <summary>
     /// Returns true if the result is a success.

@@ -221,7 +221,7 @@ public class FSharpStructureExtractor(ILogger<FSharpStructureExtractor> logger) 
         // Sort structures by start line
         var sortedStructures = structures.OrderBy(s => s.Location.StartLine).ToList();
 
-        for (int i = 0; i < sortedStructures.Count; i++)
+        for (var i = 0; i < sortedStructures.Count; i++)
         {
             var structure = sortedStructures[i];
             var startLine = structure.Location.StartLine;
@@ -236,7 +236,7 @@ public class FSharpStructureExtractor(ILogger<FSharpStructureExtractor> logger) 
 
             // Find the end line by looking for the next line with the same or less indentation
             var endLine = startLine;
-            for (int j = startLine; j < lines.Length; j++)
+            for (var j = startLine; j < lines.Length; j++)
             {
                 var line = lines[j];
 
@@ -357,8 +357,8 @@ public class FSharpStructureExtractor(ILogger<FSharpStructureExtractor> logger) 
     /// </summary>
     private static int GetIndentation(string line)
     {
-        int indent = 0;
-        foreach (char c in line)
+        var indent = 0;
+        foreach (var c in line)
         {
             if (c == ' ')
             {

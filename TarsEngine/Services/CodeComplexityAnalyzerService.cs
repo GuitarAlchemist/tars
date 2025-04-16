@@ -11,10 +11,8 @@ namespace TarsEngine.Services;
 public class CodeComplexityAnalyzerService : ICodeComplexityAnalyzer
 {
     private readonly ILogger<CodeComplexityAnalyzerService> _logger;
-    private readonly CSharpComplexityAnalyzer _csharpAnalyzer;
-    private readonly FSharpComplexityAnalyzer _fsharpAnalyzer;
-    private readonly IReadabilityAnalyzer _readabilityAnalyzer;
     private readonly Dictionary<string, ICodeComplexityAnalyzer> _analyzers;
+    private readonly IReadabilityAnalyzer _readabilityAnalyzer;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CodeComplexityAnalyzerService"/> class
@@ -30,18 +28,11 @@ public class CodeComplexityAnalyzerService : ICodeComplexityAnalyzer
         IReadabilityAnalyzer readabilityAnalyzer)
     {
         _logger = logger;
-        _csharpAnalyzer = csharpAnalyzer;
-        _fsharpAnalyzer = fsharpAnalyzer;
         _readabilityAnalyzer = readabilityAnalyzer;
-
-        _analyzers = new Dictionary<string, ICodeComplexityAnalyzer>(StringComparer.OrdinalIgnoreCase)
+        _analyzers = new Dictionary<string, ICodeComplexityAnalyzer>
         {
-            ["C#"] = _csharpAnalyzer,
-            ["CSharp"] = _csharpAnalyzer,
-            ["cs"] = _csharpAnalyzer,
-            ["F#"] = _fsharpAnalyzer,
-            ["FSharp"] = _fsharpAnalyzer,
-            ["fs"] = _fsharpAnalyzer
+            ["C#"] = csharpAnalyzer,
+            ["F#"] = fsharpAnalyzer
         };
     }
 
@@ -184,7 +175,6 @@ public class CodeComplexityAnalyzerService : ICodeComplexityAnalyzer
         {
             if (string.IsNullOrEmpty(language))
             {
-                // Try to determine language from file extension
                 language = GetLanguageFromFilePath(filePath);
             }
 
@@ -199,16 +189,20 @@ public class CodeComplexityAnalyzerService : ICodeComplexityAnalyzer
                 complexityMetrics = metrics.ComplexityMetrics;
                 halsteadMetrics = metrics.HalsteadMetrics;
                 maintainabilityMetrics = metrics.MaintainabilityMetrics;
+                readabilityMetrics = metrics.ReadabilityMetrics;
             }
 
-            // Get readability metrics
-            readabilityMetrics = await _readabilityAnalyzer.AnalyzeAllReadabilityMetricsAsync(filePath, language);
+            // Get readability metrics if not already included
+            if (readabilityMetrics.Count == 0)
+            {
+                readabilityMetrics = await _readabilityAnalyzer.AnalyzeAllReadabilityMetricsAsync(filePath, language);
+            }
 
             return (complexityMetrics, halsteadMetrics, maintainabilityMetrics, readabilityMetrics);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error analyzing all complexity metrics for file {FilePath}", filePath);
+            _logger.LogError(ex, "Error analyzing all complexity metrics for {FilePath}", filePath);
             return (new List<ComplexityMetric>(), new List<HalsteadMetric>(), new List<MaintainabilityMetric>(), new List<ReadabilityMetric>());
         }
     }
@@ -250,7 +244,7 @@ public class CodeComplexityAnalyzerService : ICodeComplexityAnalyzer
 
             // Calculate project-level cyclomatic complexity
             var projectCyclomaticComplexity = complexityMetrics
-                .Where(m => m.Type == TarsEngine.Services.Adapters.ComplexityTypeConverter.ToModelType(UnifiedComplexityType.Cyclomatic) && m.TargetType == TargetType.File)
+                .Where(m => m.Type == Adapters.ComplexityTypeConverter.ToModelType(UnifiedComplexityType.Cyclomatic) && m.TargetType == TargetType.File)
                 .Sum(m => m.Value);
 
             var cyclomaticMetric = new ComplexityMetric
@@ -258,7 +252,7 @@ public class CodeComplexityAnalyzerService : ICodeComplexityAnalyzer
                 Name = $"Cyclomatic Complexity - {projectName}",
                 Description = $"McCabe's cyclomatic complexity for project {projectName}",
                 Value = projectCyclomaticComplexity,
-                Type = TarsEngine.Services.Adapters.ComplexityTypeConverter.ToModelType(UnifiedComplexityType.Cyclomatic),
+                Type = Adapters.ComplexityTypeConverter.ToModelType(UnifiedComplexityType.Cyclomatic),
                 FilePath = projectPath,
                 Language = "Mixed",
                 Target = projectName,
@@ -365,7 +359,7 @@ public class CodeComplexityAnalyzerService : ICodeComplexityAnalyzer
     }
 
     /// <inheritdoc/>
-    public async Task<Dictionary<string, double>> GetComplexityThresholdsAsync(string language, UnifiedComplexityType complexityType)
+    public async Task<Dictionary<string, double>> GetComplexityThresholdsAsync(string language, TarsEngine.Services.Interfaces.UnifiedComplexityType complexityType)
     {
         try
         {
@@ -427,7 +421,7 @@ public class CodeComplexityAnalyzerService : ICodeComplexityAnalyzer
     }
 
     /// <inheritdoc/>
-    public async Task<bool> SetComplexityThresholdAsync(string language, UnifiedComplexityType complexityType, string targetType, double threshold)
+    public async Task<bool> SetComplexityThresholdAsync(string language, TarsEngine.Services.Interfaces.UnifiedComplexityType complexityType, string targetType, double threshold)
     {
         try
         {

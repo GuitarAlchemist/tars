@@ -26,8 +26,11 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\TarsEngine.DSL\TarsEngine.DSL.fsproj" />
+        <ProjectReference Include="..\TarsEngine.Interfaces\TarsEngine.Interfaces.csproj" />
+        <ProjectReference Include="..\TarsEngine.SelfImprovement\TarsEngine.SelfImprovement.fsproj" />
+        <ProjectReference Include="..\TarsEngine.Unified\TarsEngine.Unified.csproj" />
         <ProjectReference Include="..\TarsEngineFSharp.Core\TarsEngineFSharp.Core.fsproj" />
         <ProjectReference Include="..\TarsEngineFSharp\TarsEngineFSharp.fsproj" />
-        <ProjectReference Include="..\TarsEngine.Unified\TarsEngine.Unified.csproj" />
     </ItemGroup>
 </Project>

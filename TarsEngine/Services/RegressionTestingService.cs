@@ -394,7 +394,8 @@ function extractMethods(code, language) {{
             var result = await _metascriptService.ExecuteMetascriptAsync(metascript);
 
             // Parse the result as JSON
-            var issues = System.Text.Json.JsonSerializer.Deserialize<List<RegressionIssue>>(result.ToString());
+            var resultString = result?.ToString() ?? "[]";
+            var issues = System.Text.Json.JsonSerializer.Deserialize<List<RegressionIssue>>(resultString);
             return issues ?? [];
         }
         catch (Exception ex)
@@ -540,7 +541,8 @@ function suggestAdditionalTests(coverage, projectPath) {{
             var result = await _metascriptService.ExecuteMetascriptAsync(metascript);
 
             // Parse the result as JSON
-            var suggestedTests = System.Text.Json.JsonSerializer.Deserialize<List<SuggestedTest>>(result.ToString());
+            var resultString = result?.ToString() ?? "[]";
+            var suggestedTests = System.Text.Json.JsonSerializer.Deserialize<List<SuggestedTest>>(resultString);
             return suggestedTests ?? [];
         }
         catch (Exception ex)

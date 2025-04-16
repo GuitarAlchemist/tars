@@ -67,7 +67,7 @@ public class TestExecutor
             var output = await _safeExecutionEnvironment.ExecuteCommandAsync(contextId, testCommand, testArguments, Path.GetDirectoryName(projectPath));
 
             // Parse test results
-            result.Output = output;
+            result.Output = output ?? string.Empty;
             result.IsSuccessful = !output.Contains("Failed:") && !output.Contains("Error:") && !output.Contains("Aborted:");
             result.CompletedAt = DateTime.UtcNow;
             // Calculate duration in milliseconds
@@ -166,7 +166,7 @@ public class TestExecutor
             var output = await _safeExecutionEnvironment.ExecuteCommandAsync(contextId, testCommand, testArguments, Path.GetDirectoryName(projectPath));
 
             // Parse test results
-            result.Output = output;
+            result.Output = output ?? string.Empty;
             result.IsSuccessful = !output.Contains("Failed:") && !output.Contains("Error:") && !output.Contains("Aborted:");
             result.CompletedAt = DateTime.UtcNow;
             result.Duration = (result.CompletedAt - result.StartedAt).ToString();

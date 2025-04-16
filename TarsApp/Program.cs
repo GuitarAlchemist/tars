@@ -35,8 +35,8 @@ builder.Services.AddDbContext<IngestionCacheDbContext>(options =>
 builder.Services.AddSingleton<ViewModelFactory>();
 
 // Register our services
-builder.Services.AddScoped<TarsApp.Services.Interfaces.IExecutionPlannerService, TarsApp.Services.ExecutionPlannerService>();
-builder.Services.AddScoped<TarsApp.Services.Interfaces.IImprovementPrioritizerService, TarsApp.Services.ImprovementPrioritizerService>();
+builder.Services.AddScoped<TarsApp.Services.Interfaces.IExecutionPlannerService, ExecutionPlannerService>();
+builder.Services.AddScoped<TarsApp.Services.Interfaces.IImprovementPrioritizerService, ImprovementPrioritizerService>();
 
 // Register TarsEngine services (mock implementations for now)
 builder.Services.AddScoped<TarsEngine.Services.Interfaces.IExecutionService, MockExecutionService>();

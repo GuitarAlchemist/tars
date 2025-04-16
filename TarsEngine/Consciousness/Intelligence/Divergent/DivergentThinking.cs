@@ -56,7 +56,7 @@ public class DivergentThinking
             foreach (var otherConcept in _conceptLibrary.Where(c => c != concept))
             {
                 // Random association strength between 0.1 and 0.9
-                double associationStrength = 0.1 + (0.8 * _random.NextDouble());
+                var associationStrength = 0.1 + (0.8 * _random.NextDouble());
                 _conceptAssociations[concept][otherConcept] = associationStrength;
             }
         }
@@ -102,7 +102,7 @@ public class DivergentThinking
             foreach (var otherConcept in _conceptLibrary.Where(c => c != concept))
             {
                 // Random association strength between 0.1 and 0.9
-                double associationStrength = 0.1 + (0.8 * _random.NextDouble());
+                var associationStrength = 0.1 + (0.8 * _random.NextDouble());
                 _conceptAssociations[concept][otherConcept] = associationStrength;
                 
                 // Add reverse association if it doesn't exist
@@ -177,14 +177,14 @@ public class DivergentThinking
         var perspective = perspectives[_random.Next(perspectives.Count)];
         
         // Generate idea description
-        string description = $"What if we {perspective}?";
+        var description = $"What if we {perspective}?";
         
         // Calculate originality based on association strength (lower association = higher originality)
-        double associationStrength = GetAssociationStrength(seedConcepts[0], seedConcepts[1]);
-        double originality = 0.5 + (0.5 * (1.0 - associationStrength)) * _divergentThinkingLevel;
+        var associationStrength = GetAssociationStrength(seedConcepts[0], seedConcepts[1]);
+        var originality = 0.5 + (0.5 * (1.0 - associationStrength)) * _divergentThinkingLevel;
         
         // Calculate value (somewhat random but influenced by divergent thinking level)
-        double value = 0.3 + (0.7 * _random.NextDouble() * _divergentThinkingLevel);
+        var value = 0.3 + (0.7 * _random.NextDouble() * _divergentThinkingLevel);
         
         return new CreativeIdea
         {
@@ -222,7 +222,7 @@ public class DivergentThinking
             }
             
             // Generate alternatives
-            for (int i = 0; i < count; i++)
+            for (var i = 0; i < count; i++)
             {
                 // Get additional concepts beyond problem concepts
                 var additionalConcepts = GetRandomConcepts(2).Where(c => !problemConcepts.Contains(c)).ToList();
@@ -240,8 +240,8 @@ public class DivergentThinking
                 var description = approaches[_random.Next(approaches.Count)];
                 
                 // Calculate originality and value
-                double originality = 0.4 + (0.6 * _random.NextDouble() * _divergentThinkingLevel);
-                double value = 0.3 + (0.7 * _random.NextDouble() * _divergentThinkingLevel);
+                var originality = 0.4 + (0.6 * _random.NextDouble() * _divergentThinkingLevel);
+                var value = 0.3 + (0.7 * _random.NextDouble() * _divergentThinkingLevel);
                 
                 // Create idea
                 var idea = new CreativeIdea
@@ -351,32 +351,32 @@ public class DivergentThinking
         try
         {
             // Calculate novelty based on concept associations
-            double totalAssociation = 0.0;
-            int pairs = 0;
+            var totalAssociation = 0.0;
+            var pairs = 0;
             
-            for (int i = 0; i < idea.Concepts.Count; i++)
+            for (var i = 0; i < idea.Concepts.Count; i++)
             {
-                for (int j = i + 1; j < idea.Concepts.Count; j++)
+                for (var j = i + 1; j < idea.Concepts.Count; j++)
                 {
                     totalAssociation += GetAssociationStrength(idea.Concepts[i], idea.Concepts[j]);
                     pairs++;
                 }
             }
             
-            double avgAssociation = pairs > 0 ? totalAssociation / pairs : 0.5;
-            double novelty = 1.0 - avgAssociation;
+            var avgAssociation = pairs > 0 ? totalAssociation / pairs : 0.5;
+            var novelty = 1.0 - avgAssociation;
             
             // Calculate usefulness based on value
-            double usefulness = idea.Value;
+            var usefulness = idea.Value;
             
             // Calculate elaboration based on description length
-            double elaboration = Math.Min(1.0, idea.Description.Length / 100.0);
+            var elaboration = Math.Min(1.0, idea.Description.Length / 100.0);
             
             // Calculate flexibility based on number of concepts
-            double flexibility = Math.Min(1.0, idea.Concepts.Count / 5.0);
+            var flexibility = Math.Min(1.0, idea.Concepts.Count / 5.0);
             
             // Calculate overall score
-            double score = (novelty * 0.3) + (usefulness * 0.3) + (elaboration * 0.2) + (flexibility * 0.2);
+            var score = (novelty * 0.3) + (usefulness * 0.3) + (elaboration * 0.2) + (flexibility * 0.2);
             
             return score;
         }

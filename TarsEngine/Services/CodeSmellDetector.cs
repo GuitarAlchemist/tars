@@ -28,11 +28,17 @@ public class CodeSmellDetector
     /// <param name="content">The code content to analyze</param>
     /// <param name="language">The programming language of the code</param>
     /// <returns>The list of detected code smells</returns>
-    public List<CodeIssue> DetectCodeSmells(string content, string language)
+    public List<CodeIssue> DetectCodeSmells(string? content, string language)
     {
         try
         {
             _logger.LogInformation("Detecting code smells in {Language} code of length {Length}", language, content?.Length ?? 0);
+
+            if (string.IsNullOrEmpty(content))
+            {
+                _logger.LogWarning("Empty or null content provided for code smell detection");
+                return [];
+            }
 
             var issues = new List<CodeIssue>();
 
@@ -61,13 +67,20 @@ public class CodeSmellDetector
         }
     }
 
+    /// <summary>
+    /// Detects lines that exceed the maximum recommended length
+    /// </summary>
+    /// <param name="content">The code content to analyze</param>
+    /// <returns>The list of long line issues</returns>
     private List<CodeIssue> DetectLongLines(string content)
     {
+        ArgumentNullException.ThrowIfNull(content);
+
         var issues = new List<CodeIssue>();
         var lines = content.Split('\n');
         const int maxLineLength = 120;
 
-        for (int i = 0; i < lines.Length; i++)
+        for (var i = 0; i < lines.Length; i++)
         {
             var line = lines[i];
             if (line.Length > maxLineLength)
@@ -105,7 +118,7 @@ public class CodeSmellDetector
         // In a real implementation, this would use a more sophisticated algorithm
         var lineHashes = new Dictionary<string, List<int>>();
         
-        for (int i = 0; i < lines.Length; i++)
+        for (var i = 0; i < lines.Length; i++)
         {
             var line = lines[i].Trim();
             if (string.IsNullOrWhiteSpace(line) || line.StartsWith("//") || line.StartsWith("/*") || line.StartsWith("*"))
@@ -126,13 +139,13 @@ public class CodeSmellDetector
         
         foreach (var lineGroup in lineHashes.Values.Where(v => v.Count > 1))
         {
-            for (int i = 0; i < lineGroup.Count - 1; i++)
+            for (var i = 0; i < lineGroup.Count - 1; i++)
             {
-                for (int j = i + 1; j < lineGroup.Count; j++)
+                for (var j = i + 1; j < lineGroup.Count; j++)
                 {
-                    int start1 = lineGroup[i];
-                    int start2 = lineGroup[j];
-                    int length = 1;
+                    var start1 = lineGroup[i];
+                    var start2 = lineGroup[j];
+                    var length = 1;
                     
                     while (start1 + length < lines.Length && 
                            start2 + length < lines.Length && 
@@ -182,7 +195,7 @@ public class CodeSmellDetector
         var lines = content.Split('\n');
         var todoRegex = new Regex(@"(//|/\*|\*)\s*(TODO|FIXME|HACK|XXX):", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-        for (int i = 0; i < lines.Length; i++)
+        for (var i = 0; i < lines.Length; i++)
         {
             var match = todoRegex.Match(lines[i]);
             if (match.Success)
@@ -228,7 +241,7 @@ public class CodeSmellDetector
         var magicNumberRegex = new Regex(@"[^.\w](-?\d+\.?\d*)[^.\w]", RegexOptions.Compiled);
         var allowedNumbers = new HashSet<string> { "0", "1", "-1", "2", "100", "1000" };
 
-        for (int i = 0; i < lines.Length; i++)
+        for (var i = 0; i < lines.Length; i++)
         {
             var line = lines[i];
             
@@ -287,7 +300,7 @@ public class CodeSmellDetector
             var braceCount = 0;
             var endIndex = 0;
             
-            for (int i = 0; i < classContent.Length; i++)
+            for (var i = 0; i < classContent.Length; i++)
             {
                 if (classContent[i] == '{')
                 {
@@ -345,7 +358,7 @@ public class CodeSmellDetector
             var inMethod = false;
             var endIndex = 0;
             
-            for (int i = 0; i < methodContent.Length; i++)
+            for (var i = 0; i < methodContent.Length; i++)
             {
                 if (methodContent[i] == '{')
                 {
@@ -477,7 +490,7 @@ public class CodeSmellDetector
             
             // Find the end of the function (simplified approach)
             var endLine = startLine;
-            for (int i = startLine + 1; i < lines.Length; i++)
+            for (var i = startLine + 1; i < lines.Length; i++)
             {
                 if (lines[i].Trim().StartsWith("let ") || lines[i].Trim().StartsWith("type ") || lines[i].Trim().StartsWith("module "))
                 {

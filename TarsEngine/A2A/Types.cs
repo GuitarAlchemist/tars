@@ -37,13 +37,13 @@ public class AgentCard
     public AgentAuthentication Authentication { get; set; }
 
     [JsonPropertyName("defaultInputModes")]
-    public List<string> DefaultInputModes { get; set; } = new() { "text" };
+    public List<string> DefaultInputModes { get; set; } = ["text"];
 
     [JsonPropertyName("defaultOutputModes")]
-    public List<string> DefaultOutputModes { get; set; } = new() { "text" };
+    public List<string> DefaultOutputModes { get; set; } = ["text"];
 
     [JsonPropertyName("skills")]
-    public List<AgentSkill> Skills { get; set; } = new();
+    public List<AgentSkill> Skills { get; set; } = [];
 }
 
 /// <summary>
@@ -79,7 +79,7 @@ public class AgentCapabilities
 public class AgentAuthentication
 {
     [JsonPropertyName("schemes")]
-    public List<string> Schemes { get; set; } = new();
+    public List<string> Schemes { get; set; } = [];
 
     [JsonPropertyName("credentials")]
     public string Credentials { get; set; }
@@ -142,10 +142,10 @@ public class Task
     public TaskStatus Status { get; set; }
 
     [JsonPropertyName("messages")]
-    public List<Message> Messages { get; set; } = new();
+    public List<Message> Messages { get; set; } = [];
 
     [JsonPropertyName("artifacts")]
-    public List<Artifact> Artifacts { get; set; } = new();
+    public List<Artifact> Artifacts { get; set; } = [];
 
     [JsonPropertyName("stateTransitionHistory")]
     public List<StateTransition> StateTransitionHistory { get; set; }
@@ -183,7 +183,7 @@ public class Message
     public string Role { get; set; }
 
     [JsonPropertyName("parts")]
-    public List<Part> Parts { get; set; } = new();
+    public List<Part> Parts { get; set; } = [];
 
     [JsonPropertyName("metadata")]
     public Dictionary<string, object> Metadata { get; set; }
@@ -259,7 +259,7 @@ public class Artifact
     public string Description { get; set; }
 
     [JsonPropertyName("parts")]
-    public List<Part> Parts { get; set; } = new();
+    public List<Part> Parts { get; set; } = [];
 
     [JsonPropertyName("index")]
     public int Index { get; set; }

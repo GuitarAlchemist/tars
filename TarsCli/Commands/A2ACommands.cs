@@ -133,13 +133,13 @@ public class A2ACommands
             var a2aMessage = new Message
             {
                 Role = "user",
-                Parts = new List<Part>
-                {
+                Parts =
+                [
                     new TextPart
                     {
                         Text = message
                     }
-                }
+                ]
             };
 
             // Add skill ID to metadata if provided

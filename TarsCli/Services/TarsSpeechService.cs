@@ -82,14 +82,14 @@ public class TarsSpeechService
                 try
                 {
                     // Check if the file already exists and is identical
-                    bool needsCopy = true;
+                    var needsCopy = true;
                     if (File.Exists(debugScriptPath))
                     {
                         try
                         {
                             // Compare file contents to see if we need to copy
-                            byte[] sourceBytes = File.ReadAllBytes(repoScriptPath);
-                            byte[] destBytes = File.ReadAllBytes(debugScriptPath);
+                            var sourceBytes = File.ReadAllBytes(repoScriptPath);
+                            var destBytes = File.ReadAllBytes(debugScriptPath);
 
                             if (sourceBytes.SequenceEqual(destBytes))
                             {

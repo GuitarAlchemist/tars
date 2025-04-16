@@ -1,6 +1,50 @@
-using UnifiedComplexityType = TarsEngine.Unified.ComplexityType;
-
 namespace TarsEngine.Services.Interfaces;
+
+/// <summary>
+/// Type of unified complexity measurement
+/// </summary>
+public enum UnifiedComplexityType
+{
+    /// <summary>
+    /// Cyclomatic complexity
+    /// </summary>
+    Cyclomatic,
+
+    /// <summary>
+    /// Cognitive complexity
+    /// </summary>
+    Cognitive,
+
+    /// <summary>
+    /// Halstead complexity
+    /// </summary>
+    Halstead,
+
+    /// <summary>
+    /// Method length
+    /// </summary>
+    MethodLength,
+
+    /// <summary>
+    /// Class length
+    /// </summary>
+    ClassLength,
+
+    /// <summary>
+    /// Parameter count
+    /// </summary>
+    ParameterCount,
+
+    /// <summary>
+    /// Nesting depth
+    /// </summary>
+    NestingDepth,
+
+    /// <summary>
+    /// Maintainability index
+    /// </summary>
+    Maintainability
+}
 
 /// <summary>
 /// Interface for the complexity analysis service
@@ -222,7 +266,7 @@ public class ComplexCodeSection
     /// <summary>
     /// Complexity type
     /// </summary>
-    public UnifiedComplexityType ComplexityType { get; set; } = UnifiedComplexityType.Cyclomatic;
+    public  UnifiedComplexityType ComplexityType { get; set; } = UnifiedComplexityType.Cyclomatic;
 
     /// <summary>
     /// Complexity value

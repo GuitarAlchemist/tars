@@ -225,23 +225,23 @@ public class GutFeelingSimulation
             _logger.LogDebug("Simulating gut reaction to situation: {Situation}", situation);
             
             // Calculate sentiment score
-            double sentimentScore = CalculateSentimentScore(situation);
+            var sentimentScore = CalculateSentimentScore(situation);
             
             // Identify emotional responses
             var responses = IdentifyEmotionalResponses(situation);
             
             // Calculate overall valence
-            double valenceSum = responses.Sum(r => r.Valence == EmotionalValence.Positive ? r.Intensity : 
+            var valenceSum = responses.Sum(r => r.Valence == EmotionalValence.Positive ? r.Intensity : 
                                                   r.Valence == EmotionalValence.Negative ? -r.Intensity : 0.0);
             
             // Add sentiment score to valence
             valenceSum += sentimentScore;
             
             // Normalize valence to -1.0 to 1.0 range
-            double normalizedValence = Math.Max(-1.0, Math.Min(1.0, valenceSum));
+            var normalizedValence = Math.Max(-1.0, Math.Min(1.0, valenceSum));
             
             // Calculate intensity
-            double intensity = responses.Count > 0 
+            var intensity = responses.Count > 0 
                 ? responses.Average(r => r.Intensity) 
                 : 0.5;
             
@@ -249,7 +249,7 @@ public class GutFeelingSimulation
             intensity *= _gutFeelingLevel;
             
             // Generate reaction description
-            string description = GenerateReactionDescription(normalizedValence, intensity, responses);
+            var description = GenerateReactionDescription(normalizedValence, intensity, responses);
             
             // Create gut reaction
             var reaction = new GutReaction
@@ -293,8 +293,8 @@ public class GutFeelingSimulation
     /// <returns>The sentiment score (-1.0 to 1.0)</returns>
     private double CalculateSentimentScore(string situation)
     {
-        double score = 0.0;
-        int wordCount = 0;
+        var score = 0.0;
+        var wordCount = 0;
         
         // Split situation into words
         var words = situation.Split([' ', ',', '.', ':', ';', '(', ')', '[', ']', '{', '}', '\n', '\r', '\t'], 
@@ -303,9 +303,9 @@ public class GutFeelingSimulation
         // Calculate sentiment score
         foreach (var word in words)
         {
-            string lowerWord = word.ToLowerInvariant();
+            var lowerWord = word.ToLowerInvariant();
             
-            if (_wordSentiment.TryGetValue(lowerWord, out double wordScore))
+            if (_wordSentiment.TryGetValue(lowerWord, out var wordScore))
             {
                 score += wordScore;
                 wordCount++;
@@ -328,7 +328,7 @@ public class GutFeelingSimulation
         foreach (var response in _emotionalResponses.Values)
         {
             // Check if any triggers are present in the situation
-            bool triggered = response.Triggers.Any(trigger => 
+            var triggered = response.Triggers.Any(trigger => 
                 situation.Contains(trigger, StringComparison.OrdinalIgnoreCase));
             
             if (triggered)
@@ -410,7 +410,7 @@ public class GutFeelingSimulation
             var reaction = SimulateGutReaction(situation);
             
             // Generate intuition description
-            string description = reaction.Description;
+            var description = reaction.Description;
             
             // Add explanation if confidence is high
             if (reaction.Confidence > 0.6)
@@ -493,7 +493,7 @@ public class GutFeelingSimulation
                 var reaction = SimulateGutReaction(option);
                 
                 // Calculate score based on valence and intensity
-                double score = ((reaction.Valence + 1.0) / 2.0) * reaction.Intensity;
+                var score = ((reaction.Valence + 1.0) / 2.0) * reaction.Intensity;
                 
                 // Add some randomness based on gut feeling level
                 score += (0.3 * (_random.NextDouble() - 0.5)) * _gutFeelingLevel;
@@ -506,7 +506,7 @@ public class GutFeelingSimulation
             
             // Choose the option with the highest score
             var selectedOption = optionScores.OrderByDescending(kvp => kvp.Value).First().Key;
-            double confidence = optionScores[selectedOption] * _gutFeelingLevel;
+            var confidence = optionScores[selectedOption] * _gutFeelingLevel;
             
             // Create decision result
             var result = new DecisionResult

@@ -10,7 +10,7 @@ public static class TestExecutionResultAdapter
     /// </summary>
     /// <param name="serviceResult">The service result to convert</param>
     /// <returns>The model result</returns>
-    public static TarsEngine.Models.TestExecutionResult ToModel(TarsEngine.Services.TestExecutionResult serviceResult)
+    public static TarsEngine.Models.TestExecutionResult ToModel(TestExecutionResult serviceResult)
     {
         if (serviceResult == null)
             throw new ArgumentNullException(nameof(serviceResult));
@@ -36,12 +36,12 @@ public static class TestExecutionResultAdapter
     /// </summary>
     /// <param name="modelResult">The model result to convert</param>
     /// <returns>The service result</returns>
-    public static TarsEngine.Services.TestExecutionResult ToService(TarsEngine.Models.TestExecutionResult modelResult)
+    public static TestExecutionResult ToService(TarsEngine.Models.TestExecutionResult modelResult)
     {
         if (modelResult == null)
             throw new ArgumentNullException(nameof(modelResult));
 
-        return new TarsEngine.Services.TestExecutionResult
+        return new TestExecutionResult
         {
             IsSuccessful = modelResult.IsSuccessful,
             Output = modelResult.Output ?? string.Empty,

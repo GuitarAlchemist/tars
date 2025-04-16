@@ -2,23 +2,16 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace TarsEngine.Services;
 
-public class SpeechServiceFactory
+public class SpeechServiceFactory(IServiceProvider serviceProvider)
 {
-    private readonly IServiceProvider _serviceProvider;
-    
     public SpeechServiceType DefaultService => SpeechServiceType.Riva;
-
-    public SpeechServiceFactory(IServiceProvider serviceProvider)
-    {
-        _serviceProvider = serviceProvider;
-    }
 
     public ISpeechService GetSpeechService(SpeechServiceType serviceType)
     {
         return serviceType switch
         {
-            SpeechServiceType.Riva => _serviceProvider.GetRequiredService<RivaWrapperService>(),
-            SpeechServiceType.WebSpeech => _serviceProvider.GetRequiredService<WebSpeechService>(),
+            SpeechServiceType.Riva => serviceProvider.GetRequiredService<RivaWrapperService>(),
+            SpeechServiceType.WebSpeech => serviceProvider.GetRequiredService<WebSpeechService>(),
             _ => throw new ArgumentException($"Unknown speech service: {serviceType}")
         };
     }

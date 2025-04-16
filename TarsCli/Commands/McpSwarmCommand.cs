@@ -440,14 +440,14 @@ public class McpSwarmCommand : Command
                     // Get the content from the file if specified
                     if (!string.IsNullOrEmpty(file))
                     {
-                        if (!System.IO.File.Exists(file))
+                        if (!File.Exists(file))
                         {
                             consoleService.WriteError($"File not found: {file}");
                             // Failure
                             return;
                         }
 
-                        content = System.IO.File.ReadAllText(file);
+                        content = File.ReadAllText(file);
                     }
 
                     // Create the request

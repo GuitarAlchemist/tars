@@ -3,6 +3,9 @@ using Microsoft.Extensions.Logging;
 using TarsEngine.Models;
 using TarsEngine.Services.Interfaces;
 
+using ModelKnowledgeItem = TarsEngine.Models.KnowledgeItem;
+using ModelKnowledgeType = TarsEngine.Models.KnowledgeType;
+
 namespace TarsEngine.Services;
 
 /// <summary>
@@ -13,7 +16,7 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
     private readonly ILogger<KnowledgeExtractorService> _logger;
     private readonly IDocumentParserService _documentParserService;
     private readonly IContentClassifierService _contentClassifierService;
-    private readonly List<TarsEngine.Models.KnowledgeValidationRule> _validationRules = [];
+    private readonly List<KnowledgeValidationRule> _validationRules = [];
 
     // Regular expressions for pattern extraction
     private static readonly Regex _codePatternRegex = new(@"(?:public|private|protected|internal|static)?\s+(?:class|interface|struct|enum|record)\s+(\w+)", RegexOptions.Compiled);
@@ -65,14 +68,13 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
             };
 
             // Extract knowledge items from text
-            var items = new List<TarsEngine.Models.KnowledgeItem>();
+            var items = new List<ModelKnowledgeItem>();
 
-            // Extract concepts
-            var concepts = ExtractConcepts(content);
+            // Extract concepts and insights
+            var concepts = await ExtractConceptsAsync(content);
+            var insights = await ExtractInsightsAsync(content);
+
             items.AddRange(concepts);
-
-            // Extract insights
-            var insights = ExtractInsights(content);
             items.AddRange(insights);
 
             // Add options to metadata
@@ -107,37 +109,41 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
         {
             _logger.LogInformation("Extracting knowledge from document: {DocumentPath}", document.DocumentPath);
 
-            var result = new KnowledgeExtractionResult
+            // Move CPU-intensive document processing to a background thread
+            return await Task.Run(async () =>
             {
-                Source = document.DocumentPath,
-                Metadata = new Dictionary<string, string>
+                var result = new KnowledgeExtractionResult
                 {
-                    { "DocumentType", document.DocumentType.ToString() },
-                    { "Title", document.Title }
-                }
-            };
+                    Source = document.DocumentPath,
+                    Metadata = new Dictionary<string, string>
+                    {
+                        { "DocumentType", document.DocumentType.ToString() },
+                        { "Title", document.Title }
+                    }
+                };
 
-            // Extract knowledge items from each section
-            var items = new List<TarsEngine.Models.KnowledgeItem>();
-            foreach (var section in document.Sections)
-            {
-                var sectionItems = await ExtractFromSectionAsync(section, document);
-                items.AddRange(sectionItems);
-            }
-
-            // Add options to metadata
-            if (options != null)
-            {
-                foreach (var option in options)
+                // Extract knowledge items from each section
+                var items = new List<TarsEngine.Models.KnowledgeItem>();
+                foreach (var section in document.Sections)
                 {
-                    result.Metadata[option.Key] = option.Value;
+                    var sectionItems = await ExtractFromSectionAsync(section, document);
+                    items.AddRange(sectionItems);
                 }
-            }
 
-            result.Items = items;
+                // Add options to metadata
+                if (options != null)
+                {
+                    foreach (var option in options)
+                    {
+                        result.Metadata[option.Key] = option.Value;
+                    }
+                }
 
-            _logger.LogInformation("Extracted {ItemCount} knowledge items from document", items.Count);
-            return result;
+                result.Items = items;
+
+                _logger.LogInformation("Extracted {ItemCount} knowledge items from document", items.Count);
+                return result;
+            });
         }
         catch (Exception ex)
         {
@@ -151,7 +157,7 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
     }
 
     /// <inheritdoc/>
-    public async Task<KnowledgeExtractionResult> ExtractFromCodeAsync(string code, string language, Dictionary<string, string>? options = null)
+    public Task<KnowledgeExtractionResult> ExtractFromCodeAsync(string code, string language, Dictionary<string, string>? options = null)
     {
         try
         {
@@ -159,11 +165,11 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
 
             if (string.IsNullOrWhiteSpace(code))
             {
-                return new KnowledgeExtractionResult
+                return Task.FromResult(new KnowledgeExtractionResult
                 {
                     Source = "code",
                     Errors = { "Code is empty or whitespace" }
-                };
+                });
             }
 
             var result = new KnowledgeExtractionResult
@@ -195,21 +201,21 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
             result.Items = items;
 
             _logger.LogInformation("Extracted {ItemCount} knowledge items from code", items.Count);
-            return result;
+            return Task.FromResult(result);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error extracting knowledge from code");
-            return new KnowledgeExtractionResult
+            return Task.FromResult(new KnowledgeExtractionResult
             {
                 Source = "code",
                 Errors = { $"Error extracting knowledge from code: {ex.Message}" }
-            };
+            });
         }
     }
 
     /// <inheritdoc/>
-    public async Task<KnowledgeExtractionResult> ExtractFromClassificationAsync(ContentClassification classification, Dictionary<string, string>? options = null)
+    public Task<KnowledgeExtractionResult> ExtractFromClassificationAsync(ContentClassification classification, Dictionary<string, string>? options = null)
     {
         try
         {
@@ -247,16 +253,16 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
             result.Items = items;
 
             _logger.LogInformation("Extracted {ItemCount} knowledge items from classification", items.Count);
-            return result;
+            return Task.FromResult(result);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error extracting knowledge from classification");
-            return new KnowledgeExtractionResult
+            return Task.FromResult(new KnowledgeExtractionResult
             {
                 Source = "classification",
                 Errors = { $"Error extracting knowledge from classification: {ex.Message}" }
-            };
+            });
         }
     }
 
@@ -317,13 +323,13 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
     }
 
     /// <inheritdoc/>
-    public async Task<TarsEngine.Models.KnowledgeValidationResult> ValidateKnowledgeItemAsync(TarsEngine.Models.KnowledgeItem item, Dictionary<string, string>? options = null)
+    public Task<KnowledgeValidationResult> ValidateKnowledgeItemAsync(TarsEngine.Models.KnowledgeItem item, Dictionary<string, string>? options = null)
     {
         try
         {
             _logger.LogInformation("Validating knowledge item: {ItemId}", item.Id);
 
-            var result = new TarsEngine.Models.KnowledgeValidationResult
+            var result = new KnowledgeValidationResult
             {
                 Item = item,
                 IsValid = true
@@ -347,12 +353,12 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
             }
 
             _logger.LogInformation("Validated knowledge item {ItemId}: {IsValid}", item.Id, result.IsValid);
-            return result;
+            return Task.FromResult(result);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error validating knowledge item: {ItemId}", item.Id);
-            return new KnowledgeValidationResult
+            return Task.FromResult(new KnowledgeValidationResult
             {
                 Item = item,
                 IsValid = false,
@@ -366,29 +372,29 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
                         Severity = ValidationSeverity.Error
                     }
                 ]
-            };
+            });
         }
     }
 
     /// <inheritdoc/>
-    public async Task<List<TarsEngine.Models.KnowledgeRelationship>> DetectRelationshipsAsync(List<TarsEngine.Models.KnowledgeItem> items, Dictionary<string, string>? options = null)
+    public Task<List<KnowledgeRelationship>> DetectRelationshipsAsync(List<ModelKnowledgeItem> items, Dictionary<string, string>? options = null)
     {
         try
         {
             _logger.LogInformation("Detecting relationships between {ItemCount} knowledge items", items.Count);
 
-            var relationships = new List<TarsEngine.Models.KnowledgeRelationship>();
+            var relationships = new List<KnowledgeRelationship>();
 
             // Skip if there are too few items
             if (items.Count < 2)
             {
-                return relationships;
+                return Task.FromResult(relationships);
             }
 
             // Detect relationships based on content similarity
-            for (int i = 0; i < items.Count; i++)
+            for (var i = 0; i < items.Count; i++)
             {
-                for (int j = i + 1; j < items.Count; j++)
+                for (var j = i + 1; j < items.Count; j++)
                 {
                     var item1 = items[i];
                     var item2 = items[j];
@@ -416,253 +422,233 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
             }
 
             _logger.LogInformation("Detected {RelationshipCount} relationships between knowledge items", relationships.Count);
-            return relationships;
+            return Task.FromResult(relationships);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error detecting relationships between knowledge items");
-            return [];
+            return Task.FromResult(new List<KnowledgeRelationship>());
         }
     }
 
     /// <inheritdoc/>
-    public async Task<List<KnowledgeValidationRule>> GetValidationRulesAsync()
+    public Task<List<KnowledgeValidationRule>> GetValidationRulesAsync()
     {
-        return _validationRules;
+        return Task.FromResult(_validationRules);
     }
 
     /// <inheritdoc/>
-    public async Task<KnowledgeValidationRule> AddValidationRuleAsync(KnowledgeValidationRule rule)
+    public Task<KnowledgeValidationRule> AddValidationRuleAsync(KnowledgeValidationRule rule)
     {
-        try
-        {
-            _logger.LogInformation("Adding validation rule: {RuleName}", rule.Name);
-
-            // Add the rule
-            _validationRules.Add(rule);
-
-            _logger.LogInformation("Added validation rule: {RuleName}", rule.Name);
-            return rule;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error adding validation rule: {RuleName}", rule.Name);
-            throw;
-        }
+        _logger.LogInformation("Adding validation rule: {RuleName}", rule.Name);
+        _validationRules.Add(rule);
+        return Task.FromResult(rule);
     }
 
     /// <inheritdoc/>
-    public async Task<KnowledgeValidationRule> UpdateValidationRuleAsync(KnowledgeValidationRule rule)
+    public Task<KnowledgeValidationRule> UpdateValidationRuleAsync(KnowledgeValidationRule rule)
     {
-        try
-        {
-            _logger.LogInformation("Updating validation rule: {RuleName}", rule.Name);
+        _logger.LogInformation("Updating validation rule: {RuleName}", rule.Name);
+        var existingRule = _validationRules.FirstOrDefault(r => r.Id == rule.Id)
+            ?? throw new ArgumentException($"Rule with ID {rule.Id} not found");
 
-            // Find the rule
-            var existingRule = _validationRules.FirstOrDefault(r => r.Id == rule.Id);
-            if (existingRule == null)
-            {
-                throw new ArgumentException($"Rule with ID {rule.Id} not found");
-            }
-
-            // Update the rule
-            var index = _validationRules.IndexOf(existingRule);
-            _validationRules[index] = rule;
-
-            _logger.LogInformation("Updated validation rule: {RuleName}", rule.Name);
-            return rule;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error updating validation rule: {RuleName}", rule.Name);
-            throw;
-        }
+        var index = _validationRules.IndexOf(existingRule);
+        _validationRules[index] = rule;
+        return Task.FromResult(rule);
     }
 
     /// <inheritdoc/>
-    public async Task<bool> DeleteValidationRuleAsync(string ruleId)
+    public Task<bool> DeleteValidationRuleAsync(string ruleId)
     {
-        try
-        {
-            _logger.LogInformation("Deleting validation rule: {RuleId}", ruleId);
+        _logger.LogInformation("Deleting validation rule: {RuleId}", ruleId);
+        var existingRule = _validationRules.FirstOrDefault(r => r.Id == ruleId);
+        if (existingRule == null) return Task.FromResult(false);
 
-            // Find the rule
-            var existingRule = _validationRules.FirstOrDefault(r => r.Id == ruleId);
-            if (existingRule == null)
-            {
-                return false;
-            }
-
-            // Remove the rule
-            _validationRules.Remove(existingRule);
-
-            _logger.LogInformation("Deleted validation rule: {RuleId}", ruleId);
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error deleting validation rule: {RuleId}", ruleId);
-            return false;
-        }
+        _validationRules.Remove(existingRule);
+        return Task.FromResult(true);
     }
 
     private async Task<List<TarsEngine.Models.KnowledgeItem>> ExtractFromSectionAsync(ContentSection section, DocumentParsingResult document)
     {
         var items = new List<TarsEngine.Models.KnowledgeItem>();
 
-        // Extract based on content type
-        switch (section.ContentType)
+        // Move CPU-intensive processing to a background thread
+        return await Task.Run(() =>
         {
-            case ContentType.Text:
-                var textItems = await ExtractFromTextAsync(section.RawContent);
-                items.AddRange(textItems.Items);
-                break;
-
-            case ContentType.Code:
-                foreach (var codeBlock in section.CodeBlocks)
-                {
-                    var codeItems = await ExtractFromCodeAsync(codeBlock.Code, codeBlock.Language);
-                    items.AddRange(codeItems.Items);
-                }
-                break;
-
-            case ContentType.Concept:
-                var conceptItems = ExtractConcepts(section.RawContent);
-                items.AddRange(conceptItems);
-                break;
-
-            case ContentType.Insight:
-                var insightItems = ExtractInsights(section.RawContent);
-                items.AddRange(insightItems);
-                break;
-
-            case ContentType.Question:
-                var questionItem = new TarsEngine.Models.KnowledgeItem
-                {
-                    Type = TarsEngine.Models.KnowledgeType.Question,
-                    Content = section.RawContent,
-                    Source = document.DocumentPath,
-                    Context = section.Heading,
-                    Confidence = 0.9,
-                    Relevance = 0.7,
-                    Tags = { "question" }
-                };
-                items.Add(questionItem);
-                break;
-
-            case ContentType.Answer:
-                var answerItem = new TarsEngine.Models.KnowledgeItem
-                {
-                    Type = TarsEngine.Models.KnowledgeType.Answer,
-                    Content = section.RawContent,
-                    Source = document.DocumentPath,
-                    Context = section.Heading,
-                    Confidence = 0.9,
-                    Relevance = 0.8,
-                    Tags = { "answer" }
-                };
-                items.Add(answerItem);
-                break;
-
-            case ContentType.Example:
-                var exampleItem = new TarsEngine.Models.KnowledgeItem
-                {
-                    Type = TarsEngine.Models.KnowledgeType.CodePattern,
-                    Content = section.RawContent,
-                    Source = document.DocumentPath,
-                    Context = section.Heading,
-                    Confidence = 0.9,
-                    Relevance = 0.8,
-                    Tags = { "example" }
-                };
-                items.Add(exampleItem);
-                break;
-        }
-
-        // Extract from code blocks in any section type
-        foreach (var codeBlock in section.CodeBlocks)
-        {
-            var codeItems = await ExtractFromCodeAsync(codeBlock.Code, codeBlock.Language);
-            items.AddRange(codeItems.Items);
-        }
-
-        // Set source and context for all items
-        foreach (var item in items)
-        {
-            if (string.IsNullOrEmpty(item.Source))
+            // Extract based on content type
+            switch (section.ContentType)
             {
-                item.Source = document.DocumentPath;
-            }
-            if (string.IsNullOrEmpty(item.Context))
-            {
-                item.Context = section.Heading;
-            }
-        }
+                case ContentType.Text:
+                    var textResult = ExtractFromTextAsync(section.RawContent).Result;
+                    items.AddRange(textResult.Items);
+                    break;
 
-        return items;
-    }
-
-    private List<TarsEngine.Models.KnowledgeItem> ExtractConcepts(string content)
-    {
-        var concepts = new List<TarsEngine.Models.KnowledgeItem>();
-
-        // Extract concepts using regex
-        var matches = _conceptRegex.Matches(content);
-        foreach (Match match in matches)
-        {
-            if (match.Groups.Count > 1)
-            {
-                var conceptText = match.Groups[1].Value.Trim();
-                if (!string.IsNullOrWhiteSpace(conceptText))
-                {
-                    var item = new TarsEngine.Models.KnowledgeItem
+                case ContentType.Code:
+                    foreach (var codeBlock in section.CodeBlocks)
                     {
-                        Type = TarsEngine.Models.KnowledgeType.Concept,
-                        Content = conceptText,
-                        Confidence = 0.8,
+                        var codeResult = ExtractFromCodeAsync(codeBlock.Code, codeBlock.Language).Result;
+                        items.AddRange(codeResult.Items);
+                    }
+                    break;
+
+                case ContentType.Concept:
+                    var conceptItems = ExtractConceptsAsync(section.RawContent).Result;
+                    items.AddRange(conceptItems);
+                    break;
+
+                case ContentType.Insight:
+                    var insightItems = ExtractInsightsAsync(section.RawContent).Result;
+                    items.AddRange(insightItems);
+                    break;
+
+                case ContentType.Question:
+                    var questionItem = new TarsEngine.Models.KnowledgeItem
+                    {
+                        Type = ModelKnowledgeType.Question,
+                        Content = section.RawContent,
+                        Source = document.DocumentPath,
+                        Context = section.Heading,
+                        Confidence = 0.9,
                         Relevance = 0.7,
-                        Tags = { "concept", "definition" }
+                        Tags = ["question"]
                     };
-                    concepts.Add(item);
-                }
-            }
-        }
+                    items.Add(questionItem);
+                    break;
 
-        return concepts;
-    }
-
-    private List<TarsEngine.Models.KnowledgeItem> ExtractInsights(string content)
-    {
-        var insights = new List<TarsEngine.Models.KnowledgeItem>();
-
-        // Extract insights using regex
-        var matches = _insightRegex.Matches(content);
-        foreach (Match match in matches)
-        {
-            if (match.Groups.Count > 1)
-            {
-                var insightText = match.Groups[1].Value.Trim();
-                if (!string.IsNullOrWhiteSpace(insightText))
-                {
-                    var item = new TarsEngine.Models.KnowledgeItem
+                case ContentType.Answer:
+                    var answerItem = new TarsEngine.Models.KnowledgeItem
                     {
-                        Type = TarsEngine.Models.KnowledgeType.Insight,
-                        Content = insightText,
-                        Confidence = 0.7,
-                        Relevance = 0.6,
-                        Tags = { "insight", "reflection" }
+                        Type = ModelKnowledgeType.Answer,
+                        Content = section.RawContent,
+                        Source = document.DocumentPath,
+                        Context = section.Heading,
+                        Confidence = 0.9,
+                        Relevance = 0.8,
+                        Tags = ["answer"]
                     };
-                    insights.Add(item);
+                    items.Add(answerItem);
+                    break;
+
+                case ContentType.Example:
+                    var exampleItem = new TarsEngine.Models.KnowledgeItem
+                    {
+                        Type = ModelKnowledgeType.CodePattern,
+                        Content = section.RawContent,
+                        Source = document.DocumentPath,
+                        Context = section.Heading,
+                        Confidence = 0.9,
+                        Relevance = 0.8,
+                        Tags = ["example"]
+                    };
+                    items.Add(exampleItem);
+                    break;
+            }
+
+            // Extract from code blocks in any section type
+            foreach (var codeBlock in section.CodeBlocks)
+            {
+                var codeResult = ExtractFromCodeAsync(codeBlock.Code, codeBlock.Language).Result;
+                items.AddRange(codeResult.Items);
+            }
+
+            // Set source and context for all items
+            foreach (var item in items)
+            {
+                if (string.IsNullOrEmpty(item.Source))
+                {
+                    item.Source = document.DocumentPath;
+                }
+                if (string.IsNullOrEmpty(item.Context))
+                {
+                    item.Context = section.Heading;
                 }
             }
-        }
 
-        return insights;
+            return items;
+        });
     }
 
-    private List<TarsEngine.Models.KnowledgeItem> ExtractCodePatterns(string code, string language)
+    private async Task<List<ModelKnowledgeItem>> ExtractConceptsAsync(string content)
     {
-        var patterns = new List<TarsEngine.Models.KnowledgeItem>();
+        try
+        {
+            _logger.LogDebug("Extracting concepts from content of length {Length}", content?.Length ?? 0);
+
+            // Since concept extraction is CPU-intensive, move it to a background thread
+            return await Task.Run(() =>
+            {
+                var concepts = new List<ModelKnowledgeItem>();
+
+                // Extract concepts using the content classifier
+                var classification = _contentClassifierService.ClassifyContent(content ?? string.Empty);
+
+                // Only create a concept if the classification is of type Concept
+                if (classification.PrimaryCategory == ContentCategory.Concept)
+                {
+                    concepts.Add(new ModelKnowledgeItem
+                    {
+                        Type = ModelKnowledgeType.Concept,
+                        Content = classification.Content,
+                        Context = classification.PrimaryCategory.ToString(),
+                        Confidence = classification.ConfidenceScore,
+                        Relevance = classification.RelevanceScore,
+                        Tags = classification.Tags.ToList()
+                    });
+                }
+
+                _logger.LogDebug("Extracted {ConceptCount} concepts", concepts.Count);
+                return concepts;
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error extracting concepts from content");
+            return new List<ModelKnowledgeItem>();
+        }
+    }
+
+    private async Task<List<ModelKnowledgeItem>> ExtractInsightsAsync(string content)
+    {
+        try
+        {
+            _logger.LogDebug("Extracting insights from content of length {Length}", content?.Length ?? 0);
+
+            // Since insight extraction is CPU-intensive, move it to a background thread
+            return await Task.Run(() =>
+            {
+                var insights = new List<ModelKnowledgeItem>();
+
+                // Extract insights using the content classifier
+                var classification = _contentClassifierService.ClassifyContentAsync(content ?? string.Empty).Result;
+
+                // Create insights based on classification
+                if (classification.PrimaryCategory == ContentCategory.Insight)
+                {
+                    insights.Add(new ModelKnowledgeItem
+                    {
+                        Type = ModelKnowledgeType.Insight,
+                        Content = classification.Content,
+                        Context = classification.PrimaryCategory.ToString(),
+                        Confidence = classification.ConfidenceScore,
+                        Relevance = classification.RelevanceScore,
+                        Tags = classification.Tags.ToList()
+                    });
+                }
+
+                _logger.LogDebug("Extracted {InsightCount} insights", insights.Count);
+                return insights;
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error extracting insights from content");
+            return [];
+        }
+    }
+
+    private List<ModelKnowledgeItem> ExtractCodePatterns(string code, string language)
+    {
+        var patterns = new List<ModelKnowledgeItem>();
 
         // Extract class/interface definitions
         var classMatches = _codePatternRegex.Matches(code);
@@ -673,9 +659,9 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
                 var className = match.Groups[1].Value.Trim();
                 if (!string.IsNullOrWhiteSpace(className))
                 {
-                    var item = new TarsEngine.Models.KnowledgeItem
+                    var item = new ModelKnowledgeItem
                     {
-                        Type = TarsEngine.Models.KnowledgeType.CodePattern,
+                        Type = ModelKnowledgeType.CodePattern,
                         Content = $"Class/Interface: {className}",
                         Confidence = 0.9,
                         Relevance = 0.8,
@@ -695,9 +681,9 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
                 var functionName = match.Groups[1].Value.Trim();
                 if (!string.IsNullOrWhiteSpace(functionName))
                 {
-                    var item = new TarsEngine.Models.KnowledgeItem
+                    var item = new ModelKnowledgeItem
                     {
-                        Type = TarsEngine.Models.KnowledgeType.CodePattern,
+                        Type = ModelKnowledgeType.CodePattern,
                         Content = $"Function/Method: {functionName}",
                         Confidence = 0.9,
                         Relevance = 0.7,
@@ -722,23 +708,23 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
         // Map classification category to knowledge type
         var knowledgeType = classification.PrimaryCategory switch
         {
-            ContentCategory.Concept => TarsEngine.Models.KnowledgeType.Concept,
-            ContentCategory.CodeExample => TarsEngine.Models.KnowledgeType.CodePattern,
-            ContentCategory.Algorithm => TarsEngine.Models.KnowledgeType.Algorithm,
-            ContentCategory.DesignPattern => TarsEngine.Models.KnowledgeType.DesignPattern,
-            ContentCategory.BestPractice => TarsEngine.Models.KnowledgeType.BestPractice,
-            ContentCategory.ApiDoc => TarsEngine.Models.KnowledgeType.ApiUsage,
-            ContentCategory.Question => TarsEngine.Models.KnowledgeType.Question,
-            ContentCategory.Answer => TarsEngine.Models.KnowledgeType.Answer,
-            ContentCategory.Insight => TarsEngine.Models.KnowledgeType.Insight,
-            ContentCategory.Performance => TarsEngine.Models.KnowledgeType.Performance,
-            ContentCategory.Security => TarsEngine.Models.KnowledgeType.Security,
-            ContentCategory.Testing => TarsEngine.Models.KnowledgeType.Testing,
-            _ => TarsEngine.Models.KnowledgeType.Unknown
+            ContentCategory.Concept => ModelKnowledgeType.Concept,
+            ContentCategory.CodeExample => ModelKnowledgeType.CodePattern,
+            ContentCategory.Algorithm => ModelKnowledgeType.Algorithm,
+            ContentCategory.DesignPattern => ModelKnowledgeType.DesignPattern,
+            ContentCategory.BestPractice => ModelKnowledgeType.BestPractice,
+            ContentCategory.ApiDoc => ModelKnowledgeType.ApiUsage,
+            ContentCategory.Question => ModelKnowledgeType.Question,
+            ContentCategory.Answer => ModelKnowledgeType.Answer,
+            ContentCategory.Insight => ModelKnowledgeType.Insight,
+            ContentCategory.Performance => ModelKnowledgeType.Performance,
+            ContentCategory.Security => ModelKnowledgeType.Security,
+            ContentCategory.Testing => ModelKnowledgeType.Testing,
+            _ => ModelKnowledgeType.Unknown
         };
 
         // Skip unknown types
-        if (knowledgeType == TarsEngine.Models.KnowledgeType.Unknown)
+        if (knowledgeType == ModelKnowledgeType.Unknown)
         {
             return null;
         }
@@ -776,31 +762,31 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
         }
 
         // Check for question-answer relationship
-        if (item1.Type == TarsEngine.Models.KnowledgeType.Question && item2.Type == TarsEngine.Models.KnowledgeType.Answer)
+        if (item1.Type == ModelKnowledgeType.Question && item2.Type == ModelKnowledgeType.Answer)
         {
             return (RelationshipType.Answers, 0.9);
         }
-        if (item1.Type == TarsEngine.Models.KnowledgeType.Answer && item2.Type == TarsEngine.Models.KnowledgeType.Question)
+        if (item1.Type == ModelKnowledgeType.Answer && item2.Type == ModelKnowledgeType.Question)
         {
             return (RelationshipType.Questions, 0.9);
         }
 
         // Check for implementation relationship
-        if (item1.Type == TarsEngine.Models.KnowledgeType.CodePattern && item2.Type == TarsEngine.Models.KnowledgeType.Algorithm)
+        if (item1.Type == ModelKnowledgeType.CodePattern && item2.Type == ModelKnowledgeType.Algorithm)
         {
             return (RelationshipType.Implements, 0.8);
         }
-        if (item1.Type == TarsEngine.Models.KnowledgeType.Algorithm && item2.Type == TarsEngine.Models.KnowledgeType.CodePattern)
+        if (item1.Type == ModelKnowledgeType.Algorithm && item2.Type == ModelKnowledgeType.CodePattern)
         {
             return (RelationshipType.IsImplementedBy, 0.8);
         }
 
         // Check for concept-example relationship
-        if (item1.Type == TarsEngine.Models.KnowledgeType.Concept && item2.Type == TarsEngine.Models.KnowledgeType.CodePattern)
+        if (item1.Type == ModelKnowledgeType.Concept && item2.Type == ModelKnowledgeType.CodePattern)
         {
             return (RelationshipType.IsImplementedBy, 0.7);
         }
-        if (item1.Type == TarsEngine.Models.KnowledgeType.CodePattern && item2.Type == TarsEngine.Models.KnowledgeType.Concept)
+        if (item1.Type == ModelKnowledgeType.CodePattern && item2.Type == ModelKnowledgeType.Concept)
         {
             return (RelationshipType.Implements, 0.7);
         }
@@ -824,7 +810,7 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
         return union > 0 ? (double)intersection / union : 0;
     }
 
-    private bool ValidateAgainstRule(TarsEngine.Models.KnowledgeItem item, TarsEngine.Models.KnowledgeValidationRule rule)
+    private bool ValidateAgainstRule(TarsEngine.Models.KnowledgeItem item, KnowledgeValidationRule rule)
     {
         // Simple validation based on content length
         if (rule.ValidationCriteria.Contains("MinLength"))
@@ -855,23 +841,17 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
     {
         _validationRules.Add(new KnowledgeValidationRule
         {
-            Name = "Minimum Content Length",
-            Description = "Ensures that knowledge items have a minimum content length",
-            ApplicableTypes =
-            [
-                TarsEngine.Models.KnowledgeType.Concept, TarsEngine.Models.KnowledgeType.Insight,
-                TarsEngine.Models.KnowledgeType.BestPractice
-            ],
+            Name = "MinimumContentLength",
+            Description = "Content must be at least 10 characters long",
             ValidationCriteria = "MinLength=10",
             ErrorMessage = "Content is too short (minimum 10 characters)",
-            Severity = ValidationSeverity.Warning
+            Severity = ValidationSeverity.Error
         });
 
         _validationRules.Add(new KnowledgeValidationRule
         {
-            Name = "Minimum Confidence",
-            Description = "Ensures that knowledge items have a minimum confidence score",
-            ApplicableTypes = [],
+            Name = "MinimumConfidence",
+            Description = "Confidence score must be at least 0.5",
             ValidationCriteria = "MinConfidence=0.5",
             ErrorMessage = "Confidence score is too low (minimum 0.5)",
             Severity = ValidationSeverity.Warning
@@ -879,12 +859,11 @@ public class KnowledgeExtractorService : IKnowledgeExtractorService
 
         _validationRules.Add(new KnowledgeValidationRule
         {
-            Name = "Minimum Relevance",
-            Description = "Ensures that knowledge items have a minimum relevance score",
-            ApplicableTypes = [],
-            ValidationCriteria = "MinRelevance=0.3",
-            ErrorMessage = "Relevance score is too low (minimum 0.3)",
-            Severity = ValidationSeverity.Info
+            Name = "RequiredFields",
+            Description = "Required fields must be filled",
+            ValidationCriteria = "RequiredFields",
+            ErrorMessage = "One or more required fields are missing",
+            Severity = ValidationSeverity.Error
         });
     }
 }

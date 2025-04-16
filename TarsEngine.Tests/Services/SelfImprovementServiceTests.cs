@@ -5,6 +5,7 @@ using TarsEngine.Services;
 using TarsEngine.Services.Interfaces;
 using ProgrammingLanguage = TarsEngine.Services.ProgrammingLanguage;
 using Xunit;
+using ProjectAnalysisResult = TarsEngine.Models.ProjectAnalysisResult;
 
 namespace TarsEngine.Tests.Services;
 
@@ -26,8 +27,8 @@ public class SelfImprovementServiceTests
     public async Task AnalyzeFileForImprovementsAsync_FileNotFound_ThrowsFileNotFoundException()
     {
         // Arrange
-        string filePath = "nonexistent.cs";
-        string projectPath = "project";
+        var filePath = "nonexistent.cs";
+        var projectPath = "project";
 
         // Act & Assert
         await Assert.ThrowsAsync<FileNotFoundException>(() =>
@@ -38,9 +39,9 @@ public class SelfImprovementServiceTests
     public async Task AnalyzeFileForImprovementsAsync_ValidFile_ReturnsSuggestions()
     {
         // Arrange
-        string filePath = Path.GetTempFileName();
-        string projectPath = "project";
-        string fileContent = "public class Test { }";
+        var filePath = Path.GetTempFileName();
+        var projectPath = "project";
+        var fileContent = "public class Test { }";
 
         try
         {
@@ -56,7 +57,6 @@ public class SelfImprovementServiceTests
 
             var projectAnalysisResult = new ProjectAnalysisResult
             {
-                Success = true,
                 ProjectPath = projectPath,
                 ProjectName = "Test"
             };
@@ -69,7 +69,7 @@ public class SelfImprovementServiceTests
                 .Setup(x => x.AnalyzeProjectAsync(projectPath))
                 .ReturnsAsync(projectAnalysisResult);
 
-            string llmResponse = @"
+            var llmResponse = @"
 SUGGESTION:
 Line: 1
 Issue: Missing namespace declaration
@@ -106,7 +106,7 @@ Code: namespace Test { public class Test { } }
     public async Task ApplyImprovementsAsync_FileNotFound_ThrowsFileNotFoundException()
     {
         // Arrange
-        string filePath = "nonexistent.cs";
+        var filePath = "nonexistent.cs";
         var suggestions = new List<ImprovementSuggestion>();
 
         // Act & Assert
@@ -118,9 +118,9 @@ Code: namespace Test { public class Test { } }
     public async Task ApplyImprovementsAsync_ValidFile_AppliesSuggestions()
     {
         // Arrange
-        string filePath = Path.GetTempFileName();
-        string originalContent = "public class Test { }";
-        string expectedContent = "namespace Test { public class Test { } }";
+        var filePath = Path.GetTempFileName();
+        var originalContent = "public class Test { }";
+        var expectedContent = "namespace Test { public class Test { } }";
 
         try
         {
@@ -139,11 +139,11 @@ Code: namespace Test { public class Test { } }
             };
 
             // Act
-            string result = await _service.ApplyImprovementsAsync(filePath, suggestions);
+            var result = await _service.ApplyImprovementsAsync(filePath, suggestions);
 
             // Assert
             Assert.Equal(filePath, result);
-            string actualContent = File.ReadAllText(filePath);
+            var actualContent = File.ReadAllText(filePath);
             Assert.Equal(expectedContent, actualContent);
         }
         finally

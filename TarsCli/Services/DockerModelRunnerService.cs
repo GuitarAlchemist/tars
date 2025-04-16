@@ -92,12 +92,12 @@ public class DockerModelRunnerService
             response.EnsureSuccessStatusCode();
 
             var result = await response.Content.ReadFromJsonAsync<OllamaTagsResponse>();
-            return result?.Models?.Select(m => new ModelInfoType { Id = m.Name }).ToList() ?? new List<ModelInfoType>();
+            return result?.Models?.Select(m => new ModelInfoType { Id = m.Name }).ToList() ?? [];
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting available models");
-            return new List<ModelInfoType>();
+            return [];
         }
     }
 
@@ -155,7 +155,7 @@ public class DockerModelRunnerService
             try
             {
                 // The response might be a stream of JSON objects
-                var lines = responseString.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                var lines = responseString.Split(['\n'], StringSplitOptions.RemoveEmptyEntries);
                 var fullResponse = new StringBuilder();
 
                 foreach (var line in lines)
@@ -325,7 +325,7 @@ public class DockerModelRunnerService
                 try
                 {
                     // The response might be a stream of JSON objects
-                    var lines = responseString.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                    var lines = responseString.Split(['\n'], StringSplitOptions.RemoveEmptyEntries);
                     var fullResponse = new StringBuilder();
 
                     foreach (var line in lines)
@@ -559,35 +559,35 @@ public class DockerModelRunnerService
     {
         return new Dictionary<string, List<string>>
         {
-            ["General Purpose"] = new()
-            {
+            ["General Purpose"] =
+            [
                 ModelProviders.OpenAI.GPT4o,
                 ModelProviders.Anthropic.Claude3Opus,
                 ModelProviders.Meta.Llama3_70B_Instruct
-            },
-            ["Code Generation"] = new()
-            {
+            ],
+            ["Code Generation"] =
+            [
                 ModelProviders.OpenAI.GPT4o,
                 ModelProviders.Anthropic.Claude3Opus,
                 ModelProviders.Meta.Llama3_70B_Instruct
-            },
-            ["Long Context"] = new()
-            {
+            ],
+            ["Long Context"] =
+            [
                 ModelProviders.Google.Gemini15Pro,
                 ModelProviders.Anthropic.Claude3Opus,
                 ModelProviders.OpenAI.GPT4o
-            },
-            ["Fast Response"] = new()
-            {
+            ],
+            ["Fast Response"] =
+            [
                 ModelProviders.Anthropic.Claude3Haiku,
                 ModelProviders.Meta.Llama3_8B_Instruct,
                 ModelProviders.Google.Gemini15Flash
-            },
-            ["Local Deployment"] = new()
-            {
+            ],
+            ["Local Deployment"] =
+            [
                 ModelProviders.Meta.Llama3_8B_Instruct,
                 ModelProviders.Meta.Llama3_70B_Instruct
-            }
+            ]
         };
     }
     
@@ -601,8 +601,8 @@ public class DockerModelRunnerService
         // Set provider and description based on model name
         if (model.StartsWith("llama3:"))
         {
-            string description = "Meta's Llama 3 model";
-            int contextLength = 4096;
+            var description = "Meta's Llama 3 model";
+            var contextLength = 4096;
             
             if (model.Contains("70b"))
             {
@@ -635,8 +635,8 @@ public class DockerModelRunnerService
         }
         else if (model.StartsWith("claude-3"))
         {
-            string description = "Claude 3";
-            int contextLength = 200000;
+            var description = "Claude 3";
+            var contextLength = 200000;
             
             if (model.Contains("opus"))
             {
@@ -661,8 +661,8 @@ public class DockerModelRunnerService
         }
         else if (model.StartsWith("gpt-4"))
         {
-            string description = "GPT-4";
-            int contextLength = 128000;
+            var description = "GPT-4";
+            var contextLength = 128000;
             
             if (model.Contains("o"))
             {
@@ -683,8 +683,8 @@ public class DockerModelRunnerService
         }
         else if (model.StartsWith("gemini-1.5"))
         {
-            string description = "Gemini 1.5";
-            int contextLength = 1000000;
+            var description = "Gemini 1.5";
+            var contextLength = 1000000;
             
             if (model.Contains("pro"))
             {

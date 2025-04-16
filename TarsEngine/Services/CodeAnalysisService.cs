@@ -39,8 +39,8 @@ public class CodeAnalysisService : ICodeAnalysisService
                 };
             }
 
-            string content = await File.ReadAllTextAsync(filePath);
-            string extension = Path.GetExtension(filePath).ToLowerInvariant();
+            var content = await File.ReadAllTextAsync(filePath);
+            var extension = Path.GetExtension(filePath).ToLowerInvariant();
 
             var result = new CodeAnalysisResult
             {

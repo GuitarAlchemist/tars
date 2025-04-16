@@ -90,17 +90,17 @@ public static class MetricExtensions
     /// <summary>
     /// Gets the ThresholdValue for a ComplexityMetric based on the complexity type
     /// </summary>
-    public static double GetThresholdValue(this ComplexityMetric metric, Models.Metrics.ComplexityType complexityType)
+    public static double GetThresholdValue(this ComplexityMetric metric, ComplexityType complexityType)
     {
         switch (complexityType)
         {
-            case Models.Metrics.ComplexityType.Cyclomatic:
+            case ComplexityType.Cyclomatic:
                 return 10;
-            case Models.Metrics.ComplexityType.Cognitive:
+            case ComplexityType.Cognitive:
                 return 15;
-            case Models.Metrics.ComplexityType.Halstead:
+            case ComplexityType.Halstead:
                 return 20;
-            case Models.Metrics.ComplexityType.Maintainability:
+            case ComplexityType.Maintainability:
                 return 70;
             default:
                 return 25;

@@ -161,7 +161,7 @@ public class ExplorationsImproveCommand : Command
                 Environment.SetEnvironmentVariable("TARS_IMPROVE_SPECIFIC_FILE", file);
             }
 
-            int result = await _dslService.RunDslFileAsync(metascriptPath, true);
+            var result = await _dslService.RunDslFileAsync(metascriptPath, true);
 
             if (result == 0)
             {

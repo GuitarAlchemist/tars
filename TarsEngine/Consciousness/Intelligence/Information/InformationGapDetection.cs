@@ -289,10 +289,10 @@ public class InformationGapDetection
             };
 
             // Choose a random template
-            string questionTemplate = questionTemplates[_random.Next(questionTemplates.Count)];
+            var questionTemplate = questionTemplates[_random.Next(questionTemplates.Count)];
 
             // Calculate importance based on gap size and information gap level
-            double importance = (gap.GapSize * 0.7) + (0.3 * _informationGapLevel);
+            var importance = (gap.GapSize * 0.7) + (0.3 * _informationGapLevel);
 
             // Create question
             var question = new CuriosityQuestion
@@ -372,7 +372,7 @@ public class InformationGapDetection
             }
 
             // Get domain
-            string domain = question.Domain;
+            var domain = question.Domain;
 
             // Check if domain has a known information gap
             if (!_informationGaps.TryGetValue(domain, out var gap))
@@ -381,16 +381,16 @@ public class InformationGapDetection
             }
 
             // Calculate relevance based on gap size
-            double relevance = gap.GapSize;
+            var relevance = gap.GapSize;
 
             // Calculate specificity based on question length
-            double specificity = Math.Min(1.0, question.Question.Length / 50.0);
+            var specificity = Math.Min(1.0, question.Question.Length / 50.0);
 
             // Calculate potential based on importance
-            double potential = question.Importance;
+            var potential = question.Importance;
 
             // Calculate overall score
-            double score = (relevance * 0.4) + (specificity * 0.3) + (potential * 0.3);
+            var score = (relevance * 0.4) + (specificity * 0.3) + (potential * 0.3);
 
             return score;
         }

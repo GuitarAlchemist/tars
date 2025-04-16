@@ -51,7 +51,7 @@ public class ConnectionDiscovery
     /// Initializes the connection discovery
     /// </summary>
     /// <returns>True if initialization was successful</returns>
-    public async Task<bool> InitializeAsync()
+    public Task<bool> InitializeAsync()
     {
         try
         {
@@ -62,12 +62,12 @@ public class ConnectionDiscovery
 
             _isInitialized = true;
             _logger.LogInformation("Connection discovery initialized successfully");
-            return true;
+            return Task.FromResult(true);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error initializing connection discovery");
-            return false;
+            return Task.FromResult(false);
         }
     }
 
@@ -166,8 +166,8 @@ public class ConnectionDiscovery
                 };
 
                 // Assign random attributes
-                int attributeCount = 3 + _random.Next(3);
-                for (int i = 0; i < attributeCount; i++)
+                var attributeCount = 3 + _random.Next(3);
+                for (var i = 0; i < attributeCount; i++)
                 {
                     var attribute = possibleAttributes[_random.Next(possibleAttributes.Count)];
                     if (!attributes.ContainsKey(attribute))
@@ -300,18 +300,18 @@ public class ConnectionDiscovery
     /// Activates the connection discovery
     /// </summary>
     /// <returns>True if activation was successful</returns>
-    public async Task<bool> ActivateAsync()
+    public Task<bool> ActivateAsync()
     {
         if (!_isInitialized)
         {
             _logger.LogWarning("Cannot activate connection discovery: not initialized");
-            return false;
+            return Task.FromResult(false);
         }
 
         if (_isActive)
         {
             _logger.LogInformation("Connection discovery is already active");
-            return true;
+            return Task.FromResult(true);
         }
 
         try
@@ -320,12 +320,12 @@ public class ConnectionDiscovery
 
             _isActive = true;
             _logger.LogInformation("Connection discovery activated successfully");
-            return true;
+            return Task.FromResult(true);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error activating connection discovery");
-            return false;
+            return Task.FromResult(false);
         }
     }
 
@@ -333,12 +333,12 @@ public class ConnectionDiscovery
     /// Deactivates the connection discovery
     /// </summary>
     /// <returns>True if deactivation was successful</returns>
-    public async Task<bool> DeactivateAsync()
+    public Task<bool> DeactivateAsync()
     {
         if (!_isActive)
         {
             _logger.LogInformation("Connection discovery is already inactive");
-            return true;
+            return Task.FromResult(true);
         }
 
         try
@@ -347,12 +347,12 @@ public class ConnectionDiscovery
 
             _isActive = false;
             _logger.LogInformation("Connection discovery deactivated successfully");
-            return true;
+            return Task.FromResult(true);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deactivating connection discovery");
-            return false;
+            return Task.FromResult(false);
         }
     }
 
@@ -360,11 +360,11 @@ public class ConnectionDiscovery
     /// Updates the connection discovery
     /// </summary>
     /// <returns>True if update was successful</returns>
-    public async Task<bool> UpdateAsync()
+    public Task<bool> UpdateAsync()
     {
         if (!_isInitialized || !_isActive)
         {
-            return false;
+            return Task.FromResult(false);
         }
 
         try
@@ -392,12 +392,12 @@ public class ConnectionDiscovery
                 _connectionNoveltyThreshold = Math.Max(0.2, _connectionNoveltyThreshold);
             }
 
-            return true;
+            return Task.FromResult(true);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating connection discovery");
-            return false;
+            return Task.FromResult(false);
         }
     }
 
@@ -405,12 +405,12 @@ public class ConnectionDiscovery
     /// Discovers distant connections
     /// </summary>
     /// <returns>The discovered connections</returns>
-    public async Task<List<ConceptConnection>> DiscoverDistantConnectionsAsync()
+    public Task<List<ConceptConnection>> DiscoverDistantConnectionsAsync()
     {
         if (!_isInitialized || !_isActive)
         {
             _logger.LogWarning("Cannot discover distant connections: connection discovery not initialized or active");
-            return new List<ConceptConnection>();
+            return Task.FromResult(new List<ConceptConnection>());
         }
 
         try
@@ -423,9 +423,9 @@ public class ConnectionDiscovery
             var concepts = _semanticNetwork.Keys.ToList();
             var conceptPairs = new List<(string, string)>();
 
-            for (int i = 0; i < concepts.Count; i++)
+            for (var i = 0; i < concepts.Count; i++)
             {
-                for (int j = i + 1; j < concepts.Count; j++)
+                for (var j = i + 1; j < concepts.Count; j++)
                 {
                     conceptPairs.Add((concepts[i], concepts[j]));
                 }
@@ -435,10 +435,10 @@ public class ConnectionDiscovery
             conceptPairs = conceptPairs.OrderBy(_ => _random.Next()).ToList();
 
             // Limit number of pairs to evaluate
-            int pairsToEvaluate = Math.Min(20, conceptPairs.Count);
+            var pairsToEvaluate = Math.Min(20, conceptPairs.Count);
 
             // Evaluate concept pairs
-            for (int i = 0; i < pairsToEvaluate; i++)
+            for (var i = 0; i < pairsToEvaluate; i++)
             {
                 var (concept1, concept2) = conceptPairs[i];
 
@@ -449,16 +449,16 @@ public class ConnectionDiscovery
                 }
 
                 // Calculate semantic distance
-                double semanticDistance = CalculateSemanticDistance(concept1, concept2);
+                var semanticDistance = CalculateSemanticDistance(concept1, concept2);
 
                 // Check if distant connection
                 if (semanticDistance > _distantConnectionThreshold)
                 {
                     // Calculate connection strength
-                    double connectionStrength = CalculateConnectionStrength(concept1, concept2);
+                    var connectionStrength = CalculateConnectionStrength(concept1, concept2);
 
                     // Calculate connection novelty
-                    double connectionNovelty = CalculateConnectionNovelty(concept1, concept2);
+                    var connectionNovelty = CalculateConnectionNovelty(concept1, concept2);
 
                     // Check if novel connection
                     if (connectionNovelty > _connectionNoveltyThreshold)
@@ -480,12 +480,12 @@ public class ConnectionDiscovery
                 }
             }
 
-            return discoveredConnections;
+            return Task.FromResult(discoveredConnections);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error discovering distant connections");
-            return new List<ConceptConnection>();
+            return Task.FromResult(new List<ConceptConnection>());
         }
     }
 
@@ -515,13 +515,13 @@ public class ConnectionDiscovery
         var node2 = _semanticNetwork[concept2];
 
         // Calculate attribute similarity
-        double attributeSimilarity = CalculateAttributeSimilarity(node1.Attributes, node2.Attributes);
+        var attributeSimilarity = CalculateAttributeSimilarity(node1.Attributes, node2.Attributes);
 
         // Calculate path distance
-        double pathDistance = CalculatePathDistance(concept1, concept2);
+        var pathDistance = CalculatePathDistance(concept1, concept2);
 
         // Combine attribute similarity and path distance
-        double semanticDistance = (1.0 - attributeSimilarity) * 0.5 + pathDistance * 0.5;
+        var semanticDistance = (1.0 - attributeSimilarity) * 0.5 + pathDistance * 0.5;
 
         return semanticDistance;
     }
@@ -542,16 +542,16 @@ public class ConnectionDiscovery
             return 0.0;
         }
 
-        double totalSimilarity = 0.0;
+        var totalSimilarity = 0.0;
 
         // Calculate similarity for each attribute
         foreach (var key in allKeys)
         {
-            double value1 = attributes1.TryGetValue(key, out var v1) ? v1 : 0.0;
-            double value2 = attributes2.TryGetValue(key, out var v2) ? v2 : 0.0;
+            var value1 = attributes1.TryGetValue(key, out var v1) ? v1 : 0.0;
+            var value2 = attributes2.TryGetValue(key, out var v2) ? v2 : 0.0;
 
             // Calculate attribute similarity
-            double attributeSimilarity = 1.0 - Math.Abs(value1 - value2);
+            var attributeSimilarity = 1.0 - Math.Abs(value1 - value2);
 
             totalSimilarity += attributeSimilarity;
         }
@@ -646,10 +646,10 @@ public class ConnectionDiscovery
         var node2 = _semanticNetwork[concept2];
 
         // Calculate attribute similarity
-        double attributeSimilarity = CalculateAttributeSimilarity(node1.Attributes, node2.Attributes);
+        var attributeSimilarity = CalculateAttributeSimilarity(node1.Attributes, node2.Attributes);
 
         // Calculate connection strength based on attribute similarity and connection discovery level
-        double connectionStrength = attributeSimilarity * 0.7 + _connectionDiscoveryLevel * 0.3;
+        var connectionStrength = attributeSimilarity * 0.7 + _connectionDiscoveryLevel * 0.3;
 
         // Add some randomness
         connectionStrength = Math.Max(0.1, Math.Min(0.9, connectionStrength + (0.2 * (_random.NextDouble() - 0.5))));
@@ -666,10 +666,10 @@ public class ConnectionDiscovery
     private double CalculateConnectionNovelty(string concept1, string concept2)
     {
         // Calculate path distance
-        double pathDistance = CalculatePathDistance(concept1, concept2);
+        var pathDistance = CalculatePathDistance(concept1, concept2);
 
         // Calculate connection novelty based on path distance and connection discovery level
-        double connectionNovelty = pathDistance * 0.7 + _connectionDiscoveryLevel * 0.3;
+        var connectionNovelty = pathDistance * 0.7 + _connectionDiscoveryLevel * 0.3;
 
         // Add some randomness
         connectionNovelty = Math.Max(0.1, Math.Min(0.9, connectionNovelty + (0.2 * (_random.NextDouble() - 0.5))));

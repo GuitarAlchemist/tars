@@ -35,9 +35,9 @@ public class KnowledgeRepositoryTests
     public async Task AddItemAsync_WithValidItem_AddsItemToRepository()
     {
         // Arrange
-        var item = new TarsEngine.Services.Interfaces.KnowledgeItem
+        var item = new KnowledgeItem
         {
-            Type = TarsEngine.Services.Interfaces.KnowledgeType.Concept,
+            Type = KnowledgeType.Concept,
             Content = "Test concept",
             Confidence = 0.9,
             RelatedItems = ["test", "concept"]
@@ -225,14 +225,14 @@ public class KnowledgeRepositoryTests
         await _repository.AddItemsAsync(items.ToModelKnowledgeItems());
 
         // Act
-        var results = await _repository.GetItemsByTypeAsync(TarsEngine.Models.KnowledgeType.Concept);
+        var results = await _repository.GetItemsByTypeAsync(Models.KnowledgeType.Concept);
 
         // Assert
         Assert.NotNull(results);
         Assert.NotEmpty(results);
         // Only check that we have at least one item of the correct type
         Assert.True(results.Count() > 0);
-        Assert.All(results, item => Assert.Equal(TarsEngine.Models.KnowledgeType.Concept, item.Type));
+        Assert.All(results, item => Assert.Equal(Models.KnowledgeType.Concept, item.Type));
     }
 
     [Fact]

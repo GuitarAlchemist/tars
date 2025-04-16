@@ -129,7 +129,7 @@ public class ExecutionPermissions
         // Check allowed paths
         if (AllowedFilePaths.Count > 0)
         {
-            bool allowed = false;
+            var allowed = false;
             foreach (var allowedPath in AllowedFilePaths)
             {
                 if (filePath.StartsWith(allowedPath, StringComparison.OrdinalIgnoreCase))
@@ -157,7 +157,7 @@ public class ExecutionPermissions
         // Check allowed extensions
         if (AllowedFileExtensions.Count > 0)
         {
-            bool allowed = false;
+            var allowed = false;
             foreach (var allowedExtension in AllowedFileExtensions)
             {
                 if (extension.Equals(allowedExtension, StringComparison.OrdinalIgnoreCase))
@@ -199,7 +199,7 @@ public class ExecutionPermissions
         // Check allowed process names
         if (AllowedProcessNames.Count > 0)
         {
-            bool allowed = false;
+            var allowed = false;
             foreach (var allowedName in AllowedProcessNames)
             {
                 if (processName.Equals(allowedName, StringComparison.OrdinalIgnoreCase))
@@ -241,7 +241,7 @@ public class ExecutionPermissions
         // Check allowed hosts
         if (AllowedNetworkHosts.Count > 0)
         {
-            bool allowed = false;
+            var allowed = false;
             foreach (var allowedHost in AllowedNetworkHosts)
             {
                 if (host.Equals(allowedHost, StringComparison.OrdinalIgnoreCase))

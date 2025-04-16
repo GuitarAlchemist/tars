@@ -32,7 +32,7 @@ namespace TarsCli.Services.Adapters
             {
                 Name = testCase.Name,
                 Description = testCase.Description,
-                Type = Testing.TestType.Unit, // Default value
+                Type = TestType.Unit, // Default value
                 TargetMethod = string.Empty, // Default value
                 TestCode = string.Empty // Default value
             };

@@ -16,7 +16,7 @@ public class A2AServer
     private readonly ILogger<A2AServer> _logger;
     private readonly JsonSerializerOptions _jsonOptions;
     private readonly Dictionary<string, Task> _tasks = new();
-    private readonly Dictionary<string, Func<Message, CancellationToken, System.Threading.Tasks.Task<Task>>> _taskHandlers = new();
+    private readonly Dictionary<string, Func<Message, CancellationToken, Task<Task>>> _taskHandlers = new();
     private readonly Dictionary<string, string> _pushNotificationCallbacks = new();
     private bool _isRunning;
     private CancellationTokenSource _cancellationTokenSource;
@@ -49,7 +49,7 @@ public class A2AServer
     /// </summary>
     /// <param name="skillId">The skill ID</param>
     /// <param name="handler">The handler function</param>
-    public void RegisterTaskHandler(string skillId, Func<Message, CancellationToken, System.Threading.Tasks.Task<Task>> handler)
+    public void RegisterTaskHandler(string skillId, Func<Message, CancellationToken, Task<Task>> handler)
     {
         if (string.IsNullOrEmpty(skillId))
             throw new ArgumentNullException(nameof(skillId));
@@ -78,7 +78,9 @@ public class A2AServer
         System.Threading.Tasks.Task.Run(async () => await ListenForRequestsAsync(_cancellationTokenSource.Token));
 
         // Set up the well-known agent card endpoint
-        var wellKnownPath = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), ".well-known");
+        var assemblyLocation = System.Reflection.Assembly.GetExecutingAssembly().Location;
+        var assemblyDirectory = Path.GetDirectoryName(assemblyLocation) ?? string.Empty;
+        var wellKnownPath = Path.Combine(assemblyDirectory, ".well-known");
         Directory.CreateDirectory(wellKnownPath);
         File.WriteAllText(Path.Combine(wellKnownPath, "agent.json"), JsonSerializer.Serialize(_agentCard, _jsonOptions));
     }
@@ -236,7 +238,7 @@ public class A2AServer
 
         // Create a new task or update an existing one
         Task task;
-        bool isNewTask = false;
+        var isNewTask = false;
 
         lock (_tasks)
         {
@@ -253,9 +255,9 @@ public class A2AServer
                 {
                     TaskId = taskParams.TaskId,
                     Status = TaskStatus.Submitted,
-                    Messages = new List<Message> { taskParams.Message },
-                    Artifacts = new List<Artifact>(),
-                    StateTransitionHistory = _agentCard.Capabilities.StateTransitionHistory ? new List<StateTransition>() : null,
+                    Messages = [taskParams.Message],
+                    Artifacts = [],
+                    StateTransitionHistory = _agentCard.Capabilities.StateTransitionHistory ? [] : null,
                     Metadata = taskParams.Metadata
                 };
 
@@ -324,9 +326,9 @@ public class A2AServer
     /// <summary>
     /// Processes a task asynchronously
     /// </summary>
-    private async System.Threading.Tasks.Task<Task> ProcessTaskAsync(
+    private async Task<Task> ProcessTaskAsync(
         Task task,
-        Func<Message, CancellationToken, System.Threading.Tasks.Task<Task>> handler,
+        Func<Message, CancellationToken, Task<Task>> handler,
         Message message,
         CancellationToken cancellationToken,
         Func<Task, System.Threading.Tasks.Task> onUpdate = null)
@@ -384,10 +386,7 @@ public class A2AServer
             var errorMessage = new Message
             {
                 Role = "agent",
-                Parts = new List<Part>
-                {
-                    new TextPart { Text = $"Error: {ex.Message}" }
-                }
+                Parts = [new TextPart { Text = $"Error: {ex.Message}" }]
             };
 
             task.Messages.Add(errorMessage);
@@ -567,7 +566,7 @@ public class A2AServer
             var json = JsonSerializer.Serialize(notification, _jsonOptions);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            using var client = new System.Net.Http.HttpClient();
+            using var client = new HttpClient();
             var response = await client.PostAsync(callbackUrl, content);
 
             if (!response.IsSuccessStatusCode)

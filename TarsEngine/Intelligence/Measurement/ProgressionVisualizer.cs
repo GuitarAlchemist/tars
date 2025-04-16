@@ -104,7 +104,7 @@ public class ProgressionVisualizer
         foreach (var group in metricsByDay)
         {
             // Calculate the average value for the day
-            double avgValue = group.Average(m => m.Value);
+            var avgValue = group.Average(m => m.Value);
             result[group.Key] = avgValue;
         }
         
@@ -128,7 +128,7 @@ public class ProgressionVisualizer
         foreach (var group in metricsByDay)
         {
             // Calculate the average value for the day
-            double avgValue = group.Average(m => m.Value);
+            var avgValue = group.Average(m => m.Value);
             result[group.Key] = avgValue;
         }
         
@@ -152,7 +152,7 @@ public class ProgressionVisualizer
         foreach (var group in metricsByDay)
         {
             // Calculate the average value for the day
-            double avgValue = group.Average(m => m.Value);
+            var avgValue = group.Average(m => m.Value);
             result[group.Key] = avgValue;
         }
         
@@ -176,7 +176,7 @@ public class ProgressionVisualizer
         foreach (var group in metricsByDay)
         {
             // Calculate the average value for the day
-            double avgValue = group.Average(m => m.Value);
+            var avgValue = group.Average(m => m.Value);
             result[group.Key] = avgValue;
         }
         
@@ -281,29 +281,29 @@ public class ProgressionVisualizer
         }
         
         // Determine the range
-        double min = values.Min();
-        double max = values.Max();
+        var min = values.Min();
+        var max = values.Max();
         
         // Create 10 bins
-        int binCount = 10;
-        double binWidth = (max - min) / binCount;
+        var binCount = 10;
+        var binWidth = (max - min) / binCount;
         
         // Initialize bins
-        for (int i = 0; i < binCount; i++)
+        for (var i = 0; i < binCount; i++)
         {
-            double binStart = min + i * binWidth;
-            double binEnd = binStart + binWidth;
-            string binLabel = $"{binStart:F2}-{binEnd:F2}";
+            var binStart = min + i * binWidth;
+            var binEnd = binStart + binWidth;
+            var binLabel = $"{binStart:F2}-{binEnd:F2}";
             result[binLabel] = 0;
         }
         
         // Count values in each bin
-        foreach (double value in values)
+        foreach (var value in values)
         {
-            int binIndex = (int)Math.Min(binCount - 1, Math.Floor((value - min) / binWidth));
-            double binStart = min + binIndex * binWidth;
-            double binEnd = binStart + binWidth;
-            string binLabel = $"{binStart:F2}-{binEnd:F2}";
+            var binIndex = (int)Math.Min(binCount - 1, Math.Floor((value - min) / binWidth));
+            var binStart = min + binIndex * binWidth;
+            var binEnd = binStart + binWidth;
+            var binLabel = $"{binStart:F2}-{binEnd:F2}";
             result[binLabel]++;
         }
         

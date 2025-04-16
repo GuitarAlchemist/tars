@@ -1,5 +1,10 @@
+using System.CommandLine;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using TarsCli.Services;
+using TarsCli.Services.SelfCoding;
+// Use fully qualified name to avoid ambiguity
+using SelfCodingWorkflowService = TarsCli.Services.SelfCodingWorkflow;
 
 namespace TarsCli.Commands;
 
@@ -24,6 +29,7 @@ public class SelfCodingCommand : Command
         AddCommand(new StatusCommand(_serviceProvider));
         AddCommand(new SetupCommand(_serviceProvider));
         AddCommand(new CleanupCommand(_serviceProvider));
+        AddCommand(new ImproveCommand(_serviceProvider));
     }
 
     /// <summary>
@@ -51,7 +57,7 @@ public class SelfCodingCommand : Command
             this.SetHandler(async (string[] targets, bool autoApply) =>
             {
                 var logger = _serviceProvider.GetRequiredService<ILogger<SelfCodingCommand>>();
-                var selfCodingWorkflow = _serviceProvider.GetRequiredService<SelfCodingWorkflow>();
+                var selfCodingWorkflow = _serviceProvider.GetRequiredService<SelfCodingWorkflowService>();
                 var consoleService = _serviceProvider.GetRequiredService<ConsoleService>();
 
                 try
@@ -104,7 +110,7 @@ public class SelfCodingCommand : Command
             this.SetHandler(async () =>
             {
                 var logger = _serviceProvider.GetRequiredService<ILogger<SelfCodingCommand>>();
-                var selfCodingWorkflow = _serviceProvider.GetRequiredService<SelfCodingWorkflow>();
+                var selfCodingWorkflow = _serviceProvider.GetRequiredService<SelfCodingWorkflowService>();
                 var consoleService = _serviceProvider.GetRequiredService<ConsoleService>();
 
                 try
@@ -149,7 +155,7 @@ public class SelfCodingCommand : Command
             this.SetHandler(() =>
             {
                 var logger = _serviceProvider.GetRequiredService<ILogger<SelfCodingCommand>>();
-                var selfCodingWorkflow = _serviceProvider.GetRequiredService<SelfCodingWorkflow>();
+                var selfCodingWorkflow = _serviceProvider.GetRequiredService<SelfCodingWorkflowService>();
                 var consoleService = _serviceProvider.GetRequiredService<ConsoleService>();
 
                 try
@@ -488,21 +494,21 @@ public class SelfCodingCommand : Command
                     // Clean up volume directories
                     try
                     {
-                        if (System.IO.Directory.Exists("docker/volumes/config"))
+                        if (Directory.Exists("docker/volumes/config"))
                         {
-                            System.IO.Directory.Delete("docker/volumes/config", true);
+                            Directory.Delete("docker/volumes/config", true);
                         }
-                        if (System.IO.Directory.Exists("docker/volumes/data"))
+                        if (Directory.Exists("docker/volumes/data"))
                         {
-                            System.IO.Directory.Delete("docker/volumes/data", true);
+                            Directory.Delete("docker/volumes/data", true);
                         }
-                        if (System.IO.Directory.Exists("docker/volumes/logs"))
+                        if (Directory.Exists("docker/volumes/logs"))
                         {
-                            System.IO.Directory.Delete("docker/volumes/logs", true);
+                            Directory.Delete("docker/volumes/logs", true);
                         }
-                        if (System.IO.Directory.Exists("docker/volumes/codebase"))
+                        if (Directory.Exists("docker/volumes/codebase"))
                         {
-                            System.IO.Directory.Delete("docker/volumes/codebase", true);
+                            Directory.Delete("docker/volumes/codebase", true);
                         }
                         consoleService.WriteSuccess("Volume directories cleaned up");
                     }
@@ -520,6 +526,141 @@ public class SelfCodingCommand : Command
                     consoleService.WriteError($"Error cleaning up self-coding environment: {ex.Message}");
                 }
             }, forceOption);
+        }
+    }
+
+    /// <summary>
+    /// Command to improve a specific file
+    /// </summary>
+    private class ImproveCommand : Command
+    {
+        private readonly IServiceProvider _serviceProvider;
+
+        public ImproveCommand(IServiceProvider serviceProvider) : base("improve", "Improve a specific file")
+        {
+            _serviceProvider = serviceProvider;
+
+            // Add arguments and options
+            var filePathArgument = new Argument<string>("file-path", "Path to the file to improve");
+            AddArgument(filePathArgument);
+
+            var modelOption = new Option<string>("--model", () => "llama3", "The model to use for auto-coding");
+            modelOption.AddAlias("-m");
+            AddOption(modelOption);
+
+            var autoApplyOption = new Option<bool>("--auto-apply", () => false, "Automatically apply the improvements");
+            autoApplyOption.AddAlias("-a");
+            AddOption(autoApplyOption);
+
+            this.SetHandler(async (string filePath, string model, bool autoApply) =>
+            {
+                var logger = _serviceProvider.GetRequiredService<ILogger<SelfCodingCommand>>();
+                var consoleService = _serviceProvider.GetRequiredService<ConsoleService>();
+                var fileProcessor = _serviceProvider.GetRequiredService<Services.SelfCoding.FileProcessor>();
+                var analysisProcessor = _serviceProvider.GetRequiredService<Services.SelfCoding.AnalysisProcessor>();
+                var codeGenerationProcessor = _serviceProvider.GetRequiredService<Services.SelfCoding.CodeGenerationProcessor>();
+                var testProcessor = _serviceProvider.GetRequiredService<Services.SelfCoding.TestProcessor>();
+
+                try
+                {
+                    // Display header
+                    consoleService.WriteHeader($"Auto-Coding File: {Path.GetFileName(filePath)}");
+                    consoleService.WriteInfo($"Model: {model}");
+                    consoleService.WriteInfo($"Auto-Apply: {autoApply}");
+                    Console.WriteLine();
+
+                    // Step 1: Read the file
+                    consoleService.WriteSubHeader("Step 1: Reading File");
+                    var fileContent = await fileProcessor.ReadFileAsync(filePath);
+                    if (fileContent == null)
+                    {
+                        consoleService.WriteError($"Failed to read file: {filePath}");
+                        return;
+                    }
+                    consoleService.WriteSuccess($"File read successfully: {filePath}");
+                    Console.WriteLine();
+
+                    // Step 2: Analyze the file
+                    consoleService.WriteSubHeader("Step 2: Analyzing File");
+                    var analysisResult = await analysisProcessor.AnalyzeFileAsync(filePath, fileContent);
+                    if (analysisResult == null)
+                    {
+                        consoleService.WriteError($"Failed to analyze file: {filePath}");
+                        return;
+                    }
+                    consoleService.WriteSuccess($"File analyzed successfully: {filePath}");
+                    consoleService.WriteInfo($"Issues found: {analysisResult.Issues.Count}");
+                    foreach (var issue in analysisResult.Issues)
+                    {
+                        consoleService.WriteInfo($"- {issue.Description}");
+                    }
+                    Console.WriteLine();
+
+                    // Step 3: Generate improved code
+                    consoleService.WriteSubHeader("Step 3: Generating Improved Code");
+                    var generationResult = await codeGenerationProcessor.GenerateCodeAsync(filePath, fileContent, analysisResult, model);
+                    if (generationResult == null)
+                    {
+                        consoleService.WriteError($"Failed to generate improved code for file: {filePath}");
+                        return;
+                    }
+                    consoleService.WriteSuccess($"Improved code generated successfully for file: {filePath}");
+                    Console.WriteLine();
+
+                    // Step 4: Apply the improvements if auto-apply is enabled
+                    if (autoApply)
+                    {
+                        consoleService.WriteSubHeader("Step 4: Applying Improvements");
+                        var applyResult = await fileProcessor.WriteFileAsync(filePath, generationResult.GeneratedContent);
+                        if (!applyResult)
+                        {
+                            consoleService.WriteError($"Failed to apply improvements to file: {filePath}");
+                            return;
+                        }
+                        consoleService.WriteSuccess($"Improvements applied successfully to file: {filePath}");
+                        Console.WriteLine();
+                    }
+                    else
+                    {
+                        consoleService.WriteSubHeader("Step 4: Improvements Not Applied");
+                        consoleService.WriteInfo("Auto-apply is disabled. Improvements were not applied.");
+                        consoleService.WriteInfo("To apply the improvements, run the command with the --auto-apply option.");
+                        Console.WriteLine();
+                    }
+
+                    // Step 5: Generate tests if auto-apply is enabled
+                    if (autoApply)
+                    {
+                        consoleService.WriteSubHeader("Step 5: Generating Tests");
+                        var testGenerationResult = await testProcessor.GenerateTestsForFileAsync(filePath);
+                        if (testGenerationResult == null)
+                        {
+                            consoleService.WriteWarning($"Failed to generate tests for file: {filePath}");
+                        }
+                        else
+                        {
+                            consoleService.WriteSuccess($"Tests generated successfully for file: {filePath}");
+                            consoleService.WriteInfo($"Test file: {testGenerationResult.TestFilePath}");
+                        }
+                        Console.WriteLine();
+                    }
+
+                    // Display summary
+                    consoleService.WriteHeader("Auto-Coding Complete");
+                    consoleService.WriteSuccess($"File: {filePath}");
+                    consoleService.WriteInfo($"Model: {model}");
+                    consoleService.WriteInfo($"Auto-Apply: {autoApply}");
+                    if (!autoApply)
+                    {
+                        consoleService.WriteInfo("To apply the improvements, run the command with the --auto-apply option.");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, $"Error auto-coding file: {filePath}");
+                    consoleService.WriteError($"Error auto-coding file: {ex.Message}");
+                }
+            }, filePathArgument, modelOption, autoApplyOption);
         }
     }
 }

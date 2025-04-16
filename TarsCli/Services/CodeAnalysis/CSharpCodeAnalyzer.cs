@@ -37,7 +37,7 @@ public class CSharpCodeAnalyzer : ICodeAnalyzer
         try
         {
             // Split the file content into lines for analysis
-            var lines = fileContent.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+            var lines = fileContent.Split(["\r\n", "\r", "\n"], StringSplitOptions.None);
 
             // Calculate basic metrics
             result.Metrics["LineCount"] = lines.Length;
@@ -88,7 +88,7 @@ public class CSharpCodeAnalyzer : ICodeAnalyzer
     /// <inheritdoc/>
     public IEnumerable<string> GetSupportedFileExtensions()
     {
-        return new[] { ".cs" };
+        return [".cs"];
     }
 
     /// <summary>
@@ -98,7 +98,7 @@ public class CSharpCodeAnalyzer : ICodeAnalyzer
     /// <param name="result">Analysis result</param>
     private async Task CheckMissingDocumentationAsync(string[] lines, CodeAnalysisResult result)
     {
-        for (int i = 0; i < lines.Length; i++)
+        for (var i = 0; i < lines.Length; i++)
         {
             var line = lines[i].Trim();
 
@@ -106,8 +106,8 @@ public class CSharpCodeAnalyzer : ICodeAnalyzer
             if (line.StartsWith("public ") || line.StartsWith("public virtual ") || line.StartsWith("public override "))
             {
                 // Check if the previous line has XML documentation
-                bool hasDocumentation = false;
-                for (int j = i - 1; j >= 0 && j >= i - 5; j--)
+                var hasDocumentation = false;
+                for (var j = i - 1; j >= 0 && j >= i - 5; j--)
                 {
                     if (lines[j].Trim().StartsWith("///"))
                     {
@@ -151,7 +151,7 @@ public class CSharpCodeAnalyzer : ICodeAnalyzer
 
         // Find all variable declarations
         var variables = new Dictionary<string, int>();
-        for (int i = 0; i < lines.Length; i++)
+        for (var i = 0; i < lines.Length; i++)
         {
             var matches = varDeclarationRegex.Matches(lines[i]);
             foreach (Match match in matches)
@@ -170,8 +170,8 @@ public class CSharpCodeAnalyzer : ICodeAnalyzer
             var varName = variable.Key;
             var lineNumber = variable.Value;
 
-            bool isUsed = false;
-            for (int i = 0; i < lines.Length; i++)
+            var isUsed = false;
+            for (var i = 0; i < lines.Length; i++)
             {
                 if (i == lineNumber)
                 {
@@ -213,11 +213,11 @@ public class CSharpCodeAnalyzer : ICodeAnalyzer
     {
         const int MaxMethodLength = 50; // Maximum acceptable method length
 
-        int methodStartLine = -1;
-        string methodName = string.Empty;
-        int braceCount = 0;
+        var methodStartLine = -1;
+        var methodName = string.Empty;
+        var braceCount = 0;
 
-        for (int i = 0; i < lines.Length; i++)
+        for (var i = 0; i < lines.Length; i++)
         {
             var line = lines[i].Trim();
 
@@ -244,7 +244,7 @@ public class CSharpCodeAnalyzer : ICodeAnalyzer
                 // Method end found
                 if (braceCount == 0 && line.Contains("}"))
                 {
-                    int methodLength = i - methodStartLine + 1;
+                    var methodLength = i - methodStartLine + 1;
                     if (methodLength > MaxMethodLength)
                     {
                         result.Issues.Add(new CodeIssue
@@ -278,14 +278,14 @@ public class CSharpCodeAnalyzer : ICodeAnalyzer
     {
         const int MaxConditionalsInLine = 3; // Maximum acceptable number of conditionals in a single line
 
-        for (int i = 0; i < lines.Length; i++)
+        for (var i = 0; i < lines.Length; i++)
         {
             var line = lines[i].Trim();
 
             // Count conditional operators
-            int andCount = Regex.Matches(line, @"&&").Count;
-            int orCount = Regex.Matches(line, @"\|\|").Count;
-            int totalConditionals = andCount + orCount;
+            var andCount = Regex.Matches(line, @"&&").Count;
+            var orCount = Regex.Matches(line, @"\|\|").Count;
+            var totalConditionals = andCount + orCount;
 
             if (totalConditionals > MaxConditionalsInLine)
             {
@@ -315,7 +315,7 @@ public class CSharpCodeAnalyzer : ICodeAnalyzer
         // Regex to find numeric literals that are not 0, 1, or -1
         var magicNumberRegex = new Regex(@"[^.\w](-?\d+)[^.\w]");
 
-        for (int i = 0; i < lines.Length; i++)
+        for (var i = 0; i < lines.Length; i++)
         {
             var line = lines[i].Trim();
 

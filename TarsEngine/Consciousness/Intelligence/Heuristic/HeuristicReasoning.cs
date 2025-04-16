@@ -251,7 +251,7 @@ public class HeuristicReasoning
             // Apply each rule
             foreach (var rule in rulesToApply)
             {
-                double applicability = CalculateRuleApplicability(situation, rule);
+                var applicability = CalculateRuleApplicability(situation, rule);
                 
                 // Apply heuristic reasoning level to the applicability
                 applicability *= _heuristicReasoningLevel;
@@ -296,7 +296,7 @@ public class HeuristicReasoning
     private double CalculateRuleApplicability(string situation, HeuristicRule rule)
     {
         // Check if any tags are present in the situation
-        int tagsPresent = 0;
+        var tagsPresent = 0;
         
         foreach (var tag in rule.Tags)
         {
@@ -307,18 +307,18 @@ public class HeuristicReasoning
         }
         
         // Calculate applicability based on percentage of tags present
-        double tagScore = rule.Tags.Count > 0
+        var tagScore = rule.Tags.Count > 0
             ? (double)tagsPresent / rule.Tags.Count
             : 0.0;
         
         // Check if the domain is mentioned in the situation
-        double domainScore = situation.Contains(rule.Context, StringComparison.OrdinalIgnoreCase) ? 0.3 : 0.0;
+        var domainScore = situation.Contains(rule.Context, StringComparison.OrdinalIgnoreCase) ? 0.3 : 0.0;
         
         // Add some randomness to simulate intuitive reasoning
-        double randomFactor = 0.2 * (_random.NextDouble() - 0.5);
+        var randomFactor = 0.2 * (_random.NextDouble() - 0.5);
         
         // Calculate final score
-        double score = (tagScore * 0.6) + (domainScore * 0.2) + (randomFactor * 0.2);
+        var score = (tagScore * 0.6) + (domainScore * 0.2) + (randomFactor * 0.2);
         
         // Ensure score is within bounds
         return Math.Max(0.0, Math.Min(1.0, score));
@@ -384,7 +384,7 @@ public class HeuristicReasoning
             var topApplication = applications.First();
             
             // Generate intuition description
-            string description = $"My intuition suggests applying the '{topApplication.Rule.Name}' principle here";
+            var description = $"My intuition suggests applying the '{topApplication.Rule.Name}' principle here";
             
             // Add explanation if confidence is high
             if (topApplication.Confidence > 0.7)
@@ -461,12 +461,12 @@ public class HeuristicReasoning
             
             foreach (var option in options)
             {
-                double score = 0.0;
+                var score = 0.0;
                 
                 // Apply each applicable rule to score the option
                 foreach (var application in applications)
                 {
-                    double ruleScore = ScoreOptionWithRule(option, application.Rule, application.Confidence);
+                    var ruleScore = ScoreOptionWithRule(option, application.Rule, application.Confidence);
                     score += ruleScore;
                 }
                 
@@ -484,7 +484,7 @@ public class HeuristicReasoning
             
             // Choose the option with the highest score
             var selectedOption = optionScores.OrderByDescending(kvp => kvp.Value).First().Key;
-            double confidence = optionScores[selectedOption];
+            var confidence = optionScores[selectedOption];
             
             // Create decision result
             var result = new DecisionResult
@@ -530,7 +530,7 @@ public class HeuristicReasoning
     /// <returns>The score (0.0 to 1.0)</returns>
     private double ScoreOptionWithRule(string option, HeuristicRule rule, double ruleConfidence)
     {
-        double score = 0.5; // Default neutral score
+        var score = 0.5; // Default neutral score
         
         // Check if option contains any rule tags
         foreach (var tag in rule.Tags)

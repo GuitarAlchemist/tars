@@ -45,7 +45,7 @@ public class DocumentationKnowledgeService
             Environment.SetEnvironmentVariable("TARS_MAX_FILES_TO_PROCESS", maxFiles.ToString());
 
             // Run the metascript
-            string metascriptPath = Path.Combine("Examples", "metascripts", "documentation_knowledge_extraction.tars");
+            var metascriptPath = Path.Combine("Examples", "metascripts", "documentation_knowledge_extraction.tars");
             if (!File.Exists(metascriptPath))
             {
                 _consoleService.WriteError($"Metascript not found: {metascriptPath}");
@@ -53,7 +53,7 @@ public class DocumentationKnowledgeService
             }
 
             _consoleService.WriteInfo($"Running metascript: {metascriptPath}");
-            int result = await _dslService.RunDslFileAsync(metascriptPath, true);
+            var result = await _dslService.RunDslFileAsync(metascriptPath, true);
 
             if (result == 0)
             {
@@ -92,7 +92,7 @@ public class DocumentationKnowledgeService
             }
 
             // Read the retroaction patterns
-            string patternsJson = await File.ReadAllTextAsync(_retroactionPatternsFile);
+            var patternsJson = await File.ReadAllTextAsync(_retroactionPatternsFile);
             var patterns = JsonSerializer.Deserialize<List<JsonElement>>(patternsJson);
 
             if (patterns == null || patterns.Count == 0)
@@ -101,18 +101,18 @@ public class DocumentationKnowledgeService
                 return 0;
             }
 
-            int importedCount = 0;
+            var importedCount = 0;
 
             // Import each pattern
             foreach (var patternElement in patterns)
             {
                 try
                 {
-                    string name = patternElement.GetProperty("name").GetString() ?? "Unnamed Pattern";
-                    string description = patternElement.GetProperty("description").GetString() ?? "";
-                    string pattern = patternElement.GetProperty("pattern").GetString() ?? "";
-                    string replacement = patternElement.GetProperty("replacement").GetString() ?? "";
-                    string context = patternElement.GetProperty("context").GetString() ?? "CSharp";
+                    var name = patternElement.GetProperty("name").GetString() ?? "Unnamed Pattern";
+                    var description = patternElement.GetProperty("description").GetString() ?? "";
+                    var pattern = patternElement.GetProperty("pattern").GetString() ?? "";
+                    var replacement = patternElement.GetProperty("replacement").GetString() ?? "";
+                    var context = patternElement.GetProperty("context").GetString() ?? "CSharp";
 
                     // Skip invalid patterns
                     if (string.IsNullOrWhiteSpace(pattern) || string.IsNullOrWhiteSpace(replacement))
@@ -121,7 +121,7 @@ public class DocumentationKnowledgeService
                     }
 
                     // Create the pattern in the RetroactionLoop
-                    bool success = await _retroactionLoopService.CreatePatternAsync(name, description, pattern, replacement, context);
+                    var success = await _retroactionLoopService.CreatePatternAsync(name, description, pattern, replacement, context);
                     if (success)
                     {
                         importedCount++;
@@ -169,16 +169,16 @@ public class DocumentationKnowledgeService
             }
 
             // Read the knowledge base
-            string kbJson = await File.ReadAllTextAsync(_knowledgeBaseFile);
+            var kbJson = await File.ReadAllTextAsync(_knowledgeBaseFile);
             var kb = JsonSerializer.Deserialize<JsonElement>(kbJson);
 
             // Extract statistics
-            int patterns = kb.GetProperty("patterns").GetArrayLength();
-            int bestPractices = kb.GetProperty("best_practices").GetArrayLength();
-            int codeExamples = kb.GetProperty("code_examples").GetArrayLength();
-            int improvementStrategies = kb.GetProperty("improvement_strategies").GetArrayLength();
-            int architectureInsights = kb.GetProperty("architecture_insights").GetArrayLength();
-            string lastUpdated = kb.GetProperty("last_updated").GetString() ?? DateTime.MinValue.ToString();
+            var patterns = kb.GetProperty("patterns").GetArrayLength();
+            var bestPractices = kb.GetProperty("best_practices").GetArrayLength();
+            var codeExamples = kb.GetProperty("code_examples").GetArrayLength();
+            var improvementStrategies = kb.GetProperty("improvement_strategies").GetArrayLength();
+            var architectureInsights = kb.GetProperty("architecture_insights").GetArrayLength();
+            var lastUpdated = kb.GetProperty("last_updated").GetString() ?? DateTime.MinValue.ToString();
 
             return new
             {
@@ -216,7 +216,7 @@ public class DocumentationKnowledgeService
             _consoleService.WriteInfo("Running full knowledge integration process...");
 
             // Step 1: Extract knowledge from documentation
-            bool extractionSuccess = await ExtractKnowledgeAsync(maxFiles);
+            var extractionSuccess = await ExtractKnowledgeAsync(maxFiles);
             if (!extractionSuccess)
             {
                 _consoleService.WriteError("Knowledge extraction failed");
@@ -224,7 +224,7 @@ public class DocumentationKnowledgeService
             }
 
             // Step 2: Import patterns to RetroactionLoop
-            int importedCount = await ImportPatternsToRetroactionLoopAsync();
+            var importedCount = await ImportPatternsToRetroactionLoopAsync();
             if (importedCount == 0)
             {
                 _consoleService.WriteWarning("No patterns were imported to RetroactionLoop");

@@ -117,6 +117,66 @@ public class AnalysisProcessor
     }
 
     /// <summary>
+    /// Analyzes a file for improvement opportunities
+    /// </summary>
+    /// <param name="filePath">Path to the file to analyze</param>
+    /// <param name="fileContent">Content of the file</param>
+    /// <returns>Analysis result</returns>
+    public async Task<CodeAnalysisResult> AnalyzeFileAsync(string filePath, string fileContent)
+    {
+        _logger.LogInformation($"Analyzing file content: {filePath}");
+
+        try
+        {
+            // Validate parameters
+            if (string.IsNullOrEmpty(filePath))
+            {
+                throw new ArgumentException("File path is required", nameof(filePath));
+            }
+
+            if (string.IsNullOrEmpty(fileContent))
+            {
+                throw new ArgumentException("File content is required", nameof(fileContent));
+            }
+
+            // Create a temporary file with the content and proper extension
+            var fileExtension = Path.GetExtension(filePath);
+            var tempFilePath = Path.Combine(Path.GetTempPath(), $"{Path.GetFileNameWithoutExtension(Path.GetTempFileName())}{fileExtension}");
+            await File.WriteAllTextAsync(tempFilePath, fileContent);
+
+            try
+            {
+                // Analyze the temporary file
+                var analysisResult = await _codeAnalyzerService.AnalyzeFileAsync(tempFilePath);
+                if (analysisResult == null)
+                {
+                    _logger.LogWarning($"Failed to analyze file content: {filePath}");
+                    return null;
+                }
+
+                // Update the file path in the result
+                analysisResult.FilePath = filePath;
+
+                _logger.LogInformation($"Analyzed file content: {filePath}, Found {analysisResult.Issues.Count} issues");
+                return analysisResult;
+            }
+            finally
+            {
+                // Delete the temporary file
+                if (File.Exists(tempFilePath))
+                {
+                    File.Delete(tempFilePath);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error analyzing file content: {filePath}");
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Analyzes a file using an analyzer replica
     /// </summary>
     /// <param name="filePath">Path to the file to analyze</param>

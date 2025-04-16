@@ -65,7 +65,7 @@ public class ReadabilityAnalyzer : IReadabilityAnalyzer
         catch (Exception ex)
         {
             _logger.LogError(ex, $"Error analyzing identifier quality for {filePath}");
-            return new List<ReadabilityMetric>();
+            return [];
         }
     }
 
@@ -95,7 +95,7 @@ public class ReadabilityAnalyzer : IReadabilityAnalyzer
             };
 
             // Count comment lines
-            int commentLines = CountCommentLines(content, language);
+            var commentLines = CountCommentLines(content, language);
 
             if (lines.Length > 0)
             {
@@ -109,7 +109,7 @@ public class ReadabilityAnalyzer : IReadabilityAnalyzer
         catch (Exception ex)
         {
             _logger.LogError(ex, $"Error analyzing comment quality for {filePath}");
-            return new List<ReadabilityMetric>();
+            return [];
         }
     }
 
@@ -158,7 +158,7 @@ public class ReadabilityAnalyzer : IReadabilityAnalyzer
         catch (Exception ex)
         {
             _logger.LogError(ex, $"Error analyzing code structure for {filePath}");
-            return new List<ReadabilityMetric>();
+            return [];
         }
     }
 
@@ -219,7 +219,7 @@ public class ReadabilityAnalyzer : IReadabilityAnalyzer
         catch (Exception ex)
         {
             _logger.LogError(ex, $"Error analyzing overall readability for {filePath}");
-            return new List<ReadabilityMetric>();
+            return [];
         }
     }
 
@@ -246,7 +246,7 @@ public class ReadabilityAnalyzer : IReadabilityAnalyzer
         catch (Exception ex)
         {
             _logger.LogError(ex, $"Error analyzing all readability metrics for {filePath}");
-            return new List<ReadabilityMetric>();
+            return [];
         }
     }
 
@@ -302,7 +302,7 @@ public class ReadabilityAnalyzer : IReadabilityAnalyzer
         catch (Exception ex)
         {
             _logger.LogError(ex, $"Error analyzing project readability for {projectPath}");
-            return new List<ReadabilityMetric>();
+            return [];
         }
     }
 
@@ -339,7 +339,7 @@ public class ReadabilityAnalyzer : IReadabilityAnalyzer
     {
         // This is a simplified implementation
         // In a real implementation, this would use a parser to extract identifiers
-        return new List<string> { "example", "identifier" };
+        return ["example", "identifier"];
     }
 
     /// <summary>

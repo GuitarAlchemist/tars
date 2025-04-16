@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using TarsEngine.Monads;
 
 namespace TarsEngine.Consciousness.Intelligence;
 
@@ -64,7 +65,7 @@ public class IntuitiveReasoning
     /// Initializes the intuitive reasoning
     /// </summary>
     /// <returns>True if initialization was successful</returns>
-    public async Task<bool> InitializeAsync()
+    public Task<bool> InitializeAsync()
     {
         try
         {
@@ -78,12 +79,12 @@ public class IntuitiveReasoning
 
             _isInitialized = true;
             _logger.LogInformation("Intuitive reasoning initialized successfully");
-            return true;
+            return AsyncMonad.Return(true);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error initializing intuitive reasoning");
-            return false;
+            return AsyncMonad.Return(false);
         }
     }
 
@@ -174,18 +175,18 @@ public class IntuitiveReasoning
     /// Activates the intuitive reasoning
     /// </summary>
     /// <returns>True if activation was successful</returns>
-    public async Task<bool> ActivateAsync()
+    public Task<bool> ActivateAsync()
     {
         if (!_isInitialized)
         {
             _logger.LogWarning("Cannot activate intuitive reasoning: not initialized");
-            return false;
+            return AsyncMonad.Return(false);
         }
 
         if (_isActive)
         {
             _logger.LogInformation("Intuitive reasoning is already active");
-            return true;
+            return AsyncMonad.Return(true);
         }
 
         try
@@ -194,12 +195,12 @@ public class IntuitiveReasoning
 
             _isActive = true;
             _logger.LogInformation("Intuitive reasoning activated successfully");
-            return true;
+            return AsyncMonad.Return(true);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error activating intuitive reasoning");
-            return false;
+            return AsyncMonad.Return(false);
         }
     }
 
@@ -207,12 +208,12 @@ public class IntuitiveReasoning
     /// Deactivates the intuitive reasoning
     /// </summary>
     /// <returns>True if deactivation was successful</returns>
-    public async Task<bool> DeactivateAsync()
+    public Task<bool> DeactivateAsync()
     {
         if (!_isActive)
         {
             _logger.LogInformation("Intuitive reasoning is already inactive");
-            return true;
+            return AsyncMonad.Return(true);
         }
 
         try
@@ -221,12 +222,12 @@ public class IntuitiveReasoning
 
             _isActive = false;
             _logger.LogInformation("Intuitive reasoning deactivated successfully");
-            return true;
+            return AsyncMonad.Return(true);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deactivating intuitive reasoning");
-            return false;
+            return AsyncMonad.Return(false);
         }
     }
 
@@ -234,12 +235,12 @@ public class IntuitiveReasoning
     /// Updates the intuitive reasoning
     /// </summary>
     /// <returns>True if update was successful</returns>
-    public async Task<bool> UpdateAsync()
+    public Task<bool> UpdateAsync()
     {
         if (!_isInitialized)
         {
             _logger.LogWarning("Cannot update intuitive reasoning: not initialized");
-            return false;
+            return AsyncMonad.Return(false);
         }
 
         try
@@ -269,12 +270,12 @@ public class IntuitiveReasoning
                 _gutFeelingLevel = Math.Min(_gutFeelingLevel, 1.0);
             }
 
-            return true;
+            return AsyncMonad.Return(true);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating intuitive reasoning");
-            return false;
+            return AsyncMonad.Return(false);
         }
     }
 
@@ -282,17 +283,17 @@ public class IntuitiveReasoning
     /// Generates an intuition
     /// </summary>
     /// <returns>The generated intuition</returns>
-    public async Task<Intuition?> GenerateIntuitionAsync()
+    public Task<Intuition?> GenerateIntuitionAsync()
     {
         if (!_isInitialized || !_isActive)
         {
-            return null;
+            return AsyncMonad.Return<Intuition?>(null);
         }
 
         // Only generate intuitions periodically
         if ((DateTime.UtcNow - _lastIntuitionTime).TotalSeconds < 30)
         {
-            return null;
+            return AsyncMonad.Return<Intuition?>(null);
         }
 
         try
@@ -316,12 +317,12 @@ public class IntuitiveReasoning
                     intuition.Description, intuition.Confidence, intuition.Type);
             }
 
-            return intuition;
+            return AsyncMonad.Return(intuition);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error generating intuition");
-            return null;
+            return AsyncMonad.Return<Intuition?>(null);
         }
     }
 
@@ -332,18 +333,18 @@ public class IntuitiveReasoning
     private IntuitionType ChooseIntuitionType()
     {
         // Calculate probabilities based on current levels
-        double patternProb = _patternRecognitionLevel * 0.4;
-        double heuristicProb = _heuristicReasoningLevel * 0.3;
-        double gutProb = _gutFeelingLevel * 0.3;
+        var patternProb = _patternRecognitionLevel * 0.4;
+        var heuristicProb = _heuristicReasoningLevel * 0.3;
+        var gutProb = _gutFeelingLevel * 0.3;
 
         // Normalize probabilities
-        double total = patternProb + heuristicProb + gutProb;
+        var total = patternProb + heuristicProb + gutProb;
         patternProb /= total;
         heuristicProb /= total;
         gutProb /= total;
 
         // Choose type based on probabilities
-        double rand = _random.NextDouble();
+        var rand = _random.NextDouble();
 
         if (rand < patternProb)
         {
@@ -404,7 +405,7 @@ public class IntuitiveReasoning
         var description = intuitionDescriptions[_random.Next(intuitionDescriptions.Count)];
 
         // Calculate confidence based on pattern confidence and pattern recognition level
-        double confidence = _patternConfidence[pattern] * _patternRecognitionLevel;
+        var confidence = _patternConfidence[pattern] * _patternRecognitionLevel;
 
         // Add some randomness to confidence
         confidence = Math.Max(0.1, Math.Min(0.9, confidence + (0.2 * (_random.NextDouble() - 0.5))));
@@ -442,7 +443,7 @@ public class IntuitiveReasoning
         var description = intuitionDescriptions[_random.Next(intuitionDescriptions.Count)];
 
         // Calculate confidence based on rule reliability and heuristic reasoning level
-        double confidence = rule.Reliability * _heuristicReasoningLevel;
+        var confidence = rule.Reliability * _heuristicReasoningLevel;
 
         // Add some randomness to confidence
         confidence = Math.Max(0.1, Math.Min(0.9, confidence + (0.2 * (_random.NextDouble() - 0.5))));
@@ -479,7 +480,7 @@ public class IntuitiveReasoning
         var description = intuitionDescriptions[_random.Next(intuitionDescriptions.Count)];
 
         // Calculate confidence based on gut feeling level
-        double confidence = 0.3 + (0.6 * _gutFeelingLevel * _random.NextDouble());
+        var confidence = 0.3 + (0.6 * _gutFeelingLevel * _random.NextDouble());
 
         return new Intuition
         {
@@ -507,18 +508,18 @@ public class IntuitiveReasoning
     /// <param name="decision">The decision description</param>
     /// <param name="options">The options</param>
     /// <returns>The intuitive decision</returns>
-    public async Task<Intuition?> MakeIntuitiveDecisionAsync(string decision, List<string> options)
+    public Task<Intuition?> MakeIntuitiveDecisionAsync(string decision, List<string> options)
     {
         if (!_isInitialized || !_isActive)
         {
             _logger.LogWarning("Cannot make intuitive decision: intuitive reasoning not initialized or active");
-            return null;
+            return AsyncMonad.Return<Intuition?>(null);
         }
 
         if (options == null || options.Count == 0)
         {
             _logger.LogWarning("Cannot make intuitive decision: no options provided");
-            return null;
+            return AsyncMonad.Return<Intuition?>(null);
         }
 
         try
@@ -533,7 +534,7 @@ public class IntuitiveReasoning
 
             foreach (var option in options)
             {
-                double score = CalculateOptionScore(option, intuitionType);
+                var score = CalculateOptionScore(option, intuitionType);
                 optionScores[option] = score;
             }
 
@@ -541,12 +542,12 @@ public class IntuitiveReasoning
             var selectedOption = optionScores.OrderByDescending(o => o.Value).First().Key;
 
             // Calculate confidence based on score difference
-            double maxScore = optionScores[selectedOption];
-            double avgOtherScores = optionScores.Where(o => o.Key != selectedOption).Select(o => o.Value).DefaultIfEmpty(0).Average();
-            double scoreDifference = maxScore - avgOtherScores;
+            var maxScore = optionScores[selectedOption];
+            var avgOtherScores = optionScores.Where(o => o.Key != selectedOption).Select(o => o.Value).DefaultIfEmpty(0).Average();
+            var scoreDifference = maxScore - avgOtherScores;
 
             // Confidence based on score difference and intuition level
-            double confidence = Math.Min(0.9, 0.5 + (scoreDifference * 2.0) * _intuitionLevel);
+            var confidence = Math.Min(0.9, 0.5 + (scoreDifference * 2.0) * _intuitionLevel);
 
             // Create intuition
             var intuition = new Intuition
@@ -571,12 +572,12 @@ public class IntuitiveReasoning
             _logger.LogInformation("Made intuitive decision: {SelectedOption} for {Decision} (Confidence: {Confidence:F2})",
                 selectedOption, decision, confidence);
 
-            return intuition;
+            return AsyncMonad.Return<Intuition?>(intuition);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error making intuitive decision");
-            return null;
+            return AsyncMonad.Return<Intuition?>(null);
         }
     }
 
@@ -588,7 +589,7 @@ public class IntuitiveReasoning
     /// <returns>The option score</returns>
     private double CalculateOptionScore(string option, IntuitionType intuitionType)
     {
-        double baseScore = 0.5;
+        var baseScore = 0.5;
 
         switch (intuitionType)
         {

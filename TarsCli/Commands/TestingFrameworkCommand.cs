@@ -90,21 +90,21 @@ public class TestingFrameworkCommand : TarsCommand
             var logger = _serviceProvider.GetRequiredService<ILogger<TestingFrameworkCommand>>();
 
             // Resolve the project path
-            string projectPath = ResolveProjectPath(file, project);
+            var projectPath = ResolveProjectPath(file, project);
 
             // Generate tests
             logger.LogInformation("Generating tests for file: {File} in project: {Project} with framework: {Framework}", file, projectPath, framework);
             var testCode = await testGenerationService.GenerateTestsForFileAsync(file, projectPath, framework);
 
             // Determine the output file path
-            string fileName = Path.GetFileNameWithoutExtension(file);
-            string testFileName = $"{fileName}Tests.cs";
-            string testDirectory = Path.Combine(projectPath, "Tests");
+            var fileName = Path.GetFileNameWithoutExtension(file);
+            var testFileName = $"{fileName}Tests.cs";
+            var testDirectory = Path.Combine(projectPath, "Tests");
             if (!Directory.Exists(testDirectory))
             {
                 Directory.CreateDirectory(testDirectory);
             }
-            string testFilePath = Path.Combine(testDirectory, testFileName);
+            var testFilePath = Path.Combine(testDirectory, testFileName);
 
             // Write the test code to the file
             await File.WriteAllTextAsync(testFilePath, testCode);
@@ -136,7 +136,7 @@ public class TestingFrameworkCommand : TarsCommand
             var logger = _serviceProvider.GetRequiredService<ILogger<TestingFrameworkCommand>>();
 
             // Resolve the project path
-            string projectPath = ResolveProjectPath(codeFile, project);
+            var projectPath = ResolveProjectPath(codeFile, project);
 
             // Run the tests
             logger.LogInformation("Running tests for file: {CodeFile} with test file: {TestFile} in project: {Project}", codeFile, testFile, projectPath);
@@ -200,7 +200,7 @@ public class TestingFrameworkCommand : TarsCommand
             var logger = _serviceProvider.GetRequiredService<ILogger<TestingFrameworkCommand>>();
 
             // Determine the language
-            string lang = language ?? GetLanguageFromExtension(Path.GetExtension(file));
+            var lang = language ?? GetLanguageFromExtension(Path.GetExtension(file));
 
             // Analyze code quality
             logger.LogInformation("Analyzing code quality for file: {File} with language: {Language}", file, lang);
@@ -219,7 +219,7 @@ public class TestingFrameworkCommand : TarsCommand
                 _consoleService.WriteColorLine("Issues:", ConsoleColor.Yellow);
                 foreach (var issue in qualityResult.Issues)
                 {
-                    ConsoleColor color = ConsoleColor.White;
+                    var color = ConsoleColor.White;
                     if (issue.Severity.ToString() == "Info")
                         color = ConsoleColor.Blue;
                     else if (issue.Severity.ToString() == "Warning")
@@ -287,7 +287,7 @@ public class TestingFrameworkCommand : TarsCommand
             var logger = _serviceProvider.GetRequiredService<ILogger<TestingFrameworkCommand>>();
 
             // Determine the language
-            string lang = language ?? GetLanguageFromExtension(Path.GetExtension(file));
+            var lang = language ?? GetLanguageFromExtension(Path.GetExtension(file));
 
             // Analyze code complexity
             logger.LogInformation("Analyzing code complexity for file: {File} with language: {Language} and threshold: {Threshold}", file, lang, threshold);
@@ -391,7 +391,7 @@ public class TestingFrameworkCommand : TarsCommand
             var logger = _serviceProvider.GetRequiredService<ILogger<TestingFrameworkCommand>>();
 
             // Determine the language
-            string lang = language ?? GetLanguageFromExtension(Path.GetExtension(file));
+            var lang = language ?? GetLanguageFromExtension(Path.GetExtension(file));
 
             // Analyze code readability
             logger.LogInformation("Analyzing code readability for file: {File} with language: {Language}", file, lang);
@@ -478,7 +478,7 @@ public class TestingFrameworkCommand : TarsCommand
         }
 
         // Try to find the project file in the same directory as the file
-        string directory = Path.GetDirectoryName(filePath) ?? string.Empty;
+        var directory = Path.GetDirectoryName(filePath) ?? string.Empty;
         string[] projectFiles = Directory.GetFiles(directory, "*.csproj");
         if (projectFiles.Length > 0)
         {
@@ -486,7 +486,7 @@ public class TestingFrameworkCommand : TarsCommand
         }
 
         // Try to find the project file in the parent directory
-        string? parentDirectory = Path.GetDirectoryName(directory);
+        var parentDirectory = Path.GetDirectoryName(directory);
         if (!string.IsNullOrEmpty(parentDirectory))
         {
             projectFiles = Directory.GetFiles(parentDirectory, "*.csproj");

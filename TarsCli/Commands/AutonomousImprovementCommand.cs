@@ -102,7 +102,7 @@ public class AutonomousImprovementCommand : Command
                 }
 
                 // Start the workflow
-                bool success = await _autonomousImprovementService.StartWorkflowAsync(name, directories, maxDuration, maxImprovements);
+                var success = await _autonomousImprovementService.StartWorkflowAsync(name, directories, maxDuration, maxImprovements);
                 if (success)
                 {
                     _consoleService.WriteSuccess($"Started workflow: {name}");
@@ -113,7 +113,7 @@ public class AutonomousImprovementCommand : Command
             // Stop the workflow
             else if (stop)
             {
-                bool success = _autonomousImprovementService.StopWorkflow();
+                var success = _autonomousImprovementService.StopWorkflow();
                 if (success)
                 {
                     _consoleService.WriteSuccess("Workflow stop requested");

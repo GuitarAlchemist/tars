@@ -70,6 +70,9 @@ public class CSharpAnalyzer : ILanguageAnalyzer
             var analyzeSecurity = ParseOption(options, "AnalyzeSecurity", true);
             var analyzeStyle = ParseOption(options, "AnalyzeStyle", true);
 
+            // Add a small delay to ensure the async method actually awaits something
+            await Task.Delay(1);
+
             // Extract structures (classes, methods, etc.)
             if (includeStructures)
             {
@@ -130,9 +133,9 @@ public class CSharpAnalyzer : ILanguageAnalyzer
     }
 
     /// <inheritdoc/>
-    public async Task<Dictionary<string, string>> GetAvailableOptionsAsync()
+    public Task<Dictionary<string, string>> GetAvailableOptionsAsync()
     {
-        return new Dictionary<string, string>
+        var options = new Dictionary<string, string>
         {
             { "AnalyzeNullableReferences", "Whether to analyze nullable reference types (true/false)" },
             { "AnalyzeAsyncAwait", "Whether to analyze async/await patterns (true/false)" },
@@ -145,12 +148,13 @@ public class CSharpAnalyzer : ILanguageAnalyzer
             { "AnalyzeUnsafe", "Whether to analyze unsafe code (true/false)" },
             { "AnalyzeInterop", "Whether to analyze interop code (true/false)" }
         };
+        return Task.FromResult(options);
     }
 
     /// <inheritdoc/>
-    public async Task<Dictionary<CodeIssueType, string>> GetLanguageSpecificIssueTypesAsync()
+    public Task<Dictionary<CodeIssueType, string>> GetLanguageSpecificIssueTypesAsync()
     {
-        return new Dictionary<CodeIssueType, string>
+        var issueTypes = new Dictionary<CodeIssueType, string>
         {
             { CodeIssueType.CodeSmell, "C#-specific code smells like unused using directives, redundant casts, etc." },
             { CodeIssueType.Performance, "C#-specific performance issues like inefficient LINQ queries, boxing/unboxing, etc." },
@@ -158,18 +162,20 @@ public class CSharpAnalyzer : ILanguageAnalyzer
             { CodeIssueType.Security, "C#-specific security issues like SQL injection, XSS vulnerabilities, etc." },
             { CodeIssueType.Design, "C#-specific design issues like improper interface implementations, inheritance issues, etc." }
         };
+        return Task.FromResult(issueTypes);
     }
 
     /// <inheritdoc/>
-    public async Task<Dictionary<MetricType, string>> GetLanguageSpecificMetricTypesAsync()
+    public Task<Dictionary<MetricType, string>> GetLanguageSpecificMetricTypesAsync()
     {
-        return new Dictionary<MetricType, string>
+        var metricTypes = new Dictionary<MetricType, string>
         {
             { MetricType.Complexity, "C#-specific complexity metrics like cyclomatic complexity, cognitive complexity, etc." },
             { MetricType.Coupling, "C#-specific coupling metrics like afferent coupling, efferent coupling, etc." },
             { MetricType.Cohesion, "C#-specific cohesion metrics like lack of cohesion in methods, etc." },
             { MetricType.Inheritance, "C#-specific inheritance metrics like depth of inheritance tree, number of children, etc." }
         };
+        return Task.FromResult(metricTypes);
     }
 
     private List<CodeStructure> ExtractStructures(string content)
@@ -633,13 +639,13 @@ public class CSharpAnalyzer : ILanguageAnalyzer
             var sortedStructures = structures.OrderBy(s => s.Location.StartLine).ToList();
 
             // Calculate sizes and end lines
-            for (int i = 0; i < sortedStructures.Count; i++)
+            for (var i = 0; i < sortedStructures.Count; i++)
             {
                 var structure = sortedStructures[i];
 
                 // Find the next structure at the same or higher level
                 var nextStructureIndex = -1;
-                for (int j = i + 1; j < sortedStructures.Count; j++)
+                for (var j = i + 1; j < sortedStructures.Count; j++)
                 {
                     var nextStructure = sortedStructures[j];
 

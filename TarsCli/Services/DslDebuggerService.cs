@@ -149,7 +149,7 @@ public class DslDebuggerService
             }
 
             // Read the file
-            string code = await File.ReadAllTextAsync(filePath);
+            var code = await File.ReadAllTextAsync(filePath);
 
             // Parse the DSL
             var program = Parser.parse(code);

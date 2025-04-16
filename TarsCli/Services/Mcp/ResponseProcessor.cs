@@ -180,7 +180,7 @@ public class ResponseProcessor
             : null;
 
         // Calculate the diff size
-        int diffSize = 0;
+        var diffSize = 0;
         if (!string.IsNullOrEmpty(originalContent) && !string.IsNullOrEmpty(generatedContent))
         {
             diffSize = Math.Abs(generatedContent.Length - originalContent.Length);
@@ -264,7 +264,7 @@ public class ResponseProcessor
             : 0;
 
         // Calculate the success rate
-        double successRate = totalCount > 0 ? (double)passedCount / totalCount * 100 : 0;
+        var successRate = totalCount > 0 ? (double)passedCount / totalCount * 100 : 0;
 
         // Create a summary
         var summary = new

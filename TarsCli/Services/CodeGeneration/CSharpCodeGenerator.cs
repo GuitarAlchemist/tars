@@ -36,7 +36,7 @@ public class CSharpCodeGenerator : ICodeGenerator
         try
         {
             // Split the file content into lines for processing
-            var lines = originalContent.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+            var lines = originalContent.Split(["\r\n", "\r", "\n"], StringSplitOptions.None);
             var newLines = new string[lines.Length];
             Array.Copy(lines, newLines, lines.Length);
 
@@ -127,7 +127,7 @@ public class CSharpCodeGenerator : ICodeGenerator
     /// <inheritdoc/>
     public IEnumerable<string> GetSupportedFileExtensions()
     {
-        return new[] { ".cs" };
+        return [".cs"];
     }
 
     /// <summary>
@@ -143,8 +143,8 @@ public class CSharpCodeGenerator : ICodeGenerator
         var line = lines[lineIndex];
 
         // Extract the member name
-        string memberName = ExtractMemberName(line);
-        string memberType = DetermineMemberType(line);
+        var memberName = ExtractMemberName(line);
+        var memberType = DetermineMemberType(line);
 
         // Create the documentation
         var docLines = new List<string>
@@ -641,7 +641,7 @@ public class CSharpCodeGenerator : ICodeGenerator
     /// <returns>Index of the class declaration, or -1 if not found</returns>
     private int FindClassDeclaration(string[] lines)
     {
-        for (int i = 0; i < lines.Length; i++)
+        for (var i = 0; i < lines.Length; i++)
         {
             if (Regex.IsMatch(lines[i], @"(?:public|private|protected|internal)\s+(?:static\s+)?(?:abstract\s+)?class\s+[a-zA-Z0-9_]+"))
             {
@@ -658,7 +658,7 @@ public class CSharpCodeGenerator : ICodeGenerator
     /// <returns>Index of the last closing brace, or -1 if not found</returns>
     private int FindLastClosingBrace(string[] lines)
     {
-        for (int i = lines.Length - 1; i >= 0; i--)
+        for (var i = lines.Length - 1; i >= 0; i--)
         {
             if (lines[i].Trim() == "}")
             {

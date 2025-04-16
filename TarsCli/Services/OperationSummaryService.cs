@@ -9,7 +9,7 @@ public class OperationSummaryService
 {
     private readonly ILogger<OperationSummaryService> _logger;
     private readonly string _summaryDirectory;
-    private readonly List<OperationRecord> _operations = new();
+    private readonly List<OperationRecord> _operations = [];
 
     /// <summary>
     /// Initializes a new instance of the <see cref="OperationSummaryService"/> class
@@ -96,13 +96,13 @@ public class OperationSummaryService
     {
         // Format the prompt and response for better readability
         // Show more of the prompt (up to 100 chars)
-        string promptSummary = prompt.Length > 100 ? prompt.Substring(0, 97) + "..." : prompt;
+        var promptSummary = prompt.Length > 100 ? prompt.Substring(0, 97) + "..." : prompt;
 
         // Get the first several lines of the response (up to 15 lines, 1000 chars max)
-        string responseSummary = GetResponseSummary(response, 15, 1000);
+        var responseSummary = GetResponseSummary(response, 15, 1000);
 
         // Create a detailed description
-        string description = $"Prompt: {promptSummary}\n\nResponse Summary: {responseSummary}";
+        var description = $"Prompt: {promptSummary}\n\nResponse Summary: {responseSummary}";
 
         // Add duration if available
         if (durationMs > 0)
@@ -142,7 +142,7 @@ public class OperationSummaryService
         }
 
         // Split the response into lines
-        var lines = response.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+        var lines = response.Split(['\n', '\r'], StringSplitOptions.RemoveEmptyEntries);
 
         // Take only the first few lines
         var limitedLines = lines.Take(maxLines).ToList();
@@ -198,7 +198,7 @@ public class OperationSummaryService
                 sb.AppendLine($"- {operation.Timestamp:HH:mm:ss} | {operation.Path}");
 
                 // Format the description with proper indentation
-                var descriptionLines = operation.Description.Split(new[] { '\n' }, StringSplitOptions.None);
+                var descriptionLines = operation.Description.Split(['\n'], StringSplitOptions.None);
                 foreach (var line in descriptionLines)
                 {
                     sb.AppendLine($"  {line}");

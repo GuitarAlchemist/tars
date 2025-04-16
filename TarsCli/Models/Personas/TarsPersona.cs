@@ -54,7 +54,7 @@ public class TarsPersona : PersonaBase
                 "\n\nDon't worry, I'm programmed to sound confident even when I'm not."
             ];
 
-            int index = new Random().Next(humorousAdditions.Length);
+            var index = new Random().Next(humorousAdditions.Length);
             return response + humorousAdditions[index];
         }
 

@@ -53,9 +53,9 @@ public class PureEmotionalState : PureState<PureEmotionalState>
     public PureEmotionalState()
     {
         _emotions = new Dictionary<string, Emotion>();
-        _emotionalHistory = new List<EmotionalExperience>();
-        _emotionalTraits = new List<EmotionalTrait>();
-        _regulations = new List<EmotionalRegulation>();
+        _emotionalHistory = [];
+        _emotionalTraits = [];
+        _regulations = [];
         _isInitialized = false;
         _isActive = false;
         _emotionalCapacity = 0.5;
@@ -114,9 +114,9 @@ public class PureEmotionalState : PureState<PureEmotionalState>
     {
         return new PureEmotionalState(
             new Dictionary<string, Emotion>(_emotions),
-            new List<EmotionalExperience>(_emotionalHistory),
-            new List<EmotionalTrait>(_emotionalTraits),
-            new List<EmotionalRegulation>(_regulations),
+            [.._emotionalHistory],
+            [.._emotionalTraits],
+            [.._regulations],
             _isInitialized,
             _isActive,
             _emotionalCapacity,

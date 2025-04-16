@@ -264,7 +264,7 @@
         };
 
         // Add logs
-        for (int i = 0; i < Math.Ceiling(simulatedProgress * 20); i++)
+        for (var i = 0; i < Math.Ceiling(simulatedProgress * 20); i++)
         {
             // Create an ExecutionLog directly
             var executionLog = new ExecutionLog
@@ -336,16 +336,16 @@
         return $"color: {color}; font-family: monospace; white-space: pre-wrap;";
     }
 
-    private MsLogLevel ConvertToMsLogLevel(TarsEngine.Models.LogLevel level)
+    private MsLogLevel ConvertToMsLogLevel(LogLevel level)
     {
         return level switch
         {
-            TarsEngine.Models.LogLevel.Trace => MsLogLevel.Trace,
-            TarsEngine.Models.LogLevel.Debug => MsLogLevel.Debug,
-            TarsEngine.Models.LogLevel.Information => MsLogLevel.Information,
-            TarsEngine.Models.LogLevel.Warning => MsLogLevel.Warning,
-            TarsEngine.Models.LogLevel.Error => MsLogLevel.Error,
-            TarsEngine.Models.LogLevel.Critical => MsLogLevel.Critical,
+            LogLevel.Trace => MsLogLevel.Trace,
+            LogLevel.Debug => MsLogLevel.Debug,
+            LogLevel.Information => MsLogLevel.Information,
+            LogLevel.Warning => MsLogLevel.Warning,
+            LogLevel.Error => MsLogLevel.Error,
+            LogLevel.Critical => MsLogLevel.Critical,
             _ => MsLogLevel.None
         };
     }
