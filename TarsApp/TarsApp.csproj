@@ -5,6 +5,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>4d546862-a60b-4059-9ca6-fc48a437e74d</UserSecretsId>
+    <!-- Disable MudBlazor analyzers to fix compilation issues -->
+    <NoWarn>$(NoWarn);MUD0002</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

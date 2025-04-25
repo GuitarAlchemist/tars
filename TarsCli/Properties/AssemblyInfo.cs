@@ -36,5 +36,4 @@ using System.Runtime.Versioning;
 [assembly: AssemblyVersion("1.0.0.0")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
 
-// Target framework attribute
-[assembly: TargetFramework("net9.0", FrameworkDisplayName = ".NET 9.0")]
+// Target framework attribute is now handled by the SDK

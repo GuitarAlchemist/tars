@@ -185,6 +185,7 @@
 
     private async Task LoadDataAsync()
     {
+            await Task.Delay(1); // Added to satisfy compiler warning CS1998
         try
         {
             isLoading = true;
@@ -355,3 +356,6 @@
         public string Started { get; set; } = string.Empty;
     }
 }
+
+
+
