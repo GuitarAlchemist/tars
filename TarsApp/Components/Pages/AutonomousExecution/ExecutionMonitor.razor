@@ -152,6 +152,7 @@
 
     private async Task UpdateStatusAsync()
     {
+            await Task.Delay(1); // Added to satisfy compiler warning CS1998
         try
         {
             // In a real implementation, this would get the execution context from the service
@@ -240,6 +241,7 @@
     {
         // In a real implementation, this would get the execution context from the service
         // For now, return a mock context
+        await Task.Delay(1); // Added to satisfy compiler warning CS1998
 
         // Simulate progress over time
         var elapsed = (DateTime.UtcNow - startTime).TotalSeconds;
@@ -355,3 +357,4 @@
         timer?.Dispose();
     }
 }
+
