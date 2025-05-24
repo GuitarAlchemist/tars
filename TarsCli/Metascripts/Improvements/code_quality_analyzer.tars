@@ -1,0 +1,362 @@
+﻿DESCRIBE {
+    name: "C# Code Quality Analyzer"
+    version: "1.0"
+    author: "TARS Auto-Improvement"
+    description: "Analyzes C# code for quality issues and best practice violations"
+    tags: ["analysis", "code-quality", "c#"]
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.1
+    max_tokens: 4000
+    backup_before_changes: true
+}
+
+// Define the directories to scan
+VARIABLE target_dirs {
+    value: [
+        "TarsEngine",
+        "TarsCli"
+    ]
+}
+
+// Define the file patterns to match
+VARIABLE file_patterns {
+    value: [
+        "*.cs"
+    ]
+}
+
+// Define the exclude patterns
+VARIABLE exclude_patterns {
+    value: [
+        "**/obj/**",
+        "**/bin/**",
+        "**/Properties/**",
+        "**/*.Designer.cs"
+    ]
+}
+
+// Define the issue categories to look for
+VARIABLE issue_categories {
+    value: [
+        "UnusedVariables",
+        "InefficientLinq",
+        "MissingNullChecks",
+        "ImproperDisposable",
+        "RedundantCode",
+        "InconsistentNaming",
+        "MagicNumbers",
+        "LongMethods",
+        "ComplexConditions",
+        "EmptyCatchBlocks"
+    ]
+}
+
+// Initialize the results
+VARIABLE analysis_results {
+    value: {
+        scan_start_time: "${new Date().toISOString()}",
+        scan_end_time: null,
+        files_scanned: 0,
+        issues_found: 0,
+        issues_by_category: {},
+        issues: []
+    }
+}
+
+// Log the start of the analysis
+ACTION {
+    type: "log"
+    message: "Starting C# code quality analysis"
+}
+
+ACTION {
+    type: "log"
+    message: "Target directories: ${target_dirs.join(', ')}"
+}
+
+// Function to scan a directory for C# files
+FUNCTION scan_directory {
+    parameters: ["directory"]
+    
+    // Log the directory being scanned
+    ACTION {
+        type: "log"
+        message: "Scanning directory: ${directory}"
+    }
+    
+    // Get the list of files in the directory
+    ACTION {
+        type: "directory_list"
+        path: "${directory}"
+        pattern: "${file_patterns.join(',')}"
+        exclude_pattern: "${exclude_patterns.join(',')}"
+        recursive: true
+        result_variable: "files"
+    }
+    
+    // Return the list of files
+    RETURN {
+        value: "${files}"
+    }
+}
+
+// Function to analyze a C# file for quality issues
+FUNCTION analyze_file {
+    parameters: ["file_path"]
+    
+    // Log the file being analyzed
+    ACTION {
+        type: "log"
+        message: "Analyzing file: ${file_path}"
+    }
+    
+    // Read the file content
+    ACTION {
+        type: "file_read"
+        path: "${file_path}"
+        result_variable: "file_content"
+    }
+    
+    // Analyze the file content using LLM
+    PROMPT {
+        model: "llama3"
+        temperature: 0.1
+        max_tokens: 3000
+        prompt: """
+        You are an expert C# code analyzer. Your task is to analyze the following C# code for quality issues and best practice violations.
+        
+        File path: ${file_path}
+        
+        Code content:
+        ${file_content}
+        
+        Please identify issues in the following categories:
+        1. Unused Variables: Variables that are declared but never used
+        2. Inefficient LINQ: LINQ queries that could be optimized
+        3. Missing Null Checks: Places where null checks should be added
+        4. Improper Disposable: IDisposable objects not properly disposed
+        5. Redundant Code: Code that is unnecessary or could be simplified
+        6. Inconsistent Naming: Names that don't follow C# conventions
+        7. Magic Numbers: Hardcoded numbers that should be constants
+        8. Long Methods: Methods that are too long and should be refactored
+        9. Complex Conditions: Overly complex conditional expressions
+        10. Empty Catch Blocks: Empty catch blocks that swallow exceptions
+        
+        For each issue you find, provide:
+        1. The issue category (from the list above)
+        2. The line number(s) where the issue occurs
+        3. A description of the issue
+        4. The severity (High, Medium, Low)
+        5. The code snippet containing the issue
+        6. A suggested fix
+        
+        Format your response as a JSON array of issue objects:
+        
+        [
+          {
+            "category": "UnusedVariables",
+            "line_numbers": [42],
+            "description": "Variable 'temp' is declared but never used",
+            "severity": "Medium",
+            "code_snippet": "int temp = 0;",
+            "suggested_fix": "Remove the unused variable declaration"
+          }
+        ]
+        
+        If no issues are found, return an empty array.
+        """
+        result_variable: "analysis_result"
+    }
+    
+    // Parse the analysis result
+    FSHARP {
+        // Parse the JSON result
+        let analysisJson = analysis_result
+        
+        // Return the parsed JSON
+        analysisJson
+        
+        output_variable: "parsed_analysis"
+    }
+    
+    // Return the analysis result
+    RETURN {
+        value: "${parsed_analysis}"
+    }
+}
+
+// Scan each target directory
+FOREACH {
+    items: "${target_dirs}"
+    item_variable: "dir"
+    
+    // Scan the directory for C# files
+    CALL {
+        function: "scan_directory"
+        arguments: ["${dir}"]
+        result_variable: "dir_files"
+    }
+    
+    // Analyze each file
+    FOREACH {
+        items: "${dir_files}"
+        item_variable: "file"
+        
+        // Analyze the file
+        CALL {
+            function: "analyze_file"
+            arguments: ["${file}"]
+            result_variable: "file_issues"
+        }
+        
+        // Update the analysis results
+        FSHARP {
+            // Get the current analysis results
+            let results = analysis_results
+            
+            // Get the file issues
+            let fileIssues = System.Text.Json.JsonSerializer.Deserialize<System.Collections.Generic.List<System.Text.Json.JsonElement>>(file_issues)
+            
+            // Update the files scanned count
+            let updatedResults = {|
+                results with
+                    files_scanned = results.files_scanned + 1
+                    issues_found = results.issues_found + fileIssues.Count
+            |}
+            
+            // Update the issues by category
+            let mutable issuesByCategory = results.issues_by_category
+            for issue in fileIssues do
+                let category = issue.GetProperty("category").GetString()
+                if issuesByCategory.ContainsKey(category) then
+                    issuesByCategory.[category] <- issuesByCategory.[category] + 1
+                else
+                    issuesByCategory.[category] <- 1
+            
+            // Add the file path to each issue
+            let issuesWithFilePath = fileIssues |> Seq.map (fun issue ->
+                let mutable issueObj = issue.Clone().AsObject()
+                issueObj.Add("file_path", System.Text.Json.JsonSerializer.SerializeToElement(file))
+                issueObj
+            ) |> Seq.toArray
+            
+            // Add the issues to the results
+            let updatedIssues = results.issues.Concat(issuesWithFilePath).ToArray()
+            
+            // Return the updated results
+            {|
+                updatedResults with
+                    issues_by_category = issuesByCategory
+                    issues = updatedIssues
+            |}
+            
+            output_variable: "updated_results"
+        }
+        
+        VARIABLE analysis_results {
+            value: "${updated_results}"
+        }
+    }
+}
+
+// Update the scan end time
+VARIABLE analysis_results {
+    value: {
+        ...analysis_results,
+        scan_end_time: "${new Date().toISOString()}"
+    }
+}
+
+// Log the analysis results
+ACTION {
+    type: "log"
+    message: "Code quality analysis completed"
+}
+
+ACTION {
+    type: "log"
+    message: "Files scanned: ${analysis_results.files_scanned}"
+}
+
+ACTION {
+    type: "log"
+    message: "Issues found: ${analysis_results.issues_found}"
+}
+
+// Generate a summary of issues by category
+FSHARP {
+    // Get the issues by category
+    let issuesByCategory = analysis_results.issues_by_category
+    
+    // Format the summary
+    let summary = issuesByCategory.Keys
+        |> Seq.map (fun category -> $"{category}: {issuesByCategory.[category]}")
+        |> String.concat "\n"
+    
+    // Return the summary
+    summary
+    
+    output_variable: "category_summary"
+}
+
+ACTION {
+    type: "log"
+    message: "Issues by category:\n${category_summary}"
+}
+
+// Generate a detailed report
+VARIABLE report {
+    value: """# C# Code Quality Analysis Report
+
+## Summary
+- **Scan Start Time**: ${analysis_results.scan_start_time}
+- **Scan End Time**: ${analysis_results.scan_end_time}
+- **Files Scanned**: ${analysis_results.files_scanned}
+- **Issues Found**: ${analysis_results.issues_found}
+
+## Issues by Category
+${Object.entries(analysis_results.issues_by_category).map(([category, count]) => `- **${category}**: ${count}`).join('\n')}
+
+## Detailed Issues
+
+${analysis_results.issues.map(issue => `### ${issue.category} (${issue.severity})
+- **File**: ${issue.file_path}
+- **Line(s)**: ${issue.line_numbers.join(', ')}
+- **Description**: ${issue.description}
+- **Code Snippet**: \`${issue.code_snippet}\`
+- **Suggested Fix**: ${issue.suggested_fix}
+`).join('\n')}
+"""
+}
+
+// Save the report
+ACTION {
+    type: "file_write"
+    path: "code_quality_analysis_report.md"
+    content: "${report}"
+}
+
+ACTION {
+    type: "log"
+    message: "Analysis report saved to code_quality_analysis_report.md"
+}
+
+// Save the analysis results as JSON for further processing
+ACTION {
+    type: "file_write"
+    path: "code_quality_analysis_results.json"
+    content: "${JSON.stringify(analysis_results, null, 2)}"
+}
+
+ACTION {
+    type: "log"
+    message: "Analysis results saved to code_quality_analysis_results.json"
+}
+
+// Return the analysis results
+RETURN {
+    value: "${analysis_results}"
+}

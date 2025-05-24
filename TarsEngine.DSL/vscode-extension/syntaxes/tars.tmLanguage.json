@@ -1,0 +1,170 @@
+﻿{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "TARS DSL",
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#blocks"
+    },
+    {
+      "include": "#properties"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#numbers"
+    },
+    {
+      "include": "#booleans"
+    },
+    {
+      "include": "#null"
+    },
+    {
+      "include": "#variables"
+    },
+    {
+      "include": "#expressions"
+    },
+    {
+      "include": "#content-blocks"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.tars",
+          "match": "//.*$"
+        },
+        {
+          "name": "comment.block.tars",
+          "begin": "/\\*",
+          "end": "\\*/"
+        }
+      ]
+    },
+    "blocks": {
+      "patterns": [
+        {
+          "match": "\\b(CONFIG|PROMPT|ACTION|TASK|AGENT|AUTO_IMPROVE|DESCRIBE|SPAWN_AGENT|MESSAGE|SELF_IMPROVE|TARS|COMMUNICATION|VARIABLE|IF|ELSE|FOR|WHILE|FUNCTION|CALL|RETURN|IMPORT|INCLUDE|EXPORT|TEMPLATE|USE_TEMPLATE)\\b\\s+([a-zA-Z0-9_]+)?\\s*\\{",
+          "captures": {
+            "1": {
+              "name": "keyword.control.tars"
+            },
+            "2": {
+              "name": "entity.name.function.tars"
+            }
+          }
+        }
+      ]
+    },
+    "properties": {
+      "patterns": [
+        {
+          "match": "\\b([a-zA-Z0-9_]+)\\s*:",
+          "captures": {
+            "1": {
+              "name": "variable.other.property.tars"
+            }
+          }
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.tars",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.tars",
+              "match": "\\\\."
+            },
+            {
+              "name": "variable.interpolation.tars",
+              "begin": "\\${",
+              "end": "}",
+              "patterns": [
+                {
+                  "include": "#expressions"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "string.quoted.triple.tars",
+          "begin": "\"\"\"",
+          "end": "\"\"\""
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.tars",
+          "match": "\\b[0-9]+\\b"
+        },
+        {
+          "name": "constant.numeric.float.tars",
+          "match": "\\b[0-9]+\\.[0-9]+\\b"
+        },
+        {
+          "name": "constant.numeric.float.tars",
+          "match": "\\b[0-9]+[eE][+-]?[0-9]+\\b"
+        },
+        {
+          "name": "constant.numeric.float.tars",
+          "match": "\\b[0-9]+\\.[0-9]+[eE][+-]?[0-9]+\\b"
+        }
+      ]
+    },
+    "booleans": {
+      "patterns": [
+        {
+          "name": "constant.language.boolean.tars",
+          "match": "\\b(true|false)\\b"
+        }
+      ]
+    },
+    "null": {
+      "patterns": [
+        {
+          "name": "constant.language.null.tars",
+          "match": "\\bnull\\b"
+        }
+      ]
+    },
+    "variables": {
+      "patterns": [
+        {
+          "name": "variable.other.tars",
+          "match": "@([a-zA-Z0-9_]+)"
+        }
+      ]
+    },
+    "expressions": {
+      "patterns": [
+        {
+          "name": "keyword.operator.tars",
+          "match": "\\+|\\-|\\*|\\/|\\%|\\^"
+        }
+      ]
+    },
+    "content-blocks": {
+      "patterns": [
+        {
+          "name": "markup.raw.block.tars",
+          "begin": "```",
+          "end": "```"
+        }
+      ]
+    }
+  },
+  "scopeName": "source.tars"
+}

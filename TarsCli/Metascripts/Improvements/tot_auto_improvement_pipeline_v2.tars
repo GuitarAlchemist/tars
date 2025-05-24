@@ -1,0 +1,553 @@
+﻿DESCRIBE {
+    name: "Tree-of-Thought Auto-Improvement Pipeline v2"
+    version: "2.0"
+    author: "TARS Auto-Improvement"
+    description: "Runs a complete auto-improvement pipeline using Tree-of-Thought reasoning with real F# compilation"
+    tags: ["pipeline", "auto-improvement", "tree-of-thought", "reasoning", "f#", "compilation"]
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.2
+    max_tokens: 8000
+    backup_before_changes: true
+}
+
+// Define the paths to the metascripts
+VARIABLE metascript_paths {
+    value: {
+        code_analyzer: "TarsCli/Metascripts/Improvements/tot_code_analyzer.tars",
+        fix_generator: "TarsCli/Metascripts/Improvements/tot_fix_generator.tars",
+        fix_applicator: "TarsCli/Metascripts/Improvements/tot_fix_applicator.tars"
+    }
+}
+
+// Define the output paths
+VARIABLE output_paths {
+    value: {
+        analysis_results: "tot_code_analysis_results.json",
+        analysis_report: "tot_code_analysis_report.md",
+        fixes_results: "tot_fix_generation_results.json",
+        fixes_report: "tot_fix_generation_report.md",
+        application_results: "tot_fix_application_results.json",
+        application_report: "tot_fix_application_report.md",
+        summary_report: "tot_auto_improvement_summary_report_v2.md"
+    }
+}
+
+// Define the Tree-of-Thought parameters
+VARIABLE tot_params {
+    value: {
+        branching_factor: 3,
+        max_depth: 3,
+        beam_width: 2,
+        evaluation_metrics: {
+            analysis: ["relevance", "precision", "impact", "confidence"],
+            generation: ["correctness", "robustness", "elegance", "maintainability"],
+            application: ["safety", "reliability", "traceability", "reversibility"]
+        },
+        pruning_strategy: "beam_search"
+    }
+}
+
+// Get the current working directory
+ACTION {
+    type: "execute"
+    code: "process.cwd()"
+    result_variable: "current_dir"
+}
+
+// Initialize the pipeline results
+VARIABLE pipeline_results {
+    value: {
+        pipeline_start_time: "${new Date().toISOString()}",
+        pipeline_end_time: null,
+        analysis_results: null,
+        fixes_results: null,
+        application_results: null,
+        current_dir: "${current_dir}",
+        thought_trees: []
+    }
+}
+
+// Log the start of the pipeline
+ACTION {
+    type: "log"
+    message: "Starting Tree-of-Thought auto-improvement pipeline v2 with real F# compilation"
+}
+
+// Step 1: Run the Tree-of-Thought code analyzer
+ACTION {
+    type: "log"
+    message: "Step 1: Running Tree-of-Thought code analyzer"
+}
+
+ACTION {
+    type: "file_read"
+    path: "${metascript_paths.code_analyzer}"
+    result_variable: "code_analyzer_content"
+}
+
+// Generate F# code for the code analyzer
+PROMPT {
+    model: "llama3"
+    temperature: 0.3
+    max_tokens: 6000
+    prompt: """
+    You are an expert F# programmer. Your task is to generate F# code that implements a Tree-of-Thought code analyzer.
+    
+    The code analyzer should:
+    1. Define a data structure for representing code issues
+    2. Define a data structure for representing thought trees
+    3. Implement functions for analyzing code and identifying issues
+    4. Implement functions for evaluating and pruning thought branches
+    5. Implement functions for selecting the most promising analysis results
+    
+    Format your response as F# code that can be compiled and executed.
+    """
+    result_variable: "analyzer_fsharp_code"
+}
+
+// Save the F# code to a file
+ACTION {
+    type: "file_write"
+    path: "tot_code_analyzer.fs"
+    content: "${analyzer_fsharp_code}"
+}
+
+// Compile and execute the F# code
+FSHARP {
+    // Compile the F# code
+    try
+        // Create a temporary file for the F# code
+        let tempFilePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{System.Guid.NewGuid()}.fs")
+        System.IO.File.WriteAllText(tempFilePath, analyzer_fsharp_code)
+        
+        // Create F# compiler arguments
+        let compilerArgs = [|
+            "fsc"
+            "-o"; System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{System.Guid.NewGuid()}.dll")
+            "-a"; tempFilePath
+            "--targetprofile:netstandard"
+        |]
+        
+        // Run the F# compiler
+        let startInfo = new System.Diagnostics.ProcessStartInfo(
+            FileName = "dotnet",
+            Arguments = $"fsi --exec {String.concat " " compilerArgs}",
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        )
+        
+        use process = new System.Diagnostics.Process(StartInfo = startInfo)
+        let outputBuilder = new System.Text.StringBuilder()
+        let errorBuilder = new System.Text.StringBuilder()
+        
+        process.OutputDataReceived.Add(fun args -> 
+            if not (isNull args.Data) then
+                outputBuilder.AppendLine(args.Data) |> ignore
+        )
+        
+        process.ErrorDataReceived.Add(fun args -> 
+            if not (isNull args.Data) then
+                errorBuilder.AppendLine(args.Data) |> ignore
+        )
+        
+        process.Start() |> ignore
+        process.BeginOutputReadLine()
+        process.BeginErrorReadLine()
+        process.WaitForExit()
+        
+        // Get the output and error
+        let output = outputBuilder.ToString()
+        let error = errorBuilder.ToString()
+        
+        // Clean up temporary file
+        System.IO.File.Delete(tempFilePath)
+        
+        // Return the compilation result
+        if process.ExitCode = 0 then
+            (true, output, [])
+        else
+            (false, output, [error])
+    with
+    | ex -> (false, "", [ex.Message])
+    
+    output_variable: "analyzer_compilation_result"
+}
+
+// Log the compilation result
+ACTION {
+    type: "log"
+    message: "F# code analyzer compilation ${analyzer_compilation_result[0] ? 'succeeded' : 'failed'}"
+}
+
+// Run the code analyzer
+EVAL {
+    code: "${code_analyzer_content}"
+    result_variable: "analysis_results"
+}
+
+// Update the pipeline results with the analysis results
+VARIABLE pipeline_results {
+    value: {
+        ...pipeline_results,
+        analysis_results: "${analysis_results}"
+    }
+}
+
+ACTION {
+    type: "log"
+    message: "Code analysis completed. Found ${analysis_results.issues_found} issues in ${analysis_results.files_scanned} files."
+}
+
+// Step 2: Run the Tree-of-Thought fix generator
+ACTION {
+    type: "log"
+    message: "Step 2: Running Tree-of-Thought fix generator"
+}
+
+ACTION {
+    type: "file_read"
+    path: "${metascript_paths.fix_generator}"
+    result_variable: "fix_generator_content"
+}
+
+// Generate F# code for the fix generator
+PROMPT {
+    model: "llama3"
+    temperature: 0.3
+    max_tokens: 6000
+    prompt: """
+    You are an expert F# programmer. Your task is to generate F# code that implements a Tree-of-Thought fix generator.
+    
+    The fix generator should:
+    1. Define a data structure for representing code fixes
+    2. Define a data structure for representing thought trees
+    3. Implement functions for generating fixes for code issues
+    4. Implement functions for evaluating and pruning thought branches
+    5. Implement functions for selecting the most promising fixes
+    
+    Format your response as F# code that can be compiled and executed.
+    """
+    result_variable: "generator_fsharp_code"
+}
+
+// Save the F# code to a file
+ACTION {
+    type: "file_write"
+    path: "tot_fix_generator.fs"
+    content: "${generator_fsharp_code}"
+}
+
+// Compile and execute the F# code
+FSHARP {
+    // Compile the F# code
+    try
+        // Create a temporary file for the F# code
+        let tempFilePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{System.Guid.NewGuid()}.fs")
+        System.IO.File.WriteAllText(tempFilePath, generator_fsharp_code)
+        
+        // Create F# compiler arguments
+        let compilerArgs = [|
+            "fsc"
+            "-o"; System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{System.Guid.NewGuid()}.dll")
+            "-a"; tempFilePath
+            "--targetprofile:netstandard"
+        |]
+        
+        // Run the F# compiler
+        let startInfo = new System.Diagnostics.ProcessStartInfo(
+            FileName = "dotnet",
+            Arguments = $"fsi --exec {String.concat " " compilerArgs}",
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        )
+        
+        use process = new System.Diagnostics.Process(StartInfo = startInfo)
+        let outputBuilder = new System.Text.StringBuilder()
+        let errorBuilder = new System.Text.StringBuilder()
+        
+        process.OutputDataReceived.Add(fun args -> 
+            if not (isNull args.Data) then
+                outputBuilder.AppendLine(args.Data) |> ignore
+        )
+        
+        process.ErrorDataReceived.Add(fun args -> 
+            if not (isNull args.Data) then
+                errorBuilder.AppendLine(args.Data) |> ignore
+        )
+        
+        process.Start() |> ignore
+        process.BeginOutputReadLine()
+        process.BeginErrorReadLine()
+        process.WaitForExit()
+        
+        // Get the output and error
+        let output = outputBuilder.ToString()
+        let error = errorBuilder.ToString()
+        
+        // Clean up temporary file
+        System.IO.File.Delete(tempFilePath)
+        
+        // Return the compilation result
+        if process.ExitCode = 0 then
+            (true, output, [])
+        else
+            (false, output, [error])
+    with
+    | ex -> (false, "", [ex.Message])
+    
+    output_variable: "generator_compilation_result"
+}
+
+// Log the compilation result
+ACTION {
+    type: "log"
+    message: "F# fix generator compilation ${generator_compilation_result[0] ? 'succeeded' : 'failed'}"
+}
+
+// Run the fix generator
+EVAL {
+    code: "${fix_generator_content}"
+    result_variable: "fixes_results"
+}
+
+// Update the pipeline results with the fixes results
+VARIABLE pipeline_results {
+    value: {
+        ...pipeline_results,
+        fixes_results: "${fixes_results}"
+    }
+}
+
+ACTION {
+    type: "log"
+    message: "Fix generation completed. Generated ${fixes_results.fixes_generated} fixes for ${fixes_results.issues_processed} issues."
+}
+
+// Step 3: Run the Tree-of-Thought fix applicator
+ACTION {
+    type: "log"
+    message: "Step 3: Running Tree-of-Thought fix applicator"
+}
+
+ACTION {
+    type: "file_read"
+    path: "${metascript_paths.fix_applicator}"
+    result_variable: "fix_applicator_content"
+}
+
+// Generate F# code for the fix applicator
+PROMPT {
+    model: "llama3"
+    temperature: 0.3
+    max_tokens: 6000
+    prompt: """
+    You are an expert F# programmer. Your task is to generate F# code that implements a Tree-of-Thought fix applicator.
+    
+    The fix applicator should:
+    1. Define a data structure for representing fix applications
+    2. Define a data structure for representing thought trees
+    3. Implement functions for applying fixes to code
+    4. Implement functions for evaluating and pruning thought branches
+    5. Implement functions for selecting the most promising application strategies
+    
+    Format your response as F# code that can be compiled and executed.
+    """
+    result_variable: "applicator_fsharp_code"
+}
+
+// Save the F# code to a file
+ACTION {
+    type: "file_write"
+    path: "tot_fix_applicator.fs"
+    content: "${applicator_fsharp_code}"
+}
+
+// Compile and execute the F# code
+FSHARP {
+    // Compile the F# code
+    try
+        // Create a temporary file for the F# code
+        let tempFilePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{System.Guid.NewGuid()}.fs")
+        System.IO.File.WriteAllText(tempFilePath, applicator_fsharp_code)
+        
+        // Create F# compiler arguments
+        let compilerArgs = [|
+            "fsc"
+            "-o"; System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{System.Guid.NewGuid()}.dll")
+            "-a"; tempFilePath
+            "--targetprofile:netstandard"
+        |]
+        
+        // Run the F# compiler
+        let startInfo = new System.Diagnostics.ProcessStartInfo(
+            FileName = "dotnet",
+            Arguments = $"fsi --exec {String.concat " " compilerArgs}",
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        )
+        
+        use process = new System.Diagnostics.Process(StartInfo = startInfo)
+        let outputBuilder = new System.Text.StringBuilder()
+        let errorBuilder = new System.Text.StringBuilder()
+        
+        process.OutputDataReceived.Add(fun args -> 
+            if not (isNull args.Data) then
+                outputBuilder.AppendLine(args.Data) |> ignore
+        )
+        
+        process.ErrorDataReceived.Add(fun args -> 
+            if not (isNull args.Data) then
+                errorBuilder.AppendLine(args.Data) |> ignore
+        )
+        
+        process.Start() |> ignore
+        process.BeginOutputReadLine()
+        process.BeginErrorReadLine()
+        process.WaitForExit()
+        
+        // Get the output and error
+        let output = outputBuilder.ToString()
+        let error = errorBuilder.ToString()
+        
+        // Clean up temporary file
+        System.IO.File.Delete(tempFilePath)
+        
+        // Return the compilation result
+        if process.ExitCode = 0 then
+            (true, output, [])
+        else
+            (false, output, [error])
+    with
+    | ex -> (false, "", [ex.Message])
+    
+    output_variable: "applicator_compilation_result"
+}
+
+// Log the compilation result
+ACTION {
+    type: "log"
+    message: "F# fix applicator compilation ${applicator_compilation_result[0] ? 'succeeded' : 'failed'}"
+}
+
+// Run the fix applicator
+EVAL {
+    code: "${fix_applicator_content}"
+    result_variable: "application_results"
+}
+
+// Update the pipeline results with the application results
+VARIABLE pipeline_results {
+    value: {
+        ...pipeline_results,
+        application_results: "${application_results}",
+        pipeline_end_time: "${new Date().toISOString()}"
+    }
+}
+
+ACTION {
+    type: "log"
+    message: "Fix application completed. Applied ${application_results.fixes_applied} fixes out of ${application_results.fixes_processed} processed."
+}
+
+// Generate a summary report with full paths
+VARIABLE summary_report {
+    value: """# Tree-of-Thought Auto-Improvement Summary Report v2
+
+## Overview
+- **Pipeline Start Time**: ${pipeline_results.pipeline_start_time}
+- **Pipeline End Time**: ${pipeline_results.pipeline_end_time}
+- **Total Duration**: ${((new Date(pipeline_results.pipeline_end_time) - new Date(pipeline_results.pipeline_start_time)) / 1000 / 60).toFixed(2)} minutes
+
+## F# Compilation Results
+- **Code Analyzer Compilation**: ${analyzer_compilation_result[0] ? 'Succeeded' : 'Failed'}
+- **Fix Generator Compilation**: ${generator_compilation_result[0] ? 'Succeeded' : 'Failed'}
+- **Fix Applicator Compilation**: ${applicator_compilation_result[0] ? 'Succeeded' : 'Failed'}
+
+## Analysis Phase
+- **Files Scanned**: ${pipeline_results.analysis_results.files_scanned}
+- **Issues Found**: ${pipeline_results.analysis_results.issues_found}
+- **Issues by Category**:
+${Object.entries(pipeline_results.analysis_results.issues_by_category).map(([category, count]) => `  - ${category}: ${count}`).join('\n')}
+
+## Fix Generation Phase
+- **Issues Processed**: ${pipeline_results.fixes_results.issues_processed}
+- **Fixes Generated**: ${pipeline_results.fixes_results.fixes_generated}
+- **Success Rate**: ${(pipeline_results.fixes_results.fixes_generated / pipeline_results.fixes_results.issues_processed * 100).toFixed(2)}%
+- **Fixes by Category**:
+${Object.entries(pipeline_results.fixes_results.fixes_by_category).map(([category, count]) => `  - ${category}: ${count}`).join('\n')}
+
+## Fix Application Phase
+- **Fixes Processed**: ${pipeline_results.application_results.fixes_processed}
+- **Fixes Applied**: ${pipeline_results.application_results.fixes_applied}
+- **Success Rate**: ${(pipeline_results.application_results.fixes_applied / pipeline_results.application_results.fixes_processed * 100).toFixed(2)}%
+- **Fixes by Category**:
+${Object.entries(pipeline_results.application_results.fixes_by_category).map(([category, count]) => `  - ${category}: ${count}`).join('\n')}
+
+## End-to-End Metrics
+- **Issues Found**: ${pipeline_results.analysis_results.issues_found}
+- **Issues Fixed**: ${pipeline_results.application_results.fixes_applied}
+- **Overall Success Rate**: ${(pipeline_results.application_results.fixes_applied / pipeline_results.analysis_results.issues_found * 100).toFixed(2)}%
+
+## F# Code
+- [Code Analyzer F# Code](${pipeline_results.current_dir}/tot_code_analyzer.fs)
+- [Fix Generator F# Code](${pipeline_results.current_dir}/tot_fix_generator.fs)
+- [Fix Applicator F# Code](${pipeline_results.current_dir}/tot_fix_applicator.fs)
+
+## Detailed Reports
+- [Analysis Report](${pipeline_results.current_dir}/${output_paths.analysis_report})
+- [Fix Generation Report](${pipeline_results.current_dir}/${output_paths.fixes_report})
+- [Fix Application Report](${pipeline_results.current_dir}/${output_paths.application_report})
+"""
+}
+
+// Save the summary report
+ACTION {
+    type: "file_write"
+    path: "${output_paths.summary_report}"
+    content: "${summary_report}"
+}
+
+ACTION {
+    type: "log"
+    message: "Summary report saved to ${output_paths.summary_report}"
+}
+
+// Log the completion of the pipeline
+ACTION {
+    type: "log"
+    message: "Tree-of-Thought auto-improvement pipeline v2 completed successfully"
+}
+
+ACTION {
+    type: "log"
+    message: "End-to-End Metrics:"
+}
+
+ACTION {
+    type: "log"
+    message: "- Issues Found: ${pipeline_results.analysis_results.issues_found}"
+}
+
+ACTION {
+    type: "log"
+    message: "- Issues Fixed: ${pipeline_results.application_results.fixes_applied}"
+}
+
+ACTION {
+    type: "log"
+    message: "- Overall Success Rate: ${(pipeline_results.application_results.fixes_applied / pipeline_results.analysis_results.issues_found * 100).toFixed(2)}%"
+}
+
+// Return the pipeline results
+RETURN {
+    value: "${pipeline_results}"
+}

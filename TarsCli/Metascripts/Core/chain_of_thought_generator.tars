@@ -1,0 +1,505 @@
+﻿DESCRIBE {
+    name: "Chain-of-Thought Metascript Generator"
+    version: "1.0"
+    author: "TARS Auto-Improvement"
+    description: "Generates metascripts using Chain-of-Thought reasoning based on exploration documents"
+    tags: ["generator", "chain-of-thought", "reasoning", "meta-improvement"]
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.2
+    max_tokens: 8000
+    backup_before_changes: true
+}
+
+// Define the paths to the exploration documents
+VARIABLE exploration_docs {
+    value: [
+        "docs/Explorations/v1/Chats/ChatGPT-TARS Auto Meta-Coding.md",
+        "docs/Explorations/v1/Chats/ChatGPT-AI Prompt Chaining Techniques.md",
+        "docs/Explorations/v1/Chats/ChatGPT-Building AI Team for TARS.md"
+    ]
+}
+
+// Define the output directory for generated metascripts
+VARIABLE output_dir {
+    value: "TarsCli/Metascripts/Generated"
+}
+
+// Initialize the results
+VARIABLE generation_results {
+    value: {
+        generation_start_time: "${new Date().toISOString()}",
+        generation_end_time: null,
+        docs_processed: 0,
+        metascripts_generated: 0,
+        metascripts: [],
+        reasoning_traces: []
+    }
+}
+
+// Log the start of the generation
+ACTION {
+    type: "log"
+    message: "Starting Chain-of-Thought metascript generation"
+}
+
+ACTION {
+    type: "log"
+    message: "Exploration documents: ${exploration_docs.join(', ')}"
+}
+
+// Create the output directory if it doesn't exist
+ACTION {
+    type: "directory_create"
+    path: "${output_dir}"
+}
+
+// Function to extract concepts from an exploration document
+FUNCTION extract_concepts {
+    parameters: ["doc_path"]
+    
+    // Log the document being processed
+    ACTION {
+        type: "log"
+        message: "Extracting concepts from: ${doc_path}"
+    }
+    
+    // Read the document content
+    ACTION {
+        type: "file_read"
+        path: "${doc_path}"
+        result_variable: "doc_content"
+    }
+    
+    // Extract concepts using Chain-of-Thought reasoning
+    PROMPT {
+        model: "llama3"
+        temperature: 0.2
+        max_tokens: 4000
+        prompt: """
+        You are an expert concept extractor for the TARS project. Your task is to extract key concepts from the following exploration document using Chain-of-Thought reasoning.
+        
+        Document path: ${doc_path}
+        
+        Document content:
+        ${doc_content}
+        
+        Please extract key concepts that could be implemented as metascripts. Use Chain-of-Thought reasoning to:
+        1. Identify the main themes and ideas in the document
+        2. Analyze which concepts are most relevant for metascript implementation
+        3. Determine how these concepts could be structured as metascripts
+        4. Prioritize the concepts based on their potential impact and feasibility
+        
+        For each concept you identify, provide:
+        1. A name for the concept
+        2. A detailed description of the concept
+        3. How it could be implemented as a metascript
+        4. The potential impact of implementing this concept (High, Medium, Low)
+        5. The difficulty of implementing this concept (High, Medium, Low)
+        
+        Format your response as a JSON object with two main sections:
+        1. "reasoning_trace": An array of reasoning steps, where each step is a string describing your thought process
+        2. "concepts": An array of concept objects with the properties described above
+        
+        Example:
+        {
+          "reasoning_trace": [
+            "Step 1: I'm examining the overall themes of the document to identify key concepts.",
+            "Step 2: I notice that the document discusses Chain-of-Thought reasoning extensively.",
+            "Step 3: I'm analyzing how Chain-of-Thought reasoning could be implemented in metascripts.",
+            "Step 4: Based on my analysis, I've identified several key concepts that could be implemented."
+          ],
+          "concepts": [
+            {
+              "name": "Chain-of-Thought Reasoning",
+              "description": "A technique where the AI explicitly reasons through a problem step by step",
+              "implementation": "Create a metascript that breaks down problems into explicit reasoning steps",
+              "impact": "High",
+              "difficulty": "Medium"
+            }
+          ]
+        }
+        
+        Focus on concepts that are concrete enough to be implemented as metascripts.
+        """
+        result_variable: "concepts_result"
+    }
+    
+    // Parse the concepts result
+    FSHARP {
+        // Parse the JSON result
+        let conceptsJson = concepts_result
+        
+        // Return the parsed JSON
+        conceptsJson
+        
+        output_variable: "parsed_concepts"
+    }
+    
+    // Return the concepts
+    RETURN {
+        value: "${parsed_concepts}"
+    }
+}
+
+// Function to generate a metascript from a concept
+FUNCTION generate_metascript {
+    parameters: ["concept", "doc_path"]
+    
+    // Log the concept being processed
+    ACTION {
+        type: "log"
+        message: "Generating metascript for concept: ${concept.name}"
+    }
+    
+    // Generate a metascript using Chain-of-Thought reasoning
+    PROMPT {
+        model: "llama3"
+        temperature: 0.3
+        max_tokens: 6000
+        prompt: """
+        You are an expert metascript generator for the TARS project. Your task is to generate a metascript that implements the following concept using Chain-of-Thought reasoning.
+        
+        Concept name: ${concept.name}
+        Concept description: ${concept.description}
+        Implementation approach: ${concept.implementation}
+        Source document: ${doc_path}
+        
+        Please generate a complete metascript that implements this concept. Use Chain-of-Thought reasoning to:
+        1. Break down the implementation into clear steps
+        2. Reason through each step explicitly
+        3. Consider multiple implementation approaches
+        4. Choose the most effective approach based on your reasoning
+        
+        The metascript should follow this structure:
+        
+        ```
+        DESCRIBE {
+            name: "[Concept Name] Implementation"
+            version: "1.0"
+            author: "TARS Auto-Improvement"
+            description: "[Detailed description of what the metascript does]"
+            tags: ["[relevant tags]"]
+        }
+        
+        CONFIG {
+            model: "llama3"
+            temperature: 0.2
+            max_tokens: 4000
+            backup_before_changes: true
+        }
+        
+        // Define variables, functions, and actions here
+        
+        // Main workflow
+        // Implementation of the concept
+        ```
+        
+        Format your response as a JSON object with two main sections:
+        1. "reasoning_trace": An array of reasoning steps, where each step is a string describing your thought process
+        2. "metascript": The complete metascript as a string
+        
+        Example:
+        {
+          "reasoning_trace": [
+            "Step 1: I'm thinking about how to structure the metascript to implement Chain-of-Thought reasoning.",
+            "Step 2: I need to define a way to break down problems into explicit reasoning steps.",
+            "Step 3: I'll implement a function that takes a problem and generates reasoning steps.",
+            "Step 4: I'll then implement a function that uses these reasoning steps to generate a solution."
+          ],
+          "metascript": "DESCRIBE { ... }"
+        }
+        
+        Make sure the metascript is complete, well-structured, and ready to be executed.
+        """
+        result_variable: "metascript_result"
+    }
+    
+    // Parse the metascript result
+    FSHARP {
+        // Parse the JSON result
+        let metascriptJson = metascript_result
+        
+        // Return the parsed JSON
+        metascriptJson
+        
+        output_variable: "parsed_metascript"
+    }
+    
+    // Return the metascript
+    RETURN {
+        value: "${parsed_metascript}"
+    }
+}
+
+// Process each exploration document
+FOREACH {
+    items: "${exploration_docs}"
+    item_variable: "doc_path"
+    
+    // Extract concepts from the document
+    CALL {
+        function: "extract_concepts"
+        arguments: ["${doc_path}"]
+        result_variable: "doc_concepts"
+    }
+    
+    // Parse the concepts
+    FSHARP {
+        // Parse the concepts
+        let concepts = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonDocument>(doc_concepts).RootElement
+        
+        // Get the concepts array
+        let conceptsArray = concepts.GetProperty("concepts").EnumerateArray().ToArray()
+        
+        // Get the reasoning trace
+        let reasoningTrace = concepts.GetProperty("reasoning_trace").EnumerateArray()
+            .Select(step => step.GetString())
+            .ToArray()
+        
+        // Create a reasoning trace object
+        let traceObj = {|
+            doc_path = doc_path
+            reasoning_steps = reasoningTrace
+            phase = "concept_extraction"
+        |}
+        
+        // Return the concepts and trace
+        (conceptsArray, traceObj)
+        
+        output_variable: "parsed_doc_concepts"
+    }
+    
+    // Update the generation results with the reasoning trace
+    FSHARP {
+        // Get the current generation results
+        let results = generation_results
+        
+        // Get the reasoning trace
+        let (_, traceObj) = parsed_doc_concepts
+        
+        // Update the reasoning traces
+        let updatedTraces = results.reasoning_traces.Append(traceObj).ToArray()
+        
+        // Return the updated results
+        {|
+            results with
+                docs_processed = results.docs_processed + 1
+                reasoning_traces = updatedTraces
+        |}
+        
+        output_variable: "updated_results"
+    }
+    
+    VARIABLE generation_results {
+        value: "${updated_results}"
+    }
+    
+    // Generate a metascript for each concept
+    FSHARP {
+        // Get the concepts
+        let (conceptsArray, _) = parsed_doc_concepts
+        
+        // Return the concepts
+        conceptsArray
+        
+        output_variable: "concepts_to_process"
+    }
+    
+    FOREACH {
+        items: "${concepts_to_process}"
+        item_variable: "concept"
+        
+        // Generate a metascript for the concept
+        CALL {
+            function: "generate_metascript"
+            arguments: ["${concept}", "${doc_path}"]
+            result_variable: "concept_metascript"
+        }
+        
+        // Parse the metascript
+        FSHARP {
+            // Parse the metascript
+            let metascript = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonDocument>(concept_metascript).RootElement
+            
+            // Get the metascript content
+            let metascriptContent = metascript.GetProperty("metascript").GetString()
+            
+            // Get the reasoning trace
+            let reasoningTrace = metascript.GetProperty("reasoning_trace").EnumerateArray()
+                .Select(step => step.GetString())
+                .ToArray()
+            
+            // Create a reasoning trace object
+            let traceObj = {|
+                doc_path = doc_path
+                concept_name = concept.GetProperty("name").GetString()
+                reasoning_steps = reasoningTrace
+                phase = "metascript_generation"
+            |}
+            
+            // Generate a filename for the metascript
+            let conceptName = concept.GetProperty("name").GetString()
+            let sanitizedName = conceptName.ToLower().Replace(" ", "_").Replace("-", "_")
+            let filename = $"{sanitizedName}.tars"
+            let filePath = System.IO.Path.Combine(output_dir, filename)
+            
+            // Return the metascript content, trace, and file path
+            (metascriptContent, traceObj, filePath)
+            
+            output_variable: "parsed_concept_metascript"
+        }
+        
+        // Save the metascript to a file
+        FSHARP {
+            // Get the metascript content and file path
+            let (metascriptContent, _, filePath) = parsed_concept_metascript
+            
+            // Return the file path
+            filePath
+            
+            output_variable: "metascript_file_path"
+        }
+        
+        ACTION {
+            type: "file_write"
+            path: "${metascript_file_path}"
+            content: "${parsed_concept_metascript[0]}"
+        }
+        
+        // Update the generation results
+        FSHARP {
+            // Get the current generation results
+            let results = generation_results
+            
+            // Get the reasoning trace and file path
+            let (_, traceObj, filePath) = parsed_concept_metascript
+            
+            // Get the concept
+            let conceptName = concept.GetProperty("name").GetString()
+            let conceptDescription = concept.GetProperty("description").GetString()
+            let conceptImpact = concept.GetProperty("impact").GetString()
+            let conceptDifficulty = concept.GetProperty("difficulty").GetString()
+            
+            // Create a metascript object
+            let metascriptObj = {|
+                name = conceptName
+                description = conceptDescription
+                file_path = filePath
+                source_doc = doc_path
+                impact = conceptImpact
+                difficulty = conceptDifficulty
+            |}
+            
+            // Update the metascripts and reasoning traces
+            let updatedMetascripts = results.metascripts.Append(metascriptObj).ToArray()
+            let updatedTraces = results.reasoning_traces.Append(traceObj).ToArray()
+            
+            // Return the updated results
+            {|
+                results with
+                    metascripts_generated = results.metascripts_generated + 1
+                    metascripts = updatedMetascripts
+                    reasoning_traces = updatedTraces
+            |}
+            
+            output_variable: "updated_results"
+        }
+        
+        VARIABLE generation_results {
+            value: "${updated_results}"
+        }
+        
+        ACTION {
+            type: "log"
+            message: "Generated metascript: ${metascript_file_path}"
+        }
+    }
+}
+
+// Update the generation end time
+VARIABLE generation_results {
+    value: {
+        ...generation_results,
+        generation_end_time: "${new Date().toISOString()}"
+    }
+}
+
+// Log the generation results
+ACTION {
+    type: "log"
+    message: "Chain-of-Thought metascript generation completed"
+}
+
+ACTION {
+    type: "log"
+    message: "Documents processed: ${generation_results.docs_processed}"
+}
+
+ACTION {
+    type: "log"
+    message: "Metascripts generated: ${generation_results.metascripts_generated}"
+}
+
+// Generate a detailed report
+VARIABLE report {
+    value: """# Chain-of-Thought Metascript Generation Report
+
+## Summary
+- **Generation Start Time**: ${generation_results.generation_start_time}
+- **Generation End Time**: ${generation_results.generation_end_time}
+- **Documents Processed**: ${generation_results.docs_processed}
+- **Metascripts Generated**: ${generation_results.metascripts_generated}
+
+## Generated Metascripts
+
+${generation_results.metascripts.map(metascript => `### ${metascript.name} (Impact: ${metascript.impact}, Difficulty: ${metascript.difficulty})
+- **Description**: ${metascript.description}
+- **File Path**: ${metascript.file_path}
+- **Source Document**: ${metascript.source_doc}
+`).join('\n')}
+
+## Concept Extraction Reasoning Traces
+
+${generation_results.reasoning_traces.filter(trace => trace.phase === "concept_extraction").map(trace => `### Document: ${trace.doc_path}
+${trace.reasoning_steps.map((step, index) => `${index + 1}. ${step}`).join('\n')}
+`).join('\n')}
+
+## Metascript Generation Reasoning Traces
+
+${generation_results.reasoning_traces.filter(trace => trace.phase === "metascript_generation").map(trace => `### Concept: ${trace.concept_name} (from ${trace.doc_path})
+${trace.reasoning_steps.map((step, index) => `${index + 1}. ${step}`).join('\n')}
+`).join('\n')}
+"""
+}
+
+// Save the report
+ACTION {
+    type: "file_write"
+    path: "chain_of_thought_generation_report.md"
+    content: "${report}"
+}
+
+ACTION {
+    type: "log"
+    message: "Generation report saved to chain_of_thought_generation_report.md"
+}
+
+// Save the generation results as JSON for further processing
+ACTION {
+    type: "file_write"
+    path: "chain_of_thought_generation_results.json"
+    content: "${JSON.stringify(generation_results, null, 2)}"
+}
+
+ACTION {
+    type: "log"
+    message: "Generation results saved to chain_of_thought_generation_results.json"
+}
+
+// Return the generation results
+RETURN {
+    value: "${generation_results}"
+}

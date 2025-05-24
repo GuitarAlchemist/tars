@@ -1,0 +1,176 @@
+﻿DESCRIBE {
+    name: "Block Nesting Example"
+    version: "1.0"
+    description: "A demonstration of block nesting in TARS metascripts"
+    author: "TARS Team"
+    date: "2023-07-15"
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.7
+    max_tokens: 1000
+}
+
+// Define variables
+VARIABLE name {
+    value: "World"
+}
+
+VARIABLE count {
+    value: 5
+}
+
+VARIABLE flag {
+    value: true
+}
+
+// Use if/else blocks
+IF {
+    condition: "${flag}"
+    
+    // This block will be executed if flag is true
+    ACTION {
+        type: "log"
+        message: "Flag is true"
+    }
+    
+    VARIABLE result {
+        value: "Flag is true"
+    }
+    
+    // Nested if block
+    IF {
+        condition: "${count} > 3"
+        
+        ACTION {
+            type: "log"
+            message: "Count is greater than 3"
+        }
+        
+        VARIABLE nestedResult {
+            value: "Count is greater than 3"
+        }
+    }
+    
+    ELSE {
+        ACTION {
+            type: "log"
+            message: "Count is not greater than 3"
+        }
+        
+        VARIABLE nestedResult {
+            value: "Count is not greater than 3"
+        }
+    }
+}
+ELSE {
+    // This block will be executed if flag is false
+    ACTION {
+        type: "log"
+        message: "Flag is false"
+    }
+    
+    VARIABLE result {
+        value: "Flag is false"
+    }
+}
+
+// Use loop blocks
+LOOP {
+    initializer: "let i = 0"
+    condition: "i < ${count}"
+    iterator: "i = i + 1"
+    
+    ACTION {
+        type: "log"
+        message: "Loop iteration ${i}"
+    }
+    
+    // Nested if block in loop
+    IF {
+        condition: "i % 2 == 0"
+        
+        ACTION {
+            type: "log"
+            message: "Even iteration"
+        }
+    }
+    ELSE {
+        ACTION {
+            type: "log"
+            message: "Odd iteration"
+        }
+    }
+}
+
+// Use function blocks
+FUNCTION calculateFactorial {
+    VARIABLE n {
+        value: "${count}"
+    }
+    
+    FSHARP {
+        // Calculate factorial
+        let rec factorial n =
+            if n <= 1 then 1
+            else n * factorial (n - 1)
+        
+        // Calculate factorial of n
+        let result = factorial ${n}
+        
+        // Return the result
+        result
+    }
+    
+    VARIABLE factorialResult {
+        value: "${_last_result}"
+    }
+    
+    ACTION {
+        type: "log"
+        message: "Factorial of ${n} is ${factorialResult}"
+    }
+}
+
+// Call the function
+ACTION {
+    type: "log"
+    message: "Calling calculateFactorial function"
+}
+
+FUNCTION calculateFactorial {
+}
+
+// Use F# code with nested blocks
+FSHARP {
+    // Define a function to process nested blocks
+    let processNestedBlocks (blocks: string list) =
+        blocks
+        |> List.mapi (fun i block -> sprintf "Block %d: %s" (i + 1) block)
+        |> String.concat "\n"
+    
+    // Define some nested blocks
+    let blocks = [
+        "This is block 1"
+        "This is block 2"
+        "This is block 3"
+    ]
+    
+    // Process the blocks
+    let result = processNestedBlocks blocks
+    
+    // Return the result
+    result
+}
+
+// Store the result in a variable
+VARIABLE nestedBlocksResult {
+    value: "${_last_result}"
+}
+
+// Display the result
+ACTION {
+    type: "log"
+    message: "Nested blocks result: ${nestedBlocksResult}"
+}

@@ -1,0 +1,41 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Types.fs" />
+    <Compile Include="MetascriptExecutionResult.fs" />
+    <Compile Include="BlockHandlers/IBlockHandler.fs" />
+    <Compile Include="BlockHandlers/BlockHandlerBase.fs" />
+    <Compile Include="BlockHandlers/FSharpBlockHandler.fs" />
+    <Compile Include="BlockHandlers/CommandBlockHandler.fs" />
+    <Compile Include="BlockHandlers/TextBlockHandler.fs" />
+    <Compile Include="BlockHandlers/BlockHandlerRegistry.fs" />
+    <Compile Include="Services/IMetascriptService.fs" />
+    <Compile Include="Services/IMetascriptExecutor.fs" />
+    <Compile Include="Services/MetascriptExecutor.fs" />
+    <Compile Include="Services/MetascriptService.fs" />
+    <Compile Include="DependencyInjection/ServiceCollectionExtensions.fs" />
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FSharp.Compiler.Service" Version="43.8.200" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="simple_test.meta">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

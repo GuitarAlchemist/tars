@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Tree of Thought -->
+    <Compile Include="BasicTreeOfThought.fs" />
+    
+    <!-- Metascript -->
+    <Compile Include="MetascriptToT.fs" />
+    <Compile Include="MetascriptGeneration.fs" />
+    <Compile Include="MetascriptValidation.fs" />
+    <Compile Include="MetascriptExecution.fs" />
+    <Compile Include="MetascriptResultAnalysis.fs" />
+    
+    <!-- Core -->
+    <Compile Include="Core/Program.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\TarsEngine.FSharp.Core\TarsEngine.FSharp.Core.fsproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
+  </ItemGroup>
+</Project>

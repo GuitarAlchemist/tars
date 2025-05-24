@@ -1,0 +1,221 @@
+﻿DESCRIBE {
+    name: "Error Handling Example"
+    version: "1.0"
+    description: "A demonstration of error handling in TARS metascripts"
+    author: "TARS Team"
+    date: "2023-07-15"
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.7
+    max_tokens: 1000
+}
+
+// Define variables
+VARIABLE name {
+    value: "World"
+}
+
+VARIABLE count {
+    value: 5
+}
+
+// This is a comment that will be ignored by the parser
+
+// Example of a valid action block
+ACTION {
+    type: "log"
+    message: "Hello, ${name}!"
+}
+
+// Example of an action block with a missing property (will cause an error)
+ACTION {
+    // Missing type property
+    message: "This will cause an error"
+}
+
+// Example of a variable block with a missing property (will cause an error)
+VARIABLE errorVariable {
+    // Missing value property
+}
+
+// Example of a valid if block
+IF {
+    condition: "${count} > 3"
+    
+    ACTION {
+        type: "log"
+        message: "Count is greater than 3"
+    }
+}
+
+// Example of an if block with a missing property (will cause an error)
+IF {
+    // Missing condition property
+    
+    ACTION {
+        type: "log"
+        message: "This will not be executed"
+    }
+}
+
+// Example of a valid loop block
+LOOP {
+    initializer: "let i = 0"
+    condition: "i < ${count}"
+    iterator: "i = i + 1"
+    
+    ACTION {
+        type: "log"
+        message: "Loop iteration ${i}"
+    }
+}
+
+// Example of a loop block with missing properties (will cause an error)
+LOOP {
+    initializer: "let i = 0"
+    // Missing condition property
+    iterator: "i = i + 1"
+    
+    ACTION {
+        type: "log"
+        message: "This will not be executed"
+    }
+}
+
+// Example of a valid function block
+FUNCTION calculateFactorial {
+    VARIABLE n {
+        value: "${count}"
+    }
+    
+    FSHARP {
+        // Calculate factorial
+        let rec factorial n =
+            if n <= 1 then 1
+            else n * factorial (n - 1)
+        
+        // Calculate factorial of n
+        let result = factorial ${n}
+        
+        // Return the result
+        result
+    }
+}
+
+// Example of a function block with a missing name (will cause an error)
+FUNCTION {
+    VARIABLE n {
+        value: "${count}"
+    }
+    
+    FSHARP {
+        // Calculate factorial
+        let rec factorial n =
+            if n <= 1 then 1
+            else n * factorial (n - 1)
+        
+        // Calculate factorial of n
+        let result = factorial ${n}
+        
+        // Return the result
+        result
+    }
+}
+
+// Example of a valid F# code block
+FSHARP {
+    // This is a valid F# code block
+    let message = "Hello, " + "${name}" + "!"
+    
+    // Print the message
+    printfn "%s" message
+    
+    // Return the message
+    message
+}
+
+// Example of an F# code block with syntax errors
+FSHARP {
+    // This F# code has syntax errors
+    let message = "Hello, " + "${name}" + "!
+    
+    // Missing closing quote
+    printfn "%s message
+    
+    // Return the message
+    message
+}
+
+// Example of a valid C# code block
+CSHARP {
+    // This is a valid C# code block
+    var message = "Hello, " + "${name}" + "!";
+    
+    // Print the message
+    Console.WriteLine(message);
+    
+    // Return the message
+    return message;
+}
+
+// Example of a C# code block with syntax errors
+CSHARP {
+    // This C# code has syntax errors
+    var message = "Hello, " + "${name}" + "!
+    
+    // Missing semicolon
+    Console.WriteLine(message)
+    
+    // Return the message
+    return message
+}
+
+// Example of a valid JavaScript code block
+JAVASCRIPT {
+    // This is a valid JavaScript code block
+    const message = "Hello, " + "${name}" + "!";
+    
+    // Print the message
+    console.log(message);
+    
+    // Return the message
+    return message;
+}
+
+// Example of a JavaScript code block with syntax errors
+JAVASCRIPT {
+    // This JavaScript code has syntax errors
+    const message = "Hello, " + "${name}" + "!
+    
+    // Missing semicolon
+    console.log(message)
+    
+    // Return the message
+    return message
+}
+
+// Example of a valid Python code block
+PYTHON {
+    # This is a valid Python code block
+    message = "Hello, " + "${name}" + "!"
+    
+    # Print the message
+    print(message)
+    
+    # Return the message
+    message
+}
+
+// Example of a Python code block with syntax errors
+PYTHON {
+    # This Python code has syntax errors
+    message = "Hello, " + "${name}" + "!
+    
+    # Missing closing quote
+    print(message)
+    
+    # Return the message
+    message
+}

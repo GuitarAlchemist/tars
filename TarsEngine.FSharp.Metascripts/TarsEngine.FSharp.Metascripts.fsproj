@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Core -->
+    <Compile Include="Core/Types.fs" />
+    <Compile Include="Core/MetascriptRegistry.fs" />
+    <Compile Include="Core/MetascriptManager.fs" />
+
+    <!-- Discovery -->
+    <Compile Include="Discovery/MetascriptDiscovery.fs" />
+
+    <!-- Services -->
+    <Compile Include="Services/IMetascriptService.fs" />
+    <Compile Include="Services/MetascriptService.fs" />
+  </ItemGroup>
+  <!-- No project references - self-contained metascripts engine -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0" />
+  </ItemGroup>
+</Project>

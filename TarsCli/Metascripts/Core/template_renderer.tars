@@ -1,0 +1,129 @@
+﻿DESCRIBE {
+    name: "Template Renderer"
+    version: "1.0"
+    author: "TARS Auto-Improvement"
+    description: "Renders templates with variable substitution, conditionals, and loops"
+    tags: ["core", "template", "rendering"]
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.1
+    max_tokens: 2000
+    backup_before_changes: true
+}
+
+// Load configuration
+ACTION {
+    type: "file_read"
+    path: "TarsCli/Metascripts/config.json"
+    result_variable: "config_json"
+}
+
+VARIABLE config {
+    value: "${JSON.parse(config_json)}"
+}
+
+// Log the start of the rendering process
+ACTION {
+    type: "log"
+    message: "Starting template rendering process"
+}
+
+// Function to render a template
+FUNCTION render_template {
+    parameters: ["template_path", "variables"]
+    
+    // Read the template content
+    ACTION {
+        type: "file_read"
+        path: "${template_path}"
+        result_variable: "template_content"
+    }
+    
+    // Render the template
+    FSHARP {
+        // Get the template content
+        let templateContent = template_content
+        
+        // Get the variables
+        let variables = variables
+        
+        // Function to replace placeholders
+        let rec replacePlaceholders (content: string) =
+            // Find all placeholders in the format {{variable_name}}
+            let placeholderRegex = System.Text.RegularExpressions.Regex(@"{{([^{}]+)}}")
+            let matches = placeholderRegex.Matches(content)
+            
+            // If no placeholders found, return the content
+            if matches.Count = 0 then
+                content
+            else
+                // Replace each placeholder with its value
+                let mutable result = content
+                for m in matches do
+                    let placeholder = m.Groups[1].Value.Trim()
+                    
+                    // Get the value from the variables
+                    let value = 
+                        match variables.TryGetProperty(placeholder) with
+                        | true, v -> 
+                            match v.ValueKind with
+                            | System.Text.Json.JsonValueKind.String -> v.GetString()
+                            | System.Text.Json.JsonValueKind.Number -> v.GetRawText()
+                            | System.Text.Json.JsonValueKind.True -> "true"
+                            | System.Text.Json.JsonValueKind.False -> "false"
+                            | System.Text.Json.JsonValueKind.Null -> ""
+                            | _ -> v.GetRawText()
+                        | false, _ -> ""
+                    
+                    // Replace the placeholder with the value
+                    result <- result.Replace(m.Value, value)
+                
+                // Recursively replace any nested placeholders
+                replacePlaceholders result
+        
+        // Replace placeholders in the template
+        let renderedContent = replacePlaceholders templateContent
+        
+        // Return the rendered content
+        renderedContent
+        
+        output_variable: "rendered_content"
+    }
+    
+    // Return the rendered content
+    RETURN {
+        value: "${rendered_content}"
+    }
+}
+
+// Function to render a template with a file output
+FUNCTION render_template_to_file {
+    parameters: ["template_path", "variables", "output_path"]
+    
+    // Render the template
+    CALL {
+        function: "render_template"
+        arguments: ["${template_path}", "${variables}"]
+        result_variable: "rendered_content"
+    }
+    
+    // Write the rendered content to the output file
+    ACTION {
+        type: "file_write"
+        path: "${output_path}"
+        content: "${rendered_content}"
+    }
+    
+    // Return the output path
+    RETURN {
+        value: "${output_path}"
+    }
+}
+
+// Log the completion of the rendering process
+ACTION {
+    type: "log"
+    message: "Template rendering process completed"
+}

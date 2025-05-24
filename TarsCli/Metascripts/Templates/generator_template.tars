@@ -1,0 +1,153 @@
+﻿DESCRIBE {
+    name: "{{name}}"
+    version: "1.0"
+    author: "TARS Auto-Improvement"
+    description: "{{description}}"
+    tags: [{{tags}}]
+}
+
+CONFIG {
+    model: "{{model}}"
+    temperature: {{temperature}}
+    max_tokens: {{max_tokens}}
+    backup_before_changes: true
+}
+
+// Load configuration
+ACTION {
+    type: "file_read"
+    path: "TarsCli/Metascripts/config.json"
+    result_variable: "config_json"
+}
+
+VARIABLE config {
+    value: "${JSON.parse(config_json)}"
+}
+
+// Load registry
+ACTION {
+    type: "file_read"
+    path: "TarsCli/Metascripts/registry.json"
+    result_variable: "registry_json"
+}
+
+VARIABLE registry {
+    value: "${JSON.parse(registry_json)}"
+}
+
+// Define the generator details
+VARIABLE generator_details {
+    value: {
+        id: "{{id}}",
+        name: "{{name}}",
+        description: "{{description}}",
+        category: "{{category}}",
+        target_type: "{{target_type}}",
+        output_directory: "{{output_directory}}"
+    }
+}
+
+// Log the start of the generation process
+ACTION {
+    type: "log"
+    message: "Starting generator: ${generator_details.name}"
+}
+
+// Define the metascript template
+VARIABLE metascript_template {
+    value: """{{metascript_template}}"""
+}
+
+// Define the variables for the template
+VARIABLE template_variables {
+    value: {{template_variables}}
+}
+
+// Render the template
+ACTION {
+    type: "file_read"
+    path: "TarsCli/Metascripts/Core/template_renderer.tars"
+    result_variable: "renderer_content"
+}
+
+EVAL {
+    code: "${renderer_content}"
+}
+
+CALL {
+    function: "render_template"
+    arguments: ["${metascript_template}", "${template_variables}"]
+    result_variable: "rendered_metascript"
+}
+
+// Generate the output file path
+FSHARP {
+    // Get the output directory
+    let outputDirectory = generator_details.output_directory
+    
+    // Get the metascript ID
+    let metascriptId = template_variables.id
+    
+    // Generate the file name
+    let fileName = metascriptId.ToLower().Replace(" ", "_") + ".tars"
+    
+    // Combine the directory and file name
+    let filePath = System.IO.Path.Combine(outputDirectory, fileName)
+    
+    // Return the file path
+    filePath
+    
+    output_variable: "output_path"
+}
+
+// Write the rendered metascript to the output file
+ACTION {
+    type: "file_write"
+    path: "${output_path}"
+    content: "${rendered_metascript}"
+}
+
+// Update the registry
+FSHARP {
+    // Get the registry
+    let registry = registry
+    
+    // Get the metascript ID
+    let metascriptId = template_variables.id
+    
+    // Create a new metascript entry
+    let newMetascript = {|
+        id = metascriptId
+        path = output_path
+        type = generator_details.target_type
+        status = "pending"
+        created_at = System.DateTime.UtcNow.ToString("o")
+        last_executed = null
+        generated_by = "{{id}}"
+        dependencies = template_variables.dependencies
+        generates = []
+    |}
+    
+    // Add the new metascript to the registry
+    let updatedRegistry = {|
+        registry with
+            metascripts = registry.metascripts.Append(newMetascript).ToArray()
+    |}
+    
+    // Return the updated registry
+    updatedRegistry
+    
+    output_variable: "updated_registry"
+}
+
+ACTION {
+    type: "file_write"
+    path: "TarsCli/Metascripts/registry.json"
+    content: "${JSON.stringify(updated_registry, null, 2)}"
+}
+
+// Log the completion
+ACTION {
+    type: "log"
+    message: "Generated metascript: ${output_path}"
+}

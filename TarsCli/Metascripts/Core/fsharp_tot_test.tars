@@ -1,0 +1,319 @@
+﻿DESCRIBE {
+    name: "F# Tree-of-Thought Test"
+    version: "1.0"
+    author: "TARS Auto-Improvement"
+    description: "Tests F# compilation with Tree-of-Thought reasoning"
+    tags: ["test", "f#", "compilation", "tree-of-thought"]
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.2
+    max_tokens: 4000
+    backup_before_changes: true
+}
+
+// Define the Tree-of-Thought parameters
+VARIABLE tot_params {
+    value: {
+        branching_factor: 3,
+        max_depth: 3,
+        beam_width: 2,
+        evaluation_metrics: ["correctness", "efficiency", "elegance", "maintainability"],
+        pruning_strategy: "beam_search"
+    }
+}
+
+// Initialize the results
+VARIABLE test_results {
+    value: {
+        test_start_time: "${new Date().toISOString()}",
+        test_end_time: null,
+        compilation_success: false,
+        execution_success: false,
+        thought_tree: null,
+        output: null,
+        errors: []
+    }
+}
+
+// Log the start of the test
+ACTION {
+    type: "log"
+    message: "Starting F# Tree-of-Thought test"
+}
+
+// Generate F# code using Tree-of-Thought reasoning
+PROMPT {
+    model: "llama3"
+    temperature: 0.3
+    max_tokens: 6000
+    prompt: """
+    You are an expert F# programmer. Your task is to generate F# code that implements a Tree-of-Thought reasoning algorithm using Chain-of-Thought reasoning.
+    
+    Please create a thought tree that explores different approaches to implementing Tree-of-Thought reasoning in F#. Use Chain-of-Thought reasoning to:
+    1. Generate multiple potential implementation approaches (branching)
+    2. For each approach, explore different implementation details (further branching)
+    3. Evaluate each implementation branch based on correctness, efficiency, elegance, and maintainability
+    4. Prune less promising branches and expand more promising ones
+    5. Select the most promising implementation
+    
+    Format your response as a JSON object with the following structure:
+    {
+      "thought_tree": {
+        "root": {
+          "thought": "Initial planning for Tree-of-Thought implementation in F#",
+          "children": [
+            {
+              "thought": "Approach 1: [Approach name]",
+              "children": [
+                {
+                  "thought": "Implementation detail 1A: [Detail description]",
+                  "evaluation": {
+                    "correctness": 0.8,
+                    "efficiency": 0.7,
+                    "elegance": 0.9,
+                    "maintainability": 0.6,
+                    "overall": 0.75
+                  },
+                  "pruned": false,
+                  "children": []
+                },
+                {
+                  "thought": "Implementation detail 1B: [Detail description]",
+                  "evaluation": {
+                    "correctness": 0.5,
+                    "efficiency": 0.4,
+                    "elegance": 0.3,
+                    "maintainability": 0.2,
+                    "overall": 0.35
+                  },
+                  "pruned": true,
+                  "children": []
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "selected_implementation": "The complete F# code as a string"
+    }
+    
+    Make sure the F# code is complete, well-structured, and ready to be compiled and executed.
+    """
+    result_variable: "fsharp_code_result"
+}
+
+// Parse the F# code result
+FSHARP {
+    // Parse the JSON result
+    let codeResult = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonDocument>(fsharp_code_result).RootElement
+    
+    // Get the thought tree
+    let thoughtTree = codeResult.GetProperty("thought_tree")
+    
+    // Get the selected implementation
+    let selectedImplementation = codeResult.GetProperty("selected_implementation").GetString()
+    
+    // Return the thought tree and selected implementation
+    (thoughtTree, selectedImplementation)
+    
+    output_variable: "parsed_fsharp_code"
+}
+
+// Update the test results with the thought tree
+FSHARP {
+    // Get the current test results
+    let results = test_results
+    
+    // Get the thought tree
+    let (thoughtTree, _) = parsed_fsharp_code
+    
+    // Update the thought tree
+    {|
+        results with
+            thought_tree = thoughtTree
+    |}
+    
+    output_variable: "updated_results"
+}
+
+VARIABLE test_results {
+    value: "${updated_results}"
+}
+
+// Get the F# code
+FSHARP {
+    // Get the selected implementation
+    let (_, selectedImplementation) = parsed_fsharp_code
+    
+    // Return the selected implementation
+    selectedImplementation
+    
+    output_variable: "fsharp_code"
+}
+
+// Log the F# code
+ACTION {
+    type: "log"
+    message: "Generated F# code:\n${fsharp_code}"
+}
+
+// Compile the F# code
+FSHARP {
+    // Compile the F# code
+    try
+        // Create a temporary file for the F# code
+        let tempFilePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{System.Guid.NewGuid()}.fs")
+        System.IO.File.WriteAllText(tempFilePath, fsharp_code)
+        
+        // Create F# compiler arguments
+        let compilerArgs = [|
+            "fsc"
+            "-o"; System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{System.Guid.NewGuid()}.dll")
+            "-a"; tempFilePath
+            "--targetprofile:netstandard"
+        |]
+        
+        // Run the F# compiler
+        let startInfo = new System.Diagnostics.ProcessStartInfo(
+            FileName = "dotnet",
+            Arguments = $"fsi --exec {String.concat " " compilerArgs}",
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        )
+        
+        use process = new System.Diagnostics.Process(StartInfo = startInfo)
+        let outputBuilder = new System.Text.StringBuilder()
+        let errorBuilder = new System.Text.StringBuilder()
+        
+        process.OutputDataReceived.Add(fun args -> 
+            if not (isNull args.Data) then
+                outputBuilder.AppendLine(args.Data) |> ignore
+        )
+        
+        process.ErrorDataReceived.Add(fun args -> 
+            if not (isNull args.Data) then
+                errorBuilder.AppendLine(args.Data) |> ignore
+        )
+        
+        process.Start() |> ignore
+        process.BeginOutputReadLine()
+        process.BeginErrorReadLine()
+        process.WaitForExit()
+        
+        // Get the output and error
+        let output = outputBuilder.ToString()
+        let error = errorBuilder.ToString()
+        
+        // Clean up temporary file
+        System.IO.File.Delete(tempFilePath)
+        
+        // Return the compilation result
+        if process.ExitCode = 0 then
+            (true, output, [])
+        else
+            (false, output, [error])
+    with
+    | ex -> (false, "", [ex.Message])
+    
+    output_variable: "compilation_result"
+}
+
+// Update the test results with the compilation result
+FSHARP {
+    // Get the current test results
+    let results = test_results
+    
+    // Get the compilation result
+    let (success, output, errors) = compilation_result
+    
+    // Update the compilation success and errors
+    {|
+        results with
+            compilation_success = success
+            output = output
+            errors = errors
+    |}
+    
+    output_variable: "updated_results"
+}
+
+VARIABLE test_results {
+    value: "${updated_results}"
+}
+
+// Log the compilation result
+ACTION {
+    type: "log"
+    message: "Compilation ${test_results.compilation_success ? 'succeeded' : 'failed'}"
+}
+
+IF {
+    condition: "${!test_results.compilation_success}"
+    then: {
+        ACTION {
+            type: "log"
+            message: "Compilation errors:\n${test_results.errors.join('\n')}"
+        }
+    }
+}
+
+// Update the test end time
+VARIABLE test_results {
+    value: {
+        ...test_results,
+        test_end_time: "${new Date().toISOString()}"
+    }
+}
+
+// Generate a detailed report
+VARIABLE report {
+    value: """# F# Tree-of-Thought Test Report
+
+## Summary
+- **Test Start Time**: ${test_results.test_start_time}
+- **Test End Time**: ${test_results.test_end_time}
+- **Compilation Success**: ${test_results.compilation_success}
+- **Execution Success**: ${test_results.execution_success}
+
+## Generated F# Code
+\`\`\`fsharp
+${fsharp_code}
+\`\`\`
+
+## Compilation Output
+\`\`\`
+${test_results.output}
+\`\`\`
+
+## Compilation Errors
+\`\`\`
+${test_results.errors.join('\n')}
+\`\`\`
+
+## Thought Tree
+\`\`\`json
+${JSON.stringify(test_results.thought_tree, null, 2)}
+\`\`\`
+"""
+}
+
+// Save the report
+ACTION {
+    type: "file_write"
+    path: "fsharp_tot_test_report.md"
+    content: "${report}"
+}
+
+ACTION {
+    type: "log"
+    message: "Test report saved to fsharp_tot_test_report.md"
+}
+
+// Return the test results
+RETURN {
+    value: "${test_results}"
+}

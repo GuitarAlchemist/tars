@@ -1,0 +1,677 @@
+﻿DESCRIBE {
+    name: "Intelligence Measurement System"
+    version: "1.0"
+    author: "TARS Autonomous Improvement"
+    description: "A metascript to implement intelligence measurement metrics and visualization"
+    tags: ["improvement", "intelligence", "measurement", "metrics"]
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.2
+    max_tokens: 4000
+    backup_before_changes: true
+}
+
+// Define the target files
+VARIABLE target_files {
+    value: [
+        "TarsEngine/Intelligence/Measurement/MetricsCollector.cs",
+        "TarsEngine/Intelligence/Measurement/IntelligenceMetrics.cs",
+        "TarsEngine/Intelligence/Measurement/Reports/MetricsReport.cs"
+    ]
+}
+
+// Define the improvement details
+VARIABLE improvement_details {
+    value: {
+        category: "intelligence_measurement",
+        description: "Implement intelligence measurement metrics and visualization",
+        impact_score: 9,
+        difficulty_score: 7
+    }
+}
+
+// Log the start of the process
+ACTION {
+    type: "log"
+    message: "Starting Intelligence Measurement System implementation"
+}
+
+// Check if the target files exist
+ACTION {
+    type: "file_exists"
+    path: "${target_files[0]}"
+    result_variable: "metrics_collector_exists"
+}
+
+ACTION {
+    type: "file_exists"
+    path: "${target_files[1]}"
+    result_variable: "intelligence_metrics_exists"
+}
+
+ACTION {
+    type: "file_exists"
+    path: "${target_files[2]}"
+    result_variable: "metrics_report_exists"
+}
+
+// Create the MetricsCollector.cs file if it doesn't exist
+IF {
+    condition: "${!metrics_collector_exists}"
+    then: {
+        ACTION {
+            type: "log"
+            message: "Creating MetricsCollector.cs file"
+        }
+        
+        ACTION {
+            type: "file_write"
+            path: "${target_files[0]}"
+            content: """using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+namespace TarsEngine.Intelligence.Measurement
+{
+    /// <summary>
+    /// Collects and processes intelligence metrics from various sources.
+    /// </summary>
+    public class MetricsCollector
+    {
+        private readonly List<IntelligenceMetric> _metrics = new();
+        private readonly IMetricsStorage _storage;
+        
+        /// <summary>
+        /// Initializes a new instance of the <see cref="MetricsCollector"/> class.
+        /// </summary>
+        /// <param name="storage">The storage provider for metrics.</param>
+        public MetricsCollector(IMetricsStorage storage)
+        {
+            _storage = storage ?? throw new ArgumentNullException(nameof(storage));
+        }
+        
+        /// <summary>
+        /// Collects a new intelligence metric.
+        /// </summary>
+        /// <param name="metric">The metric to collect.</param>
+        public void CollectMetric(IntelligenceMetric metric)
+        {
+            if (metric == null)
+                throw new ArgumentNullException(nameof(metric));
+                
+            _metrics.Add(metric);
+        }
+        
+        /// <summary>
+        /// Processes all collected metrics and stores them.
+        /// </summary>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        public async Task ProcessMetricsAsync()
+        {
+            if (_metrics.Count == 0)
+                return;
+                
+            // Process metrics (calculate averages, trends, etc.)
+            var processedMetrics = ProcessMetrics(_metrics);
+            
+            // Store the processed metrics
+            await _storage.StoreMetricsAsync(processedMetrics);
+            
+            // Clear the metrics collection
+            _metrics.Clear();
+        }
+        
+        /// <summary>
+        /// Processes the raw metrics to calculate derived metrics.
+        /// </summary>
+        /// <param name="rawMetrics">The raw metrics to process.</param>
+        /// <returns>The processed metrics.</returns>
+        private List<IntelligenceMetric> ProcessMetrics(List<IntelligenceMetric> rawMetrics)
+        {
+            // TODO: Implement metric processing logic
+            return rawMetrics;
+        }
+    }
+}"""
+        }
+    }
+}
+
+// Create the IntelligenceMetrics.cs file if it doesn't exist
+IF {
+    condition: "${!intelligence_metrics_exists}"
+    then: {
+        ACTION {
+            type: "log"
+            message: "Creating IntelligenceMetrics.cs file"
+        }
+        
+        ACTION {
+            type: "file_write"
+            path: "${target_files[1]}"
+            content: """using System;
+
+namespace TarsEngine.Intelligence.Measurement
+{
+    /// <summary>
+    /// Represents a single intelligence metric.
+    /// </summary>
+    public class IntelligenceMetric
+    {
+        /// <summary>
+        /// Gets or sets the name of the metric.
+        /// </summary>
+        public string Name { get; set; } = string.Empty;
+        
+        /// <summary>
+        /// Gets or sets the value of the metric.
+        /// </summary>
+        public double Value { get; set; }
+        
+        /// <summary>
+        /// Gets or sets the timestamp when the metric was collected.
+        /// </summary>
+        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+        
+        /// <summary>
+        /// Gets or sets the category of the metric.
+        /// </summary>
+        public MetricCategory Category { get; set; }
+        
+        /// <summary>
+        /// Gets or sets the source of the metric.
+        /// </summary>
+        public string Source { get; set; } = string.Empty;
+    }
+    
+    /// <summary>
+    /// Defines the categories of intelligence metrics.
+    /// </summary>
+    public enum MetricCategory
+    {
+        /// <summary>
+        /// Metrics related to code quality.
+        /// </summary>
+        CodeQuality,
+        
+        /// <summary>
+        /// Metrics related to problem-solving capabilities.
+        /// </summary>
+        ProblemSolving,
+        
+        /// <summary>
+        /// Metrics related to learning capabilities.
+        /// </summary>
+        Learning,
+        
+        /// <summary>
+        /// Metrics related to creativity.
+        /// </summary>
+        Creativity,
+        
+        /// <summary>
+        /// Metrics related to efficiency.
+        /// </summary>
+        Efficiency,
+        
+        /// <summary>
+        /// Metrics related to adaptability.
+        /// </summary>
+        Adaptability
+    }
+    
+    /// <summary>
+    /// Interface for storing intelligence metrics.
+    /// </summary>
+    public interface IMetricsStorage
+    {
+        /// <summary>
+        /// Stores the specified metrics.
+        /// </summary>
+        /// <param name="metrics">The metrics to store.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        Task StoreMetricsAsync(IEnumerable<IntelligenceMetric> metrics);
+        
+        /// <summary>
+        /// Retrieves metrics based on the specified criteria.
+        /// </summary>
+        /// <param name="category">The category of metrics to retrieve.</param>
+        /// <param name="startTime">The start time for the metrics to retrieve.</param>
+        /// <param name="endTime">The end time for the metrics to retrieve.</param>
+        /// <returns>A task representing the asynchronous operation, containing the retrieved metrics.</returns>
+        Task<IEnumerable<IntelligenceMetric>> RetrieveMetricsAsync(
+            MetricCategory? category = null,
+            DateTime? startTime = null,
+            DateTime? endTime = null);
+    }
+}"""
+        }
+    }
+}
+
+// Create the MetricsReport.cs file if it doesn't exist
+IF {
+    condition: "${!metrics_report_exists}"
+    then: {
+        ACTION {
+            type: "log"
+            message: "Creating MetricsReport.cs file"
+        }
+        
+        ACTION {
+            type: "file_write"
+            path: "${target_files[2]}"
+            content: """using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace TarsEngine.Intelligence.Measurement.Reports
+{
+    /// <summary>
+    /// Generates reports based on intelligence metrics.
+    /// </summary>
+    public class MetricsReport
+    {
+        private readonly IMetricsStorage _storage;
+        
+        /// <summary>
+        /// Initializes a new instance of the <see cref="MetricsReport"/> class.
+        /// </summary>
+        /// <param name="storage">The storage provider for metrics.</param>
+        public MetricsReport(IMetricsStorage storage)
+        {
+            _storage = storage ?? throw new ArgumentNullException(nameof(storage));
+        }
+        
+        /// <summary>
+        /// Generates a summary report of intelligence metrics.
+        /// </summary>
+        /// <param name="startTime">The start time for the metrics to include in the report.</param>
+        /// <param name="endTime">The end time for the metrics to include in the report.</param>
+        /// <returns>A task representing the asynchronous operation, containing the report as a string.</returns>
+        public async Task<string> GenerateSummaryReportAsync(DateTime startTime, DateTime endTime)
+        {
+            var metrics = await _storage.RetrieveMetricsAsync(startTime: startTime, endTime: endTime);
+            
+            var sb = new StringBuilder();
+            sb.AppendLine("# Intelligence Metrics Summary Report");
+            sb.AppendLine($"Period: {startTime:yyyy-MM-dd} to {endTime:yyyy-MM-dd}");
+            sb.AppendLine();
+            
+            // Group metrics by category
+            var groupedMetrics = metrics.GroupBy(m => m.Category);
+            
+            foreach (var group in groupedMetrics)
+            {
+                sb.AppendLine($"## {group.Key}");
+                
+                // Calculate average value for each metric name
+                var metricAverages = group
+                    .GroupBy(m => m.Name)
+                    .Select(g => new { Name = g.Key, Average = g.Average(m => m.Value) });
+                
+                foreach (var metric in metricAverages)
+                {
+                    sb.AppendLine($"- {metric.Name}: {metric.Average:F2}");
+                }
+                
+                sb.AppendLine();
+            }
+            
+            // Calculate overall intelligence score
+            var overallScore = CalculateOverallScore(metrics);
+            sb.AppendLine($"## Overall Intelligence Score: {overallScore:F2}");
+            
+            return sb.ToString();
+        }
+        
+        /// <summary>
+        /// Generates an HTML report of intelligence metrics with visualizations.
+        /// </summary>
+        /// <param name="startTime">The start time for the metrics to include in the report.</param>
+        /// <param name="endTime">The end time for the metrics to include in the report.</param>
+        /// <returns>A task representing the asynchronous operation, containing the HTML report as a string.</returns>
+        public async Task<string> GenerateHtmlReportAsync(DateTime startTime, DateTime endTime)
+        {
+            var metrics = await _storage.RetrieveMetricsAsync(startTime: startTime, endTime: endTime);
+            
+            // TODO: Implement HTML report generation with charts and visualizations
+            
+            return "<h1>Intelligence Metrics Report</h1><p>HTML report generation not yet implemented.</p>";
+        }
+        
+        /// <summary>
+        /// Calculates the overall intelligence score based on the provided metrics.
+        /// </summary>
+        /// <param name="metrics">The metrics to use for calculation.</param>
+        /// <returns>The overall intelligence score.</returns>
+        private double CalculateOverallScore(IEnumerable<IntelligenceMetric> metrics)
+        {
+            if (!metrics.Any())
+                return 0;
+                
+            // Define weights for each category
+            var weights = new Dictionary<MetricCategory, double>
+            {
+                { MetricCategory.CodeQuality, 0.2 },
+                { MetricCategory.ProblemSolving, 0.25 },
+                { MetricCategory.Learning, 0.2 },
+                { MetricCategory.Creativity, 0.15 },
+                { MetricCategory.Efficiency, 0.1 },
+                { MetricCategory.Adaptability, 0.1 }
+            };
+            
+            // Calculate weighted average
+            double weightedSum = 0;
+            double totalWeight = 0;
+            
+            foreach (var category in Enum.GetValues<MetricCategory>())
+            {
+                var categoryMetrics = metrics.Where(m => m.Category == category);
+                
+                if (categoryMetrics.Any())
+                {
+                    var categoryAverage = categoryMetrics.Average(m => m.Value);
+                    var weight = weights.GetValueOrDefault(category, 0.1);
+                    
+                    weightedSum += categoryAverage * weight;
+                    totalWeight += weight;
+                }
+            }
+            
+            return totalWeight > 0 ? weightedSum / totalWeight : 0;
+        }
+    }
+}"""
+        }
+    }
+}
+
+// Log the completion
+ACTION {
+    type: "log"
+    message: "Intelligence Measurement System implementation completed"
+}
+
+// Generate a test file for the metrics system
+ACTION {
+    type: "file_write"
+    path: "TarsEngine.Tests/Intelligence/Measurement/MetricsCollectorTests.cs"
+    content: """using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Moq;
+using TarsEngine.Intelligence.Measurement;
+using Xunit;
+
+namespace TarsEngine.Tests.Intelligence.Measurement
+{
+    public class MetricsCollectorTests
+    {
+        [Fact]
+        public void CollectMetric_ValidMetric_AddsToCollection()
+        {
+            // Arrange
+            var storageMock = new Mock<IMetricsStorage>();
+            var collector = new MetricsCollector(storageMock.Object);
+            var metric = new IntelligenceMetric
+            {
+                Name = "TestMetric",
+                Value = 42,
+                Category = MetricCategory.CodeQuality
+            };
+            
+            // Act
+            collector.CollectMetric(metric);
+            
+            // Assert - We can't directly test the private collection, but we can verify it's processed
+            // This is an indirect test through the ProcessMetricsAsync method
+            storageMock.Setup(s => s.StoreMetricsAsync(It.IsAny<IEnumerable<IntelligenceMetric>>()))
+                .Returns(Task.CompletedTask)
+                .Verifiable();
+                
+            // Act
+            collector.ProcessMetricsAsync().Wait();
+            
+            // Assert
+            storageMock.Verify(s => s.StoreMetricsAsync(It.IsAny<IEnumerable<IntelligenceMetric>>()), Times.Once);
+        }
+        
+        [Fact]
+        public void CollectMetric_NullMetric_ThrowsArgumentNullException()
+        {
+            // Arrange
+            var storageMock = new Mock<IMetricsStorage>();
+            var collector = new MetricsCollector(storageMock.Object);
+            
+            // Act & Assert
+            Assert.Throws<ArgumentNullException>(() => collector.CollectMetric(null));
+        }
+        
+        [Fact]
+        public async Task ProcessMetricsAsync_NoMetrics_DoesNotCallStorage()
+        {
+            // Arrange
+            var storageMock = new Mock<IMetricsStorage>();
+            var collector = new MetricsCollector(storageMock.Object);
+            
+            // Act
+            await collector.ProcessMetricsAsync();
+            
+            // Assert
+            storageMock.Verify(s => s.StoreMetricsAsync(It.IsAny<IEnumerable<IntelligenceMetric>>()), Times.Never);
+        }
+    }
+}"""
+}
+
+// Create a CLI command for intelligence measurement
+ACTION {
+    type: "file_write"
+    path: "TarsCli/Commands/IntelligenceMeasurementCommand.cs"
+    content: """using System;
+using System.CommandLine;
+using System.CommandLine.Invocation;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using TarsEngine.Intelligence.Measurement;
+using TarsEngine.Intelligence.Measurement.Reports;
+
+namespace TarsCli.Commands
+{
+    /// <summary>
+    /// Command for intelligence measurement operations.
+    /// </summary>
+    public class IntelligenceMeasurementCommand : Command
+    {
+        private readonly ILogger<IntelligenceMeasurementCommand> _logger;
+        private readonly IMetricsStorage _metricsStorage;
+        
+        /// <summary>
+        /// Initializes a new instance of the <see cref="IntelligenceMeasurementCommand"/> class.
+        /// </summary>
+        /// <param name="logger">The logger.</param>
+        /// <param name="metricsStorage">The metrics storage.</param>
+        public IntelligenceMeasurementCommand(
+            ILogger<IntelligenceMeasurementCommand> logger,
+            IMetricsStorage metricsStorage)
+            : base("intelligence-measurement", "Commands for intelligence measurement operations")
+        {
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _metricsStorage = metricsStorage ?? throw new ArgumentNullException(nameof(metricsStorage));
+            
+            // Add subcommands
+            AddCommand(CreateReportCommand());
+            AddCommand(CreateStatusCommand());
+            AddCommand(CreateCollectCommand());
+        }
+        
+        private Command CreateReportCommand()
+        {
+            var command = new Command("report", "Generate an intelligence measurement report");
+            
+            var formatOption = new Option<string>(
+                "--format",
+                () => "text",
+                "The format of the report (text, html)");
+            command.AddOption(formatOption);
+            
+            var startDateOption = new Option<DateTime>(
+                "--start-date",
+                () => DateTime.UtcNow.AddDays(-30),
+                "The start date for the report");
+            command.AddOption(startDateOption);
+            
+            var endDateOption = new Option<DateTime>(
+                "--end-date",
+                () => DateTime.UtcNow,
+                "The end date for the report");
+            command.AddOption(endDateOption);
+            
+            var outputOption = new Option<string>(
+                "--output",
+                "The output file path for the report");
+            command.AddOption(outputOption);
+            
+            command.SetHandler(async (format, startDate, endDate, output) =>
+            {
+                await GenerateReportAsync(format, startDate, endDate, output);
+            }, formatOption, startDateOption, endDateOption, outputOption);
+            
+            return command;
+        }
+        
+        private Command CreateStatusCommand()
+        {
+            var command = new Command("status", "Show the current status of intelligence measurement");
+            
+            command.SetHandler(() =>
+            {
+                ShowStatus();
+            });
+            
+            return command;
+        }
+        
+        private Command CreateCollectCommand()
+        {
+            var command = new Command("collect", "Collect intelligence metrics");
+            
+            var categoryOption = new Option<MetricCategory>(
+                "--category",
+                "The category of the metric");
+            command.AddOption(categoryOption);
+            
+            var nameOption = new Option<string>(
+                "--name",
+                "The name of the metric");
+            command.AddOption(nameOption);
+            
+            var valueOption = new Option<double>(
+                "--value",
+                "The value of the metric");
+            command.AddOption(valueOption);
+            
+            var sourceOption = new Option<string>(
+                "--source",
+                () => "manual",
+                "The source of the metric");
+            command.AddOption(sourceOption);
+            
+            command.SetHandler((category, name, value, source) =>
+            {
+                CollectMetric(category, name, value, source);
+            }, categoryOption, nameOption, valueOption, sourceOption);
+            
+            return command;
+        }
+        
+        private async Task GenerateReportAsync(string format, DateTime startDate, DateTime endDate, string output)
+        {
+            try
+            {
+                _logger.LogInformation("Generating intelligence measurement report...");
+                
+                var report = new MetricsReport(_metricsStorage);
+                string reportContent;
+                
+                if (format.Equals("html", StringComparison.OrdinalIgnoreCase))
+                {
+                    reportContent = await report.GenerateHtmlReportAsync(startDate, endDate);
+                }
+                else
+                {
+                    reportContent = await report.GenerateSummaryReportAsync(startDate, endDate);
+                }
+                
+                if (!string.IsNullOrEmpty(output))
+                {
+                    await System.IO.File.WriteAllTextAsync(output, reportContent);
+                    _logger.LogInformation($"Report saved to {output}");
+                }
+                else
+                {
+                    Console.WriteLine(reportContent);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating intelligence measurement report");
+                Console.WriteLine($"Error: {ex.Message}");
+            }
+        }
+        
+        private void ShowStatus()
+        {
+            try
+            {
+                _logger.LogInformation("Showing intelligence measurement status...");
+                
+                // TODO: Implement status display
+                Console.WriteLine("Intelligence Measurement Status");
+                Console.WriteLine("===============================");
+                Console.WriteLine("Status: Active");
+                Console.WriteLine("Last collection: [Not implemented]");
+                Console.WriteLine("Metrics collected: [Not implemented]");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error showing intelligence measurement status");
+                Console.WriteLine($"Error: {ex.Message}");
+            }
+        }
+        
+        private void CollectMetric(MetricCategory category, string name, double value, string source)
+        {
+            try
+            {
+                _logger.LogInformation($"Collecting intelligence metric: {name}");
+                
+                var metric = new IntelligenceMetric
+                {
+                    Category = category,
+                    Name = name,
+                    Value = value,
+                    Source = source,
+                    Timestamp = DateTime.UtcNow
+                };
+                
+                var collector = new MetricsCollector(_metricsStorage);
+                collector.CollectMetric(metric);
+                collector.ProcessMetricsAsync().Wait();
+                
+                Console.WriteLine($"Metric collected: {name} = {value} ({category})");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error collecting intelligence metric");
+                Console.WriteLine($"Error: {ex.Message}");
+            }
+        }
+    }
+}"""
+}

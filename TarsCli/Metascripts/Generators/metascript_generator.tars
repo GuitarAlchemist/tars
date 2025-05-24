@@ -1,0 +1,764 @@
+﻿DESCRIBE {
+    name: "Metascript Generator"
+    version: "1.0"
+    author: "TARS Auto-Improvement"
+    description: "A metascript that generates other metascripts based on code analysis"
+    tags: ["generator", "meta", "improvement"]
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.2
+    max_tokens: 4000
+    backup_before_changes: true
+}
+
+// Define paths to metascript directories
+VARIABLE metascript_dirs {
+    value: [
+        "TarsCli/Metascripts/Improvements",
+        "TarsCli/Metascripts/Tests",
+        "TarsCli/Metascripts/Documentation"
+    ]
+}
+
+// Define the state object to track progress
+VARIABLE state {
+    value: {
+        start_time: "${new Date().toISOString()}",
+        metascripts_generated: 0,
+        metascripts_validated: 0,
+        current_phase: "initialization"
+    }
+}
+
+// Main workflow
+ACTION {
+    type: "log"
+    message: "Starting Metascript Generator"
+}
+
+// Log the metascript directories
+ACTION {
+    type: "log"
+    message: "Metascript directories: ${metascript_dirs.join(', ')}"
+}
+
+// Define the metascript template for code improvements
+VARIABLE improvement_template {
+    value: """DESCRIBE {
+    name: "{{name}}"
+    version: "1.0"
+    author: "TARS Auto-Improvement"
+    description: "{{description}}"
+    tags: [{{tags}}]
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.2
+    max_tokens: 4000
+    backup_before_changes: true
+}
+
+// Define the target file
+VARIABLE target_file {
+    value: "{{target_file}}"
+}
+
+// Define the improvement details
+VARIABLE improvement_details {
+    value: {
+        category: "{{category}}",
+        description: "{{description}}",
+        impact_score: {{impact_score}},
+        difficulty_score: {{difficulty_score}}
+    }
+}
+
+// Read the file content
+ACTION {
+    type: "file_read"
+    path: "${target_file}"
+    result_variable: "file_content"
+}
+
+// Log the improvement details
+ACTION {
+    type: "log"
+    message: "Applying improvement to ${target_file}"
+}
+
+ACTION {
+    type: "log"
+    message: "Category: ${improvement_details.category}"
+}
+
+ACTION {
+    type: "log"
+    message: "Description: ${improvement_details.description}"
+}
+
+// Apply the improvement
+{{improvement_code}}
+
+// Write the improved content back to the file
+ACTION {
+    type: "file_write"
+    path: "${target_file}"
+    content: "${improved_content}"
+}
+
+// Log the completion
+ACTION {
+    type: "log"
+    message: "Improvement applied successfully to ${target_file}"
+}
+"""
+}
+
+// Define the metascript template for tests
+VARIABLE test_template {
+    value: """DESCRIBE {
+    name: "{{name}}"
+    version: "1.0"
+    author: "TARS Auto-Improvement"
+    description: "{{description}}"
+    tags: [{{tags}}]
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.2
+    max_tokens: 4000
+    backup_before_changes: true
+}
+
+// Define the target test file
+VARIABLE target_test_file {
+    value: "{{target_test_file}}"
+}
+
+// Define the test details
+VARIABLE test_details {
+    value: {
+        category: "{{category}}",
+        description: "{{description}}",
+        coverage_score: {{coverage_score}}
+    }
+}
+
+// Check if the test file exists
+ACTION {
+    type: "file_exists"
+    path: "${target_test_file}"
+    result_variable: "test_file_exists"
+}
+
+// Create or update the test file
+IF {
+    condition: "${!test_file_exists}"
+    then: {
+        ACTION {
+            type: "log"
+            message: "Creating new test file: ${target_test_file}"
+        }
+        
+        ACTION {
+            type: "file_write"
+            path: "${target_test_file}"
+            content: """{{test_content}}"""
+        }
+    }
+    else: {
+        ACTION {
+            type: "log"
+            message: "Updating existing test file: ${target_test_file}"
+        }
+        
+        ACTION {
+            type: "file_read"
+            path: "${target_test_file}"
+            result_variable: "existing_test_content"
+        }
+        
+        {{test_update_code}}
+        
+        ACTION {
+            type: "file_write"
+            path: "${target_test_file}"
+            content: "${updated_test_content}"
+        }
+    }
+}
+
+// Log the completion
+ACTION {
+    type: "log"
+    message: "Test file created/updated successfully: ${target_test_file}"
+}
+"""
+}
+
+// Define the metascript template for documentation
+VARIABLE documentation_template {
+    value: """DESCRIBE {
+    name: "{{name}}"
+    version: "1.0"
+    author: "TARS Auto-Improvement"
+    description: "{{description}}"
+    tags: [{{tags}}]
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.2
+    max_tokens: 4000
+    backup_before_changes: true
+}
+
+// Define the target documentation file
+VARIABLE target_doc_file {
+    value: "{{target_doc_file}}"
+}
+
+// Define the documentation details
+VARIABLE doc_details {
+    value: {
+        category: "{{category}}",
+        description: "{{description}}",
+        completeness_score: {{completeness_score}}
+    }
+}
+
+// Check if the documentation file exists
+ACTION {
+    type: "file_exists"
+    path: "${target_doc_file}"
+    result_variable: "doc_file_exists"
+}
+
+// Create or update the documentation file
+IF {
+    condition: "${!doc_file_exists}"
+    then: {
+        ACTION {
+            type: "log"
+            message: "Creating new documentation file: ${target_doc_file}"
+        }
+        
+        ACTION {
+            type: "file_write"
+            path: "${target_doc_file}"
+            content: """{{doc_content}}"""
+        }
+    }
+    else: {
+        ACTION {
+            type: "log"
+            message: "Updating existing documentation file: ${target_doc_file}"
+        }
+        
+        ACTION {
+            type: "file_read"
+            path: "${target_doc_file}"
+            result_variable: "existing_doc_content"
+        }
+        
+        {{doc_update_code}}
+        
+        ACTION {
+            type: "file_write"
+            path: "${target_doc_file}"
+            content: "${updated_doc_content}"
+        }
+    }
+}
+
+// Log the completion
+ACTION {
+    type: "log"
+    message: "Documentation file created/updated successfully: ${target_doc_file}"
+}
+"""
+}
+
+// Function to analyze code and identify improvement opportunities
+FUNCTION analyze_code {
+    parameters: ["file_path"]
+    
+    // Read the file content
+    ACTION {
+        type: "file_read"
+        path: "${file_path}"
+        result_variable: "file_content"
+    }
+    
+    // Analyze the code using LLM
+    PROMPT {
+        model: "llama3"
+        temperature: 0.2
+        max_tokens: 2000
+        prompt: """
+        You are an expert code analyzer for the TARS project. Your task is to analyze the following code and identify improvement opportunities.
+        
+        File path: ${file_path}
+        
+        Code content:
+        ${file_content}
+        
+        Please identify up to 3 specific improvements that could be made to this code. For each improvement, provide:
+        1. A short name for the improvement
+        2. A detailed description of what should be changed
+        3. The category of the improvement (e.g., performance, readability, maintainability, documentation)
+        4. An impact score from 1-10 (how much this improvement will benefit the codebase)
+        5. A difficulty score from 1-10 (how hard this improvement is to implement)
+        
+        Format your response as a JSON array of improvement objects:
+        
+        [
+          {
+            "name": "Improvement name",
+            "description": "Detailed description",
+            "category": "Category",
+            "impact_score": 7,
+            "difficulty_score": 3,
+            "target_file": "${file_path}"
+          }
+        ]
+        
+        Only include improvements that are specific, actionable, and beneficial. Focus on improvements that can be implemented through metascripts.
+        """
+        result_variable: "analysis_result"
+    }
+    
+    // Parse the analysis result
+    FSHARP {
+        // Parse the JSON result
+        let analysisJson = analysis_result
+        
+        // Return the parsed JSON
+        analysisJson
+        
+        output_variable: "parsed_analysis"
+    }
+    
+    // Return the analysis result
+    RETURN {
+        value: "${parsed_analysis}"
+    }
+}
+
+// Function to generate an improvement metascript
+FUNCTION generate_improvement_metascript {
+    parameters: ["improvement"]
+    
+    // Generate the improvement code using LLM
+    PROMPT {
+        model: "llama3"
+        temperature: 0.2
+        max_tokens: 3000
+        prompt: """
+        You are an expert code improver for the TARS project. Your task is to generate code for a metascript that will implement a specific improvement.
+        
+        Improvement details:
+        - Name: ${improvement.name}
+        - Description: ${improvement.description}
+        - Category: ${improvement.category}
+        - Target file: ${improvement.target_file}
+        
+        The metascript should:
+        1. Read the content of the target file
+        2. Identify the specific code that needs to be changed
+        3. Generate the improved code
+        4. Replace the original code with the improved code
+        5. Write the improved content back to the file
+        
+        Generate the F# code block that will implement this improvement. The code should be placed in the "improvement_code" section of the metascript template.
+        
+        The code should follow this pattern:
+        
+        ```
+        FSHARP {
+            // Get the file content
+            let content = file_content
+            
+            // Original code to replace
+            let originalCode = """[original code here]"""
+            
+            // Improved code
+            let improvedCode = """[improved code here]"""
+            
+            // Replace the original code with the improved code
+            let updatedContent = content.Replace(originalCode, improvedCode)
+            
+            // Return the updated content
+            updatedContent
+            
+            output_variable: "improved_content"
+        }
+        ```
+        
+        Only generate the FSHARP block, not the entire metascript.
+        """
+        result_variable: "improvement_code"
+    }
+    
+    // Generate the metascript content
+    FSHARP {
+        // Get the improvement details
+        let improvement = improvement
+        
+        // Get the improvement code
+        let improvementCode = improvement_code
+        
+        // Generate tags
+        let tags = sprintf "\"%s\", \"improvement\"" improvement.category
+        
+        // Replace placeholders in the template
+        let metascriptContent = improvement_template
+            .Replace("{{name}}", improvement.name)
+            .Replace("{{description}}", improvement.description)
+            .Replace("{{tags}}", tags)
+            .Replace("{{target_file}}", improvement.target_file)
+            .Replace("{{category}}", improvement.category)
+            .Replace("{{impact_score}}", improvement.impact_score.ToString())
+            .Replace("{{difficulty_score}}", improvement.difficulty_score.ToString())
+            .Replace("{{improvement_code}}", improvementCode)
+        
+        // Generate the metascript file name
+        let fileName = improvement.name.ToLower().Replace(" ", "_") + ".tars"
+        let filePath = System.IO.Path.Combine(metascript_dirs[0], fileName)
+        
+        // Return the metascript content and file path
+        (metascriptContent, filePath)
+        
+        output_variable: "metascript_info"
+    }
+    
+    // Return the metascript info
+    RETURN {
+        value: "${metascript_info}"
+    }
+}
+
+// Function to validate a metascript
+FUNCTION validate_metascript {
+    parameters: ["metascript_content"]
+    
+    // Validate the metascript using LLM
+    PROMPT {
+        model: "llama3"
+        temperature: 0.2
+        max_tokens: 2000
+        prompt: """
+        You are an expert metascript validator for the TARS project. Your task is to validate the following metascript and identify any issues.
+        
+        Metascript content:
+        ${metascript_content}
+        
+        Please validate the metascript for:
+        1. Syntax errors
+        2. Logical errors
+        3. Potential safety issues
+        4. Adherence to best practices
+        
+        Format your response as a JSON object:
+        
+        {
+          "is_valid": true/false,
+          "issues": [
+            {
+              "type": "syntax/logical/safety/best_practice",
+              "description": "Description of the issue",
+              "severity": "high/medium/low"
+            }
+          ],
+          "suggestions": [
+            "Suggestion to fix the issue"
+          ]
+        }
+        
+        If the metascript is valid, return an empty issues array.
+        """
+        result_variable: "validation_result"
+    }
+    
+    // Parse the validation result
+    FSHARP {
+        // Parse the JSON result
+        let validationJson = validation_result
+        
+        // Return the parsed JSON
+        validationJson
+        
+        output_variable: "parsed_validation"
+    }
+    
+    // Return the validation result
+    RETURN {
+        value: "${parsed_validation}"
+    }
+}
+
+// Main workflow
+ACTION {
+    type: "log"
+    message: "Starting code analysis phase"
+}
+
+// Update state
+VARIABLE state {
+    value: {
+        ...state,
+        current_phase: "analysis"
+    }
+}
+
+// Define a list of files to analyze
+VARIABLE files_to_analyze {
+    value: [
+        "TarsEngine/Intelligence/Measurement/MetricsCollector.cs",
+        "TarsEngine/Intelligence/Measurement/Reports/IHtmlReportGenerator.cs",
+        "TarsEngine/Intelligence/Measurement/ProgressionVisualizer.cs"
+    ]
+}
+
+// Analyze each file
+VARIABLE improvement_opportunities {
+    value: []
+}
+
+FOREACH {
+    items: "${files_to_analyze}"
+    item_variable: "file_path"
+    
+    ACTION {
+        type: "log"
+        message: "Analyzing file: ${file_path}"
+    }
+    
+    // Analyze the file
+    CALL {
+        function: "analyze_code"
+        arguments: ["${file_path}"]
+        result_variable: "analysis_result"
+    }
+    
+    // Add the analysis result to the improvement opportunities
+    FSHARP {
+        // Get the current improvement opportunities
+        let currentOpportunities = improvement_opportunities
+        
+        // Get the analysis result
+        let analysisResult = System.Text.Json.JsonSerializer.Deserialize<System.Collections.Generic.List<System.Text.Json.JsonElement>>(analysis_result)
+        
+        // Add the analysis result to the improvement opportunities
+        let updatedOpportunities = currentOpportunities.Concat(analysisResult).ToArray()
+        
+        // Return the updated improvement opportunities
+        updatedOpportunities
+        
+        output_variable: "updated_opportunities"
+    }
+    
+    VARIABLE improvement_opportunities {
+        value: "${updated_opportunities}"
+    }
+}
+
+ACTION {
+    type: "log"
+    message: "Found ${improvement_opportunities.length} improvement opportunities"
+}
+
+// Update state
+VARIABLE state {
+    value: {
+        ...state,
+        current_phase: "generation"
+    }
+}
+
+// Generate metascripts for each improvement opportunity
+FOREACH {
+    items: "${improvement_opportunities}"
+    item_variable: "improvement"
+    
+    ACTION {
+        type: "log"
+        message: "Generating metascript for improvement: ${improvement.name}"
+    }
+    
+    // Generate the metascript
+    CALL {
+        function: "generate_improvement_metascript"
+        arguments: ["${improvement}"]
+        result_variable: "metascript_info"
+    }
+    
+    // Extract the metascript content and file path
+    FSHARP {
+        // Get the metascript info
+        let (metascriptContent, filePath) = metascript_info
+        
+        // Return the metascript content and file path
+        (metascriptContent, filePath)
+        
+        output_variable: "extracted_info"
+    }
+    
+    VARIABLE metascript_content {
+        value: "${extracted_info[0]}"
+    }
+    
+    VARIABLE metascript_path {
+        value: "${extracted_info[1]}"
+    }
+    
+    // Validate the metascript
+    CALL {
+        function: "validate_metascript"
+        arguments: ["${metascript_content}"]
+        result_variable: "validation_result"
+    }
+    
+    // Check if the metascript is valid
+    FSHARP {
+        // Parse the validation result
+        let validation = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonDocument>(validation_result).RootElement
+        
+        // Check if the metascript is valid
+        let isValid = validation.GetProperty("is_valid").GetBoolean()
+        
+        // Return whether the metascript is valid
+        isValid
+        
+        output_variable: "is_valid"
+    }
+    
+    // If the metascript is valid, save it
+    IF {
+        condition: "${is_valid}"
+        then: {
+            ACTION {
+                type: "log"
+                message: "Metascript is valid, saving to: ${metascript_path}"
+            }
+            
+            ACTION {
+                type: "file_write"
+                path: "${metascript_path}"
+                content: "${metascript_content}"
+            }
+            
+            // Update state
+            FSHARP {
+                // Get the current state
+                let currentState = state
+                
+                // Update the state
+                let updatedState = {|
+                    currentState with
+                        metascripts_generated = currentState.metascripts_generated + 1
+                        metascripts_validated = currentState.metascripts_validated + 1
+                |}
+                
+                // Return the updated state
+                updatedState
+                
+                output_variable: "updated_state"
+            }
+            
+            VARIABLE state {
+                value: "${updated_state}"
+            }
+        }
+        else: {
+            ACTION {
+                type: "log"
+                message: "Metascript is invalid, skipping"
+            }
+            
+            // Log the validation issues
+            FSHARP {
+                // Parse the validation result
+                let validation = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonDocument>(validation_result).RootElement
+                
+                // Get the issues
+                let issues = validation.GetProperty("issues")
+                
+                // Format the issues
+                let formattedIssues = System.Text.Json.JsonSerializer.Serialize(issues, new System.Text.Json.JsonSerializerOptions { WriteIndented = true })
+                
+                // Return the formatted issues
+                formattedIssues
+                
+                output_variable: "formatted_issues"
+            }
+            
+            ACTION {
+                type: "log"
+                message: "Validation issues: ${formatted_issues}"
+            }
+        }
+    }
+}
+
+// Update state
+VARIABLE state {
+    value: {
+        ...state,
+        current_phase: "completion",
+        end_time: "${new Date().toISOString()}"
+    }
+}
+
+// Log the completion
+ACTION {
+    type: "log"
+    message: "Metascript generation completed"
+}
+
+ACTION {
+    type: "log"
+    message: "Generated ${state.metascripts_generated} metascripts"
+}
+
+ACTION {
+    type: "log"
+    message: "Validated ${state.metascripts_validated} metascripts"
+}
+
+// Generate a report
+VARIABLE report {
+    value: """# Metascript Generation Report
+
+## Summary
+- Start Time: ${state.start_time}
+- End Time: ${state.end_time}
+- Metascripts Generated: ${state.metascripts_generated}
+- Metascripts Validated: ${state.metascripts_validated}
+
+## Improvement Opportunities
+${improvement_opportunities.map(imp => `- ${imp.name} (${imp.category}, Impact: ${imp.impact_score}, Difficulty: ${imp.difficulty_score})`).join('\n')}
+
+## Next Steps
+1. Review the generated metascripts
+2. Execute the metascripts to apply the improvements
+3. Validate the improvements
+4. Update the metascript generator based on feedback
+"""
+}
+
+// Save the report
+ACTION {
+    type: "file_write"
+    path: "metascript_generation_report.md"
+    content: "${report}"
+}
+
+ACTION {
+    type: "log"
+    message: "Report saved to metascript_generation_report.md"
+}

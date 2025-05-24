@@ -1,0 +1,362 @@
+﻿DESCRIBE {
+    name: "TARS Engine Integration Example"
+    version: "1.0"
+    description: "A demonstration of integrating F# code with TARS engine capabilities"
+    author: "TARS Team"
+    date: "2023-07-15"
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.7
+    max_tokens: 2000
+}
+
+// Define input data
+VARIABLE sourceCode {
+    value: "
+public class Calculator {
+    public int Add(int a, int b) {
+        return a + b;
+    }
+    
+    public int Subtract(int a, int b) {
+        return a - b;
+    }
+    
+    public int Multiply(int a, int b) {
+        return a * b;
+    }
+    
+    public int Divide(int a, int b) {
+        if (b == 0) {
+            throw new System.DivideByZeroException();
+        }
+        return a / b;
+    }
+}
+"
+}
+
+// Use F# to analyze the code
+ACTION {
+    type: "log"
+    message: "Analyzing source code using F#..."
+}
+
+FSHARP {
+    open System
+    open System.Text.RegularExpressions
+    
+    // Get the source code from the DSL environment
+    let code = sourceCode.ToString()
+    
+    // Define a function to extract method information
+    let extractMethods (code: string) =
+        let methodPattern = @"public\s+(\w+)\s+(\w+)\s*\(([^)]*)\)\s*\{([^}]*)\}"
+        let matches = Regex.Matches(code, methodPattern)
+        
+        [for m in matches -> 
+            let returnType = m.Groups.[1].Value
+            let methodName = m.Groups.[2].Value
+            let parameters = m.Groups.[3].Value
+            let body = m.Groups.[4].Value
+            
+            // Parse parameters
+            let paramList = 
+                parameters.Split([|','|], StringSplitOptions.RemoveEmptyEntries)
+                |> Array.map (fun p -> 
+                    let parts = p.Trim().Split([|' '|], StringSplitOptions.RemoveEmptyEntries)
+                    if parts.Length >= 2 then
+                        (parts.[0], parts.[1]) // (type, name)
+                    else
+                        ("", ""))
+                |> Array.filter (fun (t, n) -> t <> "" && n <> "")
+                |> Array.toList
+            
+            // Create method info
+            {|
+                Name = methodName
+                ReturnType = returnType
+                Parameters = paramList
+                Body = body.Trim()
+                LineCount = body.Split([|'\n'|], StringSplitOptions.RemoveEmptyEntries).Length
+                HasExceptionHandling = body.Contains("throw")
+            |}
+        ]
+    
+    // Extract methods from the code
+    let methods = extractMethods code
+    
+    // Analyze the methods
+    let methodAnalysis = 
+        methods
+        |> List.map (fun m -> 
+            {|
+                Method = m
+                Complexity = 
+                    // Simple complexity metric based on branches and operations
+                    let branchCount = 
+                        Regex.Matches(m.Body, @"if|else|for|while|switch|case").Count
+                    let operationCount = 
+                        Regex.Matches(m.Body, @"[+\-*/=<>]").Count
+                    branchCount + operationCount
+                
+                TestabilityScore =
+                    // Higher score means more testable
+                    let score = 10 - (
+                        (if m.HasExceptionHandling then 2 else 0) +
+                        (if m.Parameters.Length = 0 then 3 else 0) +
+                        (if m.Body.Contains("static") then 2 else 0) +
+                        (if m.Body.Contains("new ") then 1 else 0)
+                    )
+                    Math.Max(1, score) // Minimum score of 1
+            |}
+        )
+    
+    // Generate test cases for each method
+    let testCases = 
+        methodAnalysis
+        |> List.map (fun analysis ->
+            let method = analysis.Method
+            
+            // Generate test inputs based on method signature
+            let generateInputs() =
+                method.Parameters
+                |> List.map (fun (paramType, _) ->
+                    match paramType with
+                    | "int" -> [0; 1; -1; 42; Int32.MaxValue; Int32.MinValue]
+                    | "double" | "float" -> [0.0; 1.0; -1.0; 3.14; Double.MaxValue; Double.MinValue]
+                    | "bool" -> [true; false]
+                    | "string" -> [""; "test"; "Hello, World!"; null]
+                    | _ -> [null]
+                )
+            
+            // Generate test cases
+            let inputs = 
+                if method.Parameters.Length = 2 && 
+                   method.Parameters |> List.forall (fun (t, _) -> t = "int") then
+                    // For calculator methods with two int parameters, generate specific test cases
+                    match method.Name with
+                    | "Add" -> [(1, 2, 3); (0, 0, 0); (-1, 1, 0); (Int32.MaxValue, 1, Int32.MinValue)]
+                    | "Subtract" -> [(5, 3, 2); (0, 0, 0); (1, 2, -1); (Int32.MinValue, 1, Int32.MaxValue)]
+                    | "Multiply" -> [(2, 3, 6); (0, 5, 0); (-2, 3, -6); (Int32.MaxValue, 2, -2)]
+                    | "Divide" -> [(6, 3, 2); (0, 1, 0); (5, 2, 2); (10, 0, "DivideByZeroException")]
+                    | _ -> []
+                else
+                    []
+            
+            {|
+                MethodName = method.Name
+                TestCases = inputs
+            |}
+        )
+    
+    // Generate a summary report
+    let summary = {|
+        TotalMethods = methods.Length
+        AverageComplexity = 
+            if methods.Length > 0 then
+                methodAnalysis |> List.averageBy (fun a -> float a.Complexity)
+            else 0.0
+        MostComplexMethod = 
+            if methods.Length > 0 then
+                methodAnalysis 
+                |> List.maxBy (fun a -> a.Complexity)
+                |> fun a -> a.Method.Name
+            else ""
+        LeastTestableMethod = 
+            if methods.Length > 0 then
+                methodAnalysis 
+                |> List.minBy (fun a -> a.TestabilityScore)
+                |> fun a -> a.Method.Name
+            else ""
+        TotalTestCases = 
+            testCases |> List.sumBy (fun tc -> tc.TestCases.Length)
+    |}
+    
+    // Return the analysis results as JSON
+    Newtonsoft.Json.JsonConvert.SerializeObject({|
+        Methods = methods
+        Analysis = methodAnalysis
+        TestCases = testCases
+        Summary = summary
+    |}, Newtonsoft.Json.Formatting.Indented)
+}
+
+// Store the analysis result
+VARIABLE analysisResult {
+    value: "${_last_result}"
+}
+
+// Generate test code based on the analysis
+ACTION {
+    type: "log"
+    message: "Generating test code based on analysis..."
+}
+
+FSHARP {
+    open System
+    open Newtonsoft.Json.Linq
+    
+    // Parse the analysis result
+    let analysisJson = analysisResult.ToString()
+    let analysis = JObject.Parse(analysisJson)
+    
+    // Extract test cases
+    let testCases = analysis.SelectToken("TestCases")
+    
+    // Generate xUnit test class
+    let testClassCode = new System.Text.StringBuilder()
+    
+    testClassCode.AppendLine("using System;")
+    testClassCode.AppendLine("using Xunit;")
+    testClassCode.AppendLine()
+    testClassCode.AppendLine("public class CalculatorTests")
+    testClassCode.AppendLine("{")
+    
+    // Generate test methods
+    for methodObj in testCases do
+        let methodName = methodObj.Value<string>("MethodName")
+        let testCaseArray = methodObj.SelectToken("TestCases")
+        
+        if testCaseArray <> null && testCaseArray.HasValues then
+            for testCase in testCaseArray do
+                if testCase.Type = JTokenType.Array then
+                    let testCaseValues = testCase.ToArray()
+                    if testCaseValues.Length >= 3 then
+                        let a = testCaseValues.[0].ToString()
+                        let b = testCaseValues.[1].ToString()
+                        let expected = testCaseValues.[2].ToString()
+                        
+                        if expected = "DivideByZeroException" then
+                            // Generate test for expected exception
+                            testClassCode.AppendLine($"    [Fact]")
+                            testClassCode.AppendLine($"    public void {methodName}_WithDivisorZero_ThrowsDivideByZeroException()")
+                            testClassCode.AppendLine("    {")
+                            testClassCode.AppendLine("        // Arrange")
+                            testClassCode.AppendLine("        var calculator = new Calculator();")
+                            testClassCode.AppendLine()
+                            testClassCode.AppendLine("        // Act & Assert")
+                            testClassCode.AppendLine($"        Assert.Throws<DivideByZeroException>(() => calculator.{methodName}({a}, {b}));")
+                            testClassCode.AppendLine("    }")
+                            testClassCode.AppendLine()
+                        else
+                            // Generate normal test
+                            testClassCode.AppendLine($"    [Fact]")
+                            testClassCode.AppendLine($"    public void {methodName}_With{a}And{b}_Returns{expected}()")
+                            testClassCode.AppendLine("    {")
+                            testClassCode.AppendLine("        // Arrange")
+                            testClassCode.AppendLine("        var calculator = new Calculator();")
+                            testClassCode.AppendLine()
+                            testClassCode.AppendLine("        // Act")
+                            testClassCode.AppendLine($"        var result = calculator.{methodName}({a}, {b});")
+                            testClassCode.AppendLine()
+                            testClassCode.AppendLine("        // Assert")
+                            testClassCode.AppendLine($"        Assert.Equal({expected}, result);")
+                            testClassCode.AppendLine("    }")
+                            testClassCode.AppendLine()
+    
+    testClassCode.AppendLine("}")
+    
+    // Return the generated test code
+    testClassCode.ToString()
+}
+
+// Store the generated test code
+VARIABLE testCode {
+    value: "${_last_result}"
+}
+
+// Display the generated test code
+ACTION {
+    type: "log"
+    message: "Generated test code:"
+}
+
+ACTION {
+    type: "log"
+    message: "${testCode}"
+}
+
+// Generate a summary report
+ACTION {
+    type: "log"
+    message: "Generating summary report..."
+}
+
+FSHARP {
+    open System
+    open Newtonsoft.Json.Linq
+    
+    // Parse the analysis result
+    let analysisJson = analysisResult.ToString()
+    let analysis = JObject.Parse(analysisJson)
+    
+    // Extract summary
+    let summary = analysis.SelectToken("Summary")
+    
+    // Format the summary report
+    let report = new System.Text.StringBuilder()
+    
+    report.AppendLine("# Code Analysis Summary Report")
+    report.AppendLine()
+    report.AppendLine("## Overview")
+    report.AppendLine($"- Total Methods: {summary.Value<int>("TotalMethods")}")
+    report.AppendLine($"- Average Complexity: {summary.Value<double>("AverageComplexity"):F2}")
+    report.AppendLine($"- Most Complex Method: {summary.Value<string>("MostComplexMethod")}")
+    report.AppendLine($"- Least Testable Method: {summary.Value<string>("LeastTestableMethod")}")
+    report.AppendLine($"- Total Test Cases Generated: {summary.Value<int>("TotalTestCases")}")
+    report.AppendLine()
+    
+    report.AppendLine("## Method Details")
+    
+    // Add details for each method
+    let methods = analysis.SelectToken("Methods")
+    for methodObj in methods do
+        let name = methodObj.Value<string>("Name")
+        let returnType = methodObj.Value<string>("ReturnType")
+        let lineCount = methodObj.Value<int>("LineCount")
+        let hasExceptionHandling = methodObj.Value<bool>("HasExceptionHandling")
+        
+        report.AppendLine($"### {name}")
+        report.AppendLine($"- Return Type: {returnType}")
+        report.AppendLine($"- Line Count: {lineCount}")
+        report.AppendLine($"- Has Exception Handling: {hasExceptionHandling}")
+        
+        // Add parameters
+        let parameters = methodObj.SelectToken("Parameters")
+        if parameters <> null && parameters.HasValues then
+            report.AppendLine("- Parameters:")
+            for param in parameters do
+                let paramType = param[0].ToString()
+                let paramName = param[1].ToString()
+                report.AppendLine($"  - {paramName}: {paramType}")
+        
+        report.AppendLine()
+    
+    report.AppendLine("## Recommendations")
+    report.AppendLine("1. Add more comprehensive exception handling")
+    report.AppendLine("2. Consider adding input validation for the Divide method")
+    report.AppendLine("3. Add XML documentation comments to improve code readability")
+    report.AppendLine("4. Implement additional test cases for edge conditions")
+    
+    // Return the report
+    report.ToString()
+}
+
+// Store the summary report
+VARIABLE summaryReport {
+    value: "${_last_result}"
+}
+
+// Display the summary report
+ACTION {
+    type: "log"
+    message: "Summary Report:"
+}
+
+ACTION {
+    type: "log"
+    message: "${summaryReport}"
+}

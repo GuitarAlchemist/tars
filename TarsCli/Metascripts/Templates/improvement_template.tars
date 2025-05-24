@@ -1,0 +1,99 @@
+﻿DESCRIBE {
+    name: "{{name}}"
+    version: "1.0"
+    author: "TARS Auto-Improvement"
+    description: "{{description}}"
+    tags: [{{tags}}]
+}
+
+CONFIG {
+    model: "{{model}}"
+    temperature: {{temperature}}
+    max_tokens: {{max_tokens}}
+    backup_before_changes: true
+}
+
+// Load configuration
+ACTION {
+    type: "file_read"
+    path: "TarsCli/Metascripts/config.json"
+    result_variable: "config_json"
+}
+
+VARIABLE config {
+    value: "${JSON.parse(config_json)}"
+}
+
+// Define the improvement details
+VARIABLE improvement_details {
+    value: {
+        id: "{{id}}",
+        name: "{{name}}",
+        description: "{{description}}",
+        category: "{{category}}",
+        priority: {{priority}},
+        impact_score: {{impact_score}},
+        difficulty_score: {{difficulty_score}}
+    }
+}
+
+// Log the start of the process
+ACTION {
+    type: "log"
+    message: "Starting improvement: ${improvement_details.name}"
+}
+
+// Define the metascript to generate
+VARIABLE generated_metascript {
+    value: """{{generated_metascript_content}}"""
+}
+
+// Generate the metascript
+ACTION {
+    type: "file_write"
+    path: "{{output_path}}"
+    content: "${generated_metascript}"
+}
+
+// Update the registry
+ACTION {
+    type: "file_read"
+    path: "TarsCli/Metascripts/registry.json"
+    result_variable: "registry_json"
+}
+
+VARIABLE registry {
+    value: "${JSON.parse(registry_json)}"
+}
+
+VARIABLE updated_registry {
+    value: {
+        ...registry,
+        metascripts: [
+            ...registry.metascripts,
+            {
+                id: "{{id}}",
+                path: "{{output_path}}",
+                type: "{{type}}",
+                status: "pending",
+                created_at: "${new Date().toISOString()}",
+                last_executed: null,
+                generated_by: "{{generated_by}}",
+                dependencies: [{{dependencies}}],
+                generates: [{{generates}}]
+            }
+        ]
+    }
+}
+
+ACTION {
+    type: "file_write"
+    path: "TarsCli/Metascripts/registry.json"
+    content: "${JSON.stringify(updated_registry, null, 2)}"
+}
+
+// Log the completion
+ACTION {
+    type: "log"
+    message: "Generated metascript: {{output_path}}"
+}

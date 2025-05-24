@@ -1,0 +1,515 @@
+﻿DESCRIBE {
+    name: "Tree-of-Thought Fix Applicator"
+    version: "1.0"
+    author: "TARS Auto-Improvement"
+    description: "Applies generated fixes to code using Tree-of-Thought reasoning"
+    tags: ["fix-application", "tree-of-thought", "reasoning", "code-quality"]
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.2
+    max_tokens: 8000
+    backup_before_changes: true
+}
+
+// Define the path to the fix generation results
+VARIABLE fix_generation_results_path {
+    value: "tot_fix_generation_results.json"
+}
+
+// Define the Tree-of-Thought parameters
+VARIABLE tot_params {
+    value: {
+        branching_factor: 3,
+        max_depth: 3,
+        beam_width: 2,
+        evaluation_metrics: ["safety", "reliability", "traceability", "reversibility"],
+        pruning_strategy: "beam_search"
+    }
+}
+
+// Initialize the fix application results
+VARIABLE fix_application_results {
+    value: {
+        application_start_time: "${new Date().toISOString()}",
+        application_end_time: null,
+        fixes_processed: 0,
+        fixes_applied: 0,
+        fixes_by_category: {},
+        applied_fixes: [],
+        thought_trees: []
+    }
+}
+
+// Log the start of the fix application
+ACTION {
+    type: "log"
+    message: "Starting Tree-of-Thought fix application"
+}
+
+ACTION {
+    type: "log"
+    message: "Fix generation results path: ${fix_generation_results_path}"
+}
+
+ACTION {
+    type: "log"
+    message: "ToT parameters: Branching factor=${tot_params.branching_factor}, Max depth=${tot_params.max_depth}, Beam width=${tot_params.beam_width}, Pruning strategy=${tot_params.pruning_strategy}"
+}
+
+// Read the fix generation results
+ACTION {
+    type: "file_read"
+    path: "${fix_generation_results_path}"
+    result_variable: "fix_generation_results_json"
+}
+
+// Parse the fix generation results
+FSHARP {
+    // Parse the JSON result
+    let fixGenerationResults = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonDocument>(fix_generation_results_json).RootElement
+    
+    // Get the fixes
+    let fixes = fixGenerationResults.GetProperty("fixes").EnumerateArray().ToArray()
+    
+    // Return the fixes
+    fixes
+    
+    output_variable: "fixes"
+}
+
+// Function to apply a fix using Tree-of-Thought reasoning
+FUNCTION apply_fix_tot {
+    parameters: ["fix"]
+    
+    // Log the fix being applied
+    ACTION {
+        type: "log"
+        message: "Applying fix for issue: ${fix.issue.category} in ${fix.issue.file_path}"
+    }
+    
+    // Read the file content
+    ACTION {
+        type: "file_read"
+        path: "${fix.issue.file_path}"
+        result_variable: "file_content"
+    }
+    
+    // Generate an application plan using Tree-of-Thought reasoning
+    PROMPT {
+        model: "llama3"
+        temperature: 0.3
+        max_tokens: 8000
+        prompt: """
+        You are an expert code fix applicator for the TARS project. Your task is to apply the following fix to the code using Tree-of-Thought reasoning.
+        
+        Fix:
+        - Issue Category: ${fix.issue.category}
+        - File: ${fix.issue.file_path}
+        - Line(s): ${fix.issue.line_numbers.join(', ')}
+        - Description: ${fix.issue.description}
+        - Original Code: ${fix.fix.original_code}
+        - New Code: ${fix.fix.new_code}
+        - Explanation: ${fix.fix.explanation}
+        
+        File content:
+        ${file_content}
+        
+        Please generate a plan to apply this fix using Tree-of-Thought reasoning. This means you should:
+        1. Generate multiple potential application approaches (branching)
+        2. For each approach, explore different application techniques (further branching)
+        3. Evaluate each application branch based on safety, reliability, traceability, and reversibility
+        4. Prune less promising branches and expand more promising ones
+        5. Select the most promising application plan
+        
+        For the application plan you select, provide:
+        1. The exact location in the file where the fix should be applied (line numbers)
+        2. The exact code that should be replaced
+        3. The exact code that should replace it
+        4. A before-and-after comparison showing the change
+        5. Any potential risks or considerations
+        
+        Format your response as a JSON object with the following structure:
+        {
+          "thought_tree": {
+            "root": {
+              "thought": "Initial application planning",
+              "children": [
+                {
+                  "thought": "Approach 1: [Approach name]",
+                  "children": [
+                    {
+                      "thought": "Application technique 1A: [Technique description]",
+                      "evaluation": {
+                        "safety": 0.8,
+                        "reliability": 0.7,
+                        "traceability": 0.9,
+                        "reversibility": 0.6,
+                        "overall": 0.75
+                      },
+                      "pruned": false,
+                      "children": []
+                    },
+                    {
+                      "thought": "Application technique 1B: [Technique description]",
+                      "evaluation": {
+                        "safety": 0.5,
+                        "reliability": 0.4,
+                        "traceability": 0.3,
+                        "reversibility": 0.2,
+                        "overall": 0.35
+                      },
+                      "pruned": true,
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "selected_application": {
+            "start_line": 42,
+            "end_line": 45,
+            "original_code": "The exact code to be replaced",
+            "new_code": "The exact code to replace it with",
+            "comparison": "A before-and-after comparison showing the change",
+            "risks": "Any potential risks or considerations"
+          }
+        }
+        
+        Make sure the application plan is safe, reliable, traceable, and reversible.
+        """
+        result_variable: "application_result"
+    }
+    
+    // Parse the application result
+    FSHARP {
+        // Parse the JSON result
+        let applicationJson = application_result
+        
+        // Return the parsed JSON
+        applicationJson
+        
+        output_variable: "parsed_application"
+    }
+    
+    // Return the application result
+    RETURN {
+        value: "${parsed_application}"
+    }
+}
+
+// Function to apply a fix to a file
+FUNCTION apply_fix_to_file {
+    parameters: ["file_path", "application"]
+    
+    // Log the file being modified
+    ACTION {
+        type: "log"
+        message: "Modifying file: ${file_path}"
+    }
+    
+    // Read the file content
+    ACTION {
+        type: "file_read"
+        path: "${file_path}"
+        result_variable: "file_content"
+    }
+    
+    // Apply the fix to the file
+    FSHARP {
+        // Get the file content
+        let content = file_content
+        
+        // Get the application details
+        let startLine = application.GetProperty("start_line").GetInt32()
+        let endLine = application.GetProperty("end_line").GetInt32()
+        let originalCode = application.GetProperty("original_code").GetString()
+        let newCode = application.GetProperty("new_code").GetString()
+        
+        // Split the content into lines
+        let lines = content.Split('\n')
+        
+        // Verify that the original code matches
+        let originalLines = lines.[(startLine - 1)..(endLine - 1)]
+        let originalText = String.Join('\n', originalLines)
+        
+        // Check if the original code matches
+        if originalText.Trim() <> originalCode.Trim() then
+            // Return an error
+            {|
+                success = false
+                error = $"Original code does not match. Expected:\n{originalCode}\nActual:\n{originalText}"
+                modified_content = content
+            |}
+        else
+            // Replace the lines
+            let beforeLines = if startLine > 1 then lines.[0..(startLine - 2)] else [||]
+            let afterLines = if endLine < lines.Length then lines.[endLine..] else [||]
+            let newLines = newCode.Split('\n')
+            
+            // Combine the lines
+            let modifiedLines = Array.concat [beforeLines; newLines; afterLines]
+            let modifiedContent = String.Join('\n', modifiedLines)
+            
+            // Return the modified content
+            {|
+                success = true
+                error = ""
+                modified_content = modifiedContent
+            |}
+        
+        output_variable: "application_result"
+    }
+    
+    // Check if the application was successful
+    IF {
+        condition: "${application_result.success}"
+        then: {
+            // Write the modified content to the file
+            ACTION {
+                type: "file_write"
+                path: "${file_path}"
+                content: "${application_result.modified_content}"
+            }
+            
+            // Return success
+            RETURN {
+                value: {
+                    success: true,
+                    error: ""
+                }
+            }
+        }
+        else: {
+            // Return the error
+            RETURN {
+                value: {
+                    success: false,
+                    error: "${application_result.error}"
+                }
+            }
+        }
+    }
+}
+
+// Process each fix
+FOREACH {
+    items: "${fixes}"
+    item_variable: "fix"
+    
+    // Generate an application plan for the fix using Tree-of-Thought reasoning
+    CALL {
+        function: "apply_fix_tot"
+        arguments: ["${fix}"]
+        result_variable: "fix_application"
+    }
+    
+    // Parse the application plan
+    FSHARP {
+        // Parse the application plan
+        let application = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonDocument>(fix_application).RootElement
+        
+        // Get the thought tree
+        let thoughtTree = application.GetProperty("thought_tree")
+        
+        // Get the selected application
+        let selectedApplication = application.GetProperty("selected_application")
+        
+        // Create a thought tree object
+        let treeObj = {|
+            fix = fix
+            thought_tree = thoughtTree
+        |}
+        
+        // Return the thought tree and selected application
+        (treeObj, selectedApplication)
+        
+        output_variable: "parsed_fix_application"
+    }
+    
+    // Apply the fix to the file
+    CALL {
+        function: "apply_fix_to_file"
+        arguments: ["${fix.issue.file_path}", "${parsed_fix_application[1]}"]
+        result_variable: "application_result"
+    }
+    
+    // Update the fix application results
+    FSHARP {
+        // Get the current fix application results
+        let results = fix_application_results
+        
+        // Get the thought tree and selected application
+        let (treeObj, selectedApplication) = parsed_fix_application
+        
+        // Get the application result
+        let applicationResult = application_result
+        
+        // Check if the application was successful
+        let success = applicationResult.success
+        
+        // Create an application object
+        let applicationObj = {|
+            fix = fix
+            application_result = {|
+                success = success
+                comparison = if success then selectedApplication.GetProperty("comparison").GetString() else ""
+                error = if success then "" else applicationResult.error
+            |}
+            success = success
+        |}
+        
+        // Update the fixes processed count
+        let updatedResults = {|
+            results with
+                fixes_processed = results.fixes_processed + 1
+                fixes_applied = if success then results.fixes_applied + 1 else results.fixes_applied
+                thought_trees = results.thought_trees.Append(treeObj).ToArray()
+        |}
+        
+        // Update the fixes by category
+        let mutable fixesByCategory = results.fixes_by_category
+        if success then
+            let category = fix.issue.GetProperty("category").GetString()
+            if fixesByCategory.ContainsKey(category) then
+                fixesByCategory.[category] <- fixesByCategory.[category] + 1
+            else
+                fixesByCategory.[category] <- 1
+        
+        // Add the application to the results
+        let updatedApplications = results.applied_fixes.Append(applicationObj).ToArray()
+        
+        // Return the updated results
+        {|
+            updatedResults with
+                fixes_by_category = fixesByCategory
+                applied_fixes = updatedApplications
+        |}
+        
+        output_variable: "updated_results"
+    }
+    
+    VARIABLE fix_application_results {
+        value: "${updated_results}"
+    }
+}
+
+// Update the application end time
+VARIABLE fix_application_results {
+    value: {
+        ...fix_application_results,
+        application_end_time: "${new Date().toISOString()}"
+    }
+}
+
+// Log the fix application results
+ACTION {
+    type: "log"
+    message: "Tree-of-Thought fix application completed"
+}
+
+ACTION {
+    type: "log"
+    message: "Fixes processed: ${fix_application_results.fixes_processed}"
+}
+
+ACTION {
+    type: "log"
+    message: "Fixes applied: ${fix_application_results.fixes_applied}"
+}
+
+// Generate a summary of fixes by category
+FSHARP {
+    // Get the fixes by category
+    let fixesByCategory = fix_application_results.fixes_by_category
+    
+    // Format the summary
+    let summary = fixesByCategory.Keys
+        |> Seq.map (fun category -> $"{category}: {fixesByCategory.[category]}")
+        |> String.concat "\n"
+    
+    // Return the summary
+    summary
+    
+    output_variable: "category_summary"
+}
+
+ACTION {
+    type: "log"
+    message: "Fixes by category:\n${category_summary}"
+}
+
+// Generate a detailed report
+VARIABLE report {
+    value: """# Tree-of-Thought Fix Application Report
+
+## Summary
+- **Application Start Time**: ${fix_application_results.application_start_time}
+- **Application End Time**: ${fix_application_results.application_end_time}
+- **Fixes Processed**: ${fix_application_results.fixes_processed}
+- **Fixes Applied**: ${fix_application_results.fixes_applied}
+- **Success Rate**: ${(fix_application_results.fixes_applied / fix_application_results.fixes_processed * 100).toFixed(2)}%
+
+## Fixes by Category
+${Object.entries(fix_application_results.fixes_by_category).map(([category, count]) => `- **${category}**: ${count}`).join('\n')}
+
+## Applied Fixes
+
+${fix_application_results.applied_fixes.filter(application => application.success).map(application => `### ${application.fix.issue.category} (${application.fix.issue.severity})
+- **File**: ${application.fix.issue.file_path}
+- **Line(s)**: ${application.fix.issue.line_numbers.join(', ')}
+- **Description**: ${application.fix.issue.description}
+- **Comparison**:
+${application.application_result.comparison}
+- **Explanation**: ${application.fix.fix.explanation}
+`).join('\n')}
+
+## Failed Applications
+
+${fix_application_results.applied_fixes.filter(application => !application.success).map(application => `### ${application.fix.issue.category} (${application.fix.issue.severity})
+- **File**: ${application.fix.issue.file_path}
+- **Line(s)**: ${application.fix.issue.line_numbers.join(', ')}
+- **Description**: ${application.fix.issue.description}
+- **Error**: ${application.application_result.error}
+`).join('\n')}
+
+## Thought Trees
+
+${fix_application_results.thought_trees.map(tree => `### Fix: ${tree.fix.issue.category} in ${tree.fix.issue.file_path}
+\`\`\`json
+${JSON.stringify(tree.thought_tree, null, 2)}
+\`\`\`
+`).join('\n')}
+"""
+}
+
+// Save the report
+ACTION {
+    type: "file_write"
+    path: "tot_fix_application_report.md"
+    content: "${report}"
+}
+
+ACTION {
+    type: "log"
+    message: "Fix application report saved to tot_fix_application_report.md"
+}
+
+// Save the fix application results as JSON for further processing
+ACTION {
+    type: "file_write"
+    path: "tot_fix_application_results.json"
+    content: "${JSON.stringify(fix_application_results, null, 2)}"
+}
+
+ACTION {
+    type: "log"
+    message: "Fix application results saved to tot_fix_application_results.json"
+}
+
+// Return the fix application results
+RETURN {
+    value: "${fix_application_results}"
+}

@@ -1,0 +1,519 @@
+﻿DESCRIBE {
+    name: "Tree-of-Thought Fix Generator"
+    version: "1.0"
+    author: "TARS Auto-Improvement"
+    description: "Generates fixes for code issues using Tree-of-Thought reasoning"
+    tags: ["fix-generation", "tree-of-thought", "reasoning", "code-quality"]
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.2
+    max_tokens: 8000
+    backup_before_changes: true
+}
+
+// Define the path to the analysis results
+VARIABLE analysis_results_path {
+    value: "tot_code_analysis_results.json"
+}
+
+// Define the Tree-of-Thought parameters
+VARIABLE tot_params {
+    value: {
+        branching_factor: 3,
+        max_depth: 3,
+        beam_width: 2,
+        evaluation_metrics: ["correctness", "robustness", "elegance", "maintainability"],
+        pruning_strategy: "beam_search"
+    }
+}
+
+// Initialize the fix generation results
+VARIABLE fix_generation_results {
+    value: {
+        generation_start_time: "${new Date().toISOString()}",
+        generation_end_time: null,
+        issues_processed: 0,
+        fixes_generated: 0,
+        fixes_by_category: {},
+        fixes: [],
+        thought_trees: []
+    }
+}
+
+// Log the start of the fix generation
+ACTION {
+    type: "log"
+    message: "Starting Tree-of-Thought fix generation"
+}
+
+ACTION {
+    type: "log"
+    message: "Analysis results path: ${analysis_results_path}"
+}
+
+ACTION {
+    type: "log"
+    message: "ToT parameters: Branching factor=${tot_params.branching_factor}, Max depth=${tot_params.max_depth}, Beam width=${tot_params.beam_width}, Pruning strategy=${tot_params.pruning_strategy}"
+}
+
+// Read the analysis results
+ACTION {
+    type: "file_read"
+    path: "${analysis_results_path}"
+    result_variable: "analysis_results_json"
+}
+
+// Parse the analysis results
+FSHARP {
+    // Parse the JSON result
+    let analysisResults = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonDocument>(analysis_results_json).RootElement
+    
+    // Get the issues
+    let issues = analysisResults.GetProperty("issues").EnumerateArray().ToArray()
+    
+    // Return the issues
+    issues
+    
+    output_variable: "issues"
+}
+
+// Function to generate a fix for an issue using Tree-of-Thought reasoning
+FUNCTION generate_fix_tot {
+    parameters: ["issue"]
+    
+    // Log the issue being processed
+    ACTION {
+        type: "log"
+        message: "Generating fix for issue: ${issue.category} in ${issue.file_path}"
+    }
+    
+    // Read the file content
+    ACTION {
+        type: "file_read"
+        path: "${issue.file_path}"
+        result_variable: "file_content"
+    }
+    
+    // Generate a fix using Tree-of-Thought reasoning
+    PROMPT {
+        model: "llama3"
+        temperature: 0.3
+        max_tokens: 8000
+        prompt: """
+        You are an expert code fix generator for the TARS project. Your task is to generate a fix for the following code issue using Tree-of-Thought reasoning.
+        
+        Issue:
+        - Category: ${issue.category}
+        - File: ${issue.file_path}
+        - Line(s): ${issue.line_numbers.join(', ')}
+        - Description: ${issue.description}
+        - Severity: ${issue.severity}
+        - Code Snippet: ${issue.code_snippet}
+        - Suggested Fix: ${issue.suggested_fix}
+        
+        File content:
+        ${file_content}
+        
+        Please generate a fix for this issue using Tree-of-Thought reasoning. This means you should:
+        1. Generate multiple potential fix approaches (branching)
+        2. For each approach, explore different implementation details (further branching)
+        3. Evaluate each fix branch based on correctness, robustness, elegance, and maintainability
+        4. Prune less promising branches and expand more promising ones
+        5. Select the most promising fix
+        
+        For the fix you generate, provide:
+        1. The original code that needs to be fixed
+        2. The new code that fixes the issue
+        3. An explanation of how the fix addresses the issue
+        4. Any potential side effects or considerations
+        
+        Format your response as a JSON object with the following structure:
+        {
+          "thought_tree": {
+            "root": {
+              "thought": "Initial fix planning",
+              "children": [
+                {
+                  "thought": "Approach 1: [Approach name]",
+                  "children": [
+                    {
+                      "thought": "Implementation detail 1A: [Detail description]",
+                      "evaluation": {
+                        "correctness": 0.8,
+                        "robustness": 0.7,
+                        "elegance": 0.9,
+                        "maintainability": 0.6,
+                        "overall": 0.75
+                      },
+                      "pruned": false,
+                      "children": []
+                    },
+                    {
+                      "thought": "Implementation detail 1B: [Detail description]",
+                      "evaluation": {
+                        "correctness": 0.5,
+                        "robustness": 0.4,
+                        "elegance": 0.3,
+                        "maintainability": 0.2,
+                        "overall": 0.35
+                      },
+                      "pruned": true,
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "selected_fix": {
+            "original_code": "The original code that needs to be fixed",
+            "new_code": "The new code that fixes the issue",
+            "explanation": "An explanation of how the fix addresses the issue",
+            "side_effects": "Any potential side effects or considerations",
+            "confidence": 0.85
+          }
+        }
+        
+        Make sure the fix is correct, robust, elegant, and maintainable.
+        """
+        result_variable: "fix_result"
+    }
+    
+    // Parse the fix result
+    FSHARP {
+        // Parse the JSON result
+        let fixJson = fix_result
+        
+        // Return the parsed JSON
+        fixJson
+        
+        output_variable: "parsed_fix"
+    }
+    
+    // Return the fix result
+    RETURN {
+        value: "${parsed_fix}"
+    }
+}
+
+// Function to validate a fix
+FUNCTION validate_fix {
+    parameters: ["issue", "fix"]
+    
+    // Log the fix being validated
+    ACTION {
+        type: "log"
+        message: "Validating fix for issue: ${issue.category} in ${issue.file_path}"
+    }
+    
+    // Read the file content
+    ACTION {
+        type: "file_read"
+        path: "${issue.file_path}"
+        result_variable: "file_content"
+    }
+    
+    // Validate the fix
+    PROMPT {
+        model: "llama3"
+        temperature: 0.2
+        max_tokens: 4000
+        prompt: """
+        You are an expert code reviewer for the TARS project. Your task is to validate the following fix for a code issue.
+        
+        Issue:
+        - Category: ${issue.category}
+        - File: ${issue.file_path}
+        - Line(s): ${issue.line_numbers.join(', ')}
+        - Description: ${issue.description}
+        - Severity: ${issue.severity}
+        - Code Snippet: ${issue.code_snippet}
+        
+        Fix:
+        - Original Code: ${fix.original_code}
+        - New Code: ${fix.new_code}
+        - Explanation: ${fix.explanation}
+        - Side Effects: ${fix.side_effects}
+        - Confidence: ${fix.confidence}
+        
+        File content:
+        ${file_content}
+        
+        Please validate this fix by answering the following questions:
+        1. Does the fix correctly address the issue?
+        2. Is the fix robust (handles edge cases, doesn't introduce new issues)?
+        3. Is the fix elegant (clean, readable, follows best practices)?
+        4. Is the fix maintainable (easy to understand and modify)?
+        5. Are there any potential side effects or considerations not mentioned?
+        6. Are there any suggestions for improving the fix?
+        
+        Format your response as a JSON object with the following structure:
+        {
+          "is_valid": true/false,
+          "validation_issues": [
+            "Issue 1",
+            "Issue 2"
+          ],
+          "suggestions": [
+            "Suggestion 1",
+            "Suggestion 2"
+          ],
+          "confidence": 0.9
+        }
+        
+        Be thorough and critical in your validation.
+        """
+        result_variable: "validation_result"
+    }
+    
+    // Parse the validation result
+    FSHARP {
+        // Parse the JSON result
+        let validationJson = validation_result
+        
+        // Return the parsed JSON
+        validationJson
+        
+        output_variable: "parsed_validation"
+    }
+    
+    // Return the validation result
+    RETURN {
+        value: "${parsed_validation}"
+    }
+}
+
+// Process each issue
+FOREACH {
+    items: "${issues}"
+    item_variable: "issue"
+    
+    // Generate a fix for the issue using Tree-of-Thought reasoning
+    CALL {
+        function: "generate_fix_tot"
+        arguments: ["${issue}"]
+        result_variable: "issue_fix"
+    }
+    
+    // Parse the fix
+    FSHARP {
+        // Parse the fix
+        let fix = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonDocument>(issue_fix).RootElement
+        
+        // Get the thought tree
+        let thoughtTree = fix.GetProperty("thought_tree")
+        
+        // Get the selected fix
+        let selectedFix = fix.GetProperty("selected_fix")
+        
+        // Create a thought tree object
+        let treeObj = {|
+            issue = issue
+            thought_tree = thoughtTree
+        |}
+        
+        // Return the thought tree and selected fix
+        (treeObj, selectedFix)
+        
+        output_variable: "parsed_issue_fix"
+    }
+    
+    // Validate the fix
+    CALL {
+        function: "validate_fix"
+        arguments: ["${issue}", "${parsed_issue_fix[1]}"]
+        result_variable: "fix_validation"
+    }
+    
+    // Parse the validation result
+    FSHARP {
+        // Parse the validation result
+        let validation = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonDocument>(fix_validation).RootElement
+        
+        // Return the validation result
+        validation
+        
+        output_variable: "parsed_validation"
+    }
+    
+    // Update the fix generation results
+    FSHARP {
+        // Get the current fix generation results
+        let results = fix_generation_results
+        
+        // Get the thought tree and selected fix
+        let (treeObj, selectedFix) = parsed_issue_fix
+        
+        // Get the validation result
+        let validation = parsed_validation
+        
+        // Check if the fix is valid
+        let isValid = validation.GetProperty("is_valid").GetBoolean()
+        
+        // Create a fix object
+        let fixObj = {|
+            issue = issue
+            fix = selectedFix
+            validation = validation
+            is_valid = isValid
+        |}
+        
+        // Update the issues processed count
+        let updatedResults = {|
+            results with
+                issues_processed = results.issues_processed + 1
+                fixes_generated = if isValid then results.fixes_generated + 1 else results.fixes_generated
+                thought_trees = results.thought_trees.Append(treeObj).ToArray()
+        |}
+        
+        // Update the fixes by category
+        let mutable fixesByCategory = results.fixes_by_category
+        if isValid then
+            let category = issue.GetProperty("category").GetString()
+            if fixesByCategory.ContainsKey(category) then
+                fixesByCategory.[category] <- fixesByCategory.[category] + 1
+            else
+                fixesByCategory.[category] <- 1
+        
+        // Add the fix to the results if it's valid
+        let updatedFixes = if isValid then results.fixes.Append(fixObj).ToArray() else results.fixes
+        
+        // Return the updated results
+        {|
+            updatedResults with
+                fixes_by_category = fixesByCategory
+                fixes = updatedFixes
+        |}
+        
+        output_variable: "updated_results"
+    }
+    
+    VARIABLE fix_generation_results {
+        value: "${updated_results}"
+    }
+}
+
+// Update the generation end time
+VARIABLE fix_generation_results {
+    value: {
+        ...fix_generation_results,
+        generation_end_time: "${new Date().toISOString()}"
+    }
+}
+
+// Log the fix generation results
+ACTION {
+    type: "log"
+    message: "Tree-of-Thought fix generation completed"
+}
+
+ACTION {
+    type: "log"
+    message: "Issues processed: ${fix_generation_results.issues_processed}"
+}
+
+ACTION {
+    type: "log"
+    message: "Fixes generated: ${fix_generation_results.fixes_generated}"
+}
+
+// Generate a summary of fixes by category
+FSHARP {
+    // Get the fixes by category
+    let fixesByCategory = fix_generation_results.fixes_by_category
+    
+    // Format the summary
+    let summary = fixesByCategory.Keys
+        |> Seq.map (fun category -> $"{category}: {fixesByCategory.[category]}")
+        |> String.concat "\n"
+    
+    // Return the summary
+    summary
+    
+    output_variable: "category_summary"
+}
+
+ACTION {
+    type: "log"
+    message: "Fixes by category:\n${category_summary}"
+}
+
+// Generate a detailed report
+VARIABLE report {
+    value: """# Tree-of-Thought Fix Generation Report
+
+## Summary
+- **Generation Start Time**: ${fix_generation_results.generation_start_time}
+- **Generation End Time**: ${fix_generation_results.generation_end_time}
+- **Issues Processed**: ${fix_generation_results.issues_processed}
+- **Fixes Generated**: ${fix_generation_results.fixes_generated}
+- **Success Rate**: ${(fix_generation_results.fixes_generated / fix_generation_results.issues_processed * 100).toFixed(2)}%
+
+## Fixes by Category
+${Object.entries(fix_generation_results.fixes_by_category).map(([category, count]) => `- **${category}**: ${count}`).join('\n')}
+
+## Generated Fixes
+
+${fix_generation_results.fixes.map(fix => `### ${fix.issue.category} (${fix.issue.severity})
+- **File**: ${fix.issue.file_path}
+- **Line(s)**: ${fix.issue.line_numbers.join(', ')}
+- **Description**: ${fix.issue.description}
+- **Original Code**: \`${fix.fix.original_code}\`
+- **New Code**: \`${fix.fix.new_code}\`
+- **Explanation**: ${fix.fix.explanation}
+- **Side Effects**: ${fix.fix.side_effects}
+- **Confidence**: ${fix.fix.confidence}
+- **Validation**: ${fix.validation.is_valid ? 'Valid' : 'Invalid'}
+${fix.validation.validation_issues.length > 0 ? `- **Validation Issues**:\n${fix.validation.validation_issues.map(issue => `  - ${issue}`).join('\n')}` : ''}
+${fix.validation.suggestions.length > 0 ? `- **Suggestions**:\n${fix.validation.suggestions.map(suggestion => `  - ${suggestion}`).join('\n')}` : ''}
+`).join('\n')}
+
+## Failed Validations
+
+${fix_generation_results.thought_trees.filter(tree => !fix_generation_results.fixes.some(fix => fix.issue === tree.issue)).map(tree => `### ${tree.issue.category} (${tree.issue.severity})
+- **File**: ${tree.issue.file_path}
+- **Line(s)**: ${tree.issue.line_numbers.join(', ')}
+- **Description**: ${tree.issue.description}
+- **Reason**: Failed validation
+`).join('\n')}
+
+## Thought Trees
+
+${fix_generation_results.thought_trees.map(tree => `### Issue: ${tree.issue.category} in ${tree.issue.file_path}
+\`\`\`json
+${JSON.stringify(tree.thought_tree, null, 2)}
+\`\`\`
+`).join('\n')}
+"""
+}
+
+// Save the report
+ACTION {
+    type: "file_write"
+    path: "tot_fix_generation_report.md"
+    content: "${report}"
+}
+
+ACTION {
+    type: "log"
+    message: "Fix generation report saved to tot_fix_generation_report.md"
+}
+
+// Save the fix generation results as JSON for further processing
+ACTION {
+    type: "file_write"
+    path: "tot_fix_generation_results.json"
+    content: "${JSON.stringify(fix_generation_results, null, 2)}"
+}
+
+ACTION {
+    type: "log"
+    message: "Fix generation results saved to tot_fix_generation_results.json"
+}
+
+// Return the fix generation results
+RETURN {
+    value: "${fix_generation_results}"
+}

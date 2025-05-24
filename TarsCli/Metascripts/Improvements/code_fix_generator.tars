@@ -1,0 +1,487 @@
+﻿DESCRIBE {
+    name: "Code Fix Generator"
+    version: "1.0"
+    author: "TARS Auto-Improvement"
+    description: "Generates fixes for identified code quality issues"
+    tags: ["fix", "code-quality", "c#"]
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.2
+    max_tokens: 4000
+    backup_before_changes: true
+}
+
+// Define the path to the analysis results
+VARIABLE analysis_results_path {
+    value: "code_quality_analysis_results.json"
+}
+
+// Define the output path for the fixes
+VARIABLE fixes_output_path {
+    value: "code_quality_fixes.json"
+}
+
+// Initialize the fixes results
+VARIABLE fixes_results {
+    value: {
+        generation_start_time: "${new Date().toISOString()}",
+        generation_end_time: null,
+        issues_processed: 0,
+        fixes_generated: 0,
+        fixes_by_category: {},
+        fixes: []
+    }
+}
+
+// Log the start of the fix generation
+ACTION {
+    type: "log"
+    message: "Starting code fix generation"
+}
+
+// Load the analysis results
+ACTION {
+    type: "file_read"
+    path: "${analysis_results_path}"
+    result_variable: "analysis_results_json"
+}
+
+VARIABLE analysis_results {
+    value: "${JSON.parse(analysis_results_json)}"
+}
+
+ACTION {
+    type: "log"
+    message: "Loaded analysis results with ${analysis_results.issues.length} issues"
+}
+
+// Function to generate a fix for an issue
+FUNCTION generate_fix {
+    parameters: ["issue"]
+    
+    // Log the issue being fixed
+    ACTION {
+        type: "log"
+        message: "Generating fix for ${issue.category} issue in ${issue.file_path}:${issue.line_numbers[0]}"
+    }
+    
+    // Read the file content
+    ACTION {
+        type: "file_read"
+        path: "${issue.file_path}"
+        result_variable: "file_content"
+    }
+    
+    // Generate the fix using LLM
+    PROMPT {
+        model: "llama3"
+        temperature: 0.2
+        max_tokens: 3000
+        prompt: """
+        You are an expert C# developer. Your task is to generate a fix for the following code quality issue.
+        
+        Issue details:
+        - Category: ${issue.category}
+        - File: ${issue.file_path}
+        - Line(s): ${issue.line_numbers.join(', ')}
+        - Description: ${issue.description}
+        - Severity: ${issue.severity}
+        - Code snippet: ${issue.code_snippet}
+        - Suggested fix: ${issue.suggested_fix}
+        
+        Here is the full file content for context:
+        
+        ```csharp
+        ${file_content}
+        ```
+        
+        Please generate a fix for this issue. Your response should include:
+        
+        1. The original code that needs to be replaced (exactly as it appears in the file)
+        2. The new code that should replace it
+        3. An explanation of the fix
+        4. Any potential side effects or considerations
+        
+        Format your response as a JSON object:
+        
+        {
+          "original_code": "The exact code to be replaced",
+          "new_code": "The new code that fixes the issue",
+          "explanation": "Explanation of the fix",
+          "side_effects": "Any potential side effects or considerations",
+          "confidence": 0.9 // A value between 0 and 1 indicating your confidence in the fix
+        }
+        
+        Ensure that your fix:
+        1. Addresses the specific issue
+        2. Follows C# best practices
+        3. Maintains the original functionality
+        4. Is minimal (changes only what's necessary)
+        5. Is properly formatted
+        """
+        result_variable: "fix_result"
+    }
+    
+    // Parse the fix result
+    FSHARP {
+        // Parse the JSON result
+        let fixJson = fix_result
+        
+        // Return the parsed JSON
+        fixJson
+        
+        output_variable: "parsed_fix"
+    }
+    
+    // Return the fix result
+    RETURN {
+        value: "${parsed_fix}"
+    }
+}
+
+// Function to validate a fix
+FUNCTION validate_fix {
+    parameters: ["issue", "fix"]
+    
+    // Log the fix being validated
+    ACTION {
+        type: "log"
+        message: "Validating fix for ${issue.category} issue in ${issue.file_path}:${issue.line_numbers[0]}"
+    }
+    
+    // Read the file content
+    ACTION {
+        type: "file_read"
+        path: "${issue.file_path}"
+        result_variable: "file_content"
+    }
+    
+    // Check if the original code exists in the file
+    FSHARP {
+        // Get the file content
+        let content = file_content
+        
+        // Get the original code from the fix
+        let originalCode = fix.original_code
+        
+        // Check if the original code exists in the file
+        let exists = content.Contains(originalCode)
+        
+        // Return whether the original code exists
+        exists
+        
+        output_variable: "original_code_exists"
+    }
+    
+    // If the original code doesn't exist, return an error
+    IF {
+        condition: "${!original_code_exists}"
+        then: {
+            ACTION {
+                type: "log"
+                message: "Error: Original code not found in file"
+            }
+            
+            RETURN {
+                value: {
+                    is_valid: false,
+                    error: "Original code not found in file"
+                }
+            }
+        }
+    }
+    
+    // Apply the fix to create a temporary version of the file
+    FSHARP {
+        // Get the file content
+        let content = file_content
+        
+        // Get the original and new code from the fix
+        let originalCode = fix.original_code
+        let newCode = fix.new_code
+        
+        // Replace the original code with the new code
+        let updatedContent = content.Replace(originalCode, newCode)
+        
+        // Return the updated content
+        updatedContent
+        
+        output_variable: "updated_content"
+    }
+    
+    // Validate the updated content using LLM
+    PROMPT {
+        model: "llama3"
+        temperature: 0.1
+        max_tokens: 2000
+        prompt: """
+        You are an expert C# code validator. Your task is to validate the following code fix.
+        
+        Issue details:
+        - Category: ${issue.category}
+        - File: ${issue.file_path}
+        - Line(s): ${issue.line_numbers.join(', ')}
+        - Description: ${issue.description}
+        
+        Original code:
+        ```csharp
+        ${fix.original_code}
+        ```
+        
+        New code:
+        ```csharp
+        ${fix.new_code}
+        ```
+        
+        Explanation of the fix:
+        ${fix.explanation}
+        
+        Here is the full updated file content:
+        
+        ```csharp
+        ${updated_content}
+        ```
+        
+        Please validate this fix by checking:
+        1. Does the new code compile? (Look for syntax errors)
+        2. Does the new code address the issue described?
+        3. Does the new code maintain the original functionality?
+        4. Does the new code follow C# best practices?
+        5. Are there any potential runtime errors or exceptions?
+        
+        Format your response as a JSON object:
+        
+        {
+          "is_valid": true/false,
+          "validation_issues": [
+            {
+              "type": "syntax/functionality/best_practice/runtime",
+              "description": "Description of the issue"
+            }
+          ],
+          "suggestions": [
+            "Suggestion to improve the fix"
+          ],
+          "confidence": 0.9 // A value between 0 and 1 indicating your confidence in the validation
+        }
+        
+        If the fix is valid, return an empty validation_issues array.
+        """
+        result_variable: "validation_result"
+    }
+    
+    // Parse the validation result
+    FSHARP {
+        // Parse the JSON result
+        let validationJson = validation_result
+        
+        // Return the parsed JSON
+        validationJson
+        
+        output_variable: "parsed_validation"
+    }
+    
+    // Return the validation result
+    RETURN {
+        value: "${parsed_validation}"
+    }
+}
+
+// Process each issue in the analysis results
+FOREACH {
+    items: "${analysis_results.issues}"
+    item_variable: "issue"
+    
+    // Generate a fix for the issue
+    CALL {
+        function: "generate_fix"
+        arguments: ["${issue}"]
+        result_variable: "fix"
+    }
+    
+    // Validate the fix
+    CALL {
+        function: "validate_fix"
+        arguments: ["${issue}", "${fix}"]
+        result_variable: "validation"
+    }
+    
+    // Update the fixes results
+    FSHARP {
+        // Get the current fixes results
+        let results = fixes_results
+        
+        // Update the issues processed count
+        let updatedResults = {|
+            results with
+                issues_processed = results.issues_processed + 1
+        |}
+        
+        // Check if the fix is valid
+        let isValid = validation.is_valid
+        
+        // If the fix is valid, update the fixes generated count and add the fix to the results
+        let finalResults =
+            if isValid then
+                // Update the fixes by category
+                let mutable fixesByCategory = results.fixes_by_category
+                let category = issue.category
+                if fixesByCategory.ContainsKey(category) then
+                    fixesByCategory.[category] <- fixesByCategory.[category] + 1
+                else
+                    fixesByCategory.[category] <- 1
+                
+                // Create a fix object with issue and fix details
+                let fixObj = {|
+                    issue = issue
+                    fix = fix
+                    validation = validation
+                    is_valid = true
+                |}
+                
+                // Add the fix to the results
+                {|
+                    updatedResults with
+                        fixes_generated = results.fixes_generated + 1
+                        fixes_by_category = fixesByCategory
+                        fixes = results.fixes.Append(fixObj).ToArray()
+                |}
+            else
+                // Create a fix object with issue and validation details
+                let fixObj = {|
+                    issue = issue
+                    fix = fix
+                    validation = validation
+                    is_valid = false
+                |}
+                
+                // Add the fix to the results
+                {|
+                    updatedResults with
+                        fixes = results.fixes.Append(fixObj).ToArray()
+                |}
+        
+        // Return the updated results
+        finalResults
+        
+        output_variable: "updated_results"
+    }
+    
+    VARIABLE fixes_results {
+        value: "${updated_results}"
+    }
+}
+
+// Update the generation end time
+VARIABLE fixes_results {
+    value: {
+        ...fixes_results,
+        generation_end_time: "${new Date().toISOString()}"
+    }
+}
+
+// Log the fix generation results
+ACTION {
+    type: "log"
+    message: "Code fix generation completed"
+}
+
+ACTION {
+    type: "log"
+    message: "Issues processed: ${fixes_results.issues_processed}"
+}
+
+ACTION {
+    type: "log"
+    message: "Fixes generated: ${fixes_results.fixes_generated}"
+}
+
+// Generate a summary of fixes by category
+FSHARP {
+    // Get the fixes by category
+    let fixesByCategory = fixes_results.fixes_by_category
+    
+    // Format the summary
+    let summary = fixesByCategory.Keys
+        |> Seq.map (fun category -> $"{category}: {fixesByCategory.[category]}")
+        |> String.concat "\n"
+    
+    // Return the summary
+    summary
+    
+    output_variable: "category_summary"
+}
+
+ACTION {
+    type: "log"
+    message: "Fixes by category:\n${category_summary}"
+}
+
+// Generate a detailed report
+VARIABLE report {
+    value: """# Code Fix Generation Report
+
+## Summary
+- **Generation Start Time**: ${fixes_results.generation_start_time}
+- **Generation End Time**: ${fixes_results.generation_end_time}
+- **Issues Processed**: ${fixes_results.issues_processed}
+- **Fixes Generated**: ${fixes_results.fixes_generated}
+- **Success Rate**: ${(fixes_results.fixes_generated / fixes_results.issues_processed * 100).toFixed(2)}%
+
+## Fixes by Category
+${Object.entries(fixes_results.fixes_by_category).map(([category, count]) => `- **${category}**: ${count}`).join('\n')}
+
+## Detailed Fixes
+
+${fixes_results.fixes.filter(fix => fix.is_valid).map(fix => `### ${fix.issue.category} (${fix.issue.severity})
+- **File**: ${fix.issue.file_path}
+- **Line(s)**: ${fix.issue.line_numbers.join(', ')}
+- **Description**: ${fix.issue.description}
+- **Original Code**: \`${fix.fix.original_code}\`
+- **New Code**: \`${fix.fix.new_code}\`
+- **Explanation**: ${fix.fix.explanation}
+- **Confidence**: ${fix.fix.confidence}
+`).join('\n')}
+
+## Failed Validations
+
+${fixes_results.fixes.filter(fix => !fix.is_valid).map(fix => `### ${fix.issue.category} (${fix.issue.severity})
+- **File**: ${fix.issue.file_path}
+- **Line(s)**: ${fix.issue.line_numbers.join(', ')}
+- **Description**: ${fix.issue.description}
+- **Validation Issues**: ${fix.validation.validation_issues.map(issue => `${issue.type}: ${issue.description}`).join(', ')}
+- **Suggestions**: ${fix.validation.suggestions.join(', ')}
+`).join('\n')}
+"""
+}
+
+// Save the report
+ACTION {
+    type: "file_write"
+    path: "code_fix_generation_report.md"
+    content: "${report}"
+}
+
+ACTION {
+    type: "log"
+    message: "Fix generation report saved to code_fix_generation_report.md"
+}
+
+// Save the fixes results as JSON for further processing
+ACTION {
+    type: "file_write"
+    path: "${fixes_output_path}"
+    content: "${JSON.stringify(fixes_results, null, 2)}"
+}
+
+ACTION {
+    type: "log"
+    message: "Fix generation results saved to ${fixes_output_path}"
+}
+
+// Return the fixes results
+RETURN {
+    value: "${fixes_results}"
+}

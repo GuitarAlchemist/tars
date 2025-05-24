@@ -1,0 +1,103 @@
+﻿DESCRIBE {
+    name: "Auto-Improvement Metascript"
+    description: "A metascript for auto-improving code using Tree-of-Thought reasoning"
+    version: "1.0.0"
+}
+
+VARIABLE target_file {
+    type: "string"
+    description: "The target file to analyze and improve"
+    default: "${default_target_file}"
+}
+
+VARIABLE improvement_type {
+    type: "string"
+    description: "The type of improvement to make"
+    default: "${default_improvement_type}"
+}
+
+FUNCTION analyze_code {
+    input: "${target_file}"
+    output: "Analysis of ${target_file}"
+    
+    FSHARP {
+        // Load the file content
+        let filePath = "${target_file}"
+        let fileContent = System.IO.File.ReadAllText(filePath)
+        
+        // Analyze the code using Tree-of-Thought reasoning
+        let (thoughtTree, resultAnalysis) = 
+            TarsEngine.FSharp.MetascriptToT.Analysis.analyzeCode fileContent
+        
+        // Return the analysis result
+        sprintf "Analysis completed with score: %.2f\nThought tree depth: %d\nThought tree breadth: %d"
+            (match thoughtTree.Evaluation with Some e -> e.Overall | None -> 0.0)
+            (TarsEngine.FSharp.MetascriptToT.ThoughtTree.depth thoughtTree)
+            (TarsEngine.FSharp.MetascriptToT.ThoughtTree.breadth thoughtTree)
+    }
+}
+
+FUNCTION generate_improvements {
+    input: "${target_file},${improvement_type}"
+    output: "Improvements for ${target_file}"
+    
+    FSHARP {
+        // Load the file content
+        let filePath = "${target_file}"
+        let fileContent = System.IO.File.ReadAllText(filePath)
+        let improvementType = "${improvement_type}"
+        
+        // Generate improvements using Tree-of-Thought reasoning
+        let issue = sprintf "Improve %s in %s" improvementType filePath
+        let (thoughtTree, resultAnalysis) = 
+            TarsEngine.FSharp.MetascriptToT.FixGeneration.generateFixes issue
+        
+        // Return the improvements
+        sprintf "Improvements generated with score: %.2f\nThought tree depth: %d\nThought tree breadth: %d"
+            (match thoughtTree.Evaluation with Some e -> e.Overall | None -> 0.0)
+            (TarsEngine.FSharp.MetascriptToT.ThoughtTree.depth thoughtTree)
+            (TarsEngine.FSharp.MetascriptToT.ThoughtTree.breadth thoughtTree)
+    }
+}
+
+FUNCTION apply_improvements {
+    input: "${target_file},${improvement_type}"
+    output: "Applied improvements to ${target_file}"
+    
+    FSHARP {
+        // Load the file content
+        let filePath = "${target_file}"
+        let fileContent = System.IO.File.ReadAllText(filePath)
+        let improvementType = "${improvement_type}"
+        
+        // Apply improvements using Tree-of-Thought reasoning
+        let fix = sprintf "Apply %s improvements to %s" improvementType filePath
+        let (thoughtTree, resultAnalysis) = 
+            TarsEngine.FSharp.MetascriptToT.FixApplication.applyFix fix
+        
+        // Return the result
+        sprintf "Improvements applied with score: %.2f\nThought tree depth: %d\nThought tree breadth: %d"
+            (match thoughtTree.Evaluation with Some e -> e.Overall | None -> 0.0)
+            (TarsEngine.FSharp.MetascriptToT.ThoughtTree.depth thoughtTree)
+            (TarsEngine.FSharp.MetascriptToT.ThoughtTree.breadth thoughtTree)
+    }
+}
+
+ACTION analyze {
+    function: "analyze_code"
+    input: "${target_file}"
+}
+
+ACTION improve {
+    function: "generate_improvements"
+    input: "${target_file},${improvement_type}"
+}
+
+ACTION apply {
+    function: "apply_improvements"
+    input: "${target_file},${improvement_type}"
+}
+
+ACTION auto_improve {
+    sequence: ["analyze", "improve", "apply"]
+}

@@ -1,0 +1,422 @@
+﻿DESCRIBE {
+    name: "Chain-of-Thought Metascript Analyzer"
+    version: "1.0"
+    author: "TARS Auto-Improvement"
+    description: "Analyzes metascripts using Chain-of-Thought reasoning to identify improvement opportunities"
+    tags: ["analysis", "chain-of-thought", "reasoning", "meta-improvement"]
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.2
+    max_tokens: 8000
+    backup_before_changes: true
+}
+
+// Define the directories to scan for metascripts
+VARIABLE target_dirs {
+    value: [
+        "TarsCli/Metascripts/Improvements",
+        "TarsCli/Metascripts/Core"
+    ]
+}
+
+// Define the file patterns to match
+VARIABLE file_patterns {
+    value: [
+        "*.tars"
+    ]
+}
+
+// Define the exclude patterns
+VARIABLE exclude_patterns {
+    value: [
+        "**/Templates/**",
+        "**/*_backup.tars"
+    ]
+}
+
+// Define the improvement categories to look for
+VARIABLE improvement_categories {
+    value: [
+        "Efficiency",
+        "Readability",
+        "Robustness",
+        "Modularity",
+        "Extensibility",
+        "Error Handling",
+        "Documentation",
+        "Testing"
+    ]
+}
+
+// Initialize the results
+VARIABLE analysis_results {
+    value: {
+        scan_start_time: "${new Date().toISOString()}",
+        scan_end_time: null,
+        metascripts_scanned: 0,
+        improvements_found: 0,
+        improvements_by_category: {},
+        improvements: [],
+        reasoning_traces: []
+    }
+}
+
+// Log the start of the analysis
+ACTION {
+    type: "log"
+    message: "Starting Chain-of-Thought metascript analysis"
+}
+
+ACTION {
+    type: "log"
+    message: "Target directories: ${target_dirs.join(', ')}"
+}
+
+// Function to scan a directory for metascripts
+FUNCTION scan_directory {
+    parameters: ["directory"]
+    
+    // Log the directory being scanned
+    ACTION {
+        type: "log"
+        message: "Scanning directory: ${directory}"
+    }
+    
+    // Get the list of metascript files in the directory
+    ACTION {
+        type: "directory_list"
+        path: "${directory}"
+        pattern: "${file_patterns.join(',')}"
+        exclude_pattern: "${exclude_patterns.join(',')}"
+        recursive: true
+        result_variable: "files"
+    }
+    
+    // Return the list of files
+    RETURN {
+        value: "${files}"
+    }
+}
+
+// Function to analyze a metascript using Chain-of-Thought reasoning
+FUNCTION analyze_metascript {
+    parameters: ["metascript_path"]
+    
+    // Log the metascript being analyzed
+    ACTION {
+        type: "log"
+        message: "Analyzing metascript: ${metascript_path}"
+    }
+    
+    // Read the metascript content
+    ACTION {
+        type: "file_read"
+        path: "${metascript_path}"
+        result_variable: "metascript_content"
+    }
+    
+    // Extract the metascript name and description
+    PROMPT {
+        model: "llama3"
+        temperature: 0.1
+        max_tokens: 1000
+        prompt: """
+        You are an expert metascript analyzer. Your task is to extract the name and description from the following metascript.
+        
+        Metascript path: ${metascript_path}
+        
+        Metascript content:
+        ${metascript_content}
+        
+        Please extract the name and description from the DESCRIBE block. Format your response as a JSON object:
+        
+        {
+          "name": "Extracted name",
+          "description": "Extracted description"
+        }
+        
+        If the DESCRIBE block is not present or does not contain a name or description, use the filename as the name and "No description available" as the description.
+        """
+        result_variable: "metascript_info_json"
+    }
+    
+    // Parse the metascript info
+    FSHARP {
+        // Parse the JSON result
+        let metascriptInfo = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonDocument>(metascript_info_json).RootElement
+        
+        // Return the parsed info
+        metascriptInfo
+        
+        output_variable: "metascript_info"
+    }
+    
+    // Analyze the metascript using Chain-of-Thought reasoning
+    PROMPT {
+        model: "llama3"
+        temperature: 0.2
+        max_tokens: 6000
+        prompt: """
+        You are an expert metascript analyzer for the TARS project. Your task is to analyze the following metascript using Chain-of-Thought reasoning to identify improvement opportunities.
+        
+        Metascript path: ${metascript_path}
+        Metascript name: ${metascript_info.GetProperty("name").GetString()}
+        Metascript description: ${metascript_info.GetProperty("description").GetString()}
+        
+        Metascript content:
+        ${metascript_content}
+        
+        Please analyze this metascript using Chain-of-Thought reasoning. This means you should:
+        1. Break down the analysis into clear steps
+        2. Reason through each step explicitly
+        3. Consider multiple perspectives
+        4. Draw conclusions based on your reasoning
+        
+        For each improvement opportunity you identify, provide:
+        1. The improvement category (Efficiency, Readability, Robustness, Modularity, Extensibility, Error Handling, Documentation, Testing)
+        2. A detailed description of the improvement
+        3. The specific part of the metascript that could be improved
+        4. A suggested implementation of the improvement
+        5. The impact of the improvement (High, Medium, Low)
+        6. The difficulty of implementing the improvement (High, Medium, Low)
+        
+        Format your response as a JSON object with two main sections:
+        1. "reasoning_trace": An array of reasoning steps, where each step is a string describing your thought process
+        2. "improvements": An array of improvement objects with the properties described above
+        
+        Example:
+        {
+          "reasoning_trace": [
+            "Step 1: I'm examining the overall structure of the metascript to understand its purpose and flow.",
+            "Step 2: I notice that the metascript uses a loop to process files, which could be inefficient for large directories.",
+            "Step 3: I'm analyzing the error handling approach and notice that some error cases are not properly handled.",
+            "Step 4: Based on my analysis, I've identified several improvement opportunities."
+          ],
+          "improvements": [
+            {
+              "category": "Efficiency",
+              "description": "Replace sequential file processing with parallel processing",
+              "target_code": "FOREACH { items: \\"${files}\\", ... }",
+              "suggested_implementation": "Implement a parallel processing approach using PARALLEL_FOREACH or batching",
+              "impact": "High",
+              "difficulty": "Medium"
+            }
+          ]
+        }
+        
+        Focus on substantive improvements that would meaningfully enhance the metascript's functionality, reliability, or maintainability.
+        """
+        result_variable: "analysis_result"
+    }
+    
+    // Parse the analysis result
+    FSHARP {
+        // Parse the JSON result
+        let analysisJson = analysis_result
+        
+        // Return the parsed JSON
+        analysisJson
+        
+        output_variable: "parsed_analysis"
+    }
+    
+    // Return the analysis result
+    RETURN {
+        value: "${parsed_analysis}"
+    }
+}
+
+// Scan each target directory
+FOREACH {
+    items: "${target_dirs}"
+    item_variable: "dir"
+    
+    // Scan the directory for metascripts
+    CALL {
+        function: "scan_directory"
+        arguments: ["${dir}"]
+        result_variable: "dir_files"
+    }
+    
+    // Analyze each metascript
+    FOREACH {
+        items: "${dir_files}"
+        item_variable: "metascript_path"
+        
+        // Analyze the metascript
+        CALL {
+            function: "analyze_metascript"
+            arguments: ["${metascript_path}"]
+            result_variable: "metascript_analysis"
+        }
+        
+        // Update the analysis results
+        FSHARP {
+            // Get the current analysis results
+            let results = analysis_results
+            
+            // Parse the analysis result
+            let analysisResult = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonDocument>(metascript_analysis).RootElement
+            
+            // Get the improvements
+            let improvements = analysisResult.GetProperty("improvements").EnumerateArray().ToArray()
+            
+            // Get the reasoning trace
+            let reasoningTrace = analysisResult.GetProperty("reasoning_trace").EnumerateArray()
+                .Select(step => step.GetString())
+                .ToArray()
+            
+            // Create a reasoning trace object
+            let traceObj = {|
+                metascript_path = metascript_path
+                reasoning_steps = reasoningTrace
+            |}
+            
+            // Update the metascripts scanned count
+            let updatedResults = {|
+                results with
+                    metascripts_scanned = results.metascripts_scanned + 1
+                    improvements_found = results.improvements_found + improvements.Length
+                    reasoning_traces = results.reasoning_traces.Append(traceObj).ToArray()
+            |}
+            
+            // Update the improvements by category
+            let mutable improvementsByCategory = results.improvements_by_category
+            for improvement in improvements do
+                let category = improvement.GetProperty("category").GetString()
+                if improvementsByCategory.ContainsKey(category) then
+                    improvementsByCategory.[category] <- improvementsByCategory.[category] + 1
+                else
+                    improvementsByCategory.[category] <- 1
+            
+            // Add the metascript path to each improvement
+            let improvementsWithPath = improvements |> Seq.map (fun improvement ->
+                let mutable improvementObj = improvement.Clone().AsObject()
+                improvementObj.Add("metascript_path", System.Text.Json.JsonSerializer.SerializeToElement(metascript_path))
+                improvementObj
+            ) |> Seq.toArray
+            
+            // Add the improvements to the results
+            let updatedImprovements = results.improvements.Concat(improvementsWithPath).ToArray()
+            
+            // Return the updated results
+            {|
+                updatedResults with
+                    improvements_by_category = improvementsByCategory
+                    improvements = updatedImprovements
+            |}
+            
+            output_variable: "updated_results"
+        }
+        
+        VARIABLE analysis_results {
+            value: "${updated_results}"
+        }
+    }
+}
+
+// Update the scan end time
+VARIABLE analysis_results {
+    value: {
+        ...analysis_results,
+        scan_end_time: "${new Date().toISOString()}"
+    }
+}
+
+// Log the analysis results
+ACTION {
+    type: "log"
+    message: "Chain-of-Thought metascript analysis completed"
+}
+
+ACTION {
+    type: "log"
+    message: "Metascripts scanned: ${analysis_results.metascripts_scanned}"
+}
+
+ACTION {
+    type: "log"
+    message: "Improvements found: ${analysis_results.improvements_found}"
+}
+
+// Generate a summary of improvements by category
+FSHARP {
+    // Get the improvements by category
+    let improvementsByCategory = analysis_results.improvements_by_category
+    
+    // Format the summary
+    let summary = improvementsByCategory.Keys
+        |> Seq.map (fun category -> $"{category}: {improvementsByCategory.[category]}")
+        |> String.concat "\n"
+    
+    // Return the summary
+    summary
+    
+    output_variable: "category_summary"
+}
+
+ACTION {
+    type: "log"
+    message: "Improvements by category:\n${category_summary}"
+}
+
+// Generate a detailed report
+VARIABLE report {
+    value: """# Chain-of-Thought Metascript Analysis Report
+
+## Summary
+- **Scan Start Time**: ${analysis_results.scan_start_time}
+- **Scan End Time**: ${analysis_results.scan_end_time}
+- **Metascripts Scanned**: ${analysis_results.metascripts_scanned}
+- **Improvements Found**: ${analysis_results.improvements_found}
+
+## Improvements by Category
+${Object.entries(analysis_results.improvements_by_category).map(([category, count]) => `- **${category}**: ${count}`).join('\n')}
+
+## Detailed Improvements
+
+${analysis_results.improvements.map(improvement => `### ${improvement.category} (Impact: ${improvement.impact}, Difficulty: ${improvement.difficulty})
+- **Metascript**: ${improvement.metascript_path}
+- **Description**: ${improvement.description}
+- **Target Code**: \`${improvement.target_code}\`
+- **Suggested Implementation**: ${improvement.suggested_implementation}
+`).join('\n')}
+
+## Reasoning Traces
+
+${analysis_results.reasoning_traces.map(trace => `### Metascript: ${trace.metascript_path}
+${trace.reasoning_steps.map((step, index) => `${index + 1}. ${step}`).join('\n')}
+`).join('\n')}
+"""
+}
+
+// Save the report
+ACTION {
+    type: "file_write"
+    path: "metascript_cot_analysis_report.md"
+    content: "${report}"
+}
+
+ACTION {
+    type: "log"
+    message: "Analysis report saved to metascript_cot_analysis_report.md"
+}
+
+// Save the analysis results as JSON for further processing
+ACTION {
+    type: "file_write"
+    path: "metascript_cot_analysis_results.json"
+    content: "${JSON.stringify(analysis_results, null, 2)}"
+}
+
+ACTION {
+    type: "log"
+    message: "Analysis results saved to metascript_cot_analysis_results.json"
+}
+
+// Return the analysis results
+RETURN {
+    value: "${analysis_results}"
+}
