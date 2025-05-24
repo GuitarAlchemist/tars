@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Types.fs" />
+    <Compile Include="MetascriptExecutionResult.fs" />
+    <Compile Include="BlockHandlers/IBlockHandler.fs" />
+    <Compile Include="BlockHandlers/BlockHandlerBase.fs" />
+    <Compile Include="BlockHandlers/FSharpBlockHandler.fs" />
+    <Compile Include="BlockHandlers/CommandBlockHandler.fs" />
+    <Compile Include="BlockHandlers/TextBlockHandler.fs" />
+    <Compile Include="BlockHandlers/BlockHandlerRegistry.fs" />
+    <Compile Include="Services/IMetascriptService.fs" />
+    <Compile Include="Services/IMetascriptExecutor.fs" />
+    <Compile Include="Services/MetascriptExecutor.fs" />
+    <Compile Include="Services/MetascriptService.fs" />
+    <Compile Include="DependencyInjection/ServiceCollectionExtensions.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FSharp.Compiler.Service" Version="43.8.200" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0" />
+  </ItemGroup>
+
+</Project>

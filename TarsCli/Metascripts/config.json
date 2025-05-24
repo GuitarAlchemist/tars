@@ -1,0 +1,48 @@
+﻿{
+  "version": "1.0",
+  "project_name": "TARS",
+  "metascript_directories": {
+    "generators": "TarsCli/Metascripts/Generators",
+    "improvements": "TarsCli/Metascripts/Improvements",
+    "tests": "TarsCli/Metascripts/Tests",
+    "documentation": "TarsCli/Metascripts/Documentation",
+    "templates": "TarsCli/Metascripts/Templates"
+  },
+  "discovery": {
+    "patterns": ["*.tars"],
+    "exclude_patterns": ["*_temp.tars", "*_backup.tars"],
+    "recursive": true
+  },
+  "execution": {
+    "max_execution_time_seconds": 300,
+    "backup_before_execution": true,
+    "validation_required": true
+  },
+  "analysis": {
+    "model": "llama3",
+    "temperature": 0.2,
+    "max_tokens": 4000
+  },
+  "generation": {
+    "model": "llama3",
+    "temperature": 0.2,
+    "max_tokens": 4000
+  },
+  "validation": {
+    "model": "llama3",
+    "temperature": 0.1,
+    "max_tokens": 2000
+  },
+  "priorities": {
+    "html_report_generator": 1,
+    "cli_command_implementation": 2,
+    "test_implementation": 3,
+    "documentation_generation": 4
+  },
+  "dependencies": {
+    "html_report_generator": [],
+    "cli_command_implementation": ["html_report_generator"],
+    "test_implementation": ["html_report_generator", "cli_command_implementation"],
+    "documentation_generation": ["html_report_generator", "cli_command_implementation", "test_implementation"]
+  }
+}

@@ -1,0 +1,72 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Core Types -->
+    <Compile Include="Core/Result.fs" />
+    <Compile Include="Core/Option.fs" />
+    <Compile Include="Core/AsyncResult.fs" />
+    <Compile Include="Core/Collections.fs" />
+    <Compile Include="Core/Interop.fs" />
+
+    <!-- Tree of Thought -->
+    <Compile Include="TreeOfThought/EvaluationMetrics.fs" />
+    <Compile Include="TreeOfThought/IThoughtNode.fs" />
+    <Compile Include="TreeOfThought/TreeCreationOptions.fs" />
+    <Compile Include="TreeOfThought/ITreeOfThoughtService.fs" />
+    <Compile Include="TreeOfThought/ThoughtNode.fs" />
+    <Compile Include="TreeOfThought/ThoughtNodeWrapper.fs" />
+    <Compile Include="TreeOfThought/Evaluation.fs" />
+    <Compile Include="TreeOfThought/ThoughtTree.fs" />
+    <Compile Include="TreeOfThought/Visualization.fs" />
+    <Compile Include="TreeOfThought/TreeOfThoughtService.fs" />
+    
+    <!-- Compilation -->
+    <Compile Include="Compilation/Types.fs" />
+    <Compile Include="Compilation/IFSharpCompiler.fs" />
+    <Compile Include="Compilation/FSharpCompiler.fs" />
+    <Compile Include="Compilation/FSharpCompilerAdapter.fs" />
+
+    <!-- Code Analysis -->
+    <Compile Include="Analysis/Types.fs" />
+    <Compile Include="Analysis/Interfaces.fs" />
+
+    <!-- Code Generation -->
+    <Compile Include="CodeGen/Types.fs" />
+    <Compile Include="CodeGen/Interfaces.fs" />
+
+    <!-- Services -->
+    <Compile Include="Services/Types.fs" />
+    <Compile Include="Services/Interfaces.fs" />
+    <Compile Include="Services/DependencyInjection/ServiceCollectionExtensions.fs" />
+
+    <!-- Metascript -->
+    <Compile Include="Metascript/Types.fs" />
+    
+    <!-- Compatibility -->
+    <Compile Include="Compatibility/MetascriptToTCompat.fs" />
+
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="FSharp.Data" Version="6.3.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Scripting" Version="4.9.0" />
+    <PackageReference Include="FSharp.Compiler.Service" Version="43.8.200" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\TarsEngine.DSL\TarsEngine.DSL.fsproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Compilation\README.md" />
+    <Content Include="Analysis\README.md" />
+    <Content Include="CodeGen\README.md" />
+    <Content Include="Services\README.md" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,764 @@
+﻿namespace TarsEngine.FSharp.Core.Consciousness.Decision.Services
+
+open System
+open System.Threading.Tasks
+open Microsoft.Extensions.Logging
+open TarsEngine.FSharp.Core.Consciousness.Decision
+
+/// <summary>
+/// Implementation of IDecisionService.
+/// </summary>
+type DecisionService(logger: ILogger<DecisionService>) =
+    // In-memory storage for decisions
+    let mutable decisions = Map.empty<string, Decision>
+    
+    // In-memory storage for options
+    let mutable options = Map.empty<string, Option>
+    
+    // Random number generator for simulating intuitive decisions
+    let random = System.Random()
+    
+    // Intuitive decision level (0.0 to 1.0)
+    let mutable intuitiveDecisionLevel = 0.5 // Starting with moderate intuition
+    
+    /// <summary>
+    /// Gets the intuitive decision level (0.0 to 1.0).
+    /// </summary>
+    member _.IntuitiveDecisionLevel = intuitiveDecisionLevel
+    
+    /// <summary>
+    /// Creates a new decision.
+    /// </summary>
+    /// <param name="name">The name of the decision.</param>
+    /// <param name="description">The description of the decision.</param>
+    /// <param name="context">The context of the decision.</param>
+    /// <param name="deadline">The deadline of the decision.</param>
+    /// <returns>The created decision.</returns>
+    member _.CreateDecision(name: string, description: string, context: string, ?deadline: DateTime) =
+        task {
+            try
+                logger.LogInformation("Creating decision: {Name}", name)
+                
+                // Create a new decision
+                let decision = {
+                    Id = Guid.NewGuid().ToString()
+                    Name = name
+                    Description = description
+                    Context = context
+                    Status = DecisionStatus.Pending
+                    CreatedAt = DateTime.UtcNow
+                    UpdatedAt = None
+                    Deadline = deadline
+                    ResolvedAt = None
+                    SelectedOptionId = None
+                    Criteria = []
+                    Tags = []
+                    Metadata = Map.empty
+                }
+                
+                // Add the decision to the dictionary
+                decisions <- Map.add decision.Id decision decisions
+                
+                logger.LogInformation("Created decision with ID: {Id}", decision.Id)
+                
+                return decision
+            with
+            | ex ->
+                logger.LogError(ex, "Error creating decision")
+                return raise ex
+        }
+    
+    /// <summary>
+    /// Gets a decision by ID.
+    /// </summary>
+    /// <param name="id">The ID of the decision.</param>
+    /// <returns>The decision, or None if not found.</returns>
+    member _.GetDecision(id: string) =
+        task {
+            try
+                logger.LogInformation("Getting decision with ID: {Id}", id)
+                
+                // Try to get the decision from the dictionary
+                match Map.tryFind id decisions with
+                | Some decision ->
+                    logger.LogInformation("Found decision with ID: {Id}", id)
+                    return Some decision
+                | None ->
+                    logger.LogWarning("Decision with ID {Id} not found", id)
+                    return None
+            with
+            | ex ->
+                logger.LogError(ex, "Error getting decision")
+                return None
+        }
+    
+    /// <summary>
+    /// Gets all decisions.
+    /// </summary>
+    /// <returns>The list of all decisions.</returns>
+    member _.GetAllDecisions() =
+        task {
+            try
+                logger.LogInformation("Getting all decisions")
+                
+                // Convert the dictionary values to a list
+                let decisionList = decisions |> Map.values |> Seq.toList
+                
+                logger.LogInformation("Found {Count} decisions", decisionList.Length)
+                
+                return decisionList
+            with
+            | ex ->
+                logger.LogError(ex, "Error getting all decisions")
+                return []
+        }
+    
+    /// <summary>
+    /// Updates a decision.
+    /// </summary>
+    /// <param name="decision">The updated decision.</param>
+    /// <returns>The updated decision.</returns>
+    member _.UpdateDecision(decision: Decision) =
+        task {
+            try
+                logger.LogInformation("Updating decision with ID: {Id}", decision.Id)
+                
+                // Check if the decision exists
+                if Map.containsKey decision.Id decisions then
+                    // Update the decision
+                    let updatedDecision = { decision with UpdatedAt = Some DateTime.UtcNow }
+                    decisions <- Map.add decision.Id updatedDecision decisions
+                    
+                    logger.LogInformation("Updated decision with ID: {Id}", decision.Id)
+                    
+                    return updatedDecision
+                else
+                    logger.LogWarning("Decision with ID {Id} not found", decision.Id)
+                    return raise (KeyNotFoundException($"Decision with ID {decision.Id} not found"))
+            with
+            | ex ->
+                logger.LogError(ex, "Error updating decision")
+                return raise ex
+        }
+    
+    /// <summary>
+    /// Deletes a decision.
+    /// </summary>
+    /// <param name="id">The ID of the decision to delete.</param>
+    /// <returns>True if the decision was deleted, false otherwise.</returns>
+    member _.DeleteDecision(id: string) =
+        task {
+            try
+                logger.LogInformation("Deleting decision with ID: {Id}", id)
+                
+                // Check if the decision exists
+                if Map.containsKey id decisions then
+                    // Remove the decision
+                    decisions <- Map.remove id decisions
+                    
+                    // Remove any options associated with the decision
+                    options <- 
+                        options 
+                        |> Map.filter (fun _ option -> option.DecisionId <> id)
+                    
+                    logger.LogInformation("Deleted decision with ID: {Id}", id)
+                    
+                    return true
+                else
+                    logger.LogWarning("Decision with ID {Id} not found", id)
+                    return false
+            with
+            | ex ->
+                logger.LogError(ex, "Error deleting decision")
+                return false
+        }
+    
+    /// <summary>
+    /// Adds an option to a decision.
+    /// </summary>
+    /// <param name="decisionId">The ID of the decision.</param>
+    /// <param name="name">The name of the option.</param>
+    /// <param name="description">The description of the option.</param>
+    /// <returns>The created option.</returns>
+    member _.AddOption(decisionId: string, name: string, description: string) =
+        task {
+            try
+                logger.LogInformation("Adding option to decision with ID: {DecisionId}", decisionId)
+                
+                // Check if the decision exists
+                match Map.tryFind decisionId decisions with
+                | Some decision ->
+                    // Create a new option
+                    let option = {
+                        Id = Guid.NewGuid().ToString()
+                        DecisionId = decisionId
+                        Name = name
+                        Description = description
+                        CreatedAt = DateTime.UtcNow
+                        UpdatedAt = None
+                        Pros = []
+                        Cons = []
+                        Score = None
+                        Metadata = Map.empty
+                    }
+                    
+                    // Add the option to the dictionary
+                    options <- Map.add option.Id option options
+                    
+                    logger.LogInformation("Added option with ID: {Id} to decision with ID: {DecisionId}", option.Id, decisionId)
+                    
+                    return option
+                | None ->
+                    logger.LogWarning("Decision with ID {Id} not found", decisionId)
+                    return raise (KeyNotFoundException($"Decision with ID {decisionId} not found"))
+            with
+            | ex ->
+                logger.LogError(ex, "Error adding option to decision")
+                return raise ex
+        }
+    
+    /// <summary>
+    /// Gets an option by ID.
+    /// </summary>
+    /// <param name="id">The ID of the option.</param>
+    /// <returns>The option, or None if not found.</returns>
+    member _.GetOption(id: string) =
+        task {
+            try
+                logger.LogInformation("Getting option with ID: {Id}", id)
+                
+                // Try to get the option from the dictionary
+                match Map.tryFind id options with
+                | Some option ->
+                    logger.LogInformation("Found option with ID: {Id}", id)
+                    return Some option
+                | None ->
+                    logger.LogWarning("Option with ID {Id} not found", id)
+                    return None
+            with
+            | ex ->
+                logger.LogError(ex, "Error getting option")
+                return None
+        }
+    
+    /// <summary>
+    /// Gets all options for a decision.
+    /// </summary>
+    /// <param name="decisionId">The ID of the decision.</param>
+    /// <returns>The list of options for the decision.</returns>
+    member _.GetOptionsForDecision(decisionId: string) =
+        task {
+            try
+                logger.LogInformation("Getting options for decision with ID: {DecisionId}", decisionId)
+                
+                // Filter options by decision ID
+                let optionList = 
+                    options 
+                    |> Map.values 
+                    |> Seq.filter (fun option -> option.DecisionId = decisionId) 
+                    |> Seq.toList
+                
+                logger.LogInformation("Found {Count} options for decision with ID: {DecisionId}", optionList.Length, decisionId)
+                
+                return optionList
+            with
+            | ex ->
+                logger.LogError(ex, "Error getting options for decision")
+                return []
+        }
+    
+    /// <summary>
+    /// Updates an option.
+    /// </summary>
+    /// <param name="option">The updated option.</param>
+    /// <returns>The updated option.</returns>
+    member _.UpdateOption(option: Option) =
+        task {
+            try
+                logger.LogInformation("Updating option with ID: {Id}", option.Id)
+                
+                // Check if the option exists
+                if Map.containsKey option.Id options then
+                    // Update the option
+                    let updatedOption = { option with UpdatedAt = Some DateTime.UtcNow }
+                    options <- Map.add option.Id updatedOption options
+                    
+                    logger.LogInformation("Updated option with ID: {Id}", option.Id)
+                    
+                    return updatedOption
+                else
+                    logger.LogWarning("Option with ID {Id} not found", option.Id)
+                    return raise (KeyNotFoundException($"Option with ID {option.Id} not found"))
+            with
+            | ex ->
+                logger.LogError(ex, "Error updating option")
+                return raise ex
+        }
+    
+    /// <summary>
+    /// Deletes an option.
+    /// </summary>
+    /// <param name="id">The ID of the option to delete.</param>
+    /// <returns>True if the option was deleted, false otherwise.</returns>
+    member _.DeleteOption(id: string) =
+        task {
+            try
+                logger.LogInformation("Deleting option with ID: {Id}", id)
+                
+                // Check if the option exists
+                if Map.containsKey id options then
+                    // Get the option
+                    let option = Map.find id options
+                    
+                    // Remove the option
+                    options <- Map.remove id options
+                    
+                    // If the option was selected for a decision, update the decision
+                    match Map.tryFind option.DecisionId decisions with
+                    | Some decision when decision.SelectedOptionId = Some id ->
+                        let updatedDecision = { 
+                            decision with 
+                                SelectedOptionId = None
+                                Status = DecisionStatus.Pending
+                                UpdatedAt = Some DateTime.UtcNow
+                        }
+                        decisions <- Map.add decision.Id updatedDecision decisions
+                    | _ -> ()
+                    
+                    logger.LogInformation("Deleted option with ID: {Id}", id)
+                    
+                    return true
+                else
+                    logger.LogWarning("Option with ID {Id} not found", id)
+                    return false
+            with
+            | ex ->
+                logger.LogError(ex, "Error deleting option")
+                return false
+        }
+    
+    /// <summary>
+    /// Adds a pro to an option.
+    /// </summary>
+    /// <param name="optionId">The ID of the option.</param>
+    /// <param name="description">The description of the pro.</param>
+    /// <param name="weight">The weight of the pro.</param>
+    /// <returns>The updated option.</returns>
+    member _.AddPro(optionId: string, description: string, weight: float) =
+        task {
+            try
+                logger.LogInformation("Adding pro to option with ID: {OptionId}", optionId)
+                
+                // Check if the option exists
+                match Map.tryFind optionId options with
+                | Some option ->
+                    // Create a new pro
+                    let pro = {
+                        Id = Guid.NewGuid().ToString()
+                        Description = description
+                        Weight = weight
+                    }
+                    
+                    // Add the pro to the option
+                    let updatedOption = { 
+                        option with 
+                            Pros = pro :: option.Pros
+                            UpdatedAt = Some DateTime.UtcNow
+                    }
+                    
+                    // Update the option
+                    options <- Map.add optionId updatedOption options
+                    
+                    logger.LogInformation("Added pro with ID: {Id} to option with ID: {OptionId}", pro.Id, optionId)
+                    
+                    return updatedOption
+                | None ->
+                    logger.LogWarning("Option with ID {Id} not found", optionId)
+                    return raise (KeyNotFoundException($"Option with ID {optionId} not found"))
+            with
+            | ex ->
+                logger.LogError(ex, "Error adding pro to option")
+                return raise ex
+        }
+    
+    /// <summary>
+    /// Adds a con to an option.
+    /// </summary>
+    /// <param name="optionId">The ID of the option.</param>
+    /// <param name="description">The description of the con.</param>
+    /// <param name="weight">The weight of the con.</param>
+    /// <returns>The updated option.</returns>
+    member _.AddCon(optionId: string, description: string, weight: float) =
+        task {
+            try
+                logger.LogInformation("Adding con to option with ID: {OptionId}", optionId)
+                
+                // Check if the option exists
+                match Map.tryFind optionId options with
+                | Some option ->
+                    // Create a new con
+                    let con = {
+                        Id = Guid.NewGuid().ToString()
+                        Description = description
+                        Weight = weight
+                    }
+                    
+                    // Add the con to the option
+                    let updatedOption = { 
+                        option with 
+                            Cons = con :: option.Cons
+                            UpdatedAt = Some DateTime.UtcNow
+                    }
+                    
+                    // Update the option
+                    options <- Map.add optionId updatedOption options
+                    
+                    logger.LogInformation("Added con with ID: {Id} to option with ID: {OptionId}", con.Id, optionId)
+                    
+                    return updatedOption
+                | None ->
+                    logger.LogWarning("Option with ID {Id} not found", optionId)
+                    return raise (KeyNotFoundException($"Option with ID {optionId} not found"))
+            with
+            | ex ->
+                logger.LogError(ex, "Error adding con to option")
+                return raise ex
+        }
+    
+    /// <summary>
+    /// Adds a criterion to a decision.
+    /// </summary>
+    /// <param name="decisionId">The ID of the decision.</param>
+    /// <param name="name">The name of the criterion.</param>
+    /// <param name="description">The description of the criterion.</param>
+    /// <param name="weight">The weight of the criterion.</param>
+    /// <returns>The updated decision.</returns>
+    member _.AddCriterion(decisionId: string, name: string, description: string, weight: float) =
+        task {
+            try
+                logger.LogInformation("Adding criterion to decision with ID: {DecisionId}", decisionId)
+                
+                // Check if the decision exists
+                match Map.tryFind decisionId decisions with
+                | Some decision ->
+                    // Create a new criterion
+                    let criterion = {
+                        Id = Guid.NewGuid().ToString()
+                        Name = name
+                        Description = description
+                        Weight = weight
+                    }
+                    
+                    // Add the criterion to the decision
+                    let updatedDecision = { 
+                        decision with 
+                            Criteria = criterion :: decision.Criteria
+                            UpdatedAt = Some DateTime.UtcNow
+                    }
+                    
+                    // Update the decision
+                    decisions <- Map.add decisionId updatedDecision decisions
+                    
+                    logger.LogInformation("Added criterion with ID: {Id} to decision with ID: {DecisionId}", criterion.Id, decisionId)
+                    
+                    return updatedDecision
+                | None ->
+                    logger.LogWarning("Decision with ID {Id} not found", decisionId)
+                    return raise (KeyNotFoundException($"Decision with ID {decisionId} not found"))
+            with
+            | ex ->
+                logger.LogError(ex, "Error adding criterion to decision")
+                return raise ex
+        }
+    
+    /// <summary>
+    /// Scores an option.
+    /// </summary>
+    /// <param name="optionId">The ID of the option.</param>
+    /// <param name="score">The score.</param>
+    /// <returns>The updated option.</returns>
+    member _.ScoreOption(optionId: string, score: float) =
+        task {
+            try
+                logger.LogInformation("Scoring option with ID: {OptionId}", optionId)
+                
+                // Check if the option exists
+                match Map.tryFind optionId options with
+                | Some option ->
+                    // Update the option with the score
+                    let updatedOption = { 
+                        option with 
+                            Score = Some score
+                            UpdatedAt = Some DateTime.UtcNow
+                    }
+                    
+                    // Update the option
+                    options <- Map.add optionId updatedOption options
+                    
+                    logger.LogInformation("Scored option with ID: {OptionId} with score: {Score}", optionId, score)
+                    
+                    return updatedOption
+                | None ->
+                    logger.LogWarning("Option with ID {Id} not found", optionId)
+                    return raise (KeyNotFoundException($"Option with ID {optionId} not found"))
+            with
+            | ex ->
+                logger.LogError(ex, "Error scoring option")
+                return raise ex
+        }
+    
+    /// <summary>
+    /// Makes a decision.
+    /// </summary>
+    /// <param name="decisionId">The ID of the decision.</param>
+    /// <param name="optionId">The ID of the selected option.</param>
+    /// <returns>The updated decision.</returns>
+    member _.MakeDecision(decisionId: string, optionId: string) =
+        task {
+            try
+                logger.LogInformation("Making decision with ID: {DecisionId}, selecting option with ID: {OptionId}", decisionId, optionId)
+                
+                // Check if the decision exists
+                match Map.tryFind decisionId decisions with
+                | Some decision ->
+                    // Check if the option exists and belongs to the decision
+                    match Map.tryFind optionId options with
+                    | Some option when option.DecisionId = decisionId ->
+                        // Update the decision
+                        let updatedDecision = { 
+                            decision with 
+                                Status = DecisionStatus.Resolved
+                                SelectedOptionId = Some optionId
+                                ResolvedAt = Some DateTime.UtcNow
+                                UpdatedAt = Some DateTime.UtcNow
+                        }
+                        
+                        // Update the decision
+                        decisions <- Map.add decisionId updatedDecision decisions
+                        
+                        logger.LogInformation("Made decision with ID: {DecisionId}, selected option with ID: {OptionId}", decisionId, optionId)
+                        
+                        return updatedDecision
+                    | Some _ ->
+                        logger.LogWarning("Option with ID {Id} does not belong to decision with ID {DecisionId}", optionId, decisionId)
+                        return raise (InvalidOperationException($"Option with ID {optionId} does not belong to decision with ID {decisionId}"))
+                    | None ->
+                        logger.LogWarning("Option with ID {Id} not found", optionId)
+                        return raise (KeyNotFoundException($"Option with ID {optionId} not found"))
+                | None ->
+                    logger.LogWarning("Decision with ID {Id} not found", decisionId)
+                    return raise (KeyNotFoundException($"Decision with ID {decisionId} not found"))
+            with
+            | ex ->
+                logger.LogError(ex, "Error making decision")
+                return raise ex
+        }
+    
+    /// <summary>
+    /// Makes an intuitive decision.
+    /// </summary>
+    /// <param name="decisionId">The ID of the decision.</param>
+    /// <returns>The updated decision.</returns>
+    member _.MakeIntuitiveDecision(decisionId: string) =
+        task {
+            try
+                logger.LogInformation("Making intuitive decision with ID: {DecisionId}", decisionId)
+                
+                // Check if the decision exists
+                match Map.tryFind decisionId decisions with
+                | Some decision ->
+                    // Get options for the decision
+                    let! optionList = this.GetOptionsForDecision(decisionId)
+                    
+                    if List.isEmpty optionList then
+                        logger.LogWarning("No options found for decision with ID {DecisionId}", decisionId)
+                        return raise (InvalidOperationException($"No options found for decision with ID {decisionId}"))
+                    else
+                        // Choose an intuition type
+                        let intuitionType = 
+                            let rand = random.NextDouble()
+                            if rand < 0.33 then
+                                IntuitionType.PatternRecognition
+                            elif rand < 0.66 then
+                                IntuitionType.HeuristicReasoning
+                            else
+                                IntuitionType.GutFeeling
+                        
+                        // Generate intuition based on type
+                        let description, confidence = 
+                            match intuitionType with
+                            | IntuitionType.PatternRecognition ->
+                                // Simulate pattern recognition
+                                let baseConfidence = 0.6 + (random.NextDouble() * 0.3)
+                                let approach = if random.NextDouble() > 0.5 then "positive" else "cautious"
+                                let description = sprintf "I recognize a pattern in this situation that suggests a %s approach would be best." approach
+                                description, baseConfidence
+                            | IntuitionType.HeuristicReasoning ->
+                                // Simulate heuristic reasoning
+                                let baseConfidence = 0.7 + (random.NextDouble() * 0.2)
+                                let solution = if random.NextDouble() > 0.5 then "systematic" else "creative"
+                                let description = sprintf "Based on heuristic principles, this situation calls for a %s solution." solution
+                                description, baseConfidence
+                            | IntuitionType.GutFeeling ->
+                                // Simulate gut feeling
+                                let baseConfidence = 0.5 + (random.NextDouble() * 0.4)
+                                let feeling = if random.NextDouble() > 0.5 then "presents an opportunity" else "requires caution"
+                                let description = sprintf "My gut feeling about this situation is that it %s." feeling
+                                description, baseConfidence
+                            | IntuitionType.Custom name ->
+                                // Default for custom intuition types
+                                let baseConfidence = 0.5 + (random.NextDouble() * 0.3)
+                                let situation = if random.NextDouble() > 0.5 then "has potential" else "needs careful handling"
+                                let description = sprintf "Using %s intuition, I sense that this situation %s." name situation
+                                description, baseConfidence
+                        
+                        // Apply intuitive decision level to confidence
+                        let adjustedConfidence = confidence * intuitiveDecisionLevel
+                        
+                        // Create intuition
+                        let intuition = {
+                            Description = description
+                            Type = intuitionType
+                            Confidence = adjustedConfidence
+                        }
+                        
+                        // Score options based on intuition
+                        let scoredOptions = 
+                            optionList
+                            |> List.map (fun option ->
+                                // Generate a score based on intuition
+                                let score = 
+                                    match intuitionType with
+                                    | IntuitionType.PatternRecognition ->
+                                        // Score based on option name length (just a simple heuristic for simulation)
+                                        let baseScore = 0.5 + (0.5 * (1.0 - (float option.Name.Length / 20.0)))
+                                        baseScore * adjustedConfidence
+                                    | IntuitionType.HeuristicReasoning ->
+                                        // Score based on pros and cons
+                                        let proWeight = List.sumBy (fun (p: Pro) -> p.Weight) option.Pros
+                                        let conWeight = List.sumBy (fun (c: Con) -> c.Weight) option.Cons
+                                        let baseScore = 
+                                            if proWeight + conWeight > 0.0 then
+                                                proWeight / (proWeight + conWeight)
+                                            else
+                                                0.5
+                                        baseScore * adjustedConfidence
+                                    | _ ->
+                                        // Random score for gut feeling
+                                        random.NextDouble() * adjustedConfidence
+                                
+                                // Update option with score
+                                let! updatedOption = this.ScoreOption(option.Id, score)
+                                updatedOption
+                            )
+                            |> Async.Parallel
+                            |> Async.RunSynchronously
+                            |> Array.toList
+                        
+                        // Select the option with the highest score
+                        let selectedOption = 
+                            scoredOptions
+                            |> List.maxBy (fun o -> o.Score |> Option.defaultValue 0.0)
+                        
+                        // Update the decision
+                        let updatedDecision = { 
+                            decision with 
+                                Status = DecisionStatus.Resolved
+                                SelectedOptionId = Some selectedOption.Id
+                                ResolvedAt = Some DateTime.UtcNow
+                                UpdatedAt = Some DateTime.UtcNow
+                                Metadata = 
+                                    decision.Metadata
+                                    |> Map.add "IntuitionDescription" intuition.Description
+                                    |> Map.add "IntuitionType" (string intuition.Type)
+                                    |> Map.add "IntuitionConfidence" (string intuition.Confidence)
+                        }
+                        
+                        // Update the decision
+                        decisions <- Map.add decisionId updatedDecision decisions
+                        
+                        logger.LogInformation("Made intuitive decision with ID: {DecisionId}, selected option with ID: {OptionId}, confidence: {Confidence:F2}",
+                            decisionId, selectedOption.Id, intuition.Confidence)
+                        
+                        return updatedDecision
+                | None ->
+                    logger.LogWarning("Decision with ID {Id} not found", decisionId)
+                    return raise (KeyNotFoundException($"Decision with ID {decisionId} not found"))
+            with
+            | ex ->
+                logger.LogError(ex, "Error making intuitive decision")
+                return raise ex
+        }
+    
+    /// <summary>
+    /// Updates the intuitive decision level.
+    /// </summary>
+    /// <param name="level">The new level.</param>
+    /// <returns>True if the update was successful, false otherwise.</returns>
+    member _.UpdateIntuitiveDecisionLevel(level: float) =
+        try
+            // Ensure the level is between 0 and 1
+            let adjustedLevel = Math.Max(0.0, Math.Min(1.0, level))
+            
+            // Update the level
+            intuitiveDecisionLevel <- adjustedLevel
+            
+            logger.LogInformation("Updated intuitive decision level to: {Level:F2}", adjustedLevel)
+            
+            true
+        with
+        | ex ->
+            logger.LogError(ex, "Error updating intuitive decision level")
+            false
+    
+    interface IDecisionService with
+        member this.CreateDecision(name, description, context, ?deadline) = 
+            this.CreateDecision(name, description, context, ?deadline = deadline)
+        
+        member this.GetDecision(id) = 
+            this.GetDecision(id)
+        
+        member this.GetAllDecisions() = 
+            this.GetAllDecisions()
+        
+        member this.UpdateDecision(decision) = 
+            this.UpdateDecision(decision)
+        
+        member this.DeleteDecision(id) = 
+            this.DeleteDecision(id)
+        
+        member this.AddOption(decisionId, name, description) = 
+            this.AddOption(decisionId, name, description)
+        
+        member this.GetOption(id) = 
+            this.GetOption(id)
+        
+        member this.GetOptionsForDecision(decisionId) = 
+            this.GetOptionsForDecision(decisionId)
+        
+        member this.UpdateOption(option) = 
+            this.UpdateOption(option)
+        
+        member this.DeleteOption(id) = 
+            this.DeleteOption(id)
+        
+        member this.AddPro(optionId, description, weight) = 
+            this.AddPro(optionId, description, weight)
+        
+        member this.AddCon(optionId, description, weight) = 
+            this.AddCon(optionId, description, weight)
+        
+        member this.AddCriterion(decisionId, name, description, weight) = 
+            this.AddCriterion(decisionId, name, description, weight)
+        
+        member this.ScoreOption(optionId, score) = 
+            this.ScoreOption(optionId, score)
+        
+        member this.MakeDecision(decisionId, optionId) = 
+            this.MakeDecision(decisionId, optionId)
+        
+        member this.MakeIntuitiveDecision(decisionId) = 
+            this.MakeIntuitiveDecision(decisionId)
+        
+        member this.UpdateIntuitiveDecisionLevel(level) = 
+            this.UpdateIntuitiveDecisionLevel(level)

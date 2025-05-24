@@ -7,16 +7,26 @@
 
   <ItemGroup>
     <Compile Include="LearningDatabase.fs" />
+    <Compile Include="ImprovementTypes.fs" />
     <Compile Include="PatternRecognition.fs" />
+    <Compile Include="ImprovementSuggestions.fs" />
     <Compile Include="RetroactionLoop.fs" />
     <Compile Include="WorkflowState.fs" />
     <Compile Include="WorkflowScheduler.fs" />
     <Compile Include="WorkflowEngine.fs" />
+    <Compile Include="KnowledgeExtractionModels.fs" />
+    <Compile Include="OllamaModels.fs" />
+    <Compile Include="ExplorationFileProcessor.fs" />
+    <Compile Include="KnowledgeExtractor.fs" />
+    <Compile Include="OllamaKnowledgeExtractor.fs" />
     <Compile Include="KnowledgeExtractionStep.fs" />
     <Compile Include="CodeAnalysisStep.fs" />
+    <Compile Include="OllamaCodeAnalyzer.fs" />
     <Compile Include="ImprovementApplicationStep.fs" />
+    <Compile Include="OllamaImprovementApplier.fs" />
     <Compile Include="FeedbackCollectionStep.fs" />
     <Compile Include="ReportingStep.fs" />
+    <Compile Include="AutonomousImprovementService.fs" />
     <Compile Include="Library.fs" />
   </ItemGroup>
 

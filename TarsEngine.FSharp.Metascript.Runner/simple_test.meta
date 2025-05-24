@@ -1,0 +1,37 @@
+﻿# Simple Metascript Test
+
+This is a simple metascript test that can be run with the console application.
+
+```yaml
+name: Simple Test
+description: A simple metascript test
+author: TARS
+version: 1.0.0
+```
+
+## F# Block
+
+```fsharp
+printfn "Hello from F#!"
+
+let add x y = x + y
+let result = add 2 3
+printfn "2 + 3 = %d" result
+
+result
+```
+
+## Command Block
+
+```command
+echo "Hello from the command line!"
+echo "The result from F# is %result%"
+```
+
+## Text Block
+
+This is a text block. It doesn't execute any code, it just outputs its content.
+
+## Conclusion
+
+This simple test demonstrates the basic functionality of the metascript system.

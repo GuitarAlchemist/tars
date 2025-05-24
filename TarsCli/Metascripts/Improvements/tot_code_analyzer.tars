@@ -1,0 +1,442 @@
+﻿DESCRIBE {
+    name: "Tree-of-Thought Code Analyzer"
+    version: "1.0"
+    author: "TARS Auto-Improvement"
+    description: "Analyzes code using Tree-of-Thought reasoning to identify improvement opportunities"
+    tags: ["analysis", "tree-of-thought", "reasoning", "code-quality"]
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.2
+    max_tokens: 8000
+    backup_before_changes: true
+}
+
+// Define the directories to scan
+VARIABLE target_dirs {
+    value: [
+        "TarsEngine/Test"
+    ]
+}
+
+// Define the file patterns to match
+VARIABLE file_patterns {
+    value: [
+        "*.cs"
+    ]
+}
+
+// Define the exclude patterns
+VARIABLE exclude_patterns {
+    value: [
+        "**/obj/**",
+        "**/bin/**",
+        "**/*.Designer.cs"
+    ]
+}
+
+// Define the issue categories to look for
+VARIABLE issue_categories {
+    value: [
+        "UnusedVariables",
+        "MissingNullChecks",
+        "InefficientLinq",
+        "MagicNumbers",
+        "EmptyCatchBlocks",
+        "InconsistentNaming",
+        "RedundantCode",
+        "ImproperDisposable",
+        "LongMethods",
+        "ComplexConditions"
+    ]
+}
+
+// Define the Tree-of-Thought parameters
+VARIABLE tot_params {
+    value: {
+        branching_factor: 3,
+        max_depth: 3,
+        beam_width: 2,
+        evaluation_metrics: ["relevance", "precision", "impact", "confidence"],
+        pruning_strategy: "beam_search"
+    }
+}
+
+// Initialize the analysis results
+VARIABLE analysis_results {
+    value: {
+        scan_start_time: "${new Date().toISOString()}",
+        scan_end_time: null,
+        files_scanned: 0,
+        issues_found: 0,
+        issues_by_category: {},
+        issues: [],
+        thought_trees: []
+    }
+}
+
+// Log the start of the analysis
+ACTION {
+    type: "log"
+    message: "Starting Tree-of-Thought code analysis"
+}
+
+ACTION {
+    type: "log"
+    message: "Target directories: ${target_dirs.join(', ')}"
+}
+
+ACTION {
+    type: "log"
+    message: "ToT parameters: Branching factor=${tot_params.branching_factor}, Max depth=${tot_params.max_depth}, Beam width=${tot_params.beam_width}, Pruning strategy=${tot_params.pruning_strategy}"
+}
+
+// Function to scan a directory for files
+FUNCTION scan_directory {
+    parameters: ["directory"]
+    
+    // Log the directory being scanned
+    ACTION {
+        type: "log"
+        message: "Scanning directory: ${directory}"
+    }
+    
+    // Get the list of files in the directory
+    ACTION {
+        type: "directory_list"
+        path: "${directory}"
+        pattern: "${file_patterns.join(',')}"
+        exclude_pattern: "${exclude_patterns.join(',')}"
+        recursive: true
+        result_variable: "files"
+    }
+    
+    // Return the list of files
+    RETURN {
+        value: "${files}"
+    }
+}
+
+// Function to analyze a file using Tree-of-Thought reasoning
+FUNCTION analyze_file_tot {
+    parameters: ["file_path"]
+    
+    // Log the file being analyzed
+    ACTION {
+        type: "log"
+        message: "Analyzing file: ${file_path}"
+    }
+    
+    // Read the file content
+    ACTION {
+        type: "file_read"
+        path: "${file_path}"
+        result_variable: "file_content"
+    }
+    
+    // Analyze the file using Tree-of-Thought reasoning
+    PROMPT {
+        model: "llama3"
+        temperature: 0.3
+        max_tokens: 8000
+        prompt: """
+        You are an expert code analyzer for the TARS project. Your task is to analyze the following code file using Tree-of-Thought reasoning to identify code quality issues.
+        
+        File path: ${file_path}
+        
+        File content:
+        ${file_content}
+        
+        Please analyze this code using Tree-of-Thought reasoning. This means you should:
+        1. Generate multiple potential analysis approaches (branching)
+        2. For each approach, explore different analysis techniques (further branching)
+        3. Evaluate each analysis branch based on relevance, precision, impact, and confidence
+        4. Prune less promising branches and expand more promising ones
+        5. Select the most promising analysis results
+        
+        Look for the following categories of issues:
+        - UnusedVariables: Variables that are declared but never used
+        - MissingNullChecks: Places where null checks should be added
+        - InefficientLinq: LINQ queries that could be optimized
+        - MagicNumbers: Hardcoded numbers that should be constants
+        - EmptyCatchBlocks: Empty catch blocks that swallow exceptions
+        - InconsistentNaming: Names that don't follow C# conventions
+        - RedundantCode: Code that is unnecessary or could be simplified
+        - ImproperDisposable: IDisposable objects not properly disposed
+        - LongMethods: Methods that are too long and should be refactored
+        - ComplexConditions: Overly complex conditional expressions
+        
+        For each issue you identify, provide:
+        1. The issue category
+        2. The line number(s) where the issue occurs
+        3. A description of the issue
+        4. The severity of the issue (High, Medium, Low)
+        5. The code snippet containing the issue
+        6. A suggested fix for the issue
+        
+        Format your response as a JSON object with the following structure:
+        {
+          "thought_tree": {
+            "root": {
+              "thought": "Initial analysis planning",
+              "children": [
+                {
+                  "thought": "Approach 1: [Approach name]",
+                  "children": [
+                    {
+                      "thought": "Analysis technique 1A: [Technique description]",
+                      "evaluation": {
+                        "relevance": 0.8,
+                        "precision": 0.7,
+                        "impact": 0.9,
+                        "confidence": 0.6,
+                        "overall": 0.75
+                      },
+                      "pruned": false,
+                      "children": []
+                    },
+                    {
+                      "thought": "Analysis technique 1B: [Technique description]",
+                      "evaluation": {
+                        "relevance": 0.5,
+                        "precision": 0.4,
+                        "impact": 0.3,
+                        "confidence": 0.2,
+                        "overall": 0.35
+                      },
+                      "pruned": true,
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "selected_issues": [
+            {
+              "category": "UnusedVariables",
+              "line_numbers": [42],
+              "description": "Variable 'temp' is declared but never used",
+              "severity": "Medium",
+              "code_snippet": "var temp = GetValue();",
+              "suggested_fix": "Remove the unused variable declaration"
+            }
+          ]
+        }
+        
+        Focus on substantive issues that would meaningfully improve the code's quality, reliability, or maintainability.
+        """
+        result_variable: "analysis_result"
+    }
+    
+    // Parse the analysis result
+    FSHARP {
+        // Parse the JSON result
+        let analysisJson = analysis_result
+        
+        // Return the parsed JSON
+        analysisJson
+        
+        output_variable: "parsed_analysis"
+    }
+    
+    // Return the analysis result
+    RETURN {
+        value: "${parsed_analysis}"
+    }
+}
+
+// Scan each target directory
+FOREACH {
+    items: "${target_dirs}"
+    item_variable: "dir"
+    
+    // Scan the directory for files
+    CALL {
+        function: "scan_directory"
+        arguments: ["${dir}"]
+        result_variable: "dir_files"
+    }
+    
+    // Analyze each file
+    FOREACH {
+        items: "${dir_files}"
+        item_variable: "file_path"
+        
+        // Analyze the file using Tree-of-Thought reasoning
+        CALL {
+            function: "analyze_file_tot"
+            arguments: ["${file_path}"]
+            result_variable: "file_analysis"
+        }
+        
+        // Update the analysis results
+        FSHARP {
+            // Get the current analysis results
+            let results = analysis_results
+            
+            // Parse the analysis result
+            let analysisResult = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonDocument>(file_analysis).RootElement
+            
+            // Get the thought tree
+            let thoughtTree = analysisResult.GetProperty("thought_tree")
+            
+            // Get the selected issues
+            let selectedIssues = analysisResult.GetProperty("selected_issues").EnumerateArray().ToArray()
+            
+            // Create a thought tree object
+            let treeObj = {|
+                file_path = file_path
+                thought_tree = thoughtTree
+            |}
+            
+            // Update the files scanned count
+            let updatedResults = {|
+                results with
+                    files_scanned = results.files_scanned + 1
+                    issues_found = results.issues_found + selectedIssues.Length
+                    thought_trees = results.thought_trees.Append(treeObj).ToArray()
+            |}
+            
+            // Update the issues by category
+            let mutable issuesByCategory = results.issues_by_category
+            for issue in selectedIssues do
+                let category = issue.GetProperty("category").GetString()
+                if issuesByCategory.ContainsKey(category) then
+                    issuesByCategory.[category] <- issuesByCategory.[category] + 1
+                else
+                    issuesByCategory.[category] <- 1
+            
+            // Add the file path to each issue
+            let issuesWithPath = selectedIssues |> Seq.map (fun issue ->
+                let mutable issueObj = issue.Clone().AsObject()
+                issueObj.Add("file_path", System.Text.Json.JsonSerializer.SerializeToElement(file_path))
+                issueObj
+            ) |> Seq.toArray
+            
+            // Add the issues to the results
+            let updatedIssues = results.issues.Concat(issuesWithPath).ToArray()
+            
+            // Return the updated results
+            {|
+                updatedResults with
+                    issues_by_category = issuesByCategory
+                    issues = updatedIssues
+            |}
+            
+            output_variable: "updated_results"
+        }
+        
+        VARIABLE analysis_results {
+            value: "${updated_results}"
+        }
+    }
+}
+
+// Update the scan end time
+VARIABLE analysis_results {
+    value: {
+        ...analysis_results,
+        scan_end_time: "${new Date().toISOString()}"
+    }
+}
+
+// Log the analysis results
+ACTION {
+    type: "log"
+    message: "Tree-of-Thought code analysis completed"
+}
+
+ACTION {
+    type: "log"
+    message: "Files scanned: ${analysis_results.files_scanned}"
+}
+
+ACTION {
+    type: "log"
+    message: "Issues found: ${analysis_results.issues_found}"
+}
+
+// Generate a summary of issues by category
+FSHARP {
+    // Get the issues by category
+    let issuesByCategory = analysis_results.issues_by_category
+    
+    // Format the summary
+    let summary = issuesByCategory.Keys
+        |> Seq.map (fun category -> $"{category}: {issuesByCategory.[category]}")
+        |> String.concat "\n"
+    
+    // Return the summary
+    summary
+    
+    output_variable: "category_summary"
+}
+
+ACTION {
+    type: "log"
+    message: "Issues by category:\n${category_summary}"
+}
+
+// Generate a detailed report
+VARIABLE report {
+    value: """# Tree-of-Thought Code Analysis Report
+
+## Summary
+- **Scan Start Time**: ${analysis_results.scan_start_time}
+- **Scan End Time**: ${analysis_results.scan_end_time}
+- **Files Scanned**: ${analysis_results.files_scanned}
+- **Issues Found**: ${analysis_results.issues_found}
+
+## Issues by Category
+${Object.entries(analysis_results.issues_by_category).map(([category, count]) => `- **${category}**: ${count}`).join('\n')}
+
+## Detailed Issues
+
+${analysis_results.issues.map(issue => `### ${issue.category} (${issue.severity})
+- **File**: ${issue.file_path}
+- **Line(s)**: ${issue.line_numbers.join(', ')}
+- **Description**: ${issue.description}
+- **Code Snippet**: \`${issue.code_snippet}\`
+- **Suggested Fix**: ${issue.suggested_fix}
+`).join('\n')}
+
+## Thought Trees
+
+${analysis_results.thought_trees.map(tree => `### File: ${tree.file_path}
+\`\`\`json
+${JSON.stringify(tree.thought_tree, null, 2)}
+\`\`\`
+`).join('\n')}
+"""
+}
+
+// Save the report
+ACTION {
+    type: "file_write"
+    path: "tot_code_analysis_report.md"
+    content: "${report}"
+}
+
+ACTION {
+    type: "log"
+    message: "Analysis report saved to tot_code_analysis_report.md"
+}
+
+// Save the analysis results as JSON for further processing
+ACTION {
+    type: "file_write"
+    path: "tot_code_analysis_results.json"
+    content: "${JSON.stringify(analysis_results, null, 2)}"
+}
+
+ACTION {
+    type: "log"
+    message: "Analysis results saved to tot_code_analysis_results.json"
+}
+
+// Return the analysis results
+RETURN {
+    value: "${analysis_results}"
+}

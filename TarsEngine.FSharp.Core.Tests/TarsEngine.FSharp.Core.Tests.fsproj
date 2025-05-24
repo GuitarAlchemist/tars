@@ -1,0 +1,38 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Analysis Tests -->
+    <Compile Include="Analysis/AnalysisTests.fs" />
+    
+    <!-- Compilation Tests -->
+    <Compile Include="Compilation/CompilationTests.fs" />
+    
+    <!-- CodeGen Tests -->
+    <Compile Include="CodeGen/Testing/TestGeneratorTests.fs" />
+    <Compile Include="CodeGen/Workflow/WorkflowCoordinatorTests.fs" />
+    
+    <!-- Consciousness Tests -->
+    <Compile Include="Consciousness/ConsciousnessCoreTests.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0" />
+    <PackageReference Include="xunit" Version="2.7.0" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.7">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="coverlet.collector" Version="6.0.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\TarsEngine.FSharp.Core\TarsEngine.FSharp.Core.fsproj" />
+  </ItemGroup>
+</Project>

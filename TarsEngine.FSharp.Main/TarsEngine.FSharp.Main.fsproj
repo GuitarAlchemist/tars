@@ -1,0 +1,53 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Core -->
+    <Compile Include="Core/Types.fs" />
+    
+    <!-- Functional -->
+    <Compile Include="Functional/Types.fs" />
+    
+    <!-- Monads -->
+    <Compile Include="Monads/Types.fs" />
+    
+    <!-- Metascripts -->
+    <Compile Include="Metascripts/Types.fs" />
+    
+    <!-- Intelligence -->
+    <Compile Include="Intelligence/Types.fs" />
+    
+    <!-- SelfImprovement -->
+    <Compile Include="SelfImprovement/Types.fs" />
+    
+    <!-- Services -->
+    <Compile Include="Services/Types.fs" />
+    
+    <!-- Utilities -->
+    <Compile Include="Utilities/Types.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="FSharp.Core" Version="9.0.201" />
+    <PackageReference Include="Microsoft.AspNetCore.Components" Version="9.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="9.0.0" />
+    <PackageReference Include="Microsoft.JSInterop" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.0" />
+    <PackageReference Include="System.Text.Json" Version="9.0.0" />
+    <PackageReference Include="Microsoft.ML" Version="3.0.1" />
+    <PackageReference Include="Microsoft.ML.DataView" Version="3.0.1" />
+    <PackageReference Include="FSharp.Data" Version="6.3.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\TarsEngine.DSL\TarsEngine.DSL.fsproj" />
+    <ProjectReference Include="..\TarsEngine.SelfImprovement\TarsEngine.SelfImprovement.fsproj" />
+    <ProjectReference Include="..\TarsEngine.FSharp.Core\TarsEngine.FSharp.Core.fsproj" />
+  </ItemGroup>
+</Project>

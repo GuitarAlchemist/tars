@@ -1,0 +1,106 @@
+namespace TarsEngine.FSharp.Cli.Commands
+
+open System
+open System.Threading.Tasks
+open Microsoft.Extensions.Logging
+open TarsEngine.FSharp.Core.Compilation
+
+/// <summary>
+/// Command for compiling F# code.
+/// </summary>
+type CompileCommand(logger: ILogger<CompileCommand>, compiler: IFSharpCompiler) =
+    inherit CommandBase(logger)
+    
+    override _.Name = "compile"
+    
+    override _.Description = "Compiles F# code."
+    
+    override _.Usage = "tars compile [options] <file>"
+    
+    override _.Examples = [
+        "tars compile source.fs"
+        "tars compile -o output.dll source.fs"
+        "tars compile --output output.dll source.fs"
+        "tars compile -r System.Text.Json source.fs"
+        "tars compile --reference System.Text.Json source.fs"
+        "tars compile --target exe source.fs"
+        "tars compile --target dll source.fs"
+    ]
+    
+    override _.ValidateOptions(options: CommandOptions) =
+        options.Arguments.Length = 1
+    
+    override this.ExecuteAsync(options: CommandOptions) =
+        Task.Run(fun () ->
+            try
+                this.LogDebug("Executing compile command")
+                
+                if not (this.ValidateOptions(options)) then
+                    CommandResult.createFailure 1 "Invalid options. Usage: tars compile [options] <file>"
+                else
+                    let filePath = options.Arguments.[0]
+                    
+                    // Check if the file exists
+                    if not (System.IO.File.Exists(filePath)) then
+                        CommandResult.createFailure 1 $"File not found: {filePath}"
+                    else
+                        // Read the file
+                        let code = System.IO.File.ReadAllText(filePath)
+                        
+                        // Get the output path
+                        let outputPath =
+                            match options.Options.TryGetValue("output") with
+                            | true, output -> Some output
+                            | false, _ ->
+                                match options.Options.TryGetValue("o") with
+                                | true, output -> Some output
+                                | false, _ -> None
+                        
+                        // Get the references
+                        let references =
+                            match options.Options.TryGetValue("reference") with
+                            | true, reference -> [reference]
+                            | false, _ ->
+                                match options.Options.TryGetValue("r") with
+                                | true, reference -> [reference]
+                                | false, _ -> []
+                        
+                        // Get the target
+                        let target =
+                            match options.Options.TryGetValue("target") with
+                            | true, target -> target
+                            | false, _ ->
+                                match options.Options.TryGetValue("t") with
+                                | true, target -> target
+                                | false, _ -> "dll"
+                        
+                        // Create the compilation options
+                        let compilationOptions = CompilationOptions.createDefault()
+                        let compilationOptions = CompilationOptions.withReferences references compilationOptions
+                        let compilationOptions =
+                            match outputPath with
+                            | Some path -> CompilationOptions.withOutputPath path compilationOptions
+                            | None -> compilationOptions
+                        
+                        // Compile the code
+                        this.LogInformation("Compiling file: {FilePath}", filePath)
+                        let result =
+                            match target.ToLowerInvariant() with
+                            | "exe" -> compiler.CompileToExeAsync(code, compilationOptions).Result
+                            | "dll" -> compiler.CompileToDllAsync(code, compilationOptions).Result
+                            | "script" -> compiler.CompileToScriptAsync(code, compilationOptions).Result
+                            | _ -> compiler.CompileToDllAsync(code, compilationOptions).Result
+                        
+                        // Check if the compilation was successful
+                        if result.Success then
+                            this.LogInformation("Compilation successful: {OutputPath}", result.OutputPath.Value)
+                            CommandResult.createSuccess $"Compilation successful: {result.OutputPath.Value}"
+                        else
+                            this.LogError("Compilation failed: {Errors}", String.Join(Environment.NewLine, result.Errors))
+                            CommandResult.createFailure 1 $"Compilation failed: {String.Join(Environment.NewLine, result.Errors)}"
+            with
+            | ex ->
+                this.LogError("Error executing compile command: {0}", [|ex.Message|])
+                CommandResult.createFailure 1 $"Error: {ex.Message}"
+        )
+

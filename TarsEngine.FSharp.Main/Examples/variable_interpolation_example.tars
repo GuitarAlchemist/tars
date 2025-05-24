@@ -1,0 +1,121 @@
+﻿DESCRIBE {
+    name: "Variable Interpolation Example"
+    version: "1.0"
+    description: "A demonstration of variable interpolation in TARS metascripts"
+    author: "TARS Team"
+    date: "2023-07-15"
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.7
+    max_tokens: 1000
+}
+
+// Define variables
+VARIABLE name {
+    value: "World"
+}
+
+VARIABLE greeting {
+    value: "Hello"
+}
+
+VARIABLE count {
+    value: 5
+}
+
+// Use variable interpolation in an action
+ACTION {
+    type: "log"
+    message: "${greeting}, ${name}!"
+}
+
+// Use variable interpolation in another variable
+VARIABLE message {
+    value: "${greeting}, ${name}! Count: ${count}"
+}
+
+// Display the message
+ACTION {
+    type: "log"
+    message: "Message: ${message}"
+}
+
+// Use variable interpolation in F# code
+FSHARP {
+    // Access variables from the DSL environment
+    let greeting = "${greeting}"
+    let name = "${name}"
+    let count = ${count}
+    
+    // Use the variables
+    let message = sprintf "%s, %s! Count: %d" greeting name count
+    
+    // Create a list with the count
+    let items = [1..count] |> List.map (fun i -> sprintf "Item %d" i)
+    
+    // Join the items
+    let itemsString = String.concat ", " items
+    
+    // Return the result
+    sprintf "Message: %s\nItems: %s" message itemsString
+}
+
+// Store the result in a variable
+VARIABLE result {
+    value: "${_last_result}"
+}
+
+// Display the result
+ACTION {
+    type: "log"
+    message: "Result: ${result}"
+}
+
+// Use variable interpolation in a nested structure
+VARIABLE person {
+    value: {
+        name: "${name}",
+        greeting: "${greeting}",
+        message: "${message}"
+    }
+}
+
+// Use variable interpolation in F# code with complex variables
+FSHARP {
+    // Create a more complex structure
+    type Person = {
+        Name: string
+        Age: int
+        Greeting: string
+    }
+    
+    // Create a person with interpolated values
+    let person = {
+        Name = "${name}"
+        Age = ${count} * 5
+        Greeting = "${greeting}"
+    }
+    
+    // Create a greeting function
+    let greet (p: Person) =
+        sprintf "%s, %s! You are %d years old." p.Greeting p.Name p.Age
+    
+    // Greet the person
+    let greeting = greet person
+    
+    // Return the greeting
+    greeting
+}
+
+// Store the result in a variable
+VARIABLE complexResult {
+    value: "${_last_result}"
+}
+
+// Display the complex result
+ACTION {
+    type: "log"
+    message: "Complex result: ${complexResult}"
+}

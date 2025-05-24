@@ -1,0 +1,34 @@
+﻿{
+  "name": "tars-dsl",
+  "displayName": "TARS DSL",
+  "description": "Syntax highlighting for TARS DSL",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "tars",
+        "aliases": [
+          "TARS DSL",
+          "tars"
+        ],
+        "extensions": [
+          ".tars"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "tars",
+        "scopeName": "source.tars",
+        "path": "./syntaxes/tars.tmLanguage.json"
+      }
+    ]
+  }
+}

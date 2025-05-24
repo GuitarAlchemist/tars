@@ -1,0 +1,376 @@
+﻿DESCRIBE {
+    name: "Code Fix Applicator"
+    version: "1.0"
+    author: "TARS Auto-Improvement"
+    description: "Applies validated fixes to the codebase"
+    tags: ["fix", "code-quality", "c#", "application"]
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.1
+    max_tokens: 2000
+    backup_before_changes: true
+}
+
+// Define the path to the fixes results
+VARIABLE fixes_results_path {
+    value: "code_quality_fixes.json"
+}
+
+// Define the output path for the application results
+VARIABLE application_results_path {
+    value: "code_fix_application_results.json"
+}
+
+// Initialize the application results
+VARIABLE application_results {
+    value: {
+        application_start_time: "${new Date().toISOString()}",
+        application_end_time: null,
+        fixes_processed: 0,
+        fixes_applied: 0,
+        fixes_by_category: {},
+        applied_fixes: []
+    }
+}
+
+// Log the start of the fix application
+ACTION {
+    type: "log"
+    message: "Starting code fix application"
+}
+
+// Load the fixes results
+ACTION {
+    type: "file_read"
+    path: "${fixes_results_path}"
+    result_variable: "fixes_results_json"
+}
+
+VARIABLE fixes_results {
+    value: "${JSON.parse(fixes_results_json)}"
+}
+
+ACTION {
+    type: "log"
+    message: "Loaded fixes results with ${fixes_results.fixes.length} fixes"
+}
+
+// Function to apply a fix to a file
+FUNCTION apply_fix {
+    parameters: ["fix"]
+    
+    // Log the fix being applied
+    ACTION {
+        type: "log"
+        message: "Applying fix for ${fix.issue.category} issue in ${fix.issue.file_path}:${fix.issue.line_numbers[0]}"
+    }
+    
+    // Read the file content
+    ACTION {
+        type: "file_read"
+        path: "${fix.issue.file_path}"
+        result_variable: "file_content"
+    }
+    
+    // Check if the original code exists in the file
+    FSHARP {
+        // Get the file content
+        let content = file_content
+        
+        // Get the original code from the fix
+        let originalCode = fix.fix.original_code
+        
+        // Check if the original code exists in the file
+        let exists = content.Contains(originalCode)
+        
+        // Return whether the original code exists
+        exists
+        
+        output_variable: "original_code_exists"
+    }
+    
+    // If the original code doesn't exist, return an error
+    IF {
+        condition: "${!original_code_exists}"
+        then: {
+            ACTION {
+                type: "log"
+                message: "Error: Original code not found in file"
+            }
+            
+            RETURN {
+                value: {
+                    success: false,
+                    error: "Original code not found in file"
+                }
+            }
+        }
+    }
+    
+    // Create a backup of the file
+    ACTION {
+        type: "file_write"
+        path: "${fix.issue.file_path}.bak"
+        content: "${file_content}"
+    }
+    
+    // Apply the fix
+    FSHARP {
+        // Get the file content
+        let content = file_content
+        
+        // Get the original and new code from the fix
+        let originalCode = fix.fix.original_code
+        let newCode = fix.fix.new_code
+        
+        // Replace the original code with the new code
+        let updatedContent = content.Replace(originalCode, newCode)
+        
+        // Return the updated content
+        updatedContent
+        
+        output_variable: "updated_content"
+    }
+    
+    // Write the updated content back to the file
+    ACTION {
+        type: "file_write"
+        path: "${fix.issue.file_path}"
+        content: "${updated_content}"
+    }
+    
+    // Generate a before/after comparison
+    FSHARP {
+        // Get the original and new code from the fix
+        let originalCode = fix.fix.original_code
+        let newCode = fix.fix.new_code
+        
+        // Format the comparison
+        let comparison = $"Before:\n```csharp\n{originalCode}\n```\n\nAfter:\n```csharp\n{newCode}\n```"
+        
+        // Return the comparison
+        comparison
+        
+        output_variable: "comparison"
+    }
+    
+    // Return the result
+    RETURN {
+        value: {
+            success: true,
+            comparison: "${comparison}"
+        }
+    }
+}
+
+// Process each valid fix in the fixes results
+FOREACH {
+    items: "${fixes_results.fixes.filter(fix => fix.is_valid)}"
+    item_variable: "fix"
+    
+    // Apply the fix
+    CALL {
+        function: "apply_fix"
+        arguments: ["${fix}"]
+        result_variable: "application_result"
+    }
+    
+    // Update the application results
+    FSHARP {
+        // Get the current application results
+        let results = application_results
+        
+        // Update the fixes processed count
+        let updatedResults = {|
+            results with
+                fixes_processed = results.fixes_processed + 1
+        |}
+        
+        // Check if the fix was applied successfully
+        let isSuccess = application_result.success
+        
+        // If the fix was applied successfully, update the fixes applied count and add the fix to the results
+        let finalResults =
+            if isSuccess then
+                // Update the fixes by category
+                let mutable fixesByCategory = results.fixes_by_category
+                let category = fix.issue.category
+                if fixesByCategory.ContainsKey(category) then
+                    fixesByCategory.[category] <- fixesByCategory.[category] + 1
+                else
+                    fixesByCategory.[category] <- 1
+                
+                // Create an applied fix object with fix and application details
+                let appliedFixObj = {|
+                    fix = fix
+                    application_result = application_result
+                    success = true
+                |}
+                
+                // Add the applied fix to the results
+                {|
+                    updatedResults with
+                        fixes_applied = results.fixes_applied + 1
+                        fixes_by_category = fixesByCategory
+                        applied_fixes = results.applied_fixes.Append(appliedFixObj).ToArray()
+                |}
+            else
+                // Create an applied fix object with fix and application details
+                let appliedFixObj = {|
+                    fix = fix
+                    application_result = application_result
+                    success = false
+                |}
+                
+                // Add the applied fix to the results
+                {|
+                    updatedResults with
+                        applied_fixes = results.applied_fixes.Append(appliedFixObj).ToArray()
+                |}
+        
+        // Return the updated results
+        finalResults
+        
+        output_variable: "updated_results"
+    }
+    
+    VARIABLE application_results {
+        value: "${updated_results}"
+    }
+}
+
+// Update the application end time
+VARIABLE application_results {
+    value: {
+        ...application_results,
+        application_end_time: "${new Date().toISOString()}"
+    }
+}
+
+// Log the fix application results
+ACTION {
+    type: "log"
+    message: "Code fix application completed"
+}
+
+ACTION {
+    type: "log"
+    message: "Fixes processed: ${application_results.fixes_processed}"
+}
+
+ACTION {
+    type: "log"
+    message: "Fixes applied: ${application_results.fixes_applied}"
+}
+
+// Generate a summary of fixes by category
+FSHARP {
+    // Get the fixes by category
+    let fixesByCategory = application_results.fixes_by_category
+    
+    // Format the summary
+    let summary = fixesByCategory.Keys
+        |> Seq.map (fun category -> $"{category}: {fixesByCategory.[category]}")
+        |> String.concat "\n"
+    
+    // Return the summary
+    summary
+    
+    output_variable: "category_summary"
+}
+
+ACTION {
+    type: "log"
+    message: "Fixes applied by category:\n${category_summary}"
+}
+
+// Generate a detailed report
+VARIABLE report {
+    value: """# Code Fix Application Report
+
+## Summary
+- **Application Start Time**: ${application_results.application_start_time}
+- **Application End Time**: ${application_results.application_end_time}
+- **Fixes Processed**: ${application_results.fixes_processed}
+- **Fixes Applied**: ${application_results.fixes_applied}
+- **Success Rate**: ${(application_results.fixes_applied / application_results.fixes_processed * 100).toFixed(2)}%
+
+## Fixes by Category
+${Object.entries(application_results.fixes_by_category).map(([category, count]) => `- **${category}**: ${count}`).join('\n')}
+
+## Applied Fixes
+
+${application_results.applied_fixes.filter(fix => fix.success).map(fix => `### ${fix.fix.issue.category} (${fix.fix.issue.severity})
+- **File**: ${fix.fix.issue.file_path}
+- **Line(s)**: ${fix.fix.issue.line_numbers.join(', ')}
+- **Description**: ${fix.fix.issue.description}
+- **Comparison**:
+${fix.application_result.comparison}
+- **Explanation**: ${fix.fix.fix.explanation}
+`).join('\n')}
+
+## Failed Applications
+
+${application_results.applied_fixes.filter(fix => !fix.success).map(fix => `### ${fix.fix.issue.category} (${fix.fix.issue.severity})
+- **File**: ${fix.fix.issue.file_path}
+- **Line(s)**: ${fix.fix.issue.line_numbers.join(', ')}
+- **Description**: ${fix.fix.issue.description}
+- **Error**: ${fix.application_result.error}
+`).join('\n')}
+"""
+}
+
+// Save the report
+ACTION {
+    type: "file_write"
+    path: "code_fix_application_report.md"
+    content: "${report}"
+}
+
+ACTION {
+    type: "log"
+    message: "Fix application report saved to code_fix_application_report.md"
+}
+
+// Save the application results as JSON
+ACTION {
+    type: "file_write"
+    path: "${application_results_path}"
+    content: "${JSON.stringify(application_results, null, 2)}"
+}
+
+ACTION {
+    type: "log"
+    message: "Fix application results saved to ${application_results_path}"
+}
+
+// Generate a commit message
+VARIABLE commit_message {
+    value: """Auto-improve: Fix ${application_results.fixes_applied} code quality issues
+
+This commit fixes ${application_results.fixes_applied} code quality issues across ${Object.keys(application_results.fixes_by_category).length} categories:
+${Object.entries(application_results.fixes_by_category).map(([category, count]) => `- ${category}: ${count}`).join('\n')}
+
+Each fix was automatically generated, validated, and applied by the TARS auto-improvement system.
+See code_fix_application_report.md for details.
+"""
+}
+
+// Save the commit message
+ACTION {
+    type: "file_write"
+    path: "commit_message.txt"
+    content: "${commit_message}"
+}
+
+ACTION {
+    type: "log"
+    message: "Commit message saved to commit_message.txt"
+}
+
+// Return the application results
+RETURN {
+    value: "${application_results}"
+}

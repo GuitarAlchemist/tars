@@ -4,6 +4,7 @@ open System
 open System.IO
 open System.Text.RegularExpressions
 open FSharp.Data
+open Microsoft.Extensions.Logging
 
 type AnalysisResult =
     { FileName: string
@@ -400,4 +401,44 @@ module SelfImprovement =
                     return { result with Message = result.Message + " Failed to apply improvements." }
             else
                 return result
+        }
+
+/// <summary>
+/// Module for autonomous improvement workflow
+/// </summary>
+module AutonomousImprovement =
+    /// <summary>
+    /// Creates a new autonomous improvement service
+    /// </summary>
+    let createService (logger: ILogger) =
+        new AutonomousImprovementService(logger)
+
+    /// <summary>
+    /// Starts the autonomous improvement process
+    /// </summary>
+    let startImprovement (targetDirectories: string list) (maxDurationMinutes: int) (logger: ILogger) =
+        task {
+            let service = createService logger
+            let! result = service.StartImprovementWorkflow(targetDirectories, maxDurationMinutes)
+            return result
+        }
+
+    /// <summary>
+    /// Gets the status of the current workflow
+    /// </summary>
+    let getStatus (logger: ILogger) =
+        task {
+            let service = createService logger
+            let! status = service.GetWorkflowStatus()
+            return status
+        }
+
+    /// <summary>
+    /// Runs the retroaction loop to improve pattern recognition
+    /// </summary>
+    let runRetroactionLoop (logger: ILogger) =
+        task {
+            let service = createService logger
+            let! result = service.RunRetroactionLoop()
+            return result
         }

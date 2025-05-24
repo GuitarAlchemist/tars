@@ -1,0 +1,47 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Core Types (consolidated) -->
+    <Compile Include="Core/Types.fs" />
+    
+    <!-- Services (consolidated) -->
+    <Compile Include="Services/IntelligenceService.fs" />
+    <Compile Include="Services/MLService.fs" />
+    
+    <!-- Commands -->
+    <Compile Include="Commands/Types.fs" />
+    <Compile Include="Commands/CommandLineParser.fs" />
+    <Compile Include="Commands/HelpCommand.fs" />
+    <Compile Include="Commands/VersionCommand.fs" />
+    <Compile Include="Commands/ImproveCommand.fs" />
+    <Compile Include="Commands/CompileCommand.fs" />
+    <Compile Include="Commands/RunCommand.fs" />
+    <Compile Include="Commands/TestCommand.fs" />
+    <Compile Include="Commands/AnalyzeCommand.fs" />
+    <Compile Include="Commands/MetascriptListCommand.fs" />
+    <Compile Include="Commands/IntelligenceCommand.fs" />
+    <Compile Include="Commands/MLCommand.fs" />
+    <Compile Include="Commands/CommandRegistry.fs" />
+    
+    <!-- Core Application -->
+    <Compile Include="Core/CliApplication.fs" />
+    
+    <!-- Program Entry Point (must be last) -->
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Keep metascript engine separate -->
+    <ProjectReference Include="..\TarsEngine.FSharp.Metascripts\TarsEngine.FSharp.Metascripts.fsproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,155 @@
+﻿# Multi-Language Metascript Test
+
+This metascript demonstrates the ability to execute code in multiple programming languages within a single metascript.
+
+```yaml
+name: Multi-Language Test
+description: A demonstration of executing code in multiple programming languages
+author: TARS
+version: 1.0.0
+```
+
+## Introduction
+
+This metascript will execute code in the following languages:
+1. F#
+2. Command-line
+3. Python (if installed)
+4. JavaScript (if Node.js is installed)
+5. SQL (if a connection is available)
+
+Each language will perform a simple calculation and pass the result to the next language.
+
+## F# Block
+
+```fsharp
+// Define a function to calculate the factorial of a number
+let rec factorial n =
+    match n with
+    | 0 | 1 -> 1
+    | n -> n * factorial (n - 1)
+
+// Calculate factorial of 5
+let result = factorial 5
+printfn "Factorial of 5 calculated in F#: %d" result
+
+// Return the result for use in other blocks
+result
+```
+
+## Command Block
+
+```command
+echo "Factorial result from F# block: %result%"
+echo "Now we'll create a file with this result..."
+echo %result% > factorial_result.txt
+type factorial_result.txt
+```
+
+## Python Block
+
+```python
+# Read the factorial result from the file
+with open('factorial_result.txt', 'r') as f:
+    factorial_result = int(f.read().strip())
+
+print(f"Factorial result read from file: {factorial_result}")
+
+# Calculate the square of the factorial
+square = factorial_result ** 2
+print(f"Square of {factorial_result} calculated in Python: {square}")
+
+# Write the square to a file
+with open('square_result.txt', 'w') as f:
+    f.write(str(square))
+
+# Return the square
+square
+```
+
+## JavaScript Block
+
+```javascript
+// Read the square result from the file
+const fs = require('fs');
+const squareResult = parseInt(fs.readFileSync('square_result.txt', 'utf8').trim());
+
+console.log(`Square result read from file: ${squareResult}`);
+
+// Calculate the square root
+const squareRoot = Math.sqrt(squareResult);
+console.log(`Square root of ${squareResult} calculated in JavaScript: ${squareRoot}`);
+
+// Write the square root to a file
+fs.writeFileSync('square_root_result.txt', squareRoot.toString());
+
+// Return the square root
+squareRoot;
+```
+
+## SQL Block
+
+```sql connection="Server=(localdb)\MSSQLLocalDB;Database=master;Integrated Security=True;"
+-- Create a temporary table to store our results
+IF OBJECT_ID('tempdb..#Results') IS NOT NULL
+    DROP TABLE #Results;
+
+CREATE TABLE #Results (
+    CalculationName VARCHAR(100),
+    CalculationValue FLOAT
+);
+
+-- Insert the factorial result
+INSERT INTO #Results (CalculationName, CalculationValue)
+VALUES ('Factorial of 5', 120);
+
+-- Insert the square result
+INSERT INTO #Results (CalculationName, CalculationValue)
+VALUES ('Square of Factorial', 14400);
+
+-- Insert the square root result (approximately 120)
+INSERT INTO #Results (CalculationName, CalculationValue)
+VALUES ('Square Root of Square', 120);
+
+-- Query the results
+SELECT * FROM #Results;
+```
+
+## F# Block (Final)
+
+```fsharp
+// Let's summarize all the calculations
+printfn "Summary of Calculations:"
+printfn "1. Factorial of 5 (F#): %d" result
+printfn "2. Square of Factorial (Python): %d" (result * result)
+printfn "3. Square Root of Square (JavaScript): %f" (float result)
+
+// Clean up the temporary files
+if System.IO.File.Exists("factorial_result.txt") then
+    System.IO.File.Delete("factorial_result.txt")
+
+if System.IO.File.Exists("square_result.txt") then
+    System.IO.File.Delete("square_result.txt")
+
+if System.IO.File.Exists("square_root_result.txt") then
+    System.IO.File.Delete("square_root_result.txt")
+
+printfn "Temporary files cleaned up."
+printfn "Multi-language test completed successfully!"
+```
+
+## Conclusion
+
+This metascript has demonstrated the ability to execute code in multiple programming languages and share data between them. This capability is powerful for creating complex workflows that leverage the strengths of different languages.
+
+The metascript performed the following operations:
+1. Calculated the factorial of 5 in F#
+2. Passed the result to a command block
+3. Saved the result to a file
+4. Read the file in Python and calculated the square
+5. Saved the square to a file
+6. Read the file in JavaScript and calculated the square root
+7. Saved the square root to a file
+8. Stored all results in a SQL table
+9. Summarized the results in F#
+10. Cleaned up temporary files
