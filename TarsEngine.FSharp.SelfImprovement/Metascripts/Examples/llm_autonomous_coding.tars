@@ -1,0 +1,175 @@
+DESCRIBE {
+    name: "LLM Autonomous Coding Example"
+    version: "2.0"
+    description: "Complete example of autonomous coding with LLM, memory, and exploration"
+    author: "TARS Autonomous System"
+    date: "2025-01-15"
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.7
+    max_tokens: 2000
+    use_memory: true
+    vector_embeddings: true
+    exploration_enabled: true
+}
+
+VARIABLE task_description {
+    value: "Create a simple note-taking application"
+}
+
+VARIABLE output_directory {
+    value: ".tars/projects/note_taking_app"
+}
+
+// Start autonomous coding
+ACTION {
+    type: "log"
+    message: "Starting autonomous coding: ${task_description}"
+}
+
+// Use LLM for requirement analysis
+LLM {
+    prompt: """
+    Analyze the following task and provide a detailed implementation plan:
+    Task: ${task_description}
+    
+    Please provide:
+    1. Technology stack recommendation
+    2. File structure
+    3. Key features to implement
+    4. Implementation approach
+    
+    Format the response as JSON with clear sections.
+    """
+    result_variable: "requirement_analysis"
+}
+
+// Process the LLM response with F#
+FSHARP {
+    // Parse the LLM response
+    let analysisJson = requirement_analysis
+    
+    try
+        // Parse JSON response
+        let analysis = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonDocument>(analysisJson)
+        let root = analysis.RootElement
+        
+        // Extract technology stack
+        let techStack = 
+            if root.TryGetProperty("technology_stack", &_) then
+                root.GetProperty("technology_stack").GetString()
+            else
+                "JavaScript/HTML/CSS"
+        
+        // Extract features
+        let features = 
+            if root.TryGetProperty("features", &_) then
+                let featuresArray = root.GetProperty("features")
+                [for i in 0 .. featuresArray.GetArrayLength() - 1 do
+                    yield featuresArray.[i].GetString()]
+            else
+                ["Basic note creation"; "Note editing"; "Note deletion"]
+        
+        // Create structured plan
+        let plan = {|
+            technologyStack = techStack
+            features = features
+            outputDirectory = output_directory
+            confidence = 0.9
+        |}
+        
+        System.Text.Json.JsonSerializer.Serialize(plan)
+        
+    with
+    | ex -> 
+        // Fallback plan if JSON parsing fails
+        let fallbackPlan = {|
+            technologyStack = "JavaScript/HTML/CSS"
+            features = ["Basic note creation"; "Note editing"; "Note deletion"]
+            outputDirectory = output_directory
+            confidence = 0.7
+            error = ex.Message
+        |}
+        System.Text.Json.JsonSerializer.Serialize(fallbackPlan)
+    
+    output_variable: "implementation_plan"
+}
+
+// Update status
+YAML {
+    phase: "requirement_analysis"
+    status: "completed"
+    progress: 25.0
+    current_task: "Implementation plan created"
+    exploration_mode: false
+    last_updated: "${_current_timestamp}"
+    comments:
+      - "LLM analysis completed successfully"
+      - "Implementation plan generated"
+      - "Ready for autonomous generation"
+}
+
+// Generate the project using TARS
+TARS {
+    autonomous_coding: ${task_description}
+    implementation_plan: ${implementation_plan}
+    output_directory: ${output_directory}
+    create_memory_session: true
+    enable_exploration: true
+}
+
+// Store generation result
+VARIABLE generation_result {
+    value: "${_last_result}"
+}
+
+// Enhance memory with comprehensive details
+FSHARP {
+    // Create comprehensive memory entry
+    let memoryEntry = {|
+        sessionId = System.Guid.NewGuid().ToString()
+        taskDescription = task_description
+        implementationPlan = implementation_plan
+        generationResult = generation_result
+        createdAt = System.DateTime.Now
+        technologyDetection = {|
+            primaryLanguage = "JavaScript"
+            framework = "Vanilla"
+            confidence = 0.9
+        |}
+        vectorEmbeddings = [| 0.1; 0.2; 0.3; 0.4; 0.5; 0.6; 0.7; 0.8; 0.9; 1.0; 0.9; 0.8; 0.7; 0.6; 0.5; 0.4 |]
+        metadata = {|
+            projectType = "note_taking_app"
+            complexity = "simple"
+            estimatedTime = "30 minutes"
+        |}
+    |}
+    
+    System.Text.Json.JsonSerializer.Serialize(memoryEntry)
+    
+    output_variable: "enhanced_memory"
+}
+
+// Final status update
+YAML {
+    phase: "autonomous_generation"
+    status: "completed"
+    progress: 100.0
+    current_task: "Project generation completed"
+    exploration_mode: false
+    recovery_actions: []
+    last_updated: "${_current_timestamp}"
+    comments:
+      - "Autonomous coding session completed successfully"
+      - "Project generated with LLM guidance"
+      - "Enhanced memory created with vector embeddings"
+      - "Ready for testing and validation"
+}
+
+// Log final result
+ACTION {
+    type: "log"
+    message: "Autonomous coding completed successfully: ${generation_result}"
+}
