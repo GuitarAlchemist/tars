@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -10,9 +10,9 @@
 
   <ItemGroup>
     <Compile Include="Metascript/Types.Enhanced.fs" />
-    <Compile Include="Metascript/Services/TarsMetascriptParser.fs" />
-    <Compile Include="Metascript/BlockHandlers/TarsBlockHandler.fs" />
-    <Compile Include="Metascript/BlockHandlers/YAMLBlockHandler.fs" />
+    <Compile Include="Metascript/Services/TarsMetascriptParserFixed2.fs" />
+    <Compile Include="Metascript/BlockHandlers/TarsBlockHandlerFixed.fs" />
+    <Compile Include="Metascript/BlockHandlers/YAMLBlockHandlerFixed3.fs" />
   </ItemGroup>
 
   <ItemGroup>
