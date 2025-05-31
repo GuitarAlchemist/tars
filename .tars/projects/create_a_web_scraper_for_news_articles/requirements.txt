@@ -1,0 +1,8 @@
+Here is the complete `requirements.txt` file:
+
+```
+beautifulsoup4==4.9.3
+requests==2.25.1
+selenium==4.0.0
+json==2.0.9
+```

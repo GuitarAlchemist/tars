@@ -1,0 +1,32 @@
+DESCRIBE {
+    name: "TARS Autonomous Self-Improvement"
+    version: "1.0"
+    author: "TARS Autonomous System"
+    autonomous: true
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.3
+}
+
+FSHARP {
+    open TarsEngine.FSharp.Core.LLM
+    
+    // TARS generates its own improvement metascript
+    let! nextMetascript = autonomousReasoning.GenerateMetascriptAsync(
+        "Integrate CUDA acceleration for 184M+ searches/sec", 
+        Map.ofList [("performance_target", "184M+ ops/sec" :> obj)])
+    
+    // TARS saves and executes its own metascript
+    let filePath = ".tars/metascripts/tars_generated_improvement.tars"
+    File.WriteAllText(filePath, nextMetascript)
+    
+    let! result = MetascriptExecutionEngine.executeMetascriptFile filePath logger None None None
+    
+    // TARS improves its own code
+    let! improved = selfImprovement.SelfRewrite("AutonomousReasoningService.fs", "llama3", true)
+    
+    printfn "🤖 TARS autonomous cycle complete"
+    result
+}

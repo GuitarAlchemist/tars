@@ -1,0 +1,81 @@
+DESCRIBE {
+    name: "Simple TARS DSL Demo"
+    version: "1.0"
+    description: "A simple demonstration of TARS DSL capabilities"
+    author: "TARS Team"
+    date: "2025-04-02"
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.7
+    max_tokens: 1000
+}
+
+// Define variables
+VARIABLE greeting {
+    value: "Hello, TARS!"
+}
+
+VARIABLE count {
+    value: 5
+}
+
+// Display a greeting
+ACTION {
+    type: "log"
+    message: "${greeting}"
+}
+
+// Demonstrate conditional logic
+IF {
+    condition: "${count > 3}"
+    
+    ACTION {
+        type: "log"
+        message: "Count is greater than 3"
+    }
+}
+ELSE {
+    ACTION {
+        type: "log"
+        message: "Count is not greater than 3"
+    }
+}
+
+// Demonstrate F# integration
+ACTION {
+    type: "log"
+    message: "Executing F# code..."
+}
+
+FSHARP {
+    // Define a function
+    let square x = x * x
+    
+    // Get the count from the environment
+    let count = environment.["count"].ToString() |> int
+    
+    // Calculate the square
+    let result = square count
+    
+    // Return the result
+    sprintf "The square of %d is %d" count result
+}
+
+// Store the result in a variable
+VARIABLE square_result {
+    value: "${_last_result}"
+}
+
+// Display the result
+ACTION {
+    type: "log"
+    message: "${square_result}"
+}
+
+// Final message
+ACTION {
+    type: "log"
+    message: "TARS DSL demonstration completed successfully!"
+}

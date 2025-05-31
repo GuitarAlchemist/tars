@@ -1,0 +1,829 @@
+DESCRIBE {
+    name: "TARS Autonomous Improvement"
+    version: "1.0"
+    author: "TARS Team"
+    description: "A metascript for autonomous improvement of TARS using knowledge from documentation"
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.7
+    max_tokens: 4000
+}
+
+// Define paths to important directories
+VARIABLE docs_dir {
+    value: "docs"
+}
+
+VARIABLE explorations_dir {
+    value: "${docs_dir}/Explorations"
+}
+
+VARIABLE chats_dir {
+    value: "${explorations_dir}/v1/Chats"
+}
+
+VARIABLE reflections_dir {
+    value: "${explorations_dir}/Reflections"
+}
+
+VARIABLE source_dirs {
+    value: ["TarsCli", "TarsEngine", "TarsEngine.DSL", "TarsEngine.SelfImprovement"]
+}
+
+VARIABLE improvement_state_file {
+    value: "autonomous_improvement_state.json"
+}
+
+VARIABLE max_runtime_minutes {
+    value: 60
+}
+
+// Initialize state if it doesn't exist
+ACTION {
+    type: "file_exists"
+    path: "${improvement_state_file}"
+    output_variable: "state_exists"
+}
+
+IF {
+    condition: "${!state_exists}"
+    then: {
+        ACTION {
+            type: "log"
+            message: "Initializing improvement state..."
+        }
+        
+        VARIABLE initial_state {
+            value: {
+                "processed_files": [],
+                "pending_files": [],
+                "improved_files": [],
+                "current_file": null,
+                "last_improved_file": null,
+                "total_improvements": 0,
+                "file_priority_scores": {},
+                "improvement_history": [],
+                "knowledge_base": {},
+                "last_updated": "${new Date().toISOString()}"
+            }
+        }
+        
+        ACTION {
+            type: "file_write"
+            path: "${improvement_state_file}"
+            content: "${JSON.stringify(initial_state, null, 2)}"
+        }
+    }
+}
+
+// Load the current state
+ACTION {
+    type: "file_read"
+    path: "${improvement_state_file}"
+    output_variable: "state_json"
+}
+
+VARIABLE state {
+    value: "${JSON.parse(state_json)}"
+}
+
+// Function to extract knowledge from documentation
+FUNCTION extract_knowledge_from_docs {
+    parameters: ["docs_path"]
+    
+    ACTION {
+        type: "log"
+        message: "Extracting knowledge from documentation in ${docs_path}..."
+    }
+    
+    // Get all markdown files in the directory
+    ACTION {
+        type: "list_files"
+        path: "${docs_path}"
+        pattern: "*.md"
+        recursive: true
+        output_variable: "doc_files"
+    }
+    
+    VARIABLE knowledge_base {
+        value: {}
+    }
+    
+    // Process each file to extract knowledge
+    FOREACH {
+        items: "${doc_files}"
+        item_variable: "doc_file"
+        
+        ACTION {
+            type: "file_read"
+            path: "${doc_file}"
+            output_variable: "doc_content"
+        }
+        
+        // Extract knowledge using LLM
+        PROMPT {
+            text: "You are an expert at extracting structured knowledge from documentation. 
+            
+            I'll provide you with the content of a documentation file. Please extract key insights, patterns, and best practices that could be used to improve code.
+            
+            Format your response as a JSON object with the following structure:
+            {
+              \"key_insights\": [\"insight 1\", \"insight 2\", ...],
+              \"patterns\": [
+                {\"name\": \"pattern name\", \"description\": \"pattern description\", \"example\": \"code example\"},
+                ...
+              ],
+              \"best_practices\": [\"practice 1\", \"practice 2\", ...],
+              \"improvement_strategies\": [\"strategy 1\", \"strategy 2\", ...]
+            }
+            
+            Here's the documentation content:
+            
+            ${doc_content}"
+            
+            model: "llama3"
+            temperature: 0.2
+            max_tokens: 2000
+            output_variable: "extracted_knowledge_text"
+        }
+        
+        // Parse the extracted knowledge
+        VARIABLE extracted_knowledge {
+            value: "${JSON.parse(extracted_knowledge_text)}"
+        }
+        
+        // Add to knowledge base
+        ACTION {
+            type: "log"
+            message: "Adding knowledge from ${doc_file} to knowledge base"
+        }
+        
+        FSHARP {
+            // Update the knowledge base
+            let docFile = doc_file
+            let extractedKnowledge = extracted_knowledge
+            let knowledgeBase = knowledge_base
+            
+            // Create a simple key from the file path
+            let key = System.IO.Path.GetFileNameWithoutExtension(docFile)
+            
+            // Add the extracted knowledge to the knowledge base
+            let updatedKnowledgeBase = 
+                Map.add key extractedKnowledge knowledgeBase
+                
+            // Return the updated knowledge base
+            updatedKnowledgeBase
+            
+            output_variable: "knowledge_base"
+        }
+    }
+    
+    // Return the knowledge base
+    RETURN {
+        value: "${knowledge_base}"
+    }
+}
+
+// Function to prioritize files for improvement
+FUNCTION prioritize_files {
+    parameters: ["source_dirs", "knowledge_base"]
+    
+    ACTION {
+        type: "log"
+        message: "Prioritizing files for improvement..."
+    }
+    
+    VARIABLE all_files {
+        value: []
+    }
+    
+    // Get all source files
+    FOREACH {
+        items: "${source_dirs}"
+        item_variable: "source_dir"
+        
+        ACTION {
+            type: "list_files"
+            path: "${source_dir}"
+            pattern: "*.{cs,fs}"
+            recursive: true
+            output_variable: "dir_files"
+        }
+        
+        FSHARP {
+            // Combine the files
+            let currentFiles = all_files
+            let newFiles = dir_files
+            Array.append currentFiles newFiles
+            
+            output_variable: "all_files"
+        }
+    }
+    
+    VARIABLE file_scores {
+        value: {}
+    }
+    
+    // Score each file
+    FOREACH {
+        items: "${all_files}"
+        item_variable: "file_path"
+        
+        ACTION {
+            type: "file_read"
+            path: "${file_path}"
+            output_variable: "file_content"
+        }
+        
+        // Calculate basic metrics
+        FSHARP {
+            let filePath = file_path
+            let content = file_content
+            
+            // Calculate basic metrics
+            let lineCount = content.Split('\n').Length
+            let normalizedLineCount = min 1.0 (float lineCount / 500.0) // Cap at 500 lines
+            
+            // Check for TODOs, FIXMEs, etc.
+            let todoPattern = "TODO|FIXME|HACK|XXX|BUG"
+            let todoCount = System.Text.RegularExpressions.Regex.Matches(content, todoPattern, System.Text.RegularExpressions.RegexOptions.IgnoreCase).Count
+            let todoScore = min 1.0 (float todoCount / 5.0) // Cap at 5 TODOs
+            
+            // Check file extension
+            let extension = System.IO.Path.GetExtension(filePath).ToLower()
+            let baseScore = 
+                match extension with
+                | ".cs" -> 2.0
+                | ".fs" -> 2.5 // Prefer F# files as they're the core engine
+                | _ -> 1.0
+                
+            // Calculate total score
+            let totalScore = baseScore + normalizedLineCount + todoScore
+            
+            // Create score object
+            let scoreObj = {|
+                filePath = filePath
+                baseScore = baseScore
+                contentScore = normalizedLineCount
+                todoScore = todoScore
+                totalScore = totalScore
+                factors = {|
+                    fileType = baseScore
+                    lineCount = normalizedLineCount
+                    todos = todoScore
+                |}
+            |}
+            
+            // Return the score object
+            scoreObj
+            
+            output_variable: "file_score"
+        }
+        
+        // Add to file scores
+        FSHARP {
+            let fileScores = file_scores
+            let filePath = file_path
+            let fileScore = file_score
+            
+            // Add the file score to the file scores dictionary
+            Map.add filePath fileScore fileScores
+            
+            output_variable: "file_scores"
+        }
+    }
+    
+    // Sort files by score
+    FSHARP {
+        let fileScores = file_scores
+        
+        // Convert to array of (filePath, score) tuples
+        let fileScoreArray = 
+            fileScores
+            |> Map.toArray
+            
+        // Sort by total score (descending)
+        let sortedFiles =
+            fileScoreArray
+            |> Array.sortByDescending (fun (_, score) -> score.totalScore)
+            |> Array.map fst
+            
+        // Return the sorted files
+        sortedFiles
+        
+        output_variable: "prioritized_files"
+    }
+    
+    // Return the prioritized files and scores
+    RETURN {
+        value: {
+            "prioritized_files": "${prioritized_files}",
+            "file_scores": "${file_scores}"
+        }
+    }
+}
+
+// Function to improve a file
+FUNCTION improve_file {
+    parameters: ["file_path", "knowledge_base"]
+    
+    ACTION {
+        type: "log"
+        message: "Improving file: ${file_path}"
+    }
+    
+    ACTION {
+        type: "file_read"
+        path: "${file_path}"
+        output_variable: "file_content"
+    }
+    
+    // Extract relevant knowledge for this file
+    FSHARP {
+        let filePath = file_path
+        let knowledgeBase = knowledge_base
+        
+        // Get file extension
+        let extension = System.IO.Path.GetExtension(filePath).ToLower()
+        
+        // Filter knowledge base for relevant entries
+        let relevantKnowledge =
+            knowledgeBase
+            |> Map.toArray
+            |> Array.map snd
+            |> Array.collect (fun entry -> 
+                // Extract patterns and best practices
+                let patterns = 
+                    if entry.patterns <> null then 
+                        entry.patterns |> Array.ofSeq 
+                    else 
+                        [||]
+                let bestPractices = 
+                    if entry.best_practices <> null then 
+                        entry.best_practices |> Array.ofSeq 
+                    else 
+                        [||]
+                let strategies = 
+                    if entry.improvement_strategies <> null then 
+                        entry.improvement_strategies |> Array.ofSeq 
+                    else 
+                        [||]
+                
+                Array.append (Array.append patterns bestPractices) strategies
+            )
+            
+        // Convert to JSON string
+        let relevantKnowledgeJson = System.Text.Json.JsonSerializer.Serialize(relevantKnowledge)
+        
+        // Return the relevant knowledge
+        relevantKnowledgeJson
+        
+        output_variable: "relevant_knowledge_json"
+    }
+    
+    VARIABLE relevant_knowledge {
+        value: "${JSON.parse(relevant_knowledge_json)}"
+    }
+    
+    // Generate improvement suggestions
+    PROMPT {
+        text: "You are an expert software developer tasked with improving code quality. I'll provide you with a file to improve and knowledge extracted from our documentation.
+
+        Your task is to suggest specific improvements to the code that align with our best practices and patterns.
+
+        File path: ${file_path}
+        File content:
+        ```
+        ${file_content}
+        ```
+
+        Relevant knowledge from our documentation:
+        ${JSON.stringify(relevant_knowledge, null, 2)}
+
+        Please provide your suggested improvements in the following JSON format:
+        {
+          \"improvements\": [
+            {
+              \"line_number\": 123,
+              \"original_code\": \"the original code snippet\",
+              \"improved_code\": \"the improved code snippet\",
+              \"explanation\": \"explanation of the improvement\"
+            },
+            ...
+          ],
+          \"overall_assessment\": \"An overall assessment of the file and the improvements made\"
+        }
+
+        Focus on making meaningful improvements that align with our documented best practices and patterns. Don't suggest trivial changes like renaming variables unless there's a compelling reason."
+        
+        model: "llama3"
+        temperature: 0.3
+        max_tokens: 3000
+        output_variable: "improvement_suggestions_text"
+    }
+    
+    // Parse the improvement suggestions
+    VARIABLE improvement_suggestions {
+        value: "${JSON.parse(improvement_suggestions_text)}"
+    }
+    
+    // Apply the improvements
+    VARIABLE improved_content {
+        value: "${file_content}"
+    }
+    
+    FOREACH {
+        items: "${improvement_suggestions.improvements}"
+        item_variable: "improvement"
+        
+        FSHARP {
+            let content = improved_content
+            let improvement = improvement
+            
+            // Replace the original code with the improved code
+            let originalCode = improvement.original_code
+            let improvedCode = improvement.improved_code
+            
+            // Simple string replacement (in a real implementation, we would use line numbers)
+            let updatedContent = content.Replace(originalCode, improvedCode)
+            
+            // Return the updated content
+            updatedContent
+            
+            output_variable: "improved_content"
+        }
+    }
+    
+    // Check if any improvements were made
+    VARIABLE has_improvements {
+        value: "${improved_content !== file_content}"
+    }
+    
+    IF {
+        condition: "${has_improvements}"
+        then: {
+            // Create a backup of the original file
+            ACTION {
+                type: "file_write"
+                path: "${file_path}.bak"
+                content: "${file_content}"
+            }
+            
+            // Write the improved content
+            ACTION {
+                type: "file_write"
+                path: "${file_path}"
+                content: "${improved_content}"
+            }
+            
+            ACTION {
+                type: "log"
+                message: "Successfully improved file: ${file_path}"
+            }
+            
+            // Return success
+            RETURN {
+                value: {
+                    "success": true,
+                    "file_path": "${file_path}",
+                    "improvements": "${improvement_suggestions.improvements.length}",
+                    "assessment": "${improvement_suggestions.overall_assessment}"
+                }
+            }
+        }
+        else: {
+            ACTION {
+                type: "log"
+                message: "No improvements made to file: ${file_path}"
+            }
+            
+            // Return no improvements
+            RETURN {
+                value: {
+                    "success": false,
+                    "file_path": "${file_path}",
+                    "improvements": 0,
+                    "assessment": "No improvements were necessary or possible"
+                }
+            }
+        }
+    }
+}
+
+// Main workflow
+ACTION {
+    type: "log"
+    message: "Starting autonomous improvement process..."
+}
+
+// Extract knowledge from documentation
+ACTION {
+    type: "log"
+    message: "Extracting knowledge from documentation..."
+}
+
+VARIABLE knowledge_base {
+    value: "${state.knowledge_base || {}}"
+}
+
+// Only extract knowledge if it's not already in the state
+IF {
+    condition: "${Object.keys(knowledge_base).length === 0}"
+    then: {
+        // Extract knowledge from chats
+        EXECUTE {
+            function: "extract_knowledge_from_docs"
+            args: ["${chats_dir}"]
+            output_variable: "chats_knowledge"
+        }
+        
+        // Extract knowledge from reflections
+        EXECUTE {
+            function: "extract_knowledge_from_docs"
+            args: ["${reflections_dir}"]
+            output_variable: "reflections_knowledge"
+        }
+        
+        // Combine knowledge
+        FSHARP {
+            let chatsKnowledge = chats_knowledge
+            let reflectionsKnowledge = reflections_knowledge
+            
+            // Combine the knowledge bases
+            let combinedKnowledge = 
+                Map.fold (fun acc key value -> Map.add key value acc) chatsKnowledge reflectionsKnowledge
+                
+            // Return the combined knowledge
+            combinedKnowledge
+            
+            output_variable: "knowledge_base"
+        }
+        
+        // Update state with knowledge base
+        FSHARP {
+            let state = state
+            let knowledgeBase = knowledge_base
+            
+            // Update the knowledge base in the state
+            let updatedState = 
+                state
+                |> Map.add "knowledge_base" knowledgeBase
+                
+            // Return the updated state
+            updatedState
+            
+            output_variable: "state"
+        }
+        
+        // Save the updated state
+        ACTION {
+            type: "file_write"
+            path: "${improvement_state_file}"
+            content: "${JSON.stringify(state, null, 2)}"
+        }
+    }
+}
+
+// Prioritize files if needed
+IF {
+    condition: "${state.pending_files.length === 0}"
+    then: {
+        ACTION {
+            type: "log"
+            message: "Prioritizing files for improvement..."
+        }
+        
+        EXECUTE {
+            function: "prioritize_files"
+            args: ["${source_dirs}", "${knowledge_base}"]
+            output_variable: "prioritization_result"
+        }
+        
+        // Update state with prioritized files
+        FSHARP {
+            let state = state
+            let prioritizedFiles = prioritization_result.prioritized_files
+            let fileScores = prioritization_result.file_scores
+            
+            // Update the state
+            let updatedState = 
+                state
+                |> Map.add "pending_files" prioritizedFiles
+                |> Map.add "file_priority_scores" fileScores
+                
+            // Return the updated state
+            updatedState
+            
+            output_variable: "state"
+        }
+        
+        // Save the updated state
+        ACTION {
+            type: "file_write"
+            path: "${improvement_state_file}"
+            content: "${JSON.stringify(state, null, 2)}"
+        }
+    }
+}
+
+// Record start time
+VARIABLE start_time {
+    value: "${new Date().getTime()}"
+}
+
+VARIABLE time_limit_ms {
+    value: "${max_runtime_minutes * 60 * 1000}"
+}
+
+// Main improvement loop
+WHILE {
+    condition: "${state.pending_files.length > 0 && (new Date().getTime() - start_time) < time_limit_ms}"
+    
+    // Get the next file to process
+    VARIABLE current_file {
+        value: "${state.pending_files[0]}"
+    }
+    
+    // Update state
+    FSHARP {
+        let state = state
+        let currentFile = current_file
+        
+        // Update the current file in the state
+        let updatedState = 
+            state
+            |> Map.add "current_file" currentFile
+            
+        // Return the updated state
+        updatedState
+        
+        output_variable: "state"
+    }
+    
+    // Save the updated state
+    ACTION {
+        type: "file_write"
+        path: "${improvement_state_file}"
+        content: "${JSON.stringify(state, null, 2)}"
+    }
+    
+    // Improve the file
+    ACTION {
+        type: "log"
+        message: "Processing file: ${current_file}"
+    }
+    
+    EXECUTE {
+        function: "improve_file"
+        args: ["${current_file}", "${knowledge_base}"]
+        output_variable: "improvement_result"
+    }
+    
+    // Update state based on improvement result
+    FSHARP {
+        let state = state
+        let currentFile = current_file
+        let improvementResult = improvement_result
+        
+        // Remove the file from pending files
+        let pendingFiles = 
+            state.pending_files
+            |> Array.filter (fun f -> f <> currentFile)
+            
+        // Add the file to processed files
+        let processedFiles = 
+            Array.append state.processed_files [| currentFile |]
+            
+        // Update state
+        let updatedState = 
+            state
+            |> Map.add "pending_files" pendingFiles
+            |> Map.add "processed_files" processedFiles
+            |> Map.add "current_file" null
+            
+        // If the improvement was successful, update improvement history
+        let updatedState2 = 
+            if improvementResult.success then
+                // Create improvement record
+                let improvementRecord = {|
+                    file_path = currentFile
+                    timestamp = System.DateTime.Now.ToString("o")
+                    description = improvementResult.assessment
+                    improvements = improvementResult.improvements
+                |}
+                
+                // Add to improved files
+                let improvedFiles = 
+                    Array.append state.improved_files [| currentFile |]
+                    
+                // Add to improvement history
+                let improvementHistory = 
+                    Array.append state.improvement_history [| improvementRecord |]
+                    
+                // Update total improvements
+                let totalImprovements = 
+                    state.total_improvements + 1
+                    
+                // Update last improved file
+                updatedState
+                |> Map.add "improved_files" improvedFiles
+                |> Map.add "improvement_history" improvementHistory
+                |> Map.add "total_improvements" totalImprovements
+                |> Map.add "last_improved_file" currentFile
+            else
+                updatedState
+                
+        // Update last updated timestamp
+        let finalState = 
+            updatedState2
+            |> Map.add "last_updated" (System.DateTime.Now.ToString("o"))
+            
+        // Return the updated state
+        finalState
+        
+        output_variable: "state"
+    }
+    
+    // Save the updated state
+    ACTION {
+        type: "file_write"
+        path: "${improvement_state_file}"
+        content: "${JSON.stringify(state, null, 2)}"
+    }
+    
+    // Add a small delay to avoid overloading the system
+    ACTION {
+        type: "sleep"
+        milliseconds: 1000
+    }
+}
+
+// Final summary
+ACTION {
+    type: "log"
+    message: "Autonomous improvement process completed"
+}
+
+ACTION {
+    type: "log"
+    message: "Total files processed: ${state.processed_files.length}"
+}
+
+ACTION {
+    type: "log"
+    message: "Total improvements made: ${state.total_improvements}"
+}
+
+IF {
+    condition: "${state.last_improved_file !== null}"
+    then: {
+        ACTION {
+            type: "log"
+            message: "Last improved file: ${state.last_improved_file}"
+        }
+    }
+}
+
+// Generate a summary report
+VARIABLE timestamp {
+    value: "${new Date().toISOString().replace(/:/g, '-').replace(/\..+/, '')}"
+}
+
+VARIABLE report_content {
+    value: "# TARS Autonomous Improvement Report
+    
+## Summary
+- **Date:** ${new Date().toLocaleString()}
+- **Total Files Processed:** ${state.processed_files.length}
+- **Total Improvements Made:** ${state.total_improvements}
+- **Runtime:** ${((new Date().getTime() - start_time) / 60000).toFixed(2)} minutes
+
+## Improved Files
+${state.improved_files.map(file => `- ${file}`).join('\n')}
+
+## Improvement History
+${state.improvement_history.map(record => `### ${record.file_path}\n- **Time:** ${new Date(record.timestamp).toLocaleString()}\n- **Improvements:** ${record.improvements}\n- **Description:** ${record.description}`).join('\n\n')}
+
+## Knowledge Base Statistics
+- **Total Knowledge Entries:** ${Object.keys(knowledge_base).length}
+
+## Next Steps
+- Continue improving the remaining ${state.pending_files.length} files
+- Refine the knowledge base with new insights
+- Run tests to verify the improvements
+"
+}
+
+// Save the report
+ACTION {
+    type: "file_write"
+    path: "autonomous_improvement_report_${timestamp}.md"
+    content: "${report_content}"
+}
+
+ACTION {
+    type: "log"
+    message: "Report saved to: autonomous_improvement_report_${timestamp}.md"
+}

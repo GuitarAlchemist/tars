@@ -1,0 +1,13 @@
+Here is the generated `requirements.txt` file:
+
+```
+pandas==1.3.5
+numpy==1.21.2
+scikit-learn==0.24.2
+nltk==3.7
+spaCy==3.2.1
+matplotlib==3.4.3
+seaborn==0.11.1
+```
+
+This file lists the required Python packages and their versions, which can be installed using `pip install -r requirements.txt`.

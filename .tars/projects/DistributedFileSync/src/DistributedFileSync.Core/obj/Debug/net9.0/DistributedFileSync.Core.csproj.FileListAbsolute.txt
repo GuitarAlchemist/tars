@@ -1,0 +1,15 @@
+C:\Users\spare\source\repos\tars\.tars\projects\DistributedFileSync\src\DistributedFileSync.Core\obj\Debug\net9.0\DistributedFileSync.Core.csproj.AssemblyReference.cache
+C:\Users\spare\source\repos\tars\.tars\projects\DistributedFileSync\src\DistributedFileSync.Core\obj\Debug\net9.0\DistributedFileSync.Core.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\spare\source\repos\tars\.tars\projects\DistributedFileSync\src\DistributedFileSync.Core\obj\Debug\net9.0\DistributedFileSync.Core.AssemblyInfoInputs.cache
+C:\Users\spare\source\repos\tars\.tars\projects\DistributedFileSync\src\DistributedFileSync.Core\obj\Debug\net9.0\DistributedFileSync.Core.AssemblyInfo.cs
+C:\Users\spare\source\repos\tars\.tars\projects\DistributedFileSync\src\DistributedFileSync.Core\obj\Debug\net9.0\DistributedFileSync.Core.csproj.CoreCompileInputs.cache
+C:\Users\spare\source\repos\tars\.tars\projects\DistributedFileSync\src\DistributedFileSync.Core\obj\Debug\net9.0\DistributedFileSync.Core.sourcelink.json
+C:\Users\spare\source\repos\tars\.tars\projects\DistributedFileSync\src\DistributedFileSync.Core\obj\Debug\net9.0\DistributedFileSync.Core.xml
+C:\Users\spare\source\repos\tars\.tars\projects\DistributedFileSync\src\DistributedFileSync.Core\bin\Debug\net9.0\DistributedFileSync.Core.deps.json
+C:\Users\spare\source\repos\tars\.tars\projects\DistributedFileSync\src\DistributedFileSync.Core\bin\Debug\net9.0\DistributedFileSync.Core.dll
+C:\Users\spare\source\repos\tars\.tars\projects\DistributedFileSync\src\DistributedFileSync.Core\bin\Debug\net9.0\DistributedFileSync.Core.pdb
+C:\Users\spare\source\repos\tars\.tars\projects\DistributedFileSync\src\DistributedFileSync.Core\bin\Debug\net9.0\DistributedFileSync.Core.xml
+C:\Users\spare\source\repos\tars\.tars\projects\DistributedFileSync\src\DistributedFileSync.Core\obj\Debug\net9.0\DistributedFileSync.Core.dll
+C:\Users\spare\source\repos\tars\.tars\projects\DistributedFileSync\src\DistributedFileSync.Core\obj\Debug\net9.0\refint\DistributedFileSync.Core.dll
+C:\Users\spare\source\repos\tars\.tars\projects\DistributedFileSync\src\DistributedFileSync.Core\obj\Debug\net9.0\DistributedFileSync.Core.pdb
+C:\Users\spare\source\repos\tars\.tars\projects\DistributedFileSync\src\DistributedFileSync.Core\obj\Debug\net9.0\ref\DistributedFileSync.Core.dll

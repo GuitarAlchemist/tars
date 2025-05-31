@@ -1,0 +1,122 @@
+DESCRIBE {
+    name: "Error Handling Demo"
+    version: "1.0"
+    description: "A demonstration of error handling in TARS DSL"
+    author: "TARS Team"
+    date: "2025-04-01"
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.7
+    max_tokens: 1000
+}
+
+// Try to read a non-existent file
+ACTION {
+    type: "log"
+    message: "Attempting to read a non-existent file..."
+}
+
+TRY {
+    ACTION {
+        type: "file_read"
+        path: "non_existent_file.txt"
+        result_variable: "file_content"
+    }
+    
+    ACTION {
+        type: "log"
+        message: "This won't be executed if an error occurs"
+    }
+    
+    CATCH {
+        ACTION {
+            type: "log"
+            message: "Caught an error: ${error}"
+        }
+        
+        // Create the file so we can read it next time
+        ACTION {
+            type: "file_write"
+            path: "non_existent_file.txt"
+            content: "This file was created in the catch block."
+        }
+    }
+}
+
+// Now try to read the file again
+ACTION {
+    type: "log"
+    message: "Attempting to read the file again..."
+}
+
+TRY {
+    ACTION {
+        type: "file_read"
+        path: "non_existent_file.txt"
+        result_variable: "file_content"
+    }
+    
+    ACTION {
+        type: "log"
+        message: "File content: ${file_content}"
+    }
+    
+    CATCH {
+        ACTION {
+            type: "log"
+            message: "Caught an error: ${error}"
+        }
+    }
+}
+
+// Try to make an HTTP request to an invalid URL
+ACTION {
+    type: "log"
+    message: "Attempting to make an HTTP request to an invalid URL..."
+}
+
+TRY {
+    ACTION {
+        type: "http_request"
+        url: "https://invalid-url-that-does-not-exist.example.com"
+        method: "GET"
+        result_variable: "response"
+    }
+    
+    ACTION {
+        type: "log"
+        message: "This won't be executed if an error occurs"
+    }
+    
+    CATCH {
+        ACTION {
+            type: "log"
+            message: "Caught an error: ${error}"
+        }
+        
+        // Set a default response
+        VARIABLE response {
+            value: "{\"status\":\"error\",\"message\":\"Failed to connect to the server\"}"
+        }
+    }
+}
+
+// Log the response (either from the request or the default)
+ACTION {
+    type: "log"
+    message: "Response: ${response}"
+}
+
+// Clean up
+ACTION {
+    type: "shell_execute"
+    command: "del non_existent_file.txt"
+    result_variable: "delete_result"
+}
+
+ACTION {
+    type: "log"
+    message: "File deleted: ${delete_result}"
+}

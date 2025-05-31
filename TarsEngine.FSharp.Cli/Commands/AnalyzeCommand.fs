@@ -25,45 +25,65 @@ type AnalyzeCommand() =
         member _.ExecuteAsync(options) =
             Task.Run(fun () ->
                 try
-                    let target = 
+                    let target =
                         match options.Arguments with
                         | arg :: _ -> arg
                         | [] -> "."
-                    
+
                     let detailed = options.Options.ContainsKey("detailed")
                     let output = options.Options.TryFind("output")
-                    
-                    Console.WriteLine(sprintf "Analyzing code in: %s" target)
-                    Console.WriteLine("Analysis in progress...")
-                    
-                    // Simulate analysis
-                    Console.WriteLine("\nCode Analysis Results:")
-                    Console.WriteLine("  Lines of Code: 2,847")
-                    Console.WriteLine("  Files Analyzed: 23")
-                    Console.WriteLine("  Quality Score: 8.7/10")
-                    Console.WriteLine("  Maintainability: High")
-                    Console.WriteLine("  Technical Debt: Low")
-                    
-                    if detailed then
-                        Console.WriteLine("\nDetailed Metrics:")
-                        Console.WriteLine("  Cyclomatic Complexity: 3.2 (Good)")
-                        Console.WriteLine("  Code Coverage: 87%")
-                        Console.WriteLine("  Duplication: 2.1% (Excellent)")
-                        Console.WriteLine("  Security Issues: 0")
-                        Console.WriteLine("  Performance Issues: 1 (Minor)")
-                    
-                    Console.WriteLine("\nRecommendations:")
-                    Console.WriteLine("  • Consider adding more unit tests for edge cases")
-                    Console.WriteLine("  • Optimize the ML model loading performance")
-                    Console.WriteLine("  • Add documentation for public APIs")
-                    
-                    match output with
-                    | Some filename ->
-                        Console.WriteLine(sprintf "\nAnalysis report saved to: %s" filename)
-                    | None -> ()
-                    
-                    CommandResult.success("Code analysis completed successfully")
+                    let selfAnalysis = options.Options.ContainsKey("self")
+
+                    Console.WriteLine(sprintf "🔍 TARS: Starting autonomous code analysis...")
+                    Console.WriteLine(sprintf "Target: %s" target)
+
+                    if selfAnalysis then
+                        Console.WriteLine("🤖 TARS: Performing self-analysis...")
+                        performTarsSelfAnalysis target output detailed
+                    else
+                        Console.WriteLine("📊 TARS: Analyzing external codebase...")
+                        performCodebaseAnalysis target output detailed
+
                 with
                 | ex ->
                     CommandResult.failure(sprintf "Analysis failed: %s" ex.Message)
             )
+
+    // Real TARS self-analysis implementation
+    member private _.performTarsSelfAnalysis(targetPath: string) (outputPath: string option) (detailed: bool) =
+        Console.WriteLine("\n🤖 TARS Self-Analysis Starting...")
+        Console.WriteLine("==================================")
+
+        // Phase 1: Scan TARS codebase structure
+        let codebaseStructure = this.scanTarsCodebase targetPath
+        Console.WriteLine(sprintf "📁 Found %d F# files, %d projects" codebaseStructure.FSharpFiles codebaseStructure.ProjectFiles)
+
+        // Phase 2: Analyze architecture
+        let architectureAnalysis = this.analyzeTarsArchitecture targetPath
+        Console.WriteLine(sprintf "🏗️ Architecture: %s" architectureAnalysis.Pattern)
+
+        // Phase 3: Code quality assessment
+        let codeQuality = this.assessTarsCodeQuality targetPath
+        Console.WriteLine(sprintf "📊 Code Quality Score: %d/100" codeQuality.OverallScore)
+
+        // Phase 4: Security audit
+        let securityAudit = this.auditTarsSecurity targetPath
+        Console.WriteLine(sprintf "🔒 Security Issues: %d critical, %d high" securityAudit.Critical securityAudit.High)
+
+        // Phase 5: Performance analysis
+        let performanceAnalysis = this.analyzeTarsPerformance targetPath
+        Console.WriteLine(sprintf "⚡ Performance Score: %d/100" performanceAnalysis.Score)
+
+        // Phase 6: Generate report
+        let report = this.generateSelfAnalysisReport codebaseStructure architectureAnalysis codeQuality securityAudit performanceAnalysis
+
+        let outputFile =
+            match outputPath with
+            | Some path -> path
+            | None -> System.IO.Path.Combine(targetPath, ".tars", "projects", "tars", "TARS-AUTONOMOUS-SELF-ANALYSIS.md")
+
+        System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(outputFile)) |> ignore
+        System.IO.File.WriteAllText(outputFile, report)
+
+        Console.WriteLine(sprintf "✅ TARS self-analysis complete! Report saved: %s" outputFile)
+        CommandResult.success("TARS self-analysis completed successfully")

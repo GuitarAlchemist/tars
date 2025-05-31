@@ -65,17 +65,40 @@ This repository contains the TARS (Transformative Autonomous Reasoning System) p
 
 ## Project Structure
 
-- **TarsEngine** - Core C# engine for system operations
-- **TarsEngineFSharp** - F# implementation of core algorithms
-- **TarsEngine.Interfaces** - Shared interfaces for system components
-- **TarsEngine.SelfImprovement** - F# module for self-improvement capabilities
-- **TarsCli** - Command-line interface for interacting with TARS
-- **TarsApp** - Main application with UI components
-- **TarsCli.Tests** - Test suite for the CLI components
-- **Experiments** - Various experimental implementations
+### Modern F# Architecture (Current)
+- **TarsEngine.FSharp.Cli** - Main F# CLI with enhanced reverse engineering capabilities
+- **TarsEngine.FSharp.Core** - Core F# functional programming engine
+- **TarsEngine.FSharp.SelfImprovement** - Advanced self-improvement and autonomous capabilities
+- **TarsEngine.FSharp.Testing** - Comprehensive testing framework
+- **TarsEngine.FSharp.Agents** - Multi-agent coordination system
+- **TarsEngine.CUDA.VectorStore** - GPU-accelerated vector storage and semantic search
+- **TarsSwarmDemo** - Swarm coordination and multi-agent demonstrations
+
+### Legacy C# Components (Archived)
+- **Legacy_CSharp_Projects/** - Archived C# implementations for reference
 - **[TODOs](TODOs/README.md)** - Task lists for various aspects of the project
 
 ## Features
+
+### 🔬 Enhanced Reverse Engineering (NEW!)
+
+TARS now features sophisticated reverse engineering capabilities with real metascript execution:
+
+- **Deep Metascript Execution**: 6-phase analysis with real-time variable tracking
+- **Vector Store Integration**: Full semantic search with performance metrics
+- **Comprehensive Analysis**: File type analysis, architectural discovery, pattern recognition
+- **Rich Visual Output**: Beautiful Spectre.Console tables and panels with real-time progress
+- **Detailed Reporting**: Both markdown reports and execution logs generated
+- **Performance Monitoring**: Sub-millisecond operation timing and metrics
+- **Variable Lifecycle Tracking**: Complete metascript variable management
+- **Professional Documentation**: Comprehensive technical specifications and evidence
+
+Try the enhanced reverse engineering:
+```bash
+# Run enhanced reverse engineering with chatbot interface
+dotnet run --project TarsEngine.FSharp.Cli -- chatbot
+# Then type: reverse-engineer
+```
 
 ### Project Milestones
 
@@ -265,23 +288,27 @@ TARS includes experimental support for transpiling F# code to Rust:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/tars.git
+git clone https://github.com/GuitarAlchemist/tars.git
 
 # Build the solution
 dotnet build
 
-# Run the CLI
-dotnet run --project TarsCli/TarsCli.csproj
+# Run the enhanced F# CLI
+dotnet run --project TarsEngine.FSharp.Cli
 ```
 
 ### Basic Usage
 
 ```bash
-# Initialize a new TARS session
-dotnet run --project TarsCli/TarsCli.csproj -- init my-session
+# Start the interactive chatbot with enhanced reverse engineering
+dotnet run --project TarsEngine.FSharp.Cli -- chatbot
 
-# Run a plan in a session
-dotnet run --project TarsCli/TarsCli.csproj -- run --session my-session --plan template.fsx
+# Run enhanced reverse engineering directly
+dotnet run --project TarsEngine.FSharp.Cli -- chatbot
+# Then type: reverse-engineer
+
+# Legacy C# CLI commands (still available)
+dotnet run --project TarsCli/TarsCli.csproj -- init my-session
 
 # Analyze a file for improvements
 dotnet run --project TarsCli/TarsCli.csproj -- self-improve analyze path/to/file.cs
@@ -409,12 +436,16 @@ dotnet run --project TarsCli/TarsCli.csproj -- retroaction-loop apply --file pat
 
 ## Development
 
-TARS is designed with a hybrid approach:
+TARS has evolved to a **F#-first architecture** with enhanced capabilities:
 
-- **F#** for core engine components and algorithms
-- **C#** for CLI and application interfaces
+- **F#** for all core components, CLI, algorithms, and advanced features
+- **Functional Programming** approach with monadic patterns and immutable data structures
+- **Enhanced Reverse Engineering** with metascript execution and vector store integration
+- **CUDA Integration** for GPU-accelerated vector operations
+- **Multi-Agent Systems** with sophisticated coordination capabilities
+- **Legacy C# Support** maintained for compatibility and reference
 
-This combination provides both functional programming benefits and strong integration with .NET ecosystem.
+This F#-first approach provides superior functional programming benefits, better concurrency handling, and more sophisticated AI capabilities.
 
 ### Recent Build Fixes
 

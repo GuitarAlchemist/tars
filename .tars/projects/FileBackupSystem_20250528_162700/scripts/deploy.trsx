@@ -1,0 +1,69 @@
+DESCRIBE {
+    name: "FileBackupSystem Deployment"
+    version: "1.0"
+    description: "Autonomous deployment script for FileBackupSystem"
+}
+
+CONFIG {
+    model: "codestral-latest"
+    temperature: 0.3
+    max_tokens: 2000
+}
+
+VARIABLE project_name {
+    value: "FileBackupSystem"
+}
+
+VARIABLE deploy_env {
+    value: "production"
+}
+
+ACTION {
+    type: "log"
+    message: "Starting deployment for: ${project_name}"
+}
+
+FSHARP {
+    open System
+    open System.IO
+    
+    let projectName = "FileBackupSystem"
+    let deployEnv = "production"
+    
+    printfn "🚀 Deploying %s to %s environment..." projectName deployEnv
+    
+    // Create deployment directory
+    let deployDir = sprintf "output/deploy_%s" deployEnv
+    Directory.CreateDirectory(deployDir) |> ignore
+    
+    // Copy project files
+    let sourceDir = "src"
+    if Directory.Exists(sourceDir) then
+        let files = Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories)
+        for file in files do
+            let relativePath = Path.GetRelativePath(sourceDir, file)
+            let destPath = Path.Combine(deployDir, relativePath)
+            Directory.CreateDirectory(Path.GetDirectoryName(destPath)) |> ignore
+            File.Copy(file, destPath, true)
+        
+        // Create deployment manifest
+        let manifest = sprintf """# Deployment Manifest
+Project: %s
+Environment: %s
+Deployed: %s
+Files: %d
+Status: Success
+""" projectName deployEnv (DateTime.Now.ToString()) files.Length
+        
+        File.WriteAllText(Path.Combine(deployDir, "deployment.manifest"), manifest)
+        
+        sprintf "✅ Deployment completed successfully to: %s" deployDir
+    else
+        "❌ Source directory not found"
+}
+
+ACTION {
+    type: "log"
+    message: "Deployment completed: ${_last_result}"
+}
+

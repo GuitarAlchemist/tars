@@ -1,0 +1,15 @@
+# Simple TARS Test Metascript
+
+This is a simple test to verify TARS metascript execution works.
+
+```fsharp
+printfn "🚀 TARS: Hello from metascript execution!"
+printfn "✅ TARS: Metascript system is working!"
+
+let testVariable = "TARS is functional"
+printfn "Variable: %s" testVariable
+```
+
+## Test Complete
+
+This metascript demonstrates basic F# execution within TARS.

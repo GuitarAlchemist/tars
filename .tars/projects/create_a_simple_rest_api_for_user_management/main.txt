@@ -1,0 +1,137 @@
+Here is the complete, working content for the `main.txt` file:
+
+```plain
+project/
+app.js // main application file
+config/
+database.js // database configuration
+env.js // environment variables
+models/
+user.js // user model definition
+routes/
+users.js // user management routes
+utils/
+logger.js // logging utility
+package.json // project dependencies and metadata
+README.md // project documentation
+
+// app.js
+const express = require('express');
+const mongoose = require('mongoose');
+const bodyParser = require('body-parser');
+const helmet = require('helmet');
+const usersRoute = require('./routes/users');
+
+const app = express();
+
+app.use(bodyParser.json());
+app.use(helmet());
+
+mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true });
+
+app.use('/api', usersRoute);
+
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+    console.log(`Server started on port ${port}`);
+});
+
+// config/database.js
+module.exports = {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+};
+
+// models/user.js
+const mongoose = require('mongoose');
+
+const userSchema = new mongoose.Schema({
+    name: String,
+    email: String,
+});
+
+module.exports = mongoose.model('User', userSchema);
+
+// routes/users.js
+const express = require('express');
+const router = express.Router();
+const User = require('../models/user');
+
+router.get('/users', async (req, res) => {
+    try {
+        const users = await User.find().exec();
+        res.json(users);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error fetching users' });
+    }
+});
+
+router.post('/users', async (req, res) => {
+    try {
+        const user = new User(req.body);
+        await user.save();
+        res.json(user);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error creating user' });
+    }
+});
+
+router.get('/users/:id', async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id).exec();
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        res.json(user);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error fetching user' });
+    }
+});
+
+router.put('/users/:id', async (req, res) => {
+    try {
+        const user = await User.findByIdAndUpdate(req.params.id, req.body, { new: true }).exec();
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        res.json(user);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error updating user' });
+    }
+});
+
+router.delete('/users/:id', async (req, res) => {
+    try {
+        await User.findByIdAndRemove(req.params.id).exec();
+        res.json({ message: 'User deleted successfully' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error deleting user' });
+    }
+});
+
+module.exports = router;
+
+// utils/logger.js
+const logger = require('morgan');
+
+module.exports = logger;
+
+// package.json
+{
+  "name": "user-management-api",
+  "version": "1.0.0",
+  "dependencies": {
+    "express": "^4.17.1",
+    "mongoose": "^5.11.19",
+    "body-parser": "^1.19.0",
+    "helmet": "^3.23.0"
+  }
+}
+```
+
+This code sets up a basic REST API for user management using Node.js, Express.js, and Mongoose. It includes routes for creating, reading, updating, and deleting users, as well as error handling and logging utilities.

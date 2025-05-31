@@ -1,0 +1,557 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>DistributedFileSync.Services</name>
+    </assembly>
+    <members>
+        <member name="T:DistributedFileSync.Services.SynchronizationEngine">
+            <summary>
+            Core synchronization engine implementation
+            Implemented by: Senior Developer Agent (Bob)
+            Performance optimized by: Performance Engineer Agent (Dave)
+            Security hardened by: Security Specialist Agent (Eve)
+            </summary>
+        </member>
+        <member name="T:DistributedFileSync.Services.Grpc.FilesyncReflection">
+            <summary>Holder for reflection information generated from Protos/filesync.proto</summary>
+        </member>
+        <member name="P:DistributedFileSync.Services.Grpc.FilesyncReflection.Descriptor">
+            <summary>File descriptor for Protos/filesync.proto</summary>
+        </member>
+        <member name="T:DistributedFileSync.Services.Grpc.SyncStatus">
+            <summary>
+            Enumerations
+            </summary>
+        </member>
+        <member name="T:DistributedFileSync.Services.Grpc.SyncFileRequest">
+            <summary>
+            File synchronization request
+            </summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.SyncFileRequest.FilePathFieldNumber">
+            <summary>Field number for the "file_path" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.SyncFileRequest.MetadataFieldNumber">
+            <summary>Field number for the "metadata" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.SyncFileRequest.ContentFieldNumber">
+            <summary>Field number for the "content" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.SyncFileRequest.SourceNodeIdFieldNumber">
+            <summary>Field number for the "source_node_id" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.SyncFileRequest.ForceOverwriteFieldNumber">
+            <summary>Field number for the "force_overwrite" field.</summary>
+        </member>
+        <member name="T:DistributedFileSync.Services.Grpc.SyncFileResponse">
+            <summary>
+            File synchronization response
+            </summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.SyncFileResponse.SuccessFieldNumber">
+            <summary>Field number for the "success" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.SyncFileResponse.ErrorMessageFieldNumber">
+            <summary>Field number for the "error_message" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.SyncFileResponse.UpdatedMetadataFieldNumber">
+            <summary>Field number for the "updated_metadata" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.SyncFileResponse.ConflictFieldNumber">
+            <summary>Field number for the "conflict" field.</summary>
+        </member>
+        <member name="T:DistributedFileSync.Services.Grpc.GetFileMetadataRequest">
+            <summary>
+            Get file metadata request
+            </summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.GetFileMetadataRequest.FilePathFieldNumber">
+            <summary>Field number for the "file_path" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.GetFileMetadataRequest.NodeIdFieldNumber">
+            <summary>Field number for the "node_id" field.</summary>
+        </member>
+        <member name="T:DistributedFileSync.Services.Grpc.GetFileMetadataResponse">
+            <summary>
+            Get file metadata response
+            </summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.GetFileMetadataResponse.FoundFieldNumber">
+            <summary>Field number for the "found" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.GetFileMetadataResponse.MetadataFieldNumber">
+            <summary>Field number for the "metadata" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.GetFileMetadataResponse.ErrorMessageFieldNumber">
+            <summary>Field number for the "error_message" field.</summary>
+        </member>
+        <member name="T:DistributedFileSync.Services.Grpc.FileChunkRequest">
+            <summary>
+            File chunk for streaming large files
+            </summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.FileChunkRequest.FileIdFieldNumber">
+            <summary>Field number for the "file_id" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.FileChunkRequest.ChunkIndexFieldNumber">
+            <summary>Field number for the "chunk_index" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.FileChunkRequest.ChunkDataFieldNumber">
+            <summary>Field number for the "chunk_data" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.FileChunkRequest.TotalChunksFieldNumber">
+            <summary>Field number for the "total_chunks" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.FileChunkRequest.ChecksumFieldNumber">
+            <summary>Field number for the "checksum" field.</summary>
+        </member>
+        <member name="T:DistributedFileSync.Services.Grpc.FileChunkResponse">
+            <summary>
+            File chunk response
+            </summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.FileChunkResponse.SuccessFieldNumber">
+            <summary>Field number for the "success" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.FileChunkResponse.ErrorMessageFieldNumber">
+            <summary>Field number for the "error_message" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.FileChunkResponse.BytesReceivedFieldNumber">
+            <summary>Field number for the "bytes_received" field.</summary>
+        </member>
+        <member name="T:DistributedFileSync.Services.Grpc.ResolveConflictRequest">
+            <summary>
+            Conflict resolution request
+            </summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.ResolveConflictRequest.FileIdFieldNumber">
+            <summary>Field number for the "file_id" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.ResolveConflictRequest.StrategyFieldNumber">
+            <summary>Field number for the "strategy" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.ResolveConflictRequest.PreferredVersionFieldNumber">
+            <summary>Field number for the "preferred_version" field.</summary>
+        </member>
+        <member name="T:DistributedFileSync.Services.Grpc.ResolveConflictResponse">
+            <summary>
+            Conflict resolution response
+            </summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.ResolveConflictResponse.ResolvedFieldNumber">
+            <summary>Field number for the "resolved" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.ResolveConflictResponse.ErrorMessageFieldNumber">
+            <summary>Field number for the "error_message" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.ResolveConflictResponse.FinalMetadataFieldNumber">
+            <summary>Field number for the "final_metadata" field.</summary>
+        </member>
+        <member name="T:DistributedFileSync.Services.Grpc.GetNodeStatusRequest">
+            <summary>
+            Node status request
+            </summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.GetNodeStatusRequest.NodeIdFieldNumber">
+            <summary>Field number for the "node_id" field.</summary>
+        </member>
+        <member name="T:DistributedFileSync.Services.Grpc.GetNodeStatusResponse">
+            <summary>
+            Node status response
+            </summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.GetNodeStatusResponse.NodeInfoFieldNumber">
+            <summary>Field number for the "node_info" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.GetNodeStatusResponse.StatisticsFieldNumber">
+            <summary>Field number for the "statistics" field.</summary>
+        </member>
+        <member name="T:DistributedFileSync.Services.Grpc.HeartbeatRequest">
+            <summary>
+            Heartbeat request
+            </summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.HeartbeatRequest.NodeIdFieldNumber">
+            <summary>Field number for the "node_id" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.HeartbeatRequest.TimestampFieldNumber">
+            <summary>Field number for the "timestamp" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.HeartbeatRequest.StatisticsFieldNumber">
+            <summary>Field number for the "statistics" field.</summary>
+        </member>
+        <member name="T:DistributedFileSync.Services.Grpc.HeartbeatResponse">
+            <summary>
+            Heartbeat response
+            </summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.HeartbeatResponse.AcknowledgedFieldNumber">
+            <summary>Field number for the "acknowledged" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.HeartbeatResponse.ServerTimestampFieldNumber">
+            <summary>Field number for the "server_timestamp" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.HeartbeatResponse.KnownNodesFieldNumber">
+            <summary>Field number for the "known_nodes" field.</summary>
+        </member>
+        <member name="T:DistributedFileSync.Services.Grpc.RegisterNodeRequest">
+            <summary>
+            Node registration request
+            </summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.RegisterNodeRequest.NodeInfoFieldNumber">
+            <summary>Field number for the "node_info" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.RegisterNodeRequest.AuthTokenFieldNumber">
+            <summary>Field number for the "auth_token" field.</summary>
+        </member>
+        <member name="T:DistributedFileSync.Services.Grpc.RegisterNodeResponse">
+            <summary>
+            Node registration response
+            </summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.RegisterNodeResponse.SuccessFieldNumber">
+            <summary>Field number for the "success" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.RegisterNodeResponse.ErrorMessageFieldNumber">
+            <summary>Field number for the "error_message" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.RegisterNodeResponse.AssignedNodeIdFieldNumber">
+            <summary>Field number for the "assigned_node_id" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.RegisterNodeResponse.KnownNodesFieldNumber">
+            <summary>Field number for the "known_nodes" field.</summary>
+        </member>
+        <member name="T:DistributedFileSync.Services.Grpc.DiscoverNodesRequest">
+            <summary>
+            Node discovery request
+            </summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.DiscoverNodesRequest.RequestingNodeIdFieldNumber">
+            <summary>Field number for the "requesting_node_id" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.DiscoverNodesRequest.RequiredCapabilitiesFieldNumber">
+            <summary>Field number for the "required_capabilities" field.</summary>
+        </member>
+        <member name="T:DistributedFileSync.Services.Grpc.DiscoverNodesResponse">
+            <summary>
+            Node discovery response
+            </summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.DiscoverNodesResponse.AvailableNodesFieldNumber">
+            <summary>Field number for the "available_nodes" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.DiscoverNodesResponse.TotalNodesFieldNumber">
+            <summary>Field number for the "total_nodes" field.</summary>
+        </member>
+        <member name="T:DistributedFileSync.Services.Grpc.UpdateNodeStatusRequest">
+            <summary>
+            Update node status request
+            </summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.UpdateNodeStatusRequest.NodeIdFieldNumber">
+            <summary>Field number for the "node_id" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.UpdateNodeStatusRequest.StatusFieldNumber">
+            <summary>Field number for the "status" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.UpdateNodeStatusRequest.StatisticsFieldNumber">
+            <summary>Field number for the "statistics" field.</summary>
+        </member>
+        <member name="T:DistributedFileSync.Services.Grpc.UpdateNodeStatusResponse">
+            <summary>
+            Update node status response
+            </summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.UpdateNodeStatusResponse.SuccessFieldNumber">
+            <summary>Field number for the "success" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.UpdateNodeStatusResponse.ErrorMessageFieldNumber">
+            <summary>Field number for the "error_message" field.</summary>
+        </member>
+        <member name="T:DistributedFileSync.Services.Grpc.FileMetadataProto">
+            <summary>
+            File metadata protobuf message
+            </summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.FileMetadataProto.IdFieldNumber">
+            <summary>Field number for the "id" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.FileMetadataProto.FilePathFieldNumber">
+            <summary>Field number for the "file_path" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.FileMetadataProto.FileNameFieldNumber">
+            <summary>Field number for the "file_name" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.FileMetadataProto.FileSizeFieldNumber">
+            <summary>Field number for the "file_size" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.FileMetadataProto.ContentHashFieldNumber">
+            <summary>Field number for the "content_hash" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.FileMetadataProto.LastModifiedFieldNumber">
+            <summary>Field number for the "last_modified" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.FileMetadataProto.CreatedAtFieldNumber">
+            <summary>Field number for the "created_at" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.FileMetadataProto.VersionFieldNumber">
+            <summary>Field number for the "version" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.FileMetadataProto.LastModifiedByFieldNumber">
+            <summary>Field number for the "last_modified_by" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.FileMetadataProto.IsSyncingFieldNumber">
+            <summary>Field number for the "is_syncing" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.FileMetadataProto.HasConflictFieldNumber">
+            <summary>Field number for the "has_conflict" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.FileMetadataProto.ConflictStrategyFieldNumber">
+            <summary>Field number for the "conflict_strategy" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.FileMetadataProto.StatusFieldNumber">
+            <summary>Field number for the "status" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.FileMetadataProto.AdditionalMetadataFieldNumber">
+            <summary>Field number for the "additional_metadata" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.FileMetadataProto.MetadataUpdatedFieldNumber">
+            <summary>Field number for the "metadata_updated" field.</summary>
+        </member>
+        <member name="T:DistributedFileSync.Services.Grpc.NodeProto">
+            <summary>
+            Node information protobuf message
+            </summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.NodeProto.IdFieldNumber">
+            <summary>Field number for the "id" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.NodeProto.NameFieldNumber">
+            <summary>Field number for the "name" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.NodeProto.AddressFieldNumber">
+            <summary>Field number for the "address" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.NodeProto.PortFieldNumber">
+            <summary>Field number for the "port" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.NodeProto.StatusFieldNumber">
+            <summary>Field number for the "status" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.NodeProto.LastSeenFieldNumber">
+            <summary>Field number for the "last_seen" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.NodeProto.CapabilitiesFieldNumber">
+            <summary>Field number for the "capabilities" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.NodeProto.VersionFieldNumber">
+            <summary>Field number for the "version" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.NodeProto.SyncDirectoriesFieldNumber">
+            <summary>Field number for the "sync_directories" field.</summary>
+        </member>
+        <member name="T:DistributedFileSync.Services.Grpc.NodeCapabilitiesProto">
+            <summary>
+            Node capabilities protobuf message
+            </summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.NodeCapabilitiesProto.MaxFileSizeFieldNumber">
+            <summary>Field number for the "max_file_size" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.NodeCapabilitiesProto.MaxConcurrentSyncsFieldNumber">
+            <summary>Field number for the "max_concurrent_syncs" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.NodeCapabilitiesProto.SupportedCompressionFieldNumber">
+            <summary>Field number for the "supported_compression" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.NodeCapabilitiesProto.SupportedEncryptionFieldNumber">
+            <summary>Field number for the "supported_encryption" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.NodeCapabilitiesProto.SupportsConflictResolutionFieldNumber">
+            <summary>Field number for the "supports_conflict_resolution" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.NodeCapabilitiesProto.CanRelayFieldNumber">
+            <summary>Field number for the "can_relay" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.NodeCapabilitiesProto.AvailableStorageFieldNumber">
+            <summary>Field number for the "available_storage" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.NodeCapabilitiesProto.NetworkBandwidthFieldNumber">
+            <summary>Field number for the "network_bandwidth" field.</summary>
+        </member>
+        <member name="T:DistributedFileSync.Services.Grpc.NodeStatisticsProto">
+            <summary>
+            Node statistics protobuf message
+            </summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.NodeStatisticsProto.TotalFilesSyncedFieldNumber">
+            <summary>Field number for the "total_files_synced" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.NodeStatisticsProto.TotalBytesTransferredFieldNumber">
+            <summary>Field number for the "total_bytes_transferred" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.NodeStatisticsProto.SuccessfulSyncsFieldNumber">
+            <summary>Field number for the "successful_syncs" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.NodeStatisticsProto.FailedSyncsFieldNumber">
+            <summary>Field number for the "failed_syncs" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.NodeStatisticsProto.AverageSyncTimeFieldNumber">
+            <summary>Field number for the "average_sync_time" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.NodeStatisticsProto.CpuUsageFieldNumber">
+            <summary>Field number for the "cpu_usage" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.NodeStatisticsProto.MemoryUsageFieldNumber">
+            <summary>Field number for the "memory_usage" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.NodeStatisticsProto.NetworkUtilizationFieldNumber">
+            <summary>Field number for the "network_utilization" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.NodeStatisticsProto.ActiveConnectionsFieldNumber">
+            <summary>Field number for the "active_connections" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.NodeStatisticsProto.LastUpdatedFieldNumber">
+            <summary>Field number for the "last_updated" field.</summary>
+        </member>
+        <member name="T:DistributedFileSync.Services.Grpc.ConflictInfo">
+            <summary>
+            Conflict information
+            </summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.ConflictInfo.FileIdFieldNumber">
+            <summary>Field number for the "file_id" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.ConflictInfo.ConflictTypeFieldNumber">
+            <summary>Field number for the "conflict_type" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.ConflictInfo.LocalVersionFieldNumber">
+            <summary>Field number for the "local_version" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.ConflictInfo.RemoteVersionFieldNumber">
+            <summary>Field number for the "remote_version" field.</summary>
+        </member>
+        <member name="F:DistributedFileSync.Services.Grpc.ConflictInfo.DetectedAtFieldNumber">
+            <summary>Field number for the "detected_at" field.</summary>
+        </member>
+        <member name="T:DistributedFileSync.Services.Grpc.FileSyncService">
+            <summary>
+            File synchronization service
+            Designed by: Architect Agent (Alice)
+            Implemented by: Senior Developer Agent (Bob)
+            Performance optimized by: Performance Engineer Agent (Dave)
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Services.Grpc.FileSyncService.Descriptor">
+            <summary>Service descriptor</summary>
+        </member>
+        <member name="T:DistributedFileSync.Services.Grpc.FileSyncService.FileSyncServiceBase">
+            <summary>Base class for server-side implementations of FileSyncService</summary>
+        </member>
+        <member name="M:DistributedFileSync.Services.Grpc.FileSyncService.FileSyncServiceBase.SyncFile(DistributedFileSync.Services.Grpc.SyncFileRequest,Grpc.Core.ServerCallContext)">
+            <summary>
+            Synchronize a file between nodes
+            </summary>
+            <param name="request">The request received from the client.</param>
+            <param name="context">The context of the server-side call handler being invoked.</param>
+            <returns>The response to send back to the client (wrapped by a task).</returns>
+        </member>
+        <member name="M:DistributedFileSync.Services.Grpc.FileSyncService.FileSyncServiceBase.GetFileMetadata(DistributedFileSync.Services.Grpc.GetFileMetadataRequest,Grpc.Core.ServerCallContext)">
+            <summary>
+            Get file metadata
+            </summary>
+            <param name="request">The request received from the client.</param>
+            <param name="context">The context of the server-side call handler being invoked.</param>
+            <returns>The response to send back to the client (wrapped by a task).</returns>
+        </member>
+        <member name="M:DistributedFileSync.Services.Grpc.FileSyncService.FileSyncServiceBase.StreamFileContent(Grpc.Core.IAsyncStreamReader{DistributedFileSync.Services.Grpc.FileChunkRequest},Grpc.Core.IServerStreamWriter{DistributedFileSync.Services.Grpc.FileChunkResponse},Grpc.Core.ServerCallContext)">
+            <summary>
+            Stream file content for large files
+            </summary>
+            <param name="requestStream">Used for reading requests from the client.</param>
+            <param name="responseStream">Used for sending responses back to the client.</param>
+            <param name="context">The context of the server-side call handler being invoked.</param>
+            <returns>A task indicating completion of the handler.</returns>
+        </member>
+        <member name="M:DistributedFileSync.Services.Grpc.FileSyncService.FileSyncServiceBase.ResolveConflict(DistributedFileSync.Services.Grpc.ResolveConflictRequest,Grpc.Core.ServerCallContext)">
+            <summary>
+            Resolve file conflicts
+            </summary>
+            <param name="request">The request received from the client.</param>
+            <param name="context">The context of the server-side call handler being invoked.</param>
+            <returns>The response to send back to the client (wrapped by a task).</returns>
+        </member>
+        <member name="M:DistributedFileSync.Services.Grpc.FileSyncService.FileSyncServiceBase.GetNodeStatus(DistributedFileSync.Services.Grpc.GetNodeStatusRequest,Grpc.Core.ServerCallContext)">
+            <summary>
+            Get node status and capabilities
+            </summary>
+            <param name="request">The request received from the client.</param>
+            <param name="context">The context of the server-side call handler being invoked.</param>
+            <returns>The response to send back to the client (wrapped by a task).</returns>
+        </member>
+        <member name="M:DistributedFileSync.Services.Grpc.FileSyncService.FileSyncServiceBase.Heartbeat(DistributedFileSync.Services.Grpc.HeartbeatRequest,Grpc.Core.ServerCallContext)">
+            <summary>
+            Heartbeat for node discovery and health monitoring
+            </summary>
+            <param name="request">The request received from the client.</param>
+            <param name="context">The context of the server-side call handler being invoked.</param>
+            <returns>The response to send back to the client (wrapped by a task).</returns>
+        </member>
+        <member name="M:DistributedFileSync.Services.Grpc.FileSyncService.BindService(DistributedFileSync.Services.Grpc.FileSyncService.FileSyncServiceBase)">
+            <summary>Creates service definition that can be registered with a server</summary>
+            <param name="serviceImpl">An object implementing the server-side handling logic.</param>
+        </member>
+        <member name="M:DistributedFileSync.Services.Grpc.FileSyncService.BindService(Grpc.Core.ServiceBinderBase,DistributedFileSync.Services.Grpc.FileSyncService.FileSyncServiceBase)">
+            <summary>Register service method with a service binder with or without implementation. Useful when customizing the service binding logic.
+            Note: this method is part of an experimental API that can change or be removed without any prior notice.</summary>
+            <param name="serviceBinder">Service methods will be bound by calling <c>AddMethod</c> on this object.</param>
+            <param name="serviceImpl">An object implementing the server-side handling logic.</param>
+        </member>
+        <member name="T:DistributedFileSync.Services.Grpc.NodeDiscoveryService">
+            <summary>
+            Node discovery and management service
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Services.Grpc.NodeDiscoveryService.Descriptor">
+            <summary>Service descriptor</summary>
+        </member>
+        <member name="T:DistributedFileSync.Services.Grpc.NodeDiscoveryService.NodeDiscoveryServiceBase">
+            <summary>Base class for server-side implementations of NodeDiscoveryService</summary>
+        </member>
+        <member name="M:DistributedFileSync.Services.Grpc.NodeDiscoveryService.NodeDiscoveryServiceBase.RegisterNode(DistributedFileSync.Services.Grpc.RegisterNodeRequest,Grpc.Core.ServerCallContext)">
+            <summary>
+            Register a new node in the network
+            </summary>
+            <param name="request">The request received from the client.</param>
+            <param name="context">The context of the server-side call handler being invoked.</param>
+            <returns>The response to send back to the client (wrapped by a task).</returns>
+        </member>
+        <member name="M:DistributedFileSync.Services.Grpc.NodeDiscoveryService.NodeDiscoveryServiceBase.DiscoverNodes(DistributedFileSync.Services.Grpc.DiscoverNodesRequest,Grpc.Core.ServerCallContext)">
+            <summary>
+            Discover available nodes
+            </summary>
+            <param name="request">The request received from the client.</param>
+            <param name="context">The context of the server-side call handler being invoked.</param>
+            <returns>The response to send back to the client (wrapped by a task).</returns>
+        </member>
+        <member name="M:DistributedFileSync.Services.Grpc.NodeDiscoveryService.NodeDiscoveryServiceBase.UpdateNodeStatus(DistributedFileSync.Services.Grpc.UpdateNodeStatusRequest,Grpc.Core.ServerCallContext)">
+            <summary>
+            Update node status
+            </summary>
+            <param name="request">The request received from the client.</param>
+            <param name="context">The context of the server-side call handler being invoked.</param>
+            <returns>The response to send back to the client (wrapped by a task).</returns>
+        </member>
+        <member name="M:DistributedFileSync.Services.Grpc.NodeDiscoveryService.BindService(DistributedFileSync.Services.Grpc.NodeDiscoveryService.NodeDiscoveryServiceBase)">
+            <summary>Creates service definition that can be registered with a server</summary>
+            <param name="serviceImpl">An object implementing the server-side handling logic.</param>
+        </member>
+        <member name="M:DistributedFileSync.Services.Grpc.NodeDiscoveryService.BindService(Grpc.Core.ServiceBinderBase,DistributedFileSync.Services.Grpc.NodeDiscoveryService.NodeDiscoveryServiceBase)">
+            <summary>Register service method with a service binder with or without implementation. Useful when customizing the service binding logic.
+            Note: this method is part of an experimental API that can change or be removed without any prior notice.</summary>
+            <param name="serviceBinder">Service methods will be bound by calling <c>AddMethod</c> on this object.</param>
+            <param name="serviceImpl">An object implementing the server-side handling logic.</param>
+        </member>
+    </members>
+</doc>

@@ -1,0 +1,134 @@
+DESCRIBE {
+    name: "Enhanced TARS DSL Demo"
+    version: "1.0"
+    description: "A demonstration of enhanced TARS DSL capabilities"
+    author: "TARS Team"
+    date: "2025-04-02"
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.7
+    max_tokens: 1000
+}
+
+// Define variables
+VARIABLE greeting {
+    value: "Hello, Enhanced TARS!"
+}
+
+// Display a greeting
+ACTION {
+    type: "log"
+    message: "${greeting}"
+}
+
+// Demonstrate enhanced FOR loop with collections
+VARIABLE fruits {
+    value: "Apple,Banana,Cherry,Date,Elderberry"
+}
+
+ACTION {
+    type: "log"
+    message: "Iterating through fruits collection:"
+}
+
+FOR {
+    item: "fruit"
+    collection: "${fruits}"
+
+    ACTION {
+        type: "log"
+        message: "Fruit: ${fruit}"
+    }
+}
+
+// Demonstrate enhanced FOR loop with range
+ACTION {
+    type: "log"
+    message: "Counting from 1 to 5:"
+}
+
+FOR {
+    item: "i"
+    collection: "1,2,3,4,5"
+
+    ACTION {
+        type: "log"
+        message: "Count: ${i}"
+    }
+}
+
+// Demonstrate file operations
+ACTION {
+    type: "log"
+    message: "Demonstrating file operations..."
+}
+
+// Create a temporary file
+ACTION {
+    type: "file_write"
+    path: "temp_demo.txt"
+    content: "This is a test file created by the enhanced TARS DSL.\nIt demonstrates file operations."
+}
+
+// Read the file
+ACTION {
+    type: "file_read"
+    path: "temp_demo.txt"
+    result_variable: "file_content"
+}
+
+// Display the file content
+ACTION {
+    type: "log"
+    message: "File content:\n${file_content}"
+}
+
+// Delete the file
+ACTION {
+    type: "file_delete"
+    path: "temp_demo.txt"
+}
+
+// Verify the file was deleted
+ACTION {
+    type: "log"
+    message: "File deleted successfully."
+}
+
+// Demonstrate F# integration
+ACTION {
+    type: "log"
+    message: "Demonstrating F# integration..."
+}
+
+FSHARP {
+    // Define a function to calculate factorial
+    let rec factorial n =
+        if n <= 1 then 1
+        else n * factorial (n - 1)
+
+    // Calculate factorial of 5
+    let result = factorial 5
+
+    // Return the result
+    sprintf "Factorial of 5 is %d" result
+}
+
+// Store the result in a variable
+VARIABLE factorial_result {
+    value: "${_last_result}"
+}
+
+// Display the result
+ACTION {
+    type: "log"
+    message: "${factorial_result}"
+}
+
+// Final message
+ACTION {
+    type: "log"
+    message: "Enhanced TARS DSL demonstration completed successfully!"
+}

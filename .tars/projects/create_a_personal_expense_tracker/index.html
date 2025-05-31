@@ -1,0 +1,61 @@
+Here is the complete `index.html` file content:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Expense Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav id="nav-bar">
+        <ul>
+            <li><a href="#expenses">Expenses</a></li>
+            <li><a href="#stats">Stats</a></li>
+        </ul>
+    </nav>
+
+    <!-- Expenses Section -->
+    <section id="expenses">
+        <h2>Expenses</h2>
+        <form id="expense-form">
+            <label for="date">Date:</label>
+            <input type="date" id="date" name="date"><br><br>
+            <label for="category">Category:</label>
+            <select id="category" name="category">
+                <option value="Food">Food</option>
+                <option value="Transportation">Transportation</option>
+                <option value="Entertainment">Entertainment</option>
+                <option value="Other">Other</option>
+            </select><br><br>
+            <label for="amount">Amount:</label>
+            <input type="number" id="amount" name="amount"><br><br>
+            <label for="description">Description:</label>
+            <textarea id="description" name="description"></textarea><br><br>
+            <button id="add-expense-btn">Add Expense</button>
+        </form>
+
+        <!-- Expenses List -->
+        <ul id="expenses-list">
+            <!-- Expenses will be displayed here -->
+        </ul>
+    </section>
+
+    <!-- Stats Section -->
+    <section id="stats">
+        <h2>Stats</h2>
+        <canvas id="expense-chart"></canvas>
+    </section>
+
+    <!-- Scripts -->
+    <script src="script.js"></script>
+</body>
+</html>
+```
+
+This file includes the basic HTML structure for a personal expense tracker, including a navigation bar, expenses section, and stats section. The expenses section contains a form to add new expenses, as well as a list to display existing expenses. The stats section will display a chart or graph using Chart.js.
+
+Please note that this is just the `index.html` file, and you'll need to create the other files mentioned in the project analysis (e.g., `styles.css`, `script.js`, etc.) to complete the project.

@@ -1,0 +1,58 @@
+Here is the complete, functional code for the `index.html` file:
+
+```html
+<!-- index.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-time Chat Application</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Chat UI will be rendered here -->
+    <div id="chat-container"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/socket.io@2.3.0/dist/socket.io.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
+```
+
+Note that this code assumes you have a `styles.css` file in the same directory, which defines the CSS styles for your chat application. You'll also need to create a `script.js` file and implement the WebSocket connection logic there.
+
+Here's an example of what the `script.js` file might look like:
+```javascript
+// script.js
+
+import { io } from 'socket.io-client';
+
+const socket = io('http://localhost:3000');
+
+// Handle user input (e.g., sending messages)
+document.addEventListener('DOMContentLoaded', () => {
+    const chatInput = document.getElementById('chat-input');
+    const chatLog = document.getElementById('chat-log');
+
+    chatInput.addEventListener('keypress', (event) => {
+        if (event.key === 'Enter') {
+            const messageText = chatInput.value;
+            socket.emit('message', messageText);
+            chatInput.value = '';
+        }
+    });
+
+    // Handle incoming messages from the server
+    socket.on('message', (message) => {
+        const chatMessage = document.createElement('div');
+        chatMessage.textContent = message;
+        chatLog.appendChild(chatMessage);
+    });
+});
+```
+
+This code sets up a WebSocket connection to `http://localhost:3000` and handles user input by sending messages to the server when the user presses Enter. It also listens for incoming messages from the server and appends them to the chat log.
+
+Remember to replace `http://localhost:3000` with your actual server URL if you're hosting your application elsewhere.

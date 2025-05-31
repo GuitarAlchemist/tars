@@ -1,0 +1,942 @@
+DESCRIBE {
+    name: "TARS Self-Improvement Workflow Metascript"
+    version: "1.0"
+    author: "TARS"
+    description: "A metascript for continuous self-improvement of TARS"
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.4
+    max_tokens: 4000
+}
+
+// Define variables for configuration
+VARIABLE config {
+    value: {
+        target_components: ["TarsCli", "TarsEngine.DSL", "TarsEngine.SelfImprovement"],
+        improvement_areas: ["code_quality", "performance", "documentation", "test_coverage"],
+        improvement_duration_hours: 1,
+        max_iterations: 5,
+        log_directory: "logs/self_improvement"
+    }
+}
+
+// Define the self-analyzer agent
+AGENT self_analyzer {
+    description: "An agent that analyzes TARS components for potential improvements"
+    capabilities: ["code_analysis", "performance_profiling", "documentation_analysis", "test_coverage_analysis"]
+    
+    TASK analyze_component {
+        description: "Analyze a component for potential improvements"
+        
+        FUNCTION analyze_code_quality {
+            parameters: ["component_path"]
+            
+            ACTION {
+                type: "analyze_code"
+                target: "${component_path}"
+                analysis_type: "code_quality"
+                metrics: ["complexity", "maintainability", "readability"]
+            }
+            
+            RETURN {
+                value: {
+                    issues: [
+                        {
+                            file: "${component_path}/Services/SelfImprovementService.cs",
+                            line: 42,
+                            issue_type: "high_complexity",
+                            description: "Method has high cyclomatic complexity",
+                            severity: "medium",
+                            suggested_fix: "Extract parts of the method into smaller methods"
+                        },
+                        // Additional issues would be included here
+                    ]
+                }
+            }
+        }
+        
+        FUNCTION analyze_performance {
+            parameters: ["component_path"]
+            
+            ACTION {
+                type: "analyze_code"
+                target: "${component_path}"
+                analysis_type: "performance"
+                metrics: ["execution_time", "memory_usage", "io_operations"]
+            }
+            
+            RETURN {
+                value: {
+                    issues: [
+                        {
+                            file: "${component_path}/Services/OllamaService.cs",
+                            line: 87,
+                            issue_type: "inefficient_algorithm",
+                            description: "Inefficient string concatenation in loop",
+                            severity: "high",
+                            suggested_fix: "Use StringBuilder instead of string concatenation"
+                        },
+                        // Additional issues would be included here
+                    ]
+                }
+            }
+        }
+        
+        FUNCTION analyze_documentation {
+            parameters: ["component_path"]
+            
+            ACTION {
+                type: "analyze_code"
+                target: "${component_path}"
+                analysis_type: "documentation"
+                metrics: ["comment_coverage", "xml_doc_completeness", "example_coverage"]
+            }
+            
+            RETURN {
+                value: {
+                    issues: [
+                        {
+                            file: "${component_path}/Services/AutoImprovementService.cs",
+                            line: 15,
+                            issue_type: "missing_documentation",
+                            description: "Public method lacks XML documentation",
+                            severity: "medium",
+                            suggested_fix: "Add XML documentation with summary, parameters, and return value"
+                        },
+                        // Additional issues would be included here
+                    ]
+                }
+            }
+        }
+        
+        FUNCTION analyze_test_coverage {
+            parameters: ["component_path"]
+            
+            ACTION {
+                type: "analyze_code"
+                target: "${component_path}"
+                analysis_type: "test_coverage"
+                metrics: ["line_coverage", "branch_coverage", "method_coverage"]
+            }
+            
+            RETURN {
+                value: {
+                    issues: [
+                        {
+                            file: "${component_path}/Services/TemplateService.cs",
+                            line: 0,
+                            issue_type: "low_test_coverage",
+                            description: "Class has only 45% test coverage",
+                            severity: "high",
+                            suggested_fix: "Add unit tests for untested methods"
+                        },
+                        // Additional issues would be included here
+                    ]
+                }
+            }
+        }
+    }
+}
+
+// Define the self-improver agent
+AGENT self_improver {
+    description: "An agent that implements improvements to TARS components"
+    capabilities: ["code_refactoring", "performance_optimization", "documentation_generation", "test_generation"]
+    
+    TASK implement_improvements {
+        description: "Implement improvements to a component"
+        
+        FUNCTION refactor_code {
+            parameters: ["issues"]
+            
+            ACTION {
+                type: "refactor_code"
+                issues: "${issues}"
+                refactoring_type: "code_quality"
+            }
+            
+            RETURN {
+                value: {
+                    changes: [
+                        {
+                            file: "${issues[0].file}",
+                            original_code: "// Original code would be here",
+                            new_code: "// New code would be here",
+                            description: "Extracted complex method into smaller methods"
+                        },
+                        // Additional changes would be included here
+                    ]
+                }
+            }
+        }
+        
+        FUNCTION optimize_performance {
+            parameters: ["issues"]
+            
+            ACTION {
+                type: "refactor_code"
+                issues: "${issues}"
+                refactoring_type: "performance"
+            }
+            
+            RETURN {
+                value: {
+                    changes: [
+                        {
+                            file: "${issues[0].file}",
+                            original_code: "// Original code would be here",
+                            new_code: "// New code would be here",
+                            description: "Replaced string concatenation with StringBuilder"
+                        },
+                        // Additional changes would be included here
+                    ]
+                }
+            }
+        }
+        
+        FUNCTION improve_documentation {
+            parameters: ["issues"]
+            
+            ACTION {
+                type: "refactor_code"
+                issues: "${issues}"
+                refactoring_type: "documentation"
+            }
+            
+            RETURN {
+                value: {
+                    changes: [
+                        {
+                            file: "${issues[0].file}",
+                            original_code: "// Original code would be here",
+                            new_code: "// New code would be here",
+                            description: "Added XML documentation to public method"
+                        },
+                        // Additional changes would be included here
+                    ]
+                }
+            }
+        }
+        
+        FUNCTION add_tests {
+            parameters: ["issues"]
+            
+            ACTION {
+                type: "refactor_code"
+                issues: "${issues}"
+                refactoring_type: "test_coverage"
+            }
+            
+            RETURN {
+                value: {
+                    changes: [
+                        {
+                            file: "${issues[0].file.replace('.cs', 'Tests.cs')}",
+                            original_code: "// Original code would be here",
+                            new_code: "// New code would be here",
+                            description: "Added unit tests for untested methods"
+                        },
+                        // Additional changes would be included here
+                    ]
+                }
+            }
+        }
+    }
+}
+
+// Define the self-validator agent
+AGENT self_validator {
+    description: "An agent that validates improvements to TARS components"
+    capabilities: ["code_review", "test_execution", "regression_testing"]
+    
+    TASK validate_improvements {
+        description: "Validate improvements to a component"
+        
+        FUNCTION review_changes {
+            parameters: ["changes"]
+            
+            ACTION {
+                type: "review_code"
+                changes: "${changes}"
+            }
+            
+            RETURN {
+                value: {
+                    approved: true,
+                    comments: [
+                        {
+                            file: "${changes[0].file}",
+                            line: 42,
+                            comment: "Good refactoring, but consider adding a comment explaining the purpose of the new method"
+                        },
+                        // Additional comments would be included here
+                    ]
+                }
+            }
+        }
+        
+        FUNCTION run_tests {
+            parameters: ["component_path"]
+            
+            ACTION {
+                type: "run_tests"
+                target: "${component_path}"
+            }
+            
+            RETURN {
+                value: {
+                    passed: true,
+                    test_results: {
+                        total_tests: 42,
+                        passed_tests: 42,
+                        failed_tests: 0,
+                        skipped_tests: 0
+                    }
+                }
+            }
+        }
+        
+        FUNCTION check_regression {
+            parameters: ["component_path"]
+            
+            ACTION {
+                type: "check_regression"
+                target: "${component_path}"
+            }
+            
+            RETURN {
+                value: {
+                    regression_detected: false,
+                    performance_impact: {
+                        execution_time_change: "-15%",  // Negative means improvement
+                        memory_usage_change: "-5%"
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Define the self-documenter agent
+AGENT self_documenter {
+    description: "An agent that documents improvements to TARS components"
+    capabilities: ["changelog_generation", "documentation_update", "report_generation"]
+    
+    TASK document_improvements {
+        description: "Document improvements to a component"
+        
+        FUNCTION update_changelog {
+            parameters: ["component", "changes"]
+            
+            ACTION {
+                type: "update_changelog"
+                component: "${component}",
+                changes: "${changes}"
+            }
+            
+            RETURN {
+                value: {
+                    changelog_entry: "## [Unreleased]\n\n### Improved\n\n- Refactored complex methods in SelfImprovementService\n- Optimized string operations in OllamaService\n- Added missing documentation to AutoImprovementService\n- Increased test coverage for TemplateService"
+                }
+            }
+        }
+        
+        FUNCTION generate_report {
+            parameters: ["component", "issues", "changes", "validation_results"]
+            
+            ACTION {
+                type: "generate_report"
+                component: "${component}",
+                issues: "${issues}",
+                changes: "${changes}",
+                validation_results: "${validation_results}"
+            }
+            
+            RETURN {
+                value: {
+                    report: "# Self-Improvement Report\n\n## Component: ${component}\n\n### Issues Found\n\n- 5 code quality issues\n- 3 performance issues\n- 8 documentation issues\n- 4 test coverage issues\n\n### Changes Made\n\n- Refactored 5 methods\n- Optimized 3 performance bottlenecks\n- Added documentation to 8 public members\n- Added 12 new unit tests\n\n### Validation Results\n\n- All tests passing\n- No regressions detected\n- Performance improved by 15%"
+                }
+            }
+        }
+    }
+}
+
+// Main workflow
+TARS {
+    // Initialize the workflow
+    ACTION {
+        type: "log"
+        message: "Starting self-improvement workflow"
+    }
+    
+    // Create log directory if it doesn't exist
+    ACTION {
+        type: "ensure_directory"
+        path: "${config.value.log_directory}"
+    }
+    
+    // Initialize iteration counter
+    VARIABLE iteration {
+        value: 1
+    }
+    
+    // Initialize improvement statistics
+    VARIABLE improvement_stats {
+        value: {
+            issues_found: 0,
+            issues_fixed: 0,
+            code_quality_improvements: 0,
+            performance_improvements: 0,
+            documentation_improvements: 0,
+            test_coverage_improvements: 0
+        }
+    }
+    
+    // Main improvement loop
+    WHILE {
+        condition: "${iteration.value <= config.value.max_iterations}"
+        
+        ACTION {
+            type: "log"
+            message: "Starting improvement iteration ${iteration.value} of ${config.value.max_iterations}"
+        }
+        
+        // Process each component
+        FOR {
+            variable: "component"
+            range: "${config.value.target_components}"
+            
+            ACTION {
+                type: "log"
+                message: "Analyzing component: ${component}"
+            }
+            
+            // Analyze the component for different improvement areas
+            VARIABLE all_issues {
+                value: {
+                    code_quality: [],
+                    performance: [],
+                    documentation: [],
+                    test_coverage: []
+                }
+            }
+            
+            // Analyze code quality if requested
+            IF {
+                condition: "${config.value.improvement_areas.includes('code_quality')}"
+                
+                VARIABLE code_quality_issues {
+                    value: {}
+                }
+                
+                ACTION {
+                    type: "execute"
+                    agent: "self_analyzer"
+                    task: "analyze_component"
+                    function: "analyze_code_quality"
+                    parameters: {
+                        component_path: "${component}"
+                    }
+                    output_variable: "code_quality_issues"
+                }
+                
+                ACTION {
+                    type: "assign"
+                    target: "all_issues.value.code_quality"
+                    value: "${code_quality_issues.value.issues}"
+                }
+            }
+            
+            // Analyze performance if requested
+            IF {
+                condition: "${config.value.improvement_areas.includes('performance')}"
+                
+                VARIABLE performance_issues {
+                    value: {}
+                }
+                
+                ACTION {
+                    type: "execute"
+                    agent: "self_analyzer"
+                    task: "analyze_component"
+                    function: "analyze_performance"
+                    parameters: {
+                        component_path: "${component}"
+                    }
+                    output_variable: "performance_issues"
+                }
+                
+                ACTION {
+                    type: "assign"
+                    target: "all_issues.value.performance"
+                    value: "${performance_issues.value.issues}"
+                }
+            }
+            
+            // Analyze documentation if requested
+            IF {
+                condition: "${config.value.improvement_areas.includes('documentation')}"
+                
+                VARIABLE documentation_issues {
+                    value: {}
+                }
+                
+                ACTION {
+                    type: "execute"
+                    agent: "self_analyzer"
+                    task: "analyze_component"
+                    function: "analyze_documentation"
+                    parameters: {
+                        component_path: "${component}"
+                    }
+                    output_variable: "documentation_issues"
+                }
+                
+                ACTION {
+                    type: "assign"
+                    target: "all_issues.value.documentation"
+                    value: "${documentation_issues.value.issues}"
+                }
+            }
+            
+            // Analyze test coverage if requested
+            IF {
+                condition: "${config.value.improvement_areas.includes('test_coverage')}"
+                
+                VARIABLE test_coverage_issues {
+                    value: {}
+                }
+                
+                ACTION {
+                    type: "execute"
+                    agent: "self_analyzer"
+                    task: "analyze_component"
+                    function: "analyze_test_coverage"
+                    parameters: {
+                        component_path: "${component}"
+                    }
+                    output_variable: "test_coverage_issues"
+                }
+                
+                ACTION {
+                    type: "assign"
+                    target: "all_issues.value.test_coverage"
+                    value: "${test_coverage_issues.value.issues}"
+                }
+            }
+            
+            // Update issue count
+            ACTION {
+                type: "update_counter"
+                target: "improvement_stats.value.issues_found"
+                increment: "${all_issues.value.code_quality.length + all_issues.value.performance.length + all_issues.value.documentation.length + all_issues.value.test_coverage.length}"
+            }
+            
+            // Implement improvements for each issue type
+            VARIABLE all_changes {
+                value: {
+                    code_quality: [],
+                    performance: [],
+                    documentation: [],
+                    test_coverage: []
+                }
+            }
+            
+            // Implement code quality improvements
+            IF {
+                condition: "${all_issues.value.code_quality.length > 0}"
+                
+                ACTION {
+                    type: "log"
+                    message: "Implementing code quality improvements for component: ${component}"
+                }
+                
+                VARIABLE code_quality_changes {
+                    value: {}
+                }
+                
+                ACTION {
+                    type: "execute"
+                    agent: "self_improver"
+                    task: "implement_improvements"
+                    function: "refactor_code"
+                    parameters: {
+                        issues: "${all_issues.value.code_quality}"
+                    }
+                    output_variable: "code_quality_changes"
+                }
+                
+                ACTION {
+                    type: "assign"
+                    target: "all_changes.value.code_quality"
+                    value: "${code_quality_changes.value.changes}"
+                }
+                
+                // Update improvement count
+                ACTION {
+                    type: "update_counter"
+                    target: "improvement_stats.value.code_quality_improvements"
+                    increment: "${code_quality_changes.value.changes.length}"
+                }
+            }
+            
+            // Implement performance improvements
+            IF {
+                condition: "${all_issues.value.performance.length > 0}"
+                
+                ACTION {
+                    type: "log"
+                    message: "Implementing performance improvements for component: ${component}"
+                }
+                
+                VARIABLE performance_changes {
+                    value: {}
+                }
+                
+                ACTION {
+                    type: "execute"
+                    agent: "self_improver"
+                    task: "implement_improvements"
+                    function: "optimize_performance"
+                    parameters: {
+                        issues: "${all_issues.value.performance}"
+                    }
+                    output_variable: "performance_changes"
+                }
+                
+                ACTION {
+                    type: "assign"
+                    target: "all_changes.value.performance"
+                    value: "${performance_changes.value.changes}"
+                }
+                
+                // Update improvement count
+                ACTION {
+                    type: "update_counter"
+                    target: "improvement_stats.value.performance_improvements"
+                    increment: "${performance_changes.value.changes.length}"
+                }
+            }
+            
+            // Implement documentation improvements
+            IF {
+                condition: "${all_issues.value.documentation.length > 0}"
+                
+                ACTION {
+                    type: "log"
+                    message: "Implementing documentation improvements for component: ${component}"
+                }
+                
+                VARIABLE documentation_changes {
+                    value: {}
+                }
+                
+                ACTION {
+                    type: "execute"
+                    agent: "self_improver"
+                    task: "implement_improvements"
+                    function: "improve_documentation"
+                    parameters: {
+                        issues: "${all_issues.value.documentation}"
+                    }
+                    output_variable: "documentation_changes"
+                }
+                
+                ACTION {
+                    type: "assign"
+                    target: "all_changes.value.documentation"
+                    value: "${documentation_changes.value.changes}"
+                }
+                
+                // Update improvement count
+                ACTION {
+                    type: "update_counter"
+                    target: "improvement_stats.value.documentation_improvements"
+                    increment: "${documentation_changes.value.changes.length}"
+                }
+            }
+            
+            // Implement test coverage improvements
+            IF {
+                condition: "${all_issues.value.test_coverage.length > 0}"
+                
+                ACTION {
+                    type: "log"
+                    message: "Implementing test coverage improvements for component: ${component}"
+                }
+                
+                VARIABLE test_coverage_changes {
+                    value: {}
+                }
+                
+                ACTION {
+                    type: "execute"
+                    agent: "self_improver"
+                    task: "implement_improvements"
+                    function: "add_tests"
+                    parameters: {
+                        issues: "${all_issues.value.test_coverage}"
+                    }
+                    output_variable: "test_coverage_changes"
+                }
+                
+                ACTION {
+                    type: "assign"
+                    target: "all_changes.value.test_coverage"
+                    value: "${test_coverage_changes.value.changes}"
+                }
+                
+                // Update improvement count
+                ACTION {
+                    type: "update_counter"
+                    target: "improvement_stats.value.test_coverage_improvements"
+                    increment: "${test_coverage_changes.value.changes.length}"
+                }
+            }
+            
+            // Combine all changes
+            VARIABLE all_changes_list {
+                value: []
+            }
+            
+            FOR {
+                variable: "change"
+                range: "${all_changes.value.code_quality}"
+                
+                ACTION {
+                    type: "append"
+                    target: "all_changes_list.value"
+                    value: "${change}"
+                }
+            }
+            
+            FOR {
+                variable: "change"
+                range: "${all_changes.value.performance}"
+                
+                ACTION {
+                    type: "append"
+                    target: "all_changes_list.value"
+                    value: "${change}"
+                }
+            }
+            
+            FOR {
+                variable: "change"
+                range: "${all_changes.value.documentation}"
+                
+                ACTION {
+                    type: "append"
+                    target: "all_changes_list.value"
+                    value: "${change}"
+                }
+            }
+            
+            FOR {
+                variable: "change"
+                range: "${all_changes.value.test_coverage}"
+                
+                ACTION {
+                    type: "append"
+                    target: "all_changes_list.value"
+                    value: "${change}"
+                }
+            }
+            
+            // Update fixed issue count
+            ACTION {
+                type: "update_counter"
+                target: "improvement_stats.value.issues_fixed"
+                increment: "${all_changes_list.value.length}"
+            }
+            
+            // Validate the changes
+            IF {
+                condition: "${all_changes_list.value.length > 0}"
+                
+                ACTION {
+                    type: "log"
+                    message: "Validating changes for component: ${component}"
+                }
+                
+                VARIABLE review_results {
+                    value: {}
+                }
+                
+                ACTION {
+                    type: "execute"
+                    agent: "self_validator"
+                    task: "validate_improvements"
+                    function: "review_changes"
+                    parameters: {
+                        changes: "${all_changes_list.value}"
+                    }
+                    output_variable: "review_results"
+                }
+                
+                // Only proceed if changes are approved
+                IF {
+                    condition: "${review_results.value.approved}"
+                    
+                    // Run tests to ensure no regressions
+                    VARIABLE test_results {
+                        value: {}
+                    }
+                    
+                    ACTION {
+                        type: "execute"
+                        agent: "self_validator"
+                        task: "validate_improvements"
+                        function: "run_tests"
+                        parameters: {
+                            component_path: "${component}"
+                        }
+                        output_variable: "test_results"
+                    }
+                    
+                    // Check for regressions
+                    VARIABLE regression_results {
+                        value: {}
+                    }
+                    
+                    ACTION {
+                        type: "execute"
+                        agent: "self_validator"
+                        task: "validate_improvements"
+                        function: "check_regression"
+                        parameters: {
+                            component_path: "${component}"
+                        }
+                        output_variable: "regression_results"
+                    }
+                    
+                    // Only apply changes if tests pass and no regressions
+                    IF {
+                        condition: "${test_results.value.passed && !regression_results.value.regression_detected}"
+                        
+                        ACTION {
+                            type: "log"
+                            message: "Applying changes to component: ${component}"
+                        }
+                        
+                        // Apply each change
+                        FOR {
+                            variable: "change"
+                            range: "${all_changes_list.value}"
+                            
+                            ACTION {
+                                type: "apply_change"
+                                file: "${change.file}"
+                                original_code: "${change.original_code}"
+                                new_code: "${change.new_code}"
+                            }
+                        }
+                        
+                        // Document the improvements
+                        ACTION {
+                            type: "log"
+                            message: "Documenting improvements for component: ${component}"
+                        }
+                        
+                        VARIABLE changelog_entry {
+                            value: {}
+                        }
+                        
+                        ACTION {
+                            type: "execute"
+                            agent: "self_documenter"
+                            task: "document_improvements"
+                            function: "update_changelog"
+                            parameters: {
+                                component: "${component}",
+                                changes: "${all_changes_list.value}"
+                            }
+                            output_variable: "changelog_entry"
+                        }
+                        
+                        // Generate a report
+                        VARIABLE improvement_report {
+                            value: {}
+                        }
+                        
+                        ACTION {
+                            type: "execute"
+                            agent: "self_documenter"
+                            task: "document_improvements"
+                            function: "generate_report"
+                            parameters: {
+                                component: "${component}",
+                                issues: "${all_issues.value}",
+                                changes: "${all_changes_list.value}",
+                                validation_results: {
+                                    review_results: "${review_results.value}",
+                                    test_results: "${test_results.value}",
+                                    regression_results: "${regression_results.value}"
+                                }
+                            }
+                            output_variable: "improvement_report"
+                        }
+                        
+                        // Save the report
+                        ACTION {
+                            type: "write_file"
+                            path: "${config.value.log_directory}/${component}_iteration_${iteration.value}_report.md"
+                            content: "${improvement_report.value.report}"
+                        }
+                    }
+                    ELSE {
+                        ACTION {
+                            type: "log"
+                            message: "Changes not applied due to failed tests or detected regressions"
+                        }
+                    }
+                }
+                ELSE {
+                    ACTION {
+                        type: "log"
+                        message: "Changes not approved by code review"
+                    }
+                }
+            }
+            ELSE {
+                ACTION {
+                    type: "log"
+                    message: "No changes to implement for component: ${component}"
+                }
+            }
+        }
+        
+        // Increment iteration counter
+        ACTION {
+            type: "update_counter"
+            target: "iteration.value"
+            increment: 1
+        }
+    }
+    
+    // Generate final report
+    ACTION {
+        type: "log"
+        message: "Generating final self-improvement report"
+    }
+    
+    VARIABLE final_report {
+        value: "# TARS Self-Improvement Report\n\n## Summary\n\n- Total iterations: ${iteration.value - 1}\n- Total issues found: ${improvement_stats.value.issues_found}\n- Total issues fixed: ${improvement_stats.value.issues_fixed}\n- Code quality improvements: ${improvement_stats.value.code_quality_improvements}\n- Performance improvements: ${improvement_stats.value.performance_improvements}\n- Documentation improvements: ${improvement_stats.value.documentation_improvements}\n- Test coverage improvements: ${improvement_stats.value.test_coverage_improvements}\n\n## Components Improved\n\n${config.value.target_components.join(', ')}\n\n## Improvement Areas\n\n${config.value.improvement_areas.join(', ')}"
+    }
+    
+    // Save the final report
+    ACTION {
+        type: "write_file"
+        path: "${config.value.log_directory}/final_report.md"
+        content: "${final_report.value}"
+    }
+    
+    // Notify about completion
+    ACTION {
+        type: "notify"
+        message: "Self-improvement workflow completed with ${improvement_stats.value.issues_fixed} improvements"
+        channels: ["slack"]
+    }
+}

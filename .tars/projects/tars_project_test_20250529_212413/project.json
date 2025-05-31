@@ -1,0 +1,12 @@
+{
+    "name": "tars_project_test_20250529_212413",
+    "version": "1.0.0",
+    "description": "TARS autonomous project creation test",
+    "created": "05/29/2025 21:24:13",
+    "type": "autonomous_test",
+    "capabilities": [
+        "project_creation",
+        "file_generation",
+        "autonomous_development"
+    ]
+}

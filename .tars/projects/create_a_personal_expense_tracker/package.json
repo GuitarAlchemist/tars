@@ -1,0 +1,26 @@
+Here is the generated `package.json` file:
+
+```json
+{
+  "name": "personal-expense-tracker",
+  "version": "1.0.0",
+  "description": "A personal expense tracker with user authentication, CRUD operations, and data visualization.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "jest"
+  },
+  "dependencies": {
+    "express": "^4.17.1",
+    "mongoose": "^5.11.19",
+    "passport": "^0.4.1",
+    "passport-local": "^1.1.2",
+    "chart.js": "^2.9.4"
+  },
+  "devDependencies": {
+    "jest": "^27.3.1"
+  }
+}
+```
+
+This file includes the necessary dependencies for the project, including Express.js, Mongoose, Passport.js, and Chart.js. The `scripts` section defines two scripts: `start`, which runs the Node.js server, and `test`, which runs Jest tests (if you choose to add testing).
