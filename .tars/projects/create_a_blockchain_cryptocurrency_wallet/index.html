@@ -1,0 +1,68 @@
+Here is the complete `index.html` file content:
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Blockchain Cryptocurrency Wallet</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Create a container for our wallet GUI -->
+    <div id="wallet-container"></div>
+
+    <!-- Load the wallet JavaScript file -->
+    <script src="src/wallet.js"></script>
+
+    <!-- Initialize the Electron app -->
+    <script>
+        const { app, BrowserWindow } = require('electron');
+
+        // Keep a global reference of the window object
+        let mainWindow;
+
+        function createWindow() {
+            // Create the browser window
+            mainWindow = new BrowserWindow({
+                width: 800,
+                height: 600,
+                webPreferences: {
+                    nodeIntegration: true
+                }
+            });
+
+            // Load the index.html file into the browser window
+            mainWindow.loadURL(`file://${__dirname}/index.html`);
+
+            // Open the DevTools when the browser window is opened
+            mainWindow.webContents.openDevTools();
+
+            // Close the browser window when the user closes it
+            mainWindow.on('closed', () => {
+                mainWindow = null;
+            });
+        }
+
+        app.on('ready', createWindow);
+
+        // Quit when all windows are closed
+        app.on('window-all-closed', () => {
+            if (process.platform !== 'darwin') {
+                app.quit();
+            }
+        });
+
+        app.on('activate', () => {
+            if (mainWindow === null) {
+                createWindow();
+            }
+        });
+    </script>
+</body>
+</html>
+```
+
+This file sets up an Electron application that loads the `wallet.js` script and initializes a browser window. The `wallet.js` file will contain the logic for creating a blockchain cryptocurrency wallet, processing transactions, and interacting with the blockchain.
+
+Note: This code assumes you have already created the necessary files (e.g., `wallet.js`, `styles.css`) and directories (e.g., `src/`, `public/`, `node_modules/`) as described in the project analysis.

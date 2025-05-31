@@ -1,0 +1,483 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>DistributedFileSync.Core</name>
+    </assembly>
+    <members>
+        <member name="T:DistributedFileSync.Core.Interfaces.ISynchronizationEngine">
+            <summary>
+            Core synchronization engine interface
+            Designed by: Architect Agent (Alice)
+            Implemented by: Senior Developer Agent (Bob)
+            Performance optimized by: Performance Engineer Agent (Dave)
+            </summary>
+        </member>
+        <member name="M:DistributedFileSync.Core.Interfaces.ISynchronizationEngine.StartAsync(System.Threading.CancellationToken)">
+            <summary>
+            Start the synchronization engine
+            </summary>
+            <param name="cancellationToken">Cancellation token</param>
+            <returns>Task representing the operation</returns>
+        </member>
+        <member name="M:DistributedFileSync.Core.Interfaces.ISynchronizationEngine.StopAsync(System.Threading.CancellationToken)">
+            <summary>
+            Stop the synchronization engine
+            </summary>
+            <param name="cancellationToken">Cancellation token</param>
+            <returns>Task representing the operation</returns>
+        </member>
+        <member name="M:DistributedFileSync.Core.Interfaces.ISynchronizationEngine.SynchronizeFileAsync(System.String,System.Collections.Generic.IEnumerable{DistributedFileSync.Core.Models.SyncNode},System.Threading.CancellationToken)">
+            <summary>
+            Synchronize a specific file
+            </summary>
+            <param name="filePath">Path to the file to synchronize</param>
+            <param name="targetNodes">Target nodes to synchronize with</param>
+            <param name="cancellationToken">Cancellation token</param>
+            <returns>Synchronization result</returns>
+        </member>
+        <member name="M:DistributedFileSync.Core.Interfaces.ISynchronizationEngine.SynchronizeDirectoryAsync(System.String,System.Collections.Generic.IEnumerable{DistributedFileSync.Core.Models.SyncNode},System.Boolean,System.Threading.CancellationToken)">
+            <summary>
+            Synchronize an entire directory
+            </summary>
+            <param name="directoryPath">Path to the directory to synchronize</param>
+            <param name="targetNodes">Target nodes to synchronize with</param>
+            <param name="recursive">Whether to synchronize subdirectories</param>
+            <param name="cancellationToken">Cancellation token</param>
+            <returns>Synchronization result</returns>
+        </member>
+        <member name="M:DistributedFileSync.Core.Interfaces.ISynchronizationEngine.GetFileSyncStatusAsync(System.String)">
+            <summary>
+            Get synchronization status for a file
+            </summary>
+            <param name="filePath">Path to the file</param>
+            <returns>File metadata with sync status</returns>
+        </member>
+        <member name="M:DistributedFileSync.Core.Interfaces.ISynchronizationEngine.GetActiveSynchronizationsAsync">
+            <summary>
+            Get all files currently being synchronized
+            </summary>
+            <returns>Collection of file metadata</returns>
+        </member>
+        <member name="M:DistributedFileSync.Core.Interfaces.ISynchronizationEngine.ResolveConflictAsync(System.Guid,DistributedFileSync.Core.Models.ConflictResolutionStrategy,System.Threading.CancellationToken)">
+            <summary>
+            Resolve a file conflict
+            </summary>
+            <param name="fileId">File identifier</param>
+            <param name="strategy">Resolution strategy</param>
+            <param name="cancellationToken">Cancellation token</param>
+            <returns>Conflict resolution result</returns>
+        </member>
+        <member name="E:DistributedFileSync.Core.Interfaces.ISynchronizationEngine.SyncStarted">
+            <summary>
+            Event raised when a file synchronization starts
+            </summary>
+        </member>
+        <member name="E:DistributedFileSync.Core.Interfaces.ISynchronizationEngine.SyncCompleted">
+            <summary>
+            Event raised when a file synchronization completes
+            </summary>
+        </member>
+        <member name="E:DistributedFileSync.Core.Interfaces.ISynchronizationEngine.SyncFailed">
+            <summary>
+            Event raised when a file synchronization fails
+            </summary>
+        </member>
+        <member name="E:DistributedFileSync.Core.Interfaces.ISynchronizationEngine.ConflictDetected">
+            <summary>
+            Event raised when a conflict is detected
+            </summary>
+        </member>
+        <member name="T:DistributedFileSync.Core.Interfaces.SyncResult">
+            <summary>
+            Synchronization result
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Interfaces.SyncResult.Success">
+            <summary>
+            Whether the synchronization was successful
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Interfaces.SyncResult.ErrorMessage">
+            <summary>
+            Error message if synchronization failed
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Interfaces.SyncResult.FilesSynchronized">
+            <summary>
+            Number of files synchronized
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Interfaces.SyncResult.BytesTransferred">
+            <summary>
+            Total bytes transferred
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Interfaces.SyncResult.Duration">
+            <summary>
+            Time taken for synchronization
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Interfaces.SyncResult.SynchronizedNodes">
+            <summary>
+            Nodes that were synchronized with
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Interfaces.SyncResult.Conflicts">
+            <summary>
+            Any conflicts that were detected
+            </summary>
+        </member>
+        <member name="T:DistributedFileSync.Core.Interfaces.ConflictResolutionResult">
+            <summary>
+            Conflict resolution result
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Interfaces.ConflictResolutionResult.Resolved">
+            <summary>
+            Whether the conflict was resolved
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Interfaces.ConflictResolutionResult.Strategy">
+            <summary>
+            Resolution strategy that was used
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Interfaces.ConflictResolutionResult.ResolvedFile">
+            <summary>
+            Final file metadata after resolution
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Interfaces.ConflictResolutionResult.ErrorMessage">
+            <summary>
+            Error message if resolution failed
+            </summary>
+        </member>
+        <member name="T:DistributedFileSync.Core.Interfaces.FileConflict">
+            <summary>
+            File conflict information
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Interfaces.FileConflict.FileId">
+            <summary>
+            File identifier
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Interfaces.FileConflict.FilePath">
+            <summary>
+            File path
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Interfaces.FileConflict.LocalVersion">
+            <summary>
+            Local version of the file
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Interfaces.FileConflict.RemoteVersion">
+            <summary>
+            Remote version of the file
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Interfaces.FileConflict.ConflictType">
+            <summary>
+            Type of conflict
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Interfaces.FileConflict.DetectedAt">
+            <summary>
+            When the conflict was detected
+            </summary>
+        </member>
+        <member name="T:DistributedFileSync.Core.Interfaces.ConflictType">
+            <summary>
+            Types of file conflicts
+            </summary>
+        </member>
+        <member name="T:DistributedFileSync.Core.Interfaces.FileSyncEventArgs">
+            <summary>
+            File synchronization event arguments
+            </summary>
+        </member>
+        <member name="T:DistributedFileSync.Core.Interfaces.FileSyncErrorEventArgs">
+            <summary>
+            File synchronization error event arguments
+            </summary>
+        </member>
+        <member name="T:DistributedFileSync.Core.Interfaces.ConflictDetectedEventArgs">
+            <summary>
+            Conflict detected event arguments
+            </summary>
+        </member>
+        <member name="T:DistributedFileSync.Core.Models.FileMetadata">
+            <summary>
+            Represents metadata for a synchronized file
+            Designed by: Architect Agent (Alice)
+            Implemented by: Senior Developer Agent (Bob)
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.FileMetadata.Id">
+            <summary>
+            Unique identifier for the file
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.FileMetadata.FilePath">
+            <summary>
+            Full path to the file
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.FileMetadata.FileName">
+            <summary>
+            File name without path
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.FileMetadata.FileSize">
+            <summary>
+            File size in bytes
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.FileMetadata.ContentHash">
+            <summary>
+            SHA-256 hash of the file content
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.FileMetadata.LastModified">
+            <summary>
+            Last modification time of the file
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.FileMetadata.CreatedAt">
+            <summary>
+            Creation time of the file
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.FileMetadata.Version">
+            <summary>
+            Version number for conflict resolution
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.FileMetadata.LastModifiedBy">
+            <summary>
+            Node ID that last modified the file
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.FileMetadata.IsSyncing">
+            <summary>
+            Indicates if the file is currently being synchronized
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.FileMetadata.HasConflict">
+            <summary>
+            Indicates if there's a conflict with this file
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.FileMetadata.ConflictStrategy">
+            <summary>
+            Conflict resolution strategy
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.FileMetadata.Status">
+            <summary>
+            File synchronization status
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.FileMetadata.AdditionalMetadata">
+            <summary>
+            Additional metadata as key-value pairs
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.FileMetadata.MetadataUpdated">
+            <summary>
+            Timestamp when this metadata was last updated
+            </summary>
+        </member>
+        <member name="T:DistributedFileSync.Core.Models.SyncStatus">
+            <summary>
+            File synchronization status
+            </summary>
+        </member>
+        <member name="T:DistributedFileSync.Core.Models.ConflictResolutionStrategy">
+            <summary>
+            Conflict resolution strategies
+            Researched by: Researcher Agent (Carol)
+            </summary>
+        </member>
+        <member name="T:DistributedFileSync.Core.Models.SyncNode">
+            <summary>
+            Represents a node in the distributed file synchronization network
+            Designed by: Architect Agent (Alice)
+            Security reviewed by: Security Specialist Agent (Eve)
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.SyncNode.Id">
+            <summary>
+            Unique identifier for the node
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.SyncNode.Name">
+            <summary>
+            Human-readable name for the node
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.SyncNode.Address">
+            <summary>
+            Network address of the node
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.SyncNode.Port">
+            <summary>
+            Port number for gRPC communication
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.SyncNode.Status">
+            <summary>
+            Node status
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.SyncNode.LastSeen">
+            <summary>
+            Last time this node was seen online
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.SyncNode.Capabilities">
+            <summary>
+            Node capabilities and features
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.SyncNode.AuthToken">
+            <summary>
+            Authentication token for secure communication
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.SyncNode.PublicKey">
+            <summary>
+            Public key for encryption
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.SyncNode.Version">
+            <summary>
+            Node version information
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.SyncNode.Statistics">
+            <summary>
+            Synchronization statistics
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.SyncNode.SyncDirectories">
+            <summary>
+            List of synchronized directories on this node
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.SyncNode.Configuration">
+            <summary>
+            Node configuration settings
+            </summary>
+        </member>
+        <member name="T:DistributedFileSync.Core.Models.NodeStatus">
+            <summary>
+            Node status enumeration
+            </summary>
+        </member>
+        <member name="T:DistributedFileSync.Core.Models.NodeCapabilities">
+            <summary>
+            Node capabilities
+            Performance optimized by: Performance Engineer Agent (Dave)
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.NodeCapabilities.MaxFileSize">
+            <summary>
+            Maximum file size this node can handle (in bytes)
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.NodeCapabilities.MaxConcurrentSyncs">
+            <summary>
+            Maximum number of concurrent synchronizations
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.NodeCapabilities.SupportedCompression">
+            <summary>
+            Supported compression algorithms
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.NodeCapabilities.SupportedEncryption">
+            <summary>
+            Supported encryption algorithms
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.NodeCapabilities.SupportsConflictResolution">
+            <summary>
+            Whether this node supports conflict resolution
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.NodeCapabilities.CanRelay">
+            <summary>
+            Whether this node can act as a relay
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.NodeCapabilities.AvailableStorage">
+            <summary>
+            Available storage space in bytes
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.NodeCapabilities.NetworkBandwidth">
+            <summary>
+            Network bandwidth in bytes per second
+            </summary>
+        </member>
+        <member name="T:DistributedFileSync.Core.Models.NodeStatistics">
+            <summary>
+            Node performance and synchronization statistics
+            Monitored by: Performance Engineer Agent (Dave)
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.NodeStatistics.TotalFilesSynced">
+            <summary>
+            Total number of files synchronized
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.NodeStatistics.TotalBytesTransferred">
+            <summary>
+            Total bytes transferred
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.NodeStatistics.SuccessfulSyncs">
+            <summary>
+            Number of successful synchronizations
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.NodeStatistics.FailedSyncs">
+            <summary>
+            Number of failed synchronizations
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.NodeStatistics.AverageSyncTime">
+            <summary>
+            Average synchronization time in milliseconds
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.NodeStatistics.CpuUsage">
+            <summary>
+            Current CPU usage percentage
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.NodeStatistics.MemoryUsage">
+            <summary>
+            Current memory usage in bytes
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.NodeStatistics.NetworkUtilization">
+            <summary>
+            Current network utilization percentage
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.NodeStatistics.ActiveConnections">
+            <summary>
+            Number of active connections
+            </summary>
+        </member>
+        <member name="P:DistributedFileSync.Core.Models.NodeStatistics.LastUpdated">
+            <summary>
+            Last statistics update time
+            </summary>
+        </member>
+    </members>
+</doc>

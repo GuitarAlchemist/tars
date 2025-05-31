@@ -1,0 +1,10 @@
+{
+  "project_name": "FileBackupSystem",
+  "description": "Autonomous file backup system with compression and encryption options",
+  "created_at": "2025-05-28 16:27:00",
+  "generated_by": "TARS Autonomous Project Service",
+  "files_count": 4,
+  "directories_count": 7,
+  "metascripts_count": 1,
+  "tests_count": 1
+}

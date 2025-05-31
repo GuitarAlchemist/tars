@@ -1,0 +1,17 @@
+We're trying to recover from a catastrophic github deletion of local files
+Finalize the port to F# (No C# should be in the solution but existing F# in the solution are probably wrong)
+Favour the new TarsEngine.FSharp.Cli and its dependencies 
+(TarsEngine.FSharp.Core, TarsEngine.FSharp.Main)
+Be careful don't include older F# projects or C# projects
+We should be able to use a .tars structure
+objective is 0 assumtptions + codestral LLM + hybrid RAG (In memory + ChromaDB)
+Ideally use metascript for all, fetch internet if stuck, or run long exproration is a concept is unknown
+
+- LLM knowns if we should write a metascript or reuse an existing one (RAG)
+- LLM knows how to write a new metascript (RAG => Understand DSL/Blocks/Syntax)
+- LLM knows how to chain metascripts (Master metascript of the project or parent metascript)
+- LLM knows how to write .md plan
+- LLM knows to interpret a .md plan and structure execution out of it
+- LLM/TARS can honestly admit when it does not know and initiate other actions (Search the web, create other metascripts, modify the master metascript for the project, etc...) 
+
+Create a details TODOs.md plan to finalize the recovery

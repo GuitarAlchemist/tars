@@ -1,0 +1,308 @@
+﻿DESCRIBE {
+    name: "Tree-of-Thought Apply Improvements"
+    description: "A metascript for applying improvements using Tree-of-Thought reasoning"
+    version: "1.0.0"
+    author: "TARS Auto-Improvement"
+}
+
+// Define input variables
+VARIABLE fix {
+    type: "string"
+    description: "The fix to apply"
+}
+
+VARIABLE code {
+    type: "string"
+    description: "The code to improve"
+}
+
+// Apply improvements function
+FUNCTION apply_improvements {
+    input: "${fix},${code}"
+    output: "Improved code"
+    
+    CSHARP {
+        var fix = "${fix}";
+        var code = @"${code}";
+        
+        // Parse the fix to determine the improvement type
+        var improvementType = "unknown";
+        if (fix.Contains("performance"))
+        {
+            improvementType = "performance";
+        }
+        else if (fix.Contains("error_handling") || fix.Contains("error handling"))
+        {
+            improvementType = "error_handling";
+        }
+        else if (fix.Contains("maintainability"))
+        {
+            improvementType = "maintainability";
+        }
+        
+        // Apply improvements based on the improvement type
+        var improvedCode = code;
+        var appliedImprovements = new List<string>();
+        
+        if (improvementType == "performance")
+        {
+            // Replace string concatenation with StringBuilder
+            if (code.Contains("+=") && code.Contains("string") && 
+                (code.Contains("for (") || code.Contains("foreach (") || code.Contains("while (")))
+            {
+                improvedCode = Regex.Replace(
+                    improvedCode,
+                    @"string\s+(\w+)\s*=\s*"""";[\s\n]*for\s*\([^{]*\{[^}]*\1\s*\+=",
+                    match => {
+                        var varName = Regex.Match(match.Value, @"string\s+(\w+)").Groups[1].Value;
+                        return $"var {varName}Builder = new StringBuilder();{Environment.NewLine}        for ({match.Value.Substring(match.Value.IndexOf("for (") + 5).Replace($"{varName} +=", $"{varName}Builder.Append")}";
+                    });
+                
+                improvedCode = Regex.Replace(
+                    improvedCode,
+                    @"Console\.WriteLine\((\w+)\);",
+                    match => {
+                        var varName = Regex.Match(match.Value, @"WriteLine\((\w+)\)").Groups[1].Value;
+                        if (improvedCode.Contains($"{varName}Builder"))
+                        {
+                            return $"Console.WriteLine({varName}Builder.ToString());";
+                        }
+                        return match.Value;
+                    });
+                
+                appliedImprovements.Add("Replaced string concatenation with StringBuilder");
+            }
+            
+            // Move LINQ operations outside of loops
+            if ((code.Contains(".Where(") || code.Contains(".Select(") || code.Contains(".OrderBy(")) && 
+                (code.Contains("for (") || code.Contains("foreach (") || code.Contains("while (")))
+            {
+                improvedCode = Regex.Replace(
+                    improvedCode,
+                    @"for\s*\([^{]*\{[^}]*(\w+)\.Where\(([^)]*)\)\.ToList\(\)",
+                    match => {
+                        var collection = Regex.Match(match.Value, @"(\w+)\.Where\(").Groups[1].Value;
+                        var predicate = Regex.Match(match.Value, @"Where\(([^)]*)\)").Groups[1].Value;
+                        var forLoop = match.Value.Substring(0, match.Value.IndexOf(collection));
+                        return $"var filtered{collection} = {collection}.Where({predicate}).ToList();{Environment.NewLine}        {forLoop}filtered{collection}";
+                    });
+                
+                appliedImprovements.Add("Moved LINQ operations outside of loops");
+            }
+            
+            // Use more efficient data structures
+            if (code.Contains("List<") && code.Contains(".Contains("))
+            {
+                improvedCode = Regex.Replace(
+                    improvedCode,
+                    @"List<([^>]*)>\s+(\w+)",
+                    match => {
+                        var type = Regex.Match(match.Value, @"List<([^>]*)>").Groups[1].Value;
+                        var varName = Regex.Match(match.Value, @">\s+(\w+)").Groups[1].Value;
+                        if (improvedCode.Contains($"{varName}.Contains("))
+                        {
+                            return $"HashSet<{type}> {varName}";
+                        }
+                        return match.Value;
+                    });
+                
+                appliedImprovements.Add("Replaced List with HashSet for faster lookups");
+            }
+        }
+        else if (improvementType == "error_handling")
+        {
+            // Add null checks for parameters
+            improvedCode = Regex.Replace(
+                improvedCode,
+                @"public\s+\w+\s+\w+\(([^)]*)\)\s*\{",
+                match => {
+                    var parameters = Regex.Match(match.Value, @"\(([^)]*)\)").Groups[1].Value;
+                    var paramList = parameters.Split(',');
+                    var nullChecks = new StringBuilder();
+                    
+                    foreach (var param in paramList)
+                    {
+                        var paramParts = param.Trim().Split(' ');
+                        if (paramParts.Length >= 2 && !paramParts[0].EndsWith("?") && 
+                            !new[] { "int", "long", "float", "double", "decimal", "bool", "char", "byte", "sbyte", "short", "ushort", "uint", "ulong" }.Contains(paramParts[0]))
+                        {
+                            var paramName = paramParts[1];
+                            nullChecks.AppendLine($"        if ({paramName} == null)");
+                            nullChecks.AppendLine($"        {{");
+                            nullChecks.AppendLine($"            throw new ArgumentNullException(nameof({paramName}));");
+                            nullChecks.AppendLine($"        }}");
+                        }
+                    }
+                    
+                    return match.Value + Environment.NewLine + nullChecks.ToString();
+                });
+            
+            // Add checks for division by zero
+            improvedCode = Regex.Replace(
+                improvedCode,
+                @"(\w+)\s*\/\s*(\w+)",
+                match => {
+                    var divisor = match.Groups[2].Value;
+                    if (!Regex.IsMatch(divisor, @"^\d+$") && !improvedCode.Contains($"if ({divisor} == 0)"))
+                    {
+                        var indent = new string(' ', match.Index - improvedCode.LastIndexOf(Environment.NewLine, match.Index) - 1);
+                        var checkCode = $"{indent}if ({divisor} == 0){Environment.NewLine}";
+                        checkCode += $"{indent}{{{Environment.NewLine}";
+                        checkCode += $"{indent}    throw new DivideByZeroException();{Environment.NewLine}";
+                        checkCode += $"{indent}}}{Environment.NewLine}{indent}";
+                        
+                        // Find the start of the statement
+                        var statementStart = improvedCode.LastIndexOf(Environment.NewLine, match.Index) + 1;
+                        return improvedCode.Substring(statementStart, match.Index - statementStart) + checkCode + match.Value;
+                    }
+                    return match.Value;
+                });
+            
+            // Add try-catch blocks
+            if (!code.Contains("try") && !code.Contains("catch"))
+            {
+                improvedCode = Regex.Replace(
+                    improvedCode,
+                    @"public\s+\w+\s+\w+\([^)]*\)\s*\{([^}]*)\}",
+                    match => {
+                        var methodBody = match.Groups[1].Value;
+                        var methodSignature = match.Value.Substring(0, match.Value.IndexOf('{') + 1);
+                        var indent = new string(' ', methodSignature.LastIndexOf(Environment.NewLine, methodSignature.Length - 1) + 1);
+                        
+                        var tryCatchBlock = $"{methodSignature}{Environment.NewLine}";
+                        tryCatchBlock += $"{indent}    try{Environment.NewLine}";
+                        tryCatchBlock += $"{indent}    {{{Environment.NewLine}";
+                        tryCatchBlock += methodBody.Replace(Environment.NewLine, Environment.NewLine + "    ");
+                        tryCatchBlock += $"{indent}    }}{Environment.NewLine}";
+                        tryCatchBlock += $"{indent}    catch (Exception ex){Environment.NewLine}";
+                        tryCatchBlock += $"{indent}    {{{Environment.NewLine}";
+                        tryCatchBlock += $"{indent}        // Log the exception{Environment.NewLine}";
+                        tryCatchBlock += $"{indent}        Console.WriteLine($\"Error: {{ex.Message}}\");{Environment.NewLine}";
+                        tryCatchBlock += $"{indent}        throw;{Environment.NewLine}";
+                        tryCatchBlock += $"{indent}    }}{Environment.NewLine}";
+                        tryCatchBlock += $"{indent}}}";
+                        
+                        return tryCatchBlock;
+                    });
+                
+                appliedImprovements.Add("Added try-catch blocks for better error handling");
+            }
+        }
+        else if (improvementType == "maintainability")
+        {
+            // Replace magic numbers with named constants
+            var magicNumbers = new Dictionary<string, string>();
+            var matches = Regex.Matches(code, @"\b[0-9]+(\.[0-9]+)?[mdf]?\b");
+            
+            foreach (Match match in matches)
+            {
+                var number = match.Value;
+                if (number != "0" && number != "1" && !magicNumbers.ContainsKey(number))
+                {
+                    var constantName = $"Constant{number.Replace(".", "_")}";
+                    magicNumbers[number] = constantName;
+                }
+            }
+            
+            if (magicNumbers.Count > 0)
+            {
+                var constants = new StringBuilder();
+                constants.AppendLine();
+                
+                foreach (var kvp in magicNumbers)
+                {
+                    constants.AppendLine($"    private const {(kvp.Key.Contains(".") ? "double" : "int")} {kvp.Value} = {kvp.Key};");
+                }
+                
+                constants.AppendLine();
+                
+                improvedCode = Regex.Replace(
+                    improvedCode,
+                    @"public class (\w+)",
+                    match => match.Value + constants.ToString());
+                
+                foreach (var kvp in magicNumbers)
+                {
+                    improvedCode = Regex.Replace(improvedCode, $@"\b{Regex.Escape(kvp.Key)}\b", kvp.Value);
+                }
+                
+                appliedImprovements.Add("Replaced magic numbers with named constants");
+            }
+            
+            // Extract duplicate code into methods
+            // This is a simplified approach that looks for similar code blocks
+            var codeBlocks = Regex.Matches(improvedCode, @"\{([^{}]*)\}");
+            var duplicateBlocks = new Dictionary<string, string>();
+            
+            for (int i = 0; i < codeBlocks.Count; i++)
+            {
+                for (int j = i + 1; j < codeBlocks.Count; j++)
+                {
+                    var block1 = codeBlocks[i].Groups[1].Value.Trim();
+                    var block2 = codeBlocks[j].Groups[1].Value.Trim();
+                    
+                    if (block1.Length > 50 && block1 == block2 && !duplicateBlocks.ContainsKey(block1))
+                    {
+                        var methodName = $"ExtractedMethod{duplicateBlocks.Count + 1}";
+                        duplicateBlocks[block1] = methodName;
+                    }
+                }
+            }
+            
+            if (duplicateBlocks.Count > 0)
+            {
+                var methods = new StringBuilder();
+                methods.AppendLine();
+                
+                foreach (var kvp in duplicateBlocks)
+                {
+                    methods.AppendLine($"    private void {kvp.Value}()");
+                    methods.AppendLine("    {");
+                    methods.AppendLine($"        {kvp.Key}");
+                    methods.AppendLine("    }");
+                    methods.AppendLine();
+                    
+                    improvedCode = improvedCode.Replace($"{{{kvp.Key}}}", $"{{{kvp.Value}();}}");
+                }
+                
+                improvedCode = Regex.Replace(
+                    improvedCode,
+                    @"}\s*$",
+                    match => methods.ToString() + match.Value);
+                
+                appliedImprovements.Add("Extracted duplicate code into methods");
+            }
+            
+            // Improve variable naming
+            improvedCode = Regex.Replace(
+                improvedCode,
+                @"\bvar\s+(x|y|z|i|j|k)\b",
+                match => {
+                    var varName = match.Groups[1].Value;
+                    var newName = varName switch
+                    {
+                        "x" => "xValue",
+                        "y" => "yValue",
+                        "z" => "zValue",
+                        "i" => "index",
+                        "j" => "innerIndex",
+                        "k" => "outerIndex",
+                        _ => varName
+                    };
+                    
+                    return $"var {newName}";
+                });
+            
+            appliedImprovements.Add("Improved variable naming for better readability");
+        }
+        
+        // Return the applied improvements
+        return string.Join("\n", appliedImprovements.Select(i => $"- {i}")) + "\n\n```csharp\n" + improvedCode + "\n```";
+    }
+}
+
+// Define the action
+ACTION apply {
+    function: "apply_improvements"
+    input: "${fix},${code}"
+}

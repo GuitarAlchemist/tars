@@ -1,0 +1,206 @@
+﻿# TARS Engine and CLI Configuration
+# The Autonomous Reasoning System - Configuration File
+
+# Engine Configuration
+engine:
+  version: "2.0.0"
+  name: "TARS F# Engine"
+  description: "Advanced autonomous reasoning system with F# implementation"
+  
+  # Core Settings
+  core:
+    max_threads: 8
+    memory_limit_mb: 2048
+    log_level: "Info"
+    enable_telemetry: true
+    
+  # Intelligence Settings
+  intelligence:
+    measurement_enabled: true
+    learning_rate_threshold: 0.8
+    adaptation_speed_target: 0.9
+    problem_solving_minimum: 0.7
+    pattern_recognition_target: 0.85
+    creative_thinking_goal: 0.8
+    
+  # Machine Learning Settings
+  ml:
+    default_model_type: "neural_network"
+    training_epochs: 100
+    batch_size: 32
+    learning_rate: 0.001
+    validation_split: 0.2
+    enable_gpu: false
+    
+  # Metascript Engine Settings
+  metascripts:
+    discovery_enabled: true
+    auto_load: true
+    cache_enabled: true
+    max_execution_time_seconds: 300
+    parallel_execution: true
+    max_parallel_scripts: 4
+    
+    # Metascript Directories (relative to .tars folder)
+    directories:
+      - "metascripts/core"
+      - "metascripts/autonomous" 
+      - "metascripts/tree-of-thought"
+      - "metascripts/docker"
+      - "metascripts/multi-agent"
+      - "examples"
+      - "../TarsCli/Metascripts"  # Legacy location
+      - "../Examples/metascripts"  # Legacy location
+
+# CLI Configuration
+cli:
+  version: "2.0.0"
+  name: "TARS F# CLI"
+  description: "Command-line interface for TARS autonomous reasoning system"
+  
+  # Display Settings
+  display:
+    show_banner: true
+    use_colors: true
+    verbose_logging: false
+    show_progress: true
+    
+  # Command Settings
+  commands:
+    default_timeout_seconds: 60
+    enable_help_autocomplete: true
+    case_sensitive: false
+    
+  # Output Settings
+  output:
+    format: "console"  # console, json, yaml
+    timestamp_format: "yyyy-MM-dd HH:mm:ss"
+    log_file_enabled: false
+    log_file_path: "logs/tars-cli.log"
+
+# Autonomous Improvement Settings
+autonomous:
+  enabled: true
+  auto_start: false
+  improvement_interval_hours: 24
+  max_improvements_per_session: 10
+  
+  # Self-Coding Workflow
+  self_coding:
+    enabled: true
+    file_patterns: ["*.fs", "*.fsx", "*.cs"]
+    exclude_patterns: ["bin/*", "obj/*", "*.dll", "*.exe"]
+    backup_before_changes: true
+    
+  # Knowledge Management
+  knowledge:
+    auto_extract: true
+    confidence_threshold: 0.7
+    max_knowledge_items: 1000
+    knowledge_base_path: "knowledge/base.json"
+
+# Multi-Agent Coordination
+multi_agent:
+  enabled: true
+  max_agents: 8
+  default_agents:
+    - name: "Planner"
+      role: "Task Planning"
+      model: "llama3"
+      temperature: 0.7
+    - name: "Coder" 
+      role: "Code Generation"
+      model: "codellama:13b-code"
+      temperature: 0.2
+    - name: "Critic"
+      role: "Code Review"
+      model: "llama3"
+      temperature: 0.5
+    - name: "Executor"
+      role: "Code Execution"
+      model: "llama3"
+      temperature: 0.3
+
+# Tree-of-Thought Settings
+tree_of_thought:
+  enabled: true
+  max_depth: 5
+  branching_factor: 4
+  pruning_threshold: 0.3
+  exploration_weight: 0.6
+  exploitation_weight: 0.4
+
+# Docker Integration
+docker:
+  enabled: false
+  default_image: "mcr.microsoft.com/dotnet/sdk:9.0"
+  network_mode: "bridge"
+  memory_limit: "1g"
+  cpu_limit: "1.0"
+
+# Paths Configuration (relative to solution root)
+paths:
+  config_dir: ".tars/config"
+  docs_dir: ".tars/docs"
+  explorations_dir: ".tars/explorations"
+  metascripts_dir: ".tars/metascripts"
+  templates_dir: ".tars/templates"
+  knowledge_dir: ".tars/knowledge"
+  workflows_dir: ".tars/workflows"
+  examples_dir: ".tars/examples"
+  logs_dir: "logs"
+  temp_dir: "temp"
+
+# External Integrations
+integrations:
+  # LLM Providers
+  ollama:
+    enabled: false
+    base_url: "http://localhost:11434"
+    default_model: "llama3"
+    
+  openai:
+    enabled: false
+    api_key: "${OPENAI_API_KEY}"
+    default_model: "gpt-4"
+    
+  # Version Control
+  git:
+    auto_commit: false
+    commit_message_template: "TARS: {action} - {description}"
+    
+  # Monitoring
+  telemetry:
+    enabled: true
+    endpoint: "https://telemetry.tars.dev"
+    anonymous: true
+
+# Security Settings
+security:
+  enable_sandbox: true
+  allow_file_system_access: true
+  allow_network_access: false
+  allow_process_execution: false
+  max_memory_usage_mb: 1024
+
+# Development Settings
+development:
+  debug_mode: false
+  enable_hot_reload: false
+  watch_file_changes: false
+  auto_restart: false
+
+# Experimental Features
+experimental:
+  consciousness_simulation: false
+  swarm_intelligence: false
+  quantum_reasoning: false
+  neural_architecture_search: false
+
+# Metadata
+metadata:
+  created_by: "TARS F# Migration Team"
+  created_date: "2025-05-24"
+  last_modified: "2025-05-24"
+  schema_version: "1.0"
+  description: "Comprehensive configuration for TARS autonomous reasoning system"

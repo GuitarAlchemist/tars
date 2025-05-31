@@ -1,0 +1,459 @@
+DESCRIBE {
+    name: "TARS DSL Code Generator Metascript"
+    version: "1.0"
+    author: "TARS"
+    description: "A metascript for generating TARS DSL code from specifications"
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.4
+    max_tokens: 4000
+}
+
+// Define variables for configuration
+VARIABLE config {
+    value: {
+        specification_file: "examples/specs/dsl_spec.json",
+        output_directory: "generated/dsl",
+        template_directory: "templates/dsl",
+        generate_tests: true
+    }
+}
+
+// Define the specification parser agent
+AGENT spec_parser {
+    description: "An agent that parses specifications for DSL code generation"
+    capabilities: ["json_parsing", "yaml_parsing", "markdown_parsing"]
+    
+    TASK parse_specification {
+        description: "Parse a specification file"
+        
+        FUNCTION parse_json {
+            parameters: ["file_path"]
+            
+            ACTION {
+                type: "parse_file"
+                file_path: "${file_path}"
+                format: "json"
+            }
+            
+            RETURN {
+                value: {
+                    blocks: [
+                        {
+                            type: "AGENT",
+                            name: "data_processor",
+                            properties: {
+                                description: "An agent that processes data",
+                                capabilities: ["data_loading", "data_transformation", "data_analysis"]
+                            },
+                            nested_blocks: [
+                                {
+                                    type: "TASK",
+                                    name: "load_data",
+                                    properties: {
+                                        description: "Load data from a source"
+                                    },
+                                    nested_blocks: [
+                                        {
+                                            type: "FUNCTION",
+                                            name: "load_csv",
+                                            properties: {
+                                                parameters: ["file_path", "delimiter"],
+                                                description: "Load data from a CSV file"
+                                            },
+                                            nested_blocks: []
+                                        }
+                                    ]
+                                },
+                                {
+                                    type: "TASK",
+                                    name: "transform_data",
+                                    properties: {
+                                        description: "Transform data"
+                                    },
+                                    nested_blocks: [
+                                        {
+                                            type: "FUNCTION",
+                                            name: "filter_rows",
+                                            properties: {
+                                                parameters: ["data", "condition"],
+                                                description: "Filter rows based on a condition"
+                                            },
+                                            nested_blocks: []
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            type: "TARS",
+                            name: null,
+                            properties: {},
+                            nested_blocks: [
+                                {
+                                    type: "ACTION",
+                                    name: null,
+                                    properties: {
+                                        type: "execute",
+                                        agent: "data_processor",
+                                        task: "load_data",
+                                        function: "load_csv",
+                                        parameters: {
+                                            file_path: "data.csv",
+                                            delimiter: ","
+                                        },
+                                        output_variable: "loaded_data"
+                                    },
+                                    nested_blocks: []
+                                }
+                            ]
+                        }
+                    ]
+                }
+            }
+        }
+        
+        FUNCTION parse_yaml {
+            parameters: ["file_path"]
+            
+            ACTION {
+                type: "parse_file"
+                file_path: "${file_path}"
+                format: "yaml"
+            }
+            
+            RETURN {
+                value: {
+                    blocks: []  // Similar structure to JSON parsing
+                }
+            }
+        }
+        
+        FUNCTION parse_markdown {
+            parameters: ["file_path"]
+            
+            ACTION {
+                type: "parse_file"
+                file_path: "${file_path}"
+                format: "markdown"
+            }
+            
+            RETURN {
+                value: {
+                    blocks: []  // Similar structure to JSON parsing
+                }
+            }
+        }
+    }
+}
+
+// Define the code generator agent
+AGENT code_generator {
+    description: "An agent that generates DSL code from specifications"
+    capabilities: ["template_rendering", "code_generation", "validation"]
+    
+    TASK generate_code {
+        description: "Generate DSL code from a specification"
+        
+        FUNCTION generate_block {
+            parameters: ["block", "indent_level"]
+            
+            ACTION {
+                type: "generate_block"
+                block: "${block}"
+                indent_level: "${indent_level}"
+            }
+            
+            RETURN {
+                value: {
+                    code: "AGENT data_processor {\n    description: \"An agent that processes data\"\n    capabilities: [\"data_loading\", \"data_transformation\", \"data_analysis\"]\n    \n    TASK load_data {\n        description: \"Load data from a source\"\n        \n        FUNCTION load_csv {\n            parameters: [\"file_path\", \"delimiter\"]\n            \n            ACTION {\n                type: \"load_csv\"\n                file_path: \"${file_path}\"\n                delimiter: \"${delimiter}\"\n            }\n            \n            RETURN {\n                value: {\n                    data: \"Loaded data would go here\"\n                }\n            }\n        }\n    }\n}"
+                }
+            }
+        }
+        
+        FUNCTION render_template {
+            parameters: ["template_name", "context"]
+            
+            ACTION {
+                type: "render_template"
+                template_name: "${template_name}"
+                context: "${context}"
+            }
+            
+            RETURN {
+                value: {
+                    rendered: "AGENT data_processor {\n    description: \"An agent that processes data\"\n    capabilities: [\"data_loading\", \"data_transformation\", \"data_analysis\"]\n    \n    TASK load_data {\n        description: \"Load data from a source\"\n        \n        FUNCTION load_csv {\n            parameters: [\"file_path\", \"delimiter\"]\n            \n            ACTION {\n                type: \"load_csv\"\n                file_path: \"${file_path}\"\n                delimiter: \"${delimiter}\"\n            }\n            \n            RETURN {\n                value: {\n                    data: \"Loaded data would go here\"\n                }\n            }\n        }\n    }\n}"
+                }
+            }
+        }
+        
+        FUNCTION validate_code {
+            parameters: ["code"]
+            
+            ACTION {
+                type: "validate_dsl"
+                code: "${code}"
+            }
+            
+            RETURN {
+                value: {
+                    valid: true,
+                    errors: []
+                }
+            }
+        }
+    }
+    
+    TASK generate_tests {
+        description: "Generate tests for DSL code"
+        
+        FUNCTION generate_test_case {
+            parameters: ["block"]
+            
+            ACTION {
+                type: "generate_test_case"
+                block: "${block}"
+            }
+            
+            RETURN {
+                value: {
+                    test_code: "// Test for data_processor agent\nCONFIG {\n    test_mode: true\n}\n\n// Test load_csv function\nTEST {\n    name: \"test_load_csv\"\n    \n    // Set up test data\n    VARIABLE test_file {\n        value: \"test_data.csv\"\n    }\n    \n    // Execute the function\n    ACTION {\n        type: \"execute\"\n        agent: \"data_processor\"\n        task: \"load_data\"\n        function: \"load_csv\"\n        parameters: {\n            file_path: \"${test_file.value}\",\n            delimiter: \",\"\n        }\n        output_variable: \"result\"\n    }\n    \n    // Assert the result\n    ASSERT {\n        condition: \"${result.value.data != null}\"\n        message: \"Data should not be null\"\n    }\n}"
+                }
+            }
+        }
+    }
+}
+
+// Main workflow
+TARS {
+    // Initialize the workflow
+    ACTION {
+        type: "log"
+        message: "Starting DSL code generation workflow"
+    }
+    
+    // Create output directory if it doesn't exist
+    ACTION {
+        type: "ensure_directory"
+        path: "${config.value.output_directory}"
+    }
+    
+    // Parse the specification
+    ACTION {
+        type: "log"
+        message: "Parsing specification file: ${config.value.specification_file}"
+    }
+    
+    VARIABLE spec {
+        value: {}
+    }
+    
+    // Determine the file format based on the extension
+    VARIABLE file_extension {
+        value: "${config.value.specification_file.substring(config.value.specification_file.lastIndexOf('.') + 1)}"
+    }
+    
+    IF {
+        condition: "${file_extension == 'json'}"
+        
+        ACTION {
+            type: "execute"
+            agent: "spec_parser"
+            task: "parse_specification"
+            function: "parse_json"
+            parameters: {
+                file_path: "${config.value.specification_file}"
+            }
+            output_variable: "spec"
+        }
+    }
+    ELSE IF {
+        condition: "${file_extension == 'yaml' || file_extension == 'yml'}"
+        
+        ACTION {
+            type: "execute"
+            agent: "spec_parser"
+            task: "parse_specification"
+            function: "parse_yaml"
+            parameters: {
+                file_path: "${config.value.specification_file}"
+            }
+            output_variable: "spec"
+        }
+    }
+    ELSE IF {
+        condition: "${file_extension == 'md' || file_extension == 'markdown'}"
+        
+        ACTION {
+            type: "execute"
+            agent: "spec_parser"
+            task: "parse_specification"
+            function: "parse_markdown"
+            parameters: {
+                file_path: "${config.value.specification_file}"
+            }
+            output_variable: "spec"
+        }
+    }
+    ELSE {
+        ACTION {
+            type: "log"
+            message: "Unsupported file format: ${file_extension}"
+            level: "error"
+        }
+    }
+    
+    // Generate code for each block
+    ACTION {
+        type: "log"
+        message: "Generating DSL code"
+    }
+    
+    VARIABLE generated_code {
+        value: ""
+    }
+    
+    FOR {
+        variable: "block"
+        range: "${spec.value.blocks}"
+        
+        VARIABLE block_code {
+            value: {}
+        }
+        
+        ACTION {
+            type: "execute"
+            agent: "code_generator"
+            task: "generate_code"
+            function: "generate_block"
+            parameters: {
+                block: "${block}",
+                indent_level: 0
+            }
+            output_variable: "block_code"
+        }
+        
+        // Append the block code to the generated code
+        ACTION {
+            type: "assign"
+            target: "generated_code.value"
+            value: "${generated_code.value}${block_code.value.code}\n\n"
+        }
+    }
+    
+    // Validate the generated code
+    ACTION {
+        type: "log"
+        message: "Validating generated code"
+    }
+    
+    VARIABLE validation_result {
+        value: {}
+    }
+    
+    ACTION {
+        type: "execute"
+        agent: "code_generator"
+        task: "generate_code"
+        function: "validate_code"
+        parameters: {
+            code: "${generated_code.value}"
+        }
+        output_variable: "validation_result"
+    }
+    
+    // Save the generated code if valid
+    IF {
+        condition: "${validation_result.value.valid}"
+        
+        ACTION {
+            type: "log"
+            message: "Saving generated code"
+        }
+        
+        ACTION {
+            type: "write_file"
+            path: "${config.value.output_directory}/generated.tars"
+            content: "${generated_code.value}"
+        }
+    }
+    ELSE {
+        ACTION {
+            type: "log"
+            message: "Generated code is not valid: ${validation_result.value.errors}"
+            level: "error"
+        }
+    }
+    
+    // Generate tests if requested
+    IF {
+        condition: "${config.value.generate_tests}"
+        
+        ACTION {
+            type: "log"
+            message: "Generating tests"
+        }
+        
+        VARIABLE generated_tests {
+            value: ""
+        }
+        
+        FOR {
+            variable: "block"
+            range: "${spec.value.blocks}"
+            
+            VARIABLE test_code {
+                value: {}
+            }
+            
+            ACTION {
+                type: "execute"
+                agent: "code_generator"
+                task: "generate_tests"
+                function: "generate_test_case"
+                parameters: {
+                    block: "${block}"
+                }
+                output_variable: "test_code"
+            }
+            
+            // Append the test code to the generated tests
+            ACTION {
+                type: "assign"
+                target: "generated_tests.value"
+                value: "${generated_tests.value}${test_code.value.test_code}\n\n"
+            }
+        }
+        
+        // Save the generated tests
+        ACTION {
+            type: "write_file"
+            path: "${config.value.output_directory}/generated_tests.tars"
+            content: "${generated_tests.value}"
+        }
+    }
+    
+    // Generate a summary report
+    ACTION {
+        type: "log"
+        message: "Generating summary report"
+    }
+    
+    VARIABLE summary_report {
+        value: "# DSL Code Generation Summary\n\n## Specification\n\nFile: ${config.value.specification_file}\n\n## Generated Files\n\n- ${config.value.output_directory}/generated.tars\n${config.value.generate_tests ? '- ' + config.value.output_directory + '/generated_tests.tars' : ''}\n\n## Validation\n\n${validation_result.value.valid ? 'All code is valid.' : 'Code validation failed: ' + validation_result.value.errors}\n\n## Statistics\n\n- Number of blocks: ${spec.value.blocks.length}\n- Generated code size: ${generated_code.value.length} characters\n${config.value.generate_tests ? '- Generated tests size: ' + generated_tests.value.length + ' characters' : ''}\n"
+    }
+    
+    ACTION {
+        type: "write_file"
+        path: "${config.value.output_directory}/summary.md"
+        content: "${summary_report.value}"
+    }
+    
+    // Log completion
+    ACTION {
+        type: "log"
+        message: "DSL code generation workflow completed"
+    }
+}

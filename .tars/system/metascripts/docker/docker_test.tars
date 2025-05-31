@@ -1,0 +1,83 @@
+DESCRIBE {
+    name: "Docker Test"
+    version: "1.0"
+    description: "A simple test of Docker integration in TARS DSL"
+    author: "TARS Team"
+    date: "2025-04-21"
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.7
+    max_tokens: 1000
+}
+
+// Log the start of Docker operations
+ACTION {
+    type: "log"
+    message: "Starting Docker test"
+}
+
+// Check if Docker is running
+ACTION {
+    type: "docker_check"
+    result_variable: "docker_status"
+}
+
+// Display Docker status
+ACTION {
+    type: "log"
+    message: "Docker status: ${docker_status}"
+}
+
+// Create Docker network if it doesn't exist
+ACTION {
+    type: "docker_network_create"
+    network_name: "tars-test-network"
+    result_variable: "network_result"
+}
+
+// Log the network creation result
+ACTION {
+    type: "log"
+    message: "Network creation result: ${network_result}"
+}
+
+// Run a simple Docker container
+ACTION {
+    type: "docker_run"
+    image: "hello-world"
+    result_variable: "run_result"
+}
+
+// Log the run result
+ACTION {
+    type: "log"
+    message: "Docker run result: ${run_result}"
+}
+
+// Wait for a moment
+ACTION {
+    type: "wait"
+    seconds: 2
+}
+
+// Cleanup Docker resources
+ACTION {
+    type: "docker_cleanup"
+    containers: true
+    networks: false
+    result_variable: "cleanup_result"
+}
+
+// Log the cleanup result
+ACTION {
+    type: "log"
+    message: "Docker cleanup result: ${cleanup_result}"
+}
+
+// Final message
+ACTION {
+    type: "log"
+    message: "Docker test completed"
+}

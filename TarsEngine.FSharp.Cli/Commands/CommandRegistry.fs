@@ -1,16 +1,18 @@
 ﻿namespace TarsEngine.FSharp.Cli.Commands
 
 open System.Collections.Generic
+open Microsoft.Extensions.Logging
 open TarsEngine.FSharp.Cli.Services
-open TarsEngine.FSharp.Metascripts.Services
 
 /// <summary>
 /// Registry for commands with separate metascript engine.
 /// </summary>
 type CommandRegistry(
-    metascriptService: IMetascriptService,
     intelligenceService: IntelligenceService,
-    mlService: MLService) =
+    mlService: MLService,
+    dockerService: DockerService,
+    mixtralService: MixtralService,
+    llmRouter: LLMRouter) =
     
     let commands = Dictionary<string, ICommand>()
     
@@ -40,31 +42,45 @@ type CommandRegistry(
     member this.RegisterDefaultCommands() =
         // Core commands
         let versionCommand = VersionCommand()
-        let improveCommand = ImproveCommand()
-        
-        // Development commands
-        let compileCommand = CompileCommand()
-        let runCommand = RunCommand()
-        let testCommand = TestCommand()
-        let analyzeCommand = AnalyzeCommand()
-        
-        // Metascript commands (using separate engine)
-        let metascriptListCommand = MetascriptListCommand(metascriptService)
-        
-        // Advanced commands (using CLI services)
-        let intelligenceCommand = IntelligenceCommand(intelligenceService)
-        let mlCommand = MLCommand(mlService)
-        
-        // Register all commands
+
+        // Metascript commands (standalone implementation)
+        let loggerFactory = LoggerFactory.Create(fun builder -> builder.AddConsole() |> ignore)
+        let executeLogger = loggerFactory.CreateLogger<ExecuteCommand>()
+        let yamlLogger = loggerFactory.CreateLogger<YamlProcessingService>()
+        let fileLogger = loggerFactory.CreateLogger<FileOperationsService>()
+
+        let yamlService = YamlProcessingService(yamlLogger)
+        let fileService = FileOperationsService(fileLogger)
+        let executeCommand = ExecuteCommand(executeLogger, yamlService, fileService)
+
+        // Swarm command
+        let swarmLogger = loggerFactory.CreateLogger<SwarmCommand>()
+        let swarmCommand = SwarmCommand(swarmLogger, dockerService)
+
+        // Mixtral command
+        let mixtralLogger = loggerFactory.CreateLogger<MixtralCommand>()
+        let mixtralCommand = MixtralCommand(mixtralLogger, mixtralService, llmRouter)
+
+        // Simple Transformer command
+        let transformerLogger = loggerFactory.CreateLogger<SimpleTransformerCommand>()
+        let transformerCommand = SimpleTransformerCommand(transformerLogger)
+
+        // Mixture of Experts command
+        let moeLogger = loggerFactory.CreateLogger<MixtureOfExpertsCommand>()
+        let moeCommand = MixtureOfExpertsCommand(moeLogger)
+
+        // Chatbot command
+        let chatbotLogger = loggerFactory.CreateLogger<ChatbotCommand>()
+        let chatbotCommand = ChatbotCommand(chatbotLogger, moeCommand)
+
+        // Register working commands
         this.RegisterCommand(versionCommand)
-        this.RegisterCommand(improveCommand)
-        this.RegisterCommand(compileCommand)
-        this.RegisterCommand(runCommand)
-        this.RegisterCommand(testCommand)
-        this.RegisterCommand(analyzeCommand)
-        this.RegisterCommand(metascriptListCommand)
-        this.RegisterCommand(intelligenceCommand)
-        this.RegisterCommand(mlCommand)
+        this.RegisterCommand(executeCommand)
+        this.RegisterCommand(swarmCommand)
+        this.RegisterCommand(mixtralCommand)
+        this.RegisterCommand(transformerCommand)
+        this.RegisterCommand(moeCommand)
+        this.RegisterCommand(chatbotCommand)
         
         // Create help command with all commands (must be last)
         let allCommands = this.GetAllCommands()

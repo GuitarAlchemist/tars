@@ -1,0 +1,98 @@
+DESCRIBE {
+    name: "Docker Integration Example"
+    version: "1.0"
+    description: "A demonstration of Docker integration in TARS DSL"
+    author: "TARS Team"
+    date: "2025-04-21"
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.7
+    max_tokens: 1000
+}
+
+// Define Docker-related variables
+VARIABLE docker_image {
+    value: "tars-metascript-runner:latest"
+}
+
+VARIABLE docker_network {
+    value: "tars-network"
+}
+
+VARIABLE metascript_path {
+    value: "./Examples/metascripts/simple_demo.tars"
+}
+
+// Log the start of Docker operations
+ACTION {
+    type: "log"
+    message: "Starting Docker integration for metascript execution"
+}
+
+// Check if Docker is running
+ACTION {
+    type: "docker_check"
+    result_variable: "docker_status"
+}
+
+// Display Docker status
+ACTION {
+    type: "log"
+    message: "Docker status: ${docker_status}"
+}
+
+// Create Docker network if it doesn't exist
+ACTION {
+    type: "docker_network_create"
+    network_name: "${docker_network}"
+    result_variable: "network_result"
+}
+
+// Build Docker image for metascript execution
+ACTION {
+    type: "docker_build"
+    dockerfile: "./docker/Dockerfile.metascript"
+    tag: "${docker_image}"
+    context: "."
+    result_variable: "build_result"
+}
+
+// Log the build result
+ACTION {
+    type: "log"
+    message: "Docker build result: ${build_result}"
+}
+
+// Run metascript in Docker container
+ACTION {
+    type: "docker_run"
+    image: "${docker_image}"
+    network: "${docker_network}"
+    volumes: [
+        "./Examples/metascripts:/app/metascripts"
+    ]
+    command: "metascript execute ${metascript_path}"
+    result_variable: "execution_result"
+}
+
+// Log the execution result
+ACTION {
+    type: "log"
+    message: "Metascript execution result: ${execution_result}"
+}
+
+// Cleanup Docker resources
+ACTION {
+    type: "docker_cleanup"
+    containers: true
+    networks: false
+    result_variable: "cleanup_result"
+}
+
+// Final message
+ACTION {
+    type: "log"
+    message: "Docker integration demonstration completed"
+}

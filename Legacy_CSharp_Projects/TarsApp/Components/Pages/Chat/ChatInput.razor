@@ -1,0 +1,53 @@
+@inject IJSRuntime JS
+
+<EditForm Model="@this" OnValidSubmit="@SendMessageAsync">
+    <MudPaper Elevation="0" Class="d-flex align-center pa-2 rounded">
+        <MudTextField @ref="mudTextField" 
+                     @bind-Value="@messageText" 
+                     Placeholder="Type your message..." 
+                     Variant="Variant.Outlined"
+                     Disabled="@IsWaiting"
+                     Immediate="true"
+                     FullWidth="true"
+                     Adornment="Adornment.End" 
+                     AdornmentIcon="@Icons.Material.Filled.Send"
+                     AdornmentColor="Color.Primary"
+                     OnAdornmentClick="@SendMessageAsync"
+                     Class="mr-2" />
+                     
+        @if (IsWaiting)
+        {
+            <MudProgressCircular Color="Color.Primary" Size="Size.Small" Indeterminate="true" />
+        }
+    </MudPaper>
+</EditForm>
+
+@code {
+    private MudTextField<string>? mudTextField;
+    private string messageText = "";
+
+    [Parameter]
+    public bool IsWaiting { get; set; }
+
+    [Parameter]
+    public EventCallback<ChatMessage> OnSend { get; set; }
+
+    public async Task FocusAsync() 
+    {
+        if (mudTextField != null)
+            await mudTextField.FocusAsync();
+    }
+
+    private async Task SendMessageAsync()
+    {
+        if (string.IsNullOrWhiteSpace(messageText) || IsWaiting)
+            return;
+
+        var message = messageText;
+        messageText = "";
+        
+        await OnSend.InvokeAsync(new ChatMessage(ChatRole.User, message));
+        await Task.Delay(10); // Give the UI time to update
+        await mudTextField!.FocusAsync();
+    }
+}

@@ -1,0 +1,40 @@
+DESCRIBE {
+    name: "Real Execution Demo"
+    version: "1.0"
+    description: "Demonstrates real metascript execution capabilities"
+}
+
+VARIABLE project_name {
+    value: "TARS_F#_Demo"
+}
+
+VARIABLE timestamp {
+    value: "$(Get-Date)"
+}
+
+ACTION {
+    type: "log"
+    message: "Starting real execution demo for: ${project_name}"
+}
+
+FSHARP {
+    open System
+    open System.IO
+    
+    let projectName = "TARS_F#_Demo"
+    let timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
+    
+    // Create demo output
+    let demoDir = "demo_phase1/output"
+    Directory.CreateDirectory(demoDir) |> ignore
+    
+    let content = sprintf "# %s\n\nGenerated: %s\nBy: TARS F# Real Execution Engine" projectName timestamp
+    File.WriteAllText(Path.Combine(demoDir, "demo_output.md"), content)
+    
+    sprintf "Real F# execution completed! Output created in: %s" demoDir
+}
+
+ACTION {
+    type: "log"
+    message: "Demo completed: ${_last_result}"
+}

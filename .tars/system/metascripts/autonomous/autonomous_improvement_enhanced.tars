@@ -1,0 +1,427 @@
+DESCRIBE {
+    name: "Autonomous Improvement (Enhanced)"
+    version: "1.0"
+    author: "Augment Code & TARS Collaboration"
+    description: "An enhanced metascript for autonomous improvement of TARS documentation and codebase"
+    tags: ["autonomous", "improvement", "documentation", "codebase"]
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.3
+    max_tokens: 4000
+    backup_before_changes: true
+    max_improvements: 5
+}
+
+// Define paths to important directories
+VARIABLE exploration_dirs {
+    value: [
+        "docs/Explorations/v1/Chats",
+        "docs/Explorations/Reflections"
+    ]
+}
+
+VARIABLE target_dirs {
+    value: [
+        "TarsCli/Services",
+        "TarsCli/Commands",
+        "TarsCli/Models"
+    ]
+}
+
+VARIABLE knowledge_base_file {
+    value: "knowledge_base.json"
+}
+
+VARIABLE report_file {
+    value: "autonomous_improvement_report.md"
+}
+
+VARIABLE backup_dir {
+    value: "backups/autonomous_improvement"
+}
+
+// Log the start of the process
+ACTION {
+    type: "log"
+    message: "Starting Autonomous Improvement Process"
+}
+
+// Check if Docker is running
+ACTION {
+    type: "docker_check"
+    result_variable: "docker_status"
+}
+
+// Display Docker status
+ACTION {
+    type: "log"
+    message: "Docker status: ${docker_status}"
+}
+
+// Create Docker network if it doesn't exist
+ACTION {
+    type: "docker_network_create"
+    network_name: "tars-autonomous-improvement"
+    result_variable: "network_result"
+}
+
+// Log the network creation result
+ACTION {
+    type: "log"
+    message: "Network creation result: ${network_result}"
+}
+
+// Create backup directory if it doesn't exist
+ACTION {
+    type: "shell_execute"
+    command: "mkdir -p ${backup_dir}"
+    result_variable: "mkdir_result"
+}
+
+// Phase 1: Knowledge Extraction
+ACTION {
+    type: "log"
+    message: "Phase 1: Knowledge Extraction - Processing exploration directories"
+}
+
+// Process the first exploration directory
+ACTION {
+    type: "log"
+    message: "Processing directory: ${exploration_dirs[0]}"
+}
+
+// Get markdown files from the first exploration directory
+ACTION {
+    type: "get_files"
+    directory: "${exploration_dirs[0]}"
+    pattern: "*.md"
+    recursive: true
+    result_variable: "markdown_files_1"
+}
+
+ACTION {
+    type: "log"
+    message: "Found ${markdown_files_1.length} markdown files in ${exploration_dirs[0]}"
+}
+
+// Process the second exploration directory
+ACTION {
+    type: "log"
+    message: "Processing directory: ${exploration_dirs[1]}"
+}
+
+// Get markdown files from the second exploration directory
+ACTION {
+    type: "get_files"
+    directory: "${exploration_dirs[1]}"
+    pattern: "*.md"
+    recursive: true
+    result_variable: "markdown_files_2"
+}
+
+ACTION {
+    type: "log"
+    message: "Found ${markdown_files_2.length} markdown files in ${exploration_dirs[1]}"
+}
+
+// Extract knowledge from a sample file (if available)
+IF {
+    condition: "${markdown_files_1.length > 0}"
+    then: {
+        // Read the first markdown file
+        ACTION {
+            type: "file_read"
+            path: "${markdown_files_1[0]}"
+            result_variable: "file_content"
+        }
+
+        ACTION {
+            type: "log"
+            message: "Extracting knowledge from: ${markdown_files_1[0]}"
+        }
+
+        // Create a prompt for knowledge extraction
+        VARIABLE prompt_text {
+            value: "You are an expert at extracting structured knowledge from documentation.
+
+I'll provide you with the content of a markdown file from the TARS project. Please extract key knowledge, concepts, and insights from this document.
+
+Focus on:
+1. Key concepts and their definitions
+2. Important insights and conclusions
+3. Technical details and specifications
+4. Design decisions and rationales
+5. Relationships between concepts
+
+Here's the content:
+
+${file_content}
+
+Please provide your extracted knowledge in the following JSON format:
+{
+  \"title\": \"The title of the document\",
+  \"summary\": \"A concise summary of the document\",
+  \"key_concepts\": [
+    {
+      \"name\": \"Concept name\",
+      \"definition\": \"Concept definition\",
+      \"related_concepts\": [\"Related concept 1\", \"Related concept 2\"]
+    }
+  ],
+  \"insights\": [
+    {
+      \"description\": \"Description of the insight\",
+      \"importance\": \"Why this insight is important\",
+      \"applications\": [\"Application 1\", \"Application 2\"]
+    }
+  ],
+  \"technical_details\": [
+    {
+      \"topic\": \"Topic name\",
+      \"details\": \"Technical details\",
+      \"code_examples\": [\"Example 1\", \"Example 2\"]
+    }
+  ],
+  \"design_decisions\": [
+    {
+      \"decision\": \"The decision made\",
+      \"rationale\": \"Why this decision was made\",
+      \"alternatives\": [\"Alternative 1\", \"Alternative 2\"]
+    }
+  ],
+  \"relationships\": [
+    {
+      \"from\": \"Concept A\",
+      \"to\": \"Concept B\",
+      \"relationship\": \"How A relates to B\"
+    }
+  ]
+}
+
+Focus on extracting the most valuable knowledge from this document."
+        }
+
+        // Get the extracted knowledge from the LLM
+        PROMPT {
+            text: "${prompt_text}"
+            model: "llama3"
+            temperature: 0.3
+            max_tokens: 4000
+            result_variable: "knowledge_extraction_result"
+        }
+
+        // Save the extracted knowledge to a file
+        ACTION {
+            type: "file_write"
+            path: "${knowledge_base_file}"
+            content: "${knowledge_extraction_result}"
+        }
+
+        ACTION {
+            type: "log"
+            message: "Knowledge extracted and saved to ${knowledge_base_file}"
+        }
+    }
+    else: {
+        ACTION {
+            type: "log"
+            message: "No markdown files found in exploration directories"
+        }
+    }
+}
+
+// Phase 2: Code Analysis
+ACTION {
+    type: "log"
+    message: "Phase 2: Code Analysis - Processing target directories"
+}
+
+// Process the first target directory
+ACTION {
+    type: "log"
+    message: "Processing directory: ${target_dirs[0]}"
+}
+
+// Get C# files from the first target directory
+ACTION {
+    type: "get_files"
+    directory: "${target_dirs[0]}"
+    pattern: "*.cs"
+    recursive: true
+    result_variable: "cs_files_1"
+}
+
+ACTION {
+    type: "log"
+    message: "Found ${cs_files_1.length} C# files in ${target_dirs[0]}"
+}
+
+// Analyze a sample file (if available)
+IF {
+    condition: "${cs_files_1.length > 0}"
+    then: {
+        // Read the first C# file
+        ACTION {
+            type: "file_read"
+            path: "${cs_files_1[0]}"
+            result_variable: "file_content"
+        }
+
+        ACTION {
+            type: "log"
+            message: "Analyzing code file: ${cs_files_1[0]}"
+        }
+
+        // Create a backup of the file
+        ACTION {
+            type: "file_write"
+            path: "${backup_dir}/${cs_files_1[0].replace(/\//g, '_').replace(/\\/g, '_')}.bak"
+            content: "${file_content}"
+        }
+
+        // Read the knowledge base
+        ACTION {
+            type: "file_read"
+            path: "${knowledge_base_file}"
+            result_variable: "knowledge_base"
+        }
+
+        // Create a prompt for code improvement
+        VARIABLE improvement_prompt {
+            value: "You are an expert at improving code by applying knowledge from a knowledge base.
+
+I'll provide you with:
+1. The content of a C# file from the TARS project
+2. Knowledge extracted from TARS documentation
+
+Your task is to improve the file by applying relevant knowledge from the knowledge base. This could involve:
+- Adding comments to explain concepts or design decisions
+- Improving variable or function names based on standard terminology
+- Adding documentation that references key concepts
+- Restructuring code to better align with design principles
+- Adding references to related concepts or components
+
+Here's the file content:
+
+```csharp
+${file_content}
+```
+
+Here's the knowledge base:
+
+${knowledge_base}
+
+Please provide your improved version of the file. If you make changes, explain each change and how it applies knowledge from the knowledge base.
+
+If the file doesn't need improvement or the knowledge isn't relevant, just say so."
+        }
+
+        // Get the improved code from the LLM
+        PROMPT {
+            text: "${improvement_prompt}"
+            model: "llama3"
+            temperature: 0.3
+            max_tokens: 4000
+            result_variable: "improvement_result"
+        }
+
+        // Extract the improved code (if any)
+        VARIABLE improved_code {
+            value: "${improvement_result.match(/```(?:csharp)?\s*([\\s\\S]*?)```/)?.[1] || ''}"
+        }
+
+        // Check if the code was actually improved
+        IF {
+            condition: "${improved_code.length > 0 && improved_code !== file_content}"
+            then: {
+                // Write the improved code back to the file
+                ACTION {
+                    type: "file_write"
+                    path: "${cs_files_1[0]}"
+                    content: "${improved_code}"
+                }
+
+                ACTION {
+                    type: "log"
+                    message: "File improved: ${cs_files_1[0]}"
+                }
+            }
+            else: {
+                ACTION {
+                    type: "log"
+                    message: "No improvements needed for: ${cs_files_1[0]}"
+                }
+            }
+        }
+    }
+    else: {
+        ACTION {
+            type: "log"
+            message: "No C# files found in target directories"
+        }
+    }
+}
+
+// Phase 3: Generate Report
+ACTION {
+    type: "log"
+    message: "Phase 3: Generating Improvement Report"
+}
+
+// Create a report
+VARIABLE report_content {
+    value: "# Autonomous Improvement Report
+
+## Summary
+
+This report summarizes the autonomous improvement process run on the TARS codebase.
+
+## Knowledge Extraction
+
+Exploration directories processed:
+- ${exploration_dirs[0]}
+- ${exploration_dirs[1]}
+
+## Code Analysis and Improvement
+
+Target directories processed:
+- ${target_dirs[0]}
+- ${target_dirs[1]}
+- ${target_dirs[2]}
+
+## Docker Integration
+
+- Docker Status: ${docker_status}
+- Network Creation: ${network_result}
+
+## Next Steps
+
+1. Review the improved files to ensure the changes are appropriate
+2. Run the improvement process again to continue improving more files
+3. Consider extracting additional knowledge from new exploration files
+
+## Backup Information
+
+Backups of modified files are stored in: ${backup_dir}
+"
+}
+
+// Save the report
+ACTION {
+    type: "file_write"
+    path: "${report_file}"
+    content: "${report_content}"
+}
+
+ACTION {
+    type: "log"
+    message: "Report generated: ${report_file}"
+}
+
+// Final message
+ACTION {
+    type: "log"
+    message: "Autonomous Improvement process completed successfully"
+}

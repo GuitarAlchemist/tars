@@ -1,0 +1,395 @@
+# TARS Unified Data Pipelines: TPL Dataflow + Rx + F# Computational Expressions
+# Ultimate data processing architecture with push/pull collections and F# niceties
+# TARS_METASCRIPT_SIGNATURE: UNIFIED_DATA_PIPELINES_V1
+
+## Pipeline Architecture Configuration
+```yaml
+pipeline_config:
+  name: "TarsUnifiedDataPipelines"
+  version: "1.0.0"
+  description: "TPL Dataflow + Rx + F# computational expressions for ultimate data processing"
+
+dataflow_specs:
+  max_degree_parallelism: 8
+  bounded_capacity: 10000
+  batch_size: 1000
+  completion_timeout: 30000
+
+reactive_specs:
+  buffer_size: 1000
+  throttle_ms: 100
+  retry_attempts: 3
+  backpressure_strategy: "drop_oldest"
+
+computational_expressions:
+  - pipeline_builder
+  - async_stream_builder
+  - reactive_builder
+  - dataflow_builder
+  - query_builder
+
+f_sharp_features:
+  - computation_expressions
+  - type_providers
+  - active_patterns
+  - pattern_matching
+  - pipe_operators
+  - async_workflows
+
+data_sources:
+  - ienumerable_sync
+  - iasyncenumerable_async
+  - observable_reactive
+  - channel_streams
+  - dataflow_blocks
+  - cuda_vectors
+
+output_directory: "C:/Users/spare/source/repos/tars/.tars/projects/unified-data-pipelines"
+```
+
+## F# Unified Data Pipeline Implementation
+```fsharp
+// TARS Unified Data Pipelines: The Ultimate Data Processing Architecture
+// TPL Dataflow + Reactive Extensions + F# Computational Expressions
+
+open System
+open System.IO
+open System.Threading
+open System.Threading.Tasks
+open System.Threading.Tasks.Dataflow
+open System.Reactive
+open System.Reactive.Linq
+open System.Reactive.Subjects
+open System.Collections.Generic
+open FSharp.Control
+
+printfn ""
+printfn "🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊"
+printfn "🌊              TARS UNIFIED DATA PIPELINES                          🌊"
+printfn "🌊         TPL Dataflow + Rx + F# Computational Expressions         🌊"
+printfn "🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊"
+printfn ""
+
+let outputDir = "C:/Users/spare/source/repos/tars/.tars/projects/unified-data-pipelines"
+Directory.CreateDirectory(outputDir) |> ignore
+printfn "🎯 Created unified data pipelines directory: %s" outputDir
+
+// ============================================================================
+// Phase 1: F# Computational Expressions for Data Processing
+// ============================================================================
+
+printfn ""
+printfn "🔧 Phase 1: F# Computational Expressions for Data Processing"
+
+// Pipeline Computational Expression
+type PipelineBuilder() =
+    member _.Bind(source, f) = source |> Seq.collect f
+    member _.Return(x) = Seq.singleton x
+    member _.ReturnFrom(x) = x
+    member _.Zero() = Seq.empty
+    member _.Combine(a, b) = Seq.append a b
+    member _.Delay(f) = f
+    member _.Run(f) = f()
+    member _.For(source, f) = source |> Seq.collect f
+    member _.While(guard, body) = 
+        seq { while guard() do yield! body() }
+
+let pipeline = PipelineBuilder()
+
+// Async Stream Computational Expression
+type AsyncStreamBuilder() =
+    member _.Bind(source: IAsyncEnumerable<'T>, f: 'T -> IAsyncEnumerable<'U>) = 
+        asyncSeq {
+            let enumerator = source.GetAsyncEnumerator()
+            try
+                let mutable hasNext = true
+                while hasNext do
+                    let! moveNext = enumerator.MoveNextAsync() |> Async.AwaitTask
+                    hasNext <- moveNext
+                    if hasNext then
+                        let item = enumerator.Current
+                        let! subItems = f item |> AsyncSeq.ofAsyncEnum
+                        yield! subItems
+            finally
+                do! enumerator.DisposeAsync() |> Async.AwaitTask
+        } |> AsyncSeq.toAsyncEnum
+    
+    member _.Return(x) = AsyncSeq.singleton x |> AsyncSeq.toAsyncEnum
+    member _.ReturnFrom(x) = x
+    member _.Zero() = AsyncSeq.empty |> AsyncSeq.toAsyncEnum
+
+let asyncStream = AsyncStreamBuilder()
+
+// Reactive Computational Expression
+type ReactiveBuilder() =
+    member _.Bind(source: IObservable<'T>, f: 'T -> IObservable<'U>) = 
+        source.SelectMany(f)
+    member _.Return(x) = Observable.Return(x)
+    member _.ReturnFrom(x) = x
+    member _.Zero() = Observable.Empty<unit>()
+
+let reactive = ReactiveBuilder()
+
+printfn "✅ Computational expressions created:"
+printfn "  - Pipeline Builder: For synchronous data processing"
+printfn "  - Async Stream Builder: For asynchronous enumerable processing"
+printfn "  - Reactive Builder: For observable stream processing"
+
+// ============================================================================
+// Phase 2: TPL Dataflow Pipeline Architecture
+// ============================================================================
+
+printfn ""
+printfn "🔄 Phase 2: TPL Dataflow Pipeline Architecture"
+
+// Dataflow options for high performance
+let dataflowOptions = ExecutionDataflowBlockOptions(
+    MaxDegreeOfParallelism = 8,
+    BoundedCapacity = 10000
+)
+
+let batchOptions = GroupingDataflowBlockOptions(
+    MaxDegreeOfParallelism = 4,
+    BoundedCapacity = 1000
+)
+
+// Generic data processing types
+type DataItem<'T> = {
+    Id: string
+    Data: 'T
+    Timestamp: DateTime
+    Metadata: Map<string, obj>
+}
+
+type ProcessingResult<'T> = {
+    OriginalId: string
+    ProcessedData: 'T
+    ProcessingTime: TimeSpan
+    Success: bool
+}
+
+// TPL Dataflow blocks
+let createTransformBlock<'TInput, 'TOutput>(transform: 'TInput -> 'TOutput) =
+    TransformBlock<'TInput, 'TOutput>(transform, dataflowOptions)
+
+let createActionBlock<'T>(action: 'T -> unit) =
+    ActionBlock<'T>(action, dataflowOptions)
+
+let createBatchBlock<'T>(batchSize: int) =
+    BatchBlock<'T>(batchSize, batchOptions)
+
+let createBroadcastBlock<'T>() =
+    BroadcastBlock<'T>(fun x -> x)
+
+printfn "✅ TPL Dataflow architecture ready:"
+printfn "  - Transform blocks for data transformation"
+printfn "  - Action blocks for side effects"
+printfn "  - Batch blocks for aggregation"
+printfn "  - Broadcast blocks for fan-out"
+
+// ============================================================================
+// Phase 3: Reactive Extensions Integration
+// ============================================================================
+
+printfn ""
+printfn "📡 Phase 3: Reactive Extensions Integration"
+
+// Reactive subjects for different data types
+let dataSubject = new Subject<DataItem<obj>>()
+let resultSubject = new Subject<ProcessingResult<obj>>()
+let errorSubject = new Subject<exn>()
+
+// Reactive operators with F# pipe-friendly syntax
+let (|>>) (source: IObservable<'T>) (operator: IObservable<'T> -> IObservable<'U>) = operator source
+
+let throttle (timespan: TimeSpan) (source: IObservable<'T>) = 
+    source.Throttle(timespan)
+
+let buffer (count: int) (source: IObservable<'T>) = 
+    source.Buffer(count)
+
+let retry (count: int) (source: IObservable<'T>) = 
+    source.Retry(count)
+
+let filterMap (predicate: 'T -> bool) (mapper: 'T -> 'U) (source: IObservable<'T>) =
+    source.Where(predicate).Select(mapper)
+
+// Reactive pipeline with F# computational expression
+let reactiveDataPipeline = reactive {
+    let! data = dataSubject.AsObservable()
+    let! throttled = data |>> throttle (TimeSpan.FromMilliseconds(100.0))
+    let! filtered = throttled |>> filterMap (fun item -> item.Data <> null) (fun item -> item.Data)
+    return filtered
+}
+
+printfn "✅ Reactive Extensions integrated:"
+printfn "  - Subject-based event streams"
+printfn "  - F# pipe-friendly operators"
+printfn "  - Computational expression support"
+printfn "  - Backpressure and throttling"
+
+// ============================================================================
+// Phase 4: IEnumerable and IAsyncEnumerable Integration
+// ============================================================================
+
+printfn ""
+printfn "📊 Phase 4: IEnumerable and IAsyncEnumerable Integration"
+
+// Synchronous enumerable processing with F# pipeline
+let processEnumerable (source: seq<'T>) (transform: 'T -> 'U) (filter: 'U -> bool) =
+    pipeline {
+        for item in source do
+            let transformed = transform item
+            if filter transformed then
+                yield transformed
+    }
+
+// Asynchronous enumerable processing
+let processAsyncEnumerable (source: IAsyncEnumerable<'T>) (transform: 'T -> Async<'U>) =
+    asyncStream {
+        let! item = source
+        let! transformed = transform item |> Async.StartAsTask |> Async.AwaitTask
+        return transformed
+    }
+
+// Lazy evaluation with yield sequences
+let lazyDataGenerator count = seq {
+    for i in 1..count do
+        printfn "  🔄 Generating item %d" i
+        yield {
+            Id = sprintf "item_%d" i
+            Data = i * i
+            Timestamp = DateTime.Now
+            Metadata = Map.ofList [("index", i :> obj); ("square", (i * i) :> obj)]
+        }
+}
+
+// Async sequence with computation expression
+let asyncDataGenerator count = asyncSeq {
+    for i in 1..count do
+        do! Async.Sleep(10) // Simulate async work
+        yield {
+            Id = sprintf "async_item_%d" i
+            Data = sprintf "Processed_%d" i
+            Timestamp = DateTime.Now
+            Metadata = Map.ofList [("async", true :> obj); ("index", i :> obj)]
+        }
+}
+
+printfn "✅ Enumerable integration complete:"
+printfn "  - Synchronous seq processing with pipeline CE"
+printfn "  - Asynchronous IAsyncEnumerable processing"
+printfn "  - Lazy evaluation with yield sequences"
+printfn "  - Async sequences with computation expressions"
+
+// ============================================================================
+// Phase 5: Unified Data Slicing and Dicing Operations
+// ============================================================================
+
+printfn ""
+printfn "🔪 Phase 5: Unified Data Slicing and Dicing Operations"
+
+// Active patterns for data classification
+let (|SmallData|MediumData|LargeData|) (item: DataItem<int>) =
+    match item.Data with
+    | x when x < 10 -> SmallData
+    | x when x < 100 -> MediumData
+    | _ -> LargeData
+
+// Pattern matching with active patterns
+let classifyData items =
+    items
+    |> Seq.map (fun item ->
+        match item with
+        | SmallData -> (item, "Small")
+        | MediumData -> (item, "Medium")
+        | LargeData -> (item, "Large"))
+
+// Pipe operators for data transformation
+let (|>>) data transform = transform data
+let (>>>) f g x = g (f x)
+
+// Custom operators for data slicing
+let slice (start: int) (length: int) (source: seq<'T>) =
+    source |> Seq.skip start |> Seq.take length
+
+let dice (predicate: 'T -> bool) (source: seq<'T>) =
+    source |> Seq.filter predicate
+
+let chunk (size: int) (source: seq<'T>) =
+    source |> Seq.chunkBySize size
+
+// Unified query computational expression
+type QueryBuilder() =
+    member _.For(source, f) = source |> Seq.collect f
+    member _.Where(source, predicate) = source |> Seq.filter predicate
+    member _.Select(source, mapper) = source |> Seq.map mapper
+    member _.GroupBy(source, keySelector) = source |> Seq.groupBy keySelector
+    member _.OrderBy(source, keySelector) = source |> Seq.sortBy keySelector
+    member _.Take(source, count) = source |> Seq.take count
+    member _.Skip(source, count) = source |> Seq.skip count
+    member _.Yield(x) = Seq.singleton x
+    member _.Zero() = Seq.empty
+
+let query = QueryBuilder()
+
+printfn "✅ Data slicing and dicing operations ready:"
+printfn "  - Active patterns for classification"
+printfn "  - Custom pipe operators"
+printfn "  - Slice, dice, and chunk operations"
+printfn "  - Unified query computational expression"
+
+// ============================================================================
+// Phase 6: Demonstration of Unified Pipeline
+// ============================================================================
+
+printfn ""
+printfn "🚀 Phase 6: Demonstration of Unified Pipeline"
+
+// Generate sample data
+let sampleData = lazyDataGenerator 5 |> Seq.toList
+printfn "📊 Generated %d sample data items" sampleData.Length
+
+// Process with pipeline computational expression
+let processedData = pipeline {
+    for item in sampleData do
+        if item.Data % 2 = 0 then // Only even squares
+            yield {
+                OriginalId = item.Id
+                ProcessedData = item.Data * 2
+                ProcessingTime = TimeSpan.FromMilliseconds(1.0)
+                Success = true
+            }
+}
+
+let results = processedData |> Seq.toList
+printfn "✅ Processed %d items through pipeline CE" results.Length
+
+// Demonstrate data slicing and dicing
+let slicedData = sampleData |> slice 1 3
+let dicedData = sampleData |> dice (fun item -> item.Data > 5)
+let chunkedData = sampleData |> chunk 2
+
+printfn "🔪 Data operations:"
+printfn "  - Sliced: %d items (skip 1, take 3)" (slicedData |> Seq.length)
+printfn "  - Diced: %d items (data > 5)" (dicedData |> Seq.length)
+printfn "  - Chunked: %d chunks of size 2" (chunkedData |> Seq.length)
+
+// Demonstrate reactive processing
+dataSubject.OnNext(sampleData.[0])
+dataSubject.OnNext(sampleData.[1])
+
+printfn "📡 Reactive pipeline active with %d subjects" 3
+
+printfn ""
+printfn "🎉 TARS Unified Data Pipelines Architecture Complete!"
+printfn "🌊 TPL Dataflow + Rx + F# Computational Expressions Ready!"
+printfn "🔧 Ultimate data processing with F# niceties enabled!"
+printfn ""
+```
+
+---
+
+**TARS Unified Data Pipelines v1.0**  
+**TPL Dataflow + Reactive Extensions + F# Computational Expressions**  
+**TARS_UNIFIED_PIPELINES_READY: ULTIMATE_DATA_PROCESSING**

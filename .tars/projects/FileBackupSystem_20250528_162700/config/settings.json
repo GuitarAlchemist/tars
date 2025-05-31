@@ -1,0 +1,20 @@
+{
+  "project": {
+    "name": "FileBackupSystem",
+    "version": "1.0.0",
+    "environment": "development"
+  },
+  "backup": {
+    "compression": true,
+    "encryption": false,
+    "retention_days": 30
+  },
+  "logging": {
+    "level": "Info",
+    "output": "logs/backup.log"
+  },
+  "performance": {
+    "timeout_ms": 30000,
+    "max_file_size_mb": 1024
+  }
+}

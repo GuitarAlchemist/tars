@@ -1,0 +1,36 @@
+DESCRIBE {
+    name: "Real Execution Test"
+    version: "1.0"
+    description: "Test real metascript execution"
+}
+
+VARIABLE test_message {
+    value: "Hello from real TARS execution!"
+}
+
+ACTION {
+    type: "log"
+    message: "Starting real execution test..."
+}
+
+FSHARP {
+    open System
+    open System.IO
+    
+    let message = "Real F# code execution working!"
+    let timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
+    
+    // Create test output
+    let outputDir = "output/real_execution_test"
+    Directory.CreateDirectory(outputDir) |> ignore
+    
+    let content = sprintf "# Real Execution Test\n\nMessage: %s\nTimestamp: %s\n\nThis proves real F# execution is working!" message timestamp
+    File.WriteAllText(Path.Combine(outputDir, "test_result.md"), content)
+    
+    sprintf "✅ Real F# execution completed! Output: %s" outputDir
+}
+
+ACTION {
+    type: "log"
+    message: "Test completed: ${_last_result}"
+}

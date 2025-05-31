@@ -1,0 +1,123 @@
+Here is the complete `style.css` file content:
+
+```css
+/* Global Styles */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  line-height: 1.6;
+  color: #333;
+  background-color: #f0f0f0;
+}
+
+/* Header Styles */
+
+header {
+  background-color: #333;
+  color: #fff;
+  padding: 20px;
+  text-align: center;
+}
+
+header h1 {
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+/* Navigation Styles */
+
+nav {
+  background-color: #444;
+  padding: 10px;
+  text-align: center;
+}
+
+nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+nav li {
+  display: inline-block;
+  margin-right: 20px;
+}
+
+nav a {
+  color: #fff;
+  text-decoration: none;
+}
+
+nav a:hover {
+  color: #ccc;
+}
+
+/* Main Content Styles */
+
+main {
+  max-width: 800px;
+  margin: 40px auto;
+  padding: 20px;
+  background-color: #f9f9f9;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+main h2 {
+  font-size: 18px;
+  margin-top: 0;
+}
+
+main ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+main li {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #ddd;
+  padding: 10px;
+}
+
+main li:last-child {
+  border-bottom: none;
+}
+
+main .expense {
+  width: 30%;
+  margin-right: 20px;
+}
+
+main .expense h3 {
+  font-size: 16px;
+  margin-top: 0;
+}
+
+main .expense p {
+  font-size: 14px;
+  color: #666;
+}
+
+/* Chart Styles */
+
+.chart-container {
+  max-width: 400px;
+  margin: 40px auto;
+  padding: 20px;
+  background-color: #f9f9f9;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.chart-container canvas {
+  border: 1px solid #ddd;
+}
+```
+
+This CSS file includes styles for the global layout, header, navigation, main content area, and chart visualization components. It also defines some basic typography and spacing rules to provide a clean and readable interface for the personal expense tracker application.

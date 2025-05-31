@@ -1,0 +1,9 @@
+Here is the generated `requirements.txt` file:
+
+```
+tkinter
+os
+shutil
+```
+
+This file lists the dependencies required by the project, which are Tkinter for creating the GUI, os for interacting with the operating system, and shutil for high-level file operations.

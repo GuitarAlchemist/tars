@@ -1,0 +1,97 @@
+Here is the generated `style.css` file:
+
+```css
+/* Global Styles */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f0f0f0;
+}
+
+.container {
+  max-width: 800px;
+  margin: 40px auto;
+  padding: 20px;
+  border: 1px solid #ddd;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+}
+
+.header {
+  background-color: #333;
+  color: #fff;
+  padding: 20px;
+  text-align: center;
+  border-bottom: 1px solid #333;
+}
+
+.header h2 {
+  font-weight: bold;
+  margin-top: 0;
+}
+
+.main-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+}
+
+.wallet-info {
+  background-color: #f7f7f7;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+
+.wallet-info h3 {
+  font-weight: bold;
+  margin-top: 0;
+}
+
+.transaction-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.transaction-list li {
+  background-color: #f7f7f7;
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+}
+
+.transaction-list li:last-child {
+  border-bottom: none;
+}
+
+.button-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.button {
+  background-color: #4CAF50;
+  color: #fff;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.button:hover {
+  background-color: #3e8e41;
+}
+```
+
+This CSS file includes styles for the main components of your blockchain cryptocurrency wallet, including the header, main content area, wallet information section, transaction list, and button container. The styles are designed to be clean, modern, and easy to read.
+
+Note that this is just a starting point, and you may need to modify the styles to fit the specific requirements of your application.

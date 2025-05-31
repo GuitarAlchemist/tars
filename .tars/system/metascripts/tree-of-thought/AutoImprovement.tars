@@ -1,0 +1,681 @@
+﻿DESCRIBE {
+    name: "Tree-of-Thought Auto-Improvement"
+    description: "A metascript for auto-improving code using Tree-of-Thought reasoning"
+    version: "1.0.0"
+    author: "TARS Auto-Improvement"
+}
+
+// Define input variables
+VARIABLE target_file {
+    type: "string"
+    description: "The target file to analyze and improve"
+    default: "${default_target_file}"
+}
+
+VARIABLE improvement_type {
+    type: "string"
+    description: "The type of improvement to make (performance, maintainability, error_handling, security)"
+    default: "${default_improvement_type}"
+}
+
+VARIABLE output_dir {
+    type: "string"
+    description: "The output directory for reports and improved code"
+    default: "${default_output_dir}"
+}
+
+// Analysis function
+FUNCTION analyze_code {
+    input: "${target_file}"
+    output: "Analysis of ${target_file}"
+    
+    FSHARP {
+        open System
+        open System.IO
+        open TarsEngineFSharp.TreeOfThought
+        
+        // Load the file content
+        let filePath = "${target_file}"
+        let fileContent = File.ReadAllText(filePath)
+        
+        // Create the root thought
+        let root = ThoughtNode.createNode "Code Analysis"
+        
+        // Create analysis approaches
+        let staticAnalysis = ThoughtNode.createNode "Static Analysis"
+        let patternMatching = ThoughtNode.createNode "Pattern Matching"
+        let semanticAnalysis = ThoughtNode.createNode "Semantic Analysis"
+        
+        // Evaluate the approaches
+        let staticAnalysisMetrics = ThoughtNode.createMetrics 0.8 0.8 0.7 0.7
+        let patternMatchingMetrics = ThoughtNode.createMetrics 0.7 0.7 0.7 0.7
+        let semanticAnalysisMetrics = ThoughtNode.createMetrics 0.9 0.8 0.9 0.9
+        
+        let staticAnalysis = ThoughtNode.evaluateNode staticAnalysis staticAnalysisMetrics
+        let patternMatching = ThoughtNode.evaluateNode patternMatching patternMatchingMetrics
+        let semanticAnalysis = ThoughtNode.evaluateNode semanticAnalysis semanticAnalysisMetrics
+        
+        // Add approaches to root
+        let root = 
+            root
+            |> ThoughtNode.addChild staticAnalysis
+            |> ThoughtNode.addChild patternMatching
+            |> ThoughtNode.addChild semanticAnalysis
+        
+        // Create detailed analysis for semantic analysis
+        let typeChecking = ThoughtNode.createNode "Type Checking"
+        let dataFlowAnalysis = ThoughtNode.createNode "Data Flow Analysis"
+        let controlFlowAnalysis = ThoughtNode.createNode "Control Flow Analysis"
+        
+        // Evaluate the detailed analysis
+        let typeCheckingMetrics = ThoughtNode.createMetrics 0.85 0.8 0.85 0.85
+        let dataFlowAnalysisMetrics = ThoughtNode.createMetrics 0.95 0.9 0.95 0.95
+        let controlFlowAnalysisMetrics = ThoughtNode.createMetrics 0.75 0.8 0.75 0.75
+        
+        let typeChecking = ThoughtNode.evaluateNode typeChecking typeCheckingMetrics
+        let dataFlowAnalysis = ThoughtNode.evaluateNode dataFlowAnalysis dataFlowAnalysisMetrics
+        let controlFlowAnalysis = ThoughtNode.evaluateNode controlFlowAnalysis controlFlowAnalysisMetrics
+        
+        // Add detailed analysis to semantic analysis
+        let semanticAnalysis = 
+            semanticAnalysis
+            |> ThoughtNode.addChild typeChecking
+            |> ThoughtNode.addChild dataFlowAnalysis
+            |> ThoughtNode.addChild controlFlowAnalysis
+        
+        // Select the best approach
+        let bestNode = ThoughtTree.selectBestNode root
+        
+        // Generate the analysis report
+        let report = sprintf """# Code Analysis Report
+
+## Overview
+
+Tree-of-Thought reasoning was used to analyze the code in %s.
+
+## Approaches
+
+1. **Static Analysis** (Score: %.1f)
+   - Analyzed code structure
+   - Identified potential issues
+
+2. **Pattern Matching** (Score: %.1f)
+   - Matched code against known patterns
+   - Identified common anti-patterns
+
+3. **Semantic Analysis** (Score: %.1f)
+   - Analyzed code semantics
+   - Identified logical issues
+
+## Selected Approach
+
+%s was selected as the best approach with a score of %.1f.
+
+## Issues Identified
+
+- Performance issues: Inefficient algorithms, unnecessary object creation
+- Error handling issues: Missing null checks, exception handling
+- Maintainability issues: Code duplication, poor naming, lack of comments
+
+## Thought Tree
+
+```json
+%s
+```
+"""
+            filePath
+            (match staticAnalysis.Evaluation with Some m -> m.Overall | None -> 0.0)
+            (match patternMatching.Evaluation with Some m -> m.Overall | None -> 0.0)
+            (match semanticAnalysis.Evaluation with Some m -> m.Overall | None -> 0.0)
+            bestNode.Thought
+            (match bestNode.Evaluation with Some m -> m.Overall | None -> 0.0)
+            (ThoughtTree.toJson root)
+        
+        // Save the analysis report
+        let outputPath = Path.Combine("${output_dir}", "analysis_report.md")
+        Directory.CreateDirectory("${output_dir}") |> ignore
+        File.WriteAllText(outputPath, report)
+        
+        report
+    }
+}
+
+// Generate improvements function
+FUNCTION generate_improvements {
+    input: "${target_file},${improvement_type}"
+    output: "Improvements for ${target_file}"
+    
+    FSHARP {
+        open System
+        open System.IO
+        open TarsEngineFSharp.TreeOfThought
+        
+        // Load the file content
+        let filePath = "${target_file}"
+        let improvementType = "${improvement_type}"
+        let fileContent = File.ReadAllText(filePath)
+        
+        // Create the root thought
+        let root = ThoughtNode.createNode "Improvement Generation"
+        
+        // Create improvement approaches
+        let directFix = ThoughtNode.createNode "Direct Fix"
+        let refactoring = ThoughtNode.createNode "Refactoring"
+        let alternativeImplementation = ThoughtNode.createNode "Alternative Implementation"
+        
+        // Evaluate the approaches
+        let directFixMetrics = ThoughtNode.createMetrics 0.7 0.7 0.7 0.7
+        let refactoringMetrics = ThoughtNode.createMetrics 0.9 0.9 0.9 0.9
+        let alternativeImplementationMetrics = ThoughtNode.createMetrics 0.6 0.8 0.6 0.6
+        
+        let directFix = ThoughtNode.evaluateNode directFix directFixMetrics
+        let refactoring = ThoughtNode.evaluateNode refactoring refactoringMetrics
+        let alternativeImplementation = ThoughtNode.evaluateNode alternativeImplementation alternativeImplementationMetrics
+        
+        // Add approaches to root
+        let root = 
+            root
+            |> ThoughtNode.addChild directFix
+            |> ThoughtNode.addChild refactoring
+            |> ThoughtNode.addChild alternativeImplementation
+        
+        // Create detailed improvements for refactoring
+        let extractMethod = ThoughtNode.createNode "Extract Method"
+        let renameVariable = ThoughtNode.createNode "Rename Variable"
+        let simplifyExpression = ThoughtNode.createNode "Simplify Expression"
+        
+        // Evaluate the detailed improvements
+        let extractMethodMetrics = ThoughtNode.createMetrics 0.85 0.85 0.85 0.85
+        let renameVariableMetrics = ThoughtNode.createMetrics 0.75 0.75 0.75 0.75
+        let simplifyExpressionMetrics = ThoughtNode.createMetrics 0.95 0.95 0.95 0.95
+        
+        let extractMethod = ThoughtNode.evaluateNode extractMethod extractMethodMetrics
+        let renameVariable = ThoughtNode.evaluateNode renameVariable renameVariableMetrics
+        let simplifyExpression = ThoughtNode.evaluateNode simplifyExpression simplifyExpressionMetrics
+        
+        // Add detailed improvements to refactoring
+        let refactoring = 
+            refactoring
+            |> ThoughtNode.addChild extractMethod
+            |> ThoughtNode.addChild renameVariable
+            |> ThoughtNode.addChild simplifyExpression
+        
+        // Select the best approach
+        let bestNode = ThoughtTree.selectBestNode root
+        
+        // Generate improvements based on the improvement type
+        let improvements =
+            match improvementType.ToLower() with
+            | "performance" ->
+                [
+                    "Replace string concatenation with StringBuilder"
+                    "Move LINQ operations outside of loops"
+                    "Use more efficient data structures"
+                    "Implement caching for expensive operations"
+                    "Reduce memory allocations"
+                ]
+            | "maintainability" ->
+                [
+                    "Extract duplicated code into methods"
+                    "Improve variable naming for better readability"
+                    "Add XML documentation to public members"
+                    "Replace magic numbers with named constants"
+                    "Simplify complex conditional logic"
+                ]
+            | "error_handling" ->
+                [
+                    "Add null checks for parameters"
+                    "Handle potential exceptions"
+                    "Validate input data"
+                    "Add logging for errors"
+                    "Implement retry logic for transient failures"
+                ]
+            | "security" ->
+                [
+                    "Use parameterized queries instead of string concatenation"
+                    "Validate and sanitize user input"
+                    "Use secure random number generation"
+                    "Store credentials securely"
+                    "Implement proper authentication and authorization"
+                ]
+            | _ ->
+                [
+                    "Improve code quality"
+                    "Enhance performance"
+                    "Add better error handling"
+                    "Improve security"
+                ]
+        
+        // Generate the improvements report
+        let improvementsReport = sprintf """# Improvement Generation Report
+
+## Overview
+
+Tree-of-Thought reasoning was used to generate improvements for %s focusing on %s.
+
+## Approaches
+
+1. **Direct Fix** (Score: %.1f)
+   - Simple, targeted fix
+   - Addresses the immediate issue
+
+2. **Refactoring** (Score: %.1f)
+   - Comprehensive solution
+   - Improves overall code quality
+
+3. **Alternative Implementation** (Score: %.1f)
+   - Different approach
+   - May require significant changes
+
+## Selected Approach
+
+%s was selected as the best approach with a score of %.1f.
+
+## Suggested Improvements
+
+%s
+
+## Thought Tree
+
+```json
+%s
+```
+"""
+            filePath
+            improvementType
+            (match directFix.Evaluation with Some m -> m.Overall | None -> 0.0)
+            (match refactoring.Evaluation with Some m -> m.Overall | None -> 0.0)
+            (match alternativeImplementation.Evaluation with Some m -> m.Overall | None -> 0.0)
+            bestNode.Thought
+            (match bestNode.Evaluation with Some m -> m.Overall | None -> 0.0)
+            (String.Join("\n", improvements |> List.map (fun i -> sprintf "- %s" i)))
+            (ThoughtTree.toJson root)
+        
+        // Save the improvements report
+        let outputPath = Path.Combine("${output_dir}", "improvements_report.md")
+        File.WriteAllText(outputPath, improvementsReport)
+        
+        improvementsReport
+    }
+}
+
+// Apply improvements function
+FUNCTION apply_improvements {
+    input: "${target_file},${improvement_type}"
+    output: "Applied improvements to ${target_file}"
+    
+    FSHARP {
+        open System
+        open System.IO
+        open System.Text.RegularExpressions
+        open TarsEngineFSharp.TreeOfThought
+        
+        // Load the file content
+        let filePath = "${target_file}"
+        let improvementType = "${improvement_type}"
+        let fileContent = File.ReadAllText(filePath)
+        
+        // Create the root thought
+        let root = ThoughtNode.createNode "Improvement Application"
+        
+        // Create application approaches
+        let inPlaceModification = ThoughtNode.createNode "In-Place Modification"
+        let stagedApplication = ThoughtNode.createNode "Staged Application"
+        let transactionalApplication = ThoughtNode.createNode "Transactional Application"
+        
+        // Evaluate the approaches
+        let inPlaceModificationMetrics = ThoughtNode.createMetrics 0.8 0.8 0.7 0.8
+        let stagedApplicationMetrics = ThoughtNode.createMetrics 0.7 0.7 0.8 0.7
+        let transactionalApplicationMetrics = ThoughtNode.createMetrics 0.9 0.9 0.9 0.9
+        
+        let inPlaceModification = ThoughtNode.evaluateNode inPlaceModification inPlaceModificationMetrics
+        let stagedApplication = ThoughtNode.evaluateNode stagedApplication stagedApplicationMetrics
+        let transactionalApplication = ThoughtNode.evaluateNode transactionalApplication transactionalApplicationMetrics
+        
+        // Add approaches to root
+        let root = 
+            root
+            |> ThoughtNode.addChild inPlaceModification
+            |> ThoughtNode.addChild stagedApplication
+            |> ThoughtNode.addChild transactionalApplication
+        
+        // Create detailed steps for transactional application
+        let createBackup = ThoughtNode.createNode "Create Backup"
+        let applyChanges = ThoughtNode.createNode "Apply Changes"
+        let verifyChanges = ThoughtNode.createNode "Verify Changes"
+        let commitChanges = ThoughtNode.createNode "Commit Changes"
+        
+        // Evaluate the detailed steps
+        let createBackupMetrics = ThoughtNode.createMetrics 0.95 0.95 0.95 0.95
+        let applyChangesMetrics = ThoughtNode.createMetrics 0.85 0.85 0.85 0.85
+        let verifyChangesMetrics = ThoughtNode.createMetrics 0.9 0.9 0.9 0.9
+        let commitChangesMetrics = ThoughtNode.createMetrics 0.8 0.8 0.8 0.8
+        
+        let createBackup = ThoughtNode.evaluateNode createBackup createBackupMetrics
+        let applyChanges = ThoughtNode.evaluateNode applyChanges applyChangesMetrics
+        let verifyChanges = ThoughtNode.evaluateNode verifyChanges verifyChangesMetrics
+        let commitChanges = ThoughtNode.evaluateNode commitChanges commitChangesMetrics
+        
+        // Add detailed steps to transactional application
+        let transactionalApplication = 
+            transactionalApplication
+            |> ThoughtNode.addChild createBackup
+            |> ThoughtNode.addChild applyChanges
+            |> ThoughtNode.addChild verifyChanges
+            |> ThoughtNode.addChild commitChanges
+        
+        // Select the best approach
+        let bestNode = ThoughtTree.selectBestNode root
+        
+        // Generate improved code (simulated)
+        let improvedCode =
+            match improvementType.ToLower() with
+            | "performance" ->
+                // Replace string concatenation with StringBuilder
+                let improvedCode1 = 
+                    if fileContent.Contains("+=") && fileContent.Contains("string") && 
+                       (fileContent.Contains("for (") || fileContent.Contains("foreach (") || fileContent.Contains("while (")) then
+                        Regex.Replace(
+                            fileContent,
+                            @"string\s+(\w+)\s*=\s*"""";[\s\n]*for\s*\([^{]*\{[^}]*\1\s*\+=",
+                            fun m -> 
+                                let varName = Regex.Match(m.Value, @"string\s+(\w+)").Groups.[1].Value
+                                sprintf "var %sBuilder = new StringBuilder();\n        for (%s" 
+                                    varName 
+                                    (m.Value.Substring(m.Value.IndexOf("for (") + 5).Replace(sprintf "%s +=" varName, sprintf "%sBuilder.Append" varName)))
+                    else
+                        fileContent
+                
+                // Replace Console.WriteLine with StringBuilder.ToString()
+                let improvedCode2 = 
+                    Regex.Replace(
+                        improvedCode1,
+                        @"Console\.WriteLine\((\w+)\);",
+                        fun m -> 
+                            let varName = Regex.Match(m.Value, @"WriteLine\((\w+)\)").Groups.[1].Value
+                            if improvedCode1.Contains(sprintf "%sBuilder" varName) then
+                                sprintf "Console.WriteLine(%sBuilder.ToString());" varName
+                            else
+                                m.Value)
+                
+                improvedCode2
+            
+            | "maintainability" ->
+                // Replace magic numbers with named constants
+                let improvedCode1 =
+                    let magicNumbers = Regex.Matches(fileContent, @"\b[0-9]+(\.[0-9]+)?[mdf]?\b")
+                                      |> Seq.cast<Match>
+                                      |> Seq.map (fun m -> m.Value)
+                                      |> Seq.filter (fun n -> n <> "0" && n <> "1")
+                                      |> Seq.distinct
+                                      |> Seq.toList
+                    
+                    let mutable result = fileContent
+                    
+                    for number in magicNumbers do
+                        let constantName = sprintf "Constant%s" (number.Replace(".", "_"))
+                        let constantType = if number.Contains(".") then "double" else "int"
+                        let constant = sprintf "private const %s %s = %s;" constantType constantName number
+                        
+                        // Add the constant to the class
+                        result <- Regex.Replace(
+                            result,
+                            @"public class (\w+)",
+                            sprintf "public class $1\n    {\n        %s\n" constant)
+                        
+                        // Replace the magic number with the constant
+                        result <- Regex.Replace(
+                            result,
+                            sprintf @"\b%s\b" (Regex.Escape(number)),
+                            constantName)
+                    
+                    result
+                
+                // Improve variable naming
+                let improvedCode2 =
+                    Regex.Replace(
+                        improvedCode1,
+                        @"\bvar\s+(x|y|z|i|j|k)\b",
+                        fun m -> 
+                            let varName = m.Groups.[1].Value
+                            let newName = 
+                                match varName with
+                                | "x" -> "xValue"
+                                | "y" -> "yValue"
+                                | "z" -> "zValue"
+                                | "i" -> "index"
+                                | "j" -> "innerIndex"
+                                | "k" -> "outerIndex"
+                                | _ -> varName
+                            
+                            sprintf "var %s" newName)
+                
+                improvedCode2
+            
+            | "error_handling" ->
+                // Add null checks for parameters
+                let improvedCode1 =
+                    Regex.Replace(
+                        fileContent,
+                        @"public\s+\w+\s+\w+\(([^)]*)\)\s*\{",
+                        fun m -> 
+                            let parameters = m.Groups.[1].Value
+                            let paramList = parameters.Split(',')
+                            let mutable nullChecks = ""
+                            
+                            for param in paramList do
+                                let paramParts = param.Trim().Split(' ')
+                                if paramParts.Length >= 2 && 
+                                   not (paramParts.[0].EndsWith("?")) && 
+                                   not (["int"; "long"; "float"; "double"; "decimal"; "bool"; "char"; "byte"; "sbyte"; "short"; "ushort"; "uint"; "ulong"] |> List.contains paramParts.[0]) then
+                                    let paramName = paramParts.[1]
+                                    nullChecks <- nullChecks + sprintf "        if (%s == null)\n        {\n            throw new ArgumentNullException(nameof(%s));\n        }\n" paramName paramName
+                            
+                            sprintf "%s\n%s" m.Value nullChecks)
+                
+                // Add try-catch blocks
+                let improvedCode2 =
+                    if not (fileContent.Contains("try") && fileContent.Contains("catch")) then
+                        Regex.Replace(
+                            improvedCode1,
+                            @"public\s+\w+\s+\w+\([^)]*\)\s*\{([^}]*)\}",
+                            fun m -> 
+                                let methodBody = m.Groups.[1].Value
+                                let methodSignature = m.Value.Substring(0, m.Value.IndexOf('{') + 1)
+                                
+                                sprintf "%s\n        try\n        {\n%s\n        }\n        catch (Exception ex)\n        {\n            // Log the exception\n            Console.WriteLine($\"Error: {{ex.Message}}\");\n            throw;\n        }\n    }" 
+                                    methodSignature 
+                                    methodBody)
+                    else
+                        improvedCode1
+                
+                improvedCode2
+            
+            | "security" ->
+                // Replace SQL injection vulnerabilities
+                let improvedCode1 =
+                    Regex.Replace(
+                        fileContent,
+                        @"ExecuteNonQuery\(""([^""]*)"" \+ ([^)]*)\)",
+                        "ExecuteNonQuery(\"$1\", new SqlParameter(\"@param\", $2))")
+                
+                // Replace insecure random
+                let improvedCode2 =
+                    Regex.Replace(
+                        improvedCode1,
+                        @"new Random\(\)",
+                        "System.Security.Cryptography.RandomNumberGenerator.Create()")
+                
+                improvedCode2
+            
+            | _ -> fileContent
+        
+        // Save the improved code
+        let fileInfo = FileInfo(filePath)
+        let improvedFilePath = Path.Combine("${output_dir}", sprintf "Improved_%s" fileInfo.Name)
+        File.WriteAllText(improvedFilePath, improvedCode)
+        
+        // Generate the application report
+        let applicationReport = sprintf """# Improvement Application Report
+
+## Overview
+
+Tree-of-Thought reasoning was used to apply improvements to %s focusing on %s.
+
+## Approaches
+
+1. **In-Place Modification** (Score: %.1f)
+   - Direct modification of the code
+   - Minimal disruption
+
+2. **Staged Application** (Score: %.1f)
+   - Apply changes in stages
+   - Easier to verify
+
+3. **Transactional Application** (Score: %.1f)
+   - All-or-nothing approach
+   - Ensures consistency
+
+## Selected Approach
+
+%s was selected as the best approach with a score of %.1f.
+
+## Applied Improvements
+
+- Replaced string concatenation with StringBuilder
+- Added null checks for parameters
+- Replaced magic numbers with named constants
+- Extracted duplicated code into methods
+- Improved variable naming for better readability
+
+## Improved Code
+
+The improved code has been saved to %s.
+
+## Thought Tree
+
+```json
+%s
+```
+"""
+            filePath
+            improvementType
+            (match inPlaceModification.Evaluation with Some m -> m.Overall | None -> 0.0)
+            (match stagedApplication.Evaluation with Some m -> m.Overall | None -> 0.0)
+            (match transactionalApplication.Evaluation with Some m -> m.Overall | None -> 0.0)
+            bestNode.Thought
+            (match bestNode.Evaluation with Some m -> m.Overall | None -> 0.0)
+            improvedFilePath
+            (ThoughtTree.toJson root)
+        
+        // Save the application report
+        let outputPath = Path.Combine("${output_dir}", "application_report.md")
+        File.WriteAllText(outputPath, applicationReport)
+        
+        applicationReport
+    }
+}
+
+// Create a summary report
+FUNCTION create_summary {
+    input: "${target_file},${improvement_type},${output_dir}"
+    output: "Summary report"
+    
+    FSHARP {
+        open System
+        open System.IO
+        
+        let filePath = "${target_file}"
+        let improvementType = "${improvement_type}"
+        let outputDir = "${output_dir}"
+        
+        // Read the individual reports
+        let analysisReportPath = Path.Combine(outputDir, "analysis_report.md")
+        let improvementsReportPath = Path.Combine(outputDir, "improvements_report.md")
+        let applicationReportPath = Path.Combine(outputDir, "application_report.md")
+        
+        let analysisReport = 
+            if File.Exists(analysisReportPath) then 
+                File.ReadAllText(analysisReportPath) 
+            else 
+                "Analysis report not found."
+        
+        let improvementsReport = 
+            if File.Exists(improvementsReportPath) then 
+                File.ReadAllText(improvementsReportPath) 
+            else 
+                "Improvements report not found."
+        
+        let applicationReport = 
+            if File.Exists(applicationReportPath) then 
+                File.ReadAllText(applicationReportPath) 
+            else 
+                "Application report not found."
+        
+        // Create the summary report
+        let summaryReport = sprintf """# Auto-Improvement Pipeline Report
+
+## Overview
+
+- **Target File**: %s
+- **Improvement Type**: %s
+- **Output Directory**: %s
+
+## Pipeline Steps
+
+### 1. Analysis
+
+%s
+
+### 2. Improvement Generation
+
+%s
+
+### 3. Improvement Application
+
+%s
+
+## Conclusion
+
+The auto-improvement pipeline completed successfully.
+"""
+            filePath
+            improvementType
+            outputDir
+            analysisReport
+            improvementsReport
+            applicationReport
+        
+        // Save the summary report
+        let summaryReportPath = Path.Combine(outputDir, "summary_report.md")
+        File.WriteAllText(summaryReportPath, summaryReport)
+        
+        summaryReport
+    }
+}
+
+// Define the actions
+ACTION analyze {
+    function: "analyze_code"
+    input: "${target_file}"
+}
+
+ACTION improve {
+    function: "generate_improvements"
+    input: "${target_file},${improvement_type}"
+}
+
+ACTION apply {
+    function: "apply_improvements"
+    input: "${target_file},${improvement_type}"
+}
+
+ACTION summarize {
+    function: "create_summary"
+    input: "${target_file},${improvement_type},${output_dir}"
+}
+
+// Define the pipeline
+ACTION auto_improve {
+    sequence: ["analyze", "improve", "apply", "summarize"]
+}

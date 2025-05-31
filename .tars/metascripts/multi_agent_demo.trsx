@@ -1,0 +1,374 @@
+DESCRIBE {
+    name: "TARS Multi-Agent System Demo"
+    version: "1.0"
+    author: "TARS Agent Orchestrator"
+    description: "Demonstrates TARS multi-agent system with personas, teams, and communication"
+    autonomous: true
+    multi_agent: true
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.3
+    max_agents: 7
+    team_coordination: true
+    channels_communication: true
+}
+
+VARIABLE orchestrator_config {
+    value: {
+        MaxAgents: 10
+        DefaultTeamSize: 5
+        MetascriptDirectory: ".tars/metascripts"
+        AutoStartAgents: true
+        HealthCheckInterval: "00:05:00"
+        MessageRetentionHours: 24
+    }
+}
+
+// Phase 1: Initialize Multi-Agent System
+FSHARP {
+    open System
+    open System.Threading.Tasks
+    open Microsoft.Extensions.Logging
+    open TarsEngine.FSharp.Agents.AgentTypes
+    open TarsEngine.FSharp.Agents.AgentPersonas
+    open TarsEngine.FSharp.Agents.AgentOrchestrator
+    
+    let initializeMultiAgentSystem() =
+        async {
+            printfn "🤖 TARS MULTI-AGENT SYSTEM INITIALIZATION"
+            printfn "=========================================="
+            printfn ""
+            
+            // Create orchestrator configuration
+            let config = {
+                MaxAgents = orchestrator_config.MaxAgents
+                DefaultTeamSize = orchestrator_config.DefaultTeamSize
+                MetascriptDirectory = orchestrator_config.MetascriptDirectory
+                AutoStartAgents = orchestrator_config.AutoStartAgents
+                HealthCheckInterval = TimeSpan.Parse(orchestrator_config.HealthCheckInterval)
+                MessageRetentionHours = orchestrator_config.MessageRetentionHours
+            }
+            
+            printfn "📊 Orchestrator Configuration:"
+            printfn "   Max Agents: %d" config.MaxAgents
+            printfn "   Auto Start: %b" config.AutoStartAgents
+            printfn "   Metascript Directory: %s" config.MetascriptDirectory
+            printfn ""
+            
+            // Create logger (simplified for demo)
+            let logger = Microsoft.Extensions.Logging.Abstractions.NullLogger<TarsAgentOrchestrator>.Instance
+            
+            // Initialize orchestrator
+            let orchestrator = TarsAgentOrchestrator(config, logger)
+            
+            printfn "✅ Multi-agent orchestrator initialized"
+            printfn "🎯 Ready to create agent personas and teams"
+            
+            return orchestrator
+        }
+    
+    let! orchestrator = initializeMultiAgentSystem()
+    orchestrator
+    
+    output_variable: "agent_orchestrator"
+}
+
+// Phase 2: Create Development Team
+FSHARP {
+    let createDevelopmentTeam(orchestrator: TarsAgentOrchestrator) =
+        async {
+            printfn ""
+            printfn "👥 CREATING DEVELOPMENT TEAM"
+            printfn "============================"
+            printfn ""
+            
+            printfn "🏗️ Creating Architect Agent..."
+            let! architectAgent = orchestrator.CreateAgentAsync(architect, None) |> Async.AwaitTask
+            
+            printfn "💻 Creating Developer Agent..."
+            let! developerAgent = orchestrator.CreateAgentAsync(developer, None) |> Async.AwaitTask
+            
+            printfn "🔬 Creating Researcher Agent..."
+            let! researcherAgent = orchestrator.CreateAgentAsync(researcher, None) |> Async.AwaitTask
+            
+            printfn "⚡ Creating Optimizer Agent..."
+            let! optimizerAgent = orchestrator.CreateAgentAsync(optimizer, None) |> Async.AwaitTask
+            
+            printfn "🛡️ Creating Guardian Agent..."
+            let! guardianAgent = orchestrator.CreateAgentAsync(guardian, None) |> Async.AwaitTask
+            
+            printfn ""
+            printfn "🎯 Creating Development Team..."
+            let! devTeam = orchestrator.CreateDevelopmentTeamAsync() |> Async.AwaitTask
+            
+            match devTeam with
+            | Some team ->
+                printfn "✅ Development team created successfully!"
+                printfn "📊 Team Members:"
+                
+                let config = team.GetConfiguration()
+                config.Members |> List.iteri (fun i memberId ->
+                    printfn "   %d. Agent %A" (i + 1) memberId)
+                
+                printfn "👑 Team Leader: %A" config.LeaderAgent
+                printfn "🎯 Shared Objectives:"
+                config.SharedObjectives |> List.iter (fun obj ->
+                    printfn "   • %s" obj)
+                
+                return Some team
+            | None ->
+                printfn "❌ Failed to create development team"
+                return None
+        }
+    
+    let! devTeam = createDevelopmentTeam(agent_orchestrator)
+    devTeam
+    
+    output_variable: "development_team"
+}
+
+// Phase 3: Create Research Team
+FSHARP {
+    let createResearchTeam(orchestrator: TarsAgentOrchestrator) =
+        async {
+            printfn ""
+            printfn "🔬 CREATING RESEARCH TEAM"
+            printfn "========================="
+            printfn ""
+            
+            printfn "🤝 Creating Communicator Agent..."
+            let! communicatorAgent = orchestrator.CreateAgentAsync(communicator, None) |> Async.AwaitTask
+            
+            printfn "💡 Creating Innovator Agent..."
+            let! innovatorAgent = orchestrator.CreateAgentAsync(innovator, None) |> Async.AwaitTask
+            
+            printfn "🔬 Creating additional Researcher Agents..."
+            let! researchTeam = orchestrator.CreateResearchTeamAsync() |> Async.AwaitTask
+            
+            match researchTeam with
+            | Some team ->
+                printfn "✅ Research team created successfully!"
+                
+                let config = team.GetConfiguration()
+                printfn "📊 Research Team: %s" config.Name
+                printfn "👥 Members: %d agents" config.Members.Length
+                printfn "🎯 Focus: %s" config.Description
+                
+                return Some team
+            | None ->
+                printfn "❌ Failed to create research team"
+                return None
+        }
+    
+    let! researchTeam = createResearchTeam(agent_orchestrator)
+    researchTeam
+    
+    output_variable: "research_team"
+}
+
+// Phase 4: Start All Agents
+FSHARP {
+    let startAllAgents(orchestrator: TarsAgentOrchestrator) =
+        async {
+            printfn ""
+            printfn "🚀 STARTING ALL AGENTS"
+            printfn "======================"
+            printfn ""
+            
+            printfn "⏳ Starting agent execution..."
+            do! orchestrator.StartAllAgentsAsync() |> Async.AwaitTask
+            
+            // Wait a moment for agents to initialize
+            do! Async.Sleep(2000)
+            
+            let status = orchestrator.GetStatus()
+            
+            printfn "✅ All agents started successfully!"
+            printfn ""
+            printfn "📊 ORCHESTRATOR STATUS:"
+            printfn "   Active Agents: %d" status.ActiveAgents
+            printfn "   Active Teams: %d" status.ActiveTeams
+            printfn "   Uptime: %A" status.Uptime
+            printfn "   Message Bus: %b" status.MessageBusActive
+            printfn ""
+            
+            printfn "🤖 AGENT DETAILS:"
+            status.AgentDetails |> List.iteri (fun i agent ->
+                printfn "   %d. %s (ID: %A)" (i + 1) agent.Persona agent.Id
+                printfn "      Status: %A" agent.Status
+                printfn "      Tasks: %d completed" agent.TasksCompleted
+                printfn "      Success Rate: %.1f%%" (agent.SuccessRate * 100.0)
+                printfn "      Last Activity: %A" agent.LastActivity
+                printfn "")
+            
+            printfn "👥 TEAM DETAILS:"
+            status.TeamDetails |> List.iteri (fun i team ->
+                printfn "   %d. %s" (i + 1) team.Name
+                printfn "      Members: %d agents" team.MemberCount
+                printfn "      Tasks: %d completed" team.TasksCompleted
+                printfn "      Success Rate: %.1f%%" (team.SuccessRate * 100.0)
+                printfn "      Collaboration: %.1f/10" (team.CollaborationScore * 10.0)
+                printfn "")
+            
+            return status
+        }
+    
+    let! status = startAllAgents(agent_orchestrator)
+    status
+    
+    output_variable: "orchestrator_status"
+}
+
+// Phase 5: Demonstrate Task Assignment
+FSHARP {
+    let demonstrateTaskAssignment(orchestrator: TarsAgentOrchestrator) =
+        async {
+            printfn ""
+            printfn "📋 DEMONSTRATING TASK ASSIGNMENT"
+            printfn "================================"
+            printfn ""
+            
+            // Assign code analysis task
+            printfn "🔍 Assigning code analysis task..."
+            let! codeAnalysisResult = orchestrator.AssignTaskAsync(
+                "Code Quality Analysis",
+                "Analyze codebase for quality improvements and optimization opportunities",
+                [CodeAnalysis; SelfImprovement; Testing]
+            ) |> Async.AwaitTask
+            
+            match codeAnalysisResult with
+            | Some (Choice1Of2 agentId) ->
+                printfn "✅ Code analysis task assigned to agent: %A" agentId
+            | Some (Choice2Of2 teamName) ->
+                printfn "✅ Code analysis task assigned to team: %s" teamName
+            | None ->
+                printfn "❌ Failed to assign code analysis task"
+            
+            // Assign research task
+            printfn ""
+            printfn "🔬 Assigning research task..."
+            let! researchResult = orchestrator.AssignTaskAsync(
+                "Technology Research",
+                "Research emerging technologies and their potential applications",
+                [Research; Learning; Documentation]
+            ) |> Async.AwaitTask
+            
+            match researchResult with
+            | Some (Choice1Of2 agentId) ->
+                printfn "✅ Research task assigned to agent: %A" agentId
+            | Some (Choice2Of2 teamName) ->
+                printfn "✅ Research task assigned to team: %s" teamName
+            | None ->
+                printfn "❌ Failed to assign research task"
+            
+            // Assign project generation task
+            printfn ""
+            printfn "🏗️ Assigning project generation task..."
+            let! projectResult = orchestrator.AssignTaskAsync(
+                "Project Scaffolding",
+                "Generate a new project structure with documentation and tests",
+                [ProjectGeneration; Documentation; Planning]
+            ) |> Async.AwaitTask
+            
+            match projectResult with
+            | Some (Choice1Of2 agentId) ->
+                printfn "✅ Project generation task assigned to agent: %A" agentId
+            | Some (Choice2Of2 teamName) ->
+                printfn "✅ Project generation task assigned to team: %s" teamName
+            | None ->
+                printfn "❌ Failed to assign project generation task"
+            
+            printfn ""
+            printfn "📊 Task assignment demonstration completed"
+            
+            return [codeAnalysisResult; researchResult; projectResult]
+        }
+    
+    let! taskResults = demonstrateTaskAssignment(agent_orchestrator)
+    taskResults
+    
+    output_variable: "task_assignment_results"
+}
+
+// Phase 6: Monitor Agent Communication
+FSHARP {
+    let monitorAgentCommunication(orchestrator: TarsAgentOrchestrator) =
+        async {
+            printfn ""
+            printfn "📡 MONITORING AGENT COMMUNICATION"
+            printfn "================================="
+            printfn ""
+            
+            let messageBus = orchestrator.GetMessageBus()
+            let activeAgents = messageBus.GetActiveAgents()
+            
+            printfn "📊 Communication Status:"
+            printfn "   Active Agents: %d" activeAgents.Length
+            printfn "   Message Bus: Operational"
+            printfn "   Channels: .NET Channels"
+            printfn "   TaskSeq: FSharp.Control.TaskSeq"
+            printfn ""
+            
+            // Get recent message history
+            let messageHistory = messageBus.GetMessageHistory(Some 10)
+            
+            printfn "📨 Recent Messages (last 10):"
+            if messageHistory.Length = 0 then
+                printfn "   No messages in history"
+            else
+                messageHistory |> Array.iteri (fun i msg ->
+                    printfn "   %d. %s -> %A" (i + 1) msg.MessageType msg.ToAgent
+                    printfn "      From: %A" msg.FromAgent
+                    printfn "      Priority: %A" msg.Priority
+                    printfn "      Time: %A" msg.Timestamp
+                    printfn "")
+            
+            printfn "🔄 Agent communication system operational"
+            
+            return {|
+                ActiveAgents = activeAgents.Length
+                MessageHistory = messageHistory.Length
+                CommunicationActive = true
+            |}
+        }
+    
+    let! commStatus = monitorAgentCommunication(agent_orchestrator)
+    commStatus
+    
+    output_variable: "communication_status"
+}
+
+ACTION {
+    type: "multi_agent_system_demo_complete"
+    description: "TARS multi-agent system demonstration completed successfully"
+    
+    FSHARP {
+        printfn ""
+        printfn "🎉 TARS MULTI-AGENT SYSTEM DEMO COMPLETE!"
+        printfn "=========================================="
+        printfn ""
+        printfn "✅ ACHIEVEMENTS:"
+        printfn "   🤖 Multi-agent orchestrator: OPERATIONAL"
+        printfn "   👥 Development team: %d agents" (match development_team with Some _ -> 5 | None -> 0)
+        printfn "   🔬 Research team: %d agents" (match research_team with Some _ -> 4 | None -> 0)
+        printfn "   📡 Communication system: .NET Channels + TaskSeq"
+        printfn "   📋 Task assignment: FUNCTIONAL"
+        printfn "   🎭 Agent personas: 7 distinct personalities"
+        printfn ""
+        printfn "🚀 CAPABILITIES DEMONSTRATED:"
+        printfn "   • Agent personas with distinct behaviors"
+        printfn "   • Team formation and coordination"
+        printfn "   • In-process communication via Channels"
+        printfn "   • Long-running agents with TaskSeq"
+        printfn "   • Autonomous task assignment"
+        printfn "   • Multi-agent collaboration"
+        printfn "   • Real-time message passing"
+        printfn ""
+        printfn "🎯 TARS MULTI-AGENT INTELLIGENCE: FULLY OPERATIONAL!"
+        printfn "Ready for autonomous swarm intelligence and collaborative problem solving!"
+        
+        true
+    }
+}

@@ -1,0 +1,762 @@
+DESCRIBE {
+    name: "Autonomous Improvement"
+    version: "1.0"
+    author: "Augment Code & TARS Collaboration"
+    description: "A metascript for autonomous improvement of TARS documentation and codebase"
+    tags: ["autonomous", "improvement", "documentation", "codebase"]
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.3
+    max_tokens: 4000
+    use_docker: true
+    docker_image: "ollama/ollama:latest"
+    docker_network: "tars-network"
+    docker_compose_file: "docker/docker-compose.autonomous-improvement.yml"
+    docker_volume_mounts: [
+        "./:/app/workspace",
+        "./docker/knowledge:/app/knowledge",
+        "./docker/improvements:/app/improvements",
+        "./docker/backups:/app/backups"
+    ]
+    docker_environment: [
+        "OLLAMA_BASE_URL=http://ollama:11434",
+        "OLLAMA_USE_DOCKER=true",
+        "DOTNET_ENVIRONMENT=Production"
+    ]
+    backup_before_changes: true
+    max_duration_minutes: 30
+    max_improvements: 5
+    target_directories: [
+        "TarsCli/Services",
+        "TarsEngine.SelfImprovement"
+    ]
+}
+
+// Define paths to important directories
+VARIABLE exploration_dirs {
+    value: [
+        "C:/Users/spare/source/repos/tars/docs/Explorations/v1/Chats",
+        "C:/Users/spare/source/repos/tars/docs/Explorations/Reflections"
+    ]
+}
+
+VARIABLE target_dirs {
+    value: [
+        "C:/Users/spare/source/repos/tars/TarsCli/Services",
+        "C:/Users/spare/source/repos/tars/TarsCli/Commands",
+        "C:/Users/spare/source/repos/tars/TarsCli/Models"
+    ]
+}
+
+// Define the state object to track progress
+VARIABLE state {
+    value: {
+        start_time: Date.now(),
+        end_time: null,
+        files_processed: 0,
+        files_improved: 0,
+        improvements_made: 0,
+        improved_files: [],
+        knowledge_items: [],
+        current_phase: "initialization"
+    }
+}
+
+// Get all markdown files in a directory
+FUNCTION get_markdown_files {
+    parameters: ["directory"]
+
+    ACTION {
+        type: "get_files"
+        directory: "${directory}"
+        pattern: "*.md"
+        recursive: true
+        output_variable: "markdown_files"
+    }
+
+    RETURN {
+        value: "${markdown_files}"
+    }
+}
+
+// Extract knowledge from a file
+FUNCTION extract_knowledge {
+    parameters: ["file_path"]
+
+    ACTION {
+        type: "log"
+        message: "Extracting knowledge from: ${file_path}"
+    }
+
+    // Read the file content
+    ACTION {
+        type: "file_read"
+        path: "${file_path}"
+        output_variable: "file_content"
+    }
+
+    // Create a prompt for knowledge extraction
+    VARIABLE prompt_text {
+        value: "You are an expert at extracting structured knowledge from documentation.
+
+I'll provide you with the content of a markdown file from the TARS project. Please extract key knowledge, concepts, and insights from this document.
+
+Focus on:
+1. Key concepts and their definitions
+2. Important insights and conclusions
+3. Technical details and specifications
+4. Design decisions and rationales
+5. Relationships between concepts
+
+Here's the content:
+
+${file_content}
+
+Please provide your extracted knowledge in the following JSON format:
+{
+  \"title\": \"The title of the document\",
+  \"summary\": \"A concise summary of the document\",
+  \"key_concepts\": [
+    {
+      \"name\": \"Concept name\",
+      \"definition\": \"Concept definition\",
+      \"related_concepts\": [\"Related concept 1\", \"Related concept 2\"]
+    }
+  ],
+  \"insights\": [
+    {
+      \"description\": \"Description of the insight\",
+      \"importance\": \"Why this insight is important\",
+      \"applications\": [\"Application 1\", \"Application 2\"]
+    }
+  ],
+  \"technical_details\": [
+    {
+      \"topic\": \"Topic name\",
+      \"details\": \"Technical details\",
+      \"code_examples\": [\"Example 1\", \"Example 2\"]
+    }
+  ],
+  \"design_decisions\": [
+    {
+      \"decision\": \"The decision made\",
+      \"rationale\": \"Why this decision was made\",
+      \"alternatives\": [\"Alternative 1\", \"Alternative 2\"]
+    }
+  ],
+  \"relationships\": [
+    {
+      \"from\": \"Concept A\",
+      \"to\": \"Concept B\",
+      \"relationship\": \"How A relates to B\"
+    }
+  ]
+}
+
+Focus on extracting the most valuable knowledge from this document."
+    }
+
+    // Get the extracted knowledge from the LLM
+    PROMPT {
+        text: "${prompt_text}"
+        model: "llama3"
+        temperature: 0.3
+        max_tokens: 4000
+        output_variable: "analysis_result_text"
+    }
+
+    // Parse the JSON response
+    VARIABLE analysis_result {
+        value: "${JSON.parse(analysis_result_text.match(/\\{[\\s\\S]*\\}/)[0])}"
+    }
+
+    // Add metadata
+    VARIABLE knowledge_item {
+        value: "${Object.assign({}, analysis_result, {
+            source_file: file_path,
+            extraction_date: new Date().toISOString()
+        })}"
+    }
+
+    // Update the state
+    VARIABLE state {
+        value: "${Object.assign({}, state, {
+            files_processed: state.files_processed + 1,
+            knowledge_items: [...state.knowledge_items, knowledge_item]
+        })}"
+    }
+
+    ACTION {
+        type: "log"
+        message: "Knowledge extracted from: ${file_path}"
+    }
+
+    RETURN {
+        value: "${knowledge_item}"
+    }
+}
+
+// Apply knowledge to improve a file
+FUNCTION apply_knowledge {
+    parameters: ["file_path"]
+
+    ACTION {
+        type: "log"
+        message: "Applying knowledge to improve: ${file_path}"
+    }
+
+    // Read the file content
+    ACTION {
+        type: "file_read"
+        path: "${file_path}"
+        output_variable: "file_content"
+    }
+
+    // Create a knowledge summary
+    VARIABLE knowledge_summary {
+        value: "# Knowledge Summary\n\n"
+    }
+
+    // Add key concepts
+    VARIABLE knowledge_summary {
+        value: "${knowledge_summary}## Key Concepts\n\n"
+    }
+
+    FOREACH {
+        items: "${state.knowledge_items}"
+        item_variable: "knowledge"
+
+        FOREACH {
+            items: "${knowledge.key_concepts || []}"
+            item_variable: "concept"
+
+            VARIABLE knowledge_summary {
+                value: "${knowledge_summary}- **${concept.name}**: ${concept.definition}\n"
+            }
+        }
+    }
+
+    // Add insights
+    VARIABLE knowledge_summary {
+        value: "${knowledge_summary}\n## Insights\n\n"
+    }
+
+    FOREACH {
+        items: "${state.knowledge_items}"
+        item_variable: "knowledge"
+
+        FOREACH {
+            items: "${knowledge.insights || []}"
+            item_variable: "insight"
+
+            VARIABLE knowledge_summary {
+                value: "${knowledge_summary}- ${insight.description}\n"
+            }
+        }
+    }
+
+    // Add design decisions
+    VARIABLE knowledge_summary {
+        value: "${knowledge_summary}\n## Design Decisions\n\n"
+    }
+
+    FOREACH {
+        items: "${state.knowledge_items}"
+        item_variable: "knowledge"
+
+        FOREACH {
+            items: "${knowledge.design_decisions || []}"
+            item_variable: "decision"
+
+            VARIABLE knowledge_summary {
+                value: "${knowledge_summary}- **${decision.decision}**: ${decision.rationale}\n"
+            }
+        }
+    }
+
+    // Create a prompt for improving the file
+    VARIABLE prompt_text {
+        value: "You are an expert at improving code and documentation by applying knowledge from a knowledge base.
+
+I'll provide you with:
+1. The content of a file from the TARS project
+2. A summary of knowledge extracted from TARS documentation
+
+Your task is to improve the file by applying relevant knowledge from the knowledge base. This could involve:
+- Adding comments to explain concepts or design decisions
+- Improving variable or function names based on standard terminology
+- Adding documentation that references key concepts
+- Restructuring code to better align with design principles
+- Adding references to related concepts or components
+
+Here's the file content:
+
+```
+${file_content}
+```
+
+Here's the knowledge base summary:
+
+${knowledge_summary}
+
+Please provide your improved version of the file. If you make changes, explain each change and how it applies knowledge from the knowledge base.
+
+If the file doesn't need improvement or the knowledge isn't relevant, just say so."
+    }
+
+    // Get the improved content from the LLM
+    PROMPT {
+        text: "${prompt_text}"
+        model: "llama3"
+        temperature: 0.3
+        max_tokens: 4000
+        output_variable: "response"
+    }
+
+    // Extract the improved content
+    VARIABLE improved_content {
+        value: "${response.match(/```(?:[\\w]*)\s*([\\s\\S]*?)```/)?.[1]?.trim() || file_content}"
+    }
+
+    // Check if the content was actually improved
+    IF {
+        condition: "${improved_content !== file_content}"
+        then: {
+            // Create a backup of the original file
+            VARIABLE backup_path {
+                value: "${file_path}.bak"
+            }
+
+            ACTION {
+                type: "file_write"
+                path: "${backup_path}"
+                content: "${file_content}"
+            }
+
+            // Write the improved content back to the file
+            ACTION {
+                type: "file_write"
+                path: "${file_path}"
+                content: "${improved_content}"
+            }
+
+            // Update the state
+            VARIABLE state {
+                value: "${Object.assign({}, state, {
+                    files_improved: state.files_improved + 1,
+                    improvements_made: state.improvements_made + 1,
+                    improved_files: [...state.improved_files, file_path]
+                })}"
+            }
+
+            ACTION {
+                type: "log"
+                message: "File improved: ${file_path}"
+            }
+
+            RETURN {
+                value: true
+            }
+        }
+        else: {
+            ACTION {
+                type: "log"
+                message: "No improvements needed for: ${file_path}"
+            }
+
+            RETURN {
+                value: false
+            }
+        }
+    }
+}
+
+// Generate a knowledge report
+FUNCTION generate_knowledge_report {
+    ACTION {
+        type: "log"
+        message: "Generating knowledge report"
+    }
+
+    // Create the report
+    VARIABLE report {
+        value: "# TARS Knowledge Report\n\n" +
+               "Generated: " + new Date().toISOString() + "\n\n" +
+               "Total knowledge items: " + state.knowledge_items.length + "\n\n"
+    }
+
+    // Add a summary of each knowledge item
+    VARIABLE report {
+        value: "${report}## Knowledge Items\n\n"
+    }
+
+    FOREACH {
+        items: "${state.knowledge_items}"
+        item_variable: "knowledge"
+
+        VARIABLE report {
+            value: "${report}### ${knowledge.title}\n\n" +
+                   "Source: ${knowledge.source_file}\n" +
+                   "Extracted: ${knowledge.extraction_date}\n\n" +
+                   "${knowledge.summary}\n\n"
+        }
+
+        // Add key concepts
+        IF {
+            condition: "${knowledge.key_concepts && knowledge.key_concepts.length > 0}"
+            then: {
+                VARIABLE report {
+                    value: "${report}#### Key Concepts\n\n"
+                }
+
+                FOREACH {
+                    items: "${knowledge.key_concepts}"
+                    item_variable: "concept"
+
+                    VARIABLE report {
+                        value: "${report}- **${concept.name}**: ${concept.definition}\n"
+                    }
+                }
+
+                VARIABLE report {
+                    value: "${report}\n"
+                }
+            }
+        }
+
+        // Add insights
+        IF {
+            condition: "${knowledge.insights && knowledge.insights.length > 0}"
+            then: {
+                VARIABLE report {
+                    value: "${report}#### Insights\n\n"
+                }
+
+                FOREACH {
+                    items: "${knowledge.insights}"
+                    item_variable: "insight"
+
+                    VARIABLE report {
+                        value: "${report}- ${insight.description}\n"
+                    }
+                }
+
+                VARIABLE report {
+                    value: "${report}\n"
+                }
+            }
+        }
+    }
+
+    // Save the report
+    VARIABLE report_path {
+        value: "knowledge_report_" + new Date().toISOString().replace(/:/g, '-') + ".md"
+    }
+
+    ACTION {
+        type: "file_write"
+        path: "${report_path}"
+        content: "${report}"
+    }
+
+    ACTION {
+        type: "log"
+        message: "Knowledge report generated: ${report_path}"
+    }
+
+    RETURN {
+        value: "${report_path}"
+    }
+}
+
+// Main workflow
+TARS {
+    // Initialize the workflow
+    ACTION {
+        type: "log"
+        message: "Starting Autonomous Improvement"
+    }
+
+    VARIABLE state {
+        value: "${Object.assign({}, state, {
+            current_phase: 'knowledge_extraction'
+        })}"
+    }
+
+    // Step 1: Extract knowledge from exploration directories
+    ACTION {
+        type: "log"
+        message: "Extracting knowledge from exploration directories"
+    }
+
+    FOREACH {
+        items: "${exploration_dirs}"
+        item_variable: "dir"
+
+        ACTION {
+            type: "log"
+            message: "Processing directory: ${dir}"
+        }
+
+        // Get all markdown files in the directory
+        ACTION {
+            type: "call_function"
+            function: "get_markdown_files"
+            parameters: {
+                directory: "${dir}"
+            }
+            output_variable: "markdown_files"
+        }
+
+        ACTION {
+            type: "log"
+            message: "Found ${markdown_files.length} markdown files in ${dir}"
+        }
+
+        // Extract knowledge from each file
+        FOREACH {
+            items: "${markdown_files}"
+            item_variable: "file"
+
+            ACTION {
+                type: "call_function"
+                function: "extract_knowledge"
+                parameters: {
+                    file_path: "${file}"
+                }
+                output_variable: "knowledge_item"
+            }
+        }
+    }
+
+    // Step 2: Generate a knowledge report
+    VARIABLE state {
+        value: "${Object.assign({}, state, {
+            current_phase: 'knowledge_report'
+        })}"
+    }
+
+    ACTION {
+        type: "call_function"
+        function: "generate_knowledge_report"
+        output_variable: "report_path"
+    }
+
+    // Step 3: Apply knowledge to improve target directories
+    VARIABLE state {
+        value: "${Object.assign({}, state, {
+            current_phase: 'knowledge_application'
+        })}"
+    }
+
+    FOREACH {
+        items: "${target_dirs}"
+        item_variable: "dir"
+
+        ACTION {
+            type: "log"
+            message: "Improving files in: ${dir}"
+        }
+
+        // Get all code files in the directory
+        ACTION {
+            type: "get_files"
+            directory: "${dir}"
+            pattern: "*.cs"
+            recursive: true
+            output_variable: "code_files"
+        }
+
+        ACTION {
+            type: "log"
+            message: "Found ${code_files.length} code files in ${dir}"
+        }
+
+        // Apply knowledge to each file
+        FOREACH {
+            items: "${code_files}"
+            item_variable: "file"
+
+            ACTION {
+                type: "call_function"
+                function: "apply_knowledge"
+                parameters: {
+                    file_path: "${file}"
+                }
+                output_variable: "improved"
+            }
+        }
+    }
+
+    // Step 4: Finalize the process
+    VARIABLE state {
+        value: "${Object.assign({}, state, {
+            current_phase: 'finalization',
+            end_time: Date.now()
+        })}"
+    }
+
+    // Generate a summary report
+    VARIABLE summary {
+        value: "# Autonomous Improvement Report\n\n" +
+               "## Summary\n\n" +
+               "- **Start Time:** " + new Date(state.start_time).toLocaleString() + "\n" +
+               "- **End Time:** " + new Date(state.end_time).toLocaleString() + "\n" +
+               "- **Files Processed:** " + state.files_processed + "\n" +
+               "- **Files Improved:** " + state.files_improved + "\n" +
+               "- **Improvements Made:** " + state.improvements_made + "\n\n" +
+               "## Improved Files\n\n" +
+               state.improved_files.map(file => `- ${file}`).join('\n') + "\n\n" +
+               "## Knowledge Items\n\n" +
+               state.knowledge_items.map(item => `- ${item.title}`).join('\n') + "\n\n" +
+               "## Next Steps\n\n" +
+               "1. Review the improved files to ensure the changes are appropriate\n" +
+               "2. Run the improvement process again to continue improving more files\n" +
+               "3. Consider extracting additional knowledge from new exploration files\n"
+    }
+
+    ACTION {
+        type: "file_write"
+        path: "autonomous_improvement_report.md"
+        content: "${summary}"
+    }
+
+    ACTION {
+        type: "log"
+        message: "Autonomous Improvement completed. Report generated: autonomous_improvement_report.md"
+    }
+}
+
+// Docker-based workflow for autonomous improvement
+WORKFLOW autonomous_improvement_docker {
+    STEP backup {
+        description: "Backup target directories before making changes"
+        action: {
+            type: "backup"
+            input: {
+                target_dirs: $target_dirs
+                backup_dir: "docker/backups"
+                timestamp: true
+            }
+            output: {
+                backup_paths: "backup_paths.json"
+            }
+        }
+    }
+
+    STEP knowledge_extraction {
+        description: "Extract knowledge from exploration files"
+        depends_on: ["backup"]
+        action: {
+            type: "knowledge_extraction"
+            input: {
+                exploration_dirs: $exploration_dirs
+                max_files: 10
+                use_ollama: true
+                ollama_model: "llama3"
+                ollama_endpoint: "http://ollama:11434"
+            }
+            output: {
+                knowledge_base: "knowledge_base.json"
+                extraction_stats: "knowledge_extraction_stats.json"
+            }
+        }
+    }
+
+    STEP code_analysis {
+        description: "Analyze code for improvement opportunities"
+        depends_on: ["knowledge_extraction"]
+        action: {
+            type: "code_analysis"
+            input: {
+                knowledge_base: $knowledge_extraction.output.knowledge_base
+                target_dirs: $target_dirs
+                use_ollama: true
+                ollama_model: "llama3"
+                ollama_endpoint: "http://ollama:11434"
+                analysis_depth: "deep"
+            }
+            output: {
+                opportunities: "improvement_opportunities.json"
+                analysis_stats: "code_analysis_stats.json"
+            }
+        }
+    }
+
+    STEP improvement_application {
+        description: "Apply improvements to the codebase"
+        depends_on: ["code_analysis"]
+        action: {
+            type: "improvement_application"
+            input: {
+                opportunities: $code_analysis.output.opportunities
+                max_improvements: $CONFIG.max_improvements
+                use_ollama: true
+                ollama_model: "llama3"
+                ollama_endpoint: "http://ollama:11434"
+                backup_before_changes: true
+                backup_dir: "docker/backups/individual"
+            }
+            output: {
+                applied_improvements: "applied_improvements.json"
+                application_stats: "improvement_application_stats.json"
+            }
+        }
+    }
+
+    STEP feedback_collection {
+        description: "Collect feedback on the applied improvements"
+        depends_on: ["improvement_application"]
+        action: {
+            type: "feedback_collection"
+            input: {
+                applied_improvements: $improvement_application.output.applied_improvements
+                run_tests: true
+                build_projects: true
+            }
+            output: {
+                feedback: "improvement_feedback.json"
+                feedback_stats: "feedback_collection_stats.json"
+            }
+        }
+    }
+
+    STEP reporting {
+        description: "Generate a report on the autonomous improvement process"
+        depends_on: ["feedback_collection"]
+        action: {
+            type: "reporting"
+            input: {
+                knowledge_extraction_results: $knowledge_extraction.output
+                code_analysis_results: $code_analysis.output
+                improvement_application_results: $improvement_application.output
+                feedback_collection_results: $feedback_collection.output
+                include_before_after: true
+                include_metrics: true
+                format: "markdown"
+            }
+            output: {
+                report: "autonomous_improvement_report.md"
+                summary: "autonomous_improvement_summary.json"
+            }
+        }
+    }
+
+    STEP notification {
+        description: "Send notification about the completed workflow"
+        depends_on: ["reporting"]
+        action: {
+            type: "notification"
+            input: {
+                report: $reporting.output.report
+                summary: $reporting.output.summary
+                notification_type: "console"
+            }
+            output: {
+                notification_sent: "notification_status.json"
+            }
+        }
+    }
+}

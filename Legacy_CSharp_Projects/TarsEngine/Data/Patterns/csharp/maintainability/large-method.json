@@ -1,0 +1,33 @@
+{
+  "Id": "csharp-maint-001",
+  "Name": "Large Method",
+  "Description": "Detects methods that are too large and should be refactored into smaller, more focused methods.",
+  "Language": "csharp",
+  "Pattern": "(public|private|protected|internal)\\s+(static\\s+)?(async\\s+)?[a-zA-Z0-9_<>]+\\s+[a-zA-Z0-9_]+\\s*\\([^)]*\\)\\s*{[^}]{1000,}}",
+  "PatternLanguage": "Regex",
+  "Replacement": null,
+  "ReplacementExplanation": "Large methods are difficult to understand, test, and maintain. Break the method into smaller, more focused methods that each do one thing well.",
+  "ExpectedImprovement": "Improved code readability, maintainability, and testability.",
+  "Severity": 2,
+  "ConfidenceThreshold": 0.9,
+  "ImpactScore": 0.6,
+  "DifficultyScore": 0.7,
+  "CreatedAt": "2023-04-01T00:00:00Z",
+  "Tags": [
+    "maintainability",
+    "large-method",
+    "code-smell"
+  ],
+  "Metadata": {
+    "Category": "Maintainability",
+    "Source": "Clean Code",
+    "Reference": "https://refactoring.guru/smells/long-method"
+  },
+  "Options": {
+    "IgnoreCase": "true",
+    "IgnoreWhitespace": "true"
+  },
+  "Examples": [
+    "public void ProcessData(List<string> data) {\n    // 100+ lines of code\n}"
+  ]
+}

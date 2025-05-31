@@ -1,0 +1,218 @@
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using NLog;
+using NLog.Extensions.Logging;
+using System.CommandLine.Builder;
+using System.CommandLine.Parsing;
+using TarsCli.Controllers;
+using TarsCli.Extensions;
+using TarsCli.Services;
+using TarsCli.Services.Mcp;
+using TarsEngine.Consciousness;
+using TarsEngine.Extensions;
+using TarsEngine.Interfaces.Compilation;
+using TarsEngine.Metascripts;
+
+namespace TarsCli;
+
+internal static class Program
+{
+    // Main method
+    public static async Task<int> Main(string[] args)
+    {
+        // Setup NLog
+        LogManager.Setup()
+            .LoadConfigurationFromFile("nlog.config")
+            .GetCurrentClassLogger();
+
+        try
+        {
+            // Setup configuration
+            var configuration = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: false)
+                .AddEnvironmentVariables()
+                .AddCommandLine(args)
+                .Build();
+
+            // Create logs directory if it doesn't exist
+            Directory.CreateDirectory(Path.Combine(Directory.GetCurrentDirectory(), "logs"));
+            Directory.CreateDirectory(Path.Combine(Directory.GetCurrentDirectory(), "logs", "archives"));
+            Directory.CreateDirectory(Path.Combine(Directory.GetCurrentDirectory(), "logs", "metascripts"));
+
+            // Setup DI
+            var serviceProvider = new ServiceCollection()
+                .AddLogging(builder =>
+                {
+                    builder.ClearProviders();
+                    builder.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
+                    builder.AddNLog(configuration);
+                })
+                .AddSingleton<IConfiguration>(configuration)
+                .AddHttpClient()
+                .AddSingleton<GpuService>()
+                .AddSingleton<OllamaService>()
+                .AddSingleton<OllamaSetupService>()
+                .AddSingleton<RetroactionService>()
+                .AddSingleton<RetroactionLoopService>()
+                .AddSingleton<DiagnosticsService>()
+                .AddSingleton<DiagnosticReportService>()
+                .AddSingleton<KnowledgeApplicationService>()
+                .AddSingleton<KnowledgeIntegrationService>()
+                .AddSingleton<CompilationService>()
+                .AddSingleton<TestRunnerService>()
+                .AddSingleton<SmartKnowledgeApplicationService>()
+                .AddSingleton<KnowledgePrioritizationService>()
+                .AddSingleton<GitService>()
+                .AddSingleton<DynamicFSharpCompilerService>()
+                .AddSingleton<MetascriptEngine>()
+                .AddSingleton<TransformationLearningService>()
+                .AddSingleton<MultiAgentCollaborationService>()
+                .AddSingleton<DistributedAgentService>()
+                .AddSingleton<AiCodeUnderstandingService>()
+                .AddSingleton<LearningService>()
+                .AddSingleton<Commands.RetroactionCommand>()
+                .AddSingleton<SelfImprovementService>()
+                .AddSingleton<ScriptExecutionService>()
+                .AddSingleton<TemplateService>()
+                .AddSingleton<SessionService>()
+                .AddSingleton<WorkflowCoordinationService>()
+                .AddSingleton<HuggingFaceService>()
+                .AddSingleton<LanguageSpecificationService>()
+                .AddSingleton<DocumentationService>()
+                .AddSingleton<DemoService>()
+                .AddSingleton<SecretsService>()
+                .AddSingleton<UserInteractionService>()
+                .AddSingleton<AutoImprovementService>()
+                .AddSingleton<SlackIntegrationService>()
+                .AddSingleton<TarsSpeechService>()
+                .AddSingleton<ConversationLoggingService>()
+                .AddSingleton<ChatBotService>()
+                .AddSingleton<ChatWebSocketService>()
+                .AddSingleton<ExplorationReflectionService>()
+                .AddSingleton<ExplorationReflectionService2>()
+                .AddSingleton<DeepThinkingService>()
+                .AddSingleton<McpService>()
+                .AddSingleton<TarsMcpService>()
+                .AddSingleton<ReplicaCommunicationProtocol>()
+                .AddSingleton<ResponseProcessor>()
+                .AddSingleton<IMcpActionHandler, AnalyzerReplicaActionHandler>()
+                .AddSingleton<IMcpActionHandler, GeneratorReplicaActionHandler>()
+                .AddSingleton<IMcpActionHandler, TesterReplicaActionHandler>()
+
+                // Self-coding services
+                .AddSingleton<Services.SelfCoding.FileProcessor>()
+                .AddSingleton<Services.SelfCoding.AnalysisProcessor>()
+                .AddSingleton<Services.SelfCoding.CodeGenerationProcessor>()
+                .AddSingleton<Services.SelfCoding.TestProcessor>()
+                .AddSingleton<Services.SelfCoding.SelfCodingWorkflow>()
+                .AddSingleton<Commands.A2ACommands>()
+                .AddSingleton<Commands.McpSwarmCommand>()
+                .AddSingleton<Commands.SwarmSelfImprovementCommand>()
+                .AddSingleton<Commands.SelfCodingCommand>()
+                .AddSingleton<Commands.TestGeneratorCommand>()
+                .AddSingleton<Commands.AutonomousImprovementCommand>()
+                .AddSingleton<LearningPlanService>()
+                .AddSingleton<CourseGeneratorService>()
+                .AddSingleton<TutorialOrganizerService>()
+                .AddSingleton<ConsoleCaptureService>()
+                .AddSingleton<DslService>()
+                .AddSingleton<DslDebuggerService>()
+                .AddSingleton<DockerModelRunnerService>()
+                .AddSingleton<DockerAIAgentService>()
+                .AddSingleton<ModelProviderFactory>()
+                .AddSingleton<ConsoleService>()
+                .AddSingleton<ConfigurationService>()
+                .AddSingleton<DocumentationKnowledgeService>()
+                .AddSingleton<OperationSummaryService>()
+                .AddSingleton<MetascriptExecutionService>()
+                .AddSingleton<ImprovementMetascriptGenerator>()
+                .AddSingleton<TarsEngine.Consciousness.Intelligence.IntelligenceSpark>()
+                .AddSingleton<TarsEngine.ML.Core.IntelligenceMeasurement>()
+                .AddSingleton<TarsEngine.Consciousness.Intelligence.Pattern.ImplicitPatternRecognition>()
+                .AddSingleton<TarsEngine.Consciousness.Intelligence.Heuristic.HeuristicReasoning>()
+
+                // Add our new services for auto-improvement
+                .AddSingleton<IMetascriptExecutor, MetascriptExecutor>()
+                .AddSingleton<Commands.AutoImprovementCommand>()
+                .AddSingleton<Commands.TotAutoImprovementCommand>()
+
+                .AddSingleton<TarsEngine.Services.Interfaces.IMetascriptGeneratorService, TarsEngine.Services.MetascriptGeneratorService>()
+                .AddSingleton<TarsEngine.Services.MetascriptTemplateService>(sp => new TarsEngine.Services.MetascriptTemplateService(
+                    sp.GetRequiredService<ILogger<TarsEngine.Services.MetascriptTemplateService>>(),
+                    Path.Combine(Directory.GetCurrentDirectory(), "TarsEngine", "Data", "Templates")))
+                .AddSingleton<TarsEngine.Services.TemplateFiller>()
+                .AddSingleton<TarsEngine.Services.ParameterOptimizer>()
+                // Mock implementation of IFSharpCompiler for TarsCli
+                .AddSingleton<TarsEngine.Interfaces.Compilation.IFSharpCompiler>(sp => new MockFSharpCompiler())
+                .AddSingleton<TarsEngine.Services.MetascriptSandbox>(sp => new TarsEngine.Services.MetascriptSandbox(
+                    sp.GetRequiredService<ILogger<TarsEngine.Services.MetascriptSandbox>>(),
+                    sp.GetRequiredService<TarsEngine.Interfaces.Compilation.IFSharpCompiler>(),
+                    Path.Combine(Directory.GetCurrentDirectory(), "TarsEngine", "Data", "Sandbox")))
+                .AddSingleton<TarsEngine.Services.DependencyGraphService>()
+                .AddSingleton<TarsEngine.Services.ImprovementGenerationService>(sp => new TarsEngine.Services.ImprovementGenerationService(
+                    sp.GetRequiredService<ILogger<TarsEngine.Services.ImprovementGenerationService>>(),
+                    Path.Combine(Directory.GetCurrentDirectory(), "TarsEngine", "Data", "Improvements"),
+                    sp.GetRequiredService<TarsEngine.Services.DependencyGraphService>()))
+
+                // Improvement Generation System CLI commands
+                .AddSingleton<Commands.ImprovementGenerationCommand>()
+                .AddSingleton<Commands.ImprovementWorkflowCommand>()
+                .AddSingleton<SelfImprovementController>()
+                .AddSingleton<Mcp.McpController>(sp => new Mcp.McpController(
+                    sp.GetRequiredService<ILogger<Mcp.McpController>>(),
+                    configuration))
+
+                // Consciousness services
+                .AddConsciousnessServices()
+
+                // Intelligence progression measurement services
+                .AddIntelligenceProgressionMeasurement()
+
+                // Code complexity command
+                .AddSingleton<Commands.CodeComplexityCommand>()
+
+                // Operation Summary Service
+                .AddSingleton<OperationSummaryService>()
+
+                // VS Code Control Command
+                .AddSingleton<Commands.VSCodeControlCommand>()
+
+                // Augment VS Code Demo Command
+                .AddSingleton<Commands.AugmentVSCodeDemoCommand>()
+
+                // Agent implementations
+                .AddSingleton<Services.Agents.CodeAnalyzerAgent>()
+                .AddSingleton<Services.Agents.ProjectManagerAgent>()
+
+                .BuildServiceProvider();
+
+            // Create command line parser
+            var parser = new CommandLineBuilder()
+                .AddCommand(serviceProvider.GetRequiredService<Commands.RetroactionCommand>())
+                .AddCommand(serviceProvider.GetRequiredService<Commands.A2ACommands>())
+                .AddCommand(serviceProvider.GetRequiredService<Commands.McpSwarmCommand>())
+                .AddCommand(serviceProvider.GetRequiredService<Commands.SwarmSelfImprovementCommand>())
+                .AddCommand(serviceProvider.GetRequiredService<Commands.SelfCodingCommand>())
+                .AddCommand(serviceProvider.GetRequiredService<Commands.TestGeneratorCommand>())
+                .AddCommand(serviceProvider.GetRequiredService<Commands.AutonomousImprovementCommand>())
+                .AddCommand(serviceProvider.GetRequiredService<Commands.ImprovementGenerationCommand>())
+                .AddCommand(serviceProvider.GetRequiredService<Commands.ImprovementWorkflowCommand>())
+                .AddCommand(serviceProvider.GetRequiredService<Commands.CodeComplexityCommand>())
+                .AddCommand(serviceProvider.GetRequiredService<Commands.VSCodeControlCommand>())
+                .AddCommand(serviceProvider.GetRequiredService<Commands.AugmentVSCodeDemoCommand>())
+                .AddCommand(serviceProvider.GetRequiredService<Commands.AutoImprovementCommand>())
+                .AddCommand(serviceProvider.GetRequiredService<Commands.TotAutoImprovementCommand>())
+                .UseDefaults()
+                .Build();
+
+            // Parse command line arguments
+            return await parser.InvokeAsync(args);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+            return 1;
+        }
+    }
+}

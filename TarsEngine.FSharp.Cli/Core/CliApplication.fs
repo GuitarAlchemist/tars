@@ -6,9 +6,6 @@ open Microsoft.Extensions.DependencyInjection
 open Microsoft.Extensions.Logging
 open TarsEngine.FSharp.Cli.Commands
 open TarsEngine.FSharp.Cli.Services
-open TarsEngine.FSharp.Metascripts.Core
-open TarsEngine.FSharp.Metascripts.Discovery
-open TarsEngine.FSharp.Metascripts.Services
 
 /// <summary>
 /// CLI application with separate metascript engine.
@@ -22,22 +19,26 @@ type CliApplication() =
             logging.AddConsole() |> ignore
         ) |> ignore
         
-        // Add metascript engine services
-        services.AddSingleton<MetascriptRegistry>() |> ignore
-        services.AddSingleton<MetascriptManager>() |> ignore
-        services.AddSingleton<MetascriptDiscovery>() |> ignore
-        services.AddSingleton<IMetascriptService, MetascriptService>() |> ignore
+        // Metascript services temporarily disabled due to compilation issues
         
+        // Add HTTP client
+        services.AddHttpClient() |> ignore
+
         // Add CLI services
         services.AddSingleton<IntelligenceService>() |> ignore
         services.AddSingleton<MLService>() |> ignore
+        services.AddSingleton<DockerService>() |> ignore
+        services.AddSingleton<MixtralService>() |> ignore
+        services.AddSingleton<LLMRouter>() |> ignore
         
         services.BuildServiceProvider()
     
-    let metascriptService = serviceProvider.GetRequiredService<IMetascriptService>()
     let intelligenceService = serviceProvider.GetRequiredService<IntelligenceService>()
     let mlService = serviceProvider.GetRequiredService<MLService>()
-    let commandRegistry = CommandRegistry(metascriptService, intelligenceService, mlService)
+    let dockerService = serviceProvider.GetRequiredService<DockerService>()
+    let mixtralService = serviceProvider.GetRequiredService<MixtralService>()
+    let llmRouter = serviceProvider.GetRequiredService<LLMRouter>()
+    let commandRegistry = CommandRegistry(intelligenceService, mlService, dockerService, mixtralService, llmRouter)
     let commandLineParser = CommandLineParser()
     
     do

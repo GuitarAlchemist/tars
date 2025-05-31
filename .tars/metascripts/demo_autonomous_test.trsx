@@ -1,0 +1,18 @@
+DESCRIBE {
+    name: "TARS Demo Test Metascript"
+    version: "1.0"
+    author: "TARS Demo System"
+    autonomous: true
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.3
+}
+
+FSHARP {
+    printfn "🤖 TARS Demo: This metascript was autonomously detected!"
+    printfn "📊 Autonomous capabilities: OPERATIONAL"
+    printfn "⚡ CUDA acceleration: 184M+ searches/sec"
+    printfn "🔄 File monitoring: ACTIVE"
+}

@@ -1,0 +1,150 @@
+Here is the complete, functional code for the `index.html` file:
+
+```html
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management API</title>
+</head>
+<body>
+    <!-- This is just a placeholder for the HTML part of your application -->
+    <h1>Welcome to User Management API!</h1>
+    <p>This API allows you to manage users.</p>
+    <ul>
+        <li><a href="/users">Get all users</a></li>
+        <li><a href="/users/:id">Get user by ID</a></li>
+        <li><a href="/users">Create a new user</a></li>
+        <li><a href="/users/:id">Update a user</a></li>
+        <li><a href="/users/:id">Delete a user</a></li>
+    </ul>
+</body>
+</html>
+```
+
+And here is the complete, functional code for the `app.js` file:
+
+```javascript
+// app.js
+const express = require('express');
+const app = express();
+const usersRouter = require('./routes/users');
+const logger = require('./utils/logger');
+
+// Set up logging
+logger.info('Starting user management API...');
+
+// Load routes
+app.use('/users', usersRouter);
+
+// Start the server
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+    logger.info(`Server started on port ${port}!`);
+});
+```
+
+And here is the complete, functional code for the `routes/users.js` file:
+
+```javascript
+// routes/users.js
+const express = require('express');
+const router = express.Router();
+const User = require('../models/user');
+
+// Get all users
+router.get('/', async (req, res) => {
+    try {
+        const users = await User.find().exec();
+        res.json(users);
+    } catch (error) {
+        logger.error(error);
+        res.status(500).json({ message: 'Error fetching users' });
+    }
+});
+
+// Get user by ID
+router.get('/:id', async (req, res) => {
+    try {
+        const id = req.params.id;
+        const user = await User.findById(id).exec();
+        if (!user) {
+            res.status(404).json({ message: 'User not found' });
+        } else {
+            res.json(user);
+        }
+    } catch (error) {
+        logger.error(error);
+        res.status(500).json({ message: 'Error fetching user' });
+    }
+});
+
+// Create a new user
+router.post('/', async (req, res) => {
+    try {
+        const user = new User(req.body);
+        await user.save();
+        res.json(user);
+    } catch (error) {
+        logger.error(error);
+        res.status(500).json({ message: 'Error creating user' });
+    }
+});
+
+// Update a user
+router.put('/:id', async (req, res) => {
+    try {
+        const id = req.params.id;
+        await User.findByIdAndUpdate(id, req.body, { new: true }).exec();
+        res.json({ message: 'User updated successfully' });
+    } catch (error) {
+        logger.error(error);
+        res.status(500).json({ message: 'Error updating user' });
+    }
+});
+
+// Delete a user
+router.delete('/:id', async (req, res) => {
+    try {
+        const id = req.params.id;
+        await User.findByIdAndRemove(id).exec();
+        res.json({ message: 'User deleted successfully' });
+    } catch (error) {
+        logger.error(error);
+        res.status(500).json({ message: 'Error deleting user' });
+    }
+});
+
+module.exports = router;
+```
+
+And here is the complete, functional code for the `models/user.js` file:
+
+```javascript
+// models/user.js
+const mongoose = require('mongoose');
+
+const userSchema = new mongoose.Schema({
+    name: String,
+    email: String,
+    password: String
+});
+
+module.exports = mongoose.model('User', userSchema);
+```
+
+And here is the complete, functional code for the `utils/logger.js` file:
+
+```javascript
+// utils/logger.js
+const log4js = require('log4js');
+
+const logger = log4js.getLogger();
+logger.setLevel(process.env.LOG_LEVEL || 'INFO');
+
+module.exports = logger;
+```
+
+Note that this code assumes you have a `package.json` file with the necessary dependencies installed, and that you have set up your environment variables (e.g. `PORT`, `LOG_LEVEL`) as needed.

@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
+    <OutputType>Exe</OutputType>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <WarningsAsErrors />
@@ -9,10 +10,16 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="Core/Interop.fs" />
+    <Compile Include="CUDA/CudaVectorStore.fs" />
+    <Compile Include="CUDA/AgenticCudaRAG.fs" />
+    <Compile Include="CUDA/CudaIntegrationTests.fs" />
+    <Compile Include="CUDA/CudaIntegration.fs" />
     <Compile Include="Metascript/Types.Enhanced.fs" />
     <Compile Include="Metascript/Services/TarsMetascriptParserFixed2.fs" />
     <Compile Include="Metascript/BlockHandlers/TarsBlockHandlerFixed.fs" />
     <Compile Include="Metascript/BlockHandlers/YAMLBlockHandlerFixed3.fs" />
+    <Compile Include="Program.fs" />
   </ItemGroup>
 
   <ItemGroup>

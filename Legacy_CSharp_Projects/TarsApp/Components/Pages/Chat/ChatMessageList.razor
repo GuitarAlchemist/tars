@@ -1,0 +1,53 @@
+@inject IJSRuntime JS
+
+<MudContainer Class="px-2 py-2 flex-grow-1 overflow-auto">
+    <MudList T="ChatMessage" Clickable="false" Dense="false" DisableGutters="true" Class="d-flex flex-column gap-4">
+        @foreach (var message in Messages)
+        {
+            <MudListItem @key="@message" DisableGutters="true" Class="pa-0">
+                <ChatMessageItem Message="@message" />
+            </MudListItem>
+        }
+
+        @if (InProgressMessage is not null)
+        {
+            <MudListItem DisableGutters="true" Class="pa-0">
+                <ChatMessageItem Message="@InProgressMessage" InProgress="true" />
+            </MudListItem>
+            <MudListItem DisableGutters="true" Class="pa-0">
+                <LoadingSpinner />
+            </MudListItem>
+        }
+        else if (IsEmpty)
+        {
+            <MudListItem DisableGutters="true" Class="d-flex justify-center">
+                <MudText Typo="Typo.body1" Color="Color.Default" Class="text-center mt-10">
+                    @NoMessagesContent
+                </MudText>
+            </MudListItem>
+        }
+    </MudList>
+</MudContainer>
+
+@code {
+    [Parameter]
+    public required IEnumerable<ChatMessage> Messages { get; set; }
+
+    [Parameter]
+    public ChatMessage? InProgressMessage { get; set; }
+
+    [Parameter]
+    public RenderFragment? NoMessagesContent { get; set; }
+
+    private bool IsEmpty => !Messages.Any(m => (m.Role == ChatRole.User || m.Role == ChatRole.Assistant) && !string.IsNullOrEmpty(m.Text));
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Activates the auto-scrolling behavior
+            await JS.InvokeVoidAsync("import", "./Components/Pages/Chat/ChatMessageList.razor.js");
+        }
+    }
+}
+

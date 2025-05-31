@@ -1,0 +1,203 @@
+DESCRIBE {
+    name: "F# Integration Example"
+    version: "1.0"
+    description: "A demonstration of F# code integration in TARS DSL"
+    author: "TARS Team"
+    date: "2025-04-01"
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.7
+    max_tokens: 1000
+}
+
+// Define some variables to use in F# code
+VARIABLE x {
+    value: 10
+}
+
+VARIABLE y {
+    value: 20
+}
+
+VARIABLE name {
+    value: "TARS"
+}
+
+// Execute F# code
+ACTION {
+    type: "log"
+    message: "Executing F# code..."
+}
+
+FSHARP {
+    // Access variables from the DSL environment
+    let sum = x + y
+    printfn "Sum of %d and %d is %d" x y sum
+
+    // Define a function
+    let factorial n =
+        let rec fact n acc =
+            if n <= 1 then acc
+            else fact (n - 1) (acc * n)
+        fact n 1
+
+    // Calculate factorial of x
+    let result = factorial x
+    printfn "Factorial of %d is %d" x result
+
+    // Return a value
+    sprintf "Hello, %s! The factorial of %d is %d" name x result
+}
+
+// Store the result in a variable
+VARIABLE result {
+    value: "${_last_result}"
+}
+
+// Display the result
+ACTION {
+    type: "log"
+    message: "Result from F# code: ${result}"
+}
+
+// Use F# to process a list
+FSHARP {
+    // Create a list
+    let numbers = [1..10]
+
+    // Filter even numbers
+    let evenNumbers = numbers |> List.filter (fun n -> n % 2 = 0)
+
+    // Map to squares
+    let squares = evenNumbers |> List.map (fun n -> n * n)
+
+    // Sum the squares
+    let sum = squares |> List.sum
+
+    // Return the result
+    sprintf "Sum of squares of even numbers from 1 to 10: %d" sum
+}
+
+// Store the result in a variable
+VARIABLE list_result {
+    value: "${_last_result}"
+}
+
+// Display the result
+ACTION {
+    type: "log"
+    message: "Result from F# list processing: ${list_result}"
+}
+
+// Use F# with more complex data structures
+FSHARP {
+    // Define a record type
+    type Person = {
+        Name: string
+        Age: int
+    }
+
+    // Create a list of people
+    let people = [
+        { Name = "Alice"; Age = 30 }
+        { Name = "Bob"; Age = 25 }
+        { Name = "Charlie"; Age = 35 }
+    ]
+
+    // Find the oldest person
+    let oldest = people |> List.maxBy (fun p -> p.Age)
+
+    // Return the result
+    sprintf "The oldest person is %s, aged %d" oldest.Name oldest.Age
+}
+
+// Store the result in a variable
+VARIABLE complex_result {
+    value: "${_last_result}"
+}
+
+// Display the result
+ACTION {
+    type: "log"
+    message: "Result from F# complex data processing: ${complex_result}"
+}
+
+// Use F# to interact with the .NET framework
+FSHARP {
+    open System.IO
+
+    // Get the current directory
+    let currentDir = Directory.GetCurrentDirectory()
+
+    // Get the files in the current directory
+    let files = Directory.GetFiles(currentDir)
+
+    // Count the files
+    let fileCount = files.Length
+
+    // Return the result
+    sprintf "Current directory: %s\nNumber of files: %d" currentDir fileCount
+}
+
+// Store the result in a variable
+VARIABLE system_result {
+    value: "${_last_result}"
+}
+
+// Display the result
+ACTION {
+    type: "log"
+    message: "Result from F# system interaction: ${system_result}"
+}
+
+// Use F# for code generation
+FSHARP {
+    // Generate a simple function
+    let generateFunction name paramName =
+        sprintf """FUNCTION %s {
+    parameters: "%s"
+
+    VARIABLE result {
+        value: "${%s * 2}"
+    }
+
+    RETURN {
+        value: "${result}"
+    }
+}"""
+            name paramName paramName
+
+    // Generate a function called "double" with parameter "n"
+    generateFunction "double" "n"
+}
+
+// Store the generated code
+VARIABLE generated_code {
+    value: "${_last_result}"
+}
+
+// Display the generated code
+ACTION {
+    type: "log"
+    message: "Generated code:\n${generated_code}"
+}
+
+// Execute the generated code
+${generated_code}
+
+// Call the generated function
+CALL {
+    function: "double"
+    arguments: {
+        n: 5
+    }
+    result_variable: "doubled"
+}
+
+// Display the result
+ACTION {
+    type: "log"
+    message: "Result of calling generated function: ${doubled}"
+}

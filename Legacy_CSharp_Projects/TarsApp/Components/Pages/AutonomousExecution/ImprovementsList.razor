@@ -1,0 +1,487 @@
+@using TarsEngine.Models
+@using TarsEngine.Services.Interfaces
+@inject IImprovementPrioritizerService ImprovementPrioritizerService
+@inject ILogger<ImprovementsList> Logger
+
+<MudPaper Elevation="0" Class="pa-4">
+    <MudToolBar DisableGutters="true" Class="mb-4">
+        <MudText Typo="Typo.h5">Improvements</MudText>
+        <MudSpacer />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateDialog">
+            New Improvement
+        </MudButton>
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh" Class="ml-2" OnClick="RefreshImprovementsAsync">
+            Refresh
+        </MudButton>
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.FilterList" Class="ml-2" OnClick="OpenFilterDialog">
+            Filter
+        </MudButton>
+    </MudToolBar>
+
+    <MudTable T="PrioritizedImprovement" ServerData="@ServerReload"
+              Dense="true"
+              Hover="true"
+              @ref="table"
+              Breakpoint="Breakpoint.Sm"
+              Loading="@isLoading"
+              LoadingProgressColor="Color.Primary">
+        <HeaderContent>
+            <MudTh><MudTableSortLabel SortLabel="Id" T="PrioritizedImprovement">ID</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="Name" T="PrioritizedImprovement">Name</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="Category" T="PrioritizedImprovement">Category</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="Status" T="PrioritizedImprovement">Status</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="PriorityRank" T="PrioritizedImprovement">Priority</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="Impact" T="PrioritizedImprovement">Impact</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="Effort" T="PrioritizedImprovement">Effort</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="Risk" T="PrioritizedImprovement">Risk</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="CreatedAt" T="PrioritizedImprovement">Created</MudTableSortLabel></MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="ID">@context.Id</MudTd>
+            <MudTd DataLabel="Name">@context.Name</MudTd>
+            <MudTd DataLabel="Category">@context.Category</MudTd>
+            <MudTd DataLabel="Status">
+                <MudChip T="string" Color="@GetStatusColor(context.Status)" Size="Size.Small">@context.Status</MudChip>
+            </MudTd>
+            <MudTd DataLabel="Priority">
+                <MudChip T="string" Color="@GetPriorityColor(context.PriorityRank)" Size="Size.Small">@GetPriorityText(context.PriorityRank)</MudChip>
+            </MudTd>
+            <MudTd DataLabel="Impact">@context.Impact</MudTd>
+            <MudTd DataLabel="Effort">@context.Effort</MudTd>
+            <MudTd DataLabel="Risk">@context.Risk</MudTd>
+            <MudTd DataLabel="Created">@context.CreatedAt.ToString("yyyy-MM-dd")</MudTd>
+            <MudTd>
+                <MudButtonGroup Size="Size.Small" Variant="Variant.Outlined">
+                    <MudButton Color="Color.Primary" OnClick="@(() => ExecuteImprovement(context))">Execute</MudButton>
+                    <MudButton OnClick="@(() => ViewImprovement(context))">View</MudButton>
+                    <MudButton OnClick="@(() => EditImprovement(context))">Edit</MudButton>
+                </MudButtonGroup>
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+</MudPaper>
+
+<MudDialog @bind-IsVisible="isCreateDialogVisible" Options="dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Add" Class="mr-2" />
+            Create Improvement
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="createForm" Model="@newImprovement">
+            <MudTextField @bind-Value="newImprovement.Name" Label="Name" Required="true" RequiredError="Name is required" />
+            <MudTextField @bind-Value="newImprovement.Description" Label="Description" Lines="3" />
+            <MudSelect @bind-Value="newImprovement.Category" Label="Category" Required="true" RequiredError="Category is required">
+                @foreach (var category in Enum.GetValues<ImprovementCategory>())
+                {
+                    <MudSelectItem Value="@category">@category</MudSelectItem>
+                }
+            </MudSelect>
+            <MudSelect @bind-Value="newImprovement.Impact" Label="Impact" Required="true" RequiredError="Impact is required">
+                @foreach (var impact in Enum.GetValues<ImprovementImpact>())
+                {
+                    <MudSelectItem Value="@impact">@impact</MudSelectItem>
+                }
+            </MudSelect>
+            <MudSelect @bind-Value="newImprovement.Effort" Label="Effort" Required="true" RequiredError="Effort is required">
+                @foreach (var effort in Enum.GetValues<ImprovementEffort>())
+                {
+                    <MudSelectItem Value="@effort">@effort</MudSelectItem>
+                }
+            </MudSelect>
+            <MudSelect @bind-Value="newImprovement.Risk" Label="Risk" Required="true" RequiredError="Risk is required">
+                @foreach (var risk in Enum.GetValues<ImprovementRisk>())
+                {
+                    <MudSelectItem Value="@risk">@risk</MudSelectItem>
+                }
+            </MudSelect>
+            <MudTextField @bind-Value="newImprovement.EstimatedDurationMinutes" Label="Estimated Duration (minutes)" Type="InputType.Number" />
+            <MudChipSet T="string" @bind-SelectedChips="selectedTags" Filter="true" Mandatory="false" MultiSelection="true">
+                @foreach (var tag in availableTags)
+                {
+                    <MudChip T="string" Text="@tag" Value="@tag" />
+                }
+            </MudChipSet>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CloseCreateDialog">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="CreateImprovement">Create</MudButton>
+    </DialogActions>
+</MudDialog>
+
+<MudDialog @bind-IsVisible="isFilterDialogVisible" Options="dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.FilterList" Class="mr-2" />
+            Filter Improvements
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="filterForm" Model="@filterOptions">
+            <MudSelect @bind-Value="filterOptions.Status" Label="Status" AnchorOrigin="Origin.BottomCenter">
+                <MudSelectItem Value="@((ImprovementStatus?)null)">All</MudSelectItem>
+                @foreach (var status in Enum.GetValues<ImprovementStatus>())
+                {
+                    <MudSelectItem Value="@status">@status</MudSelectItem>
+                }
+            </MudSelect>
+            <MudSelect @bind-Value="filterOptions.Category" Label="Category" AnchorOrigin="Origin.BottomCenter">
+                <MudSelectItem Value="@((ImprovementCategory?)null)">All</MudSelectItem>
+                @foreach (var category in Enum.GetValues<ImprovementCategory>())
+                {
+                    <MudSelectItem Value="@category">@category</MudSelectItem>
+                }
+            </MudSelect>
+            <MudSelect @bind-Value="filterOptions.Priority" Label="Priority" AnchorOrigin="Origin.BottomCenter">
+                <MudSelectItem Value="@((int?)null)">All</MudSelectItem>
+                <MudSelectItem Value="1">High</MudSelectItem>
+                <MudSelectItem Value="2">Medium</MudSelectItem>
+                <MudSelectItem Value="3">Low</MudSelectItem>
+            </MudSelect>
+            <MudDateRangePicker @bind-DateRange="filterOptions.CreatedDateRange" Label="Created Date Range" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="ClearFilter">Clear</MudButton>
+        <MudButton OnClick="CloseFilterDialog">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="ApplyFilter">Apply</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Parameter]
+    public EventCallback<PrioritizedImprovement> OnExecute { get; set; }
+
+    private MudTable<PrioritizedImprovement> table = null!;
+    private bool isLoading;
+    private List<PrioritizedImprovement> improvements = [];
+    private PrioritizedImprovement newImprovement = new();
+    private MudForm createForm = null!;
+    private MudForm filterForm = null!;
+    private bool isCreateDialogVisible;
+    private bool isFilterDialogVisible;
+    private FilterOptions filterOptions = new();
+    private MudChip<string>[] selectedTags = [];
+    private string[] availableTags = ["Performance", "Security", "Maintainability", "Documentation", "Testing", "Refactoring"];
+
+    private DialogOptions dialogOptions = new()
+    {
+        MaxWidth = MaxWidth.Medium,
+        FullWidth = true,
+        CloseOnEscapeKey = true,
+        BackdropClick = false // Replaces DisableBackdropClick = true in MudBlazor 8.x
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        await LoadImprovementsAsync();
+    }
+
+    private async Task<TableData<PrioritizedImprovement>> ServerReload(TableState state, CancellationToken cancellationToken = default)
+    {
+        await LoadImprovementsAsync();
+
+        // Apply sorting
+        IEnumerable<PrioritizedImprovement> query = improvements;
+
+        if (!string.IsNullOrEmpty(state.SortLabel))
+        {
+            query = state.SortDirection == SortDirection.Ascending
+                ? query.OrderBy(p => GetPropertyValue(p, state.SortLabel))
+                : query.OrderByDescending(p => GetPropertyValue(p, state.SortLabel));
+        }
+        else
+        {
+            // Default sort by priority rank
+            query = query.OrderBy(p => p.PriorityRank);
+        }
+
+        // Apply filtering
+        if (filterOptions.Status != null)
+        {
+            query = query.Where(p => p.Status == filterOptions.Status);
+        }
+
+        if (filterOptions.Category != null)
+        {
+            query = query.Where(p => p.Category == filterOptions.Category);
+        }
+
+        if (filterOptions.Priority != null)
+        {
+            query = query.Where(p => p.PriorityRank == filterOptions.Priority);
+        }
+
+        if (filterOptions.CreatedDateRange.Start != null)
+        {
+            query = query.Where(p => p.CreatedAt >= filterOptions.CreatedDateRange.Start);
+        }
+
+        if (filterOptions.CreatedDateRange.End != null)
+        {
+            query = query.Where(p => p.CreatedAt <= filterOptions.CreatedDateRange.End);
+        }
+
+        // Apply pagination
+        var pagedData = query.Skip(state.Page * state.PageSize).Take(state.PageSize).ToArray();
+
+        return new TableData<PrioritizedImprovement>
+        {
+            Items = pagedData,
+            TotalItems = query.Count()
+        };
+    }
+
+    private object GetPropertyValue(PrioritizedImprovement improvement, string propertyName)
+    {
+        return propertyName switch
+        {
+            "Id" => improvement.Id,
+            "Name" => improvement.Name,
+            "Category" => improvement.Category,
+            "Status" => improvement.Status,
+            "PriorityRank" => improvement.PriorityRank,
+            "Impact" => improvement.Impact,
+            "Effort" => improvement.Effort,
+            "Risk" => improvement.Risk,
+            "CreatedAt" => improvement.CreatedAt,
+            _ => improvement.Id
+        };
+    }
+
+    private async Task LoadImprovementsAsync()
+    {
+            await Task.Delay(1); // Added to satisfy compiler warning CS1998
+        try
+        {
+            isLoading = true;
+
+            // In a real implementation, this would load improvements from the service
+            // For now, use mock data
+            improvements =
+            [
+                new PrioritizedImprovement
+                {
+                    Id = "IMP-456",
+                    Name = "Implement Caching for API Responses",
+                    Description = "Add caching to improve API response times",
+                    Category = ImprovementCategory.Performance,
+                    Status = ImprovementStatus.Pending,
+                    PriorityRank = 1,
+                    PriorityScore = 0.9,
+                    Impact = ImprovementImpact.High,
+                    Effort = ImprovementEffort.Medium,
+                    Risk = ImprovementRisk.Low,
+                    CreatedAt = DateTime.UtcNow.AddDays(-2),
+                    EstimatedDurationMinutes = 120,
+                    Tags = ["Performance", "API"]
+                },
+
+                new PrioritizedImprovement
+                {
+                    Id = "IMP-455",
+                    Name = "Refactor Error Handling",
+                    Description = "Standardize error handling across the application",
+                    Category = ImprovementCategory.Maintainability,
+                    Status = ImprovementStatus.Pending,
+                    PriorityRank = 2,
+                    PriorityScore = 0.8,
+                    Impact = ImprovementImpact.Medium,
+                    Effort = ImprovementEffort.Medium,
+                    Risk = ImprovementRisk.Medium,
+                    CreatedAt = DateTime.UtcNow.AddDays(-3),
+                    EstimatedDurationMinutes = 180,
+                    Tags = ["Refactoring", "Error Handling"]
+                },
+
+                new PrioritizedImprovement
+                {
+                    Id = "IMP-454",
+                    Name = "Add Unit Tests for User Service",
+                    Description = "Increase test coverage for the user service",
+                    Category = ImprovementCategory.Testing,
+                    Status = ImprovementStatus.InProgress,
+                    PriorityRank = 3,
+                    PriorityScore = 0.7,
+                    Impact = ImprovementImpact.Medium,
+                    Effort = ImprovementEffort.High,
+                    Risk = ImprovementRisk.Low,
+                    CreatedAt = DateTime.UtcNow.AddDays(-4),
+                    EstimatedDurationMinutes = 240,
+                    Tags = ["Testing", "User Service"]
+                },
+
+                new PrioritizedImprovement
+                {
+                    Id = "IMP-453",
+                    Name = "Update Documentation for API Endpoints",
+                    Description = "Improve API documentation with examples and better descriptions",
+                    Category = ImprovementCategory.Documentation,
+                    Status = ImprovementStatus.Completed,
+                    PriorityRank = 4,
+                    PriorityScore = 0.6,
+                    Impact = ImprovementImpact.Low,
+                    Effort = ImprovementEffort.Low,
+                    Risk = ImprovementRisk.Low,
+                    CreatedAt = DateTime.UtcNow.AddDays(-5),
+                    CompletedAt = DateTime.UtcNow.AddDays(-1),
+                    EstimatedDurationMinutes = 60,
+                    ActualDurationMinutes = 45,
+                    Tags = ["Documentation", "API"]
+                }
+            ];
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    public async Task RefreshImprovementsAsync()
+    {
+        await LoadImprovementsAsync();
+        await table.ReloadServerData();
+    }
+
+    private Color GetStatusColor(ImprovementStatus status)
+    {
+        return status switch
+        {
+            ImprovementStatus.Completed => Color.Success,
+            ImprovementStatus.InProgress => Color.Info,
+            ImprovementStatus.Failed => Color.Error,
+            ImprovementStatus.Pending => Color.Default,
+            ImprovementStatus.Approved => Color.Primary,
+            ImprovementStatus.Rejected => Color.Warning,
+            ImprovementStatus.Deferred => Color.Secondary,
+            _ => Color.Default
+        };
+    }
+
+    private Color GetPriorityColor(int priorityRank)
+    {
+        return priorityRank switch
+        {
+            1 => Color.Error,
+            2 => Color.Warning,
+            3 => Color.Info,
+            _ => Color.Default
+        };
+    }
+
+    private string GetPriorityText(int priorityRank)
+    {
+        return priorityRank switch
+        {
+            1 => "High",
+            2 => "Medium",
+            3 => "Low",
+            _ => "Unknown"
+        };
+    }
+
+    private async Task ExecuteImprovement(PrioritizedImprovement improvement)
+    {
+        await OnExecute.InvokeAsync(improvement);
+    }
+
+    private void ViewImprovement(PrioritizedImprovement improvement)
+    {
+        // In a real implementation, this would navigate to the improvement details page
+        Logger.LogInformation("Viewing improvement: {ImprovementId}", improvement.Id);
+    }
+
+    private void EditImprovement(PrioritizedImprovement improvement)
+    {
+        // In a real implementation, this would open an edit dialog
+        Logger.LogInformation("Editing improvement: {ImprovementId}", improvement.Id);
+    }
+
+    private void OpenCreateDialog()
+    {
+        newImprovement = new PrioritizedImprovement
+        {
+            Id = $"IMP-{new Random().Next(1000, 9999)}",
+            CreatedAt = DateTime.UtcNow,
+            Status = ImprovementStatus.Pending,
+            Category = ImprovementCategory.Other,
+            Impact = ImprovementImpact.Medium,
+            Effort = ImprovementEffort.Medium,
+            Risk = ImprovementRisk.Medium
+        };
+
+        selectedTags = [];
+        isCreateDialogVisible = true;
+    }
+
+    private void CloseCreateDialog()
+    {
+        isCreateDialogVisible = false;
+    }
+
+    private async Task CreateImprovement()
+    {
+            await Task.Delay(1); // Added to satisfy compiler warning CS1998
+        await createForm.Validate();
+
+        if (createForm.IsValid)
+        {
+            // Set tags from selected chips
+            newImprovement.Tags = selectedTags.Select(c => c.Text).ToList();
+
+            // In a real implementation, this would save the improvement
+            Logger.LogInformation("Creating improvement: {ImprovementName}", newImprovement.Name);
+
+            // Add to list
+            improvements.Add(newImprovement);
+
+            // Close dialog
+            isCreateDialogVisible = false;
+
+            // Reload table
+            await table.ReloadServerData();
+        }
+    }
+
+    private void OpenFilterDialog()
+    {
+        isFilterDialogVisible = true;
+    }
+
+    private void CloseFilterDialog()
+    {
+        isFilterDialogVisible = false;
+    }
+
+    private async Task ApplyFilter()
+    {
+            await Task.Delay(1); // Added to satisfy compiler warning CS1998
+        isFilterDialogVisible = false;
+        await table.ReloadServerData();
+    }
+
+    private async Task ClearFilter()
+    {
+            await Task.Delay(1); // Added to satisfy compiler warning CS1998
+        filterOptions = new FilterOptions();
+        await table.ReloadServerData();
+    }
+
+    private class FilterOptions
+    {
+        public ImprovementStatus? Status { get; set; }
+        public ImprovementCategory? Category { get; set; }
+        public int? Priority { get; set; }
+        public DateRange CreatedDateRange { get; set; } = new();
+    }
+}
+
+
+

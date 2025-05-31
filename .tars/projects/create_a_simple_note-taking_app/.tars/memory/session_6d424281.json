@@ -1,0 +1,131 @@
+﻿{
+    "GeneratedFiles":  [
+                           "index.html",
+                           "index.js",
+                           "package.json",
+                           "README.md"
+                       ],
+    "MemoryVersion":  "2.0-Enhanced",
+    "SessionId":  "6d424281",
+    "ProjectId":  "create_a_simple_note-taking_app",
+    "TechnologyStack":  "JavaScript/Node.js",
+    "Entries":  [
+                    {
+                        "Id":  "entry001",
+                        "VectorSpace":  "user_requests",
+                        "Timestamp":  "2025-05-26T19:06:14.491Z",
+                        "EntryType":  "UserRequest",
+                        "Metadata":  {
+                                         "complexity":  "complex",
+                                         "source":  "user_input",
+                                         "request_type":  "application"
+                                     },
+                        "Relevance":  1,
+                        "Content":  "Create a simple note-taking app",
+                        "Embedding":  null
+                    },
+                    {
+                        "Id":  "entry002",
+                        "VectorSpace":  "technology_decisions",
+                        "Timestamp":  "2025-05-26T19:06:19.498Z",
+                        "EntryType":  "TechnologyDecision",
+                        "Metadata":  {
+                                         "detection_method":  "enhanced_algorithm",
+                                         "confidence":  "HIGH",
+                                         "technology":  "JavaScript/Node.js"
+                                     },
+                        "Relevance":  0.95,
+                        "Content":  "Selected JavaScript/Node.js for implementation. Confidence: 100.0%",
+                        "Embedding":  null
+                    },
+                    {
+                        "Id":  "entry003",
+                        "VectorSpace":  "file_generations",
+                        "Timestamp":  "2025-05-26T19:06:46.501Z",
+                        "EntryType":  "FileGenerated",
+                        "Metadata":  {
+                                         "importance":  "primary",
+                                         "file_name":  "index.html",
+                                         "file_size":  "2932",
+                                         "file_type":  "generated_file"
+                                     },
+                        "Relevance":  0.9,
+                        "Content":  "Generated index.html - Generated file",
+                        "Embedding":  null
+                    },
+                    {
+                        "Id":  "entry004",
+                        "VectorSpace":  "file_generations",
+                        "Timestamp":  "2025-05-26T19:06:54.504Z",
+                        "EntryType":  "FileGenerated",
+                        "Metadata":  {
+                                         "importance":  "primary",
+                                         "file_name":  "index.js",
+                                         "file_size":  "1024",
+                                         "file_type":  "javascript_code"
+                                     },
+                        "Relevance":  0.9,
+                        "Content":  "Generated index.js - JavaScript code",
+                        "Embedding":  null
+                    },
+                    {
+                        "Id":  "entry005",
+                        "VectorSpace":  "file_generations",
+                        "Timestamp":  "2025-05-26T19:07:02.504Z",
+                        "EntryType":  "FileGenerated",
+                        "Metadata":  {
+                                         "importance":  "secondary",
+                                         "file_name":  "package.json",
+                                         "file_size":  "942",
+                                         "file_type":  "configuration"
+                                     },
+                        "Relevance":  0.7,
+                        "Content":  "Generated package.json - Configuration file",
+                        "Embedding":  null
+                    },
+                    {
+                        "Id":  "entry006",
+                        "VectorSpace":  "file_generations",
+                        "Timestamp":  "2025-05-26T19:07:10.504Z",
+                        "EntryType":  "FileGenerated",
+                        "Metadata":  {
+                                         "importance":  "secondary",
+                                         "file_name":  "README.md",
+                                         "file_size":  "3935",
+                                         "file_type":  "documentation"
+                                     },
+                        "Relevance":  0.7,
+                        "Content":  "Generated README.md - Documentation",
+                        "Embedding":  null
+                    },
+                    {
+                        "Id":  "entry007",
+                        "VectorSpace":  "success_patterns",
+                        "Timestamp":  "2025-05-26T19:07:06.504Z",
+                        "EntryType":  "SuccessPattern",
+                        "Metadata":  {
+                                         "success_rate":  "100",
+                                         "files_count":  "4",
+                                         "execution_time":  "54",
+                                         "technology":  "JavaScript/Node.js"
+                                     },
+                        "Relevance":  1,
+                        "Content":  "Successfully generated JavaScript/Node.js project with 4 files in 54 seconds",
+                        "Embedding":  null
+                    }
+                ],
+    "UserRequest":  "Create a simple note-taking app",
+    "StartTime":  "2025-05-26T19:06:14.510Z",
+    "EnhancedFeatures":  [
+                             "fixed_technology_detection",
+                             "vector_space_organization",
+                             "relevance_scoring"
+                         ],
+    "LastAccess":  "2025-05-26T19:07:08.510Z",
+    "TechnologyConfidence":  1,
+    "EmbeddingsGenerated":  true,
+    "EmbeddingVersion":  "1.0",
+    "EmbeddingMethod":  "simple_text_analysis",
+    "EmbeddingDimensions":  16,
+    "EmbeddingTimestamp":  "2025-05-26T19:07:31.929Z"
+}
