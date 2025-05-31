@@ -36,3 +36,8 @@ type IMetascriptService =
     /// Validates a metascript.
     /// </summary>
     abstract member ValidateMetascriptAsync: source: MetascriptSource -> Task<Result<MetascriptSource, string>>
+
+    /// <summary>
+    /// Registers a metascript for execution.
+    /// </summary>
+    abstract member RegisterMetascriptAsync: source: MetascriptSource -> Task<Result<unit, string>>
