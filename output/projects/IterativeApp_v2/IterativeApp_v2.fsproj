@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>IterativeApp_v2</AssemblyName>
+    <RootNamespace>IterativeApp_v2</RootNamespace>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <Compile Include="src/Program.fs" />
+  </ItemGroup>
+  
+</Project>

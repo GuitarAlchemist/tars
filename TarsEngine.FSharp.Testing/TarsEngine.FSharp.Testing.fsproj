@@ -33,7 +33,6 @@
     <PackageReference Include="NBomber" Version="5.0.0" />
     <PackageReference Include="Playwright" Version="1.40.0" />
     <PackageReference Include="Microsoft.Playwright" Version="1.40.0" />
-    <PackageReference Include="FSharp.Core" Version="8.0.400" />
     <PackageReference Include="System.Text.Json" Version="9.0.0" />
   </ItemGroup>
 

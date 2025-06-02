@@ -1,6 +1,6 @@
 <Project>
     <PropertyGroup>
-        <FSharpCoreVersion>9.0.201</FSharpCoreVersion>
+        <FSharpCoreVersion>8.0.400</FSharpCoreVersion>
         <!-- Treat MudBlazor analyzer warnings as errors -->
         <!-- Treat async method warnings as errors -->
         <!-- Treat nullable reference warnings as errors -->
