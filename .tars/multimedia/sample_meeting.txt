@@ -1,0 +1,11 @@
+SIMULATED AUDIO TRANSCRIPTION:
+Speaker 1: Welcome everyone to today's project meeting. Let's review our progress.
+Speaker 2: The development phase is 80% complete. We need to focus on testing.
+Speaker 1: Great! What are the next action items?
+Speaker 2: We should schedule QA testing for next week and prepare deployment scripts.
+Speaker 1: Perfect. I'll create tickets for those tasks.
+
+ACTION ITEMS DETECTED:
+- Schedule QA testing for next week
+- Prepare deployment scripts
+- Create tickets for tasks

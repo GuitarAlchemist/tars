@@ -1,0 +1,19 @@
+
+# Video Intelligence Closure
+let processVideo = fun videoFile ->
+    async {
+        let! audioTrack = extractAudioWithFFmpeg videoFile
+        let! keyFrames = extractKeyFrames videoFile
+        let! audioIntel = processAudio audioTrack
+        let! frameIntel = keyFrames |> Array.map processImage |> Async.Parallel
+        let! sceneAnalysis = analyzeVideoScenes audioIntel frameIntel
+        
+        return {
+            Type = "VideoIntelligence"
+            AudioIntelligence = audioIntel
+            FrameIntelligence = frameIntel
+            SceneAnalysis = sceneAnalysis
+            TarsActions = generateVideoActions sceneAnalysis
+            Confidence = 0.8
+        }
+    }

@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TarsMetascript xmlns="http://tars.ai/metascript/v1">
+  <Metadata>
+    <Title>TARS Notebook Execution Demo</Title>
+    <Description>Demonstrates how TARS would execute the notebook generation metascript and create actual Jupyter notebooks</Description>
+    <Author>TARS Execution Engine</Author>
+    <Version>1.0.0</Version>
+    <Created>2024-12-19</Created>
+    <Tags>execution,notebook,automation,demo,jupyter</Tags>
+    <Category>execution</Category>
+  </Metadata>
+
+  <Configuration>
+    <Setting key="source_metascript" value="notebook-generation-demo.trsx" />
+    <Setting key="execution_mode" value="autonomous" />
+    <Setting key="output_directory" value="./generated_notebooks/" />
+    <Setting key="create_demo_data" value="true" />
+    <Setting key="validate_output" value="true" />
+    <Setting key="generate_report" value="true" />
+  </Configuration>
+
+  <Variables>
+    <Variable name="demo_datasets" type="array" value="sales_data,customer_analytics,financial_metrics" />
+    <Variable name="notebook_templates" type="array" value="eda,ml_pipeline,business_report" />
+    <Variable name="output_formats" type="array" value="ipynb,html,pdf" />
+    <Variable name="execution_timestamp" type="datetime" value="auto" />
+  </Variables>
+
+  <Objectives>
+    <Objective id="demonstrate_generation" priority="high">
+      <Description>Show complete notebook generation process from metascript to working Jupyter notebook</Description>
+      <Success_Criteria>
+        - Generate functional Jupyter notebook from metascript
+        - Include all specified sections and content
+        - Notebook executes without errors
+      </Success_Criteria>
+    </Objective>
+
+    <Objective id="showcase_capabilities" priority="high">
+      <Description>Demonstrate TARS autonomous notebook creation capabilities</Description>
+      <Success_Criteria>
+        - Multiple notebook types generated
+        - Different templates and strategies shown
+        - Quality validation performed
+      </Success_Criteria>
+    </Objective>
+
+    <Objective id="validate_quality" priority="medium">
+      <Description>Ensure generated notebooks meet quality standards</Description>
+      <Success_Criteria>
+        - Code is syntactically correct and follows best practices
+        - Documentation is clear and comprehensive
+        - Visualizations are properly formatted
+      </Success_Criteria>
+    </Objective>
+  </Objectives>
+
+  <Tasks>
+    <Task id="parse_source_metascript" type="analysis">
+      <Description>Parse the notebook generation metascript to extract requirements</Description>
+      <Input>notebook-generation-demo.trsx</Input>
+      <Output>Parsed requirements and generation plan</Output>
+      <Agent>metascript_parser</Agent>
+    </Task>
+
+    <Task id="create_demo_data" type="generation">
+      <Description>Generate sample datasets for notebook demonstration</Description>
+      <Input>Dataset specifications from metascript</Input>
+      <Output>CSV files with sample data</Output>
+      <Agent>data_generator</Agent>
+      <Dependencies>parse_source_metascript</Dependencies>
+    </Task>
+
+    <Task id="generate_notebook_content" type="generation">
+      <Description>Create the actual notebook content based on metascript specifications</Description>
+      <Input>Requirements and demo data</Input>
+      <Output>Complete notebook JSON structure</Output>
+      <Agent>notebook_creator</Agent>
+      <Dependencies>create_demo_data</Dependencies>
+    </Task>
+
+    <Task id="validate_notebook" type="validation">
+      <Description>Validate the generated notebook for correctness and quality</Description>
+      <Input>Generated notebook JSON</Input>
+      <Output>Validation report and corrected notebook</Output>
+      <Agent>quality_validator</Agent>
+      <Dependencies>generate_notebook_content</Dependencies>
+    </Task>
+
+    <Task id="export_multiple_formats" type="output">
+      <Description>Export notebook in multiple formats (ipynb, html, pdf)</Description>
+      <Input>Validated notebook</Input>
+      <Output>Notebook files in different formats</Output>
+      <Agent>format_exporter</Agent>
+      <Dependencies>validate_notebook</Dependencies>
+    </Task>
+
+    <Task id="generate_execution_report" type="reporting">
+      <Description>Create comprehensive report of the notebook generation process</Description>
+      <Input>All task outputs and execution logs</Input>
+      <Output>Detailed execution report</Output>
+      <Agent>report_generator</Agent>
+      <Dependencies>export_multiple_formats</Dependencies>
+    </Task>
+  </Tasks>
+
+  <Agents>
+    <Agent id="metascript_parser" type="analysis">
+      <Role>Parse and analyze TARS metascripts</Role>
+      <Capabilities>
+        - XML parsing and validation
+        - Extract variables, objectives, and tasks
+        - Generate execution plan from metascript
+      </Capabilities>
+    </Agent>
+
+    <Agent id="data_generator" type="generation">
+      <Role>Create sample datasets for demonstration</Role>
+      <Capabilities>
+        - Generate realistic sample data
+        - Create CSV, JSON, and other data formats
+        - Ensure data quality and consistency
+      </Capabilities>
+    </Agent>
+
+    <Agent id="notebook_creator" type="development">
+      <Role>Create complete Jupyter notebooks from specifications</Role>
+      <Capabilities>
+        - Generate notebook JSON structure
+        - Create markdown and code cells
+        - Implement data analysis workflows
+        - Add visualizations and documentation
+      </Capabilities>
+    </Agent>
+
+    <Agent id="quality_validator" type="quality_assurance">
+      <Role>Validate notebook quality and correctness</Role>
+      <Capabilities>
+        - Syntax validation for Python code
+        - JSON structure validation
+        - Best practices compliance checking
+        - Educational content quality assessment
+      </Capabilities>
+    </Agent>
+
+    <Agent id="format_exporter" type="output">
+      <Role>Export notebooks to multiple formats</Role>
+      <Capabilities>
+        - Convert ipynb to HTML using nbconvert
+        - Generate PDF reports
+        - Create Python script versions
+        - Maintain formatting and structure
+      </Capabilities>
+    </Agent>
+
+    <Agent id="report_generator" type="reporting">
+      <Role>Generate comprehensive execution reports</Role>
+      <Capabilities>
+        - Collect metrics from all execution stages
+        - Create detailed markdown reports
+        - Generate performance analytics
+        - Document quality assessments
+      </Capabilities>
+    </Agent>
+  </Agents>
+
+  <DataSources>
+    <DataSource id="metascript_source" type="file">
+      <Description>Source metascript for notebook generation</Description>
+      <Location>./.tars/notebook-generation-demo.trsx</Location>
+    </DataSource>
+
+    <DataSource id="template_repository" type="internal">
+      <Description>Repository of notebook templates and patterns</Description>
+      <Location>tars://templates/</Location>
+    </DataSource>
+
+    <DataSource id="sample_data_schemas" type="internal">
+      <Description>Schemas for generating realistic sample data</Description>
+      <Location>tars://schemas/sample_data/</Location>
+    </DataSource>
+  </DataSources>
+
+  <Outputs>
+    <Output id="demo_notebook_eda" type="file">
+      <Description>Exploratory Data Analysis notebook generated from metascript</Description>
+      <Format>application/json</Format>
+      <Location>./generated_notebooks/eda_demo.ipynb</Location>
+    </Output>
+
+    <Output id="demo_notebook_html" type="file">
+      <Description>HTML version of the generated notebook</Description>
+      <Format>text/html</Format>
+      <Location>./generated_notebooks/eda_demo.html</Location>
+    </Output>
+
+    <Output id="sample_datasets" type="files">
+      <Description>Sample datasets created for notebook demonstration</Description>
+      <Format>text/csv</Format>
+      <Location>./generated_notebooks/data/</Location>
+    </Output>
+
+    <Output id="execution_report" type="report">
+      <Description>Comprehensive report of notebook generation process</Description>
+      <Format>text/markdown</Format>
+      <Location>./generated_notebooks/execution_report.md</Location>
+    </Output>
+
+    <Output id="quality_metrics" type="data">
+      <Description>Quality metrics and validation results</Description>
+      <Format>application/json</Format>
+      <Location>./generated_notebooks/quality_metrics.json</Location>
+    </Output>
+  </Outputs>
+
+  <Quality_Assurance>
+    <Validation>
+      <Rule>Generated notebook must be valid Jupyter format</Rule>
+      <Rule>All Python code must execute without errors</Rule>
+      <Rule>Sample data must be realistic and properly formatted</Rule>
+      <Rule>HTML export must render correctly</Rule>
+      <Rule>All required sections must be present</Rule>
+    </Validation>
+
+    <Testing>
+      <Test>Execute notebook in fresh Python environment</Test>
+      <Test>Verify all imports and dependencies</Test>
+      <Test>Check visualization rendering</Test>
+      <Test>Validate data loading and processing</Test>
+      <Test>Test HTML export functionality</Test>
+    </Testing>
+
+    <Metrics>
+      <Metric name="code_quality_score" target=">=8.0" />
+      <Metric name="documentation_coverage" target=">=90%" />
+      <Metric name="execution_success_rate" target="100%" />
+      <Metric name="generation_time" target="<60s" />
+    </Metrics>
+  </Quality_Assurance>
+
+  <Execution>
+    <Trigger>manual</Trigger>
+    <Schedule>on_demand</Schedule>
+    <Timeout>600</Timeout>
+    <Retry_Policy>3_attempts</Retry_Policy>
+    <Parallel_Execution>false</Parallel_Execution>
+  </Execution>
+
+  <Monitoring>
+    <Log_Level>detailed</Log_Level>
+    <Performance_Tracking>true</Performance_Tracking>
+    <Error_Handling>graceful_degradation</Error_Handling>
+    <Progress_Reporting>real_time</Progress_Reporting>
+  </Monitoring>
+</TarsMetascript>

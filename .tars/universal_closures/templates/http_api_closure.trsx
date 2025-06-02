@@ -1,0 +1,32 @@
+
+# HTTP API Closure Template  
+let {closure_name} = fun endpoint headers parameters ->
+    async {{
+        use client = new HttpClient()
+        
+        // Set headers
+        {header_setup}
+        
+        // Build request
+        let requestUri = {uri_builder}
+        let! response = client.GetAsync(requestUri)
+        
+        if response.IsSuccessStatusCode then
+            let! content = response.Content.ReadAsStringAsync()
+            let data = JsonSerializer.Deserialize<{data_type}>(content)
+            
+            return {{
+                Source = "{source_name}"
+                Data = data
+                Timestamp = DateTime.UtcNow
+                StatusCode = int response.StatusCode
+                TarsActions = ["process_api_data", "cache_results", "monitor_changes"]
+            }}
+        else
+            return {{
+                Source = "{source_name}"
+                Error = $"HTTP {{response.StatusCode}}: {{response.ReasonPhrase}}"
+                Timestamp = DateTime.UtcNow
+                TarsActions = ["handle_api_error", "retry_request", "alert_admin"]
+            }}
+    }}

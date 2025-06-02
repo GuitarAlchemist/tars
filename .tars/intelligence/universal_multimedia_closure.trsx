@@ -1,0 +1,22 @@
+
+# Universal Multimedia Closure
+let processMultimedia = fun filePath ->
+    async {
+        let fileType = detectFileType filePath
+        let! intelligence = 
+            match fileType with
+            | Audio -> processAudio filePath
+            | Image -> processImage filePath  
+            | Video -> processVideo filePath
+            | _ -> async { return createErrorIntelligence "Unsupported type" }
+        
+        let! metascript = generateMetascriptFromIntelligence intelligence
+        let! actions = executeAutonomousActions intelligence.TarsActions
+        
+        return {
+            Intelligence = intelligence
+            GeneratedMetascript = metascript
+            ExecutedActions = actions
+            ProcessingComplete = true
+        }
+    }

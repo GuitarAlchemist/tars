@@ -1,0 +1,27 @@
+
+# Database Closure Template
+let {closure_name} = fun connectionString query parameters ->
+    async {{
+        use connection = new {connection_type}(connectionString)
+        connection.Open()
+        
+        use command = new {command_type}(query, connection)
+        {parameter_binding}
+        
+        let! reader = command.ExecuteReaderAsync()
+        let results = []
+        
+        while reader.Read() do
+            let row = {{
+                {field_mapping}
+            }}
+            results.Add(row)
+        
+        return {{
+            Source = "{source_name}"
+            Data = results
+            Timestamp = DateTime.UtcNow
+            Schema = {schema_info}
+            TarsActions = ["analyze_data", "create_insights", "generate_reports"]
+        }}
+    }}

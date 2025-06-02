@@ -1,0 +1,19 @@
+
+# Stream Closure Template
+let KafkaStream = fun streamConfig ->
+    async {{
+        let consumer = // Setup stream consumer
+        
+        let processMessage = fun message ->
+            let data = // Deserialize message
+            {{
+                Source = "Kafka Stream"
+                Data = data
+                Timestamp = DateTime.UtcNow
+                MessageId = message.Id
+                Partition = message.Partition
+                TarsActions = ["process_stream_data", "update_state", "trigger_actions"]
+            }}
+        
+        return! consumer.ConsumeAsync(processMessage)
+    }}

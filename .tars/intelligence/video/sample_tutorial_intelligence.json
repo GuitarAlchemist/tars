@@ -1,0 +1,37 @@
+{
+  "timestamp": "2025-05-31T22:09:54.507989",
+  "media_type": "video",
+  "confidence": 0.85,
+  "insights": [
+    "Educational content with step-by-step instructions",
+    "Docker deployment tutorial identified",
+    "Practical examples with code demonstrations",
+    "Verification steps included for quality assurance"
+  ],
+  "action_items": [
+    "Step-by-step Docker deployment guide"
+  ],
+  "tars_actions": [
+    "create_task_list",
+    "schedule_reminders",
+    "generate_follow_up_metascript",
+    "extract_tutorial_steps",
+    "create_executable_guide",
+    "generate_practice_exercises"
+  ],
+  "intelligible_data": {
+    "structured_content": "SIMULATED VIDEO ANALYSIS:\nVideo Type: Tutorial/Educational\nDuration: 5:30 minutes\n\nAUDIO TRANSCRIPTION:\n\"In this tutorial, we'll learn how to deploy applications using Docker.\nFirst, create a Dockerfile in your project directory.\nNext, build the image using docker build command.\nFinally, run the container with docker run.\"\n\nVISUAL ANALYSIS:\nFrame 1 (0:00): Desktop with terminal open\nFrame 2 (1:30): Text editor showing Dockerfile content\nFrame 3 (3:00): Terminal showing docker build command\nFrame...",
+    "key_concepts": [
+      "docker",
+      "deployment",
+      "tutorial",
+      "create",
+      "build",
+      "run",
+      "verify"
+    ],
+    "actionable_elements": [
+      "Step-by-step Docker deployment guide"
+    ]
+  }
+}

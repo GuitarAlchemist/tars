@@ -1,0 +1,6 @@
+EXTRACTED TEXT FROM IMAGE:
+Error: ModuleNotFoundError: No module named 'requests'
+Solution: pip install requests
+File: main.py, Line: 15
+Stack trace shows import failure in web module
+Recommendation: Check virtual environment activation

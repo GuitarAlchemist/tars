@@ -1,0 +1,27 @@
+
+# File Closure Template
+let {closure_name} = fun filePath ->
+    async {{
+        if File.Exists(filePath) then
+            let! content = File.ReadAllTextAsync(filePath)
+            let data = {parse_content}
+            
+            return {{
+                Source = "{source_name}"
+                Data = data
+                Timestamp = DateTime.UtcNow
+                FileInfo = {{
+                    Path = filePath
+                    Size = (new FileInfo(filePath)).Length
+                    LastModified = (new FileInfo(filePath)).LastWriteTime
+                }}
+                TarsActions = ["process_file_data", "validate_format", "archive_file"]
+            }}
+        else
+            return {{
+                Source = "{source_name}"
+                Error = $"File not found: {{filePath}}"
+                Timestamp = DateTime.UtcNow
+                TarsActions = ["handle_file_error", "check_file_location", "alert_missing_file"]
+            }}
+    }}

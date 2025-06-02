@@ -1,0 +1,38 @@
+{
+  "file_type": "video",
+  "duration": "00:05:30",
+  "resolution": "1920x1080",
+  "audio_tracks": [
+    "English narration",
+    "Background music"
+  ],
+  "detected_scenes": [
+    {
+      "timestamp": "00:00:00",
+      "description": "Title screen"
+    },
+    {
+      "timestamp": "00:01:30",
+      "description": "Code editor view"
+    },
+    {
+      "timestamp": "00:03:00",
+      "description": "Terminal commands"
+    },
+    {
+      "timestamp": "00:04:30",
+      "description": "Browser testing"
+    }
+  ],
+  "extracted_text": [
+    "Docker Tutorial",
+    "Step 1: Create Dockerfile",
+    "Step 2: Build image",
+    "Step 3: Run container"
+  ],
+  "action_items": [
+    "Follow tutorial steps",
+    "Practice with own project",
+    "Deploy to production"
+  ]
+}

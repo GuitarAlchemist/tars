@@ -1,0 +1,27 @@
+
+# Cache Closure Template
+let {closure_name} = fun cacheKey ->
+    async {{
+        let cache = {cache_connection_setup}
+        
+        let! cachedValue = cache.GetAsync(cacheKey)
+        
+        if cachedValue.HasValue then
+            let data = {deserialize_cached_data}
+            
+            return {{
+                Source = "{source_name}"
+                Data = data
+                Timestamp = DateTime.UtcNow
+                CacheHit = true
+                TarsActions = ["use_cached_data", "update_access_time", "check_expiry"]
+            }}
+        else
+            return {{
+                Source = "{source_name}"
+                Data = null
+                Timestamp = DateTime.UtcNow
+                CacheHit = false
+                TarsActions = ["handle_cache_miss", "fetch_fresh_data", "update_cache"]
+            }}
+    }}

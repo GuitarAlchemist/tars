@@ -1,0 +1,27 @@
+
+# Cache Closure Template
+let RedisCache = fun cacheKey ->
+    async {{
+        let cache = // Setup cache connection
+        
+        let! cachedValue = cache.GetAsync(cacheKey)
+        
+        if cachedValue.HasValue then
+            let data = // Deserialize cached data
+            
+            return {{
+                Source = "Redis Cache"
+                Data = data
+                Timestamp = DateTime.UtcNow
+                CacheHit = true
+                TarsActions = ["use_cached_data", "update_access_time", "check_expiry"]
+            }}
+        else
+            return {{
+                Source = "Redis Cache"
+                Data = null
+                Timestamp = DateTime.UtcNow
+                CacheHit = false
+                TarsActions = ["handle_cache_miss", "fetch_fresh_data", "update_cache"]
+            }}
+    }}

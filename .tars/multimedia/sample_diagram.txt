@@ -1,0 +1,23 @@
+SIMULATED IMAGE ANALYSIS:
+Image Type: Technical Diagram
+Description: A system architecture diagram showing three main components:
+1. Frontend (React application)
+2. Backend API (Node.js server)
+3. Database (PostgreSQL)
+
+Detected Text (OCR):
+- "User Interface"
+- "API Gateway"
+- "Authentication Service"
+- "Data Layer"
+
+Objects Detected:
+- Rectangular boxes (components)
+- Arrows (data flow)
+- Text labels
+- Network connections
+
+ACTIONABLE INSIGHTS:
+- System follows microservices architecture
+- Authentication is centralized
+- Clear separation of concerns

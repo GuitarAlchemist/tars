@@ -1,0 +1,20 @@
+{ 
+  "sessionId": "34744403", 
+  "startTime": "2025-05-31 23:41:47.38", 
+  "duration": "8 hours", 
+  "status": "scheduled", 
+  "greenEnvironment": "tars-green-stable", 
+  "blueEnvironment": "tars-blue-evolution", 
+  "evolutionGoals": [ 
+    "Enhance meta-cognitive reasoning capabilities", 
+    "Optimize autonomous decision-making", 
+    "Improve pattern recognition across abstraction layers", 
+    "Increase learning efficiency and adaptation speed" 
+  ], 
+  "monitoringEndpoints": [ 
+    "Green Environment: http://localhost:8080", 
+    "Blue Environment: http://localhost:8082", 
+    "Green Metrics: http://localhost:8081/metrics", 
+    "Blue Metrics: http://localhost:8083/metrics" 
+  ] 
+} 

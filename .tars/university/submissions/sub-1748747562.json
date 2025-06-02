@@ -1,0 +1,28 @@
+{
+  "submission_id": "sub-1748747562",
+  "paper_title": "Advanced Metascript-Driven Autonomous Intelligence: A Comprehensive Framework for Self-Improving AI Systems",
+  "target_venue": "IEEE Transactions on Autonomous Intelligence Systems",
+  "submission_date": "2025-05-31T23:12:42.173970",
+  "status": "Under Review",
+  "submission_details": {
+    "submission_type": "Full Paper",
+    "page_count": 12,
+    "word_count": 8500,
+    "figure_count": 8,
+    "table_count": 3,
+    "reference_count": 45
+  },
+  "review_process": {
+    "review_type": "Double-blind peer review",
+    "number_of_reviewers": 3,
+    "review_duration_days": 60,
+    "expected_decision": "2025-08-29T23:12:42.173970"
+  },
+  "expected_outcomes": [
+    "Peer review feedback",
+    "Publication decision",
+    "Potential revision requests",
+    "Conference presentation opportunity",
+    "Academic recognition and citations"
+  ]
+}

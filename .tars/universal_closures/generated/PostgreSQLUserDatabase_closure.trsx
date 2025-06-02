@@ -1,0 +1,27 @@
+
+# Database Closure Template
+let PostgreSQLUserDatabase = fun connectionString query parameters ->
+    async {{
+        use connection = new NpgsqlConnection(connectionString)
+        connection.Open()
+        
+        use command = new NpgsqlCommand(query, connection)
+        // Add parameter binding logic
+        
+        let! reader = command.ExecuteReaderAsync()
+        let results = []
+        
+        while reader.Read() do
+            let row = {{
+                // Add field mapping logic
+            }}
+            results.Add(row)
+        
+        return {{
+            Source = "PostgreSQL User Database"
+            Data = results
+            Timestamp = DateTime.UtcNow
+            Schema = { Tables = []; Columns = [] }
+            TarsActions = ["analyze_data", "create_insights", "generate_reports"]
+        }}
+    }}

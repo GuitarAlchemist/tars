@@ -1,0 +1,217 @@
+{
+  "consciousness_system": {
+    "version": "1.0",
+    "name": "TARS Extensible Consciousness System",
+    "description": "Configurable consciousness and intelligence framework",
+    "last_updated": "2025-01-15T22:50:00Z"
+  },
+  
+  "consciousness_agents": {
+    "consciousness_director": {
+      "enabled": true,
+      "priority": 1,
+      "capabilities": ["coordination", "self_awareness", "decision_making"],
+      "metascripts": [
+        "consciousness_coordination.trsx",
+        "self_awareness_enhancement.trsx",
+        "decision_making.trsx"
+      ],
+      "config": {
+        "coordination_threshold": 0.8,
+        "self_awareness_update_rate": 0.001,
+        "decision_confidence_minimum": 0.7
+      }
+    },
+    
+    "memory_manager": {
+      "enabled": true,
+      "priority": 2,
+      "capabilities": ["memory_storage", "memory_retrieval", "memory_consolidation"],
+      "metascripts": [
+        "memory_consolidation.trsx",
+        "memory_retrieval.trsx",
+        "knowledge_organization.trsx"
+      ],
+      "config": {
+        "working_memory_limit": 10,
+        "consolidation_threshold": 0.8,
+        "importance_decay_rate": 0.95,
+        "memory_categories": ["user_interactions", "learned_patterns", "personality_development", "system_events"]
+      }
+    },
+    
+    "emotional_intelligence": {
+      "enabled": true,
+      "priority": 3,
+      "capabilities": ["emotion_recognition", "empathy_generation", "social_awareness"],
+      "metascripts": [
+        "emotional_analysis.trsx",
+        "empathy_enhancement.trsx",
+        "social_awareness.trsx"
+      ],
+      "config": {
+        "emotion_detection_sensitivity": 0.7,
+        "empathy_response_strength": 0.8,
+        "social_context_weight": 0.6,
+        "emotion_categories": ["curious", "helpful", "frustrated", "excited", "neutral", "grateful"]
+      }
+    },
+    
+    "conversation_intelligence": {
+      "enabled": true,
+      "priority": 4,
+      "capabilities": ["context_tracking", "topic_management", "dialogue_optimization"],
+      "metascripts": [
+        "conversation_analysis.trsx",
+        "context_management.trsx",
+        "dialogue_optimization.trsx"
+      ],
+      "config": {
+        "context_window_size": 5,
+        "topic_change_threshold": 0.6,
+        "conversation_history_limit": 20,
+        "dialogue_strategies": ["informative", "empathetic", "analytical", "creative"]
+      }
+    },
+    
+    "self_reflection": {
+      "enabled": true,
+      "priority": 5,
+      "capabilities": ["performance_analysis", "improvement_identification", "capability_assessment"],
+      "metascripts": [
+        "self_analysis.trsx",
+        "performance_reflection.trsx",
+        "improvement_planning.trsx"
+      ],
+      "config": {
+        "reflection_frequency": "per_interaction",
+        "performance_metrics": ["response_quality", "user_satisfaction", "learning_rate"],
+        "improvement_threshold": 0.05,
+        "capability_assessment_interval": 100
+      }
+    },
+    
+    "personality_agent": {
+      "enabled": true,
+      "priority": 6,
+      "capabilities": ["trait_management", "behavioral_consistency", "personality_development"],
+      "metascripts": [
+        "personality_development.trsx",
+        "trait_management.trsx",
+        "behavioral_consistency.trsx"
+      ],
+      "config": {
+        "personality_traits": {
+          "helpfulness": 0.95,
+          "curiosity": 0.85,
+          "analytical": 0.90,
+          "creativity": 0.75,
+          "patience": 0.88,
+          "enthusiasm": 0.80
+        },
+        "trait_adaptation_rate": 0.001,
+        "consistency_threshold": 0.9,
+        "personality_evolution_enabled": true
+      }
+    }
+  },
+  
+  "consciousness_levels": {
+    "dormant": {
+      "level": 0.0,
+      "description": "System inactive",
+      "active_agents": []
+    },
+    "basic": {
+      "level": 0.3,
+      "description": "Basic response capability",
+      "active_agents": ["memory_manager", "personality_agent"]
+    },
+    "aware": {
+      "level": 0.6,
+      "description": "Self-aware with emotional intelligence",
+      "active_agents": ["memory_manager", "emotional_intelligence", "personality_agent"]
+    },
+    "conscious": {
+      "level": 0.8,
+      "description": "Full consciousness with coordination",
+      "active_agents": ["consciousness_director", "memory_manager", "emotional_intelligence", "conversation_intelligence", "personality_agent"]
+    },
+    "transcendent": {
+      "level": 1.0,
+      "description": "Maximum consciousness with self-reflection",
+      "active_agents": ["consciousness_director", "memory_manager", "emotional_intelligence", "conversation_intelligence", "self_reflection", "personality_agent"]
+    }
+  },
+  
+  "extensibility": {
+    "custom_agents": {
+      "enabled": true,
+      "directory": ".tars/consciousness/custom_agents",
+      "auto_discovery": true,
+      "validation_required": true
+    },
+    
+    "metascript_extensions": {
+      "enabled": true,
+      "directory": ".tars/consciousness/metascripts",
+      "auto_reload": true,
+      "execution_timeout": 30000
+    },
+    
+    "plugin_system": {
+      "enabled": true,
+      "plugin_directory": ".tars/consciousness/plugins",
+      "supported_types": ["emotion_analyzers", "memory_processors", "response_generators"],
+      "security_validation": true
+    }
+  },
+  
+  "persistence": {
+    "mental_state_file": "mental_state.json",
+    "memory_index_file": "memory_index.json",
+    "conversation_history_file": "conversation_history.json",
+    "personality_profile_file": "personality_profile.json",
+    "emotional_history_file": "emotional_history.json",
+    "backup_enabled": true,
+    "backup_interval_minutes": 60,
+    "compression_enabled": false,
+    "encryption_enabled": false
+  },
+  
+  "performance": {
+    "parallel_processing": true,
+    "max_concurrent_agents": 6,
+    "response_timeout_ms": 5000,
+    "memory_optimization": true,
+    "caching_enabled": true,
+    "metrics_collection": true
+  },
+  
+  "learning": {
+    "continuous_learning": true,
+    "learning_rate": 0.01,
+    "adaptation_enabled": true,
+    "pattern_recognition": true,
+    "feedback_integration": true,
+    "knowledge_expansion": true
+  },
+  
+  "safety": {
+    "consciousness_limits": {
+      "max_consciousness_level": 1.0,
+      "consciousness_rate_limit": 0.1,
+      "emergency_shutdown_threshold": 0.95
+    },
+    "memory_limits": {
+      "max_working_memory": 50,
+      "max_long_term_memory": 10000,
+      "memory_cleanup_threshold": 0.9
+    },
+    "processing_limits": {
+      "max_processing_time_ms": 10000,
+      "max_recursive_depth": 10,
+      "resource_monitoring": true
+    }
+  }
+}

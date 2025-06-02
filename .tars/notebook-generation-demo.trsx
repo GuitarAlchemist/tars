@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TarsMetascript xmlns="http://tars.ai/metascript/v1">
+  <Metadata>
+    <Title>TARS Notebook Generation Demo</Title>
+    <Description>Demonstrates TARS autonomous notebook generation capabilities with real Jupyter notebook creation from metascript analysis</Description>
+    <Author>TARS Autonomous System</Author>
+    <Version>1.0.0</Version>
+    <Created>2024-12-19</Created>
+    <Tags>notebook,jupyter,data-science,automation,demo</Tags>
+    <Category>demonstration</Category>
+  </Metadata>
+
+  <Configuration>
+    <Setting key="execution_mode" value="autonomous" />
+    <Setting key="output_format" value="jupyter_notebook" />
+    <Setting key="template_strategy" value="data_science_eda" />
+    <Setting key="target_audience" value="data_scientists" />
+    <Setting key="complexity_level" value="intermediate" />
+    <Setting key="include_visualizations" value="true" />
+    <Setting key="include_documentation" value="true" />
+    <Setting key="auto_generate_cells" value="true" />
+  </Configuration>
+
+  <Variables>
+    <Variable name="dataset_name" type="string" value="sample_analysis_data" />
+    <Variable name="analysis_type" type="string" value="exploratory_data_analysis" />
+    <Variable name="output_notebook" type="string" value="tars_generated_analysis.ipynb" />
+    <Variable name="python_libraries" type="array" value="pandas,numpy,matplotlib,seaborn,plotly,scikit-learn" />
+    <Variable name="notebook_sections" type="array" value="introduction,data_loading,exploration,visualization,analysis,conclusions" />
+    <Variable name="visualization_types" type="array" value="histogram,scatter,correlation,boxplot,heatmap" />
+  </Variables>
+
+  <Objectives>
+    <Objective id="notebook_structure" priority="high">
+      <Description>Create well-structured Jupyter notebook with clear sections and documentation</Description>
+      <Success_Criteria>
+        - Notebook has proper markdown headers and structure
+        - Code cells are properly organized and documented
+        - Each section has clear purpose and explanation
+      </Success_Criteria>
+    </Objective>
+
+    <Objective id="code_generation" priority="high">
+      <Description>Generate functional Python code for data analysis workflow</Description>
+      <Success_Criteria>
+        - All code cells are syntactically correct
+        - Imports are properly organized
+        - Code follows best practices and is well-commented
+      </Success_Criteria>
+    </Objective>
+
+    <Objective id="visualization_integration" priority="medium">
+      <Description>Include comprehensive data visualization examples</Description>
+      <Success_Criteria>
+        - Multiple visualization types are demonstrated
+        - Plots are properly labeled and formatted
+        - Interactive visualizations where appropriate
+      </Success_Criteria>
+    </Objective>
+
+    <Objective id="educational_value" priority="medium">
+      <Description>Ensure notebook serves as educational resource</Description>
+      <Success_Criteria>
+        - Clear explanations of each analysis step
+        - Comments explain the reasoning behind code choices
+        - Includes tips and best practices
+      </Success_Criteria>
+    </Objective>
+  </Objectives>
+
+  <Tasks>
+    <Task id="analyze_requirements" type="analysis">
+      <Description>Analyze metascript to determine notebook requirements</Description>
+      <Input>Current metascript configuration and variables</Input>
+      <Output>Notebook structure plan and content strategy</Output>
+      <Agent>notebook_analyzer</Agent>
+    </Task>
+
+    <Task id="generate_structure" type="generation">
+      <Description>Create notebook structure with markdown cells</Description>
+      <Input>Analysis results and section requirements</Input>
+      <Output>Notebook skeleton with markdown documentation</Output>
+      <Agent>structure_generator</Agent>
+      <Dependencies>analyze_requirements</Dependencies>
+    </Task>
+
+    <Task id="generate_code_cells" type="generation">
+      <Description>Generate Python code cells for data analysis</Description>
+      <Input>Notebook structure and analysis requirements</Input>
+      <Output>Functional Python code cells with proper imports and logic</Output>
+      <Agent>code_generator</Agent>
+      <Dependencies>generate_structure</Dependencies>
+    </Task>
+
+    <Task id="create_visualizations" type="generation">
+      <Description>Generate visualization code and examples</Description>
+      <Input>Data analysis code and visualization requirements</Input>
+      <Output>Matplotlib, Seaborn, and Plotly visualization cells</Output>
+      <Agent>visualization_generator</Agent>
+      <Dependencies>generate_code_cells</Dependencies>
+    </Task>
+
+    <Task id="validate_notebook" type="validation">
+      <Description>Validate generated notebook for correctness and quality</Description>
+      <Input>Complete notebook JSON structure</Input>
+      <Output>Validation report and corrected notebook</Output>
+      <Agent>notebook_validator</Agent>
+      <Dependencies>create_visualizations</Dependencies>
+    </Task>
+
+    <Task id="export_notebook" type="output">
+      <Description>Export final notebook to file system</Description>
+      <Input>Validated notebook structure</Input>
+      <Output>Jupyter notebook file (.ipynb)</Output>
+      <Agent>file_exporter</Agent>
+      <Dependencies>validate_notebook</Dependencies>
+    </Task>
+  </Tasks>
+
+  <Agents>
+    <Agent id="notebook_analyzer" type="analysis">
+      <Role>Analyze metascript requirements and plan notebook structure</Role>
+      <Capabilities>
+        - Parse metascript variables and objectives
+        - Determine appropriate notebook template
+        - Plan section organization and content flow
+      </Capabilities>
+    </Agent>
+
+    <Agent id="structure_generator" type="content">
+      <Role>Generate notebook structure and markdown documentation</Role>
+      <Capabilities>
+        - Create markdown cells with proper formatting
+        - Generate section headers and explanations
+        - Structure notebook for optimal readability
+      </Capabilities>
+    </Agent>
+
+    <Agent id="code_generator" type="development">
+      <Role>Generate Python code cells for data analysis</Role>
+      <Capabilities>
+        - Write syntactically correct Python code
+        - Generate appropriate imports and setup
+        - Create data loading and processing logic
+      </Capabilities>
+    </Agent>
+
+    <Agent id="visualization_generator" type="development">
+      <Role>Create data visualization code and examples</Role>
+      <Capabilities>
+        - Generate matplotlib and seaborn plots
+        - Create interactive plotly visualizations
+        - Ensure proper plot formatting and labeling
+      </Capabilities>
+    </Agent>
+
+    <Agent id="notebook_validator" type="quality_assurance">
+      <Role>Validate notebook quality and correctness</Role>
+      <Capabilities>
+        - Check JSON structure validity
+        - Validate Python syntax in code cells
+        - Ensure notebook follows best practices
+      </Capabilities>
+    </Agent>
+
+    <Agent id="file_exporter" type="output">
+      <Role>Export notebook to file system</Role>
+      <Capabilities>
+        - Write JSON to .ipynb file
+        - Ensure proper file encoding
+        - Create backup copies if needed
+      </Capabilities>
+    </Agent>
+  </Agents>
+
+  <DataSources>
+    <DataSource id="template_library" type="internal">
+      <Description>Library of notebook templates for different use cases</Description>
+      <Location>tars://templates/notebooks/</Location>
+    </DataSource>
+
+    <DataSource id="code_patterns" type="internal">
+      <Description>Common code patterns and best practices for data analysis</Description>
+      <Location>tars://patterns/data_science/</Location>
+    </DataSource>
+
+    <DataSource id="visualization_examples" type="internal">
+      <Description>Example visualizations and plotting code</Description>
+      <Location>tars://examples/visualizations/</Location>
+    </DataSource>
+  </DataSources>
+
+  <Outputs>
+    <Output id="generated_notebook" type="file">
+      <Description>Complete Jupyter notebook with analysis workflow</Description>
+      <Format>application/json</Format>
+      <Location>./tars_generated_analysis.ipynb</Location>
+    </Output>
+
+    <Output id="generation_report" type="report">
+      <Description>Report on notebook generation process and quality metrics</Description>
+      <Format>text/markdown</Format>
+      <Location>./notebook_generation_report.md</Location>
+    </Output>
+
+    <Output id="execution_log" type="log">
+      <Description>Detailed log of notebook generation process</Description>
+      <Format>application/json</Format>
+      <Location>./notebook_generation_log.json</Location>
+    </Output>
+  </Outputs>
+
+  <Quality_Assurance>
+    <Validation>
+      <Rule>Notebook must be valid JSON format</Rule>
+      <Rule>All Python code cells must be syntactically correct</Rule>
+      <Rule>Markdown cells must have proper formatting</Rule>
+      <Rule>Notebook must include all required sections</Rule>
+    </Validation>
+
+    <Testing>
+      <Test>Execute notebook in clean Python environment</Test>
+      <Test>Verify all imports are available</Test>
+      <Test>Check that visualizations render correctly</Test>
+      <Test>Validate educational content quality</Test>
+    </Testing>
+  </Quality_Assurance>
+
+  <Execution>
+    <Trigger>manual</Trigger>
+    <Schedule>on_demand</Schedule>
+    <Timeout>300</Timeout>
+    <Retry_Policy>3_attempts</Retry_Policy>
+  </Execution>
+</TarsMetascript>

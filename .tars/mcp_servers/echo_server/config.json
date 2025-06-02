@@ -1,0 +1,17 @@
+{
+  "name": "echo-mcp-server",
+  "version": "1.0.0",
+  "description": "Simple Echo MCP Server for TARS Demo",
+  "port": 3001,
+  "host": "localhost",
+  "tools": [
+    "echo",
+    "reverse",
+    "uppercase",
+    "analyze"
+  ],
+  "resources": [
+    "echo://status",
+    "echo://stats"
+  ]
+}

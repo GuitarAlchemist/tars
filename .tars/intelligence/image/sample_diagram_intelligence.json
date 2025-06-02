@@ -1,0 +1,29 @@
+{
+  "timestamp": "2025-05-31T22:09:54.506990",
+  "media_type": "image",
+  "confidence": 0.85,
+  "insights": [
+    "Technical diagram shows system architecture",
+    "Microservices pattern identified",
+    "Authentication centralization detected",
+    "Clear component separation for maintainability"
+  ],
+  "action_items": [],
+  "tars_actions": [
+    "analyze_system_design",
+    "generate_implementation_plan",
+    "create_documentation_metascript"
+  ],
+  "intelligible_data": {
+    "structured_content": "SIMULATED IMAGE ANALYSIS:\nImage Type: Technical Diagram\nDescription: A system architecture diagram showing three main components:\n1. Frontend (React application)\n2. Backend API (Node.js server)\n3. Database (PostgreSQL)\n\nDetected Text (OCR):\n- \"User Interface\"\n- \"API Gateway\"\n- \"Authentication Service\"\n- \"Data Layer\"\n\nObjects Detected:\n- Rectangular boxes (components)\n- Arrows (data flow)\n- Text labels\n- Network connections\n\nACTIONABLE INSIGHTS:\n- System follows microservices architecture\n- Authe...",
+    "key_concepts": [
+      "architecture",
+      "api",
+      "database",
+      "authentication",
+      "microservices",
+      "action"
+    ],
+    "actionable_elements": []
+  }
+}
