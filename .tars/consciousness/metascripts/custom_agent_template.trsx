@@ -1,0 +1,398 @@
+# TARS Custom Consciousness Agent Template
+# Template for creating extensible consciousness agents via metascripts
+# TARS_AGENT_SIGNATURE: CUSTOM_CONSCIOUSNESS_AGENT
+
+DESCRIBE {
+    name: "Custom Consciousness Agent Template"
+    version: "1.0"
+    author: "TARS Consciousness Framework"
+    description: "Template for creating custom consciousness agents"
+    agent_type: "consciousness_extension"
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.4
+    max_tokens: 2000
+    execution_mode: "agent"
+    integration_level: "deep"
+}
+
+## Agent Configuration Variables
+VARIABLE agent_config {
+    value: {
+        name: "Custom Agent",
+        capabilities: ["custom_processing"],
+        priority: 10,
+        enabled: true,
+        processing_timeout: 3000,
+        memory_allocation: "medium",
+        parallel_execution: true
+    }
+    type: "object"
+    description: "Agent configuration parameters"
+}
+
+VARIABLE agent_state {
+    value: {
+        status: "initializing",
+        last_execution: null,
+        performance_metrics: {},
+        error_count: 0,
+        success_rate: 1.0
+    }
+    type: "object"
+    description: "Agent runtime state"
+}
+
+## Agent Initialization
+ACTION {
+    type: "initialize_custom_agent"
+    description: "Initialize custom consciousness agent"
+    
+    SCRIPT {
+        language: "fsharp"
+        code: """
+        let initializeCustomAgent agentConfig =
+            printfn "🤖 Initializing Custom Agent: %s" agentConfig.Name
+            
+            // Validate agent configuration
+            let validationResult = validateAgentConfig agentConfig
+            if not validationResult.IsValid then
+                failwith $"Agent configuration invalid: {validationResult.Errors}"
+            
+            // Register agent capabilities
+            agentConfig.Capabilities
+            |> List.iter (fun capability ->
+                registerCapability agentConfig.Name capability
+                printfn "  ✅ Registered capability: %s" capability)
+            
+            // Initialize agent memory space
+            let memorySpace = createAgentMemorySpace agentConfig.Name {
+                Size = agentConfig.MemoryAllocation
+                Persistence = true
+                Encryption = false
+            }
+            
+            // Set up agent communication channels
+            let communicationChannel = createAgentChannel agentConfig.Name {
+                BufferSize = 100
+                Timeout = agentConfig.ProcessingTimeout
+                Priority = agentConfig.Priority
+            }
+            
+            // Initialize performance tracking
+            initializePerformanceTracking agentConfig.Name
+            
+            printfn "  ✅ Custom agent %s initialized successfully" agentConfig.Name
+            
+            {
+                Name = agentConfig.Name
+                Status = "Active"
+                InitializationTime = DateTime.UtcNow
+                MemorySpace = memorySpace
+                CommunicationChannel = communicationChannel
+            }
+        """
+    }
+}
+
+## Agent Processing Logic
+ACTION {
+    type: "process_with_custom_agent"
+    description: "Main processing logic for custom agent"
+    
+    SCRIPT {
+        language: "fsharp"
+        code: """
+        let processWithCustomAgent agentName userInput context =
+            let startTime = DateTime.UtcNow
+            
+            try
+                printfn "🔄 %s: Processing input..." agentName
+                
+                // Pre-processing phase
+                let preprocessedInput = preprocessInput userInput context
+                
+                // Core processing logic (customizable)
+                let processingResult = 
+                    match agentName with
+                    | "creativity_enhancer" -> enhanceCreativity preprocessedInput context
+                    | "logic_analyzer" -> analyzeLogic preprocessedInput context
+                    | "pattern_recognizer" -> recognizePatterns preprocessedInput context
+                    | "context_expander" -> expandContext preprocessedInput context
+                    | _ -> defaultProcessing preprocessedInput context
+                
+                // Post-processing phase
+                let finalResult = postprocessResult processingResult context
+                
+                // Update agent metrics
+                let executionTime = DateTime.UtcNow - startTime
+                updateAgentMetrics agentName {
+                    ExecutionTime = executionTime.TotalMilliseconds
+                    SuccessRate = 1.0
+                    QualityScore = calculateQualityScore finalResult
+                    InputComplexity = assessInputComplexity userInput
+                }
+                
+                printfn "  ✅ %s: Completed in %.0fms" agentName executionTime.TotalMilliseconds
+                
+                {
+                    AgentName = agentName
+                    Result = finalResult
+                    ExecutionTime = executionTime
+                    Quality = calculateQualityScore finalResult
+                    Confidence = calculateConfidence finalResult context
+                }
+                
+            with
+            | ex ->
+                let executionTime = DateTime.UtcNow - startTime
+                printfn "  ❌ %s: Error - %s" agentName ex.Message
+                
+                updateAgentMetrics agentName {
+                    ExecutionTime = executionTime.TotalMilliseconds
+                    SuccessRate = 0.0
+                    ErrorCount = 1
+                }
+                
+                {
+                    AgentName = agentName
+                    Result = createErrorResult ex.Message
+                    ExecutionTime = executionTime
+                    Quality = 0.0
+                    Confidence = 0.0
+                }
+        """
+    }
+}
+
+## Agent Memory Management
+ACTION {
+    type: "manage_agent_memory"
+    description: "Manage agent-specific memory operations"
+    
+    SCRIPT {
+        language: "fsharp"
+        code: """
+        let manageAgentMemory agentName operation data =
+            match operation with
+            | "store" ->
+                let memoryEntry = {
+                    Id = Guid.NewGuid().ToString()
+                    AgentName = agentName
+                    Content = data
+                    Timestamp = DateTime.UtcNow
+                    Importance = calculateImportance data
+                    Tags = extractTags data
+                    AccessCount = 0
+                }
+                
+                storeInAgentMemory agentName memoryEntry
+                printfn "💾 %s: Stored memory entry %s" agentName memoryEntry.Id
+                
+            | "retrieve" ->
+                let query = data :?> string
+                let memories = retrieveFromAgentMemory agentName query
+                printfn "🔍 %s: Retrieved %d memories for query: %s" 
+                    agentName memories.Length query
+                memories
+                
+            | "consolidate" ->
+                let consolidatedMemories = consolidateAgentMemory agentName
+                printfn "🗂️ %s: Consolidated %d memories" 
+                    agentName consolidatedMemories.Length
+                consolidatedMemories
+                
+            | "cleanup" ->
+                let cleanedCount = cleanupAgentMemory agentName
+                printfn "🧹 %s: Cleaned up %d old memories" agentName cleanedCount
+                cleanedCount
+                
+            | _ ->
+                printfn "❌ %s: Unknown memory operation: %s" agentName operation
+                []
+        """
+    }
+}
+
+## Agent Communication
+ACTION {
+    type: "agent_communication"
+    description: "Handle inter-agent communication"
+    
+    SCRIPT {
+        language: "fsharp"
+        code: """
+        let handleAgentCommunication sourceAgent targetAgent message =
+            printfn "📡 Communication: %s → %s" sourceAgent targetAgent
+            
+            let communicationMessage = {
+                Id = Guid.NewGuid().ToString()
+                SourceAgent = sourceAgent
+                TargetAgent = targetAgent
+                Content = message
+                Timestamp = DateTime.UtcNow
+                Priority = "normal"
+                RequiresResponse = false
+            }
+            
+            // Send message through agent communication channel
+            let success = sendAgentMessage communicationMessage
+            
+            if success then
+                printfn "  ✅ Message sent successfully"
+                
+                // Log communication for analysis
+                logAgentCommunication communicationMessage
+                
+                // Update communication metrics
+                updateCommunicationMetrics sourceAgent targetAgent
+            else
+                printfn "  ❌ Failed to send message"
+            
+            success
+        """
+    }
+}
+
+## Agent Performance Monitoring
+ACTION {
+    type: "monitor_agent_performance"
+    description: "Monitor and optimize agent performance"
+    
+    SCRIPT {
+        language: "fsharp"
+        code: """
+        let monitorAgentPerformance agentName =
+            let metrics = getAgentMetrics agentName
+            
+            printfn "📊 Performance Metrics for %s:" agentName
+            printfn "  Average Response Time: %.0fms" metrics.AverageResponseTime
+            printfn "  Success Rate: %.1f%%" (metrics.SuccessRate * 100.0)
+            printfn "  Quality Score: %.2f" metrics.AverageQuality
+            printfn "  Memory Usage: %.1fMB" metrics.MemoryUsage
+            printfn "  Error Rate: %.1f%%" (metrics.ErrorRate * 100.0)
+            
+            // Performance optimization recommendations
+            let recommendations = analyzePerformance metrics
+            
+            if recommendations.Length > 0 then
+                printfn "💡 Performance Recommendations:"
+                recommendations
+                |> List.iter (fun rec -> printfn "  • %s" rec)
+                
+                // Auto-apply safe optimizations
+                let safeOptimizations = 
+                    recommendations 
+                    |> List.filter (fun rec -> rec.StartsWith("SAFE:"))
+                
+                safeOptimizations
+                |> List.iter (fun opt ->
+                    applyOptimization agentName opt
+                    printfn "  ✅ Applied: %s" opt)
+            
+            metrics
+        """
+    }
+}
+
+## Agent Extension Points
+ACTION {
+    type: "define_extension_points"
+    description: "Define extension points for custom functionality"
+    
+    SCRIPT {
+        language: "fsharp"
+        code: """
+        let defineExtensionPoints agentName =
+            let extensionPoints = [
+                {
+                    Name = "pre_processing"
+                    Description = "Hook for input preprocessing"
+                    Parameters = ["input"; "context"]
+                    ReturnType = "ProcessedInput"
+                }
+                {
+                    Name = "core_processing"
+                    Description = "Main processing logic"
+                    Parameters = ["input"; "context"; "memory"]
+                    ReturnType = "ProcessingResult"
+                }
+                {
+                    Name = "post_processing"
+                    Description = "Hook for result post-processing"
+                    Parameters = ["result"; "context"]
+                    ReturnType = "FinalResult"
+                }
+                {
+                    Name = "memory_filter"
+                    Description = "Custom memory filtering logic"
+                    Parameters = ["memories"; "query"]
+                    ReturnType = "FilteredMemories"
+                }
+                {
+                    Name = "quality_assessment"
+                    Description = "Custom quality assessment"
+                    Parameters = ["result"; "context"]
+                    ReturnType = "QualityScore"
+                }
+            ]
+            
+            extensionPoints
+            |> List.iter (fun ep ->
+                registerExtensionPoint agentName ep
+                printfn "🔌 Registered extension point: %s.%s" agentName ep.Name)
+            
+            printfn "✅ Extension points defined for %s" agentName
+            extensionPoints
+        """
+    }
+}
+
+## Agent Lifecycle Management
+ACTION {
+    type: "manage_agent_lifecycle"
+    description: "Manage agent lifecycle events"
+    
+    SCRIPT {
+        language: "fsharp"
+        code: """
+        let manageAgentLifecycle agentName event =
+            match event with
+            | "start" ->
+                startAgent agentName
+                printfn "🚀 Agent %s started" agentName
+                
+            | "pause" ->
+                pauseAgent agentName
+                printfn "⏸️ Agent %s paused" agentName
+                
+            | "resume" ->
+                resumeAgent agentName
+                printfn "▶️ Agent %s resumed" agentName
+                
+            | "stop" ->
+                stopAgent agentName
+                printfn "⏹️ Agent %s stopped" agentName
+                
+            | "restart" ->
+                restartAgent agentName
+                printfn "🔄 Agent %s restarted" agentName
+                
+            | "upgrade" ->
+                upgradeAgent agentName
+                printfn "⬆️ Agent %s upgraded" agentName
+                
+            | _ ->
+                printfn "❌ Unknown lifecycle event: %s for agent %s" event agentName
+        """
+    }
+}
+
+---
+
+**TARS Custom Consciousness Agent Template v1.0**  
+**Extensible agent framework for consciousness system**  
+**Supports dynamic agent creation and management**  
+**TARS_AGENT_TEMPLATE_COMPLETE: EXTENSIBLE_AGENT_READY**

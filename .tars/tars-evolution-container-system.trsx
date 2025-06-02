@@ -1,0 +1,632 @@
+# TARS Evolution Container Naming and Versioning System
+# Creates identifiable containers for evolving TARS instances with version tracking
+
+## Metascript Metadata
+```yaml
+name: "TARS Evolution Container System"
+version: "1.0.0"
+type: "container-management"
+priority: "critical"
+capabilities: ["container-naming", "version-tracking", "evolution-management", "rollback-support"]
+dependencies: ["docker", "semantic-versioning", "container-registry"]
+outputs: ["named-containers", "version-tracking", "evolution-lineage", "rollback-capability"]
+confidence: 0.98
+autonomous: true
+```
+
+## TARS Evolution Container Naming Strategy
+```f#
+open System
+open System.Text.RegularExpressions
+open System.Text.Json
+
+// TARS Evolution Container Naming System
+let createTarsEvolutionNaming() =
+    let namingStrategy = {
+        // Base naming pattern: tars-evolution-{version}-{date}-{session}
+        BasePattern = "tars-evolution"
+        
+        // Version components
+        VersionFormat = {
+            Major = "semantic"  // Major.Minor.Patch
+            Build = "timestamp" // YYYYMMDD-HHMMSS
+            Evolution = "session" // evolution session identifier
+        }
+        
+        // Container naming examples
+        Examples = [
+            "tars-evolution-v2.1.0-20241215-143022-exp001"
+            "tars-evolution-v2.1.1-20241215-150045-safe002"
+            "tars-evolution-v2.2.0-20241215-163012-aggr003"
+        ]
+        
+        // Container labels for tracking
+        Labels = {
+            TarsVersion = "tars.version"
+            EvolutionMode = "tars.evolution.mode"
+            SessionId = "tars.evolution.session"
+            ParentVersion = "tars.evolution.parent"
+            CreationTime = "tars.evolution.created"
+            EvolutionGoals = "tars.evolution.goals"
+            SafetyLevel = "tars.evolution.safety"
+        }
+        
+        // Registry organization
+        Registry = {
+            BaseImage = "tars/evolution"
+            Tags = [
+                "latest"           // Current stable evolution
+                "experimental"     // Latest experimental evolution
+                "safe"            // Latest safe evolution
+                "v{version}"      // Specific version
+                "session-{id}"    // Specific session
+            ]
+        }
+    }
+    namingStrategy
+
+// TARS Version Management System
+let createTarsVersionManager() =
+    let versionManager = {
+        // Current TARS version tracking
+        CurrentVersion = {
+            Major = 2
+            Minor = 1
+            Patch = 0
+            Build = ""
+            FullVersion = "2.1.0"
+        }
+        
+        // Evolution version increment rules
+        VersionIncrementRules = {
+            SafeEvolution = "patch"      // 2.1.0 -> 2.1.1
+            ExperimentalEvolution = "minor"  // 2.1.0 -> 2.2.0
+            AggressiveEvolution = "major"    // 2.1.0 -> 3.0.0
+            HotfixEvolution = "patch"        // 2.1.0 -> 2.1.1
+        }
+        
+        // Version validation rules
+        ValidationRules = {
+            MaxMajorIncrement = 1    // Can't jump more than 1 major version
+            MaxMinorIncrement = 5    // Can't jump more than 5 minor versions
+            MaxPatchIncrement = 20   // Can't jump more than 20 patch versions
+            RequireValidation = true // All versions must be validated
+        }
+        
+        // Evolution lineage tracking
+        LineageTracking = {
+            ParentVersion = "track"
+            EvolutionPath = "record"
+            BranchingSupport = true
+            MergeCapability = true
+        }
+    }
+    versionManager
+
+// Container Name Generation
+let generateEvolutionContainerName(evolutionConfig) =
+    async {
+        let currentTime = DateTime.UtcNow
+        let dateString = currentTime.ToString("yyyyMMdd")
+        let timeString = currentTime.ToString("HHmmss")
+        
+        // Get current TARS version
+        let currentVersion = getCurrentTarsVersion()
+        
+        // Calculate next version based on evolution mode
+        let nextVersion = calculateNextVersion(currentVersion, evolutionConfig.Mode)
+        
+        // Generate session identifier
+        let sessionId = generateSessionId(evolutionConfig)
+        
+        // Create container name
+        let containerName = $"tars-evolution-v{nextVersion}-{dateString}-{timeString}-{sessionId}"
+        
+        // Create image tag
+        let imageTag = $"tars/evolution:v{nextVersion}-{evolutionConfig.Mode}-{dateString}"
+        
+        // Create container labels
+        let labels = Map.ofList [
+            ("tars.version", nextVersion)
+            ("tars.evolution.mode", evolutionConfig.Mode)
+            ("tars.evolution.session", sessionId)
+            ("tars.evolution.parent", currentVersion)
+            ("tars.evolution.created", currentTime.ToString("yyyy-MM-ddTHH:mm:ssZ"))
+            ("tars.evolution.goals", String.Join(",", evolutionConfig.Goals))
+            ("tars.evolution.safety", evolutionConfig.SafetyLevel)
+            ("tars.evolution.duration", evolutionConfig.Duration.ToString())
+            ("tars.evolution.swarm-nodes", evolutionConfig.SwarmNodes.ToString())
+        ]
+        
+        printfn "🏷️ GENERATED EVOLUTION CONTAINER IDENTITY"
+        printfn "========================================"
+        printfn $"  Container Name: {containerName}"
+        printfn $"  Image Tag: {imageTag}"
+        printfn $"  Current Version: {currentVersion}"
+        printfn $"  Next Version: {nextVersion}"
+        printfn $"  Session ID: {sessionId}"
+        printfn $"  Evolution Mode: {evolutionConfig.Mode}"
+        printfn $"  Creation Time: {currentTime:yyyy-MM-dd HH:mm:ss} UTC"
+        
+        return {|
+            ContainerName = containerName
+            ImageTag = imageTag
+            CurrentVersion = currentVersion
+            NextVersion = nextVersion
+            SessionId = sessionId
+            Labels = labels
+            CreationTime = currentTime
+        |}
+    }
+
+let getCurrentTarsVersion() =
+    // Read current version from version file or default
+    let versionFile = ".tars/version.json"
+    if File.Exists(versionFile) then
+        let versionJson = File.ReadAllText(versionFile)
+        let versionData = JsonSerializer.Deserialize<{| version: string |}>(versionJson)
+        versionData.version
+    else
+        "2.1.0" // Default version
+
+let calculateNextVersion(currentVersion, evolutionMode) =
+    let versionParts = currentVersion.Split('.')
+    let major = int versionParts.[0]
+    let minor = int versionParts.[1]
+    let patch = int versionParts.[2]
+    
+    match evolutionMode.ToLower() with
+    | "safe" -> $"{major}.{minor}.{patch + 1}"
+    | "experimental" -> $"{major}.{minor + 1}.0"
+    | "aggressive" -> $"{major + 1}.0.0"
+    | _ -> $"{major}.{minor}.{patch + 1}"
+
+let generateSessionId(evolutionConfig) =
+    let modePrefix = match evolutionConfig.Mode.ToLower() with
+                    | "safe" -> "safe"
+                    | "experimental" -> "exp"
+                    | "aggressive" -> "aggr"
+                    | _ -> "unkn"
+    
+    let sessionNumber = getNextSessionNumber(modePrefix)
+    $"{modePrefix}{sessionNumber:D3}"
+
+let getNextSessionNumber(modePrefix) =
+    // Read session counter from file or start at 1
+    let sessionFile = $".tars/sessions/{modePrefix}-counter.txt"
+    let sessionDir = Path.GetDirectoryName(sessionFile)
+    Directory.CreateDirectory(sessionDir) |> ignore
+    
+    if File.Exists(sessionFile) then
+        let counterText = File.ReadAllText(sessionFile)
+        let counter = int counterText
+        let nextCounter = counter + 1
+        File.WriteAllText(sessionFile, nextCounter.ToString())
+        nextCounter
+    else
+        File.WriteAllText(sessionFile, "1")
+        1
+
+// Docker Container Creation with Naming
+let createEvolutionContainer(containerIdentity, evolutionConfig) =
+    async {
+        printfn "🐳 CREATING TARS EVOLUTION CONTAINER"
+        printfn "===================================="
+        
+        // Create Dockerfile for specific evolution version
+        let dockerfile = generateVersionedDockerfile(containerIdentity, evolutionConfig)
+        let dockerfilePath = $".tars/evolution/{containerIdentity.SessionId}/Dockerfile"
+        let dockerfileDir = Path.GetDirectoryName(dockerfilePath)
+        Directory.CreateDirectory(dockerfileDir) |> ignore
+        File.WriteAllText(dockerfilePath, dockerfile)
+        
+        // Create docker-compose with versioned naming
+        let dockerCompose = generateVersionedDockerCompose(containerIdentity, evolutionConfig)
+        let composePath = $".tars/evolution/{containerIdentity.SessionId}/docker-compose.yml"
+        File.WriteAllText(composePath, dockerCompose)
+        
+        // Create container configuration
+        let containerConfig = {
+            Name = containerIdentity.ContainerName
+            Image = containerIdentity.ImageTag
+            Labels = containerIdentity.Labels
+            Volumes = [
+                $".tars/evolution/{containerIdentity.SessionId}:/tars/evolution:rw"
+                $".tars/shared:/tars/shared:ro"
+                $".tars/monitoring/{containerIdentity.SessionId}:/tars/monitoring:rw"
+                $".tars/backups/{containerIdentity.SessionId}:/tars/backups:rw"
+            ]
+            Environment = [
+                $"TARS_VERSION={containerIdentity.NextVersion}"
+                $"TARS_EVOLUTION_SESSION={containerIdentity.SessionId}"
+                $"TARS_EVOLUTION_MODE={evolutionConfig.Mode}"
+                $"TARS_PARENT_VERSION={containerIdentity.CurrentVersion}"
+                $"TARS_CONTAINER_NAME={containerIdentity.ContainerName}"
+            ]
+            Ports = [
+                "8080:8080"  // Evolution API
+                "8081:8081"  // Metrics
+                "8082:8082"  // Logs
+                "8083:8083"  // Health
+            ]
+            ResourceLimits = {
+                CPUs = "8"
+                Memory = "16g"
+                ShmSize = "2g"
+            }
+            Networks = [$"tars-evolution-{containerIdentity.SessionId}"]
+        }
+        
+        printfn $"  📦 Container: {containerConfig.Name}"
+        printfn $"  🏷️ Image: {containerConfig.Image}"
+        printfn $"  📊 Resources: {containerConfig.ResourceLimits.CPUs} CPUs, {containerConfig.ResourceLimits.Memory} RAM"
+        printfn $"  🔗 Network: {String.Join(", ", containerConfig.Networks)}"
+        
+        return containerConfig
+    }
+
+let generateVersionedDockerfile(containerIdentity, evolutionConfig) =
+    $"""# TARS Evolution Container - Version {containerIdentity.NextVersion}
+# Session: {containerIdentity.SessionId}
+# Mode: {evolutionConfig.Mode}
+# Created: {containerIdentity.CreationTime:yyyy-MM-dd HH:mm:ss} UTC
+
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+
+# Container metadata
+LABEL tars.version="{containerIdentity.NextVersion}"
+LABEL tars.evolution.session="{containerIdentity.SessionId}"
+LABEL tars.evolution.mode="{evolutionConfig.Mode}"
+LABEL tars.evolution.parent="{containerIdentity.CurrentVersion}"
+LABEL tars.evolution.created="{containerIdentity.CreationTime:yyyy-MM-ddTHH:mm:ssZ}"
+
+# Install evolution dependencies
+RUN apt-get update && apt-get install -y \\
+    python3 python3-pip nodejs npm git curl wget jq htop \\
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python packages for TARS evolution
+RUN pip3 install aiohttp asyncio requests numpy pandas scikit-learn
+
+# Install Node.js packages for MCP support
+RUN npm install -g @modelcontextprotocol/sdk typescript ts-node
+
+# Set up TARS evolution workspace
+WORKDIR /tars
+COPY . .
+
+# Build TARS for evolution
+RUN dotnet build TarsEngine.FSharp.Cli/TarsEngine.FSharp.Cli.fsproj -c Release
+
+# Create evolution runtime image
+FROM mcr.microsoft.com/dotnet/runtime:8.0
+
+# Copy evolution metadata
+LABEL tars.version="{containerIdentity.NextVersion}"
+LABEL tars.evolution.session="{containerIdentity.SessionId}"
+LABEL tars.evolution.mode="{evolutionConfig.Mode}"
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \\
+    python3 python3-pip nodejs npm git curl \\
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy TARS evolution binaries
+WORKDIR /tars
+COPY --from=build /tars/TarsEngine.FSharp.Cli/bin/Release/net8.0/ ./bin/
+COPY --from=build /tars/.tars/ ./.tars/
+
+# Set evolution environment
+ENV TARS_VERSION="{containerIdentity.NextVersion}"
+ENV TARS_EVOLUTION_SESSION="{containerIdentity.SessionId}"
+ENV TARS_EVOLUTION_MODE="{evolutionConfig.Mode}"
+ENV TARS_PARENT_VERSION="{containerIdentity.CurrentVersion}"
+ENV TARS_CONTAINER_NAME="{containerIdentity.ContainerName}"
+ENV TARS_DOCKER_ISOLATED="true"
+ENV PATH="/tars/bin:$PATH"
+
+# Create evolution directories
+RUN mkdir -p /tars/evolution /tars/shared /tars/monitoring /tars/backups
+
+# Copy evolution scripts
+COPY evolution-scripts/ ./evolution-scripts/
+RUN chmod +x ./evolution-scripts/*.sh
+
+# Health check for evolution session
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \\
+    CMD curl -f http://localhost:8080/health || exit 1
+
+# Start TARS evolution
+ENTRYPOINT ["./evolution-scripts/start-evolution.sh"]
+CMD ["--version", "{containerIdentity.NextVersion}", "--session", "{containerIdentity.SessionId}"]
+"""
+
+let generateVersionedDockerCompose(containerIdentity, evolutionConfig) =
+    $"""version: '3.8'
+
+services:
+  {containerIdentity.ContainerName}:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: {containerIdentity.ImageTag}
+    container_name: {containerIdentity.ContainerName}
+    hostname: tars-evolution-{containerIdentity.SessionId}
+    
+    # Container labels for identification
+    labels:
+      - "tars.version={containerIdentity.NextVersion}"
+      - "tars.evolution.session={containerIdentity.SessionId}"
+      - "tars.evolution.mode={evolutionConfig.Mode}"
+      - "tars.evolution.parent={containerIdentity.CurrentVersion}"
+      - "tars.evolution.created={containerIdentity.CreationTime:yyyy-MM-ddTHH:mm:ssZ}"
+    
+    # Resource limits for evolution
+    deploy:
+      resources:
+        limits:
+          cpus: '8'
+          memory: 16G
+        reservations:
+          cpus: '4'
+          memory: 8G
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 30s
+        max_attempts: 3
+    
+    # Volume mounts for evolution session
+    volumes:
+      - ./evolution/{containerIdentity.SessionId}:/tars/evolution:rw
+      - ./shared:/tars/shared:ro
+      - ./monitoring/{containerIdentity.SessionId}:/tars/monitoring:rw
+      - ./backups/{containerIdentity.SessionId}:/tars/backups:rw
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    
+    # Environment for versioned evolution
+    environment:
+      - TARS_VERSION={containerIdentity.NextVersion}
+      - TARS_EVOLUTION_SESSION={containerIdentity.SessionId}
+      - TARS_EVOLUTION_MODE={evolutionConfig.Mode}
+      - TARS_PARENT_VERSION={containerIdentity.CurrentVersion}
+      - TARS_CONTAINER_NAME={containerIdentity.ContainerName}
+      - TARS_DOCKER_ISOLATED=true
+    
+    # Network configuration
+    networks:
+      - tars-evolution-{containerIdentity.SessionId}
+    
+    # Port mappings for monitoring
+    ports:
+      - "8080:8080"  # Evolution API
+      - "8081:8081"  # Metrics endpoint
+      - "8082:8082"  # Log streaming
+      - "8083:8083"  # Health check
+    
+    # Health monitoring
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    
+    # Security constraints
+    security_opt:
+      - no-new-privileges:true
+    
+    # Logging with session identification
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+        labels: "tars.evolution.session={containerIdentity.SessionId}"
+
+  tars-monitor-{containerIdentity.SessionId}:
+    image: {containerIdentity.ImageTag}
+    container_name: tars-monitor-{containerIdentity.SessionId}
+    command: ["./evolution-scripts/monitor-evolution.sh", "--session", "{containerIdentity.SessionId}"]
+    
+    depends_on:
+      - {containerIdentity.ContainerName}
+    
+    volumes:
+      - ./monitoring/{containerIdentity.SessionId}:/tars/monitoring:rw
+      - ./shared:/tars/shared:ro
+    
+    environment:
+      - TARS_MONITOR_SESSION={containerIdentity.SessionId}
+      - TARS_MONITOR_VERSION={containerIdentity.NextVersion}
+      - TARS_MONITOR_MODE=host-sync
+    
+    networks:
+      - tars-evolution-{containerIdentity.SessionId}
+    
+    ports:
+      - "8084:8084"  # Monitor dashboard
+
+networks:
+  tars-evolution-{containerIdentity.SessionId}:
+    driver: bridge
+    name: tars-evolution-{containerIdentity.SessionId}
+    ipam:
+      config:
+        - subnet: 172.21.{containerIdentity.SessionId.GetHashCode() % 255}.0/24
+
+volumes:
+  tars-evolution-{containerIdentity.SessionId}-data:
+    driver: local
+    name: tars-evolution-{containerIdentity.SessionId}-data
+"""
+
+// TARS Evolution Container Registry and Tracking
+let createEvolutionContainerRegistry() =
+    async {
+        printfn "📋 CREATING TARS EVOLUTION CONTAINER REGISTRY"
+        printfn "============================================="
+
+        let registryPath = ".tars/evolution/container-registry.json"
+        let registryDir = Path.GetDirectoryName(registryPath)
+        Directory.CreateDirectory(registryDir) |> ignore
+
+        // Initialize or load existing registry
+        let registry =
+            if File.Exists(registryPath) then
+                let registryJson = File.ReadAllText(registryPath)
+                JsonSerializer.Deserialize<ContainerRegistry>(registryJson)
+            else
+                {
+                    Containers = []
+                    ActiveSessions = []
+                    VersionHistory = []
+                    LastUpdated = DateTime.UtcNow
+                    RegistryVersion = "1.0.0"
+                }
+
+        printfn $"  📊 Registry Status:"
+        printfn $"    Total Containers: {registry.Containers.Length}"
+        printfn $"    Active Sessions: {registry.ActiveSessions.Length}"
+        printfn $"    Version History: {registry.VersionHistory.Length}"
+        printfn $"    Last Updated: {registry.LastUpdated:yyyy-MM-dd HH:mm:ss}"
+
+        return registry
+    }
+
+let listEvolutionContainers(filter) =
+    async {
+        printfn "📋 LISTING TARS EVOLUTION CONTAINERS"
+        printfn "===================================="
+
+        let registryPath = ".tars/evolution/container-registry.json"
+        if not (File.Exists(registryPath)) then
+            printfn "  📭 No evolution containers found"
+            return []
+
+        let registryJson = File.ReadAllText(registryPath)
+        let registry = JsonSerializer.Deserialize<ContainerRegistry>(registryJson)
+
+        let filteredContainers =
+            match filter with
+            | "active" -> registry.Containers |> List.filter (fun c -> c.Status = "Running")
+            | "stopped" -> registry.Containers |> List.filter (fun c -> c.Status = "Stopped")
+            | "all" -> registry.Containers
+            | mode -> registry.Containers |> List.filter (fun c -> c.EvolutionMode = mode)
+
+        printfn $"  📊 Found {filteredContainers.Length} containers (filter: {filter})"
+        printfn ""
+
+        for container in filteredContainers do
+            printfn $"  🐳 {container.ContainerName}"
+            printfn $"    Version: {container.Version} (from {container.ParentVersion})"
+            printfn $"    Session: {container.SessionId}"
+            printfn $"    Mode: {container.EvolutionMode}"
+            printfn $"    Status: {container.Status}"
+            printfn $"    Created: {container.CreationTime:yyyy-MM-dd HH:mm:ss}"
+            printfn $"    Goals: {String.Join(", ", container.Goals)}"
+            printfn ""
+
+        return filteredContainers
+    }
+
+// Complete Evolution Container Management System
+let createCompleteEvolutionSystem(evolutionConfig) =
+    async {
+        printfn "🎯 CREATING COMPLETE TARS EVOLUTION CONTAINER SYSTEM"
+        printfn "===================================================="
+
+        // Step 1: Generate container identity
+        let! containerIdentity = generateEvolutionContainerName(evolutionConfig)
+
+        // Step 2: Create container registry
+        let! registry = createEvolutionContainerRegistry()
+
+        // Step 3: Create container configuration
+        let! containerConfig = createEvolutionContainer(containerIdentity, evolutionConfig)
+
+        printfn ""
+        printfn "✅ TARS EVOLUTION CONTAINER SYSTEM READY"
+        printfn "========================================"
+        printfn $"  🏷️ Container: {containerIdentity.ContainerName}"
+        printfn $"  📦 Image: {containerIdentity.ImageTag}"
+        printfn $"  🔢 Version: {containerIdentity.CurrentVersion} → {containerIdentity.NextVersion}"
+        printfn $"  🆔 Session: {containerIdentity.SessionId}"
+        printfn $"  📊 Registry: {registry.Containers.Length} total containers"
+        printfn ""
+        printfn "🚀 READY FOR AUTONOMOUS EVOLUTION!"
+
+        return {|
+            ContainerIdentity = containerIdentity
+            ContainerConfig = containerConfig
+            Registry = registry
+            Success = true
+        |}
+    }
+```
+
+## Data Types and Structures
+```f#
+type ContainerRegistry = {
+    Containers: ContainerRecord list
+    ActiveSessions: string list
+    VersionHistory: VersionRecord list
+    LastUpdated: DateTime
+    RegistryVersion: string
+}
+
+and ContainerRecord = {
+    ContainerName: string
+    ImageTag: string
+    Version: string
+    ParentVersion: string
+    SessionId: string
+    EvolutionMode: string
+    CreationTime: DateTime
+    Status: string
+    Labels: Map<string, string>
+    Goals: string list
+    SafetyLevel: string
+    Duration: TimeSpan
+    SwarmNodes: int
+    Ports: string list
+    Networks: string list
+    Volumes: string list
+    LastUpdated: DateTime
+}
+
+and VersionRecord = {
+    Version: string
+    ParentVersion: string
+    EvolutionMode: string
+    CreationTime: DateTime
+    ContainerCount: int
+    SuccessfulEvolutions: int
+    FailedEvolutions: int
+}
+```
+
+## Example Usage
+```f#
+// Example: Create evolution system for experimental mode
+let exampleEvolutionConfig = {
+    Mode = "experimental"
+    Duration = TimeSpan.FromHours(48)
+    Goals = ["performance"; "capabilities"; "mcp-integration"]
+    SafetyLevel = "high"
+    SwarmNodes = 3
+}
+
+let runEvolutionExample() =
+    async {
+        // Create complete evolution system
+        let! evolutionSystem = createCompleteEvolutionSystem(exampleEvolutionConfig)
+
+        if evolutionSystem.Success then
+            printfn "🎉 EVOLUTION SYSTEM CREATED SUCCESSFULLY!"
+            printfn $"   Container: {evolutionSystem.ContainerIdentity.ContainerName}"
+            printfn $"   Ready for autonomous evolution!"
+        else
+            printfn "❌ Failed to create evolution system"
+    }
+```

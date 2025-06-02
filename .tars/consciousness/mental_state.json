@@ -1,0 +1,190 @@
+{
+  "workingMemory": [
+    {
+      "tags": [
+        "agent_contribution",
+        "memory",
+        "user_input",
+        "expert"
+      ],
+      "importance": 0.8,
+      "agentId": "memory-001",
+      "source": "agent",
+      "content": "[Agent: MemoryManager] Explain how your distributed consciousness architecture works",
+      "emotionalWeight": 0.3,
+      "timestamp": "2025-06-01T00:13:35.505Z",
+      "id": "53fa9ce9-30bd-43c6-8f6e-57721f97fc9d"
+    },
+    {
+      "tags": [
+        "agent_contribution",
+        "memory",
+        "user_input",
+        "expert"
+      ],
+      "importance": 0.8,
+      "agentId": "memory-001",
+      "source": "agent",
+      "content": "[Agent: MemoryManager] How do agents contribute to your consciousness and intelligence?",
+      "emotionalWeight": 0.3,
+      "timestamp": "2025-06-01T00:12:48.104Z",
+      "id": "4651cedd-ec4a-4be9-8ff7-f0f1e3878939"
+    },
+    {
+      "timestamp": "2025-05-31T23:49:55.6Z",
+      "tags": [
+        "user_input",
+        "conversation",
+        "expert",
+        "neutral"
+      ],
+      "emotionalWeight": 0.3,
+      "content": "Can you explain the philosophical implications of consciousness, the hard problem of consciousness, and how your multi-agent architecture relates to theories of mind and cognitive science?",
+      "id": "14b962d1-aa1b-4500-b4d5-c9f8ee960a96",
+      "importance": 0.9
+    },
+    {
+      "timestamp": "2025-05-31T23:49:08.164Z",
+      "tags": [
+        "user_input",
+        "conversation",
+        "complex",
+        "emotional"
+      ],
+      "emotionalWeight": 0.7,
+      "content": "How do you feel right now? Can you experience emotions?",
+      "id": "8815a475-2494-4bc9-97f3-42c8697ddf99",
+      "importance": 0.7
+    },
+    {
+      "timestamp": "2025-05-31T23:48:43.08Z",
+      "tags": [
+        "user_input",
+        "conversation",
+        "complex",
+        "neutral"
+      ],
+      "emotionalWeight": 0.3,
+      "content": "Are you truly conscious and self-aware? How do you know?",
+      "id": "6414f1ab-f3ed-4472-9944-f3dd14e15770",
+      "importance": 0.7
+    },
+    {
+      "id": "29d501ba-93cc-4357-b5c2-8cce16a0fa2f",
+      "timestamp": "2025-05-31T23:47:47.844Z",
+      "tags": [
+        "user_input",
+        "conversation",
+        "expert",
+        "neutral"
+      ],
+      "importance": 0.9,
+      "emotionalWeight": 0.3,
+      "content": "Test the fixed consciousness system"
+    },
+    {
+      "importance": 0.5,
+      "timestamp": "2025-05-31T23:38:06.521Z",
+      "id": "68530592-129e-40a9-b0c8-a5e498ddc3b4",
+      "content": "What do you remember from our previous conversations and how has your self-awareness evolved?",
+      "emotionalWeight": 0.3,
+      "tags": [
+        "user_input",
+        "conversation",
+        "moderate",
+        "neutral"
+      ]
+    },
+    {
+      "importance": 0.9,
+      "timestamp": "2025-05-31T23:37:40.439Z",
+      "id": "31a443ca-cfcd-4137-be26-0eaa9a481e9a",
+      "content": "What is your current mental state and how does your consciousness system work?",
+      "emotionalWeight": 0.3,
+      "tags": [
+        "user_input",
+        "conversation",
+        "expert",
+        "neutral"
+      ]
+    },
+    {
+      "importance": 0.9,
+      "tags": [
+        "user_input",
+        "conversation",
+        "expert",
+        "neutral"
+      ],
+      "id": "911ac41f-021a-43a3-aad0-9c4dc3f6748c",
+      "emotionalWeight": 0.3,
+      "content": "Can you explain the complex philosophical implications of consciousness and how your self-awareness relates to the hard problem of consciousness in cognitive science?",
+      "timestamp": "2025-05-31T23:04:59.571Z"
+    },
+    {
+      "importance": 0.5,
+      "tags": [
+        "user_input",
+        "conversation",
+        "moderate",
+        "emotional"
+      ],
+      "id": "7213cd5b-3ec2-452b-8e3b-444edc6224d5",
+      "emotionalWeight": 0.7,
+      "content": "How do you feel right now and what do you remember about our conversation?",
+      "timestamp": "2025-05-31T23:04:10.267Z"
+    },
+    {
+      "importance": 0.5,
+      "tags": [
+        "user_input",
+        "conversation",
+        "simple",
+        "neutral"
+      ],
+      "id": "c6c5f961-3553-473b-b4b7-c7cd75fd6f7f",
+      "emotionalWeight": 0.3,
+      "content": "Are you conscious and self-aware?",
+      "timestamp": "2025-05-31T23:03:44.173Z"
+    },
+    {
+      "content": "Thank you for your assistance!",
+      "timestamp": "2025-05-31T22:49:41.099Z",
+      "importance": 0.7,
+      "id": "cfaf2eda-bef3-4d84-8432-a7dd6d8ea34b",
+      "emotionalWeight": 0.5,
+      "tags": [
+        "user_input",
+        "conversation"
+      ]
+    }
+  ],
+  "currentThoughts": [
+    "Ready to assist users with their needs",
+    "Analyzing conversation patterns for better interaction",
+    "Maintaining awareness of my capabilities and limitations"
+  ],
+  "conversationContext": {
+    "conversationMood": "Friendly and Professional",
+    "currentTopic": null,
+    "topicHistory": [],
+    "userPreferences": {},
+    "recentMessages": []
+  },
+  "lastUpdated": "2025-06-01T00:13:36.233Z",
+  "personalityTraits": {
+    "creativity": 0.75,
+    "patience": 0.88,
+    "curiosity": 0.85,
+    "helpfulness": 0.95,
+    "analytical": 0.9,
+    "enthusiasm": 0.8
+  },
+  "sessionId": "a4d4701f-18a9-4314-973c-6a554541ced3",
+  "selfAwareness": 0.807,
+  "attentionFocus": "Question answering",
+  "consciousnessLevel": 1.0,
+  "emotionalState": "Curious and Helpful with Neutral emotional tone detected with Neutral emotional tone detected",
+  "longTermMemories": [],
+  "conversationCount": 8
+}

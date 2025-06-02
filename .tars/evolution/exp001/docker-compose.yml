@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  tars-evolution-v2.2.0-20250531-230701-exp001:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: tars/evolution:v2.2.0-experimental-20250531
+    container_name: tars-evolution-v2.2.0-20250531-230701-exp001
+    hostname: tars-evolution-exp001
+    
+    # Container labels for identification
+    labels:
+      - "tars.version=2.2.0"
+      - "tars.evolution.session=exp001"
+      - "tars.evolution.mode=experimental"
+      - "tars.evolution.parent=2.1.0"
+    
+    # Resource limits for evolution
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 8G
+        reservations:
+          cpus: '2'
+          memory: 4G
+    
+    # Volume mounts for evolution session
+    volumes:
+      - ./evolution/exp001:/tars/evolution:rw
+      - ./shared:/tars/shared:ro
+      - ./monitoring/exp001:/tars/monitoring:rw
+    
+    # Environment for versioned evolution
+    environment:
+      - TARS_VERSION=2.2.0
+      - TARS_EVOLUTION_SESSION=exp001
+      - TARS_EVOLUTION_MODE=experimental
+      - TARS_PARENT_VERSION=2.1.0
+      - TARS_CONTAINER_NAME=tars-evolution-v2.2.0-20250531-230701-exp001
+    
+    # Network configuration
+    networks:
+      - tars-evolution-exp001
+    
+    # Port mappings for monitoring
+    ports:
+      - "8080:8080"  # Evolution API
+      - "8081:8081"  # Metrics endpoint
+      - "8082:8082"  # Log streaming
+      - "8083:8083"  # Health check
+
+networks:
+  tars-evolution-exp001:
+    driver: bridge
+    name: tars-evolution-exp001

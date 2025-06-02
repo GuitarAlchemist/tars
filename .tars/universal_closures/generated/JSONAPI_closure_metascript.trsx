@@ -1,0 +1,153 @@
+# Auto-Generated TARS Data Source Metascript
+# Source: JSON API
+# Type: JSON API
+# Generated: 2025-05-31 22:14:54
+# Confidence: 90%
+
+## Metascript Metadata
+```yaml
+name: "JSONAPI_closure"
+version: "1.0.0"
+type: "data-source-connector"
+auto_generated: true
+source_type: "JSON API"
+confidence: 0.9
+adaptive: true
+```
+
+## Data Source Information
+```yaml
+source_name: "JSON API"
+source_url: "https://jsonplaceholder.typicode.com/users.json"
+description: "Sample JSON data API"
+detected_pattern: "http_json"
+```
+
+## Generated Closure
+
+# HTTP API Closure Template  
+let JSONAPI = fun endpoint headers parameters ->
+    async {{
+        use client = new HttpClient()
+        
+        // Set headers
+        // Add authentication headers
+        
+        // Build request
+        let requestUri = requestUri
+        let! response = client.GetAsync(requestUri)
+        
+        if response.IsSuccessStatusCode then
+            let! content = response.Content.ReadAsStringAsync()
+            let data = JsonSerializer.Deserialize<dynamic>(content)
+            
+            return {{
+                Source = "JSON API"
+                Data = data
+                Timestamp = DateTime.UtcNow
+                StatusCode = int response.StatusCode
+                TarsActions = ["process_api_data", "cache_results", "monitor_changes"]
+            }}
+        else
+            return {{
+                Source = "JSON API"
+                Error = $"HTTP {{response.StatusCode}}: {{response.ReasonPhrase}}"
+                Timestamp = DateTime.UtcNow
+                TarsActions = ["handle_api_error", "retry_request", "alert_admin"]
+            }}
+    }}
+
+
+## Adaptive Processing
+let adaptiveProcessor = fun sourceData ->
+    async {
+        // Analyze data patterns
+        let patterns = analyzeDataPatterns sourceData.Data
+        
+        // Infer business logic
+        let businessLogic = inferBusinessLogic patterns
+        
+        // Generate TARS actions
+        let tarsActions = generateTarsActions businessLogic patterns
+        
+        return {
+            ProcessedData = sourceData
+            InferredPatterns = patterns
+            BusinessLogic = businessLogic
+            TarsActions = tarsActions
+            AdaptationTimestamp = DateTime.UtcNow
+        }
+    }
+
+## TARS Integration
+let integrateWithTars = fun adaptedData ->
+    async {
+        // Create TARS-compatible data structure
+        let tarsData = {
+            SourceType = "JSON API"
+            SourceName = "JSON API"
+            ProcessedData = adaptedData.ProcessedData
+            InferredActions = adaptedData.TarsActions
+            Metadata = adaptedData
+        }
+        
+        // Execute autonomous actions
+        let! executionResults = executeAutonomousActions adaptedData.TarsActions tarsData
+        
+        // Log successful integration
+        logDataSourceIntegration {
+            SourceType = "JSON API"
+            Success = true
+            Timestamp = DateTime.UtcNow
+            Confidence = 0.9
+        }
+        
+        return {
+            TarsData = tarsData
+            ExecutionResults = executionResults
+            IntegrationSuccess = true
+        }
+    }
+
+## Auto-Execution Pipeline
+let autoExecute = fun () ->
+    async {
+        // Execute data source closure
+        let! sourceData = JSONAPI_closure defaultConfig
+        
+        // Apply adaptive processing
+        let! adaptedData = adaptiveProcessor sourceData
+        
+        // Integrate with TARS
+        let! tarsIntegration = integrateWithTars adaptedData
+        
+        return tarsIntegration
+    }
+
+## Autonomous Learning
+let learnFromExecution = fun executionResult ->
+    async {
+        if executionResult.IntegrationSuccess then
+            // Learn successful patterns
+            let patterns = extractSuccessPatterns executionResult
+            let! improvedClosure = optimizeClosure patterns
+            let! updatedMetascript = updateMetascript improvedClosure
+            
+            return {
+                LearningSuccess = true
+                ImprovedClosure = improvedClosure
+                UpdatedMetascript = updatedMetascript
+                LearningTimestamp = DateTime.UtcNow
+            }
+        else
+            // Learn from failures
+            let! diagnostics = diagnoseFailed executionResult
+            let! fixedClosure = applyfixes diagnostics
+            
+            return {
+                LearningSuccess = false
+                Diagnostics = diagnostics
+                FixedClosure = fixedClosure
+                LearningTimestamp = DateTime.UtcNow
+            }
+    }

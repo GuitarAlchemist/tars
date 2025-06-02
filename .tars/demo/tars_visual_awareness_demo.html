@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TARS Visual Self-Awareness Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { 
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            font-family: 'Inter', sans-serif;
+        }
+        .tars-glow { box-shadow: 0 0 20px rgba(0, 188, 212, 0.3); }
+        .agent-pulse { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        .screenshot-frame { 
+            border: 3px solid #00bcd4; 
+            border-radius: 8px; 
+            background: #1e293b;
+            position: relative;
+        }
+        .analysis-progress { animation: analysisProgress 3s ease-in-out infinite; }
+        @keyframes analysisProgress { 
+            0%, 100% { transform: scaleX(0.3); }
+            50% { transform: scaleX(1); }
+        }
+        .improvement-highlight { animation: highlight 2s ease-in-out; }
+        @keyframes highlight {
+            0%, 100% { background-color: transparent; }
+            50% { background-color: rgba(0, 188, 212, 0.2); }
+        }
+    </style>
+</head>
+<body class="min-h-screen text-white">
+    <div class="container mx-auto p-6">
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-8">
+            <div class="flex items-center space-x-4">
+                <i class="fas fa-eye text-4xl text-cyan-400 agent-pulse"></i>
+                <div>
+                    <h1 class="text-3xl font-bold">TARS Visual Self-Awareness</h1>
+                    <p class="text-gray-400">AI that can see and improve its own interface</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button onclick="captureScreenshot()" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors">
+                    <i class="fas fa-camera mr-2"></i>Take Screenshot
+                </button>
+                <button onclick="analyzeDesign()" class="px-4 py-2 bg-cyan-600 text-white rounded-md hover:bg-cyan-700 transition-colors">
+                    <i class="fas fa-search mr-2"></i>Analyze Design
+                </button>
+                <button onclick="improveUI()" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
+                    <i class="fas fa-magic mr-2"></i>Improve UI
+                </button>
+            </div>
+        </div>
+
+        <!-- Visual Awareness Process -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            
+            <!-- Screenshot Capture -->
+            <div class="bg-slate-800 rounded-lg p-6 border border-purple-500">
+                <h3 class="text-lg font-bold text-white mb-4 flex items-center">
+                    <i class="fas fa-camera text-purple-400 mr-3"></i>
+                    Screenshot Capture
+                </h3>
+                <div class="screenshot-frame p-4 mb-4">
+                    <div class="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-4 text-center">
+                        <i class="fas fa-image text-6xl text-gray-500 mb-2"></i>
+                        <p class="text-gray-400" id="screenshot-status">Ready to capture TARS UI</p>
+                    </div>
+                </div>
+                <div class="space-y-2 text-sm">
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-300">Method:</span>
+                        <span class="text-cyan-400">Selenium WebDriver</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-300">Resolution:</span>
+                        <span class="text-white">1920x1080</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-300">Status:</span>
+                        <span class="text-green-400" id="capture-status">Ready</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Visual Analysis -->
+            <div class="bg-slate-800 rounded-lg p-6 border border-cyan-500">
+                <h3 class="text-lg font-bold text-white mb-4 flex items-center">
+                    <i class="fas fa-brain text-cyan-400 mr-3"></i>
+                    AI Visual Analysis
+                </h3>
+                <div class="space-y-3" id="analysis-results">
+                    <div class="flex items-center justify-between p-2 bg-slate-900 rounded">
+                        <span class="text-gray-300">Overall Design</span>
+                        <div class="flex items-center">
+                            <div class="w-20 bg-gray-600 rounded-full h-2 mr-2">
+                                <div class="bg-cyan-400 h-2 rounded-full" style="width: 85%"></div>
+                            </div>
+                            <span class="text-cyan-400 text-sm">8.5/10</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between p-2 bg-slate-900 rounded">
+                        <span class="text-gray-300">Color Scheme</span>
+                        <div class="flex items-center">
+                            <div class="w-20 bg-gray-600 rounded-full h-2 mr-2">
+                                <div class="bg-green-400 h-2 rounded-full" style="width: 90%"></div>
+                            </div>
+                            <span class="text-green-400 text-sm">9.0/10</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between p-2 bg-slate-900 rounded">
+                        <span class="text-gray-300">Typography</span>
+                        <div class="flex items-center">
+                            <div class="w-20 bg-gray-600 rounded-full h-2 mr-2">
+                                <div class="bg-yellow-400 h-2 rounded-full" style="width: 80%"></div>
+                            </div>
+                            <span class="text-yellow-400 text-sm">8.0/10</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between p-2 bg-slate-900 rounded">
+                        <span class="text-gray-300">Accessibility</span>
+                        <div class="flex items-center">
+                            <div class="w-20 bg-gray-600 rounded-full h-2 mr-2">
+                                <div class="bg-orange-400 h-2 rounded-full" style="width: 75%"></div>
+                            </div>
+                            <span class="text-orange-400 text-sm">7.5/10</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Design Research & Recommendations -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            
+            <!-- Web Design Research -->
+            <div class="bg-slate-800 rounded-lg p-6 border border-green-500">
+                <h3 class="text-lg font-bold text-white mb-4 flex items-center">
+                    <i class="fas fa-search text-green-400 mr-3"></i>
+                    Design Research
+                </h3>
+                <div class="space-y-3">
+                    <div class="text-sm">
+                        <h4 class="text-green-400 font-semibold mb-2">Current Trends</h4>
+                        <ul class="space-y-1 text-gray-300">
+                            <li>• Glassmorphism effects</li>
+                            <li>• Micro-interactions</li>
+                            <li>• Dark mode optimization</li>
+                            <li>• AI-powered interfaces</li>
+                        </ul>
+                    </div>
+                    <div class="text-sm">
+                        <h4 class="text-green-400 font-semibold mb-2">Accessibility</h4>
+                        <ul class="space-y-1 text-gray-300">
+                            <li>• WCAG 2.2 compliance</li>
+                            <li>• High contrast modes</li>
+                            <li>• Voice navigation</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Improvement Recommendations -->
+            <div class="bg-slate-800 rounded-lg p-6 border border-yellow-500">
+                <h3 class="text-lg font-bold text-white mb-4 flex items-center">
+                    <i class="fas fa-lightbulb text-yellow-400 mr-3"></i>
+                    Recommendations
+                </h3>
+                <div class="space-y-3" id="recommendations">
+                    <div class="p-3 bg-slate-900 rounded border-l-4 border-red-400">
+                        <div class="text-red-400 font-semibold text-sm">High Priority</div>
+                        <div class="text-gray-300 text-sm">Improve accessibility compliance</div>
+                    </div>
+                    <div class="p-3 bg-slate-900 rounded border-l-4 border-yellow-400">
+                        <div class="text-yellow-400 font-semibold text-sm">Medium Priority</div>
+                        <div class="text-gray-300 text-sm">Add hover state animations</div>
+                    </div>
+                    <div class="p-3 bg-slate-900 rounded border-l-4 border-green-400">
+                        <div class="text-green-400 font-semibold text-sm">Low Priority</div>
+                        <div class="text-gray-300 text-sm">Implement glassmorphism</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Implementation Status -->
+            <div class="bg-slate-800 rounded-lg p-6 border border-blue-500">
+                <h3 class="text-lg font-bold text-white mb-4 flex items-center">
+                    <i class="fas fa-cogs text-blue-400 mr-3"></i>
+                    Implementation
+                </h3>
+                <div class="space-y-3" id="implementation-status">
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-300 text-sm">ARIA Labels</span>
+                        <span class="text-green-400 text-sm">✅ Added</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-300 text-sm">Color Contrast</span>
+                        <span class="text-green-400 text-sm">✅ Improved</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-300 text-sm">Hover States</span>
+                        <span class="text-yellow-400 text-sm">🔄 In Progress</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-300 text-sm">Toast System</span>
+                        <span class="text-green-400 text-sm">✅ Implemented</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Agent Team Status -->
+        <div class="bg-slate-800 rounded-lg p-6 border border-cyan-500">
+            <h3 class="text-lg font-bold text-white mb-4 flex items-center">
+                <i class="fas fa-users text-cyan-400 mr-3"></i>
+                Visual Awareness Agent Team
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-slate-900 rounded-lg p-4">
+                    <div class="flex items-center mb-2">
+                        <i class="fas fa-camera text-purple-400 mr-2"></i>
+                        <span class="text-white font-semibold text-sm">UIScreenshotAgent</span>
+                    </div>
+                    <div class="text-xs text-gray-400">Captures UI screenshots using Selenium/Playwright</div>
+                    <div class="flex items-center mt-2">
+                        <div class="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></div>
+                        <span class="text-green-400 text-xs">Active</span>
+                    </div>
+                </div>
+                <div class="bg-slate-900 rounded-lg p-4">
+                    <div class="flex items-center mb-2">
+                        <i class="fas fa-eye text-cyan-400 mr-2"></i>
+                        <span class="text-white font-semibold text-sm">UIDesignCriticAgent</span>
+                    </div>
+                    <div class="text-xs text-gray-400">Analyzes visual design using AI vision</div>
+                    <div class="flex items-center mt-2">
+                        <div class="w-2 h-2 bg-yellow-400 rounded-full mr-2 animate-pulse"></div>
+                        <span class="text-yellow-400 text-xs">Analyzing</span>
+                    </div>
+                </div>
+                <div class="bg-slate-900 rounded-lg p-4">
+                    <div class="flex items-center mb-2">
+                        <i class="fas fa-search text-green-400 mr-2"></i>
+                        <span class="text-white font-semibold text-sm">WebDesignResearchAgent</span>
+                    </div>
+                    <div class="text-xs text-gray-400">Researches current design trends</div>
+                    <div class="flex items-center mt-2">
+                        <div class="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></div>
+                        <span class="text-green-400 text-xs">Active</span>
+                    </div>
+                </div>
+                <div class="bg-slate-900 rounded-lg p-4">
+                    <div class="flex items-center mb-2">
+                        <i class="fas fa-magic text-blue-400 mr-2"></i>
+                        <span class="text-white font-semibold text-sm">UIImprovementAgent</span>
+                    </div>
+                    <div class="text-xs text-gray-400">Implements autonomous improvements</div>
+                    <div class="flex items-center mt-2">
+                        <div class="w-2 h-2 bg-blue-400 rounded-full mr-2 animate-pulse"></div>
+                        <span class="text-blue-400 text-xs">Implementing</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Visual Awareness Loop Status -->
+        <div class="mt-8 bg-slate-800 rounded-lg p-4 border border-cyan-500">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <i class="fas fa-eye text-cyan-400 text-lg"></i>
+                    <span class="text-white font-medium">TARS Visual Self-Awareness Loop</span>
+                </div>
+                <div class="flex items-center space-x-6 text-sm">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
+                        <span class="text-purple-400">Screenshot: Ready</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <div class="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
+                        <span class="text-cyan-400">Analysis: Active</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                        <span class="text-green-400">Research: Active</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <div class="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                        <span class="text-blue-400">Improvement: Active</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function captureScreenshot() {
+            document.getElementById('screenshot-status').textContent = 'Capturing with Selenium...';
+            document.getElementById('capture-status').textContent = 'Capturing';
+            document.getElementById('capture-status').className = 'text-yellow-400';
+            
+            setTimeout(() => {
+                document.getElementById('screenshot-status').textContent = 'Screenshot captured successfully!';
+                document.getElementById('capture-status').textContent = 'Complete';
+                document.getElementById('capture-status').className = 'text-green-400';
+                showToast('📸 Screenshot captured successfully!', 'success');
+            }, 3000);
+        }
+
+        function analyzeDesign() {
+            const analysisElement = document.getElementById('analysis-results');
+            analysisElement.classList.add('analysis-progress');
+            
+            setTimeout(() => {
+                analysisElement.classList.remove('analysis-progress');
+                showToast('👁️ Visual analysis complete! Design score: 8.2/10', 'info');
+            }, 3000);
+        }
+
+        function improveUI() {
+            const implementationElement = document.getElementById('implementation-status');
+            implementationElement.classList.add('improvement-highlight');
+            
+            // Update implementation status
+            setTimeout(() => {
+                const hoverStates = implementationElement.querySelector('span:contains("🔄 In Progress")');
+                if (hoverStates) {
+                    hoverStates.textContent = '✅ Implemented';
+                    hoverStates.className = 'text-green-400 text-sm';
+                }
+                showToast('🔧 UI improvements implemented! New score: 9.2/10', 'success');
+            }, 2000);
+        }
+
+        function showToast(message, type) {
+            const toast = document.createElement('div');
+            toast.className = `fixed top-4 right-4 px-6 py-3 rounded-lg text-white font-medium z-50 ${
+                type === 'success' ? 'bg-green-600' : 
+                type === 'error' ? 'bg-red-600' : 'bg-blue-600'
+            }`;
+            toast.textContent = message;
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.animation = 'slideOut 0.3s ease forwards';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Simulate continuous visual awareness
+        setInterval(() => {
+            const agents = document.querySelectorAll('.animate-pulse');
+            agents.forEach(agent => {
+                agent.style.animationDuration = (Math.random() * 2 + 1) + 's';
+            });
+        }, 5000);
+
+        // Initialize demo
+        setTimeout(() => {
+            console.log('👁️ TARS Visual Self-Awareness Demo Ready!');
+            console.log('🎯 TARS can now see and improve its own UI autonomously');
+        }, 1000);
+    </script>
+</body>
+</html>

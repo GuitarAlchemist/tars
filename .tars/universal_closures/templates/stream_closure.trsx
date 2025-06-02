@@ -1,0 +1,19 @@
+
+# Stream Closure Template
+let {closure_name} = fun streamConfig ->
+    async {{
+        let consumer = {stream_consumer_setup}
+        
+        let processMessage = fun message ->
+            let data = {message_deserialization}
+            {{
+                Source = "{source_name}"
+                Data = data
+                Timestamp = DateTime.UtcNow
+                MessageId = message.Id
+                Partition = message.Partition
+                TarsActions = ["process_stream_data", "update_state", "trigger_actions"]
+            }}
+        
+        return! consumer.ConsumeAsync(processMessage)
+    }}

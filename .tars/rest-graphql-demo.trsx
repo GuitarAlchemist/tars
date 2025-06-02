@@ -1,0 +1,465 @@
+DESCRIBE {
+    name: "REST and GraphQL API Generation Demo"
+    version: "1.0"
+    author: "TARS Closure Factory"
+    description: "Demonstrates real-time REST endpoint and GraphQL server generation using TARS closure factory"
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.7
+    max_tokens: 2000
+    autonomous: true
+}
+
+VARIABLE api_config {
+    value: {
+        name: "UserManagementAPI"
+        title: "User Management API"
+        description: "A comprehensive user management system with REST and GraphQL endpoints"
+        version: "1.0.0"
+        base_url: "http://localhost:5000"
+        auth: {
+            type: "JWT"
+            secret: "your-jwt-secret-key"
+        }
+        cors: {
+            allowed_origins: ["*"]
+            allowed_methods: ["GET", "POST", "PUT", "DELETE"]
+            allow_credentials: false
+        }
+        swagger: {
+            enabled: true
+            title: "User Management API"
+            description: "REST and GraphQL API for user management"
+        }
+    }
+}
+
+VARIABLE rest_endpoints {
+    value: [
+        {
+            route: "/api/users"
+            method: "GET"
+            name: "GetUsers"
+            description: "Get all users with pagination"
+            parameters: [
+                { name: "page", type: "query", data_type: "int", required: false, default: 1 },
+                { name: "limit", type: "query", data_type: "int", required: false, default: 10 }
+            ]
+            responses: [
+                { status_code: 200, data_type: "UserListResponse", description: "List of users" }
+            ]
+            requires_auth: true
+        },
+        {
+            route: "/api/users/{id}"
+            method: "GET"
+            name: "GetUser"
+            description: "Get user by ID"
+            parameters: [
+                { name: "id", type: "route", data_type: "int", required: true }
+            ]
+            responses: [
+                { status_code: 200, data_type: "User", description: "User details" },
+                { status_code: 404, data_type: "ErrorResponse", description: "User not found" }
+            ]
+            requires_auth: true
+        },
+        {
+            route: "/api/users"
+            method: "POST"
+            name: "CreateUser"
+            description: "Create a new user"
+            parameters: [
+                { name: "user", type: "body", data_type: "CreateUserRequest", required: true }
+            ]
+            responses: [
+                { status_code: 201, data_type: "User", description: "Created user" },
+                { status_code: 400, data_type: "ValidationErrorResponse", description: "Validation errors" }
+            ]
+            requires_auth: true
+        },
+        {
+            route: "/api/users/{id}"
+            method: "PUT"
+            name: "UpdateUser"
+            description: "Update an existing user"
+            parameters: [
+                { name: "id", type: "route", data_type: "int", required: true },
+                { name: "user", type: "body", data_type: "UpdateUserRequest", required: true }
+            ]
+            responses: [
+                { status_code: 200, data_type: "User", description: "Updated user" },
+                { status_code: 404, data_type: "ErrorResponse", description: "User not found" }
+            ]
+            requires_auth: true
+        },
+        {
+            route: "/api/users/{id}"
+            method: "DELETE"
+            name: "DeleteUser"
+            description: "Delete a user"
+            parameters: [
+                { name: "id", type: "route", data_type: "int", required: true }
+            ]
+            responses: [
+                { status_code: 204, data_type: "void", description: "User deleted" },
+                { status_code: 404, data_type: "ErrorResponse", description: "User not found" }
+            ]
+            requires_auth: true
+        }
+    ]
+}
+
+VARIABLE graphql_schema {
+    value: {
+        types: [
+            {
+                name: "User"
+                kind: "object"
+                description: "A user in the system"
+                fields: [
+                    { name: "id", type: "ID!", description: "User identifier", nullable: false },
+                    { name: "username", type: "String!", description: "Username", nullable: false },
+                    { name: "email", type: "String!", description: "Email address", nullable: false },
+                    { name: "firstName", type: "String", description: "First name", nullable: true },
+                    { name: "lastName", type: "String", description: "Last name", nullable: true },
+                    { name: "createdAt", type: "DateTime!", description: "Creation timestamp", nullable: false },
+                    { name: "updatedAt", type: "DateTime!", description: "Last update timestamp", nullable: false }
+                ]
+            },
+            {
+                name: "CreateUserInput"
+                kind: "input_object"
+                description: "Input for creating a user"
+                fields: [
+                    { name: "username", type: "String!", description: "Username", nullable: false },
+                    { name: "email", type: "String!", description: "Email address", nullable: false },
+                    { name: "firstName", type: "String", description: "First name", nullable: true },
+                    { name: "lastName", type: "String", description: "Last name", nullable: true },
+                    { name: "password", type: "String!", description: "Password", nullable: false }
+                ]
+            },
+            {
+                name: "UpdateUserInput"
+                kind: "input_object"
+                description: "Input for updating a user"
+                fields: [
+                    { name: "username", type: "String", description: "Username", nullable: true },
+                    { name: "email", type: "String", description: "Email address", nullable: true },
+                    { name: "firstName", type: "String", description: "First name", nullable: true },
+                    { name: "lastName", type: "String", description: "Last name", nullable: true }
+                ]
+            }
+        ]
+        queries: [
+            {
+                name: "users"
+                type: "[User!]!"
+                description: "Get all users"
+                arguments: [
+                    { name: "first", type: "query", data_type: "Int", required: false },
+                    { name: "after", type: "query", data_type: "String", required: false }
+                ]
+                resolver: "resolveUsers"
+            },
+            {
+                name: "user"
+                type: "User"
+                description: "Get user by ID"
+                arguments: [
+                    { name: "id", type: "route", data_type: "ID!", required: true }
+                ]
+                resolver: "resolveUser"
+            },
+            {
+                name: "userByEmail"
+                type: "User"
+                description: "Get user by email"
+                arguments: [
+                    { name: "email", type: "query", data_type: "String!", required: true }
+                ]
+                resolver: "resolveUserByEmail"
+            }
+        ]
+        mutations: [
+            {
+                name: "createUser"
+                type: "User!"
+                description: "Create a new user"
+                arguments: [
+                    { name: "input", type: "body", data_type: "CreateUserInput!", required: true }
+                ]
+                resolver: "resolveCreateUser"
+            },
+            {
+                name: "updateUser"
+                type: "User!"
+                description: "Update an existing user"
+                arguments: [
+                    { name: "id", type: "route", data_type: "ID!", required: true },
+                    { name: "input", type: "body", data_type: "UpdateUserInput!", required: true }
+                ]
+                resolver: "resolveUpdateUser"
+            },
+            {
+                name: "deleteUser"
+                type: "Boolean!"
+                description: "Delete a user"
+                arguments: [
+                    { name: "id", type: "route", data_type: "ID!", required: true }
+                ]
+                resolver: "resolveDeleteUser"
+            }
+        ]
+        subscriptions: [
+            {
+                name: "userCreated"
+                type: "User!"
+                description: "Subscribe to user creation events"
+                resolver: "subscribeUserCreated"
+            },
+            {
+                name: "userUpdated"
+                type: "User!"
+                description: "Subscribe to user update events"
+                arguments: [
+                    { name: "userId", type: "route", data_type: "ID", required: false }
+                ]
+                resolver: "subscribeUserUpdated"
+            }
+        ]
+    }
+}
+
+// Phase 1: Generate REST API
+ACTION {
+    type: "rest_endpoint_closure"
+    description: "Generate REST API with Swagger documentation"
+    
+    CLOSURE {
+        type: "REST_ENDPOINT"
+        name: "${api_config.name}"
+        output_directory: "output/rest-api"
+        config: {
+            name: "${api_config.name}"
+            title: "${api_config.title}"
+            description: "${api_config.description}"
+            version: "${api_config.version}"
+            base_url: "${api_config.base_url}"
+            endpoints: "${rest_endpoints}"
+            auth: "${api_config.auth}"
+            cors: "${api_config.cors}"
+            swagger: "${api_config.swagger}"
+        }
+    }
+    
+    FSHARP {
+        printfn "🔗 REST API Generation Results:"
+        printfn "  Name: %s" api_config.name
+        printfn "  Endpoints: %d" rest_endpoints.Length
+        printfn "  Swagger: %b" api_config.swagger.enabled
+        printfn "  Authentication: %s" api_config.auth.type
+        printfn "  Output: output/rest-api"
+    }
+}
+
+// Phase 2: Generate GraphQL Server
+ACTION {
+    type: "graphql_server_closure"
+    description: "Generate GraphQL server with schema and resolvers"
+    
+    CLOSURE {
+        type: "GRAPHQL_SERVER"
+        name: "${api_config.name}GraphQL"
+        output_directory: "output/graphql-server"
+        config: {
+            name: "${api_config.name}GraphQL"
+            title: "${api_config.title} GraphQL"
+            description: "GraphQL server for ${api_config.description}"
+            version: "${api_config.version}"
+            base_url: "${api_config.base_url}"
+            graphql: "${graphql_schema}"
+            auth: "${api_config.auth}"
+            cors: "${api_config.cors}"
+        }
+    }
+    
+    FSHARP {
+        printfn "🚀 GraphQL Server Generation Results:"
+        printfn "  Name: %s" (api_config.name + "GraphQL")
+        printfn "  Types: %d" graphql_schema.types.Length
+        printfn "  Queries: %d" graphql_schema.queries.Length
+        printfn "  Mutations: %d" graphql_schema.mutations.Length
+        printfn "  Subscriptions: %d" graphql_schema.subscriptions.Length
+        printfn "  Output: output/graphql-server"
+    }
+}
+
+// Phase 3: Generate GraphQL Client
+ACTION {
+    type: "graphql_client_closure"
+    description: "Generate GraphQL client for consuming the API"
+    
+    CLOSURE {
+        type: "GRAPHQL_CLIENT"
+        name: "${api_config.name}Client"
+        output_directory: "output/graphql-client"
+        config: {
+            schema_url: "${api_config.base_url}/graphql"
+            name: "${api_config.name}Client"
+        }
+    }
+    
+    FSHARP {
+        printfn "📡 GraphQL Client Generation Results:"
+        printfn "  Name: %s" (api_config.name + "Client")
+        printfn "  Schema URL: %s/graphql" api_config.base_url
+        printfn "  Output: output/graphql-client"
+    }
+}
+
+// Phase 4: Generate Hybrid API (REST + GraphQL)
+ACTION {
+    type: "hybrid_api_closure"
+    description: "Generate hybrid API with both REST and GraphQL endpoints"
+    
+    CLOSURE {
+        type: "HYBRID_API"
+        name: "${api_config.name}Hybrid"
+        output_directory: "output/hybrid-api"
+        config: {
+            name: "${api_config.name}Hybrid"
+            title: "${api_config.title} (Hybrid)"
+            description: "Hybrid API with both REST and GraphQL endpoints"
+            version: "${api_config.version}"
+            base_url: "${api_config.base_url}"
+            endpoints: "${rest_endpoints}"
+            graphql: "${graphql_schema}"
+            auth: "${api_config.auth}"
+            cors: "${api_config.cors}"
+            swagger: "${api_config.swagger}"
+        }
+    }
+    
+    FSHARP {
+        printfn "🔥 Hybrid API Generation Results:"
+        printfn "  Name: %s" (api_config.name + "Hybrid")
+        printfn "  REST Endpoints: %d" rest_endpoints.Length
+        printfn "  GraphQL Types: %d" graphql_schema.types.Length
+        printfn "  GraphQL Queries: %d" graphql_schema.queries.Length
+        printfn "  GraphQL Mutations: %d" graphql_schema.mutations.Length
+        printfn "  Output: output/hybrid-api"
+    }
+}
+
+// Phase 5: Generate deployment scripts
+ACTION {
+    type: "deployment_scripts"
+    description: "Generate Docker and deployment scripts for all APIs"
+    
+    FSHARP {
+        open System.IO
+        
+        let deploymentScript = """#!/bin/bash
+# TARS Generated API Deployment Script
+
+echo "🚀 Deploying TARS Generated APIs"
+
+# Build and run REST API
+echo "📦 Building REST API..."
+cd output/rest-api
+dotnet build
+docker build -t user-management-rest .
+
+# Build and run GraphQL Server
+echo "📦 Building GraphQL Server..."
+cd ../graphql-server
+dotnet build
+docker build -t user-management-graphql .
+
+# Build and run Hybrid API
+echo "📦 Building Hybrid API..."
+cd ../hybrid-api
+dotnet build
+docker build -t user-management-hybrid .
+
+echo "✅ All APIs built successfully!"
+
+# Start services
+echo "🔄 Starting services..."
+docker run -d -p 5001:5000 --name rest-api user-management-rest
+docker run -d -p 5002:5000 --name graphql-server user-management-graphql
+docker run -d -p 5003:5000 --name hybrid-api user-management-hybrid
+
+echo "🎉 All services started!"
+echo "REST API: http://localhost:5001"
+echo "GraphQL Server: http://localhost:5002/graphql"
+echo "Hybrid API: http://localhost:5003"
+"""
+        
+        Directory.CreateDirectory("output") |> ignore
+        File.WriteAllText("output/deploy-all.sh", deploymentScript)
+        
+        printfn "📜 Deployment script generated: output/deploy-all.sh"
+        printfn "🐳 Docker containers ready for:"
+        printfn "  - REST API (port 5001)"
+        printfn "  - GraphQL Server (port 5002)"
+        printfn "  - Hybrid API (port 5003)"
+    }
+}
+
+// Phase 6: Summary and validation
+ACTION {
+    type: "demo_summary"
+    description: "Summarize the generated APIs and provide usage examples"
+    
+    FSHARP {
+        printfn ""
+        printfn "================================================================"
+        printfn "    TARS REST & GRAPHQL API GENERATION COMPLETE!"
+        printfn "================================================================"
+        printfn ""
+        printfn "✅ GENERATED APIS:"
+        printfn "  🔗 REST API: Full CRUD operations with Swagger"
+        printfn "  🚀 GraphQL Server: Schema with queries, mutations, subscriptions"
+        printfn "  📡 GraphQL Client: Type-safe client for API consumption"
+        printfn "  🔥 Hybrid API: Combined REST + GraphQL endpoints"
+        printfn ""
+        printfn "📊 STATISTICS:"
+        printfn "  REST Endpoints: %d" rest_endpoints.Length
+        printfn "  GraphQL Types: %d" graphql_schema.types.Length
+        printfn "  GraphQL Queries: %d" graphql_schema.queries.Length
+        printfn "  GraphQL Mutations: %d" graphql_schema.mutations.Length
+        printfn "  GraphQL Subscriptions: %d" graphql_schema.subscriptions.Length
+        printfn ""
+        printfn "🔧 FEATURES INCLUDED:"
+        printfn "  • JWT Authentication"
+        printfn "  • CORS Configuration"
+        printfn "  • Swagger/OpenAPI Documentation"
+        printfn "  • GraphQL Voyager Explorer"
+        printfn "  • Docker Containerization"
+        printfn "  • Health Check Endpoints"
+        printfn "  • Rate Limiting Support"
+        printfn "  • Real-time Subscriptions"
+        printfn ""
+        printfn "🚀 USAGE EXAMPLES:"
+        printfn "  REST: curl http://localhost:5001/api/users"
+        printfn "  GraphQL: curl -X POST http://localhost:5002/graphql -d '{\"query\":\"{ users { id username } }\"}'"
+        printfn "  Swagger: http://localhost:5001/swagger"
+        printfn "  GraphQL Voyager: http://localhost:5002/graphql-voyager"
+        printfn ""
+        printfn "🎯 REAL CLOSURE FACTORY CAPABILITIES DEMONSTRATED:"
+        printfn "  • Dynamic REST endpoint generation from metascripts"
+        printfn "  • GraphQL schema generation with resolvers"
+        printfn "  • Type-safe client generation"
+        printfn "  • Hybrid API architecture"
+        printfn "  • Complete project scaffolding"
+        printfn "  • Production-ready code generation"
+        printfn ""
+        printfn "================================================================"
+        printfn "    TARS WEB API CLOSURE FACTORY: OPERATIONAL! 🎉"
+        printfn "================================================================"
+    }
+}

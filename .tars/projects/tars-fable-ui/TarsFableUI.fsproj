@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <OutputType>Library</OutputType>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <Compile Include="src/Types.fs" />
+    <Compile Include="src/AgentTypes.fs" />
+    <Compile Include="src/UIArchitectAgent.fs" />
+    <Compile Include="src/ComponentGeneratorAgent.fs" />
+    <Compile Include="src/StyleAgent.fs" />
+    <Compile Include="src/StateManagerAgent.fs" />
+    <Compile Include="src/IntegrationAgent.fs" />
+    <Compile Include="src/QualityAgent.fs" />
+    <Compile Include="src/Components/Layout.fs" />
+    <Compile Include="src/Components/Dashboard.fs" />
+    <Compile Include="src/Components/AgentMonitor.fs" />
+    <Compile Include="src/Components/LiveDemo.fs" />
+    <Compile Include="src/Services/TarsApi.fs" />
+    <Compile Include="src/Services/AgentCommunication.fs" />
+    <Compile Include="src/App.fs" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <PackageReference Include="Fable.Core" Version="4.0.0" />
+    <PackageReference Include="Fable.React" Version="9.3.0" />
+    <PackageReference Include="Fable.Browser.Dom" Version="2.4.4" />
+    <PackageReference Include="Fable.Browser.WebSocket" Version="1.2.0" />
+    <PackageReference Include="Fable.SimpleJson" Version="3.24.0" />
+    <PackageReference Include="Elmish" Version="4.0.0" />
+    <PackageReference Include="Elmish.React" Version="4.0.0" />
+    <PackageReference Include="Elmish.Browser" Version="4.0.0" />
+    <PackageReference Include="Elmish.HMR" Version="7.0.0" />
+  </ItemGroup>
+</Project>

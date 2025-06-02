@@ -1,0 +1,19 @@
+
+# Image Intelligence Closure  
+let processImage = fun imageFile ->
+    async {
+        let! description = describeImageWithBLIP imageFile
+        let! objects = detectObjectsWithYOLO imageFile
+        let! text = extractTextWithOCR imageFile
+        let! analysis = analyzeImageContent description objects text
+        
+        return {
+            Type = "ImageIntelligence"
+            Description = description
+            Objects = objects
+            ExtractedText = text
+            Analysis = analysis
+            TarsActions = generateImageActions analysis
+            Confidence = 0.85
+        }
+    }

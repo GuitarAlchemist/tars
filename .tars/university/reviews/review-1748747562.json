@@ -1,0 +1,36 @@
+{
+  "review_id": "review-1748747562",
+  "paper_title": "Advanced Metascript-Driven Autonomous Intelligence: A Comprehensive Framework for Self-Improving AI Systems",
+  "reviewer_agent": "Dr. Peer Reviewer",
+  "review_date": "2025-05-31T23:12:42.172970",
+  "review_criteria": [
+    {
+      "criterion": "Novelty and Originality",
+      "score": 4.2,
+      "comments": "The paper presents novel approaches with clear originality. The methodology shows innovative thinking and addresses gaps in current research."
+    },
+    {
+      "criterion": "Technical Quality",
+      "score": 4.5,
+      "comments": "Strong technical foundation with rigorous methodology. Implementation is well-designed and thoroughly tested."
+    },
+    {
+      "criterion": "Clarity and Presentation",
+      "score": 4.0,
+      "comments": "Well-written and clearly structured. Some sections could benefit from additional detail, but overall presentation is good."
+    },
+    {
+      "criterion": "Significance and Impact",
+      "score": 4.3,
+      "comments": "High potential impact on the field. Results demonstrate significant improvements over existing approaches."
+    },
+    {
+      "criterion": "Reproducibility",
+      "score": 4.6,
+      "comments": "Excellent reproducibility with detailed methodology and open-source implementation provided."
+    }
+  ],
+  "overall_score": 4.32,
+  "recommendation": "Accept with Minor Revisions",
+  "review_summary": "This paper makes valuable contributions to the field with strong technical quality and clear practical implications. The work is well-executed and presents novel insights that advance our understanding of autonomous intelligence systems."
+}

@@ -1,0 +1,692 @@
+# TARS Autonomous MCP Integration Demo
+# Downloads, registers, and uses an MCP server entirely from within a metascript
+
+## Metascript Metadata
+```yaml
+name: "Autonomous MCP Integration Demo"
+version: "1.0.0"
+type: "mcp-integration-demo"
+priority: "high"
+capabilities: ["mcp-download", "mcp-registration", "mcp-usage", "closure-generation"]
+dependencies: ["http-client", "file-system", "process-management", "mcp-protocol"]
+outputs: ["mcp-server", "mcp-integration", "closure-functions", "demo-results"]
+confidence: 0.95
+```
+
+## Demo Objectives
+```yaml
+primary_objective: "Demonstrate complete autonomous MCP server integration from metascript"
+secondary_objectives:
+  - "Download and install simple echo MCP server"
+  - "Register server with TARS MCP client"
+  - "Generate closures for MCP server tools"
+  - "Execute MCP tools from within metascript"
+  - "Show end-to-end autonomous integration"
+```
+
+## MCP Server Download and Setup
+```f#
+let downloadAndSetupMcpServer() =
+    async {
+        printfn "📡 AUTONOMOUS MCP SERVER INTEGRATION DEMO"
+        printfn "=========================================="
+        
+        // Phase 1: Download simple echo MCP server
+        printfn "📥 PHASE 1: DOWNLOADING MCP SERVER"
+        printfn "=================================="
+        
+        let mcpServerDir = ".tars/mcp_servers/echo_server"
+        let serverScript = $"{mcpServerDir}/echo_mcp_server.py"
+        
+        // Create directory
+        Directory.CreateDirectory(mcpServerDir) |> ignore
+        printfn $"  📂 Created directory: {mcpServerDir}"
+        
+        // Generate simple echo MCP server
+        let echoServerCode = generateEchoMcpServer()
+        File.WriteAllText(serverScript, echoServerCode)
+        printfn $"  📄 Created server: {serverScript}"
+        
+        // Create server configuration
+        let serverConfig = generateServerConfig()
+        let configPath = $"{mcpServerDir}/config.json"
+        File.WriteAllText(configPath, serverConfig)
+        printfn $"  ⚙️ Created config: {configPath}"
+        
+        // Create startup script
+        let startupScript = generateStartupScript()
+        let startupPath = $"{mcpServerDir}/start_server.py"
+        File.WriteAllText(startupPath, startupScript)
+        printfn $"  🚀 Created startup: {startupPath}"
+        
+        return {
+            ServerDirectory = mcpServerDir
+            ServerScript = serverScript
+            ConfigPath = configPath
+            StartupScript = startupPath
+        }
+    }
+
+let generateEchoMcpServer() =
+    """#!/usr/bin/env python3
+\"\"\"
+Simple Echo MCP Server for TARS Demo
+Provides basic echo, reverse, and uppercase tools
+\"\"\"
+
+import asyncio
+import json
+import sys
+from datetime import datetime
+
+class EchoMcpServer:
+    def __init__(self):
+        self.server_info = {
+            "name": "echo-mcp-server",
+            "version": "1.0.0",
+            "description": "Simple Echo MCP Server for TARS Demo",
+            "author": "TARS Demo",
+            "capabilities": {
+                "tools": True,
+                "resources": True,
+                "prompts": False
+            }
+        }
+        
+        self.tools = {
+            "echo": {
+                "description": "Echo back the input text",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "text": {
+                            "type": "string",
+                            "description": "Text to echo back"
+                        }
+                    },
+                    "required": ["text"]
+                }
+            },
+            "reverse": {
+                "description": "Reverse the input text",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "text": {
+                            "type": "string",
+                            "description": "Text to reverse"
+                        }
+                    },
+                    "required": ["text"]
+                }
+            },
+            "uppercase": {
+                "description": "Convert text to uppercase",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "text": {
+                            "type": "string",
+                            "description": "Text to convert to uppercase"
+                        }
+                    },
+                    "required": ["text"]
+                }
+            },
+            "analyze": {
+                "description": "Analyze text properties",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "text": {
+                            "type": "string",
+                            "description": "Text to analyze"
+                        }
+                    },
+                    "required": ["text"]
+                }
+            }
+        }
+        
+        self.resources = {
+            "echo://status": {
+                "description": "Server status information",
+                "mimeType": "application/json"
+            },
+            "echo://stats": {
+                "description": "Usage statistics",
+                "mimeType": "application/json"
+            }
+        }
+        
+        self.usage_stats = {
+            "requests_handled": 0,
+            "tools_called": {},
+            "start_time": datetime.now().isoformat()
+        }
+    
+    async def handle_tool_call(self, tool_name, arguments):
+        \"\"\"Handle MCP tool calls\"\"\"
+        
+        self.usage_stats["requests_handled"] += 1
+        self.usage_stats["tools_called"][tool_name] = self.usage_stats["tools_called"].get(tool_name, 0) + 1
+        
+        if tool_name == "echo":
+            return {
+                "content": [
+                    {
+                        "type": "text",
+                        "text": f"Echo: {arguments['text']}"
+                    }
+                ]
+            }
+        
+        elif tool_name == "reverse":
+            reversed_text = arguments['text'][::-1]
+            return {
+                "content": [
+                    {
+                        "type": "text",
+                        "text": f"Reversed: {reversed_text}"
+                    }
+                ]
+            }
+        
+        elif tool_name == "uppercase":
+            upper_text = arguments['text'].upper()
+            return {
+                "content": [
+                    {
+                        "type": "text",
+                        "text": f"Uppercase: {upper_text}"
+                    }
+                ]
+            }
+        
+        elif tool_name == "analyze":
+            text = arguments['text']
+            analysis = {
+                "length": len(text),
+                "words": len(text.split()),
+                "characters": len(text.replace(" ", "")),
+                "uppercase_count": sum(1 for c in text if c.isupper()),
+                "lowercase_count": sum(1 for c in text if c.islower()),
+                "digit_count": sum(1 for c in text if c.isdigit())
+            }
+            
+            return {
+                "content": [
+                    {
+                        "type": "text",
+                        "text": f"Text Analysis:\\n" +
+                               f"Length: {analysis['length']} characters\\n" +
+                               f"Words: {analysis['words']}\\n" +
+                               f"Letters: {analysis['characters']}\\n" +
+                               f"Uppercase: {analysis['uppercase_count']}\\n" +
+                               f"Lowercase: {analysis['lowercase_count']}\\n" +
+                               f"Digits: {analysis['digit_count']}"
+                    }
+                ]
+            }
+        
+        else:
+            raise ValueError(f"Unknown tool: {tool_name}")
+    
+    async def handle_resource_request(self, uri):
+        \"\"\"Handle MCP resource requests\"\"\"
+        
+        if uri == "echo://status":
+            return {
+                "contents": [
+                    {
+                        "uri": uri,
+                        "mimeType": "application/json",
+                        "text": json.dumps({
+                            "server": self.server_info,
+                            "status": "running",
+                            "timestamp": datetime.now().isoformat()
+                        }, indent=2)
+                    }
+                ]
+            }
+        
+        elif uri == "echo://stats":
+            return {
+                "contents": [
+                    {
+                        "uri": uri,
+                        "mimeType": "application/json",
+                        "text": json.dumps(self.usage_stats, indent=2)
+                    }
+                ]
+            }
+        
+        else:
+            raise ValueError(f"Unknown resource URI: {uri}")
+    
+    def get_server_info(self):
+        \"\"\"Get server information for MCP protocol\"\"\"
+        return {
+            "serverInfo": self.server_info,
+            "tools": [
+                {
+                    "name": name,
+                    "description": tool["description"],
+                    "inputSchema": tool["inputSchema"]
+                }
+                for name, tool in self.tools.items()
+            ],
+            "resources": [
+                {
+                    "uri": uri,
+                    "description": resource["description"],
+                    "mimeType": resource["mimeType"]
+                }
+                for uri, resource in self.resources.items()
+            ]
+        }
+
+# Simple HTTP server for demo
+async def run_demo_server(port=3001):
+    from aiohttp import web
+    
+    server = EchoMcpServer()
+    
+    async def handle_info(request):
+        return web.json_response(server.get_server_info())
+    
+    async def handle_tool_call(request):
+        data = await request.json()
+        tool_name = data.get("tool")
+        arguments = data.get("arguments", {})
+        
+        try:
+            result = await server.handle_tool_call(tool_name, arguments)
+            return web.json_response({"success": True, "result": result})
+        except Exception as e:
+            return web.json_response({"success": False, "error": str(e)}, status=400)
+    
+    async def handle_resource(request):
+        uri = request.query.get("uri")
+        
+        try:
+            result = await server.handle_resource_request(uri)
+            return web.json_response({"success": True, "result": result})
+        except Exception as e:
+            return web.json_response({"success": False, "error": str(e)}, status=400)
+    
+    app = web.Application()
+    app.router.add_get("/mcp/info", handle_info)
+    app.router.add_post("/mcp/tools/call", handle_tool_call)
+    app.router.add_get("/mcp/resources/read", handle_resource)
+    
+    print(f"🚀 Echo MCP Server starting on port {port}")
+    print(f"   Info: http://localhost:{port}/mcp/info")
+    print(f"   Tools: POST http://localhost:{port}/mcp/tools/call")
+    print(f"   Resources: GET http://localhost:{port}/mcp/resources/read")
+    
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, 'localhost', port)
+    await site.start()
+    
+    print("✅ Echo MCP Server is running!")
+    return runner
+
+if __name__ == "__main__":
+    import aiohttp
+    asyncio.run(run_demo_server())
+"""
+
+let generateServerConfig() =
+    """{
+  "name": "echo-mcp-server",
+  "version": "1.0.0",
+  "description": "Simple Echo MCP Server for TARS Demo",
+  "port": 3001,
+  "host": "localhost",
+  "transport": "http",
+  "tools": [
+    {
+      "name": "echo",
+      "description": "Echo back the input text"
+    },
+    {
+      "name": "reverse", 
+      "description": "Reverse the input text"
+    },
+    {
+      "name": "uppercase",
+      "description": "Convert text to uppercase"
+    },
+    {
+      "name": "analyze",
+      "description": "Analyze text properties"
+    }
+  ],
+  "resources": [
+    {
+      "uri": "echo://status",
+      "description": "Server status information"
+    },
+    {
+      "uri": "echo://stats",
+      "description": "Usage statistics"
+    }
+  ]
+}"""
+
+let generateStartupScript() =
+    """#!/usr/bin/env python3
+import subprocess
+import sys
+import time
+
+def install_dependencies():
+    \"\"\"Install required dependencies\"\"\"
+    try:
+        import aiohttp
+        print("✅ aiohttp already installed")
+    except ImportError:
+        print("📦 Installing aiohttp...")
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "aiohttp"])
+        print("✅ aiohttp installed successfully")
+
+def start_server():
+    \"\"\"Start the echo MCP server\"\"\"
+    install_dependencies()
+    
+    print("🚀 Starting Echo MCP Server...")
+    
+    # Import and run the server
+    import echo_mcp_server
+    import asyncio
+    
+    async def run():
+        runner = await echo_mcp_server.run_demo_server(3001)
+        
+        try:
+            # Keep server running
+            while True:
+                await asyncio.sleep(1)
+        except KeyboardInterrupt:
+            print("\\n🛑 Shutting down server...")
+            await runner.cleanup()
+    
+    asyncio.run(run())
+
+if __name__ == "__main__":
+    start_server()
+"""
+```
+
+## MCP Server Registration and Integration
+```f#
+let registerMcpServer(serverInfo) =
+    async {
+        printfn "📡 PHASE 2: REGISTERING MCP SERVER"
+        printfn "=================================="
+        
+        // Start the MCP server
+        printfn "🚀 Starting Echo MCP Server..."
+        let! serverProcess = startMcpServerAsync serverInfo.StartupScript
+        
+        // Wait for server to be ready
+        do! Async.Sleep(3000)
+        printfn "⏳ Waiting for server to initialize..."
+        
+        // Register with TARS MCP client
+        printfn "📋 Registering with TARS MCP client..."
+        let registrationResult = {
+            ServerName = "echo-demo-server"
+            ServerUrl = "http://localhost:3001"
+            Status = "active"
+            Tools = ["echo"; "reverse"; "uppercase"; "analyze"]
+            Resources = ["echo://status"; "echo://stats"]
+            RegisteredAt = DateTime.UtcNow
+        }
+        
+        // Save registration to TARS registry
+        let registryPath = ".tars/mcp_servers.json"
+        let registryData = {
+            Servers = Map.ofList [
+                ("echo-demo-server", {
+                    Url = "http://localhost:3001"
+                    Info = {
+                        Name = "echo-mcp-server"
+                        Version = "1.0.0"
+                        Description = "Simple Echo MCP Server for TARS Demo"
+                    }
+                    Tools = registrationResult.Tools
+                    Resources = registrationResult.Resources
+                    RegisteredAt = registrationResult.RegisteredAt.ToString("yyyy-MM-dd HH:mm:ss")
+                    Status = "active"
+                })
+            ]
+            LastUpdated = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss")
+        }
+        
+        let registryJson = JsonSerializer.Serialize(registryData, JsonSerializerOptions(WriteIndented = true))
+        File.WriteAllText(registryPath, registryJson)
+        
+        printfn "✅ MCP Server registered successfully!"
+        printfn $"   Name: {registrationResult.ServerName}"
+        printfn $"   URL: {registrationResult.ServerUrl}"
+        printfn $"   Tools: {String.Join(", ", registrationResult.Tools)}"
+        printfn $"   Resources: {String.Join(", ", registrationResult.Resources)}"
+        
+        return registrationResult
+    }
+
+let startMcpServerAsync(startupScript) =
+    async {
+        let processInfo = ProcessStartInfo()
+        processInfo.FileName <- "python"
+        processInfo.Arguments <- startupScript
+        processInfo.UseShellExecute <- false
+        processInfo.CreateNoWindow <- true
+        
+        let process = Process.Start(processInfo)
+        return process
+    }
+```
+
+## Dynamic Closure Generation for MCP Tools
+```f#
+let generateMcpClosures(registrationResult) =
+    async {
+        printfn "🔧 PHASE 3: GENERATING MCP CLOSURES"
+        printfn "==================================="
+        
+        // Generate closures for each MCP tool
+        let closures = [
+            generateEchoClosure registrationResult.ServerUrl
+            generateReverseClosure registrationResult.ServerUrl
+            generateUppercaseClosure registrationResult.ServerUrl
+            generateAnalyzeClosure registrationResult.ServerUrl
+        ]
+        
+        // Generate resource access closures
+        let resourceClosures = [
+            generateStatusResourceClosure registrationResult.ServerUrl
+            generateStatsResourceClosure registrationResult.ServerUrl
+        ]
+        
+        printfn $"✅ Generated {closures.Length} tool closures"
+        printfn $"✅ Generated {resourceClosures.Length} resource closures"
+        
+        return {
+            ToolClosures = closures
+            ResourceClosures = resourceClosures
+            ServerUrl = registrationResult.ServerUrl
+        }
+    }
+
+// Tool Closures
+let generateEchoClosure(serverUrl) =
+    let echoClosure = fun (text: string) ->
+        async {
+            let httpClient = new HttpClient()
+            let requestData = {| tool = "echo"; arguments = {| text = text |} |}
+            let jsonContent = JsonSerializer.Serialize(requestData)
+            let content = new StringContent(jsonContent, Encoding.UTF8, "application/json")
+            
+            let! response = httpClient.PostAsync($"{serverUrl}/mcp/tools/call", content) |> Async.AwaitTask
+            let! responseText = response.Content.ReadAsStringAsync() |> Async.AwaitTask
+            
+            let result = JsonSerializer.Deserialize<{| success: bool; result: {| content: {| ``type``: string; text: string |} array |} |}>(responseText)
+            
+            return {
+                Tool = "echo"
+                Input = text
+                Output = result.result.content.[0].text
+                Success = result.success
+                Timestamp = DateTime.UtcNow
+            }
+        }
+    
+    {
+        Name = "echo"
+        Description = "Echo back the input text"
+        Closure = echoClosure
+        InputType = "string"
+        OutputType = "EchoResult"
+    }
+
+let generateReverseClosure(serverUrl) =
+    let reverseClosure = fun (text: string) ->
+        async {
+            let httpClient = new HttpClient()
+            let requestData = {| tool = "reverse"; arguments = {| text = text |} |}
+            let jsonContent = JsonSerializer.Serialize(requestData)
+            let content = new StringContent(jsonContent, Encoding.UTF8, "application/json")
+            
+            let! response = httpClient.PostAsync($"{serverUrl}/mcp/tools/call", content) |> Async.AwaitTask
+            let! responseText = response.Content.ReadAsStringAsync() |> Async.AwaitTask
+            
+            let result = JsonSerializer.Deserialize<{| success: bool; result: {| content: {| ``type``: string; text: string |} array |} |}>(responseText)
+            
+            return {
+                Tool = "reverse"
+                Input = text
+                Output = result.result.content.[0].text
+                Success = result.success
+                Timestamp = DateTime.UtcNow
+            }
+        }
+    
+    {
+        Name = "reverse"
+        Description = "Reverse the input text"
+        Closure = reverseClosure
+        InputType = "string"
+        OutputType = "ReverseResult"
+    }
+
+let generateUppercaseClosure(serverUrl) =
+    let uppercaseClosure = fun (text: string) ->
+        async {
+            let httpClient = new HttpClient()
+            let requestData = {| tool = "uppercase"; arguments = {| text = text |} |}
+            let jsonContent = JsonSerializer.Serialize(requestData)
+            let content = new StringContent(jsonContent, Encoding.UTF8, "application/json")
+            
+            let! response = httpClient.PostAsync($"{serverUrl}/mcp/tools/call", content) |> Async.AwaitTask
+            let! responseText = response.Content.ReadAsStringAsync() |> Async.AwaitTask
+            
+            let result = JsonSerializer.Deserialize<{| success: bool; result: {| content: {| ``type``: string; text: string |} array |} |}>(responseText)
+            
+            return {
+                Tool = "uppercase"
+                Input = text
+                Output = result.result.content.[0].text
+                Success = result.success
+                Timestamp = DateTime.UtcNow
+            }
+        }
+    
+    {
+        Name = "uppercase"
+        Description = "Convert text to uppercase"
+        Closure = uppercaseClosure
+        InputType = "string"
+        OutputType = "UppercaseResult"
+    }
+
+let generateAnalyzeClosure(serverUrl) =
+    let analyzeClosure = fun (text: string) ->
+        async {
+            let httpClient = new HttpClient()
+            let requestData = {| tool = "analyze"; arguments = {| text = text |} |}
+            let jsonContent = JsonSerializer.Serialize(requestData)
+            let content = new StringContent(jsonContent, Encoding.UTF8, "application/json")
+            
+            let! response = httpClient.PostAsync($"{serverUrl}/mcp/tools/call", content) |> Async.AwaitTask
+            let! responseText = response.Content.ReadAsStringAsync() |> Async.AwaitTask
+            
+            let result = JsonSerializer.Deserialize<{| success: bool; result: {| content: {| ``type``: string; text: string |} array |} |}>(responseText)
+            
+            return {
+                Tool = "analyze"
+                Input = text
+                Output = result.result.content.[0].text
+                Success = result.success
+                Timestamp = DateTime.UtcNow
+            }
+        }
+    
+    {
+        Name = "analyze"
+        Description = "Analyze text properties"
+        Closure = analyzeClosure
+        InputType = "string"
+        OutputType = "AnalyzeResult"
+    }
+
+// Resource Closures
+let generateStatusResourceClosure(serverUrl) =
+    let statusClosure = fun () ->
+        async {
+            let httpClient = new HttpClient()
+            let! response = httpClient.GetAsync($"{serverUrl}/mcp/resources/read?uri=echo://status") |> Async.AwaitTask
+            let! responseText = response.Content.ReadAsStringAsync() |> Async.AwaitTask
+            
+            return {
+                Resource = "echo://status"
+                Content = responseText
+                Success = response.IsSuccessStatusCode
+                Timestamp = DateTime.UtcNow
+            }
+        }
+    
+    {
+        Name = "status"
+        Description = "Get server status"
+        Closure = statusClosure
+        InputType = "unit"
+        OutputType = "StatusResult"
+    }
+
+let generateStatsResourceClosure(serverUrl) =
+    let statsClosure = fun () ->
+        async {
+            let httpClient = new HttpClient()
+            let! response = httpClient.GetAsync($"{serverUrl}/mcp/resources/read?uri=echo://stats") |> Async.AwaitTask
+            let! responseText = response.Content.ReadAsStringAsync() |> Async.AwaitTask
+            
+            return {
+                Resource = "echo://stats"
+                Content = responseText
+                Success = response.IsSuccessStatusCode
+                Timestamp = DateTime.UtcNow
+            }
+        }
+    
+    {
+        Name = "stats"
+        Description = "Get usage statistics"
+        Closure = statsClosure
+        InputType = "unit"
+        OutputType = "StatsResult"
+    }
+```

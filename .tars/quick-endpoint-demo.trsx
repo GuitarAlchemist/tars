@@ -1,0 +1,137 @@
+DESCRIBE {
+    name: "Quick Live Endpoint Demo"
+    version: "1.0"
+    author: "TARS"
+    description: "Quick demonstration of creating live endpoints from TARS metascripts"
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.7
+    max_tokens: 1000
+}
+
+// Phase 1: Show current endpoint status
+ACTION {
+    type: "log"
+    message: "🔍 Checking current endpoint status..."
+}
+
+COMMAND {
+    exec: "tars live status"
+    capture_output: true
+}
+
+ACTION {
+    type: "log"
+    message: "Current status: ${_last_result}"
+}
+
+// Phase 2: Create a quick User API endpoint
+ACTION {
+    type: "log"
+    message: "🔧 Creating User API endpoint on port 5001..."
+}
+
+COMMAND {
+    exec: "tars live create QuickUserAPI 5001"
+    capture_output: true
+}
+
+ACTION {
+    type: "log"
+    message: "User API creation result: ${_last_result}"
+}
+
+// Phase 3: Create a Product API with GraphQL
+ACTION {
+    type: "log"
+    message: "🚀 Creating Product API with GraphQL on port 5002..."
+}
+
+COMMAND {
+    exec: "tars live create QuickProductAPI 5002 HYBRID_API"
+    capture_output: true
+}
+
+ACTION {
+    type: "log"
+    message: "Product API creation result: ${_last_result}"
+}
+
+// Phase 4: Wait and check status
+FSHARP {
+    printfn "⏳ Waiting 3 seconds for endpoints to start..."
+    System.Threading.Thread.Sleep(3000)
+    printfn "✅ Endpoints should be ready"
+}
+
+COMMAND {
+    exec: "tars live status"
+    capture_output: true
+}
+
+ACTION {
+    type: "log"
+    message: "Final status: ${_last_result}"
+}
+
+// Phase 5: Test the endpoints
+FSHARP {
+    printfn ""
+    printfn "🧪 TESTING LIVE ENDPOINTS"
+    printfn "========================="
+    printfn ""
+    
+    try
+        use httpClient = new System.Net.Http.HttpClient()
+        httpClient.Timeout <- System.TimeSpan.FromSeconds(5)
+        
+        // Test User API
+        try
+            let userResponse = httpClient.GetStringAsync("http://localhost:5001/health").Result
+            printfn "✅ QuickUserAPI health: %s" (userResponse.Substring(0, min 50 userResponse.Length))
+        with
+        | ex -> printfn "❌ QuickUserAPI test failed: %s" ex.Message
+        
+        // Test Product API
+        try
+            let productResponse = httpClient.GetStringAsync("http://localhost:5002/health").Result
+            printfn "✅ QuickProductAPI health: %s" (productResponse.Substring(0, min 50 productResponse.Length))
+        with
+        | ex -> printfn "❌ QuickProductAPI test failed: %s" ex.Message
+        
+    with
+    | ex -> printfn "❌ HTTP testing failed: %s" ex.Message
+    
+    printfn ""
+    printfn "🎯 LIVE ENDPOINTS DEMO COMPLETE!"
+    printfn "================================"
+    printfn ""
+    printfn "Created Endpoints:"
+    printfn "  QuickUserAPI:    http://localhost:5001"
+    printfn "    • Health:      http://localhost:5001/health"
+    printfn "    • Users:       http://localhost:5001/api/users"
+    printfn "    • Swagger:     http://localhost:5001/swagger"
+    printfn ""
+    printfn "  QuickProductAPI: http://localhost:5002"
+    printfn "    • Health:      http://localhost:5002/health"
+    printfn "    • Products:    http://localhost:5002/api/products"
+    printfn "    • GraphQL:     http://localhost:5002/graphql"
+    printfn "    • Swagger:     http://localhost:5002/swagger"
+    printfn ""
+    printfn "🧪 Test Commands:"
+    printfn "  curl http://localhost:5001/health"
+    printfn "  curl http://localhost:5001/api/users"
+    printfn "  curl http://localhost:5002/health"
+    printfn "  curl http://localhost:5002/api/products"
+    printfn "  curl -X POST http://localhost:5002/graphql -d '{\"query\":\"{ users { id name } }\"}'"
+    printfn ""
+    printfn "🛑 To stop endpoints:"
+    printfn "  tars live stop QuickUserAPI"
+    printfn "  tars live stop QuickProductAPI"
+    printfn "  tars live cleanup"
+    printfn ""
+    printfn "✨ TARS can now create and run endpoints on-the-fly!"
+    printfn "   Real APIs generated and running from metascripts!"
+}

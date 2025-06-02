@@ -1,0 +1,635 @@
+# TARS MCP (Model Context Protocol) Integration Design
+# Comprehensive design for TARS as both MCP server and client
+
+## Metascript Metadata
+```yaml
+name: "TARS MCP Integration Design"
+version: "1.0.0"
+type: "architecture-design"
+priority: "critical"
+capabilities: ["mcp-server", "mcp-client", "protocol-integration", "autonomous-discovery"]
+dependencies: ["model-context-protocol", "json-rpc", "websockets", "stdio"]
+outputs: ["mcp-server", "mcp-client", "tool-registry", "autonomous-integration"]
+confidence: 0.95
+```
+
+## MCP Integration Architecture
+```f#
+let designMcpIntegration() =
+    let mcpArchitecture = {
+        // TARS as MCP Server - Expose TARS capabilities to AI models
+        ServerCapabilities = {
+            Tools = [
+                "tars_generate_project"
+                "tars_deploy_application"
+                "tars_run_metascript"
+                "tars_analyze_codebase"
+                "tars_create_agent"
+                "tars_optimize_performance"
+                "tars_generate_tests"
+                "tars_detect_data_source"
+                "tars_create_closure"
+                "tars_autonomous_iteration"
+            ]
+            
+            Resources = [
+                "tars://projects/{project_id}"
+                "tars://metascripts/{script_id}"
+                "tars://agents/{agent_id}"
+                "tars://data_sources/{source_id}"
+                "tars://deployments/{deployment_id}"
+                "tars://performance_metrics/{metric_id}"
+            ]
+            
+            Prompts = [
+                "autonomous_project_creation"
+                "intelligent_debugging"
+                "performance_optimization"
+                "architecture_analysis"
+                "quality_assessment"
+                "deployment_strategy"
+            ]
+        }
+        
+        // TARS as MCP Client - Consume external MCP servers
+        ClientCapabilities = {
+            ServerDiscovery = "Automatically discover and register MCP servers"
+            ToolIntegration = "Seamlessly integrate external tools into TARS workflows"
+            ResourceAccess = "Access external resources through MCP protocol"
+            PromptChaining = "Chain prompts across multiple MCP servers"
+            AutonomousRegistration = "Register new servers based on capability needs"
+        }
+        
+        // Bidirectional Integration
+        BidirectionalFeatures = {
+            ToolComposition = "Compose TARS tools with external MCP tools"
+            ResourceSharing = "Share TARS resources with external systems"
+            PromptOrchestration = "Orchestrate complex workflows across MCP servers"
+            AutonomousCollaboration = "Autonomous collaboration between TARS and external AI systems"
+        }
+    }
+    mcpArchitecture
+```
+
+## TARS MCP Server Implementation
+```python
+# TARS MCP Server - Expose TARS capabilities via MCP protocol
+class TarsMcpServer:
+    def __init__(self, tars_cli_path="tars"):
+        self.tars_cli = tars_cli_path
+        self.server_info = {
+            "name": "tars-autonomous-intelligence",
+            "version": "1.0.0",
+            "description": "TARS Autonomous Intelligence System MCP Server",
+            "author": "TARS Development Team",
+            "license": "MIT"
+        }
+        
+        # Define available tools
+        self.tools = {
+            "tars_generate_project": {
+                "description": "Generate a complete project with TARS",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "project_name": {"type": "string"},
+                        "project_type": {"type": "string", "enum": ["console", "webapi", "library"]},
+                        "complexity": {"type": "string", "enum": ["simple", "moderate", "complex"]}
+                    },
+                    "required": ["project_name", "project_type"]
+                }
+            },
+            
+            "tars_deploy_application": {
+                "description": "Deploy application using TARS autonomous deployment",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "project_path": {"type": "string"},
+                        "deployment_target": {"type": "string", "enum": ["docker", "kubernetes", "cloud"]},
+                        "environment": {"type": "string", "enum": ["development", "staging", "production"]}
+                    },
+                    "required": ["project_path"]
+                }
+            },
+            
+            "tars_run_metascript": {
+                "description": "Execute a TARS metascript",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "metascript_path": {"type": "string"},
+                        "parameters": {"type": "object"},
+                        "execution_mode": {"type": "string", "enum": ["sync", "async", "background"]}
+                    },
+                    "required": ["metascript_path"]
+                }
+            },
+            
+            "tars_analyze_codebase": {
+                "description": "Perform autonomous codebase analysis",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "codebase_path": {"type": "string"},
+                        "analysis_type": {"type": "string", "enum": ["architecture", "quality", "performance", "security"]},
+                        "depth": {"type": "string", "enum": ["surface", "deep", "comprehensive"]}
+                    },
+                    "required": ["codebase_path"]
+                }
+            },
+            
+            "tars_create_agent": {
+                "description": "Create a specialized TARS agent",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "agent_name": {"type": "string"},
+                        "capabilities": {"type": "array", "items": {"type": "string"}},
+                        "domain": {"type": "string"},
+                        "autonomy_level": {"type": "string", "enum": ["guided", "semi-autonomous", "fully-autonomous"]}
+                    },
+                    "required": ["agent_name", "capabilities"]
+                }
+            },
+            
+            "tars_detect_data_source": {
+                "description": "Detect and create closure for data source",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "source_url": {"type": "string"},
+                        "source_type": {"type": "string"},
+                        "generate_closure": {"type": "boolean", "default": True}
+                    },
+                    "required": ["source_url"]
+                }
+            },
+            
+            "tars_autonomous_iteration": {
+                "description": "Run autonomous quality iteration loop",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "project_name": {"type": "string"},
+                        "quality_threshold": {"type": "number", "minimum": 0, "maximum": 1},
+                        "max_iterations": {"type": "integer", "minimum": 1, "maximum": 10}
+                    },
+                    "required": ["project_name"]
+                }
+            }
+        }
+        
+        # Define available resources
+        self.resources = {
+            "tars://projects/": {
+                "description": "Access TARS project information",
+                "mimeType": "application/json"
+            },
+            "tars://metascripts/": {
+                "description": "Access TARS metascript library",
+                "mimeType": "text/plain"
+            },
+            "tars://agents/": {
+                "description": "Access TARS agent definitions",
+                "mimeType": "application/json"
+            },
+            "tars://performance/": {
+                "description": "Access TARS performance metrics",
+                "mimeType": "application/json"
+            }
+        }
+        
+        # Define available prompts
+        self.prompts = {
+            "autonomous_project_creation": {
+                "description": "Guide autonomous project creation with TARS",
+                "arguments": [
+                    {"name": "requirements", "description": "Project requirements", "required": True},
+                    {"name": "constraints", "description": "Technical constraints", "required": False}
+                ]
+            },
+            "intelligent_debugging": {
+                "description": "Intelligent debugging assistance with TARS",
+                "arguments": [
+                    {"name": "error_description", "description": "Error or issue description", "required": True},
+                    {"name": "codebase_context", "description": "Relevant codebase context", "required": False}
+                ]
+            },
+            "performance_optimization": {
+                "description": "Performance optimization guidance with TARS",
+                "arguments": [
+                    {"name": "performance_metrics", "description": "Current performance metrics", "required": True},
+                    {"name": "optimization_goals", "description": "Optimization targets", "required": False}
+                ]
+            }
+        }
+    
+    async def handle_tool_call(self, tool_name, arguments):
+        """Handle MCP tool calls by executing TARS CLI commands"""
+        
+        if tool_name == "tars_generate_project":
+            return await self.execute_tars_command([
+                "generate", 
+                arguments["project_name"],
+                arguments["project_type"],
+                "--complexity", arguments.get("complexity", "moderate")
+            ])
+        
+        elif tool_name == "tars_deploy_application":
+            return await self.execute_tars_command([
+                "deploy",
+                arguments["project_path"],
+                "--target", arguments.get("deployment_target", "docker"),
+                "--env", arguments.get("environment", "development")
+            ])
+        
+        elif tool_name == "tars_run_metascript":
+            cmd = ["metascript", "run", arguments["metascript_path"]]
+            if "parameters" in arguments:
+                cmd.extend(["--params", json.dumps(arguments["parameters"])])
+            return await self.execute_tars_command(cmd)
+        
+        elif tool_name == "tars_analyze_codebase":
+            return await self.execute_tars_command([
+                "analyze",
+                arguments["codebase_path"],
+                "--type", arguments.get("analysis_type", "architecture"),
+                "--depth", arguments.get("depth", "deep")
+            ])
+        
+        elif tool_name == "tars_create_agent":
+            return await self.execute_tars_command([
+                "agent", "create",
+                arguments["agent_name"],
+                "--capabilities", ",".join(arguments["capabilities"]),
+                "--domain", arguments.get("domain", "general"),
+                "--autonomy", arguments.get("autonomy_level", "semi-autonomous")
+            ])
+        
+        elif tool_name == "tars_detect_data_source":
+            cmd = ["datasource", "detect", arguments["source_url"]]
+            if arguments.get("generate_closure", True):
+                cmd.append("--generate")
+            return await self.execute_tars_command(cmd)
+        
+        elif tool_name == "tars_autonomous_iteration":
+            return await self.execute_tars_command([
+                "iterate",
+                arguments["project_name"],
+                "--threshold", str(arguments.get("quality_threshold", 0.8)),
+                "--max-iterations", str(arguments.get("max_iterations", 5))
+            ])
+        
+        else:
+            raise ValueError(f"Unknown tool: {tool_name}")
+    
+    async def handle_resource_request(self, uri):
+        """Handle MCP resource requests"""
+        
+        if uri.startswith("tars://projects/"):
+            project_id = uri.split("/")[-1]
+            return await self.get_project_info(project_id)
+        
+        elif uri.startswith("tars://metascripts/"):
+            script_id = uri.split("/")[-1]
+            return await self.get_metascript_content(script_id)
+        
+        elif uri.startswith("tars://agents/"):
+            agent_id = uri.split("/")[-1]
+            return await self.get_agent_definition(agent_id)
+        
+        elif uri.startswith("tars://performance/"):
+            metric_id = uri.split("/")[-1]
+            return await self.get_performance_metrics(metric_id)
+        
+        else:
+            raise ValueError(f"Unknown resource URI: {uri}")
+    
+    async def handle_prompt_request(self, prompt_name, arguments):
+        """Handle MCP prompt requests"""
+        
+        if prompt_name == "autonomous_project_creation":
+            return self.generate_project_creation_prompt(arguments)
+        
+        elif prompt_name == "intelligent_debugging":
+            return self.generate_debugging_prompt(arguments)
+        
+        elif prompt_name == "performance_optimization":
+            return self.generate_optimization_prompt(arguments)
+        
+        else:
+            raise ValueError(f"Unknown prompt: {prompt_name}")
+    
+    async def execute_tars_command(self, args):
+        """Execute TARS CLI command and return result"""
+        import subprocess
+        import asyncio
+        
+        cmd = [self.tars_cli] + args
+        
+        process = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        
+        stdout, stderr = await process.communicate()
+        
+        return {
+            "success": process.returncode == 0,
+            "stdout": stdout.decode(),
+            "stderr": stderr.decode(),
+            "returncode": process.returncode
+        }
+```
+
+## TARS MCP Client Implementation
+```python
+# TARS MCP Client - Consume external MCP servers
+class TarsMcpClient:
+    def __init__(self):
+        self.registered_servers = {}
+        self.available_tools = {}
+        self.available_resources = {}
+        self.server_registry_path = ".tars/mcp_servers.json"
+        self.load_server_registry()
+    
+    async def discover_and_register_server(self, server_url, server_name=None):
+        """Automatically discover and register an MCP server"""
+        
+        try:
+            # Connect to server and get capabilities
+            server_info = await self.connect_to_server(server_url)
+            
+            if not server_name:
+                server_name = server_info.get("name", f"server_{len(self.registered_servers)}")
+            
+            # Register server
+            self.registered_servers[server_name] = {
+                "url": server_url,
+                "info": server_info,
+                "tools": server_info.get("tools", {}),
+                "resources": server_info.get("resources", {}),
+                "prompts": server_info.get("prompts", {}),
+                "registered_at": datetime.now().isoformat()
+            }
+            
+            # Update available tools and resources
+            self.update_available_capabilities(server_name)
+            
+            # Save registry
+            self.save_server_registry()
+            
+            print(f"✅ Registered MCP server: {server_name}")
+            print(f"   Tools: {len(server_info.get('tools', {}))}")
+            print(f"   Resources: {len(server_info.get('resources', {}))}")
+            print(f"   Prompts: {len(server_info.get('prompts', {}))}")
+            
+            return True
+            
+        except Exception as e:
+            print(f"❌ Failed to register server {server_url}: {e}")
+            return False
+    
+    async def call_external_tool(self, tool_name, arguments, server_name=None):
+        """Call a tool on an external MCP server"""
+        
+        # Find server that has this tool
+        if not server_name:
+            server_name = self.find_server_for_tool(tool_name)
+            if not server_name:
+                raise ValueError(f"Tool '{tool_name}' not found in any registered server")
+        
+        server = self.registered_servers[server_name]
+        
+        # Execute tool call
+        result = await self.execute_remote_tool_call(
+            server["url"], 
+            tool_name, 
+            arguments
+        )
+        
+        return result
+    
+    async def access_external_resource(self, resource_uri, server_name=None):
+        """Access a resource on an external MCP server"""
+        
+        # Find server that has this resource
+        if not server_name:
+            server_name = self.find_server_for_resource(resource_uri)
+            if not server_name:
+                raise ValueError(f"Resource '{resource_uri}' not found in any registered server")
+        
+        server = self.registered_servers[server_name]
+        
+        # Access resource
+        resource_content = await self.fetch_remote_resource(
+            server["url"],
+            resource_uri
+        )
+        
+        return resource_content
+    
+    async def compose_tools_across_servers(self, workflow_definition):
+        """Compose tools from multiple MCP servers into a workflow"""
+        
+        results = []
+        
+        for step in workflow_definition["steps"]:
+            tool_name = step["tool"]
+            arguments = step["arguments"]
+            server_name = step.get("server")
+            
+            if tool_name.startswith("tars_"):
+                # Local TARS tool
+                result = await self.execute_local_tars_tool(tool_name, arguments)
+            else:
+                # External MCP tool
+                result = await self.call_external_tool(tool_name, arguments, server_name)
+            
+            results.append({
+                "step": step["name"],
+                "tool": tool_name,
+                "result": result
+            })
+            
+            # Pass result to next step if needed
+            if "output_mapping" in step:
+                self.apply_output_mapping(step["output_mapping"], result, workflow_definition)
+        
+        return {
+            "workflow": workflow_definition["name"],
+            "steps_completed": len(results),
+            "results": results,
+            "success": all(r["result"].get("success", True) for r in results)
+        }
+    
+    def generate_mcp_integration_metascript(self, server_name, use_case):
+        """Generate metascript that integrates external MCP server"""
+        
+        server = self.registered_servers[server_name]
+        
+        metascript = f'''# Auto-generated MCP Integration Metascript
+# Server: {server_name}
+# Use Case: {use_case}
+# Generated: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+
+## Metascript Metadata
+```yaml
+name: "{server_name}_integration"
+version: "1.0.0"
+type: "mcp-integration"
+mcp_server: "{server_name}"
+use_case: "{use_case}"
+auto_generated: true
+```
+
+## MCP Server Integration
+let integrate{server_name.replace("-", "").title()} = fun parameters ->
+    async {{
+        // Connect to MCP server
+        let mcpClient = TarsMcpClient()
+        let serverName = "{server_name}"
+        
+        // Available tools from {server_name}
+        {self.generate_tool_bindings(server["tools"])}
+        
+        // Available resources from {server_name}
+        {self.generate_resource_bindings(server["resources"])}
+        
+        // Execute integration workflow
+        let workflow = {{
+            steps = [
+                {self.generate_workflow_steps(server, use_case)}
+            ]
+        }}
+        
+        let! result = mcpClient.ComposeToolsAcrossServers(workflow)
+        
+        return {{
+            IntegrationType = "MCP"
+            ServerName = "{server_name}"
+            UseCase = "{use_case}"
+            Result = result
+            Success = result.Success
+        }}
+    }}
+
+## Autonomous Execution
+let autoExecute() =
+    async {{
+        let! result = integrate{server_name.replace("-", "").title()} defaultParameters
+        
+        if result.Success then
+            printfn "✅ MCP integration successful: {server_name}"
+        else
+            printfn "❌ MCP integration failed: {server_name}"
+        
+        return result
+    }}
+'''
+        
+        return metascript
+```
+
+## CLI Integration for MCP
+```f#
+let createMcpCliCommands() =
+    let mcpCommands = [
+        // MCP Server commands
+        {
+            Command = "mcp server start"
+            Description = "Start TARS as MCP server"
+            Options = ["--port", "--transport", "--stdio"]
+            Example = "tars mcp server start --port 3000"
+        }
+        
+        {
+            Command = "mcp server info"
+            Description = "Show TARS MCP server capabilities"
+            Options = ["--format"]
+            Example = "tars mcp server info --format json"
+        }
+        
+        // MCP Client commands
+        {
+            Command = "mcp client register"
+            Description = "Register external MCP server"
+            Options = ["--url", "--name", "--auto-discover"]
+            Example = "tars mcp client register --url ws://localhost:3001 --name github-server"
+        }
+        
+        {
+            Command = "mcp client list"
+            Description = "List registered MCP servers"
+            Options = ["--detailed", "--tools", "--resources"]
+            Example = "tars mcp client list --detailed"
+        }
+        
+        {
+            Command = "mcp client call"
+            Description = "Call tool on external MCP server"
+            Options = ["--server", "--tool", "--args"]
+            Example = "tars mcp client call --server github --tool get_repository --args '{\"owner\":\"user\",\"repo\":\"project\"}'"
+        }
+        
+        {
+            Command = "mcp client discover"
+            Description = "Auto-discover MCP servers on network"
+            Options = ["--network", "--timeout", "--auto-register"]
+            Example = "tars mcp client discover --network local --auto-register"
+        }
+        
+        // MCP Integration commands
+        {
+            Command = "mcp integrate"
+            Description = "Create integration metascript for MCP server"
+            Options = ["--server", "--use-case", "--output"]
+            Example = "tars mcp integrate --server github --use-case code-analysis"
+        }
+        
+        {
+            Command = "mcp workflow"
+            Description = "Execute cross-server MCP workflow"
+            Options = ["--definition", "--servers", "--async"]
+            Example = "tars mcp workflow --definition workflow.json --async"
+        }
+    ]
+    mcpCommands
+```
+
+## Autonomous MCP Discovery and Integration
+```f#
+let createAutonomousMcpSystem() =
+    let autonomousCapabilities = {
+        ServerDiscovery = {
+            NetworkScanning = "Scan local network for MCP servers"
+            RegistryLookup = "Check public MCP server registries"
+            CapabilityMatching = "Match discovered servers to TARS needs"
+            AutoRegistration = "Automatically register useful servers"
+        }
+        
+        ToolComposition = {
+            WorkflowGeneration = "Generate workflows combining TARS and external tools"
+            DependencyResolution = "Resolve tool dependencies across servers"
+            ErrorHandling = "Handle failures in cross-server workflows"
+            PerformanceOptimization = "Optimize multi-server tool execution"
+        }
+        
+        ResourceSharing = {
+            ResourceMapping = "Map TARS resources to MCP protocol"
+            AccessControl = "Control access to TARS resources"
+            CachingStrategy = "Cache frequently accessed external resources"
+            SyncronizationLogic = "Keep shared resources synchronized"
+        }
+        
+        AutonomousLearning = {
+            UsagePatterns = "Learn from MCP tool usage patterns"
+            ServerRecommendations = "Recommend new servers based on needs"
+            WorkflowOptimization = "Optimize workflows based on execution history"
+            CapabilityEvolution = "Evolve TARS capabilities based on external tools"
+        }
+    }
+    autonomousCapabilities
+```

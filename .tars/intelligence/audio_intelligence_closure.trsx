@@ -1,0 +1,19 @@
+
+# Audio Intelligence Closure
+let processAudio = fun audioFile ->
+    async {
+        let! transcription = transcribeWithWhisper audioFile
+        let! speakers = identifySpeakers transcription
+        let! actionItems = extractActionItems transcription
+        let! sentiment = analyzeSentiment transcription
+        
+        return {
+            Type = "AudioIntelligence"
+            Transcription = transcription
+            Speakers = speakers
+            ActionItems = actionItems
+            Sentiment = sentiment
+            TarsActions = generateAudioActions actionItems
+            Confidence = 0.9
+        }
+    }

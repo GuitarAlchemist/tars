@@ -1,0 +1,327 @@
+# TARS Agent Ecosystem Analysis Metascript
+# Analyzes the entire TARS agent ecosystem for systemic issues and capability gaps
+
+## Metascript Metadata
+```yaml
+name: "Agent Ecosystem Analysis"
+version: "1.0.0"
+type: "autonomous-analysis"
+priority: "high"
+triggers: ["deployment-failure", "qa-failure", "systemic-issue"]
+dependencies: ["root-cause-analysis", "qa-reports", "agent-inventory"]
+outputs: ["ecosystem-analysis", "capability-gaps", "architectural-recommendations"]
+confidence: 0.85
+```
+
+## Analysis Objectives
+```yaml
+primary_objective: "Identify systemic issues in TARS agent ecosystem"
+secondary_objectives:
+  - "Map agent capabilities and interactions"
+  - "Detect capability gaps and misalignments"
+  - "Provide architectural recommendations"
+  - "Generate ecosystem health metrics"
+```
+
+## Agent Inventory Discovery
+```f#
+let discoverAgents() =
+    let agentPaths = [
+        "TarsEngine.FSharp.Agents"
+        "TarsEngine.FSharp.Cli/Commands"
+        ".tars/metascripts"
+    ]
+    
+    let scanForAgents path =
+        Directory.GetFiles(path, "*.fs", SearchOption.AllDirectories)
+        |> Array.filter (fun f -> 
+            f.Contains("Agent") || 
+            f.Contains("Command") || 
+            f.Contains("Manager"))
+    
+    agentPaths
+    |> List.collect (fun path -> 
+        if Directory.Exists(path) then scanForAgents path |> Array.toList
+        else [])
+```
+
+## Capability Analysis
+```f#
+let analyzeCapabilities() =
+    let knownAgents = [
+        {
+            Name = "ProjectGenerator"
+            Purpose = "Generate project structure and documentation"
+            Inputs = ["user-prompt"; "complexity-level"]
+            Outputs = ["project-structure"; "documentation"; "configuration"]
+            Maturity = "Beta"
+            Issues = ["generates-templates-not-code"; "missing-executable-output"]
+        }
+        {
+            Name = "VMDeployment"
+            Purpose = "Deploy projects to containers/VMs"
+            Inputs = ["project-path"; "vm-config"]
+            Outputs = ["running-container"; "access-url"; "deployment-status"]
+            Maturity = "Production"
+            Issues = ["assumes-runnable-code"; "no-validation-step"]
+        }
+        {
+            Name = "QAAgent"
+            Purpose = "Automated testing and validation"
+            Inputs = ["deployed-app"; "test-specs"]
+            Outputs = ["test-results"; "bug-reports"; "quality-metrics"]
+            Maturity = "Alpha"
+            Issues = ["expects-responsive-app"; "limited-error-analysis"]
+        }
+        {
+            Name = "RootCauseAnalysis"
+            Purpose = "Deep failure analysis"
+            Inputs = ["failure-reports"; "system-logs"]
+            Outputs = ["root-causes"; "systemic-issues"; "recommendations"]
+            Maturity = "Alpha"
+            Issues = ["reactive-not-proactive"; "limited-ecosystem-view"]
+        }
+    ]
+    knownAgents
+```
+
+## Interaction Pattern Analysis
+```f#
+let analyzeInteractions() =
+    let currentFlow = [
+        ("User", "ProjectGenerator", "Sequential", 0.5)
+        ("ProjectGenerator", "VMDeployment", "Sequential", 0.3)
+        ("VMDeployment", "QAAgent", "Sequential", 0.2)
+        ("QAAgent", "RootCauseAnalysis", "Conditional", 0.9)
+    ]
+    
+    let identifyBottlenecks flow =
+        flow
+        |> List.filter (fun (_, _, _, successRate) -> successRate < 0.5)
+        |> List.map (fun (source, target, _, rate) -> 
+            $"Bottleneck: {source} → {target} (Success: {rate:P0})")
+    
+    {
+        Flow = currentFlow
+        Bottlenecks = identifyBottlenecks currentFlow
+        CriticalPath = ["ProjectGenerator"; "VMDeployment"; "QAAgent"]
+    }
+```
+
+## Gap Analysis
+```f#
+let identifyCapabilityGaps() =
+    [
+        {
+            Type = "Missing Agent"
+            Name = "ApplicationCodeGenerator"
+            Description = "No agent generates actual executable F# code"
+            Impact = "Critical"
+            Evidence = [
+                "Projects contain .fsproj but no .fs files"
+                "No Program.fs entry point generated"
+                "Build produces no DLLs"
+                "Containers have no running application"
+            ]
+            Solution = "Create dedicated code generation agent"
+        }
+        {
+            Type = "Missing Validation"
+            Name = "ProjectValidator"
+            Description = "No validation between generation and deployment"
+            Impact = "High"
+            Evidence = [
+                "Projects deployed without build verification"
+                "No automated testing of generated projects"
+                "No runnable validation"
+            ]
+            Solution = "Add validation pipeline with build checks"
+        }
+        {
+            Type = "Expectation Mismatch"
+            Name = "CapabilityManager"
+            Description = "User expectations don't match system capabilities"
+            Impact = "High"
+            Evidence = [
+                "Users expect runnable apps, get templates"
+                "No capability communication"
+                "False positive success indicators"
+            ]
+            Solution = "Implement capability disclosure and expectation management"
+        }
+    ]
+```
+
+## Systemic Issue Detection
+```f#
+let detectSystemicIssues() =
+    [
+        {
+            Category = "Architecture"
+            Issue = "Single-layer generation attempting both scaffolding and implementation"
+            SystemicNature = "Affects all downstream agents and user satisfaction"
+            RootCause = "No separation between structure and code generation"
+            Recommendation = "Implement layered architecture: Structure → Code → Configuration"
+        }
+        {
+            Category = "Process"
+            Issue = "Missing validation checkpoints between agent handoffs"
+            SystemicNature = "Reduces reliability of entire agent chain"
+            RootCause = "Agents assume previous output is valid"
+            Recommendation = "Add validation pipeline with automated checks"
+        }
+        {
+            Category = "Communication"
+            Issue = "No formal agent collaboration protocols"
+            SystemicNature = "Creates brittle integrations and unclear interfaces"
+            RootCause = "Ad-hoc agent interactions without contracts"
+            Recommendation = "Define Agent Collaboration Protocol specification"
+        }
+    ]
+```
+
+## Ecosystem Health Calculation
+```f#
+let calculateEcosystemHealth() =
+    let agents = analyzeCapabilities()
+    let interactions = analyzeInteractions()
+    let gaps = identifyCapabilityGaps()
+    
+    let capabilityScore = 
+        agents 
+        |> List.averageBy (fun a -> 
+            match a.Maturity with
+            | "Production" -> 1.0
+            | "Beta" -> 0.7
+            | "Alpha" -> 0.5
+            | _ -> 0.3)
+    
+    let interactionScore = 
+        interactions.Flow
+        |> List.averageBy (fun (_, _, _, rate) -> rate)
+    
+    let gapPenalty = 
+        gaps
+        |> List.sumBy (fun g -> 
+            match g.Impact with
+            | "Critical" -> 0.3
+            | "High" -> 0.2
+            | "Medium" -> 0.1
+            | _ -> 0.05)
+    
+    let overallHealth = (capabilityScore + interactionScore) / 2.0 - gapPenalty
+    Math.Max(0.0, overallHealth)
+```
+
+## Architectural Recommendations
+```yaml
+immediate_actions:
+  - name: "Create Application Code Generator"
+    priority: "Critical"
+    description: "Separate agent for generating actual F# source code"
+    implementation: "Enhance ContentGenerators.fs or create new CodeGenerator agent"
+    
+  - name: "Add Project Validation Pipeline"
+    priority: "High"
+    description: "Validate projects are buildable before deployment"
+    implementation: "Create ProjectValidator agent with dotnet build verification"
+
+short_term_actions:
+  - name: "Implement Agent Collaboration Protocol"
+    priority: "High"
+    description: "Formal interfaces and contracts between agents"
+    implementation: "Define IAgent interface with input/output contracts"
+    
+  - name: "Add Capability Management"
+    priority: "Medium"
+    description: "Manage user expectations and capability disclosure"
+    implementation: "Create CapabilityManager with maturity indicators"
+
+long_term_actions:
+  - name: "Layered Agent Architecture"
+    priority: "Strategic"
+    description: "Structure → Code → Configuration layers"
+    implementation: "Refactor entire agent ecosystem with clear layer boundaries"
+    
+  - name: "Ecosystem Monitoring Dashboard"
+    priority: "Strategic"
+    description: "Real-time agent health and interaction monitoring"
+    implementation: "Create monitoring agent with health metrics"
+```
+
+## Autonomous Execution Plan
+```f#
+let executeAnalysis() =
+    printfn "🔍 TARS METASCRIPT: Agent Ecosystem Analysis"
+    printfn "================================================"
+    
+    // Phase 1: Discovery
+    let agents = discoverAgents()
+    printfn $"📋 Discovered {agents.Length} agent files"
+    
+    // Phase 2: Capability Analysis
+    let capabilities = analyzeCapabilities()
+    printfn $"🎯 Analyzed {capabilities.Length} agent capabilities"
+    
+    // Phase 3: Interaction Analysis
+    let interactions = analyzeInteractions()
+    printfn $"🔗 Mapped {interactions.Flow.Length} agent interactions"
+    printfn $"⚠️ Identified {interactions.Bottlenecks.Length} bottlenecks"
+    
+    // Phase 4: Gap Analysis
+    let gaps = identifyCapabilityGaps()
+    printfn $"🕳️ Found {gaps.Length} capability gaps"
+    
+    // Phase 5: Systemic Issues
+    let issues = detectSystemicIssues()
+    printfn $"🏗️ Detected {issues.Length} systemic issues"
+    
+    // Phase 6: Health Assessment
+    let health = calculateEcosystemHealth()
+    printfn $"📊 Ecosystem Health: {health:P1}"
+    
+    // Phase 7: Generate Report
+    let report = generateComprehensiveReport(agents, capabilities, interactions, gaps, issues, health)
+    let reportFile = $".tars/reports/ecosystem-analysis-{DateTime.Now:yyyyMMdd-HHmmss}.md"
+    File.WriteAllText(reportFile, report)
+    printfn $"📄 Report generated: {reportFile}"
+    
+    // Phase 8: Autonomous Recommendations
+    printfn ""
+    printfn "🤖 AUTONOMOUS RECOMMENDATIONS:"
+    printfn "1. CRITICAL: Create ApplicationCodeGenerator agent immediately"
+    printfn "2. HIGH: Add ProjectValidator with build verification"
+    printfn "3. MEDIUM: Implement Agent Collaboration Protocol"
+    printfn "4. STRATEGIC: Refactor to layered agent architecture"
+    
+    health
+```
+
+## Metascript Reasoning
+```yaml
+analysis_approach: "Static analysis of agent ecosystem with dynamic interaction modeling"
+confidence_factors:
+  - "Direct observation of agent behavior and outputs"
+  - "Analysis of actual failure patterns and root causes"
+  - "Mapping of user expectations vs. system capabilities"
+  - "Identification of architectural patterns and anti-patterns"
+
+key_insights:
+  - "The core issue is architectural, not implementation"
+  - "Agent responsibilities are unclear and overlapping"
+  - "Missing critical capabilities create cascade failures"
+  - "User expectation management is completely absent"
+
+systemic_nature:
+  - "Issues affect entire agent ecosystem, not individual agents"
+  - "Root causes are in architecture and process, not code"
+  - "Solutions require ecosystem-wide changes, not patches"
+  - "Prevention requires proactive design, not reactive fixes"
+```
+
+## Execution Trigger
+```f#
+// Auto-execute when metascript is loaded
+let result = executeAnalysis()
+printfn $"🎯 Metascript execution completed with {result:P0} ecosystem health"
+```

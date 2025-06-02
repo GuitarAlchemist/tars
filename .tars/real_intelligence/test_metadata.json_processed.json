@@ -1,0 +1,33 @@
+{
+  "file_type": "metadata",
+  "file_path": ".tars/real_intelligence/test_metadata.json",
+  "timestamp": "2025-05-31T22:11:02.055669",
+  "processing_results": {
+    "metadata_keys": [
+      "file_type",
+      "duration",
+      "resolution",
+      "audio_tracks",
+      "detected_scenes",
+      "extracted_text",
+      "action_items"
+    ],
+    "scene_analysis": true,
+    "audio_analysis": true,
+    "actionable_content": true
+  },
+  "tars_intelligence": {
+    "content_type": "video_metadata",
+    "has_temporal_data": true,
+    "has_audio_information": true,
+    "has_actionable_content": true,
+    "scene_count": 4,
+    "action_count": 3,
+    "tars_actions": [
+      "create_tutorial_metascript",
+      "extract_learning_steps",
+      "generate_practice_exercises"
+    ]
+  },
+  "confidence": 0.95
+}

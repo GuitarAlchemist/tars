@@ -1,0 +1,32 @@
+
+# HTTP API Closure Template  
+let RESTAPIEndpoint = fun endpoint headers parameters ->
+    async {{
+        use client = new HttpClient()
+        
+        // Set headers
+        // Add authentication headers
+        
+        // Build request
+        let requestUri = requestUri
+        let! response = client.GetAsync(requestUri)
+        
+        if response.IsSuccessStatusCode then
+            let! content = response.Content.ReadAsStringAsync()
+            let data = JsonSerializer.Deserialize<dynamic>(content)
+            
+            return {{
+                Source = "REST API Endpoint"
+                Data = data
+                Timestamp = DateTime.UtcNow
+                StatusCode = int response.StatusCode
+                TarsActions = ["process_api_data", "cache_results", "monitor_changes"]
+            }}
+        else
+            return {{
+                Source = "REST API Endpoint"
+                Error = $"HTTP {{response.StatusCode}}: {{response.ReasonPhrase}}"
+                Timestamp = DateTime.UtcNow
+                TarsActions = ["handle_api_error", "retry_request", "alert_admin"]
+            }}
+    }}
