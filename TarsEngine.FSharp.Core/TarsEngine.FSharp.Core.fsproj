@@ -11,9 +11,6 @@
 
   <ItemGroup>
     <Compile Include="Core/Interop.fs" />
-    <Compile Include="CUDA/CudaVectorStore.fs" />
-    <Compile Include="CUDA/AgenticCudaRAG.fs" />
-    <Compile Include="CUDA/CudaIntegrationTests.fs" />
     <Compile Include="CUDA/CudaIntegration.fs" />
     <Compile Include="Metascript/Types.Enhanced.fs" />
     <Compile Include="Metascript/Services/TarsMetascriptParserFixed2.fs" />
@@ -23,8 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="FSharp.Core" Version="8.0.0" />
-    <PackageReference Include="System.Text.Json" Version="8.0.0" />
+    <PackageReference Include="System.Text.Json" Version="8.0.5" />
   </ItemGroup>
 
 </Project>

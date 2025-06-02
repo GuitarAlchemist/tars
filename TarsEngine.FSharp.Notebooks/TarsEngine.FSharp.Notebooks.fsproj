@@ -1,0 +1,54 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningsNotAsErrors>FS3391;FS0025</WarningsNotAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Core Types -->
+    <Compile Include="Types/NotebookTypes.fs" />
+    <Compile Include="Types/KernelTypes.fs" />
+    <Compile Include="Types/OutputTypes.fs" />
+    
+    <!-- Serialization -->
+    <Compile Include="Serialization/NotebookSerialization.fs" />
+    <Compile Include="Serialization/NotebookValidation.fs" />
+    
+    <!-- Generation -->
+    <Compile Include="Generation/MetascriptAnalyzer.fs" />
+    <Compile Include="Generation/NotebookGenerator.fs" />
+    <Compile Include="Generation/TemplateEngine.fs" />
+    
+    <!-- Discovery -->
+    <Compile Include="Discovery/NotebookDiscovery.fs" />
+    <Compile Include="Discovery/SourceAdapters.fs" />
+    <Compile Include="Discovery/QualityAssessment.fs" />
+    
+    <!-- Execution -->
+    <Compile Include="Execution/KernelManager.fs" />
+    <Compile Include="Execution/NotebookExecutor.fs" />
+    
+    <!-- Services -->
+    <Compile Include="Services/NotebookService.fs" />
+    <Compile Include="Services/UniversityCollaborationService.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />
+    <PackageReference Include="System.Text.Json" Version="9.0.0" />
+    <PackageReference Include="FSharp.Data" Version="6.4.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="System.Net.Http" Version="4.3.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TarsEngine.FSharp.Core\TarsEngine.FSharp.Core.fsproj" />
+    <ProjectReference Include="..\TarsEngine.FSharp.Agents\TarsEngine.FSharp.Agents.fsproj" />
+    <ProjectReference Include="..\TarsEngine.FSharp.Metascript\TarsEngine.FSharp.Metascript.fsproj" />
+  </ItemGroup>
+
+</Project>

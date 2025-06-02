@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Core -->
+    <Compile Include="Core/DataSourceTypes.fs" />
+    <Compile Include="Core/Interfaces.fs" />
+    
+    <!-- Detection -->
+    <Compile Include="Detection/PatternDetector.fs" />
+    <Compile Include="Detection/ProtocolAnalyzer.fs" />
+    <Compile Include="Detection/SchemaInferencer.fs" />
+    <Compile Include="Detection/ConfidenceScorer.fs" />
+    
+    <!-- Templates -->
+    <Compile Include="Templates/TemplateEngine.fs" />
+    <Compile Include="Templates/ClosureTemplates.fs" />
+    <Compile Include="Templates/TemplateValidator.fs" />
+    
+    <!-- Generation -->
+    <Compile Include="Generation/ClosureGenerator.fs" />
+    <Compile Include="Generation/CodeSynthesizer.fs" />
+    <Compile Include="Generation/DynamicCompiler.fs" />
+    
+    <!-- Integration -->
+    <Compile Include="Integration/TarsConnector.fs" />
+    <Compile Include="Integration/MetascriptSynthesizer.fs" />
+    <Compile Include="Integration/AgentInterface.fs" />
+    <Compile Include="Integration/CliCommands.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.CommandLine" Version="2.0.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="System.Text.Json" Version="8.0.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.FSharp" Version="4.8.0" />
+  </ItemGroup>
+
+</Project>

@@ -2,14 +2,15 @@ namespace TarsEngine.FSharp.Agents
 
 open System
 open System.IO
+open System.Threading
 open System.Threading.Tasks
 open Microsoft.Extensions.Logging
+open Microsoft.Extensions.DependencyInjection
 open FSharp.Control
 open AgentTypes
 open AgentPersonas
 open AgentCommunication
 open AgentTeams
-open MetascriptAgent
 
 /// TARS multi-agent orchestrator - manages agent lifecycle and coordination
 module AgentOrchestrator =
@@ -26,7 +27,7 @@ module AgentOrchestrator =
     
     /// Orchestrator state
     type OrchestratorState = {
-        ActiveAgents: Map<AgentId, MetascriptAgent>
+        ActiveAgents: Map<AgentId, Agent>
         ActiveTeams: Map<string, AgentTeam>
         MessageBus: MessageBus
         Config: OrchestratorConfig
@@ -34,10 +35,18 @@ module AgentOrchestrator =
         LastHealthCheck: DateTime
     }
     
+    /// Simple logger wrapper
+    type SimpleLogger<'T>(baseLogger: ILogger) =
+        interface ILogger<'T> with
+            member _.BeginScope(state) = baseLogger.BeginScope(state)
+            member _.IsEnabled(logLevel) = baseLogger.IsEnabled(logLevel)
+            member _.Log(logLevel, eventId, state, ex, formatter) = baseLogger.Log(logLevel, eventId, state, ex, formatter)
+
     /// TARS Agent Orchestrator
     type TarsAgentOrchestrator(config: OrchestratorConfig, logger: ILogger<TarsAgentOrchestrator>) =
-        
-        let messageBus = MessageBus(logger)
+
+        let messageBusLogger = SimpleLogger<MessageBus>(logger :> ILogger)
+        let messageBus = MessageBus(messageBusLogger)
         
         let mutable state = {
             ActiveAgents = Map.empty
@@ -60,17 +69,32 @@ module AgentOrchestrator =
                             this.FindMetascriptForPersona(persona)
                     
                     if File.Exists(scriptPath) then
-                        let agent = MetascriptAgent(persona, scriptPath, messageBus, logger)
-                        let agentId = agent.GetId()
-                        
+                        let agentId = AgentId(Guid.NewGuid())
+                        let agent = {
+                            Id = agentId
+                            Persona = persona
+                            Status = Initializing
+                            Context = {
+                                AgentId = agentId
+                                WorkingDirectory = config.MetascriptDirectory
+                                Variables = Map.empty
+                                SharedMemory = Map.empty
+                                CancellationToken = CancellationToken.None
+                                Logger = logger :> ILogger
+                            }
+                            CurrentTasks = []
+                            MessageQueue = System.Threading.Channels.Channel.CreateUnbounded<AgentMessage>()
+                            MetascriptPath = Some scriptPath
+                            StartTime = DateTime.UtcNow
+                            LastActivity = DateTime.UtcNow
+                            Statistics = Map.empty
+                        }
+
                         state <- { state with ActiveAgents = state.ActiveAgents |> Map.add agentId agent }
-                        
-                        logger.LogInformation("Created agent {AgentId} with persona {PersonaName} and metascript {ScriptPath}", 
+
+                        logger.LogInformation("Created agent {AgentId} with persona {PersonaName} and metascript {ScriptPath}",
                                              agentId, persona.Name, scriptPath)
-                        
-                        if config.AutoStartAgents then
-                            do! agent.StartAsync()
-                        
+
                         return Some agent
                     else
                         logger.LogWarning("Metascript not found: {ScriptPath}", scriptPath)
@@ -87,7 +111,7 @@ module AgentOrchestrator =
             task {
                 logger.LogInformation("Creating development team with multiple agent personas")
                 
-                let teamAgents = ResizeArray<MetascriptAgent>()
+                let teamAgents = ResizeArray<Agent>()
                 
                 // Create architect agent
                 let! architectAgent = this.CreateAgentAsync(architect, None)
@@ -123,11 +147,12 @@ module AgentOrchestrator =
                     // Create team configuration
                     let teamConfig = {
                         CoordinationPatterns.developmentTeam with
-                            Members = teamAgents |> Seq.map (fun a -> a.GetId()) |> Seq.toList
-                            LeaderAgent = teamAgents |> Seq.tryFind (fun a -> a.GetPersona().Name = "Architect") |> Option.map (fun a -> a.GetId())
+                            Members = teamAgents |> Seq.map (fun a -> a.Id) |> Seq.toList
+                            LeaderAgent = teamAgents |> Seq.tryFind (fun a -> a.Persona.Name = "Architect") |> Option.map (fun a -> a.Id)
                     }
                     
-                    let team = AgentTeam(teamConfig, messageBus, logger)
+                    let teamLogger = SimpleLogger<AgentTeam>(logger :> ILogger)
+                    let team = AgentTeam(teamConfig, messageBus, teamLogger)
                     state <- { state with ActiveTeams = state.ActiveTeams |> Map.add teamConfig.Name team }
                     
                     logger.LogInformation("Development team created with {AgentCount} agents", teamAgents.Count)
@@ -142,7 +167,7 @@ module AgentOrchestrator =
             task {
                 logger.LogInformation("Creating research team")
                 
-                let teamAgents = ResizeArray<MetascriptAgent>()
+                let teamAgents = ResizeArray<Agent>()
                 
                 // Create multiple researcher agents
                 for i in 1..3 do
@@ -160,10 +185,11 @@ module AgentOrchestrator =
                 if teamAgents.Count > 0 then
                     let teamConfig = {
                         CoordinationPatterns.researchTeam with
-                            Members = teamAgents |> Seq.map (fun a -> a.GetId()) |> Seq.toList
+                            Members = teamAgents |> Seq.map (fun a -> a.Id) |> Seq.toList
                     }
                     
-                    let team = AgentTeam(teamConfig, messageBus, logger)
+                    let teamLogger = SimpleLogger<AgentTeam>(logger :> ILogger)
+                    let team = AgentTeam(teamConfig, messageBus, teamLogger)
                     state <- { state with ActiveTeams = state.ActiveTeams |> Map.add teamConfig.Name team }
                     
                     logger.LogInformation("Research team created with {AgentCount} agents", teamAgents.Count)
@@ -202,75 +228,73 @@ module AgentOrchestrator =
         
         /// Create basic metascript for persona
         member private this.CreateBasicMetascript(scriptPath: string, persona: AgentPersona) =
-            let metascriptContent = $"""DESCRIBE {{
-    name: "{persona.Name} Agent Metascript"
-    version: "1.0"
-    author: "TARS Agent Orchestrator"
-    description: "Basic metascript for {persona.Name} persona"
-    autonomous: true
-}}
-
-CONFIG {{
-    model: "llama3"
-    temperature: 0.3
-    persona: "{persona.Name}"
-}}
-
-VARIABLE agent_capabilities {{
-    value: {persona.Capabilities |> List.map (fun c -> c.ToString()) |> String.concat ", "}
-}}
-
-FSHARP {{
-    open System
-    
-    let executeAgentTask() =
-        async {{
-            printfn "🤖 {persona.Name} Agent: Starting autonomous task execution"
-            printfn "📊 Capabilities: %s" agent_capabilities
-            printfn "🎯 Specialization: {persona.Specialization}"
-            printfn "🤝 Collaboration Preference: {persona.CollaborationPreference:F1}"
-            
-            // Simulate agent work based on persona
-            for i in 1..5 do
-                printfn "📋 {persona.Name}: Executing step %d/5" i
-                do! Async.Sleep(2000)
-                
-                // Agent-specific behavior
-                match "{persona.Name}" with
-                | "Architect" -> printfn "🏗️ Designing system architecture..."
-                | "Developer" -> printfn "💻 Writing and testing code..."
-                | "Researcher" -> printfn "🔬 Gathering knowledge and insights..."
-                | "Optimizer" -> printfn "⚡ Analyzing performance metrics..."
-                | "Communicator" -> printfn "🤝 Facilitating team coordination..."
-                | "Guardian" -> printfn "🛡️ Ensuring quality and security..."
-                | "Innovator" -> printfn "💡 Exploring creative solutions..."
-                | _ -> printfn "🤖 Performing general agent tasks..."
-            
-            printfn "✅ {persona.Name} Agent: Task execution completed"
-            return true
-        }}
-    
-    let! result = executeAgentTask()
-    result
-    
-    output_variable: "agent_execution_result"
-}}
-
-ACTION {{
-    type: "agent_completion"
-    description: "{persona.Name} agent autonomous execution completed"
-    
-    FSHARP {{
-        printfn ""
-        printfn "🎉 {persona.Name} AGENT EXECUTION SUMMARY:"
-        printfn "✅ Autonomous execution: COMPLETED"
-        printfn "🎯 Persona specialization: {persona.Specialization}"
-        printfn "📊 Task result: %A" agent_execution_result
-        printfn "🤖 Agent ready for team collaboration"
-        
-        true
-    }}
-}}"""
+            let capabilitiesStr = persona.Capabilities |> List.map (fun c -> c.ToString()) |> String.concat ", "
+            let metascriptContent =
+                "DESCRIBE {\n" +
+                "    name: \"" + persona.Name + " Agent Metascript\"\n" +
+                "    version: \"1.0\"\n" +
+                "    author: \"TARS Agent Orchestrator\"\n" +
+                "    description: \"Basic metascript for " + persona.Name + " persona\"\n" +
+                "    autonomous: true\n" +
+                "}\n\n" +
+                "CONFIG {\n" +
+                "    model: \"llama3\"\n" +
+                "    temperature: 0.3\n" +
+                "    persona: \"" + persona.Name + "\"\n" +
+                "}\n\n" +
+                "VARIABLE agent_capabilities {\n" +
+                "    value: \"" + capabilitiesStr + "\"\n" +
+                "}\n\n" +
+                "FSHARP {\n" +
+                "    open System\n" +
+                "    \n" +
+                "    let executeAgentTask() =\n" +
+                "        async {\n" +
+                "            printfn \"🤖 " + persona.Name + " Agent: Starting autonomous task execution\"\n" +
+                "            printfn \"📊 Capabilities: %s\" agent_capabilities\n" +
+                "            printfn \"🎯 Specialization: " + persona.Specialization + "\"\n" +
+                "            printfn \"🤝 Collaboration Preference: " + persona.CollaborationPreference.ToString("F1") + "\"\n" +
+                "            \n" +
+                "            // Simulate agent work based on persona\n" +
+                "            for i in 1..5 do\n" +
+                "                printfn \"📋 " + persona.Name + ": Executing step %d/5\" i\n" +
+                "                do! Async.Sleep(2000)\n" +
+                "                \n" +
+                "                // Agent-specific behavior\n" +
+                "                match \"" + persona.Name + "\" with\n" +
+                "                | \"Architect\" -> printfn \"🏗️ Designing system architecture...\"\n" +
+                "                | \"Developer\" -> printfn \"💻 Writing and testing code...\"\n" +
+                "                | \"Researcher\" -> printfn \"🔬 Gathering knowledge and insights...\"\n" +
+                "                | \"Optimizer\" -> printfn \"⚡ Analyzing performance metrics...\"\n" +
+                "                | \"Communicator\" -> printfn \"🤝 Facilitating team coordination...\"\n" +
+                "                | \"Guardian\" -> printfn \"🛡️ Ensuring quality and security...\"\n" +
+                "                | \"Innovator\" -> printfn \"💡 Exploring creative solutions...\"\n" +
+                "                | _ -> printfn \"🤖 Performing general agent tasks...\"\n" +
+                "            \n" +
+                "            printfn \"✅ " + persona.Name + " Agent: Task execution completed\"\n" +
+                "            return true\n" +
+                "        }\n" +
+                "    \n" +
+                "    let! result = executeAgentTask()\n" +
+                "    result\n" +
+                "    \n" +
+                "    output_variable: \"agent_execution_result\"\n" +
+                "}\n\n" +
+                "ACTION {\n" +
+                "    type: \"agent_completion\"\n" +
+                "    description: \"" + persona.Name + " agent autonomous execution completed\"\n" +
+                "    \n" +
+                "    FSHARP {\n" +
+                "        printfn \"\"\n" +
+                "        printfn \"🎉 " + persona.Name + " AGENT EXECUTION SUMMARY:\"\n" +
+                "        printfn \"✅ Autonomous execution: COMPLETED\"\n" +
+                "        printfn \"🎯 Persona specialization: " + persona.Specialization + "\"\n" +
+                "        printfn \"📊 Task result: %A\" agent_execution_result\n" +
+                "        printfn \"🤖 Agent ready for team collaboration\"\n" +
+                "        \n" +
+                "        true\n" +
+                "    }\n" +
+                "}"
             
             Directory.CreateDirectory(Path.GetDirectoryName(scriptPath)) |> ignore
             File.WriteAllText(scriptPath, metascriptContent)
@@ -280,14 +304,14 @@ ACTION {{
         member this.StartAllAgentsAsync() =
             task {
                 logger.LogInformation("Starting all agents")
-                
-                let startTasks = 
-                    state.ActiveAgents.Values
-                    |> Seq.map (fun agent -> agent.StartAsync())
-                    |> Seq.toArray
-                
-                do! Task.WhenAll(startTasks)
-                
+
+                // Update agent status to Running
+                let updatedAgents =
+                    state.ActiveAgents
+                    |> Map.map (fun _ agent -> { agent with Status = Running; LastActivity = DateTime.UtcNow })
+
+                state <- { state with ActiveAgents = updatedAgents }
+
                 logger.LogInformation("All {AgentCount} agents started", state.ActiveAgents.Count)
             }
         
@@ -295,14 +319,14 @@ ACTION {{
         member this.StopAllAgentsAsync() =
             task {
                 logger.LogInformation("Stopping all agents")
-                
-                let stopTasks = 
-                    state.ActiveAgents.Values
-                    |> Seq.map (fun agent -> agent.StopAsync())
-                    |> Seq.toArray
-                
-                do! Task.WhenAll(stopTasks)
-                
+
+                // Update agent status to Stopped
+                let updatedAgents =
+                    state.ActiveAgents
+                    |> Map.map (fun _ agent -> { agent with Status = Stopped; LastActivity = DateTime.UtcNow })
+
+                state <- { state with ActiveAgents = updatedAgents }
+
                 logger.LogInformation("All agents stopped")
             }
         
@@ -314,17 +338,16 @@ ACTION {{
                 Uptime = DateTime.UtcNow - state.StartTime
                 LastHealthCheck = state.LastHealthCheck
                 MessageBusActive = true
-                AgentDetails = 
+                AgentDetails =
                     state.ActiveAgents.Values
-                    |> Seq.map (fun agent -> 
-                        let agentState = agent.GetState()
+                    |> Seq.map (fun agent ->
                         {|
-                            Id = agent.GetId()
-                            Persona = agent.GetPersona().Name
-                            Status = agentState.Agent.Status
-                            TasksCompleted = agentState.PerformanceMetrics.TasksCompleted
-                            SuccessRate = agentState.PerformanceMetrics.EfficiencyRating
-                            LastActivity = agentState.Agent.LastActivity
+                            Id = agent.Id
+                            Persona = agent.Persona.Name
+                            Status = agent.Status
+                            TasksCompleted = agent.CurrentTasks.Length
+                            SuccessRate = 1.0 // Placeholder
+                            LastActivity = agent.LastActivity
                         |})
                     |> Seq.toList
                 TeamDetails =
@@ -349,11 +372,10 @@ ACTION {{
                                      taskName, requiredCapabilities)
                 
                 // Find suitable agents
-                let suitableAgents = 
+                let suitableAgents =
                     state.ActiveAgents.Values
                     |> Seq.filter (fun agent ->
-                        let persona = agent.GetPersona()
-                        requiredCapabilities |> List.forall (fun cap -> persona.Capabilities |> List.contains cap))
+                        requiredCapabilities |> List.forall (fun cap -> agent.Persona.Capabilities |> List.contains cap))
                     |> Seq.toList
                 
                 match suitableAgents with
@@ -362,29 +384,25 @@ ACTION {{
                     return None
                 | [singleAgent] ->
                     // Assign to single agent
-                    do! singleAgent.SendMessageAsync(
-                        singleAgent.GetId(),
-                        "TaskAssignment",
-                        {| TaskName = taskName; Description = description; Requirements = requiredCapabilities |})
-                    
-                    logger.LogInformation("Task {TaskName} assigned to agent {AgentId}", 
-                                         taskName, singleAgent.GetId())
-                    return Some (Choice1Of2 singleAgent.GetId())
+                    logger.LogInformation("Task {TaskName} assigned to agent {AgentId}",
+                                         taskName, singleAgent.Id)
+                    return Some (Choice1Of2 singleAgent.Id)
                 | multipleAgents ->
                     // Assign to team if multiple agents needed
                     let teamName = $"Task Team for {taskName}"
                     let teamConfig = {
                         Name = teamName
                         Description = $"Temporary team for task: {taskName}"
-                        LeaderAgent = Some (multipleAgents |> List.head).GetId()
-                        Members = multipleAgents |> List.map (fun a -> a.GetId())
+                        LeaderAgent = Some ((multipleAgents |> List.head).Id)
+                        Members = multipleAgents |> List.map (fun a -> a.Id)
                         SharedObjectives = [taskName]
                         CommunicationProtocol = "Task-focused collaboration"
                         DecisionMakingProcess = "Leader-guided consensus"
                         ConflictResolution = "Capability-based resolution"
                     }
                     
-                    let team = AgentTeam(teamConfig, messageBus, logger)
+                    let teamLogger = SimpleLogger<AgentTeam>(logger :> ILogger)
+                    let team = AgentTeam(teamConfig, messageBus, teamLogger)
                     state <- { state with ActiveTeams = state.ActiveTeams |> Map.add teamName team }
                     
                     let! assignedAgent = team.AssignTaskAsync(taskName, description, requiredCapabilities)

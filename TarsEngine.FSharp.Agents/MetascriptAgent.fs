@@ -5,7 +5,7 @@ open System.IO
 open System.Threading
 open System.Threading.Tasks
 open Microsoft.Extensions.Logging
-open FSharp.Control
+// open FSharp.Control
 open AgentTypes
 open AgentPersonas
 open AgentCommunication
@@ -17,7 +17,7 @@ module MetascriptAgent =
     type MetascriptAgentState = {
         Agent: Agent
         Communication: IAgentCommunication
-        CurrentExecution: TaskSeq<AgentTaskResult> option
+        CurrentExecution: seq<AgentTaskResult> option
         ExecutionCancellation: CancellationTokenSource option
         LearningData: LearningData list
         PerformanceMetrics: AgentMetrics
@@ -134,46 +134,45 @@ module MetascriptAgent =
                     logger.LogInformation("Executing metascript {ScriptPath} for agent {AgentId}", 
                                          scriptPath, agentId)
                     
-                    // Create long-running task sequence
-                    let executionResults = taskSeq {
-                        let startTime = DateTime.UtcNow
-                        
-                        // Simulate metascript execution with streaming results
-                        for i in 1..10 do
-                            if not cts.Token.IsCancellationRequested then
-                                // Simulate work
-                                do! Task.Delay(1000, cts.Token)
-                                
-                                let result = {
-                                    Success = true
-                                    Output = Some $"Step {i} completed by {persona.Name}"
-                                    Error = None
-                                    ExecutionTime = DateTime.UtcNow - startTime
-                                    Metadata = Map.ofList [
-                                        ("step", i :> obj)
-                                        ("agent_id", agentId :> obj)
-                                        ("persona", persona.Name :> obj)
-                                    ]
-                                }
-                                
-                                // Update metrics
-                                this.UpdateMetrics(result)
-                                
-                                // Send progress update
-                                let progressMessage = createMessage
-                                    agentId
-                                    None // Broadcast
-                                    "ExecutionProgress"
-                                    {| Step = i; Total = 10; Result = result |}
-                                    MessagePriority.Low
-                                
-                                do! communication.SendMessageAsync(progressMessage)
-                                
-                                yield result
-                    }
+                    // Create execution results list
+                    let executionResults = ResizeArray<AgentTaskResult>()
+                    let startTime = DateTime.UtcNow
+
+                    // Simulate metascript execution with streaming results
+                    for i in 1..10 do
+                        if not cts.Token.IsCancellationRequested then
+                            // Simulate work
+                            do! Task.Delay(1000, cts.Token)
+
+                            let result = {
+                                Success = true
+                                Output = Some $"Step {i} completed by {persona.Name}"
+                                Error = None
+                                ExecutionTime = DateTime.UtcNow - startTime
+                                Metadata = Map.ofList [
+                                    ("step", i :> obj)
+                                    ("agent_id", agentId :> obj)
+                                    ("persona", persona.Name :> obj)
+                                ]
+                            }
+
+                            // Update metrics
+                            this.UpdateMetrics(result)
+
+                            // Send progress update
+                            let progressMessage = createMessage
+                                                    agentId
+                                                    None // Broadcast
+                                                    "ExecutionProgress"
+                                                    {| Step = i; Total = 10; Result = result |}
+                                                    MessagePriority.Low
+
+                            do! communication.SendMessageAsync(progressMessage)
+
+                            executionResults.Add(result)
                     
-                    state <- { state with CurrentExecution = Some executionResults }
-                    
+                    state <- { state with CurrentExecution = Some (executionResults :> seq<AgentTaskResult>) }
+
                     // Process all results
                     for result in executionResults do
                         logger.LogDebug("Metascript step completed: {Output}", result.Output)
@@ -254,7 +253,7 @@ module MetascriptAgent =
                 
                 if hasCapabilities then
                     // Accept task
-                    let response = {| Accepted = true; EstimatedTime = TimeSpan.FromMinutes(30) |}
+                    let response = {| Accepted = true; EstimatedTime = TimeSpan.FromMinutes(30.0) |}
                     do! communication.ReplyToAsync(message, response)
                     
                     logger.LogInformation("Agent {AgentId} accepted task: {TaskName}", agentId, taskData.TaskName)
@@ -279,11 +278,11 @@ module MetascriptAgent =
                     | _ -> votingData.Options |> List.head // Default choice
                 
                 let voteMessage = createMessage
-                    agentId
-                    message.ReplyTo
-                    "Vote"
-                    {| DecisionId = votingData.DecisionId; Vote = vote |}
-                    MessagePriority.Normal
+                                    agentId
+                                    message.ReplyTo
+                                    "Vote"
+                                    {| DecisionId = votingData.DecisionId; Vote = vote |}
+                                    MessagePriority.Normal
                 
                 do! communication.SendMessageAsync(voteMessage)
                 
