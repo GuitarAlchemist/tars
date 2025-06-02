@@ -185,9 +185,9 @@ type MetascriptService(logger: ILogger<MetascriptService>, executor: IMetascript
                     
                     // Update the metascript with file info
                     return { metascript with
-                        CreationTime = fileInfo.CreationTimeUtc
-                        LastModificationTime = Some fileInfo.LastWriteTimeUtc
-                    }
+                                CreationTime = fileInfo.CreationTimeUtc
+                                LastModificationTime = Some fileInfo.LastWriteTimeUtc
+                           }
             with
             | ex ->
                 logger.LogError(ex, "Error parsing metascript file: {FilePath}", filePath)

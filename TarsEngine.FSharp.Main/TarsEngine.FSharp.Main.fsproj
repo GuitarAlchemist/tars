@@ -31,7 +31,7 @@
     <Compile Include="Utilities/Types.fs" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="FSharp.Core" Version="9.0.201" />
+
     <PackageReference Include="Microsoft.AspNetCore.Components" Version="9.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="9.0.0" />
     <PackageReference Include="Microsoft.JSInterop" Version="9.0.0" />
