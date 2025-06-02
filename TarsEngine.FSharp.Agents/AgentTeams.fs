@@ -65,12 +65,12 @@ module AgentTeams =
                 logger.LogInformation("Agent {AgentId} added to team {TeamName}", agentId, configuration.Name)
                 
                 // Notify team of new member
-                let message = createMessage 
-                    (AgentId(Guid.Empty)) // System message
-                    None // Broadcast
-                    "TeamMemberAdded"
-                    {| TeamName = configuration.Name; NewMember = agentId |}
-                    MessagePriority.Normal
+                let message = createMessage
+                                (AgentId(Guid.Empty)) // System message
+                                None // Broadcast
+                                "TeamMemberAdded"
+                                {| TeamName = configuration.Name; NewMember = agentId |}
+                                MessagePriority.Normal
                 
                 messageBus.SendMessageAsync(message) |> ignore
         
@@ -107,11 +107,11 @@ module AgentTeams =
                         | _ -> agents |> List.head // Simple assignment
                     
                     let taskMessage = createMessage
-                        (AgentId(Guid.Empty)) // System message
-                        (Some assignedAgent)
-                        "TaskAssignment"
-                        {| TaskName = taskName; Description = taskDescription; Requirements = requirements |}
-                        MessagePriority.High
+                                        (AgentId(Guid.Empty)) // System message
+                                        (Some assignedAgent)
+                                        "TaskAssignment"
+                                        {| TaskName = taskName; Description = taskDescription; Requirements = requirements |}
+                                        MessagePriority.High
                     
                     do! messageBus.SendMessageAsync(taskMessage)
                     
@@ -137,11 +137,11 @@ module AgentTeams =
                 
                 // Send voting request to all team members
                 let votingMessage = createMessage
-                    (AgentId(Guid.Empty)) // System message
-                    None // Broadcast to team
-                    "VotingRequest"
-                    {| DecisionId = decisionId; Question = question; Options = options; TimeoutMinutes = timeoutMinutes |}
-                    MessagePriority.High
+                                      (AgentId(Guid.Empty)) // System message
+                                      None // Broadcast to team
+                                      "VotingRequest"
+                                      {| DecisionId = decisionId; Question = question; Options = options; TimeoutMinutes = timeoutMinutes |}
+                                      MessagePriority.High
                 
                 do! messageBus.SendMessageAsync(votingMessage)
                 
@@ -217,11 +217,11 @@ module AgentTeams =
                     
                     // Notify team of decision result
                     let resultMessage = createMessage
-                        (AgentId(Guid.Empty)) // System message
-                        None // Broadcast
-                        "DecisionResult"
-                        {| DecisionId = decisionId; Result = result; Consensus = consensus |}
-                        MessagePriority.High
+                                          (AgentId(Guid.Empty)) // System message
+                                          None // Broadcast
+                                          "DecisionResult"
+                                          {| DecisionId = decisionId; Result = result; Consensus = consensus |}
+                                          MessagePriority.High
                     
                     do! messageBus.SendMessageAsync(resultMessage)
                     

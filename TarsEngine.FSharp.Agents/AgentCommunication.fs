@@ -122,10 +122,10 @@ module AgentCommunication =
     /// Agent communication interface
     type IAgentCommunication =
         abstract member SendMessageAsync: AgentMessage -> Task
-        abstract member SendRequestAsync: AgentId -> string -> obj -> Task<obj option>
-        abstract member BroadcastAsync: string -> obj -> Task
-        abstract member GetMessageStream: unit -> TaskSeq<AgentMessage>
-        abstract member ReplyToAsync: AgentMessage -> obj -> Task
+        abstract member SendRequestAsync: AgentId * string * obj -> Task<obj option>
+        abstract member BroadcastAsync: string * obj -> Task
+        abstract member GetMessageStream: unit -> seq<AgentMessage>
+        abstract member ReplyToAsync: AgentMessage * obj -> Task
     
     /// Agent communication implementation
     type AgentCommunication(agentId: AgentId, messageBus: MessageBus, logger: ILogger) =
@@ -159,7 +159,7 @@ module AgentCommunication =
                 do! this.SendMessageAsync(message)
                 
                 // Wait for response with timeout
-                use cts = new CancellationTokenSource(TimeSpan.FromSeconds(30))
+                use cts = new CancellationTokenSource(TimeSpan.FromSeconds(30.0))
                 try
                     let! result = tcs.Task.WaitAsync(cts.Token)
                     return Some result
@@ -186,7 +186,7 @@ module AgentCommunication =
             this.SendMessageAsync(message)
         
         /// Get message stream for this agent
-        member this.GetMessageStream() = messageStream
+        member this.GetMessageStream() = Seq.empty<AgentMessage> // Placeholder implementation
         
         /// Reply to a message
         member this.ReplyToAsync(originalMessage: AgentMessage, response: obj) =
@@ -206,7 +206,7 @@ module AgentCommunication =
                 this.SendMessageAsync(replyMessage)
             | _ ->
                 logger.LogWarning("Cannot reply to message without ReplyTo or CorrelationId")
-                Task.CompletedTask
+                task { return () }
         
         /// Process incoming messages (internal)
         member internal this.ProcessIncomingMessages() =
@@ -225,7 +225,7 @@ module AgentCommunication =
         
         interface IAgentCommunication with
             member this.SendMessageAsync(message) = this.SendMessageAsync(message)
-            member this.SendRequestAsync(targetAgent, messageType, content) = 
+            member this.SendRequestAsync(targetAgent, messageType, content) =
                 this.SendRequestAsync(targetAgent, messageType, content)
             member this.BroadcastAsync(messageType, content) = this.BroadcastAsync(messageType, content)
             member this.GetMessageStream() = this.GetMessageStream()

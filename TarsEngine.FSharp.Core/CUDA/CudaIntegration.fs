@@ -51,38 +51,13 @@ type TarsCudaService() =
     member this.GenerateMetascriptWithCuda(objective: string) =
         async {
             printfn "🤖 Generating metascript with CUDA: %s" objective
-            
+
             // Get CUDA-accelerated knowledge
             let! knowledge = this.SearchWithCuda($"metascript {objective}", 3)
-            
+
             let knowledgeText = knowledge |> List.map (fun k -> sprintf "// %s (%.2f)" k.Content k.Similarity) |> String.concat "\n"
-            let metascript = sprintf """DESCRIBE {
-    name: "CUDA-Enhanced %s"
-    version: "1.0"
-    author: "TARS + CUDA RTX 3070"
-    cuda_acceleration: true
-}
+            let metascript = sprintf "DESCRIBE {\n    name: \"CUDA-Enhanced %s\"\n    version: \"1.0\"\n    author: \"TARS + CUDA RTX 3070\"\n    cuda_acceleration: true\n}\n\nCONFIG {\n    model: \"llama3\"\n    temperature: 0.3\n    performance: \"184M+ searches/second\"\n}\n\n// CUDA-retrieved knowledge:\n%s\n\nACTION {\n    type: \"cuda_search\"\n    performance: \"184M+ ops/sec\"\n    gpu: \"RTX 3070\"\n}\n\nACTION {\n    type: \"execute\"\n    description: \"Execute with GPU acceleration\"\n}" objective knowledgeText
 
-CONFIG {
-    model: "llama3"
-    temperature: 0.3
-    performance: "184M+ searches/second"
-}
-
-// CUDA-retrieved knowledge:
-%s
-
-ACTION {
-    type: "cuda_search"
-    performance: "184M+ ops/sec"
-    gpu: "RTX 3070"
-}
-
-ACTION {
-    type: "execute"
-    description: "Execute with GPU acceleration"
-}""" objective knowledgeText
-            
             return metascript
         }
 

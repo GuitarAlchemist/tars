@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningsAsErrors />
+    <WarningsNotAsErrors>FS0025</WarningsNotAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Models -->
+    <Compile Include="Models/RequirementType.fs" />
+    <Compile Include="Models/Requirement.fs" />
+    <Compile Include="Models/TestCase.fs" />
+    <Compile Include="Models/TraceabilityLink.fs" />
+    
+    <!-- Repository -->
+    <Compile Include="Repository/IRequirementRepository.fs" />
+    <Compile Include="Repository/SqliteRepository.fs" />
+    <Compile Include="Repository/InMemoryRepository.fs" />
+    
+    <!-- Validation -->
+    <Compile Include="Validation/RequirementValidator.fs" />
+    <Compile Include="Validation/TestExecutor.fs" />
+    <Compile Include="Validation/RegressionRunner.fs" />
+    
+    <!-- CLI -->
+    <!-- <Compile Include="CLI/RequirementsCommand.fs" /> -->
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.0" />
+    <PackageReference Include="System.Text.Json" Version="9.0.0" />
+    <PackageReference Include="FSharp.Core" Version="9.0.300" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../TarsEngine.FSharp.Core/TarsEngine.FSharp.Core.fsproj" />
+  </ItemGroup>
+
+</Project>

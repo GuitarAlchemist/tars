@@ -1,0 +1,202 @@
+# TARS Windows Service Configuration
+# Autonomous Development Platform Service Settings
+
+service:
+  name: "TarsService"
+  displayName: "TARS Autonomous Development Platform"
+  description: "Autonomous development platform with multi-agent orchestration, semantic coordination, and continuous improvement capabilities"
+  startType: "Automatic"
+  
+  # Service behavior
+  autoRestart: true
+  restartDelay: 30 # seconds
+  maxRestartAttempts: 3
+  
+  # Performance settings
+  maxConcurrentTasks: 100
+  taskTimeoutMinutes: 60
+  healthCheckIntervalSeconds: 30
+
+# Agent system configuration
+agents:
+  maxConcurrentAgents: 20
+  agentTimeoutMinutes: 30
+  agentHealthCheckSeconds: 15
+  
+  # Agent types and limits
+  agentLimits:
+    Infrastructure: 5
+    Development: 8
+    Analysis: 4
+    QA: 3
+    
+  # Agent capabilities
+  defaultCapabilities:
+    - "task-execution"
+    - "progress-reporting"
+    - "error-handling"
+    - "health-monitoring"
+
+# Task execution configuration
+tasks:
+  queueCapacity: 1000
+  priorityLevels: 5
+  executionTimeoutMinutes: 120
+  retryAttempts: 3
+  retryDelaySeconds: 10
+  
+  # Task categories
+  categories:
+    - "infrastructure"
+    - "development"
+    - "testing"
+    - "deployment"
+    - "maintenance"
+    - "analysis"
+
+# Monitoring and diagnostics
+monitoring:
+  enabled: true
+  metricsIntervalSeconds: 60
+  performanceCounters: true
+  eventLogging: true
+  
+  # Health monitoring
+  healthChecks:
+    enabled: true
+    intervalSeconds: 30
+    timeoutSeconds: 10
+    
+  # Alerting
+  alerts:
+    enabled: true
+    emailNotifications: false
+    logAlerts: true
+    
+  # Performance thresholds
+  thresholds:
+    cpuUsagePercent: 80
+    memoryUsageMB: 2048
+    diskUsagePercent: 85
+    taskQueueSize: 500
+
+# Semantic coordination system
+semantic:
+  enabled: true
+  analysisIntervalSeconds: 30
+  matchingAccuracyThreshold: 0.85
+  
+  # Natural language processing
+  nlp:
+    enabled: true
+    confidenceThreshold: 0.7
+    maxTokens: 1000
+    
+  # Capability matching
+  matching:
+    algorithm: "semantic-similarity"
+    weightFactors:
+      skills: 0.4
+      availability: 0.3
+      performance: 0.2
+      preference: 0.1
+
+# Closure factory configuration
+closureFactory:
+  enabled: true
+  directoryPath: ".tars/closures"
+  hotReload: true
+  watchForChanges: true
+  
+  # Supported languages
+  supportedLanguages:
+    - "fsharp"
+    - "csharp"
+    - "python"
+    - "docker"
+    - "yaml"
+    
+  # Execution limits
+  execution:
+    timeoutMinutes: 30
+    memoryLimitMB: 512
+    sandboxed: true
+
+# Roadmap management
+roadmap:
+  enabled: true
+  directoryPath: ".tars/roadmaps"
+  autoBackup: true
+  backupIntervalHours: 6
+  maxBackups: 50
+  
+  # Analysis settings
+  analysis:
+    enabled: true
+    intervalMinutes: 60
+    autoApplyLowRiskRecommendations: true
+    riskThreshold: 0.3
+
+# Logging configuration
+logging:
+  level: "Information"
+  console: true
+  file: true
+  eventLog: true
+  
+  # File logging
+  fileLogging:
+    path: "logs"
+    maxFileSizeMB: 100
+    maxFiles: 10
+    rollingInterval: "Day"
+    
+  # Structured logging
+  structured: true
+  includeScopes: true
+  includeTimestamp: true
+
+# Security settings
+security:
+  enableAuthentication: false
+  enableAuthorization: false
+  allowAnonymous: true
+  
+  # API security (when enabled)
+  api:
+    requireHttps: false
+    corsEnabled: true
+    rateLimiting: false
+
+# Development and debugging
+development:
+  debugMode: false
+  verboseLogging: false
+  enableMetrics: true
+  enableTracing: false
+  
+  # Testing
+  testing:
+    enabled: false
+    mockExternalServices: false
+    simulateFailures: false
+
+# Integration settings
+integration:
+  # External services
+  externalServices:
+    enabled: false
+    timeoutSeconds: 30
+    retryAttempts: 3
+    
+  # Database (when needed)
+  database:
+    enabled: false
+    connectionString: ""
+    commandTimeoutSeconds: 30
+    
+  # Message queues (when needed)
+  messageQueue:
+    enabled: false
+    provider: "memory"
+    maxMessages: 10000
