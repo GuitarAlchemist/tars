@@ -1,0 +1,497 @@
+DESCRIBE {
+    name: "US/Canada Tax Incentive Report Generator"
+    purpose: "Generate accurate tax incentive reports by analyzing GitHub commits and current government regulations"
+    version: "1.0.0"
+    author: "TARS Autonomous System"
+    created: "2024-12-15"
+    complexity: 10
+    reasoning_required: ["analytical", "legal", "financial", "temporal", "adaptive"]
+    compliance: ["US_IRS", "CRA_Canada", "GAAP", "IFRS"]
+}
+
+CONFIG {
+    // GitHub Integration
+    github_api_endpoint: "https://api.github.com"
+    github_token: "${GITHUB_TOKEN}"
+    
+    // Government Data Sources
+    us_irs_endpoint: "https://www.irs.gov"
+    canada_cra_endpoint: "https://www.canada.ca/en/revenue-agency"
+    us_congress_api: "https://api.congress.gov/v3"
+    canada_parl_api: "https://www.ourcommons.ca/DocumentViewer/en/house/latest/hansard"
+    
+    // Tax Law Databases
+    us_tax_code_search: "https://www.law.cornell.edu/uscode/text/26"
+    canada_tax_act_search: "https://laws-lois.justice.gc.ca/eng/acts/I-3.3"
+    
+    // Professional Tax Resources
+    deloitte_tax_api: "https://www2.deloitte.com/us/en/pages/tax/articles"
+    pwc_tax_insights: "https://www.pwc.com/us/en/services/tax"
+    kpmg_tax_updates: "https://home.kpmg/us/en/home/insights/tax"
+    
+    // Report Configuration
+    tax_year: 2024
+    report_format: ["pdf", "excel", "json", "markdown"]
+    currency_conversion: true
+    multi_jurisdiction: true
+    
+    // Analysis Parameters
+    commit_analysis_depth: 12  // months
+    developer_location_detection: true
+    project_classification: true
+    r_and_d_detection: true
+    
+    // Quality Assurance
+    legal_compliance_check: true
+    cross_reference_validation: true
+    professional_review_simulation: true
+    audit_trail_generation: true
+}
+
+TAX_INCENTIVE_FRAMEWORKS {
+    united_states: {
+        federal_incentives: {
+            research_and_development: {
+                section_41_credit: {
+                    name: "Research and Development Tax Credit"
+                    code_section: "IRC Section 41"
+                    rate: "20% of qualified research expenses"
+                    base_amount_calculation: "fixed_base_percentage"
+                    eligible_activities: [
+                        "software_development",
+                        "algorithm_improvement", 
+                        "system_architecture",
+                        "performance_optimization",
+                        "security_enhancement"
+                    ]
+                    documentation_requirements: [
+                        "business_component_identification",
+                        "technical_uncertainty_documentation",
+                        "process_of_experimentation_records",
+                        "qualified_research_expense_tracking"
+                    ]
+                }
+                
+                section_174_deduction: {
+                    name: "Research and Experimental Expenditures"
+                    code_section: "IRC Section 174"
+                    treatment: "amortization_over_5_years_domestic_15_years_foreign"
+                    effective_date: "2022-01-01"
+                    impact: "significant_cash_flow_change"
+                }
+            }
+            
+            software_development: {
+                section_199a_deduction: {
+                    name: "Qualified Business Income Deduction"
+                    code_section: "IRC Section 199A"
+                    rate: "20% of qualified business income"
+                    limitations: ["taxable_income_limits", "w2_wage_limits"]
+                    applicable_to: "pass_through_entities"
+                }
+            }
+        }
+        
+        state_incentives: {
+            california: {
+                r_and_d_credit: {
+                    rate: "15% of qualified research expenses"
+                    carryforward: "unlimited"
+                    refundable: false
+                }
+            }
+            
+            new_york: {
+                r_and_d_credit: {
+                    rate: "9% of qualified research expenses"
+                    carryforward: "15_years"
+                    refundable: false
+                }
+            }
+            
+            texas: {
+                franchise_tax_exemption: {
+                    threshold: "$1_million_revenue"
+                    applicable_to: "qualifying_small_businesses"
+                }
+            }
+        }
+    }
+    
+    canada: {
+        federal_incentives: {
+            scientific_research_experimental_development: {
+                sr_and_ed_credit: {
+                    name: "Scientific Research and Experimental Development"
+                    rate_refundable: "35% for CCPCs up to $3M expenditure limit"
+                    rate_non_refundable: "15% for other corporations"
+                    eligible_activities: [
+                        "basic_research",
+                        "applied_research", 
+                        "experimental_development",
+                        "software_development_with_technological_advancement"
+                    ]
+                    documentation_requirements: [
+                        "project_description",
+                        "scientific_technological_advancement",
+                        "scientific_technological_uncertainty",
+                        "systematic_investigation"
+                    ]
+                }
+            }
+            
+            digital_services_tax: {
+                name: "Digital Services Tax"
+                rate: "3% of digital services revenue"
+                threshold: "$20M CAD global revenue, $1M CAD Canadian revenue"
+                effective_date: "2024-01-01"
+                applicable_to: ["online_marketplaces", "social_media", "search_engines"]
+            }
+        }
+        
+        provincial_incentives: {
+            ontario: {
+                ontario_innovation_tax_credit: {
+                    rate: "10% of eligible R&D expenditures"
+                    refundable: true
+                    maximum_credit: "$2M CAD annually"
+                }
+            }
+            
+            quebec: {
+                r_and_d_tax_credit: {
+                    rate: "14% for large corporations, 30% for SMEs"
+                    refundable: true
+                    salary_cap: "$75,000 CAD per employee"
+                }
+            }
+            
+            british_columbia: {
+                interactive_digital_media_tax_credit: {
+                    rate: "17.5% of eligible labor costs"
+                    applicable_to: "interactive_digital_media_products"
+                    refundable: true
+                }
+            }
+        }
+    }
+}
+
+GITHUB_ANALYSIS_FRAMEWORK {
+    commit_analysis: {
+        temporal_analysis: {
+            description: "Analyze commit patterns over time"
+            metrics: [
+                "commits_per_month",
+                "lines_of_code_changes",
+                "file_modifications",
+                "developer_hours_estimation"
+            ]
+        }
+        
+        content_analysis: {
+            description: "Analyze commit content for R&D activities"
+            patterns: [
+                "algorithm_improvements",
+                "performance_optimizations", 
+                "new_feature_development",
+                "security_enhancements",
+                "architectural_changes",
+                "experimental_features"
+            ]
+        }
+        
+        developer_analysis: {
+            description: "Analyze developer contributions and locations"
+            data_points: [
+                "developer_location",
+                "employment_status",
+                "contribution_hours",
+                "expertise_areas",
+                "salary_estimates"
+            ]
+        }
+    }
+    
+    project_classification: {
+        r_and_d_indicators: [
+            "experimental_branches",
+            "proof_of_concept_commits",
+            "algorithm_research",
+            "performance_benchmarking",
+            "novel_implementation_approaches"
+        ]
+        
+        business_component_identification: [
+            "core_product_features",
+            "customer_facing_functionality",
+            "revenue_generating_components",
+            "competitive_advantage_elements"
+        ]
+    }
+}
+
+DYNAMIC_LEARNING_SYSTEM {
+    government_regulation_monitoring: {
+        update_sources: [
+            "irs_revenue_rulings",
+            "irs_private_letter_rulings",
+            "cra_technical_interpretations",
+            "cra_income_tax_folios",
+            "federal_register_updates",
+            "canada_gazette_notices"
+        ]
+        
+        monitoring_frequency: "daily"
+        
+        change_detection: {
+            rate_changes: "automatic_detection"
+            eligibility_criteria_updates: "semantic_analysis"
+            new_incentive_programs: "announcement_monitoring"
+            sunset_provisions: "deadline_tracking"
+        }
+    }
+    
+    professional_knowledge_integration: {
+        sources: [
+            "big_four_tax_insights",
+            "tax_court_decisions",
+            "professional_tax_journals",
+            "industry_best_practices",
+            "audit_defense_strategies"
+        ]
+        
+        validation_methods: [
+            "cross_reference_multiple_sources",
+            "professional_consensus_analysis",
+            "historical_precedent_review",
+            "regulatory_interpretation_consistency"
+        ]
+    }
+    
+    adaptive_reporting: {
+        template_evolution: {
+            description: "Continuously improve report templates"
+            feedback_sources: [
+                "tax_professional_reviews",
+                "audit_outcomes",
+                "regulatory_feedback",
+                "client_satisfaction"
+            ]
+        }
+        
+        calculation_refinement: {
+            description: "Improve calculation accuracy over time"
+            methods: [
+                "machine_learning_on_historical_data",
+                "professional_validation_feedback",
+                "regulatory_guidance_integration"
+            ]
+        }
+    }
+}
+
+REPORT_GENERATION_PIPELINE {
+    data_collection: {
+        step: 1
+        description: "Collect and validate all required data"
+        operations: [
+            "github_repository_analysis",
+            "commit_history_extraction",
+            "developer_information_gathering",
+            "project_timeline_construction"
+        ]
+    }
+    
+    regulatory_research: {
+        step: 2
+        description: "Research current tax regulations and incentives"
+        operations: [
+            "search_current_tax_codes",
+            "identify_applicable_incentives",
+            "verify_eligibility_requirements",
+            "calculate_potential_benefits"
+        ]
+    }
+    
+    analysis_and_calculation: {
+        step: 3
+        description: "Perform detailed tax incentive analysis"
+        operations: [
+            "qualify_research_activities",
+            "calculate_eligible_expenses",
+            "apply_appropriate_rates",
+            "consider_limitations_and_caps"
+        ]
+    }
+    
+    report_generation: {
+        step: 4
+        description: "Generate comprehensive tax incentive reports"
+        operations: [
+            "create_executive_summary",
+            "detail_calculation_methodology",
+            "provide_supporting_documentation",
+            "include_compliance_recommendations"
+        ]
+    }
+    
+    quality_assurance: {
+        step: 5
+        description: "Validate report accuracy and compliance"
+        operations: [
+            "cross_reference_calculations",
+            "verify_regulatory_compliance",
+            "simulate_professional_review",
+            "generate_audit_trail"
+        ]
+    }
+}
+
+ACTION {
+    type: "autonomous_tax_incentive_report_generation"
+    priority: "high"
+    execution_mode: "comprehensive_analysis"
+    
+    steps: [
+        {
+            name: "initialize_github_analysis"
+            description: "Set up GitHub repository analysis capabilities"
+            timeout: 120
+            search_operations: [
+                "SEARCH_WEB('GitHub API tax incentive analysis', ['google', 'bing'], 10)",
+                "SEARCH_ACADEMIC('software development tax credits research', ['arxiv'], '2023-2024')"
+            ]
+        },
+        {
+            name: "research_current_tax_regulations"
+            description: "Research latest US and Canada tax incentive regulations"
+            timeout: 300
+            search_operations: [
+                "SEARCH_WEB('IRS Section 41 R&D tax credit 2024 updates', ['google'], 15)",
+                "SEARCH_WEB('Canada SR&ED tax credit 2024 changes CRA', ['google'], 15)",
+                "SEARCH_SPECIALIZED('US tax code Section 174 software development', 'legal')",
+                "SEARCH_SPECIALIZED('Canada Income Tax Act SR&ED eligibility', 'legal')"
+            ]
+        },
+        {
+            name: "analyze_github_repositories"
+            description: "Perform comprehensive GitHub commit analysis"
+            timeout: 600
+            operations: [
+                "extract_commit_history",
+                "analyze_developer_contributions",
+                "classify_r_and_d_activities",
+                "calculate_eligible_expenses"
+            ]
+        },
+        {
+            name: "calculate_tax_incentives"
+            description: "Calculate applicable tax incentives for both jurisdictions"
+            timeout: 300
+            operations: [
+                "apply_us_federal_credits",
+                "apply_us_state_credits",
+                "apply_canada_federal_credits",
+                "apply_canada_provincial_credits"
+            ]
+        },
+        {
+            name: "generate_comprehensive_reports"
+            description: "Create detailed tax incentive reports"
+            timeout: 240
+            outputs: [
+                "executive_summary_report",
+                "detailed_calculation_workbook",
+                "supporting_documentation_package",
+                "compliance_checklist"
+            ]
+        },
+        {
+            name: "validate_and_review"
+            description: "Perform quality assurance and compliance validation"
+            timeout: 180
+            operations: [
+                "cross_reference_calculations",
+                "simulate_professional_review",
+                "generate_audit_trail",
+                "create_filing_recommendations"
+            ]
+        }
+    ]
+    
+    success_criteria: [
+        "github_analysis_completed",
+        "current_regulations_researched",
+        "tax_incentives_calculated",
+        "reports_generated",
+        "compliance_validated",
+        "audit_trail_created"
+    ]
+    
+    output_deliverables: [
+        "us_tax_incentive_report.pdf",
+        "canada_tax_incentive_report.pdf", 
+        "combined_jurisdiction_analysis.xlsx",
+        "github_analysis_summary.json",
+        "regulatory_compliance_checklist.md",
+        "audit_trail_documentation.pdf"
+    ]
+}
+
+COMPLIANCE_FRAMEWORK {
+    us_compliance: {
+        irs_requirements: [
+            "form_6765_research_credit",
+            "schedule_utp_uncertain_tax_positions",
+            "documentation_retention_requirements",
+            "contemporaneous_documentation"
+        ]
+        
+        audit_defense: [
+            "technical_uncertainty_documentation",
+            "business_component_identification",
+            "four_part_test_compliance",
+            "qualified_research_expense_substantiation"
+        ]
+    }
+    
+    canada_compliance: {
+        cra_requirements: [
+            "form_t661_sr_ed_expenditures",
+            "project_description_requirements",
+            "financial_cost_documentation",
+            "technical_review_preparation"
+        ]
+        
+        audit_defense: [
+            "scientific_technological_advancement_proof",
+            "systematic_investigation_documentation",
+            "technological_uncertainty_evidence",
+            "eligible_expenditure_substantiation"
+        ]
+    }
+}
+
+MONITORING {
+    real_time_updates: [
+        "tax_regulation_changes",
+        "github_repository_activity",
+        "developer_contribution_patterns",
+        "government_announcement_monitoring"
+    ]
+    
+    quality_metrics: [
+        "calculation_accuracy",
+        "regulatory_compliance_score",
+        "professional_validation_rating",
+        "audit_defense_readiness"
+    ]
+    
+    performance_tracking: [
+        "report_generation_time",
+        "data_processing_efficiency",
+        "search_result_relevance",
+        "user_satisfaction_scores"
+    ]
+}

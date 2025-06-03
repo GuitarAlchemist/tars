@@ -1,0 +1,19 @@
+{ 
+  "deployment_id": "87904111", 
+  "deployed_models": [ 
+    "qwen3:8b", 
+    "qwen3:14b", 
+    "qwen3:32b", 
+    "qwen3:30b-a3b" 
+  ], 
+  "reasoning_capabilities": { 
+    "mathematical_reasoning": "qwen3:30b-a3b", 
+    "logical_reasoning": "qwen3:32b", 
+    "causal_reasoning": "qwen3:14b", 
+    "strategic_reasoning": "qwen3:8b", 
+    "meta_reasoning": "qwen3:14b", 
+    "collaborative_reasoning": "qwen3:30b-a3b" 
+  }, 
+  "deployment_time": "2025-06-02 10:23:31.92", 
+  "status": "active" 
+} 

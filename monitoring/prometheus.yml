@@ -1,0 +1,13 @@
+global: 
+  scrape_interval: 15s 
+ 
+scrape_configs: 
+  - job_name: 'tars-core' 
+    static_configs: 
+      - targets: ['tars-core:9090'] 
+  - job_name: 'tars-knowledge' 
+    static_configs: 
+      - targets: ['tars-knowledge:9090'] 
+  - job_name: 'tars-agents' 
+    static_configs: 
+      - targets: ['tars-agents:9090'] 

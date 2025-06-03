@@ -1,0 +1,431 @@
+DESCRIBE {
+    name: "On-Demand Knowledge Search System"
+    purpose: "Enable agents and metascripts to search web and triple stores dynamically"
+    version: "1.0.0"
+    author: "TARS Autonomous System"
+    created: "2024-12-15"
+    complexity: 9
+    reasoning_required: ["analytical", "technical", "adaptive", "real_time"]
+}
+
+CONFIG {
+    // Search Engine Configuration
+    google_search_api_key: "${GOOGLE_SEARCH_API_KEY}"
+    google_search_engine_id: "${GOOGLE_SEARCH_ENGINE_ID}"
+    bing_search_api_key: "${BING_SEARCH_API_KEY}"
+    
+    // Academic and Research Sources
+    arxiv_api_endpoint: "http://export.arxiv.org/api/query"
+    pubmed_api_endpoint: "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
+    semantic_scholar_api: "https://api.semanticscholar.org/graph/v1/paper/search"
+    
+    // Triple Store Endpoints (On-Demand)
+    wikidata_endpoint: "https://query.wikidata.org/sparql"
+    dbpedia_endpoint: "https://dbpedia.org/sparql"
+    yago_endpoint: "https://yago-knowledge.org/sparql"
+    geonames_endpoint: "https://sws.geonames.org/sparql"
+    
+    // Specialized Knowledge Sources
+    github_api_endpoint: "https://api.github.com/search"
+    stackoverflow_api: "https://api.stackexchange.com/2.3/search"
+    wikipedia_api: "https://en.wikipedia.org/api/rest_v1/page/summary"
+    
+    // Search Configuration
+    max_results_per_source: 10
+    search_timeout: 30000
+    concurrent_searches: 8
+    cache_duration: 3600
+    quality_threshold: 0.7
+    
+    // Agent Integration
+    enable_agent_search: true
+    enable_metascript_search: true
+    auto_inject_results: true
+    real_time_updates: true
+}
+
+SEARCH_PROVIDERS {
+    web_search: {
+        google: {
+            name: "Google Search"
+            endpoint: "https://www.googleapis.com/customsearch/v1"
+            api_key: $google_search_api_key
+            engine_id: $google_search_engine_id
+            rate_limit: 100
+            priority: 1
+            capabilities: ["general_web", "news", "images", "academic"]
+        }
+        
+        bing: {
+            name: "Bing Search"
+            endpoint: "https://api.bing.microsoft.com/v7.0/search"
+            api_key: $bing_search_api_key
+            rate_limit: 1000
+            priority: 2
+            capabilities: ["general_web", "news", "images", "videos"]
+        }
+        
+        duckduckgo: {
+            name: "DuckDuckGo"
+            endpoint: "https://api.duckduckgo.com/"
+            rate_limit: 500
+            priority: 3
+            capabilities: ["general_web", "privacy_focused"]
+        }
+    }
+    
+    academic_search: {
+        arxiv: {
+            name: "arXiv"
+            endpoint: $arxiv_api_endpoint
+            rate_limit: 300
+            priority: 1
+            capabilities: ["research_papers", "preprints", "scientific"]
+        }
+        
+        pubmed: {
+            name: "PubMed"
+            endpoint: $pubmed_api_endpoint
+            rate_limit: 300
+            priority: 2
+            capabilities: ["medical", "life_sciences", "peer_reviewed"]
+        }
+        
+        semantic_scholar: {
+            name: "Semantic Scholar"
+            endpoint: $semantic_scholar_api
+            rate_limit: 100
+            priority: 3
+            capabilities: ["computer_science", "citations", "influence"]
+        }
+    }
+    
+    triple_stores: {
+        wikidata: {
+            name: "Wikidata"
+            endpoint: $wikidata_endpoint
+            rate_limit: 1000
+            priority: 1
+            capabilities: ["entities", "facts", "structured_data"]
+        }
+        
+        dbpedia: {
+            name: "DBpedia"
+            endpoint: $dbpedia_endpoint
+            rate_limit: 500
+            priority: 2
+            capabilities: ["wikipedia_data", "abstracts", "categories"]
+        }
+        
+        yago: {
+            name: "YAGO"
+            endpoint: $yago_endpoint
+            rate_limit: 200
+            priority: 3
+            capabilities: ["facts", "relationships", "temporal"]
+        }
+    }
+    
+    specialized: {
+        github: {
+            name: "GitHub"
+            endpoint: $github_api_endpoint
+            rate_limit: 5000
+            priority: 1
+            capabilities: ["code", "repositories", "issues", "documentation"]
+        }
+        
+        stackoverflow: {
+            name: "Stack Overflow"
+            endpoint: $stackoverflow_api
+            rate_limit: 300
+            priority: 2
+            capabilities: ["programming", "technical_qa", "solutions"]
+        }
+        
+        wikipedia: {
+            name: "Wikipedia"
+            endpoint: $wikipedia_api
+            rate_limit: 500
+            priority: 3
+            capabilities: ["encyclopedic", "summaries", "general_knowledge"]
+        }
+    }
+}
+
+SEARCH_STRATEGIES {
+    adaptive_search: {
+        description: "Intelligently select search providers based on query type"
+        steps: [
+            "analyze_query_intent",
+            "classify_knowledge_domain", 
+            "select_optimal_providers",
+            "execute_parallel_searches",
+            "aggregate_and_rank_results"
+        ]
+    }
+    
+    comprehensive_search: {
+        description: "Search across all available providers for maximum coverage"
+        steps: [
+            "execute_web_search",
+            "execute_academic_search", 
+            "execute_triple_store_search",
+            "execute_specialized_search",
+            "merge_and_deduplicate_results"
+        ]
+    }
+    
+    real_time_search: {
+        description: "Provide streaming search results as they become available"
+        steps: [
+            "initiate_concurrent_searches",
+            "stream_results_as_available",
+            "update_rankings_dynamically",
+            "provide_real_time_feedback"
+        ]
+    }
+    
+    domain_specific_search: {
+        description: "Focus on specific knowledge domains"
+        domains: {
+            scientific: ["arxiv", "pubmed", "semantic_scholar"]
+            technical: ["github", "stackoverflow", "technical_blogs"]
+            factual: ["wikidata", "dbpedia", "wikipedia"]
+            geographic: ["geonames", "linkedgeodata", "osm"]
+            current_events: ["news_apis", "social_media", "real_time_feeds"]
+        }
+    }
+}
+
+AGENT_INTEGRATION {
+    search_capabilities: {
+        autonomous_search: {
+            description: "Agents can initiate searches autonomously"
+            triggers: [
+                "knowledge_gap_detected",
+                "fact_verification_needed",
+                "context_enhancement_required",
+                "real_time_information_needed"
+            ]
+        }
+        
+        contextual_search: {
+            description: "Search based on current agent context and task"
+            context_sources: [
+                "current_task_description",
+                "conversation_history",
+                "agent_specialization",
+                "user_preferences"
+            ]
+        }
+        
+        collaborative_search: {
+            description: "Multiple agents collaborate on complex searches"
+            coordination: [
+                "divide_search_space",
+                "share_intermediate_results",
+                "cross_validate_findings",
+                "synthesize_final_results"
+            ]
+        }
+    }
+    
+    result_integration: {
+        vector_store_injection: {
+            description: "Automatically inject search results into vector store"
+            quality_filters: [
+                "relevance_threshold",
+                "source_credibility",
+                "content_freshness",
+                "duplicate_detection"
+            ]
+        }
+        
+        knowledge_graph_update: {
+            description: "Update knowledge graph with new relationships"
+            operations: [
+                "entity_extraction",
+                "relationship_identification",
+                "confidence_scoring",
+                "graph_integration"
+            ]
+        }
+        
+        context_enhancement: {
+            description: "Enhance agent context with search results"
+            methods: [
+                "semantic_embedding",
+                "summarization",
+                "key_fact_extraction",
+                "relevance_ranking"
+            ]
+        }
+    }
+}
+
+METASCRIPT_INTEGRATION {
+    search_functions: {
+        SEARCH_WEB: {
+            description: "Search web sources for information"
+            parameters: ["query", "providers", "max_results", "filters"]
+            return_type: "SearchResults"
+        }
+        
+        SEARCH_ACADEMIC: {
+            description: "Search academic and research sources"
+            parameters: ["query", "domains", "date_range", "peer_reviewed"]
+            return_type: "AcademicResults"
+        }
+        
+        SEARCH_TRIPLE_STORES: {
+            description: "Query semantic triple stores"
+            parameters: ["sparql_query", "endpoints", "timeout"]
+            return_type: "TripleStoreResults"
+        }
+        
+        SEARCH_SPECIALIZED: {
+            description: "Search domain-specific sources"
+            parameters: ["query", "domain", "source_types", "filters"]
+            return_type: "SpecializedResults"
+        }
+        
+        SEARCH_ADAPTIVE: {
+            description: "Intelligently search across all sources"
+            parameters: ["query", "intent", "context", "strategy"]
+            return_type: "AdaptiveResults"
+        }
+    }
+    
+    result_processing: {
+        FILTER_RESULTS: {
+            description: "Filter search results by quality and relevance"
+            parameters: ["results", "quality_threshold", "relevance_threshold"]
+            return_type: "FilteredResults"
+        }
+        
+        SUMMARIZE_RESULTS: {
+            description: "Generate summaries of search results"
+            parameters: ["results", "summary_length", "focus_areas"]
+            return_type: "ResultSummary"
+        }
+        
+        EXTRACT_FACTS: {
+            description: "Extract key facts from search results"
+            parameters: ["results", "fact_types", "confidence_threshold"]
+            return_type: "ExtractedFacts"
+        }
+        
+        INJECT_KNOWLEDGE: {
+            description: "Inject search results into knowledge base"
+            parameters: ["results", "target_collection", "metadata"]
+            return_type: "InjectionStatus"
+        }
+    }
+}
+
+QUALITY_ASSURANCE {
+    source_credibility: {
+        scoring_factors: [
+            "domain_authority",
+            "publication_reputation",
+            "peer_review_status",
+            "citation_count",
+            "recency",
+            "author_credentials"
+        ]
+        
+        credibility_tiers: {
+            tier_1: ["peer_reviewed_journals", "government_sources", "academic_institutions"]
+            tier_2: ["established_news_outlets", "professional_organizations", "verified_experts"]
+            tier_3: ["wikipedia", "stack_overflow", "github_documentation"]
+            tier_4: ["blogs", "forums", "social_media", "unverified_sources"]
+        }
+    }
+    
+    content_validation: {
+        fact_checking: {
+            cross_reference: "multiple_sources"
+            consistency_check: "logical_coherence"
+            temporal_validation: "information_freshness"
+            bias_detection: "source_diversity"
+        }
+        
+        quality_metrics: {
+            relevance: "semantic_similarity_to_query"
+            completeness: "information_coverage"
+            accuracy: "fact_verification_score"
+            clarity: "readability_and_structure"
+        }
+    }
+}
+
+ACTION {
+    type: "on_demand_search_system_deployment"
+    priority: "high"
+    execution_mode: "autonomous_deployment"
+    
+    steps: [
+        {
+            name: "initialize_search_providers"
+            description: "Set up connections to all search providers"
+            timeout: 60
+        },
+        {
+            name: "configure_agent_integration"
+            description: "Enable search capabilities for all agents"
+            timeout: 30
+        },
+        {
+            name: "deploy_metascript_functions"
+            description: "Make search functions available to metascripts"
+            timeout: 45
+        },
+        {
+            name: "setup_quality_assurance"
+            description: "Initialize content validation and credibility scoring"
+            timeout: 30
+        },
+        {
+            name: "enable_real_time_search"
+            description: "Activate streaming search capabilities"
+            timeout: 30
+        },
+        {
+            name: "test_search_integration"
+            description: "Validate all search capabilities"
+            timeout: 120
+        },
+        {
+            name: "generate_search_documentation"
+            description: "Create comprehensive usage documentation"
+            timeout: 60
+        }
+    ]
+    
+    success_criteria: [
+        "all_search_providers_connected",
+        "agent_search_capabilities_enabled",
+        "metascript_functions_deployed",
+        "quality_assurance_active",
+        "real_time_search_operational",
+        "integration_tests_passed"
+    ]
+    
+    monitoring: {
+        real_time_metrics: [
+            "search_requests_per_second",
+            "average_response_time",
+            "result_quality_scores",
+            "provider_availability",
+            "cache_hit_rates"
+        ]
+        
+        quality_tracking: [
+            "result_relevance_distribution",
+            "source_credibility_scores",
+            "fact_verification_accuracy",
+            "user_satisfaction_ratings"
+        ]
+    }
+}

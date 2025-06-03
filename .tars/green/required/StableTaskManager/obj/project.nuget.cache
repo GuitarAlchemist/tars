@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "JcWhsnAS7gE=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\spare\\source\\repos\\tars\\.tars\\green\\required\\StableTaskManager\\StableTaskManager.fsproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\spare\\.nuget\\packages\\fsharp.core\\9.0.300\\fsharp.core.9.0.300.nupkg.sha512"
+  ],
+  "logs": []
+}

@@ -1,0 +1,38 @@
+apiVersion: v2
+name: tars
+description: TARS - Advanced Autonomous AI Reasoning System
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+home: https://github.com/GuitarAlchemist/tars
+sources:
+  - https://github.com/GuitarAlchemist/tars
+maintainers:
+  - name: TARS Development Team
+    email: dev@tars.ai
+keywords:
+  - ai
+  - reasoning
+  - autonomous
+  - microservices
+  - kubernetes
+annotations:
+  category: AI/ML
+  licenses: MIT
+dependencies:
+  - name: redis
+    version: "17.15.6"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: redis.enabled
+  - name: prometheus
+    version: "25.8.0"
+    repository: "https://prometheus-community.github.io/helm-charts"
+    condition: monitoring.prometheus.enabled
+  - name: grafana
+    version: "7.0.19"
+    repository: "https://grafana.github.io/helm-charts"
+    condition: monitoring.grafana.enabled
+  - name: nginx-ingress
+    version: "4.8.3"
+    repository: "https://kubernetes.github.io/ingress-nginx"
+    condition: ingress.nginx.enabled

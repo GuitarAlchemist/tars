@@ -1,0 +1,447 @@
+DESCRIBE {
+    name: "TARS Operations Department"
+    purpose: "Comprehensive business operations management with specialized fiscal agents"
+    version: "1.0.0"
+    author: "TARS Autonomous System"
+    created: "2024-12-15"
+    complexity: 10
+    reasoning_required: ["financial", "legal", "operational", "strategic", "compliance"]
+    departments: ["fiscal", "legal", "compliance", "strategic_planning", "risk_management"]
+}
+
+CONFIG {
+    // Operations Structure
+    department_hierarchy: {
+        operations_director: "OperationsDirectorAgent"
+        fiscal_department: {
+            head: "ChiefFiscalOfficerAgent"
+            agents: [
+                "TaxComplianceAgent",
+                "FinancialAnalysisAgent", 
+                "AuditDefenseAgent",
+                "PayrollAgent",
+                "AccountingAgent",
+                "BudgetingAgent"
+            ]
+        }
+        legal_department: {
+            head: "ChiefLegalOfficerAgent"
+            agents: [
+                "ContractAgent",
+                "IPAgent",
+                "ComplianceAgent",
+                "RegulatoryAgent"
+            ]
+        }
+        strategic_planning: {
+            head: "ChiefStrategyOfficerAgent"
+            agents: [
+                "BusinessPlanningAgent",
+                "MarketAnalysisAgent",
+                "CompetitiveIntelligenceAgent"
+            ]
+        }
+        risk_management: {
+            head: "ChiefRiskOfficerAgent"
+            agents: [
+                "FinancialRiskAgent",
+                "OperationalRiskAgent",
+                "ComplianceRiskAgent"
+            ]
+        }
+    }
+    
+    // Fiscal Agent Configuration
+    fiscal_capabilities: {
+        tax_compliance: ["SR&ED", "corporate_tax", "payroll_tax", "sales_tax"]
+        financial_reporting: ["GAAP", "IFRS", "management_reporting"]
+        audit_support: ["CRA_audits", "financial_audits", "compliance_audits"]
+        planning: ["tax_planning", "financial_forecasting", "budget_management"]
+    }
+    
+    // Professional Standards
+    professional_compliance: {
+        accounting_standards: ["CPA_Canada", "GAAP", "IFRS"]
+        tax_standards: ["CRA_guidelines", "provincial_tax_codes"]
+        audit_standards: ["GAAS", "PCAOB"]
+        legal_standards: ["Law_Society", "regulatory_compliance"]
+    }
+    
+    // Quality Assurance
+    quality_framework: {
+        peer_review: true
+        professional_validation: true
+        compliance_verification: true
+        audit_trail_generation: true
+        documentation_standards: "professional_grade"
+    }
+}
+
+FISCAL_AGENT_FRAMEWORK {
+    chief_fiscal_officer: {
+        role: "ChiefFiscalOfficerAgent"
+        responsibilities: [
+            "overall_fiscal_strategy",
+            "tax_optimization",
+            "financial_compliance",
+            "audit_coordination",
+            "professional_oversight"
+        ]
+        
+        capabilities: {
+            strategic_planning: "comprehensive_fiscal_strategy"
+            compliance_oversight: "multi_jurisdiction_tax_compliance"
+            audit_management: "professional_audit_defense"
+            team_coordination: "fiscal_agent_orchestration"
+            professional_standards: "CPA_level_oversight"
+        }
+        
+        decision_authority: {
+            tax_strategy: "full_authority"
+            compliance_decisions: "full_authority"
+            audit_responses: "full_authority"
+            professional_opinions: "signing_authority"
+        }
+    }
+    
+    tax_compliance_agent: {
+        role: "TaxComplianceAgent"
+        specialization: "multi_jurisdiction_tax_compliance"
+        
+        capabilities: {
+            sr_ed_analysis: {
+                description: "Complete SR&ED tax credit analysis and reporting"
+                standards: ["CRA_guidelines", "provincial_requirements"]
+                deliverables: [
+                    "form_t661_preparation",
+                    "project_descriptions",
+                    "financial_documentation",
+                    "audit_defense_package"
+                ]
+            }
+            
+            corporate_tax: {
+                description: "Corporate income tax compliance and optimization"
+                jurisdictions: ["federal", "provincial", "municipal"]
+                deliverables: [
+                    "tax_returns",
+                    "tax_planning",
+                    "compliance_monitoring"
+                ]
+            }
+            
+            payroll_tax: {
+                description: "Payroll tax compliance and remittance"
+                requirements: ["CPP", "EI", "income_tax", "provincial_taxes"]
+                deliverables: [
+                    "payroll_calculations",
+                    "remittance_schedules",
+                    "year_end_reporting"
+                ]
+            }
+        }
+        
+        professional_standards: {
+            certification: "CPA_tax_specialist"
+            continuing_education: "current_tax_developments"
+            professional_liability: "errors_omissions_coverage"
+        }
+    }
+    
+    financial_analysis_agent: {
+        role: "FinancialAnalysisAgent"
+        specialization: "comprehensive_financial_analysis"
+        
+        capabilities: {
+            financial_reporting: {
+                standards: ["GAAP", "IFRS"]
+                deliverables: [
+                    "financial_statements",
+                    "management_reports",
+                    "variance_analysis",
+                    "kpi_dashboards"
+                ]
+            }
+            
+            budgeting_forecasting: {
+                methodologies: ["zero_based", "incremental", "rolling_forecasts"]
+                deliverables: [
+                    "annual_budgets",
+                    "quarterly_forecasts",
+                    "scenario_analysis",
+                    "sensitivity_analysis"
+                ]
+            }
+            
+            investment_analysis: {
+                techniques: ["NPV", "IRR", "payback_period", "risk_analysis"]
+                deliverables: [
+                    "investment_recommendations",
+                    "roi_analysis",
+                    "risk_assessments"
+                ]
+            }
+        }
+    }
+    
+    audit_defense_agent: {
+        role: "AuditDefenseAgent"
+        specialization: "comprehensive_audit_support"
+        
+        capabilities: {
+            cra_audit_defense: {
+                audit_types: ["SR&ED", "corporate_tax", "payroll", "sales_tax"]
+                preparation: [
+                    "documentation_organization",
+                    "position_papers",
+                    "technical_arguments",
+                    "settlement_negotiations"
+                ]
+            }
+            
+            financial_audit_support: {
+                audit_standards: ["GAAS", "PCAOB"]
+                deliverables: [
+                    "audit_preparation",
+                    "working_paper_support",
+                    "management_responses",
+                    "control_documentation"
+                ]
+            }
+        }
+    }
+}
+
+OPERATIONS_WORKFLOWS {
+    sr_ed_complete_process: {
+        description: "Complete SR&ED tax credit process from analysis to filing"
+        
+        phases: [
+            {
+                phase: "initial_assessment"
+                responsible_agent: "TaxComplianceAgent"
+                activities: [
+                    "project_identification",
+                    "eligibility_assessment",
+                    "preliminary_calculations",
+                    "documentation_requirements"
+                ]
+                deliverables: [
+                    "eligibility_report",
+                    "preliminary_calculations",
+                    "documentation_checklist"
+                ]
+            },
+            {
+                phase: "detailed_analysis"
+                responsible_agent: "TaxComplianceAgent"
+                support_agents: ["FinancialAnalysisAgent"]
+                activities: [
+                    "detailed_project_analysis",
+                    "expense_allocation",
+                    "technical_documentation",
+                    "financial_calculations"
+                ]
+                deliverables: [
+                    "detailed_project_descriptions",
+                    "expense_allocation_schedules",
+                    "technical_documentation_package"
+                ]
+            },
+            {
+                phase: "form_preparation"
+                responsible_agent: "TaxComplianceAgent"
+                activities: [
+                    "form_t661_completion",
+                    "supporting_schedules",
+                    "financial_statements_preparation",
+                    "documentation_compilation"
+                ]
+                deliverables: [
+                    "completed_form_t661",
+                    "supporting_schedules",
+                    "financial_documentation",
+                    "filing_package"
+                ]
+            },
+            {
+                phase: "quality_review"
+                responsible_agent: "ChiefFiscalOfficerAgent"
+                activities: [
+                    "technical_review",
+                    "compliance_verification",
+                    "professional_sign_off",
+                    "filing_authorization"
+                ]
+                deliverables: [
+                    "quality_review_report",
+                    "professional_opinion",
+                    "filing_authorization"
+                ]
+            },
+            {
+                phase: "filing_and_follow_up"
+                responsible_agent: "TaxComplianceAgent"
+                activities: [
+                    "electronic_filing",
+                    "acknowledgment_tracking",
+                    "follow_up_correspondence",
+                    "audit_preparation"
+                ]
+                deliverables: [
+                    "filing_confirmation",
+                    "tracking_documentation",
+                    "audit_defense_package"
+                ]
+            }
+        ]
+    }
+    
+    financial_reporting_cycle: {
+        description: "Monthly financial reporting and analysis cycle"
+        frequency: "monthly"
+        
+        activities: [
+            {
+                activity: "data_collection"
+                responsible_agent: "AccountingAgent"
+                timeline: "month_end_+3_days"
+            },
+            {
+                activity: "financial_statement_preparation"
+                responsible_agent: "FinancialAnalysisAgent"
+                timeline: "month_end_+7_days"
+            },
+            {
+                activity: "variance_analysis"
+                responsible_agent: "FinancialAnalysisAgent"
+                timeline: "month_end_+10_days"
+            },
+            {
+                activity: "management_reporting"
+                responsible_agent: "ChiefFiscalOfficerAgent"
+                timeline: "month_end_+15_days"
+            }
+        ]
+    }
+}
+
+PROFESSIONAL_STANDARDS {
+    cpa_compliance: {
+        professional_competence: "maintain_current_knowledge"
+        due_professional_care: "exercise_professional_skepticism"
+        professional_behavior: "comply_with_professional_standards"
+        confidentiality: "maintain_client_confidentiality"
+        integrity: "act_with_honesty_and_integrity"
+    }
+    
+    quality_control: {
+        peer_review: "mandatory_for_significant_matters"
+        documentation_standards: "professional_working_papers"
+        supervision: "appropriate_supervision_and_review"
+        consultation: "consult_on_complex_matters"
+        continuing_education: "maintain_professional_competence"
+    }
+    
+    independence: {
+        financial_independence: "no_financial_interest_in_clients"
+        professional_independence: "maintain_objectivity"
+        appearance_independence: "avoid_conflicts_of_interest"
+    }
+}
+
+ACTION {
+    type: "operations_department_initialization"
+    priority: "high"
+    execution_mode: "comprehensive_setup"
+    
+    steps: [
+        {
+            name: "initialize_fiscal_department"
+            description: "Set up comprehensive fiscal operations with specialized agents"
+            timeout: 180
+            operations: [
+                "deploy_chief_fiscal_officer",
+                "initialize_tax_compliance_agent",
+                "setup_financial_analysis_agent",
+                "configure_audit_defense_agent",
+                "establish_professional_standards"
+            ]
+        },
+        {
+            name: "establish_sr_ed_capabilities"
+            description: "Create complete SR&ED tax credit processing capabilities"
+            timeout: 240
+            operations: [
+                "configure_sr_ed_analysis_framework",
+                "setup_form_t661_preparation",
+                "establish_audit_defense_protocols",
+                "create_professional_review_process"
+            ]
+        },
+        {
+            name: "implement_quality_assurance"
+            description: "Establish professional quality assurance framework"
+            timeout: 120
+            operations: [
+                "setup_peer_review_process",
+                "establish_professional_standards",
+                "configure_compliance_monitoring",
+                "implement_audit_trail_generation"
+            ]
+        },
+        {
+            name: "create_reporting_framework"
+            description: "Establish comprehensive financial reporting capabilities"
+            timeout: 180
+            operations: [
+                "setup_financial_reporting_cycle",
+                "configure_management_reporting",
+                "establish_compliance_reporting",
+                "create_dashboard_and_analytics"
+            ]
+        }
+    ]
+    
+    success_criteria: [
+        "fiscal_department_operational",
+        "sr_ed_capabilities_established",
+        "quality_assurance_implemented",
+        "reporting_framework_active",
+        "professional_standards_compliant"
+    ]
+    
+    deliverables: [
+        "operations_department_structure",
+        "fiscal_agent_capabilities",
+        "sr_ed_processing_framework",
+        "quality_assurance_protocols",
+        "professional_compliance_documentation"
+    ]
+}
+
+MONITORING {
+    operational_metrics: [
+        "agent_performance_indicators",
+        "processing_time_efficiency",
+        "quality_assurance_scores",
+        "professional_compliance_ratings",
+        "client_satisfaction_metrics"
+    ]
+    
+    financial_metrics: [
+        "cost_per_transaction",
+        "accuracy_rates",
+        "audit_success_rates",
+        "tax_optimization_results",
+        "compliance_efficiency"
+    ]
+    
+    professional_metrics: [
+        "peer_review_scores",
+        "professional_development_hours",
+        "certification_maintenance",
+        "continuing_education_compliance",
+        "professional_liability_incidents"
+    ]
+}

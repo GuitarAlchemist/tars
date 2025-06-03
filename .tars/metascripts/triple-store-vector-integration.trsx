@@ -1,0 +1,315 @@
+DESCRIBE {
+    name: "Triple Store Vector Integration System"
+    purpose: "Inject semantic data from public triple stores into TARS vector store"
+    version: "1.0.0"
+    author: "TARS Autonomous System"
+    created: "2024-12-15"
+    complexity: 8
+    reasoning_required: ["analytical", "technical", "integration"]
+}
+
+CONFIG {
+    // Triple Store Endpoints Configuration
+    wikidata_endpoint: "https://query.wikidata.org/sparql"
+    dbpedia_endpoint: "https://dbpedia.org/sparql"
+    linkedgeodata_endpoint: "http://linkedgeodata.org/sparql"
+    yago_endpoint: "https://yago-knowledge.org/sparql"
+    geonames_endpoint: "https://sws.geonames.org/sparql"
+    
+    // Vector Store Configuration
+    vector_store_collection: "semantic_knowledge_base"
+    embedding_model: "sentence-transformers/all-MiniLM-L6-v2"
+    batch_size: 100
+    max_triples_per_query: 1000
+    
+    // Processing Configuration
+    concurrent_requests: 5
+    request_timeout: 30000
+    retry_attempts: 3
+    rate_limit_delay: 1000
+    
+    // Quality Thresholds
+    min_text_length: 50
+    max_text_length: 2000
+    relevance_threshold: 0.7
+    quality_threshold: 0.8
+}
+
+TRIPLE_STORE_SOURCES {
+    wikidata: {
+        name: "Wikidata"
+        endpoint: $wikidata_endpoint
+        description: "Collaborative knowledge base with structured data"
+        query_types: ["entities", "properties", "statements", "labels"]
+        rate_limit: 1000  // requests per minute
+        timeout: 30
+        priority: 1
+    }
+    
+    dbpedia: {
+        name: "DBpedia"
+        endpoint: $dbpedia_endpoint
+        description: "Structured information from Wikipedia"
+        query_types: ["resources", "abstracts", "categories", "infoboxes"]
+        rate_limit: 500
+        timeout: 30
+        priority: 2
+    }
+    
+    linkedgeodata: {
+        name: "LinkedGeoData"
+        endpoint: $linkedgeodata_endpoint
+        description: "Geographic data from OpenStreetMap"
+        query_types: ["places", "coordinates", "geographic_features"]
+        rate_limit: 300
+        timeout: 30
+        priority: 3
+    }
+    
+    yago: {
+        name: "YAGO"
+        endpoint: $yago_endpoint
+        description: "Knowledge base with facts about entities"
+        query_types: ["facts", "entities", "relationships"]
+        rate_limit: 200
+        timeout: 30
+        priority: 4
+    }
+    
+    geonames: {
+        name: "GeoNames"
+        endpoint: $geonames_endpoint
+        description: "Geographical database"
+        query_types: ["locations", "toponyms", "geographic_hierarchy"]
+        rate_limit: 100
+        timeout: 30
+        priority: 5
+    }
+}
+
+SPARQL_QUERY_TEMPLATES {
+    wikidata_entities: """
+        PREFIX wd: <http://www.wikidata.org/entity/>
+        PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+        
+        SELECT ?entity ?label ?description ?type WHERE {
+            ?entity rdfs:label ?label .
+            ?entity wdt:P31 ?type .
+            OPTIONAL { ?entity schema:description ?description . }
+            FILTER(LANG(?label) = "en")
+            FILTER(LANG(?description) = "en")
+        }
+        LIMIT $max_triples_per_query
+    """
+    
+    dbpedia_abstracts: """
+        PREFIX dbo: <http://dbpedia.org/ontology/>
+        PREFIX dbr: <http://dbpedia.org/resource/>
+        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+        
+        SELECT ?resource ?label ?abstract ?type WHERE {
+            ?resource rdfs:label ?label .
+            ?resource dbo:abstract ?abstract .
+            ?resource rdf:type ?type .
+            FILTER(LANG(?label) = "en")
+            FILTER(LANG(?abstract) = "en")
+        }
+        LIMIT $max_triples_per_query
+    """
+    
+    linkedgeodata_places: """
+        PREFIX lgdo: <http://linkedgeodata.org/ontology/>
+        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+        PREFIX geo: <http://www.w3.org/2003/01/geo/wgs84_pos#>
+        
+        SELECT ?place ?name ?lat ?long ?type WHERE {
+            ?place rdfs:label ?name .
+            ?place geo:lat ?lat .
+            ?place geo:long ?long .
+            ?place rdf:type ?type .
+            FILTER(LANG(?name) = "en")
+        }
+        LIMIT $max_triples_per_query
+    """
+    
+    yago_facts: """
+        PREFIX yago: <http://yago-knowledge.org/resource/>
+        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+        
+        SELECT ?subject ?predicate ?object ?label WHERE {
+            ?subject ?predicate ?object .
+            ?subject rdfs:label ?label .
+            FILTER(LANG(?label) = "en")
+            FILTER(isLiteral(?object))
+        }
+        LIMIT $max_triples_per_query
+    """
+    
+    geonames_locations: """
+        PREFIX gn: <http://www.geonames.org/ontology#>
+        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+        
+        SELECT ?location ?name ?country ?population ?feature WHERE {
+            ?location gn:name ?name .
+            ?location gn:countryCode ?country .
+            OPTIONAL { ?location gn:population ?population . }
+            OPTIONAL { ?location gn:featureClass ?feature . }
+        }
+        LIMIT $max_triples_per_query
+    """
+}
+
+DATA_PROCESSING_PIPELINE {
+    extraction: {
+        step: 1
+        description: "Extract semantic data from triple stores"
+        operations: [
+            "execute_sparql_queries",
+            "parse_rdf_results",
+            "validate_data_quality",
+            "filter_by_relevance"
+        ]
+    }
+    
+    transformation: {
+        step: 2
+        description: "Transform RDF data into vector store format"
+        operations: [
+            "convert_triples_to_text",
+            "generate_embeddings",
+            "create_metadata",
+            "validate_embeddings"
+        ]
+    }
+    
+    loading: {
+        step: 3
+        description: "Load processed data into vector store"
+        operations: [
+            "batch_insert_vectors",
+            "update_indices",
+            "verify_insertion",
+            "update_statistics"
+        ]
+    }
+    
+    optimization: {
+        step: 4
+        description: "Optimize vector store performance"
+        operations: [
+            "rebuild_indices",
+            "optimize_storage",
+            "update_similarity_cache",
+            "performance_validation"
+        ]
+    }
+}
+
+QUALITY_ASSURANCE {
+    data_validation: {
+        check_completeness: true
+        validate_encoding: true
+        verify_language: "en"
+        min_quality_score: $quality_threshold
+    }
+    
+    embedding_validation: {
+        check_dimensions: 384
+        validate_normalization: true
+        verify_similarity_distribution: true
+        outlier_detection: true
+    }
+    
+    integration_validation: {
+        verify_insertion: true
+        check_retrieval: true
+        validate_search_performance: true
+        cross_reference_accuracy: true
+    }
+}
+
+ACTION {
+    type: "autonomous_triple_store_integration"
+    priority: "high"
+    execution_mode: "parallel_processing"
+    
+    steps: [
+        {
+            name: "initialize_triple_store_clients"
+            description: "Set up SPARQL clients for all endpoints"
+            timeout: 60
+        },
+        {
+            name: "validate_endpoint_availability"
+            description: "Check connectivity to all triple stores"
+            timeout: 30
+        },
+        {
+            name: "execute_data_extraction"
+            description: "Extract semantic data using SPARQL queries"
+            timeout: 1800
+        },
+        {
+            name: "process_and_transform_data"
+            description: "Convert RDF to vector store format"
+            timeout: 900
+        },
+        {
+            name: "inject_into_vector_store"
+            description: "Load processed data into ChromaDB"
+            timeout: 600
+        },
+        {
+            name: "optimize_and_validate"
+            description: "Optimize performance and validate integration"
+            timeout: 300
+        },
+        {
+            name: "generate_integration_report"
+            description: "Create comprehensive integration report"
+            timeout: 120
+        }
+    ]
+    
+    success_criteria: [
+        "all_endpoints_accessible",
+        "data_extraction_successful",
+        "vector_embeddings_generated",
+        "vector_store_updated",
+        "quality_thresholds_met",
+        "performance_optimized"
+    ]
+    
+    failure_handling: {
+        retry_failed_queries: true
+        skip_unavailable_endpoints: true
+        continue_on_partial_failure: true
+        generate_error_report: true
+    }
+}
+
+MONITORING {
+    real_time_metrics: [
+        "extraction_progress",
+        "processing_speed",
+        "quality_scores",
+        "error_rates",
+        "endpoint_response_times"
+    ]
+    
+    performance_tracking: [
+        "triples_processed_per_second",
+        "embeddings_generated_per_minute",
+        "vector_store_insertion_rate",
+        "memory_utilization",
+        "cpu_utilization"
+    ]
+    
+    quality_tracking: [
+        "data_completeness_percentage",
+        "embedding_quality_distribution",
+        "similarity_accuracy",
+        "retrieval_performance"
+    ]
+}

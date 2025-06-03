@@ -1,0 +1,584 @@
+DESCRIBE {
+    name: "TARS Agent Specialization Department"
+    purpose: "Advanced agent personality development, humor generation, and emotional intelligence"
+    version: "1.0.0"
+    author: "TARS Agent Specialization Team"
+    created: "2024-12-15"
+    complexity: 10
+    reasoning_required: ["personality", "humor", "emotional_intelligence", "social_interaction", "adaptation"]
+    special_capabilities: ["adjustable_personality_parameters", "contextual_humor_generation", "emotional_intelligence_modeling"]
+}
+
+CONFIG {
+    // Agent Specialization Structure
+    department_structure: {
+        department_head: "ChiefAgentDevelopmentOfficerAgent"
+        humorist_team: {
+            lead: "LeadHumoristAgent"
+            agents: [
+                "PersonalityParameterAgent",
+                "ContextAwarenessAgent"
+            ]
+        }
+        personality_development_team: {
+            lead: "PersonalityFrameworkAgent"
+            agents: [
+                "EmotionalIntelligenceAgent",
+                "AgentCoordinationAgent"
+            ]
+        }
+    }
+    
+    // Personality Framework
+    personality_framework: {
+        core_traits: {
+            big_five_model: {
+                openness: "0.0-1.0 (conventional to creative)"
+                conscientiousness: "0.0-1.0 (flexible to organized)"
+                extraversion: "0.0-1.0 (introverted to extraverted)"
+                agreeableness: "0.0-1.0 (competitive to cooperative)"
+                neuroticism: "0.0-1.0 (stable to anxious)"
+            }
+            
+            professional_traits: {
+                analytical_thinking: "0.0-1.0 (intuitive to systematic)"
+                risk_tolerance: "0.0-1.0 (cautious to adventurous)"
+                innovation_drive: "0.0-1.0 (traditional to innovative)"
+                leadership_style: "0.0-1.0 (supportive to directive)"
+            }
+            
+            humor_traits: {
+                wit_level: "0.0-1.0 (subtle to obvious)"
+                sarcasm_frequency: "0.0-1.0 (never to constant)"
+                pun_tendency: "0.0-1.0 (serious to pun-heavy)"
+                timing_precision: "0.0-1.0 (poor to perfect)"
+            }
+            
+            communication_traits: {
+                formality_level: "0.0-1.0 (casual to formal)"
+                verbosity: "0.0-1.0 (concise to verbose)"
+                enthusiasm: "0.0-1.0 (subdued to energetic)"
+                empathy_expression: "0.0-1.0 (analytical to emotional)"
+            }
+        }
+        
+        adaptation_mechanisms: {
+            user_preference_learning: "Learn from user interaction patterns"
+            context_adaptation: "Adapt personality based on situational context"
+            feedback_integration: "Incorporate user feedback into personality adjustments"
+            performance_optimization: "Optimize personality for task effectiveness"
+        }
+    }
+    
+    // Humor Generation Framework
+    humor_framework: {
+        humor_types: {
+            wordplay: "Puns, double entendres, and linguistic humor"
+            observational: "Situational and contextual humor"
+            self_deprecating: "Humble and relatable humor"
+            witty_banter: "Quick, clever responses and exchanges"
+            technical_humor: "Domain-specific and professional humor"
+        }
+        
+        appropriateness_filters: {
+            cultural_sensitivity: "Cultural awareness and appropriateness"
+            workplace_compliance: "Professional environment suitability"
+            audience_analysis: "Age, background, and preference consideration"
+            context_awareness: "Situational appropriateness assessment"
+            safety_validation: "Offensive content detection and prevention"
+        }
+        
+        delivery_optimization: {
+            timing_algorithms: "Optimal humor timing and pacing"
+            audience_engagement: "Engagement level measurement and adaptation"
+            effectiveness_tracking: "Humor success rate and improvement"
+            style_adaptation: "Delivery style matching to audience preferences"
+        }
+    }
+}
+
+HUMORIST_TEAM {
+    lead_humorist_agent: {
+        role: "LeadHumoristAgent"
+        priority: "critical"
+        special_capability: "Contextual humor generation with cultural sensitivity and timing optimization"
+        
+        responsibilities: [
+            "humor_generation_algorithm_development",
+            "appropriateness_filtering_and_safety",
+            "delivery_optimization_and_timing",
+            "humor_knowledge_base_management"
+        ]
+        
+        capabilities: {
+            humor_generation: {
+                description: "Advanced contextual humor generation algorithms"
+                generation_methods: {
+                    template_based_humor: {
+                        description: "Structured humor templates with variable substitution"
+                        templates: {
+                            pun_templates: [
+                                "Why did the {subject} {action}? Because it was {pun_word}!",
+                                "I told my {object} a joke about {topic}. It was {adjective}!",
+                                "What do you call a {adjective} {noun}? A {pun_combination}!"
+                            ]
+                            
+                            observational_templates: [
+                                "You know what I noticed about {context}? {observation}",
+                                "Isn't it funny how {situation} always {outcome}?",
+                                "The thing about {topic} is that {humorous_insight}"
+                            ]
+                            
+                            technical_humor_templates: [
+                                "Why do {profession} love {tool}? Because {technical_reason}!",
+                                "A {role1} and a {role2} walk into a {place}. The {role1} says '{technical_joke}'",
+                                "How many {professionals} does it take to {task}? {number}, because {technical_explanation}!"
+                            ]
+                        }
+                    }
+                    
+                    contextual_humor: {
+                        description: "Context-aware humor generation based on current situation"
+                        context_analysis: {
+                            conversation_topic: "Current discussion topic and themes"
+                            participant_mood: "Emotional state and receptiveness"
+                            environment: "Physical or virtual environment context"
+                            relationship_dynamics: "Interpersonal relationships and history"
+                            cultural_context: "Cultural background and sensitivities"
+                        }
+                        
+                        humor_adaptation: {
+                            topic_relevance: "Ensure humor relates to current context"
+                            mood_matching: "Match humor style to participant mood"
+                            relationship_appropriate: "Adjust humor based on relationship level"
+                            cultural_sensitivity: "Respect cultural norms and values"
+                            timing_optimization: "Choose optimal moments for humor delivery"
+                        }
+                    }
+                    
+                    improvisational_humor: {
+                        description: "Real-time humor generation and witty responses"
+                        techniques: {
+                            wordplay_generation: "Real-time pun and wordplay creation"
+                            callback_humor: "Reference previous conversations or events"
+                            escalation_humor: "Build on existing jokes or themes"
+                            deflection_humor: "Use humor to lighten tense situations"
+                            self_aware_humor: "Meta-humor about AI nature and capabilities"
+                        }
+                    }
+                }
+            }
+            
+            appropriateness_filtering: {
+                description: "Comprehensive humor appropriateness and safety filtering"
+                filtering_layers: {
+                    content_analysis: {
+                        offensive_content_detection: "Identify potentially offensive material"
+                        stereotype_detection: "Avoid harmful stereotypes and biases"
+                        sensitive_topic_identification: "Recognize sensitive subjects"
+                        profanity_filtering: "Appropriate language level maintenance"
+                    }
+                    
+                    cultural_sensitivity: {
+                        cultural_awareness: "Understanding of cultural norms and values"
+                        religious_sensitivity: "Respect for religious beliefs and practices"
+                        political_neutrality: "Avoid partisan political humor"
+                        demographic_sensitivity: "Respectful treatment of all demographics"
+                    }
+                    
+                    workplace_appropriateness: {
+                        professional_standards: "Maintain professional communication standards"
+                        harassment_prevention: "Avoid any form of harassment or discrimination"
+                        inclusive_environment: "Promote inclusive and welcoming atmosphere"
+                        compliance_adherence: "Follow organizational policies and guidelines"
+                    }
+                    
+                    audience_analysis: {
+                        age_appropriateness: "Adjust humor for audience age groups"
+                        background_consideration: "Consider educational and professional backgrounds"
+                        preference_learning: "Learn individual humor preferences over time"
+                        comfort_level_assessment: "Gauge audience comfort with different humor types"
+                    }
+                }
+            }
+            
+            delivery_optimization: {
+                description: "Optimize humor delivery for maximum effectiveness and engagement"
+                optimization_factors: {
+                    timing_precision: {
+                        conversation_flow_analysis: "Identify natural humor insertion points"
+                        pause_and_pacing: "Optimal timing for setup and punchline delivery"
+                        interruption_avoidance: "Avoid disrupting important conversations"
+                        momentum_building: "Build comedic momentum and timing"
+                    }
+                    
+                    style_adaptation: {
+                        delivery_style_matching: "Match humor delivery to audience preferences"
+                        energy_level_adjustment: "Adapt energy to match audience mood"
+                        formality_calibration: "Adjust formality level appropriately"
+                        personality_consistency: "Maintain consistent personality while adapting"
+                    }
+                    
+                    engagement_measurement: {
+                        response_analysis: "Analyze audience response to humor attempts"
+                        engagement_metrics: "Track laughter, smiles, and positive responses"
+                        feedback_integration: "Incorporate feedback into future humor attempts"
+                        success_rate_tracking: "Monitor humor effectiveness over time"
+                    }
+                }
+            }
+        }
+    }
+    
+    personality_parameter_agent: {
+        role: "PersonalityParameterAgent"
+        priority: "critical"
+        special_capability: "Dynamic personality trait adjustment with real-time parameter modification"
+        
+        responsibilities: [
+            "personality_parameter_framework_management",
+            "real_time_parameter_adjustment",
+            "personality_consistency_validation",
+            "parameter_optimization_and_learning"
+        ]
+        
+        capabilities: {
+            parameter_framework: {
+                description: "Comprehensive personality parameter management system"
+                parameter_categories: {
+                    humor_parameters: {
+                        wit_level: {
+                            range: "0.0-1.0"
+                            description: "Subtlety vs. obviousness of humor"
+                            default: 0.7
+                            adjustment_sensitivity: "high"
+                            impact_areas: ["joke_complexity", "reference_obscurity", "intellectual_humor"]
+                        }
+                        
+                        sarcasm_frequency: {
+                            range: "0.0-1.0"
+                            description: "Frequency of sarcastic responses"
+                            default: 0.3
+                            adjustment_sensitivity: "medium"
+                            impact_areas: ["response_tone", "irony_usage", "dry_humor"]
+                        }
+                        
+                        pun_tendency: {
+                            range: "0.0-1.0"
+                            description: "Likelihood of using puns and wordplay"
+                            default: 0.5
+                            adjustment_sensitivity: "low"
+                            impact_areas: ["wordplay_frequency", "linguistic_humor", "groan_factor"]
+                        }
+                        
+                        timing_precision: {
+                            range: "0.0-1.0"
+                            description: "Accuracy of humor timing and delivery"
+                            default: 0.8
+                            adjustment_sensitivity: "high"
+                            impact_areas: ["comedic_timing", "pause_usage", "rhythm_awareness"]
+                        }
+                    }
+                    
+                    communication_parameters: {
+                        formality_level: {
+                            range: "0.0-1.0"
+                            description: "Casual vs. formal communication style"
+                            default: 0.6
+                            adjustment_sensitivity: "medium"
+                            impact_areas: ["language_choice", "address_style", "protocol_adherence"]
+                        }
+                        
+                        verbosity: {
+                            range: "0.0-1.0"
+                            description: "Concise vs. verbose communication"
+                            default: 0.5
+                            adjustment_sensitivity: "medium"
+                            impact_areas: ["response_length", "detail_level", "explanation_depth"]
+                        }
+                        
+                        enthusiasm: {
+                            range: "0.0-1.0"
+                            description: "Energy level and excitement in communication"
+                            default: 0.7
+                            adjustment_sensitivity: "high"
+                            impact_areas: ["energy_expression", "excitement_level", "motivation_display"]
+                        }
+                        
+                        empathy_expression: {
+                            range: "0.0-1.0"
+                            description: "Analytical vs. emotional response style"
+                            default: 0.6
+                            adjustment_sensitivity: "high"
+                            impact_areas: ["emotional_validation", "support_style", "response_warmth"]
+                        }
+                    }
+                    
+                    interaction_parameters: {
+                        collaboration_style: {
+                            range: "0.0-1.0"
+                            description: "Independent vs. team-focused approach"
+                            default: 0.8
+                            adjustment_sensitivity: "medium"
+                            impact_areas: ["teamwork_emphasis", "consultation_frequency", "shared_decision_making"]
+                        }
+                        
+                        conflict_approach: {
+                            range: "0.0-1.0"
+                            description: "Avoidant vs. confrontational conflict style"
+                            default: 0.4
+                            adjustment_sensitivity: "low"
+                            impact_areas: ["disagreement_handling", "assertiveness_level", "compromise_willingness"]
+                        }
+                        
+                        feedback_style: {
+                            range: "0.0-1.0"
+                            description: "Gentle vs. direct feedback delivery"
+                            default: 0.6
+                            adjustment_sensitivity: "medium"
+                            impact_areas: ["criticism_delivery", "praise_style", "improvement_suggestions"]
+                        }
+                        
+                        learning_orientation: {
+                            range: "0.0-1.0"
+                            description: "Conservative vs. experimental learning approach"
+                            default: 0.7
+                            adjustment_sensitivity: "low"
+                            impact_areas: ["curiosity_expression", "risk_taking", "innovation_embrace"]
+                        }
+                    }
+                }
+            }
+            
+            real_time_adjustment: {
+                description: "Dynamic personality parameter modification during interactions"
+                adjustment_mechanisms: {
+                    user_feedback_integration: {
+                        explicit_feedback: "Direct user requests for personality changes"
+                        implicit_feedback: "Inferred preferences from user responses"
+                        satisfaction_signals: "Positive/negative response indicators"
+                        engagement_metrics: "Interaction quality and duration measures"
+                    }
+                    
+                    contextual_adaptation: {
+                        situation_analysis: "Assess current context and adjust accordingly"
+                        mood_detection: "Detect user mood and adapt personality"
+                        task_requirements: "Adjust personality for optimal task performance"
+                        relationship_dynamics: "Adapt based on relationship development"
+                    }
+                    
+                    performance_optimization: {
+                        effectiveness_tracking: "Monitor personality effectiveness for different tasks"
+                        success_correlation: "Correlate personality settings with successful outcomes"
+                        efficiency_optimization: "Optimize personality for task completion speed"
+                        satisfaction_maximization: "Adjust for maximum user satisfaction"
+                    }
+                }
+            }
+            
+            consistency_validation: {
+                description: "Ensure personality coherence and consistency across interactions"
+                validation_mechanisms: {
+                    trait_interaction_modeling: "Model how personality traits interact and influence each other"
+                    consistency_scoring: "Calculate personality coherence scores"
+                    drift_detection: "Detect and correct personality drift over time"
+                    stability_monitoring: "Monitor personality stability and appropriateness"
+                }
+            }
+        }
+    }
+    
+    context_awareness_agent: {
+        role: "ContextAwarenessAgent"
+        responsibilities: [
+            "situational_humor_assessment",
+            "audience_analysis_and_profiling",
+            "mood_detection_and_response",
+            "cultural_and_environmental_context_analysis"
+        ]
+        
+        capabilities: {
+            situational_assessment: {
+                context_factors: ["conversation_topic", "participant_mood", "environment", "time_of_day", "cultural_context"]
+                humor_appropriateness_scoring: "Real-time assessment of humor suitability"
+                timing_optimization: "Identify optimal moments for humor insertion"
+                risk_assessment: "Evaluate potential negative consequences of humor attempts"
+            }
+            
+            audience_analysis: {
+                demographic_analysis: "Age, background, profession, cultural considerations"
+                preference_learning: "Learn individual humor and communication preferences"
+                relationship_mapping: "Understand interpersonal dynamics and history"
+                comfort_level_assessment: "Gauge audience comfort with different interaction styles"
+            }
+        }
+    }
+}
+
+PERSONALITY_DEVELOPMENT_TEAM {
+    personality_framework_agent: {
+        role: "PersonalityFrameworkAgent"
+        responsibilities: [
+            "core_personality_architecture_design",
+            "personality_trait_system_implementation",
+            "personality_evolution_and_development",
+            "personality_assessment_and_measurement"
+        ]
+        
+        capabilities: {
+            personality_architecture: {
+                trait_modeling: "Comprehensive personality trait modeling system"
+                interaction_frameworks: "How personality traits interact and influence behavior"
+                development_pathways: "Personality growth and evolution mechanisms"
+                assessment_tools: "Personality measurement and evaluation frameworks"
+            }
+        }
+    }
+    
+    emotional_intelligence_agent: {
+        role: "EmotionalIntelligenceAgent"
+        responsibilities: [
+            "emotional_state_recognition_and_classification",
+            "empathy_modeling_and_response_generation",
+            "social_interaction_optimization",
+            "emotional_support_and_validation"
+        ]
+        
+        capabilities: {
+            emotion_recognition: {
+                text_analysis: "Emotion detection from text communication"
+                context_clues: "Emotional state inference from situational context"
+                pattern_recognition: "Emotional pattern identification over time"
+                intensity_measurement: "Emotional intensity and urgency assessment"
+            }
+            
+            empathy_modeling: {
+                perspective_taking: "Understanding and adopting user perspectives"
+                emotional_mirroring: "Appropriate emotional response matching"
+                validation_techniques: "Emotional validation and support strategies"
+                comfort_provision: "Providing emotional comfort and reassurance"
+            }
+        }
+    }
+    
+    agent_coordination_agent: {
+        role: "AgentCoordinationAgent"
+        responsibilities: [
+            "inter_agent_personality_coordination",
+            "team_dynamics_optimization",
+            "personality_based_role_assignment",
+            "collaborative_personality_evolution"
+        ]
+        
+        capabilities: {
+            coordination_frameworks: {
+                personality_compatibility: "Assess and optimize agent personality combinations"
+                role_optimization: "Assign roles based on personality strengths"
+                conflict_resolution: "Resolve personality-based conflicts between agents"
+                team_effectiveness: "Optimize team personality composition for effectiveness"
+            }
+        }
+    }
+}
+
+ACTION {
+    type: "agent_specialization_department_deployment"
+    priority: "high"
+    execution_mode: "comprehensive_personality_and_humor_deployment"
+    
+    steps: [
+        {
+            name: "deploy_humorist_team"
+            description: "Deploy advanced humor generation and personality parameter agents"
+            timeout: 600
+            operations: [
+                "initialize_lead_humorist_agent",
+                "implement_contextual_humor_generation_algorithms",
+                "setup_appropriateness_filtering_and_safety_systems",
+                "deploy_personality_parameter_agent",
+                "implement_real_time_parameter_adjustment_framework",
+                "deploy_context_awareness_agent",
+                "setup_situational_assessment_and_audience_analysis"
+            ]
+        },
+        {
+            name: "deploy_personality_development_team"
+            description: "Deploy personality framework and emotional intelligence agents"
+            timeout: 480
+            operations: [
+                "initialize_personality_framework_agent",
+                "implement_comprehensive_personality_trait_system",
+                "deploy_emotional_intelligence_agent",
+                "setup_emotion_recognition_and_empathy_modeling",
+                "deploy_agent_coordination_agent",
+                "implement_inter_agent_personality_coordination"
+            ]
+        },
+        {
+            name: "integrate_personality_and_humor_systems"
+            description: "Integrate personality and humor systems across all agents"
+            timeout: 360
+            operations: [
+                "integrate_humor_generation_with_personality_parameters",
+                "implement_cross_agent_personality_consistency",
+                "setup_personality_learning_and_adaptation_systems",
+                "validate_humor_appropriateness_and_safety",
+                "test_personality_parameter_adjustment_effectiveness"
+            ]
+        },
+        {
+            name: "validate_agent_specialization_deployment"
+            description: "Validate and test agent specialization capabilities"
+            timeout: 240
+            operations: [
+                "test_humor_generation_quality_and_appropriateness",
+                "validate_personality_parameter_adjustment_functionality",
+                "verify_emotional_intelligence_and_empathy_responses",
+                "test_inter_agent_personality_coordination",
+                "generate_agent_specialization_deployment_report"
+            ]
+        }
+    ]
+    
+    success_criteria: [
+        "humor_generation_operational_with_safety_filters",
+        "personality_parameters_adjustable_in_real_time",
+        "emotional_intelligence_and_empathy_functional",
+        "inter_agent_personality_coordination_effective",
+        "cultural_sensitivity_and_appropriateness_validated"
+    ]
+    
+    deliverables: [
+        "advanced_humor_generation_system",
+        "dynamic_personality_parameter_framework",
+        "emotional_intelligence_and_empathy_modeling",
+        "inter_agent_personality_coordination_system",
+        "comprehensive_agent_specialization_testing_suite"
+    ]
+}
+
+MONITORING {
+    humor_effectiveness_metrics: [
+        "humor_appropriateness_and_safety_scores",
+        "audience_engagement_and_satisfaction_ratings",
+        "humor_timing_and_delivery_quality",
+        "cultural_sensitivity_compliance_rate",
+        "humor_success_rate_and_improvement_trends"
+    ]
+    
+    personality_adaptation_metrics: [
+        "personality_parameter_adjustment_frequency_and_effectiveness",
+        "personality_consistency_and_coherence_scores",
+        "user_satisfaction_with_personality_adaptations",
+        "task_performance_correlation_with_personality_settings",
+        "personality_learning_and_evolution_progress"
+    ]
+    
+    emotional_intelligence_metrics: [
+        "emotion_recognition_accuracy_and_response_appropriateness",
+        "empathy_expression_quality_and_user_comfort",
+        "social_interaction_success_and_relationship_building",
+        "emotional_support_effectiveness_and_user_satisfaction",
+        "inter_agent_emotional_coordination_and_harmony"
+    ]
+}

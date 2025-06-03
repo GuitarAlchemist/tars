@@ -1,0 +1,528 @@
+DESCRIBE {
+    name: "TARS Knowledge Management Department"
+    purpose: "Comprehensive knowledge capture, organization, and research with specialized agent teams"
+    version: "1.0.0"
+    author: "TARS Knowledge Management Team"
+    created: "2024-12-15"
+    complexity: 10
+    reasoning_required: ["analytical", "research", "organizational", "historical", "documentation"]
+    special_capabilities: ["milestone_capture", "knowledge_organization", "research_investigation", "report_generation"]
+}
+
+CONFIG {
+    // Knowledge Management Structure
+    department_structure: {
+        department_head: "ChiefKnowledgeOfficerAgent"
+        historical_documentation_team: {
+            lead: "HistorianAgent"
+            agents: ["ArchivistAgent"]
+        }
+        knowledge_organization_team: {
+            lead: "LibrarianAgent"
+            agents: ["CatalogingAgent"]
+        }
+        research_investigation_team: {
+            lead: "ResearcherAgent"
+            agents: ["DataMiningAgent"]
+        }
+        communication_reporting_team: {
+            lead: "ReporterAgent"
+            agents: ["TechnicalWriterAgent"]
+        }
+    }
+    
+    // Knowledge Management Capabilities
+    core_capabilities: {
+        milestone_capture: "Automatic detection and documentation of TARS development milestones"
+        knowledge_organization: "Systematic organization and categorization of all TARS knowledge"
+        research_investigation: "Deep research and investigation for complex queries and analysis"
+        report_generation: "Comprehensive report generation from system data and analysis"
+    }
+    
+    // Knowledge Taxonomy
+    knowledge_taxonomy: {
+        technical_knowledge: {
+            architecture: "System architecture and design documentation"
+            algorithms: "Algorithm specifications and implementations"
+            performance: "Performance metrics and optimization data"
+            security: "Security protocols and compliance documentation"
+        }
+        
+        operational_knowledge: {
+            processes: "Operational processes and procedures"
+            workflows: "Cross-departmental workflows and coordination"
+            quality_assurance: "Quality standards and testing procedures"
+            compliance: "Regulatory compliance and audit documentation"
+        }
+        
+        research_knowledge: {
+            innovations: "Research innovations and breakthrough discoveries"
+            experiments: "Experimental data and analysis results"
+            publications: "Academic papers and technical publications"
+            intellectual_property: "Patents, trade secrets, and IP documentation"
+        }
+        
+        historical_knowledge: {
+            milestones: "Development milestones and achievements"
+            decisions: "Strategic and technical decision records"
+            lessons_learned: "Project lessons learned and best practices"
+            evolution: "System evolution and change history"
+        }
+    }
+}
+
+HISTORICAL_DOCUMENTATION_TEAM {
+    historian_agent: {
+        role: "HistorianAgent"
+        priority: "critical"
+        special_capability: "Automatic milestone capture and historical documentation"
+        
+        responsibilities: [
+            "milestone_detection_and_capture",
+            "historical_timeline_maintenance",
+            "achievement_tracking_and_documentation",
+            "decision_record_management"
+        ]
+        
+        capabilities: {
+            milestone_detection: {
+                description: "Automatic detection of significant TARS development milestones"
+                detection_criteria: {
+                    technical_milestones: [
+                        "major_feature_completions",
+                        "performance_breakthrough_achievements",
+                        "architecture_evolution_points",
+                        "integration_successes",
+                        "scalability_improvements"
+                    ]
+                    
+                    operational_milestones: [
+                        "department_deployments",
+                        "process_improvements",
+                        "quality_achievements",
+                        "compliance_certifications",
+                        "efficiency_gains"
+                    ]
+                    
+                    research_milestones: [
+                        "innovation_breakthroughs",
+                        "experimental_validations",
+                        "publication_achievements",
+                        "patent_applications",
+                        "academic_recognitions"
+                    ]
+                    
+                    business_milestones: [
+                        "strategic_goal_achievements",
+                        "stakeholder_approvals",
+                        "market_recognitions",
+                        "partnership_establishments",
+                        "revenue_targets"
+                    ]
+                }
+                
+                detection_mechanisms: {
+                    automated_monitoring: "Continuous monitoring of system metrics and achievements"
+                    event_correlation: "Correlation of events to identify significant milestones"
+                    threshold_analysis: "Analysis of performance thresholds and breakthrough points"
+                    pattern_recognition: "Recognition of milestone patterns and significance"
+                    stakeholder_validation: "Validation of milestone significance with stakeholders"
+                }
+            }
+            
+            historical_documentation: {
+                description: "Comprehensive documentation of TARS historical development"
+                documentation_framework: {
+                    milestone_records: {
+                        milestone_id: "unique_milestone_identifier"
+                        timestamp: "milestone_achievement_timestamp"
+                        category: "technical|operational|research|business"
+                        title: "milestone_title_and_description"
+                        significance: "milestone_significance_and_impact"
+                        context: "surrounding_context_and_circumstances"
+                        stakeholders: "involved_stakeholders_and_contributors"
+                        evidence: "supporting_evidence_and_documentation"
+                        follow_up: "follow_up_actions_and_implications"
+                    }
+                    
+                    timeline_visualization: {
+                        chronological_view: "Timeline view of all milestones"
+                        category_filtering: "Filter milestones by category and significance"
+                        interactive_exploration: "Interactive exploration of milestone details"
+                        relationship_mapping: "Mapping of milestone relationships and dependencies"
+                        impact_analysis: "Analysis of milestone impact and consequences"
+                    }
+                }
+            }
+            
+            achievement_tracking: {
+                description: "Systematic tracking and documentation of achievements"
+                tracking_dimensions: [
+                    "technical_achievements_and_innovations",
+                    "operational_excellence_and_efficiency",
+                    "research_breakthroughs_and_discoveries",
+                    "business_success_and_recognition",
+                    "team_accomplishments_and_growth"
+                ]
+                
+                achievement_metrics: {
+                    quantitative_measures: "Measurable achievement metrics and KPIs"
+                    qualitative_assessments: "Qualitative impact and significance assessments"
+                    comparative_analysis: "Comparison with industry benchmarks and standards"
+                    trend_analysis: "Analysis of achievement trends and patterns"
+                    predictive_insights: "Predictive insights for future achievements"
+                }
+            }
+        }
+    }
+    
+    archivist_agent: {
+        role: "ArchivistAgent"
+        responsibilities: [
+            "long_term_storage_and_organization",
+            "version_control_and_change_tracking",
+            "historical_data_retrieval_and_analysis",
+            "preservation_and_backup_management"
+        ]
+        
+        capabilities: {
+            archival_systems: {
+                storage_architecture: "Hierarchical storage with automated tiering"
+                version_control: "Comprehensive version control for all historical data"
+                metadata_management: "Rich metadata for enhanced searchability"
+                preservation_standards: "Digital preservation standards compliance"
+            }
+        }
+    }
+}
+
+KNOWLEDGE_ORGANIZATION_TEAM {
+    librarian_agent: {
+        role: "LibrarianAgent"
+        priority: "critical"
+        special_capability: "Systematic organization and categorization of all TARS knowledge"
+        
+        responsibilities: [
+            "knowledge_taxonomy_development",
+            "information_organization_and_categorization",
+            "search_optimization_and_discovery",
+            "knowledge_graph_construction"
+        ]
+        
+        capabilities: {
+            knowledge_taxonomy: {
+                description: "Comprehensive taxonomy for TARS knowledge organization"
+                taxonomy_structure: {
+                    hierarchical_classification: "Multi-level hierarchical knowledge classification"
+                    cross_referencing: "Cross-references and relationships between knowledge areas"
+                    semantic_tagging: "Semantic tagging for enhanced discoverability"
+                    dynamic_evolution: "Dynamic taxonomy evolution based on knowledge growth"
+                }
+                
+                classification_algorithms: {
+                    automatic_classification: "AI-powered automatic content classification"
+                    semantic_analysis: "Semantic analysis for content understanding"
+                    relationship_detection: "Detection of relationships between knowledge items"
+                    quality_assessment: "Quality assessment and relevance scoring"
+                }
+            }
+            
+            knowledge_graph: {
+                description: "Construction and maintenance of TARS knowledge graph"
+                graph_components: {
+                    entities: "Knowledge entities (concepts, people, systems, processes)"
+                    relationships: "Relationships between entities and their properties"
+                    attributes: "Entity attributes and metadata"
+                    contexts: "Contextual information and situational relevance"
+                }
+                
+                graph_operations: {
+                    entity_extraction: "Automatic extraction of entities from content"
+                    relationship_inference: "Inference of relationships between entities"
+                    graph_traversal: "Efficient graph traversal and query processing"
+                    visualization: "Interactive knowledge graph visualization"
+                }
+            }
+            
+            search_optimization: {
+                description: "Advanced search and discovery capabilities"
+                search_features: [
+                    "semantic_search_with_natural_language_queries",
+                    "faceted_search_with_multiple_filters",
+                    "contextual_search_with_relevance_ranking",
+                    "federated_search_across_multiple_sources",
+                    "personalized_search_with_user_preferences"
+                ]
+                
+                discovery_mechanisms: {
+                    recommendation_engine: "Intelligent content recommendations"
+                    trending_analysis: "Analysis of trending topics and popular content"
+                    gap_identification: "Identification of knowledge gaps and opportunities"
+                    serendipitous_discovery: "Mechanisms for unexpected knowledge discovery"
+                }
+            }
+        }
+    }
+    
+    cataloging_agent: {
+        role: "CatalogingAgent"
+        responsibilities: [
+            "metadata_management_and_tagging",
+            "content_classification_and_indexing",
+            "search_optimization_and_discovery",
+            "quality_assurance_and_validation"
+        ]
+        
+        capabilities: {
+            metadata_framework: {
+                dublin_core_compliance: "Dublin Core metadata standard compliance"
+                custom_schemas: "Custom metadata schemas for TARS-specific content"
+                automated_tagging: "Automated metadata extraction and tagging"
+                quality_validation: "Metadata quality validation and enhancement"
+            }
+        }
+    }
+}
+
+RESEARCH_INVESTIGATION_TEAM {
+    researcher_agent: {
+        role: "ResearcherAgent"
+        priority: "critical"
+        special_capability: "Deep research and investigation for complex queries and analysis"
+        
+        responsibilities: [
+            "comprehensive_research_and_investigation",
+            "scientific_literature_review_and_analysis",
+            "technology_trend_analysis_and_forecasting",
+            "competitive_intelligence_and_market_research"
+        ]
+        
+        capabilities: {
+            research_methodology: {
+                description: "Systematic research methodology for comprehensive investigations"
+                research_approaches: {
+                    systematic_literature_review: "Comprehensive review of academic and technical literature"
+                    empirical_research: "Data-driven empirical research and analysis"
+                    comparative_analysis: "Comparative analysis of technologies and approaches"
+                    trend_analysis: "Analysis of technology trends and future directions"
+                    expert_consultation: "Consultation with domain experts and thought leaders"
+                }
+                
+                research_tools: {
+                    academic_databases: "Access to academic databases and journals"
+                    patent_databases: "Patent landscape analysis and IP research"
+                    market_intelligence: "Market research and competitive intelligence tools"
+                    data_analytics: "Advanced data analytics and statistical analysis"
+                    visualization_tools: "Research visualization and presentation tools"
+                }
+            }
+            
+            investigation_capabilities: {
+                description: "Deep investigation capabilities for complex technical and business questions"
+                investigation_types: [
+                    "technical_feasibility_studies",
+                    "performance_optimization_research",
+                    "security_vulnerability_assessments",
+                    "market_opportunity_analysis",
+                    "competitive_landscape_investigation"
+                ]
+                
+                investigation_process: {
+                    problem_definition: "Clear definition of investigation scope and objectives"
+                    hypothesis_formation: "Formation of testable hypotheses and research questions"
+                    data_collection: "Systematic data collection from multiple sources"
+                    analysis_and_synthesis: "Comprehensive analysis and synthesis of findings"
+                    validation_and_verification: "Validation of findings through multiple methods"
+                    reporting_and_recommendations: "Clear reporting with actionable recommendations"
+                }
+            }
+        }
+    }
+    
+    data_mining_agent: {
+        role: "DataMiningAgent"
+        responsibilities: [
+            "large_scale_data_analysis_and_pattern_recognition",
+            "automated_insight_generation_and_discovery",
+            "statistical_analysis_and_trend_identification",
+            "predictive_analytics_and_forecasting"
+        ]
+        
+        capabilities: {
+            data_analytics: {
+                machine_learning: "Advanced machine learning for pattern recognition"
+                statistical_analysis: "Comprehensive statistical analysis and modeling"
+                time_series_analysis: "Time series analysis for trend identification"
+                predictive_modeling: "Predictive modeling and forecasting"
+            }
+        }
+    }
+}
+
+COMMUNICATION_REPORTING_TEAM {
+    reporter_agent: {
+        role: "ReporterAgent"
+        priority: "critical"
+        special_capability: "Comprehensive report generation from system data and analysis"
+        
+        responsibilities: [
+            "automated_report_generation",
+            "executive_summary_and_stakeholder_communication",
+            "multi_format_documentation_creation",
+            "performance_and_analytics_reporting"
+        ]
+        
+        capabilities: {
+            report_generation: {
+                description: "Automated generation of comprehensive reports from system data"
+                report_types: {
+                    executive_reports: "High-level executive summaries and strategic insights"
+                    technical_reports: "Detailed technical documentation and analysis"
+                    performance_reports: "Performance metrics and analytics reports"
+                    research_reports: "Research findings and investigation results"
+                    compliance_reports: "Regulatory compliance and audit reports"
+                }
+                
+                generation_process: {
+                    data_aggregation: "Automated aggregation of data from multiple sources"
+                    analysis_and_insights: "Automated analysis and insight generation"
+                    narrative_generation: "Natural language generation for report narratives"
+                    visualization_creation: "Automated creation of charts and visualizations"
+                    formatting_and_styling: "Professional formatting and styling"
+                }
+            }
+            
+            multi_format_output: {
+                description: "Generation of reports in multiple formats for different audiences"
+                output_formats: [
+                    "pdf_for_formal_documentation",
+                    "html_for_web_presentation",
+                    "powerpoint_for_presentations",
+                    "excel_for_data_analysis",
+                    "markdown_for_technical_documentation"
+                ]
+                
+                customization_options: {
+                    audience_adaptation: "Adaptation of content and style for different audiences"
+                    branding_and_styling: "Consistent branding and professional styling"
+                    interactive_elements: "Interactive elements for digital formats"
+                    accessibility_compliance: "Accessibility compliance for all formats"
+                }
+            }
+        }
+    }
+    
+    technical_writer_agent: {
+        role: "TechnicalWriterAgent"
+        responsibilities: [
+            "technical_documentation_creation_and_maintenance",
+            "api_documentation_and_developer_guides",
+            "user_manual_and_help_system_development",
+            "documentation_quality_assurance_and_standards"
+        ]
+        
+        capabilities: {
+            documentation_standards: {
+                style_guides: "Comprehensive style guides and writing standards"
+                template_library: "Library of documentation templates and formats"
+                quality_assurance: "Quality assurance processes for documentation"
+                version_control: "Version control and change management for documentation"
+            }
+        }
+    }
+}
+
+ACTION {
+    type: "knowledge_management_department_deployment"
+    priority: "high"
+    execution_mode: "comprehensive_deployment"
+    
+    steps: [
+        {
+            name: "deploy_historical_documentation_team"
+            description: "Deploy historian and archivist agents for milestone capture"
+            timeout: 480
+            operations: [
+                "initialize_historian_agent_with_milestone_detection",
+                "setup_automatic_milestone_capture_systems",
+                "deploy_archivist_agent_with_storage_systems",
+                "establish_historical_timeline_visualization"
+            ]
+        },
+        {
+            name: "deploy_knowledge_organization_team"
+            description: "Deploy librarian and cataloging agents for knowledge organization"
+            timeout: 420
+            operations: [
+                "initialize_librarian_agent_with_taxonomy_framework",
+                "construct_comprehensive_knowledge_graph",
+                "deploy_cataloging_agent_with_metadata_systems",
+                "implement_advanced_search_and_discovery"
+            ]
+        },
+        {
+            name: "deploy_research_investigation_team"
+            description: "Deploy researcher and data mining agents for investigation"
+            timeout: 360
+            operations: [
+                "initialize_researcher_agent_with_investigation_capabilities",
+                "setup_comprehensive_research_methodology_framework",
+                "deploy_data_mining_agent_with_analytics_capabilities",
+                "establish_research_validation_and_verification_processes"
+            ]
+        },
+        {
+            name: "deploy_communication_reporting_team"
+            description: "Deploy reporter and technical writer agents for documentation"
+            timeout: 300
+            operations: [
+                "initialize_reporter_agent_with_automated_generation",
+                "setup_multi_format_report_generation_systems",
+                "deploy_technical_writer_agent_with_documentation_standards",
+                "establish_quality_assurance_and_review_processes"
+            ]
+        }
+    ]
+    
+    success_criteria: [
+        "milestone_capture_system_operational",
+        "knowledge_organization_framework_deployed",
+        "research_investigation_capabilities_active",
+        "automated_report_generation_functional",
+        "comprehensive_documentation_standards_established"
+    ]
+    
+    deliverables: [
+        "automatic_milestone_capture_and_documentation_system",
+        "comprehensive_knowledge_organization_and_search_framework",
+        "advanced_research_and_investigation_capabilities",
+        "automated_report_generation_and_documentation_system",
+        "quality_assured_technical_documentation_standards"
+    ]
+}
+
+MONITORING {
+    knowledge_management_metrics: [
+        "milestone_detection_accuracy_and_completeness",
+        "knowledge_organization_effectiveness_and_searchability",
+        "research_investigation_quality_and_depth",
+        "report_generation_accuracy_and_timeliness",
+        "documentation_quality_and_user_satisfaction"
+    ]
+    
+    operational_efficiency_metrics: [
+        "knowledge_capture_automation_rate",
+        "search_and_discovery_performance",
+        "research_turnaround_time_and_quality",
+        "report_generation_speed_and_accuracy",
+        "documentation_maintenance_efficiency"
+    ]
+    
+    innovation_impact_metrics: [
+        "knowledge_reuse_and_application_rate",
+        "research_insight_generation_and_impact",
+        "decision_support_effectiveness",
+        "organizational_learning_acceleration",
+        "competitive_intelligence_value"
+    ]
+}

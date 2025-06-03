@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>TARS Core API</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f0f0f0; margin: 0; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #333; text-align: center; }
+        .status { background: #4CAF50; color: white; padding: 10px; border-radius: 5px; text-align: center; margin: 20px 0; }
+        .endpoints { margin: 20px 0; }
+        .endpoint { background: #f9f9f9; padding: 15px; margin: 10px 0; border-radius: 5px; border-left: 4px solid #2196F3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 TARS Core API Service</h1>
+        <div class="status">✅ Service Operational</div>
+        
+        <h2>Available Endpoints:</h2>
+        <div class="endpoints">
+            <div class="endpoint">
+                <strong>GET /health/live</strong><br>
+                Liveness probe for service health
+            </div>
+            <div class="endpoint">
+                <strong>GET /health/ready</strong><br>
+                Readiness probe for service availability
+            </div>
+            <div class="endpoint">
+                <strong>GET /api/departments</strong><br>
+                List all TARS departments and agents
+            </div>
+            <div class="endpoint">
+                <strong>GET /api/dialogue</strong><br>
+                Access TARS internal dialogue stream
+            </div>
+            <div class="endpoint">
+                <strong>POST /api/humor</strong><br>
+                Generate contextual humor with personality parameters
+            </div>
+            <div class="endpoint">
+                <strong>GET /metrics</strong><br>
+                Prometheus metrics endpoint
+            </div>
+        </div>
+        
+        <h2>TARS Departments:</h2>
+        <ul>
+            <li>Executive Leadership (CEO, CTO, COO)</li>
+            <li>Operations Department (Fiscal, Tax, Audit)</li>
+            <li>UI Development (Internal Dialogue, Template-Free)</li>
+            <li>Knowledge Management (Historian, Librarian, Researcher)</li>
+            <li>Infrastructure (Kubernetes, Cloud, CI/CD)</li>
+            <li>Agent Specialization (Humor, Personality, Emotional)</li>
+            <li>Research & Innovation (Hyperlight, Inference, Vector)</li>
+        </ul>
+    </div>
+</body>
+</html>

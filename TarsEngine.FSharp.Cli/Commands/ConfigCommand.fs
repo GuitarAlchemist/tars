@@ -95,9 +95,9 @@ type ConfigCommand(logger: ILogger<ConfigCommand>) =
     /// <summary>
     /// Loads configuration from file
     /// </summary>
-    member _.LoadConfig() =
+    member self.LoadConfig() =
         try
-            let configFile = this.GetConfigPath()
+            let configFile = self.GetConfigPath()
             if File.Exists(configFile) then
                 let configJson = File.ReadAllText(configFile)
                 JsonSerializer.Deserialize<Map<string, string>>(configJson)
@@ -107,13 +107,13 @@ type ConfigCommand(logger: ILogger<ConfigCommand>) =
         | ex ->
             logger.LogError(ex, "Error loading configuration")
             Map.empty<string, string>
-    
+
     /// <summary>
     /// Saves configuration to file
     /// </summary>
-    member _.SaveConfig(config: Map<string, string>) =
+    member self.SaveConfig(config: Map<string, string>) =
         try
-            let configFile = this.GetConfigPath()
+            let configFile = self.GetConfigPath()
             let configJson = JsonSerializer.Serialize(config, JsonSerializerOptions(WriteIndented = true))
             File.WriteAllText(configFile, configJson)
             true
@@ -122,17 +122,17 @@ type ConfigCommand(logger: ILogger<ConfigCommand>) =
             logger.LogError(ex, "Error saving configuration")
             printfn $"❌ Failed to save configuration: {ex.Message}"
             false
-    
+
     /// <summary>
     /// Shows current configuration
     /// </summary>
-    member _.ShowCurrentConfig() =
+    member self.ShowCurrentConfig() =
         printfn "CURRENT TARS CONFIGURATION"
         printfn "========================="
-        
+
         try
-            let config = this.LoadConfig()
-            
+            let config = self.LoadConfig()
+
             if config.IsEmpty then
                 printfn "No configuration found."
                 printfn "Run 'tars config init' to create default configuration."
@@ -140,9 +140,9 @@ type ConfigCommand(logger: ILogger<ConfigCommand>) =
                 printfn "Configuration Settings:"
                 for kvp in config do
                     printfn $"  {kvp.Key} = {kvp.Value}"
-                    
+
                 printfn ""
-                printfn $"Configuration file: {this.GetConfigPath()}"
+                printfn $"Configuration file: {self.GetConfigPath()}"
             
             0
             
@@ -155,32 +155,32 @@ type ConfigCommand(logger: ILogger<ConfigCommand>) =
     /// <summary>
     /// Sets a configuration value
     /// </summary>
-    member _.SetConfigValue(key: string, value: string) =
+    member self.SetConfigValue(key: string, value: string) =
         printfn $"Setting configuration: {key} = {value}"
-        
+
         try
-            let config = this.LoadConfig()
+            let config = self.LoadConfig()
             let updatedConfig = config.Add(key, value)
-            
-            if this.SaveConfig(updatedConfig) then
+
+            if self.SaveConfig(updatedConfig) then
                 printfn $"✅ Configuration updated: {key} = {value}"
                 0
             else
                 1
-                
+
         with
         | ex ->
             logger.LogError(ex, "Error setting configuration value")
             printfn $"❌ Failed to set configuration: {ex.Message}"
             1
-    
+
     /// <summary>
     /// Gets a configuration value
     /// </summary>
-    member _.GetConfigValue(key: string) =
+    member self.GetConfigValue(key: string) =
         try
-            let config = this.LoadConfig()
-            
+            let config = self.LoadConfig()
+
             match config.TryFind(key) with
             | Some value ->
                 printfn $"{key} = {value}"
@@ -191,23 +191,23 @@ type ConfigCommand(logger: ILogger<ConfigCommand>) =
                 for k in config.Keys do
                     printfn $"  {k}"
                 1
-                
+
         with
         | ex ->
             logger.LogError(ex, "Error getting configuration value")
             printfn $"❌ Failed to get configuration: {ex.Message}"
             1
-    
+
     /// <summary>
     /// Lists all configuration keys
     /// </summary>
-    member _.ListAllConfig() =
+    member self.ListAllConfig() =
         printfn "ALL CONFIGURATION KEYS"
         printfn "======================"
-        
+
         try
-            let config = this.LoadConfig()
-            
+            let config = self.LoadConfig()
+
             if config.IsEmpty then
                 printfn "No configuration keys found."
                 printfn "Run 'tars config init' to create default configuration."
@@ -215,12 +215,12 @@ type ConfigCommand(logger: ILogger<ConfigCommand>) =
                 printfn "Available configuration keys:"
                 for key in config.Keys do
                     printfn $"  {key}"
-                    
+
                 printfn ""
                 printfn $"Total keys: {config.Count}"
-            
+
             0
-            
+
         with
         | ex ->
             logger.LogError(ex, "Error listing configuration")
@@ -230,10 +230,10 @@ type ConfigCommand(logger: ILogger<ConfigCommand>) =
     /// <summary>
     /// Resets configuration to defaults
     /// </summary>
-    member _.ResetConfig() =
+    member self.ResetConfig() =
         printfn "RESETTING CONFIGURATION TO DEFAULTS"
         printfn "==================================="
-        
+
         try
             let defaultConfig = Map.ofList [
                 ("log_level", "info")
@@ -242,39 +242,39 @@ type ConfigCommand(logger: ILogger<ConfigCommand>) =
                 ("timeout_seconds", "30")
                 ("auto_save", "true")
             ]
-            
-            if this.SaveConfig(defaultConfig) then
+
+            if self.SaveConfig(defaultConfig) then
                 printfn "✅ Configuration reset to defaults:"
                 for kvp in defaultConfig do
                     printfn $"  {kvp.Key} = {kvp.Value}"
                 0
             else
                 1
-                
+
         with
         | ex ->
             logger.LogError(ex, "Error resetting configuration")
             printfn $"❌ Failed to reset configuration: {ex.Message}"
             1
-    
+
     /// <summary>
     /// Initializes default configuration
     /// </summary>
-    member _.InitializeConfig() =
+    member self.InitializeConfig() =
         printfn "INITIALIZING DEFAULT CONFIGURATION"
         printfn "================================="
-        
+
         try
-            let configFile = this.GetConfigPath()
-            
+            let configFile = self.GetConfigPath()
+
             if File.Exists(configFile) then
                 printfn "Configuration already exists."
                 printfn "Use 'tars config reset' to reset to defaults."
                 printfn "Use 'tars config show' to view current configuration."
                 0
             else
-                this.ResetConfig()
-                
+                self.ResetConfig()
+
         with
         | ex ->
             logger.LogError(ex, "Error initializing configuration")

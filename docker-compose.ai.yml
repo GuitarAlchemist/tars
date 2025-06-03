@@ -1,0 +1,145 @@
+version: '3.8'
+
+services:
+  # TARS AI Inference Engine
+  tars-ai:
+    build:
+      context: .
+      dockerfile: Dockerfile.ai
+    container_name: tars-ai-engine
+    ports:
+      - "11434:11434"  # Ollama-compatible port
+    environment:
+      - TARS_MODELS_PATH=/app/models
+      - TARS_CUDA_ENABLED=true
+      - TARS_LOG_LEVEL=Info
+      - TARS_MAX_CONCURRENT_REQUESTS=10
+      - TARS_CACHE_SIZE=1000
+      - TARS_OPTIMIZATION_ENABLED=true
+      - TARS_METRICS_ENABLED=true
+    volumes:
+      - ./models:/app/models:ro  # Mount models directory
+      - tars-cache:/app/cache    # Persistent cache
+      - tars-logs:/app/logs      # Persistent logs
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - tars-network
+
+  # TARS AI Load Balancer (for scaling)
+  tars-lb:
+    image: nginx:alpine
+    container_name: tars-load-balancer
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - tars-ai
+    restart: unless-stopped
+    networks:
+      - tars-network
+
+  # Redis for caching and session management
+  redis:
+    image: redis:7-alpine
+    container_name: tars-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --maxmemory 1gb --maxmemory-policy allkeys-lru
+    restart: unless-stopped
+    networks:
+      - tars-network
+
+  # Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: tars-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    networks:
+      - tars-network
+
+  # Grafana for metrics visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: tars-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=tars-admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - tars-network
+
+  # TARS Model Manager (for downloading and managing models)
+  tars-model-manager:
+    build:
+      context: .
+      dockerfile: Dockerfile.ai
+    container_name: tars-model-manager
+    command: ["dotnet", "TarsEngine.dll", "--model-manager"]
+    environment:
+      - TARS_MODELS_PATH=/app/models
+      - TARS_HF_TOKEN=${HUGGINGFACE_TOKEN:-}
+    volumes:
+      - ./models:/app/models
+      - model-cache:/app/cache
+    restart: "no"
+    networks:
+      - tars-network
+
+volumes:
+  tars-cache:
+    driver: local
+  tars-logs:
+    driver: local
+  redis-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+  model-cache:
+    driver: local
+
+networks:
+  tars-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
