@@ -1,0 +1,320 @@
+# TARS Advanced CUDA Kernels - CMake Build Configuration
+# Optimized for maximum performance across different GPU architectures
+
+cmake_minimum_required(VERSION 3.18)
+project(TarsAdvancedCudaKernels LANGUAGES CXX CUDA)
+
+# ============================================================================
+# CUDA CONFIGURATION
+# ============================================================================
+
+# Find CUDA
+find_package(CUDA REQUIRED)
+find_package(CUDAToolkit REQUIRED)
+
+# Set CUDA standard
+set(CMAKE_CUDA_STANDARD 17)
+set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+
+# CUDA architectures - support wide range of GPUs
+set(CMAKE_CUDA_ARCHITECTURES "60;61;70;75;80;86;89;90")
+
+# Enable separable compilation for device linking
+set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
+
+# ============================================================================
+# COMPILER FLAGS AND OPTIMIZATIONS
+# ============================================================================
+
+# CUDA compiler flags for maximum performance
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -O3")
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --use_fast_math")
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --maxrregcount=64")
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xptxas -O3")
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler -O3")
+
+# Enable Tensor Core operations
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -DWITH_TENSOR_CORES")
+
+# Memory optimization flags
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -DCUDA_MEMORY_OPTIMIZED")
+
+# Debug flags (conditional)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -g -G")
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -DTARS_DEBUG")
+else()
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -DNDEBUG")
+endif()
+
+# Architecture-specific optimizations
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_60,code=sm_60")  # Pascal
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_61,code=sm_61")  # Pascal
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_70,code=sm_70")  # Volta
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_75,code=sm_75")  # Turing
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_80,code=sm_80")  # Ampere
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_86,code=sm_86")  # Ampere
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_89,code=sm_89")  # Ada Lovelace
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_90,code=sm_90")  # Hopper
+
+# Forward compatibility
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_90,code=compute_90")
+
+# ============================================================================
+# DEPENDENCIES
+# ============================================================================
+
+# cuBLAS for optimized linear algebra
+find_library(CUBLAS_LIBRARY cublas HINTS ${CUDAToolkit_LIBRARY_DIR})
+find_library(CUBLASLT_LIBRARY cublasLt HINTS ${CUDAToolkit_LIBRARY_DIR})
+
+# cuDNN for deep learning primitives
+find_path(CUDNN_INCLUDE_DIR cudnn.h HINTS ${CUDAToolkit_INCLUDE_DIRS})
+find_library(CUDNN_LIBRARY cudnn HINTS ${CUDAToolkit_LIBRARY_DIR})
+
+# cuFFT for Fast Fourier Transforms
+find_library(CUFFT_LIBRARY cufft HINTS ${CUDAToolkit_LIBRARY_DIR})
+
+# cuRAND for random number generation
+find_library(CURAND_LIBRARY curand HINTS ${CUDAToolkit_LIBRARY_DIR})
+
+# cuSPARSE for sparse matrix operations
+find_library(CUSPARSE_LIBRARY cusparse HINTS ${CUDAToolkit_LIBRARY_DIR})
+
+# NCCL for multi-GPU communication (optional)
+find_library(NCCL_LIBRARY nccl HINTS ${CUDAToolkit_LIBRARY_DIR})
+
+# ============================================================================
+# SOURCE FILES
+# ============================================================================
+
+set(CUDA_SOURCES
+    TarsAdvancedCudaKernels.cu
+    TarsCudaKernels.cu
+    TarsCudaKernelsSimple.cu
+)
+
+set(HEADER_FILES
+    TarsAdvancedCudaKernels.h
+    TarsCudaKernels.h
+)
+
+# ============================================================================
+# LIBRARY CONFIGURATION
+# ============================================================================
+
+# Create shared library
+add_library(TarsAdvancedCudaKernels SHARED ${CUDA_SOURCES})
+
+# Set library properties
+set_target_properties(TarsAdvancedCudaKernels PROPERTIES
+    CUDA_SEPARABLE_COMPILATION ON
+    CUDA_RESOLVE_DEVICE_SYMBOLS ON
+    POSITION_INDEPENDENT_CODE ON
+    VERSION 1.0.0
+    SOVERSION 1
+)
+
+# Include directories
+target_include_directories(TarsAdvancedCudaKernels PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CUDAToolkit_INCLUDE_DIRS}
+    ${CUDNN_INCLUDE_DIR}
+)
+
+# Link libraries
+target_link_libraries(TarsAdvancedCudaKernels
+    ${CUBLAS_LIBRARY}
+    ${CUBLASLT_LIBRARY}
+    ${CUDNN_LIBRARY}
+    ${CUFFT_LIBRARY}
+    ${CURAND_LIBRARY}
+    ${CUSPARSE_LIBRARY}
+    CUDA::cudart
+    CUDA::cuda_driver
+)
+
+# Optional NCCL linking
+if(NCCL_LIBRARY)
+    target_link_libraries(TarsAdvancedCudaKernels ${NCCL_LIBRARY})
+    target_compile_definitions(TarsAdvancedCudaKernels PRIVATE WITH_NCCL)
+endif()
+
+# ============================================================================
+# INSTALLATION
+# ============================================================================
+
+# Install library
+install(TARGETS TarsAdvancedCudaKernels
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+    RUNTIME DESTINATION bin
+)
+
+# Install headers
+install(FILES ${HEADER_FILES}
+    DESTINATION include/tars/cuda
+)
+
+# ============================================================================
+# TESTING AND BENCHMARKING
+# ============================================================================
+
+# Enable testing
+enable_testing()
+
+# Create test executable
+add_executable(TarsCudaTests
+    tests/test_advanced_kernels.cu
+    tests/test_performance.cu
+    tests/test_memory_management.cu
+)
+
+target_link_libraries(TarsCudaTests
+    TarsAdvancedCudaKernels
+    ${CUBLAS_LIBRARY}
+    ${CUDNN_LIBRARY}
+    CUDA::cudart
+)
+
+# Add tests
+add_test(NAME AdvancedKernelTests COMMAND TarsCudaTests)
+
+# Benchmark executable
+add_executable(TarsCudaBenchmarks
+    benchmarks/benchmark_attention.cu
+    benchmarks/benchmark_gemm.cu
+    benchmarks/benchmark_optimization.cu
+)
+
+target_link_libraries(TarsCudaBenchmarks
+    TarsAdvancedCudaKernels
+    ${CUBLAS_LIBRARY}
+    ${CUDNN_LIBRARY}
+    CUDA::cudart
+)
+
+# ============================================================================
+# PERFORMANCE PROFILING
+# ============================================================================
+
+# Add profiling target
+add_custom_target(profile
+    COMMAND nvprof --print-gpu-trace ./TarsCudaBenchmarks
+    DEPENDS TarsCudaBenchmarks
+    COMMENT "Running CUDA profiler on benchmarks"
+)
+
+# Add NSight Compute profiling
+add_custom_target(ncu-profile
+    COMMAND ncu --set full --force-overwrite -o tars_profile ./TarsCudaBenchmarks
+    DEPENDS TarsCudaBenchmarks
+    COMMENT "Running NSight Compute profiler"
+)
+
+# ============================================================================
+# DOCUMENTATION
+# ============================================================================
+
+# Find Doxygen
+find_package(Doxygen)
+
+if(DOXYGEN_FOUND)
+    # Configure Doxygen
+    set(DOXYGEN_IN ${CMAKE_CURRENT_SOURCE_DIR}/docs/Doxyfile.in)
+    set(DOXYGEN_OUT ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
+    
+    configure_file(${DOXYGEN_IN} ${DOXYGEN_OUT} @ONLY)
+    
+    # Add documentation target
+    add_custom_target(docs
+        COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+        COMMENT "Generating API documentation with Doxygen"
+        VERBATIM
+    )
+endif()
+
+# ============================================================================
+# PACKAGING
+# ============================================================================
+
+# CPack configuration
+set(CPACK_PACKAGE_NAME "TarsAdvancedCudaKernels")
+set(CPACK_PACKAGE_VERSION "1.0.0")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "TARS Advanced CUDA Kernels for AI Inference")
+set(CPACK_PACKAGE_VENDOR "TARS AI")
+set(CPACK_PACKAGE_CONTACT "support@tars-ai.org")
+
+# Platform-specific packaging
+if(WIN32)
+    set(CPACK_GENERATOR "ZIP;NSIS")
+elseif(APPLE)
+    set(CPACK_GENERATOR "TGZ;DragNDrop")
+else()
+    set(CPACK_GENERATOR "TGZ;DEB;RPM")
+endif()
+
+include(CPack)
+
+# ============================================================================
+# CUSTOM TARGETS
+# ============================================================================
+
+# Clean CUDA cache
+add_custom_target(clean-cuda-cache
+    COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}/CMakeFiles
+    COMMAND ${CMAKE_COMMAND} -E remove ${CMAKE_BINARY_DIR}/CMakeCache.txt
+    COMMENT "Cleaning CUDA compilation cache"
+)
+
+# Performance optimization target
+add_custom_target(optimize
+    COMMAND ${CMAKE_COMMAND} --build . --config Release --parallel
+    COMMAND ./TarsCudaBenchmarks --optimize
+    DEPENDS TarsCudaBenchmarks
+    COMMENT "Building optimized version and running optimization benchmarks"
+)
+
+# Memory usage analysis
+add_custom_target(memory-analysis
+    COMMAND cuda-memcheck ./TarsCudaTests
+    DEPENDS TarsCudaTests
+    COMMENT "Running CUDA memory analysis"
+)
+
+# Print build configuration
+message(STATUS "TARS Advanced CUDA Kernels Configuration:")
+message(STATUS "  CUDA Version: ${CUDAToolkit_VERSION}")
+message(STATUS "  CUDA Architectures: ${CMAKE_CUDA_ARCHITECTURES}")
+message(STATUS "  Build Type: ${CMAKE_BUILD_TYPE}")
+message(STATUS "  CUDA Flags: ${CMAKE_CUDA_FLAGS}")
+message(STATUS "  cuBLAS: ${CUBLAS_LIBRARY}")
+message(STATUS "  cuDNN: ${CUDNN_LIBRARY}")
+message(STATUS "  NCCL: ${NCCL_LIBRARY}")
+
+# ============================================================================
+# FEATURE DETECTION
+# ============================================================================
+
+# Check for Tensor Core support
+try_compile(TENSOR_CORE_SUPPORT
+    ${CMAKE_BINARY_DIR}/tensor_core_test
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/check_tensor_cores.cu
+    CMAKE_FLAGS "-DCMAKE_CUDA_ARCHITECTURES=${CMAKE_CUDA_ARCHITECTURES}"
+)
+
+if(TENSOR_CORE_SUPPORT)
+    message(STATUS "Tensor Core support: ENABLED")
+    target_compile_definitions(TarsAdvancedCudaKernels PRIVATE TENSOR_CORE_AVAILABLE)
+else()
+    message(STATUS "Tensor Core support: DISABLED")
+endif()
+
+# Check for Flash Attention support
+if(CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL "11.0")
+    message(STATUS "Flash Attention support: ENABLED")
+    target_compile_definitions(TarsAdvancedCudaKernels PRIVATE FLASH_ATTENTION_AVAILABLE)
+else()
+    message(STATUS "Flash Attention support: DISABLED (requires CUDA 11.0+)")
+endif()

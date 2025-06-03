@@ -1,0 +1,114 @@
+body {
+  margin: 0;
+  font-family: 'Courier New', monospace;
+  background: linear-gradient(to bottom, #1a1a2e, #16213e);
+  overflow: hidden;
+  color: #00ffff;
+}
+
+.App {
+  text-align: center;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+canvas {
+  display: block;
+}
+
+/* TARS UI Styling */
+.tars-ui-overlay {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  color: #00ffff;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  background: rgba(0, 0, 0, 0.8);
+  padding: 15px;
+  border-radius: 8px;
+  border: 2px solid #0f3460;
+  box-shadow: 0 0 20px rgba(15, 52, 96, 0.5);
+  backdrop-filter: blur(10px);
+}
+
+.tars-status-indicator {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  background: #00ff00;
+  border-radius: 50%;
+  margin-right: 8px;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+.tars-voice-button {
+  position: absolute;
+  bottom: 30px;
+  right: 30px;
+  background: rgba(15, 52, 96, 0.9);
+  border: 2px solid #00ffff;
+  color: #00ffff;
+  padding: 15px 25px;
+  border-radius: 25px;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.tars-voice-button:hover {
+  background: rgba(0, 255, 255, 0.2);
+  box-shadow: 0 0 25px rgba(0, 255, 255, 0.5);
+  transform: scale(1.05);
+}
+
+.tars-voice-button.listening {
+  background: rgba(255, 0, 0, 0.3);
+  border-color: #ff0000;
+  animation: listening-pulse 1s infinite;
+}
+
+@keyframes listening-pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+.tars-instructions {
+  position: absolute;
+  bottom: 30px;
+  left: 30px;
+  background: rgba(0, 0, 0, 0.8);
+  color: #00ffff;
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid #0f3460;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  max-width: 300px;
+  backdrop-filter: blur(10px);
+}
+
+.tars-instructions h4 {
+  margin: 0 0 10px 0;
+  color: #ffffff;
+}
+
+.tars-instructions ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.tars-instructions li {
+  margin: 5px 0;
+}

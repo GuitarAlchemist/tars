@@ -62,8 +62,8 @@ kubectl scale deployment tars-ai-engine --replicas=10 -n tars-ai
 ### Local Development
 ```bash
 # Build and run locally
-dotnet build src/TarsEngine/TarsEngine.fsproj
-dotnet run --project src/TarsEngine -- --server --port 11434
+dotnet build TarsEngine.FSharp.Cli/TarsEngine.FSharp.Cli.fsproj
+dotnet run --project TarsEngine.FSharp.Cli -- --server --port 11434
 ```
 
 ## 🌟 Key Features
@@ -201,13 +201,19 @@ This repository contains the TARS (Transformative Autonomous Reasoning System) p
 ## Project Structure
 
 ### Modern F# Architecture (Current)
-- **TarsEngine.FSharp.Cli** - Main F# CLI with enhanced reverse engineering capabilities
-- **TarsEngine.FSharp.Core** - Core F# functional programming engine
-- **TarsEngine.FSharp.SelfImprovement** - Advanced self-improvement and autonomous capabilities
-- **TarsEngine.FSharp.Testing** - Comprehensive testing framework
-- **TarsEngine.FSharp.Agents** - Multi-agent coordination system
-- **TarsEngine.CUDA.VectorStore** - GPU-accelerated vector storage and semantic search
-- **TarsSwarmDemo** - Swarm coordination and multi-agent demonstrations
+- **TarsEngine.FSharp.Cli** - Main F# CLI with enhanced capabilities and QA agent integration
+- **TarsEngine.FSharp.Core** - Core F# functional programming engine with metascript execution
+- **TarsEngine.FSharp.Agents** - Multi-agent coordination system with specialized agent types
+- **TarsEngine.FSharp.Testing** - Comprehensive testing framework with visual QA capabilities
+- **TarsEngine.FSharp.ML** - Machine learning and AI inference engine
+- **TarsEngine.FSharp.Consciousness** - Persistent mental state and intelligence storage
+- **TarsEngine.FSharp.Packaging** - Autonomous packaging and deployment system
+- **TarsEngine.FSharp.Reasoning** - Advanced reasoning engine with chain-of-thought capabilities
+- **TarsEngine.FSharp.SemanticIntegration** - Triple store and vector database integration
+- **TarsEngine.FSharp.ProjectGeneration** - Autonomous project generation and scaffolding
+- **TarsEngine.FSharp.Documentation** - Autonomous documentation generation
+- **TarsEngine.FSharp.Deployment** - Container and VM deployment management
+- **TarsEngine.FSharp.TaxIncentives** - SR&ED and tax incentive report generation
 
 ### Legacy C# Components (Archived)
 - **Legacy_CSharp_Projects/** - Archived C# implementations for reference
@@ -228,11 +234,16 @@ TARS now features sophisticated reverse engineering capabilities with real metas
 - **Variable Lifecycle Tracking**: Complete metascript variable management
 - **Professional Documentation**: Comprehensive technical specifications and evidence
 
-Try the enhanced reverse engineering:
+Try the enhanced capabilities:
 ```bash
-# Run enhanced reverse engineering with chatbot interface
-dotnet run --project TarsEngine.FSharp.Cli -- chatbot
-# Then type: reverse-engineer
+# Run F# CLI with enhanced capabilities
+dotnet run --project TarsEngine.FSharp.Cli
+
+# Run enhanced QA agent with visual testing
+dotnet run --project TarsEngine.FSharp.Cli -- qa-agent --visual-testing
+
+# Execute metascripts with F# engine
+dotnet run --project TarsEngine.FSharp.Cli -- execute-metascript .tars/enhanced-qa-visual-testing.trsx
 ```
 
 ### Project Milestones
