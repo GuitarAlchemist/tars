@@ -1,5 +1,14 @@
+# Build artifacts - Never commit these
 bin/
 obj/
+**/bin/
+**/obj/
+*.dll
+*.pdb
+*.exe
+*.lib
+*.exp
+*.ilk
 /packages/
 riderModule.iml
 /_ReSharper.Caches/
@@ -74,7 +83,7 @@ docker/volumes/
 *.mp4
 *.zip
 AugmentWebviewStateStore.xml
-*.dll
+# Note: *.dll already covered above
 *.so
 *.dylib
 *.pyd
