@@ -1,0 +1,293 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tars-core-service
+  namespace: tars
+  labels:
+    app.kubernetes.io/name: tars-core
+    app.kubernetes.io/component: core-service
+    app.kubernetes.io/part-of: tars-system
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: tars-core
+  template:
+    metadata:
+      labels:
+        app: tars-core
+        version: v1
+    spec:
+      containers:
+      - name: tars-core
+        image: nginx:alpine
+        imagePullPolicy: IfNotPresent  # For local development
+        ports:
+        - containerPort: 80
+          name: http
+        env:
+        - name: ASPNETCORE_ENVIRONMENT
+          value: "Development"
+        - name: ASPNETCORE_URLS
+          value: "http://+:8080;https://+:8443"
+        - name: TARS_SERVICE_NAME
+          value: "tars-core-service"
+        - name: TARS_SERVICE_VERSION
+          value: "1.0.0"
+        envFrom:
+        - configMapRef:
+            name: tars-config
+        - secretRef:
+            name: tars-secrets
+        volumeMounts:
+        - name: tars-data
+          mountPath: /app/data
+        - name: tars-logs
+          mountPath: /app/logs
+        - name: tars-config-volume
+          mountPath: /app/config
+        - name: tars-core-content
+          mountPath: /usr/share/nginx/html
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 30
+      volumes:
+      - name: tars-data
+        persistentVolumeClaim:
+          claimName: tars-data-pvc
+      - name: tars-logs
+        persistentVolumeClaim:
+          claimName: tars-logs-pvc
+      - name: tars-config-volume
+        configMap:
+          name: tars-config
+      - name: tars-core-content
+        configMap:
+          name: tars-core-content
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tars-core-service
+  namespace: tars
+  labels:
+    app.kubernetes.io/name: tars-core
+    app.kubernetes.io/component: core-service
+spec:
+  selector:
+    app: tars-core
+  ports:
+  - port: 80
+    targetPort: 8080
+    name: http
+  - port: 443
+    targetPort: 8443
+    name: https
+  - port: 9090
+    targetPort: 9090
+    name: metrics
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tars-ui-service
+  namespace: tars
+  labels:
+    app.kubernetes.io/name: tars-ui
+    app.kubernetes.io/component: ui-service
+    app.kubernetes.io/part-of: tars-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tars-ui
+  template:
+    metadata:
+      labels:
+        app: tars-ui
+        version: v1
+    spec:
+      containers:
+      - name: tars-ui
+        image: nginx:alpine
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 80
+          name: http
+        env:
+        - name: NODE_ENV
+          value: "development"
+        - name: REACT_APP_API_URL
+          value: "http://tars-core-service"
+        - name: REACT_APP_WS_URL
+          value: "ws://tars-core-service"
+        - name: REACT_APP_ENABLE_INTERNAL_DIALOGUE
+          value: "true"
+        - name: REACT_APP_ENABLE_TEMPLATE_FREE_UI
+          value: "true"
+        - name: REACT_APP_ENABLE_LIVE_DOCS
+          value: "true"
+        envFrom:
+        - configMapRef:
+            name: tars-config
+        volumeMounts:
+        - name: tars-ui-content
+          mountPath: /usr/share/nginx/html
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "50m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 5
+      volumes:
+      - name: tars-ui-content
+        configMap:
+          name: tars-ui-content
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tars-ui-service
+  namespace: tars
+  labels:
+    app.kubernetes.io/name: tars-ui
+    app.kubernetes.io/component: ui-service
+spec:
+  selector:
+    app: tars-ui
+  ports:
+  - port: 80
+    targetPort: 80
+    name: http
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tars-knowledge-service
+  namespace: tars
+  labels:
+    app.kubernetes.io/name: tars-knowledge
+    app.kubernetes.io/component: knowledge-service
+    app.kubernetes.io/part-of: tars-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tars-knowledge
+  template:
+    metadata:
+      labels:
+        app: tars-knowledge
+        version: v1
+    spec:
+      containers:
+      - name: tars-knowledge
+        image: nginx:alpine
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 80
+          name: http
+        env:
+        - name: ASPNETCORE_ENVIRONMENT
+          value: "Development"
+        - name: ASPNETCORE_URLS
+          value: "http://+:8081;https://+:8444"
+        - name: TARS_SERVICE_NAME
+          value: "tars-knowledge-service"
+        envFrom:
+        - configMapRef:
+            name: tars-config
+        - secretRef:
+            name: tars-secrets
+        volumeMounts:
+        - name: tars-data
+          mountPath: /app/data
+        - name: tars-logs
+          mountPath: /app/logs
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "200m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 5
+      volumes:
+      - name: tars-data
+        persistentVolumeClaim:
+          claimName: tars-data-pvc
+      - name: tars-logs
+        persistentVolumeClaim:
+          claimName: tars-logs-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tars-knowledge-service
+  namespace: tars
+  labels:
+    app.kubernetes.io/name: tars-knowledge
+    app.kubernetes.io/component: knowledge-service
+spec:
+  selector:
+    app: tars-knowledge
+  ports:
+  - port: 80
+    targetPort: 80
+    name: http
+  type: ClusterIP

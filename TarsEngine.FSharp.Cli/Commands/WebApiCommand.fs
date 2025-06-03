@@ -4,12 +4,12 @@ open System
 open System.IO
 open Microsoft.Extensions.Logging
 open TarsEngine.FSharp.Cli.Services
-open TarsEngine.FSharp.DataSources.Closures
+// open TarsEngine.FSharp.DataSources.Closures
 
 /// Web API generation command for REST endpoints and GraphQL servers
 type WebApiCommand(logger: ILogger<WebApiCommand>) =
     
-    let webApiFactory = WebApiClosureFactory()
+    // let webApiFactory = WebApiClosureFactory()
     
     interface ICommand with
         member _.Name = "webapi"

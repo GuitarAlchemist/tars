@@ -1,0 +1,87 @@
+# TARS AI Inference Engine - Production Docker Image
+FROM mcr.microsoft.com/dotnet/runtime:8.0 AS base
+WORKDIR /app
+EXPOSE 11434
+
+# Install CUDA runtime (for GPU acceleration)
+FROM nvidia/cuda:12.2-runtime-ubuntu22.04 AS cuda-base
+RUN apt-get update && apt-get install -y \
+    wget \
+    ca-certificates \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install .NET 8 runtime
+RUN wget https://packages.microsoft.com/config/ubuntu/22.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb \
+    && dpkg -i packages-microsoft-prod.deb \
+    && apt-get update \
+    && apt-get install -y dotnet-runtime-8.0 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Build stage
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+# Copy project files
+COPY ["src/TarsEngine/TarsEngine.fsproj", "src/TarsEngine/"]
+
+# Restore dependencies
+RUN dotnet restore "src/TarsEngine/TarsEngine.fsproj"
+
+# Copy source code
+COPY . .
+WORKDIR "/src/src/TarsEngine"
+
+# Build the application
+RUN dotnet build "TarsEngine.fsproj" -c Release -o /app/build
+
+# Publish stage
+FROM build AS publish
+RUN dotnet publish "TarsEngine.fsproj" -c Release -o /app/publish /p:UseAppHost=false
+
+# Final stage - Production image
+FROM cuda-base AS final
+WORKDIR /app
+
+# Copy published application
+COPY --from=publish /app/publish .
+
+# Copy CUDA kernels
+COPY libTarsCudaKernels.so .
+
+# Create models directory
+RUN mkdir -p /app/models
+
+# Create non-root user for security
+RUN groupadd -r tars && useradd -r -g tars tars
+RUN chown -R tars:tars /app
+USER tars
+
+# Environment variables
+ENV ASPNETCORE_URLS=http://+:11434
+ENV TARS_MODELS_PATH=/app/models
+ENV TARS_CUDA_ENABLED=true
+ENV TARS_LOG_LEVEL=Info
+ENV TARS_MAX_CONCURRENT_REQUESTS=10
+ENV TARS_CACHE_SIZE=1000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:11434/ || exit 1
+
+# Labels for metadata
+LABEL maintainer="TARS AI Team"
+LABEL version="1.0.0"
+LABEL description="TARS AI Inference Engine - Ollama-compatible API server"
+LABEL org.opencontainers.image.title="TARS AI"
+LABEL org.opencontainers.image.description="Next-generation AI inference engine with real-time optimization"
+LABEL org.opencontainers.image.url="https://github.com/GuitarAlchemist/tars"
+LABEL org.opencontainers.image.source="https://github.com/GuitarAlchemist/tars"
+LABEL org.opencontainers.image.vendor="TARS AI"
+LABEL org.opencontainers.image.licenses="Apache-2.0"
+
+# Expose port
+EXPOSE 11434
+
+# Start the TARS API server
+ENTRYPOINT ["dotnet", "TarsEngine.dll", "--server", "--port", "11434"]

@@ -1,0 +1,367 @@
+DESCRIBE {
+    name: "TARS Qwen3 Reasoning Agent Team"
+    version: "1.0"
+    author: "TARS Autonomous System"
+    purpose: "Implement powerful reasoning agent team using Qwen3 LLMs"
+    priority: "high"
+    reasoning_focus: true
+}
+
+CONFIG {
+    qwen3_models: [
+        "Qwen3-235B-A22B",    // Flagship reasoning model
+        "Qwen3-30B-A3B",      // Efficient MoE reasoning
+        "Qwen3-32B",          // Dense reasoning model
+        "Qwen3-14B",          // Balanced reasoning
+        "Qwen3-8B"            // Fast reasoning
+    ]
+    
+    reasoning_modes: {
+        thinking: true,        // Deep step-by-step reasoning
+        non_thinking: true,    // Fast responses
+        hybrid: true          // Dynamic mode switching
+    }
+    
+    deployment: {
+        local_first: true,
+        frameworks: ["ollama", "vllm", "sglang", "lmstudio"]
+        gpu_acceleration: true
+        context_length: "128K"
+    }
+    
+    agent_specializations: [
+        "logical_reasoning",
+        "mathematical_reasoning", 
+        "causal_reasoning",
+        "strategic_reasoning",
+        "meta_reasoning",
+        "collaborative_reasoning"
+    ]
+}
+
+REASONING_TEAM_ARCHITECTURE {
+    // Multi-tier reasoning hierarchy
+    tier_1_flagship: {
+        model: "Qwen3-235B-A22B"
+        role: "master_reasoner"
+        capabilities: [
+            "complex_problem_decomposition",
+            "multi_step_logical_chains",
+            "strategic_planning",
+            "meta_cognitive_reasoning"
+        ]
+        thinking_budget: "unlimited"
+        use_cases: [
+            "architectural_decisions",
+            "complex_system_design",
+            "research_planning",
+            "critical_analysis"
+        ]
+    }
+    
+    tier_2_specialists: {
+        mathematical_reasoner: {
+            model: "Qwen3-30B-A3B"
+            specialization: "mathematical_reasoning"
+            thinking_mode: "deep"
+            focus: ["proofs", "calculations", "optimization", "statistics"]
+        }
+        
+        logical_reasoner: {
+            model: "Qwen3-32B"
+            specialization: "logical_reasoning"
+            thinking_mode: "systematic"
+            focus: ["deduction", "induction", "formal_logic", "consistency_checking"]
+        }
+        
+        causal_reasoner: {
+            model: "Qwen3-14B"
+            specialization: "causal_reasoning"
+            thinking_mode: "analytical"
+            focus: ["cause_effect", "root_cause_analysis", "system_dynamics"]
+        }
+        
+        strategic_reasoner: {
+            model: "Qwen3-8B"
+            specialization: "strategic_reasoning"
+            thinking_mode: "planning"
+            focus: ["decision_trees", "game_theory", "optimization", "resource_allocation"]
+        }
+    }
+    
+    tier_3_coordinators: {
+        reasoning_coordinator: {
+            model: "Qwen3-14B"
+            role: "orchestrate_reasoning_team"
+            capabilities: [
+                "task_decomposition",
+                "agent_selection",
+                "result_synthesis",
+                "quality_assessment"
+            ]
+        }
+        
+        meta_reasoner: {
+            model: "Qwen3-8B"
+            role: "reason_about_reasoning"
+            capabilities: [
+                "reasoning_strategy_selection",
+                "thinking_budget_optimization",
+                "reasoning_quality_evaluation",
+                "cognitive_bias_detection"
+            ]
+        }
+    }
+}
+
+IMPLEMENTATION_PLAN {
+    phase_1_foundation: {
+        description: "Setup Qwen3 infrastructure and basic reasoning agents"
+        tasks: [
+            "deploy_qwen3_models_locally",
+            "create_reasoning_agent_framework",
+            "implement_thinking_mode_controls",
+            "setup_agent_communication_channels"
+        ]
+        deliverables: [
+            "QwenReasoningEngine.fs",
+            "ReasoningAgentTeam.fs", 
+            "ThinkingModeController.fs",
+            "ReasoningCoordinator.fs"
+        ]
+    }
+    
+    phase_2_specialization: {
+        description: "Implement specialized reasoning agents"
+        tasks: [
+            "create_mathematical_reasoning_agent",
+            "create_logical_reasoning_agent",
+            "create_causal_reasoning_agent",
+            "create_strategic_reasoning_agent",
+            "implement_agent_specialization_system"
+        ]
+        deliverables: [
+            "MathematicalReasoner.fs",
+            "LogicalReasoner.fs",
+            "CausalReasoner.fs",
+            "StrategicReasoner.fs"
+        ]
+    }
+    
+    phase_3_coordination: {
+        description: "Implement reasoning coordination and meta-reasoning"
+        tasks: [
+            "create_reasoning_coordinator",
+            "implement_meta_reasoning_capabilities",
+            "create_collaborative_reasoning_protocols",
+            "implement_reasoning_quality_assessment"
+        ]
+        deliverables: [
+            "ReasoningCoordinator.fs",
+            "MetaReasoner.fs",
+            "CollaborativeReasoning.fs",
+            "ReasoningQualityAssessment.fs"
+        ]
+    }
+    
+    phase_4_integration: {
+        description: "Integrate reasoning team with TARS ecosystem"
+        tasks: [
+            "integrate_with_tars_metascript_system",
+            "connect_to_tars_exploration_pipeline",
+            "implement_reasoning_result_storage",
+            "create_reasoning_performance_monitoring"
+        ]
+        deliverables: [
+            "TarsReasoningIntegration.fs",
+            "ReasoningExplorationBridge.fs",
+            "ReasoningResultStore.fs",
+            "ReasoningMonitoring.fs"
+        ]
+    }
+}
+
+QWEN3_DEPLOYMENT_STRATEGY {
+    local_deployment: {
+        primary_framework: "ollama"
+        commands: [
+            "ollama pull qwen3:235b-a22b",
+            "ollama pull qwen3:30b-a3b", 
+            "ollama pull qwen3:32b",
+            "ollama pull qwen3:14b",
+            "ollama pull qwen3:8b"
+        ]
+        
+        alternative_frameworks: {
+            vllm: "vllm serve Qwen/Qwen3-30B-A3B --enable-reasoning --reasoning-parser deepseek_r1"
+            sglang: "python -m sglang.launch_server --model-path Qwen/Qwen3-30B-A3B --reasoning-parser qwen3"
+            lmstudio: "GUI-based local deployment"
+        }
+    }
+    
+    performance_optimization: {
+        gpu_acceleration: true
+        cuda_support: true
+        memory_optimization: true
+        batch_processing: true
+        context_caching: true
+    }
+    
+    thinking_mode_configuration: {
+        enable_thinking: true
+        dynamic_switching: true
+        budget_control: true
+        soft_switches: ["/think", "/no_think"]
+    }
+}
+
+REASONING_CAPABILITIES {
+    mathematical_reasoning: {
+        capabilities: [
+            "complex_calculations",
+            "mathematical_proofs",
+            "statistical_analysis",
+            "optimization_problems",
+            "geometric_reasoning"
+        ]
+        thinking_approach: "step_by_step_verification"
+    }
+    
+    logical_reasoning: {
+        capabilities: [
+            "deductive_reasoning",
+            "inductive_reasoning", 
+            "abductive_reasoning",
+            "formal_logic_validation",
+            "consistency_checking"
+        ]
+        thinking_approach: "systematic_logical_chains"
+    }
+    
+    causal_reasoning: {
+        capabilities: [
+            "cause_effect_analysis",
+            "root_cause_identification",
+            "system_dynamics_modeling",
+            "intervention_planning",
+            "counterfactual_reasoning"
+        ]
+        thinking_approach: "causal_graph_construction"
+    }
+    
+    strategic_reasoning: {
+        capabilities: [
+            "decision_tree_analysis",
+            "game_theory_application",
+            "resource_optimization",
+            "risk_assessment",
+            "scenario_planning"
+        ]
+        thinking_approach: "multi_objective_optimization"
+    }
+    
+    meta_reasoning: {
+        capabilities: [
+            "reasoning_strategy_selection",
+            "cognitive_bias_detection",
+            "reasoning_quality_evaluation",
+            "thinking_budget_optimization",
+            "reasoning_process_improvement"
+        ]
+        thinking_approach: "recursive_self_reflection"
+    }
+}
+
+INTEGRATION_WITH_TARS {
+    metascript_integration: {
+        reasoning_metascripts: true
+        automatic_reasoning_invocation: true
+        reasoning_result_caching: true
+        reasoning_chain_visualization: true
+    }
+    
+    exploration_enhancement: {
+        reasoning_guided_exploration: true
+        hypothesis_generation: true
+        evidence_evaluation: true
+        conclusion_synthesis: true
+    }
+    
+    autonomous_improvement: {
+        reasoning_about_code_quality: true
+        architectural_decision_reasoning: true
+        optimization_strategy_reasoning: true
+        self_improvement_planning: true
+    }
+    
+    collaborative_reasoning: {
+        multi_agent_reasoning_sessions: true
+        reasoning_consensus_building: true
+        distributed_problem_solving: true
+        reasoning_knowledge_sharing: true
+    }
+}
+
+EXPECTED_OUTCOMES {
+    enhanced_reasoning: {
+        description: "Dramatically improved reasoning capabilities across all TARS operations"
+        metrics: [
+            "reasoning_accuracy",
+            "problem_solving_speed", 
+            "solution_quality",
+            "reasoning_depth"
+        ]
+    }
+    
+    intelligent_exploration: {
+        description: "More intelligent and directed exploration of problems and solutions"
+        benefits: [
+            "better_hypothesis_generation",
+            "more_effective_experimentation",
+            "improved_learning_from_results",
+            "enhanced_knowledge_synthesis"
+        ]
+    }
+    
+    autonomous_decision_making: {
+        description: "Higher quality autonomous decisions based on deep reasoning"
+        applications: [
+            "architectural_choices",
+            "optimization_strategies",
+            "resource_allocation",
+            "risk_management"
+        ]
+    }
+    
+    meta_cognitive_abilities: {
+        description: "Ability to reason about reasoning itself"
+        capabilities: [
+            "self_aware_reasoning",
+            "reasoning_strategy_optimization",
+            "cognitive_bias_mitigation",
+            "reasoning_quality_improvement"
+        ]
+    }
+}
+
+ACTION {
+    type: "implement_qwen3_reasoning_team"
+    priority: "high"
+    
+    immediate_steps: [
+        "setup_qwen3_local_deployment",
+        "create_reasoning_agent_framework",
+        "implement_basic_reasoning_coordination",
+        "integrate_with_existing_tars_systems"
+    ]
+    
+    success_criteria: [
+        "qwen3_models_deployed_locally",
+        "reasoning_agents_operational",
+        "thinking_modes_functional",
+        "integration_with_tars_complete"
+    ]
+}
+
+// This metascript establishes the foundation for a powerful reasoning agent team
+// using Qwen3's advanced reasoning capabilities to enhance TARS autonomous operations

@@ -1,34 +1,168 @@
 version: '3.8'
 
 services:
-  tars-mcp:
-    image: tars-mcp:latest
-    build:
-      context: .
-      dockerfile: Dockerfile.mcp
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: tars-redis
+    restart: unless-stopped
     ports:
-      - "8999:8999"
+      - "6379:6379"
     volumes:
-      - ./config:/app/config
-    environment:
-      - ModelProvider__Default=DockerModelRunner
-      - DockerModelRunner__BaseUrl=http://model-runner:8080
-      - DockerModelRunner__DefaultModel=llama3:8b
-    depends_on:
-      - model-runner
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - tars-network
 
+  # TARS Core Service (Operations, Executive, Infrastructure)
+  tars-core:
+    image: nginx:alpine
+    container_name: tars-core-service
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+      - "9090:80"  # Metrics
+    environment:
+      - TARS_ENVIRONMENT=local
+      - TARS_LOG_LEVEL=Information
+      - TARS_ENABLE_SWAGGER=true
+      - TARS_ENABLE_METRICS=true
+      - DATABASE_TYPE=sqlite
+      - REDIS_CONNECTION=redis:6379
+      - ENABLE_INTERNAL_DIALOGUE_ACCESS=true
+      - ENABLE_TEMPLATE_FREE_UI=true
+      - ENABLE_LIVE_DOCUMENTATION=true
+      - ENABLE_HUMOR_GENERATION=true
+      - ENABLE_PERSONALITY_PARAMETERS=true
+      - MAX_CONCURRENT_REQUESTS=100
+      - PROMETHEUS_ENABLED=true
+    volumes:
+      - tars_data:/app/data
+      - tars_logs:/app/logs
+      - ./config:/usr/share/nginx/html:ro
+    depends_on:
+      - redis
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:80 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - tars-network
+
+  # TARS UI Service (Advanced UI with Internal Dialogue)
+  tars-ui:
+    image: nginx:alpine
+    container_name: tars-ui-service
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    environment:
+      - NODE_ENV=development
+      - REACT_APP_API_URL=http://tars-core:8080
+      - REACT_APP_WS_URL=ws://tars-core:8080
+      - REACT_APP_ENABLE_INTERNAL_DIALOGUE=true
+      - REACT_APP_ENABLE_TEMPLATE_FREE_UI=true
+      - REACT_APP_ENABLE_LIVE_DOCS=true
+      - REACT_APP_HUMOR_ENABLED=true
+      - REACT_APP_PERSONALITY_PARAMS=true
+    volumes:
+      - ./ui:/usr/share/nginx/html:ro
+    depends_on:
+      - tars-core
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:80 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - tars-network
+
+  # TARS Knowledge Service (Historian, Librarian, Researcher, Reporter)
+  tars-knowledge:
+    image: nginx:alpine
+    container_name: tars-knowledge-service
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    environment:
+      - TARS_SERVICE_NAME=tars-knowledge-service
+      - REDIS_CONNECTION=redis:6379
+      - VECTOR_STORE_TYPE=inmemory
+      - ENABLE_MILESTONE_CAPTURE=true
+      - ENABLE_KNOWLEDGE_ORGANIZATION=true
+      - ENABLE_RESEARCH_CAPABILITIES=true
+      - ENABLE_AUTOMATED_REPORTING=true
+    volumes:
+      - tars_data:/app/data
+      - tars_logs:/app/logs
+    depends_on:
+      - redis
+      - tars-core
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:80 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - tars-network
+
+  # TARS Agent Service (Personality, Humor, Emotional Intelligence)
+  tars-agents:
+    image: nginx:alpine
+    container_name: tars-agent-service
+    restart: unless-stopped
+    ports:
+      - "8082:80"
+    environment:
+      - TARS_SERVICE_NAME=tars-agent-service
+      - REDIS_CONNECTION=redis:6379
+      - HUMOR_GENERATION_ENABLED=true
+      - PERSONALITY_PARAMETERS_ENABLED=true
+      - EMOTIONAL_INTELLIGENCE_ENABLED=true
+      - DEFAULT_WIT_LEVEL=0.7
+      - DEFAULT_SARCASM_FREQUENCY=0.3
+      - DEFAULT_PUN_TENDENCY=0.5
+      - DEFAULT_ENTHUSIASM=0.7
+    volumes:
+      - tars_data:/app/data
+      - tars_logs:/app/logs
+    depends_on:
+      - redis
+      - tars-core
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:80 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - tars-network
+
+  # Model Runner (LLM Backend)
   model-runner:
     image: ghcr.io/ggerganov/llama.cpp:server
+    container_name: tars-model-runner
+    restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "8083:8080"
     command: >
       --host 0.0.0.0
       --port 8080
       --embedding
-      --ctx-size 2048
-      --parallel 2
+      --ctx-size 4096
+      --parallel 4
       --cont-batching
       --mlock
+    volumes:
+      - model_data:/models
     deploy:
       resources:
         reservations:
@@ -36,6 +170,81 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
+    networks:
+      - tars-network
+
+  # Prometheus Monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: tars-prometheus
+    restart: unless-stopped
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - tars-network
+
+  # Grafana Dashboard
+  grafana:
+    image: grafana/grafana:latest
+    container_name: tars-grafana
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=tars-admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+    networks:
+      - tars-network
+
+  # NGINX Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: tars-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - tars-ui
+      - tars-core
+      - tars-knowledge
+      - tars-agents
+    networks:
+      - tars-network
 
 volumes:
-  model-runner-data:
+  redis_data:
+    driver: local
+  tars_data:
+    driver: local
+  tars_logs:
+    driver: local
+  model_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  tars-network:
+    external: true
