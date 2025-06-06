@@ -1,5 +1,6 @@
 # TARS Agent System Configuration
 # Multi-Agent Orchestration and Coordination Settings
+# Environment Agnostic - Works on Windows, Linux, macOS
 
 # Global agent settings
 global:
