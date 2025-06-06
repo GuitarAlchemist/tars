@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.FSharp.Cli.Commands
+namespace TarsEngine.FSharp.Cli.Commands
 
 open System
 open System.Threading.Tasks
@@ -14,17 +14,17 @@ type MLCommand(mlService: MLService) =
         
         member _.Description = "Machine learning operations with real ML capabilities"
         
-        member _.Usage = "tars ml [subcommand] [options]"
+        member self.Usage = "tars ml [subcommand] [options]"
         
-        member _.Examples = [
+        member self.Examples = [
             "tars ml train --model classifier --data training.csv"
             "tars ml predict --model classifier --input test.csv"
             "tars ml list-models"
         ]
         
-        member _.ValidateOptions(options) = true
+        member self.ValidateOptions(options) = true
         
-        member _.ExecuteAsync(options) =
+        member self.ExecuteAsync(options) =
             Task.Run(fun () ->
                 try
                     let subcommand = 

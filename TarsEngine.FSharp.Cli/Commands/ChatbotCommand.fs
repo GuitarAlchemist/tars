@@ -17,7 +17,7 @@ type ChatbotCommand(logger: ILogger<ChatbotCommand>, moeCommand: MixtureOfExpert
     let vectorStoreLogger = loggerFactory.CreateLogger<CodebaseVectorStore>()
     let vectorStore = CodebaseVectorStore(vectorStoreLogger)
 
-    member private this.ShowChatbotHeader() =
+    member private self.ShowChatbotHeader() =
         AnsiConsole.Clear()
         
         let headerPanel = Panel("""[bold cyan]🤖 TARS Interactive Chatbot[/]
@@ -44,7 +44,7 @@ type ChatbotCommand(logger: ILogger<ChatbotCommand>, moeCommand: MixtureOfExpert
         AnsiConsole.Write(headerPanel)
         AnsiConsole.WriteLine()
 
-    member private this.ProcessUserInput(input: string) =
+    member private self.ProcessUserInput(input: string) =
         task {
             let inputLower = input.ToLower().Trim()
             
@@ -58,14 +58,14 @@ type ChatbotCommand(logger: ILogger<ChatbotCommand>, moeCommand: MixtureOfExpert
                 return ()
                 
             | "help" ->
-                do! this.ShowHelp()
+                do! self.ShowHelp()
                 
             | input when input.StartsWith("run demo") ->
                 let demoName = input.Replace("run demo", "").Trim()
-                do! this.RunDemo(demoName)
+                do! self.RunDemo(demoName)
                 
             | "analyze datastore" | "analyze data" ->
-                do! this.AnalyzeDatastore()
+                do! self.AnalyzeDatastore()
 
             | "ingest" | "ingest codebase" ->
                 let! _ = vectorStore.IngestCodebase()
@@ -73,34 +73,34 @@ type ChatbotCommand(logger: ILogger<ChatbotCommand>, moeCommand: MixtureOfExpert
 
             | input when input.StartsWith("search ") ->
                 let query = input.Replace("search ", "").Trim()
-                do! this.SearchCodebase(query, false)
+                do! self.SearchCodebase(query, false)
 
             | input when input.StartsWith("hybrid search ") ->
                 let query = input.Replace("hybrid search ", "").Trim()
-                do! this.SearchCodebase(query, true)
+                do! self.SearchCodebase(query, true)
 
             | "reverse engineer" | "analyze tars" | "tars analysis" ->
-                do! this.ReverseEngineerTARS()
+                do! self.ReverseEngineerTARS()
 
             | "list agents" ->
-                do! this.ListAgents()
+                do! self.ListAgents()
                 
             | "list running" ->
-                do! this.ListRunningProcesses()
+                do! self.ListRunningProcesses()
                 
             | input when input.StartsWith("download model") ->
                 let modelName = input.Replace("download model", "").Trim()
-                do! this.DownloadModel(modelName)
+                do! self.DownloadModel(modelName)
                 
             | "moe status" | "expert status" ->
-                do! this.ShowMoEStatus()
+                do! self.ShowMoEStatus()
                 
             | _ ->
                 // Route to MoE system for intelligent processing
-                do! this.RouteToMoE(input)
+                do! self.RouteToMoE(input)
         }
 
-    member private this.ShowHelp() =
+    member private self.ShowHelp() =
         task {
             let helpTable = Table()
             helpTable.Border <- TableBorder.Rounded
@@ -138,7 +138,7 @@ type ChatbotCommand(logger: ILogger<ChatbotCommand>, moeCommand: MixtureOfExpert
             AnsiConsole.Write(helpPanel)
         }
 
-    member private this.RunDemo(demoName: string) =
+    member private self.RunDemo(demoName: string) =
         task {
             AnsiConsole.MarkupLine($"[bold cyan]🚀 Running demo: {demoName}[/]")
             
@@ -164,7 +164,7 @@ type ChatbotCommand(logger: ILogger<ChatbotCommand>, moeCommand: MixtureOfExpert
                 AnsiConsole.MarkupLine("[yellow]Available demos: transformer, moe, swarm[/]")
         }
 
-    member private this.AnalyzeDatastore() =
+    member private self.AnalyzeDatastore() =
         task {
             AnsiConsole.MarkupLine("[bold cyan]🔍 Analyzing TARS In-Memory Datastore[/]")
 
@@ -229,7 +229,7 @@ type ChatbotCommand(logger: ILogger<ChatbotCommand>, moeCommand: MixtureOfExpert
                 AnsiConsole.MarkupLine("[yellow]💡 Run ingestion to populate vector store with codebase content[/]")
         }
 
-    member private this.SearchCodebase(query: string, useHybrid: bool) =
+    member private self.SearchCodebase(query: string, useHybrid: bool) =
         task {
             if String.IsNullOrWhiteSpace(query) then
                 AnsiConsole.MarkupLine("[yellow]Please provide a search query[/]")
@@ -282,7 +282,7 @@ type ChatbotCommand(logger: ILogger<ChatbotCommand>, moeCommand: MixtureOfExpert
                     AnsiConsole.Write(searchPanel)
         }
 
-    member private this.ReverseEngineerTARS() =
+    member private self.ReverseEngineerTARS() =
         task {
             let sessionId = Guid.NewGuid().ToString("N")[..7]
             let startTime = DateTime.UtcNow
@@ -410,7 +410,7 @@ type ChatbotCommand(logger: ILogger<ChatbotCommand>, moeCommand: MixtureOfExpert
             appendLog $"   └─ Vector store operations: {metascriptContext.VectorStoreOperations.Count}"
 
             // Generate the powerful analysis report
-            do! this.GenerateDetailedAnalysisReport(metascriptContext, documents.Length, sizeInMB, fsFileCount, jsonFileCount, mdFileCount, coreComponents, architecturalPatterns, executionTime)
+            do! self.GenerateDetailedAnalysisReport(metascriptContext, documents.Length, sizeInMB, fsFileCount, jsonFileCount, mdFileCount, coreComponents, architecturalPatterns, executionTime)
 
             // Save execution logs
             let logPath = Path.Combine(".", $"tars-reverse-engineering-{sessionId}.log")
@@ -422,7 +422,7 @@ type ChatbotCommand(logger: ILogger<ChatbotCommand>, moeCommand: MixtureOfExpert
             AnsiConsole.MarkupLine($"[dim]Session: {sessionId} | Duration: {executionTime.TotalMilliseconds:F2}ms | Operations: {metascriptContext.VectorStoreOperations.Count}[/]")
         }
 
-    member private this.GenerateDetailedAnalysisReport(metascriptContext, totalFiles, sizeInMB, fsFileCount, jsonFileCount, mdFileCount, coreComponents, architecturalPatterns, executionTime) =
+    member private self.GenerateDetailedAnalysisReport(metascriptContext, totalFiles, sizeInMB, fsFileCount, jsonFileCount, mdFileCount, coreComponents, architecturalPatterns, executionTime) =
         task {
             AnsiConsole.WriteLine()
             AnsiConsole.MarkupLine("[bold yellow]📊 Generating Comprehensive Analysis Report...[/]")
@@ -557,14 +557,14 @@ type ChatbotCommand(logger: ILogger<ChatbotCommand>, moeCommand: MixtureOfExpert
 
             // Save detailed execution report
             let reportPath = Path.Combine(".", $"tars-reverse-engineering-{metascriptContext.SessionId}-report.md")
-            let markdownReport : string = this.GenerateMarkdownReport(metascriptContext, totalFiles, sizeInMB, fsFileCount, jsonFileCount, mdFileCount, coreComponents, architecturalPatterns, executionTime)
+            let markdownReport : string = self.GenerateMarkdownReport(metascriptContext, totalFiles, sizeInMB, fsFileCount, jsonFileCount, mdFileCount, coreComponents, architecturalPatterns, executionTime)
             System.IO.File.WriteAllText(reportPath, markdownReport)
 
             AnsiConsole.WriteLine()
             AnsiConsole.MarkupLine($"[bold green]📁 Detailed report saved: {reportPath}[/]")
         }
 
-    member private this.GenerateMarkdownReport(metascriptContext, totalFiles, sizeInMB, fsFileCount, jsonFileCount, mdFileCount, coreComponents, architecturalPatterns, executionTime) =
+    member private self.GenerateMarkdownReport(metascriptContext, totalFiles, sizeInMB, fsFileCount, jsonFileCount, mdFileCount, coreComponents, architecturalPatterns, executionTime) =
         let sb = System.Text.StringBuilder()
 
         sb.AppendLine("# 🔬 TARS Deep Reverse Engineering Analysis Report") |> ignore
@@ -690,7 +690,7 @@ type ChatbotCommand(logger: ILogger<ChatbotCommand>, moeCommand: MixtureOfExpert
 
         sb.ToString()
 
-    member private this.ListAgents() =
+    member private self.ListAgents() =
         task {
             AnsiConsole.MarkupLine("[bold cyan]🤖 Available TARS Agents[/]")
             
@@ -727,7 +727,7 @@ type ChatbotCommand(logger: ILogger<ChatbotCommand>, moeCommand: MixtureOfExpert
             AnsiConsole.Write(agentsPanel)
         }
 
-    member private this.ListRunningProcesses() =
+    member private self.ListRunningProcesses() =
         task {
             AnsiConsole.MarkupLine("[bold cyan]⚡ Running TARS Processes[/]")
             
@@ -761,7 +761,7 @@ type ChatbotCommand(logger: ILogger<ChatbotCommand>, moeCommand: MixtureOfExpert
             AnsiConsole.Write(processPanel)
         }
 
-    member private this.DownloadModel(modelName: string) =
+    member private self.DownloadModel(modelName: string) =
         task {
             if String.IsNullOrWhiteSpace(modelName) then
                 AnsiConsole.MarkupLine("[yellow]Available models: Qwen/Qwen3-4B, Qwen/Qwen3-8B, Qwen/Qwen3-14B, Qwen/Qwen3-30B-A3B[/]")
@@ -771,14 +771,14 @@ type ChatbotCommand(logger: ILogger<ChatbotCommand>, moeCommand: MixtureOfExpert
                 AnsiConsole.MarkupLine($"[green]✅ Model {modelName} download initiated![/]")
         }
 
-    member private this.ShowMoEStatus() =
+    member private self.ShowMoEStatus() =
         task {
             AnsiConsole.MarkupLine("[bold cyan]🧠 Checking MoE Expert Status...[/]")
             // Call the actual MoE status functionality
             do! moeCommand.ShowExpertStatus()
         }
 
-    member private this.RouteToMoE(input: string) =
+    member private self.RouteToMoE(input: string) =
         task {
             AnsiConsole.MarkupLine("[bold cyan]🧠 Routing to MoE system...[/]")
 
@@ -798,29 +798,29 @@ type ChatbotCommand(logger: ILogger<ChatbotCommand>, moeCommand: MixtureOfExpert
                 AnsiConsole.MarkupLine("[yellow]💡 Try downloading the required expert model first[/]")
         }
 
-    member private this.RunChatLoop() =
+    member private self.RunChatLoop() =
         task {
             while isRunning do
                 AnsiConsole.WriteLine()
                 let userInput = AnsiConsole.Ask<string>("[bold green]You:[/] ")
                 
                 if not (String.IsNullOrWhiteSpace(userInput)) then
-                    do! this.ProcessUserInput(userInput)
+                    do! self.ProcessUserInput(userInput)
         }
 
     interface ICommand with
         member _.Name = "chat"
         member _.Description = "Interactive TARS chatbot using MoE system"
-        member _.Usage = "tars chat"
-        member _.Examples = [
+        member self.Usage = "tars chat"
+        member self.Examples = [
             "tars chat"
         ]
-        member _.ValidateOptions(options) = true
+        member self.ValidateOptions(options) = true
 
-        member this.ExecuteAsync(options) =
+        member self.ExecuteAsync(options) =
             task {
                 try
-                    this.ShowChatbotHeader()
+                    self.ShowChatbotHeader()
 
                     // Perform automatic codebase ingestion on startup
                     AnsiConsole.MarkupLine("[bold green]🤖 TARS:[/] Initializing AI system...")
@@ -831,7 +831,7 @@ type ChatbotCommand(logger: ILogger<ChatbotCommand>, moeCommand: MixtureOfExpert
                     AnsiConsole.WriteLine()
                     AnsiConsole.MarkupLine("[bold green]🤖 TARS:[/] Hello! I'm your AI assistant with full knowledge of the TARS codebase. How can I help you today?")
 
-                    do! this.RunChatLoop()
+                    do! self.RunChatLoop()
 
                     return CommandResult.success("Chatbot session completed")
                 with

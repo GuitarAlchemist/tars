@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.FSharp.Cli.Commands
+namespace TarsEngine.FSharp.Cli.Commands
 
 open System
 open System.Reflection
@@ -13,15 +13,15 @@ type VersionCommand() =
         
         member _.Description = "Display version information"
         
-        member _.Usage = "tars version"
+        member self.Usage = "tars version"
         
-        member _.Examples = [
+        member self.Examples = [
             "tars version"
         ]
         
-        member _.ValidateOptions(_) = true
+        member self.ValidateOptions(_) = true
         
-        member _.ExecuteAsync(_) =
+        member self.ExecuteAsync(_) =
             Task.Run(fun () ->
                 let assembly = Assembly.GetExecutingAssembly()
                 let version = assembly.GetName().Version

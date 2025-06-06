@@ -12,17 +12,17 @@ type TestCommand(
     interface ICommand with
         member _.Name = "test"
         member _.Description = "TARS autonomous testing - generate and execute tests for metascripts"
-        member _.Usage = "tars test <subcommand> [options]"
-        member _.Examples = [
+        member self.Usage = "tars test <subcommand> [options]"
+        member self.Examples = [
             "tars test generate hello_world.tars    - Generate test suite for metascript"
             "tars test run hello_world.tars         - Generate and run tests"
             "tars test validate hello_world.tars    - Validate metascript with tests"
             "tars test fix hello_world.tars         - Auto-fix failed tests"
             "tars test demo                         - Demo autonomous testing"
         ]
-        member _.ValidateOptions(_) = true
+        member self.ValidateOptions(_) = true
         
-        member _.ExecuteAsync(options) =
+        member self.ExecuteAsync(options) =
             task {
                 try
                     match options.Arguments with

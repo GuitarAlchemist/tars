@@ -8,6 +8,9 @@
   <ItemGroup>
     <!-- Core -->
     <Compile Include="Core/DataSourceTypes.fs" />
+    <Compile Include="Core/WebApiTypes.fs" />
+    <Compile Include="Core/InfrastructureTypes.fs" />
+    <Compile Include="Core/PatternDetector.fs" />
     <Compile Include="Core/Interfaces.fs" />
     
     <!-- Detection -->
@@ -21,11 +24,20 @@
     <Compile Include="Templates/ClosureTemplates.fs" />
     <Compile Include="Templates/TemplateValidator.fs" />
     
+    <!-- Generators -->
+    <Compile Include="Generators/RestEndpointGenerator.fs" />
+    <Compile Include="Generators/GraphQLGenerator.fs" />
+    <Compile Include="Generators/InfrastructureGenerator.fs" />
+
     <!-- Generation -->
     <Compile Include="Generation/ClosureGenerator.fs" />
     <Compile Include="Generation/CodeSynthesizer.fs" />
     <Compile Include="Generation/DynamicCompiler.fs" />
-    
+
+    <!-- Closures -->
+    <Compile Include="Closures/InfrastructureClosureFactory.fs" />
+    <Compile Include="Closures/WebApiClosureFactory.fs" />
+
     <!-- Integration -->
     <Compile Include="Integration/TarsConnector.fs" />
     <Compile Include="Integration/MetascriptSynthesizer.fs" />
@@ -34,11 +46,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="FSharp.Core" Version="8.0.0" />
-    <PackageReference Include="System.CommandLine" Version="2.0.0" />
+    <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="System.Text.Json" Version="8.0.0" />
-    <PackageReference Include="Microsoft.CodeAnalysis.FSharp" Version="4.8.0" />
+    <PackageReference Include="System.Text.Json" Version="8.0.5" />
   </ItemGroup>
 
 </Project>
+
+

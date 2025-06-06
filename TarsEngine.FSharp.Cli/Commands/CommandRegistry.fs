@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.FSharp.Cli.Commands
+namespace TarsEngine.FSharp.Cli.Commands
 
 open System.Collections.Generic
 open Microsoft.Extensions.Logging
@@ -21,13 +21,13 @@ type CommandRegistry(
     /// <summary>
     /// Registers a command.
     /// </summary>
-    member _.RegisterCommand(command: ICommand) =
+    member self.RegisterCommand(command: ICommand) =
         commands.[command.Name] <- command
     
     /// <summary>
     /// Gets a command by name.
     /// </summary>
-    member _.GetCommand(name: string) =
+    member self.GetCommand(name: string) =
         match commands.TryGetValue(name) with
         | true, command -> Some command
         | false, _ -> None
@@ -35,15 +35,15 @@ type CommandRegistry(
     /// <summary>
     /// Gets all registered commands.
     /// </summary>
-    member _.GetAllCommands() =
+    member self.GetAllCommands() =
         commands.Values |> Seq.toList
     
     /// <summary>
     /// Registers the default commands with separate engines.
     /// </summary>
-    member this.RegisterDefaultCommands() =
+    member self.RegisterDefaultCommands() =
         // Core commands
-        let versionCommand = VersionCommand()
+        let versionCommand = new VersionCommand()
 
         // Metascript commands (standalone implementation)
         let loggerFactory = LoggerFactory.Create(fun builder -> builder.AddConsole() |> ignore)
@@ -80,7 +80,7 @@ type CommandRegistry(
         let teamsCommand = TeamsCommand(teamsLogger)
 
         // VM command
-        let vmCommand = VMCommand.VMCommand()
+        let vmCommand = new VMCommand()
 
         // Config command - Real configuration management
         let configLogger = loggerFactory.CreateLogger<ConfigCommand>()
@@ -112,33 +112,33 @@ type CommandRegistry(
         // let roadmapCommand = RoadmapCommand(roadmapLogger)
 
         // Service command - Windows service management
-        let serviceCommand = ServiceCommand()
+        let serviceCommand = new ServiceCommand()
 
         // Notebook command - Jupyter notebook operations
         let notebookLogger = loggerFactory.CreateLogger<NotebookCommand>()
         let notebookCommand = NotebookCommand(notebookLogger)
 
         // Register working commands
-        this.RegisterCommand(versionCommand)
-        this.RegisterCommand(executeCommand)
-        this.RegisterCommand(swarmCommand)
-        this.RegisterCommand(mixtralCommand)
-        this.RegisterCommand(transformerCommand)
-        this.RegisterCommand(moeCommand)
-        this.RegisterCommand(chatbotCommand)
-        this.RegisterCommand(teamsCommand)
-        this.RegisterCommand(vmCommand)
-        this.RegisterCommand(configCommand)
-        this.RegisterCommand(evolveCommand)
-        this.RegisterCommand(selfChatCommand)
-        this.RegisterCommand(webApiCommand)
-        this.RegisterCommand(liveEndpointsCommand)
-        // this.RegisterCommand(uiCommand)
-        // this.RegisterCommand(roadmapCommand)
-        this.RegisterCommand(serviceCommand)
-        this.RegisterCommand(notebookCommand)
+        self.RegisterCommand(versionCommand)
+        self.RegisterCommand(executeCommand)
+        self.RegisterCommand(swarmCommand)
+        self.RegisterCommand(mixtralCommand)
+        self.RegisterCommand(transformerCommand)
+        self.RegisterCommand(moeCommand)
+        self.RegisterCommand(chatbotCommand)
+        self.RegisterCommand(teamsCommand)
+        self.RegisterCommand(vmCommand)
+        self.RegisterCommand(configCommand)
+        self.RegisterCommand(evolveCommand)
+        self.RegisterCommand(selfChatCommand)
+        self.RegisterCommand(webApiCommand)
+        self.RegisterCommand(liveEndpointsCommand)
+        // self.RegisterCommand(uiCommand)
+        // self.RegisterCommand(roadmapCommand)
+        self.RegisterCommand(serviceCommand)
+        self.RegisterCommand(notebookCommand)
         
         // Create help command with all commands (must be last)
-        let allCommands = this.GetAllCommands()
+        let allCommands = self.GetAllCommands()
         let helpCommand = HelpCommand(allCommands)
-        this.RegisterCommand(helpCommand)
+        self.RegisterCommand(helpCommand)

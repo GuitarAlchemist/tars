@@ -13,7 +13,7 @@ open TarsEngine.FSharp.Agents
 /// </summary>
 type UICommand(logger: ILogger<UICommand>, agentOrchestrator: AgentOrchestrator) =
     
-    member private this.ShowHelp() =
+    member private self.ShowHelp() =
         Console.WriteLine("""
 🤖 TARS Autonomous UI Commands
 =============================
@@ -43,18 +43,18 @@ Examples:
 """)
     
     interface ICommand with
-        member this.Name = "ui"
-        member this.Description = "TARS autonomous UI generation and management"
-        member this.Usage = "tars ui <subcommand> [options]"
-        member this.Examples = [
+        member _.Name = "ui"
+        member self.Description = "TARS autonomous UI generation and management"
+        member self.Usage = "tars ui <subcommand> [options]"
+        member self.Examples = [
             "tars ui start"
             "tars ui evolve"
             "tars ui status"
             "tars ui generate dashboard"
         ]
-        member this.ValidateOptions(_) = true
+        member self.ValidateOptions(_) = true
 
-        member this.ExecuteAsync(options: CommandOptions) =
+        member self.ExecuteAsync(options: CommandOptions) =
             task {
                 match options.Arguments with
                 | [] | "help" :: _ ->

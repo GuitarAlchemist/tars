@@ -13,7 +13,7 @@ type PromptCommand() =
     let optimizer = PromptOptimizer()
     
     /// Display prompt analysis results
-    member private this.DisplayAnalysis(analysis: PromptAnalysis) =
+    member private self.DisplayAnalysis(analysis: PromptAnalysis) =
         let panel = Panel(Align.Left)
         panel.Header <- PanelHeader("🔍 Prompt Analysis Results")
         panel.Border <- BoxBorder.Rounded
@@ -38,7 +38,7 @@ type PromptCommand() =
         AnsiConsole.Write(panel)
     
     /// Display improved prompt
-    member private this.DisplayImprovement(improvement: ImprovedPrompt) =
+    member private self.DisplayImprovement(improvement: ImprovedPrompt) =
         let panel = Panel(Align.Left)
         panel.Header <- PanelHeader("✨ Prompt Improvement")
         panel.Border <- BoxBorder.Rounded
@@ -58,20 +58,20 @@ type PromptCommand() =
         AnsiConsole.Write(panel)
     
     /// Analyze a prompt
-    member this.Analyze(prompt: string) =
+    member self.Analyze(prompt: string) =
         AnsiConsole.MarkupLine("[bold blue]🔍 Analyzing prompt...[/]")
         AnsiConsole.WriteLine()
         
         let analysis = optimizer.AnalyzePrompt(prompt)
-        this.DisplayAnalysis(analysis)
+        self.DisplayAnalysis(analysis)
         
         if analysis.Issues.Length > 0 then
             AnsiConsole.WriteLine()
             if AnsiConsole.Confirm("Would you like to see improvement suggestions?") then
-                this.Improve(prompt)
+                self.Improve(prompt)
     
     /// Improve a prompt
-    member this.Improve(prompt: string) =
+    member self.Improve(prompt: string) =
         AnsiConsole.MarkupLine("[bold green]✨ Improving prompt...[/]")
         AnsiConsole.WriteLine()
         
@@ -81,25 +81,25 @@ type PromptCommand() =
         AnsiConsole.WriteLine()
         
         let improvement = optimizer.ImprovePrompt(prompt, bestStrategy)
-        this.DisplayImprovement(improvement)
+        self.DisplayImprovement(improvement)
         
         AnsiConsole.WriteLine()
         if AnsiConsole.Confirm("Would you like to try a different strategy?") then
-            this.ChooseStrategy(prompt)
+            self.ChooseStrategy(prompt)
     
     /// Auto-improve a prompt
-    member this.AutoImprove(prompt: string) =
+    member self.AutoImprove(prompt: string) =
         AnsiConsole.MarkupLine("[bold cyan]🚀 Auto-improving prompt...[/]")
         AnsiConsole.WriteLine()
         
         let improvement = optimizer.AutoImprove(prompt)
-        this.DisplayImprovement(improvement)
+        self.DisplayImprovement(improvement)
         
         AnsiConsole.WriteLine()
         AnsiConsole.MarkupLine("[green]✅ Auto-improvement complete![/]")
     
     /// Choose improvement strategy
-    member this.ChooseStrategy(prompt: string) =
+    member self.ChooseStrategy(prompt: string) =
         let strategies = [
             ("Clarity Enhancement", PromptImprovementStrategy.ClarityEnhancement)
             ("Context Enrichment", PromptImprovementStrategy.ContextEnrichment)
@@ -121,10 +121,10 @@ type PromptCommand() =
         
         AnsiConsole.WriteLine()
         let improvement = optimizer.ImprovePrompt(prompt, selectedStrategy)
-        this.DisplayImprovement(improvement)
+        self.DisplayImprovement(improvement)
     
     /// Compare two prompts
-    member this.Compare(prompt1: string, prompt2: string) =
+    member self.Compare(prompt1: string, prompt2: string) =
         AnsiConsole.MarkupLine("[bold magenta]⚖️ Comparing prompts...[/]")
         AnsiConsole.WriteLine()
         
@@ -154,7 +154,7 @@ type PromptCommand() =
             AnsiConsole.MarkupLine($"[dim]Score difference: {comparison.ScoreDifference:P1}[/]")
     
     /// Interactive prompt improvement session
-    member this.Interactive() =
+    member self.Interactive() =
         AnsiConsole.Clear()
         AnsiConsole.Write(
             FigletText("TARS Prompt Optimizer")
@@ -187,26 +187,26 @@ type PromptCommand() =
             | "Analyze a prompt" ->
                 let prompt = AnsiConsole.Ask<string>("Enter the prompt to analyze:")
                 AnsiConsole.WriteLine()
-                this.Analyze(prompt)
+                self.Analyze(prompt)
             
             | "Improve a prompt" ->
                 let prompt = AnsiConsole.Ask<string>("Enter the prompt to improve:")
                 AnsiConsole.WriteLine()
-                this.Improve(prompt)
+                self.Improve(prompt)
             
             | "Auto-improve a prompt" ->
                 let prompt = AnsiConsole.Ask<string>("Enter the prompt to auto-improve:")
                 AnsiConsole.WriteLine()
-                this.AutoImprove(prompt)
+                self.AutoImprove(prompt)
             
             | "Compare two prompts" ->
                 let prompt1 = AnsiConsole.Ask<string>("Enter the first prompt:")
                 let prompt2 = AnsiConsole.Ask<string>("Enter the second prompt:")
                 AnsiConsole.WriteLine()
-                this.Compare(prompt1, prompt2)
+                self.Compare(prompt1, prompt2)
             
             | "View statistics" ->
-                this.ShowStatistics()
+                self.ShowStatistics()
             
             | "Exit" ->
                 continueSession <- false
@@ -220,7 +220,7 @@ type PromptCommand() =
                 AnsiConsole.Clear()
     
     /// Show improvement statistics
-    member this.ShowStatistics() =
+    member self.ShowStatistics() =
         let stats = optimizer.GetImprovementStats()
         
         let panel = Panel(Align.Left)
@@ -240,7 +240,7 @@ type PromptCommand() =
         AnsiConsole.Write(panel)
     
     /// Batch improve prompts from file
-    member this.BatchImprove(inputFile: string, outputFile: string) =
+    member self.BatchImprove(inputFile: string, outputFile: string) =
         if not (File.Exists(inputFile)) then
             AnsiConsole.MarkupLine($"[red]Error: Input file '{inputFile}' not found[/]")
             1
@@ -276,12 +276,12 @@ type PromptCommand() =
                 1
     
     /// Record prompt performance
-    member this.RecordPerformance(promptId: string, responseTime: float, success: bool, userSatisfaction: float option) =
+    member self.RecordPerformance(promptId: string, responseTime: float, success: bool, userSatisfaction: float option) =
         optimizer.RecordPerformance(promptId, responseTime, success, userSatisfaction)
         AnsiConsole.MarkupLine($"[green]✅ Performance recorded for prompt '{promptId}'[/]")
     
     /// Get prompt performance
-    member this.GetPerformance(promptId: string) =
+    member self.GetPerformance(promptId: string) =
         match optimizer.GetPerformance(promptId) with
         | Some performance ->
             let panel = Panel(Align.Left)

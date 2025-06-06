@@ -11,11 +11,11 @@ type RealExecuteCommand(logger: ILogger<RealExecuteCommand>, metascriptService: 
     interface ICommand with
         member _.Name = "exec"
         member _.Description = "Execute TARS metascripts with REAL execution engine"
-        member _.Usage = "tars exec <metascript-name>"
-        member _.Examples = ["tars exec hello_world"; "tars exec autonomous_improvement"]
-        member _.ValidateOptions(_) = true
+        member self.Usage = "tars exec <metascript-name>"
+        member self.Examples = ["tars exec hello_world"; "tars exec autonomous_improvement"]
+        member self.ValidateOptions(_) = true
         
-        member _.ExecuteAsync(options) =
+        member self.ExecuteAsync(options) =
             task {
                 try
                     match options.Arguments with

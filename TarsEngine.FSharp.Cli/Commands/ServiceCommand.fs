@@ -19,13 +19,13 @@ type ServiceCommand() =
     let serviceDescription = "Autonomous development platform with multi-agent orchestration, semantic coordination, and continuous improvement capabilities"
     
     /// Check if running as administrator
-    member private this.IsRunningAsAdmin() =
+    member private self.IsRunningAsAdmin() =
         let identity = WindowsIdentity.GetCurrent()
         let principal = WindowsPrincipal(identity)
         principal.IsInRole(WindowsBuiltInRole.Administrator)
     
     /// Get the Windows service executable path
-    member private this.GetServiceExecutablePath() =
+    member private self.GetServiceExecutablePath() =
         let currentDir = Directory.GetCurrentDirectory()
         let servicePath = Path.Combine(currentDir, "TarsEngine.FSharp.WindowsService", "bin", "Debug", "net9.0", "TarsEngine.FSharp.WindowsService.exe")
         
@@ -41,7 +41,7 @@ type ServiceCommand() =
             else None
     
     /// Check if service is installed
-    member private this.IsServiceInstalled() =
+    member private self.IsServiceInstalled() =
         try
             use serviceController = new ServiceController(serviceName)
             serviceController.Refresh()
@@ -51,7 +51,7 @@ type ServiceCommand() =
         | _ -> false
     
     /// Get service status
-    member private this.GetServiceStatus() =
+    member private self.GetServiceStatus() =
         try
             use serviceController = new ServiceController(serviceName)
             serviceController.Refresh()
@@ -61,20 +61,20 @@ type ServiceCommand() =
         | _ -> None
     
     /// Install the Windows service
-    member this.InstallService(force: bool) =
+    member self.InstallService(force: bool) =
         printfn "🤖 TARS Windows Service Installation"
         printfn "═══════════════════════════════════"
         printfn ""
         
         // Check admin privileges
-        if not (this.IsRunningAsAdmin()) then
+        if not (self.IsRunningAsAdmin()) then
             printfn "❌ Administrator privileges required!"
             printfn "   Please run TARS CLI as Administrator to install the service."
             printfn "   Right-click Command Prompt or PowerShell and select 'Run as Administrator'"
             1
         else
             // Check if service executable exists
-            match this.GetServiceExecutablePath() with
+            match self.GetServiceExecutablePath() with
             | None ->
                 printfn "❌ Service executable not found!"
                 printfn "   Please build the Windows service first:"
@@ -84,7 +84,7 @@ type ServiceCommand() =
                 printfn $"📁 Service executable: {executablePath}"
                 
                 // Check if service already exists
-                if this.IsServiceInstalled() && not force then
+                if self.IsServiceInstalled() && not force then
                     printfn "⚠️ TARS service is already installed!"
                     printfn "   Use 'tars service install --force' to reinstall"
                     printfn "   Use 'tars service uninstall' to remove first"
@@ -92,9 +92,9 @@ type ServiceCommand() =
                 else
                     try
                         // Uninstall existing service if force is specified
-                        if this.IsServiceInstalled() && force then
+                        if self.IsServiceInstalled() && force then
                             printfn "🔄 Reinstalling existing service..."
-                            this.UninstallServiceInternal() |> ignore
+                            self.UninstallServiceInternal() |> ignore
                             System.Threading.Thread.Sleep(2000) // Wait for cleanup
                         
                         // Install the service using sc.exe
@@ -132,7 +132,7 @@ type ServiceCommand() =
                             printf "🚀 Start TARS service now? (y/N): "
                             let response = Console.ReadLine()
                             if response.ToLower() = "y" || response.ToLower() = "yes" then
-                                this.StartService()
+                                self.StartService()
                             else
                                 printfn "ℹ️ Service installed but not started. Use 'tars service start' when ready."
                                 0
@@ -146,10 +146,10 @@ type ServiceCommand() =
                         1
     
     /// Uninstall the Windows service (internal)
-    member private this.UninstallServiceInternal() =
+    member private self.UninstallServiceInternal() =
         try
             // Stop service if running
-            match this.GetServiceStatus() with
+            match self.GetServiceStatus() with
             | Some status when status = ServiceControllerStatus.Running ->
                 printfn "⏹️ Stopping TARS service..."
                 use serviceController = new ServiceController(serviceName)
@@ -169,22 +169,22 @@ type ServiceCommand() =
             false
     
     /// Uninstall the Windows service
-    member this.UninstallService() =
+    member self.UninstallService() =
         printfn "🗑️ TARS Windows Service Uninstallation"
         printfn "════════════════════════════════════"
         printfn ""
         
         // Check admin privileges
-        if not (this.IsRunningAsAdmin()) then
+        if not (self.IsRunningAsAdmin()) then
             printfn "❌ Administrator privileges required!"
             printfn "   Please run TARS CLI as Administrator to uninstall the service."
             1
         else
-            if not (this.IsServiceInstalled()) then
+            if not (self.IsServiceInstalled()) then
                 printfn "ℹ️ TARS service is not installed."
                 0
             else
-                if this.UninstallServiceInternal() then
+                if self.UninstallServiceInternal() then
                     printfn "✅ TARS Windows Service uninstalled successfully!"
                     0
                 else
@@ -192,8 +192,8 @@ type ServiceCommand() =
                     1
 
     /// Start the Windows service
-    member this.StartService() =
-        if not (this.IsServiceInstalled()) then
+    member self.StartService() =
+        if not (self.IsServiceInstalled()) then
             printfn "❌ TARS service is not installed. Install it first with 'tars service install'"
             1
         else
@@ -225,8 +225,8 @@ type ServiceCommand() =
                 1
 
     /// Stop the Windows service
-    member this.StopService() =
-        if not (this.IsServiceInstalled()) then
+    member self.StopService() =
+        if not (self.IsServiceInstalled()) then
             printfn "❌ TARS service is not installed."
             1
         else
@@ -256,22 +256,22 @@ type ServiceCommand() =
                 1
 
     /// Restart the Windows service
-    member this.RestartService() =
+    member self.RestartService() =
         printfn "🔄 Restarting TARS service..."
-        let stopResult = this.StopService()
+        let stopResult = self.StopService()
         if stopResult = 0 then
             System.Threading.Thread.Sleep(2000) // Wait a moment
-            this.StartService()
+            self.StartService()
         else
             stopResult
 
     /// Show service status
-    member this.ShowStatus() =
+    member self.ShowStatus() =
         printfn "📊 TARS Windows Service Status"
         printfn "═════════════════════════════"
         printfn ""
 
-        if not (this.IsServiceInstalled()) then
+        if not (self.IsServiceInstalled()) then
             printfn "❌ TARS service is not installed."
             printfn "   Install with: tars service install"
             1
@@ -308,31 +308,31 @@ type ServiceCommand() =
                 1
 
     /// Execute service command
-    member this.Execute(args: string[]) =
+    member self.Execute(args: string[]) =
         match args with
         | [||] | [| "help" |] ->
-            this.ShowHelp()
+            self.ShowHelp()
             0
         | [| "install" |] ->
-            this.InstallService(false)
+            self.InstallService(false)
         | [| "install"; "--force" |] | [| "install"; "-f" |] ->
-            this.InstallService(true)
+            self.InstallService(true)
         | [| "uninstall" |] ->
-            this.UninstallService()
+            self.UninstallService()
         | [| "start" |] ->
-            this.StartService()
+            self.StartService()
         | [| "stop" |] ->
-            this.StopService()
+            self.StopService()
         | [| "restart" |] ->
-            this.RestartService()
+            self.RestartService()
         | [| "status" |] ->
-            this.ShowStatus()
+            self.ShowStatus()
         | _ ->
             printfn "❌ Unknown service command. Use 'tars service help' for available commands."
             1
 
     /// Show help for service commands
-    member this.ShowHelp() =
+    member self.ShowHelp() =
         printfn "🤖 TARS Windows Service Management"
         printfn "═════════════════════════════════"
         printfn ""
@@ -366,9 +366,9 @@ type ServiceCommand() =
 
         member _.Description = "Manage TARS Windows Service installation and operation"
 
-        member _.Usage = "tars service <command> [options]"
+        member self.Usage = "tars service <command> [options]"
 
-        member _.Examples = [
+        member self.Examples = [
             "tars service install           # Install TARS as Windows service"
             "tars service install --force   # Reinstall TARS service"
             "tars service start             # Start the service"
@@ -378,13 +378,13 @@ type ServiceCommand() =
             "tars service uninstall         # Remove the service"
         ]
 
-        member _.ValidateOptions(options: CommandOptions) =
+        member self.ValidateOptions(options: CommandOptions) =
             // Basic validation - service commands don't need complex validation
             true
 
-        member this.ExecuteAsync(options: CommandOptions) = task {
+        member self.ExecuteAsync(options: CommandOptions) = task {
             let args = options.Arguments |> List.toArray
-            let exitCode = this.Execute(args)
+            let exitCode = self.Execute(args)
 
             let result =
                 if exitCode = 0 then

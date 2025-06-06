@@ -1,0 +1,36 @@
+{
+  "Results": {
+    "ServiceImplementation": {
+      "ServicesImplemented": 0,
+      "Success": false
+    },
+    "BuildOptimization": {
+      "Success": false,
+      "WarningsFixed": 2,
+      "DependenciesOptimized": 1
+    }
+  },
+  "MissionId": "TARS-AUTO-20250603-144745",
+  "StartTime": "2025-06-03T14:47:45.3657466-04:00",
+  "AutonomyLevel": "Full",
+  "OverallSuccess": false,
+  "EndTime": "2025-06-03T14:47:52.4264742-04:00",
+  "QualityTarget": "9.5",
+  "Duration": {
+    "Ticks": 70607276,
+    "Days": 0,
+    "Hours": 0,
+    "Milliseconds": 60,
+    "Microseconds": 727,
+    "Nanoseconds": 600,
+    "Minutes": 0,
+    "Seconds": 7,
+    "TotalDays": 8.172138425925926E-05,
+    "TotalHours": 0.001961313222222222,
+    "TotalMilliseconds": 7060.7276,
+    "TotalMicroseconds": 7060727.6,
+    "TotalNanoseconds": 7060727600.0,
+    "TotalMinutes": 0.11767879333333334,
+    "TotalSeconds": 7.0607276
+  }
+}

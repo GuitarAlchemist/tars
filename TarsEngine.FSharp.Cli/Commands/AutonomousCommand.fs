@@ -10,16 +10,16 @@ type AutonomousCommand(reasoningService: IAutonomousReasoningService, logger: IL
     interface ICommand with
         member _.Name = "autonomous"
         member _.Description = "TARS autonomous reasoning with Codestral LLM + ChromaDB RAG"
-        member _.Usage = "tars autonomous <subcommand> [options]"
-        member _.Examples = [
+        member self.Usage = "tars autonomous <subcommand> [options]"
+        member self.Examples = [
             "tars autonomous reason \"Implement user authentication\""
             "tars autonomous generate \"Create file backup system\""
             "tars autonomous analyze \"path/to/code.fs\""
             "tars autonomous decide \"Option A,Option B,Option C\" \"Performance criteria\""
         ]
-        member _.ValidateOptions(_) = true
+        member self.ValidateOptions(_) = true
         
-        member _.ExecuteAsync(options) =
+        member self.ExecuteAsync(options) =
             task {
                 try
                     match options.Arguments with

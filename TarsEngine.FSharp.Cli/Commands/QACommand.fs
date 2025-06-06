@@ -11,41 +11,41 @@ type QACommand(logger: ILogger<QACommand>) =
     interface ICommand with
         member _.Name = "qa"
         member _.Description = "TARS QA Agent - Comprehensive UI and integration testing like a professional QA engineer"
-        member _.Usage = "tars qa <subcommand> [options]"
-        member _.Examples = [
+        member self.Usage = "tars qa <subcommand> [options]"
+        member self.Examples = [
             "tars qa test --url https://localhost:5001"
             "tars qa generate --app \"File Sync API\" --url https://localhost:5001"
             "tars qa demo"
             "tars qa persona"
             "tars qa report --results test-results.json"
         ]
-        member _.ValidateOptions(_) = true
+        member self.ValidateOptions(_) = true
         
-        member _.ExecuteAsync(options) =
+        member self.ExecuteAsync(options) =
             task {
                 try
                     match options.Arguments with
                     | "test" :: rest ->
-                        return! this.RunUITestsAsync(rest)
+                        return! self.RunUITestsAsync(rest)
                     
                     | "generate" :: rest ->
-                        return! this.GenerateTestSuiteAsync(rest)
+                        return! self.GenerateTestSuiteAsync(rest)
                     
                     | "demo" :: _ ->
-                        return! this.RunDemoTestsAsync()
+                        return! self.RunDemoTestsAsync()
                     
                     | "persona" :: _ ->
-                        return this.ShowQAPersona()
+                        return self.ShowQAPersona()
                     
                     | "report" :: rest ->
-                        return this.GenerateReportAsync(rest)
+                        return self.GenerateReportAsync(rest)
                     
                     | [] | ["help"] ->
-                        return this.ShowHelp()
+                        return self.ShowHelp()
                     
                     | unknown :: _ ->
                         printfn "❌ Unknown QA command: %s" unknown
-                        return this.ShowHelp()
+                        return self.ShowHelp()
                         
                 with
                 | ex ->
@@ -54,10 +54,10 @@ type QACommand(logger: ILogger<QACommand>) =
             }
     
     /// Run UI tests against a target application
-    member private this.RunUITestsAsync(args: string list) =
+    member private self.RunUITestsAsync(args: string list) =
         task {
             try
-                let url = this.ParseUrl(args) |> Option.defaultValue "https://localhost:5001"
+                let url = self.ParseUrl(args) |> Option.defaultValue "https://localhost:5001"
                 
                 printfn "🧪 TARS QA AGENT - UI TESTING"
                 printfn "============================="
@@ -162,12 +162,12 @@ type QACommand(logger: ILogger<QACommand>) =
                     else
                         printfn "⚠️ Target application not responding properly"
                         printfn "Status: %d" (int response.StatusCode)
-                        return this.ShowApplicationStartupInstructions()
+                        return self.ShowApplicationStartupInstructions()
                         
                 with
                 | ex ->
                     printfn "❌ Cannot connect to target application: %s" ex.Message
-                    return this.ShowApplicationStartupInstructions()
+                    return self.ShowApplicationStartupInstructions()
                     
             with
             | ex ->
@@ -176,11 +176,11 @@ type QACommand(logger: ILogger<QACommand>) =
         }
     
     /// Generate test suite for an application
-    member private this.GenerateTestSuiteAsync(args: string list) =
+    member private self.GenerateTestSuiteAsync(args: string list) =
         task {
             try
-                let appName = this.ParseAppName(args) |> Option.defaultValue "Test Application"
-                let url = this.ParseUrl(args) |> Option.defaultValue "https://localhost:5001"
+                let appName = self.ParseAppName(args) |> Option.defaultValue "Test Application"
+                let url = self.ParseUrl(args) |> Option.defaultValue "https://localhost:5001"
                 
                 printfn "🏭 TARS QA AGENT - TEST SUITE GENERATION"
                 printfn "======================================="
@@ -231,7 +231,7 @@ type QACommand(logger: ILogger<QACommand>) =
         }
     
     /// Run demo tests to showcase QA capabilities
-    member private this.RunDemoTestsAsync() =
+    member private self.RunDemoTestsAsync() =
         task {
             try
                 printfn "🎬 TARS QA AGENT - DEMO TESTING"
@@ -301,7 +301,7 @@ type QACommand(logger: ILogger<QACommand>) =
         }
     
     /// Show QA agent persona
-    member private this.ShowQAPersona() =
+    member private self.ShowQAPersona() =
         printfn "👤 TARS QA AGENT PERSONA"
         printfn "========================"
         printfn ""
@@ -347,7 +347,7 @@ type QACommand(logger: ILogger<QACommand>) =
         CommandResult.success("QA persona displayed")
     
     /// Generate test report
-    member private this.GenerateReportAsync(args: string list) =
+    member private self.GenerateReportAsync(args: string list) =
         printfn "📄 TARS QA AGENT - TEST REPORT GENERATION"
         printfn "========================================="
         printfn ""
@@ -368,7 +368,7 @@ type QACommand(logger: ILogger<QACommand>) =
         CommandResult.success("Test report generated")
     
     /// Show application startup instructions
-    member private this.ShowApplicationStartupInstructions() =
+    member private self.ShowApplicationStartupInstructions() =
         printfn ""
         printfn "🚀 TO START THE DEMO APPLICATION:"
         printfn "================================="
@@ -389,7 +389,7 @@ type QACommand(logger: ILogger<QACommand>) =
         CommandResult.error("Target application not available")
     
     /// Parse URL from command line arguments
-    member private this.ParseUrl(args: string list) =
+    member private self.ParseUrl(args: string list) =
         args 
         |> List.tryFind (fun arg -> arg.StartsWith("http"))
         |> Option.orElse (
@@ -399,13 +399,13 @@ type QACommand(logger: ILogger<QACommand>) =
         )
     
     /// Parse application name from command line arguments
-    member private this.ParseAppName(args: string list) =
+    member private self.ParseAppName(args: string list) =
         args 
         |> List.tryFindIndex (fun arg -> arg = "--app")
         |> Option.bind (fun i -> if i + 1 < args.Length then Some args.[i + 1] else None)
     
     /// Show help information
-    member private this.ShowHelp() =
+    member private self.ShowHelp() =
         printfn """🧪 TARS QA AGENT - COMPREHENSIVE TESTING
 ========================================
 

@@ -1,0 +1,111 @@
+{
+  "Recommendations": [],
+  "Phase": "all",
+  "AgentResults": {
+    "CodeAnalysisAgent": {
+      "Issues": [
+        "Found 13 compilation warnings",
+        "Potential unsafe .Result usage in Program.fs",
+        "Potential unsafe .Result usage in VMDeploymentCommand.fs",
+        "Potential unsafe .Result usage in IntelligenceCommand.fs",
+        "Found 2 TODO/FIXME comments in LiveEndpointsCommand.fs",
+        "Potential unsafe .Result usage in LiveEndpointsCommand.fs",
+        "Potential unsafe .Result usage in MetascriptCommand.fs",
+        "Potential unsafe .Result usage in MetascriptListCommand.fs",
+        "Potential unsafe .Result usage in MLCommand.fs",
+        "Potential unsafe .Result usage in SelfChatCommand.fs",
+        "Potential unsafe .Result usage in VMCommand.fs",
+        "Found 5 TODO/FIXME comments in WebApiCommand.fs",
+        "Potential unsafe .Result usage in AutoImprovementCommandTests.fs",
+        "Potential unsafe .Result usage in CodeAnalysisCommandTests.fs",
+        "Potential unsafe .Result usage in DemoCommandTests.fs",
+        "Potential unsafe .Result usage in ImprovementWorkflowCommandTests.fs",
+        "Potential unsafe .Result usage in McpCommandTests.fs",
+        "Potential unsafe .Result usage in SelfCodingCommandTests.fs",
+        "Potential unsafe .Result usage in TestGeneratorCommandTests.fs",
+        "Potential unsafe .Result usage in TotAutoImprovementCommandTests.fs",
+        "Potential unsafe .Result usage in VSCodeControlCommandTests.fs",
+        "Potential unsafe .Result usage in CliApplication.fs"
+      ],
+      "Recommendations": [
+        "Address compilation warnings to improve code quality",
+        "Consider using proper async/await patterns",
+        "Consider using proper async/await patterns",
+        "Consider using proper async/await patterns",
+        "Consider using proper async/await patterns",
+        "Consider using proper async/await patterns",
+        "Consider using proper async/await patterns",
+        "Consider using proper async/await patterns",
+        "Consider using proper async/await patterns",
+        "Consider using proper async/await patterns",
+        "Consider using proper async/await patterns",
+        "Consider using proper async/await patterns",
+        "Consider using proper async/await patterns",
+        "Consider using proper async/await patterns",
+        "Consider using proper async/await patterns",
+        "Consider using proper async/await patterns",
+        "Consider using proper async/await patterns",
+        "Consider using proper async/await patterns",
+        "Consider using proper async/await patterns",
+        "Consider using proper async/await patterns"
+      ],
+      "Metrics": {
+        "CompilationWarnings": 13
+      },
+      "Fixes": [],
+      "Success": true,
+      "Evidence": [
+        "output/qa-reports/compilation-warnings.txt"
+      ]
+    },
+    "CLITestingAgent": {
+      "Issues": [
+        "Help command failed",
+        "Version command failed",
+        "Command 'mixtral' help failed",
+        "Command 'chatbot' help failed",
+        "Command 'swarm' help failed",
+        "Command 'notebook' help failed"
+      ],
+      "Recommendations": [],
+      "Metrics": {
+        "FailedCommands": 6,
+        "TestedCommands": 8
+      },
+      "Fixes": [],
+      "Success": true,
+      "Evidence": []
+    }
+  },
+  "MissionId": "cli-qa-20250603-144132",
+  "QualityMetrics": {
+    "TestCoverage": 0.0,
+    "TotalIssues": 0,
+    "UXScore": 0.0,
+    "PerformanceScore": 0.0,
+    "FixesApplied": 0,
+    "CompilationWarnings": 13,
+    "CriticalIssues": 0
+  },
+  "EndTime": "2025-06-03T14:41:47.8289853-04:00",
+  "Duration": {
+    "Ticks": 157775199,
+    "Days": 0,
+    "Hours": 0,
+    "Milliseconds": 777,
+    "Microseconds": 519,
+    "Nanoseconds": 900,
+    "Minutes": 0,
+    "Seconds": 15,
+    "TotalDays": 0.00018261018402777779,
+    "TotalHours": 0.004382644416666667,
+    "TotalMilliseconds": 15777.5199,
+    "TotalMicroseconds": 15777519.9,
+    "TotalNanoseconds": 15777519900.0,
+    "TotalMinutes": 0.262958665,
+    "TotalSeconds": 15.7775199
+  },
+  "TotalFixes": 0,
+  "StartTime": "2025-06-03T14:41:32.0514654-04:00",
+  "TotalIssues": 28
+}

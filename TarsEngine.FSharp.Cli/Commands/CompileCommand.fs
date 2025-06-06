@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.FSharp.Cli.Commands
+namespace TarsEngine.FSharp.Cli.Commands
 
 open System
 open System.IO
@@ -13,23 +13,23 @@ type CompileCommand() =
         
         member _.Description = "Compile F# source code"
         
-        member _.Usage = "tars compile <source> [options]"
+        member self.Usage = "tars compile <source> [options]"
         
-        member _.Examples = [
+        member self.Examples = [
             "tars compile script.fs"
             "tars compile src/ --output bin/app.exe"
             "tars compile . --target library"
             "tars compile project.fsproj --release"
         ]
         
-        member _.ValidateOptions(options) =
+        member self.ValidateOptions(options) =
             if options.Arguments.IsEmpty then
                 false
             else
                 let source = options.Arguments.[0]
                 File.Exists(source) || Directory.Exists(source) || source.EndsWith(".fsproj")
         
-        member _.ExecuteAsync(options) =
+        member self.ExecuteAsync(options) =
             Task.Run(fun () ->
                 try
                     let source = options.Arguments.[0]

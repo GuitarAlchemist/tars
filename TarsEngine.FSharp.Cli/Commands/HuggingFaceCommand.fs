@@ -9,7 +9,7 @@ open TarsEngine.FSharp.Cli.Services
 /// HuggingFace integration command for TARS
 type HuggingFaceCommand(logger: ILogger<HuggingFaceCommand>, huggingFaceService: HuggingFaceService) =
 
-    member private this.ShowHuggingFaceHeader() =
+    member private self.ShowHuggingFaceHeader() =
         AnsiConsole.Clear()
         
         let figlet = FigletText("TARS + HF")
@@ -21,9 +21,9 @@ type HuggingFaceCommand(logger: ILogger<HuggingFaceCommand>, huggingFaceService:
         AnsiConsole.Write(rule)
         AnsiConsole.WriteLine()
 
-    member private this.ShowRecommendedModels() =
+    member private self.ShowRecommendedModels() =
         task {
-            this.ShowHuggingFaceHeader()
+            self.ShowHuggingFaceHeader()
             
             AnsiConsole.MarkupLine("[bold cyan]🤗 Recommended HuggingFace Models for TARS[/]")
             AnsiConsole.WriteLine()
@@ -68,9 +68,9 @@ type HuggingFaceCommand(logger: ILogger<HuggingFaceCommand>, huggingFaceService:
                 AnsiConsole.MarkupLine($"[red]❌ Failed to fetch models: {error}[/]")
         }
 
-    member private this.SearchModels() =
+    member private self.SearchModels() =
         task {
-            this.ShowHuggingFaceHeader()
+            self.ShowHuggingFaceHeader()
             
             let query = AnsiConsole.Ask<string>("[cyan]🔍 Enter search query for HuggingFace models:[/]")
             
@@ -121,9 +121,9 @@ type HuggingFaceCommand(logger: ILogger<HuggingFaceCommand>, huggingFaceService:
                 AnsiConsole.MarkupLine($"[red]❌ Search failed: {error}[/]")
         }
 
-    member private this.DownloadModel() =
+    member private self.DownloadModel() =
         task {
-            this.ShowHuggingFaceHeader()
+            self.ShowHuggingFaceHeader()
             
             let modelId = AnsiConsole.Ask<string>("[cyan]📥 Enter model ID to download (e.g., microsoft/DialoGPT-medium):[/]")
             
@@ -149,14 +149,14 @@ type HuggingFaceCommand(logger: ILogger<HuggingFaceCommand>, huggingFaceService:
                 ) |> ignore
                 
                 AnsiConsole.Clear()
-                this.ShowHuggingFaceHeader()
+                self.ShowHuggingFaceHeader()
                 AnsiConsole.MarkupLine($"[bold yellow]📥 Downloading model: {modelId}[/]")
                 AnsiConsole.Write(progressTable)
             
             let! result = huggingFaceService.DownloadModelAsync(modelId, onProgress)
             
             AnsiConsole.Clear()
-            this.ShowHuggingFaceHeader()
+            self.ShowHuggingFaceHeader()
             
             match result with
             | Ok modelInfo ->
@@ -182,9 +182,9 @@ type HuggingFaceCommand(logger: ILogger<HuggingFaceCommand>, huggingFaceService:
                 AnsiConsole.MarkupLine($"[red]❌ Download failed: {error}[/]")
         }
 
-    member private this.ShowLocalModels() =
+    member private self.ShowLocalModels() =
         task {
-            this.ShowHuggingFaceHeader()
+            self.ShowHuggingFaceHeader()
             
             AnsiConsole.MarkupLine("[bold cyan]💾 Local HuggingFace Models[/]")
             AnsiConsole.WriteLine()
@@ -241,9 +241,9 @@ type HuggingFaceCommand(logger: ILogger<HuggingFaceCommand>, huggingFaceService:
                 AnsiConsole.MarkupLine($"[red]❌ Failed to list local models: {error}[/]")
         }
 
-    member private this.TestInference() =
+    member private self.TestInference() =
         task {
-            this.ShowHuggingFaceHeader()
+            self.ShowHuggingFaceHeader()
             
             let! localModelsResult = huggingFaceService.GetLocalModelsAsync()
             match localModelsResult with
@@ -287,37 +287,37 @@ type HuggingFaceCommand(logger: ILogger<HuggingFaceCommand>, huggingFaceService:
     interface ICommand with
         member _.Name = "huggingface"
         member _.Description = "HuggingFace Transformers integration for TARS"
-        member _.Usage = "tars huggingface [recommended|search|download|local|test]"
-        member _.Examples = [
+        member self.Usage = "tars huggingface [recommended|search|download|local|test]"
+        member self.Examples = [
             "tars huggingface recommended"
             "tars huggingface search"
             "tars huggingface download"
             "tars huggingface local"
             "tars huggingface test"
         ]
-        member _.ValidateOptions(options) = true
+        member self.ValidateOptions(options) = true
 
-        member this.ExecuteAsync(options) =
+        member self.ExecuteAsync(options) =
             task {
                 try
                     match options.Arguments with
                     | "recommended" :: _ ->
-                        do! this.ShowRecommendedModels()
+                        do! self.ShowRecommendedModels()
                         return CommandResult.success("Recommended models displayed")
                     | "search" :: _ ->
-                        do! this.SearchModels()
+                        do! self.SearchModels()
                         return CommandResult.success("Model search completed")
                     | "download" :: _ ->
-                        do! this.DownloadModel()
+                        do! self.DownloadModel()
                         return CommandResult.success("Model download completed")
                     | "local" :: _ ->
-                        do! this.ShowLocalModels()
+                        do! self.ShowLocalModels()
                         return CommandResult.success("Local models displayed")
                     | "test" :: _ ->
-                        do! this.TestInference()
+                        do! self.TestInference()
                         return CommandResult.success("Inference test completed")
                     | [] ->
-                        do! this.ShowRecommendedModels()
+                        do! self.ShowRecommendedModels()
                         return CommandResult.success("HuggingFace integration demo completed")
                     | unknown :: _ ->
                         AnsiConsole.MarkupLine($"[red]❌ Unknown huggingface command: {unknown}[/]")

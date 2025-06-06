@@ -13,16 +13,16 @@ type ProjectCommand(
     interface ICommand with
         member _.Name = "project"
         member _.Description = "TARS autonomous project creation from simple prompts"
-        member _.Usage = "tars project <subcommand> [options]"
-        member _.Examples = [
+        member self.Usage = "tars project <subcommand> [options]"
+        member self.Examples = [
             "tars project create \"file backup system\"     - Create project from prompt"
             "tars project demo                             - Demo project creation"
             "tars project list                             - List created projects"
             "tars project validate <path>                  - Validate project"
         ]
-        member _.ValidateOptions(_) = true
+        member self.ValidateOptions(_) = true
         
-        member _.ExecuteAsync(options) =
+        member self.ExecuteAsync(options) =
             task {
                 try
                     match options.Arguments with

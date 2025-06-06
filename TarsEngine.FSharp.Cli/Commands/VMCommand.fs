@@ -161,18 +161,18 @@ ENTRYPOINT ["dotnet", "*.dll"]
         interface ICommand with
             member _.Name = "vm"
             member _.Description = "Deploy and manage projects in VMs/containers"
-            member _.Usage = "vm <deploy|test|list|stop> [options]"
-            member _.Examples = [
+            member self.Usage = "vm <deploy|test|list|stop> [options]"
+            member self.Examples = [
                 "vm deploy output/projects/taskmanager"
                 "vm test output/projects/taskmanager"
                 "vm list"
                 "vm stop tars-taskmanager-container"
             ]
 
-            member _.ValidateOptions(options: CommandOptions) =
+            member self.ValidateOptions(options: CommandOptions) =
                 options.Arguments.Length > 0
 
-            member _.ExecuteAsync(options: CommandOptions) =
+            member self.ExecuteAsync(options: CommandOptions) =
                 task {
                     match options.Arguments with
                     | "deploy" :: projectPath :: _ ->

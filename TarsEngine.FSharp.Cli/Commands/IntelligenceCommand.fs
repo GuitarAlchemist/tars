@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.FSharp.Cli.Commands
+namespace TarsEngine.FSharp.Cli.Commands
 
 open System
 open System.Threading.Tasks
@@ -13,19 +13,19 @@ type IntelligenceCommand(intelligenceService: IntelligenceService) =
         
         member _.Description = "Measure and analyze intelligence metrics using real AI services"
         
-        member _.Usage = "tars intelligence [subcommand] [options]"
+        member self.Usage = "tars intelligence [subcommand] [options]"
         
-        member _.Examples = [
+        member self.Examples = [
             "tars intelligence measure --target ."
             "tars intelligence analyze --input data.json"
             "tars intelligence report --period week"
             "tars intelligence progress --show-trend"
         ]
         
-        member _.ValidateOptions(options) =
+        member self.ValidateOptions(options) =
             true // Basic validation for now
         
-        member _.ExecuteAsync(options) =
+        member self.ExecuteAsync(options) =
             Task.Run(fun () ->
                 try
                     let subcommand = 

@@ -10,7 +10,7 @@ open TarsEngine.FSharp.Cli.Services
 /// TARS Swarm Management and Demo Command with beautiful Spectre.Console UI
 type SwarmCommand(logger: ILogger<SwarmCommand>, dockerService: DockerService) =
 
-    member private this.DisplaySwarmStatus() =
+    member private self.DisplaySwarmStatus() =
         task {
             let table = Table()
             table.AddColumn("[bold cyan]Container[/]") |> ignore
@@ -49,7 +49,7 @@ type SwarmCommand(logger: ILogger<SwarmCommand>, dockerService: DockerService) =
             AnsiConsole.Write(table)
         }
 
-    member private this.RunSwarmTests() =
+    member private self.RunSwarmTests() =
         task {
             AnsiConsole.MarkupLine("[bold cyan]🧪 Running TARS Swarm Tests...[/]")
 
@@ -58,11 +58,11 @@ type SwarmCommand(logger: ILogger<SwarmCommand>, dockerService: DockerService) =
             table.AddColumn("[bold]Result[/]") |> ignore
 
             // Test container health
-            let! healthResults = this.TestContainerHealth()
+            let! healthResults = self.TestContainerHealth()
             table.AddRow("Container Health Check", healthResults) |> ignore
 
             // Test TARS CLI availability
-            let! cliResults = this.TestTarsCliAvailability()
+            let! cliResults = self.TestTarsCliAvailability()
             table.AddRow("TARS CLI Availability", cliResults) |> ignore
 
             // Test network connectivity (simulated for now)
@@ -80,14 +80,14 @@ type SwarmCommand(logger: ILogger<SwarmCommand>, dockerService: DockerService) =
             AnsiConsole.Write(table)
         }
 
-    member private this.ShowDemoHeader() =
+    member private self.ShowDemoHeader() =
         AnsiConsole.Clear()
         let rule = Rule("[bold cyan]🚀 TARS Autonomous Swarm Demo[/]")
         AnsiConsole.Write(rule)
         AnsiConsole.WriteLine()
         AnsiConsole.MarkupLine("[bold yellow]The Autonomous Reasoning System - Swarm Mode[/]")
 
-    member private this.RunPerformanceMonitor() =
+    member private self.RunPerformanceMonitor() =
         AnsiConsole.MarkupLine("[bold cyan]📈 TARS Swarm Performance Monitor[/]")
         let random = Random()
 
@@ -101,7 +101,7 @@ type SwarmCommand(logger: ILogger<SwarmCommand>, dockerService: DockerService) =
 
             System.Threading.Thread.Sleep(1000)
 
-    member private this.RunContainerCommands() =
+    member private self.RunContainerCommands() =
         AnsiConsole.MarkupLine("[bold cyan]📋 Executing Commands Across TARS Swarm...[/]")
 
         let commands = [
@@ -116,19 +116,19 @@ type SwarmCommand(logger: ILogger<SwarmCommand>, dockerService: DockerService) =
             System.Threading.Thread.Sleep(500)
             AnsiConsole.MarkupLine($"[green]✅ Result: {result}[/]")
 
-    member private this.RunSimpleDemo() =
+    member private self.RunSimpleDemo() =
         task {
-            this.ShowDemoHeader()
+            self.ShowDemoHeader()
             AnsiConsole.MarkupLine("[bold green]🔍 Checking TARS Swarm Status...[/]")
-            do! this.DisplaySwarmStatus()
+            do! self.DisplaySwarmStatus()
             AnsiConsole.WriteLine()
             AnsiConsole.MarkupLine("[bold cyan]🧪 Running Tests...[/]")
-            do! this.RunSwarmTests()
+            do! self.RunSwarmTests()
             AnsiConsole.WriteLine()
             AnsiConsole.MarkupLine("[bold green]✅ Demo completed successfully![/]")
         }
 
-    member private this.TestContainerHealth() =
+    member private self.TestContainerHealth() =
         task {
             try
                 let! containers = dockerService.GetTarsContainersAsync()
@@ -152,7 +152,7 @@ type SwarmCommand(logger: ILogger<SwarmCommand>, dockerService: DockerService) =
                 return "[red]❌ ERROR[/]"
         }
 
-    member private this.TestTarsCliAvailability() =
+    member private self.TestTarsCliAvailability() =
         task {
             try
                 let! result = dockerService.ExecuteCommandAsync("tars-alpha", "dotnet /app/TarsEngine.FSharp.Cli.dll version")
@@ -169,37 +169,37 @@ type SwarmCommand(logger: ILogger<SwarmCommand>, dockerService: DockerService) =
     interface ICommand with
         member _.Name = "swarm"
         member _.Description = "TARS Swarm Management and Interactive Demo with beautiful CLI interface"
-        member _.Usage = "tars swarm <subcommand> [options]"
-        member _.Examples = [
+        member self.Usage = "tars swarm <subcommand> [options]"
+        member self.Examples = [
             "tars swarm demo"
             "tars swarm status"
             "tars swarm test"
             "tars swarm monitor"
             "tars swarm commands"
         ]
-        member _.ValidateOptions(_) = true
+        member self.ValidateOptions(_) = true
 
-        member this.ExecuteAsync(options) =
+        member self.ExecuteAsync(options) =
             task {
                 try
                     match options.Arguments with
                     | "demo" :: _ ->
-                        do! this.RunSimpleDemo()
+                        do! self.RunSimpleDemo()
                         return CommandResult.success("Demo completed")
                     | "status" :: _ ->
-                        do! this.DisplaySwarmStatus()
+                        do! self.DisplaySwarmStatus()
                         return CommandResult.success("Status displayed")
                     | "test" :: _ ->
-                        do! this.RunSwarmTests()
+                        do! self.RunSwarmTests()
                         return CommandResult.success("Tests completed")
                     | "monitor" :: _ ->
-                        this.RunPerformanceMonitor()
+                        self.RunPerformanceMonitor()
                         return CommandResult.success("Performance monitor completed")
                     | "commands" :: _ ->
-                        this.RunContainerCommands()
+                        self.RunContainerCommands()
                         return CommandResult.success("Commands executed")
                     | [] ->
-                        do! this.RunSimpleDemo()
+                        do! self.RunSimpleDemo()
                         return CommandResult.success("Demo completed")
                     | unknown :: _ ->
                         AnsiConsole.MarkupLine($"[red]❌ Unknown swarm command: {unknown}[/]")

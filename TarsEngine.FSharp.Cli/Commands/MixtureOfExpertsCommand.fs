@@ -22,7 +22,7 @@ type MixtureOfExpertsCommand(logger: ILogger<MixtureOfExpertsCommand>) =
         ("MoEExpert", "Qwen/Qwen3-30B-A3B", "Mixture of Experts with 30B total/3B active params")
     ]
 
-    member private this.ShowMoEHeader() =
+    member private self.ShowMoEHeader() =
         AnsiConsole.Clear()
         
         let headerPanel = Panel("""[bold cyan]🧠 TARS Mixture of Experts System[/]
@@ -39,7 +39,7 @@ type MixtureOfExpertsCommand(logger: ILogger<MixtureOfExpertsCommand>) =
         AnsiConsole.Write(headerPanel)
         AnsiConsole.WriteLine()
 
-    member private this.CheckAvailableExperts() =
+    member private self.CheckAvailableExperts() =
         let modelsDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".tars", "models")
         
         experts
@@ -48,14 +48,14 @@ type MixtureOfExpertsCommand(logger: ILogger<MixtureOfExpertsCommand>) =
             let isAvailable = Directory.Exists(modelDir) && Directory.GetFiles(modelDir).Length > 0
             (expertName, modelId, description, isAvailable))
 
-    member this.ShowExpertStatus() =
+    member self.ShowExpertStatus() =
         task {
-            this.ShowMoEHeader()
+            self.ShowMoEHeader()
             
             AnsiConsole.MarkupLine("[bold cyan]🔍 Expert Model Status[/]")
             AnsiConsole.WriteLine()
             
-            let expertStatus = this.CheckAvailableExperts()
+            let expertStatus = self.CheckAvailableExperts()
             
             let table = Table()
             table.Border <- TableBorder.Rounded
@@ -85,7 +85,7 @@ type MixtureOfExpertsCommand(logger: ILogger<MixtureOfExpertsCommand>) =
             AnsiConsole.MarkupLine($"[bold green]📊 {availableCount}/{expertStatus.Length} experts ready for deployment[/]")
         }
 
-    member private this.RouteTask(task: string) =
+    member private self.RouteTask(task: string) =
         // Intelligent task routing based on content analysis
         let taskLower = task.ToLower()
 
@@ -106,9 +106,9 @@ type MixtureOfExpertsCommand(logger: ILogger<MixtureOfExpertsCommand>) =
         else
             ("DialogueExpert", "microsoft/DialoGPT-small")
 
-    member this.ExecuteMoETask(taskArg: string option) =
+    member self.ExecuteMoETask(taskArg: string option) =
         task {
-            this.ShowMoEHeader()
+            self.ShowMoEHeader()
 
             AnsiConsole.MarkupLine("[bold cyan]🎯 Mixture of Experts Task Execution[/]")
             AnsiConsole.WriteLine()
@@ -132,7 +132,7 @@ type MixtureOfExpertsCommand(logger: ILogger<MixtureOfExpertsCommand>) =
             AnsiConsole.MarkupLine("[bold yellow]🧠 Analyzing task and routing to expert...[/]")
             
             // Route task to appropriate expert
-            let (expertName, modelId) = this.RouteTask(userTask)
+            let (expertName, modelId) = self.RouteTask(userTask)
             
             AnsiConsole.MarkupLine($"[cyan]📍 Task routed to: [bold]{expertName}[/] ({modelId})[/]")
             
@@ -180,9 +180,9 @@ type MixtureOfExpertsCommand(logger: ILogger<MixtureOfExpertsCommand>) =
                 AnsiConsole.MarkupLine("[yellow]💡 Use 'tars transformer download' to get the required model[/]")
         }
 
-    member private this.ShowMoEArchitecture() =
+    member private self.ShowMoEArchitecture() =
         task {
-            this.ShowMoEHeader()
+            self.ShowMoEHeader()
             
             AnsiConsole.MarkupLine("[bold cyan]🏗️ TARS MoE Architecture[/]")
             AnsiConsole.WriteLine()
@@ -214,33 +214,33 @@ type MixtureOfExpertsCommand(logger: ILogger<MixtureOfExpertsCommand>) =
     interface ICommand with
         member _.Name = "moe"
         member _.Description = "Real Mixture of Experts system using downloaded transformer models"
-        member _.Usage = "tars moe [status|execute [task]|architecture]"
-        member _.Examples = [
+        member self.Usage = "tars moe [status|execute [task]|architecture]"
+        member self.Examples = [
             "tars moe status"
             "tars moe execute"
             "tars moe execute \"Help me solve this complex logic problem\""
             "tars moe architecture"
         ]
-        member _.ValidateOptions(options) = true
+        member self.ValidateOptions(options) = true
 
-        member this.ExecuteAsync(options) =
+        member self.ExecuteAsync(options) =
             task {
                 try
                     match options.Arguments with
                     | "status" :: _ ->
-                        do! this.ShowExpertStatus()
+                        do! self.ShowExpertStatus()
                         return CommandResult.success("Expert status displayed")
                     | "execute" :: [] ->
-                        do! this.ExecuteMoETask(None)
+                        do! self.ExecuteMoETask(None)
                         return CommandResult.success("MoE task execution completed")
                     | "execute" :: task :: _ ->
-                        do! this.ExecuteMoETask(Some task)
+                        do! self.ExecuteMoETask(Some task)
                         return CommandResult.success($"MoE task '{task}' execution completed")
                     | "architecture" :: _ ->
-                        do! this.ShowMoEArchitecture()
+                        do! self.ShowMoEArchitecture()
                         return CommandResult.success("MoE architecture displayed")
                     | [] ->
-                        do! this.ShowExpertStatus()
+                        do! self.ShowExpertStatus()
                         return CommandResult.success("MoE system overview completed")
                     | unknown :: _ ->
                         AnsiConsole.MarkupLine($"[red]❌ Unknown MoE command: {unknown}[/]")

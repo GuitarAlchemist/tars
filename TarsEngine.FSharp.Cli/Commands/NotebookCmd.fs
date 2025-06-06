@@ -15,20 +15,20 @@ type NotebookCommand(logger: ILogger<NotebookCommand>) =
         
         member _.Description = "Jupyter notebook operations - create, generate, convert, and manage notebooks"
         
-        member _.Usage = "tars notebook <subcommand> [options]"
+        member self.Usage = "tars notebook <subcommand> [options]"
         
-        member _.Examples = [
+        member self.Examples = [
             "tars notebook create --name \"Data Analysis\" --template data-science"
             "tars notebook generate --from-metascript analysis.trsx --strategy eda"
             "tars notebook convert --input notebook.ipynb --to html"
             "tars notebook search --query \"machine learning\" --source github"
         ]
         
-        member _.ValidateOptions(options: CommandOptions) =
+        member self.ValidateOptions(options: CommandOptions) =
             // Basic validation - at least one argument for subcommand
             not options.Arguments.IsEmpty
         
-        member _.ExecuteAsync(options: CommandOptions) =
+        member self.ExecuteAsync(options: CommandOptions) =
             Task.Run(fun () ->
                 try
                     match options.Arguments with
@@ -36,19 +36,19 @@ type NotebookCommand(logger: ILogger<NotebookCommand>) =
                         CommandResult.failure "No subcommand specified. Use 'create', 'generate', 'convert', 'search', or 'download'."
                     
                     | "create" :: _ ->
-                        this.executeCreateCommand options
-                    
+                        self.executeCreateCommand options
+
                     | "generate" :: _ ->
-                        this.executeGenerateCommand options
-                    
+                        self.executeGenerateCommand options
+
                     | "convert" :: _ ->
-                        this.executeConvertCommand options
-                    
+                        self.executeConvertCommand options
+
                     | "search" :: _ ->
-                        this.executeSearchCommand options
-                    
+                        self.executeSearchCommand options
+
                     | "download" :: _ ->
-                        this.executeDownloadCommand options
+                        self.executeDownloadCommand options
                     
                     | subcommand :: _ ->
                         CommandResult.failure $"Unknown subcommand: {subcommand}. Use 'create', 'generate', 'convert', 'search', or 'download'."
@@ -60,7 +60,7 @@ type NotebookCommand(logger: ILogger<NotebookCommand>) =
             )
     
     /// Execute create subcommand
-    member private this.executeCreateCommand(options: CommandOptions) : CommandResult =
+    member private self.executeCreateCommand(options: CommandOptions) : CommandResult =
         try
             let name = options.Options.TryFind("name") |> Option.defaultValue "New Notebook"
             let template = options.Options.TryFind("template") |> Option.defaultValue "data-science"
@@ -129,7 +129,7 @@ type NotebookCommand(logger: ILogger<NotebookCommand>) =
             CommandResult.failure $"Failed to create notebook: {ex.Message}"
 
     /// Execute generate subcommand
-    member private this.executeGenerateCommand(options: CommandOptions) : CommandResult =
+    member private self.executeGenerateCommand(options: CommandOptions) : CommandResult =
         try
             let metascriptPath = options.Options.TryFind("from-metascript")
             let output = options.Options.TryFind("output")
@@ -227,19 +227,19 @@ type NotebookCommand(logger: ILogger<NotebookCommand>) =
             CommandResult.failure $"Failed to generate notebook: {ex.Message}"
 
     /// Execute convert subcommand
-    member private this.executeConvertCommand(options: CommandOptions) : CommandResult =
+    member private self.executeConvertCommand(options: CommandOptions) : CommandResult =
         logger.LogInformation("🔄 Converting notebook")
         logger.LogInformation("🚧 Notebook conversion not yet implemented")
         CommandResult.success "Conversion feature coming soon"
 
     /// Execute search subcommand
-    member private this.executeSearchCommand(options: CommandOptions) : CommandResult =
+    member private self.executeSearchCommand(options: CommandOptions) : CommandResult =
         logger.LogInformation("🔍 Searching for notebooks")
         logger.LogInformation("🚧 Notebook search not yet implemented")
         CommandResult.success "Search feature coming soon"
 
     /// Execute download subcommand
-    member private this.executeDownloadCommand(options: CommandOptions) : CommandResult =
+    member private self.executeDownloadCommand(options: CommandOptions) : CommandResult =
         logger.LogInformation("⬇️ Downloading notebook")
         logger.LogInformation("🚧 Notebook download not yet implemented")
         CommandResult.success "Download feature coming soon"

@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.FSharp.Cli.Commands
+namespace TarsEngine.FSharp.Cli.Commands
 
 open System
 open System.Threading.Tasks
@@ -13,17 +13,17 @@ type MetascriptCommand(metascriptService: MetascriptService) =
         
         member _.Description = "Execute TARS metascripts"
         
-        member _.Usage = "tars metascript [name] [options]"
+        member self.Usage = "tars metascript [name] [options]"
         
-        member _.Examples = [
+        member self.Examples = [
             "tars metascript code_analysis"
             "tars metascript --list"
             "tars metascript improve_code --verbose"
         ]
         
-        member _.ValidateOptions(options) = true
+        member self.ValidateOptions(options) = true
         
-        member _.ExecuteAsync(options) =
+        member self.ExecuteAsync(options) =
             Task.Run(fun () ->
                 try
                     let listRequested = options.Options.ContainsKey("list")

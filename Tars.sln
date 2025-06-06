@@ -3,101 +3,73 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-
-# Core TARS Projects
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharp.Core", "TarsEngine.FSharp.Core\TarsEngine.FSharp.Core.fsproj", "{BC44CAA3-1788-4DBB-8363-43109990C38E}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharp.Cli", "TarsEngine.FSharp.Cli\TarsEngine.FSharp.Cli.fsproj", "{A1B2C3D4-E5F6-7890-1234-567890ABCDEF}"
 EndProject
-
-# DSL and Language Processing
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.DSL", "TarsEngine.DSL\TarsEngine.DSL.fsproj", "{B46888D1-ABF9-4201-A484-6028C385BD39}"
 EndProject
-
-# Metascript Engine
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharp.Metascript", "TarsEngine.FSharp.Metascript\TarsEngine.FSharp.Metascript.fsproj", "{C1D2E3F4-A5B6-7890-1234-567890ABCDEF}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharp.Metascripts", "TarsEngine.FSharp.Metascripts\TarsEngine.FSharp.Metascripts.fsproj", "{D1E2F3A4-B5C6-7890-1234-567890ABCDEF}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharp.Metascript.Standalone", "TarsEngine.FSharp.Metascript.Standalone\TarsEngine.FSharp.Metascript.Standalone.fsproj", "{A4B5C6D7-E8F9-0123-4567-890123DEFGHI}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharp.Metascript.Standalone", "TarsEngine.FSharp.Metascript.Standalone\TarsEngine.FSharp.Metascript.Standalone.fsproj", "{32BEDEC6-C199-D1AB-63C9-617DF1BDFC80}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharp.Metascript.Console", "TarsEngine.FSharp.Metascript.Console\TarsEngine.FSharp.Metascript.Console.fsproj", "{B4C5D6E7-F8A9-0123-4567-890123DEFGHI}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharp.Metascript.Console", "TarsEngine.FSharp.Metascript.Console\TarsEngine.FSharp.Metascript.Console.fsproj", "{3C8E9B77-674B-461F-6415-1C6925D4E77F}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharp.Metascript.Runner", "TarsEngine.FSharp.Metascript.Runner\TarsEngine.FSharp.Metascript.Runner.fsproj", "{C4D5E6F7-A8B9-0123-4567-890123DEFGHI}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharp.Metascript.Runner", "TarsEngine.FSharp.Metascript.Runner\TarsEngine.FSharp.Metascript.Runner.fsproj", "{1CEEA64E-171B-74A0-2AA3-5C62B5369E3D}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharp.Metascript.Test", "TarsEngine.FSharp.Metascript.Test\TarsEngine.FSharp.Metascript.Test.fsproj", "{D4E5F6A7-B8C9-0123-4567-890123DEFGHI}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharp.Metascript.Test", "TarsEngine.FSharp.Metascript.Test\TarsEngine.FSharp.Metascript.Test.fsproj", "{49037B98-29F9-811F-E2E9-38D9B0F3105E}"
 EndProject
-
-# Agent Framework
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharp.Agents", "TarsEngine.FSharp.Agents\TarsEngine.FSharp.Agents.fsproj", "{E1F2A3B4-C5D6-7890-1234-567890ABCDEF}"
 EndProject
-
-# Self-Improvement and Learning
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.SelfImprovement", "TarsEngine.SelfImprovement\TarsEngine.SelfImprovement.fsproj", "{0DA7B2E8-31F1-4EA6-93CD-426018F62126}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharp.SelfImprovement", "TarsEngine.FSharp.SelfImprovement\TarsEngine.FSharp.SelfImprovement.fsproj", "{F1A2B3C4-D5E6-7890-1234-567890ABCDEF}"
 EndProject
-
-# Machine Learning
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharp.ML", "TarsEngine.FSharp.ML\TarsEngine.FSharp.ML.fsproj", "{A2B3C4D5-E6F7-8901-2345-678901BCDEFG}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharp.ML", "TarsEngine.FSharp.ML\TarsEngine.FSharp.ML.fsproj", "{DE09AD4D-97B6-1D96-5647-8535D1AF6EEF}"
 EndProject
-
-# Data Sources and Infrastructure
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharp.DataSources", "TarsEngine.FSharp.DataSources\TarsEngine.FSharp.DataSources.fsproj", "{B2C3D4E5-F6A7-8901-2345-678901BCDEFG}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharp.DataSources", "TarsEngine.FSharp.DataSources\TarsEngine.FSharp.DataSources.fsproj", "{006FDE22-9904-AC39-431D-4B832D15A467}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharp.Packaging", "TarsEngine.FSharp.Packaging\TarsEngine.FSharp.Packaging.fsproj", "{C2D3E4F5-A6B7-8901-2345-678901BCDEFG}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharp.Packaging", "TarsEngine.FSharp.Packaging\TarsEngine.FSharp.Packaging.fsproj", "{AF6BF4DF-24A3-D05F-3FC5-C4FD330D7EB7}"
 EndProject
-
-# Testing Framework
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharp.Testing", "TarsEngine.FSharp.Testing\TarsEngine.FSharp.Testing.fsproj", "{F6G7H8I9-J0K1-2345-F678-678901234567}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharp.Testing", "TarsEngine.FSharp.Testing\TarsEngine.FSharp.Testing.fsproj", "{8D99E1DA-ADD8-70BA-BAB6-0BF3E5CAF38D}"
 EndProject
-
-# Tree of Thought
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.TreeOfThought", "TarsEngine.TreeOfThought\TarsEngine.TreeOfThought.fsproj", "{D2E3F4A5-B6C7-8901-2345-678901BCDEFG}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.TreeOfThought", "TarsEngine.TreeOfThought\TarsEngine.TreeOfThought.fsproj", "{B7D73E08-026B-EA1D-5113-55EE1C9B3F7C}"
 EndProject
-
-# Consciousness and Intelligence
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharp.Consciousness", "TarsEngine.FSharp.Consciousness\TarsEngine.FSharp.Consciousness.fsproj", "{E2F3A4B5-C6D7-8901-2345-678901BCDEFG}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharp.Consciousness", "TarsEngine.FSharp.Consciousness\TarsEngine.FSharp.Consciousness.fsproj", "{EEFC4ECC-1EFE-F746-BE2A-179A00CEF17D}"
 EndProject
-
-# Main Application
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharp.Main", "TarsEngine.FSharp.Main\TarsEngine.FSharp.Main.fsproj", "{F2A3B4C5-D6E7-8901-2345-678901BCDEFG}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharp.Main", "TarsEngine.FSharp.Main\TarsEngine.FSharp.Main.fsproj", "{605B1C1D-FE1C-70D1-0063-0987B7A9FE37}"
 EndProject
-
-# Test Projects
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharp.Core.Tests", "TarsEngine.FSharp.Core.Tests\TarsEngine.FSharp.Core.Tests.fsproj", "{B3C4D5E6-F7A8-9012-3456-789012CDEFGH}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharp.Core.Tests", "TarsEngine.FSharp.Core.Tests\TarsEngine.FSharp.Core.Tests.fsproj", "{76034C57-3F41-64CC-D807-8974E1D23D48}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.DSL.Tests", "TarsEngine.DSL.Tests\TarsEngine.DSL.Tests.fsproj", "{C3D4E5F6-A7B8-9012-3456-789012CDEFGH}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.DSL.Tests", "TarsEngine.DSL.Tests\TarsEngine.DSL.Tests.fsproj", "{5219440B-71D8-C43A-7BD1-D8E6B3A8789D}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharp.ML.Tests", "TarsEngine.FSharp.ML.Tests\TarsEngine.FSharp.ML.Tests.fsproj", "{D3E4F5A6-B7C8-9012-3456-789012CDEFGH}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharp.ML.Tests", "TarsEngine.FSharp.ML.Tests\TarsEngine.FSharp.ML.Tests.fsproj", "{D35A1502-6232-6782-7FB7-7C8D77088359}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.SelfImprovement.Tests", "TarsEngine.SelfImprovement.Tests\TarsEngine.SelfImprovement.Tests.fsproj", "{E3F4A5B6-C7D8-9012-3456-789012CDEFGH}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.SelfImprovement.Tests", "TarsEngine.SelfImprovement.Tests\TarsEngine.SelfImprovement.Tests.fsproj", "{284F8366-BF83-0B87-8429-AA0302BDF5DE}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharp.Main.Tests", "TarsEngine.FSharp.Main.Tests\TarsEngine.FSharp.Main.Tests.fsproj", "{F3A4B5C6-D7E8-9012-3456-789012CDEFGH}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharp.Main.Tests", "TarsEngine.FSharp.Main.Tests\TarsEngine.FSharp.Main.Tests.fsproj", "{E39D868B-368D-D2F8-1B55-6028B709E988}"
 EndProject
-
-# Specialized Projects
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharpToRust", "TarsEngine.FSharpToRust\TarsEngine.FSharpToRust.fsproj", "{E4F5A6B7-C8D9-0123-4567-890123DEFGHI}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharpToRust", "TarsEngine.FSharpToRust\TarsEngine.FSharpToRust.fsproj", "{681DF353-AFC6-70A2-0C92-E2E1A2291B5A}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharp.ProjectGeneration", "TarsEngine.FSharp.ProjectGeneration\TarsEngine.FSharp.ProjectGeneration.fsproj", "{F4A5B6C7-D8E9-0123-4567-890123DEFGHI}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharp.ProjectGeneration", "TarsEngine.FSharp.ProjectGeneration\TarsEngine.FSharp.ProjectGeneration.fsproj", "{7CC14289-DB8A-8FA4-CC38-FAE36D5CF943}"
 EndProject
-
-# C# Adapter Projects
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TarsEngine.FSharp.Adapters", "TarsEngine.FSharp.Adapters\TarsEngine.FSharp.Adapters.csproj", "{A5B6C7D8-E9F0-1234-5678-901234EFGHIJ}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TarsEngine.FSharp.Adapters", "TarsEngine.FSharp.Adapters\TarsEngine.FSharp.Adapters.csproj", "{6E1A2594-F88F-BBF7-1E75-0933DF62D441}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TarsEngine.CSharp.Adapters", "TarsEngine.CSharp.Adapters\TarsEngine.CSharp.Adapters.csproj", "{B5C6D7E8-F9A0-1234-5678-901234EFGHIJ}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TarsEngine.CSharp.Adapters", "TarsEngine.CSharp.Adapters\TarsEngine.CSharp.Adapters.csproj", "{FAA78968-0304-3552-C089-B2F0E37976CB}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TarsEngine.Services.AI", "TarsEngine.Services.AI\TarsEngine.Services.AI.csproj", "{C5D6E7F8-A9B0-1234-5678-901234EFGHIJ}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TarsEngine.Services.AI", "TarsEngine.Services.AI\TarsEngine.Services.AI.csproj", "{B6ABC041-2505-4ED3-78E0-89A2FCFA9E00}"
 EndProject
-
-# Additional Existing Projects
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharp.Core.Simple", "TarsEngine.FSharp.Core.Simple\TarsEngine.FSharp.Core.Simple.fsproj", "{A6B7C8D9-E0F1-2345-6789-012345FGHIJK}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharp.Core.Simple", "TarsEngine.FSharp.Core.Simple\TarsEngine.FSharp.Core.Simple.fsproj", "{74ACF9C2-E2E2-8B00-4CBE-259224E4ACC7}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharp.Core.Unified", "TarsEngine.FSharp.Core.Unified\TarsEngine.FSharp.Core.Unified.fsproj", "{B6C7D8E9-F0A1-2345-6789-012345FGHIJK}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharp.Core.Unified", "TarsEngine.FSharp.Core.Unified\TarsEngine.FSharp.Core.Unified.fsproj", "{D87E1AD1-63C1-329E-DC86-AD74F18ECF23}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharp.Core.MetascriptTester", "TarsEngine.FSharp.Core.MetascriptTester\TarsEngine.FSharp.Core.MetascriptTester.fsproj", "{C6D7E8F9-A0B1-2345-6789-012345FGHIJK}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharp.Core.MetascriptTester", "TarsEngine.FSharp.Core.MetascriptTester\TarsEngine.FSharp.Core.MetascriptTester.fsproj", "{9A4B848D-E775-06D1-7D67-B8166565E9AA}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharp.Core.ML.Tests", "TarsEngine.FSharp.Core.ML.Tests\TarsEngine.FSharp.Core.ML.Tests.fsproj", "{D6E7F8A9-B0C1-2345-6789-012345FGHIJK}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharp.Core.ML.Tests", "TarsEngine.FSharp.Core.ML.Tests\TarsEngine.FSharp.Core.ML.Tests.fsproj", "{6EA5B093-D7D9-3F52-9EAB-5748FF682058}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TarsEngine.FSharp.Cli.Tests", "TarsEngine.FSharp.Cli.Tests\TarsEngine.FSharp.Cli.Tests.fsproj", "{CFEB7A3E-B9DB-42B8-AD7E-59EB0CD77446}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -109,7 +81,6 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		# Core TARS Projects
 		{BC44CAA3-1788-4DBB-8363-43109990C38E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{BC44CAA3-1788-4DBB-8363-43109990C38E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BC44CAA3-1788-4DBB-8363-43109990C38E}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -118,14 +89,10 @@ Global
 		{A1B2C3D4-E5F6-7890-1234-567890ABCDEF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A1B2C3D4-E5F6-7890-1234-567890ABCDEF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A1B2C3D4-E5F6-7890-1234-567890ABCDEF}.Release|Any CPU.Build.0 = Release|Any CPU
-
-		# DSL and Language Processing
 		{B46888D1-ABF9-4201-A484-6028C385BD39}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{B46888D1-ABF9-4201-A484-6028C385BD39}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B46888D1-ABF9-4201-A484-6028C385BD39}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B46888D1-ABF9-4201-A484-6028C385BD39}.Release|Any CPU.Build.0 = Release|Any CPU
-
-		# Metascript Engine
 		{C1D2E3F4-A5B6-7890-1234-567890ABCDEF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{C1D2E3F4-A5B6-7890-1234-567890ABCDEF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C1D2E3F4-A5B6-7890-1234-567890ABCDEF}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -134,14 +101,10 @@ Global
 		{D1E2F3A4-B5C6-7890-1234-567890ABCDEF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D1E2F3A4-B5C6-7890-1234-567890ABCDEF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D1E2F3A4-B5C6-7890-1234-567890ABCDEF}.Release|Any CPU.Build.0 = Release|Any CPU
-
-		# Agent Framework
 		{E1F2A3B4-C5D6-7890-1234-567890ABCDEF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{E1F2A3B4-C5D6-7890-1234-567890ABCDEF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E1F2A3B4-C5D6-7890-1234-567890ABCDEF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E1F2A3B4-C5D6-7890-1234-567890ABCDEF}.Release|Any CPU.Build.0 = Release|Any CPU
-
-		# Self-Improvement and Learning
 		{0DA7B2E8-31F1-4EA6-93CD-426018F62126}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{0DA7B2E8-31F1-4EA6-93CD-426018F62126}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0DA7B2E8-31F1-4EA6-93CD-426018F62126}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -150,116 +113,18 @@ Global
 		{F1A2B3C4-D5E6-7890-1234-567890ABCDEF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F1A2B3C4-D5E6-7890-1234-567890ABCDEF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F1A2B3C4-D5E6-7890-1234-567890ABCDEF}.Release|Any CPU.Build.0 = Release|Any CPU
-
-		# Machine Learning
-		{A2B3C4D5-E6F7-8901-2345-678901BCDEFG}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A2B3C4D5-E6F7-8901-2345-678901BCDEFG}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A2B3C4D5-E6F7-8901-2345-678901BCDEFG}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A2B3C4D5-E6F7-8901-2345-678901BCDEFG}.Release|Any CPU.Build.0 = Release|Any CPU
-
-		# Data Sources and Infrastructure
-		{B2C3D4E5-F6A7-8901-2345-678901BCDEFG}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B2C3D4E5-F6A7-8901-2345-678901BCDEFG}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B2C3D4E5-F6A7-8901-2345-678901BCDEFG}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B2C3D4E5-F6A7-8901-2345-678901BCDEFG}.Release|Any CPU.Build.0 = Release|Any CPU
-		{C2D3E4F5-A6B7-8901-2345-678901BCDEFG}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C2D3E4F5-A6B7-8901-2345-678901BCDEFG}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C2D3E4F5-A6B7-8901-2345-678901BCDEFG}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C2D3E4F5-A6B7-8901-2345-678901BCDEFG}.Release|Any CPU.Build.0 = Release|Any CPU
-
-		# Testing Framework
-		{F6G7H8I9-J0K1-2345-F678-678901234567}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F6G7H8I9-J0K1-2345-F678-678901234567}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F6G7H8I9-J0K1-2345-F678-678901234567}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F6G7H8I9-J0K1-2345-F678-678901234567}.Release|Any CPU.Build.0 = Release|Any CPU
-
-		# Tree of Thought
-		{D2E3F4A5-B6C7-8901-2345-678901BCDEFG}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D2E3F4A5-B6C7-8901-2345-678901BCDEFG}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D2E3F4A5-B6C7-8901-2345-678901BCDEFG}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{D2E3F4A5-B6C7-8901-2345-678901BCDEFG}.Release|Any CPU.Build.0 = Release|Any CPU
-
-		# Consciousness and Intelligence
-		{E2F3A4B5-C6D7-8901-2345-678901BCDEFG}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E2F3A4B5-C6D7-8901-2345-678901BCDEFG}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E2F3A4B5-C6D7-8901-2345-678901BCDEFG}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E2F3A4B5-C6D7-8901-2345-678901BCDEFG}.Release|Any CPU.Build.0 = Release|Any CPU
-
-		# Main Application
-		{F2A3B4C5-D6E7-8901-2345-678901BCDEFG}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F2A3B4C5-D6E7-8901-2345-678901BCDEFG}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F2A3B4C5-D6E7-8901-2345-678901BCDEFG}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F2A3B4C5-D6E7-8901-2345-678901BCDEFG}.Release|Any CPU.Build.0 = Release|Any CPU
-
-		# Swarm Demo
-		{A3B4C5D6-E7F8-9012-3456-789012CDEFGH}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A3B4C5D6-E7F8-9012-3456-789012CDEFGH}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A3B4C5D6-E7F8-9012-3456-789012CDEFGH}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A3B4C5D6-E7F8-9012-3456-789012CDEFGH}.Release|Any CPU.Build.0 = Release|Any CPU
-
-		# Test Projects
-		{B3C4D5E6-F7A8-9012-3456-789012CDEFGH}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B3C4D5E6-F7A8-9012-3456-789012CDEFGH}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B3C4D5E6-F7A8-9012-3456-789012CDEFGH}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B3C4D5E6-F7A8-9012-3456-789012CDEFGH}.Release|Any CPU.Build.0 = Release|Any CPU
-		{C3D4E5F6-A7B8-9012-3456-789012CDEFGH}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C3D4E5F6-A7B8-9012-3456-789012CDEFGH}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C3D4E5F6-A7B8-9012-3456-789012CDEFGH}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C3D4E5F6-A7B8-9012-3456-789012CDEFGH}.Release|Any CPU.Build.0 = Release|Any CPU
-		{D3E4F5A6-B7C8-9012-3456-789012CDEFGH}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D3E4F5A6-B7C8-9012-3456-789012CDEFGH}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D3E4F5A6-B7C8-9012-3456-789012CDEFGH}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{D3E4F5A6-B7C8-9012-3456-789012CDEFGH}.Release|Any CPU.Build.0 = Release|Any CPU
-		{E3F4A5B6-C7D8-9012-3456-789012CDEFGH}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E3F4A5B6-C7D8-9012-3456-789012CDEFGH}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E3F4A5B6-C7D8-9012-3456-789012CDEFGH}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E3F4A5B6-C7D8-9012-3456-789012CDEFGH}.Release|Any CPU.Build.0 = Release|Any CPU
-		{F3A4B5C6-D7E8-9012-3456-789012CDEFGH}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F3A4B5C6-D7E8-9012-3456-789012CDEFGH}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F3A4B5C6-D7E8-9012-3456-789012CDEFGH}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F3A4B5C6-D7E8-9012-3456-789012CDEFGH}.Release|Any CPU.Build.0 = Release|Any CPU
-
-		# Standalone Metascript Projects
-		{A4B5C6D7-E8F9-0123-4567-890123DEFGHI}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A4B5C6D7-E8F9-0123-4567-890123DEFGHI}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A4B5C6D7-E8F9-0123-4567-890123DEFGHI}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A4B5C6D7-E8F9-0123-4567-890123DEFGHI}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B4C5D6E7-F8A9-0123-4567-890123DEFGHI}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B4C5D6E7-F8A9-0123-4567-890123DEFGHI}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B4C5D6E7-F8A9-0123-4567-890123DEFGHI}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B4C5D6E7-F8A9-0123-4567-890123DEFGHI}.Release|Any CPU.Build.0 = Release|Any CPU
-		{C4D5E6F7-A8B9-0123-4567-890123DEFGHI}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C4D5E6F7-A8B9-0123-4567-890123DEFGHI}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C4D5E6F7-A8B9-0123-4567-890123DEFGHI}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C4D5E6F7-A8B9-0123-4567-890123DEFGHI}.Release|Any CPU.Build.0 = Release|Any CPU
-		{D4E5F6A7-B8C9-0123-4567-890123DEFGHI}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D4E5F6A7-B8C9-0123-4567-890123DEFGHI}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D4E5F6A7-B8C9-0123-4567-890123DEFGHI}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{D4E5F6A7-B8C9-0123-4567-890123DEFGHI}.Release|Any CPU.Build.0 = Release|Any CPU
-
-		# Specialized Projects
-		{E4F5A6B7-C8D9-0123-4567-890123DEFGHI}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E4F5A6B7-C8D9-0123-4567-890123DEFGHI}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E4F5A6B7-C8D9-0123-4567-890123DEFGHI}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E4F5A6B7-C8D9-0123-4567-890123DEFGHI}.Release|Any CPU.Build.0 = Release|Any CPU
-		{F4A5B6C7-D8E9-0123-4567-890123DEFGHI}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F4A5B6C7-D8E9-0123-4567-890123DEFGHI}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F4A5B6C7-D8E9-0123-4567-890123DEFGHI}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F4A5B6C7-D8E9-0123-4567-890123DEFGHI}.Release|Any CPU.Build.0 = Release|Any CPU
-
-		# C# Adapter Projects
-		{A5B6C7D8-E9F0-1234-5678-901234EFGHIJ}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A5B6C7D8-E9F0-1234-5678-901234EFGHIJ}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A5B6C7D8-E9F0-1234-5678-901234EFGHIJ}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A5B6C7D8-E9F0-1234-5678-901234EFGHIJ}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B5C6D7E8-F9A0-1234-5678-901234EFGHIJ}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B5C6D7E8-F9A0-1234-5678-901234EFGHIJ}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B5C6D7E8-F9A0-1234-5678-901234EFGHIJ}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B5C6D7E8-F9A0-1234-5678-901234EFGHIJ}.Release|Any CPU.Build.0 = Release|Any CPU
-		{C5D6E7F8-A9B0-1234-5678-901234EFGHIJ}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C5D6E7F8-A9B0-1234-5678-901234EFGHIJ}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C5D6E7F8-A9B0-1234-5678-901234EFGHIJ}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C5D6E7F8-A9B0-1234-5678-901234EFGHIJ}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CFEB7A3E-B9DB-42B8-AD7E-59EB0CD77446}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CFEB7A3E-B9DB-42B8-AD7E-59EB0CD77446}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CFEB7A3E-B9DB-42B8-AD7E-59EB0CD77446}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{CFEB7A3E-B9DB-42B8-AD7E-59EB0CD77446}.Debug|x64.Build.0 = Debug|Any CPU
+		{CFEB7A3E-B9DB-42B8-AD7E-59EB0CD77446}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{CFEB7A3E-B9DB-42B8-AD7E-59EB0CD77446}.Debug|x86.Build.0 = Debug|Any CPU
+		{CFEB7A3E-B9DB-42B8-AD7E-59EB0CD77446}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CFEB7A3E-B9DB-42B8-AD7E-59EB0CD77446}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CFEB7A3E-B9DB-42B8-AD7E-59EB0CD77446}.Release|x64.ActiveCfg = Release|Any CPU
+		{CFEB7A3E-B9DB-42B8-AD7E-59EB0CD77446}.Release|x64.Build.0 = Release|Any CPU
+		{CFEB7A3E-B9DB-42B8-AD7E-59EB0CD77446}.Release|x86.ActiveCfg = Release|Any CPU
+		{CFEB7A3E-B9DB-42B8-AD7E-59EB0CD77446}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
