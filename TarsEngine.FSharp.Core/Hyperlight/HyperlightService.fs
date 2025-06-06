@@ -385,16 +385,8 @@ type HyperlightService(logger: ILogger<HyperlightService>, platform: Platform) =
                     let initializingVM = { vm with State = Initializing; LastActivity = DateTime.UtcNow }
                     vms.[vmId] <- initializingVM
                     
-                    // Simulate VM startup (in real implementation, this would start actual Hyperlight VM)
-                    do! Task.Delay(10) // Simulate <10ms startup time
-                    
-                    // Update state to active
-                    let activeVM = { 
-                        initializingVM with 
-                            State = Active
-                            StartTime = Some DateTime.UtcNow
-                            ProcessId = Some (Random().Next(1000, 9999))
-                    }
+                    // Cannot start real VMs without actual Hyperlight runtime
+                    return Error "Real VM startup requires actual Hyperlight runtime integration"
                     vms.[vmId] <- activeVM
                     
                     logger.LogDebug($"VM started: {vmId}")
@@ -430,20 +422,11 @@ type HyperlightService(logger: ILogger<HyperlightService>, platform: Platform) =
                     let startTime = DateTime.UtcNow
                     
                     try
-                        // Simulate code execution (in real implementation, this would execute in Hyperlight VM)
-                        let executionTime = min request.TimeoutMs 100
-                        do! Task.Delay(executionTime)
-                        
-                        // Simulate resource usage
-                        let resourceUsage = {
-                            MemoryUsedMB = float (Random().Next(10, vm.Config.MemoryLimitMB))
-                            CpuUsagePercent = float (Random().Next(5, vm.Config.CpuLimitPercent))
-                            NetworkBytesIn = if vm.Config.NetworkAccess then int64 (Random().Next(0, 1024)) else 0L
-                            NetworkBytesOut = if vm.Config.NetworkAccess then int64 (Random().Next(0, 512)) else 0L
-                            FileSystemReads = if vm.Config.FileSystemAccess then int64 (Random().Next(0, 10)) else 0L
-                            FileSystemWrites = if vm.Config.FileSystemAccess then int64 (Random().Next(0, 5)) else 0L
-                            SyscallCount = int64 (Random().Next(10, 100))
-                        }
+                        // Without real Hyperlight, we cannot execute code in actual VMs
+                        // This would require the Hyperlight runtime and proper VM management
+
+                        // Return error since we don't have real Hyperlight integration
+                        return Error "Real Hyperlight execution requires actual Hyperlight runtime integration"
                         
                         // Update VM with resource usage and return to active state
                         let completedVM = { 

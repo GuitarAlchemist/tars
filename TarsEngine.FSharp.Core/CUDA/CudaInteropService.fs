@@ -116,37 +116,19 @@ module CudaNative =
     let cudaGetDeviceCount() =
         if cudaAvailable then deviceCount else 0
     
-    /// Get device properties (simulated for now)
+    /// Get device properties - returns None since we can't access real CUDA without P/Invoke
     let cudaGetDeviceProperties(device: int) =
         if not cudaAvailable || device >= deviceCount then
             None
         else
-            Some {
-                Name = "NVIDIA GPU (Detected)"
-                TotalGlobalMem = 8L * 1024L * 1024L * 1024L // 8GB
-                SharedMemPerBlock = 48 * 1024 // 48KB
-                RegsPerBlock = 65536
-                WarpSize = 32
-                MaxThreadsPerBlock = 1024
-                MaxThreadsDim = [| 1024; 1024; 64 |]
-                MaxGridSize = [| 2147483647; 65535; 65535 |]
-                ClockRate = 1500000 // 1.5 GHz
-                TotalConstMem = 64L * 1024L // 64KB
-                Major = 8 // Compute capability
-                Minor = 6
-                MultiProcessorCount = 68
-                MemoryClockRate = 7000000 // 7 GHz
-                MemoryBusWidth = 256
-            }
+            // Without actual CUDA P/Invoke, we cannot get real device properties
+            // This would require linking to cudart.dll/libcudart.so
+            None
     
-    /// Get memory info
+    /// Get memory info - returns zero since we can't access real CUDA without P/Invoke
     let cudaMemGetInfo() =
-        if not cudaAvailable then
-            { Free = 0L; Total = 0L; Used = 0L }
-        else
-            let total = 8L * 1024L * 1024L * 1024L // 8GB
-            let used = total / 4L // Assume 25% used
-            { Free = total - used; Total = total; Used = used }
+        // Without actual CUDA P/Invoke, we cannot get real memory info
+        { Free = 0L; Total = 0L; Used = 0L }
     
     /// Allocate device memory (placeholder)
     let cudaMalloc(size: int64) =
@@ -233,97 +215,42 @@ type CudaInteropService(logger: ILogger<CudaInteropService>) =
         else
             None
     
-    /// Execute FFT on GPU (real implementation would use cuFFT)
+    /// Execute FFT - falls back to CPU since real CUDA requires P/Invoke
     member this.ExecuteFFTAsync(input: float[], inverse: bool) = task {
         try
             if not isInitialized then
                 return Error "CUDA not initialized"
-            
+
             let startTime = DateTime.UtcNow
-            
-            // In a real implementation, this would:
-            // 1. Allocate GPU memory
-            // 2. Copy data to GPU
-            // 3. Execute cuFFT
-            // 4. Copy result back
-            // 5. Free GPU memory
-            
-            logger.LogDebug($"Executing {'I' if inverse then "I"}FFT on GPU with {input.Length} elements")
-            
-            // For now, use CPU implementation but with CUDA timing characteristics
+
+            logger.LogDebug($"Executing {'I' if inverse then "I"}FFT with {input.Length} elements (CPU fallback)")
+
+            // Use CPU implementation since we don't have real CUDA P/Invoke
             let complexInput = input |> Array.map (fun x -> System.Numerics.Complex(x, 0.0))
-            
-            // Simulate GPU execution time (much faster than CPU)
-            let gpuSpeedupFactor = 10.0 // GPU is typically 10x faster for FFT
-            let cpuTime = float input.Length * Math.Log2(float input.Length) * 0.001 // Estimated CPU time
-            let gpuTime = cpuTime / gpuSpeedupFactor
-            
-            do! Task.Delay(int gpuTime) // Simulate GPU execution time
-            
+
             // Use real FFT implementation
-            let result = 
+            let result =
                 if inverse then
                     TarsEngine.FSharp.Core.Mathematics.MathematicalTransforms.ifft complexInput
                 else
                     TarsEngine.FSharp.Core.Mathematics.MathematicalTransforms.fft complexInput
-            
+
             let endTime = DateTime.UtcNow
             let executionTime = (endTime - startTime).TotalMilliseconds
-            
-            logger.LogDebug($"GPU FFT completed in {executionTime:F2}ms")
-            
+
+            logger.LogDebug($"CPU FFT completed in {executionTime:F2}ms")
+
             return Ok (result, executionTime)
-            
+
         with
         | ex ->
-            logger.LogError(ex, "Failed to execute FFT on GPU")
+            logger.LogError(ex, "Failed to execute FFT")
             return Error ex.Message
     }
     
-    /// Execute matrix multiplication on GPU
+    /// Execute matrix multiplication - returns error since real CUDA requires P/Invoke
     member this.ExecuteMatrixMultiplyAsync(matrixA: float[,], matrixB: float[,]) = task {
-        try
-            if not isInitialized then
-                return Error "CUDA not initialized"
-            
-            let rowsA = Array2D.length1 matrixA
-            let colsA = Array2D.length2 matrixA
-            let rowsB = Array2D.length1 matrixB
-            let colsB = Array2D.length2 matrixB
-            
-            if colsA <> rowsB then
-                return Error "Matrix dimensions incompatible for multiplication"
-            
-            let startTime = DateTime.UtcNow
-            
-            logger.LogDebug($"Executing matrix multiplication on GPU: ({rowsA}x{colsA}) * ({rowsB}x{colsB})")
-            
-            // Real matrix multiplication
-            let result = Array2D.zeroCreate rowsA colsB
-            
-            // Parallel execution to simulate GPU parallelism
-            let parallelOptions = ParallelLoopOptions()
-            parallelOptions.MaxDegreeOfParallelism <- Environment.ProcessorCount * 4 // Simulate GPU cores
-            
-            Parallel.For(0, rowsA, parallelOptions, fun i ->
-                for j in 0 .. colsB - 1 do
-                    let mutable sum = 0.0
-                    for k in 0 .. colsA - 1 do
-                        sum <- sum + matrixA.[i, k] * matrixB.[k, j]
-                    result.[i, j] <- sum
-            ) |> ignore
-            
-            let endTime = DateTime.UtcNow
-            let executionTime = (endTime - startTime).TotalMilliseconds
-            
-            logger.LogDebug($"GPU matrix multiplication completed in {executionTime:F2}ms")
-            
-            return Ok (result, executionTime)
-            
-        with
-        | ex ->
-            logger.LogError(ex, "Failed to execute matrix multiplication on GPU")
-            return Error ex.Message
+        return Error "Real CUDA matrix multiplication requires P/Invoke integration with CUDA runtime libraries"
     }
     
     /// Get CUDA statistics
