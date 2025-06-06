@@ -1,4 +1,5 @@
-# DISCLAIMER: TARS is Vibe Coded and AI tools tends to exaggerate - This does not reflect the reality, it has not been validated
+# DISCLAIMER: TARS is Vibe Coded and AI tools tend to exaggerate
+# Metrics/descriptions probably do not reflect the reality
 
 # TARS - The Autonomous Reasoning System & AI Inference Engine
 
