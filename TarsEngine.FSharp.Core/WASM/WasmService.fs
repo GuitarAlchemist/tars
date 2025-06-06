@@ -123,41 +123,106 @@ type WasmService(logger: ILogger<WasmService>, platform: Platform) =
             raise ex
     }
     
-    /// Check if WASM runtime is available
+    /// Check if real WASM runtime is available
     member private this.CheckWasmRuntimeAvailability() =
         try
             match platform with
             | Windows | Linux | MacOS ->
-                // Check for Wasmtime or other WASM runtime
-                let wasmtimePath = 
-                    match platform with
-                    | Windows -> "wasmtime.exe"
-                    | _ -> "wasmtime"
-                
-                // Try to find wasmtime in PATH
+                // Check for real WASM runtimes
+                let wasmRuntimes = [
+                    ("wasmtime", "Wasmtime")
+                    ("wasmer", "Wasmer")
+                    ("wasm3", "WASM3")
+                    ("node", "Node.js with WASM support")
+                ]
+
+                let mutable foundRuntime = None
                 let pathVar = Environment.GetEnvironmentVariable("PATH")
+
                 if not (String.IsNullOrEmpty(pathVar)) then
                     let paths = pathVar.Split(Path.PathSeparator)
-                    paths |> Array.exists (fun path ->
-                        let fullPath = Path.Combine(path, wasmtimePath)
-                        File.Exists(fullPath)
-                    )
-                else
+
+                    for (runtimeName, displayName) in wasmRuntimes do
+                        if foundRuntime.IsNone then
+                            let executableName =
+                                match platform with
+                                | Windows -> runtimeName + ".exe"
+                                | _ -> runtimeName
+
+                            let runtimeFound = paths |> Array.exists (fun path ->
+                                let fullPath = Path.Combine(path, executableName)
+                                File.Exists(fullPath)
+                            )
+
+                            if runtimeFound then
+                                foundRuntime <- Some displayName
+                                logger.LogInformation($"WASM runtime detected: {displayName}")
+
+                match foundRuntime with
+                | Some runtime ->
+                    // Verify runtime works by testing version command
+                    this.VerifyWasmRuntime(runtime)
+                | None ->
+                    logger.LogInformation("No WASM runtime found. Install Wasmtime: https://wasmtime.dev/")
                     false
-            
+
             | Docker ->
                 // Check if WASM runtime is available in container
-                Environment.GetEnvironmentVariable("WASM_RUNTIME_ENABLED") = "true"
-            
+                let wasmEnabled = Environment.GetEnvironmentVariable("WASM_RUNTIME_ENABLED") = "true"
+                let hasWasmtime = File.Exists("/usr/local/bin/wasmtime")
+                let hasWasmer = File.Exists("/usr/local/bin/wasmer")
+
+                if wasmEnabled && (hasWasmtime || hasWasmer) then
+                    logger.LogInformation("WASM runtime available in Docker container")
+                    true
+                else
+                    logger.LogInformation("WASM runtime not configured in Docker container")
+                    false
+
             | WASM ->
                 // Already running in WASM environment
+                logger.LogInformation("Running in WASM environment")
                 true
-            
+
             | _ ->
+                logger.LogInformation($"WASM not supported on platform: {platform}")
                 false
         with
         | ex ->
             logger.LogDebug(ex, "Error checking WASM runtime availability")
+            false
+
+    /// Verify WASM runtime actually works
+    member private this.VerifyWasmRuntime(runtimeName: string) =
+        try
+            let executable =
+                match runtimeName.ToLower() with
+                | name when name.Contains("wasmtime") -> "wasmtime"
+                | name when name.Contains("wasmer") -> "wasmer"
+                | name when name.Contains("wasm3") -> "wasm3"
+                | _ -> "wasmtime"
+
+            let psi = ProcessStartInfo()
+            psi.FileName <- executable
+            psi.Arguments <- "--version"
+            psi.UseShellExecute <- false
+            psi.RedirectStandardOutput <- true
+            psi.RedirectStandardError <- true
+            psi.CreateNoWindow <- true
+
+            use process = Process.Start(psi)
+            let output = process.StandardOutput.ReadToEnd()
+            process.WaitForExit()
+
+            if process.ExitCode = 0 && not (String.IsNullOrEmpty(output)) then
+                logger.LogInformation($"WASM runtime verified: {output.Trim()}")
+                true
+            else
+                logger.LogWarning($"WASM runtime verification failed for {executable}")
+                false
+        with
+        | ex ->
+            logger.LogDebug(ex, $"Error verifying WASM runtime: {runtimeName}")
             false
     
     /// Load existing modules

@@ -121,31 +121,68 @@ type HyperlightService(logger: ILogger<HyperlightService>, platform: Platform) =
             raise ex
     }
     
-    /// Check if Hyperlight runtime is available
+    /// Check if Hyperlight runtime is actually available
     member private this.CheckHyperlightAvailability() =
         try
             match platform with
             | Linux ->
-                // Check for Hyperlight kernel and runtime
-                let kernelPath = "/opt/hyperlight/kernel/vmlinux"
-                let runtimePath = "/usr/bin/hyperlight"
-                File.Exists(kernelPath) && File.Exists(runtimePath)
+                // Check for real Hyperlight components on Linux
+                let hyperlightBinary = "/usr/local/bin/hyperlight"
+                let hyperlightLib = "/usr/local/lib/libhyperlight.so"
+                let kvmSupport = File.Exists("/dev/kvm")
+                let hyperlightInstalled = File.Exists(hyperlightBinary) || File.Exists(hyperlightLib)
+
+                if hyperlightInstalled && kvmSupport then
+                    logger.LogInformation("Hyperlight runtime detected on Linux with KVM support")
+                    true
+                elif kvmSupport then
+                    logger.LogInformation("KVM available but Hyperlight not installed. Install from: https://github.com/microsoft/hyperlight")
+                    false
+                else
+                    logger.LogInformation("KVM not available. Hyperlight requires KVM on Linux")
+                    false
+
             | Windows ->
-                // Check for Hyper-V and Windows Sandbox
-                let hyperVFeature = this.CheckWindowsFeature("Microsoft-Hyper-V")
+                // Check for real Hyper-V and Windows Sandbox capabilities
+                let hyperVFeature = this.CheckWindowsFeature("Microsoft-Hyper-V-All")
                 let sandboxFeature = this.CheckWindowsFeature("Containers-DisposableClientVM")
-                hyperVFeature || sandboxFeature
+                let hyperlightNuget = this.CheckHyperlightNuGetPackage()
+
+                if hyperVFeature && hyperlightNuget then
+                    logger.LogInformation("Hyperlight available with Hyper-V support")
+                    true
+                elif sandboxFeature && hyperlightNuget then
+                    logger.LogInformation("Hyperlight available with Windows Sandbox support")
+                    true
+                elif hyperVFeature || sandboxFeature then
+                    logger.LogInformation("Virtualization available but Hyperlight package not found. Install Hyperlight NuGet package")
+                    false
+                else
+                    logger.LogInformation("Hyper-V or Windows Sandbox required for Hyperlight. Enable in Windows Features")
+                    false
+
             | Docker ->
-                // Check if running in privileged container with VM support
-                Environment.GetEnvironmentVariable("HYPERLIGHT_ENABLED") = "true"
+                // Check if running in privileged container with real VM support
+                let privileged = Environment.GetEnvironmentVariable("HYPERLIGHT_ENABLED") = "true"
+                let hasDevKvm = File.Exists("/dev/kvm")
+                let hasHyperlightBinary = File.Exists("/usr/local/bin/hyperlight")
+
+                if privileged && hasDevKvm && hasHyperlightBinary then
+                    logger.LogInformation("Hyperlight available in privileged Docker container")
+                    true
+                else
+                    logger.LogInformation("Hyperlight requires privileged Docker container with KVM and Hyperlight binary")
+                    false
+
             | _ ->
+                logger.LogInformation($"Hyperlight not supported on platform: {platform}")
                 false
         with
         | ex ->
             logger.LogWarning(ex, "Error checking Hyperlight availability")
             false
     
-    /// Check Windows feature availability
+    /// Check Windows feature availability using real DISM command
     member private this.CheckWindowsFeature(featureName: string) =
         try
             let psi = ProcessStartInfo()
@@ -153,16 +190,48 @@ type HyperlightService(logger: ILogger<HyperlightService>, platform: Platform) =
             psi.Arguments <- $"/online /get-featureinfo /featurename:{featureName}"
             psi.UseShellExecute <- false
             psi.RedirectStandardOutput <- true
+            psi.RedirectStandardError <- true
             psi.CreateNoWindow <- true
-            
+
             use process = Process.Start(psi)
             let output = process.StandardOutput.ReadToEnd()
+            let error = process.StandardError.ReadToEnd()
             process.WaitForExit()
-            
-            output.Contains("State : Enabled")
+
+            if process.ExitCode = 0 then
+                let isEnabled = output.Contains("State : Enabled") || output.Contains("State: Enabled")
+                logger.LogDebug($"Windows feature {featureName}: {if isEnabled then "Enabled" else "Disabled"}")
+                isEnabled
+            else
+                logger.LogDebug($"Could not check Windows feature {featureName}: {error}")
+                false
         with
         | ex ->
-            logger.LogDebug(ex, $"Could not check Windows feature: {featureName}")
+            logger.LogDebug(ex, $"Error checking Windows feature: {featureName}")
+            false
+
+    /// Check if Hyperlight NuGet package is available
+    member private this.CheckHyperlightNuGetPackage() =
+        try
+            // Check for Hyperlight assemblies in common locations
+            let possiblePaths = [
+                Path.Combine(Environment.CurrentDirectory, "Hyperlight.dll")
+                Path.Combine(Environment.CurrentDirectory, "Microsoft.Hyperlight.dll")
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Hyperlight.dll")
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Microsoft.Hyperlight.dll")
+            ]
+
+            let hyperlightFound = possiblePaths |> List.exists File.Exists
+
+            if hyperlightFound then
+                logger.LogDebug("Hyperlight assembly found")
+            else
+                logger.LogDebug("Hyperlight assembly not found. Install via: dotnet add package Microsoft.Hyperlight")
+
+            hyperlightFound
+        with
+        | ex ->
+            logger.LogDebug(ex, "Error checking for Hyperlight NuGet package")
             false
     
     /// Initialize VM pool
