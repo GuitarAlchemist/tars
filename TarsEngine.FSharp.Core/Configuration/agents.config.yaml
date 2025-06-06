@@ -1,0 +1,398 @@
+# TARS Agent System Configuration
+# Multi-Agent Orchestration and Coordination Settings
+# Environment Agnostic - Supports Windows, Linux, macOS, Docker, Kubernetes, Hyperlight, WASM
+
+# Global agent settings
+global:
+  maxConcurrentAgents: 20
+  defaultTimeoutMinutes: 30
+  healthCheckIntervalSeconds: 15
+  communicationProtocol: "semantic-messaging"
+  
+  # Environment detection and adaptation
+  environment:
+    autoDetect: true
+    supportedPlatforms: ["windows", "linux", "macos", "docker", "kubernetes", "hyperlight", "wasm"]
+    defaultPlatform: "auto"
+    
+  # Agent lifecycle
+  lifecycle:
+    startupTimeoutSeconds: 60
+    shutdownTimeoutSeconds: 30
+    gracefulShutdown: true
+    autoRestart: true
+    maxRestartAttempts: 3
+    
+  # Deployment targets
+  deploymentTargets:
+    native:
+      enabled: true
+      platforms: ["windows", "linux", "macos"]
+      serviceType: "daemon"
+      processManager: "systemd" # systemd (Linux), launchd (macOS), Windows Service (Windows)
+      
+    docker:
+      enabled: true
+      baseImage: "mcr.microsoft.com/dotnet/runtime:8.0"
+      registry: "tars/agents"
+      networkMode: "bridge"
+      volumes:
+        - "/var/tars/data:/app/data"
+        - "/var/tars/logs:/app/logs"
+      environment:
+        TARS_ENVIRONMENT: "docker"
+        DOTNET_ENVIRONMENT: "Production"
+        
+    kubernetes:
+      enabled: true
+      namespace: "tars-agents"
+      serviceAccount: "tars-agent-sa"
+      resources:
+        requests:
+          memory: "128Mi"
+          cpu: "100m"
+        limits:
+          memory: "512Mi"
+          cpu: "500m"
+      deployment:
+        replicas: 3
+        strategy: "RollingUpdate"
+        
+    hyperlight:
+      enabled: true
+      runtime: "hyperlight-vm"
+      isolationLevel: "micro-vm"
+      memoryLimitMB: 64
+      cpuLimitPercent: 10
+      securityProfile: "strict"
+      
+    wasm:
+      enabled: true
+      runtime: "wasmtime"
+      moduleFormat: "wasi"
+      sandboxed: true
+      memoryLimitMB: 32
+      allowedSyscalls: ["read", "write", "clock_time_get"]
+
+# Agent type definitions with deployment-specific configurations
+agentTypes:
+  Infrastructure:
+    maxInstances: 5
+    priority: "Critical"
+    capabilities:
+      - "service-management"
+      - "system-monitoring"
+      - "configuration-management"
+      - "deployment-automation"
+    resources:
+      memoryLimitMB: 256
+      cpuLimitPercent: 25
+    deploymentPreferences:
+      preferred: ["native", "docker"]
+      fallback: ["kubernetes"]
+      
+  Development:
+    maxInstances: 8
+    priority: "High"
+    capabilities:
+      - "code-generation"
+      - "code-analysis"
+      - "refactoring"
+      - "documentation"
+      - "testing"
+    resources:
+      memoryLimitMB: 512
+      cpuLimitPercent: 40
+    deploymentPreferences:
+      preferred: ["native", "docker", "kubernetes"]
+      fallback: ["hyperlight"]
+      
+  Analysis:
+    maxInstances: 4
+    priority: "High"
+    capabilities:
+      - "performance-analysis"
+      - "quality-analysis"
+      - "security-analysis"
+      - "dependency-analysis"
+      - "roadmap-analysis"
+    resources:
+      memoryLimitMB: 384
+      cpuLimitPercent: 30
+    deploymentPreferences:
+      preferred: ["native", "docker"]
+      fallback: ["kubernetes", "hyperlight"]
+      
+  QA:
+    maxInstances: 3
+    priority: "High"
+    capabilities:
+      - "test-generation"
+      - "test-execution"
+      - "quality-assurance"
+      - "bug-detection"
+      - "requirement-validation"
+    resources:
+      memoryLimitMB: 384
+      cpuLimitPercent: 30
+    deploymentPreferences:
+      preferred: ["docker", "kubernetes"]
+      fallback: ["native"]
+      
+  Coordination:
+    maxInstances: 2
+    priority: "Critical"
+    capabilities:
+      - "task-orchestration"
+      - "agent-coordination"
+      - "semantic-analysis"
+      - "decision-making"
+    resources:
+      memoryLimitMB: 512
+      cpuLimitPercent: 35
+    deploymentPreferences:
+      preferred: ["native", "docker"]
+      fallback: ["kubernetes"]
+      
+  LightweightWorker:
+    maxInstances: 20
+    priority: "Medium"
+    capabilities:
+      - "simple-tasks"
+      - "data-processing"
+      - "file-operations"
+    resources:
+      memoryLimitMB: 64
+      cpuLimitPercent: 5
+    deploymentPreferences:
+      preferred: ["wasm", "hyperlight"]
+      fallback: ["docker"]
+
+# Platform-specific configurations
+platformConfigurations:
+  windows:
+    serviceManager: "windows-service"
+    logPath: "C:\\ProgramData\\TARS\\Logs"
+    dataPath: "C:\\ProgramData\\TARS\\Data"
+    configPath: "C:\\ProgramData\\TARS\\Config"
+    
+  linux:
+    serviceManager: "systemd"
+    logPath: "/var/log/tars"
+    dataPath: "/var/lib/tars"
+    configPath: "/etc/tars"
+    user: "tars"
+    group: "tars"
+    
+  macos:
+    serviceManager: "launchd"
+    logPath: "/usr/local/var/log/tars"
+    dataPath: "/usr/local/var/lib/tars"
+    configPath: "/usr/local/etc/tars"
+    
+  docker:
+    baseImages:
+      dotnet: "mcr.microsoft.com/dotnet/runtime:8.0"
+      alpine: "mcr.microsoft.com/dotnet/runtime:8.0-alpine"
+      ubuntu: "mcr.microsoft.com/dotnet/runtime:8.0-jammy"
+    networking:
+      defaultMode: "bridge"
+      customNetworks: ["tars-network"]
+      
+  kubernetes:
+    apiVersion: "apps/v1"
+    kind: "Deployment"
+    metadata:
+      namespace: "tars-agents"
+      labels:
+        app: "tars-agent"
+        version: "v2.0"
+    spec:
+      selector:
+        matchLabels:
+          app: "tars-agent"
+          
+  hyperlight:
+    vmConfig:
+      kernelPath: "/opt/hyperlight/kernel"
+      initrdPath: "/opt/hyperlight/initrd"
+      memoryMB: 64
+      vcpus: 1
+    security:
+      enableSeccomp: true
+      enableAppArmor: true
+      readOnlyRootfs: true
+      
+  wasm:
+    runtime:
+      engine: "wasmtime"
+      version: "latest"
+      features: ["wasi", "threads"]
+    limits:
+      maxMemoryPages: 512  # 32MB
+      maxTableElements: 1000
+      maxInstructions: 1000000
+
+# Semantic coordination settings
+semanticCoordination:
+  enabled: true
+  analysisIntervalSeconds: 30
+  matchingAlgorithm: "semantic-similarity"
+  confidenceThreshold: 0.85
+  
+  # Natural language processing
+  nlp:
+    enabled: true
+    maxTokens: 1000
+    contextWindow: 2048
+    
+  # Capability matching
+  capabilityMatching:
+    weightFactors:
+      skills: 0.4
+      availability: 0.3
+      performance: 0.2
+      workload: 0.1
+    
+    # Matching thresholds
+    thresholds:
+      excellent: 0.9
+      good: 0.75
+      acceptable: 0.6
+      minimum: 0.5
+
+# Agent communication
+communication:
+  protocol: "semantic-messaging"
+  messageQueueSize: 1000
+  messageTimeoutSeconds: 30
+  retryAttempts: 3
+  
+  # Cross-platform transport
+  transport:
+    primary: "tcp"
+    fallback: ["unix-socket", "named-pipes", "http"]
+    encryption: "tls"
+    compression: "gzip"
+  
+  # Message types
+  messageTypes:
+    - "task-request"
+    - "task-response"
+    - "status-update"
+    - "capability-announcement"
+    - "coordination-request"
+    - "health-check"
+    
+  # Routing
+  routing:
+    algorithm: "intelligent-routing"
+    loadBalancing: true
+    failover: true
+    crossPlatformDiscovery: true
+
+# Agent monitoring
+monitoring:
+  enabled: true
+  metricsCollection: true
+  performanceTracking: true
+  healthMonitoring: true
+  
+  # Platform-specific monitoring
+  platformMonitoring:
+    windows:
+      usePerformanceCounters: true
+      useEventLog: true
+    linux:
+      useSystemd: true
+      useProcfs: true
+    docker:
+      useDockerStats: true
+      useContainerLogs: true
+    kubernetes:
+      usePrometheus: true
+      useKubernetesMetrics: true
+  
+  # Metrics
+  metrics:
+    taskCompletionRate: true
+    responseTime: true
+    errorRate: true
+    resourceUsage: true
+    
+  # Health checks
+  healthChecks:
+    intervalSeconds: 15
+    timeoutSeconds: 5
+    failureThreshold: 3
+    
+  # Performance tracking
+  performance:
+    trackExecutionTime: true
+    trackMemoryUsage: true
+    trackCpuUsage: true
+    trackTaskThroughput: true
+
+# Agent specializations
+specializations:
+  RoadmapAnalysisAgent:
+    type: "Analysis"
+    capabilities:
+      - "roadmap-analysis"
+      - "progress-tracking"
+      - "risk-assessment"
+      - "recommendation-generation"
+    configuration:
+      analysisIntervalMinutes: 60
+      autoApplyRecommendations: true
+      riskThreshold: 0.3
+      
+  SemanticCoordinatorAgent:
+    type: "Coordination"
+    capabilities:
+      - "semantic-analysis"
+      - "task-routing"
+      - "agent-matching"
+      - "workflow-orchestration"
+    configuration:
+      matchingIntervalSeconds: 30
+      routingAlgorithm: "semantic-similarity"
+      
+  QualityAssuranceAgent:
+    type: "QA"
+    capabilities:
+      - "requirement-extraction"
+      - "test-generation"
+      - "quality-validation"
+      - "continuous-testing"
+    configuration:
+      testCoverage: 90
+      qualityThreshold: 0.85
+      automatedTesting: true
+      
+  HyperlightMicroAgent:
+    type: "LightweightWorker"
+    capabilities:
+      - "micro-tasks"
+      - "fast-computation"
+      - "isolated-execution"
+    configuration:
+      maxExecutionTimeMs: 1000
+      memoryLimitMB: 16
+      cpuLimitPercent: 2
+    deploymentPreferences:
+      preferred: ["hyperlight"]
+      fallback: ["wasm"]
+      
+  WasmComputeAgent:
+    type: "LightweightWorker"
+    capabilities:
+      - "safe-computation"
+      - "portable-execution"
+      - "sandboxed-processing"
+    configuration:
+      wasmModule: "compute-worker.wasm"
+      allowedImports: ["wasi_snapshot_preview1"]
+    deploymentPreferences:
+      preferred: ["wasm"]
+      fallback: ["hyperlight"]
