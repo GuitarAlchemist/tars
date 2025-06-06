@@ -96,9 +96,8 @@ and ComputationalComplexity = {
 
 /// Advanced Mathematical Spaces Service
 type AdvancedSpacesService(logger: ILogger<AdvancedSpacesService>) =
-    
+
     let mutable isInitialized = false
-    let random = Random()
     
     /// Initialize Advanced Spaces Service
     member this.InitializeAsync() = task {
@@ -125,23 +124,23 @@ type AdvancedSpacesService(logger: ILogger<AdvancedSpacesService>) =
     
     /// Initialize quantum-inspired algorithms
     member private this.InitializeQuantumAlgorithmsAsync() = task {
-        logger.LogDebug("Initializing quantum-inspired algorithms...")
-        // In a real implementation, this would initialize quantum simulation libraries
-        do! Task.Delay(10) // Simulate initialization
+        logger.LogDebug("Quantum algorithms available (mathematical implementations only)")
+        // Real quantum algorithms would require quantum computing libraries
+        return ()
     }
-    
+
     /// Initialize fractal generators
     member private this.InitializeFractalGeneratorsAsync() = task {
-        logger.LogDebug("Initializing fractal generators...")
-        // In a real implementation, this would initialize fractal computation libraries
-        do! Task.Delay(10) // Simulate initialization
+        logger.LogDebug("Fractal generators available (mathematical implementations only)")
+        // Real fractal libraries would provide more sophisticated algorithms
+        return ()
     }
-    
+
     /// Initialize topological analyzers
     member private this.InitializeTopologicalAnalyzersAsync() = task {
-        logger.LogDebug("Initializing topological analyzers...")
-        // In a real implementation, this would initialize topology libraries
-        do! Task.Delay(10) // Simulate initialization
+        logger.LogDebug("Topological analyzers available (basic mathematical implementations only)")
+        // Real topology libraries would provide more comprehensive analysis
+        return ()
     }
     
     /// Apply advanced mathematical transformation
@@ -292,12 +291,12 @@ type AdvancedSpacesService(logger: ILogger<AdvancedSpacesService>) =
             transformed.[i] <- Complex.FromPolarCoordinates(abs vector.[i], phase)
         
         let quantumProps = {
-            Coherence = 0.8 + 0.2 * random.NextDouble()
+            Coherence = 0.8 // Fixed value - real quantum coherence calculation would be more complex
             Entanglement = vector |> Array.mapi (fun i x -> x * vector.[(i + n/2) % n]) |> Array.sumBy abs |> fun sum -> sum / float n
             Superposition = 0.5
             Measurement = 0.7
-            Decoherence = 0.2 * random.NextDouble()
-            QuantumFidelity = 0.85 + 0.15 * random.NextDouble()
+            Decoherence = 0.2 // Fixed value - real decoherence calculation would depend on environment
+            QuantumFidelity = 0.85 // Fixed value - real fidelity would require quantum state comparison
         }
         
         let geometricProps = {
