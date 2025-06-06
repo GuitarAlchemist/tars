@@ -28,37 +28,65 @@ module MathematicalTransforms =
         Metadata: Map<string, obj>
     }
     
-    /// FFT implementation using Cooley-Tukey algorithm
-    let rec fft (input: ComplexVector) : ComplexVector =
+    /// Real FFT implementation using Cooley-Tukey algorithm with bit-reversal
+    let fft (input: ComplexVector) : ComplexVector =
         let n = input.Length
         if n <= 1 then input
         else
-            // Divide
-            let even = Array.init (n/2) (fun i -> input.[2*i])
-            let odd = Array.init (n/2) (fun i -> input.[2*i + 1])
-            
-            // Conquer
-            let evenFFT = fft even
-            let oddFFT = fft odd
-            
-            // Combine
-            let result = Array.zeroCreate n
-            for k in 0 .. n/2 - 1 do
-                let t = Complex.FromPolarCoordinates(1.0, -2.0 * Math.PI * float k / float n) * oddFFT.[k]
-                result.[k] <- evenFFT.[k] + t
-                result.[k + n/2] <- evenFFT.[k] - t
-            
+            // Ensure n is a power of 2
+            let isPowerOfTwo = (n &&& (n - 1)) = 0
+            if not isPowerOfTwo then
+                failwith "FFT input size must be a power of 2"
+
+            // Bit-reversal permutation
+            let bitReverse (num: int) (bits: int) =
+                let mutable result = 0
+                let mutable n = num
+                for _ in 0 .. bits - 1 do
+                    result <- (result <<< 1) ||| (n &&& 1)
+                    n <- n >>> 1
+                result
+
+            let logN = int (Math.Log2(float n))
+            let result = Array.copy input
+
+            // Bit-reversal reordering
+            for i in 0 .. n - 1 do
+                let j = bitReverse i logN
+                if i < j then
+                    let temp = result.[i]
+                    result.[i] <- result.[j]
+                    result.[j] <- temp
+
+            // Cooley-Tukey FFT
+            let mutable length = 2
+            while length <= n do
+                let wlen = Complex.FromPolarCoordinates(1.0, -2.0 * Math.PI / float length)
+                let mutable i = 0
+                while i < n do
+                    let mutable w = Complex.One
+                    for j in 0 .. length / 2 - 1 do
+                        let u = result.[i + j]
+                        let v = result.[i + j + length / 2] * w
+                        result.[i + j] <- u + v
+                        result.[i + j + length / 2] <- u - v
+                        w <- w * wlen
+                    i <- i + length
+                length <- length * 2
+
             result
     
-    /// Inverse FFT
+    /// Real Inverse FFT implementation
     let ifft (input: ComplexVector) : ComplexVector =
         let n = input.Length
-        // Conjugate input
-        let conjugated = input |> Array.map (fun c -> Complex.Conjugate(c))
-        // Apply FFT
-        let fftResult = fft conjugated
-        // Conjugate and normalize
-        fftResult |> Array.map (fun c -> Complex.Conjugate(c) / Complex(float n, 0.0))
+        if n <= 1 then input
+        else
+            // Conjugate input
+            let conjugated = input |> Array.map Complex.Conjugate
+            // Apply forward FFT
+            let fftResult = fft conjugated
+            // Conjugate result and normalize
+            fftResult |> Array.map (fun c -> Complex.Conjugate(c) / Complex(float n, 0.0))
     
     /// Discrete Fourier Transform (DFT) - O(n²) implementation
     let dft (input: float[]) : ComplexVector =
@@ -89,46 +117,78 @@ module MathematicalTransforms =
             result <- result + Complex(input.[n], 0.0) * expTerm * Complex(dt, 0.0)
         result
     
-    /// Wavelet Transform using Haar wavelets
+    /// Real Haar Wavelet Transform implementation
     let haarWaveletTransform (input: float[]) : float[] =
         let n = input.Length
-        let mutable data = Array.copy input
-        let mutable length = n
-        
-        while length > 1 do
-            let temp = Array.zeroCreate length
-            let halfLength = length / 2
-            
-            // Scaling function (low-pass)
-            for i in 0 .. halfLength - 1 do
-                temp.[i] <- (data.[2*i] + data.[2*i + 1]) / sqrt(2.0)
-            
-            // Wavelet function (high-pass)
-            for i in 0 .. halfLength - 1 do
-                temp.[halfLength + i] <- (data.[2*i] - data.[2*i + 1]) / sqrt(2.0)
-            
-            Array.Copy(temp, data, length)
-            length <- halfLength
-        
-        data
+        if n <= 1 then input
+        else
+            // Ensure n is a power of 2
+            let isPowerOfTwo = (n &&& (n - 1)) = 0
+            if not isPowerOfTwo then
+                failwith "Wavelet input size must be a power of 2"
+
+            let result = Array.copy input
+            let mutable length = n
+
+            // Forward Haar wavelet transform
+            while length > 1 do
+                let halfLength = length / 2
+                let temp = Array.zeroCreate length
+
+                // Scaling coefficients (approximation)
+                for i in 0 .. halfLength - 1 do
+                    temp.[i] <- (result.[2*i] + result.[2*i + 1]) * 0.7071067811865476 // 1/sqrt(2)
+
+                // Wavelet coefficients (detail)
+                for i in 0 .. halfLength - 1 do
+                    temp.[halfLength + i] <- (result.[2*i] - result.[2*i + 1]) * 0.7071067811865476
+
+                // Copy back
+                Array.Copy(temp, 0, result, 0, length)
+                length <- halfLength
+
+            result
     
-    /// Hilbert Transform approximation
+    /// Real Hilbert Transform implementation using FFT
     let hilbertTransform (input: float[]) : ComplexVector =
         let n = input.Length
-        let fftInput = input |> Array.map (fun x -> Complex(x, 0.0))
-        let fftResult = fft fftInput
-        
-        // Create Hilbert filter in frequency domain
-        let hilbertFilter = Array.zeroCreate n
-        hilbertFilter.[0] <- 1.0
-        for i in 1 .. n/2 - 1 do
-            hilbertFilter.[i] <- 2.0
-        if n % 2 = 0 then
-            hilbertFilter.[n/2] <- 1.0
-        
-        // Apply filter and inverse FFT
-        let filtered = Array.zip fftResult hilbertFilter |> Array.map (fun (c, f) -> c * Complex(f, 0.0))
-        ifft filtered
+        if n <= 1 then input |> Array.map (fun x -> Complex(x, 0.0))
+        else
+            // Ensure n is a power of 2 for FFT
+            let nextPowerOf2 =
+                let mutable p = 1
+                while p < n do p <- p * 2
+                p
+
+            // Zero-pad input to next power of 2
+            let paddedInput = Array.zeroCreate nextPowerOf2
+            Array.Copy(input, paddedInput, n)
+
+            // Convert to complex and apply FFT
+            let complexInput = paddedInput |> Array.map (fun x -> Complex(x, 0.0))
+            let fftResult = fft complexInput
+
+            // Create Hilbert filter in frequency domain
+            let hilbertFilter = Array.zeroCreate nextPowerOf2
+            hilbertFilter.[0] <- 1.0 // DC component
+
+            // Positive frequencies: multiply by 2
+            for i in 1 .. nextPowerOf2/2 - 1 do
+                hilbertFilter.[i] <- 2.0
+
+            // Nyquist frequency (if even length)
+            if nextPowerOf2 % 2 = 0 then
+                hilbertFilter.[nextPowerOf2/2] <- 1.0
+
+            // Negative frequencies: multiply by 0 (implicit, already zero)
+
+            // Apply filter
+            let filtered = Array.zip fftResult hilbertFilter
+                          |> Array.map (fun (c, f) -> c * Complex(f, 0.0))
+
+            // Inverse FFT and extract original length
+            let result = ifft filtered
+            Array.take n result
     
     /// Hyperbolic embedding using Poincaré disk model
     let hyperbolicEmbedding (vector: float[]) : float[] =
@@ -195,34 +255,33 @@ type MathematicalTransformService(logger: ILogger<MathematicalTransformService>)
     
     let mutable cudaAvailable = false
     
-    /// Initialize the transform service
+    /// Initialize the transform service with real CUDA integration
     member this.InitializeAsync() = task {
         try
             logger.LogInformation("Initializing Mathematical Transform Service...")
 
-            // Check CUDA availability
+            // Initialize real CUDA service
             try
-                // Try to load CUDA libraries and check device count
-                #if CUDA_AVAILABLE
-                let deviceCount = CudaInterop.tars_cuda_device_count()
-                if deviceCount > 0 then
-                    let initResult = CudaInterop.tars_cuda_init(0)
-                    if initResult = CudaInterop.TarsCudaError.Success then
-                        cudaAvailable <- true
-                        logger.LogInformation($"✅ CUDA acceleration available with {deviceCount} device(s)")
-                    else
-                        logger.LogWarning($"CUDA initialization failed: {initResult}")
+                let cudaService = TarsEngine.FSharp.Core.CUDA.CudaInteropService(logger)
+                do! cudaService.InitializeAsync()
+
+                cudaAvailable <- cudaService.IsCudaAvailable
+
+                if cudaAvailable then
+                    match cudaService.GetDeviceProperties() with
+                    | Some props ->
+                        logger.LogInformation($"✅ CUDA acceleration available: {props.Name}")
+                        logger.LogInformation($"   Compute Capability: {props.Major}.{props.Minor}")
+                        logger.LogInformation($"   Memory: {props.TotalGlobalMem / (1024L * 1024L * 1024L)} GB")
+                        logger.LogInformation($"   Multiprocessors: {props.MultiProcessorCount}")
+                    | None ->
+                        logger.LogWarning("CUDA device properties not available")
                         cudaAvailable <- false
                 else
-                    logger.LogWarning("No CUDA devices found")
-                    cudaAvailable <- false
-                #else
-                logger.LogInformation("CUDA support not compiled in, using CPU fallback")
-                cudaAvailable <- false
-                #endif
+                    logger.LogInformation("CUDA not available, using optimized CPU implementations")
             with
             | ex ->
-                logger.LogWarning(ex, "CUDA not available, using CPU fallback")
+                logger.LogWarning(ex, "CUDA initialization failed, using CPU fallback")
                 cudaAvailable <- false
 
             logger.LogInformation($"Mathematical Transform Service initialized (CUDA: {cudaAvailable})")
