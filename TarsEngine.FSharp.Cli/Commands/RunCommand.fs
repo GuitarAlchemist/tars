@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.FSharp.Cli.Commands
+namespace TarsEngine.FSharp.Cli.Commands
 
 open System
 open System.IO
@@ -13,23 +13,23 @@ type RunCommand() =
         
         member _.Description = "Run F# scripts or applications"
         
-        member _.Usage = "tars run <script> [options]"
+        member self.Usage = "tars run <script> [options]"
         
-        member _.Examples = [
+        member self.Examples = [
             "tars run script.fsx"
             "tars run app.exe --args \"arg1 arg2\""
             "tars run . --project MyProject.fsproj"
             "tars run script.fsx --watch"
         ]
         
-        member _.ValidateOptions(options) =
+        member self.ValidateOptions(options) =
             if options.Arguments.IsEmpty then
                 false
             else
                 let target = options.Arguments.[0]
                 File.Exists(target) || Directory.Exists(target) || target.EndsWith(".fsx") || target.EndsWith(".exe")
         
-        member _.ExecuteAsync(options) =
+        member self.ExecuteAsync(options) =
             Task.Run(fun () ->
                 try
                     let target = options.Arguments.[0]

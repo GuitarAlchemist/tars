@@ -4,7 +4,6 @@ open System
 open System.Threading
 open System.Threading.Channels
 open Microsoft.Extensions.Logging
-open FSharp.Control
 
 /// Core types for TARS multi-agent system
 module AgentTypes =
@@ -35,6 +34,9 @@ module AgentTypes =
         | Execution
         | Learning
         | SelfImprovement
+        | Analysis
+        | Automation
+        | SystemManagement
     
     /// Agent personality traits
     type PersonalityTrait =
@@ -98,7 +100,7 @@ module AgentTypes =
         EstimatedDuration: TimeSpan option
         Progress: float // 0.0 to 1.0
         Status: AgentStatus
-        Results: TaskSeq<AgentTaskResult>
+        Results: seq<AgentTaskResult>
     }
     
     /// Agent persona definition

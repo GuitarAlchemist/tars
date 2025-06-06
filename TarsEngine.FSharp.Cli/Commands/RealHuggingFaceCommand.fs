@@ -9,7 +9,7 @@ open TarsEngine.FSharp.Cli.Services
 /// Real HuggingFace integration command with actual model downloads
 type RealHuggingFaceCommand(logger: ILogger<RealHuggingFaceCommand>, huggingFaceService: HuggingFaceService) =
 
-    member private this.ShowRealHuggingFaceHeader() =
+    member private self.ShowRealHuggingFaceHeader() =
         AnsiConsole.Clear()
         
         let figlet = FigletText("REAL HF")
@@ -21,9 +21,9 @@ type RealHuggingFaceCommand(logger: ILogger<RealHuggingFaceCommand>, huggingFace
         AnsiConsole.Write(rule)
         AnsiConsole.WriteLine()
 
-    member private this.DownloadRealModel() =
+    member private self.DownloadRealModel() =
         task {
-            this.ShowRealHuggingFaceHeader()
+            self.ShowRealHuggingFaceHeader()
             
             AnsiConsole.MarkupLine("[bold cyan]🤗 Real HuggingFace Model Download[/]")
             AnsiConsole.WriteLine()
@@ -68,14 +68,14 @@ type RealHuggingFaceCommand(logger: ILogger<RealHuggingFaceCommand>, huggingFace
                     lastStatus <- statusText
                     progressPanel.UpdateContent(statusText)
                     AnsiConsole.Clear()
-                    this.ShowRealHuggingFaceHeader()
+                    self.ShowRealHuggingFaceHeader()
                     AnsiConsole.MarkupLine($"[bold yellow]📥 Downloading real model: {selectedModel}[/]")
                     AnsiConsole.Write(progressPanel)
             
             let! result = huggingFaceService.DownloadModelAsync(selectedModel, onProgress)
             
             AnsiConsole.Clear()
-            this.ShowRealHuggingFaceHeader()
+            self.ShowRealHuggingFaceHeader()
             
             match result with
             | Ok modelInfo ->
@@ -104,14 +104,14 @@ type RealHuggingFaceCommand(logger: ILogger<RealHuggingFaceCommand>, huggingFace
                 let testInference = Console.ReadKey(true).KeyChar.ToString().ToLower() = "y"
 
                 if testInference then
-                    do! this.TestRealInference(modelInfo)
+                    do! self.TestRealInference(modelInfo)
                 
             | Error error ->
                 AnsiConsole.MarkupLine($"[red]❌ Real download failed: {error}[/]")
                 AnsiConsole.MarkupLine("[yellow]💡 This might be due to network issues or model availability[/]")
         }
 
-    member private this.TestRealInference(modelInfo: ModelInfo) =
+    member private self.TestRealInference(modelInfo: ModelInfo) =
         task {
             AnsiConsole.WriteLine()
             AnsiConsole.MarkupLine("[bold cyan]🧠 Testing Real Model Inference[/]")
@@ -136,9 +136,9 @@ type RealHuggingFaceCommand(logger: ILogger<RealHuggingFaceCommand>, huggingFace
                 AnsiConsole.MarkupLine("[yellow]💡 The model might need ONNX conversion or additional setup[/]")
         }
 
-    member private this.ShowRealLocalModels() =
+    member private self.ShowRealLocalModels() =
         task {
-            this.ShowRealHuggingFaceHeader()
+            self.ShowRealHuggingFaceHeader()
             
             AnsiConsole.MarkupLine("[bold cyan]💾 Real Local HuggingFace Models[/]")
             AnsiConsole.WriteLine()
@@ -204,9 +204,9 @@ type RealHuggingFaceCommand(logger: ILogger<RealHuggingFaceCommand>, huggingFace
                 AnsiConsole.MarkupLine($"[red]❌ Failed to list real local models: {error}[/]")
         }
 
-    member private this.SearchRealModels() =
+    member private self.SearchRealModels() =
         task {
-            this.ShowRealHuggingFaceHeader()
+            self.ShowRealHuggingFaceHeader()
             
             let query = AnsiConsole.Ask<string>("[cyan]🔍 Enter search query for real HuggingFace models:[/]")
             
@@ -261,29 +261,29 @@ type RealHuggingFaceCommand(logger: ILogger<RealHuggingFaceCommand>, huggingFace
     interface ICommand with
         member _.Name = "realhf"
         member _.Description = "Real HuggingFace Transformers integration with actual downloads"
-        member _.Usage = "tars realhf [download|local|search|test]"
-        member _.Examples = [
+        member self.Usage = "tars realhf [download|local|search|test]"
+        member self.Examples = [
             "tars realhf download"
             "tars realhf local"
             "tars realhf search"
         ]
-        member _.ValidateOptions(options) = true
+        member self.ValidateOptions(options) = true
 
-        member this.ExecuteAsync(options) =
+        member self.ExecuteAsync(options) =
             task {
                 try
                     match options.Arguments with
                     | "download" :: _ ->
-                        do! this.DownloadRealModel()
+                        do! self.DownloadRealModel()
                         return CommandResult.success("Real model download completed")
                     | "local" :: _ ->
-                        do! this.ShowRealLocalModels()
+                        do! self.ShowRealLocalModels()
                         return CommandResult.success("Real local models displayed")
                     | "search" :: _ ->
-                        do! this.SearchRealModels()
+                        do! self.SearchRealModels()
                         return CommandResult.success("Real model search completed")
                     | [] ->
-                        do! this.DownloadRealModel()
+                        do! self.DownloadRealModel()
                         return CommandResult.success("Real HuggingFace integration demo completed")
                     | unknown :: _ ->
                         AnsiConsole.MarkupLine($"[red]❌ Unknown realhf command: {unknown}[/]")

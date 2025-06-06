@@ -9,7 +9,7 @@ open TarsEngine.FSharp.Cli.Services
 /// Live demo with spectacular Spectre.Console widgets
 type LiveDemoCommand(logger: ILogger<LiveDemoCommand>, mixtralService: MixtralService) =
 
-    member private this.ShowSpectacularHeader() =
+    member private self.ShowSpectacularHeader() =
         AnsiConsole.Clear()
         
         // Create a beautiful figlet text
@@ -23,7 +23,7 @@ type LiveDemoCommand(logger: ILogger<LiveDemoCommand>, mixtralService: MixtralSe
         AnsiConsole.Write(rule)
         AnsiConsole.WriteLine()
 
-    member private this.CreateExpertStatusTable() =
+    member private self.CreateExpertStatusTable() =
         let table = Table()
         table.Border <- TableBorder.Rounded
         table.BorderStyle <- Style.Parse("cyan")
@@ -57,9 +57,9 @@ type LiveDemoCommand(logger: ILogger<LiveDemoCommand>, mixtralService: MixtralSe
         
         table
 
-    member private this.ShowLiveProcessingDemo() =
+    member private self.ShowLiveProcessingDemo() =
         task {
-            this.ShowSpectacularHeader()
+            self.ShowSpectacularHeader()
             
             // Create layout with multiple panels
             let layout = Layout("Root")
@@ -87,7 +87,7 @@ type LiveDemoCommand(logger: ILogger<LiveDemoCommand>, mixtralService: MixtralSe
             layout.["Header"].Update(headerPanel)
             
             // Expert status table
-            let expertTable = this.CreateExpertStatusTable()
+            let expertTable = self.CreateExpertStatusTable()
             let expertPanel = Panel(expertTable)
             expertPanel.Header <- PanelHeader("[bold green]Expert Status Dashboard[/]")
             expertPanel.Border <- BoxBorder.Rounded
@@ -111,10 +111,10 @@ type LiveDemoCommand(logger: ILogger<LiveDemoCommand>, mixtralService: MixtralSe
             AnsiConsole.Write(layout)
             
             // Simulate live processing with progress bars
-            do! this.SimulateLiveProcessing(layout)
+            do! self.SimulateLiveProcessing(layout)
         }
 
-    member private this.SimulateLiveProcessing(layout: Layout) =
+    member private self.SimulateLiveProcessing(layout: Layout) =
         task {
             let random = Random()
             
@@ -148,14 +148,14 @@ type LiveDemoCommand(logger: ILogger<LiveDemoCommand>, mixtralService: MixtralSe
                             task.Increment(increment)
                             
                             // Update live results
-                            let liveText = this.GenerateLiveResults(source, task.Value)
+                            let liveText = self.GenerateLiveResults(source, task.Value)
                             let livePanel = Panel(liveText)
                             livePanel.Header <- PanelHeader($"[bold blue]Live Analysis: {source}[/]")
                             livePanel.Border <- BoxBorder.Rounded
                             layout.["Live"].Update(livePanel)
                             
                             // Update results
-                            let resultsText = this.GenerateResults(source, task.Value)
+                            let resultsText = self.GenerateResults(source, task.Value)
                             let resultsPanel = Panel(resultsText)
                             resultsPanel.Header <- PanelHeader("[bold green]AI Analysis Results[/]")
                             resultsPanel.Border <- BoxBorder.Double
@@ -172,7 +172,7 @@ type LiveDemoCommand(logger: ILogger<LiveDemoCommand>, mixtralService: MixtralSe
                 do! Task.Delay(500)
         }
 
-    member private this.GenerateLiveResults(source: string, progress: float) =
+    member private self.GenerateLiveResults(source: string, progress: float) =
         let items = [
             "🔍 Analyzing data patterns..."
             "🧠 Routing to expert: CodeAnalysis"
@@ -193,7 +193,7 @@ type LiveDemoCommand(logger: ILogger<LiveDemoCommand>, mixtralService: MixtralSe
         
         $"{content}\n\n[cyan]Progress: {progress:F1}%[/]"
 
-    member private this.GenerateResults(source: string, progress: float) =
+    member private self.GenerateResults(source: string, progress: float) =
         if progress < 50.0 then
             "[dim]Waiting for analysis to complete...[/]"
         else
@@ -232,10 +232,10 @@ type LiveDemoCommand(logger: ILogger<LiveDemoCommand>, mixtralService: MixtralSe
             |> List.map (fun insight -> $"• {insight}")
             |> String.concat "\n"
 
-    member private this.ShowInteractiveWidgets() =
+    member private self.ShowInteractiveWidgets() =
         task {
             AnsiConsole.Clear()
-            this.ShowSpectacularHeader()
+            self.ShowSpectacularHeader()
             
             // Create a tree view of the system
             let tree = Tree("🧠 TARS Mixtral MoE System")
@@ -291,10 +291,10 @@ type LiveDemoCommand(logger: ILogger<LiveDemoCommand>, mixtralService: MixtralSe
             AnsiConsole.Write(calendarPanel)
         }
 
-    member private this.RunSpectacularDemo() =
+    member private self.RunSpectacularDemo() =
         task {
             // Show header
-            this.ShowSpectacularHeader()
+            self.ShowSpectacularHeader()
             
             AnsiConsole.MarkupLine("[bold green]🎯 Choose your spectacular demo:[/]")
             AnsiConsole.WriteLine()
@@ -312,17 +312,17 @@ type LiveDemoCommand(logger: ILogger<LiveDemoCommand>, mixtralService: MixtralSe
             
             match choice with
             | "🚀 Live Data Processing Dashboard" ->
-                do! this.ShowLiveProcessingDemo()
+                do! self.ShowLiveProcessingDemo()
             | "📊 Interactive Widgets Showcase" ->
-                do! this.ShowInteractiveWidgets()
+                do! self.ShowInteractiveWidgets()
             | "⚡ Real-time Expert Monitoring" ->
-                do! this.ShowLiveProcessingDemo()
+                do! self.ShowLiveProcessingDemo()
             | "🎭 Full Spectacular Experience" ->
-                do! this.ShowInteractiveWidgets()
+                do! self.ShowInteractiveWidgets()
                 do! Task.Delay(3000)
-                do! this.ShowLiveProcessingDemo()
+                do! self.ShowLiveProcessingDemo()
             | _ ->
-                do! this.ShowLiveProcessingDemo()
+                do! self.ShowLiveProcessingDemo()
             
             AnsiConsole.WriteLine()
             AnsiConsole.MarkupLine("[bold green]🎉 Demo completed! Press any key to continue...[/]")
@@ -332,33 +332,33 @@ type LiveDemoCommand(logger: ILogger<LiveDemoCommand>, mixtralService: MixtralSe
     interface ICommand with
         member _.Name = "livedemo"
         member _.Description = "Spectacular live demo with Spectre.Console widgets"
-        member _.Usage = "tars livedemo [dashboard|widgets|monitoring|full]"
-        member _.Examples = [
+        member self.Usage = "tars livedemo [dashboard|widgets|monitoring|full]"
+        member self.Examples = [
             "tars livedemo"
             "tars livedemo dashboard"
             "tars livedemo widgets"
             "tars livedemo full"
         ]
-        member _.ValidateOptions(options) = true
+        member self.ValidateOptions(options) = true
 
-        member this.ExecuteAsync(options) =
+        member self.ExecuteAsync(options) =
             task {
                 try
                     match options.Arguments with
                     | "dashboard" :: _ ->
-                        do! this.ShowLiveProcessingDemo()
+                        do! self.ShowLiveProcessingDemo()
                         return CommandResult.success("Live dashboard demo completed")
                     | "widgets" :: _ ->
-                        do! this.ShowInteractiveWidgets()
+                        do! self.ShowInteractiveWidgets()
                         return CommandResult.success("Widgets demo completed")
                     | "monitoring" :: _ ->
-                        do! this.ShowLiveProcessingDemo()
+                        do! self.ShowLiveProcessingDemo()
                         return CommandResult.success("Monitoring demo completed")
                     | "full" :: _ ->
-                        do! this.RunSpectacularDemo()
+                        do! self.RunSpectacularDemo()
                         return CommandResult.success("Full spectacular demo completed")
                     | [] ->
-                        do! this.RunSpectacularDemo()
+                        do! self.RunSpectacularDemo()
                         return CommandResult.success("Spectacular demo completed")
                     | unknown :: _ ->
                         AnsiConsole.MarkupLine($"[red]❌ Unknown demo mode: {unknown}[/]")

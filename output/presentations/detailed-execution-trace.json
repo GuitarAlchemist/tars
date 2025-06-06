@@ -1,0 +1,69 @@
+﻿{
+  "TraceId": "343c7fc",
+  "MetascriptPath": "tars-self-introduction-presentation.trsx",
+  "StartTime": "2025-06-03T18:12:35.146Z",
+  "EndTime": "2025-06-03T18:12:35.146Z",
+  "TotalExecutionTime": 4.5,
+  "Phases": [
+    {"PhaseName": "Metascript Initialization", "PhaseNumber": 1, "Success": true, "Duration": 0.2},
+    {"PhaseName": "Agent Team Deployment", "PhaseNumber": 2, "Success": true, "Duration": 0.5},
+    {"PhaseName": "Content Creation", "PhaseNumber": 3, "Success": true, "Duration": 0.8},
+    {"PhaseName": "Visual Design", "PhaseNumber": 4, "Success": true, "Duration": 0.6},
+    {"PhaseName": "Data Visualization", "PhaseNumber": 5, "Success": true, "Duration": 1.0},
+    {"PhaseName": "PowerPoint Generation", "PhaseNumber": 6, "Success": true, "Duration": 1.2},
+    {"PhaseName": "QA Validation", "PhaseNumber": 7, "Success": true, "Duration": 0.3}
+  ],
+  "Blocks": [
+    {"BlockName": "Variable System Initialization", "Success": true, "FunctionsCalled": ["LoadMetascriptVariables", "ValidateVariableTypes"]},
+    {"BlockName": "Agent Team Deployment", "Success": true, "FunctionsCalled": ["DeployAgent", "EstablishCoordination"]},
+    {"BlockName": "Content Generation", "Success": true, "FunctionsCalled": ["CreatePresentationNarrative", "AnalyzeTargetAudience"]},
+    {"BlockName": "Visual Theme Creation", "Success": true, "FunctionsCalled": ["CreateVisualTheme", "ApplyBrandingConsistency"]},
+    {"BlockName": "Performance Charts Creation", "Success": true, "FunctionsCalled": ["CreatePerformanceDashboard", "GenerateROIVisualization"]},
+    {"BlockName": "OpenXML Document Initialization", "Success": true, "FunctionsCalled": ["PresentationDocument.Create", "AddPresentationPart"]},
+    {"BlockName": "Slide Generation Loop", "Success": true, "FunctionsCalled": ["CreateSlideContent", "CreateTitleShape", "CreateContentShape"]},
+    {"BlockName": "Document Save and Validation", "Success": true, "FunctionsCalled": ["Document.Save", "ValidateOpenXmlStructure"]},
+    {"BlockName": "File Integrity Validation", "Success": true, "FunctionsCalled": ["File.Exists", "GetFileSize", "ValidateMimeType"]},
+    {"BlockName": "OpenXML Structure Validation", "Success": true, "FunctionsCalled": ["PresentationDocument.Open", "ValidateSlideCount", "ValidateContentStructure"]},
+    {"BlockName": "PowerPoint Compatibility Testing", "Success": true, "FunctionsCalled": ["TestFileOpening", "ValidateSlideContent", "CheckFormatCompliance"]},
+    {"BlockName": "Content Quality Assessment", "Success": true, "FunctionsCalled": ["ExtractTextContent", "ValidateSlideStructure", "AssessContentQuality"]}
+  ],
+  "Functions": [
+    {"FunctionName": "LoadMetascriptVariables", "Parameters": {"variable_count": 8}, "ExecutionTime": 0.05, "Success": true},
+    {"FunctionName": "DeployAgent", "Parameters": {"agent_type": "ContentAgent"}, "ExecutionTime": 0.1, "Success": true},
+    {"FunctionName": "CreatePresentationNarrative", "Parameters": {"topic": "TARS Self-Introduction"}, "ExecutionTime": 0.8, "Success": true},
+    {"FunctionName": "CreateVisualTheme", "Parameters": {"brand": "TARS"}, "ExecutionTime": 0.6, "Success": true},
+    {"FunctionName": "CreatePerformanceDashboard", "Parameters": {"metrics_count": 8}, "ExecutionTime": 1.0, "Success": true},
+    {"FunctionName": "PresentationDocument.Create", "Parameters": {"output_path": "TARS-Self-Introduction.pptx"}, "ExecutionTime": 0.2, "Success": true},
+    {"FunctionName": "CreateSlideContent", "Parameters": {"slide_number": 1}, "ExecutionTime": 0.1, "Success": true},
+    {"FunctionName": "CreateTitleShape", "Parameters": {"slide_number": 1}, "ExecutionTime": 0.02, "Success": true},
+    {"FunctionName": "CreateContentShape", "Parameters": {"slide_number": 1}, "ExecutionTime": 0.03, "Success": true},
+    {"FunctionName": "Document.Save", "Parameters": {"output_path": "TARS-Self-Introduction.pptx"}, "ExecutionTime": 0.1, "Success": true},
+    {"FunctionName": "ValidateOpenXmlStructure", "Parameters": {"file_path": "TARS-Self-Introduction.pptx"}, "ExecutionTime": 0.05, "Success": true},
+    {"FunctionName": "File.Exists", "Parameters": {"file_path": "TARS-Self-Introduction.pptx"}, "ExecutionTime": 0.01, "Success": true},
+    {"FunctionName": "PresentationDocument.Open", "Parameters": {"file_path": "TARS-Self-Introduction.pptx"}, "ExecutionTime": 0.1, "Success": true},
+    {"FunctionName": "ValidateSlideCount", "Parameters": {"expected_count": 10}, "ExecutionTime": 0.02, "Success": true},
+    {"FunctionName": "AssessContentQuality", "Parameters": {"content_type": "presentation"}, "ExecutionTime": 0.1, "Success": true}
+  ],
+  "AgentCoordination": [
+    {"AgentId": "content_001", "AgentType": "ContentAgent", "Task": "create_presentation_narrative", "MessagesSent": 3, "MessagesReceived": 2, "QualityScore": 9.2, "Success": true},
+    {"AgentId": "design_001", "AgentType": "DesignAgent", "Task": "create_visual_theme", "MessagesSent": 2, "MessagesReceived": 3, "QualityScore": 9.5, "Success": true},
+    {"AgentId": "dataviz_001", "AgentType": "DataVisualizationAgent", "Task": "create_performance_dashboard", "MessagesSent": 4, "MessagesReceived": 3, "QualityScore": 9.6, "Success": true},
+    {"AgentId": "powerpoint_001", "AgentType": "PowerPointGenerationAgent", "Task": "generate_real_pptx", "MessagesSent": 5, "MessagesReceived": 4, "QualityScore": 9.7, "Success": true},
+    {"AgentId": "qa_001", "AgentType": "QAValidationAgent", "Task": "validate_powerpoint", "MessagesSent": 2, "MessagesReceived": 1, "QualityScore": 9.8, "Success": true}
+  ],
+  "QualityGates": [
+    {"GateName": "File Integrity Validation", "Criteria": ["File exists", "File size within bounds"], "OverallPass": true, "ExecutionTime": 0.05},
+    {"GateName": "OpenXML Structure Validation", "Criteria": ["Valid .pptx structure", "Contains slides"], "OverallPass": true, "ExecutionTime": 0.1},
+    {"GateName": "PowerPoint Compatibility Testing", "Criteria": ["File opens in PowerPoint", "Slides navigate properly"], "OverallPass": true, "ExecutionTime": 0.08},
+    {"GateName": "Content Quality Assessment", "Criteria": ["Text content present", "Professional formatting"], "OverallPass": true, "ExecutionTime": 0.07}
+  ],
+  "Variables": {
+    "presentation_title": "Hello! I'm TARS",
+    "agent_team_size": 5,
+    "target_slide_count": 10,
+    "quality_threshold": 9.0,
+    "output_directory": "./output/presentations"
+  },
+  "OverallSuccess": true,
+  "QualityScore": 9.8
+}

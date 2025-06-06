@@ -15,7 +15,7 @@ type RoadmapCommand(logger: ILogger<RoadmapCommand>) =
     let roadmapDirectory = Path.Combine(Environment.CurrentDirectory, ".tars", "roadmaps")
     let yamlDeserializer = DeserializerBuilder().Build()
     
-    member private this.ShowHelp() =
+    member private self.ShowHelp() =
         Console.WriteLine("""
 🗺️  TARS Roadmap Management Commands
 ===================================
@@ -48,16 +48,16 @@ Examples:
   • Integration with TARS agent system
 """)
     
-    member private this.EnsureRoadmapDirectory() =
+    member private self.EnsureRoadmapDirectory() =
         if not (Directory.Exists(roadmapDirectory)) then
             Directory.CreateDirectory(roadmapDirectory) |> ignore
             logger.LogInformation($"Created roadmap directory: {roadmapDirectory}")
     
-    member private this.GetRoadmapFiles() =
-        this.EnsureRoadmapDirectory()
+    member private self.GetRoadmapFiles() =
+        self.EnsureRoadmapDirectory()
         Directory.GetFiles(roadmapDirectory, "*.roadmap.yaml")
     
-    member private this.LoadRoadmapFromFile(filePath: string) =
+    member private self.LoadRoadmapFromFile(filePath: string) =
         try
             let content = File.ReadAllText(filePath)
             let roadmap = yamlDeserializer.Deserialize<obj>(content)
@@ -67,9 +67,9 @@ Examples:
             logger.LogWarning(ex, $"Failed to load roadmap from {filePath}")
             None
     
-    member private this.ListRoadmaps() =
+    member private self.ListRoadmaps() =
         try
-            let roadmapFiles = this.GetRoadmapFiles()
+            let roadmapFiles = self.GetRoadmapFiles()
             
             if roadmapFiles.Length = 0 then
                 Console.WriteLine("📋 No roadmaps found in .tars/roadmaps/")
@@ -83,7 +83,7 @@ Examples:
                     let fileInfo = FileInfo(file)
                     let lastModified = fileInfo.LastWriteTime.ToString("yyyy-MM-dd HH:mm")
                     
-                    match this.LoadRoadmapFromFile(file) with
+                    match self.LoadRoadmapFromFile(file) with
                     | Some roadmap ->
                         // Extract basic info from dynamic object
                         Console.WriteLine($"  🗺️  {fileName}")
@@ -101,9 +101,9 @@ Examples:
             logger.LogError(ex, "Error listing roadmaps")
             Console.WriteLine($"❌ Error listing roadmaps: {ex.Message}")
     
-    member private this.ShowRoadmapStatus() =
+    member private self.ShowRoadmapStatus() =
         try
-            let roadmapFiles = this.GetRoadmapFiles()
+            let roadmapFiles = self.GetRoadmapFiles()
             
             Console.WriteLine("📊 TARS Roadmap Status Overview")
             Console.WriteLine("===============================")
@@ -122,7 +122,7 @@ Examples:
                 let fileName = Path.GetFileNameWithoutExtension(file).Replace(".roadmap", "")
                 Console.WriteLine($"🗺️  {fileName}")
                 
-                match this.LoadRoadmapFromFile(file) with
+                match self.LoadRoadmapFromFile(file) with
                 | Some roadmap ->
                     Console.WriteLine("   ✅ Loaded successfully")
                     // Would extract and show progress info here
@@ -136,7 +136,7 @@ Examples:
             logger.LogError(ex, "Error showing roadmap status")
             Console.WriteLine($"❌ Error showing status: {ex.Message}")
     
-    member private this.ShowGranularTasks() =
+    member private self.ShowGranularTasks() =
         try
             Console.WriteLine("🔧 TARS Granular Task Breakdown")
             Console.WriteLine("===============================")
@@ -150,7 +150,7 @@ Examples:
                 Console.WriteLine($"📁 File: {Path.GetFileName(taskRoadmapFile)}")
                 Console.WriteLine()
                 
-                match this.LoadRoadmapFromFile(taskRoadmapFile) with
+                match self.LoadRoadmapFromFile(taskRoadmapFile) with
                 | Some roadmap ->
                     Console.WriteLine("✅ Task roadmap loaded successfully")
                     Console.WriteLine()
@@ -185,7 +185,7 @@ Examples:
             logger.LogError(ex, "Error showing granular tasks")
             Console.WriteLine($"❌ Error showing tasks: {ex.Message}")
     
-    member private this.ShowNextTasks() =
+    member private self.ShowNextTasks() =
         try
             Console.WriteLine("🎯 Next Recommended Tasks")
             Console.WriteLine("=========================")
@@ -220,7 +220,7 @@ Examples:
             logger.LogError(ex, "Error showing next tasks")
             Console.WriteLine($"❌ Error showing next tasks: {ex.Message}")
     
-    member private this.UpdateTaskStatus(taskId: string, status: string) =
+    member private self.UpdateTaskStatus(taskId: string, status: string) =
         try
             Console.WriteLine($"🔄 Updating Task: {taskId}")
             Console.WriteLine($"📝 New Status: {status}")
@@ -259,18 +259,18 @@ Examples:
             Console.WriteLine($"❌ Error updating task: {ex.Message}")
     
     interface ICommand with
-        member this.Name = "roadmap"
-        member this.Description = "Manage TARS roadmaps and track development progress"
-        member this.Usage = "tars roadmap <subcommand> [options]"
-        member this.Examples = [
+        member _.Name = "roadmap"
+        member self.Description = "Manage TARS roadmaps and track development progress"
+        member self.Usage = "tars roadmap <subcommand> [options]"
+        member self.Examples = [
             "tars roadmap list"
             "tars roadmap status"
             "tars roadmap tasks"
             "tars roadmap next"
         ]
-        member this.ValidateOptions(_) = true
+        member self.ValidateOptions(_) = true
 
-        member this.ExecuteAsync(options: CommandOptions) =
+        member self.ExecuteAsync(options: CommandOptions) =
             task {
                 match options.Arguments with
                 | [] | "help" :: _ ->

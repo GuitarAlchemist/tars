@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.FSharp.Cli.Commands
+namespace TarsEngine.FSharp.Cli.Commands
 
 open System
 open System.Threading.Tasks
@@ -12,17 +12,17 @@ type AnalyzeCommand() =
         
         member _.Description = "Analyze code quality and generate insights"
         
-        member _.Usage = "tars analyze [target] [options]"
+        member self.Usage = "tars analyze [target] [options]"
         
-        member _.Examples = [
+        member self.Examples = [
             "tars analyze ."
             "tars analyze --detailed"
             "tars analyze src/ --output report.json"
         ]
         
-        member _.ValidateOptions(options) = true
+        member self.ValidateOptions(options) = true
         
-        member _.ExecuteAsync(options) =
+        member self.ExecuteAsync(options) =
             Task.Run(fun () ->
                 try
                     let target =
@@ -55,27 +55,27 @@ type AnalyzeCommand() =
         Console.WriteLine("==================================")
 
         // Phase 1: Scan TARS codebase structure
-        let codebaseStructure = this.scanTarsCodebase targetPath
+        let codebaseStructure = self.scanTarsCodebase targetPath
         Console.WriteLine(sprintf "📁 Found %d F# files, %d projects" codebaseStructure.FSharpFiles codebaseStructure.ProjectFiles)
 
         // Phase 2: Analyze architecture
-        let architectureAnalysis = this.analyzeTarsArchitecture targetPath
+        let architectureAnalysis = self.analyzeTarsArchitecture targetPath
         Console.WriteLine(sprintf "🏗️ Architecture: %s" architectureAnalysis.Pattern)
 
         // Phase 3: Code quality assessment
-        let codeQuality = this.assessTarsCodeQuality targetPath
+        let codeQuality = self.assessTarsCodeQuality targetPath
         Console.WriteLine(sprintf "📊 Code Quality Score: %d/100" codeQuality.OverallScore)
 
         // Phase 4: Security audit
-        let securityAudit = this.auditTarsSecurity targetPath
+        let securityAudit = self.auditTarsSecurity targetPath
         Console.WriteLine(sprintf "🔒 Security Issues: %d critical, %d high" securityAudit.Critical securityAudit.High)
 
         // Phase 5: Performance analysis
-        let performanceAnalysis = this.analyzeTarsPerformance targetPath
+        let performanceAnalysis = self.analyzeTarsPerformance targetPath
         Console.WriteLine(sprintf "⚡ Performance Score: %d/100" performanceAnalysis.Score)
 
         // Phase 6: Generate report
-        let report = this.generateSelfAnalysisReport codebaseStructure architectureAnalysis codeQuality securityAudit performanceAnalysis
+        let report = self.generateSelfAnalysisReport codebaseStructure architectureAnalysis codeQuality securityAudit performanceAnalysis
 
         let outputFile =
             match outputPath with

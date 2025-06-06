@@ -9,7 +9,7 @@ open TarsEngine.FSharp.Cli.Core.Types
 /// Simple Transformer Demo Command for TARS
 type SimpleTransformerCommand(logger: ILogger<SimpleTransformerCommand>) =
 
-    member private this.ShowTransformerHeader() =
+    member private self.ShowTransformerHeader() =
         AnsiConsole.Clear()
 
         let headerPanel = Panel("""[bold cyan]🤖 TARS Transformer Demo[/]
@@ -26,9 +26,9 @@ type SimpleTransformerCommand(logger: ILogger<SimpleTransformerCommand>) =
         AnsiConsole.Write(headerPanel)
         AnsiConsole.WriteLine()
 
-    member private this.ShowModelRecommendations() =
+    member private self.ShowModelRecommendations() =
         task {
-            this.ShowTransformerHeader()
+            self.ShowTransformerHeader()
 
             AnsiConsole.MarkupLine("[bold cyan]🎯 Recommended Transformer Models for TARS[/]")
             AnsiConsole.WriteLine()
@@ -74,10 +74,10 @@ type SimpleTransformerCommand(logger: ILogger<SimpleTransformerCommand>) =
             AnsiConsole.MarkupLine("[dim]This showcases the power of TARS + Mixtral MoE capabilities[/]")
         }
 
-    member private this.DownloadAllMissingModels() =
+    member private self.DownloadAllMissingModels() =
         task {
             AnsiConsole.Clear()
-            this.ShowTransformerHeader()
+            self.ShowTransformerHeader()
 
             AnsiConsole.MarkupLine("[bold cyan]📥 Downloading All Missing MoE Expert Models[/]")
             AnsiConsole.WriteLine()
@@ -90,14 +90,14 @@ type SimpleTransformerCommand(logger: ILogger<SimpleTransformerCommand>) =
             ]
 
             for modelId in modelsToDownload do
-                do! this.DownloadSpecificModel(modelId)
+                do! self.DownloadSpecificModel(modelId)
                 AnsiConsole.WriteLine()
         }
 
-    member private this.DownloadRealModel(modelArg: string option) =
+    member private self.DownloadRealModel(modelArg: string option) =
         task {
             AnsiConsole.Clear()
-            this.ShowTransformerHeader()
+            self.ShowTransformerHeader()
 
             AnsiConsole.MarkupLine("[bold cyan]📥 Real Model Download[/]")
             AnsiConsole.WriteLine()
@@ -138,10 +138,10 @@ type SimpleTransformerCommand(logger: ILogger<SimpleTransformerCommand>) =
                         AnsiConsole.MarkupLine("[yellow]⚠️ Non-interactive mode detected. Downloading default model...[/]")
                         modelChoices.[0]
 
-            do! this.DownloadSpecificModel(choice)
+            do! self.DownloadSpecificModel(choice)
         }
 
-    member private this.DownloadSpecificModel(choice: string) =
+    member private self.DownloadSpecificModel(choice: string) =
         task {
 
             AnsiConsole.WriteLine()
@@ -199,34 +199,34 @@ type SimpleTransformerCommand(logger: ILogger<SimpleTransformerCommand>) =
     interface ICommand with
         member _.Name = "transformer"
         member _.Description = "Real transformer model download and recommendations"
-        member _.Usage = "tars transformer [models|download [model-id]|download-all]"
-        member _.Examples = [
+        member self.Usage = "tars transformer [models|download [model-id]|download-all]"
+        member self.Examples = [
             "tars transformer models"
             "tars transformer download"
             "tars transformer download distilbert-base-uncased"
             "tars transformer download microsoft/codebert-base"
             "tars transformer download-all"
         ]
-        member _.ValidateOptions(options) = true
+        member self.ValidateOptions(options) = true
 
-        member this.ExecuteAsync(options) =
+        member self.ExecuteAsync(options) =
             task {
                 try
                     match options.Arguments with
                     | "models" :: _ ->
-                        do! this.ShowModelRecommendations()
+                        do! self.ShowModelRecommendations()
                         return CommandResult.success("Model recommendations displayed")
                     | "download" :: [] ->
-                        do! this.DownloadRealModel(None)
+                        do! self.DownloadRealModel(None)
                         return CommandResult.success("Real model download completed")
                     | "download" :: modelId :: _ ->
-                        do! this.DownloadRealModel(Some modelId)
+                        do! self.DownloadRealModel(Some modelId)
                         return CommandResult.success($"Model {modelId} download completed")
                     | "download-all" :: _ ->
-                        do! this.DownloadAllMissingModels()
+                        do! self.DownloadAllMissingModels()
                         return CommandResult.success("All missing models downloaded")
                     | [] ->
-                        do! this.ShowModelRecommendations()
+                        do! self.ShowModelRecommendations()
                         return CommandResult.success("Transformer demo completed")
                     | unknown :: _ ->
                         AnsiConsole.MarkupLine($"[red]❌ Unknown transformer command: {unknown}[/]")

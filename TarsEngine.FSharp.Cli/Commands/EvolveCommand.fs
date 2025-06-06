@@ -16,43 +16,43 @@ type EvolveCommand(logger: ILogger<EvolveCommand>) =
     interface ICommand with
         member _.Name = "evolve"
         member _.Description = "Real auto-evolution system - performance monitoring and iterative improvement"
-        member _.Usage = "tars evolve <subcommand>"
-        member _.Examples = [
+        member self.Usage = "tars evolve <subcommand>"
+        member self.Examples = [
             "tars evolve start"
             "tars evolve status"
             "tars evolve analyze"
             "tars evolve benchmark"
         ]
-        member _.ValidateOptions(_) = true
+        member self.ValidateOptions(_) = true
 
-        member _.ExecuteAsync(options: CommandOptions) =
+        member self.ExecuteAsync(options: CommandOptions) =
             task {
                 try
                     match options.Arguments with
                     | [] ->
-                        this.ShowEvolveHelp()
+                        self.ShowEvolveHelp()
                         return CommandResult.success "Help displayed"
                     | "start" :: _ ->
-                        let result = this.StartEvolution()
+                        let result = self.StartEvolution()
                         return if result = 0 then CommandResult.success "Evolution started" else CommandResult.failure "Failed to start evolution"
                     | "status" :: _ ->
-                        let result = this.ShowEvolutionStatus()
+                        let result = self.ShowEvolutionStatus()
                         return if result = 0 then CommandResult.success "Status shown" else CommandResult.failure "Failed to show status"
                     | "analyze" :: _ ->
-                        let result = this.AnalyzePerformance()
+                        let result = self.AnalyzePerformance()
                         return if result = 0 then CommandResult.success "Analysis complete" else CommandResult.failure "Analysis failed"
                     | "improve" :: _ ->
-                        let result = this.ApplyImprovements()
+                        let result = self.ApplyImprovements()
                         return if result = 0 then CommandResult.success "Improvements applied" else CommandResult.failure "Failed to apply improvements"
                     | "benchmark" :: _ ->
-                        let result = this.RunBenchmarks()
+                        let result = self.RunBenchmarks()
                         return if result = 0 then CommandResult.success "Benchmarks complete" else CommandResult.failure "Benchmarks failed"
                     | "stop" :: _ ->
-                        let result = this.StopEvolution()
+                        let result = self.StopEvolution()
                         return if result = 0 then CommandResult.success "Evolution stopped" else CommandResult.failure "Failed to stop evolution"
                     | unknown :: _ ->
                         logger.LogWarning("Invalid evolve command: {Command}", String.Join(" ", unknown))
-                        this.ShowEvolveHelp()
+                        self.ShowEvolveHelp()
                         return CommandResult.failure $"Unknown subcommand: {unknown}"
                 with
                 | ex ->
@@ -64,7 +64,7 @@ type EvolveCommand(logger: ILogger<EvolveCommand>) =
     /// <summary>
     /// Shows evolution command help
     /// </summary>
-    member _.ShowEvolveHelp() =
+    member self.ShowEvolveHelp() =
         printfn "TARS Real Auto-Evolution System"
         printfn "==============================="
         printfn ""
@@ -88,7 +88,7 @@ type EvolveCommand(logger: ILogger<EvolveCommand>) =
     /// <summary>
     /// Gets evolution data directory
     /// </summary>
-    member _.GetEvolutionDir() =
+    member self.GetEvolutionDir() =
         let evolutionDir = ".tars/evolution"
         Directory.CreateDirectory(evolutionDir) |> ignore
         evolutionDir
@@ -96,14 +96,14 @@ type EvolveCommand(logger: ILogger<EvolveCommand>) =
     /// <summary>
     /// Starts the evolution process
     /// </summary>
-    member _.StartEvolution() =
+    member self.StartEvolution() =
         printfn "STARTING REAL AUTO-EVOLUTION"
         printfn "============================"
         
         try
-            let evolutionDir = this.GetEvolutionDir()
+            let evolutionDir = self.GetEvolutionDir()
             let startTime = DateTime.UtcNow
-            
+
             // Create evolution session
             let sessionId = Guid.NewGuid().ToString("N")[..7]
             let session = {|
@@ -131,7 +131,7 @@ type EvolveCommand(logger: ILogger<EvolveCommand>) =
             
             // Run initial analysis
             printfn "🔍 Running initial performance analysis..."
-            let analysisResult = this.AnalyzePerformance()
+            let analysisResult = self.AnalyzePerformance()
             
             if analysisResult = 0 then
                 printfn "✅ Evolution process started successfully"
@@ -150,12 +150,12 @@ type EvolveCommand(logger: ILogger<EvolveCommand>) =
     /// <summary>
     /// Shows current evolution status
     /// </summary>
-    member _.ShowEvolutionStatus() =
+    member self.ShowEvolutionStatus() =
         printfn "EVOLUTION STATUS"
         printfn "==============="
         
         try
-            let evolutionDir = this.GetEvolutionDir()
+            let evolutionDir = self.GetEvolutionDir()
             let sessionFiles = Directory.GetFiles(evolutionDir, "session-*.json")
             
             if sessionFiles.Length = 0 then
@@ -202,27 +202,27 @@ type EvolveCommand(logger: ILogger<EvolveCommand>) =
     /// <summary>
     /// Analyzes current performance
     /// </summary>
-    member _.AnalyzePerformance() =
+    member self.AnalyzePerformance() =
         printfn "ANALYZING PERFORMANCE"
         printfn "===================="
         
         try
-            let evolutionDir = this.GetEvolutionDir()
+            let evolutionDir = self.GetEvolutionDir()
             let analysisTime = DateTime.UtcNow
-            
+
             printfn "🔍 Collecting performance metrics..."
-            
+
             // Real performance analysis
             let stopwatch = Stopwatch.StartNew()
-            
+
             // Analyze metascript execution performance
-            let metascriptPerf = this.BenchmarkMetascriptExecution()
-            
+            let metascriptPerf = self.BenchmarkMetascriptExecution()
+
             // Analyze memory usage
             let memoryUsage = GC.GetTotalMemory(false) / (1024L * 1024L) // MB
-            
+
             // Analyze file I/O performance
-            let ioPerf = this.BenchmarkFileIO()
+            let ioPerf = self.BenchmarkFileIO()
             
             stopwatch.Stop()
             
@@ -284,7 +284,7 @@ type EvolveCommand(logger: ILogger<EvolveCommand>) =
     /// <summary>
     /// Benchmarks metascript execution
     /// </summary>
-    member _.BenchmarkMetascriptExecution() =
+    member self.BenchmarkMetascriptExecution() =
         let stopwatch = Stopwatch.StartNew()
         
         // Simulate metascript parsing and execution
@@ -295,12 +295,12 @@ type EvolveCommand(logger: ILogger<EvolveCommand>) =
             ignore parsed
         
         stopwatch.Stop()
-        stopwatch.ElapsedMilliseconds
+        int stopwatch.ElapsedMilliseconds
     
     /// <summary>
     /// Benchmarks file I/O performance
     /// </summary>
-    member _.BenchmarkFileIO() =
+    member self.BenchmarkFileIO() =
         let stopwatch = Stopwatch.StartNew()
         let tempFile = Path.GetTempFileName()
         
@@ -314,14 +314,14 @@ type EvolveCommand(logger: ILogger<EvolveCommand>) =
             ignore readData
             
             stopwatch.Stop()
-            stopwatch.ElapsedMilliseconds
+            int stopwatch.ElapsedMilliseconds
         finally
             if File.Exists(tempFile) then File.Delete(tempFile)
     
     /// <summary>
     /// Applies identified improvements
     /// </summary>
-    member _.ApplyImprovements() =
+    member self.ApplyImprovements() =
         printfn "APPLYING IMPROVEMENTS"
         printfn "===================="
         
@@ -355,15 +355,15 @@ type EvolveCommand(logger: ILogger<EvolveCommand>) =
     /// <summary>
     /// Runs performance benchmarks
     /// </summary>
-    member _.RunBenchmarks() =
+    member self.RunBenchmarks() =
         printfn "RUNNING PERFORMANCE BENCHMARKS"
         printfn "=============================="
         
         try
             printfn "🏃 Running benchmark suite..."
-            
-            let metascriptTime = this.BenchmarkMetascriptExecution()
-            let ioTime = this.BenchmarkFileIO()
+
+            let metascriptTime = self.BenchmarkMetascriptExecution()
+            let ioTime = self.BenchmarkFileIO()
             let memoryBefore = GC.GetTotalMemory(true)
             
             // Memory allocation test
@@ -399,12 +399,12 @@ type EvolveCommand(logger: ILogger<EvolveCommand>) =
     /// <summary>
     /// Stops the evolution process
     /// </summary>
-    member _.StopEvolution() =
+    member self.StopEvolution() =
         printfn "STOPPING EVOLUTION PROCESS"
         printfn "=========================="
         
         try
-            let evolutionDir = this.GetEvolutionDir()
+            let evolutionDir = self.GetEvolutionDir()
             let sessionFiles = Directory.GetFiles(evolutionDir, "session-*.json")
             
             if sessionFiles.Length = 0 then

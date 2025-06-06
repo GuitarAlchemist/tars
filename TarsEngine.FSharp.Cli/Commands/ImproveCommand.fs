@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.FSharp.Cli.Commands
+namespace TarsEngine.FSharp.Cli.Commands
 
 open System
 open System.Threading.Tasks
@@ -12,16 +12,16 @@ type ImproveCommand() =
         
         member _.Description = "Run auto-improvement pipeline"
         
-        member _.Usage = "tars improve [options]"
+        member self.Usage = "tars improve [options]"
         
-        member _.Examples = [
+        member self.Examples = [
             "tars improve"
             "tars improve --dry-run"
         ]
         
-        member _.ValidateOptions(_) = true
+        member self.ValidateOptions(_) = true
         
-        member _.ExecuteAsync(options) =
+        member self.ExecuteAsync(options) =
             Task.Run(fun () ->
                 // For now, just simulate the improvement process
                 Console.WriteLine("Running auto-improvement pipeline...")

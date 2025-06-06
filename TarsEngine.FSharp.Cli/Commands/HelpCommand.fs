@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.FSharp.Cli.Commands
+namespace TarsEngine.FSharp.Cli.Commands
 
 open System
 open System.Text
@@ -13,16 +13,16 @@ type HelpCommand(commands: ICommand list) =
         
         member _.Description = "Display help information"
         
-        member _.Usage = "tars help [command]"
+        member self.Usage = "tars help [command]"
         
-        member _.Examples = [
+        member self.Examples = [
             "tars help"
             "tars help improve"
         ]
         
-        member _.ValidateOptions(_) = true
+        member self.ValidateOptions(_) = true
         
-        member _.ExecuteAsync(options) =
+        member self.ExecuteAsync(options) =
             Task.Run(fun () ->
                 let sb = StringBuilder()
                 

@@ -1,0 +1,93 @@
+{
+  "QualityMetrics": {
+    "UXScore": 0.0,
+    "TotalIssues": 0,
+    "CriticalIssues": 0,
+    "FixesApplied": 0,
+    "CompilationWarnings": 25,
+    "PerformanceScore": 0.0,
+    "TestCoverage": 0.0
+  },
+  "MissionId": "cli-qa-20250603-143628",
+  "TotalFixes": 0,
+  "Recommendations": [],
+  "Duration": {
+    "Ticks": 23334416,
+    "Days": 0,
+    "Hours": 0,
+    "Milliseconds": 333,
+    "Microseconds": 441,
+    "Nanoseconds": 600,
+    "Minutes": 0,
+    "Seconds": 2,
+    "TotalDays": 2.7007425925925925E-05,
+    "TotalHours": 0.0006481782222222222,
+    "TotalMilliseconds": 2333.4416,
+    "TotalMicroseconds": 2333441.6,
+    "TotalNanoseconds": 2333441600.0,
+    "TotalMinutes": 0.03889069333333333,
+    "TotalSeconds": 2.3334416
+  },
+  "StartTime": "2025-06-03T14:36:28.725338-04:00",
+  "Phase": "analysis",
+  "EndTime": "2025-06-03T14:36:31.0587796-04:00",
+  "AgentResults": {
+    "CodeAnalysisAgent": {
+      "Recommendations": [
+        "Address compilation warnings to improve code quality",
+        "Consider using proper async/await patterns",
+        "Consider using proper async/await patterns",
+        "Consider using proper async/await patterns",
+        "Consider using proper async/await patterns",
+        "Consider using proper async/await patterns",
+        "Consider using proper async/await patterns",
+        "Consider using proper async/await patterns",
+        "Consider using proper async/await patterns",
+        "Consider using proper async/await patterns",
+        "Consider using proper async/await patterns",
+        "Consider using proper async/await patterns",
+        "Consider using proper async/await patterns",
+        "Consider using proper async/await patterns",
+        "Consider using proper async/await patterns",
+        "Consider using proper async/await patterns",
+        "Consider using proper async/await patterns",
+        "Consider using proper async/await patterns",
+        "Consider using proper async/await patterns",
+        "Consider using proper async/await patterns"
+      ],
+      "Success": true,
+      "Issues": [
+        "Found 25 compilation warnings",
+        "Potential unsafe .Result usage in Program.fs",
+        "Potential unsafe .Result usage in VMDeploymentCommand.fs",
+        "Potential unsafe .Result usage in IntelligenceCommand.fs",
+        "Found 2 TODO/FIXME comments in LiveEndpointsCommand.fs",
+        "Potential unsafe .Result usage in LiveEndpointsCommand.fs",
+        "Potential unsafe .Result usage in MetascriptCommand.fs",
+        "Potential unsafe .Result usage in MetascriptListCommand.fs",
+        "Potential unsafe .Result usage in MLCommand.fs",
+        "Potential unsafe .Result usage in SelfChatCommand.fs",
+        "Potential unsafe .Result usage in VMCommand.fs",
+        "Found 5 TODO/FIXME comments in WebApiCommand.fs",
+        "Potential unsafe .Result usage in AutoImprovementCommandTests.fs",
+        "Potential unsafe .Result usage in CodeAnalysisCommandTests.fs",
+        "Potential unsafe .Result usage in DemoCommandTests.fs",
+        "Potential unsafe .Result usage in ImprovementWorkflowCommandTests.fs",
+        "Potential unsafe .Result usage in McpCommandTests.fs",
+        "Potential unsafe .Result usage in SelfCodingCommandTests.fs",
+        "Potential unsafe .Result usage in TestGeneratorCommandTests.fs",
+        "Potential unsafe .Result usage in TotAutoImprovementCommandTests.fs",
+        "Potential unsafe .Result usage in VSCodeControlCommandTests.fs",
+        "Potential unsafe .Result usage in CliApplication.fs"
+      ],
+      "Metrics": {
+        "CompilationWarnings": 25
+      },
+      "Fixes": [],
+      "Evidence": [
+        "output/qa-reports/compilation-warnings.txt"
+      ]
+    }
+  },
+  "TotalIssues": 22
+}

@@ -15,43 +15,43 @@ type ConfigCommand(logger: ILogger<ConfigCommand>) =
     interface ICommand with
         member _.Name = "config"
         member _.Description = "Manage TARS configuration and settings"
-        member _.Usage = "tars config <subcommand> [options]"
-        member _.Examples = [
+        member self.Usage = "tars config <subcommand> [options]"
+        member self.Examples = [
             "tars config show"
             "tars config set log_level debug"
             "tars config get log_level"
             "tars config init"
         ]
-        member _.ValidateOptions(_) = true
+        member self.ValidateOptions(_) = true
 
-        member _.ExecuteAsync(options: CommandOptions) =
+        member self.ExecuteAsync(options: CommandOptions) =
             task {
                 try
                     match options.Arguments with
                     | [] ->
-                        this.ShowConfigHelp()
+                        self.ShowConfigHelp()
                         return CommandResult.success "Help displayed"
                     | "show" :: _ ->
-                        let result = this.ShowCurrentConfig()
+                        let result = self.ShowCurrentConfig()
                         return if result = 0 then CommandResult.success "Config shown" else CommandResult.failure "Failed to show config"
                     | "set" :: key :: value :: _ ->
-                        let result = this.SetConfigValue(key, value)
+                        let result = self.SetConfigValue(key, value)
                         return if result = 0 then CommandResult.success "Config set" else CommandResult.failure "Failed to set config"
                     | "get" :: key :: _ ->
-                        let result = this.GetConfigValue(key)
+                        let result = self.GetConfigValue(key)
                         return if result = 0 then CommandResult.success "Config retrieved" else CommandResult.failure "Failed to get config"
                     | "list" :: _ ->
-                        let result = this.ListAllConfig()
+                        let result = self.ListAllConfig()
                         return if result = 0 then CommandResult.success "Config listed" else CommandResult.failure "Failed to list config"
                     | "reset" :: _ ->
-                        let result = this.ResetConfig()
+                        let result = self.ResetConfig()
                         return if result = 0 then CommandResult.success "Config reset" else CommandResult.failure "Failed to reset config"
                     | "init" :: _ ->
-                        let result = this.InitializeConfig()
+                        let result = self.InitializeConfig()
                         return if result = 0 then CommandResult.success "Config initialized" else CommandResult.failure "Failed to initialize config"
                     | unknown :: _ ->
                         logger.LogWarning("Invalid config command: {Command}", String.Join(" ", unknown))
-                        this.ShowConfigHelp()
+                        self.ShowConfigHelp()
                         return CommandResult.failure $"Unknown subcommand: {unknown}"
                 with
                 | ex ->
@@ -63,7 +63,7 @@ type ConfigCommand(logger: ILogger<ConfigCommand>) =
     /// <summary>
     /// Shows configuration command help
     /// </summary>
-    member _.ShowConfigHelp() =
+    member self.ShowConfigHelp() =
         printfn "TARS Configuration Management"
         printfn "============================"
         printfn ""
@@ -87,7 +87,7 @@ type ConfigCommand(logger: ILogger<ConfigCommand>) =
     /// <summary>
     /// Gets the configuration file path
     /// </summary>
-    member _.GetConfigPath() =
+    member self.GetConfigPath() =
         let configDir = ".tars/config"
         Directory.CreateDirectory(configDir) |> ignore
         Path.Combine(configDir, "settings.json")

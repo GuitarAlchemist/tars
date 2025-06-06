@@ -15,7 +15,7 @@ type SummarizeCommand() =
     let blockParser = SummarizeBlockParser()
     
     /// Display summarization result
-    member private this.DisplaySummary(result: SummarizationResult) =
+    member private self.DisplaySummary(result: SummarizationResult) =
         let panel = Panel(Align.Left)
         panel.Header <- PanelHeader($"📄 {result.Level} Summary")
         panel.Border <- BoxBorder.Rounded
@@ -44,7 +44,7 @@ type SummarizeCommand() =
         AnsiConsole.Write(panel)
     
     /// Display multi-level summary
-    member private this.DisplayMultiLevelSummary(multiLevel: MultiLevelSummary) =
+    member private self.DisplayMultiLevelSummary(multiLevel: MultiLevelSummary) =
         AnsiConsole.MarkupLine($"[bold cyan]📊 Multi-Level Summary Results[/]")
         AnsiConsole.MarkupLine($"[dim]Original Length: {multiLevel.OriginalLength} characters[/]")
         AnsiConsole.MarkupLine($"[dim]Overall Quality: {multiLevel.OverallQuality:P1}[/]")
@@ -52,11 +52,11 @@ type SummarizeCommand() =
         AnsiConsole.WriteLine()
         
         for kvp in multiLevel.Summaries do
-            this.DisplaySummary(kvp.Value)
+            self.DisplaySummary(kvp.Value)
             AnsiConsole.WriteLine()
     
     /// Summarize text with single level
-    member this.SummarizeSingle(text: string, level: SummarizationLevel, ?moeConsensus: bool, ?autoCorrect: bool) =
+    member self.SummarizeSingle(text: string, level: SummarizationLevel, ?moeConsensus: bool, ?autoCorrect: bool) =
         let moeConsensus = defaultArg moeConsensus true
         let autoCorrect = defaultArg autoCorrect true
         
@@ -81,10 +81,10 @@ type SummarizeCommand() =
         }
         
         let result = summarizer.SummarizeLevel(text, level, config)
-        this.DisplaySummary(result)
+        self.DisplaySummary(result)
     
     /// Summarize text with multiple levels
-    member this.SummarizeMultiLevel(text: string, ?levels: SummarizationLevel list, ?moeConsensus: bool) =
+    member self.SummarizeMultiLevel(text: string, ?levels: SummarizationLevel list, ?moeConsensus: bool) =
         let levels = defaultArg levels [SummarizationLevel.Executive; SummarizationLevel.Tactical; SummarizationLevel.Operational]
         let moeConsensus = defaultArg moeConsensus true
         
@@ -109,10 +109,10 @@ type SummarizeCommand() =
         }
         
         let result = summarizer.SummarizeMultiLevel(text, config)
-        this.DisplayMultiLevelSummary(result)
+        self.DisplayMultiLevelSummary(result)
     
     /// Compare two summaries
-    member this.CompareSummaries(text: string, level: SummarizationLevel) =
+    member self.CompareSummaries(text: string, level: SummarizationLevel) =
         AnsiConsole.MarkupLine($"[bold magenta]⚖️ Comparing summarization approaches...[/]")
         AnsiConsole.WriteLine()
         
@@ -145,11 +145,11 @@ type SummarizeCommand() =
         let result2 = summarizer.SummarizeLevel(text, level, config2)
         
         AnsiConsole.MarkupLine("[bold]Approach 1: Clarity-Focused[/]")
-        this.DisplaySummary(result1)
+        self.DisplaySummary(result1)
         AnsiConsole.WriteLine()
         
         AnsiConsole.MarkupLine("[bold]Approach 2: Brevity-Focused[/]")
-        this.DisplaySummary(result2)
+        self.DisplaySummary(result2)
         AnsiConsole.WriteLine()
         
         let comparison = summarizer.CompareSummaries(result1, result2)
@@ -175,7 +175,7 @@ type SummarizeCommand() =
         AnsiConsole.MarkupLine($"[{recommendationColor}]Recommendation: {comparison.Recommendation}[/]")
     
     /// Interactive summarization session
-    member this.Interactive() =
+    member self.Interactive() =
         AnsiConsole.Clear()
         AnsiConsole.Write(
             FigletText("TARS Summarizer")
@@ -224,12 +224,12 @@ type SummarizeCommand() =
                     | _ -> SummarizationLevel.Tactical
                 
                 AnsiConsole.WriteLine()
-                this.SummarizeSingle(text, level)
+                self.SummarizeSingle(text, level)
             
             | "Multi-level summary" ->
                 let text = AnsiConsole.Ask<string>("Enter the text to summarize:")
                 AnsiConsole.WriteLine()
-                this.SummarizeMultiLevel(text)
+                self.SummarizeMultiLevel(text)
             
             | "Compare approaches" ->
                 let text = AnsiConsole.Ask<string>("Enter the text to summarize:")
@@ -247,19 +247,19 @@ type SummarizeCommand() =
                     | _ -> SummarizationLevel.Tactical
                 
                 AnsiConsole.WriteLine()
-                this.CompareSummaries(text, level)
+                self.CompareSummaries(text, level)
             
             | "Batch process file" ->
                 let inputFile = AnsiConsole.Ask<string>("Enter input file path:")
                 let outputFile = AnsiConsole.Ask<string>("Enter output file path:")
                 AnsiConsole.WriteLine()
-                this.BatchProcess(inputFile, outputFile)
+                self.BatchProcess(inputFile, outputFile)
             
             | "Test DSL block" ->
-                this.TestDslBlock()
+                self.TestDslBlock()
             
             | "View system stats" ->
-                this.ShowSystemStats()
+                self.ShowSystemStats()
             
             | "Exit" ->
                 continueSession <- false
@@ -273,7 +273,7 @@ type SummarizeCommand() =
                 AnsiConsole.Clear()
     
     /// Batch process file
-    member this.BatchProcess(inputFile: string, outputFile: string) =
+    member self.BatchProcess(inputFile: string, outputFile: string) =
         if not (File.Exists(inputFile)) then
             AnsiConsole.MarkupLine($"[red]Error: Input file '{inputFile}' not found[/]")
         else
@@ -311,7 +311,7 @@ type SummarizeCommand() =
                 AnsiConsole.MarkupLine($"[red]Error during batch processing: {ex.Message}[/]")
     
     /// Test DSL block functionality
-    member this.TestDslBlock() =
+    member self.TestDslBlock() =
         AnsiConsole.MarkupLine("[bold cyan]🧪 Testing SUMMARIZE DSL Block[/]")
         AnsiConsole.WriteLine()
         
@@ -345,7 +345,7 @@ type SummarizeCommand() =
                 AnsiConsole.WriteLine()
                 
                 match result.Output with
-                | Some summary -> this.DisplayMultiLevelSummary(summary)
+                | Some summary -> self.DisplayMultiLevelSummary(summary)
                 | None -> AnsiConsole.MarkupLine("[yellow]No output generated[/]")
             else
                 AnsiConsole.MarkupLine("[red]❌ DSL block execution failed[/]")
@@ -355,7 +355,7 @@ type SummarizeCommand() =
             AnsiConsole.MarkupLine("[red]❌ Failed to parse DSL block[/]")
     
     /// Show system statistics
-    member this.ShowSystemStats() =
+    member self.ShowSystemStats() =
         let stats = summarizer.GetSystemStats()
         
         let panel = Panel(Align.Left)
@@ -378,7 +378,7 @@ type SummarizeCommand() =
         AnsiConsole.Write(panel)
     
     /// Show DSL syntax help
-    member this.ShowDslSyntax() =
+    member self.ShowDslSyntax() =
         let syntaxHelp = blockParser.GetSyntaxHelp()
         
         let panel = Panel(Align.Left)

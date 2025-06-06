@@ -16,7 +16,7 @@ open TarsEngine.FSharp.Agents.AgentOrchestrator
 type TeamsCommand(logger: ILogger<TeamsCommand>) =
     
     /// Display all available specialized teams
-    member private this.DisplayAvailableTeams() =
+    member private self.DisplayAvailableTeams() =
         task {
             AnsiConsole.Clear()
             
@@ -49,7 +49,7 @@ type TeamsCommand(logger: ILogger<TeamsCommand>) =
         }
     
     /// Display team details
-    member private this.DisplayTeamDetails(teamName: string) =
+    member private self.DisplayTeamDetails(teamName: string) =
         task {
             match getTeamByName teamName with
             | Some team ->
@@ -91,7 +91,7 @@ type TeamsCommand(logger: ILogger<TeamsCommand>) =
         }
     
     /// Create and deploy a specialized team
-    member private this.CreateTeam(teamName: string) =
+    member private self.CreateTeam(teamName: string) =
         task {
             match getTeamByName teamName with
             | Some teamConfig ->
@@ -148,7 +148,7 @@ type TeamsCommand(logger: ILogger<TeamsCommand>) =
         }
     
     /// Display team creation demo
-    member private this.RunTeamDemo() =
+    member private self.RunTeamDemo() =
         task {
             AnsiConsole.Clear()
             
@@ -159,7 +159,7 @@ type TeamsCommand(logger: ILogger<TeamsCommand>) =
             
             for teamName in demoTeams do
                 AnsiConsole.MarkupLine($"[yellow]🚀 Demonstrating {teamName}...[/]")
-                do! this.CreateTeam(teamName)
+                do! self.CreateTeam(teamName)
                 AnsiConsole.WriteLine()
                 do! Task.Delay(1000)
             
@@ -167,7 +167,7 @@ type TeamsCommand(logger: ILogger<TeamsCommand>) =
         }
     
     /// Display help information
-    member private this.DisplayHelp() =
+    member private self.DisplayHelp() =
         task {
             let helpText = """
 [bold cyan]🤖 TARS Teams Command Help[/]
@@ -210,40 +210,40 @@ type TeamsCommand(logger: ILogger<TeamsCommand>) =
     interface ICommand with
         member _.Name = "teams"
         member _.Description = "Manage specialized agent teams (DevOps, Technical Writers, Architecture, Direction, Innovation, ML, UX, AI)"
-        member _.Usage = "tars teams <subcommand> [options]"
-        member _.Examples = [
+        member self.Usage = "tars teams <subcommand> [options]"
+        member self.Examples = [
             "tars teams list"
             "tars teams details \"DevOps Team\""
             "tars teams create \"AI Team\""
             "tars teams demo"
         ]
-        member _.ValidateOptions(_) = true
+        member self.ValidateOptions(_) = true
 
-        member this.ExecuteAsync(options) =
+        member self.ExecuteAsync(options) =
             task {
                 try
                     match options.Arguments with
                     | "list" :: _ ->
-                        do! this.DisplayAvailableTeams()
+                        do! self.DisplayAvailableTeams()
                         return CommandResult.success("Teams listed successfully")
                     | "details" :: teamName :: _ ->
-                        do! this.DisplayTeamDetails(teamName)
+                        do! self.DisplayTeamDetails(teamName)
                         return CommandResult.success($"Team details displayed for {teamName}")
                     | "create" :: teamName :: _ ->
-                        do! this.CreateTeam(teamName)
+                        do! self.CreateTeam(teamName)
                         return CommandResult.success($"Team {teamName} created successfully")
                     | "demo" :: _ ->
-                        do! this.RunTeamDemo()
+                        do! self.RunTeamDemo()
                         return CommandResult.success("Team demo completed")
                     | "help" :: _ ->
-                        do! this.DisplayHelp()
+                        do! self.DisplayHelp()
                         return CommandResult.success("Help displayed")
                     | [] ->
-                        do! this.DisplayAvailableTeams()
+                        do! self.DisplayAvailableTeams()
                         return CommandResult.success("Teams listed successfully")
                     | unknown :: _ ->
                         AnsiConsole.MarkupLine($"[red]❌ Unknown teams subcommand: {unknown}[/]")
-                        do! this.DisplayHelp()
+                        do! self.DisplayHelp()
                         return CommandResult.failure($"Unknown subcommand: {unknown}")
                 with
                 | ex ->

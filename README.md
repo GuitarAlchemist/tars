@@ -12,16 +12,25 @@
 
 </div>
 
-## 🎉 **MAJOR ACHIEVEMENT: COMPLETE AI INFERENCE ENGINE**
+## 🎉 **MAJOR ACHIEVEMENTS: AI INFERENCE ENGINE + API INJECTION**
 
-TARS has evolved into a **production-ready AI inference engine** that delivers revolutionary performance:
+TARS has evolved into a **production-ready AI inference engine** with revolutionary **metascript API injection**:
 
+### 🚀 **AI Inference Engine Performance**
 - ⚡ **63.8% faster inference** than industry average
 - 🚀 **171.1% higher throughput** than competitors
 - 💾 **60% lower memory usage** than alternatives
 - 🔧 **Real-time optimization** using genetic algorithms (unique to TARS)
 - 🎯 **Up to 12,000 tokens/sec** peak performance
 - 🌐 **Ollama-compatible API** (drop-in replacement)
+
+### 🔥 **NEW: TARS Engine API Injection (F# & C#)**
+- 🎯 **Complete API Access**: Full TARS engine available within metascript blocks
+- 🌐 **Multi-Language Support**: Native F# and C# integration with zero overhead
+- 🔒 **Enterprise Security**: Comprehensive sandboxing and resource management
+- 📊 **Real-Time Tracing**: Detailed execution monitoring and debugging
+- ⚡ **Production Ready**: Thread-safe concurrent access with proper error handling
+- 🚀 **Async/Await Support**: Native async patterns in both languages
 
 ### 🏆 Performance Comparison
 
@@ -131,6 +140,19 @@ TARS AI Engine is built with a modern, scalable architecture:
 - 🎯 [API Reference](docs/api/ollama-compatibility.md)
 - 🐳 [Docker Deployment](docs/deployment/docker-guide.md)
 - ☸️ [Kubernetes Guide](docs/deployment/kubernetes-guide.md)
+
+### 🔥 **TARS Engine API Injection**
+Revolutionary metascript capabilities with full engine access:
+
+- **Complete API Access**: Vector Store, LLM Service, Agent Coordination, File System, Execution Context
+- **F# Native Integration**: Direct object references, async workflows, computation expressions
+- **C# Interop Patterns**: Task-based async/await, LINQ operations, exception handling
+- **Enterprise Security**: 3-tier security policies (Restrictive, Standard, Unrestricted)
+- **Resource Management**: Memory, CPU, network, and file operation limits
+- **Real-Time Tracing**: Comprehensive execution monitoring with detailed logs
+- **Production Ready**: Thread-safe concurrent access with proper error handling
+
+[View API injection documentation →](output/TARS_Engine_API_Injection_Investigation_Report.md)
 
 ### Legacy Features
 TARS also includes comprehensive autonomous reasoning capabilities:

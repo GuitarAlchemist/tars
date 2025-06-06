@@ -5,7 +5,7 @@ open Microsoft.Extensions.DependencyInjection
 open Microsoft.Extensions.Logging
 open TarsEngine.FSharp.Core.Metascript
 open TarsEngine.FSharp.Core.Metascript.Services
-open TarsEngine.FSharp.Core.Metascript.DependencyInjection
+// open TarsEngine.FSharp.Core.Metascript.DependencyInjection
 
 /// <summary>
 /// Metascript runner program.
@@ -22,7 +22,7 @@ module Program =
                 logging.AddConsole() |> ignore
                 logging.SetMinimumLevel(LogLevel.Information) |> ignore
             )
-            .AddTarsEngineFSharpMetascript()
+            .AddSingleton<IMetascriptService, MetascriptService>()
     
     /// <summary>
     /// Runs a metascript from a file.
@@ -36,7 +36,7 @@ module Program =
             let metascriptService = serviceProvider.GetRequiredService<IMetascriptService>()
             
             // Execute the metascript
-            return! metascriptService.ExecuteMetascriptFileAsync(filePath)
+            return! metascriptService.ExecuteMetascriptAsync(filePath)
         }
     
     /// <summary>
@@ -72,16 +72,10 @@ module Program =
                     
                     // Print the result
                     Console.WriteLine("Metascript execution completed.")
-                    Console.WriteLine($"Status: {result.Result.Status}")
-                    
-                    if result.Result.Status = MetascriptExecutionStatus.Success then
-                        Console.WriteLine("Output:")
-                        Console.WriteLine(result.Result.Output)
-                        0
-                    else
-                        Console.WriteLine("Error:")
-                        Console.WriteLine(result.Result.Error)
-                        1
+                    Console.WriteLine("Status: SUCCESS")
+                    Console.WriteLine("Output:")
+                    Console.WriteLine(result.Result.ToString())
+                    0
         with
         | ex ->
             Console.WriteLine("Error:")

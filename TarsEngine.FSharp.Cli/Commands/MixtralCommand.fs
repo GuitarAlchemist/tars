@@ -9,7 +9,7 @@ open TarsEngine.FSharp.Cli.Services
 /// TARS Mixtral LLM Command with Mixture of Experts support
 type MixtralCommand(logger: ILogger<MixtralCommand>, mixtralService: MixtralService, llmRouter: LLMRouter) =
 
-    member private this.ShowMixtralHeader() =
+    member private self.ShowMixtralHeader() =
         AnsiConsole.Clear()
         let rule = Rule("[bold magenta]🧠 TARS Mixtral LLM with Mixture of Experts[/]")
         AnsiConsole.Write(rule)
@@ -17,7 +17,7 @@ type MixtralCommand(logger: ILogger<MixtralCommand>, mixtralService: MixtralServ
         AnsiConsole.MarkupLine("[bold yellow]Intelligent Expert Routing & Advanced Prompt Chaining[/]")
         AnsiConsole.WriteLine()
 
-    member private this.DisplayExpertTypes() =
+    member private self.DisplayExpertTypes() =
         let table = Table()
         table.AddColumn("[bold cyan]Expert Type[/]") |> ignore
         table.AddColumn("[bold green]Specialization[/]") |> ignore
@@ -35,7 +35,7 @@ type MixtralCommand(logger: ILogger<MixtralCommand>, mixtralService: MixtralServ
 
         AnsiConsole.Write(table)
 
-    member private this.DemoSingleExpert() =
+    member private self.DemoSingleExpert() =
         task {
             AnsiConsole.MarkupLine("[bold cyan]🎯 Single Expert Demo[/]")
             AnsiConsole.WriteLine()
@@ -66,7 +66,7 @@ type MixtralCommand(logger: ILogger<MixtralCommand>, mixtralService: MixtralServ
                 AnsiConsole.MarkupLine($"[red]❌ Exception: {ex.Message}[/]")
         }
 
-    member private this.DemoEnsembleExperts() =
+    member private self.DemoEnsembleExperts() =
         task {
             AnsiConsole.MarkupLine("[bold cyan]🎭 Ensemble of Experts Demo[/]")
             AnsiConsole.WriteLine()
@@ -100,7 +100,7 @@ type MixtralCommand(logger: ILogger<MixtralCommand>, mixtralService: MixtralServ
                 AnsiConsole.MarkupLine($"[red]❌ Exception: {ex.Message}[/]")
         }
 
-    member private this.DemoPromptChaining() =
+    member private self.DemoPromptChaining() =
         task {
             AnsiConsole.MarkupLine("[bold cyan]🔗 Prompt Chaining Demo[/]")
             AnsiConsole.WriteLine()
@@ -147,7 +147,7 @@ type MixtralCommand(logger: ILogger<MixtralCommand>, mixtralService: MixtralServ
                 AnsiConsole.MarkupLine($"[red]❌ Exception: {ex.Message}[/]")
         }
 
-    member private this.DemoLLMRouting() =
+    member private self.DemoLLMRouting() =
         task {
             AnsiConsole.MarkupLine("[bold cyan]🧭 LLM Router Demo[/]")
             AnsiConsole.WriteLine()
@@ -173,7 +173,7 @@ type MixtralCommand(logger: ILogger<MixtralCommand>, mixtralService: MixtralServ
                 AnsiConsole.WriteLine()
         }
 
-    member private this.DemoComputationalExpressions() =
+    member private self.DemoComputationalExpressions() =
         task {
             AnsiConsole.MarkupLine("[bold cyan]🔧 Computational Expressions Demo[/]")
             AnsiConsole.WriteLine()
@@ -204,48 +204,48 @@ type MixtralCommand(logger: ILogger<MixtralCommand>, mixtralService: MixtralServ
                 AnsiConsole.MarkupLine($"[red]❌ Exception: {ex.Message}[/]")
         }
 
-    member private this.RunFullDemo() =
+    member private self.RunFullDemo() =
         task {
-            this.ShowMixtralHeader()
+            self.ShowMixtralHeader()
             
             AnsiConsole.MarkupLine("[bold green]🎯 Available Expert Types[/]")
-            this.DisplayExpertTypes()
+            self.DisplayExpertTypes()
             AnsiConsole.WriteLine()
             
             AnsiConsole.MarkupLine("[dim]Press any key to continue...[/]")
             Console.ReadKey(true) |> ignore
             
-            do! this.DemoSingleExpert()
+            do! self.DemoSingleExpert()
             AnsiConsole.WriteLine()
             
             AnsiConsole.MarkupLine("[dim]Press any key for ensemble demo...[/]")
             Console.ReadKey(true) |> ignore
             
-            do! this.DemoEnsembleExperts()
+            do! self.DemoEnsembleExperts()
             AnsiConsole.WriteLine()
             
             AnsiConsole.MarkupLine("[dim]Press any key for prompt chaining demo...[/]")
             Console.ReadKey(true) |> ignore
             
-            do! this.DemoPromptChaining()
+            do! self.DemoPromptChaining()
             AnsiConsole.WriteLine()
             
             AnsiConsole.MarkupLine("[dim]Press any key for LLM routing demo...[/]")
             Console.ReadKey(true) |> ignore
             
-            do! this.DemoLLMRouting()
+            do! self.DemoLLMRouting()
             AnsiConsole.WriteLine()
             
             AnsiConsole.MarkupLine("[dim]Press any key for computational expressions demo...[/]")
             Console.ReadKey(true) |> ignore
             
-            do! this.DemoComputationalExpressions()
+            do! self.DemoComputationalExpressions()
             AnsiConsole.WriteLine()
             
             AnsiConsole.MarkupLine("[bold green]✅ Mixtral MoE Demo completed successfully![/]")
         }
 
-    member private this.RunSpectacularLiveDemo() =
+    member private self.RunSpectacularLiveDemo() =
         task {
             AnsiConsole.Clear()
 
@@ -260,10 +260,10 @@ type MixtralCommand(logger: ILogger<MixtralCommand>, mixtralService: MixtralServ
             AnsiConsole.WriteLine()
 
             // Show live processing with real data
-            do! this.ShowLiveDataProcessing()
+            do! self.ShowLiveDataProcessing()
         }
 
-    member private this.ShowLiveDataProcessing() =
+    member private self.ShowLiveDataProcessing() =
         task {
             let random = Random()
             let dataSources = [
@@ -307,7 +307,7 @@ type MixtralCommand(logger: ILogger<MixtralCommand>, mixtralService: MixtralServ
 
                     // Show live analysis
                     if progress > 30.0 then
-                        let analysis = this.GenerateLiveAnalysis(source, progress)
+                        let analysis = self.GenerateLiveAnalysis(source, progress)
                         let panel = Panel(analysis : string)
                         panel.Header <- PanelHeader("[bold blue]Live Analysis[/]")
                         panel.Border <- BoxBorder.Rounded
@@ -317,7 +317,7 @@ type MixtralCommand(logger: ILogger<MixtralCommand>, mixtralService: MixtralServ
                     do! Task.Delay(300)
 
                 // Show results
-                let results = this.GenerateMoEResults(source)
+                let results = self.GenerateMoEResults(source)
                 let resultsPanel = Panel(results : string)
                 resultsPanel.Header <- PanelHeader($"[bold green]Mixtral MoE Results: {source}[/]")
                 resultsPanel.Border <- BoxBorder.Double
@@ -332,7 +332,7 @@ type MixtralCommand(logger: ILogger<MixtralCommand>, mixtralService: MixtralServ
             Console.ReadKey(true) |> ignore
         }
 
-    member private this.GenerateLiveAnalysis(source: string, progress: float) =
+    member private self.GenerateLiveAnalysis(source: string, progress: float) =
         let steps = [
             "🔍 Fetching live data stream..."
             "🧠 Analyzing query complexity..."
@@ -352,9 +352,9 @@ type MixtralCommand(logger: ILogger<MixtralCommand>, mixtralService: MixtralServ
                 else $"[dim]✓ {step}[/]")
             |> String.concat "\n"
 
-        $"{content}\n\n[cyan]Progress: {progress:F1}%%[/]\n[dim]Expert: {this.GetSelectedExpert(source)}[/]"
+        $"{content}\n\n[cyan]Progress: {progress:F1}%%[/]\n[dim]Expert: {self.GetSelectedExpert(source)}[/]"
 
-    member private this.GenerateMoEResults(source: string) =
+    member private self.GenerateMoEResults(source: string) =
         let insights =
             match source with
             | s when s.Contains("GitHub") ->
@@ -394,7 +394,7 @@ type MixtralCommand(logger: ILogger<MixtralCommand>, mixtralService: MixtralServ
         |> List.map (fun insight -> $"• {insight}")
         |> String.concat "\n"
 
-    member private this.GetSelectedExpert(source: string) =
+    member private self.GetSelectedExpert(source: string) =
         match source with
         | s when s.Contains("GitHub") -> "CodeAnalysis"
         | s when s.Contains("Hacker") -> "General"
@@ -405,8 +405,8 @@ type MixtralCommand(logger: ILogger<MixtralCommand>, mixtralService: MixtralServ
     interface ICommand with
         member _.Name = "mixtral"
         member _.Description = "Mixtral LLM with Mixture of Experts and intelligent routing"
-        member _.Usage = "tars mixtral [demo|experts|single|ensemble|chain|route|expressions]"
-        member _.Examples = [
+        member self.Usage = "tars mixtral [demo|experts|single|ensemble|chain|route|expressions]"
+        member self.Examples = [
             "tars mixtral demo"
             "tars mixtral live"
             "tars mixtral experts"
@@ -416,44 +416,44 @@ type MixtralCommand(logger: ILogger<MixtralCommand>, mixtralService: MixtralServ
             "tars mixtral route"
             "tars mixtral expressions"
         ]
-        member _.ValidateOptions(options) = true // Accept all options for now
+        member self.ValidateOptions(options) = true // Accept all options for now
 
-        member this.ExecuteAsync(options) =
+        member self.ExecuteAsync(options) =
             task {
                 try
                     match options.Arguments with
                     | "demo" :: _ ->
-                        do! this.RunFullDemo()
+                        do! self.RunFullDemo()
                         return CommandResult.success("Mixtral demo completed")
                     | "live" :: _ ->
-                        do! this.RunSpectacularLiveDemo()
+                        do! self.RunSpectacularLiveDemo()
                         return CommandResult.success("Spectacular live demo completed")
                     | "experts" :: _ ->
-                        this.ShowMixtralHeader()
-                        this.DisplayExpertTypes()
+                        self.ShowMixtralHeader()
+                        self.DisplayExpertTypes()
                         return CommandResult.success("Expert types displayed")
                     | "single" :: _ ->
-                        this.ShowMixtralHeader()
-                        do! this.DemoSingleExpert()
+                        self.ShowMixtralHeader()
+                        do! self.DemoSingleExpert()
                         return CommandResult.success("Single expert demo completed")
                     | "ensemble" :: _ ->
-                        this.ShowMixtralHeader()
-                        do! this.DemoEnsembleExperts()
+                        self.ShowMixtralHeader()
+                        do! self.DemoEnsembleExperts()
                         return CommandResult.success("Ensemble demo completed")
                     | "chain" :: _ ->
-                        this.ShowMixtralHeader()
-                        do! this.DemoPromptChaining()
+                        self.ShowMixtralHeader()
+                        do! self.DemoPromptChaining()
                         return CommandResult.success("Prompt chaining demo completed")
                     | "route" :: _ ->
-                        this.ShowMixtralHeader()
-                        do! this.DemoLLMRouting()
+                        self.ShowMixtralHeader()
+                        do! self.DemoLLMRouting()
                         return CommandResult.success("LLM routing demo completed")
                     | "expressions" :: _ ->
-                        this.ShowMixtralHeader()
-                        do! this.DemoComputationalExpressions()
+                        self.ShowMixtralHeader()
+                        do! self.DemoComputationalExpressions()
                         return CommandResult.success("Computational expressions demo completed")
                     | [] ->
-                        do! this.RunFullDemo()
+                        do! self.RunFullDemo()
                         return CommandResult.success("Mixtral demo completed")
                     | unknown :: _ ->
                         AnsiConsole.MarkupLine($"[red]❌ Unknown mixtral command: {unknown}[/]")

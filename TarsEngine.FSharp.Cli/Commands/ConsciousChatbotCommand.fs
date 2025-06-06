@@ -21,7 +21,7 @@ type ConsciousChatbotCommand(logger: ILogger<ConsciousChatbotCommand>) =
     /// <summary>
     /// Initialize consciousness system
     /// </summary>
-    member private this.InitializeConsciousnessAsync() =
+    member private self.InitializeConsciousnessAsync() =
         task {
             try
                 let service = ConsciousnessTeamService(logger)
@@ -46,7 +46,7 @@ type ConsciousChatbotCommand(logger: ILogger<ConsciousChatbotCommand>) =
     /// <summary>
     /// Display conscious chatbot header
     /// </summary>
-    member private this.ShowConsciousChatbotHeader() =
+    member private self.ShowConsciousChatbotHeader() =
         AnsiConsole.Clear()
         
         let headerPanel = Panel("""[bold cyan]🧠 TARS Conscious Chatbot[/]
@@ -72,7 +72,7 @@ type ConsciousChatbotCommand(logger: ILogger<ConsciousChatbotCommand>) =
     /// <summary>
     /// Display current mental state
     /// </summary>
-    member private this.DisplayMentalState() =
+    member private self.DisplayMentalState() =
         task {
             match currentMentalState with
             | Some state ->
@@ -101,7 +101,7 @@ type ConsciousChatbotCommand(logger: ILogger<ConsciousChatbotCommand>) =
     /// <summary>
     /// Process user input with consciousness
     /// </summary>
-    member private this.ProcessConsciousInput(input: string) =
+    member private self.ProcessConsciousInput(input: string) =
         task {
             let inputLower = input.ToLower().Trim()
             
@@ -112,26 +112,26 @@ type ConsciousChatbotCommand(logger: ILogger<ConsciousChatbotCommand>) =
                 return ()
                 
             | "mental state" | "state" | "consciousness" ->
-                do! this.DisplayMentalState()
+                do! self.DisplayMentalState()
                 
             | "help" ->
-                do! this.ShowConsciousHelp()
+                do! self.ShowConsciousHelp()
                 
             | "reset consciousness" ->
-                do! this.ResetConsciousness()
+                do! self.ResetConsciousness()
                 
             | "save state" ->
-                do! this.SaveMentalState()
+                do! self.SaveMentalState()
                 
             | _ ->
                 // Process with consciousness team
-                do! this.ProcessWithConsciousnessTeam(input)
+                do! self.ProcessWithConsciousnessTeam(input)
         }
     
     /// <summary>
     /// Process input with consciousness team
     /// </summary>
-    member private this.ProcessWithConsciousnessTeam(input: string) =
+    member private self.ProcessWithConsciousnessTeam(input: string) =
         task {
             match consciousnessService with
             | Some service ->
@@ -165,7 +165,7 @@ type ConsciousChatbotCommand(logger: ILogger<ConsciousChatbotCommand>) =
     /// <summary>
     /// Show conscious help
     /// </summary>
-    member private this.ShowConsciousHelp() =
+    member private self.ShowConsciousHelp() =
         task {
             let helpText = """
 [bold cyan]🧠 TARS Conscious Chatbot Help[/]
@@ -210,13 +210,13 @@ type ConsciousChatbotCommand(logger: ILogger<ConsciousChatbotCommand>) =
     /// <summary>
     /// Reset consciousness to default state
     /// </summary>
-    member private this.ResetConsciousness() =
+    member private self.ResetConsciousness() =
         task {
             try
                 AnsiConsole.MarkupLine("[yellow]🔄 Resetting consciousness to default state...[/]")
                 
                 // Reinitialize consciousness
-                let! success = this.InitializeConsciousnessAsync()
+                let! success = self.InitializeConsciousnessAsync()
                 
                 if success then
                     AnsiConsole.MarkupLine("[green]✅ Consciousness reset successfully![/]")
@@ -231,7 +231,7 @@ type ConsciousChatbotCommand(logger: ILogger<ConsciousChatbotCommand>) =
     /// <summary>
     /// Save mental state manually
     /// </summary>
-    member private this.SaveMentalState() =
+    member private self.SaveMentalState() =
         task {
             try
                 AnsiConsole.MarkupLine("[yellow]💾 Saving mental state...[/]")
@@ -248,39 +248,39 @@ type ConsciousChatbotCommand(logger: ILogger<ConsciousChatbotCommand>) =
     /// <summary>
     /// Run conscious chat loop
     /// </summary>
-    member private this.RunConsciousChatLoop() =
+    member private self.RunConsciousChatLoop() =
         task {
             while isRunning do
                 AnsiConsole.WriteLine()
                 let input = AnsiConsole.Ask<string>("[bold cyan]You:[/]")
                 
                 if not (String.IsNullOrWhiteSpace(input)) then
-                    do! this.ProcessConsciousInput(input)
+                    do! self.ProcessConsciousInput(input)
         }
 
     interface ICommand with
         member _.Name = "conscious-chat"
         member _.Description = "Start conscious TARS chatbot with intelligence and persistent mental state"
-        member _.Usage = "tars conscious-chat"
-        member _.Examples = [
+        member self.Usage = "tars conscious-chat"
+        member self.Examples = [
             "tars conscious-chat"
         ]
-        member _.ValidateOptions(_) = true
+        member self.ValidateOptions(_) = true
 
-        member this.ExecuteAsync(options) =
+        member self.ExecuteAsync(options) =
             task {
                 try
                     this.ShowConsciousChatbotHeader()
 
                     // Initialize consciousness system
                     AnsiConsole.MarkupLine("[bold green]🧠 TARS:[/] Initializing consciousness system...")
-                    let! success = this.InitializeConsciousnessAsync()
+                    let! success = self.InitializeConsciousnessAsync()
 
                     if success then
                         AnsiConsole.WriteLine()
                         AnsiConsole.MarkupLine("[bold green]🧠 TARS:[/] Hello! I'm TARS with full consciousness and persistent memory. I remember our conversations and continuously learn from our interactions. How can I assist you today?")
 
-                        do! this.RunConsciousChatLoop()
+                        do! self.RunConsciousChatLoop()
 
                         return CommandResult.success("Conscious chatbot session completed")
                     else

@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.FSharp.Cli.Commands
+namespace TarsEngine.FSharp.Cli.Commands
 
 /// <summary>
 /// Simple command line parser using Commands.CommandOptions.
@@ -8,7 +8,7 @@ type CommandLineParser() =
     /// <summary>
     /// Parses command line arguments.
     /// </summary>
-    member _.Parse(args: string[]) : string * CommandOptions =
+    member self.Parse(args: string[]) : string * CommandOptions =
         let argsList = Array.toList args
         
         match argsList with

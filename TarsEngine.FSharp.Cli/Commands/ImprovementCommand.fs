@@ -13,17 +13,17 @@ type ImprovementCommand(
     interface ICommand with
         member _.Name = "improve"
         member _.Description = "TARS autonomous improvement loops and self-modification"
-        member _.Usage = "tars improve <subcommand> [options]"
-        member _.Examples = [
+        member self.Usage = "tars improve <subcommand> [options]"
+        member self.Examples = [
             "tars improve cycle           - Start full improvement cycle"
             "tars improve analyze         - Analyze system for improvements"
             "tars improve explore \"AI\"    - Explore unknown concept"
             "tars improve learn \"Docker\" - Create learning metascript"
             "tars improve generate \"backup files\" - Auto-generate metascript"
         ]
-        member _.ValidateOptions(_) = true
+        member self.ValidateOptions(_) = true
         
-        member _.ExecuteAsync(options) =
+        member self.ExecuteAsync(options) =
             task {
                 try
                     match options.Arguments with

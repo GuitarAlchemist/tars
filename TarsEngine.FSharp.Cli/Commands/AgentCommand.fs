@@ -15,8 +15,8 @@ type AgentCommand(logger: ILogger<AgentCommand>) =
     interface ICommand with
         member _.Name = "agent"
         member _.Description = "Manage TARS multi-agent system with personas, teams, and communication"
-        member _.Usage = "tars agent <subcommand> [options]"
-        member _.Examples = [
+        member self.Usage = "tars agent <subcommand> [options]"
+        member self.Examples = [
             "tars agent start"
             "tars agent create-team development"
             "tars agent status"
@@ -24,40 +24,40 @@ type AgentCommand(logger: ILogger<AgentCommand>) =
             "tars agent list-personas"
             "tars agent stop"
         ]
-        member _.ValidateOptions(_) = true
+        member self.ValidateOptions(_) = true
         
-        member _.ExecuteAsync(options) =
+        member self.ExecuteAsync(options) =
             task {
                 try
                     match options.Arguments with
                     | "start" :: _ ->
-                        return! this.StartAgentSystemAsync()
+                        return! self.StartAgentSystemAsync()
                     
                     | "stop" :: _ ->
-                        return! this.StopAgentSystemAsync()
+                        return! self.StopAgentSystemAsync()
                     
                     | "status" :: _ ->
-                        return! this.ShowStatusAsync()
+                        return! self.ShowStatusAsync()
                     
                     | "create-team" :: teamType :: _ ->
-                        return! this.CreateTeamAsync(teamType)
+                        return! self.CreateTeamAsync(teamType)
                     
                     | "assign-task" :: taskName :: rest ->
-                        let capabilities = this.ParseCapabilities(rest)
-                        return! this.AssignTaskAsync(taskName, capabilities)
+                        let capabilities = self.ParseCapabilities(rest)
+                        return! self.AssignTaskAsync(taskName, capabilities)
                     
                     | "list-personas" :: _ ->
-                        return this.ListPersonas()
+                        return self.ListPersonas()
                     
                     | "demo" :: _ ->
-                        return! this.RunDemoAsync()
+                        return! self.RunDemoAsync()
                     
                     | [] | ["help"] ->
-                        return this.ShowHelp()
+                        return self.ShowHelp()
                     
                     | unknown :: _ ->
                         printfn "❌ Unknown agent command: %s" unknown
-                        return this.ShowHelp()
+                        return self.ShowHelp()
                         
                 with
                 | ex ->
@@ -66,7 +66,7 @@ type AgentCommand(logger: ILogger<AgentCommand>) =
             }
     
     /// Start the multi-agent system
-    member private this.StartAgentSystemAsync() =
+    member private self.StartAgentSystemAsync() =
         task {
             try
                 printfn "🤖 STARTING TARS MULTI-AGENT SYSTEM"
@@ -114,7 +114,7 @@ type AgentCommand(logger: ILogger<AgentCommand>) =
         }
     
     /// Stop the multi-agent system
-    member private this.StopAgentSystemAsync() =
+    member private self.StopAgentSystemAsync() =
         task {
             try
                 printfn "🛑 STOPPING TARS MULTI-AGENT SYSTEM"
@@ -141,7 +141,7 @@ type AgentCommand(logger: ILogger<AgentCommand>) =
         }
     
     /// Show system status
-    member private this.ShowStatusAsync() =
+    member private self.ShowStatusAsync() =
         task {
             try
                 printfn "📊 TARS MULTI-AGENT SYSTEM STATUS"
@@ -201,7 +201,7 @@ type AgentCommand(logger: ILogger<AgentCommand>) =
         }
     
     /// Create a team
-    member private this.CreateTeamAsync(teamType: string) =
+    member private self.CreateTeamAsync(teamType: string) =
         task {
             try
                 printfn "👥 CREATING %s TEAM" (teamType.ToUpper())
@@ -259,7 +259,7 @@ type AgentCommand(logger: ILogger<AgentCommand>) =
         }
     
     /// Assign a task
-    member private this.AssignTaskAsync(taskName: string, capabilities: AgentCapability list) =
+    member private self.AssignTaskAsync(taskName: string, capabilities: AgentCapability list) =
         task {
             try
                 printfn "📋 ASSIGNING TASK: %s" taskName
@@ -296,7 +296,7 @@ type AgentCommand(logger: ILogger<AgentCommand>) =
         }
     
     /// List available personas
-    member private this.ListPersonas() =
+    member private self.ListPersonas() =
         printfn "🎭 AVAILABLE AGENT PERSONAS"
         printfn "=========================="
         printfn ""
@@ -316,7 +316,7 @@ type AgentCommand(logger: ILogger<AgentCommand>) =
         CommandResult.successWithData "Listed all personas" personas
     
     /// Run demonstration
-    member private this.RunDemoAsync() =
+    member private self.RunDemoAsync() =
         task {
             try
                 printfn "🎬 RUNNING MULTI-AGENT SYSTEM DEMO"
@@ -325,16 +325,16 @@ type AgentCommand(logger: ILogger<AgentCommand>) =
                 
                 // Start system if not running
                 if orchestrator.IsNone then
-                    let! startResult = this.StartAgentSystemAsync()
+                    let! startResult = self.StartAgentSystemAsync()
                     if not startResult.Success then
                         return startResult
                 
                 // Create teams
-                let! devTeamResult = this.CreateTeamAsync("development")
-                let! researchTeamResult = this.CreateTeamAsync("research")
+                let! devTeamResult = self.CreateTeamAsync("development")
+                let! researchTeamResult = self.CreateTeamAsync("research")
                 
                 // Show status
-                let! statusResult = this.ShowStatusAsync()
+                let! statusResult = self.ShowStatusAsync()
                 
                 printfn "🎉 Demo completed successfully!"
                 printfn "💡 Use 'tars agent status' to monitor the system"
@@ -348,7 +348,7 @@ type AgentCommand(logger: ILogger<AgentCommand>) =
         }
     
     /// Parse capabilities from command line
-    member private this.ParseCapabilities(args: string list) =
+    member private self.ParseCapabilities(args: string list) =
         args
         |> List.tryFind (fun arg -> arg.StartsWith("--capabilities"))
         |> Option.map (fun arg -> 
@@ -366,7 +366,7 @@ type AgentCommand(logger: ILogger<AgentCommand>) =
         |> Option.defaultValue [CodeAnalysis; Planning]
     
     /// Show help
-    member private this.ShowHelp() =
+    member private self.ShowHelp() =
         printfn """🤖 TARS MULTI-AGENT SYSTEM COMMANDS
 ===================================
 

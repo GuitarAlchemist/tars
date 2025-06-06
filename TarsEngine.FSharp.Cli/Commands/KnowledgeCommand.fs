@@ -9,15 +9,15 @@ type KnowledgeCommand(hybridRAG: IHybridRAGService, logger: ILogger<KnowledgeCom
     interface ICommand with
         member _.Name = "knowledge"
         member _.Description = "Manage TARS knowledge base with ChromaDB hybrid RAG"
-        member _.Usage = "tars knowledge <subcommand> [options]"
-        member _.Examples = [
+        member self.Usage = "tars knowledge <subcommand> [options]"
+        member self.Examples = [
             "tars knowledge store \"F# is awesome\" --tag programming"
             "tars knowledge search \"F# programming\""
             "tars knowledge stats"
         ]
-        member _.ValidateOptions(_) = true
+        member self.ValidateOptions(_) = true
         
-        member _.ExecuteAsync(options) =
+        member self.ExecuteAsync(options) =
             task {
                 try
                     match options.Arguments with

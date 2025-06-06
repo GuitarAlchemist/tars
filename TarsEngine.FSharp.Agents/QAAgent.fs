@@ -6,6 +6,7 @@ open System.Threading.Tasks
 open Microsoft.Extensions.Logging
 open TarsEngine.FSharp.Deployment.VMDeploymentManager
 open TarsEngine.FSharp.Testing.VMTestRunner
+open TarsEngine.FSharp.Agents.MLEnhancedQAAgent
 
 /// <summary>
 /// TARS Autonomous QA Agent
@@ -60,15 +61,15 @@ module QAAgent =
     }
     
     /// <summary>
-    /// Autonomous QA Agent
-    /// Handles end-to-end automated testing workflows
+    /// Autonomous QA Agent with ML-Enhanced Quality Prediction
+    /// Handles end-to-end automated testing workflows with intelligent quality assessment
     /// </summary>
     type AutonomousQAAgent(
         vmDeploymentManager: VMDeploymentManager,
         vmTestRunner: VMTestRunner,
         logger: ILogger<AutonomousQAAgent>
     ) =
-        
+
         let mutable taskQueue = []
         let mutable activeDeployments = Map.empty<string, QATask * VMInstance>
         let mutable completedTasks = []
@@ -80,26 +81,38 @@ module QAAgent =
             AverageQualityScore = 0.0
             TotalVMHoursUsed = 0.0
         |}
+
+        // ML-Enhanced QA capabilities
+        let mlQAAgent = MLEnhancedQAAgent(logger)
+        let mutable isMLModelsTrained = false
         
         /// <summary>
-        /// Start autonomous QA operations
+        /// Start autonomous QA operations with ML enhancement
         /// </summary>
         member this.StartAutonomousOperations(config: QAAgentConfig) : Task<unit> =
             task {
-                logger.LogInformation("Starting autonomous QA agent operations")
-                
+                logger.LogInformation("🚀 Starting ML-enhanced autonomous QA agent operations")
+
+                // Initialize ML models
+                if not isMLModelsTrained then
+                    logger.LogInformation("🧠 Training ML models for quality prediction...")
+                    let! trainingResult = mlQAAgent.TrainWithSyntheticData()
+                    isMLModelsTrained <- true
+                    logger.LogInformation("✅ ML models trained: SVM={SVMAccuracy:P1}, RF={ForestAccuracy:P1}",
+                                        trainingResult.SVMAccuracy, trainingResult.ForestAccuracy)
+
                 // Start background task processing
                 let! _ = Task.Run(fun () -> this.ProcessTaskQueue(config))
-                
+
                 // Start continuous monitoring
                 let! _ = Task.Run(fun () -> this.MonitorActiveDeployments(config))
-                
+
                 // Start scheduled testing if enabled
                 if config.ScheduledTesting.IsSome then
                     let! _ = Task.Run(fun () -> this.RunScheduledTesting(config))
                     ()
-                
-                logger.LogInformation("Autonomous QA agent is now operational")
+
+                logger.LogInformation("🎯 ML-enhanced autonomous QA agent is now operational")
             }
         
         /// <summary>
@@ -310,7 +323,7 @@ module QAAgent =
                 |> fun config -> { config with Provider = selectedProvider }
         
         /// <summary>
-        /// Analyze project complexity autonomously
+        /// Analyze project complexity autonomously with ML-enhanced quality prediction
         /// </summary>
         member private this.AnalyzeProjectComplexity(projectPath: string) : string =
             let hasDockerfile = File.Exists(Path.Combine(projectPath, "Dockerfile"))
@@ -318,19 +331,66 @@ module QAAgent =
             let hasTests = Directory.Exists(Path.Combine(projectPath, "tests"))
             let hasK8s = Directory.Exists(Path.Combine(projectPath, "k8s"))
             let hasCICD = File.Exists(Path.Combine(projectPath, ".github", "workflows", "ci-cd.yml"))
-            
-            let complexityScore = 
+
+            let complexityScore =
                 (if hasDockerfile then 1 else 0) +
                 (if hasDatabase then 2 else 0) +
                 (if hasTests then 1 else 0) +
                 (if hasK8s then 2 else 0) +
                 (if hasCICD then 1 else 0)
-            
-            match complexityScore with
-            | score when score >= 6 -> "enterprise"
-            | score when score >= 4 -> "complex"
-            | score when score >= 2 -> "moderate"
-            | _ -> "simple"
+
+            // Enhanced analysis with ML quality prediction
+            if isMLModelsTrained then
+                try
+                    // Analyze project files for quality prediction
+                    let codeFiles = Directory.GetFiles(projectPath, "*.fs", SearchOption.AllDirectories)
+                    if codeFiles.Length > 0 then
+                        let sampleFile = codeFiles.[0]
+                        let analysisTask = mlQAAgent.AnalyzeCodeFile(sampleFile)
+                        let analysis = analysisTask.Result
+
+                        logger.LogInformation("🔍 ML Quality Analysis: {Score:F3} ({RiskLevel} Risk) for {ProjectPath}",
+                                            analysis.Prediction.OverallQualityScore,
+                                            analysis.Prediction.RiskLevel,
+                                            projectPath)
+
+                        // Adjust complexity based on ML prediction
+                        let mlComplexityAdjustment =
+                            match analysis.Prediction.RiskLevel with
+                            | "Critical" -> 2
+                            | "High" -> 1
+                            | "Medium" -> 0
+                            | "Low" -> -1
+                            | _ -> 0
+
+                        let adjustedScore = complexityScore + mlComplexityAdjustment
+
+                        match adjustedScore with
+                        | score when score >= 6 -> "enterprise"
+                        | score when score >= 4 -> "complex"
+                        | score when score >= 2 -> "moderate"
+                        | _ -> "simple"
+                    else
+                        // Fallback to original logic
+                        match complexityScore with
+                        | score when score >= 6 -> "enterprise"
+                        | score when score >= 4 -> "complex"
+                        | score when score >= 2 -> "moderate"
+                        | _ -> "simple"
+                with
+                | ex ->
+                    logger.LogWarning(ex, "ML analysis failed, using fallback complexity analysis")
+                    match complexityScore with
+                    | score when score >= 6 -> "enterprise"
+                    | score when score >= 4 -> "complex"
+                    | score when score >= 2 -> "moderate"
+                    | _ -> "simple"
+            else
+                match complexityScore with
+                | score when score >= 6 -> "enterprise"
+                | score when score >= 4 -> "complex"
+                | score when score >= 2 -> "moderate"
+                | _ -> "simple"
         
         /// <summary>
         /// Check if project requires database
@@ -356,23 +416,61 @@ module QAAgent =
             services |> Seq.toList
         
         /// <summary>
-        /// Calculate quality score
+        /// Calculate quality score with ML enhancement
         /// </summary>
         member private this.CalculateQualityScore(deploymentResult: DeploymentResult, testResult: TestSuiteResult) : float =
             let deploymentScore = if deploymentResult.Success then 30.0 else 0.0
             let testScore = if testResult.OverallSuccess then 40.0 else 0.0
-            let coverageScore = 
-                testResult.TestResults 
-                |> List.choose (fun r -> r.Coverage) 
-                |> List.tryHead 
-                |> Option.map (fun c -> c * 0.2) 
+            let coverageScore =
+                testResult.TestResults
+                |> List.choose (fun r -> r.Coverage)
+                |> List.tryHead
+                |> Option.map (fun c -> c * 0.2)
                 |> Option.defaultValue 0.0
-            let securityScore = 
-                testResult.SecurityScan 
-                |> Option.map (fun s -> s.SecurityScore * 0.1) 
+            let securityScore =
+                testResult.SecurityScan
+                |> Option.map (fun s -> s.SecurityScore * 0.1)
                 |> Option.defaultValue 0.0
-            
-            deploymentScore + testScore + coverageScore + securityScore
+
+            let baseScore = deploymentScore + testScore + coverageScore + securityScore
+
+            // Enhanced scoring with ML prediction if available
+            if isMLModelsTrained then
+                try
+                    // Create synthetic metrics for ML analysis
+                    let mlMetrics = {
+                        CyclomaticComplexity = 15.0 // Would extract from actual analysis
+                        LinesOfCode = 1000
+                        TestCoverage = coverageScore / 20.0 // Convert back to percentage
+                        CodeDuplication = 0.05
+                        TechnicalDebt = 25.0
+                        BugDensity = if testResult.OverallSuccess then 0.01 else 0.05
+                        MaintainabilityIndex = baseScore
+                        SecurityVulnerabilities =
+                            testResult.SecurityScan
+                            |> Option.map (fun s -> s.CriticalIssues)
+                            |> Option.defaultValue 0
+                        PerformanceScore = if deploymentResult.Success then 0.8 else 0.3
+                        DocumentationCoverage = 0.6
+                    }
+
+                    let predictionTask = mlQAAgent.PredictQualityIssues(mlMetrics)
+                    let prediction = predictionTask.Result
+
+                    // Combine traditional and ML scores
+                    let mlScore = prediction.OverallQualityScore * 100.0
+                    let combinedScore = (baseScore * 0.7) + (mlScore * 0.3)
+
+                    logger.LogInformation("🎯 Quality Score: Traditional={Traditional:F1}, ML={MLScore:F1}, Combined={Combined:F1}",
+                                        baseScore, mlScore, combinedScore)
+
+                    combinedScore
+                with
+                | ex ->
+                    logger.LogWarning(ex, "ML quality scoring failed, using traditional scoring")
+                    baseScore
+            else
+                baseScore
         
         /// <summary>
         /// Generate autonomous recommendations

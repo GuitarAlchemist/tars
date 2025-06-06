@@ -17,7 +17,7 @@ type WebSocketServiceCommand(logger: ILogger<WebSocketServiceCommand>) =
     let mutable isMonitoring = false
     
     /// Initialize WebSocket client
-    member private this.InitializeWebSocket(serviceUrl: string) =
+    member private self.InitializeWebSocket(serviceUrl: string) =
         match webSocketClient with
         | Some client -> client
         | None ->
@@ -39,10 +39,10 @@ type WebSocketServiceCommand(logger: ILogger<WebSocketServiceCommand>) =
                     with _ -> ()
                 
                 | "documentation.status" ->
-                    this.DisplayDocumentationStatus(data)
+                    self.DisplayDocumentationStatus(data)
                 
                 | "service.status" ->
-                    this.DisplayServiceStatus(data)
+                    self.DisplayServiceStatus(data)
                 
                 | "pong" ->
                     try
@@ -56,7 +56,7 @@ type WebSocketServiceCommand(logger: ILogger<WebSocketServiceCommand>) =
             
             client.OnProgressUpdate(fun data ->
                 if isMonitoring then
-                    this.DisplayProgressUpdate(data)
+                    self.DisplayProgressUpdate(data)
             )
             
             client.OnError(fun error ->
@@ -67,7 +67,7 @@ type WebSocketServiceCommand(logger: ILogger<WebSocketServiceCommand>) =
             client
     
     /// Display documentation status
-    member private this.DisplayDocumentationStatus(data: JsonElement) =
+    member private self.DisplayDocumentationStatus(data: JsonElement) =
         try
             let status = data.GetProperty("status")
             let progress = status.GetProperty("Progress")
@@ -117,7 +117,7 @@ type WebSocketServiceCommand(logger: ILogger<WebSocketServiceCommand>) =
             AnsiConsole.MarkupLine("[red]❌ Failed to parse status data[/]")
     
     /// Display service status
-    member private this.DisplayServiceStatus(data: JsonElement) =
+    member private self.DisplayServiceStatus(data: JsonElement) =
         try
             let service = data.GetProperty("service").GetString()
             let status = data.GetProperty("status").GetString()
@@ -142,7 +142,7 @@ type WebSocketServiceCommand(logger: ILogger<WebSocketServiceCommand>) =
             AnsiConsole.MarkupLine("[red]❌ Failed to parse service data[/]")
     
     /// Display progress update
-    member private this.DisplayProgressUpdate(data: JsonElement) =
+    member private self.DisplayProgressUpdate(data: JsonElement) =
         try
             let status = data.GetProperty("status")
             let progress = status.GetProperty("Progress")
@@ -188,8 +188,8 @@ type WebSocketServiceCommand(logger: ILogger<WebSocketServiceCommand>) =
             logger.LogError(ex, "Failed to display progress update")
     
     /// Connect to service
-    member this.ConnectAsync(serviceUrl: string) = task {
-        let client = this.InitializeWebSocket(serviceUrl)
+    member self.ConnectAsync(serviceUrl: string) = task {
+        let client = self.InitializeWebSocket(serviceUrl)
         
         AnsiConsole.Status()
             .Start("🔌 Connecting to TARS service...", fun ctx ->
@@ -210,7 +210,7 @@ type WebSocketServiceCommand(logger: ILogger<WebSocketServiceCommand>) =
     }
     
     /// Disconnect from service
-    member this.DisconnectAsync() = task {
+    member self.DisconnectAsync() = task {
         match webSocketClient with
         | Some client ->
             do! client.DisconnectAsync()
@@ -219,8 +219,8 @@ type WebSocketServiceCommand(logger: ILogger<WebSocketServiceCommand>) =
     }
     
     /// Execute interactive session
-    member this.ExecuteInteractiveAsync(serviceUrl: string) = task {
-        let! connected = this.ConnectAsync(serviceUrl)
+    member self.ExecuteInteractiveAsync(serviceUrl: string) = task {
+        let! connected = self.ConnectAsync(serviceUrl)
         if not connected then 
             AnsiConsole.MarkupLine("[red]❌ Failed to connect to TARS service[/]")
             return 1
@@ -324,13 +324,13 @@ type WebSocketServiceCommand(logger: ILogger<WebSocketServiceCommand>) =
                 AnsiConsole.MarkupLine($"[red]❌ Unknown command: {input}[/]")
                 AnsiConsole.MarkupLine("[yellow]💡 Type 'help' for available commands[/]")
         
-        do! this.DisconnectAsync()
+        do! self.DisconnectAsync()
         return 0
     }
     
     /// Execute single command
-    member this.ExecuteCommandAsync(action: string, serviceUrl: string) = task {
-        let! connected = this.ConnectAsync(serviceUrl)
+    member self.ExecuteCommandAsync(action: string, serviceUrl: string) = task {
+        let! connected = self.ConnectAsync(serviceUrl)
         if not connected then return 1
         
         let client = webSocketClient.Value
@@ -365,20 +365,20 @@ type WebSocketServiceCommand(logger: ILogger<WebSocketServiceCommand>) =
             do! Task.Delay(1000)
         
         | "interactive" | "i" ->
-            do! this.DisconnectAsync()
-            return! this.ExecuteInteractiveAsync(serviceUrl)
+            do! self.DisconnectAsync()
+            return! self.ExecuteInteractiveAsync(serviceUrl)
         
         | _ ->
             AnsiConsole.MarkupLine($"[red]❌ Unknown action: {action}[/]")
             return 1
         
-        do! this.DisconnectAsync()
+        do! self.DisconnectAsync()
         return 0
     }
     
     /// Dispose resources
     interface IDisposable with
-        member this.Dispose() =
+        member _.Dispose() =
             match webSocketClient with
             | Some client -> (client :> IDisposable).Dispose()
             | None -> ()

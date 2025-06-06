@@ -10,17 +10,32 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="Api/ITarsEngineApi.fs" />
+    <Compile Include="Api/TarsEngineApiImpl.fs" />
+    <Compile Include="Api/TarsExecutionContext.fs" />
+    <Compile Include="Api/TarsApiRegistry.fs" />
     <Compile Include="Core/Interop.fs" />
     <Compile Include="CUDA/CudaIntegration.fs" />
+    <Compile Include="Metascript/MetascriptExecutionResult.fs" />
     <Compile Include="Metascript/Types.Enhanced.fs" />
-    <Compile Include="Metascript/Services/TarsMetascriptParserFixed2.fs" />
-    <Compile Include="Metascript/BlockHandlers/TarsBlockHandlerFixed.fs" />
-    <Compile Include="Metascript/BlockHandlers/YAMLBlockHandlerFixed3.fs" />
+    <Compile Include="Metascript/Services/IMetascriptService.fs" />
+    <Compile Include="Metascript/Services/IMetascriptExecutor.fs" />
+    <Compile Include="Metascript/Services/MetascriptService.fs" />
+    <Compile Include="Metascript/Services/MetascriptExecutor.fs" />
+    <Compile Include="SimulationDetector.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.Text.Json" Version="8.0.5" />
+    <PackageReference Include="FSharp.Compiler.Service" Version="43.9.300" />
+    <PackageReference Include="System.Text.Json" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TarsEngine.FSharp.Metascript\TarsEngine.FSharp.Metascript.fsproj" />
   </ItemGroup>
 
 </Project>

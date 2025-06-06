@@ -42,46 +42,46 @@ type SelfChatCommand(logger: ILogger<SelfChatCommand>, mixtralService: MixtralSe
     interface ICommand with
         member _.Name = "self-chat"
         member _.Description = "Enable TARS to have conversations with itself using MoE system"
-        member _.Usage = "tars self-chat <subcommand> [options]"
-        member _.Examples = [
+        member self.Usage = "tars self-chat <subcommand> [options]"
+        member self.Examples = [
             "tars self-chat start"
             "tars self-chat ask \"How can I improve?\""
             "tars self-chat dialogue \"code optimization\""
             "tars self-chat reflect"
         ]
-        member _.ValidateOptions(_) = true
+        member self.ValidateOptions(_) = true
 
-        member _.ExecuteAsync(options: CommandOptions) =
+        member self.ExecuteAsync(options: CommandOptions) =
             task {
                 try
                     match options.Arguments with
                     | [] ->
-                        this.ShowSelfChatHelp()
+                        self.ShowSelfChatHelp()
                         return CommandResult.success "Help displayed"
                     | "start" :: _ ->
-                        let result = this.StartSelfConversation()
+                        let result = self.StartSelfConversation()
                         return if result = 0 then CommandResult.success "Self-conversation started" else CommandResult.failure "Failed to start self-conversation"
                     | "ask" :: question :: _ ->
-                        let result = this.AskSelfQuestion(question)
+                        let result = self.AskSelfQuestion(question)
                         return if result = 0 then CommandResult.success "Question processed" else CommandResult.failure "Failed to process question"
                     | "dialogue" :: topic :: _ ->
-                        let result = this.StartInternalDialogue(topic)
+                        let result = self.StartInternalDialogue(topic)
                         return if result = 0 then CommandResult.success "Dialogue completed" else CommandResult.failure "Dialogue failed"
                     | "reflect" :: _ ->
-                        let result = this.SelfReflect()
+                        let result = self.SelfReflect()
                         return if result = 0 then CommandResult.success "Reflection completed" else CommandResult.failure "Reflection failed"
                     | "status" :: _ ->
-                        let result = this.ShowConversationStatus()
+                        let result = self.ShowConversationStatus()
                         return if result = 0 then CommandResult.success "Status shown" else CommandResult.failure "Failed to show status"
                     | "insights" :: _ ->
-                        let result = this.ShowDiscoveredInsights()
+                        let result = self.ShowDiscoveredInsights()
                         return if result = 0 then CommandResult.success "Insights shown" else CommandResult.failure "Failed to show insights"
                     | "stop" :: _ ->
-                        let result = this.StopSelfConversation()
+                        let result = self.StopSelfConversation()
                         return if result = 0 then CommandResult.success "Self-conversation stopped" else CommandResult.failure "Failed to stop self-conversation"
                     | unknown :: _ ->
                         logger.LogWarning("Invalid self-chat command: {Command}", String.Join(" ", unknown))
-                        this.ShowSelfChatHelp()
+                        self.ShowSelfChatHelp()
                         return CommandResult.failure $"Unknown subcommand: {unknown}"
                 with
                 | ex ->
@@ -93,7 +93,7 @@ type SelfChatCommand(logger: ILogger<SelfChatCommand>, mixtralService: MixtralSe
     /// <summary>
     /// Shows self-chat command help
     /// </summary>
-    member _.ShowSelfChatHelp() =
+    member self.ShowSelfChatHelp() =
         printfn "TARS Self-Chat System"
         printfn "===================="
         printfn ""
@@ -124,7 +124,7 @@ type SelfChatCommand(logger: ILogger<SelfChatCommand>, mixtralService: MixtralSe
     /// <summary>
     /// Starts autonomous self-conversation
     /// </summary>
-    member _.StartSelfConversation() =
+    member self.StartSelfConversation() =
         printfn "STARTING TARS SELF-CONVERSATION"
         printfn "==============================="
         
@@ -151,7 +151,7 @@ type SelfChatCommand(logger: ILogger<SelfChatCommand>, mixtralService: MixtralSe
             printfn ""
             
             // Start autonomous dialogue
-            this.RunAutonomousDialogue(context) |> ignore
+            self.RunAutonomousDialogue(context) |> ignore
             
             0
             
@@ -164,12 +164,13 @@ type SelfChatCommand(logger: ILogger<SelfChatCommand>, mixtralService: MixtralSe
     /// <summary>
     /// Asks TARS a specific question
     /// </summary>
-    member _.AskSelfQuestion(question: string) =
+    member self.AskSelfQuestion(question: string) =
         printfn $"TARS ASKING ITSELF: \"{question}\""
         printfn "=================================="
         
         try
-            let response = this.ProcessSelfQuestion(question).Result
+            let task : System.Threading.Tasks.Task<SelfDialogueResponse> = self.ProcessSelfQuestion(question)
+            let response = task.Result
             
             printfn ""
             printfn "🤖 TARS Self-Response:"
@@ -200,7 +201,7 @@ type SelfChatCommand(logger: ILogger<SelfChatCommand>, mixtralService: MixtralSe
     /// <summary>
     /// Starts internal dialogue on a topic
     /// </summary>
-    member _.StartInternalDialogue(topic: string) =
+    member self.StartInternalDialogue(topic: string) =
         printfn $"STARTING INTERNAL DIALOGUE: {topic}"
         printfn "=================================="
         
@@ -208,7 +209,7 @@ type SelfChatCommand(logger: ILogger<SelfChatCommand>, mixtralService: MixtralSe
             currentTopic <- Some topic
             
             // Generate initial questions about the topic
-            let initialQuestions = this.GenerateTopicQuestions(topic)
+            let initialQuestions = self.GenerateTopicQuestions(topic)
             
             printfn $"🎯 Topic: {topic}"
             printfn "🤔 Generated Questions:"
@@ -220,7 +221,8 @@ type SelfChatCommand(logger: ILogger<SelfChatCommand>, mixtralService: MixtralSe
             
             // Process each question
             for question in initialQuestions |> List.take 3 do
-                let response = this.ProcessSelfQuestion(question).Result
+                let task : System.Threading.Tasks.Task<SelfDialogueResponse> = self.ProcessSelfQuestion(question)
+                let response = task.Result
                 printfn ""
                 printfn $"❓ Q: {question}"
                 printfn $"🤖 A: {response.Response}"
@@ -239,7 +241,7 @@ type SelfChatCommand(logger: ILogger<SelfChatCommand>, mixtralService: MixtralSe
     /// <summary>
     /// Triggers self-reflection session
     /// </summary>
-    member _.SelfReflect() =
+    member self.SelfReflect() =
         printfn "TARS SELF-REFLECTION SESSION"
         printfn "============================"
         
@@ -258,7 +260,8 @@ type SelfChatCommand(logger: ILogger<SelfChatCommand>, mixtralService: MixtralSe
             let insights = ResizeArray<string>()
             
             for question in reflectionQuestions do
-                let response = this.ProcessSelfQuestion(question).Result
+                let task : System.Threading.Tasks.Task<SelfDialogueResponse> = self.ProcessSelfQuestion(question)
+                let response = task.Result
                 printfn $"🤔 {question}"
                 printfn $"💭 {response.Response}"
                 printfn ""
@@ -282,7 +285,7 @@ type SelfChatCommand(logger: ILogger<SelfChatCommand>, mixtralService: MixtralSe
     /// <summary>
     /// Shows current conversation status
     /// </summary>
-    member _.ShowConversationStatus() =
+    member self.ShowConversationStatus() =
         printfn "SELF-CONVERSATION STATUS"
         printfn "======================="
         
@@ -302,7 +305,7 @@ type SelfChatCommand(logger: ILogger<SelfChatCommand>, mixtralService: MixtralSe
             |> List.rev
             |> List.take (min 3 conversationHistory.Length)
             |> List.iter (fun (role, content, timestamp) ->
-                let timeStr = timestamp.ToString("HH:mm:ss")
+                let timeStr = timestamp.ToString()
                 printfn $"  [{timeStr}] {role}: {content}")
         
         0
@@ -310,13 +313,13 @@ type SelfChatCommand(logger: ILogger<SelfChatCommand>, mixtralService: MixtralSe
     /// <summary>
     /// Shows discovered insights
     /// </summary>
-    member _.ShowDiscoveredInsights() =
+    member self.ShowDiscoveredInsights() =
         printfn "DISCOVERED INSIGHTS"
         printfn "=================="
         
         // Load insights from conversation history
-        let insights = this.ExtractInsightsFromHistory()
-        
+        let insights = self.ExtractInsightsFromHistory()
+
         if insights.Length = 0 then
             printfn "No insights discovered yet."
             printfn "Start a self-conversation to generate insights."
@@ -331,7 +334,7 @@ type SelfChatCommand(logger: ILogger<SelfChatCommand>, mixtralService: MixtralSe
     /// <summary>
     /// Stops self-conversation
     /// </summary>
-    member _.StopSelfConversation() =
+    member self.StopSelfConversation() =
         printfn "STOPPING SELF-CONVERSATION"
         printfn "=========================="
         
@@ -346,7 +349,7 @@ type SelfChatCommand(logger: ILogger<SelfChatCommand>, mixtralService: MixtralSe
     /// <summary>
     /// Processes a self-directed question using MoE
     /// </summary>
-    member _.ProcessSelfQuestion(question: string) =
+    member self.ProcessSelfQuestion(question: string) =
         task {
             try
                 // Route question to appropriate expert
@@ -359,8 +362,8 @@ type SelfChatCommand(logger: ILogger<SelfChatCommand>, mixtralService: MixtralSe
                         InternalThoughts = $"I used {response.RoutingDecision.SelectedExpert.Name} expert to process this question"
                         ConfidenceLevel = response.Confidence
                         ExpertUsed = response.RoutingDecision.SelectedExpert.Name
-                        NextQuestion = this.GenerateFollowUpQuestion(question, response.Content)
-                        Insights = this.ExtractInsights(response.Content)
+                        NextQuestion = self.GenerateFollowUpQuestion(question, response.Content)
+                        Insights = self.ExtractInsights(response.Content)
                     }
                     
                     // Add to conversation history
@@ -394,7 +397,7 @@ type SelfChatCommand(logger: ILogger<SelfChatCommand>, mixtralService: MixtralSe
     /// <summary>
     /// Runs autonomous dialogue
     /// </summary>
-    member _.RunAutonomousDialogue(context: SelfConversationContext) =
+    member self.RunAutonomousDialogue(context: SelfConversationContext) =
         task {
             let autonomousQuestions = [
                 "What am I currently capable of?"
@@ -406,20 +409,20 @@ type SelfChatCommand(logger: ILogger<SelfChatCommand>, mixtralService: MixtralSe
             printfn "🔄 Starting autonomous dialogue..."
             
             for question in autonomousQuestions do
-                let! response = this.ProcessSelfQuestion(question)
+                let! response = self.ProcessSelfQuestion(question)
                 printfn ""
                 printfn $"🤖 Self-Question: {question}"
                 printfn $"💭 Response: {response.Response}"
-                
+
                 if response.NextQuestion.IsSome then
-                    let! followUp = this.ProcessSelfQuestion(response.NextQuestion.Value)
+                    let! followUp = self.ProcessSelfQuestion(response.NextQuestion.Value)
                     printfn $"🔄 Follow-up: {followUp.Response}"
         }
     
     /// <summary>
     /// Generates topic-specific questions
     /// </summary>
-    member _.GenerateTopicQuestions(topic: string) =
+    member self.GenerateTopicQuestions(topic: string) =
         match topic.ToLower() with
         | t when t.Contains("performance") || t.Contains("optimization") ->
             [
@@ -453,7 +456,7 @@ type SelfChatCommand(logger: ILogger<SelfChatCommand>, mixtralService: MixtralSe
     /// <summary>
     /// Generates follow-up questions
     /// </summary>
-    member _.GenerateFollowUpQuestion(originalQuestion: string, response: string) =
+    member self.GenerateFollowUpQuestion(originalQuestion: string, response: string) =
         if response.Contains("improve") then
             Some "What specific steps can I take to implement these improvements?"
         elif response.Contains("learn") then
@@ -466,7 +469,7 @@ type SelfChatCommand(logger: ILogger<SelfChatCommand>, mixtralService: MixtralSe
     /// <summary>
     /// Extracts insights from response
     /// </summary>
-    member _.ExtractInsights(response: string) =
+    member self.ExtractInsights(response: string) =
         let insights = ResizeArray<string>()
         
         if response.Contains("pattern") then
@@ -483,7 +486,7 @@ type SelfChatCommand(logger: ILogger<SelfChatCommand>, mixtralService: MixtralSe
     /// <summary>
     /// Extracts insights from conversation history
     /// </summary>
-    member _.ExtractInsightsFromHistory() =
+    member self.ExtractInsightsFromHistory() : string list =
         conversationHistory
-        |> List.collect (fun (_, content, _) -> this.ExtractInsights(content))
+        |> List.collect (fun (_, content, _) -> self.ExtractInsights(content))
         |> List.distinct

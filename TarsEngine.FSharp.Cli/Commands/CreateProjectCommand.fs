@@ -10,16 +10,16 @@ type CreateProjectCommand(logger: ILogger<CreateProjectCommand>) =
     interface ICommand with
         member _.Name = "create-project"
         member _.Description = "Create complete projects from single prompts with docs and run scripts"
-        member _.Usage = "tars create-project \"<description>\" [options]"
-        member _.Examples = [
+        member self.Usage = "tars create-project \"<description>\" [options]"
+        member self.Examples = [
             "tars create-project \"file backup system with encryption\""
             "tars create-project \"REST API for user management\""
             "tars create-project \"simple calculator web app\""
             "tars create-project \"todo list with database\""
         ]
-        member _.ValidateOptions(_) = true
+        member self.ValidateOptions(_) = true
         
-        member _.ExecuteAsync(options) =
+        member self.ExecuteAsync(options) =
             task {
                 try
                     match options.Arguments with

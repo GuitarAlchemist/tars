@@ -35,17 +35,17 @@ type ExecuteCommand(
 
         member _.Description = "Execute TARS metascripts with real execution engine"
 
-        member _.Usage = "tars execute <metascript-path> [--output <path>] [--verbose]"
+        member self.Usage = "tars execute <metascript-path> [--output <path>] [--verbose]"
 
-        member _.Examples = [
+        member self.Examples = [
             "tars execute .tars/metascripts/simple-test.trsx"
             "tars execute my-script.trsx --output ./output --verbose"
         ]
 
-        member _.ValidateOptions(options) =
+        member self.ValidateOptions(options) =
             options.Arguments.Length > 0
 
-        member _.ExecuteAsync(options) =
+        member self.ExecuteAsync(options) =
             task {
                 try
                     match options.Arguments with
@@ -62,7 +62,7 @@ type ExecuteCommand(
                             Console.WriteLine(sprintf "❌ Error: Metascript file not found: %s" metascriptPath)
                             return CommandResult.failure("Metascript file not found")
                         else
-                            let! result = this.executeMetascriptFile metascriptPath outputPath verbose logger
+                            let! result = self.executeMetascriptFile metascriptPath outputPath verbose logger
                             return result
                     | [] ->
                         Console.WriteLine("❌ Error: Metascript path required")
@@ -76,7 +76,7 @@ type ExecuteCommand(
                     return CommandResult.failure(sprintf "Execution failed: %s" ex.Message)
             }
 
-    member private this.executeMetascriptFile (metascriptPath: string) (outputPath: string option) (verbose: bool) (logger: ILogger) =
+    member private self.executeMetascriptFile (metascriptPath: string) (outputPath: string option) (verbose: bool) (logger: ILogger) =
         task {
         try
             Console.WriteLine(sprintf "📋 Reading metascript: %s" metascriptPath)
@@ -125,8 +125,8 @@ type ExecuteCommand(
 
             // Parse and execute metascript sections
             appendLog "📋 PHASE_START | METASCRIPT_PARSING | Parsing metascript content"
-            let fsharpBlocks = this.extractFSharpBlocks content
-            let yamlBlocks = this.extractYamlBlocks content
+            let fsharpBlocks = self.extractFSharpBlocks content
+            let yamlBlocks = self.extractYamlBlocks content
             appendLog (sprintf "📊 PARSING_RESULT | Found %d F# code blocks and %d YAML blocks to execute" (List.length fsharpBlocks) (List.length yamlBlocks))
 
             let mutable executionOutput = System.Text.StringBuilder()
@@ -163,7 +163,7 @@ type ExecuteCommand(
                 appendLog (sprintf "📋 F#_CONTENT | Block Size | F# block contains %d characters, %d lines" (block : string).Length blockLines)
                 appendLog "💻 F#_EXECUTION | Enhanced Engine | Executing F# code with real file operations and variable tracking"
 
-                let! blockResult = this.executeEnhancedFSharpBlock block variables
+                let! blockResult = self.executeEnhancedFSharpBlock block variables
                 let blockEndTime = DateTime.Now
                 let blockDuration = blockEndTime - blockStartTime
 
@@ -262,7 +262,7 @@ type ExecuteCommand(
             Console.WriteLine(sprintf "📄 Execution log saved: %s" logPath)
 
             // Generate additional output files
-            let! additionalOutputs = this.generateAdditionalOutputs metascriptName sessionId startTime endTime duration fsharpBlocks yamlBlocks variables executionOutput outputPath
+            let! additionalOutputs = self.generateAdditionalOutputs metascriptName sessionId startTime endTime duration fsharpBlocks yamlBlocks variables executionOutput outputPath
 
             for outputFile in additionalOutputs do
                 Console.WriteLine(sprintf "📄 Additional output saved: %s" outputFile)
@@ -277,7 +277,7 @@ type ExecuteCommand(
             return CommandResult.failure(ex.Message)
         }
 
-    member private this.extractFSharpBlocks (content: string) =
+    member private self.extractFSharpBlocks (content: string) =
         let lines = content.Split([|'\n'; '\r'|], StringSplitOptions.RemoveEmptyEntries)
         let mutable fsharpBlocks = []
         let mutable currentBlock = System.Text.StringBuilder()
@@ -296,7 +296,7 @@ type ExecuteCommand(
 
         List.rev fsharpBlocks
 
-    member private this.extractYamlBlocks (content: string) =
+    member private self.extractYamlBlocks (content: string) =
         let lines = content.Split([|'\n'; '\r'|], StringSplitOptions.RemoveEmptyEntries)
         let mutable yamlBlocks = []
         let mutable currentBlock = System.Text.StringBuilder()
@@ -316,7 +316,7 @@ type ExecuteCommand(
         List.rev yamlBlocks
 
     // Generate additional output files (YAML, JSON, Markdown)
-    member private this.generateAdditionalOutputs
+    member private self.generateAdditionalOutputs
         (metascriptName: string)
         (sessionId: string)
         (startTime: DateTime)
@@ -410,7 +410,7 @@ type ExecuteCommand(
         }
 
     // Enhanced F# execution with real file operations
-    member private this.executeEnhancedFSharpBlock (code: string) (variables: Map<string, obj>) =
+    member private self.executeEnhancedFSharpBlock (code: string) (variables: Map<string, obj>) =
         task {
             try
                 let output = System.Text.StringBuilder()
@@ -524,7 +524,7 @@ type ExecuteCommand(
                 }
         }
 
-    member private this.executeFSharpBlock (code: string) =
+    member private self.executeFSharpBlock (code: string) =
         // Simple F# execution simulation - in a full implementation would use F# Interactive
         let output = System.Text.StringBuilder()
 

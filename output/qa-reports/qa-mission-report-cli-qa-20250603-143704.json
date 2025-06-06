@@ -1,0 +1,55 @@
+{
+  "EndTime": "2025-06-03T14:37:20.147619-04:00",
+  "TotalIssues": 6,
+  "MissionId": "cli-qa-20250603-143704",
+  "TotalFixes": 0,
+  "StartTime": "2025-06-03T14:37:04.5475845-04:00",
+  "Phase": "testing",
+  "AgentResults": {
+    "CLITestingAgent": {
+      "Fixes": [],
+      "Evidence": [],
+      "Metrics": {
+        "TestedCommands": 8,
+        "FailedCommands": 6
+      },
+      "Recommendations": [],
+      "Issues": [
+        "Help command failed",
+        "Version command failed",
+        "Command 'mixtral' help failed",
+        "Command 'chatbot' help failed",
+        "Command 'swarm' help failed",
+        "Command 'notebook' help failed"
+      ],
+      "Success": true
+    }
+  },
+  "Recommendations": [],
+  "Duration": {
+    "Ticks": 156000345,
+    "Days": 0,
+    "Hours": 0,
+    "Milliseconds": 600,
+    "Microseconds": 34,
+    "Nanoseconds": 500,
+    "Minutes": 0,
+    "Seconds": 15,
+    "TotalDays": 0.0001805559548611111,
+    "TotalHours": 0.004333342916666667,
+    "TotalMilliseconds": 15600.0345,
+    "TotalMicroseconds": 15600034.5,
+    "TotalNanoseconds": 15600034500.0,
+    "TotalMinutes": 0.260000575,
+    "TotalSeconds": 15.6000345
+  },
+  "QualityMetrics": {
+    "PerformanceScore": 0.0,
+    "FixesApplied": 0,
+    "TotalIssues": 0,
+    "CompilationWarnings": 0,
+    "UXScore": 0.0,
+    "CriticalIssues": 0,
+    "TestCoverage": 0.0
+  }
+}

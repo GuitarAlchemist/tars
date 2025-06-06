@@ -84,6 +84,45 @@ and ClosureType =
     | DatabaseMigration
     | DeploymentScript
     | MonitoringDashboard
+    // Enhanced ML/AI Closure Types
+    | GradientDescentOptimizer
+    | StateSpaceRepresentation
+    | FrequencyAnalysis
+    | StateMachine
+    | NeuralNetwork
+    | SignalProcessing
+    | GeneticAlgorithm
+    | BayesianNetwork
+    | ReinforcementLearning
+    | MonteCarloMethod
+    // Advanced Mathematical Techniques
+    | SupportVectorMachine
+    | RandomForest
+    | TransformerBlock
+    | VariationalAutoencoder
+    | GraphNeuralNetwork
+    | BifurcationAnalysis
+    | ChaosTheory
+    | LieAlgebra
+    | LieGroupAction
+    // Quantum Computing Techniques
+    | PauliMatrices
+    | QuantumStateEvolution
+    | QuantumGates
+    // Probabilistic Data Structures
+    | BloomFilter
+    | CountMinSketch
+    | HyperLogLog
+    | CuckooFilter
+    | SkipList
+    // Graph Traversal and Search Algorithms
+    | BreadthFirstSearch
+    | DepthFirstSearch
+    | AStarSearch
+    | QStarSearch
+    | DijkstraSearch
+    | MinimaxSearch
+    | AlphaBetaSearch
     | Custom of string
 
 /// <summary>
@@ -139,15 +178,18 @@ and MemoryUsageStatistics = {
 /// Dynamic closure factory for autonomous capability expansion
 /// </summary>
 type ClosureFactory(logger: ILogger<ClosureFactory>, closureRegistry: ClosureRegistry, closureExecutor: ClosureExecutor) =
-    
+
     let activeExecutions = ConcurrentDictionary<string, ClosureExecutionResult>()
     let executionHistory = ConcurrentQueue<ClosureExecutionResult>()
     let factoryStatistics = ConcurrentDictionary<string, int64>()
-    
+
     let mutable isRunning = false
     let mutable cancellationTokenSource: CancellationTokenSource option = None
     let mutable monitoringTask: Task option = None
-    
+
+    // Enhanced closure factory integration
+    let enhancedRegistry = initializeEnhancedClosureFactory()
+
     let maxExecutionHistory = 10000
     let closuresDirectory = ".tars/closures"
     let outputDirectory = ".tars/output"
@@ -379,6 +421,79 @@ type ClosureFactory(logger: ILogger<ClosureFactory>, closureRegistry: ClosureReg
             this.GenerateDatabaseMigrationCode(template, parameters)
         | DeploymentScript ->
             this.GenerateDeploymentScriptCode(template, parameters)
+        // Enhanced ML/AI closure types
+        | GradientDescentOptimizer ->
+            this.GenerateEnhancedClosureCode("gradient_descent", template, parameters)
+        | StateSpaceRepresentation ->
+            this.GenerateEnhancedClosureCode("state_space", template, parameters)
+        | FrequencyAnalysis ->
+            this.GenerateEnhancedClosureCode("frequency_analysis", template, parameters)
+        | StateMachine ->
+            this.GenerateEnhancedClosureCode("state_machines", template, parameters)
+        | NeuralNetwork ->
+            this.GenerateEnhancedClosureCode("neural_networks", template, parameters)
+        | SignalProcessing ->
+            this.GenerateEnhancedClosureCode("signal_processing", template, parameters)
+        | GeneticAlgorithm ->
+            this.GenerateEnhancedClosureCode("genetic_algorithms", template, parameters)
+        | BayesianNetwork ->
+            this.GenerateEnhancedClosureCode("bayesian_networks", template, parameters)
+        | ReinforcementLearning ->
+            this.GenerateEnhancedClosureCode("reinforcement_learning", template, parameters)
+        | MonteCarloMethod ->
+            this.GenerateEnhancedClosureCode("monte_carlo", template, parameters)
+        // Advanced Mathematical Techniques
+        | SupportVectorMachine ->
+            this.GenerateAdvancedMathClosureCode("svm", template, parameters)
+        | RandomForest ->
+            this.GenerateAdvancedMathClosureCode("random_forest", template, parameters)
+        | TransformerBlock ->
+            this.GenerateAdvancedMathClosureCode("transformer", template, parameters)
+        | VariationalAutoencoder ->
+            this.GenerateAdvancedMathClosureCode("vae", template, parameters)
+        | GraphNeuralNetwork ->
+            this.GenerateAdvancedMathClosureCode("gnn", template, parameters)
+        | BifurcationAnalysis ->
+            this.GenerateAdvancedMathClosureCode("bifurcation", template, parameters)
+        | ChaosTheory ->
+            this.GenerateAdvancedMathClosureCode("chaos", template, parameters)
+        | LieAlgebra ->
+            this.GenerateAdvancedMathClosureCode("lie_algebra", template, parameters)
+        | LieGroupAction ->
+            this.GenerateAdvancedMathClosureCode("lie_group", template, parameters)
+        // Quantum Computing Techniques
+        | PauliMatrices ->
+            this.GenerateQuantumClosureCode("pauli_matrices", template, parameters)
+        | QuantumStateEvolution ->
+            this.GenerateQuantumClosureCode("quantum_evolution", template, parameters)
+        | QuantumGates ->
+            this.GenerateQuantumClosureCode("quantum_gates", template, parameters)
+        // Probabilistic Data Structures
+        | BloomFilter ->
+            this.GenerateProbabilisticClosureCode("bloom_filter", template, parameters)
+        | CountMinSketch ->
+            this.GenerateProbabilisticClosureCode("count_min_sketch", template, parameters)
+        | HyperLogLog ->
+            this.GenerateProbabilisticClosureCode("hyperloglog", template, parameters)
+        | CuckooFilter ->
+            this.GenerateProbabilisticClosureCode("cuckoo_filter", template, parameters)
+        | SkipList ->
+            this.GenerateProbabilisticClosureCode("skip_list", template, parameters)
+        // Graph Traversal and Search Algorithms
+        | BreadthFirstSearch ->
+            this.GenerateGraphTraversalClosureCode("bfs", template, parameters)
+        | DepthFirstSearch ->
+            this.GenerateGraphTraversalClosureCode("dfs", template, parameters)
+        | AStarSearch ->
+            this.GenerateGraphTraversalClosureCode("astar", template, parameters)
+        | QStarSearch ->
+            this.GenerateGraphTraversalClosureCode("qstar", template, parameters)
+        | DijkstraSearch ->
+            this.GenerateGraphTraversalClosureCode("dijkstra", template, parameters)
+        | MinimaxSearch ->
+            this.GenerateGraphTraversalClosureCode("minimax", template, parameters)
+        | AlphaBetaSearch ->
+            this.GenerateGraphTraversalClosureCode("alphabeta", template, parameters)
         | MonitoringDashboard ->
             this.GenerateMonitoringDashboardCode(template, parameters)
         | Custom customType ->
@@ -528,6 +643,416 @@ volumes:
     
     member private this.GenerateCustomCode(customType: string, template: string, parameters: ClosureParameter list) =
         $"// Custom {customType} code would be generated based on parameters"
+
+    /// Generate enhanced closure code using the enhanced factory
+    member private this.GenerateEnhancedClosureCode(category: string, template: string, parameters: ClosureParameter list) =
+        match getEnhancedClosureFromFactory enhancedRegistry category template with
+        | Some closureFactory ->
+            $"""
+// Enhanced F# Closure: {category}
+// Template: {template}
+// Generated by TARS Enhanced Closure Factory
+
+module Generated{category.Replace("_", "")}Closure
+
+open System
+open System.Threading.Tasks
+
+// F# Computational Expression Implementation
+{template}
+
+// Closure factory function
+let create{category.Replace("_", "")}Closure =
+    // Implementation would be generated based on the enhanced factory
+    fun parameters ->
+        async {{
+            // Enhanced closure logic here
+            return "Enhanced closure result"
+        }}
+
+// Usage example:
+// let closure = create{category.Replace("_", "")}Closure parameters
+// let! result = closure
+"""
+        | None ->
+            $"// Enhanced closure for {category} not found in registry"
+
+    /// Generate advanced mathematical closure code
+    member private this.GenerateAdvancedMathClosureCode(technique: string, template: string, parameters: ClosureParameter list) =
+        $"""
+// Advanced Mathematical Closure: {technique}
+// Template: {template}
+// Generated by TARS Advanced Mathematical Closure Factory
+
+module Generated{technique.Replace("_", "")}Closure
+
+open System
+open System.Threading.Tasks
+open TarsEngine.FSharp.WindowsService.ClosureFactory.AdvancedMathematicalClosureFactory
+
+// Advanced Mathematical Implementation
+{template}
+
+// Closure factory function for {technique}
+let create{technique.Replace("_", "")}Closure =
+    match "{technique}" with
+    | "svm" ->
+        fun parameters ->
+            async {{
+                let kernelType = "rbf"
+                let regularization = 1.0
+                let! svmModel = createSupportVectorMachine kernelType regularization parameters
+                return sprintf "SVM model created with kernel: %s" kernelType
+            }}
+
+    | "random_forest" ->
+        fun parameters ->
+            async {{
+                let numTrees = 100
+                let maxDepth = 10
+                let featureRatio = 0.8
+                let! forestModel = createRandomForest numTrees maxDepth featureRatio parameters
+                return sprintf "Random Forest created with %d trees" numTrees
+            }}
+
+    | "transformer" ->
+        fun parameters ->
+            async {{
+                let numHeads = 8
+                let embeddingDim = 512
+                let feedForwardDim = 2048
+                let! transformerModel = createTransformerBlock numHeads embeddingDim feedForwardDim parameters
+                return sprintf "Transformer block created with %d attention heads" numHeads
+            }}
+
+    | "vae" ->
+        fun parameters ->
+            async {{
+                let inputDim = 784
+                let latentDim = 64
+                let! vaeModel = createVariationalAutoencoder inputDim latentDim parameters
+                return sprintf "VAE created with latent dimension: %d" latentDim
+            }}
+
+    | "gnn" ->
+        fun parameters ->
+            async {{
+                let aggregationType = "mean"
+                let numLayers = 3
+                let hiddenDim = 128
+                let! gnnModel = createGraphNeuralNetwork aggregationType numLayers hiddenDim parameters [||] [||]
+                return sprintf "GNN created with %d layers and %s aggregation" numLayers aggregationType
+            }}
+
+    | "bifurcation" ->
+        fun parameters ->
+            async {{
+                let dynamicalSystem = fun param x -> x * param * (1.0 - x) // Logistic map
+                let paramRange = [0.1 .. 0.1 .. 4.0]
+                let! bifurcationAnalysis = createBifurcationAnalyzer dynamicalSystem paramRange [0.5]
+                return sprintf "Bifurcation analysis completed for %d parameter values" (List.length paramRange)
+            }}
+
+    | "chaos" ->
+        fun parameters ->
+            async {{
+                let systemType = "lorenz"
+                let systemParams = [|10.0; 28.0; 8.0/3.0|] // Lorenz parameters
+                let! chaosAnalysis = createChaosAnalyzer systemType systemParams [|1.0; 1.0; 1.0|] 10000
+                return sprintf "Chaos analysis completed for %s system" systemType
+            }}
+
+    | "lie_algebra" ->
+        fun parameters ->
+            async {{
+                let algebraType = "so3" // Special orthogonal algebra
+                let dimension = 3
+                let generators = [|[|1.0; 0.0; 0.0|]; [|0.0; 1.0; 0.0|]; [|0.0; 0.0; 1.0|]|]
+                let! lieStructure = createLieAlgebraStructure algebraType dimension generators
+                return sprintf "Lie algebra %s structure created in dimension %d" algebraType dimension
+            }}
+
+    | "lie_group" ->
+        fun parameters ->
+            async {{
+                let groupType = "SO3"
+                let manifoldDim = 3
+                let groupElement = [|[|1.0; 0.0; 0.0|]; [|0.0; 1.0; 0.0|]; [|0.0; 0.0; 1.0|]|]
+                let manifoldPoint = [|1.0; 0.0; 0.0|]
+                let! groupAction = createLieGroupAction groupType manifoldDim groupElement manifoldPoint
+                return sprintf "Lie group %s action created on %d-dimensional manifold" groupType manifoldDim
+            }}
+
+    | _ ->
+        fun parameters ->
+            async {{
+                return sprintf "Advanced mathematical technique '%s' not implemented" "{technique}"
+            }}
+
+// Usage example:
+// let closure = create{technique.Replace("_", "")}Closure parameters
+// let! result = closure
+// printfn "Result: %s" result
+"""
+
+    /// Generate quantum computing closure code
+    member private this.GenerateQuantumClosureCode(technique: string, template: string, parameters: ClosureParameter list) =
+        $"""
+// Quantum Computing Closure: {technique}
+// Template: {template}
+// Generated by TARS Quantum Closure Factory
+
+module Generated{technique.Replace("_", "")}Closure
+
+open System
+open System.Threading.Tasks
+open TarsEngine.FSharp.WindowsService.ClosureFactory.AdvancedMathematicalClosureFactory
+
+// Quantum Computing Implementation
+{template}
+
+// Closure factory function for {technique}
+let create{technique.Replace("_", "")}Closure =
+    match "{technique}" with
+    | "pauli_matrices" ->
+        fun operation ->
+            async {{
+                let pauliOperations = createPauliMatrixOperations()
+                let! result = pauliOperations operation
+                return sprintf "Pauli matrix operation '%s' completed" operation
+            }}
+
+    | "quantum_evolution" ->
+        fun parameters ->
+            async {{
+                let timeEvolution = 1.0  // Default time
+                let hamiltonianCoeffs = (1.0, 0.5, 0.8)  // (ax, ay, az)
+                let initialState = [| {{Real = 1.0; Imaginary = 0.0}}; {{Real = 0.0; Imaginary = 0.0}} |]
+
+                let quantumEvolution = createQuantumStateEvolution timeEvolution hamiltonianCoeffs
+                let! result = quantumEvolution initialState
+                return sprintf "Quantum state evolution completed for time %f" timeEvolution
+            }}
+
+    | "quantum_gates" ->
+        fun parameters ->
+            async {{
+                let pauliOperations = createPauliMatrixOperations()
+                let! gateResult = pauliOperations "quantum_gates"
+                return sprintf "Quantum gates generated successfully"
+            }}
+
+    | _ ->
+        fun parameters ->
+            async {{
+                return sprintf "Quantum technique '%s' not implemented" "{technique}"
+            }}
+
+// Quantum Applications for TARS:
+// 1. Quantum-inspired optimization algorithms
+// 2. Quantum error correction for robust systems
+// 3. Quantum state representation for complex system states
+// 4. Quantum parallelism concepts for concurrent processing
+// 5. Quantum entanglement models for agent coordination
+
+// Usage example:
+// let closure = create{technique.Replace("_", "")}Closure operation
+// let! result = closure
+// printfn "Quantum Result: %s" result
+"""
+
+    /// Generate probabilistic data structure closure code
+    member private this.GenerateProbabilisticClosureCode(structureType: string, template: string, parameters: ClosureParameter list) =
+        $"""
+// Probabilistic Data Structure Closure: {structureType}
+// Template: {template}
+// Generated by TARS Probabilistic Closure Factory
+
+module Generated{structureType.Replace("_", "")}Closure
+
+open System
+open System.Threading.Tasks
+open TarsEngine.FSharp.WindowsService.ClosureFactory.AdvancedMathematicalClosureFactory
+
+// Probabilistic Data Structure Implementation
+{template}
+
+// Closure factory function for {structureType}
+let create{structureType.Replace("_", "")}Closure =
+    match "{structureType}" with
+    | "bloom_filter" ->
+        fun parameters ->
+            async {{
+                let probabilisticStructures = createProbabilisticDataStructures()
+                let! result = probabilisticStructures "bloom_filter"
+                return sprintf "Bloom filter created with %s" (result.ToString())
+            }}
+
+    | "count_min_sketch" ->
+        fun parameters ->
+            async {{
+                let probabilisticStructures = createProbabilisticDataStructures()
+                let! result = probabilisticStructures "count_min_sketch"
+                return sprintf "Count-Min Sketch created with %s" (result.ToString())
+            }}
+
+    | "hyperloglog" ->
+        fun parameters ->
+            async {{
+                let probabilisticStructures = createProbabilisticDataStructures()
+                let! result = probabilisticStructures "hyperloglog"
+                return sprintf "HyperLogLog created with %s" (result.ToString())
+            }}
+
+    | "cuckoo_filter" ->
+        fun parameters ->
+            async {{
+                let probabilisticStructures = createProbabilisticDataStructures()
+                let! result = probabilisticStructures "cuckoo_filter"
+                return sprintf "Cuckoo Filter created with %s" (result.ToString())
+            }}
+
+    | "skip_list" ->
+        fun parameters ->
+            async {{
+                // Skip list implementation would go here
+                return sprintf "Skip List implementation for probabilistic operations"
+            }}
+
+    | _ ->
+        fun parameters ->
+            async {{
+                return sprintf "Probabilistic structure '%s' not implemented" "{structureType}"
+            }}
+
+// Probabilistic Data Structure Applications for TARS:
+// 1. Efficient duplicate detection in large datasets
+// 2. Real-time analytics with bounded memory usage
+// 3. Approximate query processing for big data
+// 4. Cache optimization and hit rate estimation
+// 5. Network traffic analysis and monitoring
+// 6. Database query optimization
+// 7. Distributed system coordination
+// 8. Memory-efficient set operations
+
+// Performance Benefits:
+// - Constant or logarithmic time complexity
+// - Sub-linear space complexity
+// - Tunable accuracy vs memory trade-offs
+// - Excellent for streaming data processing
+// - Cache-friendly memory access patterns
+
+// Usage example:
+// let closure = create{structureType.Replace("_", "")}Closure parameters
+// let! result = closure
+// printfn "Probabilistic Result: %s" result
+"""
+
+    /// Generate graph traversal algorithm closure code
+    member private this.GenerateGraphTraversalClosureCode(algorithmType: string, template: string, parameters: ClosureParameter list) =
+        $"""
+// Graph Traversal Algorithm Closure: {algorithmType}
+// Template: {template}
+// Generated by TARS Graph Traversal Closure Factory
+
+module Generated{algorithmType.Replace("_", "")}Closure
+
+open System
+open System.Threading.Tasks
+open TarsEngine.FSharp.WindowsService.ClosureFactory.AdvancedMathematicalClosureFactory
+
+// Graph Traversal Algorithm Implementation
+{template}
+
+// Closure factory function for {algorithmType}
+let create{algorithmType.Replace("_", "")}Closure =
+    match "{algorithmType}" with
+    | "bfs" ->
+        fun parameters ->
+            async {{
+                let graphAlgorithms = createGraphTraversalAlgorithms()
+                let! result = graphAlgorithms "bfs"
+                return sprintf "BFS traversal completed: %s" (result.ToString())
+            }}
+
+    | "dfs" ->
+        fun parameters ->
+            async {{
+                let graphAlgorithms = createGraphTraversalAlgorithms()
+                let! result = graphAlgorithms "dfs"
+                return sprintf "DFS traversal completed: %s" (result.ToString())
+            }}
+
+    | "astar" ->
+        fun parameters ->
+            async {{
+                let graphAlgorithms = createGraphTraversalAlgorithms()
+                let! result = graphAlgorithms "astar"
+                return sprintf "A* search completed: %s" (result.ToString())
+            }}
+
+    | "qstar" ->
+        fun parameters ->
+            async {{
+                let graphAlgorithms = createGraphTraversalAlgorithms()
+                let! result = graphAlgorithms "qstar"
+                return sprintf "Q* search completed: %s" (result.ToString())
+            }}
+
+    | "dijkstra" ->
+        fun parameters ->
+            async {{
+                let graphAlgorithms = createGraphTraversalAlgorithms()
+                let! result = graphAlgorithms "dijkstra"
+                return sprintf "Dijkstra search completed: %s" (result.ToString())
+            }}
+
+    | "minimax" ->
+        fun parameters ->
+            async {{
+                let graphAlgorithms = createGraphTraversalAlgorithms()
+                let! result = graphAlgorithms "minimax"
+                return sprintf "Minimax search completed: %s" (result.ToString())
+            }}
+
+    | "alphabeta" ->
+        fun parameters ->
+            async {{
+                let graphAlgorithms = createGraphTraversalAlgorithms()
+                let! result = graphAlgorithms "alphabeta"
+                return sprintf "Alpha-Beta search completed: %s" (result.ToString())
+            }}
+
+    | _ ->
+        fun parameters ->
+            async {{
+                return sprintf "Graph algorithm '%s' not implemented" "{algorithmType}"
+            }}
+
+// Graph Traversal Applications for TARS:
+// 1. Pathfinding for autonomous agent navigation
+// 2. Dependency resolution in complex systems
+// 3. Task scheduling and workflow optimization
+// 4. Network routing and communication optimization
+// 5. Decision tree traversal for AI reasoning
+// 6. Game AI for strategic planning
+// 7. Resource allocation optimization
+// 8. Code dependency analysis
+
+// Algorithm Performance Characteristics:
+// - BFS: O(V+E) time, optimal for unweighted graphs
+// - DFS: O(V+E) time, memory efficient, good for cycle detection
+// - A*: O(b^d) time, optimal with admissible heuristic
+// - Q*: A* + Q-learning, adaptive and learning-based
+// - Dijkstra: O((V+E)logV) time, optimal for weighted graphs
+// - Minimax: O(b^d) time, optimal for game trees
+// - Alpha-Beta: O(b^(d/2)) best case, up to 50% pruning
+
+// Usage example:
+// let closure = create{algorithmType.Replace("_", "")}Closure parameters
+// let! result = closure
+// printfn "Graph Traversal Result: %s" result
+"""
     
     /// Analyze closure type from description
     member private this.AnalyzeClosureType(description: string) =
