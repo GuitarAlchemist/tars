@@ -37,6 +37,9 @@ type ITarsEngineApi =
     /// Execution context and tracing
     abstract member ExecutionContext: IExecutionContextApi
 
+    /// Python bridge for executing Python code within metascripts
+    abstract member PythonBridge: IPythonBridge
+
 /// Vector store API for semantic search and knowledge management
 and IVectorStoreApi =
     /// Search for similar content using semantic similarity
@@ -361,3 +364,85 @@ and ResourceLimits = {
     MaxNetworkRequests: int
     MaxFileOperations: int
 }
+
+/// Python execution result
+and PythonExecutionResult = {
+    Success: bool
+    Output: string
+    Errors: string[]
+    Variables: Map<string, obj>
+    ExecutionTime: TimeSpan
+}
+
+/// Python variable type information
+and PythonVariableInfo = {
+    Name: string
+    Type: string
+    Value: obj
+    IsCallable: bool
+}
+
+/// Python module information
+and PythonModuleInfo = {
+    Name: string
+    Version: string option
+    Description: string
+    Functions: string[]
+    Classes: string[]
+}
+
+/// Python environment configuration
+and PythonEnvironmentConfig = {
+    PythonPath: string option
+    VirtualEnvironment: string option
+    RequiredPackages: string[]
+    EnvironmentVariables: Map<string, string>
+    WorkingDirectory: string option
+}
+
+/// Python bridge API for executing Python code within TARS metascripts
+and IPythonBridge =
+    /// Execute Python code and return results
+    abstract member ExecuteAsync: code: string -> Task<PythonExecutionResult>
+
+    /// Execute Python code with specific variables in scope
+    abstract member ExecuteWithVariablesAsync: code: string * variables: Map<string, obj> -> Task<PythonExecutionResult>
+
+    /// Execute Python script from file
+    abstract member ExecuteFileAsync: filePath: string -> Task<PythonExecutionResult>
+
+    /// Get all variables in the current Python scope
+    abstract member GetVariablesAsync: unit -> Task<PythonVariableInfo[]>
+
+    /// Set a variable in the Python scope
+    abstract member SetVariableAsync: name: string * value: obj -> Task<bool>
+
+    /// Get a variable from the Python scope
+    abstract member GetVariableAsync: name: string -> Task<obj option>
+
+    /// Import a Python module
+    abstract member ImportModuleAsync: moduleName: string -> Task<PythonModuleInfo>
+
+    /// Install a Python package using pip
+    abstract member InstallPackageAsync: packageName: string -> Task<bool>
+
+    /// List installed Python packages
+    abstract member ListPackagesAsync: unit -> Task<string[]>
+
+    /// Check if a Python package is available
+    abstract member IsPackageAvailableAsync: packageName: string -> Task<bool>
+
+    /// Configure Python environment
+    abstract member ConfigureEnvironmentAsync: config: PythonEnvironmentConfig -> Task<bool>
+
+    /// Get Python version information
+    abstract member GetVersionInfoAsync: unit -> Task<string>
+
+    /// Reset Python environment (clear all variables)
+    abstract member ResetEnvironmentAsync: unit -> Task<bool>
+
+    /// Evaluate Python expression and return result
+    abstract member EvaluateExpressionAsync: expression: string -> Task<obj>
+
+    /// Check if Python environment is available
+    abstract member IsAvailable: bool

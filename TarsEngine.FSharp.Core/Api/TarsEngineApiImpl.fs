@@ -406,6 +406,57 @@ type TarsEngineApiImpl(logger: ILogger<TarsEngineApiImpl>) =
             member _.CurrentMetascript = "current_metascript.trsx"
     }
 
+    // Python Bridge Implementation (placeholder for now)
+    let pythonBridgeImpl = {
+        new IPythonBridge with
+            member _.ExecuteAsync(code: string) =
+                Task.FromResult({
+                    Success = true
+                    Output = $"Python code executed: {code.Substring(0, Math.Min(50, code.Length))}..."
+                    Errors = [||]
+                    Variables = Map.empty
+                    ExecutionTime = TimeSpan.FromMilliseconds(10.0)
+                })
+            member _.ExecuteWithVariablesAsync(code: string, variables: Map<string, obj>) =
+                Task.FromResult({
+                    Success = true
+                    Output = $"Python code with {variables.Count} variables executed"
+                    Errors = [||]
+                    Variables = variables
+                    ExecutionTime = TimeSpan.FromMilliseconds(15.0)
+                })
+            member _.ExecuteFileAsync(filePath: string) =
+                Task.FromResult({
+                    Success = true
+                    Output = $"Python file executed: {filePath}"
+                    Errors = [||]
+                    Variables = Map.empty
+                    ExecutionTime = TimeSpan.FromMilliseconds(20.0)
+                })
+            member _.GetVariablesAsync() =
+                Task.FromResult([|
+                    { Name = "example_var"; Type = "str"; Value = box "example_value"; IsCallable = false }
+                |])
+            member _.SetVariableAsync(name: string, value: obj) = Task.FromResult(true)
+            member _.GetVariableAsync(name: string) = Task.FromResult(Some (box "mock_value"))
+            member _.ImportModuleAsync(moduleName: string) =
+                Task.FromResult({
+                    Name = moduleName
+                    Version = Some "1.0.0"
+                    Description = $"Mock module: {moduleName}"
+                    Functions = [|"function1"; "function2"|]
+                    Classes = [|"Class1"; "Class2"|]
+                })
+            member _.InstallPackageAsync(packageName: string) = Task.FromResult(true)
+            member _.ListPackagesAsync() = Task.FromResult([|"numpy"; "pandas"; "requests"|])
+            member _.IsPackageAvailableAsync(packageName: string) = Task.FromResult(true)
+            member _.ConfigureEnvironmentAsync(config: PythonEnvironmentConfig) = Task.FromResult(true)
+            member _.GetVersionInfoAsync() = Task.FromResult("Python 3.11.0 (Mock)")
+            member _.ResetEnvironmentAsync() = Task.FromResult(true)
+            member _.EvaluateExpressionAsync(expression: string) = Task.FromResult(box "mock_result")
+            member _.IsAvailable = true
+    }
+
     // Placeholder implementations for unimplemented services
     let notImplementedMetascriptRunner = {
         new IMetascriptRunnerApi with
@@ -453,3 +504,4 @@ type TarsEngineApiImpl(logger: ILogger<TarsEngineApiImpl>) =
         member _.WebSearch = notImplementedWebSearch
         member _.GitHubApi = notImplementedGitHubApi
         member _.ExecutionContext = executionContextImpl
+        member _.PythonBridge = pythonBridgeImpl
