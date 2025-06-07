@@ -1,0 +1,62 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <WarnOn>3390;$(WarnOn)</WarnOn>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Types.fs" />
+    <Compile Include="Models/AgentModels.fs" />
+    <Compile Include="Models/MetascriptModels.fs" />
+    <Compile Include="Models/NodeModels.fs" />
+    <Compile Include="Services/TarsApiService.fs" />
+    <Compile Include="Services/SemanticKernelService.fs" />
+    <Compile Include="Services/LanguageServerService.fs" />
+    <Compile Include="Components/AgentTreeView.fs" />
+    <Compile Include="Components/MetascriptBrowser.fs" />
+    <Compile Include="Components/NodeMonitor.fs" />
+    <Compile Include="Components/ChatInterface.fs" />
+    <Compile Include="Components/MonacoEditor.fs" />
+    <Compile Include="Pages/Dashboard.fs" />
+    <Compile Include="Pages/AgentsPage.fs" />
+    <Compile Include="Pages/MetascriptsPage.fs" />
+    <Compile Include="Pages/NodesPage.fs" />
+    <Compile Include="Pages/ChatPage.fs" />
+    <Compile Include="App.fs" />
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Fable.Core" Version="4.3.0" />
+    <PackageReference Include="Fable.Elmish" Version="4.1.0" />
+    <PackageReference Include="Fable.Elmish.React" Version="4.0.0" />
+    <PackageReference Include="Fable.Elmish.Browser" Version="4.0.0" />
+    <PackageReference Include="Fable.React" Version="9.3.0" />
+    <PackageReference Include="Fable.Browser.Dom" Version="2.16.0" />
+    <PackageReference Include="Fable.Browser.WebSocket" Version="1.2.0" />
+    <PackageReference Include="Fable.SimpleHttp" Version="3.5.0" />
+    <PackageReference Include="Fable.SimpleJson" Version="3.24.0" />
+    <PackageReference Include="Thoth.Json" Version="11.0.0" />
+    <PackageReference Include="Feliz" Version="2.7.0" />
+    <PackageReference Include="Feliz.MaterialUI" Version="2.1.0" />
+    <PackageReference Include="Microsoft.SemanticKernel" Version="1.0.1" />
+    <PackageReference Include="Microsoft.SemanticKernel.Connectors.OpenAI" Version="1.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../TarsEngine.FSharp.Core/TarsEngine.FSharp.Core.fsproj" />
+    <ProjectReference Include="../TarsEngine.FSharp.Agents/TarsEngine.FSharp.Agents.fsproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="public/index.html" />
+    <Content Include="public/style.css" />
+    <Content Include="public/monaco-editor/**/*" />
+    <Content Include="webpack.config.js" />
+    <Content Include="package.json" />
+  </ItemGroup>
+
+</Project>
