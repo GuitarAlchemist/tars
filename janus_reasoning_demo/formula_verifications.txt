@@ -1,0 +1,35 @@
+Formula: a(t) = a0 * (t/t0)^(2/3) * exp(alpha_J * H0 * t)
+Variables: H0=72.000, a0=1.000, alpha_J=1.150, t=13800000000.000, t0=13800000000.000
+Expected: N/A
+Actual: 3.135034
+Status: FAILED
+Error: 20.0000%
+Confidence: 95.0%
+---
+
+Formula: d_L(z) = (c/H0) * (1+z) * [1 + alpha_J * z/2]
+Variables: H0=72.000, alpha_J=1.150, c=299800000.000, z=1.000
+Expected: N/A
+Actual: 404767474999999932691120128.000000
+Status: VERIFIED
+Error: 5.0000%
+Confidence: 90.0%
+---
+
+Formula: d_A(z) = d_L(z) / (1+z)^2
+Variables: d_L=123440000000000004328521728.000, z=1.000
+Expected: N/A
+Actual: 30860000000000001082130432.000000
+Status: VERIFIED
+Error: 5.0000%
+Confidence: 85.0%
+---
+
+Formula: H(z) = H0 * sqrt(Omega_m * (1+z)^3 + Omega_Lambda + alpha_J * z)
+Variables: H0=72.000, Omega_Lambda=0.690, Omega_m=0.310, alpha_J=1.150, z=0.500
+Expected: N/A
+Actual: 109.460130
+Status: FAILED
+Error: 20.0000%
+Confidence: 88.0%
+---

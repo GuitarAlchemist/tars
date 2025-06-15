@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="WebMain.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Fable.Core" Version="4.0.0" />
+    <PackageReference Include="Fable.Browser.Dom" Version="2.4.4" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../TarsEngine.FSharp.Core/TarsEngine.FSharp.Core.fsproj" />
+  </ItemGroup>
+</Project>

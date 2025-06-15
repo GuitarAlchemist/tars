@@ -10,17 +10,56 @@
     <!-- Core Types (consolidated) -->
     <Compile Include="Core/Types.fs" />
     <Compile Include="Core/FunctionalVariableSystem.fs" />
+    <Compile Include="Core/VectorStore.fs" />
+
+    <!-- Belief Propagation System -->
+    <Compile Include="BeliefPropagation/TarsBeliefSystem.fs" />
+
+    <!-- Cognitive Psychology System -->
+    <Compile Include="CognitivePsychology/TarsCognitivePsychology.fs" />
+
+    <!-- WebSocket Real-time Server -->
+    <Compile Include="WebSocket/TarsWebSocketServer.fs" />
+
+    <!-- API Sandbox -->
+    <Compile Include="ApiSandbox/TarsApiSandbox.fs" />
+
+    <!-- Projects Management -->
+    <Compile Include="Projects/TarsProjectManager.fs" />
+
+    <!-- Real Diagnostics - NO FAKE DATA -->
+    <Compile Include="Diagnostics/TarsRealDiagnostics.fs" />
+
+    <!-- Real Elmish Reactive UI Components -->
+    <Compile Include="UI/ElmishHelpers.fs" />
+    <Compile Include="UI/TarsInterop.fs" />
+    <Compile Include="UI/TarsElmishGenerator.fs" />
+    <Compile Include="UI/SelfModifyingUI.fs" />
+    <!-- <Compile Include="UI/TarsDiagnosticsElmishUI.fs" /> -->
+    <!-- <Compile Include="UI/ElmishDiagnostics.fs" /> -->
+    <Compile Include="UI/ElmishHtmlReport.fs" />
+    <Compile Include="UI/TarsElmishDiagnostics.fs" />
+
+    <!-- NEW FUNCTIONAL ELMISH TARS SYSTEM -->
+    <Compile Include="UI/ElmishRuntime.fs" />
+
+    <Compile Include="UI/TarsElmishApp.fs" />
+    <Compile Include="UI/TarsReactiveUI.fs" />
+
+
 
     <!-- Services (consolidated) -->
     <Compile Include="Services/YamlProcessingService.fs" />
     <Compile Include="Services/FileOperationsService.fs" />
     <Compile Include="Services/DockerService.fs" />
-    <Compile Include="Services/MixtralService.fs" />
+    <Compile Include="Services/GenericLlmService.fs" />
+    <Compile Include="Services/TarsKnowledgeService.fs" />
+    <Compile Include="Services/InMemoryFSharpService.fs" />
+    <!-- <Compile Include="Services/MixtralService.fs" /> -->
     <!-- <Compile Include="Services/HuggingFaceService.fs" /> -->
     <Compile Include="Services/IntelligenceService.fs" />
     <Compile Include="Services/MLService.fs" />
     <!-- <Compile Include="Services/PatternDiscoveryService.fs" /> -->
-    <Compile Include="Core/VectorStore.fs" />
 
     <!-- Commands -->
     <Compile Include="Commands/Types.fs" />
@@ -29,26 +68,37 @@
     <Compile Include="Commands/VersionCommand.fs" />
     <Compile Include="Commands/ExecuteCommand.fs" />
     <Compile Include="Commands/SwarmCommand.fs" />
-    <Compile Include="Commands/MixtralCommand.fs" />
+    <!-- <Compile Include="Commands/MixtralCommand.fs" /> -->
     <Compile Include="Commands/SimpleTransformerCommand.fs" />
     <Compile Include="Commands/MixtureOfExpertsCommand.fs" />
     <Compile Include="Commands/ChatbotCommand.fs" />
-    <Compile Include="Commands/TeamsCommand.fs" />
-    <Compile Include="Commands/VMCommand.fs" />
-    <Compile Include="Commands/ConfigCommand.fs" />
-    <Compile Include="Commands/EvolveCommand.fs" />
-    <Compile Include="Commands/SelfChatCommand.fs" />
-    <Compile Include="Commands/WebApiCommand.fs" />
-    <Compile Include="Commands/LiveEndpointsCommand.fs" />
+    <!-- Temporarily disabled due to Agents dependency -->
+    <!-- <Compile Include="Commands/TeamsCommand.fs" /> -->
+    <!-- <Compile Include="Commands/VMCommand.fs" /> -->
+    <!-- <Compile Include="Commands/ConfigCommand.fs" /> -->
+    <!-- <Compile Include="Commands/EvolveCommand.fs" /> -->
+    <!-- <Compile Include="Commands/SelfChatCommand.fs" /> -->
+    <!-- <Compile Include="Commands/WebApiCommand.fs" /> -->
+    <!-- <Compile Include="Commands/LiveEndpointsCommand.fs" /> -->
     <!-- <Compile Include="Commands/UICommand.fs" /> -->
     <!-- <Compile Include="Commands/RoadmapCommand.fs" /> -->
     <Compile Include="Commands/ServiceCommand.fs" />
     <Compile Include="Commands/NotebookCmd.fs" />
+    <Compile Include="Commands/LlmCommand.fs" />
+    <Compile Include="Commands/TarsLlmCommand.fs" />
+    <Compile Include="Commands/DiagnosticsCommand.fs" />
+    <Compile Include="Commands/EnhancedDiagnosticsCommand.fs" />
+    <Compile Include="Commands/ElmishDiagnosticsCommand.fs" />
+    <Compile Include="Commands/TarsElmishCommand.fs" />
+    <Compile Include="Commands/TarsApiLlmCommand.fs" />
+    <Compile Include="Commands/GenerateUICommand.fs" />
+    <Compile Include="Commands/SelfModifyingUICommand.fs" />
+    <!-- <Compile Include="Commands/FluxCudaCommand.fs" /> -->
     <!-- <Compile Include="Commands/HuggingFaceCommand.fs" /> -->
     <!-- <Compile Include="Commands/RealHuggingFaceCommand.fs" /> -->
 
     <!-- Services -->
-    <Compile Include="Services/WebApiClosureFactory.fs" />
+    <!-- <Compile Include="Services/WebApiClosureFactory.fs" /> -->
     <Compile Include="Commands/CommandRegistry.fs" />
     
     <!-- Core Application -->
@@ -61,11 +111,15 @@
   <!--<ItemGroup>
     <ProjectReference Include="..\TarsEngine.FSharp.Metascripts\TarsEngine.FSharp.Metascripts.fsproj" />
   </ItemGroup>-->
-  <ItemGroup>
+  <!-- <ItemGroup>
+    <ProjectReference Include="..\TarsEngine.FSharp.Core\TarsEngine.FSharp.Core.fsproj" />
+  </ItemGroup> -->
+  <!-- Temporarily remove broken dependencies -->
+  <!--<ItemGroup>
     <ProjectReference Include="..\TarsEngine.FSharp.Agents\TarsEngine.FSharp.Agents.fsproj" />
-    <!-- <ProjectReference Include="..\TarsEngine.FSharp.Notebooks\TarsEngine.FSharp.Notebooks.fsproj" /> -->
-    <!-- <ProjectReference Include="..\TarsEngine.FSharp.Requirements\TarsEngine.FSharp.Requirements.fsproj" /> -->
-  </ItemGroup>
+    <ProjectReference Include="..\TarsEngine.FSharp.Notebooks\TarsEngine.FSharp.Notebooks.fsproj" />
+    <ProjectReference Include="..\TarsEngine.FSharp.Requirements\TarsEngine.FSharp.Requirements.fsproj" />
+  </ItemGroup>-->
   <ItemGroup>
     <PackageReference Include="Docker.DotNet" Version="3.125.15" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.5" />
@@ -82,6 +136,15 @@
     <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.19.2" />
     <PackageReference Include="Microsoft.ML.Tokenizers" Version="0.22.0" />
     <PackageReference Include="System.ServiceProcess.ServiceController" Version="9.0.0" />
+    <PackageReference Include="System.Management" Version="9.0.0" />
+
+    <!-- Elmish and reactive UI packages -->
+    <PackageReference Include="Elmish" Version="4.0.0" />
+    <PackageReference Include="Giraffe.ViewEngine" Version="1.4.0" />
+
+    <!-- ASP.NET Core for MCP WebSocket Server -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.0" />
   </ItemGroup>
 </Project>
 

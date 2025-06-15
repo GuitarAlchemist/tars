@@ -1,0 +1,26 @@
+ui {
+  view_id: "TarsAgentDashboard"
+  title: "TARS Agent Activity Dashboard"
+  feedback_enabled: true
+  real_time_updates: true
+  
+  header "TARS Agent Monitoring System"
+  
+  metrics_panel bind(cognitiveMetrics)
+  
+  thought_flow bind(thoughtPatterns)
+  
+  table bind(agentRows)
+  
+  button "Refresh Data" on refreshClicked
+  
+  line_chart bind(agentPerformance)
+  
+  threejs bind(agent3DVisualization)
+  
+  chat_panel bind(agentCommunication)
+  
+  projects_panel bind(activeProjects)
+  
+  diagnostics_panel bind(systemDiagnostics)
+}

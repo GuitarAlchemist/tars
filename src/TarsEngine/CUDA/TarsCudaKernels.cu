@@ -2,7 +2,6 @@
 #include <cuda_runtime.h>
 #include <cuda_fp16.h>
 #include <cublas_v2.h>
-#include <mma.h>
 #include <cmath>
 #include <cstdio>
 
@@ -45,25 +44,79 @@ static cudaEvent_t g_stop_event = nullptr;
 // ============================================================================
 
 TarsCudaError tars_cuda_init(int device_id) {
+    // First, check device count
     int device_count;
-    CUDA_CHECK(cudaGetDeviceCount(&device_count));
-    
-    if (device_id >= device_count || device_id < 0) {
+    cudaError_t error = cudaGetDeviceCount(&device_count);
+    if (error != cudaSuccess) {
+        printf("CUDA Error getting device count: %s\n", cudaGetErrorString(error));
         return TARS_CUDA_ERROR_INVALID_DEVICE;
     }
-    
-    CUDA_CHECK(cudaSetDevice(device_id));
+
+    printf("CUDA device count: %d\n", device_count);
+
+    if (device_count == 0) {
+        printf("No CUDA devices found\n");
+        return TARS_CUDA_ERROR_INVALID_DEVICE;
+    }
+
+    if (device_id >= device_count || device_id < 0) {
+        printf("Invalid device ID: %d (available: 0-%d)\n", device_id, device_count - 1);
+        return TARS_CUDA_ERROR_INVALID_DEVICE;
+    }
+
+    // Set the device
+    error = cudaSetDevice(device_id);
+    if (error != cudaSuccess) {
+        printf("CUDA Error setting device %d: %s\n", device_id, cudaGetErrorString(error));
+        return TARS_CUDA_ERROR_INVALID_DEVICE;
+    }
+
     g_device_id = device_id;
-    
+
+    // Force context creation by allocating a small amount of memory
+    void* dummy_ptr;
+    error = cudaMalloc(&dummy_ptr, 1);
+    if (error != cudaSuccess) {
+        printf("CUDA Error creating context: %s\n", cudaGetErrorString(error));
+        return TARS_CUDA_ERROR_INVALID_DEVICE;
+    }
+    cudaFree(dummy_ptr);
+
     // Initialize cuBLAS
-    CUBLAS_CHECK(cublasCreate(&g_cublas_handle));
-    CUBLAS_CHECK(cublasSetMathMode(g_cublas_handle, CUBLAS_TENSOR_OP_MATH));
-    
+    cublasStatus_t cublas_status = cublasCreate(&g_cublas_handle);
+    if (cublas_status != CUBLAS_STATUS_SUCCESS) {
+        printf("cuBLAS Error creating handle: %d\n", cublas_status);
+        return TARS_CUDA_ERROR_CUBLAS;
+    }
+
+    cublas_status = cublasSetMathMode(g_cublas_handle, CUBLAS_TENSOR_OP_MATH);
+    if (cublas_status != CUBLAS_STATUS_SUCCESS) {
+        printf("cuBLAS Error setting math mode: %d\n", cublas_status);
+        cublasDestroy(g_cublas_handle);
+        g_cublas_handle = nullptr;
+        return TARS_CUDA_ERROR_CUBLAS;
+    }
+
     // Create timing events
-    CUDA_CHECK(cudaEventCreate(&g_start_event));
-    CUDA_CHECK(cudaEventCreate(&g_stop_event));
-    
-    printf("TARS CUDA initialized on device %d\n", device_id);
+    error = cudaEventCreate(&g_start_event);
+    if (error != cudaSuccess) {
+        printf("CUDA Error creating start event: %s\n", cudaGetErrorString(error));
+        cublasDestroy(g_cublas_handle);
+        g_cublas_handle = nullptr;
+        return TARS_CUDA_ERROR_KERNEL_LAUNCH;
+    }
+
+    error = cudaEventCreate(&g_stop_event);
+    if (error != cudaSuccess) {
+        printf("CUDA Error creating stop event: %s\n", cudaGetErrorString(error));
+        cudaEventDestroy(g_start_event);
+        g_start_event = nullptr;
+        cublasDestroy(g_cublas_handle);
+        g_cublas_handle = nullptr;
+        return TARS_CUDA_ERROR_KERNEL_LAUNCH;
+    }
+
+    printf("TARS CUDA initialized successfully on device %d\n", device_id);
     return TARS_CUDA_SUCCESS;
 }
 
@@ -221,83 +274,37 @@ TarsCudaError tars_tensor_destroy(TarsTensor* tensor) {
 }
 
 // ============================================================================
-// MATRIX OPERATIONS WITH TENSOR CORES
+// MATRIX OPERATIONS WITH CUBLAS
 // ============================================================================
-
-__global__ void tars_gemm_tensor_core_kernel(
-    const half* A, const half* B, half* C,
-    int M, int N, int K, float alpha, float beta) {
-    
-    using namespace nvcuda;
-    
-    // Declare the fragments
-    wmma::fragment<wmma::matrix_a, 16, 16, 16, half, wmma::row_major> a_frag;
-    wmma::fragment<wmma::matrix_b, 16, 16, 16, half, wmma::col_major> b_frag;
-    wmma::fragment<wmma::accumulator, 16, 16, 16, float> acc_frag;
-    wmma::fragment<wmma::accumulator, 16, 16, 16, half> c_frag;
-    
-    // Initialize the output to zero
-    wmma::fill_fragment(acc_frag, 0.0f);
-    
-    // Calculate warp and thread positions
-    int warpM = (blockIdx.x * blockDim.x + threadIdx.x) / warpSize;
-    int warpN = (blockIdx.y * blockDim.y + threadIdx.y);
-    
-    // Bounds check
-    if (warpM * 16 >= M || warpN * 16 >= N) return;
-    
-    // Loop over K dimension in chunks of 16
-    for (int i = 0; i < K; i += 16) {
-        int aRow = warpM * 16;
-        int aCol = i;
-        int bRow = i;
-        int bCol = warpN * 16;
-        
-        // Bounds check for the fragments
-        if (aRow < M && aCol < K && bRow < K && bCol < N) {
-            // Load the inputs
-            wmma::load_matrix_sync(a_frag, A + aRow * K + aCol, K);
-            wmma::load_matrix_sync(b_frag, B + bRow * N + bCol, N);
-            
-            // Perform the matrix multiplication
-            wmma::mma_sync(acc_frag, a_frag, b_frag, acc_frag);
-        }
-    }
-    
-    // Handle beta scaling if needed
-    if (beta != 0.0f) {
-        wmma::load_matrix_sync(c_frag, C + warpM * 16 * N + warpN * 16, N, wmma::mem_row_major);
-        
-        // Convert and scale
-        for (int i = 0; i < c_frag.num_elements; i++) {
-            acc_frag.x[i] = alpha * acc_frag.x[i] + beta * __half2float(c_frag.x[i]);
-        }
-    } else {
-        // Scale by alpha only
-        for (int i = 0; i < acc_frag.num_elements; i++) {
-            acc_frag.x[i] = alpha * acc_frag.x[i];
-        }
-    }
-    
-    // Store the output
-    wmma::store_matrix_sync(C + warpM * 16 * N + warpN * 16, acc_frag, N, wmma::mem_row_major);
-}
 
 TarsCudaError tars_gemm_tensor_core(
     const half* A, const half* B, half* C,
     int M, int N, int K,
     float alpha, float beta,
     cudaStream_t stream) {
-    
-    // Calculate grid and block dimensions
-    dim3 gridDim((M + 15) / 16, (N + 15) / 16);
-    dim3 blockDim(32, 4);  // 128 threads per block
-    
-    // Launch kernel
-    tars_gemm_tensor_core_kernel<<<gridDim, blockDim, 0, stream>>>(
-        A, B, C, M, N, K, alpha, beta);
-    
-    CUDA_CHECK(cudaGetLastError());
+
+    if (!g_cublas_handle) {
+        return TARS_CUDA_ERROR_INVALID_VALUE;
+    }
+
+    // Set the stream for cuBLAS
+    CUBLAS_CHECK(cublasSetStream(g_cublas_handle, stream));
+
+    // Convert alpha and beta to half precision
+    __half h_alpha = __float2half(alpha);
+    __half h_beta = __float2half(beta);
+
+    // Perform GEMM: C = alpha * A * B + beta * C
+    // Note: cuBLAS uses column-major order, so we compute B^T * A^T = (A * B)^T
+    CUBLAS_CHECK(cublasHgemm(g_cublas_handle,
+                            CUBLAS_OP_N, CUBLAS_OP_N,
+                            N, M, K,
+                            &h_alpha,
+                            B, N,  // B is N x K
+                            A, K,  // A is K x M
+                            &h_beta,
+                            C, N)); // C is N x M
+
     return TARS_CUDA_SUCCESS;
 }
 
@@ -351,9 +358,49 @@ const char* tars_cuda_get_error_string(TarsCudaError error) {
 }
 
 int tars_cuda_device_count(void) {
-    int count;
+    // Reset any previous CUDA errors
+    cudaGetLastError();
+
+    // Try multiple approaches to initialize CUDA
+    printf("Attempting CUDA device detection...\n");
+
+    // Method 1: Direct device count
+    int count = 0;
     cudaError_t error = cudaGetDeviceCount(&count);
-    return (error == cudaSuccess) ? count : 0;
+    if (error == cudaSuccess) {
+        printf("Method 1 success: Found %d CUDA devices\n", count);
+        return count;
+    }
+    printf("Method 1 failed: %s\n", cudaGetErrorString(error));
+
+    // Method 2: Try to set device 0 first
+    cudaGetLastError(); // Clear error
+    error = cudaSetDevice(0);
+    if (error == cudaSuccess) {
+        error = cudaGetDeviceCount(&count);
+        if (error == cudaSuccess) {
+            printf("Method 2 success: Found %d CUDA devices\n", count);
+            return count;
+        }
+    }
+    printf("Method 2 failed: %s\n", cudaGetErrorString(error));
+
+    // Method 3: Try to force context creation
+    cudaGetLastError(); // Clear error
+    void* dummy_ptr = nullptr;
+    error = cudaMalloc(&dummy_ptr, 1);
+    if (error == cudaSuccess) {
+        cudaFree(dummy_ptr);
+        error = cudaGetDeviceCount(&count);
+        if (error == cudaSuccess) {
+            printf("Method 3 success: Found %d CUDA devices\n", count);
+            return count;
+        }
+    }
+    printf("Method 3 failed: %s\n", cudaGetErrorString(error));
+
+    printf("All methods failed - no CUDA devices detected\n");
+    return 0;
 }
 
 TarsCudaError tars_cuda_set_device(int device_id) {

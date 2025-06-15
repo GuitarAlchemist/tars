@@ -1,0 +1,22 @@
+DESCRIBE {
+    name: "Structured Output Demo"
+    description: "Test better CLI structure and AI summaries"
+}
+
+FSHARP {
+    // Test structured output with consciousness features
+    printfn "🧠 TARS Consciousness Test"
+    
+    let agents = ["AnalysisAgent"; "SummaryAgent"; "ExecutionAgent"]
+    printfn "🤖 Agents initialized: %A" agents
+    
+    let mutable consciousness = 0.80
+    consciousness <- consciousness + 0.20
+    printfn "🧠 Consciousness evolved to: %.2f" consciousness
+    
+    let closures = ["analysis_closure"; "summary_closure"]
+    for closure in closures do
+        printfn "⚡ Created closure: %s" closure
+    
+    sprintf "Structured demo complete: %d agents, %.2f consciousness" agents.Length consciousness
+}

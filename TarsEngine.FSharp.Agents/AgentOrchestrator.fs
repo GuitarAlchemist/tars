@@ -457,9 +457,9 @@ module AgentOrchestrator =
 
                 // Initialize MPC controller for optimal coordination
                 let mpcParams = createMPCParameters 10 5
-                    (Array2D.init 4 4 (fun i j -> if i = j then 1.0 else 0.0))
-                    (Array2D.init 2 2 (fun i j -> if i = j then 0.1 else 0.0))
-                    (Array2D.init 4 4 (fun i j -> if i = j then 10.0 else 0.0))
+                                    (Array2D.init 4 4 (fun i j -> if i = j then 1.0 else 0.0))
+                                    (Array2D.init 2 2 (fun i j -> if i = j then 0.1 else 0.0))
+                                    (Array2D.init 4 4 (fun i j -> if i = j then 10.0 else 0.0))
                 agentMPCController <- Some mpcParams
 
                 // Initialize topology analyzer for system stability

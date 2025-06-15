@@ -1,0 +1,59 @@
+# Test TARS Metascript for Cryptographic Proof
+# This metascript tests the cryptographic proof system
+
+```yaml
+name: "Cryptographic Proof Test"
+description: "Test the TARS cryptographic proof system"
+version: "1.0.0"
+```
+
+```fsharp
+// Test cryptographic proof generation
+let testCryptographicProof() =
+    printfn "🔐 Testing TARS Cryptographic Proof System"
+    
+    // Generate test data
+    let executionGuid = System.Guid.NewGuid()
+    let chainGuid = System.Guid.NewGuid()
+    let timestamp = System.DateTimeOffset.UtcNow.ToUnixTimeSeconds()
+    
+    printfn "Execution GUID: %s" (executionGuid.ToString())
+    printfn "Chain GUID: %s" (chainGuid.ToString())
+    printfn "Timestamp: %d" timestamp
+    
+    // Create system fingerprint
+    let currentProcess = System.Diagnostics.Process.GetCurrentProcess()
+    let systemFingerprint = sprintf "%s|%d|%d" 
+        System.Environment.MachineName 
+        currentProcess.Id 
+        (int (currentProcess.WorkingSet64 / 1024L / 1024L))
+    
+    printfn "System Fingerprint: %s" systemFingerprint
+    
+    // Generate cryptographic proof
+    use sha256 = System.Security.Cryptography.SHA256.Create()
+    let testContent = sprintf "execution_guid: %s\nchain_guid: %s\ntimestamp: %d" 
+        (executionGuid.ToString()) (chainGuid.ToString()) timestamp
+    
+    let combinedData = sprintf "%s|%s|%s|%d|%s" testContent (executionGuid.ToString()) systemFingerprint timestamp (chainGuid.ToString())
+    let hashBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(combinedData))
+    let contentHash = System.Convert.ToBase64String(hashBytes)
+    
+    let executionProof = sprintf "EXEC-PROOF:%s:%s:%d:%s" (executionGuid.ToString("N")) (chainGuid.ToString("N")) timestamp contentHash
+    
+    printfn "✅ Cryptographic Proof Generated:"
+    printfn "   %s" executionProof
+    
+    // Return result
+    {| 
+        ExecutionGuid = executionGuid.ToString()
+        ChainGuid = chainGuid.ToString()
+        SystemFingerprint = systemFingerprint
+        ExecutionProof = executionProof
+        ContentHash = contentHash
+        Success = true
+    |}
+
+// Execute the test
+testCryptographicProof()
+```

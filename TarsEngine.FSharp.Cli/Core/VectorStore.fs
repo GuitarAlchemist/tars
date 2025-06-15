@@ -365,7 +365,7 @@ type CodebaseVectorStore(logger: ILogger<CodebaseVectorStore>) =
                 let hybridScore = (textScore * 0.7) + (semanticScore * 0.3)
                 (doc, hybridScore))
             |> List.sortByDescending snd
-            |> List.take maxResults
+            |> List.truncate maxResults  // Use truncate instead of take to avoid bounds errors
             |> List.map fst
 
         scoredResults

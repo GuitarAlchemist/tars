@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD 17)
 
 # Find required packages
 find_package(CUDAToolkit REQUIRED)
+find_package(Threads REQUIRED)
 
 # WSL-specific CUDA configuration
 if(EXISTS "/proc/version")
@@ -17,16 +18,16 @@ if(EXISTS "/proc/version")
     endif()
 endif()
 
-# Set CUDA architectures (support RTX 20/30 series, A100 - compatible with CUDA 11.5)
-set(CMAKE_CUDA_ARCHITECTURES "75;80;86")
+# Set CUDA architectures (compatible with CUDA 11.5)
+set(CMAKE_CUDA_ARCHITECTURES "60;70;75;80;86")
 
 # Compiler flags for optimization
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -O3 --use_fast_math -Xcompiler -fPIC")
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_60,code=sm_60")  # GTX 10 series
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_70,code=sm_70")  # V100
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_75,code=sm_75")  # RTX 20 series
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_80,code=sm_80")  # A100
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_86,code=sm_86")  # RTX 30 series
-set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_89,code=sm_89")  # RTX 40 series
-set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_90,code=sm_90")  # H100
 
 # Enable debug info for profiling
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -49,7 +50,7 @@ set(HEADER_FILES
 add_library(TarsCudaKernels SHARED ${CUDA_SOURCES} ${HEADER_FILES})
 
 # Link CUDA libraries
-target_link_libraries(TarsCudaKernels 
+target_link_libraries(TarsCudaKernels
     CUDA::cudart
     CUDA::cublas
     CUDA::curand

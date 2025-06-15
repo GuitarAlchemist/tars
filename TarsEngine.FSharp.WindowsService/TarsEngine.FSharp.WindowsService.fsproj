@@ -18,6 +18,9 @@
     <!-- Agents -->
     <Compile Include="Agents/DevSecOpsAgent.fs" />
 
+    <!-- Closure Factory -->
+    <Compile Include="ClosureFactory/AdvancedAIClosureFactory.fs" />
+
     <!-- Core Service -->
     <Compile Include="Core/SimpleServiceConfiguration.fs" />
     <Compile Include="Core/ServiceHost.fs" />

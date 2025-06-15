@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TARS Network Visualization - Nodes, Departments & Agents</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            color: #ffffff;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .header {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px 30px;
+            border-bottom: 2px solid #00ff88;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            position: relative;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            color: #00ff88;
+            text-shadow: 0 0 15px #00ff88;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .control-btn {
+            background: linear-gradient(45deg, #00ff88, #0088ff);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 255, 136, 0.4);
+        }
+
+        .main-container {
+            display: flex;
+            height: calc(100vh - 80px);
+        }
+
+        .sidebar {
+            width: 350px;
+            background: rgba(0, 0, 0, 0.7);
+            border-right: 1px solid #333;
+            padding: 20px;
+            overflow-y: auto;
+            backdrop-filter: blur(5px);
+        }
+
+        .sidebar h3 {
+            color: #00ff88;
+            margin-bottom: 15px;
+            font-size: 18px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 8px;
+        }
+
+        .network-stats {
+            background: rgba(0, 255, 136, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(0, 255, 136, 0.3);
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .stat-value {
+            color: #00ff88;
+            font-weight: bold;
+        }
+
+        .department-list {
+            margin-bottom: 20px;
+        }
+
+        .department-item {
+            background: rgba(0, 136, 255, 0.1);
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            border-left: 3px solid #0088ff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .department-item:hover {
+            background: rgba(0, 136, 255, 0.2);
+            transform: translateX(5px);
+        }
+
+        .department-name {
+            font-weight: bold;
+            color: #0088ff;
+            margin-bottom: 4px;
+        }
+
+        .department-info {
+            font-size: 12px;
+            color: #ccc;
+        }
+
+        .agent-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .agent-item {
+            background: rgba(255, 136, 0, 0.1);
+            padding: 8px;
+            margin-bottom: 4px;
+            border-radius: 4px;
+            border-left: 2px solid #ff8800;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .agent-item:hover {
+            background: rgba(255, 136, 0, 0.2);
+        }
+
+        .agent-name {
+            font-weight: bold;
+            color: #ff8800;
+        }
+
+        .agent-status {
+            font-size: 10px;
+            color: #00ff88;
+        }
+
+        .visualization-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #network-svg {
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, rgba(0, 255, 136, 0.05) 0%, transparent 70%);
+        }
+
+        .node {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .node:hover {
+            stroke-width: 3px;
+        }
+
+        .node-label {
+            font-size: 11px;
+            fill: white;
+            text-anchor: middle;
+            pointer-events: none;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+        }
+
+        .link {
+            stroke-opacity: 0.6;
+            transition: all 0.3s ease;
+        }
+
+        .link:hover {
+            stroke-opacity: 1;
+            stroke-width: 3px;
+        }
+
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #00ff88;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 1000;
+            max-width: 250px;
+            backdrop-filter: blur(5px);
+        }
+
+        .legend {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            backdrop-filter: blur(5px);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .search-container {
+            margin-bottom: 20px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid #333;
+            border-radius: 5px;
+            color: white;
+            font-size: 14px;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #00ff88;
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 5px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid #333;
+            padding: 5px 10px;
+            border-radius: 4px;
+            color: #ccc;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.2s ease;
+        }
+
+        .filter-btn.active {
+            background: rgba(0, 255, 136, 0.2);
+            border-color: #00ff88;
+            color: #00ff88;
+        }
+
+        .filter-btn:hover {
+            background: rgba(0, 255, 136, 0.1);
+            color: #00ff88;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">🌐 TARS Network Visualization</div>
+        <div class="controls">
+            <button class="control-btn" onclick="resetView()">🔄 Reset View</button>
+            <button class="control-btn" onclick="togglePhysics()">⚡ Physics</button>
+            <button class="control-btn" onclick="exportNetwork()">💾 Export</button>
+            <button class="control-btn" onclick="toggleFullscreen()">🔍 Fullscreen</button>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="sidebar">
+            <div class="search-container">
+                <input type="text" class="search-input" placeholder="🔍 Search nodes, departments, agents..."
+                       oninput="searchNetwork(this.value)">
+                <div class="filter-buttons">
+                    <button class="filter-btn active" onclick="filterNodes('all')">All</button>
+                    <button class="filter-btn" onclick="filterNodes('departments')">Departments</button>
+                    <button class="filter-btn" onclick="filterNodes('teams')">Teams</button>
+                    <button class="filter-btn" onclick="filterNodes('agents')">Agents</button>
+                    <button class="filter-btn" onclick="filterNodes('active')">Active</button>
+                </div>
+            </div>
+
+            <div class="network-stats">
+                <h3>📊 Network Statistics</h3>
+                <div class="stat-item">
+                    <span>Total Nodes:</span>
+                    <span class="stat-value" id="total-nodes">0</span>
+                </div>
+                <div class="stat-item">
+                    <span>Departments:</span>
+                    <span class="stat-value" id="total-departments">0</span>
+                </div>
+                <div class="stat-item">
+                    <span>Teams:</span>
+                    <span class="stat-value" id="total-teams">0</span>
+                </div>
+                <div class="stat-item">
+                    <span>Active Agents:</span>
+                    <span class="stat-value" id="active-agents">0</span>
+                </div>
+                <div class="stat-item">
+                    <span>Connections:</span>
+                    <span class="stat-value" id="total-connections">0</span>
+                </div>
+            </div>
+
+            <div class="department-list">
+                <h3>🏢 Departments</h3>
+                <div id="departments-container"></div>
+            </div>
+
+            <div class="agent-list">
+                <h3>🤖 Recent Agents</h3>
+                <div id="agents-container"></div>
+            </div>
+        </div>
+
+        <div class="visualization-container">
+            <svg id="network-svg"></svg>
+
+            <div class="legend">
+                <h4 style="color: #00ff88; margin-bottom: 10px;">🎯 Node Types</h4>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #00ff88;"></div>
+                    <span>TARS Core</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #0088ff;"></div>
+                    <span>Departments</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ff8800;"></div>
+                    <span>Teams</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ff4444;"></div>
+                    <span>Agents</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #8844ff;"></div>
+                    <span>Services</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tooltip" id="tooltip" style="display: none;"></div>

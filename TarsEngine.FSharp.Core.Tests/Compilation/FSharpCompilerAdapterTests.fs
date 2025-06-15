@@ -324,8 +324,9 @@ module FSharpCompilerAdapterTests =
                 Regex.IsMatch(email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$")
             """
         
-        let options = ScriptOptions.Default
-            .AddReferences(typeof<System.Text.RegularExpressions.Regex>.Assembly)
+        let options =
+            ScriptOptions.Default
+                .AddReferences(typeof<System.Text.RegularExpressions.Regex>.Assembly)
         
         // Act
         let! result = adapter.CompileAsync(code, options)

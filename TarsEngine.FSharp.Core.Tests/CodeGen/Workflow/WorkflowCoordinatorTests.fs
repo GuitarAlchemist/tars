@@ -319,4 +319,3 @@ module WorkflowCoordinatorTests =
         // Assert
         Assert.True(status.IsSome)
         Assert.Equal(WorkflowStatus.NotStarted, status.Value)
-    }

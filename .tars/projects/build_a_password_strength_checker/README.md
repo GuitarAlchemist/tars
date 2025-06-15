@@ -1,4 +1,4 @@
-Here is the complete README.md file with working content:
+﻿Here is the comprehensive README.md file with working content:
 
 **README.md**
 
@@ -57,7 +57,7 @@ The project will require:
 **Code**
 ------
 
-Here is the complete code for the project:
+Here is the comprehensive code for the project:
 
 ```javascript
 // src/components/PasswordInput.js

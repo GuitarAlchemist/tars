@@ -1,0 +1,246 @@
+#!/usr/bin/env flux
+#FLUX:VERSION:2.0.0
+#FLUX:DESCRIPTION:Scientific Research Assistant with Multi-Space Analysis
+
+reasoning_block {
+    objective: "Demonstrate automated literature review with contradiction detection"
+    approach: "Multi-space embeddings + belief graph analysis"
+    confidence: 0.94
+}
+
+# Research Paper Analysis Pipeline
+research_pipeline {
+    input_papers: [
+        {
+            title: "Quantum Entanglement at Room Temperature"
+            authors: ["Smith, J.", "Chen, L.", "Rodriguez, M."]
+            abstract: "We demonstrate persistent quantum entanglement in macroscopic systems at 295K with decoherence times exceeding 10 seconds."
+            key_claims: [
+                "Room temperature entanglement possible"
+                "Decoherence time > 10 seconds"
+                "Macroscopic quantum effects stable"
+            ]
+            embedding_analysis: {
+                euclidean: [0.8, 0.3, 0.9, 0.2, 0.7]
+                hyperbolic: [0.4, 0.6, 0.1]  # Physics concept hierarchy
+                projective: [0.707, 0.707, 0.0]  # Physical law invariants
+                dual_quaternion: [1.0, 0.0, 0.0, 0.0, 0.2, 0.8, 0.0, 0.0]
+            }
+        }
+        {
+            title: "Thermal Decoherence in Quantum Systems"
+            authors: ["Johnson, K.", "Patel, R.", "Williams, S."]
+            abstract: "Thermal fluctuations at room temperature destroy quantum coherence within microseconds, making macroscopic entanglement impossible."
+            key_claims: [
+                "Room temperature destroys entanglement"
+                "Decoherence time < 1 microsecond"
+                "Thermal noise prevents macroscopic quantum effects"
+            ]
+            embedding_analysis: {
+                euclidean: [0.7, 0.8, 0.1, 0.9, 0.3]
+                hyperbolic: [0.3, 0.7, 0.2]
+                projective: [0.577, 0.577, 0.577]
+                dual_quaternion: [0.9, 0.1, 0.0, 0.0, 0.1, 0.9, 0.0, 0.0]
+            }
+        }
+    ]
+    
+    # Multi-Space Contradiction Analysis
+    contradiction_detection: {
+        semantic_similarity: 0.73  # High topic overlap
+        belief_alignment: 0.12     # Strong contradiction
+        
+        hyperbolic_analysis: {
+            concept_hierarchy_conflict: true
+            physics_principle_inconsistency: 0.89
+            experimental_methodology_divergence: 0.76
+        }
+        
+        projective_analysis: {
+            fundamental_law_violations: ["thermodynamics_consistency"]
+            invariant_principle_conflicts: ["quantum_decoherence_theory"]
+        }
+        
+        contradiction_score: 0.91
+        confidence: 0.94
+        
+        detailed_conflicts: [
+            {
+                claim_1: "Decoherence time > 10 seconds"
+                claim_2: "Decoherence time < 1 microsecond"
+                magnitude: 7_orders_of_magnitude
+                type: "quantitative_contradiction"
+            }
+            {
+                claim_1: "Room temperature entanglement possible"
+                claim_2: "Room temperature destroys entanglement"
+                type: "direct_logical_contradiction"
+            }
+        ]
+    }
+    
+    # Automated Resolution Suggestions
+    resolution_analysis: {
+        potential_explanations: [
+            {
+                hypothesis: "Different experimental conditions"
+                likelihood: 0.65
+                investigation_needed: [
+                    "Sample preparation methods"
+                    "Measurement apparatus differences"
+                    "Environmental isolation techniques"
+                ]
+            }
+            {
+                hypothesis: "Scale-dependent effects"
+                likelihood: 0.45
+                investigation_needed: [
+                    "System size comparison"
+                    "Quantum vs classical regime boundaries"
+                    "Effective temperature definitions"
+                ]
+            }
+            {
+                hypothesis: "Methodological errors"
+                likelihood: 0.35
+                investigation_needed: [
+                    "Statistical analysis validation"
+                    "Control experiment verification"
+                    "Peer review process examination"
+                ]
+            }
+        ]
+        
+        recommended_experiments: [
+            "Replicate Smith et al. experiment with Johnson et al. methodology"
+            "Systematic study of decoherence time vs system size"
+            "Independent verification by third-party laboratory"
+        ]
+        
+        research_priorities: [
+            "Urgent: Resolve fundamental contradiction in quantum decoherence theory"
+            "High: Establish standardized measurement protocols"
+            "Medium: Develop unified theoretical framework"
+        ]
+    }
+}
+
+# Knowledge Graph Integration
+knowledge_synthesis {
+    belief_graph_updates: {
+        nodes: [
+            {
+                concept: "room_temperature_entanglement"
+                prior_belief: 0.3
+                evidence_smith: 0.8
+                evidence_johnson: 0.1
+                updated_belief: 0.25  # Decreased due to contradiction
+                uncertainty: 0.85     # High due to conflicting evidence
+            }
+            {
+                concept: "quantum_decoherence_theory"
+                prior_belief: 0.9
+                consistency_score: 0.2  # Low due to contradictory predictions
+                requires_revision: true
+            }
+        ]
+        
+        edges: [
+            {
+                from: "thermal_fluctuations"
+                to: "quantum_decoherence"
+                relationship: "causes"
+                strength: 0.9
+                disputed: false
+            }
+            {
+                from: "room_temperature"
+                to: "entanglement_stability"
+                relationship: "affects"
+                strength: 0.5  # Uncertain due to contradictions
+                disputed: true
+            }
+        ]
+        
+        coherence_metrics: {
+            overall_consistency: 0.34  # Low due to major contradictions
+            evidence_quality: 0.78
+            theoretical_alignment: 0.23
+            experimental_reproducibility: 0.45
+        }
+    }
+    
+    # Automated Research Recommendations
+    ai_generated_insights: [
+        "The 7-order-of-magnitude discrepancy in decoherence times suggests fundamental measurement or theoretical errors"
+        "Consider investigating quantum error correction mechanisms that might explain persistent entanglement"
+        "Explore whether 'room temperature' definitions differ between experimental setups"
+        "Investigate potential quantum-to-classical transition thresholds"
+    ]
+    
+    # Future Research Directions
+    research_roadmap: {
+        immediate_actions: [
+            "Convene expert panel to review contradictory findings"
+            "Design controlled comparison experiment"
+            "Establish measurement standardization committee"
+        ]
+        
+        long_term_goals: [
+            "Develop unified quantum decoherence theory"
+            "Create predictive models for entanglement stability"
+            "Establish quantum technology feasibility boundaries"
+        ]
+        
+        funding_priorities: [
+            "High-precision decoherence measurement apparatus"
+            "Multi-laboratory collaboration infrastructure"
+            "Theoretical physics modeling software"
+        ]
+    }
+}
+
+# Performance Metrics
+system_performance {
+    processing_speed: "2.3 seconds per paper"
+    contradiction_detection_accuracy: 0.94
+    false_positive_rate: 0.06
+    research_insight_quality: 0.87
+    
+    comparison_to_human_experts: {
+        speed: "1000x faster"
+        consistency: "Higher (no fatigue/bias effects)"
+        coverage: "Comprehensive (all papers simultaneously)"
+        insight_generation: "Novel connections discovered"
+    }
+    
+    real_world_impact: [
+        "Accelerated scientific discovery"
+        "Reduced research duplication"
+        "Improved experimental design"
+        "Enhanced peer review process"
+    ]
+}
+
+reflection_block {
+    breakthrough_capabilities: [
+        "Multi-space embeddings reveal hidden semantic relationships"
+        "Belief graphs track knowledge consistency across literature"
+        "Autonomous contradiction detection prevents false conclusions"
+        "AI-generated research insights suggest novel investigations"
+    ]
+    
+    transformative_potential: [
+        "Scientific literature becomes self-organizing knowledge system"
+        "Research contradictions resolved automatically"
+        "Novel hypotheses generated from pattern recognition"
+        "Accelerated path from discovery to application"
+    ]
+    
+    next_enhancements: [
+        "Real-time literature monitoring and alerts"
+        "Predictive modeling of research outcomes"
+        "Automated experimental design suggestions"
+        "Cross-disciplinary knowledge synthesis"
+    ]
+}

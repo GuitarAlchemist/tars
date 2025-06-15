@@ -1,0 +1,111 @@
+#!/usr/bin/env trsx
+# Unified TRSX Format - Migrated from FLUX
+# Generated: 2025-06-09T22:10:55Z
+
+# METADATA
+title: "Migrated multi_agent_collaboration"
+version: "2.0"
+tier: 1
+
+program {
+    DESCRIBE {
+        id: "DESCRIBE_1"
+        purpose: "Migrated DESCRIBE block"
+    }
+    FUNCTION break_down_tasks {
+        id: "FUNCTION break_down_tasks_2"
+        purpose: "Migrated FUNCTION break_down_tasks block"
+    }
+    FUNCTION create_schedule {
+        id: "FUNCTION create_schedule_3"
+        purpose: "Migrated FUNCTION create_schedule block"
+    }
+    FUNCTION update_task_status {
+        id: "FUNCTION update_task_status_4"
+        purpose: "Migrated FUNCTION update_task_status block"
+    }
+    FUNCTION generate_progress_report {
+        id: "FUNCTION generate_progress_report_5"
+        purpose: "Migrated FUNCTION generate_progress_report block"
+    }
+    FUNCTION create_high_level_design {
+        id: "FUNCTION create_high_level_design_6"
+        purpose: "Migrated FUNCTION create_high_level_design block"
+    }
+    FUNCTION design_interfaces {
+        id: "FUNCTION design_interfaces_7"
+        purpose: "Migrated FUNCTION design_interfaces block"
+    }
+    FUNCTION write_code {
+        id: "FUNCTION write_code_8"
+        purpose: "Migrated FUNCTION write_code block"
+    }
+    FUNCTION debug_code {
+        id: "FUNCTION debug_code_9"
+        purpose: "Migrated FUNCTION debug_code block"
+    }
+    FUNCTION write_unit_tests {
+        id: "FUNCTION write_unit_tests_10"
+        purpose: "Migrated FUNCTION write_unit_tests block"
+    }
+    FUNCTION write_integration_tests {
+        id: "FUNCTION write_integration_tests_11"
+        purpose: "Migrated FUNCTION write_integration_tests block"
+    }
+    FUNCTION execute_tests {
+        id: "FUNCTION execute_tests_12"
+        purpose: "Migrated FUNCTION execute_tests block"
+    }
+    FUNCTION write_api_docs {
+        id: "FUNCTION write_api_docs_13"
+        purpose: "Migrated FUNCTION write_api_docs block"
+    }
+    FUNCTION write_user_guide {
+        id: "FUNCTION write_user_guide_14"
+        purpose: "Migrated FUNCTION write_user_guide block"
+    }
+    FOR {
+        id: "FOR_15"
+        purpose: "Migrated FOR block"
+    }
+    FOR {
+        id: "FOR_16"
+        purpose: "Migrated FOR block"
+    }
+    FOR {
+        id: "FOR_17"
+        purpose: "Migrated FOR block"
+    }
+    FOR {
+        id: "FOR_18"
+        purpose: "Migrated FOR block"
+    }
+    FOR {
+        id: "FOR_19"
+        purpose: "Migrated FOR block"
+    }
+    FOR {
+        id: "FOR_20"
+        purpose: "Migrated FOR block"
+    }
+    FOR {
+        id: "FOR_21"
+        purpose: "Migrated FOR block"
+    }
+    FOR {
+        id: "FOR_22"
+        purpose: "Migrated FOR block"
+    }
+    FOR {
+        id: "FOR_23"
+        purpose: "Migrated FOR block"
+    }
+}
+
+reflection {
+    average_entropy: 0.650
+    overall_similarity: 0.750
+    insight: "Successfully migrated from legacy FLUX format"
+    insight: "Unified format reduces file management complexity"
+    insight: "Integrated reflection enables better agent reasoning"
+}

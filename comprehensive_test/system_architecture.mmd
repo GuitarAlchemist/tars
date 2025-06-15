@@ -1,0 +1,20 @@
+graph TD
+    3DVisualization[3D Visualization]:::operational
+    AdvancedDiagnostics[Advanced Diagnostics]:::operational
+    Auto-Improvement[Auto-Improvement]:::operational
+    FLUXIntegration[FLUX Integration]:::operational
+    GrammarEvolution[Grammar Evolution]:::operational
+    ProductionDeployment[Production Deployment]:::operational
+    ScientificResearch[Scientific Research]:::operational
+
+    GrammarEvolution --> AutoImprovement
+    AutoImprovement --> FluxIntegration
+    FluxIntegration --> Visualization
+    Visualization --> ProductionDeployment
+    ProductionDeployment --> ScientificResearch
+    ScientificResearch --> AdvancedDiagnostics
+    AdvancedDiagnostics --> GrammarEvolution
+
+    classDef operational fill:#2ecc71,stroke:#27ae60,stroke-width:2px
+    classDef warning fill:#f39c12,stroke:#e67e22,stroke-width:2px
+    classDef error fill:#e74c3c,stroke:#c0392b,stroke-width:2px

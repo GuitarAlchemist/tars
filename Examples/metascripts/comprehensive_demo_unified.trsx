@@ -1,0 +1,39 @@
+#!/usr/bin/env trsx
+# Unified TRSX Format - Migrated from FLUX
+# Generated: 2025-06-09T22:10:55Z
+
+# METADATA
+title: "Migrated comprehensive_demo"
+version: "2.0"
+tier: 1
+
+program {
+    DESCRIBE {
+        id: "DESCRIBE_1"
+        purpose: "Migrated DESCRIBE block"
+    }
+    FOR {
+        id: "FOR_2"
+        purpose: "Migrated FOR block"
+    }
+    FSHARP {
+        id: "FSHARP_3"
+        purpose: "Migrated FSHARP block"
+    }
+    FUNCTION calculate_factorial {
+        id: "FUNCTION calculate_factorial_4"
+        purpose: "Migrated FUNCTION calculate_factorial block"
+    }
+    FSHARP {
+        id: "FSHARP_5"
+        purpose: "Migrated FSHARP block"
+    }
+}
+
+reflection {
+    average_entropy: 0.650
+    overall_similarity: 0.750
+    insight: "Successfully migrated from legacy FLUX format"
+    insight: "Unified format reduces file management complexity"
+    insight: "Integrated reflection enables better agent reasoning"
+}

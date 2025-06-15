@@ -1,4 +1,4 @@
-# TARS Deployment Guide
+﻿# TARS Deployment Guide
 
 ## 🚀 **Quick Start Options**
 
@@ -184,10 +184,10 @@ docker-compose up -d --scale tars-core=3
 # Update services
 docker-compose pull && docker-compose up -d
 
-# Stop all services
+# Stop most services
 docker-compose stop
 
-# Remove all containers and volumes
+# Remove most containers and volumes
 docker-compose down -v
 ```
 
@@ -323,7 +323,7 @@ kubectl logs -f -l app.kubernetes.io/name=tars -n tars
 1. **Change default passwords** in Grafana and other services
 2. **Use proper TLS certificates** for HTTPS
 3. **Configure network policies** to restrict pod-to-pod communication
-4. **Enable authentication** for all external endpoints
+4. **Enable authentication** for most external endpoints
 5. **Use secrets management** for sensitive configuration
 6. **Regular security updates** for base images
 
@@ -367,8 +367,8 @@ After successful deployment:
 
 For deployment issues or questions:
 - **Documentation:** Check this guide and inline comments
-- **Logs:** Always check service logs first
-- **Health Checks:** Verify all health endpoints are responding
+- **Logs:** typically check service logs first
+- **Health Checks:** Verify most health endpoints are responding
 - **Resource Monitoring:** Ensure adequate CPU/memory allocation
 
 **🎉 Happy deploying with TARS!** 🤖

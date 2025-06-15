@@ -1,0 +1,16 @@
+{
+  "code": "namespace TarsEngine.FSharp.Cli.Core\n\nopen System\nopen System.IO\nopen System.Text\nopen System.Collections.Concurrent\nopen System.Threading.Tasks\nopen Microsoft.Extensions.Logging\nopen TarsEngine.FSharp.Cli.Core.TarsAiModels\nopen TarsEngine.FSharp.Cli.Core.TarsAiAgents\nopen TarsEngine.FSharp.Cli.Core.CudaComputationExpression\nopen TarsEngine.FSharp.Cli.Core.TarsSelfImprovingAi\n\n/// TARS Advanced AI - Next-generation AI capabilities with advanced reasoning and memory\nmodule TarsAdvancedAi =\n    \n    /// Advanced reasoning types\n    type ReasoningType = \n        | ChainOfThought of steps: string list\n        | TreeOfThought of branches: (string * float) list // (thought, confidence)\n        | ReflectiveReasoning of reflection: string * revision: string\n        | MetaCognitive of thinking_about_thinking: string\n        | AnalogicalReasoning of analogy: string * mapping: string\n        | CausalReasoning of cause: string * effect: string * mechanism: string\n    \n    /// Long-term memory types\n    type MemoryType =\n        | EpisodicMemory of event: string * timestamp: DateTime * context: string\n        | SemanticMemory of concept: string * definition: string * relationships: string list\n        | ProceduralMemory of skill: string * steps: string list * proficiency: float\n        | WorkingMemory of current_focus: string * active_items: string list\n        | MetaMemory of memory_about_memory: string * confidence: float\n    \n    /// Advanced AI capabilities\n    type AdvancedCapability =\n        | AdvancedReasoning of reasoning_type: ReasoningType\n        | LongTermMemory of memory_type: MemoryType\n        | MetaLearning of learning_strategy: string * adaptation: string\n        | CreativeGeneration of creativity_type: string * novelty_score: float\n        | AbstractThinking of abstraction_level: int * concepts: string list\n        | EmotionalIntelligence of emotion: string * empathy_score: float\n        | SocialCognition of social_context: string * interaction_strategy: string",
+  "filePath": "src/TarsEngine.FSharp.Cli/TarsEngine.FSharp.Cli/Core/TarsAdvancedAi.fs",
+  "language": "fsharp",
+  "projectContext": {
+    "dependencies": ["Microsoft.Extensions.Logging", "System.Collections.Concurrent", "CUDA"],
+    "framework": "F# with .NET 9",
+    "version": "1.0.0"
+  },
+  "analysisOptions": {
+    "includePerformance": true,
+    "includeSecurity": true,
+    "includeQuality": true,
+    "includeSuggestions": true
+  }
+}

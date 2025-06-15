@@ -1,0 +1,209 @@
+agent_module {
+  name: "file_classifier_agent"
+  goal: "Classify files by extension and analyze content"
+  inputs: ["file_paths"]
+  outputs: ["classified_files", "analysis_report"]
+  
+  // Use external grammar for query parsing
+  use_grammar("MiniQuery")
+  
+  // Use RFC grammar for URI validation
+  use_grammar("RFC3986_URI")
+  
+  // Multi-language implementation
+  logic {
+    // F# for core logic and pattern matching
+    LANG("FSHARP") {
+      let classifyFiles (files: string list) =
+          let classified = System.Collections.Generic.Dictionary<string, ResizeArray<string>>()
+          
+          for file in files do
+              let ext = System.IO.Path.GetExtension(file).ToLowerInvariant()
+              let category = 
+                  match ext with
+                  | ".fs" | ".fsx" | ".fsi" -> "fsharp"
+                  | ".cs" | ".csx" -> "csharp"
+                  | ".py" | ".pyx" -> "python"
+                  | ".js" | ".jsx" | ".ts" | ".tsx" -> "frontend"
+                  | ".md" | ".markdown" | ".txt" -> "documentation"
+                  | ".json" | ".xml" | ".yaml" | ".yml" -> "config"
+                  | _ -> "misc"
+              
+              if not (classified.ContainsKey(category)) then
+                  classified.[category] <- ResizeArray<string>()
+              classified.[category].Add(file)
+          
+          classified
+    }
+    
+    // Python for data analysis and reporting
+    LANG("PYTHON") {
+      import os
+      import json
+      from collections import defaultdict
+      
+      def analyze_file_content(file_paths):
+          analysis = defaultdict(lambda: {"count": 0, "total_size": 0, "avg_size": 0})
+          
+          for file_path in file_paths:
+              if os.path.exists(file_path):
+                  ext = os.path.splitext(file_path)[1].lower()
+                  size = os.path.getsize(file_path)
+                  
+                  analysis[ext]["count"] += 1
+                  analysis[ext]["total_size"] += size
+                  analysis[ext]["avg_size"] = analysis[ext]["total_size"] / analysis[ext]["count"]
+          
+          return dict(analysis)
+      
+      def generate_report(analysis_data):
+          report = {
+              "summary": {
+                  "total_files": sum(data["count"] for data in analysis_data.values()),
+                  "total_size": sum(data["total_size"] for data in analysis_data.values()),
+                  "file_types": len(analysis_data)
+              },
+              "by_extension": analysis_data,
+              "recommendations": []
+          }
+          
+          # Add recommendations based on analysis
+          for ext, data in analysis_data.items():
+              if data["avg_size"] > 1024 * 1024:  # > 1MB
+                  report["recommendations"].append(f"Large {ext} files detected - consider optimization")
+          
+          return json.dumps(report, indent=2)
+    }
+    
+    // C# for system integration and file operations
+    LANG("CSHARP") {
+      using System;
+      using System.IO;
+      using System.Linq;
+      using System.Collections.Generic;
+      
+      public class FileSystemAnalyzer
+      {
+          public static Dictionary<string, object> GetFileSystemInfo(string[] filePaths)
+          {
+              var result = new Dictionary<string, object>();
+              var validFiles = new List<string>();
+              var invalidFiles = new List<string>();
+              
+              foreach (var filePath in filePaths)
+              {
+                  if (File.Exists(filePath))
+                  {
+                      validFiles.Add(filePath);
+                  }
+                  else
+                  {
+                      invalidFiles.Add(filePath);
+                  }
+              }
+              
+              result["valid_files"] = validFiles.ToArray();
+              result["invalid_files"] = invalidFiles.ToArray();
+              result["total_count"] = filePaths.Length;
+              result["valid_count"] = validFiles.Count;
+              result["invalid_count"] = invalidFiles.Count;
+              
+              // Get file attributes for valid files
+              var fileDetails = validFiles.Select(f => new {
+                  Path = f,
+                  Size = new FileInfo(f).Length,
+                  LastModified = new FileInfo(f).LastWriteTime,
+                  Extension = Path.GetExtension(f),
+                  Directory = Path.GetDirectoryName(f)
+              }).ToArray();
+              
+              result["file_details"] = fileDetails;
+              
+              return result;
+          }
+      }
+    }
+    
+    // JavaScript for web-based reporting (if needed)
+    LANG("JAVASCRIPT") {
+      function generateWebReport(analysisData) {
+          const html = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <title>File Classification Report</title>
+              <style>
+                  body { font-family: Arial, sans-serif; margin: 20px; }
+                  .summary { background: #f0f0f0; padding: 15px; border-radius: 5px; }
+                  .category { margin: 10px 0; padding: 10px; border-left: 3px solid #007acc; }
+                  table { border-collapse: collapse; width: 100%; }
+                  th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                  th { background-color: #f2f2f2; }
+              </style>
+          </head>
+          <body>
+              <h1>📊 File Classification Report</h1>
+              <div class="summary">
+                  <h2>Summary</h2>
+                  <p>Total Files: ${analysisData.summary.total_files}</p>
+                  <p>Total Size: ${(analysisData.summary.total_size / 1024 / 1024).toFixed(2)} MB</p>
+                  <p>File Types: ${analysisData.summary.file_types}</p>
+              </div>
+              
+              <h2>📁 By Extension</h2>
+              <table>
+                  <tr><th>Extension</th><th>Count</th><th>Total Size</th><th>Avg Size</th></tr>
+                  ${Object.entries(analysisData.by_extension).map(([ext, data]) => 
+                      `<tr><td>${ext}</td><td>${data.count}</td><td>${data.total_size}</td><td>${data.avg_size.toFixed(0)}</td></tr>`
+                  ).join('')}
+              </table>
+              
+              <h2>💡 Recommendations</h2>
+              <ul>
+                  ${analysisData.recommendations.map(rec => `<li>${rec}</li>`).join('')}
+              </ul>
+          </body>
+          </html>`;
+          
+          return html;
+      }
+    }
+  }
+  
+  // RFC validation example
+  rfc "rfc3986" {
+    title: "URI Generic Syntax"
+    url: "https://datatracker.ietf.org/doc/html/rfc3986"
+    extract_rules: ["URI", "scheme", "authority", "path", "query", "fragment"]
+    verify_compatibility_with: "UriValidatorAgent"
+    use_in: "test_suite"
+  }
+  
+  // Test cases using grammars
+  test {
+    use_grammar("MiniQuery")
+    
+    // Test query parsing
+    assert parse_query("find *.cs in src/") == {
+      action: "find",
+      pattern: "*.cs",
+      target: "src/"
+    }
+    
+    // Test URI validation using RFC grammar
+    use_grammar("RFC3986_URI")
+    assert validate_uri("https://example.com/path?query=value#fragment") == true
+    assert validate_uri("invalid-uri") == false
+  }
+  
+  // Execution flow
+  execution {
+    step1: "Load and validate input file paths"
+    step2: "Classify files using F# logic"
+    step3: "Analyze content using Python"
+    step4: "Get system info using C#"
+    step5: "Generate web report using JavaScript"
+    step6: "Validate any URIs found using RFC3986 grammar"
+    step7: "Return classified files and analysis report"
+  }
+}

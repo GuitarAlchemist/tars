@@ -1,4 +1,5 @@
 ﻿open System
+open System.Text
 open TarsEngine.FSharp.Cli.Core
 
 /// <summary>
@@ -7,6 +8,10 @@ open TarsEngine.FSharp.Cli.Core
 [<EntryPoint>]
 let main args =
     try
+        // Fix console encoding for proper emoji and Unicode support
+        Console.OutputEncoding <- Encoding.UTF8
+        Console.InputEncoding <- Encoding.UTF8
+
         // Create and run the CLI application
         let app = CliApplication()
         let exitCode = app.RunAsync(args).Result
