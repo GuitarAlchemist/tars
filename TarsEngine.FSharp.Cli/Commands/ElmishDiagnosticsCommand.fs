@@ -31,7 +31,7 @@ type ElmishDiagnosticsCommand(logger: ILogger<ElmishDiagnosticsCommand>) =
                     
                     // Generate COMPREHENSIVE TARS DIAGNOSTICS with enhanced styling
                     logger.LogInformation("🧠 Loading ALL comprehensive TARS subsystems with enhanced UI...")
-                    let (comprehensiveHtml, updateFunction, tarsModel) = runElmishProgram ()
+                    let (_, updateFunction, tarsModel) = runElmishProgram ()
                     logger.LogInformation("📊 Model initialized with {SubsystemCount} TARS subsystems", tarsModel.AllSubsystems.Length)
 
                     // Load real diagnostics data (for additional system info)
@@ -39,9 +39,9 @@ type ElmishDiagnosticsCommand(logger: ILogger<ElmishDiagnosticsCommand>) =
                     let! diagnostics = getComprehensiveDiagnostics Environment.CurrentDirectory
                     logger.LogInformation("✅ Diagnostics loaded into Elmish model")
 
-                    // Use comprehensive HTML with ALL enhanced styling and navigation
-                    logger.LogInformation("🎨 Using comprehensive TARS HTML with enhanced styling...")
-                    let htmlContent = comprehensiveHtml
+                    // Generate COMPLETE HTML with CSS, JavaScript, and dark mode
+                    logger.LogInformation("🎨 Generating complete TARS HTML with CSS, JavaScript, and dark mode...")
+                    let htmlContent = generateCompleteHtml tarsModel
                     
                     // Save comprehensive HTML with enhanced styling
                     let tempPath = Path.Combine(Path.GetTempPath(), "tars-comprehensive-enhanced-diagnostics.html")
