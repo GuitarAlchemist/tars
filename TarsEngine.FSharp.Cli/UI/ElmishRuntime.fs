@@ -1088,104 +1088,124 @@ module ElmishRuntime =
 
     // COMPLETE HTML TEMPLATE GENERATOR
     let generateCompleteHtml (model: TarsElmishDiagnostics.TarsDiagnosticsModel) =
-        let modelJson = JsonSerializer.Serialize(model, JsonSerializerOptions(PropertyNamingPolicy = JsonNamingPolicy.CamelCase))
+        // Create a simplified model for JSON serialization (avoiding F# discriminated unions)
+        let simplifiedModel = {|
+            allSubsystems = model.AllSubsystems |> List.map (fun s -> {|
+                name = s.Name
+                status = s.Status.ToString()
+                healthPercentage = s.HealthPercentage
+                activeComponents = s.ActiveComponents
+                processingRate = s.ProcessingRate
+                memoryUsage = s.MemoryUsage
+                lastActivity = s.LastActivity
+                dependencies = s.Dependencies
+            |})
+            overallTarsHealth = model.OverallTarsHealth
+            activeAgents = model.ActiveAgents
+            processingTasks = model.ProcessingTasks
+            isLoading = model.IsLoading
+            error = model.Error
+            lastUpdate = model.LastUpdate
+            selectedSubsystem = model.SelectedSubsystem
+            showDetails = model.ShowDetails
+            viewMode = model.ViewMode.ToString()
+            autoRefresh = model.AutoRefresh
+        |}
+        let modelJson = JsonSerializer.Serialize(simplifiedModel, JsonSerializerOptions(PropertyNamingPolicy = JsonNamingPolicy.CamelCase))
         let viewHtml = TarsElmishDiagnostics.view model |> TarsHtml.render
 
-        sprintf """
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>🧠 TARS Consciousness & Subsystem Matrix</title>
-            <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>">
-            %s
-        </head>
-        <body>
-            <div id="elmish-tars-root">
-                %s
-            </div>
+        let cssContent = generateTarsCSS ()
+        let jsContent = generateJavaScriptRuntime ()
 
-            %s
+        sprintf """<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧠 TARS Consciousness & Subsystem Matrix</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>">
+    %s
+</head>
+<body>
+    <div id="elmish-tars-root">
+        %s
+    </div>
 
-            <script>
-                // Initialize the Elmish application with the current model
-                const initialModel = %s;
-                initElmish(JSON.stringify(initialModel));
+    %s
 
-                // Add some TARS-specific enhancements
-                console.log('🧠 TARS Consciousness Matrix Activated');
-                console.log('⚡ Subsystems:', initialModel.allSubsystems ? initialModel.allSubsystems.length : 0);
-                console.log('🧬 Overall Health:', initialModel.overallTarsHealth + '%%');
-                console.log('💭 Active Agents:', initialModel.activeAgents);
+    <script>
+        // Initialize the Elmish application with the current model
+        const initialModel = %s;
+        initElmish(JSON.stringify(initialModel));
 
-                // Initialize dark mode
-                document.body.classList.add('dark-mode');
-                localStorage.setItem('tars-dark-mode', 'true');
-                console.log('🌙 Dark mode initialized');
+        // Add some TARS-specific enhancements
+        console.log('🧠 TARS Consciousness Matrix Activated');
+        console.log('⚡ Subsystems:', initialModel.allSubsystems ? initialModel.allSubsystems.length : 0);
+        console.log('🧬 Overall Health:', initialModel.overallTarsHealth + '%%');
+        console.log('💭 Active Agents:', initialModel.activeAgents);
 
-                // Add visual effects
-                document.body.style.background = 'linear-gradient(135deg, #0a0a0a 0%%, #1a1a2e 50%%, #16213e 100%%)';
+        // Initialize dark mode
+        document.body.classList.add('dark-mode');
+        localStorage.setItem('tars-dark-mode', 'true');
+        console.log('🌙 Dark mode initialized');
 
-                // Add particle effect (optional)
-                function createParticle() {
-                    const particle = document.createElement('div');
-                    particle.style.position = 'fixed';
-                    particle.style.width = '2px';
-                    particle.style.height = '2px';
-                    particle.style.background = '#00ff88';
-                    particle.style.borderRadius = '50%%';
-                    particle.style.pointerEvents = 'none';
-                    particle.style.opacity = '0.7';
-                    particle.style.left = Math.random() * window.innerWidth + 'px';
-                    particle.style.top = window.innerHeight + 'px';
-                    particle.style.zIndex = '-1';
+        // Add visual effects
+        document.body.style.background = 'linear-gradient(135deg, #0a0a0a 0%%, #1a1a2e 50%%, #16213e 100%%)';
 
-                    document.body.appendChild(particle);
+        // Add particle effect (optional)
+        function createParticle() {
+            const particle = document.createElement('div');
+            particle.style.position = 'fixed';
+            particle.style.width = '2px';
+            particle.style.height = '2px';
+            particle.style.background = '#00ff88';
+            particle.style.borderRadius = '50%%';
+            particle.style.pointerEvents = 'none';
+            particle.style.opacity = '0.7';
+            particle.style.left = Math.random() * window.innerWidth + 'px';
+            particle.style.top = window.innerHeight + 'px';
+            particle.style.zIndex = '-1';
 
-                    const animation = particle.animate([
-                        { transform: 'translateY(0px)', opacity: 0.7 },
-                        { transform: 'translateY(-' + (window.innerHeight + 100) + 'px)', opacity: 0 }
-                    ], {
-                        duration: 3000 + Math.random() * 2000,
-                        easing: 'linear'
-                    });
+            document.body.appendChild(particle);
 
-                    animation.onfinish = () => particle.remove();
-                }
+            const animation = particle.animate([
+                { transform: 'translateY(0px)', opacity: 0.7 },
+                { transform: 'translateY(-' + (window.innerHeight + 100) + 'px)', opacity: 0 }
+            ], {
+                duration: 3000 + Math.random() * 2000,
+                easing: 'linear'
+            });
 
-                // Create particles occasionally
-                setInterval(createParticle, 500);
+            animation.onfinish = () => particle.remove();
+        }
 
-                // Add consciousness pulse effect
-                function pulseConsciousness() {
-                    const consciousnessElements = document.querySelectorAll('.consciousness');
-                    consciousnessElements.forEach(el => {
-                        el.style.transform = 'scale(1.05)';
-                        setTimeout(() => {
-                            el.style.transform = 'scale(1)';
-                        }, 200);
-                    });
-                }
+        // Create particles occasionally
+        setInterval(createParticle, 500);
 
-                setInterval(pulseConsciousness, 3000);
+        // Add consciousness pulse effect
+        function pulseConsciousness() {
+            const consciousnessElements = document.querySelectorAll('.consciousness');
+            consciousnessElements.forEach(el => {
+                el.style.transform = 'scale(1.05)';
+                setTimeout(() => {
+                    el.style.transform = 'scale(1)';
+                }, 200);
+            });
+        }
 
-                // Keyboard shortcuts help
-                console.log('⌨️ Keyboard Shortcuts:');
-                console.log('  Ctrl+R: Refresh All');
-                console.log('  Ctrl+E: Evolve');
-                console.log('  Ctrl+M: Self-Modify');
-                console.log('  Ctrl+C: Boost Consciousness');
-                console.log('  Ctrl+Q: Quantum Tunnel');
-                console.log('  1-7: Switch View Modes');
-            </script>
-        </body>
-        </html>
-        """
-        (generateTarsCSS ())
-        viewHtml
-        (generateJavaScriptRuntime ())
-        modelJson
+        setInterval(pulseConsciousness, 3000);
+
+        // Keyboard shortcuts help
+        console.log('⌨️ Keyboard Shortcuts:');
+        console.log('  Ctrl+R: Refresh All');
+        console.log('  Ctrl+E: Evolve');
+        console.log('  Ctrl+M: Self-Modify');
+        console.log('  Ctrl+C: Boost Consciousness');
+        console.log('  Ctrl+Q: Quantum Tunnel');
+        console.log('  1-7: Switch View Modes');
+    </script>
+</body>
+</html>""" cssContent viewHtml jsContent modelJson
 
     // ELMISH PROGRAM RUNNER
     let runElmishProgram () =

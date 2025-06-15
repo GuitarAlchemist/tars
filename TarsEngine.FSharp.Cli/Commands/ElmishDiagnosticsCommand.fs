@@ -42,7 +42,7 @@ type ElmishDiagnosticsCommand(logger: ILogger<ElmishDiagnosticsCommand>) =
                     // Generate COMPLETE HTML with CSS, JavaScript, and dark mode
                     logger.LogInformation("🎨 Generating complete TARS HTML with CSS, JavaScript, and dark mode...")
                     let htmlContent = generateCompleteHtml tarsModel
-                    
+
                     // Save comprehensive HTML with enhanced styling
                     let tempPath = Path.Combine(Path.GetTempPath(), "tars-comprehensive-enhanced-diagnostics.html")
                     do! File.WriteAllTextAsync(tempPath, htmlContent)
