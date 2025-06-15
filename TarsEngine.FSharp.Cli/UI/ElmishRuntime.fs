@@ -771,14 +771,35 @@ module ElmishRuntime =
             transform: scale(1.05);
         }
 
-        /* BREADCRUMB NAVIGATION STYLES */
+        /* ENHANCED BREADCRUMB NAVIGATION STYLES */
         .tars-breadcrumbs {
             background: rgba(0, 0, 0, 0.3);
             border-radius: 8px;
-            padding: 12px 20px;
+            padding: 16px 20px;
             margin-bottom: 20px;
             border: 1px solid rgba(0, 255, 136, 0.2);
             backdrop-filter: blur(10px);
+        }
+
+        .breadcrumb-status {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(0, 255, 136, 0.1);
+        }
+
+        .status-icon {
+            font-size: 16px;
+            margin-right: 8px;
+        }
+
+        .status-text {
+            color: #00ff88;
+            font-weight: bold;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .breadcrumb-container {
@@ -827,6 +848,34 @@ module ElmishRuntime =
             color: #666;
             margin: 0 8px;
             font-weight: bold;
+        }
+
+        .breadcrumb-close {
+            color: #ff6b6b;
+            margin-left: 8px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+
+        .breadcrumb-close:hover {
+            background: rgba(255, 107, 107, 0.2);
+            color: #ffffff;
+            transform: scale(1.1);
+        }
+
+        .breadcrumb-item.view {
+            color: #00ccff;
+        }
+
+        .breadcrumb-item.view:hover {
+            background: rgba(0, 204, 255, 0.2);
+        }
+
+        .breadcrumb-item.subsystem {
+            color: #ff9500;
         }
 
         .dependencies-section {

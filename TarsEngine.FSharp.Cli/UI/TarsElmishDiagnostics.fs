@@ -219,7 +219,7 @@ module TarsElmishDiagnostics =
         | :? string as s -> s
         | _ -> sprintf "%A" value
 
-    // BREADCRUMB NAVIGATION COMPONENT - Real Elmish with Message Dispatching
+    // ENHANCED BREADCRUMB NAVIGATION COMPONENT - Real Elmish with Dynamic State
     let viewBreadcrumbs (model: TarsDiagnosticsModel) (dispatch: TarsMsg -> unit) =
         let viewModeText = function
             | Overview -> "Subsystems Overview"
@@ -227,32 +227,57 @@ module TarsElmishDiagnostics =
             | Performance -> "Performance Metrics"
             | Architecture -> "System Architecture"
 
+        let viewModeIcon = function
+            | Overview -> "🔍"
+            | Detailed -> "📊"
+            | Performance -> "⚡"
+            | Architecture -> "🏗️"
+
         div [ className "tars-breadcrumbs" ] [
+            // Breadcrumb status indicator
+            div [ className "breadcrumb-status" ] [
+                span [ className "status-icon" ] [
+                    text (match model.SelectedSubsystem with
+                          | Some _ -> "🔍"
+                          | None -> "🏠")
+                ]
+                span [ className "status-text" ] [
+                    text (match model.SelectedSubsystem with
+                          | Some name -> sprintf "Viewing %s Details" name
+                          | None -> sprintf "Browsing %s" (viewModeText model.ViewMode))
+                ]
+            ]
             div [ className "breadcrumb-container" ] [
-                // Home breadcrumb - Real message dispatch
+                // Home breadcrumb - Always clickable
                 span [
-                    className "breadcrumb-item home"
+                    className (if model.ViewMode = Overview && model.SelectedSubsystem.IsNone then "breadcrumb-item home current" else "breadcrumb-item home")
                     onClick NavigateToHome
                 ] [
                     text "🧠 TARS Diagnostics"
                 ]
 
-                // View mode breadcrumb (if not Overview)
-                if model.ViewMode <> Overview then
-                    span [ className "breadcrumb-separator" ] [ text " > " ]
-                    span [
-                        className "breadcrumb-item view"
-                        onClick (NavigateToView Overview)
-                    ] [
-                        text (viewModeText model.ViewMode)
-                    ]
+                // View mode breadcrumb (always show current view)
+                span [ className "breadcrumb-separator" ] [ text " > " ]
+                span [
+                    className (if model.SelectedSubsystem.IsNone then "breadcrumb-item view current" else "breadcrumb-item view")
+                    onClick (NavigateToView model.ViewMode)
+                ] [
+                    text (sprintf "%s %s" (viewModeIcon model.ViewMode) (viewModeText model.ViewMode))
+                ]
 
                 // Subsystem breadcrumb (if selected)
                 match model.SelectedSubsystem with
                 | Some subsystemName ->
                     span [ className "breadcrumb-separator" ] [ text " > " ]
                     span [ className "breadcrumb-item subsystem current" ] [
-                        text subsystemName
+                        text (sprintf "🔧 %s" subsystemName)
+                    ]
+                    // Add close button for subsystem
+                    span [
+                        className "breadcrumb-close"
+                        onClick ClearSubsystemSelection
+                    ] [
+                        text " ✕"
                     ]
                 | None -> empty
             ]
