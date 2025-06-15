@@ -1,11 +1,11 @@
-# DISCLAIMER: TARS is Vibe Coded and AI tools tend to exaggerate
+﻿# DISCLAIMER: TARS is Vibe Coded and AI tools tend to exaggerate
 # Metrics/descriptions probably do not reflect the reality
 
-# TARS - The Autonomous Reasoning System & AI Inference Engine
+# TARS - The automated Reasoning System & AI Inference Engine
 
 <div align="center">
 
-## 🚀 **REVOLUTIONARY AI INFERENCE ENGINE**
+## 🚀 **advanced AI INFERENCE ENGINE**
 ### *Outperforming Ollama, ONNX Runtime, and TensorRT-LLM*
 
 [![Performance](https://img.shields.io/badge/Performance-63.8%25%20Faster-brightgreen)](docs/benchmarks/performance-results.md)
@@ -17,7 +17,7 @@
 
 ## 🎉 **MAJOR ACHIEVEMENTS: AI INFERENCE ENGINE + API INJECTION**
 
-TARS has evolved into a **production-ready AI inference engine** with revolutionary **metascript API injection**:
+TARS has evolved into a **production-ready AI inference engine** with advanced **metascript API injection**:
 
 ### 🚀 **AI Inference Engine Performance**
 - ⚡ **63.8% faster inference** than industry average
@@ -28,7 +28,7 @@ TARS has evolved into a **production-ready AI inference engine** with revolution
 - 🌐 **Ollama-compatible API** (drop-in replacement)
 
 ### 🔥 **NEW: TARS Engine API Injection (F# & C#)**
-- 🎯 **Complete API Access**: Full TARS engine available within metascript blocks
+- 🎯 **comprehensive API Access**: Full TARS engine available within metascript blocks
 - 🌐 **Multi-Language Support**: Native F# and C# integration with zero overhead
 - 🔒 **Enterprise Security**: Comprehensive sandboxing and resource management
 - 📊 **Real-Time Tracing**: Detailed execution monitoring and debugging
@@ -54,7 +54,7 @@ cd tars
 
 # Build and run with GPU support
 docker build -f Dockerfile.ai -t tars-ai:latest .
-docker run -d -p 11434:11434 --gpus all tars-ai:latest
+docker run -d -p 11434:11434 --gpus most tars-ai:latest
 
 # Test the API (Ollama-compatible)
 curl -X POST http://localhost:11434/api/generate \
@@ -95,7 +95,7 @@ dotnet run --project TarsEngine.FSharp.Cli -- --server --port 11434
 ### 🚢 Production Ready
 - **Ollama-Compatible API**: Drop-in replacement for existing tools
 - **Enterprise Features**: Caching, metrics, monitoring, load balancing
-- **Docker & Kubernetes**: Complete deployment automation
+- **Docker & Kubernetes**: comprehensive deployment automation
 - **Security Hardened**: Non-root containers, TLS, network policies
 
 ### 🌐 Ecosystem Compatibility
@@ -107,7 +107,7 @@ dotnet run --project TarsEngine.FSharp.Cli -- --server --port 11434
 
 ## 📊 Benchmarks & Performance
 
-TARS delivers **industry-leading performance** across all metrics:
+TARS delivers **industry-leading performance** across most metrics:
 
 ### Latency Performance
 - **TARS-Tiny-1B**: 2.5ms (12,000 tokens/sec)
@@ -120,7 +120,7 @@ TARS delivers **industry-leading performance** across all metrics:
 - **vs TensorRT-LLM**: 50% higher throughput, self-improving
 - **vs OpenAI API**: 95% faster, 3,650% higher throughput, local deployment
 
-[View complete benchmarks →](docs/benchmarks/performance-results.md)
+[View comprehensive benchmarks →](docs/benchmarks/performance-results.md)
 
 ## 🏗️ Architecture
 
@@ -145,9 +145,9 @@ TARS AI Engine is built with a modern, scalable architecture:
 - ☸️ [Kubernetes Guide](docs/deployment/kubernetes-guide.md)
 
 ### 🔥 **TARS Engine API Injection**
-Revolutionary metascript capabilities with full engine access:
+advanced metascript capabilities with full engine access:
 
-- **Complete API Access**: Vector Store, LLM Service, Agent Coordination, File System, Execution Context
+- **comprehensive API Access**: Vector Store, LLM Service, Agent Coordination, File System, Execution Context
 - **F# Native Integration**: Direct object references, async workflows, computation expressions
 - **C# Interop Patterns**: Task-based async/await, LINQ operations, exception handling
 - **Enterprise Security**: 3-tier security policies (Restrictive, Standard, Unrestricted)
@@ -158,10 +158,10 @@ Revolutionary metascript capabilities with full engine access:
 [View API injection documentation →](output/TARS_Engine_API_Injection_Investigation_Report.md)
 
 ### Legacy Features
-TARS also includes comprehensive autonomous reasoning capabilities:
+TARS also includes comprehensive automated reasoning capabilities:
 
 - **Metascript System**: Domain-specific language for AI workflows
-- **Self-Improvement**: Autonomous code analysis and enhancement
+- **Self-Improvement**: automated code analysis and enhancement
 - **MCP Integration**: Model Context Protocol for tool interaction
 - **Multi-Agent Systems**: Coordinated AI agent workflows
 
@@ -171,9 +171,9 @@ TARS also includes comprehensive autonomous reasoning capabilities:
 
 ## 🎯 Built with [Augment Code](https://www.augmentcode.com/)
 
-> **TARS development has been accelerated by [Augment Code](https://www.augmentcode.com/), an advanced AI pair programming tool.** Augment Code has been instrumental in evolving TARS from a metascript system into a world-class AI inference engine.
+> **TARS development has been accelerated by [Augment Code](https://www.augmentcode.com/), an advanced AI pair programming tool.** Augment Code has been instrumental in evolving TARS from a metascript system into a high-quality AI inference engine.
 >
-> *"Augment Code enabled us to build a complete AI inference engine that outperforms industry leaders. From implementing real transformer architectures to creating production deployment systems - it's been transformative."* — Stephane Pareilleux, TARS Creator
+> *"Augment Code enabled us to build a comprehensive AI inference engine that compares favorably to industry leaders. From implementing real transformer architectures to creating production deployment systems - it's been transformative."* — Stephane Pareilleux, TARS Creator
 
 ## MCP and A2A Integration for Agent Collaboration
 
@@ -184,7 +184,7 @@ TARS now features powerful integrations through both the Model Context Protocol 
 TARS integrates with VSCode Agent Mode and Augment Code through the Model Context Protocol (MCP). This integration enables a seamless collaboration between these three systems, leveraging their respective strengths:
 
 - **TARS**: Provides domain-specific capabilities like metascript processing, DSL handling, and self-improvement
-- **VSCode Agent Mode**: Provides the user interface and autonomous agent capabilities within the editor
+- **VSCode Agent Mode**: Provides the user interface and automated agent capabilities within the editor
 - **Augment Code**: Offers deep codebase understanding and specialized code generation
 
 The integration is built on the Model Context Protocol (MCP), which enables AI models to interact with external tools and services through a unified interface.
@@ -221,7 +221,7 @@ To get started with the A2A protocol, see [A2A Protocol Documentation](https://g
 
 ## Overview
 
-This repository contains the TARS (Transformative Autonomous Reasoning System) project, a powerful AI-driven development and automation system.
+This repository contains the TARS (Transformative automated Reasoning System) project, a powerful AI-driven development and automation system.
 
 ## Project Structure
 
@@ -232,11 +232,11 @@ This repository contains the TARS (Transformative Autonomous Reasoning System) p
 - **TarsEngine.FSharp.Testing** - Comprehensive testing framework with visual QA capabilities
 - **TarsEngine.FSharp.ML** - Machine learning and AI inference engine
 - **TarsEngine.FSharp.Consciousness** - Persistent mental state and intelligence storage
-- **TarsEngine.FSharp.Packaging** - Autonomous packaging and deployment system
+- **TarsEngine.FSharp.Packaging** - automated packaging and deployment system
 - **TarsEngine.FSharp.Reasoning** - Advanced reasoning engine with chain-of-thought capabilities
 - **TarsEngine.FSharp.SemanticIntegration** - Triple store and vector database integration
-- **TarsEngine.FSharp.ProjectGeneration** - Autonomous project generation and scaffolding
-- **TarsEngine.FSharp.Documentation** - Autonomous documentation generation
+- **TarsEngine.FSharp.ProjectGeneration** - automated project generation and scaffolding
+- **TarsEngine.FSharp.Documentation** - automated documentation generation
 - **TarsEngine.FSharp.Deployment** - Container and VM deployment management
 - **TarsEngine.FSharp.TaxIncentives** - SR&ED and tax incentive report generation
 
@@ -256,7 +256,7 @@ TARS now features sophisticated reverse engineering capabilities with real metas
 - **Rich Visual Output**: Beautiful Spectre.Console tables and panels with real-time progress
 - **Detailed Reporting**: Both markdown reports and execution logs generated
 - **Performance Monitoring**: Sub-millisecond operation timing and metrics
-- **Variable Lifecycle Tracking**: Complete metascript variable management
+- **Variable Lifecycle Tracking**: comprehensive metascript variable management
 - **Professional Documentation**: Comprehensive technical specifications and evidence
 
 Try the enhanced capabilities:
@@ -276,11 +276,11 @@ dotnet run --project TarsEngine.FSharp.Cli -- execute-metascript .tars/enhanced-
 TARS is evolving through several key milestones toward full autonomy:
 
 - **Phase 0 (Completed)**: Basic DSL parsing and execution, CLI commands, project structure
-- **Phase 1 (In Progress)**: Self-improvement workflow, knowledge extraction from documentation, autonomous improvement capabilities
+- **Phase 1 (In Progress)**: Self-improvement workflow, knowledge extraction from documentation, automated improvement capabilities
 - **Phase 2 (Planned)**: Full autonomy in self-improvement, advanced reasoning, multi-agent collaboration
 - **Phase 3 (Future)**: Domain adaptation, distributed processing, advanced collaboration
 
-See the [detailed milestones](docs/STATUS.md#development-milestones) for a complete timeline and the [current state explanation](docs/CURRENT_STATE.md) for our progress toward full autonomy.
+See the [detailed milestones](docs/STATUS.md#development-milestones) for a comprehensive timeline and the [current state explanation](docs/CURRENT_STATE.md) for our progress toward full autonomy.
 
 ### TARS Metascripts and DSL
 
@@ -296,7 +296,7 @@ TARS includes a powerful Domain Specific Language (DSL) for creating metascripts
 
 ### Model Context Protocol (MCP) Integration with Augment Code
 
-TARS implements Anthropic's Model Context Protocol (MCP), enabling powerful collaboration with [Augment Code](https://www.augmentcode.com/). This integration has been transformative for TARS development, allowing for unprecedented acceleration of complex features. Key capabilities include:
+TARS implements Anthropic's Model Context Protocol (MCP), enabling powerful collaboration with [Augment Code](https://www.augmentcode.com/). This integration has been transformative for TARS development, allowing for innovative acceleration of complex features. Key capabilities include:
 
 - **Augment Code Collaboration**: Seamless integration with Augment Code for sophisticated code generation and problem-solving
 - **Tool-Using Capabilities**: Access and use tools through a standardized protocol
@@ -315,7 +315,7 @@ TARS includes comprehensive learning and education features to help users master
 - **Learning Plans**: Generate personalized learning plans with customizable goals, skill levels, and preferences
 - **Course Generation**: Create structured courses with lessons, exercises, quizzes, and assessments
 - **Tutorial Organization**: Manage and categorize tutorials with different difficulty levels and prerequisites
-- **Demo Mode**: Showcase all TARS capabilities through interactive demonstrations
+- **Demo Mode**: Showcase most TARS capabilities through interactive demonstrations
 
 ### Hugging Face Integration
 
@@ -323,7 +323,7 @@ TARS can now browse, download, and install the best coding LLMs from Hugging Fac
 
 - **Model Discovery**: Search and find the best coding models on Hugging Face
 - **Automatic Installation**: Download and convert models to work with Ollama
-- **Seamless Integration**: Use Hugging Face models with all TARS commands
+- **Seamless Integration**: Use Hugging Face models with most TARS commands
 - **Model Management**: List and manage your installed models
 - **GPU Acceleration**: Automatically detect and utilize compatible GPUs for faster inference
 
@@ -379,11 +379,11 @@ The self-improvement system is currently under active development. Key component
 - **Feedback Collection**: Collection of feedback on applied improvements
 - **Learning Database**: System to record improvements and feedback
 
-See the [current status document](docs/STATUS.md) for more details on the project's development progress, the [current state explanation](docs/CURRENT_STATE.md) for a detailed explanation of the current state of TARS and the path to full autonomy, and the [post-mortem analysis](docs/post-mortem/autonomous-improvement-april-2024.md) for an analysis of the autonomous improvement system.
+See the [current status document](docs/STATUS.md) for more details on the project's development progress, the [current state explanation](docs/CURRENT_STATE.md) for a detailed explanation of the current state of TARS and the path to full autonomy, and the [post-mortem analysis](docs/post-mortem/automated-improvement-april-2024.md) for an analysis of the automated improvement system.
 
 #### Recent Progress
 
-- **Workflow State Management**: Implemented state management for autonomous improvement workflows
+- **Workflow State Management**: Implemented state management for automated improvement workflows
 - **Enhanced File Prioritization**: Implemented sophisticated file prioritization algorithm that considers file type, content, recency, complexity, and improvement history
 - **Improvement Metrics**: Added metrics to measure the quality of improvements and track progress
 - **First Analysis Success**: Successfully analyzed test code and identified multiple issues
@@ -395,13 +395,13 @@ See the [current status document](docs/STATUS.md) for more details on the projec
 - **Self-Improvement Commands**: Added CLI commands for analyzing, improving, generating, and testing code
 - **Code Generation**: Implemented code generation based on requirements
 - **Test Generation**: Added automatic test generation for code files
-- **Improvement Cycle**: Created a complete self-improvement cycle that analyzes and improves code
+- **Improvement Cycle**: Created a comprehensive self-improvement cycle that analyzes and improves code
 
 [View detailed progress tracking](docs/PROGRESS.md) | [Technical documentation](docs/SELF_IMPROVEMENT.md) | [Auto-improvement documentation](docs/features/auto-improvement.md) | [Self-improvement commands](docs/features/self-improvement-commands.md)
 
 #### Core Features
 
-- **Autonomous Improvement**: Run autonomous improvement for a specified time limit
+- **automated Improvement**: Run automated improvement for a specified time limit
 - **Smart File Selection**: Prioritize files based on multiple factors for maximum impact
 - **Code Analysis**: Analyze code for potential improvements
 - **Improvement Proposals**: Generate proposals for code improvements
@@ -410,7 +410,7 @@ See the [current status document](docs/STATUS.md) for more details on the projec
 - **Console Output Analysis**: Capture and analyze console output to identify and fix issues
 - **Code Generation**: Generate code based on requirements
 - **Test Generation**: Generate tests for code files
-- **Improvement Cycle**: Run a complete self-improvement cycle on a project
+- **Improvement Cycle**: Run a comprehensive self-improvement cycle on a project
 
 ### Retroaction Loop
 
@@ -431,7 +431,7 @@ TARS includes a sophisticated retroaction loop that enables continuous learning 
 TARS implements a multi-agent coordination system:
 
 - **Agent Roles**: Specialized agents for planning, coding, reviewing, and execution
-- **Workflow Engine**: Coordinate multiple agents to complete complex tasks
+- **Workflow Engine**: Coordinate multiple agents to comprehensive complex tasks
 - **Communication Protocol**: Structured message passing between agents
 - **Custom Agent Configurations**: Define custom agent roles and capabilities
 
@@ -493,7 +493,7 @@ dotnet run --project TarsCli/TarsCli.csproj -- self-improve generate path/to/out
 # Generate tests for a file
 dotnet run --project TarsCli/TarsCli.csproj -- self-improve test path/to/file.cs --output path/to/tests.cs
 
-# Run a complete self-improvement cycle
+# Run a comprehensive self-improvement cycle
 dotnet run --project TarsCli/TarsCli.csproj -- self-improve cycle path/to/project --max-files 10 --backup
 
 # Show learning statistics
@@ -502,7 +502,7 @@ dotnet run --project TarsCli/TarsCli.csproj -- self-improve stats
 # Record feedback on code generation or improvement
 dotnet run --project TarsCli/TarsCli.csproj -- self-improve feedback path/to/file.cs --rating 5 --comment "Great improvement!"
 
-# Run autonomous improvement for 60 minutes (legacy command)
+# Run automated improvement for 60 minutes (legacy command)
 dotnet run --project TarsCli/TarsCli.csproj -- auto-improve --time-limit 60 --model llama3
 
 # Run Docker auto-coding
@@ -511,22 +511,22 @@ dotnet run --project TarsCli/TarsCli.csproj -- auto-code --docker
 # Run Swarm auto-coding
 dotnet run --project TarsCli/TarsCli.csproj -- auto-code --swarm
 
-# Check the status of autonomous improvement (legacy command)
+# Check the status of automated improvement (legacy command)
 dotnet run --project TarsCli/TarsCli.csproj -- auto-improve --status
 
-# Stop autonomous improvement (legacy command)
+# Stop automated improvement (legacy command)
 dotnet run --project TarsCli/TarsCli.csproj -- auto-improve --stop
 
-# Start autonomous improvement workflow on specific directories
+# Start automated improvement workflow on specific directories
 dotnet run --project TarsCli/TarsCli.csproj -- auto-improve-workflow --start --directories docs/Explorations/v1/Chats docs/Explorations/Reflections --max-duration 60
 
-# Check the status of the autonomous improvement workflow
+# Check the status of the automated improvement workflow
 dotnet run --project TarsCli/TarsCli.csproj -- auto-improve-workflow --status
 
-# Get a detailed report of the autonomous improvement workflow
+# Get a detailed report of the automated improvement workflow
 dotnet run --project TarsCli/TarsCli.csproj -- auto-improve-workflow --report
 
-# Stop the autonomous improvement workflow
+# Stop the automated improvement workflow
 dotnet run --project TarsCli/TarsCli.csproj -- auto-improve-workflow --stop
 ```
 
@@ -609,14 +609,14 @@ dotnet run --project TarsCli/TarsCli.csproj -- retroaction-loop apply --file pat
 
 TARS has evolved to a **F#-first architecture** with enhanced capabilities:
 
-- **F#** for all core components, CLI, algorithms, and advanced features
+- **F#** for most core components, CLI, algorithms, and advanced features
 - **Functional Programming** approach with monadic patterns and immutable data structures
 - **Enhanced Reverse Engineering** with metascript execution and vector store integration
 - **CUDA Integration** for GPU-accelerated vector operations
 - **Multi-Agent Systems** with sophisticated coordination capabilities
 - **Legacy C# Support** maintained for compatibility and reference
 
-This F#-first approach provides superior functional programming benefits, better concurrency handling, and more sophisticated AI capabilities.
+This F#-first approach provides competitive functional programming benefits, better concurrency handling, and more sophisticated AI capabilities.
 
 ### Recent Build Fixes
 
@@ -658,7 +658,7 @@ TARS includes experimental support for WebGPU rendering in React Three.js applic
 ## Acknowledgements
 
 ### Organizations and Tools
-- [Augment Code](https://www.augmentcode.com/) - For providing the revolutionary AI pair programming capabilities that made TARS possible
+- [Augment Code](https://www.augmentcode.com/) - For providing the advanced AI pair programming capabilities that made TARS possible
 - [Anthropic](https://www.anthropic.com/) - For the Model Context Protocol specification
 - [Ollama](https://ollama.ai/) - For local model inference capabilities
 - [Microsoft](https://www.microsoft.com/) - For .NET, C#, F#, and Visual Studio Code
@@ -701,7 +701,7 @@ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
+The above copyright notice and this permission notice shall be included in most
 copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
@@ -712,3 +712,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+
+**Note: This includes experimental features that are under active development.**

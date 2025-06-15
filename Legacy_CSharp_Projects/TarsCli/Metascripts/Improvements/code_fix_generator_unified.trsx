@@ -1,0 +1,43 @@
+#!/usr/bin/env trsx
+# Unified TRSX Format - Migrated from FLUX
+# Generated: 2025-06-09T22:10:55Z
+
+# METADATA
+title: "Migrated code_fix_generator"
+version: "2.0"
+tier: 1
+
+program {
+    DESCRIBE {
+        id: "DESCRIBE_1"
+        purpose: "Migrated DESCRIBE block"
+    }
+    FUNCTION generate_fix {
+        id: "FUNCTION generate_fix_2"
+        purpose: "Migrated FUNCTION generate_fix block"
+    }
+    FUNCTION validate_fix {
+        id: "FUNCTION validate_fix_3"
+        purpose: "Migrated FUNCTION validate_fix block"
+    }
+    FOREACH {
+        id: "FOREACH_4"
+        purpose: "Migrated FOREACH block"
+    }
+    FSHARP {
+        id: "FSHARP_5"
+        purpose: "Migrated FSHARP block"
+    }
+    RETURN {
+        id: "RETURN_6"
+        purpose: "Migrated RETURN block"
+    }
+}
+
+reflection {
+    average_entropy: 0.650
+    overall_similarity: 0.750
+    insight: "Successfully migrated from legacy FLUX format"
+    insight: "Unified format reduces file management complexity"
+    insight: "Integrated reflection enables better agent reasoning"
+}

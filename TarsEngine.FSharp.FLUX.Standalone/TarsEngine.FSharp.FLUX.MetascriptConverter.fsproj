@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <AssemblyName>MetascriptConverter</AssemblyName>
+    <RootNamespace>TarsEngine.FSharp.FLUX.Standalone</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsAsErrors />
+    <WarningsNotAsErrors>FS0988</WarningsNotAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Ast/FluxAst.fs" />
+    <Compile Include="Refinement/CrossEntropyRefinement.fs" />
+    <Compile Include="VectorStore/SemanticVectorStore.fs" />
+    <Compile Include="Refinement/ChatGptCrossEntropyRefinement.fs" />
+    <Compile Include="FractalGrammar/SimpleFractalGrammar.fs" />
+    <Compile Include="FractalLanguage/FluxFractalArchitecture.fs" />
+    <Compile Include="FractalLanguage/FluxFractalInterpreter.fs" />
+    <Compile Include="UnifiedFormat/UnifiedTrsxInterpreter.fs" />
+    <Compile Include="UnifiedFormat/TrsxMigrationTool.fs" />
+    <Compile Include="UnifiedFormat/TrsxCli.fs" />
+    <Compile Include="MetascriptConverter.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Text.Json" Version="9.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.5" />
+    <PackageReference Include="Spectre.Console" Version="0.49.1" />
+  </ItemGroup>
+
+</Project>

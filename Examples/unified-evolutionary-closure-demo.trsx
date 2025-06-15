@@ -1,0 +1,287 @@
+#!/usr/bin/env trsx
+# TARS Unified Evolutionary Closure Factory Demo
+# Demonstrates integration of all TARS capabilities through enhanced closure factory
+
+meta {
+  name: "Unified Evolutionary Closure Demo"
+  version: "2.0"
+  description: "Comprehensive demonstration of integrated TARS evolutionary capabilities"
+  author: "TARS Evolutionary System"
+  created: "2025-01-27"
+  tags: ["evolutionary", "closures", "integration", "university-teams", "3d-visualization"]
+  requires: ["UnifiedEvolutionaryClosureFactory", "MetascriptClosureIntegrationService"]
+}
+
+reasoning {
+  This metascript showcases the revolutionary integration of:
+  
+  1. **Evolutionary Grammar Generation** - University teams autonomously evolving grammars
+  2. **3D Agent Visualization** - Real-time game theory agent coordination
+  3. **Fractal Metascript Generation** - Self-organizing recursive patterns
+  4. **Multi-Agent Coordination** - Advanced team formation strategies
+  5. **Real-Time Monitoring** - Live evolution progress tracking
+  6. **Web Interface Generation** - Dynamic UI creation
+  
+  The unified closure factory enables seamless integration of all these
+  capabilities through a single, coherent metascript interface. This represents
+  the culmination of TARS evolutionary architecture.
+}
+
+# ============================================================================
+# PHASE 1: SYSTEM INITIALIZATION
+# ============================================================================
+
+FSHARP {
+  // Initialize system parameters
+  let systemStartTime = System.DateTime.UtcNow
+  let evolutionGoal = "Develop advanced coordination patterns for multi-agent AI systems"
+  let maxGenerations = 10
+  let targetCoordination = 0.9
+  
+  printfn "🚀 TARS Unified Evolutionary System Starting..."
+  printfn "📅 Start Time: %s" (systemStartTime.ToString("yyyy-MM-dd HH:mm:ss"))
+  printfn "🎯 Evolution Goal: %s" evolutionGoal
+  printfn "🔢 Max Generations: %d" maxGenerations
+  printfn "📊 Target Coordination: %.1f%%" (targetCoordination * 100.0)
+}
+
+# Initialize university team integration
+CLOSURE_CREATE UNIVERSITY_TEAM_INTEGRATION "UniversitySetup" 
+  team_path=".tars/university" 
+  grammar_path=".tars/grammars" 
+  auto_evolution="true" 
+  evolution_interval="300"
+
+# ============================================================================
+# PHASE 2: EVOLUTIONARY GRAMMAR SYSTEM
+# ============================================================================
+
+# Create primary grammar evolution session
+CLOSURE_CREATE GRAMMAR_EVOLUTION "PrimaryEvolution" 
+  team_name="University Research Team" 
+  evolution_goal="Develop advanced DSL patterns for AI coordination and fractal grammar generation"
+
+# Create secondary evolution for specialized patterns
+CLOSURE_CREATE GRAMMAR_EVOLUTION "SpecializedEvolution" 
+  team_name="Specialized Grammar Team" 
+  evolution_goal="Optimize query languages and mathematical notation systems"
+
+# Generate fractal coordination metascripts
+CLOSURE_CREATE FRACTAL_METASCRIPT "FractalCoordination" 
+  depth=4 
+  pattern="team_coordination" 
+  recursion_limit=5
+
+CLOSURE_CREATE FRACTAL_METASCRIPT "FractalSpawning" 
+  depth=3 
+  pattern="dynamic_formation" 
+  optimization_target="coordination_efficiency"
+
+# ============================================================================
+# PHASE 3: 3D AGENT VISUALIZATION AND COORDINATION
+# ============================================================================
+
+# Spawn comprehensive 3D agent visualization
+CLOSURE_CREATE AGENT_3D_VISUALIZATION "ComprehensiveVisualization" 
+  agent_types="QRE,CH,NoRegret,EGT,CE,ML" 
+  count=12 
+  formation="fractal_hierarchy"
+
+# Create multi-layered coordination systems
+CLOSURE_CREATE MULTI_AGENT_COORDINATION "HierarchicalCoordination" 
+  strategy="Hierarchical" 
+  agent_count=5 
+  coordination_target=0.85
+
+CLOSURE_CREATE MULTI_AGENT_COORDINATION "SwarmCoordination" 
+  strategy="Swarm" 
+  agent_count=8 
+  emergence_threshold=0.8
+
+CLOSURE_CREATE MULTI_AGENT_COORDINATION "FractalCoordination" 
+  strategy="FractalSelfOrganizing" 
+  agent_count=10 
+  fractal_depth=3
+
+# ============================================================================
+# PHASE 4: MONITORING AND INTERFACE GENERATION
+# ============================================================================
+
+# Set up comprehensive evolution monitoring
+CLOSURE_CREATE EVOLUTION_MONITOR "ComprehensiveMonitor" 
+  session_ids="PrimaryEvolution,SpecializedEvolution" 
+  update_interval=2000 
+  metrics="all"
+
+# Generate advanced web interface
+CLOSURE_CREATE WEB_INTERFACE "AdvancedEvolutionInterface" 
+  features="3d_visualization,evolution_monitor,team_management,grammar_browser,metascript_executor,fractal_generator,coordination_dashboard"
+
+# ============================================================================
+# PHASE 5: ADVANCED CLOSURE COMPOSITIONS
+# ============================================================================
+
+# Create REST API endpoints for evolution system
+CLOSURE_CREATE REST_ENDPOINT "EvolutionAPI" 
+  endpoints="evolution_status,team_management,grammar_export,3d_scene_data" 
+  authentication="bearer_token" 
+  rate_limit=100
+
+# Create GraphQL server for complex queries
+CLOSURE_CREATE GRAPHQL_SERVER "EvolutionGraphQL" 
+  schema="evolution_schema.graphql" 
+  resolvers="evolution_resolvers" 
+  subscriptions="real_time_updates"
+
+# Create ML pipeline for grammar optimization
+CLOSURE_CREATE ML_PIPELINE "GrammarOptimization" 
+  model_type="neural_architecture_search" 
+  optimization_target="grammar_efficiency" 
+  training_data="evolved_grammars"
+
+# ============================================================================
+# PHASE 6: EXECUTION AND MONITORING LOOP
+# ============================================================================
+
+FSHARP {
+  // Main execution loop
+  let mutable currentGeneration = 0
+  let mutable systemRunning = true
+  let mutable coordinationLevel = 0.0
+  
+  printfn "🔄 Starting main execution loop..."
+}
+
+WHILE currentGeneration < maxGenerations AND systemRunning DO
+  FSHARP {
+    currentGeneration <- currentGeneration + 1
+    printfn "🧬 Generation %d starting..." currentGeneration
+  }
+  
+  # Execute evolution generation
+  EXECUTE_CLOSURE "PrimaryEvolution" mode="async"
+  EXECUTE_CLOSURE "SpecializedEvolution" mode="async"
+  
+  # Update 3D visualization
+  UPDATE_CLOSURE "ComprehensiveVisualization" 
+    performance_data="latest" 
+    coordination_metrics="current"
+  
+  # Execute fractal coordination
+  EXECUTE_CLOSURE "FractalCoordination" 
+    generation=currentGeneration 
+    adaptation_rate=0.1
+  
+  # Monitor coordination levels
+  FSHARP {
+    // Get coordination metrics from monitoring closure
+    let monitorResult = getClosureResult "ComprehensiveMonitor"
+    coordinationLevel <- extractCoordinationLevel monitorResult
+    
+    printfn "📊 Current coordination level: %.2f%%" (coordinationLevel * 100.0)
+    
+    if coordinationLevel >= targetCoordination then
+        printfn "🎉 Target coordination achieved!"
+        systemRunning <- false
+  }
+  
+  # Adaptive strategy adjustment
+  IF coordinationLevel < 0.7 THEN
+    EXECUTE_CLOSURE "SwarmCoordination" mode="boost"
+    ADJUST_EVOLUTION_PARAMETERS "PrimaryEvolution" mutation_rate=0.15
+  ELIF coordinationLevel > 0.95 THEN
+    EXECUTE_CLOSURE "FractalCoordination" mode="optimize"
+    ADJUST_EVOLUTION_PARAMETERS "PrimaryEvolution" selection_pressure=0.9
+  END
+  
+  # Wait for generation completion
+  WAIT 5000ms
+  
+  FSHARP {
+    printfn "✅ Generation %d completed" currentGeneration
+  }
+END
+
+# ============================================================================
+# PHASE 7: RESULTS ANALYSIS AND EXPORT
+# ============================================================================
+
+FSHARP {
+  let finalTime = System.DateTime.UtcNow
+  let totalDuration = finalTime - systemStartTime
+  
+  printfn "🏁 Evolution completed!"
+  printfn "⏱️ Total duration: %s" (totalDuration.ToString(@"hh\:mm\:ss"))
+  printfn "🧬 Generations completed: %d" currentGeneration
+  printfn "📊 Final coordination: %.2f%%" (coordinationLevel * 100.0)
+}
+
+# Export comprehensive results
+EXPORT_CLOSURE_RESULTS "PrimaryEvolution" "output/primary_evolution_results.json"
+EXPORT_CLOSURE_RESULTS "SpecializedEvolution" "output/specialized_evolution_results.json"
+EXPORT_CLOSURE_RESULTS "ComprehensiveVisualization" "output/3d_visualization_state.json"
+
+# Export evolved grammars
+EXPORT_EVOLVED_GRAMMARS "PrimaryEvolution" "output/evolved_grammars/primary/"
+EXPORT_EVOLVED_GRAMMARS "SpecializedEvolution" "output/evolved_grammars/specialized/"
+
+# Export 3D scene data
+EXPORT_3D_SCENE "ComprehensiveVisualization" "output/3d_scenes/final_coordination_state.json"
+
+# Generate comprehensive report
+GENERATE_EVOLUTION_REPORT 
+  sessions="PrimaryEvolution,SpecializedEvolution" 
+  output="output/comprehensive_evolution_report.md" 
+  include_metrics="true" 
+  include_artifacts="true"
+
+# ============================================================================
+# PHASE 8: SYSTEM CLEANUP AND FUTURE RECOMMENDATIONS
+# ============================================================================
+
+FSHARP {
+  // Analyze results and provide recommendations
+  let primaryResults = getClosureResult "PrimaryEvolution"
+  let specializedResults = getClosureResult "SpecializedEvolution"
+  let visualizationResults = getClosureResult "ComprehensiveVisualization"
+  
+  printfn "📈 SYSTEM ANALYSIS:"
+  printfn "  Primary Evolution Success: %b" primaryResults.Success
+  printfn "  Specialized Evolution Success: %b" specializedResults.Success
+  printfn "  3D Visualization Success: %b" visualizationResults.Success
+  
+  let totalArtifacts = [primaryResults; specializedResults; visualizationResults]
+                      |> List.collect (fun result -> result.Artifacts)
+                      |> List.length
+  
+  printfn "📁 Total artifacts generated: %d" totalArtifacts
+  
+  // Future recommendations
+  printfn "🔮 FUTURE RECOMMENDATIONS:"
+  if coordinationLevel >= targetCoordination then
+      printfn "  ✅ Consider increasing complexity for next evolution cycle"
+      printfn "  ✅ Explore cross-team grammar synthesis"
+      printfn "  ✅ Implement real-world deployment testing"
+  else
+      printfn "  ⚠️ Extend evolution duration for better convergence"
+      printfn "  ⚠️ Adjust team composition for improved coordination"
+      printfn "  ⚠️ Consider hybrid coordination strategies"
+  
+  printfn "🎯 NEXT STEPS:"
+  printfn "  1. Review evolved grammars in output/evolved_grammars/"
+  printfn "  2. Analyze 3D coordination patterns in output/3d_scenes/"
+  printfn "  3. Study comprehensive report for optimization opportunities"
+  printfn "  4. Plan next evolution cycle with improved parameters"
+}
+
+# Cleanup active closures
+CLEANUP_CLOSURE "PrimaryEvolution"
+CLEANUP_CLOSURE "SpecializedEvolution"
+CLEANUP_CLOSURE "ComprehensiveVisualization"
+CLEANUP_CLOSURE "ComprehensiveMonitor"
+
+FSHARP {
+  printfn "🧹 System cleanup completed"
+  printfn "🎉 TARS Unified Evolutionary Closure Demo finished successfully!"
+  printfn "📊 Check output/ directory for all generated artifacts"
+}

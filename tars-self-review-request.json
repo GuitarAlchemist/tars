@@ -1,0 +1,3 @@
+{
+  "message": "Please perform a comprehensive code review of the TARS Advanced AI system. Analyze the F# code architecture, focusing on the advanced reasoning types (ChainOfThought, TreeOfThought), memory systems (EpisodicMemory, SemanticMemory, ProceduralMemory), and multi-agent coordination. Evaluate the code quality, performance implications, and suggest improvements. This is TARS reviewing its own code - be thorough and critical!"
+}

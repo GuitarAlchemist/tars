@@ -1,0 +1,13 @@
+{
+  "prompt": "Create a complete AI-powered code review assistant web application with real-time collaboration features, including React frontend, Node.js backend, WebSocket support, AI integration, video chat, and comprehensive documentation",
+  "language": "javascript",
+  "projectType": "fullstack",
+  "features": [
+    "Real-time code editing",
+    "AI-powered code analysis",
+    "Video/voice collaboration",
+    "Git integration",
+    "Code quality metrics",
+    "Multi-user support"
+  ]
+}

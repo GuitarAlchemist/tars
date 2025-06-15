@@ -1,4 +1,4 @@
-Here is the complete README.md file with working content:
+﻿Here is the comprehensive README.md file with working content:
 
 **README.md**
 
@@ -74,7 +74,7 @@ Create a new directory for your project and add the following subdirectories:
 **Code:**
 ------
 
-Here is the complete code for this project:
+Here is the comprehensive code for this project:
 
 ```javascript
 // wallet.js

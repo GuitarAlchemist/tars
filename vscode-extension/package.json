@@ -1,0 +1,261 @@
+{
+  "name": "tars-ai-extension",
+  "displayName": "TARS AI - Revolutionary AI Development Assistant",
+  "description": "The world's first self-improving multi-modal AI directly in VS Code",
+  "version": "1.0.0",
+  "publisher": "tars-ai",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Machine Learning",
+    "Programming Languages",
+    "Snippets",
+    "Other"
+  ],
+  "keywords": [
+    "ai",
+    "artificial intelligence",
+    "code generation",
+    "self-improving",
+    "multi-modal",
+    "gpu acceleration",
+    "cuda",
+    "reasoning",
+    "agents"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "tars.generateCode",
+        "title": "🚀 Generate Code with TARS AI",
+        "category": "TARS"
+      },
+      {
+        "command": "tars.optimizeCode",
+        "title": "⚡ Optimize Code with GPU Acceleration",
+        "category": "TARS"
+      },
+      {
+        "command": "tars.explainCode",
+        "title": "🧠 Explain Code with Advanced Reasoning",
+        "category": "TARS"
+      },
+      {
+        "command": "tars.debugCode",
+        "title": "🔧 Debug Code with AI Agents",
+        "category": "TARS"
+      },
+      {
+        "command": "tars.refactorCode",
+        "title": "🔄 Refactor Code with Multi-Modal AI",
+        "category": "TARS"
+      },
+      {
+        "command": "tars.voiceProgramming",
+        "title": "🎤 Voice Programming with TARS",
+        "category": "TARS"
+      },
+      {
+        "command": "tars.visualCodeAnalysis",
+        "title": "👁️ Visual Code Analysis",
+        "category": "TARS"
+      },
+      {
+        "command": "tars.selfImprove",
+        "title": "🧬 Self-Improve TARS AI",
+        "category": "TARS"
+      },
+      {
+        "command": "tars.showStatus",
+        "title": "📊 Show TARS AI Status",
+        "category": "TARS"
+      },
+      {
+        "command": "tars.openChat",
+        "title": "💬 Open TARS AI Chat",
+        "category": "TARS"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "tars.generateCode",
+          "group": "tars@1"
+        },
+        {
+          "command": "tars.optimizeCode",
+          "group": "tars@2"
+        },
+        {
+          "command": "tars.explainCode",
+          "group": "tars@3"
+        },
+        {
+          "command": "tars.debugCode",
+          "group": "tars@4"
+        },
+        {
+          "command": "tars.refactorCode",
+          "group": "tars@5"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "tars.generateCode"
+        },
+        {
+          "command": "tars.optimizeCode"
+        },
+        {
+          "command": "tars.explainCode"
+        },
+        {
+          "command": "tars.debugCode"
+        },
+        {
+          "command": "tars.refactorCode"
+        },
+        {
+          "command": "tars.voiceProgramming"
+        },
+        {
+          "command": "tars.visualCodeAnalysis"
+        },
+        {
+          "command": "tars.selfImprove"
+        },
+        {
+          "command": "tars.showStatus"
+        },
+        {
+          "command": "tars.openChat"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "tars.generateCode",
+        "key": "ctrl+shift+g",
+        "mac": "cmd+shift+g"
+      },
+      {
+        "command": "tars.optimizeCode",
+        "key": "ctrl+shift+o",
+        "mac": "cmd+shift+o"
+      },
+      {
+        "command": "tars.explainCode",
+        "key": "ctrl+shift+e",
+        "mac": "cmd+shift+e"
+      },
+      {
+        "command": "tars.debugCode",
+        "key": "ctrl+shift+d",
+        "mac": "cmd+shift+d"
+      },
+      {
+        "command": "tars.openChat",
+        "key": "ctrl+shift+t",
+        "mac": "cmd+shift+t"
+      }
+    ],
+    "views": {
+      "explorer": [
+        {
+          "id": "tarsAiView",
+          "name": "🚀 TARS AI Assistant",
+          "when": "true"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "tars-ai",
+          "title": "TARS AI",
+          "icon": "$(robot)"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "TARS AI Configuration",
+      "properties": {
+        "tars.serverUrl": {
+          "type": "string",
+          "default": "http://localhost:7777",
+          "description": "TARS AI server URL"
+        },
+        "tars.enableGpuAcceleration": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable GPU acceleration for AI operations"
+        },
+        "tars.enableVoiceProgramming": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable voice programming capabilities"
+        },
+        "tars.enableSelfImprovement": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable AI self-improvement features"
+        },
+        "tars.maxTokens": {
+          "type": "number",
+          "default": 2000,
+          "description": "Maximum tokens for AI responses"
+        },
+        "tars.temperature": {
+          "type": "number",
+          "default": 0.7,
+          "minimum": 0.0,
+          "maximum": 2.0,
+          "description": "AI creativity temperature (0.0 = deterministic, 2.0 = very creative)"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.74.0",
+    "@types/node": "16.x",
+    "@typescript-eslint/eslint-plugin": "^5.45.0",
+    "@typescript-eslint/parser": "^5.45.0",
+    "eslint": "^8.28.0",
+    "typescript": "^4.9.4",
+    "@vscode/test-electron": "^2.2.0",
+    "vsce": "^2.15.0"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "ws": "^8.14.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GuitarAlchemist/tars.git"
+  },
+  "bugs": {
+    "url": "https://github.com/GuitarAlchemist/tars/issues"
+  },
+  "homepage": "https://github.com/GuitarAlchemist/tars#readme",
+  "license": "MIT",
+  "icon": "images/tars-icon.png",
+  "galleryBanner": {
+    "color": "#1e1e1e",
+    "theme": "dark"
+  }
+}

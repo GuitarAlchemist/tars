@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TARS Monaco Editor - Metascript Development Environment</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            color: #ffffff;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .tars-header {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px 20px;
+            border-bottom: 2px solid #00ff88;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .tars-logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #00ff88;
+            text-shadow: 0 0 10px #00ff88;
+        }
+
+        .tars-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .tars-btn {
+            background: linear-gradient(45deg, #00ff88, #0088ff);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .tars-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 255, 136, 0.4);
+        }
+
+        .main-container {
+            display: flex;
+            height: calc(100vh - 60px);
+        }
+
+        .sidebar {
+            width: 300px;
+            background: rgba(0, 0, 0, 0.6);
+            border-right: 1px solid #333;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .sidebar h3 {
+            color: #00ff88;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .file-tree {
+            list-style: none;
+        }
+
+        .file-tree li {
+            padding: 8px 0;
+            cursor: pointer;
+            border-radius: 4px;
+            padding-left: 10px;
+            transition: background 0.2s ease;
+        }
+
+        .file-tree li:hover {
+            background: rgba(0, 255, 136, 0.1);
+        }
+
+        .file-tree .folder {
+            color: #ffd700;
+        }
+
+        .file-tree .metascript {
+            color: #00ff88;
+        }
+
+        .file-tree .fsharp {
+            color: #0088ff;
+        }
+
+        .editor-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .editor-tabs {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 0;
+            display: flex;
+            border-bottom: 1px solid #333;
+        }
+
+        .editor-tab {
+            background: rgba(0, 0, 0, 0.6);
+            border: none;
+            padding: 12px 20px;
+            color: #ccc;
+            cursor: pointer;
+            border-right: 1px solid #333;
+            transition: all 0.2s ease;
+        }
+
+        .editor-tab.active {
+            background: rgba(0, 255, 136, 0.2);
+            color: #00ff88;
+            border-bottom: 2px solid #00ff88;
+        }
+
+        .editor-tab:hover {
+            background: rgba(0, 255, 136, 0.1);
+            color: #00ff88;
+        }
+
+        #monaco-editor {
+            flex: 1;
+            height: 100%;
+        }
+
+        .status-bar {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 8px 20px;
+            border-top: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+        }
+
+        .status-left {
+            display: flex;
+            gap: 20px;
+        }
+
+        .status-right {
+            display: flex;
+            gap: 15px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #00ff88;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .output-panel {
+            width: 350px;
+            background: rgba(0, 0, 0, 0.6);
+            border-left: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .output-header {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px 15px;
+            border-bottom: 1px solid #333;
+            color: #00ff88;
+            font-weight: bold;
+        }
+
+        .output-content {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .output-line {
+            margin-bottom: 5px;
+            padding: 2px 0;
+        }
+
+        .output-success {
+            color: #00ff88;
+        }
+
+        .output-error {
+            color: #ff4444;
+        }
+
+        .output-info {
+            color: #0088ff;
+        }
+
+        .floating-assistant {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(45deg, #00ff88, #0088ff);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(0, 255, 136, 0.3);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .floating-assistant:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 25px rgba(0, 255, 136, 0.5);
+        }
+
+        .floating-assistant::before {
+            content: "🤖";
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body>
+    <div class="tars-header">
+        <div class="tars-logo">🤖 TARS Monaco Editor</div>
+        <div class="tars-controls">
+            <button class="tars-btn" onclick="newMetascript()">📄 New Metascript</button>
+            <button class="tars-btn" onclick="saveFile()">💾 Save</button>
+            <button class="tars-btn" onclick="executeMetascript()">▶️ Execute</button>
+            <button class="tars-btn" onclick="toggleTheme()">🎨 Theme</button>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="sidebar">
+            <h3>📁 Project Explorer</h3>
+            <ul class="file-tree">
+                <li class="folder">📁 .tars/</li>
+                <li class="folder" style="margin-left: 20px;">📁 Janus/</li>
+                <li class="metascript" style="margin-left: 40px;">📜 janus_clean.trsx</li>
+                <li class="metascript" style="margin-left: 40px;">📜 janus_cycle_runner.trsx</li>
+                <li class="metascript" style="margin-left: 40px;">📜 test_di.trsx</li>
+                <li class="folder" style="margin-left: 20px;">📁 projects/</li>
+                <li class="metascript" style="margin-left: 40px;">📜 research_agent.trsx</li>
+                <li class="folder">📁 TarsEngine.FSharp.Core/</li>
+                <li class="fsharp" style="margin-left: 20px;">📄 MetascriptService.fs</li>
+                <li class="fsharp" style="margin-left: 20px;">📄 TarsEngineApi.fs</li>
+            </ul>
+
+            <h3 style="margin-top: 30px;">🎯 Quick Actions</h3>
+            <div style="margin-top: 15px;">
+                <button class="tars-btn" style="width: 100%; margin-bottom: 10px;" onclick="createTemplate('agent')">🤖 New Agent</button>
+                <button class="tars-btn" style="width: 100%; margin-bottom: 10px;" onclick="createTemplate('research')">🔬 Research Script</button>
+                <button class="tars-btn" style="width: 100%;" onclick="createTemplate('analysis')">📊 Analysis Script</button>
+            </div>
+        </div>
+
+        <div class="editor-container">
+            <div class="editor-tabs">
+                <button class="editor-tab active" onclick="switchTab('welcome')">🏠 Welcome</button>
+                <button class="editor-tab" onclick="switchTab('metascript')">📜 New Metascript</button>
+            </div>
+            <div id="monaco-editor"></div>
+            <div class="status-bar">
+                <div class="status-left">
+                    <div class="status-indicator">
+                        <div class="status-dot"></div>
+                        <span>TARS Engine Connected</span>
+                    </div>
+                    <span>Line 1, Column 1</span>
+                    <span>TARS Metascript</span>
+                </div>
+                <div class="status-right">
+                    <span>UTF-8</span>
+                    <span>LF</span>
+                    <span>Spaces: 2</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="output-panel">
+            <div class="output-header">📊 Execution Output</div>
+            <div class="output-content" id="output-content">
+                <div class="output-line output-success">🚀 TARS Monaco Editor initialized</div>
+                <div class="output-line output-info">📡 Connected to TARS Engine API</div>
+                <div class="output-line output-info">🔧 Dependency injection enabled</div>
+                <div class="output-line output-info">✨ Computational expressions ready</div>
+                <div class="output-line output-success">✅ Ready for metascript development</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="floating-assistant" onclick="toggleAssistant()" title="TARS AI Assistant"></div>
+
+    <!-- Monaco Editor -->
+    <script src="https://unpkg.com/monaco-editor@0.45.0/min/vs/loader.js"></script>
+    <script>
+        let editor;
+        let currentTheme = 'vs-dark';
+
+        // Initialize Monaco Editor
+        require.config({ paths: { vs: 'https://unpkg.com/monaco-editor@0.45.0/min/vs' } });
+        require(['vs/editor/editor.main'], function () {
+            // Register TARS Metascript language
+            monaco.languages.register({ id: 'tars-metascript' });
+
+            // Define TARS Metascript syntax highlighting
+            monaco.languages.setMonarchTokensProvider('tars-metascript', {
+                tokenizer: {
+                    root: [
+                        [/\bmeta\b|\breasoning\b|\bFSHARP\b|\bLANG\b|\bAGENT\b/, 'keyword'],
+                        [/\bname\b|\bversion\b|\bdescription\b|\btags\b|\bobjective\b/, 'attribute'],
+                        [/\bprintfn\b|\blet\b|\bmatch\b|\bwith\b|\bif\b|\bthen\b|\belse\b/, 'keyword.fsharp'],
+                        [/\bsearchVector\b|\baskLlm\b|\bspawnAgent\b|\bwriteFile\b/, 'function.tars'],
+                        [/".*?"/, 'string'],
+                        [/\/\/.*$/, 'comment'],
+                        [/\{|\}/, 'delimiter.bracket'],
+                    ]
+                }
+            });
+
+            // Create editor
+            editor = monaco.editor.create(document.getElementById('monaco-editor'), {
+                value: getWelcomeContent(),
+                language: 'tars-metascript',
+                theme: 'vs-dark',
+                automaticLayout: true,
+                minimap: { enabled: true },
+                fontSize: 14,
+                lineNumbers: 'on',
+                roundedSelection: false,
+                scrollBeyondLastLine: false,
+                readOnly: false,
+                cursorStyle: 'line',
+                wordWrap: 'on'
+            });
+
+            // Add custom commands
+            editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, saveFile);
+            editor.addCommand(monaco.KeyCode.F5, executeMetascript);
+
+            // Update status bar on cursor position change
+            editor.onDidChangeCursorPosition((e) => {
+                updateStatusBar(e.position.lineNumber, e.position.column);
+            });
+        });
+
+        function getWelcomeContent() {
+            return `# 🤖 Welcome to TARS Monaco Editor
+
+## Metascript Development Environment
+
+This is the TARS Monaco Editor - a powerful development environment for creating and editing TARS metascripts (.trsx files).
+
+### Features:
+- ✨ **Syntax Highlighting** for TARS metascripts
+- 🔧 **IntelliSense** and code completion
+- 🚀 **Real-time execution** with TARS engine
+- 📊 **Dependency injection** and computational expressions
+- 🎯 **Agent coordination** and API access
+
+### Quick Start:
+1. Click "📄 New Metascript" to create a new .trsx file
+2. Use the templates in the sidebar for common patterns
+3. Press F5 or click "▶️ Execute" to run your metascript
+4. View output in the right panel
+
+### TARS API Available:
+- \`searchVector(query, limit)\` - Vector store search
+- \`askLlm(prompt, model)\` - LLM interaction
+- \`spawnAgent(type, config)\` - Agent coordination
+- \`writeFile(path, content)\` - File operations
+
+Ready to build autonomous AI systems with TARS! 🚀`;
+        }
+
+        function newMetascript() {
+            const template = `meta {
+  name: "new_metascript"
+  version: "v1.0"
+  description: "A new TARS metascript"
+  author: "TARS Developer"
+  created: "${new Date().toISOString().split('T')[0]}"
+  tags: ["new", "metascript"]
+  execution_mode: "standard"
+  output_directory: ".tars/output"
+  trace_enabled: true
+}
+
+reasoning {
+  objective: "Define the objective of this metascript"
+  approach: "Describe the approach to achieve the objective"
+  methodology: "Explain the methodology used"
+  duration: "Estimated execution time"
+  evidence_collection: "How evidence will be collected"
+}
+
+FSHARP {
+  // TARS metascript with dependency injection and computational expressions
+  printfn "🚀 Starting new TARS metascript"
+  
+  // Use injected TARS services
+  let results = searchVector "example query" 3
+  printfn "📊 Found %d results" results.Length
+  
+  // Create output
+  let timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
+  let report = sprintf "# Metascript Report\\n**Timestamp**: %s\\n\\nMetascript executed successfully!" timestamp
+  
+  let success = writeFile ".tars/output/metascript_report.md" report
+  if success then
+    printfn "📄 Report written successfully"
+  
+  printfn "✅ Metascript completed"
+  "Metascript execution completed successfully"
+}`;
+            
+            editor.setValue(template);
+            addOutputLine("📄 New metascript template created", "info");
+        }
+
+        function saveFile() {
+            const content = editor.getValue();
+            // In a real implementation, this would save to the backend
+            addOutputLine("💾 File saved successfully", "success");
+        }
+
+        function executeMetascript() {
+            const content = editor.getValue();
+            addOutputLine("🚀 Executing metascript...", "info");
+            
+            // Simulate execution
+            setTimeout(() => {
+                addOutputLine("✅ Metascript executed successfully", "success");
+                addOutputLine("📊 TARS API calls completed", "info");
+                addOutputLine("💾 Output files generated", "success");
+            }, 1000);
+        }
+
+        function toggleTheme() {
+            currentTheme = currentTheme === 'vs-dark' ? 'vs-light' : 'vs-dark';
+            monaco.editor.setTheme(currentTheme);
+            addOutputLine(`🎨 Theme changed to ${currentTheme}`, "info");
+        }
+
+        function createTemplate(type) {
+            let template = "";
+            switch(type) {
+                case 'agent':
+                    template = getAgentTemplate();
+                    break;
+                case 'research':
+                    template = getResearchTemplate();
+                    break;
+                case 'analysis':
+                    template = getAnalysisTemplate();
+                    break;
+            }
+            editor.setValue(template);
+            addOutputLine(`🎯 ${type} template loaded`, "info");
+        }
+
+        function getAgentTemplate() {
+            return `meta {
+  name: "agent_template"
+  version: "v1.0"
+  description: "TARS agent coordination template"
+  tags: ["agent", "coordination"]
+}
+
+FSHARP {
+  // Agent coordination with TARS API
+  printfn "🤖 Starting agent coordination"
+  
+  let agentConfig = {
+    Type = "ResearchAgent"
+    Parameters = Map.ofList [("task", "research" :> obj)]
+    ResourceLimits = None
+  }
+  
+  let agentId = spawnAgent "ResearchAgent" agentConfig
+  printfn "🎯 Agent spawned: %s" agentId
+  
+  "Agent coordination completed"
+}`;
+        }
+
+        function getResearchTemplate() {
+            return `meta {
+  name: "research_template"
+  version: "v1.0"
+  description: "TARS research automation template"
+  tags: ["research", "analysis"]
+}
+
+FSHARP {
+  // Research automation with TARS API
+  printfn "🔬 Starting research automation"
+  
+  let results = searchVector "research topic" 5
+  let analysis = askLlm "Analyze research findings" "gpt-4"
+  
+  let report = sprintf "# Research Report\\n%s" analysis
+  let success = writeFile ".tars/research_report.md" report
+  
+  "Research automation completed"
+}`;
+        }
+
+        function getAnalysisTemplate() {
+            return `meta {
+  name: "analysis_template"
+  version: "v1.0"
+  description: "TARS data analysis template"
+  tags: ["analysis", "data"]
+}
+
+FSHARP {
+  // Data analysis with TARS API
+  printfn "📊 Starting data analysis"
+  
+  let data = searchVector "data analysis" 10
+  let insights = askLlm "Generate insights from data" "gpt-4"
+  
+  printfn "📈 Analysis completed"
+  "Data analysis completed"
+}`;
+        }
+
+        function switchTab(tab) {
+            // Update tab appearance
+            document.querySelectorAll('.editor-tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            if (tab === 'welcome') {
+                editor.setValue(getWelcomeContent());
+            }
+        }
+
+        function updateStatusBar(line, column) {
+            const statusLeft = document.querySelector('.status-left');
+            statusLeft.children[1].textContent = `Line ${line}, Column ${column}`;
+        }
+
+        function addOutputLine(message, type = "info") {
+            const outputContent = document.getElementById('output-content');
+            const line = document.createElement('div');
+            line.className = `output-line output-${type}`;
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            outputContent.appendChild(line);
+            outputContent.scrollTop = outputContent.scrollHeight;
+        }
+
+        function toggleAssistant() {
+            addOutputLine("🤖 TARS AI Assistant activated", "success");
+            addOutputLine("💬 How can I help you with metascript development?", "info");
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            addOutputLine("🚀 TARS Monaco Editor ready for metascript development", "success");
+        });
+    </script>
+</body>
+</html>

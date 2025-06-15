@@ -1,0 +1,15 @@
+TARS DSL REASONING EXECUTION REPORT
+====================================
+
+DSL Code:
+neural { rnn { memory=256 } }
+
+Execution Results:
+map
+  [("blocks_executed", 1);
+   ("results",
+    map
+      [("block_0", map [("memory", 256); ("model", "rnn"); ("type", "neural")])]);
+   ("success", true)]
+
+Generated: 2025-06-12 15:03:05 UTC

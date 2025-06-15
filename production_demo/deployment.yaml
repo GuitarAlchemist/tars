@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tars-engine-deployment
+  namespace: tars-system
+  labels:
+    app: tars-engine
+    version: v1.0.0
+    environment: Staging (4, 2)
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: tars-engine
+  template:
+    metadata:
+      labels:
+        app: tars-engine
+        version: v1.0.0
+    spec:
+      containers:
+      - name: tars-engine
+        image: tars-engine:v1.0.0
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 8081
+          name: metrics
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+            nvidia.com/gpu: 1
+          limits:
+            cpu: 2000m
+            memory: 4Gi
+            nvidia.com/gpu: 1
+        env:
+        - name: ENVIRONMENT
+          value: "Staging (4, 2)"
+        - name: DEPLOYMENT_ID
+          value: "b103d3d7"
+        - name: CUDA_VISIBLE_DEVICES
+          value: "all"
+        - name: NVIDIA_VISIBLE_DEVICES
+          value: "all"
+        - name: NVIDIA_DRIVER_CAPABILITIES
+          value: "compute,utility"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        volumeMounts:
+        - name: tars-config
+          mountPath: /app/config
+        - name: tars-data
+          mountPath: /app/data
+      volumes:
+      - name: tars-config
+        configMap:
+          name: tars-config
+      - name: tars-data
+        persistentVolumeClaim:
+          claimName: tars-data-pvc
+      nodeSelector:
+        accelerator: nvidia-tesla-v100
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule

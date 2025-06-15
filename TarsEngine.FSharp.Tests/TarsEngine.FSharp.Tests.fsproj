@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <GenerateProgramFile>false</GenerateProgramFile>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="coverlet.collector" Version="6.0.2">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="FsUnit.xUnit" Version="6.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Test Files -->
+    <Compile Include="TestHelpers.fs" />
+    <Compile Include="RevolutionaryEngineTests.fs" />
+    <Compile Include="UnifiedIntegrationTests.fs" />
+    <Compile Include="EnhancedIntegrationTests.fs" />
+    <Compile Include="CustomTransformersTests.fs" />
+    <Compile Include="PerformanceTests.fs" />
+    <Compile Include="ValidationTests.fs" />
+    <Compile Include="EndToEndTests.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TarsEngine.FSharp.Core\TarsEngine.FSharp.Core.fsproj" />
+    <ProjectReference Include="..\TarsEngine.CustomTransformers\TarsEngine.CustomTransformers.fsproj" />
+    <ProjectReference Include="..\Tars.Engine.Grammar\Tars.Engine.Grammar.fsproj" />
+    <ProjectReference Include="..\Tars.Engine.VectorStore\Tars.Engine.VectorStore.fsproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,47 @@
+#!/usr/bin/env trsx
+# Unified TRSX Format - Migrated from FLUX
+# Generated: 2025-06-09T22:10:55Z
+
+# METADATA
+title: "Migrated tot_fix_applicator"
+version: "2.0"
+tier: 1
+
+program {
+    DESCRIBE {
+        id: "DESCRIBE_1"
+        purpose: "Migrated DESCRIBE block"
+    }
+    FSHARP {
+        id: "FSHARP_2"
+        purpose: "Migrated FSHARP block"
+    }
+    FUNCTION apply_fix_tot {
+        id: "FUNCTION apply_fix_tot_3"
+        purpose: "Migrated FUNCTION apply_fix_tot block"
+    }
+    FUNCTION apply_fix_to_file {
+        id: "FUNCTION apply_fix_to_file_4"
+        purpose: "Migrated FUNCTION apply_fix_to_file block"
+    }
+    FOREACH {
+        id: "FOREACH_5"
+        purpose: "Migrated FOREACH block"
+    }
+    FSHARP {
+        id: "FSHARP_6"
+        purpose: "Migrated FSHARP block"
+    }
+    RETURN {
+        id: "RETURN_7"
+        purpose: "Migrated RETURN block"
+    }
+}
+
+reflection {
+    average_entropy: 0.650
+    overall_similarity: 0.750
+    insight: "Successfully migrated from legacy FLUX format"
+    insight: "Unified format reduces file management complexity"
+    insight: "Integrated reflection enables better agent reasoning"
+}

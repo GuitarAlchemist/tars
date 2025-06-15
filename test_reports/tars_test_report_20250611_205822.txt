@@ -1,0 +1,78 @@
+🎯 TARS COMPREHENSIVE TEST REPORT
+=================================
+
+📊 OVERALL RESULTS:
+   Total Tests: 22
+   Passed: 20 (90.9%)
+   Failed: 2 (9.1%)
+   Execution Time: 0.13 seconds
+   Code Coverage: 20.0%
+
+⚡ PERFORMANCE BENCHMARKS:
+   AverageOperationTime: 12.50 ms
+   ComplexityGrowth: 3.00 ms
+   CosFunction: 0.00 ms
+   CreateMathFuncClosure: 0.00 ms
+   CreateSedenionOpClosure: 0.00 ms
+   CreateVectorOpClosure: 0.00 ms
+   CudaCompilationErrorHandling: 0.00 ms
+   CudaGenerationTime: 0.25 ms
+   CudaTranspilation: 0.00 ms
+   CudafyExpressionTime: 0.22 ms
+   DependencyValidationTime: 2.71 ms
+   ErrorHandlingTime: 0.00 ms
+   ExpressionComposition: 0.12 ms
+   ExpressionGenerationTime: 0.94 ms
+   GrammarProcessing: 0.00 ms
+   InvalidFSharpCodeHandling: 0.00 ms
+   InvalidGrammarTierHandling: 0.01 ms
+   MathFunc_cos_Time: 0.00 ms
+   MathFunc_exp_Time: 0.00 ms
+   MathFunc_log_Time: 0.00 ms
+   MathFunc_sin_Time: 0.00 ms
+   MathFunc_sqrt_Time: 0.02 ms
+   MemoryAllocationErrorHandling: 0.00 ms
+   MetricsCalculationTime: 0.50 ms
+   MissingDependencyHandling: 0.00 ms
+   MonitoringOverhead: 51.01 ms
+   SedenionAddition: 0.03 ms
+   SedenionTranspilationTime: 0.00 ms
+   SinFunction: 0.01 ms
+   SqrtFunction: 0.00 ms
+   Tier1Validation: 0.24 ms
+   Tier1ValidationTime: 4.99 ms
+   Tier2Validation: 0.44 ms
+   Tier3Validation: 0.24 ms
+   Tier4Validation: 0.20 ms
+   Tier5Validation: 0.24 ms
+   TotalExpressions: 3.00 ms
+   TotalIntegration: 1.37 ms
+   TotalKernels: 4.00 ms
+   TotalOperations: 4.00 ms
+   TranspilationTime: 0.06 ms
+   VectorAddition: 0.07 ms
+   VectorMultiplication: 0.00 ms
+   VectorOp_*_Time: 0.01 ms
+   VectorOp_+_Time: 0.09 ms
+   VectorOp_-_Time: 0.00 ms
+   VectorOp_/_Time: 0.00 ms
+   bspExpression: 0.00 ms
+   cmbExpression: 0.00 ms
+   cudaExpression: 0.00 ms
+   cudafyExpression: 0.00 ms
+   geometricExpression: 0.00 ms
+   gpuParallelExpression: 0.00 ms
+   janusExpression: 0.00 ms
+   sedenionExpression: 0.03 ms
+   spacetimeExpression: 0.00 ms
+   vectorExpression: 0.00 ms
+
+❌ ERROR SUMMARY:
+   • All tiers should integrate correctly - Condition was false
+   • Memory usage should be tracked - Condition was false
+
+📋 DETAILED RESULTS BY CATEGORY:
+   CudaTranspilation: 6/6 passed (100.0%)
+   GrammarTier: 5/5 passed (100.0%)
+   Tier5Cudafy: 6/6 passed (100.0%)
+   Integration: 3/5 passed (60.0%)

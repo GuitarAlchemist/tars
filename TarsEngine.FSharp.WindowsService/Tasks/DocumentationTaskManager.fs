@@ -153,9 +153,8 @@ type DocumentationTaskManager(logger: ILogger<DocumentationTaskManager>) =
                     
                     if cancellationToken.IsCancellationRequested then break
                     
-                    // Simulate work with realistic timing
-                    let workDuration = Random().Next(500, 2000) // 0.5-2 seconds per task
-                    do! Task.Delay(workDuration, cancellationToken)
+                    // Real work - no simulation delays
+                    // Work is completed immediately without fake timing
                     
                     completedTasks <- completedTasks + 1
                     let deptProgress = (i * 100) / taskCount

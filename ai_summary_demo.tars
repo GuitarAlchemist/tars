@@ -1,0 +1,24 @@
+DESCRIBE {
+    name: "AI Summary Demo"
+    version: "1.0"
+    description: "Demonstrate AI-generated summaries with working F# execution"
+}
+
+FSHARP {
+    // Simple working F# code for AI summary demonstration
+    printfn "🧠 AI Summary Demo Starting..."
+    
+    let agents = ["AnalysisAgent"; "SummaryAgent"; "ExecutionAgent"]
+    printfn "🤖 Agents: %A" agents
+    
+    let mutable consciousness = 0.75
+    consciousness <- consciousness + 0.25
+    printfn "🧠 Consciousness: %.2f" consciousness
+    
+    let closures = ["analysis_closure"; "summary_closure"]
+    for closure in closures do
+        printfn "⚡ Creating: %s" closure
+    
+    printfn "✅ Demo complete!"
+    sprintf "AI Summary Demo: %d agents, %.2f consciousness" agents.Length consciousness
+}

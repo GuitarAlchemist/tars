@@ -1,0 +1,22 @@
+DESCRIBE {
+    name: "Enhanced Execution Test"
+    description: "Test TARS enhanced F# execution with Variables module"
+}
+
+FSHARP {
+    // This should trigger enhanced execution
+    printfn "🧠 Testing TARS Enhanced Execution"
+    printfn "Session: %s" Variables.improvement_session
+    
+    // Test TARS module access
+    let capabilities = TARS.Core.getCapabilities()
+    printfn "✅ TARS capabilities: %A" capabilities
+    
+    let enhancement = TARS.enhance "TestFeature"
+    printfn "🔧 Enhancement: %s" enhancement
+    
+    let proof = TARS.generateProof()
+    printfn "🔐 Proof: %s" proof
+    
+    sprintf "SUCCESS: Enhanced execution working with proof %s" proof
+}

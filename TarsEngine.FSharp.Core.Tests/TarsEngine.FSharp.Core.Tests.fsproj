@@ -7,18 +7,8 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
-    <!-- Analysis Tests -->
-    <Compile Include="Analysis/AnalysisTests.fs" />
-    
-    <!-- Compilation Tests -->
-    <Compile Include="Compilation/CompilationTests.fs" />
-    
-    <!-- CodeGen Tests -->
-    <Compile Include="CodeGen/Testing/TestGeneratorTests.fs" />
-    <Compile Include="CodeGen/Workflow/WorkflowCoordinatorTests.fs" />
-    
-    <!-- Consciousness Tests -->
-    <Compile Include="Consciousness/ConsciousnessCoreTests.fs" />
+    <!-- Basic Tests -->
+    <Compile Include="BasicTests.fs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0" />

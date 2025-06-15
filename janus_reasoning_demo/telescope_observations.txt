@@ -1,0 +1,39 @@
+Observatory: Hubble Space Telescope
+Instrument: WFC3
+Target: SN at z=0.54
+Date: 2024-11-27
+Wavelength: I-band
+Redshift: 0.545
+Distance: 0.0 Mpc
+Match Score: 0.0%
+---
+
+Observatory: Very Large Telescope
+Instrument: FORS2
+Target: Cluster at z=0.21
+Date: 2025-01-13
+Wavelength: R-band
+Redshift: 0.205
+Distance: 0.0 Mpc
+Match Score: 0.0%
+---
+
+Observatory: Planck Satellite
+Instrument: HFI
+Target: Cosmic Microwave Background
+Date: 2024-06-30
+Wavelength: 353 GHz
+Redshift: 1100.000
+Distance: 46529.0 Mpc
+Match Score: 0.0%
+---
+
+Observatory: SDSS
+Instrument: Spectrograph
+Target: BAO at z=0.35
+Date: 2024-11-17
+Wavelength: Optical
+Redshift: 0.350
+Distance: 1720.3 Mpc
+Match Score: 13.6%
+---

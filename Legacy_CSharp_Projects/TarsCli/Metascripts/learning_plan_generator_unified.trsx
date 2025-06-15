@@ -1,0 +1,51 @@
+#!/usr/bin/env trsx
+# Unified TRSX Format - Migrated from FLUX
+# Generated: 2025-06-09T22:10:55Z
+
+# METADATA
+title: "Migrated learning_plan_generator"
+version: "2.0"
+tier: 1
+
+program {
+    DESCRIBE {
+        id: "DESCRIBE_1"
+        purpose: "Migrated DESCRIBE block"
+    }
+    FUNCTION create_learning_path {
+        id: "FUNCTION create_learning_path_2"
+        purpose: "Migrated FUNCTION create_learning_path block"
+    }
+    FUNCTION curate_resources {
+        id: "FUNCTION curate_resources_3"
+        purpose: "Migrated FUNCTION curate_resources block"
+    }
+    FUNCTION create_lessons {
+        id: "FUNCTION create_lessons_4"
+        purpose: "Migrated FUNCTION create_lessons block"
+    }
+    FUNCTION create_projects {
+        id: "FUNCTION create_projects_5"
+        purpose: "Migrated FUNCTION create_projects block"
+    }
+    FUNCTION create_quizzes {
+        id: "FUNCTION create_quizzes_6"
+        purpose: "Migrated FUNCTION create_quizzes block"
+    }
+    FUNCTION create_project_rubrics {
+        id: "FUNCTION create_project_rubrics_7"
+        purpose: "Migrated FUNCTION create_project_rubrics block"
+    }
+    FOR {
+        id: "FOR_8"
+        purpose: "Migrated FOR block"
+    }
+}
+
+reflection {
+    average_entropy: 0.650
+    overall_similarity: 0.750
+    insight: "Successfully migrated from legacy FLUX format"
+    insight: "Unified format reduces file management complexity"
+    insight: "Integrated reflection enables better agent reasoning"
+}

@@ -78,7 +78,6 @@ module IssueDetectorTests =
         // Assert
         Assert.NotEmpty(issues)
         Assert.Contains(issues, fun i -> i.Message.Contains("SQL injection"))
-    }
     
     /// <summary>
     /// Test that the security issue detector can detect hardcoded credentials.
@@ -117,7 +116,6 @@ module IssueDetectorTests =
         // Assert
         Assert.NotEmpty(issues)
         Assert.Contains(issues, fun i -> i.Message.Contains("Hardcoded credentials"))
-    }
     
     /// <summary>
     /// Test that the performance issue detector can detect inefficient loops.
@@ -156,7 +154,6 @@ module IssueDetectorTests =
         // Assert
         Assert.NotEmpty(issues)
         Assert.Contains(issues, fun i -> i.Message.Contains("Inefficient loop"))
-    }
     
     /// <summary>
     /// Test that the performance issue detector can detect inefficient string operations.
@@ -197,7 +194,6 @@ module IssueDetectorTests =
         // Assert
         Assert.NotEmpty(issues)
         Assert.Contains(issues, fun i -> i.Message.Contains("String concatenation in a loop"))
-    }
     
     /// <summary>
     /// Test that the complexity issue detector can detect methods with too many parameters.
@@ -230,7 +226,6 @@ module IssueDetectorTests =
         // Assert
         Assert.NotEmpty(issues)
         Assert.Contains(issues, fun i -> i.Message.Contains("too many parameters"))
-    }
     
     /// <summary>
     /// Test that the complexity issue detector can detect long methods.
@@ -267,7 +262,6 @@ module IssueDetectorTests =
         // Assert
         Assert.NotEmpty(issues)
         Assert.Contains(issues, fun i -> i.Message.Contains("too long"))
-    }
     
     /// <summary>
     /// Test that the style issue detector can detect naming convention violations.
@@ -313,7 +307,6 @@ module IssueDetectorTests =
         Assert.NotEmpty(issues)
         Assert.Contains(issues, fun i -> i.Message.Contains("Class name should start with an uppercase letter"))
         Assert.Contains(issues, fun i -> i.Message.Contains("Interface name should start with 'I'"))
-    }
     
     /// <summary>
     /// Test that the style issue detector can detect formatting issues.
@@ -352,4 +345,3 @@ module IssueDetectorTests =
         // Assert
         Assert.NotEmpty(issues)
         Assert.Contains(issues, fun i -> i.Message.Contains("Missing space after if statement") || i.Message.Contains("Empty if block") || i.Message.Contains("Trailing whitespace"))
-    }

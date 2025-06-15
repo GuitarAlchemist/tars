@@ -1,0 +1,59 @@
+#!/usr/bin/env trsx
+# Unified TRSX Format - Migrated from FLUX
+# Generated: 2025-06-09T22:10:55Z
+
+# METADATA
+title: "Migrated dsl_code_generator"
+version: "2.0"
+tier: 1
+
+program {
+    DESCRIBE {
+        id: "DESCRIBE_1"
+        purpose: "Migrated DESCRIBE block"
+    }
+    FUNCTION parse_json {
+        id: "FUNCTION parse_json_2"
+        purpose: "Migrated FUNCTION parse_json block"
+    }
+    FUNCTION parse_yaml {
+        id: "FUNCTION parse_yaml_3"
+        purpose: "Migrated FUNCTION parse_yaml block"
+    }
+    FUNCTION parse_markdown {
+        id: "FUNCTION parse_markdown_4"
+        purpose: "Migrated FUNCTION parse_markdown block"
+    }
+    FUNCTION generate_block {
+        id: "FUNCTION generate_block_5"
+        purpose: "Migrated FUNCTION generate_block block"
+    }
+    FUNCTION render_template {
+        id: "FUNCTION render_template_6"
+        purpose: "Migrated FUNCTION render_template block"
+    }
+    FUNCTION validate_code {
+        id: "FUNCTION validate_code_7"
+        purpose: "Migrated FUNCTION validate_code block"
+    }
+    FUNCTION generate_test_case {
+        id: "FUNCTION generate_test_case_8"
+        purpose: "Migrated FUNCTION generate_test_case block"
+    }
+    FOR {
+        id: "FOR_9"
+        purpose: "Migrated FOR block"
+    }
+    FOR {
+        id: "FOR_10"
+        purpose: "Migrated FOR block"
+    }
+}
+
+reflection {
+    average_entropy: 0.650
+    overall_similarity: 0.750
+    insight: "Successfully migrated from legacy FLUX format"
+    insight: "Unified format reduces file management complexity"
+    insight: "Integrated reflection enables better agent reasoning"
+}

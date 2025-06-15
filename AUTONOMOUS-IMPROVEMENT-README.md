@@ -1,10 +1,10 @@
-# Autonomous Improvement of TARS Documentation and Codebase
+﻿# automated Improvement of TARS Documentation and Codebase
 
-This document explains the autonomous improvement process for TARS documentation and codebase using metascripts and the collaboration between Augment Code and TARS CLI in MCP mode.
+This document explains the automated improvement process for TARS documentation and codebase using metascripts and the collaboration between Augment Code and TARS CLI in MCP mode.
 
 ## Overview
 
-The autonomous improvement process leverages the knowledge in the TARS exploration files to improve the codebase. It consists of the following steps:
+The automated improvement process leverages the knowledge in the TARS exploration files to improve the codebase. It consists of the following steps:
 
 1. Extract knowledge from exploration files
 2. Generate a knowledge report
@@ -18,20 +18,20 @@ The autonomous improvement process leverages the knowledge in the TARS explorati
 2. Node.js installed
 3. Augment Code integration with TARS configured
 
-## Running the Autonomous Improvement Process
+## Running the automated Improvement Process
 
-To run the autonomous improvement process, simply execute the batch script:
+To run the automated improvement process, simply execute the batch script:
 
 ```
-run-autonomous-improvement.cmd
+run-automated-improvement.cmd
 ```
 
 This will:
 
-1. Register the autonomous improvement metascript with TARS
+1. Register the automated improvement metascript with TARS
 2. Start the TARS MCP service
 3. Run the collaborative improvement script
-4. Run the TARS metascript for autonomous improvement
+4. Run the TARS metascript for automated improvement
 5. Stop the TARS MCP service when done
 
 ## Components
@@ -46,9 +46,9 @@ The `augment-tars-collaborative-improvement.js` script coordinates the collabora
 - Generates retroaction reports
 - Starts TARS self-improvement
 
-### 2. Autonomous Improvement Metascript
+### 2. automated Improvement Metascript
 
-The `autonomous_improvement.tars` metascript is executed by TARS to perform autonomous improvement. It:
+The `autonomous_improvement.tars` metascript is executed by TARS to perform automated improvement. It:
 
 - Extracts knowledge from exploration files
 - Generates a knowledge report
@@ -57,25 +57,25 @@ The `autonomous_improvement.tars` metascript is executed by TARS to perform auto
 
 ### 3. Configuration Files
 
-- `autonomous-improvement-config.json`: Configuration for the autonomous improvement process
+- `automated-improvement-config.json`: Configuration for the automated improvement process
 - `augment-tars-config.json`: Configuration for Augment Code integration with TARS
 
 ### 4. Helper Scripts
 
 - `register-metascript.ps1`: Registers the metascript with TARS
 - `run-collaborative-improvement.ps1`: Runs the collaborative improvement process
-- `run-autonomous-improvement.ps1`: Runs the entire autonomous improvement process
+- `run-automated-improvement.ps1`: Runs the entire automated improvement process
 
 ## Exploration Directories
 
-The autonomous improvement process targets the following exploration directories:
+The automated improvement process targets the following exploration directories:
 
 - `C:/Users/spare/source/repos/tars/docs/Explorations/v1/Chats`
 - `C:/Users/spare/source/repos/tars/docs/Explorations/Reflections`
 
 ## Target Directories
 
-The autonomous improvement process applies knowledge to improve the following directories:
+The automated improvement process applies knowledge to improve the following directories:
 
 - `C:/Users/spare/source/repos/tars/TarsCli/Services`
 - `C:/Users/spare/source/repos/tars/TarsCli/Commands`
@@ -83,22 +83,22 @@ The autonomous improvement process applies knowledge to improve the following di
 
 ## Reports
 
-The autonomous improvement process generates the following reports:
+The automated improvement process generates the following reports:
 
 - Knowledge Report: A summary of the knowledge extracted from exploration files
 - Retroaction Report: An analysis of how effectively knowledge was applied
-- Autonomous Improvement Report: A summary of the autonomous improvement process
+- automated Improvement Report: A summary of the automated improvement process
 
 ## Logs
 
-The autonomous improvement process logs its progress to:
+The automated improvement process logs its progress to:
 
 - `collaborative-improvement-log.md`: Log of the collaborative improvement process
 - TARS CLI logs: Log of the TARS metascript execution
 
 ## Troubleshooting
 
-If you encounter issues with the autonomous improvement process:
+If you encounter issues with the automated improvement process:
 
 1. Check the logs for error messages
 2. Ensure TARS CLI is properly installed and configured

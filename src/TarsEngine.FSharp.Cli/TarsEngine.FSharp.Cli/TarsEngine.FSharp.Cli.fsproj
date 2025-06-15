@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Core Types (consolidated) -->
+    <Compile Include="Core/Types.fs" />
+    <Compile Include="Core/FunctionalVariableSystem.fs" />
+
+    <!-- Services (consolidated) -->
+    <Compile Include="Services/YamlProcessingService.fs" />
+    <Compile Include="Services/FileOperationsService.fs" />
+    <Compile Include="Services/DockerService.fs" />
+    <Compile Include="Services/MixtralService.fs" />
+    <!-- <Compile Include="Services/HuggingFaceService.fs" /> -->
+    <Compile Include="Services/IntelligenceService.fs" />
+    <Compile Include="Services/MLService.fs" />
+    <!-- <Compile Include="Services/PatternDiscoveryService.fs" /> -->
+    <Compile Include="Core/VectorStore.fs" />
+    <Compile Include="Core/CudaComputationExpression.fs" />
+    <Compile Include="Core/TarsCudaDsl.fs" />
+    <Compile Include="Core/TarsAiModels.fs" />
+    <Compile Include="Core/TarsAiAgents.fs" />
+    <Compile Include="Core/TarsAiMetascripts.fs" />
+    <Compile Include="Core/TarsAiIde.fs" />
+    <Compile Include="Core/TarsSelfImprovingAi.fs" />
+    <Compile Include="Core/TarsAdvancedAi.fs" />
+    <Compile Include="Web/TarsAiIdeServer.fs" />
+
+    <!-- Commands -->
+    <Compile Include="Commands/Types.fs" />
+    <Compile Include="Commands/CommandLineParser.fs" />
+    <Compile Include="Commands/HelpCommand.fs" />
+    <Compile Include="Commands/VersionCommand.fs" />
+    <Compile Include="Commands/ExecuteCommand.fs" />
+    <Compile Include="Commands/SwarmCommand.fs" />
+    <Compile Include="Commands/MixtralCommand.fs" />
+    <Compile Include="Commands/SimpleTransformerCommand.fs" />
+    <Compile Include="Commands/MixtureOfExpertsCommand.fs" />
+    <!-- <Compile Include="Commands/ChatbotCommand.fs" /> -->
+    <!-- <Compile Include="Commands/TeamsCommand.fs" /> -->
+    <!-- <Compile Include="Commands/VMCommand.fs" /> -->
+    <!-- <Compile Include="Commands/ConfigCommand.fs" /> -->
+    <!-- <Compile Include="Commands/EvolveCommand.fs" /> -->
+    <!-- <Compile Include="Commands/SelfChatCommand.fs" /> -->
+    <!-- <Compile Include="Commands/WebApiCommand.fs" /> -->
+    <!-- <Compile Include="Commands/LiveEndpointsCommand.fs" /> -->
+    <!-- <Compile Include="Commands/UICommand.fs" /> -->
+    <!-- <Compile Include="Commands/RoadmapCommand.fs" /> -->
+    <!-- <Compile Include="Commands/ServiceCommand.fs" /> -->
+    <!-- <Compile Include="Commands/NotebookCmd.fs" /> -->
+    <Compile Include="Commands/CudaCommand.fs" />
+    <Compile Include="Commands/CudaDslCommand.fs" />
+    <Compile Include="Commands/AiModelCommand.fs" />
+    <Compile Include="Commands/AiAgentCommand.fs" />
+    <Compile Include="Commands/AiMetascriptCommand.fs" />
+    <Compile Include="Commands/AiIdeCommand.fs" />
+    <Compile Include="Commands/SelfImprovingAiCommand.fs" />
+    <Compile Include="Commands/AdvancedAiCommand.fs" />
+    <Compile Include="Commands/HttpServerCommand.fs" />
+    <!-- <Compile Include="Commands/HuggingFaceCommand.fs" /> -->
+    <!-- <Compile Include="Commands/RealHuggingFaceCommand.fs" /> -->
+
+    <!-- Services -->
+    <!-- <Compile Include="Services/WebApiClosureFactory.fs" /> -->
+    <Compile Include="Commands/CommandRegistry.fs" />
+    
+    <!-- Core Application -->
+    <Compile Include="Core/CliApplication.fs" />
+    
+    <!-- Program Entry Point (must be last) -->
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+  <!-- Temporarily remove broken metascript dependency -->
+  <!--<ItemGroup>
+    <ProjectReference Include="..\TarsEngine.FSharp.Metascripts\TarsEngine.FSharp.Metascripts.fsproj" />
+  </ItemGroup>-->
+  <!-- <ItemGroup>
+    <ProjectReference Include="..\TarsEngine.FSharp.Agents\TarsEngine.FSharp.Agents.fsproj" />
+    <ProjectReference Include="..\TarsEngine.FSharp.Notebooks\TarsEngine.FSharp.Notebooks.fsproj" />
+    <ProjectReference Include="..\TarsEngine.FSharp.Requirements\TarsEngine.FSharp.Requirements.fsproj" />
+  </ItemGroup> -->
+  <ItemGroup>
+    <PackageReference Include="Docker.DotNet" Version="3.125.15" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.5" />
+    <PackageReference Include="FSharp.Compiler.Service" Version="43.8.400" />
+    <PackageReference Include="YamlDotNet" Version="16.1.3" />
+    <PackageReference Include="System.Reactive" Version="6.0.0" />
+    <PackageReference Include="System.Threading.Channels" Version="9.0.0" />
+    <PackageReference Include="FSharp.Control.AsyncSeq" Version="3.2.1" />
+    <PackageReference Include="System.Text.Json" Version="9.0.0" />
+    <PackageReference Include="Spectre.Console" Version="0.49.1" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.19.2" />
+    <PackageReference Include="Microsoft.ML.Tokenizers" Version="0.22.0" />
+    <PackageReference Include="System.ServiceProcess.ServiceController" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <!-- CUDA Native Library Configuration -->
+  <PropertyGroup>
+    <CudaLibraryPath>$(MSBuildProjectDirectory)</CudaLibraryPath>
+    <CudaLibraryName>libminimal_cuda.so</CudaLibraryName>
+  </PropertyGroup>
+
+  <!-- Copy CUDA library to output directory -->
+  <ItemGroup>
+    <None Include="$(CudaLibraryPath)/$(CudaLibraryName)" Condition="Exists('$(CudaLibraryPath)/$(CudaLibraryName)')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>$(CudaLibraryName)</Link>
+    </None>
+  </ItemGroup>
+</Project>
+

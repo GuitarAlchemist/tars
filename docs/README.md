@@ -1,4 +1,4 @@
-# TARS Documentation
+﻿# TARS Documentation
 
 This directory contains comprehensive documentation for the TARS project.
 
@@ -38,3 +38,6 @@ The [Tutorials](Tutorials) directory contains tutorials for using TARS.
 ## Progress
 
 The [Progress](Progress) directory contains progress reports and milestones for the TARS project.
+
+
+**Note: This includes experimental features that are under active development.**

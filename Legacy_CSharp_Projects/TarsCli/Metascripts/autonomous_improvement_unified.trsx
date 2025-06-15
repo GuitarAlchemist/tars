@@ -1,0 +1,51 @@
+#!/usr/bin/env trsx
+# Unified TRSX Format - Migrated from FLUX
+# Generated: 2025-06-09T22:10:55Z
+
+# METADATA
+title: "Migrated autonomous_improvement"
+version: "2.0"
+tier: 3
+
+program {
+    DESCRIBE {
+        id: "DESCRIBE_1"
+        purpose: "Migrated DESCRIBE block"
+    }
+    FUNCTION get_markdown_files {
+        id: "FUNCTION get_markdown_files_2"
+        purpose: "Migrated FUNCTION get_markdown_files block"
+    }
+    FUNCTION extract_knowledge {
+        id: "FUNCTION extract_knowledge_3"
+        purpose: "Migrated FUNCTION extract_knowledge block"
+    }
+    RETURN {
+        id: "RETURN_4"
+        purpose: "Migrated RETURN block"
+    }
+    FUNCTION apply_knowledge {
+        id: "FUNCTION apply_knowledge_5"
+        purpose: "Migrated FUNCTION apply_knowledge block"
+    }
+    FUNCTION generate_knowledge_report {
+        id: "FUNCTION generate_knowledge_report_6"
+        purpose: "Migrated FUNCTION generate_knowledge_report block"
+    }
+    FOREACH {
+        id: "FOREACH_7"
+        purpose: "Migrated FOREACH block"
+    }
+    FOREACH {
+        id: "FOREACH_8"
+        purpose: "Migrated FOREACH block"
+    }
+}
+
+reflection {
+    average_entropy: 0.650
+    overall_similarity: 0.750
+    insight: "Successfully migrated from legacy FLUX format"
+    insight: "Unified format reduces file management complexity"
+    insight: "Integrated reflection enables better agent reasoning"
+}

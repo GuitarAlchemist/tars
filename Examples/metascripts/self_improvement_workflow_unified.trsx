@@ -1,0 +1,79 @@
+#!/usr/bin/env trsx
+# Unified TRSX Format - Migrated from FLUX
+# Generated: 2025-06-09T22:10:55Z
+
+# METADATA
+title: "Migrated self_improvement_workflow"
+version: "2.0"
+tier: 1
+
+program {
+    DESCRIBE {
+        id: "DESCRIBE_1"
+        purpose: "Migrated DESCRIBE block"
+    }
+    FUNCTION analyze_code_quality {
+        id: "FUNCTION analyze_code_quality_2"
+        purpose: "Migrated FUNCTION analyze_code_quality block"
+    }
+    FUNCTION analyze_performance {
+        id: "FUNCTION analyze_performance_3"
+        purpose: "Migrated FUNCTION analyze_performance block"
+    }
+    FUNCTION analyze_documentation {
+        id: "FUNCTION analyze_documentation_4"
+        purpose: "Migrated FUNCTION analyze_documentation block"
+    }
+    FUNCTION analyze_test_coverage {
+        id: "FUNCTION analyze_test_coverage_5"
+        purpose: "Migrated FUNCTION analyze_test_coverage block"
+    }
+    FUNCTION refactor_code {
+        id: "FUNCTION refactor_code_6"
+        purpose: "Migrated FUNCTION refactor_code block"
+    }
+    FUNCTION optimize_performance {
+        id: "FUNCTION optimize_performance_7"
+        purpose: "Migrated FUNCTION optimize_performance block"
+    }
+    FUNCTION improve_documentation {
+        id: "FUNCTION improve_documentation_8"
+        purpose: "Migrated FUNCTION improve_documentation block"
+    }
+    FUNCTION add_tests {
+        id: "FUNCTION add_tests_9"
+        purpose: "Migrated FUNCTION add_tests block"
+    }
+    FUNCTION review_changes {
+        id: "FUNCTION review_changes_10"
+        purpose: "Migrated FUNCTION review_changes block"
+    }
+    FUNCTION run_tests {
+        id: "FUNCTION run_tests_11"
+        purpose: "Migrated FUNCTION run_tests block"
+    }
+    FUNCTION check_regression {
+        id: "FUNCTION check_regression_12"
+        purpose: "Migrated FUNCTION check_regression block"
+    }
+    FUNCTION update_changelog {
+        id: "FUNCTION update_changelog_13"
+        purpose: "Migrated FUNCTION update_changelog block"
+    }
+    FUNCTION generate_report {
+        id: "FUNCTION generate_report_14"
+        purpose: "Migrated FUNCTION generate_report block"
+    }
+    FOR {
+        id: "FOR_15"
+        purpose: "Migrated FOR block"
+    }
+}
+
+reflection {
+    average_entropy: 0.650
+    overall_similarity: 0.750
+    insight: "Successfully migrated from legacy FLUX format"
+    insight: "Unified format reduces file management complexity"
+    insight: "Integrated reflection enables better agent reasoning"
+}

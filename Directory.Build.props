@@ -1,13 +1,25 @@
 <Project>
     <PropertyGroup>
-        <FSharpCoreVersion>8.0.400</FSharpCoreVersion>
-        <!-- Treat MudBlazor analyzer warnings as errors -->
-        <!-- Treat async method warnings as errors -->
-        <!-- Treat nullable reference warnings as errors -->
-        <WarningsAsErrors>$(WarningsAsErrors);MUD0001;MUD0002;MUD0003;MUD0004;MUD0005;MUD0006;MUD0007;MUD0008;MUD0009;CS1998;CS8604</WarningsAsErrors>
+        <!-- Global .NET 9 Settings -->
+        <TargetFramework>net9.0</TargetFramework>
+        <FSharpCoreVersion>9.0.300</FSharpCoreVersion>
+        <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
+        <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+        <NoWarn>NU1608;NU1903;NU1701</NoWarn>
+        
+        <!-- TARS Specific Settings -->
+        <Authors>TARS Development Team</Authors>
+        <Company>TARS Project</Company>
+        <Product>TARS - Autonomous Reasoning System</Product>
+        <Version>3.0.0</Version>
+        <LangVersion>9.0</LangVersion>
     </PropertyGroup>
 
     <ItemGroup>
+        <!-- Global Package References -->
         <PackageReference Update="FSharp.Core" Version="$(FSharpCoreVersion)" />
+        <PackageReference Update="System.Text.Json" Version="8.0.5" />
+        <PackageReference Update="Microsoft.Extensions.Logging" Version="9.0.0" />
+        <PackageReference Update="Microsoft.Extensions.Logging.Console" Version="9.0.0" />
     </ItemGroup>
 </Project>

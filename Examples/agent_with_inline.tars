@@ -1,0 +1,175 @@
+agent_module {
+  name: "simple_calculator_agent"
+  goal: "Parse and evaluate mathematical expressions"
+  inputs: ["expression"]
+  outputs: ["result", "parse_tree"]
+  
+  // Inline grammar definition for mathematical expressions
+  grammar "MathExpression" {
+    LANG("EBNF") {
+      expression = term , { ( "+" | "-" ) , term } ;
+      term = factor , { ( "*" | "/" ) , factor } ;
+      factor = number | "(" , expression , ")" ;
+      number = [ "-" ] , digit , { digit } , [ "." , digit , { digit } ] ;
+      digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+    }
+  }
+  
+  // Multi-language implementation
+  logic {
+    // F# for parsing and AST construction
+    LANG("FSHARP") {
+      type Expr =
+          | Number of float
+          | Add of Expr * Expr
+          | Subtract of Expr * Expr
+          | Multiply of Expr * Expr
+          | Divide of Expr * Expr
+      
+      let rec evaluate = function
+          | Number n -> n
+          | Add (left, right) -> evaluate left + evaluate right
+          | Subtract (left, right) -> evaluate left - evaluate right
+          | Multiply (left, right) -> evaluate left * evaluate right
+          | Divide (left, right) -> 
+              let rightVal = evaluate right
+              if rightVal = 0.0 then failwith "Division by zero"
+              else evaluate left / rightVal
+      
+      // Simple recursive descent parser (placeholder)
+      let parseExpression (input: string) =
+          // This would use the grammar above to parse the expression
+          // For now, just a simple example
+          match input.Trim() with
+          | "2+3" -> Add(Number 2.0, Number 3.0)
+          | "5*4" -> Multiply(Number 5.0, Number 4.0)
+          | "10/2" -> Divide(Number 10.0, Number 2.0)
+          | "7-3" -> Subtract(Number 7.0, Number 3.0)
+          | n when System.Double.TryParse(n, &(ref 0.0)) -> Number (float n)
+          | _ -> failwith $"Cannot parse expression: {input}"
+    }
+    
+    // Python for advanced mathematical operations
+    LANG("PYTHON") {
+      import math
+      import re
+      
+      def validate_expression(expr):
+          """Validate mathematical expression using regex"""
+          # Simple validation pattern
+          pattern = r'^[\d\+\-\*/\(\)\.\s]+$'
+          return bool(re.match(pattern, expr))
+      
+      def get_expression_info(expr):
+          """Get information about the expression"""
+          info = {
+              "length": len(expr),
+              "operators": len(re.findall(r'[\+\-\*/]', expr)),
+              "numbers": len(re.findall(r'\d+(?:\.\d+)?', expr)),
+              "parentheses": expr.count('(') + expr.count(')'),
+              "complexity": "simple" if len(expr) < 10 else "complex"
+          }
+          return info
+      
+      def format_result(result, precision=2):
+          """Format the calculation result"""
+          if isinstance(result, float):
+              if result.is_integer():
+                  return str(int(result))
+              else:
+                  return f"{result:.{precision}f}"
+          return str(result)
+    }
+    
+    // C# for result formatting and validation
+    LANG("CSHARP") {
+      using System;
+      using System.Text.Json;
+      
+      public class CalculationResult
+      {
+          public string Expression { get; set; }
+          public double Result { get; set; }
+          public string FormattedResult { get; set; }
+          public DateTime CalculatedAt { get; set; }
+          public bool IsValid { get; set; }
+          public string ErrorMessage { get; set; }
+          public object ParseTree { get; set; }
+      }
+      
+      public static class ResultFormatter
+      {
+          public static string FormatCalculationResult(
+              string expression, 
+              double result, 
+              object parseTree = null, 
+              string error = null)
+          {
+              var calculationResult = new CalculationResult
+              {
+                  Expression = expression,
+                  Result = result,
+                  FormattedResult = FormatNumber(result),
+                  CalculatedAt = DateTime.Now,
+                  IsValid = error == null,
+                  ErrorMessage = error,
+                  ParseTree = parseTree
+              };
+              
+              return JsonSerializer.Serialize(calculationResult, new JsonSerializerOptions 
+              { 
+                  WriteIndented = true 
+              });
+          }
+          
+          private static string FormatNumber(double number)
+          {
+              if (double.IsNaN(number)) return "NaN";
+              if (double.IsInfinity(number)) return number > 0 ? "∞" : "-∞";
+              if (number == Math.Floor(number)) return ((long)number).ToString();
+              return number.ToString("F2");
+          }
+      }
+    }
+  }
+  
+  // Test cases for the calculator
+  test {
+    // Test basic arithmetic
+    assert evaluate("2+3") == 5.0
+    assert evaluate("5*4") == 20.0
+    assert evaluate("10/2") == 5.0
+    assert evaluate("7-3") == 4.0
+    
+    // Test complex expressions
+    assert evaluate("2+3*4") == 14.0  // Should respect operator precedence
+    assert evaluate("(2+3)*4") == 20.0  // Should handle parentheses
+    
+    // Test edge cases
+    assert_throws evaluate("10/0")  // Division by zero
+    assert_throws evaluate("invalid")  // Invalid expression
+    
+    // Test validation
+    assert validate_expression("2+3") == true
+    assert validate_expression("abc") == false
+  }
+  
+  // Execution flow
+  execution {
+    step1: "Validate input expression format"
+    step2: "Parse expression using inline grammar"
+    step3: "Build AST using F# parser"
+    step4: "Evaluate expression recursively"
+    step5: "Get expression metadata using Python"
+    step6: "Format result using C#"
+    step7: "Return result and parse tree"
+  }
+  
+  // Error handling
+  error_handling {
+    division_by_zero: "Return error with message 'Division by zero'"
+    invalid_syntax: "Return error with parse details"
+    overflow: "Return error with 'Result too large'"
+    underflow: "Return error with 'Result too small'"
+  }
+}

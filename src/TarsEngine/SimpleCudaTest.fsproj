@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <RootNamespace>TarsEngine</RootNamespace>
+    <AssemblyName>SimpleCudaTest</AssemblyName>
+    <Platforms>x64</Platforms>
+    <RuntimeIdentifiers>win-x64;linux-x64</RuntimeIdentifiers>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <!-- CUDA Native Library Configuration -->
+  <PropertyGroup>
+    <CudaLibraryPath>$(MSBuildProjectDirectory)</CudaLibraryPath>
+    <CudaLibraryName>libminimal_cuda.so</CudaLibraryName>
+  </PropertyGroup>
+
+  <!-- Copy CUDA library to output directory -->
+  <ItemGroup>
+    <None Include="$(CudaLibraryPath)/$(CudaLibraryName)" Condition="Exists('$(CudaLibraryPath)/$(CudaLibraryName)')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>$(CudaLibraryName)</Link>
+    </None>
+  </ItemGroup>
+
+  <!-- F# Source Files -->
+  <ItemGroup>
+    <Compile Include="SimpleCudaTest.fs" />
+  </ItemGroup>
+
+  <!-- Build Events -->
+  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+    <Message Text="🔧 Pre-build: Checking CUDA library availability..." Importance="high" />
+    <Message Text="📍 CUDA Library Path: $(CudaLibraryPath)/$(CudaLibraryName)" Importance="high" />
+    <Warning Text="⚠️ CUDA library not found at $(CudaLibraryPath)/$(CudaLibraryName). CUDA tests may fail at runtime." 
+             Condition="!Exists('$(CudaLibraryPath)/$(CudaLibraryName)')" />
+  </Target>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Message Text="✅ Post-build: Simple CUDA Test build completed successfully" Importance="high" />
+    <Message Text="📦 Output: $(OutputPath)" Importance="high" />
+    <Message Text="🚀 Ready for CUDA testing!" Importance="high" />
+  </Target>
+
+</Project>

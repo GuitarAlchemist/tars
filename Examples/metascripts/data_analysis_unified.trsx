@@ -1,0 +1,79 @@
+#!/usr/bin/env trsx
+# Unified TRSX Format - Migrated from FLUX
+# Generated: 2025-06-09T22:10:55Z
+
+# METADATA
+title: "Migrated data_analysis"
+version: "2.0"
+tier: 1
+
+program {
+    DESCRIBE {
+        id: "DESCRIBE_1"
+        purpose: "Migrated DESCRIBE block"
+    }
+    FUNCTION load_csv {
+        id: "FUNCTION load_csv_2"
+        purpose: "Migrated FUNCTION load_csv block"
+    }
+    FUNCTION load_json {
+        id: "FUNCTION load_json_3"
+        purpose: "Migrated FUNCTION load_json block"
+    }
+    FUNCTION load_database {
+        id: "FUNCTION load_database_4"
+        purpose: "Migrated FUNCTION load_database block"
+    }
+    FUNCTION validate_data {
+        id: "FUNCTION validate_data_5"
+        purpose: "Migrated FUNCTION validate_data block"
+    }
+    FUNCTION clean_data {
+        id: "FUNCTION clean_data_6"
+        purpose: "Migrated FUNCTION clean_data block"
+    }
+    FUNCTION transform_columns {
+        id: "FUNCTION transform_columns_7"
+        purpose: "Migrated FUNCTION transform_columns block"
+    }
+    FUNCTION engineer_features {
+        id: "FUNCTION engineer_features_8"
+        purpose: "Migrated FUNCTION engineer_features block"
+    }
+    FUNCTION descriptive_analysis {
+        id: "FUNCTION descriptive_analysis_9"
+        purpose: "Migrated FUNCTION descriptive_analysis block"
+    }
+    FUNCTION diagnostic_analysis {
+        id: "FUNCTION diagnostic_analysis_10"
+        purpose: "Migrated FUNCTION diagnostic_analysis block"
+    }
+    FUNCTION predictive_analysis {
+        id: "FUNCTION predictive_analysis_11"
+        purpose: "Migrated FUNCTION predictive_analysis block"
+    }
+    FUNCTION create_chart {
+        id: "FUNCTION create_chart_12"
+        purpose: "Migrated FUNCTION create_chart block"
+    }
+    FUNCTION create_dashboard {
+        id: "FUNCTION create_dashboard_13"
+        purpose: "Migrated FUNCTION create_dashboard block"
+    }
+    FUNCTION generate_report {
+        id: "FUNCTION generate_report_14"
+        purpose: "Migrated FUNCTION generate_report block"
+    }
+    FOR {
+        id: "FOR_15"
+        purpose: "Migrated FOR block"
+    }
+}
+
+reflection {
+    average_entropy: 0.650
+    overall_similarity: 0.750
+    insight: "Successfully migrated from legacy FLUX format"
+    insight: "Unified format reduces file management complexity"
+    insight: "Integrated reflection enables better agent reasoning"
+}

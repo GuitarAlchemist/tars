@@ -1,0 +1,87 @@
+#!/usr/bin/env trsx
+# Unified TRSX Format - Migrated from FLUX
+# Generated: 2025-06-09T22:10:55Z
+
+# METADATA
+title: "Migrated dsl_debugging"
+version: "2.0"
+tier: 1
+
+program {
+    DESCRIBE {
+        id: "DESCRIBE_1"
+        purpose: "Migrated DESCRIBE block"
+    }
+    FUNCTION add_breakpoint {
+        id: "FUNCTION add_breakpoint_2"
+        purpose: "Migrated FUNCTION add_breakpoint block"
+    }
+    FUNCTION remove_breakpoint {
+        id: "FUNCTION remove_breakpoint_3"
+        purpose: "Migrated FUNCTION remove_breakpoint block"
+    }
+    FUNCTION list_breakpoints {
+        id: "FUNCTION list_breakpoints_4"
+        purpose: "Migrated FUNCTION list_breakpoints block"
+    }
+    FUNCTION add_watch {
+        id: "FUNCTION add_watch_5"
+        purpose: "Migrated FUNCTION add_watch block"
+    }
+    FUNCTION get_variable_value {
+        id: "FUNCTION get_variable_value_6"
+        purpose: "Migrated FUNCTION get_variable_value block"
+    }
+    FUNCTION list_watches {
+        id: "FUNCTION list_watches_7"
+        purpose: "Migrated FUNCTION list_watches block"
+    }
+    FUNCTION run_with_debugging {
+        id: "FUNCTION run_with_debugging_8"
+        purpose: "Migrated FUNCTION run_with_debugging block"
+    }
+    FUNCTION step_next {
+        id: "FUNCTION step_next_9"
+        purpose: "Migrated FUNCTION step_next block"
+    }
+    FUNCTION step_into {
+        id: "FUNCTION step_into_10"
+        purpose: "Migrated FUNCTION step_into block"
+    }
+    FUNCTION continue_execution {
+        id: "FUNCTION continue_execution_11"
+        purpose: "Migrated FUNCTION continue_execution block"
+    }
+    FUNCTION analyze_call_stack {
+        id: "FUNCTION analyze_call_stack_12"
+        purpose: "Migrated FUNCTION analyze_call_stack block"
+    }
+    FUNCTION analyze_variables {
+        id: "FUNCTION analyze_variables_13"
+        purpose: "Migrated FUNCTION analyze_variables block"
+    }
+    FUNCTION analyze_execution_path {
+        id: "FUNCTION analyze_execution_path_14"
+        purpose: "Migrated FUNCTION analyze_execution_path block"
+    }
+    FOR {
+        id: "FOR_15"
+        purpose: "Migrated FOR block"
+    }
+    FOR {
+        id: "FOR_16"
+        purpose: "Migrated FOR block"
+    }
+    FOR {
+        id: "FOR_17"
+        purpose: "Migrated FOR block"
+    }
+}
+
+reflection {
+    average_entropy: 0.650
+    overall_similarity: 0.750
+    insight: "Successfully migrated from legacy FLUX format"
+    insight: "Unified format reduces file management complexity"
+    insight: "Integrated reflection enables better agent reasoning"
+}

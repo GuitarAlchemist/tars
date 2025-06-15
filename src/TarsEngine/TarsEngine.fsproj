@@ -1,0 +1,161 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <RootNamespace>TarsEngine</RootNamespace>
+    <AssemblyName>TarsEngine</AssemblyName>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsAsErrors />
+    <WarningsNotAsErrors>FS0988</WarningsNotAsErrors>
+    <OtherFlags>--warnon:1182</OtherFlags>
+    <Nullable>enable</Nullable>
+    <LangVersion>preview</LangVersion>
+    <EnablePreviewFeatures>true</EnablePreviewFeatures>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Platforms>x64</Platforms>
+    <RuntimeIdentifiers>win-x64;linux-x64</RuntimeIdentifiers>
+    <SelfContained>false</SelfContained>
+    <PublishSingleFile>false</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <DebugType>portable</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <Optimize>true</Optimize>
+    <DefineConstants>TRACE</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+    <DefineConstants>$(DefineConstants);DEBUG</DefineConstants>
+    <Optimize>false</Optimize>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
+    <DefineConstants>$(DefineConstants);RELEASE</DefineConstants>
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+
+  <!-- CUDA Native Library Configuration -->
+  <PropertyGroup>
+    <CudaLibraryPath>$(MSBuildProjectDirectory)</CudaLibraryPath>
+    <CudaLibraryName>libTarsCudaKernels.so</CudaLibraryName>
+  </PropertyGroup>
+
+  <!-- Copy CUDA library to output directory -->
+  <ItemGroup>
+    <None Include="$(CudaLibraryPath)/$(CudaLibraryName)" Condition="Exists('$(CudaLibraryPath)/$(CudaLibraryName)')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>$(CudaLibraryName)</Link>
+    </None>
+  </ItemGroup>
+
+  <!-- F# Source Files in Compilation Order -->
+  <ItemGroup>
+    <!-- Core CUDA Interop -->
+    <Compile Include="CudaInterop.fs" />
+
+    <!-- Basic CUDA Tests -->
+    <Compile Include="CudaKernelTest.fs" />
+
+    <!-- Memory Management Tests -->
+    <Compile Include="CudaMemoryTests.fs" />
+
+    <!-- Performance Benchmark Tests -->
+    <Compile Include="CudaPerformanceTests.fs" />
+
+    <!-- Advanced Kernel Tests -->
+    <Compile Include="CudaAdvancedKernelTests.fs" />
+
+    <!-- Error Handling Tests -->
+    <Compile Include="CudaErrorHandlingTests.fs" />
+
+    <!-- Comprehensive Test Runner -->
+    <Compile Include="CudaComprehensiveTestRunner.fs" />
+
+    <!-- Console Application Entry Point -->
+    <Compile Include="CudaTestConsole.fs" />
+
+    <!-- Main Program Entry Point -->
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+
+  <!-- Package References -->
+  <ItemGroup>
+    <!-- Core .NET Packages -->
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="9.0.0" />
+
+    <!-- Async and Parallel Processing -->
+    <PackageReference Include="FSharp.Control.AsyncSeq" Version="3.2.1" />
+    <PackageReference Include="System.Threading.Channels" Version="9.0.0" />
+
+    <!-- JSON and Serialization -->
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="System.Text.Json" Version="9.0.0" />
+
+    <!-- Memory Management -->
+    <PackageReference Include="System.Memory" Version="4.5.5" />
+    <PackageReference Include="System.Buffers" Version="4.5.1" />
+    <PackageReference Include="System.Runtime.InteropServices" Version="4.3.0" />
+
+    <!-- Console UI -->
+    <PackageReference Include="Spectre.Console" Version="0.49.1" />
+  </ItemGroup>
+
+  <!-- Native Library References -->
+  <ItemGroup>
+    <NativeLibrary Include="$(CudaLibraryPath)/$(CudaLibraryName)" Condition="Exists('$(CudaLibraryPath)/$(CudaLibraryName)')" />
+  </ItemGroup>
+
+  <!-- Build Events -->
+  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+    <Message Text="🔧 Pre-build: Checking CUDA library availability..." Importance="high" />
+    <Message Text="📍 CUDA Library Path: $(CudaLibraryPath)/$(CudaLibraryName)" Importance="high" />
+    <Warning Text="⚠️ CUDA library not found at $(CudaLibraryPath)/$(CudaLibraryName). CUDA tests may fail at runtime." 
+             Condition="!Exists('$(CudaLibraryPath)/$(CudaLibraryName)')" />
+  </Target>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Message Text="✅ Post-build: TARS Engine build completed successfully" Importance="high" />
+    <Message Text="📦 Output: $(OutputPath)" Importance="high" />
+    <Message Text="🚀 Ready for CUDA testing!" Importance="high" />
+  </Target>
+
+  <!-- Custom Build Properties -->
+  <PropertyGroup>
+    <BuildDependsOn>
+      $(BuildDependsOn);
+      ValidateCudaSetup
+    </BuildDependsOn>
+  </PropertyGroup>
+
+  <Target Name="ValidateCudaSetup">
+    <Message Text="🔍 Validating CUDA setup..." Importance="high" />
+    <ItemGroup>
+      <CudaFiles Include="CUDA/**/*.cu" />
+      <CudaHeaders Include="CUDA/**/*.h" />
+    </ItemGroup>
+    <Message Text="📁 Found $(CudaFiles->Count()) CUDA source files" Importance="normal" />
+    <Message Text="📁 Found $(CudaHeaders->Count()) CUDA header files" Importance="normal" />
+  </Target>
+
+  <!-- Documentation Generation -->
+  <PropertyGroup>
+    <DocumentationFile>$(OutputPath)$(AssemblyName).xml</DocumentationFile>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <!-- Runtime Configuration -->
+  <ItemGroup>
+    <None Include="runtimeconfig.template.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

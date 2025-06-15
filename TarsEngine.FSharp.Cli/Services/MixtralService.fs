@@ -275,11 +275,57 @@ type MixtralService(httpClient: HttpClient, logger: ILogger<MixtralService>) =
         $"Selected {expert.Name} (confidence: {confidence:F2}) based on query analysis. " +
         $"Expert specializes in {expert.Type} with system prompt optimized for this domain."
 
+    /// Check if model exists and pull it if needed
+    member private this.EnsureModelAvailable (modelName: string) =
+        async {
+            try
+                // First try to list models to see if it exists
+                let! response = httpClient.GetAsync($"{baseUrl}/api/tags") |> Async.AwaitTask
+                if response.IsSuccessStatusCode then
+                    let! content = response.Content.ReadAsStringAsync() |> Async.AwaitTask
+                    if content.Contains(modelName) then
+                        logger.LogInformation($"✅ Model {modelName} is available")
+                        return true
+                    else
+                        logger.LogInformation($"🔄 Model {modelName} not found, attempting to pull...")
+
+                        // Try to pull the model
+                        let pullPayload = {| name = modelName |}
+                        let pullJson = System.Text.Json.JsonSerializer.Serialize(pullPayload)
+                        let pullContent = new StringContent(pullJson, System.Text.Encoding.UTF8, "application/json")
+
+                        let! pullResponse = httpClient.PostAsync($"{baseUrl}/api/pull", pullContent) |> Async.AwaitTask
+                        if pullResponse.IsSuccessStatusCode then
+                            logger.LogInformation($"✅ Successfully pulled model {modelName}")
+                            return true
+                        else
+                            logger.LogWarning($"❌ Failed to pull model {modelName}")
+                            return false
+                else
+                    logger.LogWarning($"❌ Cannot connect to Ollama API at {baseUrl}")
+                    return false
+            with
+            | ex ->
+                logger.LogError(ex, $"Error checking/pulling model {modelName}: {ex.Message}")
+                return false
+        }
+
     /// Send request to Mixtral LLM with expert configuration
     member private this.SendToMixtralAsync(expert: Expert, query: string, context: string option) =
         task {
             try
                 let startTime = DateTime.UtcNow
+
+                // Check if model is available and pull if needed
+                let modelName = "llama3.1"
+                let! modelAvailable = this.EnsureModelAvailable(modelName) |> Async.StartAsTask
+                if not modelAvailable then
+                    logger.LogWarning($"❌ Model {modelName} not available, trying fallback")
+                    // Try a more basic model as fallback
+                    let fallbackModel = "llama3"
+                    let! fallbackAvailable = this.EnsureModelAvailable(fallbackModel) |> Async.StartAsTask
+                    if not fallbackAvailable then
+                        return Error $"No suitable models available. Please run 'ollama pull {modelName}' first."
 
                 // Build the prompt with expert system prompt
                 let fullPrompt =
@@ -287,9 +333,9 @@ type MixtralService(httpClient: HttpClient, logger: ILogger<MixtralService>) =
                     | Some ctx -> $"{expert.SystemPrompt}\n\nContext:\n{ctx}\n\nQuery: {query}"
                     | None -> $"{expert.SystemPrompt}\n\nQuery: {query}"
 
-                // Create request payload for Mixtral
+                // Create request payload for Mixtral - use the verified model
                 let payload = {|
-                    model = "mixtral-8x7b-instruct-v0.1"
+                    model = modelName
                     messages = [|
                         {| role = "system"; content = expert.SystemPrompt |}
                         {| role = "user"; content = query |}

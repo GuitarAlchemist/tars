@@ -1,0 +1,10 @@
+DESCRIBE {
+    name: "Simple Test"
+    description: "Basic test to see if F# execution works"
+}
+
+FSHARP {
+    printfn "Hello from TARS!"
+    printfn "Current time: %s" (System.DateTime.Now.ToString())
+    42
+}

@@ -1,41 +1,53 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <WarningsAsErrors />
-    <WarningsNotAsErrors>FS0025</WarningsNotAsErrors>
+    <WarningsNotAsErrors>FS0988</WarningsNotAsErrors>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Api/ITarsEngineApi.fs" />
-    <Compile Include="Api/TarsEngineApiImpl.fs" />
-    <Compile Include="Api/TarsExecutionContext.fs" />
-    <Compile Include="Api/TarsApiRegistry.fs" />
-    <Compile Include="Core/Interop.fs" />
-    <Compile Include="CUDA/CudaIntegration.fs" />
-    <Compile Include="Metascript/MetascriptExecutionResult.fs" />
-    <Compile Include="Metascript/Types.Enhanced.fs" />
-    <Compile Include="Metascript/Services/IMetascriptService.fs" />
-    <Compile Include="Metascript/Services/IMetascriptExecutor.fs" />
-    <Compile Include="Metascript/Services/MetascriptService.fs" />
-    <Compile Include="Metascript/Services/MetascriptExecutor.fs" />
-    <Compile Include="SimulationDetector.fs" />
-    <Compile Include="Program.fs" />
+    <!-- Core Types -->
+    <Compile Include="RevolutionaryTypes.fs" />
+    
+    <!-- Modern Game Theory Modules -->
+    <Compile Include="ModernGameTheory.fs" />
+    <Compile Include="FeedbackTracker.fs" />
+    <Compile Include="GameTheoryFeedbackCLI.fs" />
+
+    <!-- Elmish UI Integration -->
+    <Compile Include="GameTheoryElmishModels.fs" />
+    <Compile Include="GameTheoryElmishViews.fs" />
+    <Compile Include="GameTheoryElmishServices.fs" />
+    <Compile Include="GameTheoryElmishApp.fs" />
+
+    <!-- Three.js + WebGPU 3D Integration -->
+    <Compile Include="GameTheoryThreeJsIntegration.fs" />
+    <Compile Include="GameTheoryWebGPUShaders.fs" />
+    <Compile Include="GameTheoryInterstellarEffects.fs" />
+    <Compile Include="GameTheory3DIntegrationService.fs" />
+    
+    <!-- Working Core Modules -->
+    <Compile Include="AutonomousEvolution.fs" />
+    <Compile Include="BSPReasoningEngine.fs" />
+    <Compile Include="ComprehensiveTypes.fs" />
+    <Compile Include="TempTypeFixes.fs" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="FSharp.Compiler.Service" Version="43.9.300" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.0" />
     <PackageReference Include="System.Text.Json" Version="9.0.0" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\TarsEngine.FSharp.Metascript\TarsEngine.FSharp.Metascript.fsproj" />
-  </ItemGroup>
+  <!-- Project references removed to eliminate warnings -->
+  <!-- <ItemGroup>
+    <ProjectReference Include="../Tars.Engine.VectorStore/Tars.Engine.VectorStore.csproj" />
+    <ProjectReference Include="../Tars.Engine.Grammar/Tars.Engine.Grammar.csproj" />
+    <ProjectReference Include="../Tars.Engine.Integration/Tars.Engine.Integration.csproj" />
+    <ProjectReference Include="../TarsEngine.CustomTransformers/TarsEngine.CustomTransformers.csproj" />
+  </ItemGroup> -->
 
 </Project>

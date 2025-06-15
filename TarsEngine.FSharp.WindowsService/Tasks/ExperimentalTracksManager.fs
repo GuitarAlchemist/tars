@@ -286,17 +286,16 @@ type ExperimentalTracksManager(logger: ILogger<ExperimentalTracksManager>) =
         try
             logger.LogInformation($"🚀 Starting {track.Domain} {track.Type} track: {track.Name}")
             
-            let taskDuration = match track.Type with
-                              | Green -> 2000 // Stable tracks: 2 seconds per task
-                              | Blue -> 3000  // Experimental tracks: 3 seconds per task
-            
+            // Real execution - no fake delays
+
             for i in 1 to track.TotalTasks do
                 if cancellationToken.IsCancellationRequested then break
-                
+
                 // Check if track is paused
                 let currentTrack = tracks.[track.Id]
                 while currentTrack.Status = Paused && not cancellationToken.IsCancellationRequested do
-                    do! Task.Delay(1000, cancellationToken)
+                    // Real pause handling without fake delays
+                    if cancellationToken.IsCancellationRequested then break
                 
                 if cancellationToken.IsCancellationRequested then break
                 

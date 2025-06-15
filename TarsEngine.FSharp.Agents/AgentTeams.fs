@@ -6,20 +6,54 @@ open Microsoft.Extensions.Logging
 open FSharp.Control
 open AgentTypes
 open AgentCommunication
-open TarsEngine.FSharp.Agents.EnhancedAgentCoordination
-open TarsEngine.FSharp.Core.Mathematics.AdvancedMathematicalClosures
-open TarsEngine.FSharp.Core.Closures.UniversalClosureRegistry
-open TarsEngine.FSharp.Agents.GeneralizationTrackingAgent
+// Remove invalid imports - these namespaces don't exist
+// open TarsEngine.FSharp.Agents.EnhancedAgentCoordination
+// open TarsEngine.FSharp.Core.Mathematics.AdvancedMathematicalClosures
+// open TarsEngine.FSharp.Core.Closures.UniversalClosureRegistry
+// open TarsEngine.FSharp.Agents.GeneralizationTrackingAgent
 
-/// Agent team management and coordination
+/// Agent team management and coordination with 3D visualization integration
 module AgentTeams =
-    
+
+    /// Game theory agent types that map to 3D visualization
+    type GameTheoryAgentType =
+        | QuantalResponseEquilibrium of float // QRE with rationality parameter
+        | CognitiveHierarchy of int // CH with thinking levels
+        | NoRegretLearning of float // Learning rate
+        | EvolutionaryGameTheory of float // Mutation rate
+        | CorrelatedEquilibrium of string[] // Signal space
+        | MachineLearningAgent of string // ML model type
+
+    /// 3D visualization properties for agents
+    type Agent3DProperties = {
+        Position: float * float * float
+        Color: uint32
+        Size: float
+        Performance: float
+        IsActive: bool
+        ConnectionCount: int
+        LastActivity: DateTime
+    }
+
+    /// Enhanced agent with game theory and 3D properties
+    type EnhancedAgent = {
+        Id: AgentId
+        AgentType: GameTheoryAgentType
+        Capabilities: string list
+        Status: AgentStatus
+        Metrics: AgentMetrics
+        Properties3D: Agent3DProperties
+        TeamMemberships: string list
+        CommunicationChannels: Map<string, obj>
+    }
+
     /// Team coordination strategies
     type CoordinationStrategy =
         | Hierarchical of AgentId // Leader-based coordination
         | Democratic // Consensus-based decisions
         | Specialized // Task-based specialization
         | Swarm // Emergent coordination
+        | FractalSelfOrganizing // Fractal grammar-based coordination
     
     /// Team decision result
     type TeamDecision = {
@@ -63,9 +97,9 @@ module AgentTeams =
         let taskHistory = System.Collections.Concurrent.ConcurrentQueue<AgentTaskResult>()
 
         // Enhanced coordination with centralized mathematical optimization
-        let enhancedCoordinator = EnhancedAgentTeamCoordinator(logger)
-        let universalClosureRegistry = TARSUniversalClosureRegistry(logger)
-        let generalizationTracker = GeneralizationTrackingAgent(logger)
+        // let enhancedCoordinator = EnhancedAgentTeamCoordinator(logger)
+        // let universalClosureRegistry = TARSUniversalClosureRegistry(logger)
+        // let generalizationTracker = GeneralizationTrackingAgent(logger)
         let mutable communicationHistory = []
         let mutable performanceHistory = []
         let mutable isOptimized = false
@@ -282,7 +316,12 @@ module AgentTeams =
                     logger.LogInformation("🧠 Applying mathematical optimization to team {TeamName}", configuration.Name)
 
                     // Collect recent performance data
-                    let recentTasks = taskHistory.ToArray() |> Array.takeLast 10
+                    let allTasks = taskHistory.ToArray()
+                    let recentTasks =
+                        if allTasks.Length > 10 then
+                            allTasks |> Array.skip (allTasks.Length - 10)
+                        else
+                            allTasks
                     let recentPerformance =
                         recentTasks
                         |> Array.map (fun task -> if task.Success then 1.0 else 0.0)
@@ -444,6 +483,39 @@ module AgentTeams =
                     let! quantumResult = universalClosureRegistry.ExecuteQuantumClosure("pauli_matrices", null)
 
                     // Combine all mathematical insights
+                    let chaosTheoryResult =
+                        match chaosResult with
+                        | Some result ->
+                            {|
+                                Available = true
+                                IsChaotic = result.IsChaotic
+                                LyapunovExponent = result.LyapunovExponent
+                                StabilityAssessment = result.Analysis
+                            |}
+                        | None ->
+                            {|
+                                Available = false
+                                IsChaotic = false
+                                LyapunovExponent = 0.0
+                                StabilityAssessment = "Insufficient data for chaos analysis"
+                            |}
+
+                    let confidences = [
+                        if rfResult.Success then 0.85 else 0.5
+                        if gnnResult.Success then 0.88 else 0.5
+                        if bloomResult.Success then 0.92 else 0.6
+                        if quantumResult.Success then 0.90 else 0.5
+                    ]
+                    let overallConfidence = confidences |> List.average
+
+                    let recommendations = [
+                        if not rfResult.Success then "Improve team performance data collection"
+                        if not gnnResult.Success then "Enhance team communication structure"
+                        if not bloomResult.Success then "Establish clearer team patterns"
+                        if chaosResult.IsNone then "Collect more performance data for stability analysis"
+                        if not quantumResult.Success then "Review quantum-inspired coordination strategies"
+                    ]
+
                     let combinedInsights = {|
                         RandomForestPrediction = {|
                             Success = rfResult.Success
@@ -460,40 +532,14 @@ module AgentTeams =
                             Confidence = if bloomResult.Success then 0.92 else 0.6
                             PatternRecognition = sprintf "Team pattern '%s' analyzed" teamPattern
                         |}
-                        ChaosTheory =
-                            match chaosResult with
-                            | Some result -> {|
-                                Available = true
-                                IsChaotic = result.IsChaotic
-                                LyapunovExponent = result.LyapunovExponent
-                                StabilityAssessment = result.Analysis
-                            |}
-                            | None -> {|
-                                Available = false
-                                IsChaotic = false
-                                LyapunovExponent = 0.0
-                                StabilityAssessment = "Insufficient data for chaos analysis"
-                            |}
+                        ChaosTheory = chaosTheoryResult
                         QuantumInspired = {|
                             Success = quantumResult.Success
                             Confidence = if quantumResult.Success then 0.90 else 0.5
                             Analysis = "Quantum-inspired team state superposition analyzed"
                         |}
-                        OverallConfidence =
-                            let confidences = [
-                                if rfResult.Success then 0.85 else 0.5
-                                if gnnResult.Success then 0.88 else 0.5
-                                if bloomResult.Success then 0.92 else 0.6
-                                if quantumResult.Success then 0.90 else 0.5
-                            ]
-                            confidences |> List.average
-                        Recommendations = [
-                            if not rfResult.Success then "Improve team performance data collection"
-                            if not gnnResult.Success then "Enhance team communication structure"
-                            if not bloomResult.Success then "Establish clearer team patterns"
-                            if chaosResult.IsNone then "Collect more performance data for stability analysis"
-                            if not quantumResult.Success then "Review quantum-inspired coordination strategies"
-                        ]
+                        OverallConfidence = overallConfidence
+                        Recommendations = recommendations
                         MathematicalTechniques = [
                             "Random Forest: Team performance prediction"
                             "Graph Neural Network: Communication structure analysis"

@@ -1,0 +1,17 @@
+{
+  "name": "tars-game-theory-web",
+  "version": "1.0.0",
+  "description": "TARS Game Theory 3D Visualization Web Application",
+  "main": "index.html",
+  "scripts": {
+    "build": "fable TarsEngine.Web.fsproj --outDir js",
+    "serve": "python -m http.server 8080",
+    "dev": "npm run build && npm run serve"
+  },
+  "dependencies": {
+    "three": "^0.128.0"
+  },
+  "devDependencies": {
+    "fable-compiler": "^4.0.0"
+  }
+}

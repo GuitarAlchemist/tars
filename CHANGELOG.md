@@ -1,6 +1,6 @@
-# Changelog
+﻿# Changelog
 
-All notable changes to the TARS project will be documented in this file.
+most notable changes to the TARS project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added - TARS Engine API Injection (MAJOR FEATURE)
-- **Complete TARS Engine API Injection for F# and C#**
+- **comprehensive TARS Engine API Injection for F# and C#**
   - Implemented comprehensive ITarsEngineApi interface with 8 core services
   - Added TarsEngineApiImpl with real working functionality (no simulations)
   - Created thread-safe TarsApiRegistry for global API access
@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **API Services Implemented**
   - VectorStore API: Search, Add, Delete, GetSimilar, CreateIndex, GetIndexInfo
-  - LLM Service API: Complete, Chat, Embed, ListModels, SetParameters
+  - LLM Service API: comprehensive, Chat, Embed, ListModels, SetParameters
   - Agent Coordination API: Spawn, SendMessage, GetStatus, Terminate, ListActive, Broadcast
   - File System API: ReadFile, WriteFile, ListFiles, CreateDirectory, GetMetadata, Exists
   - Execution Context API: LogEvent, StartTrace, EndTrace, AddMetadata, GetContext
@@ -83,3 +83,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - DSL processing capabilities
 - Metascript execution
 - Self-improvement features
+
+
+**Note: This includes experimental features that are under active development.**

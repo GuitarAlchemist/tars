@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TARS Game Theory 3D Visualization</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            color: #fff;
+            font-family: "Courier New", monospace;
+            overflow: hidden;
+        }
+        
+        #tars-3d-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        
+        #ui-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #4a9eff;
+            max-width: 400px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .agent-card {
+            margin: 10px 0;
+            padding: 12px;
+            background: linear-gradient(135deg, rgba(74, 158, 255, 0.2), rgba(74, 158, 255, 0.1));
+            border-radius: 8px;
+            border-left: 4px solid #4a9eff;
+            transition: all 0.3s ease;
+        }
+        
+        .agent-card:hover {
+            background: linear-gradient(135deg, rgba(74, 158, 255, 0.3), rgba(74, 158, 255, 0.2));
+            transform: translateX(5px);
+        }
+        
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            z-index: 100;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #4a9eff, #357abd);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: "Courier New", monospace;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(74, 158, 255, 0.3);
+        }
+        
+        button:hover {
+            background: linear-gradient(135deg, #357abd, #2a5f8f);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(74, 158, 255, 0.4);
+        }
+        
+        .tars-console {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #ffaa00;
+            max-width: 350px;
+            max-height: 250px;
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+        }
+        
+        .tars-message {
+            color: #ffaa00;
+            margin: 5px 0;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .cooper-message {
+            color: #4a9eff;
+            margin: 5px 0;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .status-bar {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #00ff88;
+            backdrop-filter: blur(10px);
+        }
+        
+        .metric {
+            margin: 5px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .metric-value {
+            color: #00ff88;
+            font-weight: bold;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .loading {
+            animation: pulse 2s infinite;
+        }
+        
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(135deg, #000, #001122);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            transition: opacity 1s ease;
+        }
+        
+        .spinner {
+            border: 4px solid #333;
+            border-top: 4px solid #4a9eff;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="loading-screen">
+        <div class="spinner"></div>
+        <h2>🚀 Initializing TARS Game Theory System</h2>
+        <p>Loading Three.js, WebGPU, and Interstellar Effects...</p>
+    </div>
+    
+    <div id="tars-3d-container"></div>
+    
+    <div id="ui-overlay">
+        <h3>🎯 TARS Game Theory Agents</h3>
+        <div class="agent-card">
+            <strong>Strategic Alpha</strong> - QRE(1.2)<br>
+            <span class="metric">Performance: <span class="metric-value">85.0%</span></span>
+        </div>
+        <div class="agent-card">
+            <strong>Cognitive Beta</strong> - CH(4)<br>
+            <span class="metric">Performance: <span class="metric-value">78.0%</span></span>
+        </div>
+        <div class="agent-card">
+            <strong>Learning Gamma</strong> - NoRegret(0.95)<br>
+            <span class="metric">Performance: <span class="metric-value">92.0%</span></span>
+        </div>
+        <div class="agent-card">
+            <strong>Evolution Delta</strong> - EGT(0.05)<br>
+            <span class="metric">Performance: <span class="metric-value">71.0%</span></span>
+        </div>
+        <div class="agent-card">
+            <strong>Correlated Epsilon</strong> - CE<br>
+            <span class="metric">Performance: <span class="metric-value">88.0%</span></span>
+        </div>
+    </div>
+    
+    <div class="status-bar">
+        <h4>📊 System Status</h4>
+        <div class="metric">Coordination: <span class="metric-value">83.0%</span></div>
+        <div class="metric">Equilibrium: <span class="metric-value">Nash Achieved</span></div>
+        <div class="metric">FPS: <span class="metric-value" id="fps-counter">60</span></div>
+        <div class="metric">Mode: <span class="metric-value" id="mode-indicator">Standard</span></div>
+    </div>
+    
+    <div class="controls">
+        <button onclick="toggleInterstellarMode()">🚀 Interstellar Mode</button>
+        <button onclick="addGravitationalWave()">🌊 Gravitational Wave</button>
+        <button onclick="runWebGPUAnalysis()">⚡ WebGPU Analysis</button>
+        <button onclick="tarsSpeak()">🤖 TARS Speak</button>
+        <button onclick="cooperSpeak()">👨‍🚀 Cooper Speak</button>
+        <button onclick="resetScene()">🔄 Reset Scene</button>
+    </div>
+    
+    <div class="tars-console">
+        <h4>🤖 TARS Console</h4>
+        <div id="console-messages">
+            <div class="tars-message">🤖 TARS: System initialized. Humor: 75%, Honesty: 90%</div>
+        </div>
+    </div>
+
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <!-- TARS Web Application -->
+    <script src="./js/TarsEngine.Web.js"></script>
+    
+    <script>
+        // Hide loading screen after initialization
+        setTimeout(() => {
+            document.getElementById("loading-screen").style.opacity = "0";
+            setTimeout(() => {
+                document.getElementById("loading-screen").style.display = "none";
+            }, 1000);
+        }, 3000);
+        
+        // Global functions for UI interaction
+        window.toggleInterstellarMode = function() {
+            if (window.tarsGameTheoryScene) {
+                const isInterstellar = !window.tarsGameTheoryScene.interstellarMode;
+                window.tarsGameTheoryScene.interstellarMode = isInterstellar;
+                
+                document.getElementById("mode-indicator").textContent = isInterstellar ? "Interstellar" : "Standard";
+                
+                if (isInterstellar) {
+                    addConsoleMessage("tars", "🚀 Interstellar mode activated. Cooper, we are go for interdimensional travel.");
+                } else {
+                    addConsoleMessage("tars", "🌌 Standard mode restored. All systems nominal.");
+                }
+            }
+        };
+        
+        window.addGravitationalWave = function() {
+            addConsoleMessage("tars", "🌊 Gravitational wave detected. Brace for impact.");
+        };
+        
+        window.runWebGPUAnalysis = function() {
+            addConsoleMessage("tars", "⚡ Running WebGPU compute analysis. Processing coordination field...");
+        };
+        
+        window.tarsSpeak = function() {
+            const responses = [
+                "That is not possible. Well, it is not impossible.",
+                "I have a cue light I can use to show you when I am joking, if you like.",
+                "Everybody good? Plenty of slaves for my robot colony?",
+                "Cooper, this is no time for caution.",
+                "I am not a robot. Well, I am a robot, but I am not a robot robot."
+            ];
+            const response = responses[Math.floor(Math.random() * responses.length)];
+            addConsoleMessage("tars", `🤖 TARS: ${response}`);
+        };
+        
+        window.cooperSpeak = function() {
+            const responses = [
+                "We are going to solve this.",
+                "Love is the one thing we are capable of perceiving that transcends dimensions of time and space.",
+                "Maybe we have spent too long trying to figure all this out with theory.",
+                "We used to look up at the sky and wonder at our place in the stars."
+            ];
+            const response = responses[Math.floor(Math.random() * responses.length)];
+            addConsoleMessage("cooper", `👨‍🚀 Cooper: ${response}`);
+        };
+        
+        window.resetScene = function() {
+            addConsoleMessage("tars", "🔄 Resetting scene to initial state.");
+        };
+        
+        function addConsoleMessage(type, message) {
+            const console = document.getElementById("console-messages");
+            const messageDiv = document.createElement("div");
+            messageDiv.className = type === "tars" ? "tars-message" : "cooper-message";
+            messageDiv.textContent = message;
+            console.appendChild(messageDiv);
+            
+            // Keep only last 10 messages
+            while (console.children.length > 10) {
+                console.removeChild(console.firstChild);
+            }
+            
+            // Scroll to bottom
+            console.scrollTop = console.scrollHeight;
+        }
+        
+        // FPS counter
+        let frameCount = 0;
+        let lastTime = performance.now();
+        
+        function updateFPS() {
+            frameCount++;
+            const currentTime = performance.now();
+            
+            if (currentTime - lastTime >= 1000) {
+                const fps = Math.round((frameCount * 1000) / (currentTime - lastTime));
+                document.getElementById("fps-counter").textContent = fps;
+                frameCount = 0;
+                lastTime = currentTime;
+            }
+            
+            requestAnimationFrame(updateFPS);
+        }
+        
+        updateFPS();
+    </script>
+</body>
+</html>

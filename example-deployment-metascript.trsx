@@ -1,0 +1,156 @@
+// TARS Deployment Metascript Example
+// Shows how to use Injectable Deployment Service
+
+DESCRIBE {
+    name: "TARS Multi-Platform Deployment"
+    version: "2.0"
+    author: "TARS Autonomous System"
+    description: "Deploy TARS node across multiple platforms using injectable service"
+    capabilities: ["deployment", "multi_platform", "autonomous"]
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.3
+    deployment_mode: "production"
+    auto_deploy: true
+}
+
+// F# Block - Injectable Deployment Service Usage
+F# {
+    open TarsEngine.FSharp.Core.DeploymentService
+    
+    // Create deployment service (would be injected in real implementation)
+    let deploymentService = createDeploymentService()
+    
+    // Define deployment configuration
+    let deploymentConfig = {
+        NodeName = "tars-autonomous-node"
+        Port = 8080
+        Environment = "production"
+        Resources = Map.empty |> Map.add "memory" "512Mi" |> Map.add "cpu" "500m"
+        Metadata = Map.empty |> Map.add "version" "2.0" |> Map.add "type" "autonomous"
+    }
+    
+    // Check available platforms
+    let availablePlatforms = deploymentService.GetAvailablePlatforms()
+    printfn "🚀 Available deployment platforms: %A" availablePlatforms
+    
+    // Validate deployment configuration
+    let validation = deploymentService.ValidateDeployment(deploymentConfig)
+    if validation.IsValid then
+        printfn "✅ Deployment configuration is valid"
+    else
+        printfn "❌ Validation errors: %A" validation.Errors
+        printfn "⚠️  Warnings: %A" validation.Warnings
+    
+    // Deploy to Windows Service
+    task {
+        printfn "🔄 Deploying to Windows Service..."
+        let! windowsResult = deploymentService.DeployTo(WindowsService, deploymentConfig)
+        if windowsResult.Success then
+            printfn "✅ Windows Service deployment successful: %s" windowsResult.DeploymentId
+            printfn "   Endpoints: %A" windowsResult.Endpoints
+        else
+            printfn "❌ Windows Service deployment failed: %s" windowsResult.Message
+    } |> Async.AwaitTask |> Async.RunSynchronously
+    
+    // Deploy to Kubernetes
+    task {
+        printfn "🔄 Deploying to Kubernetes..."
+        let! k8sResult = deploymentService.DeployTo(Kubernetes, deploymentConfig)
+        if k8sResult.Success then
+            printfn "✅ Kubernetes deployment successful: %s" k8sResult.DeploymentId
+            printfn "   Generated files: %A" k8sResult.GeneratedFiles
+        else
+            printfn "❌ Kubernetes deployment failed: %s" k8sResult.Message
+    } |> Async.AwaitTask |> Async.RunSynchronously
+    
+    // Deploy to Hyperlight for ultra-fast execution
+    task {
+        printfn "🔄 Deploying to Hyperlight (1-2ms startup)..."
+        let! hyperlightResult = deploymentService.DeployTo(Hyperlight, deploymentConfig)
+        if hyperlightResult.Success then
+            printfn "✅ Hyperlight deployment successful: %s" hyperlightResult.DeploymentId
+            printfn "   Ultra-fast startup enabled!"
+        else
+            printfn "❌ Hyperlight deployment failed: %s" hyperlightResult.Message
+    } |> Async.AwaitTask |> Async.RunSynchronously
+    
+    // Deploy to multiple platforms at once
+    task {
+        printfn "🔄 Deploying to multiple platforms simultaneously..."
+        let targetPlatforms = [Docker; DockerCompose]
+        let! multiResults = MetascriptHelpers.deployToMultiplePlatforms deploymentService targetPlatforms deploymentConfig
+        
+        for result in multiResults do
+            if result.Success then
+                printfn "✅ %A deployment successful: %s" result.Platform result.DeploymentId
+            else
+                printfn "❌ %A deployment failed: %s" result.Platform result.Message
+    } |> Async.AwaitTask |> Async.RunSynchronously
+    
+    // Get deployment summary
+    task {
+        let! summary = MetascriptHelpers.getDeploymentSummary deploymentService
+        printfn "📊 Deployment Summary:"
+        printfn "   Available Platforms: %d" summary.AvailablePlatforms.Length
+        printfn "   Total Deployments: %d" summary.TotalDeployments
+        printfn "   Active Deployments: %d" summary.ActiveDeployments
+        printfn "   Failed Deployments: %d" summary.FailedDeployments
+    } |> Async.AwaitTask |> Async.RunSynchronously
+    
+    printfn "🎉 Multi-platform deployment completed!"
+}
+
+// Python Block - Alternative deployment logic
+Python {
+    # Python can also use the deployment service through interop
+    print("🐍 Python deployment logic")
+    print("   - Could call F# deployment service")
+    print("   - Could use Python deployment libraries")
+    print("   - Could generate deployment configs")
+    
+    deployment_status = {
+        "python_integration": True,
+        "deployment_ready": True,
+        "platforms_supported": ["docker", "kubernetes"]
+    }
+    
+    print(f"✅ Python deployment status: {deployment_status}")
+}
+
+// Action Block - Deployment actions
+ACTION {
+    type: "multi_platform_deployment"
+    description: "Deploy TARS node to multiple platforms using injectable service"
+    platforms: ["windows_service", "kubernetes", "hyperlight", "docker", "docker_compose"]
+    priority: "high"
+    autonomous: true
+}
+
+// Reflection Block - Deployment insights
+REFLECT {
+    insights: [
+        "Injectable deployment service provides clean separation of concerns",
+        "Multi-platform deployment enables maximum flexibility",
+        "Hyperlight integration provides ultra-fast startup times",
+        "Service-based approach is more maintainable than grammar integration"
+    ]
+    
+    benefits: [
+        "No grammar pollution with deployment-specific syntax",
+        "Easy to extend with new deployment platforms",
+        "Testable and modular architecture",
+        "Consistent with TARS service injection patterns"
+    ]
+    
+    next_steps: [
+        "Integrate with TARS dependency injection container",
+        "Add more deployment platforms as needed",
+        "Implement deployment monitoring and health checks",
+        "Create deployment templates for common scenarios"
+    ]
+    
+    architecture_decision: "Injectable service approach chosen over grammar integration for better separation of concerns and extensibility"
+}

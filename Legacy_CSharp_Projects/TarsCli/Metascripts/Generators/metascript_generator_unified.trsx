@@ -1,0 +1,43 @@
+#!/usr/bin/env trsx
+# Unified TRSX Format - Migrated from FLUX
+# Generated: 2025-06-09T22:10:55Z
+
+# METADATA
+title: "Migrated metascript_generator"
+version: "2.0"
+tier: 1
+
+program {
+    DESCRIBE {
+        id: "DESCRIBE_1"
+        purpose: "Migrated DESCRIBE block"
+    }
+    FUNCTION analyze_code {
+        id: "FUNCTION analyze_code_2"
+        purpose: "Migrated FUNCTION analyze_code block"
+    }
+    FUNCTION generate_improvement_metascript {
+        id: "FUNCTION generate_improvement_metascript_3"
+        purpose: "Migrated FUNCTION generate_improvement_metascript block"
+    }
+    FUNCTION validate_metascript {
+        id: "FUNCTION validate_metascript_4"
+        purpose: "Migrated FUNCTION validate_metascript block"
+    }
+    FOREACH {
+        id: "FOREACH_5"
+        purpose: "Migrated FOREACH block"
+    }
+    FOREACH {
+        id: "FOREACH_6"
+        purpose: "Migrated FOREACH block"
+    }
+}
+
+reflection {
+    average_entropy: 0.650
+    overall_similarity: 0.750
+    insight: "Successfully migrated from legacy FLUX format"
+    insight: "Unified format reduces file management complexity"
+    insight: "Integrated reflection enables better agent reasoning"
+}

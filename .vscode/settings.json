@@ -13,5 +13,6 @@
   "task.runOnStartup": {
     "task": "Ensure TARS MCP Server",
     "enabled": true
-  }
+  },
+  "cmake.sourceDirectory": "C:/Users/spare/source/repos/tars/src/TarsEngine/CUDA"
 }

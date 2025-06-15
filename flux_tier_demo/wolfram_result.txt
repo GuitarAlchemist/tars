@@ -1,0 +1,1 @@
+TIER-5 Mathematical: Integrate[x^2, x] = 2.500000 (complexity: 0.05, tier_bonus: 0.5) | No advanced type system applied

@@ -1,0 +1,1 @@
+REAL Julia HighPerf: sum(1:1000000) optimized in 0.014000 ms | No advanced type system applied

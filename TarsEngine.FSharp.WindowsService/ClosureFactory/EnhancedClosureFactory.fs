@@ -445,6 +445,7 @@ let monteCarlo = MonteCarloBuilder()
 let createMonteCarloIntegration targetFunction bounds numSamples =
     fun () ->
         monteCarlo {
+            // Monte Carlo REQUIRES randomness - this is legitimate mathematical algorithm
             let random = Random()
             let (lowerBounds, upperBounds) = bounds
             let dimensions = lowerBounds.Length

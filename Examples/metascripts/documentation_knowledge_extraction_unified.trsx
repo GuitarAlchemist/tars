@@ -1,0 +1,67 @@
+#!/usr/bin/env trsx
+# Unified TRSX Format - Migrated from FLUX
+# Generated: 2025-06-09T22:10:55Z
+
+# METADATA
+title: "Migrated documentation_knowledge_extraction"
+version: "2.0"
+tier: 1
+
+program {
+    DESCRIBE {
+        id: "DESCRIBE_1"
+        purpose: "Migrated DESCRIBE block"
+    }
+    FUNCTION extract_knowledge_from_file {
+        id: "FUNCTION extract_knowledge_from_file_2"
+        purpose: "Migrated FUNCTION extract_knowledge_from_file block"
+    }
+    FUNCTION update_knowledge_base {
+        id: "FUNCTION update_knowledge_base_3"
+        purpose: "Migrated FUNCTION update_knowledge_base block"
+    }
+    FUNCTION convert_to_retroaction_patterns {
+        id: "FUNCTION convert_to_retroaction_patterns_4"
+        purpose: "Migrated FUNCTION convert_to_retroaction_patterns block"
+    }
+    FSHARP {
+        id: "FSHARP_5"
+        purpose: "Migrated FSHARP block"
+    }
+    FUNCTION calculate_file_priority {
+        id: "FUNCTION calculate_file_priority_6"
+        purpose: "Migrated FUNCTION calculate_file_priority block"
+    }
+    FSHARP {
+        id: "FSHARP_7"
+        purpose: "Migrated FSHARP block"
+    }
+    FOREACH {
+        id: "FOREACH_8"
+        purpose: "Migrated FOREACH block"
+    }
+    FSHARP {
+        id: "FSHARP_9"
+        purpose: "Migrated FSHARP block"
+    }
+    FSHARP {
+        id: "FSHARP_10"
+        purpose: "Migrated FSHARP block"
+    }
+    FSHARP {
+        id: "FSHARP_11"
+        purpose: "Migrated FSHARP block"
+    }
+    FOREACH {
+        id: "FOREACH_12"
+        purpose: "Migrated FOREACH block"
+    }
+}
+
+reflection {
+    average_entropy: 0.650
+    overall_similarity: 0.750
+    insight: "Successfully migrated from legacy FLUX format"
+    insight: "Unified format reduces file management complexity"
+    insight: "Integrated reflection enables better agent reasoning"
+}

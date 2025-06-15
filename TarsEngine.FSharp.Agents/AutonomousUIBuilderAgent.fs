@@ -115,7 +115,7 @@ type AutonomousUIBuilderAgent(logger: ILogger<AutonomousUIBuilderAgent>, agentOr
     
     // Analyze metascript capabilities
     member private this.AnalyzeMetascriptCapabilities() =
-        let metascriptDir = ".tars/metascripts"
+        let metascriptDir = ".tars/metascripts/core"
         let metascriptFiles = if Directory.Exists(metascriptDir) then Directory.GetFiles(metascriptDir, "*.trsx") else [||]
         
         [

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>TARS 3D Game Theory - Simple Working Demo</title>
+    <style>
+        body { margin: 0; background: #222; color: #fff; font-family: monospace; }
+        #info { position: absolute; top: 10px; left: 10px; z-index: 100; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 5px; }
+        #controls { position: absolute; bottom: 10px; left: 10px; z-index: 100; }
+        button { background: #4a9eff; color: white; border: none; padding: 10px 15px; margin: 5px; border-radius: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h3>TARS Game Theory Agents</h3>
+        <div>🔵 Strategic Alpha (Blue)</div>
+        <div>🟢 Cognitive Beta (Green)</div>
+        <div>🟡 Learning Gamma (Yellow)</div>
+        <div>🟣 Evolution Delta (Purple)</div>
+        <div>🔴 Correlated Epsilon (Red)</div>
+    </div>
+    
+    <div id="controls">
+        <button onclick="zoomIn()">🔍 Zoom In</button>
+        <button onclick="zoomOut()">🔍 Zoom Out</button>
+        <button onclick="toggleWireframe()">📐 Wireframe</button>
+        <button onclick="addLight()">💡 More Light</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        let scene, camera, renderer;
+        let agents = [];
+        let wireframeMode = false;
+        
+        function init() {
+            console.log("Starting simple 3D demo...");
+            
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x333333); // Gray background
+            
+            // Camera - very close
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 5;
+            
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+            
+            // Very bright lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 2.0);
+            directionalLight.position.set(1, 1, 1);
+            scene.add(directionalLight);
+            
+            // Create bright, large spheres
+            const colors = [0x4a9eff, 0x00ff88, 0xffaa00, 0x9b59b6, 0xff6b6b];
+            const positions = [
+                [-2, 1, 0],
+                [2, 1, 0], 
+                [0, -1, 0],
+                [-1, 0, 1],
+                [1, 0, -1]
+            ];
+            
+            for (let i = 0; i < 5; i++) {
+                const geometry = new THREE.SphereGeometry(0.5, 32, 32);
+                const material = new THREE.MeshLambertMaterial({ 
+                    color: colors[i],
+                    emissive: colors[i],
+                    emissiveIntensity: 0.3
+                });
+                
+                const sphere = new THREE.Mesh(geometry, material);
+                sphere.position.set(...positions[i]);
+                scene.add(sphere);
+                agents.push(sphere);
+                
+                console.log(`Created sphere ${i} at position:`, positions[i]);
+            }
+            
+            // Add lines between spheres
+            for (let i = 0; i < agents.length; i++) {
+                for (let j = i + 1; j < agents.length; j++) {
+                    const points = [agents[i].position, agents[j].position];
+                    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+                    const material = new THREE.LineBasicMaterial({ color: 0x4a9eff, opacity: 0.5, transparent: true });
+                    const line = new THREE.Line(geometry, material);
+                    scene.add(line);
+                }
+            }
+            
+            animate();
+            console.log("3D scene initialized with", agents.length, "agents");
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Rotate agents
+            agents.forEach((agent, i) => {
+                agent.rotation.x += 0.01;
+                agent.rotation.y += 0.01;
+                agent.position.y += Math.sin(Date.now() * 0.001 + i) * 0.01;
+            });
+            
+            renderer.render(scene, camera);
+        }
+        
+        function zoomIn() {
+            camera.position.z = Math.max(camera.position.z - 1, 1);
+            console.log("Camera position:", camera.position.z);
+        }
+        
+        function zoomOut() {
+            camera.position.z = Math.min(camera.position.z + 1, 20);
+            console.log("Camera position:", camera.position.z);
+        }
+        
+        function toggleWireframe() {
+            wireframeMode = !wireframeMode;
+            agents.forEach(agent => {
+                agent.material.wireframe = wireframeMode;
+            });
+            console.log("Wireframe mode:", wireframeMode);
+        }
+        
+        function addLight() {
+            const light = new THREE.PointLight(0xffffff, 2, 100);
+            light.position.set(0, 0, 5);
+            scene.add(light);
+            console.log("Added point light");
+        }
+        
+        window.addEventListener("resize", () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        // Start
+        init();
+        
+        // Debug info
+        console.log("Three.js version:", THREE.REVISION);
+        console.log("WebGL supported:", !!window.WebGLRenderingContext);
+    </script>
+</body>
+</html>

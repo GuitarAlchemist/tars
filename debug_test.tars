@@ -1,0 +1,9 @@
+DESCRIBE {
+    name: "Debug Test"
+    description: "Simple test to debug F# parsing"
+}
+
+FSHARP {
+    printfn "Hello from F#!"
+    printfn "Result: %d" 42
+}

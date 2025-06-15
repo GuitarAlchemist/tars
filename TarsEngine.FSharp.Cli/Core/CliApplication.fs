@@ -28,17 +28,17 @@ type CliApplication() =
         services.AddSingleton<IntelligenceService>() |> ignore
         services.AddSingleton<MLService>() |> ignore
         services.AddSingleton<DockerService>() |> ignore
-        services.AddSingleton<MixtralService>() |> ignore
-        services.AddSingleton<LLMRouter>() |> ignore
+        // services.AddSingleton<MixtralService>() |> ignore  // Temporarily disabled
+        // services.AddSingleton<LLMRouter>() |> ignore  // Temporarily disabled
         
         services.BuildServiceProvider()
     
     let intelligenceService = serviceProvider.GetRequiredService<IntelligenceService>()
     let mlService = serviceProvider.GetRequiredService<MLService>()
     let dockerService = serviceProvider.GetRequiredService<DockerService>()
-    let mixtralService = serviceProvider.GetRequiredService<MixtralService>()
-    let llmRouter = serviceProvider.GetRequiredService<LLMRouter>()
-    let commandRegistry = CommandRegistry(intelligenceService, mlService, dockerService, mixtralService, llmRouter)
+    // let mixtralService = serviceProvider.GetRequiredService<MixtralService>()  // Temporarily disabled
+    // let llmRouter = serviceProvider.GetRequiredService<LLMRouter>()  // Temporarily disabled
+    let commandRegistry = CommandRegistry(intelligenceService, mlService, dockerService)
     let commandLineParser = CommandLineParser()
     
     do

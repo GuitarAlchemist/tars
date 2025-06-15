@@ -1,0 +1,55 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <Authors>TARS Development Team</Authors>
+    <Description>Standalone implementation of ChatGPT-Cross-Entropy and Vector Store Semantics for TARS FLUX</Description>
+    <Version>1.0.0</Version>
+    <LangVersion>9.0</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Core AST and Types -->
+    <Compile Include="Ast/FluxAst.fs" />
+
+    <!-- ChatGPT-Cross-Entropy Refinement -->
+    <Compile Include="Refinement/CrossEntropyRefinement.fs" />
+
+    <!-- Vector Store Semantics -->
+    <Compile Include="VectorStore/SemanticVectorStore.fs" />
+
+    <!-- Simple Fractal Grammar System -->
+    <Compile Include="FractalGrammar/SimpleFractalGrammar.fs" />
+
+    <!-- FLUX Fractal Language Architecture -->
+    <Compile Include="FractalLanguage/FluxFractalArchitecture.fs" />
+    <Compile Include="FractalLanguage/FluxFractalInterpreter.fs" />
+
+    <!-- Unified TRSX Format -->
+    <Compile Include="UnifiedFormat/UnifiedTrsxInterpreter.fs" />
+    <Compile Include="UnifiedFormat/TrsxMigrationTool.fs" />
+    <Compile Include="UnifiedFormat/TrsxCli.fs" />
+
+    <!-- Test Runners -->
+    <Compile Include="Tests/SimpleFractalGrammarTests.fs" />
+    <Compile Include="Tests/CudaVectorStoreValidationTests.fs" />
+    <Compile Include="Tests/PracticalUseCaseTests.fs" />
+    <Compile Include="Tests/CustomTransformerTests.fs" />
+    <Compile Include="Tests/StandaloneTestRunner.fs" />
+
+    <!-- Demos -->
+    <Compile Include="VectorStoreDemo.fs" />
+
+    <!-- Main Program -->
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Threading.Tasks" Version="4.3.0" />
+    <PackageReference Include="System.Collections" Version="4.3.0" />
+  </ItemGroup>
+
+</Project>
