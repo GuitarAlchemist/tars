@@ -2,18 +2,55 @@ namespace TarsEngine.FSharp.UI
 
 open System
 open Fable.Core
+open Thoth.Json
 
-/// TARS UI Types for Elmish-based functional UI
+/// Core types for the TARS UI application
 module Types =
-    
-    /// Agent status for UI display
+
+    /// Application pages
+    type Page =
+        | Dashboard
+        | Agents
+        | Metascripts
+        | Nodes
+        | Chat
+        | Editor of string
+
+    /// Agent status enumeration
     type AgentStatus =
         | Idle
         | Active
         | Busy
         | Error of string
         | Offline
-    
+
+    /// Node status enumeration
+    type NodeStatus =
+        | Online
+        | Offline
+        | Degraded
+        | Maintenance
+
+    /// Chat message types
+    type MessageType =
+        | Text
+        | Code
+        | Error
+        | System
+        | AgentResponse
+
+    /// Agent tree structure for hierarchical display
+    type AgentTreeNode = {
+        Id: string
+        Name: string
+        Type: string
+        Status: AgentStatus
+        Children: AgentTreeNode list
+        Capabilities: string list
+        LastActivity: DateTime option
+        Metrics: Map<string, obj>
+    }
+
     /// Agent information for UI
     type AgentInfo = {
         Id: string
@@ -27,7 +64,7 @@ module Types =
         Performance: float
         LastActivity: DateTime
     }
-    
+
     /// Department information
     type DepartmentInfo = {
         Name: string
@@ -37,7 +74,7 @@ module Types =
         AgentCount: int
         Status: string
     }
-    
+
     /// Team information
     type TeamInfo = {
         Name: string
@@ -48,7 +85,7 @@ module Types =
         Status: string
         Performance: float
     }
-    
+
     /// Network node for visualization
     type NetworkNode = {
         Id: string
@@ -59,17 +96,46 @@ module Types =
         Status: AgentStatus
         Metadata: Map<string, obj>
     }
-    
-    /// Chat message for agent interaction
+
+    /// Metascript information
+    type MetascriptInfo = {
+        Name: string
+        Path: string
+        Description: string option
+        Author: string option
+        Version: string option
+        LastModified: DateTime
+        IsRunning: bool
+        ExecutionCount: int
+        Tags: string list
+    }
+
+    /// Node information for monitoring
+    type NodeInfo = {
+        Id: string
+        Name: string
+        Address: string
+        Status: NodeStatus
+        RunningMetascripts: string list
+        CpuUsage: float
+        MemoryUsage: float
+        LastHeartbeat: DateTime
+        Capabilities: string list
+    }
+
+    /// Chat message structure
     type ChatMessage = {
         Id: string
-        AgentId: string
-        AgentName: string
         Content: string
+        IsFromUser: bool
         Timestamp: DateTime
-        MessageType: string // "user" | "agent" | "system"
+        MessageType: MessageType
+        Metadata: Map<string, obj> option
+        // Legacy fields for compatibility
+        AgentId: string option
+        AgentName: string option
     }
-    
+
     /// UI generation request
     type UIGenerationRequest = {
         Prompt: string
@@ -78,7 +144,7 @@ module Types =
         Priority: int
         Timestamp: DateTime
     }
-    
+
     /// Generated UI component
     type GeneratedUIComponent = {
         Name: string
@@ -90,91 +156,129 @@ module Types =
         Timestamp: DateTime
         Status: string
     }
-    
-    /// Application state
+
+    /// Application state - comprehensive model combining both versions
     type Model = {
-        // Agent data
+        // Page navigation
+        CurrentPage: Page
+
+        // Agent data (comprehensive)
         Agents: AgentInfo list
+        AgentTree: AgentTreeNode list
         Departments: DepartmentInfo list
         Teams: TeamInfo list
         NetworkNodes: NetworkNode list
-        
+
+        // Metascripts and nodes
+        Metascripts: MetascriptInfo list
+        Nodes: NodeInfo list
+        CurrentMetascript: string option
+        MonacoEditorContent: string
+
         // UI state
         SelectedAgent: AgentInfo option
+        SelectedAgentId: string option
         SelectedNode: NetworkNode option
+        SelectedNodeId: string option
         ActiveChat: string option
         ChatMessages: ChatMessage list
-        
+        ChatHistory: ChatMessage list
+
         // UI generation
         GenerationPrompt: string
         GenerationInProgress: bool
         GeneratedComponents: GeneratedUIComponent list
-        
+
         // Filters and search
         SearchQuery: string
         StatusFilter: AgentStatus option
         DepartmentFilter: string option
-        
-        // Real-time updates
+
+        // Real-time updates and connection
         ConnectionStatus: string
+        WebSocketConnected: bool
+        SemanticKernelReady: bool
         LastUpdate: DateTime
-        
-        // Error handling
+
+        // Loading and error handling
+        IsLoading: bool
+        Error: string option
         Errors: string list
     }
-    
-    /// Application messages
+
+    /// Application messages - comprehensive combining both versions
     type Msg =
+        // Navigation
+        | NavigateTo of Page
+
         // Agent management
         | LoadAgents
         | AgentsLoaded of AgentInfo list
+        | AgentTreeLoaded of AgentTreeNode list
         | AgentStatusChanged of string * AgentStatus
         | SelectAgent of AgentInfo
+        | SelectAgentById of string
         | DeselectAgent
-        
+
         // Department and team management
         | LoadDepartments
         | DepartmentsLoaded of DepartmentInfo list
         | LoadTeams
         | TeamsLoaded of TeamInfo list
-        
-        // Network visualization
-        | LoadNetworkNodes
-        | NetworkNodesLoaded of NetworkNode list
+
+        // Metascripts
+        | LoadMetascripts
+        | MetascriptsLoaded of MetascriptInfo list
+        | SelectMetascript of string
+        | RunMetascript of string
+        | StopMetascript of string
+        | SaveMetascript of string * string
+        | UpdateMonacoContent of string
+
+        // Nodes
+        | LoadNodes
+        | NodesLoaded of NodeInfo list
         | SelectNode of NetworkNode
+        | SelectNodeById of string
         | DeselectNode
         | UpdateNodePosition of string * (float * float * float)
-        
+
         // Chat and interaction
         | StartChat of string
         | EndChat
         | SendMessage of string
+        | SendChatMessage of string
         | MessageReceived of ChatMessage
+        | ChatMessageReceived of ChatMessage
         | ChatHistoryLoaded of ChatMessage list
-        
+
         // UI generation
         | UpdateGenerationPrompt of string
         | StartUIGeneration
         | UIGenerationCompleted of GeneratedUIComponent
         | UIGenerationFailed of string
-        
+
         // Search and filtering
         | UpdateSearchQuery of string
         | SetStatusFilter of AgentStatus option
         | SetDepartmentFilter of string option
         | ClearFilters
-        
-        // Real-time updates
+
+        // Real-time updates and connection
         | WebSocketConnected
         | WebSocketDisconnected
         | WebSocketMessage of string
         | UpdateReceived of string
-        
+        | SemanticKernelInitialized
+        | Refresh
+
         // Error handling
         | AddError of string
         | ClearError of string
         | ClearAllErrors
-        
+        | Error of string
+        | ClearError
+
         // System
         | Tick of DateTime
         | NoOp
@@ -190,25 +294,53 @@ module Types =
         | GenerateUICmd of UIGenerationRequest
         | UpdateAgentStatusCmd of string * AgentStatus
     
-    /// Initial model state
+    /// Initial model state - comprehensive combining both versions
     let init () : Model * Cmd list =
         {
+            // Page navigation
+            CurrentPage = Dashboard
+
+            // Agent data (comprehensive)
             Agents = []
+            AgentTree = []
             Departments = []
             Teams = []
             NetworkNodes = []
+
+            // Metascripts and nodes
+            Metascripts = []
+            Nodes = []
+            CurrentMetascript = None
+            MonacoEditorContent = ""
+
+            // UI state
             SelectedAgent = None
+            SelectedAgentId = None
             SelectedNode = None
+            SelectedNodeId = None
             ActiveChat = None
             ChatMessages = []
+            ChatHistory = []
+
+            // UI generation
             GenerationPrompt = ""
             GenerationInProgress = false
             GeneratedComponents = []
+
+            // Filters and search
             SearchQuery = ""
             StatusFilter = None
             DepartmentFilter = None
+
+            // Real-time updates and connection
             ConnectionStatus = "Disconnected"
+            WebSocketConnected = false
+            SemanticKernelReady = false
             LastUpdate = DateTime.Now
+
+            // Loading and error handling
+            IsLoading = false
+            Error = None
             Errors = []
         }, [LoadAgentsCmd; LoadDepartmentsCmd; LoadTeamsCmd; LoadNetworkNodesCmd; ConnectWebSocketCmd]
     
