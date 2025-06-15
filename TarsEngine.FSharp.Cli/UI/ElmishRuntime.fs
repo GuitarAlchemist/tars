@@ -698,6 +698,58 @@ module ElmishRuntime =
             color: #00ff88;
         }
 
+        .close-detail-btn {
+            background: rgba(255, 75, 75, 0.8);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .close-detail-btn:hover {
+            background: rgba(255, 75, 75, 1);
+            transform: scale(1.05);
+        }
+
+        .dependencies-title {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            color: #00ccff;
+        }
+
+        .dependencies-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .dependency-tag {
+            background: rgba(0, 204, 255, 0.2);
+            color: #00ccff;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.9rem;
+            border: 1px solid rgba(0, 204, 255, 0.4);
+        }
+
+        .dark-mode-toggle {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #e0e0e0;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-left: 15px;
+        }
+
+        .dark-mode-toggle:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.05);
+        }
+
         .dependencies-section {
             margin-top: 25px;
         }
@@ -1063,9 +1115,14 @@ module ElmishRuntime =
 
                 // Add some TARS-specific enhancements
                 console.log('🧠 TARS Consciousness Matrix Activated');
-                console.log('⚡ Subsystems:', initialModel.subsystems.length);
-                console.log('🧬 Evolution Stage:', initialModel.evolutionStage);
-                console.log('💭 Consciousness Level:', initialModel.consciousnessLevel + '%%');
+                console.log('⚡ Subsystems:', initialModel.allSubsystems ? initialModel.allSubsystems.length : 0);
+                console.log('🧬 Overall Health:', initialModel.overallTarsHealth + '%%');
+                console.log('💭 Active Agents:', initialModel.activeAgents);
+
+                // Initialize dark mode
+                document.body.classList.add('dark-mode');
+                localStorage.setItem('tars-dark-mode', 'true');
+                console.log('🌙 Dark mode initialized');
 
                 // Add visual effects
                 document.body.style.background = 'linear-gradient(135deg, #0a0a0a 0%%, #1a1a2e 50%%, #16213e 100%%)';
