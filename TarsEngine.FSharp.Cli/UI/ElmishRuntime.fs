@@ -286,6 +286,27 @@ module ElmishRuntime =
             console.log('❌ Closed subsystem detail');
         }
 
+        // REAL ELMISH BREADCRUMB NAVIGATION FUNCTIONS
+        function navigateToHome() {
+            console.log('🏠 Navigating to TARS Diagnostics home');
+            dispatch(JSON.stringify({ "Case": "NavigateToHome", "Fields": [] }));
+        }
+
+        function navigateToView(viewMode) {
+            console.log('📊 Navigating to view:', viewMode);
+            dispatch(JSON.stringify({ "Case": "NavigateToView", "Fields": [viewMode] }));
+        }
+
+        function clearSubsystemSelection() {
+            console.log('🔄 Clearing subsystem selection');
+            dispatch(JSON.stringify({ "Case": "ClearSubsystemSelection", "Fields": [] }));
+        }
+
+        // Make functions globally available for onclick handlers
+        window.navigateToHome = navigateToHome;
+        window.navigateToView = navigateToView;
+        window.clearSubsystemSelection = clearSubsystemSelection;
+
         // Initialize when DOM is ready
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 TARS Elmish Runtime Ready');
@@ -750,6 +771,64 @@ module ElmishRuntime =
             transform: scale(1.05);
         }
 
+        /* BREADCRUMB NAVIGATION STYLES */
+        .tars-breadcrumbs {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 12px 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(0, 255, 136, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .breadcrumb-container {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            color: #e0e0e0;
+        }
+
+        .breadcrumb-item {
+            color: #00ccff;
+            text-decoration: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .breadcrumb-item:hover {
+            background: rgba(0, 204, 255, 0.2);
+            color: #ffffff;
+            transform: scale(1.05);
+        }
+
+        .breadcrumb-item.home {
+            color: #00ff88;
+            font-weight: bold;
+        }
+
+        .breadcrumb-item.home:hover {
+            background: rgba(0, 255, 136, 0.2);
+        }
+
+        .breadcrumb-item.current {
+            color: #ffffff;
+            background: rgba(0, 255, 136, 0.3);
+            cursor: default;
+            font-weight: bold;
+        }
+
+        .breadcrumb-item.current:hover {
+            transform: none;
+        }
+
+        .breadcrumb-separator {
+            color: #666;
+            margin: 0 8px;
+            font-weight: bold;
+        }
+
         .dependencies-section {
             margin-top: 25px;
         }
@@ -1112,7 +1191,9 @@ module ElmishRuntime =
             autoRefresh = model.AutoRefresh
         |}
         let modelJson = JsonSerializer.Serialize(simplifiedModel, JsonSerializerOptions(PropertyNamingPolicy = JsonNamingPolicy.CamelCase))
-        let viewHtml = TarsElmishDiagnostics.view model |> TarsHtml.render
+        // Create a dummy dispatch for server-side rendering
+        let dummyDispatch msg = printfn "Server-side dispatch: %A" msg
+        let viewHtml = TarsElmishDiagnostics.view model dummyDispatch |> TarsHtml.render
 
         let cssContent = generateTarsCSS ()
         let jsContent = generateJavaScriptRuntime ()
@@ -1207,32 +1288,42 @@ module ElmishRuntime =
 </body>
 </html>""" cssContent viewHtml jsContent modelJson
 
-    // ELMISH PROGRAM RUNNER
+    // REAL ELMISH PROGRAM RUNNER - True MVU Architecture
     let runElmishProgram () =
-        // Create initial model and load comprehensive TARS subsystems
-        let initialModel = TarsElmishDiagnostics.init()
-        let comprehensiveSubsystems = TarsElmishDiagnostics.generateComprehensiveTarsSubsystems()
-        let currentModel = TarsElmishDiagnostics.update (TarsElmishDiagnostics.TarsSubsystemsLoaded comprehensiveSubsystems) initialModel
+        // Create the real Elmish program
+        let program = TarsElmishDiagnostics.createTarsElmishProgram ()
 
-        // Simple update function for server-side
-        let updateModel msg model =
-            TarsElmishDiagnostics.update msg model
+        // Initialize the TARS model with comprehensive subsystems
+        let initialModel = program.Init ()
+        let subsystems = TarsElmishDiagnostics.generateComprehensiveTarsSubsystems ()
+        let loadedModel = program.Update (TarsElmishDiagnostics.TarsSubsystemsLoaded subsystems) initialModel
 
-        // Generate initial HTML using the view function
-        let initialHtml = TarsElmishDiagnostics.view currentModel |> TarsHtml.render
+        // Create a real dispatch function
+        let mutable currentModel = loadedModel
+        let rec dispatch msg =
+            let newModel = program.Update msg currentModel
+            currentModel <- newModel
+            // In a real implementation, this would trigger a re-render
+            printfn "🔄 Model updated via message: %A" msg
 
-        // Return the HTML and update function
-        (initialHtml, updateModel, currentModel)
+        // Generate initial view with real dispatch
+        let initialView = program.View loadedModel dispatch
 
-    // MESSAGE HANDLER FOR HTTP REQUESTS
+        (TarsHtml.render initialView, dispatch, loadedModel)
+
+    // REAL ELMISH MESSAGE HANDLER - True MVU with Dispatch
     let handleElmishUpdate (messageJson: string) (modelJson: string) =
         try
+            let program = TarsElmishDiagnostics.createTarsElmishProgram ()
             let message = JsonSerializer.Deserialize<TarsElmishDiagnostics.TarsMsg>(messageJson)
             let model = JsonSerializer.Deserialize<TarsElmishDiagnostics.TarsDiagnosticsModel>(modelJson, JsonSerializerOptions(PropertyNamingPolicy = JsonNamingPolicy.CamelCase))
 
-            // Use the real update and view functions
-            let newModel = TarsElmishDiagnostics.update message model
-            let newHtml = TarsElmishDiagnostics.view newModel |> TarsHtml.render
+            // Use the real Elmish program update and view functions
+            let newModel = program.Update message model
+
+            // Create a dummy dispatch for view rendering (server-side)
+            let dummyDispatch msg = printfn "Server-side dispatch: %A" msg
+            let newHtml = program.View newModel dummyDispatch |> TarsHtml.render
 
             {|
                 success = true

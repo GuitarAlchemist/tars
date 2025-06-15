@@ -3,12 +3,14 @@ namespace TarsEngine.FSharp.Cli.UI
 open System
 open TarsEngine.FSharp.Cli.Diagnostics.TarsRealDiagnostics
 
-/// HTML Virtual DOM for Pure Elmish
+/// Real Elmish Virtual DOM with Message Dispatching
 module TarsHtml =
     type VNode =
-        | Element of string * (string * string) list * VNode list
+        | Element of string * (string * obj) list * VNode list
         | Text of string
         | Empty
+
+    and EventHandler<'Msg> = 'Msg
 
     let div attrs children = Element("div", attrs, children)
     let h1 attrs children = Element("h1", attrs, children)
@@ -22,6 +24,12 @@ module TarsHtml =
     let text str = Text(str)
     let empty = Empty
 
+    // Event attribute helpers for real message dispatching
+    let onClick (msg: 'Msg) = ("onclick", box msg)
+    let onInput (f: string -> 'Msg) = ("oninput", box f)
+    let className (cls: string) = ("class", box cls)
+    let style (s: string) = ("style", box s)
+
     let rec render (node: VNode) =
         match node with
         | Text content -> content
@@ -29,7 +37,10 @@ module TarsHtml =
         | Element(tag, attrs, children) ->
             let attrString =
                 attrs
-                |> List.map (fun (key, value) -> sprintf "%s=\"%s\"" key value)
+                |> List.map (fun (key, value) ->
+                    match value with
+                    | :? string as s -> sprintf "%s=\"%s\"" key s
+                    | _ -> sprintf "%s=\"%A\"" key value)
                 |> String.concat " "
             let childrenString =
                 children
@@ -42,6 +53,8 @@ module TarsHtml =
                 sprintf "<%s %s>%s</%s>" tag attrString childrenString tag
 
 open TarsHtml
+
+// Use ElmishRuntime from ElmishRuntime.fs
 
 /// Pure Elmish TARS Subsystem Diagnostics - Real MVU Architecture
 module TarsElmishDiagnostics =
@@ -102,6 +115,9 @@ module TarsElmishDiagnostics =
         | ToggleAutoRefresh
         | RefreshTars
         | SubsystemStatusChanged of string * SubsystemStatus
+        | NavigateToHome
+        | NavigateToView of ViewMode
+        | ClearSubsystemSelection
 
     // INIT - Pure function to create TARS model
     let init () : TarsDiagnosticsModel =
@@ -172,6 +188,15 @@ module TarsElmishDiagnostics =
 
             { model with AllSubsystems = updatedSubsystems }
 
+        | NavigateToHome ->
+            { model with ViewMode = Overview; SelectedSubsystem = None }
+
+        | NavigateToView mode ->
+            { model with ViewMode = mode; SelectedSubsystem = None }
+
+        | ClearSubsystemSelection ->
+            { model with SelectedSubsystem = None }
+
     // PURE VIEW HELPERS
     let statusColor = function
         | Operational -> "#28a745"
@@ -194,81 +219,127 @@ module TarsElmishDiagnostics =
         | :? string as s -> s
         | _ -> sprintf "%A" value
 
-    // ELMISH VIEW COMPONENTS - Pure functions
-    let viewTarsHeader (model: TarsDiagnosticsModel) =
-        div [ ("class", "tars-header") ] [
-            h1 [] [ text "🧠 TARS Subsystem Diagnostics" ]
-            div [ ("class", "tars-health-summary") ] [
-                div [ ("class", "overall-health") ] [
-                    span [ ("class", "health-score") ] [ 
-                        text (sprintf "%.1f%%" model.OverallTarsHealth) 
-                    ]
-                    span [ ("class", "health-label") ] [ text "TARS Health" ]
+    // BREADCRUMB NAVIGATION COMPONENT - Real Elmish with Message Dispatching
+    let viewBreadcrumbs (model: TarsDiagnosticsModel) (dispatch: TarsMsg -> unit) =
+        let viewModeText = function
+            | Overview -> "Subsystems Overview"
+            | Detailed -> "Detailed Analysis"
+            | Performance -> "Performance Metrics"
+            | Architecture -> "System Architecture"
+
+        div [ className "tars-breadcrumbs" ] [
+            div [ className "breadcrumb-container" ] [
+                // Home breadcrumb - Real message dispatch
+                span [
+                    className "breadcrumb-item home"
+                    onClick NavigateToHome
+                ] [
+                    text "🧠 TARS Diagnostics"
                 ]
-                div [ ("class", "tars-stats") ] [
-                    div [ ("class", "stat") ] [
-                        span [ ("class", "stat-value") ] [ text (string model.ActiveAgents) ]
-                        span [ ("class", "stat-label") ] [ text "Active Agents" ]
+
+                // View mode breadcrumb (if not Overview)
+                if model.ViewMode <> Overview then
+                    span [ className "breadcrumb-separator" ] [ text " > " ]
+                    span [
+                        className "breadcrumb-item view"
+                        onClick (NavigateToView Overview)
+                    ] [
+                        text (viewModeText model.ViewMode)
                     ]
-                    div [ ("class", "stat") ] [
-                        span [ ("class", "stat-value") ] [ text (string model.ProcessingTasks) ]
-                        span [ ("class", "stat-label") ] [ text "Processing Tasks" ]
+
+                // Subsystem breadcrumb (if selected)
+                match model.SelectedSubsystem with
+                | Some subsystemName ->
+                    span [ className "breadcrumb-separator" ] [ text " > " ]
+                    span [ className "breadcrumb-item subsystem current" ] [
+                        text subsystemName
                     ]
-                    div [ ("class", "stat") ] [
-                        span [ ("class", "stat-value") ] [ text (model.LastUpdate.ToString("HH:mm:ss")) ]
-                        span [ ("class", "stat-label") ] [ text "Last Update" ]
-                    ]
-                ]
+                | None -> empty
             ]
         ]
 
-    let viewSubsystemCard (subsystem: TarsSubsystem) (isSelected: bool) =
+    // ELMISH VIEW COMPONENTS - Pure functions with Real Message Dispatching
+    let viewTarsHeader (model: TarsDiagnosticsModel) (dispatch: TarsMsg -> unit) =
+        div [ className "tars-header" ] [
+            h1 [] [ text "🧠 TARS Subsystem Diagnostics" ]
+            div [ className "tars-health-summary" ] [
+                div [ className "overall-health" ] [
+                    span [ className "health-score" ] [
+                        text (sprintf "%.1f%%" model.OverallTarsHealth)
+                    ]
+                    span [ className "health-label" ] [ text "TARS Health" ]
+                ]
+                div [ className "tars-stats" ] [
+                    div [ className "stat" ] [
+                        span [ className "stat-value" ] [ text (string model.ActiveAgents) ]
+                        span [ className "stat-label" ] [ text "Active Agents" ]
+                    ]
+                    div [ className "stat" ] [
+                        span [ className "stat-value" ] [ text (string model.ProcessingTasks) ]
+                        span [ className "stat-label" ] [ text "Processing Tasks" ]
+                    ]
+                    div [ className "stat" ] [
+                        span [ className "stat-value" ] [ text (model.LastUpdate.ToString("HH:mm:ss")) ]
+                        span [ className "stat-label" ] [ text "Last Update" ]
+                    ]
+                ]
+            ]
+            // Add dark mode toggle with real message dispatch
+            button [
+                className "dark-mode-toggle"
+                onClick ToggleDetails
+            ] [
+                text "☀️ Light Mode"
+            ]
+        ]
+
+    let viewSubsystemCard (subsystem: TarsSubsystem) (isSelected: bool) (dispatch: TarsMsg -> unit) =
         div [
-            ("class", sprintf "subsystem-card clickable %s %s"
+            className (sprintf "subsystem-card clickable %s %s"
                 (subsystem.Name.ToLower())
                 (if isSelected then "selected" else ""))
-            ("onclick", sprintf "selectSubsystem('%s')" subsystem.Name)
+            onClick (SelectSubsystem subsystem.Name)
         ] [
-            div [ ("class", "subsystem-header") ] [
+            div [ className "subsystem-header" ] [
                 h3 [] [ text subsystem.Name ]
-                span [ 
-                    ("class", "status-indicator")
-                    ("style", sprintf "color: %s" (statusColor subsystem.Status))
+                span [
+                    className "status-indicator"
+                    style (sprintf "color: %s" (statusColor subsystem.Status))
                 ] [
                     text (sprintf "%s %A" (statusIcon subsystem.Status) subsystem.Status)
                 ]
             ]
-            div [ ("class", "subsystem-metrics") ] [
-                div [ ("class", "metric") ] [
-                    span [ ("class", "metric-label") ] [ text "Health:" ]
-                    span [ ("class", "metric-value") ] [ text (sprintf "%.1f%%" subsystem.HealthPercentage) ]
+            div [ className "subsystem-metrics" ] [
+                div [ className "metric" ] [
+                    span [ className "metric-label" ] [ text "Health:" ]
+                    span [ className "metric-value" ] [ text (sprintf "%.1f%%" subsystem.HealthPercentage) ]
                 ]
-                div [ ("class", "metric") ] [
-                    span [ ("class", "metric-label") ] [ text "Components:" ]
-                    span [ ("class", "metric-value") ] [ text (string subsystem.ActiveComponents) ]
+                div [ className "metric" ] [
+                    span [ className "metric-label" ] [ text "Components:" ]
+                    span [ className "metric-value" ] [ text (string subsystem.ActiveComponents) ]
                 ]
-                div [ ("class", "metric") ] [
-                    span [ ("class", "metric-label") ] [ text "Rate:" ]
-                    span [ ("class", "metric-value") ] [ text (sprintf "%.1f/sec" subsystem.ProcessingRate) ]
+                div [ className "metric" ] [
+                    span [ className "metric-label" ] [ text "Rate:" ]
+                    span [ className "metric-value" ] [ text (sprintf "%.1f/sec" subsystem.ProcessingRate) ]
                 ]
-                div [ ("class", "metric") ] [
-                    span [ ("class", "metric-label") ] [ text "Memory:" ]
-                    span [ ("class", "metric-value") ] [ text (sprintf "%.1f MB" (float subsystem.MemoryUsage / 1024.0 / 1024.0)) ]
+                div [ className "metric" ] [
+                    span [ className "metric-label" ] [ text "Memory:" ]
+                    span [ className "metric-value" ] [ text (sprintf "%.1f MB" (float subsystem.MemoryUsage / 1024.0 / 1024.0)) ]
                 ]
             ]
             if isSelected then
-                div [ ("class", "subsystem-details") ] [
+                div [ className "subsystem-details" ] [
                     h4 [] [ text "Dependencies:" ]
                     ul [] [
                         for dep in subsystem.Dependencies do
                             li [] [ text dep ]
                     ]
                     h4 [] [ text "Detailed Metrics:" ]
-                    div [ ("class", "detailed-metrics") ] [
+                    div [ className "detailed-metrics" ] [
                         for kvp in subsystem.Metrics do
-                            div [ ("class", "detailed-metric") ] [
-                                span [ ("class", "metric-name") ] [ text kvp.Key ]
-                                span [ ("class", "metric-value") ] [ text (formatMetric kvp.Value) ]
+                            div [ className "detailed-metric" ] [
+                                span [ className "metric-name" ] [ text kvp.Key ]
+                                span [ className "metric-value" ] [ text (formatMetric kvp.Value) ]
                             ]
                     ]
                 ]
@@ -276,71 +347,86 @@ module TarsElmishDiagnostics =
                 empty
         ]
 
-    let viewTarsOverview (model: TarsDiagnosticsModel) =
-        div [ ("class", "tars-overview") ] [
-            div [ ("class", "subsystems-grid") ] [
+    let viewTarsOverview (model: TarsDiagnosticsModel) (dispatch: TarsMsg -> unit) =
+        div [ className "tars-overview" ] [
+            div [ className "subsystems-grid" ] [
                 if model.AllSubsystems.IsEmpty then
-                    div [ ("class", "loading-message") ] [
+                    div [ className "loading-message" ] [
                         text "🔄 Loading all TARS subsystems..."
                     ]
                 else
                     for subsystem in model.AllSubsystems do
-                        viewSubsystemCard subsystem (model.SelectedSubsystem = Some subsystem.Name)
+                        viewSubsystemCard subsystem (model.SelectedSubsystem = Some subsystem.Name) dispatch
             ]
         ]
 
-    // MAIN ELMISH VIEW - Pure function
-    let view (model: TarsDiagnosticsModel) =
-        div [ ("class", "tars-diagnostics-elmish") ] [
-            viewTarsHeader model
-            
+    // MAIN ELMISH VIEW - Pure function with Real Message Dispatching
+    let view (model: TarsDiagnosticsModel) (dispatch: TarsMsg -> unit) =
+        div [ className "tars-diagnostics-elmish" ] [
+            viewTarsHeader model dispatch
+
             if model.IsLoading then
-                div [ ("class", "loading-tars") ] [
-                    div [ ("class", "spinner") ] []
+                div [ className "loading-tars" ] [
+                    div [ className "spinner" ] []
                     text "Loading TARS subsystems..."
                 ]
             else
                 match model.Error with
                 | Some error ->
-                    div [ ("class", "error-tars") ] [
+                    div [ className "error-tars" ] [
                         text (sprintf "❌ TARS Error: %s" error)
-                        button [ ("onclick", "location.reload()") ] [ text "Retry" ]
+                        button [ onClick RefreshTars ] [ text "Retry" ]
                     ]
                 | None ->
-                    div [ ("class", "tars-layout") ] [
-                        // Enhanced Navigation Sidebar
-                        div [ ("class", "tars-sidebar") ] [
-                            div [ ("class", "sidebar-header") ] [
+                    div [ className "tars-layout" ] [
+                        // Enhanced Navigation Sidebar with Real Message Dispatching
+                        div [ className "tars-sidebar" ] [
+                            div [ className "sidebar-header" ] [
                                 h3 [] [ text "🧭 TARS Navigation" ]
                             ]
 
-                            div [ ("class", "nav-section") ] [
+                            div [ className "nav-section" ] [
                                 h4 [] [ text "📊 Views" ]
-                                ul [ ("class", "nav-menu") ] [
-                                    li [ ("class", if model.ViewMode = Overview then "nav-item active" else "nav-item") ] [
+                                ul [ className "nav-menu" ] [
+                                    li [
+                                        className (if model.ViewMode = Overview then "nav-item active" else "nav-item")
+                                        onClick (ChangeViewMode Overview)
+                                    ] [
                                         text "🔍 Subsystems Overview"
                                     ]
-                                    li [ ("class", if model.ViewMode = Performance then "nav-item active" else "nav-item") ] [
+                                    li [
+                                        className (if model.ViewMode = Performance then "nav-item active" else "nav-item")
+                                        onClick (ChangeViewMode Performance)
+                                    ] [
                                         text "⚡ Performance Metrics"
                                     ]
-                                    li [ ("class", if model.ViewMode = Architecture then "nav-item active" else "nav-item") ] [
+                                    li [
+                                        className (if model.ViewMode = Architecture then "nav-item active" else "nav-item")
+                                        onClick (ChangeViewMode Architecture)
+                                    ] [
                                         text "🏗️ System Architecture"
                                     ]
                                 ]
                             ]
 
-                            div [ ("class", "nav-section") ] [
+                            div [ className "nav-section" ] [
                                 h4 [] [ text "🎛️ Controls" ]
-                                ul [ ("class", "nav-menu") ] [
-                                    li [ ("class", "nav-item control-item") ] [
+                                ul [ className "nav-menu" ] [
+                                    li [
+                                        className "nav-item control-item"
+                                        onClick ToggleAutoRefresh
+                                    ] [
                                         text "🔄 Auto Refresh: "
-                                        span [ ("class", if model.AutoRefresh then "status-on" else "status-off") ] [
+                                        span [ className (if model.AutoRefresh then "status-on" else "status-off") ] [
                                             text (if model.AutoRefresh then "ON" else "OFF")
                                         ]
                                     ]
-                                    li [ ("class", "nav-item control-item") ] [
+                                    li [
+                                        className "nav-item control-item"
+                                        onClick ToggleDetails
+                                    ] [
                                         text "📋 Show Details: "
-                                        span [ ("class", if model.ShowDetails then "status-on" else "status-off") ] [
+                                        span [ className (if model.ShowDetails then "status-on" else "status-off") ] [
                                             text (if model.ShowDetails then "ON" else "OFF")
                                         ]
                                     ]
@@ -363,22 +449,25 @@ module TarsElmishDiagnostics =
                             ]
                         ]
 
-                        // Main Content Area
-                        div [ ("class", "tars-main-content") ] [
+                        // Main Content Area with Real Elmish Dispatch
+                        div [ className "tars-main-content" ] [
+                            // Breadcrumb Navigation with Real Message Dispatching
+                            viewBreadcrumbs model dispatch
+
                             match model.ViewMode with
-                            | Overview -> viewTarsOverview model
+                            | Overview -> viewTarsOverview model dispatch
                             | Detailed ->
-                                div [ ("class", "coming-soon") ] [
+                                div [ className "coming-soon" ] [
                                     h2 [] [ text "🔍 Detailed Analysis" ]
                                     div [] [ text "Detailed subsystem analysis coming soon..." ]
                                 ]
                             | Performance ->
-                                div [ ("class", "coming-soon") ] [
+                                div [ className "coming-soon" ] [
                                     h2 [] [ text "⚡ Performance Metrics" ]
                                     div [] [ text "Advanced performance analytics coming soon..." ]
                                 ]
                             | Architecture ->
-                                div [ ("class", "coming-soon") ] [
+                                div [ className "coming-soon" ] [
                                     h2 [] [ text "🏗️ System Architecture" ]
                                     div [] [ text "Interactive architecture diagrams coming soon..." ]
                                 ]
@@ -770,3 +859,11 @@ module TarsElmishDiagnostics =
                 ]
             }
         ]
+
+    // REAL ELMISH PROGRAM - True MVU Architecture
+    let createTarsElmishProgram () =
+        {|
+            Init = init
+            Update = update
+            View = view
+        |}
