@@ -370,7 +370,7 @@ manager.run()
 Make sure you install AutoGen:
 
 ```bash
-pip install pyautogen
+pip install ag2
 ```
 
 * * *
