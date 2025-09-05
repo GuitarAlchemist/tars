@@ -6,16 +6,12 @@ open Microsoft.Extensions.Logging
 open Spectre.Console
 open TarsEngine.FSharp.Cli.Commands
 open TarsEngine.FSharp.Cli.Services
-open TarsEngine.FSharp.Core.Superintelligence
 
 /// TARS Superintelligence Training Command
 type SuperintelligenceCommand(
     logger: ILogger<SuperintelligenceCommand>,
     trainingService: SuperintelligenceTrainingService,
-    learningMemoryService: LearningMemoryService,
-    autonomousGitManager: TarsEngine.FSharp.Core.Superintelligence.AutonomousGitManager,
-    realRecursiveSelfImprovement: TarsEngine.FSharp.Core.Superintelligence.RealRecursiveSelfImprovementEngine,
-    selfCodeModificationService: TarsEngine.FSharp.Core.Superintelligence.SelfCodeModificationService) =
+    learningMemoryService: LearningMemoryService) =
     
     interface ICommand with
         member _.Name = "superintelligence"
@@ -65,7 +61,7 @@ type SuperintelligenceCommand(
                         return! SuperintelligenceCommand.generateBreakthrough(trainingService, learningMemoryService, logger)
 
                     | "evolve" :: _ ->
-                        return! SuperintelligenceCommand.recursiveSelfImprovement(trainingService, learningMemoryService, realRecursiveSelfImprovement, autonomousGitManager, selfCodeModificationService, logger)
+                        return! SuperintelligenceCommand.recursiveSelfImprovement(trainingService, learningMemoryService, logger)
 
                     | "capabilities" :: _ ->
                         return! SuperintelligenceCommand.assessCapabilities(learningMemoryService, logger)
@@ -451,7 +447,7 @@ type SuperintelligenceCommand(
                 return CommandResult.failure(error)
         }
 
-    static member recursiveSelfImprovement(trainingService: SuperintelligenceTrainingService, learningMemoryService: LearningMemoryService, realRecursiveSelfImprovement: RealRecursiveSelfImprovementEngine, autonomousGitManager: AutonomousGitManager, selfCodeModificationService: SelfCodeModificationService, logger: ILogger<SuperintelligenceCommand>) =
+    static member recursiveSelfImprovement(trainingService: SuperintelligenceTrainingService, learningMemoryService: LearningMemoryService, logger: ILogger<SuperintelligenceCommand>) =
         task {
             AnsiConsole.MarkupLine("[bold cyan]🔄 TARS Recursive Self-Improvement Protocol[/]")
             AnsiConsole.WriteLine()
@@ -463,16 +459,16 @@ type SuperintelligenceCommand(
                     .StartAsync("Executing recursive self-improvement...", fun ctx ->
                         task {
                             ctx.Status <- "Analyzing current reasoning capabilities..."
-                            let! codeAnalysis = selfCodeModificationService.AnalyzeCodebase() |> Async.StartAsTask
-
-                            ctx.Status <- "Identifying improvement opportunities..."
-                            let! improvementIteration = realRecursiveSelfImprovement.ExecuteImprovementIteration(ReasoningAlgorithms) |> Async.StartAsTask
-
-                            ctx.Status <- "Generating enhanced reasoning strategies..."
                             let! gaps = learningMemoryService.IdentifyKnowledgeGaps() |> Async.StartAsTask
 
+                            ctx.Status <- "Identifying improvement opportunities..."
+                            let! tasks = learningMemoryService.GenerateSelfImprovementTasks() |> Async.StartAsTask
+
+                            ctx.Status <- "Generating enhanced reasoning strategies..."
+                            let! semanticPatterns = learningMemoryService.DiscoverSemanticPatterns() |> Async.StartAsTask
+
                             ctx.Status <- "Implementing capability upgrades..."
-                            let! selfModResult = selfCodeModificationService.ExecuteSelfModification(codeAnalysis.ImprovementSuggestions) |> Async.StartAsTask
+                            let! inferredKnowledge = learningMemoryService.InferNewKnowledge() |> Async.StartAsTask
 
                             ctx.Status <- "Validating improved performance..."
                             let! performanceEvolution = learningMemoryService.TrackPerformanceEvolution() |> Async.StartAsTask
