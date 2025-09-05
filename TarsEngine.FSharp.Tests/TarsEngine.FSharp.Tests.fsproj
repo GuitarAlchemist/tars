@@ -33,10 +33,22 @@
     <Compile Include="PerformanceTests.fs" />
     <Compile Include="ValidationTests.fs" />
     <Compile Include="EndToEndTests.fs" />
+    <!-- Unified System Tests -->
+    <Compile Include="Unified/UnifiedCoreTests.fs" />
+    <Compile Include="Unified/UnifiedLoggerTests.fs" />
+    <Compile Include="Unified/UnifiedStateManagerTests.fs" />
+    <Compile Include="Unified/UnifiedConfigurationManagerTests.fs" />
+    <Compile Include="Unified/UnifiedAgentSystemTests.fs" />
+    <Compile Include="Unified/UnifiedProofSystemTests.fs" />
+    <Compile Include="Unified/UnifiedCudaEngineTests.fs" />
+    <Compile Include="Unified/UnifiedIntegrationTests.fs" />
+    <Compile Include="Unified/UnifiedPerformanceTests.fs" />
+    <Compile Include="Unified/UnifiedSecurityTests.fs" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\TarsEngine.FSharp.Core\TarsEngine.FSharp.Core.fsproj" />
+    <ProjectReference Include="..\TarsEngine.FSharp.Cli\TarsEngine.FSharp.Cli.fsproj" />
     <ProjectReference Include="..\TarsEngine.CustomTransformers\TarsEngine.CustomTransformers.fsproj" />
     <ProjectReference Include="..\Tars.Engine.Grammar\Tars.Engine.Grammar.fsproj" />
     <ProjectReference Include="..\Tars.Engine.VectorStore\Tars.Engine.VectorStore.fsproj" />

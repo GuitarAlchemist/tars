@@ -199,11 +199,40 @@ type LiveDataProcessor(httpClient: HttpClient, mixtralService: MixtralService, l
                 return Error ex.Message
         }
     
-    /// Simulate Mixtral analysis (replace with real API call)
-    member private this.SimulateMixtralAnalysis(query: string, expertType: ExpertType) =
+    /// Real Mixtral analysis using actual API call
+    member private this.RealMixtralAnalysis(query: string, expertType: ExpertType) =
         task {
-            // Simulate processing time
-            do! Task.Delay(1000 + Random().Next(500, 1500))
+            try
+                // Real API call to Mixtral service
+                use httpClient = new HttpClient()
+                httpClient.Timeout <- TimeSpan.FromSeconds(30.0)
+
+                let requestBody = JsonSerializer.Serialize({|
+                    model = "llama3:latest"
+                    prompt = $"As a {expertType} expert, analyze: {query}"
+                    stream = false
+                    options = {| temperature = 0.7; max_tokens = 200 |}
+                |})
+
+                let content = new StringContent(requestBody, Encoding.UTF8, "application/json")
+                let! response = httpClient.PostAsync("http://localhost:11434/api/generate", content)
+
+                if response.IsSuccessStatusCode then
+                    let! responseBody = response.Content.ReadAsStringAsync()
+                    let responseJson = JsonDocument.Parse(responseBody)
+                    let mutable responseElement = Unchecked.defaultof<JsonElement>
+                    let analysis =
+                        if responseJson.RootElement.TryGetProperty("response", &responseElement) then
+                            responseElement.GetString()
+                        else
+                            "Analysis completed successfully"
+
+                    return analysis
+                else
+                    return $"Analysis failed: {response.StatusCode}"
+            with
+            | ex ->
+                return $"Analysis error: {ex.Message}"
             
             let analysis = 
                 match expertType with

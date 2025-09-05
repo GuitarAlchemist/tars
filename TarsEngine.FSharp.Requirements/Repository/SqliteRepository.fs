@@ -132,26 +132,27 @@ type SqliteRequirementRepository(connectionString: string) =
         ]
         
         use command = new SqliteCommand(createRequirementsTable, connection)
-        do! command.ExecuteNonQueryAsync() |> Task.ignore
-        
+        let! _ = command.ExecuteNonQueryAsync()
+
         command.CommandText <- createTestCasesTable
-        do! command.ExecuteNonQueryAsync() |> Task.ignore
-        
+        let! _ = command.ExecuteNonQueryAsync()
+
         command.CommandText <- createTraceabilityLinksTable
-        do! command.ExecuteNonQueryAsync() |> Task.ignore
-        
+        let! _ = command.ExecuteNonQueryAsync()
+
         command.CommandText <- createTestExecutionResultsTable
-        do! command.ExecuteNonQueryAsync() |> Task.ignore
-        
+        let! _ = command.ExecuteNonQueryAsync()
+
         for indexSql in createIndexes do
             command.CommandText <- indexSql
-            do! command.ExecuteNonQueryAsync() |> Task.ignore
+            let! _ = command.ExecuteNonQueryAsync()
+            ()
     }
     
     /// <summary>
     /// Execute with connection
     /// </summary>
-    let executeWithConnection<'T> (operation: SqliteConnection -> Task<'T>) = task {
+    let executeWithConnection (operation: SqliteConnection -> Task<'T>) = task {
         try
             use connection = new SqliteConnection(connectionString)
             do! connection.OpenAsync()

@@ -19,7 +19,7 @@ type InMemoryRequirementRepository() =
     /// <summary>
     /// Helper to convert sync operations to async
     /// </summary>
-    let asyncResult<'T> (result: 'T) = Task.FromResult(result)
+    let asyncResult (result: 'T) = Task.FromResult(result)
     
     /// <summary>
     /// Helper to filter requirements by predicate

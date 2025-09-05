@@ -55,7 +55,7 @@ type TarsElmishCommand(logger: ILogger<TarsElmishCommand>) =
                     let (initialHtml, updateFunction, initialModel) = TarsEngine.FSharp.Cli.UI.ElmishRuntime.runElmishProgram ()
 
                     logger.LogInformation("✅ Elmish Runtime Initialized")
-                    logger.LogInformation("   Overall Health: {Health:F1}%", initialModel.OverallTarsHealth)
+                    logger.LogInformation("   Overall Health: {Health.ToString("F1")}%", initialModel.OverallTarsHealth)
                     logger.LogInformation("   Active Agents: {Agents}", initialModel.ActiveAgents)
                     logger.LogInformation("   Processing Tasks: {Tasks}", initialModel.ProcessingTasks)
                     logger.LogInformation("")
@@ -129,3 +129,4 @@ type TarsElmishCommand(logger: ILogger<TarsElmishCommand>) =
                     logger.LogError(ex, "❌ TARS Elmish launch failed")
                     return { Success = false; Message = sprintf "TARS Elmish launch failed: %s" ex.Message; ExitCode = 1 }
             }
+

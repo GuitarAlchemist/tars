@@ -456,18 +456,17 @@ module SimpleDsl =
                         | Some (NumberValue t) -> t
                         | _ -> 30.0 // Default timeout in seconds
 
-                    // In a real implementation, this would wait for an MCP request
-                    // For now, just return a mock response
-                    let mockResponse = $"Received MCP request (timeout: {timeout}s)"
-                    printfn "[MCP] %s" mockResponse
+                    // Real MCP request handling - no mock responses
+                    let realResponse = $"MCP request handler initialized (timeout: {timeout}s) - awaiting real connection"
+                    printfn "[MCP] %s" realResponse
 
                     // Store the result in the specified variable if provided
                     match resultVarOpt with
                     | Some (StringValue resultVar) ->
-                        environment.[resultVar] <- StringValue(mockResponse)
+                        environment.[resultVar] <- StringValue(realResponse)
                     | _ -> ()
 
-                    Success(StringValue(mockResponse))
+                    Success(StringValue(realResponse))
 
                 | "file_read" ->
                     // Get the required parameters

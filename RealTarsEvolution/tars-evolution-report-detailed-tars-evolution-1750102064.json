@@ -1,0 +1,128 @@
+{
+  "evolution_id": "detailed-tars-evolution-1750102064",
+  "session_start": "2025-06-16T19:27:44.6482543Z",
+  "session_end": "2025-06-16T19:27:44.7698022Z",
+  "duration_minutes": 0.0020258,
+  "total_attempts": 7,
+  "total_decisions": 2,
+  "attempts": [
+    {
+      "Id": "32abfc1d-3b4f-47d2-bded-9e8dc9c5ba38",
+      "Timestamp": "2025-06-16T19:27:44.6671626Z",
+      "Operation": "Codebase Analysis",
+      "Success": true,
+      "Details": "Found 0 TARS project files; Found 0 F# source files",
+      "Metrics": {}
+    },
+    {
+      "Id": "bc1b9853-855b-439a-98bf-2fada0153d24",
+      "Timestamp": "2025-06-16T19:27:44.7550687Z",
+      "Operation": "Improvement Generation: Enhanced Error Handling and Performance Monitoring",
+      "Success": true,
+      "Details": "Add comprehensive error handling, performance timing, and user feedback improvements",
+      "Metrics": {
+        "type": "Performance",
+        "priority": "High",
+        "estimated_impact": 75,
+        "risk_level": "Low",
+        "source": "Rule-based Analysis"
+      }
+    },
+    {
+      "Id": "d144851e-6ccf-45dd-ad02-25b10b80a713",
+      "Timestamp": "2025-06-16T19:27:44.7552708Z",
+      "Operation": "Improvement Generation: Enhanced CLI User Experience",
+      "Success": true,
+      "Details": "Improve CLI usability, help messages, and user feedback",
+      "Metrics": {
+        "type": "User Experience",
+        "priority": "Medium",
+        "estimated_impact": 70,
+        "risk_level": "Low",
+        "source": "UX Analysis"
+      }
+    },
+    {
+      "Id": "29c59746-94fa-4380-9f86-662d6fc3b408",
+      "Timestamp": "2025-06-16T19:27:44.7668745Z",
+      "Operation": "Improvement Evaluation: Enhanced Error Handling and Performance Monitoring",
+      "Success": true,
+      "Details": "Overall Score: 0.97 (Threshold: 0.65); Decision: APPROVED; Criteria breakdown:;   \u2022 Impact/Risk Ratio: 1.00 (weight: 0.3) - Impact: 75%, Risk: Low;   \u2022 Priority: 1.00 (weight: 0.2) - Priority level: High;   \u2022 Feasibility: 1.00 (weight: 0.2) - Risk level: Low;   \u2022 Source Credibility: 0.80 (weight: 0.1) - Source: Rule-based Analysis;   \u2022 Specificity: 1.00 (weight: 0.1) - Specific changes: 5",
+      "Metrics": {
+        "evaluation_score": 0.97,
+        "approved": true,
+        "criteria_count": 8
+      }
+    },
+    {
+      "Id": "d517f0b1-68f1-49a4-83f7-464c79e7ff27",
+      "Timestamp": "2025-06-16T19:27:44.7669816Z",
+      "Operation": "Improvement Evaluation: Enhanced CLI User Experience",
+      "Success": true,
+      "Details": "Overall Score: 0.91 (Threshold: 0.65); Decision: APPROVED; Criteria breakdown:;   \u2022 Impact/Risk Ratio: 1.00 (weight: 0.3) - Impact: 70%, Risk: Low;   \u2022 Priority: 0.70 (weight: 0.2) - Priority level: Medium;   \u2022 Feasibility: 1.00 (weight: 0.2) - Risk level: Low;   \u2022 Source Credibility: 0.80 (weight: 0.1) - Source: UX Analysis;   \u2022 Specificity: 1.00 (weight: 0.1) - Specific changes: 5",
+      "Metrics": {
+        "evaluation_score": 0.9099999999999999,
+        "approved": true,
+        "criteria_count": 8
+      }
+    },
+    {
+      "Id": "94e86dcf-edae-4de7-8110-111bf668021c",
+      "Timestamp": "2025-06-16T19:27:44.7682619Z",
+      "Operation": "Test Results",
+      "Success": true,
+      "Details": "Test results logged",
+      "Metrics": {}
+    },
+    {
+      "Id": "1395905e-de06-4979-9f57-7d8c83cfe13b",
+      "Timestamp": "2025-06-16T19:27:44.7688964Z",
+      "Operation": "Final Decision",
+      "Success": true,
+      "Details": "Final decision logged",
+      "Metrics": {}
+    }
+  ],
+  "decisions": [
+    {
+      "Id": "7dd65400-0322-4202-a1ff-1b9d92d8d4a3",
+      "Timestamp": "2025-06-16T19:27:44.7655775Z",
+      "Decision": "Enhanced Error Handling and Performance Monitoring",
+      "Approved": true,
+      "Rationale": [
+        "Overall Score: 0.97 (Threshold: 0.65)",
+        "Decision: APPROVED",
+        "Criteria breakdown:",
+        "  \u2022 Impact/Risk Ratio: 1.00 (weight: 0.3) - Impact: 75%, Risk: Low",
+        "  \u2022 Priority: 1.00 (weight: 0.2) - Priority level: High",
+        "  \u2022 Feasibility: 1.00 (weight: 0.2) - Risk level: Low",
+        "  \u2022 Source Credibility: 0.80 (weight: 0.1) - Source: Rule-based Analysis",
+        "  \u2022 Specificity: 1.00 (weight: 0.1) - Specific changes: 5"
+      ],
+      "Score": 0.97
+    },
+    {
+      "Id": "8bdc76b1-0038-4d7a-b32e-6af231df5f39",
+      "Timestamp": "2025-06-16T19:27:44.7664873Z",
+      "Decision": "Enhanced CLI User Experience",
+      "Approved": true,
+      "Rationale": [
+        "Overall Score: 0.91 (Threshold: 0.65)",
+        "Decision: APPROVED",
+        "Criteria breakdown:",
+        "  \u2022 Impact/Risk Ratio: 1.00 (weight: 0.3) - Impact: 70%, Risk: Low",
+        "  \u2022 Priority: 0.70 (weight: 0.2) - Priority level: Medium",
+        "  \u2022 Feasibility: 1.00 (weight: 0.2) - Risk level: Low",
+        "  \u2022 Source Credibility: 0.80 (weight: 0.1) - Source: UX Analysis",
+        "  \u2022 Specificity: 1.00 (weight: 0.1) - Specific changes: 5"
+      ],
+      "Score": 0.9099999999999999
+    }
+  ],
+  "summary": {
+    "successful_attempts": 7,
+    "failed_attempts": 0,
+    "approved_decisions": 2,
+    "rejected_decisions": 0
+  }
+}

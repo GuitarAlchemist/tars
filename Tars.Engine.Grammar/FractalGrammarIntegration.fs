@@ -11,7 +11,7 @@ module FractalGrammarIntegration =
 
     /// Extended grammar source to include fractal grammars
     type ExtendedGrammarSource =
-        | StandardGrammar of GrammarSource.GrammarSource
+        | StandardGrammar of GrammarSource
         | FractalGrammar of FractalGrammar
         | GeneratedFractal of FractalGenerationResult
 
@@ -284,13 +284,14 @@ module FractalGrammarIntegration =
         /// Convert fractal tree to XML
         member private this.TreeToXML(tree: FractalNode) : string =
             let rec nodeToXML (node: FractalNode) (indent: string) =
-                let children = 
+                let children =
                     if node.Children.IsEmpty then ""
                     else
-                        node.Children 
-                        |> List.map (fun child -> nodeToXML child (indent + "  "))
-                        |> String.concat "\n"
-                        |> sprintf "\n%s\n%s" children indent
+                        let childrenXml =
+                            node.Children
+                            |> List.map (fun child -> nodeToXML child (indent + "  "))
+                            |> String.concat "\n"
+                        sprintf "\n%s\n%s" childrenXml indent
                 
                 sprintf "%s<node id=\"%s\" name=\"%s\" level=\"%d\" pattern=\"%s\">%s</node>" 
                     indent node.Id node.Name node.Level node.Pattern children

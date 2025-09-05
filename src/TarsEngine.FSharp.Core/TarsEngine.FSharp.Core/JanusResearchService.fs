@@ -104,88 +104,51 @@ module JanusResearchService =
         let mutable researchProjects = Map.empty<string, JanusResearchProject>
         let mutable researchResults = Map.empty<string, ResearchResult list>
         
+        /// Create individual research agent
+        let createResearchAgent (agentId: string) (agentType: ResearchAgentType) (specialization: string) (capabilities: string list) (endpoint: string option) =
+            {
+                AgentId = agentId
+                AgentType = agentType
+                Specialization = specialization
+                Capabilities = capabilities
+                ContainerEndpoint = endpoint
+                Status = "Available"
+                CurrentTasks = []
+            }
+
         /// Create research agent configurations
-        let createResearchAgents() = [
-            {
-                AgentId = "research-director-001"
-                AgentType = ResearchDirector
-                Specialization = "Research Coordination and Methodology"
-                Capabilities = [
-                    "Project management"
-                    "Research methodology design"
-                    "Team coordination"
-                    "Grant writing"
-                    "Ethics oversight"
+        let createResearchAgents() =
+            try
+                [
+                    createResearchAgent "research-director-001" ResearchDirector
+                        "Research Coordination and Methodology"
+                        ["Project management"; "Research methodology design"; "Team coordination"; "Grant writing"; "Ethics oversight"]
+                        (Some("http://tars-alpha:8080"))
+
+                    createResearchAgent "cosmologist-001" Cosmologist
+                        "Theoretical Cosmology and Janus Model Analysis"
+                        ["General relativity"; "Cosmological modeling"; "Janus model analysis"; "Theoretical predictions"; "Mathematical derivations"]
+                        (Some("http://tars-beta:8080"))
+
+                    createResearchAgent "data-scientist-001" DataScientist
+                        "Astronomical Data Analysis and Statistics"
+                        ["Statistical analysis"; "Data visualization"; "Machine learning"; "Astronomical databases"; "Error analysis"]
+                        (Some("http://tars-gamma:8080"))
+
+                    createResearchAgent "mathematician-001" Mathematician
+                        "Mathematical Modeling and Verification"
+                        ["Differential equations"; "Numerical analysis"; "Mathematical proofs"; "Model validation"; "Computational mathematics"]
+                        (Some("http://tars-delta:8080"))
+
+                    createResearchAgent "peer-reviewer-001" PeerReviewer
+                        "Independent Scientific Review and Validation"
+                        ["Scientific review"; "Methodology critique"; "Statistical validation"; "Literature comparison"; "Quality assessment"]
+                        None
                 ]
-                ContainerEndpoint = Some("http://tars-alpha:8080")
-                Status = "Available"
-                CurrentTasks = []
-            }
-            
-            {
-                AgentId = "cosmologist-001"
-                AgentType = Cosmologist
-                Specialization = "Theoretical Cosmology and Janus Model Analysis"
-                Capabilities = [
-                    "General relativity"
-                    "Cosmological modeling"
-                    "Janus model analysis"
-                    "Theoretical predictions"
-                    "Mathematical derivations"
-                ]
-                ContainerEndpoint = Some("http://tars-beta:8080")
-                Status = "Available"
-                CurrentTasks = []
-            }
-            
-            {
-                AgentId = "data-scientist-001"
-                AgentType = DataScientist
-                Specialization = "Astronomical Data Analysis and Statistics"
-                Capabilities = [
-                    "Statistical analysis"
-                    "Data visualization"
-                    "Machine learning"
-                    "Astronomical databases"
-                    "Error analysis"
-                ]
-                ContainerEndpoint = Some("http://tars-gamma:8080")
-                Status = "Available"
-                CurrentTasks = []
-            }
-            
-            {
-                AgentId = "mathematician-001"
-                AgentType = Mathematician
-                Specialization = "Mathematical Modeling and Verification"
-                Capabilities = [
-                    "Differential equations"
-                    "Numerical analysis"
-                    "Mathematical proofs"
-                    "Model validation"
-                    "Computational mathematics"
-                ]
-                ContainerEndpoint = Some("http://tars-delta:8080")
-                Status = "Available"
-                CurrentTasks = []
-            }
-            
-            {
-                AgentId = "peer-reviewer-001"
-                AgentType = PeerReviewer
-                Specialization = "Independent Scientific Review and Validation"
-                Capabilities = [
-                    "Scientific review"
-                    "Methodology critique"
-                    "Statistical validation"
-                    "Literature comparison"
-                    "Quality assessment"
-                ]
-                ContainerEndpoint = None
-                Status = "Available"
-                CurrentTasks = []
-            }
-        ]
+            with
+            | ex ->
+                // Return minimal agent set on error
+                [createResearchAgent "fallback-agent" ResearchDirector "Emergency Research Coordination" ["Basic coordination"] None]
         
         /// Create research tasks for Janus investigation
         let createJanusResearchTasks() = [
@@ -268,47 +231,73 @@ module JanusResearchService =
         interface IJanusResearchService with
             
             member _.InitializeResearchProject(title: string) (pi: string) = task {
-                let projectId = Guid.NewGuid().ToString()
-                let project = {
-                    ProjectId = projectId
-                    Title = title
-                    PrincipalInvestigator = pi
-                    Institution = "TARS Autonomous University"
-                    StartDate = DateTime.UtcNow
-                    ExpectedEndDate = DateTime.UtcNow.AddDays(90)
-                    Status = "Initialized"
-                    Agents = createResearchAgents()
-                    Tasks = createJanusResearchTasks()
-                    Objectives = [
-                        "Investigate Janus cosmological model viability"
-                        "Compare model predictions with observations"
-                        "Assess scientific merit and implications"
-                        "Generate peer-reviewed research output"
-                    ]
-                    Deliverables = [
-                        "Theoretical analysis report"
-                        "Observational data analysis"
-                        "Statistical comparison study"
-                        "Peer review validation"
-                        "Research publication"
-                    ]
-                    WorkspaceDirectory = "/app/shared/janus-research/"
-                    DataSources = [
-                        "Planck CMB data"
-                        "Pantheon+ supernovae"
-                        "BOSS BAO measurements"
-                        "Theoretical literature"
-                    ]
-                    ValidationMethods = [
-                        "Mathematical verification"
-                        "Statistical testing"
-                        "Peer review"
-                        "Observational comparison"
-                    ]
-                }
-                
-                researchProjects <- researchProjects |> Map.add projectId project
-                return project
+                try
+                    if String.IsNullOrWhiteSpace(title) then
+                        failwith "Project title cannot be empty"
+                    if String.IsNullOrWhiteSpace(pi) then
+                        failwith "Principal investigator cannot be empty"
+
+                    let projectId = Guid.NewGuid().ToString()
+                    let project = {
+                        ProjectId = projectId
+                        Title = title
+                        PrincipalInvestigator = pi
+                        Institution = "TARS Autonomous University"
+                        StartDate = DateTime.UtcNow
+                        ExpectedEndDate = DateTime.UtcNow.AddDays(90)
+                        Status = "Initialized"
+                        Agents = createResearchAgents()
+                        Tasks = createJanusResearchTasks()
+                        Objectives = [
+                            "Investigate Janus cosmological model viability"
+                            "Compare model predictions with observations"
+                            "Assess scientific merit and implications"
+                            "Generate peer-reviewed research output"
+                        ]
+                        Deliverables = [
+                            "Theoretical analysis report"
+                            "Observational data analysis"
+                            "Statistical comparison study"
+                            "Peer review validation"
+                            "Research publication"
+                        ]
+                        WorkspaceDirectory = "/app/shared/janus-research/"
+                        DataSources = [
+                            "Planck CMB data"
+                            "Pantheon+ supernovae"
+                            "BOSS BAO measurements"
+                            "Theoretical literature"
+                        ]
+                        ValidationMethods = [
+                            "Mathematical verification"
+                            "Statistical testing"
+                            "Peer review"
+                            "Observational comparison"
+                        ]
+                    }
+
+                    researchProjects <- researchProjects |> Map.add projectId project
+                    return project
+                with
+                | ex ->
+                    // Return a minimal project on error
+                    let fallbackProject = {
+                        ProjectId = "error-project"
+                        Title = "Error: " + title
+                        PrincipalInvestigator = pi
+                        Institution = "TARS Autonomous University"
+                        StartDate = DateTime.UtcNow
+                        ExpectedEndDate = DateTime.UtcNow.AddDays(1)
+                        Status = "Error"
+                        Agents = []
+                        Tasks = []
+                        Objectives = ["Resolve initialization error"]
+                        Deliverables = ["Error report"]
+                        WorkspaceDirectory = "/tmp/error/"
+                        DataSources = []
+                        ValidationMethods = []
+                    }
+                    return fallbackProject
             }
             
             member _.DeployResearchAgents(project: JanusResearchProject) = task {
@@ -332,15 +321,36 @@ module JanusResearchService =
             }
             
             member _.MonitorResearchProgress(projectId: string) = task {
-                match researchProjects |> Map.tryFind projectId with
-                | Some project ->
-                    let progress = Map.empty
-                                  |> Map.add "total_tasks" (box project.Tasks.Length)
-                                  |> Map.add "completed_tasks" (box (project.Tasks |> List.filter (fun t -> t.Status = "Completed") |> List.length))
-                                  |> Map.add "active_agents" (box (project.Agents |> List.filter (fun a -> a.Status = "Active") |> List.length))
-                                  |> Map.add "project_status" (box project.Status)
-                    return progress
-                | None -> return Map.empty
+                try
+                    match researchProjects |> Map.tryFind projectId with
+                    | Some project ->
+                        // Optimized: combine filtering operations to avoid multiple list traversals
+                        let (completedTasks, activeTasks) =
+                            project.Tasks
+                            |> List.fold (fun (completed, active) task ->
+                                match task.Status with
+                                | "Completed" -> (completed + 1, active)
+                                | "Active" | "In Progress" -> (completed, active + 1)
+                                | _ -> (completed, active)
+                            ) (0, 0)
+
+                        let activeAgents =
+                            project.Agents
+                            |> List.sumBy (fun a -> if a.Status = "Active" then 1 else 0)
+
+                        let progress = Map.empty
+                                      |> Map.add "total_tasks" (box project.Tasks.Length)
+                                      |> Map.add "completed_tasks" (box completedTasks)
+                                      |> Map.add "active_tasks" (box activeTasks)
+                                      |> Map.add "active_agents" (box activeAgents)
+                                      |> Map.add "project_status" (box project.Status)
+                                      |> Map.add "last_updated" (box DateTime.UtcNow)
+                        return progress
+                    | None ->
+                        return Map.empty |> Map.add "error" (box "Project not found")
+                with
+                | ex ->
+                    return Map.empty |> Map.add "error" (box ex.Message)
             }
             
             member _.CollectResearchResults(projectId: string) = task {

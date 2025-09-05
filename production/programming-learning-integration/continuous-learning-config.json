@@ -1,0 +1,19 @@
+
+{
+  "continuous_learning": {
+    "enabled": true,
+    "learning_interval": "5m",
+    "pattern_recognition": true,
+    "code_generation": true,
+    "auto_improvement": true,
+    "vector_storage": "http://localhost:8000",
+    "knowledge_base": "http://localhost:27017"
+  },
+  "learning_targets": [
+    "F# functional programming",
+    "C# modern features", 
+    "Railway-oriented programming",
+    "Discriminated unions",
+    "Computation expressions"
+  ]
+}

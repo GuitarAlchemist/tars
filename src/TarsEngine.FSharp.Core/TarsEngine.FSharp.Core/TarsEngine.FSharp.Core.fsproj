@@ -66,6 +66,11 @@
     <!-- Janus Research Service -->
     <Compile Include="JanusResearchService.fs" />
 
+    <!-- TARS Inference Integration -->
+    <Compile Include="TarsEcosystemAccess.fs" />
+    <Compile Include="TarsInferenceIntegration.fs" />
+    <Compile Include="TarsInferenceCLI.fs" />
+
     <!-- Grammar Distillation Service -->
     <Compile Include="GrammarDistillationService.fs" />
 
@@ -89,6 +94,7 @@
     <Compile Include="../AutoImprovement/SelfModificationEngine.fs" />
     <Compile Include="../AutoImprovement/ContinuousLearningEngine.fs" />
     <Compile Include="../AutoImprovement/AutonomousGoalSetting.fs" />
+    <Compile Include="RealAutoImprovementEngine.fs" />
 
     <!-- FLUX Multi-Modal Language System -->
     <Compile Include="../FLUX/FluxIntegrationEngine.fs" />

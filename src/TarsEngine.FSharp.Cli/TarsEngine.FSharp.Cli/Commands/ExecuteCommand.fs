@@ -147,7 +147,7 @@ type ExecuteCommand(
 
             // Debug: Show what we found
             Console.WriteLine(sprintf "├── 🔍 Debug: Found %d F# blocks" fsharpBlocks.Length)
-            for i, block in fsharpBlocks |> List.indexed do
+            for i, (block: string) in fsharpBlocks |> List.indexed do
                 Console.WriteLine(sprintf "│   └── Block %d: %d chars" (i+1) block.Length)
 
             // Structured AI Analysis Output
@@ -544,7 +544,7 @@ type ExecuteCommand(
 
                 // ENHANCED F# EXECUTION - Smart .fsx/.fsproj selection!
                 let executionResult = self.executeFSharpBlock code
-                output.AppendLine(executionResult) |> ignore
+                output.AppendLine(executionResult : string) |> ignore
 
                 return {
                     Success = true
@@ -584,48 +584,13 @@ type ExecuteCommand(
 
             // Create project file with TARS references
             let currentDir = Directory.GetCurrentDirectory()
-            let projectContent = sprintf """<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net9.0</TargetFramework>
-    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <Compile Include="Program.fs" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="%s/TarsEngine.Core/TarsEngine.Core.fsproj" />
-    <ProjectReference Include="%s/TarsEngine.DSL/TarsEngine.DSL.fsproj" />
-  </ItemGroup>
-</Project>""" currentDir currentDir
+            let projectContent = sprintf "<Project Sdk=\"Microsoft.NET.Sdk\">\n  <PropertyGroup>\n    <OutputType>Exe</OutputType>\n    <TargetFramework>net9.0</TargetFramework>\n    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>\n  </PropertyGroup>\n\n  <ItemGroup>\n    <Compile Include=\"Program.fs\" />\n  </ItemGroup>\n\n  <ItemGroup>\n    <ProjectReference Include=\"%s/TarsEngine.Core/TarsEngine.Core.fsproj\" />\n    <ProjectReference Include=\"%s/TarsEngine.DSL/TarsEngine.DSL.fsproj\" />\n  </ItemGroup>\n</Project>" currentDir currentDir
 
             File.WriteAllText(projectFile, projectContent)
 
             // Create program file with TARS context and Variables module
-            let programContent = sprintf """
-open System
-open System.IO
-
-// TARS Variables Module for metascript compatibility
-module Variables =
-    let mutable improvement_session = "session_" + DateTime.UtcNow.ToString("yyyyMMdd_HHmmss")
-    let mutable improvement_result = ""
-    let mutable performance_metrics = ""
-
-[<EntryPoint>]
-let main argv =
-    try
-        // User's F# code with full TARS access:
-%s
-        0
-    with
-    | ex ->
-        printfn "Error: %%s" ex.Message
-        printfn "Stack: %%s" ex.StackTrace
-        1
-""" (code.Split('\n') |> Array.map (fun line -> "        " + line) |> String.concat "\n")
+            let indentedCode = code.Split('\n') |> Array.map (fun line -> "        " + line) |> String.concat "\n"
+            let programContent = sprintf "open System\nopen System.IO\n\n// TARS Variables Module for metascript compatibility\nmodule Variables =\n    let mutable improvement_session = \"session_\" + DateTime.UtcNow.ToString(\"yyyyMMdd_HHmmss\")\n    let mutable improvement_result = \"\"\n    let mutable performance_metrics = \"\"\n\n[<EntryPoint>]\nlet main argv =\n    try\n        // User's F# code with full TARS access:\n%s\n        0\n    with\n    | ex ->\n        printfn \"Error: %%s\" ex.Message\n        printfn \"Stack: %%s\" ex.StackTrace\n        1" indentedCode
 
             File.WriteAllText(programFile, programContent)
 
@@ -793,7 +758,7 @@ module TARS =
                 if code.Contains("mutable") then "State Management"
             ]
 
-            let capabilityText = if capabilities.IsEmpty then "Basic F# Operations" else String.concat(", ", capabilities)
+            let capabilityText = if capabilities.IsEmpty then "Basic F# Operations" else String.concat ", " capabilities
 
             // Generate intelligent summary
             let summary =

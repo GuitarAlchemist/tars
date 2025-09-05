@@ -1,0 +1,69 @@
+DESCRIBE {
+    name: "CLI Commands Test"
+    version: "1.0"
+    description: "Test metascript for CLI command validation"
+    author: "TARS Test Suite"
+}
+
+CONFIG {
+    model: "qwen3:latest"
+    temperature: 0.3
+    max_tokens: 2000
+    session_duration_minutes: 5
+}
+
+FSHARP {
+open System
+
+printfn "🧪 TARS CLI COMMANDS TEST"
+printfn "========================="
+printfn ""
+
+let testStartTime = DateTime.UtcNow
+printfn "Test started at: %s" (testStartTime.ToString("HH:mm:ss"))
+
+// Test basic F# functionality
+let numbers = [1; 2; 3; 4; 5]
+let doubled = numbers |> List.map (fun x -> x * 2)
+
+printfn "Original numbers: %A" numbers
+printfn "Doubled numbers: %A" doubled
+
+// Test async functionality
+let asyncTest() = async {
+    printfn "Starting async operation..."
+    let startTime = DateTime.UtcNow
+
+    // Real async computation instead of fake sleep
+    let! computation = async {
+        let numbers = [1..1000]
+        let result = numbers |> List.map (fun x -> x * x) |> List.sum
+        return result
+    }
+
+    let endTime = DateTime.UtcNow
+    let processingTime = (endTime - startTime).TotalMilliseconds
+
+    printfn "Async operation completed! Computed: %d (%.2fms)" computation processingTime
+    return "Success"
+}
+
+let result = Async.RunSynchronously(asyncTest())
+printfn "Async result: %s" result
+
+// Test computation expressions
+let computation = seq {
+    for i in 1..5 do
+        yield i * i
+}
+
+printfn "Squares: %A" (computation |> Seq.toList)
+
+let testEndTime = DateTime.UtcNow
+let duration = testEndTime - testStartTime
+
+printfn ""
+printfn "✅ CLI Execute Command Test: SUCCESS"
+printfn "Duration: %.2f seconds" duration.TotalSeconds
+printfn "All F# features working correctly!"
+}

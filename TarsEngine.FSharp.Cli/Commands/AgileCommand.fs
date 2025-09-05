@@ -159,15 +159,15 @@ Examples:
                 let insights = kanbanCoach.ProvideDailyInsights(board, workItems)
                 
                 printfn ""
-                printfn $"📅 Date: {insights.Date:yyyy-MM-dd HH:mm}"
+                printfn $"""📅 Date: {insights.Date.ToString("yyyy-MM-dd HH:mm")}"""
                 printfn ""
                 printfn "💡 Daily Insights:"
                 for insight in insights.Insights do
                     printfn $"  • {insight}"
                 printfn ""
                 printfn "🎯 Recommendations:"
-                for rec in insights.Recommendations do
-                    printfn $"  • {rec}"
+                for recommendation in insights.Recommendations do
+                    printfn $"  • {recommendation}"
                 printfn ""
                 
                 return { IsSuccess = true; Message = Some "Kanban coaching completed"; ErrorMessage = None }
@@ -251,7 +251,7 @@ Examples:
                 printfn $"🎯 Sprint Goal: {planningResult.Sprint.Goal}"
                 printfn $"📊 Committed Story Points: {planningResult.CommittedStoryPoints}"
                 printfn $"⚡ Team Capacity: {planningResult.TeamCapacity} hours"
-                printfn $"📈 Capacity Utilization: {planningResult.CapacityUtilization * 100.0:F1}%"
+                printfn $"""📈 Capacity Utilization: {(planningResult.CapacityUtilization * 100.0).ToString("F1")}%"""
                 printfn $"🎲 Confidence Level: {planningResult.Confidence}/5"
                 printfn ""
                 
@@ -317,7 +317,7 @@ Examples:
                 let analysis = scrumMaster.AnalyzeStandupResponses(responses)
                 
                 printfn "📊 Standup Analysis:"
-                printfn $"  • Average Confidence: {analysis.AverageConfidence:F1}/5"
+                printfn $"""  • Average Confidence: {analysis.AverageConfidence.ToString("F1")}/5"""
                 printfn $"  • Total Impediments: {analysis.TotalImpediments}"
                 printfn ""
                 
@@ -399,9 +399,9 @@ Examples:
                 printfn ""
                 printfn "✅ Gantt chart created successfully!"
                 printfn $"📊 Chart ID: {ganttChart.Id}"
-                printfn $"📅 Project Duration: {project.StartDate:yyyy-MM-dd} to {project.EndDate.Value:yyyy-MM-dd}"
+                printfn $"""📅 Project Duration: {project.StartDate.ToString("yyyy-MM-dd")} to {project.EndDate.Value.ToString("yyyy-MM-dd")}"""
                 printfn $"🎯 Milestones: {timeline.Milestones.Length}"
-                printfn $"📈 Overall Progress: {timeline.OverallProgress * 100.0:F1}%"
+                printfn $"""📈 Overall Progress: {(timeline.OverallProgress * 100.0).ToString("F1")}%"""
                 printfn $"⚠️ Risk Level: {timeline.RiskLevel}"
                 printfn ""
                 
@@ -430,13 +430,13 @@ Examples:
             printfn $"  • Active Projects: {dashboard.Summary.ActiveProjects}"
             printfn $"  • Completed Projects: {dashboard.Summary.CompletedProjects}"
             printfn $"  • Delayed Projects: {dashboard.Summary.DelayedProjects}"
-            printfn $"  • On-Time Delivery Rate: {dashboard.Summary.OnTimeDeliveryRate * 100.0:F1}%"
+            printfn $"""  • On-Time Delivery Rate: {(dashboard.Summary.OnTimeDeliveryRate * 100.0).ToString("F1")}%"""
             printfn ""
             
             if not dashboard.Recommendations.IsEmpty then
                 printfn "🎯 RECOMMENDATIONS:"
-                for rec in dashboard.Recommendations do
-                    printfn $"  • {rec}"
+                for recommendation in dashboard.Recommendations do
+                    printfn $"  • {recommendation}"
                 printfn ""
             
             return { IsSuccess = true; Message = Some "Dashboard generated"; ErrorMessage = None }
@@ -489,3 +489,4 @@ Examples:
             
             return { IsSuccess = true; Message = Some "Demo completed"; ErrorMessage = None }
         }
+

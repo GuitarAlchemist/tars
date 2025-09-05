@@ -1,0 +1,22 @@
+// TARS Demo Metascript
+// This demonstrates TARS metascript execution capabilities
+
+meta {
+    title: "TARS Demo Metascript"
+    description: "Demonstrates TARS capabilities"
+    version: "1.0.0"
+    author: "TARS System"
+}
+
+// Simple demonstration
+action log {
+    message: "🎉 TARS Metascript System is working!"
+}
+
+action log {
+    message: "✅ Successfully executed TARS metascript"
+}
+
+action log {
+    message: "🚀 TARS is ready for advanced operations"
+}

@@ -66,7 +66,7 @@ type SparqlClient(httpClient: HttpClient, logger: ILogger<SparqlClient>) =
     
     let executeQuery endpoint query = async {
         try
-            let encodedQuery = System.Web.HttpUtility.UrlEncode(query)
+            let encodedQuery = System.Web.HttpUtility.UrlEncode(query : string)
             let url = $"{endpoint}?query={encodedQuery}&format=application/sparql-results+json"
             
             logger.LogDebug("Executing SPARQL query: {Endpoint}", endpoint)
@@ -332,55 +332,61 @@ type TripleStoreVectorIntegration(
     }
     
     interface ITripleStoreVectorIntegration with
-        member _.IntegrateAllStoresAsync() = async {
-            logger.LogInformation("Starting integration of all triple stores")
-            
-            let! results = 
-                tripleStores
-                |> List.sortBy (_.Priority)
-                |> List.map integrateStore
-                |> Async.Parallel
-            
-            let aggregatedStats = results |> Array.fold (fun acc stats ->
-                { acc with
-                    TotalTriples = acc.TotalTriples + stats.TotalTriples
-                    ProcessedTriples = acc.ProcessedTriples + stats.ProcessedTriples
-                    GeneratedEmbeddings = acc.GeneratedEmbeddings + stats.GeneratedEmbeddings
-                    InsertedDocuments = acc.InsertedDocuments + stats.InsertedDocuments
-                    ErrorCount = acc.ErrorCount + stats.ErrorCount
-                    ProcessingTimeMs = max acc.ProcessingTimeMs stats.ProcessingTimeMs
-                    QualityScore = (acc.QualityScore + stats.QualityScore) / 2.0 }) 
-                { TotalTriples = 0L; ProcessedTriples = 0L; GeneratedEmbeddings = 0L
-                  InsertedDocuments = 0L; ErrorCount = 0L; ProcessingTimeMs = 0L; QualityScore = 0.0 }
-            
-            logger.LogInformation("All triple stores integration completed. Documents inserted: {Count}", aggregatedStats.InsertedDocuments)
-            return aggregatedStats
-        } |> Async.StartAsTask
+        member _.IntegrateAllStoresAsync() =
+            async {
+                logger.LogInformation("Starting integration of all triple stores")
+
+                let! results =
+                    tripleStores
+                    |> List.sortBy (_.Priority)
+                    |> List.map integrateStore
+                    |> Async.Parallel
+
+                let aggregatedStats =
+                    results
+                    |> Array.fold
+                        (fun acc stats ->
+                            { acc with
+                                TotalTriples = acc.TotalTriples + stats.TotalTriples
+                                ProcessedTriples = acc.ProcessedTriples + stats.ProcessedTriples
+                                GeneratedEmbeddings = acc.GeneratedEmbeddings + stats.GeneratedEmbeddings
+                                InsertedDocuments = acc.InsertedDocuments + stats.InsertedDocuments
+                                ErrorCount = acc.ErrorCount + stats.ErrorCount
+                                ProcessingTimeMs = max acc.ProcessingTimeMs stats.ProcessingTimeMs
+                                QualityScore = (acc.QualityScore + stats.QualityScore) / 2.0 })
+                        { TotalTriples = 0L; ProcessedTriples = 0L; GeneratedEmbeddings = 0L
+                          InsertedDocuments = 0L; ErrorCount = 0L; ProcessingTimeMs = 0L; QualityScore = 0.0 }
+
+                logger.LogInformation("All triple stores integration completed. Documents inserted: {Count}", aggregatedStats.InsertedDocuments)
+                return aggregatedStats
+            } |> Async.StartAsTask
         
         member _.IntegrateStoreAsync(endpoint) = 
             integrateStore endpoint |> Async.StartAsTask
         
-        member _.ValidateEndpointsAsync() = async {
-            let! validationResults = 
-                tripleStores
-                |> List.map (fun store -> async {
-                    let! isValid = validateEndpoint store
-                    return (store.Name, isValid)
-                })
-                |> Async.Parallel
-            
-            return validationResults |> Map.ofArray
-        } |> Async.StartAsTask
+        member _.ValidateEndpointsAsync() =
+            async {
+                let! validationResults =
+                    tripleStores
+                    |> List.map (fun store -> async {
+                        let! isValid = validateEndpoint store
+                        return (store.Name, isValid)
+                    })
+                    |> Async.Parallel
+
+                return validationResults |> Map.ofArray
+            } |> Async.StartAsTask
         
-        member _.GetIntegrationStatsAsync() = async {
-            // Return cached or computed stats
-            return {
-                TotalTriples = 0L
-                ProcessedTriples = 0L
-                GeneratedEmbeddings = 0L
-                InsertedDocuments = 0L
-                ErrorCount = 0L
-                ProcessingTimeMs = 0L
-                QualityScore = 0.0
-            }
-        } |> Async.StartAsTask
+        member _.GetIntegrationStatsAsync() =
+            async {
+                // Return cached or computed stats
+                return {
+                    TotalTriples = 0L
+                    ProcessedTriples = 0L
+                    GeneratedEmbeddings = 0L
+                    InsertedDocuments = 0L
+                    ErrorCount = 0L
+                    ProcessingTimeMs = 0L
+                    QualityScore = 0.0
+                }
+            } |> Async.StartAsTask

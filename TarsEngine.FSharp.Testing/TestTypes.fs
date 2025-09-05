@@ -89,7 +89,7 @@ module TestTypes =
         | PageUrl of expectedUrl: string
         | ResponseStatus of expectedStatus: int
         | ResponseTime of maxMilliseconds: int
-        | Custom of description: string * assertion: unit -> bool
+        | Custom of description: string * assertion: (unit -> bool)
     
     /// Test step definition
     type TestStep = {
@@ -113,7 +113,7 @@ module TestTypes =
         | SwitchToWindow of windowHandle: string
         | TakeScreenshot of filename: string
         | APICall of method: string * url: string * body: string option
-        | Custom of description: string * action: unit -> unit
+        | Custom of description: string * action: (unit -> unit)
     
     /// Test case definition
     type TestCase = {

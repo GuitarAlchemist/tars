@@ -9,56 +9,56 @@ open TarsEngine.FSharp.Packaging.Core
 type WixGenerator() =
     
     /// Generates WiX source file (.wxs)
-    member _.GenerateWxsFile(project: WixProject) =
+    member this.GenerateWxsFile(project: WixProject) =
         let sb = StringBuilder()
-        
+
         // XML header
         sb.AppendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>") |> ignore
         sb.AppendLine("<Wix xmlns=\"http://schemas.microsoft.com/wix/2006/wi\">") |> ignore
-        
+
         // Product element
         this.GenerateProductElement(sb, project)
-        
+
         // Package element
         this.GeneratePackageElement(sb, project.Config)
-        
+
         // Media element
         sb.AppendLine("    <Media Id=\"1\" Cabinet=\"media1.cab\" EmbedCab=\"yes\" />") |> ignore
         sb.AppendLine() |> ignore
-        
+
         // Properties
         this.GenerateProperties(sb, project.Properties)
-        
+
         // Conditions
         this.GenerateConditions(sb, project.Conditions)
-        
+
         // Upgrade rules
         this.GenerateUpgradeRules(sb, project.UpgradeRules)
-        
+
         // Directory structure
         this.GenerateDirectoryStructure(sb, project.Directories)
-        
+
         // Features
         this.GenerateFeatures(sb, project.Features)
-        
+
         // UI
         match project.UI with
         | Some ui -> this.GenerateUI(sb, ui)
         | None -> ()
-        
+
         // Install execute sequence
         this.GenerateInstallExecuteSequence(sb)
-        
+
         // Close Product and Wix elements
         sb.AppendLine("  </Product>") |> ignore
         sb.AppendLine("</Wix>") |> ignore
-        
+
         sb.ToString()
     
     /// Generates Product element
-    member _.GenerateProductElement(sb: StringBuilder, project: WixProject) =
+    member this.GenerateProductElement(sb: StringBuilder, project: WixProject) =
         let config = project.Config
-        
+
         sb.AppendLine($"  <Product Id=\"{config.ProductCode}\"") |> ignore
         sb.AppendLine($"           Name=\"{config.ProductName}\"") |> ignore
         sb.AppendLine($"           Language=\"{config.Language}\"") |> ignore
@@ -66,9 +66,9 @@ type WixGenerator() =
         sb.AppendLine($"           Manufacturer=\"{config.Manufacturer}\"") |> ignore
         sb.AppendLine($"           UpgradeCode=\"{config.UpgradeCode}\">") |> ignore
         sb.AppendLine() |> ignore
-    
+
     /// Generates Package element
-    member _.GeneratePackageElement(sb: StringBuilder, config: WixInstallerConfig) =
+    member this.GeneratePackageElement(sb: StringBuilder, config: WixInstallerConfig) =
         sb.AppendLine("    <Package InstallerVersion=\"500\"") |> ignore
         sb.AppendLine("             Compressed=\"yes\"") |> ignore
         sb.AppendLine($"             InstallScope=\"{this.InstallScopeToString(config.InstallScope)}\"") |> ignore
@@ -77,182 +77,188 @@ type WixGenerator() =
         sb.AppendLine($"             Comments=\"{config.Comments}\"") |> ignore
         sb.AppendLine($"             Keywords=\"{config.Keywords}\" />") |> ignore
         sb.AppendLine() |> ignore
-    
+
     /// Generates Properties section
-    member _.GenerateProperties(sb: StringBuilder, properties: Map<string, string>) =
+    member this.GenerateProperties(sb: StringBuilder, properties: Map<string, string>) =
         if not properties.IsEmpty then
             for kvp in properties do
                 sb.AppendLine($"    <Property Id=\"{kvp.Key}\" Value=\"{kvp.Value}\" />") |> ignore
             sb.AppendLine() |> ignore
-    
+
     /// Generates Conditions section
-    member _.GenerateConditions(sb: StringBuilder, conditions: WixCondition list) =
+    member this.GenerateConditions(sb: StringBuilder, conditions: WixCondition list) =
         for condition in conditions do
             sb.AppendLine($"    <Condition Message=\"{condition.Message}\">") |> ignore
             sb.AppendLine($"      {condition.Condition}") |> ignore
             sb.AppendLine("    </Condition>") |> ignore
-        
+
         if not conditions.IsEmpty then
             sb.AppendLine() |> ignore
     
     /// Generates Upgrade rules
-    member _.GenerateUpgradeRules(sb: StringBuilder, upgrades: WixUpgrade list) =
+    member this.GenerateUpgradeRules(sb: StringBuilder, upgrades: WixUpgrade list) =
         for upgrade in upgrades do
+            let minVersion = upgrade.Minimum |> Option.defaultValue "0.0.0"
+            let maxVersion = upgrade.Maximum |> Option.defaultValue "999.999.999"
+            let includeMin = if upgrade.IncludeMinimum then "yes" else "no"
+            let includeMax = if upgrade.IncludeMaximum then "yes" else "no"
+
             sb.AppendLine($"    <Upgrade Id=\"{upgrade.Id}\">") |> ignore
-            sb.AppendLine($"      <UpgradeVersion Minimum=\"{upgrade.Minimum |> Option.defaultValue "0.0.0"}\"") |> ignore
-            sb.AppendLine($"                      Maximum=\"{upgrade.Maximum |> Option.defaultValue "999.999.999"}\"") |> ignore
+            sb.AppendLine($"      <UpgradeVersion Minimum=\"{minVersion}\"") |> ignore
+            sb.AppendLine($"                      Maximum=\"{maxVersion}\"") |> ignore
             sb.AppendLine($"                      Property=\"{upgrade.Property}\"") |> ignore
-            sb.AppendLine($"                      IncludeMinimum=\"{if upgrade.IncludeMinimum then "yes" else "no"}\"") |> ignore
-            sb.AppendLine($"                      IncludeMaximum=\"{if upgrade.IncludeMaximum then "yes" else "no"}\" />") |> ignore
+            sb.AppendLine($"                      IncludeMinimum=\"{includeMin}\"") |> ignore
+            sb.AppendLine($"                      IncludeMaximum=\"{includeMax}\" />") |> ignore
             sb.AppendLine("    </Upgrade>") |> ignore
-        
+
         if not upgrades.IsEmpty then
             sb.AppendLine() |> ignore
-    
+
     /// Generates Directory structure
-    member _.GenerateDirectoryStructure(sb: StringBuilder, directories: WixDirectory list) =
+    member this.GenerateDirectoryStructure(sb: StringBuilder, directories: WixDirectory list) =
         sb.AppendLine("    <Directory Id=\"TARGETDIR\" Name=\"SourceDir\">") |> ignore
-        
+
         for directory in directories do
             this.GenerateDirectory(sb, directory, 2)
-        
+
         sb.AppendLine("    </Directory>") |> ignore
         sb.AppendLine() |> ignore
-    
+
     /// Generates a single directory
-    member _.GenerateDirectory(sb: StringBuilder, directory: WixDirectory, indent: int) =
-        let indentStr = String(' ', indent * 2)
-        
+    member this.GenerateDirectory(sb: StringBuilder, directory: WixDirectory, indent: int) =
+        let indentStr = String.replicate (indent * 2) " "
+
         sb.AppendLine($"{indentStr}<Directory Id=\"{directory.Id}\"") |> ignore
-        
+
         match directory.Name with
         | Some name -> sb.AppendLine($"{indentStr}           Name=\"{name}\">") |> ignore
         | None -> sb.AppendLine($"{indentStr}>") |> ignore
-        
+
         // Generate components
         for component in directory.Components do
             this.GenerateComponent(sb, component, indent + 1)
-        
+
         // Generate subdirectories
         for subdir in directory.Subdirectories do
             this.GenerateDirectory(sb, subdir, indent + 1)
-        
+
         sb.AppendLine($"{indentStr}</Directory>") |> ignore
     
     /// Generates a component
-    member _.GenerateComponent(sb: StringBuilder, component: WixComponent, indent: int) =
-        let indentStr = String(' ', indent * 2)
-        
+    member this.GenerateComponent(sb: StringBuilder, component: WixComponent, indent: int) =
+        let indentStr = String.replicate (indent * 2) " "
+
         sb.AppendLine($"{indentStr}<Component Id=\"{component.Id}\" Guid=\"{component.Guid}\">") |> ignore
-        
+
         // Generate files
         for file in component.Files do
+            let vitalValue = if file.Vital then "yes" else "no"
             sb.AppendLine($"{indentStr}  <File Id=\"{file.Id}\"") |> ignore
             sb.AppendLine($"{indentStr}        Name=\"{file.Name}\"") |> ignore
             sb.AppendLine($"{indentStr}        Source=\"{file.Source}\"") |> ignore
             if file.KeyPath then
                 sb.AppendLine($"{indentStr}        KeyPath=\"yes\"") |> ignore
-            sb.AppendLine($"{indentStr}        Vital=\"{if file.Vital then "yes" else "no"}\" />") |> ignore
-        
+            sb.AppendLine($"{indentStr}        Vital=\"{vitalValue}\" />") |> ignore
+
         // Generate registry keys
         for regKey in component.RegistryKeys do
             this.GenerateRegistryKey(sb, regKey, indent + 1)
-        
+
         // Generate shortcuts
         for shortcut in component.Shortcuts do
             this.GenerateShortcut(sb, shortcut, indent + 1)
-        
+
         sb.AppendLine($"{indentStr}</Component>") |> ignore
-    
+
     /// Generates registry key
-    member _.GenerateRegistryKey(sb: StringBuilder, regKey: WixRegistryKey, indent: int) =
-        let indentStr = String(' ', indent * 2)
-        
+    member this.GenerateRegistryKey(sb: StringBuilder, regKey: WixRegistryKey, indent: int) =
+        let indentStr = String.replicate (indent * 2) " "
+
         sb.AppendLine($"{indentStr}<RegistryKey Root=\"{this.RegistryRootToString(regKey.Root)}\"") |> ignore
         sb.AppendLine($"{indentStr}             Key=\"{regKey.Key}\">") |> ignore
-        
+
         match regKey.Name, regKey.Value with
         | Some name, Some value ->
             sb.AppendLine($"{indentStr}  <RegistryValue Name=\"{name}\"") |> ignore
             sb.AppendLine($"{indentStr}                 Type=\"{this.RegistryTypeToString(regKey.Type)}\"") |> ignore
             sb.AppendLine($"{indentStr}                 Value=\"{value}\" />") |> ignore
         | _ -> ()
-        
+
         sb.AppendLine($"{indentStr}</RegistryKey>") |> ignore
     
     /// Generates shortcut
-    member _.GenerateShortcut(sb: StringBuilder, shortcut: WixShortcut, indent: int) =
-        let indentStr = String(' ', indent * 2)
-        
+    member this.GenerateShortcut(sb: StringBuilder, shortcut: WixShortcut, indent: int) =
+        let indentStr = String.replicate (indent * 2) " "
+
         sb.AppendLine($"{indentStr}<Shortcut Id=\"{shortcut.Id}\"") |> ignore
         sb.AppendLine($"{indentStr}          Name=\"{shortcut.Name}\"") |> ignore
         sb.AppendLine($"{indentStr}          Description=\"{shortcut.Description}\"") |> ignore
         sb.AppendLine($"{indentStr}          Target=\"{shortcut.Target}\"") |> ignore
-        
+
         match shortcut.Arguments with
         | Some args -> sb.AppendLine($"{indentStr}          Arguments=\"{args}\"") |> ignore
         | None -> ()
-        
+
         match shortcut.WorkingDirectory with
         | Some workDir -> sb.AppendLine($"{indentStr}          WorkingDirectory=\"{workDir}\"") |> ignore
         | None -> ()
-        
+
         sb.AppendLine($"{indentStr}          ShowCmd=\"{this.ShowCommandToString(shortcut.ShowCommand)}\" />") |> ignore
-    
+
     /// Generates Features section
-    member _.GenerateFeatures(sb: StringBuilder, features: WixFeature list) =
+    member this.GenerateFeatures(sb: StringBuilder, features: WixFeature list) =
         for feature in features do
             this.GenerateFeature(sb, feature, 2)
-        
+
         if not features.IsEmpty then
             sb.AppendLine() |> ignore
-    
+
     /// Generates a single feature
-    member _.GenerateFeature(sb: StringBuilder, feature: WixFeature, indent: int) =
-        let indentStr = String(' ', indent * 2)
-        
+    member this.GenerateFeature(sb: StringBuilder, feature: WixFeature, indent: int) =
+        let indentStr = String.replicate (indent * 2) " "
+
         sb.AppendLine($"{indentStr}<Feature Id=\"{feature.Id}\"") |> ignore
         sb.AppendLine($"{indentStr}         Title=\"{feature.Title}\"") |> ignore
         sb.AppendLine($"{indentStr}         Description=\"{feature.Description}\"") |> ignore
         sb.AppendLine($"{indentStr}         Level=\"{feature.Level}\">") |> ignore
-        
+
         // Component references
         for componentId in feature.Components do
             sb.AppendLine($"{indentStr}  <ComponentRef Id=\"{componentId}\" />") |> ignore
-        
+
         // Sub-features
         for subFeature in feature.Features do
             this.GenerateFeature(sb, subFeature, indent + 1)
-        
+
         sb.AppendLine($"{indentStr}</Feature>") |> ignore
     
     /// Generates UI section
-    member _.GenerateUI(sb: StringBuilder, ui: WixUI) =
+    member this.GenerateUI(sb: StringBuilder, ui: WixUI) =
         sb.AppendLine($"    <UIRef Id=\"{ui.Id}\" />") |> ignore
-        
+
         match ui.InstallDirectory with
         | Some dir ->
             sb.AppendLine($"    <Property Id=\"WIXUI_INSTALLDIR\" Value=\"{dir}\" />") |> ignore
         | None -> ()
-        
+
         match ui.LicenseFile with
         | Some license ->
             sb.AppendLine($"    <WixVariable Id=\"WixUILicenseRtf\" Value=\"{license}\" />") |> ignore
         | None -> ()
-        
+
         sb.AppendLine() |> ignore
-    
+
     /// Generates InstallExecuteSequence
-    member _.GenerateInstallExecuteSequence(sb: StringBuilder) =
+    member this.GenerateInstallExecuteSequence(sb: StringBuilder) =
         sb.AppendLine("    <InstallExecuteSequence>") |> ignore
         sb.AppendLine("      <RemoveExistingProducts After=\"InstallValidate\" />") |> ignore
         sb.AppendLine("    </InstallExecuteSequence>") |> ignore
         sb.AppendLine() |> ignore
-    
+
     /// Generates WiX project file (.wixproj)
-    member _.GenerateWixProjectFile(project: WixProject, wxsFileName: string) =
+    member this.GenerateWixProjectFile(project: WixProject, wxsFileName: string) =
         let sb = StringBuilder()
-        
+
         sb.AppendLine("<?xml version=\"1.0\" encoding=\"utf-8\"?>") |> ignore
         sb.AppendLine("<Project ToolsVersion=\"4.0\" DefaultTargets=\"Build\" xmlns=\"http://schemas.microsoft.com/developer/msbuild/2003\">") |> ignore
         sb.AppendLine("  <PropertyGroup>") |> ignore
@@ -280,11 +286,11 @@ type WixGenerator() =
         sb.AppendLine("  </ItemGroup>") |> ignore
         sb.AppendLine("  <Import Project=\"$(WixTargetsPath)\" />") |> ignore
         sb.AppendLine("</Project>") |> ignore
-        
+
         sb.ToString()
-    
+
     /// Generates build script
-    member _.GenerateBuildScript(project: WixProject, projectFileName: string) =
+    member this.GenerateBuildScript(project: WixProject, projectFileName: string) =
         let sb = StringBuilder()
         
         sb.AppendLine("@echo off") |> ignore
@@ -319,30 +325,35 @@ type WixGenerator() =
         sb.ToString()
     
     /// Helper methods for converting enums to strings
-    member _.InstallScopeToString = function
+    member this.InstallScopeToString = function
         | PerMachine -> "perMachine"
         | PerUser -> "perUser"
-    
-    member _.RegistryRootToString = function
+
+    member this.RegistryRootToString = function
         | HKCR -> "HKCR"
         | HKCU -> "HKCU"
         | HKLM -> "HKLM"
         | HKU -> "HKU"
-    
-    member _.RegistryTypeToString = function
+
+    member this.RegistryTypeToString = function
         | String -> "string"
         | ExpandableString -> "expandable"
         | Integer -> "integer"
         | Binary -> "binary"
         | MultiString -> "multiString"
-    
-    member _.ShowCommandToString = function
-        | Normal -> "normal"
-        | Minimized -> "minimized"
-        | Maximized -> "maximized"
+
+    member this.ShowCommandToString = function
+        | ShowCommand.Normal -> "normal"
+        | ShowCommand.Minimized -> "minimized"
+        | ShowCommand.Maximized -> "maximized"
+
+    member this.ServiceErrorControlToString = function
+        | ServiceErrorControl.Ignore -> "ignore"
+        | ServiceErrorControl.Normal -> "normal"
+        | ServiceErrorControl.Critical -> "critical"
 
     /// Generates complete WiX project
-    member _.GenerateWixProject(project: WixProject, outputDir: string) =
+    member this.GenerateWixProject(project: WixProject, outputDir: string) =
         // Create output directory
         Directory.CreateDirectory(outputDir) |> ignore
 

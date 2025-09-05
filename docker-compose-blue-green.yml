@@ -1,0 +1,102 @@
+version: '3.8'
+
+services:
+  # Blue Instance - Testing Environment
+  tars-blue:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tars-blue
+    ports:
+      - "7778:7777"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Blue
+      - TARS_INSTANCE=blue
+      - TARS_MODE=testing
+    volumes:
+      - ./data/blue:/app/data
+      - ./logs/blue:/app/logs
+    networks:
+      - tars-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7777/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "tars.instance=blue"
+      - "tars.purpose=testing"
+
+  # Green Instance - Production Environment  
+  tars-green:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tars-green
+    ports:
+      - "7777:7777"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - TARS_INSTANCE=green
+      - TARS_MODE=production
+    volumes:
+      - ./data/green:/app/data
+      - ./logs/green:/app/logs
+    networks:
+      - tars-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7777/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "tars.instance=green"
+      - "tars.purpose=production"
+
+  # Load Balancer for Blue/Green Switching
+  tars-proxy:
+    image: nginx:alpine
+    container_name: tars-proxy
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/blue-green.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - tars-network
+    depends_on:
+      - tars-blue
+      - tars-green
+    labels:
+      - "tars.component=proxy"
+      - "tars.purpose=load-balancer"
+
+  # Monitoring and Health Checks
+  tars-monitor:
+    image: prom/prometheus
+    container_name: tars-monitor
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - tars-network
+    labels:
+      - "tars.component=monitoring"
+
+networks:
+  tars-network:
+    driver: bridge
+    labels:
+      - "tars.network=main"
+
+volumes:
+  tars-blue-data:
+    driver: local
+    labels:
+      - "tars.volume=blue-data"
+  
+  tars-green-data:
+    driver: local
+    labels:
+      - "tars.volume=green-data"

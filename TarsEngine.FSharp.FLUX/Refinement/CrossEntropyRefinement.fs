@@ -106,7 +106,7 @@ module CrossEntropyRefinement =
                 let f1Score = if precision + recall = 0.0 then 0.0 else 2.0 * precision * recall / (precision + recall)
                 
                 let confidence = Math.Max(0.0, Math.Min(1.0, (accuracy + avgSimilarity) / 2.0))
-                let entropy = -similarities |> List.map (fun s -> if s > 0.0 then s * Math.Log(s) else 0.0) |> List.sum
+                let entropy = -(similarities |> List.map (fun s -> if s > 0.0 then s * Math.Log(s) else 0.0) |> List.sum)
                 
                 {
                     Loss = loss

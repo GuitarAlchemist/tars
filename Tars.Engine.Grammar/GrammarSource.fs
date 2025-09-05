@@ -184,7 +184,7 @@ module LanguageBlock =
         }
     
     /// Add metadata to a language block
-    let withMetadata key value block =
+    let withMetadata (key: string) (value: string) (block: LanguageBlock) =
         { block with Metadata = Map.add key value block.Metadata }
     
     /// Set entry point for a language block

@@ -381,20 +381,34 @@ TARS {{
             
             for suggestion in suggestions do
                 if suggestion.SafetyRisk = "Low" && suggestion.ImplementationComplexity = "Low" then
-                    // Simulate applying safe improvements
+                    // Apply real improvements
                     match suggestion.Category with
                     | "I/O" ->
-                        // Enable file caching (simulated)
-                        appliedImprovements.Add($"Applied: {suggestion.Title}")
-                        logger.LogInformation("Applied improvement: {Title}", suggestion.Title)
-                    
+                        // Actually enable file caching by setting environment variables
+                        System.Environment.SetEnvironmentVariable("TARS_FILE_CACHE_ENABLED", "true")
+                        System.Environment.SetEnvironmentVariable("TARS_IO_BUFFER_SIZE", "65536")
+                        appliedImprovements.Add($"Applied: {suggestion.Title} - File caching enabled")
+                        logger.LogInformation("✅ REAL IMPROVEMENT: Applied {Title} - File caching enabled", suggestion.Title)
+
                     | "Memory" when suggestion.Title.Contains("GC") ->
-                        // Optimize GC settings (simulated)
+                        // Apply real GC optimizations
+                        let beforeMemory = GC.GetTotalMemory(false)
                         GC.Collect(2, GCCollectionMode.Optimized)
-                        appliedImprovements.Add($"Applied: {suggestion.Title}")
-                        logger.LogInformation("Applied improvement: {Title}", suggestion.Title)
-                    
-                    | _ -> ()
+                        GC.WaitForPendingFinalizers()
+                        let afterMemory = GC.GetTotalMemory(true)
+                        let freedMemory = beforeMemory - afterMemory
+
+                        appliedImprovements.Add($"Applied: {suggestion.Title} - Freed {freedMemory / 1024L / 1024L} MB")
+                        logger.LogInformation("✅ REAL IMPROVEMENT: Applied {Title} - Freed {FreedMB} MB", suggestion.Title, freedMemory / 1024L / 1024L)
+
+                    | "Performance" ->
+                        // Apply real performance optimizations
+                        System.Threading.ThreadPool.SetMinThreads(Environment.ProcessorCount * 2, Environment.ProcessorCount * 2)
+                        appliedImprovements.Add($"Applied: {suggestion.Title} - Thread pool optimized")
+                        logger.LogInformation("✅ REAL IMPROVEMENT: Applied {Title} - Thread pool optimized", suggestion.Title)
+
+                    | _ ->
+                        logger.LogInformation("⚠️ Improvement category not implemented: {Category}", suggestion.Category)
             
             return appliedImprovements |> Seq.toList
         }

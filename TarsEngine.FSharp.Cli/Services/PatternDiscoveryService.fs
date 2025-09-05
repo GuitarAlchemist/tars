@@ -151,7 +151,7 @@ type PatternDiscoveryService(logger: ILogger<PatternDiscoveryService>) =
         
         for pattern in patterns do
             code.AppendLine($"/// {pattern.Description}") |> ignore
-            code.AppendLine($"/// Usage count: {pattern.UsageCount}, Similarity: {pattern.SimilarityScore:F2}") |> ignore
+            code.AppendLine($"/// Usage count: {pattern.UsageCount}, Similarity: {pattern.SimilarityScore.ToString("F2")}") |> ignore
             
             match pattern.Name with
             | "FileOperationPattern" ->
@@ -365,3 +365,4 @@ type PatternDiscoveryService(logger: ILogger<PatternDiscoveryService>) =
         blendedMarkdown.AppendLine("- **Auto-Improvement Cycles** for continuous enhancement") |> ignore
         
         blendedMarkdown.ToString()
+

@@ -78,7 +78,9 @@ type GitHubAnalysisService(httpClient: HttpClient, logger: ILogger<GitHubAnalysi
         try
             logger.LogInformation("Analyzing GitHub commits for repository: {Repository}", repository)
             
-            let url = $"https://api.github.com/repos/{repository}/commits?since={fromDate:yyyy-MM-ddTHH:mm:ssZ}&until={toDate:yyyy-MM-ddTHH:mm:ssZ}&per_page=100"
+            let fromDateStr = fromDate.ToString("yyyy-MM-ddTHH:mm:ssZ")
+            let toDateStr = toDate.ToString("yyyy-MM-ddTHH:mm:ssZ")
+            let url = $"https://api.github.com/repos/{repository}/commits?since={fromDateStr}&until={toDateStr}&per_page=100"
             
             use request = new HttpRequestMessage(HttpMethod.Get, url)
             githubToken |> Option.ofObj |> Option.iter (fun token ->
@@ -118,48 +120,54 @@ type GitHubAnalysisService(httpClient: HttpClient, logger: ILogger<GitHubAnalysi
             return [||]
     }
     
-    let classifyRAndDActivities (commits: GitHubCommit[]) = async {
+    member private _.classifyRAndDActivities (commits: GitHubCommit[]) = async {
         logger.LogInformation("Classifying R&D activities from {Count} commits", commits.Length)
         
-        let activities = 
+        let activities =
             commits
-            |> Array.map (fun commit ->
+            |> Array.choose (fun commit ->
                 let message = commit.Message.ToLower()
-                let isRAndD = 
-                    message.Contains("research") || message.Contains("experimental") || 
+                let isRAndD =
+                    message.Contains("research") || message.Contains("experimental") ||
                     message.Contains("algorithm") || message.Contains("optimization") ||
                     message.Contains("performance") || message.Contains("new") ||
                     message.Contains("improve") || message.Contains("enhance")
-                
+
                 if isRAndD then
-                    Some {
+                    let activityType =
+                        if message.Contains("research") then "Applied Research"
+                        elif message.Contains("experimental") then "Experimental Development"
+                        else "Technological Advancement"
+
+                    let activity = {
                         CommitSha = commit.Sha
-                        ActivityType = if message.Contains("research") then "Applied Research"
-                                      elif message.Contains("experimental") then "Experimental Development"
-                                      else "Technological Advancement"
+                        ActivityType = activityType
                         TechnicalUncertainty = message.Contains("research") || message.Contains("experimental")
                         SystematicInvestigation = true
                         TechnologicalAdvancement = true
                         BusinessComponent = "Core Product Development"
-                        EligibleExpense = decimal (commit.LinesAdded + commit.LinesDeleted) * 50m // $50 per line estimate
+                        EligibleExpense = decimal (commit.LinesAdded + commit.LinesDeleted) * 50m
                     }
-                else None
+                    Some activity
+                else
+                    None
             )
-            |> Array.choose id
         
         logger.LogInformation("Classified {Count} R&D activities", activities.Length)
         return activities
     }
-    
-    member _.AnalyzeRepositoryAsync(repository: string, taxYear: int) = async {
-        let fromDate = DateTime(taxYear, 1, 1)
-        let toDate = DateTime(taxYear, 12, 31)
-        
-        let! commits = analyzeCommits repository fromDate toDate
-        let! activities = classifyRAndDActivities commits
-        
-        return (commits, activities)
-    } |> Async.StartAsTask
+
+    member _.AnalyzeRepositoryAsync(repository: string, taxYear: int) : Task<GitHubCommit[] * RAndDActivity[]> =
+        let workflow = async {
+            let fromDate = DateTime(taxYear, 1, 1)
+            let toDate = DateTime(taxYear, 12, 31)
+
+            let! commits = analyzeCommits repository fromDate toDate
+            let! activities = classifyRAndDActivities commits
+
+            return (commits, activities)
+        }
+        Async.StartAsTask workflow
 
 /// Tax regulation research service
 type TaxRegulationService(searchService: IOnDemandSearchService, logger: ILogger<TaxRegulationService>) =
@@ -243,12 +251,14 @@ type TaxRegulationService(searchService: IOnDemandSearchService, logger: ILogger
         |]
     }
     
-    member _.ResearchCurrentRegulationsAsync(taxYear: int) = async {
-        let! usIncentives = researchUSRegulations taxYear
-        let! canadaIncentives = researchCanadaRegulations taxYear
-        
-        return (usIncentives, canadaIncentives)
-    } |> Async.StartAsTask
+    member _.ResearchCurrentRegulationsAsync(taxYear: int) : Task<TaxIncentive[] * TaxIncentive[]> =
+        let workflow = async {
+            let! usIncentives = researchUSRegulations taxYear
+            let! canadaIncentives = researchCanadaRegulations taxYear
+
+            return (usIncentives, canadaIncentives)
+        }
+        Async.StartAsTask workflow
 
 /// Tax incentive calculation service
 type TaxIncentiveCalculationService(logger: ILogger<TaxIncentiveCalculationService>) =
@@ -285,18 +295,20 @@ type TaxIncentiveCalculationService(logger: ILogger<TaxIncentiveCalculationServi
             | _ -> incentive
         )
     
-    member _.CalculateIncentivesAsync(activities: RAndDActivity[], usIncentives: TaxIncentive[], canadaIncentives: TaxIncentive[]) = async {
-        let calculatedUSIncentives = calculateUSIncentives activities usIncentives
-        let calculatedCanadaIncentives = calculateCanadaIncentives activities canadaIncentives
-        
-        let totalCredits = 
-            (calculatedUSIncentives |> Array.sumBy (_.CreditAmount)) +
-            (calculatedCanadaIncentives |> Array.sumBy (_.CreditAmount))
-        
-        logger.LogInformation("Total calculated tax incentives: ${Amount:F2}", totalCredits)
-        
-        return (calculatedUSIncentives, calculatedCanadaIncentives, totalCredits)
-    } |> Async.StartAsTask
+    member _.CalculateIncentivesAsync(activities: RAndDActivity[], usIncentives: TaxIncentive[], canadaIncentives: TaxIncentive[]) =
+        let workflow = async {
+            let calculatedUSIncentives = calculateUSIncentives activities usIncentives
+            let calculatedCanadaIncentives = calculateCanadaIncentives activities canadaIncentives
+
+            let totalCredits =
+                (calculatedUSIncentives |> Array.sumBy (_.CreditAmount)) +
+                (calculatedCanadaIncentives |> Array.sumBy (_.CreditAmount))
+
+            logger.LogInformation("Total calculated tax incentives: ${Amount:F2}", totalCredits)
+
+            return (calculatedUSIncentives, calculatedCanadaIncentives, totalCredits)
+        }
+        Async.StartAsTask workflow
 
 /// Main tax incentive report generator
 type TaxIncentiveReportGenerator(
@@ -326,43 +338,45 @@ type TaxIncentiveReportGenerator(
             "Prepare for potential tax authority audits with comprehensive records"
         |]
     
-    member _.GenerateReportAsync(repository: string, organization: string, taxYear: int) = async {
-        logger.LogInformation("Generating tax incentive report for {Organization} repository {Repository} for tax year {TaxYear}", 
-            organization, repository, taxYear)
-        
-        // Step 1: Analyze GitHub repository
-        let! (commits, activities) = githubService.AnalyzeRepositoryAsync(repository, taxYear) |> Async.AwaitTask
-        
-        // Step 2: Research current tax regulations
-        let! (usIncentives, canadaIncentives) = taxRegulationService.ResearchCurrentRegulationsAsync(taxYear) |> Async.AwaitTask
-        
-        // Step 3: Calculate tax incentives
-        let! (calculatedUSIncentives, calculatedCanadaIncentives, totalCredits) = 
-            calculationService.CalculateIncentivesAsync(activities, usIncentives, canadaIncentives) |> Async.AwaitTask
-        
-        // Step 4: Generate comprehensive report
-        let totalEligibleExpenses = activities |> Array.sumBy (_.EligibleExpense)
-        let auditTrail = generateAuditTrail commits activities
-        let recommendations = generateRecommendations calculatedUSIncentives calculatedCanadaIncentives
-        
-        let report = {
-            TaxYear = taxYear
-            ReportDate = DateTime.UtcNow
-            Organization = organization
-            Repository = repository
-            TotalEligibleExpenses = totalEligibleExpenses
-            USTaxIncentives = calculatedUSIncentives
-            CanadaTaxIncentives = calculatedCanadaIncentives
-            TotalCredits = totalCredits
-            ComplianceStatus = "Compliant with current regulations"
-            AuditTrail = auditTrail
-            Recommendations = recommendations
+    member _.GenerateReportAsync(repository: string, organization: string, taxYear: int) =
+        let workflow = async {
+            logger.LogInformation("Generating tax incentive report for {Organization} repository {Repository} for tax year {TaxYear}",
+                organization, repository, taxYear)
+
+            // Step 1: Analyze GitHub repository
+            let! (commits, activities) = githubService.AnalyzeRepositoryAsync(repository, taxYear) |> Async.AwaitTask
+
+            // Step 2: Research current tax regulations
+            let! (usIncentives, canadaIncentives) = taxRegulationService.ResearchCurrentRegulationsAsync(taxYear) |> Async.AwaitTask
+
+            // Step 3: Calculate tax incentives
+            let! (calculatedUSIncentives, calculatedCanadaIncentives, totalCredits) =
+                calculationService.CalculateIncentivesAsync(activities, usIncentives, canadaIncentives) |> Async.AwaitTask
+
+            // Step 4: Generate comprehensive report
+            let totalEligibleExpenses = activities |> Array.sumBy (_.EligibleExpense)
+            let auditTrail = generateAuditTrail commits activities
+            let recommendations = generateRecommendations calculatedUSIncentives calculatedCanadaIncentives
+
+            let report = {
+                TaxYear = taxYear
+                ReportDate = DateTime.UtcNow
+                Organization = organization
+                Repository = repository
+                TotalEligibleExpenses = totalEligibleExpenses
+                USTaxIncentives = calculatedUSIncentives
+                CanadaTaxIncentives = calculatedCanadaIncentives
+                TotalCredits = totalCredits
+                ComplianceStatus = "Compliant with current regulations"
+                AuditTrail = auditTrail
+                Recommendations = recommendations
+            }
+
+            logger.LogInformation("Tax incentive report generated successfully. Total credits: ${Amount:F2}", totalCredits)
+
+            return report
         }
-        
-        logger.LogInformation("Tax incentive report generated successfully. Total credits: ${Amount:F2}", totalCredits)
-        
-        return report
-    } |> Async.StartAsTask
+        Async.StartAsTask workflow
 
 // Required interfaces (would be defined elsewhere)
 and IOnDemandSearchService =
@@ -1397,42 +1411,43 @@ type CompleteSREDFormGenerator(logger: ILogger<CompleteSREDFormGenerator>) =
             |]
         }
 
-    member _.GenerateCompleteFormT661Async(tarsAnalysis: TaxIncentiveReport, gaAnalysis: TaxIncentiveReport) = async {
-        logger.LogInformation("Generating complete Form T661 for SR&ED tax credit claim")
+    member _.GenerateCompleteFormT661Async(tarsAnalysis: TaxIncentiveReport, gaAnalysis: TaxIncentiveReport) =
+        let workflow = async {
+            logger.LogInformation("Generating complete Form T661 for SR&ED tax credit claim")
 
-        // Create detailed project descriptions
-        let tarsProject = {
-            ProjectTitle = "TARS Advanced AI Reasoning System"
-            BusinessLine = "Artificial Intelligence Software Development"
-            StartDate = DateTime(2024, 1, 1)
-            CompletionDate = Some(DateTime(2024, 12, 31))
-            ScientificTechnologicalAdvancement = {
-                Description = "Development of autonomous reasoning capabilities that advance beyond current state-of-the-art AI systems"
-                CurrentStateOfKnowledge = "Existing AI systems require extensive human guidance and cannot perform autonomous multi-step reasoning with real-time knowledge acquisition"
-                AdvancementAchieved = "Created autonomous reasoning system with metascript-driven configuration, real-time knowledge integration, and multi-agent coordination"
-                EvidenceOfAdvancement = [|
-                    "Novel metascript DSL for AI configuration"
-                    "Real-time knowledge acquisition during reasoning"
-                    "Multi-agent coordination framework"
-                    "Autonomous task decomposition and execution"
-                |]
-            }
-            ScientificTechnologicalUncertainty = {
-                Description = "Significant uncertainties regarding feasibility of autonomous reasoning, optimal coordination strategies, and real-time performance"
-                UncertaintiesFaced = [|
-                    "Unknown feasibility of human-level autonomous reasoning"
-                    "Uncertain optimal approaches for multi-agent coordination"
-                    "Unknown performance characteristics of real-time knowledge integration"
-                    "Uncertain scalability of complex reasoning operations"
-                |]
-                ResolutionApproach = "Systematic experimentation with iterative development, performance benchmarking, and architectural optimization"
-                EvidenceOfUncertainty = [|
-                    "Multiple experimental approaches tested"
-                    "Performance optimization cycles"
-                    "Architecture refinement iterations"
-                    "Scalability testing and validation"
-                |]
-            }
+            // Create detailed project descriptions
+            let tarsProject = {
+                ProjectTitle = "TARS Advanced AI Reasoning System"
+                BusinessLine = "Artificial Intelligence Software Development"
+                StartDate = DateTime(2024, 1, 1)
+                CompletionDate = Some(DateTime(2024, 12, 31))
+                ScientificTechnologicalAdvancement = {
+                    Description = "Development of autonomous reasoning capabilities that advance beyond current state-of-the-art AI systems"
+                    CurrentStateOfKnowledge = "Existing AI systems require extensive human guidance and cannot perform autonomous multi-step reasoning with real-time knowledge acquisition"
+                    AdvancementAchieved = "Created autonomous reasoning system with metascript-driven configuration, real-time knowledge integration, and multi-agent coordination"
+                    EvidenceOfAdvancement = [|
+                        "Novel metascript DSL for AI configuration"
+                        "Real-time knowledge acquisition during reasoning"
+                        "Multi-agent coordination framework"
+                        "Autonomous task decomposition and execution"
+                    |]
+                }
+                ScientificTechnologicalUncertainty = {
+                    Description = "Significant uncertainties regarding feasibility of autonomous reasoning, optimal coordination strategies, and real-time performance"
+                    UncertaintiesFaced = [|
+                        "Unknown feasibility of human-level autonomous reasoning"
+                        "Uncertain optimal approaches for multi-agent coordination"
+                        "Unknown performance characteristics of real-time knowledge integration"
+                        "Uncertain scalability of complex reasoning operations"
+                    |]
+                    ResolutionApproach = "Systematic experimentation with iterative development, performance benchmarking, and architectural optimization"
+                    EvidenceOfUncertainty = [|
+                        "Multiple experimental approaches tested"
+                        "Performance optimization cycles"
+                        "Architecture refinement iterations"
+                        "Scalability testing and validation"
+                    |]
+                }
             SystematicInvestigation = {
                 Description = "Methodical development approach with hypothesis-driven experimentation and systematic testing"
                 Methodology = "Agile development with systematic experimentation, performance benchmarking, and iterative refinement"
@@ -1609,5 +1624,7 @@ type CompleteSREDFormGenerator(logger: ILogger<CompleteSREDFormGenerator>) =
 
         logger.LogInformation("Complete Form T661 generated successfully with total SR&ED claim of ${Amount:F2}", formT661.TotalSREDTaxCreditClaimed)
 
-        return formT661
-    } |> Async.StartAsTask
+            return formT661
+        }
+        Async.StartAsTask workflow
+}

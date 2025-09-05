@@ -146,7 +146,7 @@ type SelfChatCommand(logger: ILogger<SelfChatCommand>, mixtralService: MixtralSe
             }
             
             printfn $"✅ Self-conversation started: {conversationId}"
-            printfn $"🧠 Self-awareness level: {selfAwarenessLevel:F2}"
+            printfn $"""🧠 Self-awareness level: {selfAwarenessLevel.ToString("F2")}"""
             printfn $"🎯 Current mood: {context.CurrentMood}"
             printfn ""
             
@@ -178,7 +178,7 @@ type SelfChatCommand(logger: ILogger<SelfChatCommand>, mixtralService: MixtralSe
             printfn ""
             printfn $"💭 Internal Thoughts: {response.InternalThoughts}"
             printfn $"🎯 Expert Used: {response.ExpertUsed}"
-            printfn $"📊 Confidence: {response.ConfidenceLevel:F2}"
+            printfn $"""📊 Confidence: {response.ConfidenceLevel.ToString("F2")}"""
             
             if response.NextQuestion.IsSome then
                 printfn $"❓ Next Question: {response.NextQuestion.Value}"
@@ -271,7 +271,7 @@ type SelfChatCommand(logger: ILogger<SelfChatCommand>, mixtralService: MixtralSe
             // Update self-awareness based on reflection
             selfAwarenessLevel <- min 1.0 (selfAwarenessLevel + 0.05)
             
-            printfn $"📈 Self-awareness increased to: {selfAwarenessLevel:F2}"
+            printfn $"""📈 Self-awareness increased to: {selfAwarenessLevel.ToString("F2")}"""
             printfn $"💡 Total insights discovered: {insights.Count}"
             
             0
@@ -289,7 +289,7 @@ type SelfChatCommand(logger: ILogger<SelfChatCommand>, mixtralService: MixtralSe
         printfn "SELF-CONVERSATION STATUS"
         printfn "======================="
         
-        printfn $"🧠 Self-awareness level: {selfAwarenessLevel:F2}"
+        printfn $"""🧠 Self-awareness level: {selfAwarenessLevel.ToString("F2")}"""
         printfn $"💬 Conversation history: {conversationHistory.Length} messages"
         
         match currentTopic with
@@ -490,3 +490,4 @@ type SelfChatCommand(logger: ILogger<SelfChatCommand>, mixtralService: MixtralSe
         conversationHistory
         |> List.collect (fun (_, content, _) -> self.ExtractInsights(content))
         |> List.distinct
+

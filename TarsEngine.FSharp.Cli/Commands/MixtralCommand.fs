@@ -51,7 +51,7 @@ type MixtralCommand(logger: ILogger<MixtralCommand>, mixtralService: MixtralServ
                 match result with
                 | Ok response ->
                     AnsiConsole.MarkupLine($"[bold green]✅ Expert Selected:[/] {response.RoutingDecision.SelectedExpert.Name}")
-                    AnsiConsole.MarkupLine($"[bold blue]Confidence:[/] {response.Confidence:F2}")
+                    AnsiConsole.MarkupLine($"""[bold blue]Confidence:[/] {response.Confidence.ToString("F2")}""")
                     AnsiConsole.MarkupLine($"[bold yellow]Tokens Used:[/] {response.TokensUsed}")
                     AnsiConsole.WriteLine()
 
@@ -85,7 +85,7 @@ type MixtralCommand(logger: ILogger<MixtralCommand>, mixtralService: MixtralServ
                     for expert in response.UsedExperts do
                         AnsiConsole.MarkupLine($"  • {expert.Name} ({expert.Type})")
 
-                    AnsiConsole.MarkupLine($"[bold blue]Combined Confidence:[/] {response.Confidence:F2}")
+                    AnsiConsole.MarkupLine($"""[bold blue]Combined Confidence:[/] {response.Confidence.ToString("F2")}""")
                     AnsiConsole.MarkupLine($"[bold yellow]Total Tokens:[/] {response.TokensUsed}")
                     AnsiConsole.WriteLine()
 
@@ -303,7 +303,7 @@ type MixtralCommand(logger: ILogger<MixtralCommand>, mixtralService: MixtralServ
                 // Simulate processing with progress
                 for i in 1..10 do
                     let progress = float i * 10.0
-                    AnsiConsole.MarkupLine($"[dim]Processing... {progress:F0}%%[/]")
+                    AnsiConsole.MarkupLine($"""[dim]Processing... {progress.ToString("F0")}%%[/]""")
 
                     // Show live analysis
                     if progress > 30.0 then
@@ -352,7 +352,7 @@ type MixtralCommand(logger: ILogger<MixtralCommand>, mixtralService: MixtralServ
                 else $"[dim]✓ {step}[/]")
             |> String.concat "\n"
 
-        $"{content}\n\n[cyan]Progress: {progress:F1}%%[/]\n[dim]Expert: {self.GetSelectedExpert(source)}[/]"
+        $"""{content}\n\n[cyan]Progress: {progress.ToString("F1")}%%[/]\n[dim]Expert: {self.GetSelectedExpert(source)}[/]"""
 
     member private self.GenerateMoEResults(source: string) =
         let insights =
@@ -464,3 +464,4 @@ type MixtralCommand(logger: ILogger<MixtralCommand>, mixtralService: MixtralServ
                     AnsiConsole.MarkupLine($"[red]❌ Error: {ex.Message}[/]")
                     return CommandResult.failure(ex.Message)
             }
+

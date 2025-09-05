@@ -63,7 +63,7 @@ type ElmishDiagnosticsCommand(logger: ILogger<ElmishDiagnosticsCommand>) =
                     logger.LogInformation("")
                     logger.LogInformation("🧠 COMPREHENSIVE TARS SUBSYSTEMS LOADED:")
                     logger.LogInformation("   🔢 Total Subsystems: {Count}", tarsModel.AllSubsystems.Length)
-                    logger.LogInformation("   ⚡ Overall TARS Health: {Health:F1}%", tarsModel.OverallTarsHealth)
+                    logger.LogInformation("   ⚡ Overall TARS Health: {Health.ToString("F1")}%", tarsModel.OverallTarsHealth)
                     logger.LogInformation("   🤖 Active Agents: {Agents}", tarsModel.ActiveAgents)
                     logger.LogInformation("   ⚙️ Processing Tasks: {Tasks}", tarsModel.ProcessingTasks)
 
@@ -75,7 +75,7 @@ type ElmishDiagnosticsCommand(logger: ILogger<ElmishDiagnosticsCommand>) =
                             | TarsEngine.FSharp.Cli.UI.TarsElmishDiagnostics.Operational -> "✅"
                             | TarsEngine.FSharp.Cli.UI.TarsElmishDiagnostics.Evolving -> "🔄"
                             | _ -> "⚠️"
-                        logger.LogInformation("   {StatusEmoji} {Name}: {Health:F1}% ({Components} components)",
+                        logger.LogInformation("   {StatusEmoji} {Name}: {Health.ToString("F1")}% ({Components} components)",
                             statusEmoji, subsystem.Name, subsystem.HealthPercentage, subsystem.ActiveComponents)
 
                     logger.LogInformation("")
@@ -102,3 +102,4 @@ type ElmishDiagnosticsCommand(logger: ILogger<ElmishDiagnosticsCommand>) =
                     logger.LogError(ex, "❌ Elmish diagnostics failed")
                     return { Success = false; Message = sprintf "Elmish diagnostics failed: %s" ex.Message; ExitCode = 1 }
             }
+

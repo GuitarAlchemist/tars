@@ -35,7 +35,7 @@ type WebSocketServiceCommand(logger: ILogger<WebSocketServiceCommand>) =
                         let success = data.GetProperty("success").GetBoolean()
                         let message = data.GetProperty("message").GetString()
                         let color = if success then "green" else "red"
-                        AnsiConsole.MarkupLine($"[{color}]{if success then "✅" else "❌"} {message}[/]")
+                        AnsiConsole.MarkupLine($"""[{color}]{if success then "✅" else "❌"} {message}[/]""")
                     with _ -> ()
                 
                 | "documentation.status" ->
@@ -48,7 +48,7 @@ type WebSocketServiceCommand(logger: ILogger<WebSocketServiceCommand>) =
                     try
                         let timestamp = data.GetProperty("timestamp").GetDateTime()
                         let latency = DateTime.UtcNow - timestamp
-                        AnsiConsole.MarkupLine($"[green]🏓 Pong! Latency: {latency.TotalMilliseconds:F1}ms[/]")
+                        AnsiConsole.MarkupLine($"""[green]🏓 Pong! Latency: {latency.TotalMilliseconds.ToString("F1")}ms[/]""")
                     with _ -> ()
                 
                 | _ -> ()
@@ -77,11 +77,12 @@ type WebSocketServiceCommand(logger: ILogger<WebSocketServiceCommand>) =
             let currentTask = progress.GetProperty("CurrentTask").GetString()
             let percentage = (float completedTasks / float totalTasks) * 100.0
             
-            let stateColor = match state with
-                            | "Running" -> "green"
-                            | "Paused" -> "yellow"
-                            | "Completed" -> "blue"
-                            | _ -> "gray"
+            let stateColor =
+                match state with
+                | "Running" -> "green"
+                | "Paused" -> "yellow"
+                | "Completed" -> "blue"
+                | _ -> "gray"
             
             let table = Table()
             table.AddColumn("Property") |> ignore
@@ -90,13 +91,13 @@ type WebSocketServiceCommand(logger: ILogger<WebSocketServiceCommand>) =
             table.Title <- TableTitle("📊 Documentation Task Status")
             
             table.AddRow("State", $"[{stateColor}]{state}[/]") |> ignore
-            table.AddRow("Progress", $"[white]{completedTasks}/{totalTasks} ({percentage:F1}%)[/]") |> ignore
+            table.AddRow("Progress", $"""[white]{completedTasks}/{totalTasks} ({percentage.ToString("F1")}%)[/]""") |> ignore
             table.AddRow("Current Task", $"[gray]{currentTask}[/]") |> ignore
             
             AnsiConsole.Write(table)
             
             // Display departments if available
-            if progress.TryGetProperty("Departments", &_) then
+            if progress.TryGetProperty("Departments").HasValue then
                 let departments = progress.GetProperty("Departments")
                 
                 let deptTable = Table()
@@ -163,13 +164,13 @@ type WebSocketServiceCommand(logger: ILogger<WebSocketServiceCommand>) =
             progressBar.Value <- percentage
             progressBar.Width <- 60
             
-            AnsiConsole.MarkupLine($"[white]Progress: {completedTasks}/{totalTasks} ({percentage:F1}%)[/]")
+            AnsiConsole.MarkupLine($"""[white]Progress: {completedTasks}/{totalTasks} ({percentage.ToString("F1")}%)[/]""")
             AnsiConsole.Write(progressBar)
             AnsiConsole.MarkupLine("")
             AnsiConsole.MarkupLine($"[yellow]Current Task: {currentTask}[/]")
             
             // Department progress if available
-            if progress.TryGetProperty("Departments", &_) then
+            if progress.TryGetProperty("Departments").HasValue then
                 let departments = progress.GetProperty("Departments")
                 AnsiConsole.MarkupLine("")
                 AnsiConsole.MarkupLine("[cyan]🏛️ Department Progress:[/]")
@@ -382,3 +383,4 @@ type WebSocketServiceCommand(logger: ILogger<WebSocketServiceCommand>) =
             match webSocketClient with
             | Some client -> (client :> IDisposable).Dispose()
             | None -> ()
+

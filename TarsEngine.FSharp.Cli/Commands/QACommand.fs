@@ -4,6 +4,7 @@ open System
 open System.IO
 open System.Threading.Tasks
 open Microsoft.Extensions.Logging
+open TarsEngine.FSharp.Cli.Core
 
 /// CLI command for TARS QA testing capabilities (UI, integration, performance)
 type QACommand(logger: ILogger<QACommand>) =
@@ -11,20 +12,13 @@ type QACommand(logger: ILogger<QACommand>) =
     interface ICommand with
         member _.Name = "qa"
         member _.Description = "TARS QA Agent - Comprehensive UI and integration testing like a professional QA engineer"
-        member self.Usage = "tars qa <subcommand> [options]"
-        member self.Examples = [
-            "tars qa test --url https://localhost:5001"
-            "tars qa generate --app \"File Sync API\" --url https://localhost:5001"
-            "tars qa demo"
-            "tars qa persona"
-            "tars qa report --results test-results.json"
-        ]
-        member self.ValidateOptions(_) = true
-        
-        member self.ExecuteAsync(options) =
+        member _.Usage = "tars qa <subcommand> [options]"
+
+        member self.ExecuteAsync args options =
             task {
                 try
-                    match options.Arguments with
+                    let argsList = Array.toList args
+                    match argsList with
                     | "test" :: rest ->
                         return! self.RunUITestsAsync(rest)
                     
@@ -50,7 +44,7 @@ type QACommand(logger: ILogger<QACommand>) =
                 with
                 | ex ->
                     logger.LogError(ex, "Error executing QA command")
-                    return CommandResult.error($"QA command failed: {ex.Message}")
+                    return CommandResult.failure($"QA command failed: {ex.Message}")
             }
     
     /// Run UI tests against a target application
@@ -78,7 +72,7 @@ type QACommand(logger: ILogger<QACommand>) =
                 
                 try
                     use client = new System.Net.Http.HttpClient()
-                    client.Timeout <- TimeSpan.FromSeconds(10)
+                    client.Timeout <- TimeSpan.FromSeconds(10.0)
                     let! response = client.GetAsync($"{url}/api/filesync/health")
                     
                     if response.IsSuccessStatusCode then
@@ -172,7 +166,7 @@ type QACommand(logger: ILogger<QACommand>) =
             with
             | ex ->
                 logger.LogError(ex, "Error running UI tests")
-                return CommandResult.error($"UI tests failed: {ex.Message}")
+                return CommandResult.failure($"UI tests failed: {ex.Message}")
         }
     
     /// Generate test suite for an application
@@ -215,7 +209,7 @@ type QACommand(logger: ILogger<QACommand>) =
                 printfn "   🟢 Low: 2 tests"
                 printfn ""
                 
-                let suiteFileName = $"test-suite-{appName.Replace(" ", "-").ToLower()}-{DateTime.UtcNow:yyyyMMdd-HHmmss}.json"
+                let suiteFileName = $"""test-suite-{appName.Replace(" ", "-").ToLower()}-{DateTime.UtcNow.ToString("yyyyMMdd-HHmmss")}.json"""
                 
                 printfn "💾 Test suite saved: %s" suiteFileName
                 printfn ""
@@ -227,7 +221,7 @@ type QACommand(logger: ILogger<QACommand>) =
             with
             | ex ->
                 logger.LogError(ex, "Error generating test suite")
-                return CommandResult.error($"Test suite generation failed: {ex.Message}")
+                return CommandResult.failure($"Test suite generation failed: {ex.Message}")
         }
     
     /// Run demo tests to showcase QA capabilities
@@ -297,7 +291,7 @@ type QACommand(logger: ILogger<QACommand>) =
             with
             | ex ->
                 logger.LogError(ex, "Error running demo tests")
-                return CommandResult.error($"Demo tests failed: {ex.Message}")
+                return CommandResult.failure($"Demo tests failed: {ex.Message}")
         }
     
     /// Show QA agent persona
@@ -386,7 +380,7 @@ type QACommand(logger: ILogger<QACommand>) =
         printfn ""
         printfn "💡 The QA agent needs a running application to test!"
         
-        CommandResult.error("Target application not available")
+        CommandResult.failure("Target application not available")
     
     /// Parse URL from command line arguments
     member private self.ParseUrl(args: string list) =

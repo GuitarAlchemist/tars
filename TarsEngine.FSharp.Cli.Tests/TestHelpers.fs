@@ -44,16 +44,16 @@ module TestHelpers =
     let createCommandOptions (args: string list) =
         {
             Arguments = args
-            Flags = Map.empty
-            GlobalOptions = Map.empty
+            Options = Map.empty
+            Help = false
         }
-    
-    /// Create test command options with flags
-    let createCommandOptionsWithFlags (args: string list) (flags: (string * string) list) =
+
+    /// Create test command options with options
+    let createCommandOptionsWithOptions (args: string list) (options: (string * string) list) =
         {
             Arguments = args
-            Flags = flags |> Map.ofList
-            GlobalOptions = Map.empty
+            Options = options |> Map.ofList
+            Help = false
         }
     
     /// Temporary directory helper
@@ -213,7 +213,8 @@ module TestHelpers =
             task {
                 let startInfo = System.Diagnostics.ProcessStartInfo()
                 startInfo.FileName <- "dotnet"
-                startInfo.Arguments <- $"run --project TarsEngine.FSharp.Cli -- {String.concat " " args}"
+                let argsString = String.concat " " args
+                startInfo.Arguments <- $"run --project TarsEngine.FSharp.Cli -- {argsString}"
                 startInfo.UseShellExecute <- false
                 startInfo.RedirectStandardOutput <- true
                 startInfo.RedirectStandardError <- true

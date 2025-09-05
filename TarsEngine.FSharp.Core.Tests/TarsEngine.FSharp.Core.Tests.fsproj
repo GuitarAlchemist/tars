@@ -7,8 +7,7 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
-    <!-- Basic Tests -->
-    <Compile Include="BasicTests.fs" />
+    <Compile Include="HyperbolicTests.fs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0" />

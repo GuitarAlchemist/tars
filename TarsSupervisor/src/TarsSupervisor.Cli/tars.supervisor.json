@@ -1,0 +1,21 @@
+﻿{
+  "ProjectRoot": "C:\\Users\\spare\\source\\repos\\tars",
+  "VersionDir": "output\\versions",
+  "MetricsDir": "output\\metrics",
+  "Ollama": {
+    "Endpoint": "http://localhost:11434",
+    "Model": "qwen2.5-coder:latest",
+    "Temperature": 0.2,
+    "NumCtx": 8192
+  },
+  "Validators": [
+    "dotnet build",
+    "dotnet test --no-build"
+  ],
+  "PostPlanHooks": [
+    "powershell: $v=(Get-ChildItem ./output/versions -Directory | Sort-Object Name -Descending | Select-Object -First 1).FullName; notepad (Join-Path $v 'PLAN.md')"
+  ],
+  "PostValidateHooks": [
+    "powershell: $v=(Get-ChildItem ./output/versions -Directory | Sort-Object Name -Descending | Select-Object -First 1).FullName; Set-Content -Path ./output/versions/CURRENT -Value $v -Encoding ascii"
+  ]
+}

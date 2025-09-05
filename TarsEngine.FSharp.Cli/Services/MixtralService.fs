@@ -272,7 +272,7 @@ type MixtralService(httpClient: HttpClient, logger: ILogger<MixtralService>) =
     
     /// Generate reasoning for expert selection
     member private this.GenerateRoutingReasoning(expert: Expert, confidence: float, query: string) =
-        $"Selected {expert.Name} (confidence: {confidence:F2}) based on query analysis. " +
+        $"Selected {expert.Name} (confidence: {confidence.ToString("F2")}) based on query analysis. " +
         $"Expert specializes in {expert.Type} with system prompt optimized for this domain."
 
     /// Check if model exists and pull it if needed
@@ -624,3 +624,4 @@ module MixtralComputationExpressions =
         return response2
     }
     """
+

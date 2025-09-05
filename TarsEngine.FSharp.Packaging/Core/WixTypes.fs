@@ -215,7 +215,7 @@ and CustomActionReturn =
     | AsyncNoWait
 
 and CustomActionScript =
-    | None
+    | NoScript
     | VBScript
     | JScript
 
@@ -284,48 +284,48 @@ type WixProjectBuilder(productName: string) =
         UpgradeRules = []
     }
     
-    member _.Version(version: string) =
+    member this.Version(version: string) =
         project <- { project with Config = { project.Config with ProductVersion = version } }
         this
-    
-    member _.Manufacturer(manufacturer: string) =
+
+    member this.Manufacturer(manufacturer: string) =
         project <- { project with Config = { project.Config with Manufacturer = manufacturer } }
         this
-    
-    member _.Description(description: string) =
+
+    member this.Description(description: string) =
         project <- { project with Config = { project.Config with Description = description } }
         this
-    
-    member _.Platform(platform: Platform) =
+
+    member this.Platform(platform: Platform) =
         project <- { project with Config = { project.Config with Platform = platform } }
         this
-    
-    member _.InstallScope(scope: InstallScope) =
+
+    member this.InstallScope(scope: InstallScope) =
         project <- { project with Config = { project.Config with InstallScope = scope } }
         this
-    
-    member _.Directory(directory: WixDirectory) =
+
+    member this.Directory(directory: WixDirectory) =
         project <- { project with Directories = directory :: project.Directories }
         this
-    
-    member _.Feature(feature: WixFeature) =
+
+    member this.Feature(feature: WixFeature) =
         project <- { project with Features = feature :: project.Features }
         this
-    
-    member _.UI(ui: WixUI) =
+
+    member this.UI(ui: WixUI) =
         project <- { project with UI = Some ui }
         this
-    
-    member _.Property(key: string, value: string) =
+
+    member this.Property(key: string, value: string) =
         project <- { project with Properties = project.Properties.Add(key, value) }
         this
-    
-    member _.Condition(message: string, condition: string) =
+
+    member this.Condition(message: string, condition: string) =
         let cond = { Message = message; Condition = condition }
         project <- { project with Conditions = cond :: project.Conditions }
         this
-    
-    member _.UpgradeRule(upgradeCode: Guid, ?minimum: string, ?maximum: string, ?property: string) =
+
+    member this.UpgradeRule(upgradeCode: Guid, ?minimum: string, ?maximum: string, ?property: string) =
         let upgrade = {
             Id = upgradeCode
             Minimum = minimum

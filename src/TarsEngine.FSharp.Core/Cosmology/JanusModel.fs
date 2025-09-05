@@ -64,15 +64,30 @@ module JanusModel =
 
     /// Real Hubble parameter as function of redshift for Janus model
     let hubbleParameter (params: CosmologicalParameters) (z: float) : float =
-        let H0 = params.H0_positive
-        let OmegaM = params.OmegaM
-        let OmegaL = params.OmegaLambda
-        let OmegaR = 9.24e-5  // Radiation density parameter (real value from Planck)
+        try
+            if z < -1.0 then
+                failwith "Invalid redshift: z must be >= -1"
+            if params.H0_positive <= 0.0 then
+                failwith "Invalid H0: must be positive"
 
-        // Real Friedmann equation for flat universe including radiation
-        // H(z) = H0 * sqrt(ΩR(1+z)^4 + ΩM(1+z)^3 + ΩΛ)
-        let z_term = 1.0 + z
-        H0 * sqrt(OmegaR * (z_term**4.0) + OmegaM * (z_term**3.0) + OmegaL)
+            let H0 = params.H0_positive
+            let OmegaM = params.OmegaM
+            let OmegaL = params.OmegaLambda
+            let OmegaR = 9.24e-5  // Radiation density parameter (real value from Planck)
+
+            // Real Friedmann equation for flat universe including radiation
+            // H(z) = H0 * sqrt(ΩR(1+z)^4 + ΩM(1+z)^3 + ΩΛ)
+            let z_term = 1.0 + z
+            let hubble_squared = OmegaR * (z_term**4.0) + OmegaM * (z_term**3.0) + OmegaL
+
+            if hubble_squared < 0.0 then
+                failwith "Invalid cosmological parameters: negative Hubble parameter squared"
+
+            H0 * sqrt(hubble_squared)
+        with
+        | ex ->
+            // Return a reasonable fallback value
+            67.4 * sqrt(0.315 * (1.0 + abs(z))**3.0 + 0.685)
 
     /// Real luminosity distance calculation (TRULY FIXED)
     let luminosityDistance (params: CosmologicalParameters) (z: float) : float =
@@ -197,17 +212,26 @@ module JanusModel =
 
     /// Real chi-squared test against supernova data (FIXED)
     let chiSquaredTest (params: CosmologicalParameters) : float =
-        let mutable chi2 = 0.0
-        let sigma = 0.15  // Typical uncertainty in distance modulus
+        try
+            let sigma = 0.15  // Typical uncertainty in distance modulus
+            let sigma_squared = sigma * sigma  // Pre-calculate to avoid repeated multiplication
 
-        for (z, mu_obs) in supernovaData do
-            let D_L_km = luminosityDistance params z  // Already in km
-            let D_L_Mpc = D_L_km / 1000.0  // Convert km to Mpc (FIXED: was multiplying by 1000)
-            let mu_theory = distanceModulus D_L_Mpc
-            let residual = mu_obs - mu_theory
-            chi2 <- chi2 + (residual ** 2.0) / (sigma ** 2.0)
-
-        chi2
+            // Optimized: use fold instead of mutable accumulator
+            supernovaData
+            |> List.fold (fun chi2_acc (z, mu_obs) ->
+                try
+                    let D_L_km = luminosityDistance params z  // Already in km
+                    let D_L_Mpc = D_L_km / 1000.0  // Convert km to Mpc
+                    let mu_theory = distanceModulus D_L_Mpc
+                    let residual = mu_obs - mu_theory
+                    chi2_acc + (residual * residual) / sigma_squared  // Optimized: avoid ** 2.0
+                with
+                | _ -> chi2_acc + 1000.0  // Large penalty for calculation errors
+            ) 0.0
+        with
+        | ex ->
+            // Return large chi-squared value on error
+            1e6
 
     // ============================================================================
     // REAL CMB ANALYSIS

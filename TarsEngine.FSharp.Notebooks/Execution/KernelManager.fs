@@ -276,30 +276,47 @@ type KernelManager(logger: ILogger<KernelManager>) =
             logger.LogError(ex, "Failed to start kernel process")
             None
     
-    /// REAL IMPLEMENTATION NEEDED
-    member private _.SimulateExecution(request: ExecutionRequest) : Async<ExecutionResult> = async {
-        // Simulate some processing time
-        do! Async.Sleep(100)
+    /// REAL IMPLEMENTATION: Execute code using actual kernel
+    member private _.ExecuteCodeReal(request: ExecutionRequest) : Async<ExecutionResult> = async {
+        // Real execution timing
+        let startTime = DateTime.UtcNow
+
+        // Real code analysis and execution
+        let output =
+            try
+                // Real F# code execution using F# Interactive
+                let tempFile = Path.GetTempFileName() + ".fsx"
+                File.WriteAllText(tempFile, request.Code)
+
+                let psi = ProcessStartInfo()
+                psi.FileName <- "dotnet"
+                psi.Arguments <- sprintf "fsi \"%s\"" tempFile
+                psi.UseShellExecute <- false
+                psi.RedirectStandardOutput <- true
+                psi.RedirectStandardError <- true
+                psi.CreateNoWindow <- true
+
+                use proc = Process.Start(psi)
+                proc.WaitForExit(30000) |> ignore
+                let output = proc.StandardOutput.ReadToEnd()
+                let error = proc.StandardError.ReadToEnd()
+
+                File.Delete(tempFile)
+
+                if String.IsNullOrEmpty(error) then output else error
+            with
+            | ex -> sprintf "Execution error: %s" ex.Message
         
-        // Simple simulation based on code content
-        let output = 
-            if request.Code.Contains("print") then
-                "Simulated output from print statement"
-            elif request.Code.Contains("=") then
-                "Variable assignment completed"
-            elif request.Code.Contains("import") then
-                "Module imported successfully"
-            else
-                "Code executed successfully"
-        
+        let executionTime = (DateTime.UtcNow - startTime).TotalMilliseconds
+
         return {
             RequestId = request.RequestId
-            Success = true
+            Success = not (output.Contains("error") || output.Contains("Error"))
             ExecutionCount = Some 1
             Output = output
-            Error = None
+            Error = if output.Contains("error") then Some output else None
             Data = Map.empty
-            Metadata = Map.empty
+            Metadata = Map.ofList [("execution_time_ms", box executionTime)]
         }
     }
 

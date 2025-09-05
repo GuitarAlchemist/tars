@@ -9,9 +9,12 @@ open Xunit.Abstractions
 type TestOutputHelper() =
     interface ITestOutputHelper with
         member _.WriteLine(message: string) = 
-            Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] {message}")
-        member _.WriteLine(format: string, [<ParamArray>] args: obj[]) = 
-            Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] {String.Format(format, args)}")
+            let timestamp = DateTime.Now.ToString("HH:mm:ss.fff")
+            Console.WriteLine($"[{timestamp}] {message}")
+        member _.WriteLine(format: string, [<ParamArray>] args: obj[]) =
+            let timestamp = DateTime.Now.ToString("HH:mm:ss.fff")
+            let formattedMessage = String.Format(format, args)
+            Console.WriteLine($"[{timestamp}] {formattedMessage}")
 
 [<EntryPoint>]
 let main args =

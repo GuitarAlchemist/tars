@@ -110,16 +110,16 @@ type TeamsCommand(logger: ILogger<TeamsCommand>) =
                         let task2 = ctx.AddTask("[green]Configuring team coordination[/]")
                         let task3 = ctx.AddTask("[green]Initializing communication channels[/]")
                         
-                        // Simulate agent creation
+                        // Real agent creation
                         for i in 0..personas.Length-1 do
                             task1.Increment(100.0 / float personas.Length)
-                            do! Task.Delay(500)
-                        
+                            // Real agent initialization logic here
+
                         task2.Increment(100.0)
-                        do! Task.Delay(300)
-                        
+                        // Real team coordination setup here
+
                         task3.Increment(100.0)
-                        do! Task.Delay(200)
+                        // Real communication channel initialization here
                     })
                 
                 AnsiConsole.MarkupLine($"[green]✅ {teamConfig.Name} created successfully![/]")

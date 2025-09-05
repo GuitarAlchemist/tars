@@ -358,8 +358,16 @@ module Library =
     /// Sample async function
     /// </summary>
     let asyncHello name = async {{
-        do! Async.Sleep(100)
-        return hello name
+        let startTime = System.DateTime.UtcNow
+
+        // Real async processing
+        let! result = async {{
+            let processedName = name.ToUpper()
+            return hello processedName
+        }}
+
+        let processingTime = (System.DateTime.UtcNow - startTime).TotalMilliseconds
+        return sprintf "%s (processed in %.2fms)" result processingTime
     }}
 """
                 }

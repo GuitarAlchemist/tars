@@ -18,13 +18,92 @@ services:
     networks:
       - tars-network
 
-  # TARS Core Service (Operations, Executive, Infrastructure)
+  # ChromaDB Vector Database
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: tars-chromadb
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - CHROMA_SERVER_HOST=0.0.0.0
+      - CHROMA_SERVER_HTTP_PORT=8000
+      - CHROMA_SERVER_CORS_ALLOW_ORIGINS=["*"]
+      - PERSIST_DIRECTORY=/chroma/chroma
+    volumes:
+      - chromadb_data:/chroma/chroma
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - tars-network
+
+  # TARS Unified Architecture Service (Complete unified system)
+  tars-unified:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tars-unified-service
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+      - "8443:8443"
+    environment:
+      - TARS_ENVIRONMENT=Docker
+      - TARS_MODE=Unified
+      - TARS_CACHE_ENABLED=true
+      - TARS_MONITORING_ENABLED=true
+      - TARS_PROOF_GENERATION_ENABLED=true
+      - TARS_CUDA_ENABLED=true
+      - TARS_DATA_PATH=/app/data
+      - TARS_CACHE_PATH=/app/data/cache
+      - TARS_LOGS_PATH=/app/data/logs
+      - TARS_CONFIG_PATH=/app/data/config
+      - TARS_PROOFS_PATH=/app/data/proofs
+      - REDIS_CONNECTION=redis:6379
+      - DOTNET_ENVIRONMENT=Production
+      - DOTNET_RUNNING_IN_CONTAINER=true
+    volumes:
+      - tars_unified_data:/app/data
+      - tars_unified_cache:/app/data/cache
+      - tars_unified_logs:/app/data/logs
+      - tars_unified_config:/app/data/config
+      - tars_unified_proofs:/app/data/proofs
+      - tars_unified_monitoring:/app/data/monitoring
+      - ./flux:/app/flux:ro
+    depends_on:
+      - redis
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+        reservations:
+          memory: 1G
+          cpus: '1.0'
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "dotnet", "TarsEngine.FSharp.Cli.dll", "diagnose", "--status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - tars-network
+
+  # TARS Core Service (Legacy - Operations, Executive, Infrastructure)
   tars-core:
     image: nginx:alpine
     container_name: tars-core-service
     restart: unless-stopped
     ports:
-      - "8080:80"
+      - "8081:80"
       - "9090:80"  # Metrics
     environment:
       - TARS_ENVIRONMENT=local
@@ -46,6 +125,7 @@ services:
       - ./config:/usr/share/nginx/html:ro
     depends_on:
       - redis
+      - tars-unified
     healthcheck:
       test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:80 || exit 1"]
       interval: 30s
@@ -90,7 +170,7 @@ services:
     container_name: tars-knowledge-service
     restart: unless-stopped
     ports:
-      - "8081:80"
+      - "8082:80"
     environment:
       - TARS_SERVICE_NAME=tars-knowledge-service
       - REDIS_CONNECTION=redis:6379
@@ -120,7 +200,7 @@ services:
     container_name: tars-agent-service
     restart: unless-stopped
     ports:
-      - "8082:80"
+      - "8083:80"
     environment:
       - TARS_SERVICE_NAME=tars-agent-service
       - REDIS_CONNECTION=redis:6379
@@ -152,7 +232,7 @@ services:
     container_name: tars-model-runner
     restart: unless-stopped
     ports:
-      - "8083:8080"
+      - "8084:8080"
     command: >
       --host 0.0.0.0
       --port 8080
@@ -232,12 +312,33 @@ services:
       - tars-network
 
 volumes:
+  # Infrastructure volumes
   redis_data:
     driver: local
+  chromadb_data:
+    driver: local
+
+  # Legacy volumes
   tars_data:
     driver: local
   tars_logs:
     driver: local
+
+  # Unified architecture volumes
+  tars_unified_data:
+    driver: local
+  tars_unified_cache:
+    driver: local
+  tars_unified_logs:
+    driver: local
+  tars_unified_config:
+    driver: local
+  tars_unified_proofs:
+    driver: local
+  tars_unified_monitoring:
+    driver: local
+
+  # Model and monitoring volumes
   model_data:
     driver: local
   prometheus_data:

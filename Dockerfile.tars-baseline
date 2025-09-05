@@ -1,0 +1,29 @@
+
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+WORKDIR /src
+
+# Copy TARS project files
+COPY TarsEngine.FSharp.Cli/TarsEngine.FSharp.Cli.fsproj TarsEngine.FSharp.Cli/
+COPY TarsEngine.FSharp.Core/TarsEngine.FSharp.Core.fsproj TarsEngine.FSharp.Core/
+
+# Restore dependencies
+RUN dotnet restore TarsEngine.FSharp.Cli/TarsEngine.FSharp.Cli.fsproj
+
+# Copy source code
+COPY TarsEngine.FSharp.Cli/ TarsEngine.FSharp.Cli/
+COPY TarsEngine.FSharp.Core/ TarsEngine.FSharp.Core/
+
+# Build TARS
+RUN dotnet build TarsEngine.FSharp.Cli/TarsEngine.FSharp.Cli.fsproj -c Release -o /app/build
+RUN dotnet publish TarsEngine.FSharp.Cli/TarsEngine.FSharp.Cli.fsproj -c Release -o /app/publish
+
+FROM mcr.microsoft.com/dotnet/aspnet:9.0
+WORKDIR /app
+COPY --from=build /app/publish .
+
+# Install additional tools for TARS
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
+EXPOSE 8080
+ENV TARS_MODE=Baseline
+ENTRYPOINT ["dotnet", "TarsEngine.FSharp.Cli.dll"]

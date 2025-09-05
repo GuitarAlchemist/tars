@@ -1,0 +1,49 @@
+# TARS Manager Configuration
+
+# API Configuration
+api:
+  host: "0.0.0.0"
+  port: 8998
+  debug: false
+
+# Gordon Integration
+gordon:
+  api_url: "http://gordon:8997"
+  timeout: 30
+  max_retries: 3
+
+# TARS Integration  
+tars:
+  api_url: "http://tars-main:8080"
+  timeout: 10
+  health_check_interval: 30
+
+# Docker Configuration
+docker:
+  socket: "/var/run/docker.sock"
+  compose_files:
+    - "docker-compose.unified.yml"
+    - "docker-compose.ai.yml"
+
+# Monitoring
+monitoring:
+  health_check_interval: 30
+  metrics_retention_days: 7
+  alert_thresholds:
+    cpu_usage: 80
+    memory_usage: 85
+    disk_usage: 90
+
+# Logging
+logging:
+  level: "INFO"
+  format: "json"
+  file: "/app/logs/tars-manager.log"
+
+# Security
+security:
+  api_key_required: false
+  cors_enabled: true
+  allowed_origins:
+    - "http://localhost:8997"
+    - "http://gordon:8997"

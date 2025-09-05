@@ -1,0 +1,110 @@
+version: '3.8'
+
+services:
+  # TARS Blue (Current Production)
+  tars-blue:
+    image: tars-auto-improvement:latest
+    container_name: tars-blue-production
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    environment:
+      - TARS_ENVIRONMENT=Docker
+      - TARS_MODE=Production
+      - TARS_EVOLUTION_ENABLED=true
+      - TARS_BLUE_GREEN_ENABLED=true
+      - TARS_INSTANCE=blue
+      - TARS_DATA_PATH=/app/data
+      - DOTNET_ENVIRONMENT=Production
+    volumes:
+      - tars_blue_data:/app/data
+      - tars_blue_logs:/app/data/logs
+      - tars_blue_evolution:/app/data/evolution
+    networks:
+      - tars-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # TARS Green (Evolution Testing)
+  tars-green:
+    image: tars-auto-improvement:latest
+    container_name: tars-green-evolution
+    restart: unless-stopped
+    ports:
+      - "9001:9000"
+    environment:
+      - TARS_ENVIRONMENT=Docker
+      - TARS_MODE=Evolution
+      - TARS_EVOLUTION_ENABLED=true
+      - TARS_BLUE_GREEN_ENABLED=true
+      - TARS_INSTANCE=green
+      - TARS_DATA_PATH=/app/data
+      - DOTNET_ENVIRONMENT=Development
+    volumes:
+      - tars_green_data:/app/data
+      - tars_green_logs:/app/data/logs
+      - tars_green_evolution:/app/data/evolution
+    networks:
+      - tars-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # TARS Evolution Monitor
+  tars-monitor:
+    image: nginx:alpine
+    container_name: tars-evolution-monitor
+    restart: unless-stopped
+    ports:
+      - "8090:80"
+    volumes:
+      - ./monitoring/evolution-dashboard.html:/usr/share/nginx/html/index.html:ro
+    depends_on:
+      - tars-blue
+      - tars-green
+    networks:
+      - tars-network
+
+  # Redis for shared state
+  redis:
+    image: redis:7-alpine
+    container_name: tars-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - tars-network
+
+volumes:
+  # Blue instance volumes
+  tars_blue_data:
+    driver: local
+  tars_blue_logs:
+    driver: local
+  tars_blue_evolution:
+    driver: local
+
+  # Green instance volumes
+  tars_green_data:
+    driver: local
+  tars_green_logs:
+    driver: local
+  tars_green_evolution:
+    driver: local
+
+  # Shared volumes
+  redis_data:
+    driver: local
+
+networks:
+  tars-network:
+    external: true

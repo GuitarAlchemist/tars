@@ -1,0 +1,104 @@
+# TARS Blue-Green Evolution Dashboard - Docker Compose
+version: '3.8'
+
+services:
+  # TARS Dashboard Service
+  tars-dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.dashboard
+    container_name: tars-dashboard
+    ports:
+      - "8888:8888"
+    environment:
+      - TARS_MODE=Dashboard
+      - TARS_DASHBOARD_PORT=8888
+      - TARS_LOG_LEVEL=Information
+      - ASPNETCORE_ENVIRONMENT=Production
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock  # For Blue-Green Docker operations
+      - tars-data:/app/data
+    networks:
+      - tars-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/api/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.tars-dashboard.rule=Host(`tars.localhost`)"
+      - "traefik.http.services.tars-dashboard.loadbalancer.server.port=8888"
+
+  # Ollama AI Service (for AI-powered evolution)
+  ollama:
+    image: ollama/ollama:latest
+    container_name: tars-ollama
+    ports:
+      - "11434:11434"
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    volumes:
+      - ollama-data:/root/.ollama
+    networks:
+      - tars-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Redis for real-time dashboard updates
+  redis:
+    image: redis:7-alpine
+    container_name: tars-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - tars-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Reverse Proxy (optional)
+  traefik:
+    image: traefik:v3.0
+    container_name: tars-traefik
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"
+      - "8080:8080"  # Traefik dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - tars-network
+    restart: unless-stopped
+
+volumes:
+  tars-data:
+    driver: local
+  ollama-data:
+    driver: local
+  redis-data:
+    driver: local
+
+networks:
+  tars-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

@@ -139,16 +139,16 @@ module TarsSelfImprovingAi =
                             }
                         
                         | VoiceInput (audioData, sampleRate) ->
-                            // Simulate voice-to-text processing
-                            let extractedText = "// Voice command: Create a function that calculates prime numbers"
+                            // Real voice-to-text processing would require speech recognition service
+                            // For now, return error indicating feature not implemented
                             {
                                 InputType = "voice"
-                                ExtractedText = Some extractedText
+                                ExtractedText = None
                                 ExtractedCode = None
-                                Intent = "voice_programming"
-                                Confidence = 0.88f
+                                Intent = "voice_not_implemented"
+                                Confidence = 0.0f
                                 ProcessingTimeMs = 0.0
-                                RequiredActions = ["speech_to_text"; "parse_intent"; "generate_code"]
+                                RequiredActions = ["implement_speech_recognition"]
                             }
                         
                         | ImageInput (imageData, width, height) ->

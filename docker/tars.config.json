@@ -1,0 +1,110 @@
+{
+  "tars": {
+    "core": {
+      "logLevel": "Information",
+      "maxConcurrency": 10,
+      "timeoutSeconds": 30,
+      "enableProofGeneration": true,
+      "enableCorrelationTracking": true
+    },
+    "cache": {
+      "maxMemoryEntries": 50000,
+      "maxDiskEntries": 500000,
+      "maxMemorySize": 536870912,
+      "maxDiskSize": 5368709120,
+      "defaultTtlMinutes": 60,
+      "cleanupIntervalMinutes": 15,
+      "compressionEnabled": true,
+      "encryptionEnabled": false,
+      "diskPath": "/app/data/cache",
+      "distributedEndpoint": "redis:6379"
+    },
+    "monitoring": {
+      "metricRetentionDays": 30,
+      "alertRetentionDays": 7,
+      "healthCheckIntervalSeconds": 30,
+      "metricCollectionIntervalSeconds": 10,
+      "alertEvaluationIntervalSeconds": 15,
+      "performanceAnalysisIntervalMinutes": 5,
+      "enableRealTime": true,
+      "enableAlerting": true,
+      "enablePerformanceAnalytics": true,
+      "maxMetricsInMemory": 100000,
+      "maxAlertsInMemory": 10000
+    },
+    "cuda": {
+      "enabled": true,
+      "deviceId": 0,
+      "fallbackToCpu": true,
+      "memoryLimit": 2147483648,
+      "enableProfiling": true
+    },
+    "agents": {
+      "maxAgents": 50,
+      "healthCheckIntervalSeconds": 30,
+      "coordinationEnabled": true,
+      "loadBalancingStrategy": "RoundRobin",
+      "enableCollaboration": true
+    },
+    "proof": {
+      "retentionDays": 90,
+      "enableVerification": true,
+      "enableChaining": true,
+      "compressionEnabled": true,
+      "encryptionEnabled": true
+    },
+    "data": {
+      "timeoutSeconds": 30,
+      "retryAttempts": 3,
+      "enableCaching": true,
+      "cacheTtlMinutes": 30
+    },
+    "flux": {
+      "maxExecutionTimeMinutes": 10,
+      "enableMetadata": true,
+      "enableValidation": true,
+      "supportedLanguages": [
+        "FSHARP",
+        "CSHARP", 
+        "PYTHON",
+        "JAVASCRIPT",
+        "SQL",
+        "MERMAID"
+      ]
+    }
+  },
+  "logging": {
+    "logLevel": {
+      "default": "Information",
+      "microsoft": "Warning",
+      "system": "Warning"
+    },
+    "console": {
+      "enabled": true,
+      "includeScopes": true
+    },
+    "file": {
+      "enabled": true,
+      "path": "/app/data/logs/tars.log",
+      "maxFileSizeBytes": 104857600,
+      "maxFiles": 10
+    }
+  },
+  "connectionStrings": {
+    "redis": "redis:6379",
+    "postgres": "Host=postgres;Database=tars;Username=tars;Password=tars_secure_password_2024"
+  },
+  "security": {
+    "enableAuthentication": false,
+    "enableAuthorization": false,
+    "enableHttps": false,
+    "corsEnabled": true,
+    "allowedOrigins": ["*"]
+  },
+  "performance": {
+    "enableCompression": true,
+    "enableCaching": true,
+    "maxRequestSize": 104857600,
+    "requestTimeoutSeconds": 300
+  }
+}

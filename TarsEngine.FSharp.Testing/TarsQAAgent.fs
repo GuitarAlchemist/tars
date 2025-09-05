@@ -508,7 +508,10 @@ module TarsQAAgent =
 
         /// Generate detailed bug report
         member private this.GenerateBugReport(issues: (string * string * string * string) list, testReport: TestReport, timestamp: string) =
-            let bugId = fun i -> $"BUG-{DateTime.UtcNow:yyyyMMdd}-{i:D3}"
+            let bugId = fun i ->
+                let dateStr = DateTime.UtcNow.ToString("yyyyMMdd")
+                let idStr = i.ToString("D3")
+                $"BUG-{dateStr}-{idStr}"
 
             $"""# 🐛 TARS QA AGENT - BUG REPORT
 Generated: {timestamp}
@@ -519,7 +522,7 @@ Report ID: QA-{timestamp}
 
 **Project**: {testReport.Suite.Name}
 **QA Engineer**: {qaPersona.Name} ({qaPersona.ExperienceLevel})
-**Testing Period**: {testReport.StartTime:yyyy-MM-dd} to {testReport.EndTime:yyyy-MM-dd}
+**Testing Period**: {testReport.StartTime.ToString("yyyy-MM-dd")} to {testReport.EndTime.ToString("yyyy-MM-dd")}
 **Total Issues Found**: {issues.Length}
 **Critical Issues**: {issues |> List.filter (fun (_, severity, _, _) -> severity = "Critical") |> List.length}
 **High Priority Issues**: {issues |> List.filter (fun (_, severity, _, _) -> severity = "High") |> List.length}
@@ -535,41 +538,55 @@ Report ID: QA-{timestamp}
 
 ## 🐛 DETAILED BUG REPORTS
 
-{issues |> List.mapi (fun i (title, severity, reproduction, resolution) ->
-    let id = bugId (i + 1)
-    $"""
-### {id}: {title}
 
-**🔴 Severity**: {severity}
-**📅 Discovered**: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}
-**👤 Reported By**: {qaPersona.Name}
-**🏷️ Tags**: #{severity.ToLower()}, #build-issue, #qa-verified
+            // Generate individual bug reports
+            let bugReports =
+                issues
+                |> List.mapi (fun i (title, severity, reproduction, resolution) ->
+                    let id = bugId (i + 1)
+                    let discoveredTime = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss")
+                    let severityLower = severity.ToLower()
+                    let buildProcess = if severity = "Critical" then "Blocked" else "Impacted"
+                    let devTeam = if severity = "Critical" then "High" else "Medium"
+                    let timeline = if severity = "Critical" then "At Risk" else "On Track"
 
-#### 📝 Description
-{title}
+                    let bugReport = [
+                        $"### {id}: {title}"
+                        ""
+                        $"**🔴 Severity**: {severity}"
+                        $"**📅 Discovered**: {discoveredTime}"
+                        $"**👤 Reported By**: {qaPersona.Name}"
+                        $"**🏷️ Tags**: #{severityLower}, #build-issue, #qa-verified"
+                        ""
+                        "#### 📝 Description"
+                        title
+                        ""
+                        "#### 🔄 Steps to Reproduce"
+                        "```bash"
+                        reproduction
+                        "```"
+                        ""
+                        "#### ✅ Resolution Applied"
+                        resolution
+                        ""
+                        "#### 🧪 Verification Steps"
+                        "1. Clean build environment"
+                        "2. Apply resolution steps"
+                        "3. Verify build succeeds"
+                        "4. Test application startup"
+                        "5. Validate all endpoints respond"
+                        ""
+                        "#### 📊 Impact Assessment"
+                        $"- **Build Process**: {buildProcess}"
+                        $"- **Development Team**: {devTeam}"
+                        $"- **Release Timeline**: {timeline}"
+                        ""
+                        "---"
+                    ] |> String.concat "\n"
+                    bugReport)
+                |> String.concat "\n"
 
-#### 🔄 Steps to Reproduce
-```bash
-{reproduction}
-```
-
-#### ✅ Resolution Applied
-{resolution}
-
-#### 🧪 Verification Steps
-1. Clean build environment
-2. Apply resolution steps
-3. Verify build succeeds
-4. Test application startup
-5. Validate all endpoints respond
-
-#### 📊 Impact Assessment
-- **Build Process**: {if severity = "Critical" then "Blocked" else "Impacted"}
-- **Development Team**: {if severity = "Critical" then "High" else "Medium"}
-- **Release Timeline**: {if severity = "Critical" then "At Risk" else "On Track"}
-
----
-""") |> String.concat "\n"}
+            bugReports
 
 ## 📈 TESTING METRICS
 
@@ -610,9 +627,9 @@ Report ID: QA-{timestamp}
 ## 📋 SIGN-OFF
 
 **QA Engineer**: {qaPersona.Name}
-**Date**: {DateTime.UtcNow:yyyy-MM-dd}
+**Date**: {DateTime.UtcNow.ToString("yyyy-MM-dd")}
 **Status**: Issues Resolved ✅
-**Next Review**: {DateTime.UtcNow.AddDays(7):yyyy-MM-dd}
+**Next Review**: {DateTime.UtcNow.AddDays(7).ToString("yyyy-MM-dd")}
 
 ---
 *This report was generated automatically by TARS QA Agent*
@@ -624,7 +641,7 @@ Report ID: QA-{timestamp}
             let version = "1.0.1" // Would be dynamic in real implementation
 
             $"""# 🚀 RELEASE NOTES - Version {version}
-Release Date: {DateTime.UtcNow:yyyy-MM-dd}
+Release Date: {DateTime.UtcNow.ToString("yyyy-MM-dd")}
 QA Verified By: {qaPersona.Name}
 
 ## 📋 RELEASE SUMMARY
@@ -633,14 +650,21 @@ This release addresses critical build and configuration issues identified during
 
 ## 🐛 BUG FIXES
 
-{issues |> List.mapi (fun i (title, severity, _, resolution) ->
-    $"""
-### 🔧 {title}
-- **Severity**: {severity}
-- **Impact**: Build process and development workflow
-- **Resolution**: {resolution}
-- **Verification**: ✅ Automated tests passing
-""") |> String.concat "\n"}
+
+            // Generate bug fixes section
+            let bugFixes =
+                issues
+                |> List.mapi (fun i (title, severity, _, resolution) ->
+                    let bugFix = [
+                        $"### 🔧 {title}"
+                        $"- **Severity**: {severity}"
+                        "- **Impact**: Build process and development workflow"
+                        $"- **Resolution**: {resolution}"
+                        "- **Verification**: ✅ Automated tests passing"
+                    ] |> String.concat "\n"
+                    bugFix)
+                |> String.concat "\n"
+            bugFixes
 
 ## ✅ QUALITY ASSURANCE
 
@@ -742,12 +766,12 @@ For issues related to this release:
 - Security enhancements
 
 ### Timeline
-- **Next QA Review**: {DateTime.UtcNow.AddDays(7):yyyy-MM-dd}
-- **Planned Release**: {DateTime.UtcNow.AddDays(14):yyyy-MM-dd}
+- **Next QA Review**: {DateTime.UtcNow.AddDays(7).ToString("yyyy-MM-dd")}
+- **Planned Release**: {DateTime.UtcNow.AddDays(14).ToString("yyyy-MM-dd")}
 
 ---
 **Release Approved By**: {qaPersona.Name}, Senior QA Engineer
-**Date**: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}
+**Date**: {DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss")}
 **QA Status**: ✅ APPROVED FOR RELEASE
 
 *This release has been thoroughly tested and verified by TARS QA Agent*

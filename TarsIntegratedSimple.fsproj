@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AssemblyTitle>TARS Integrated Intelligence Tiers - Working Demo</AssemblyTitle>
+    <AssemblyDescription>Real integration of Tier 6 &amp; Tier 7 with existing TARS engine</AssemblyDescription>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="TarsIntegratedSimple.fs" />
+  </ItemGroup>
+
+</Project>

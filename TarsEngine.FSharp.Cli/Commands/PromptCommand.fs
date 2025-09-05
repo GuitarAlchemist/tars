@@ -19,8 +19,8 @@ type PromptCommand() =
         panel.Border <- BoxBorder.Rounded
         
         let content = Text()
-        content.AddLine($"Confidence Score: {analysis.ConfidenceScore:P1}")
-        content.AddLine($"Estimated Improvement: {analysis.EstimatedImprovement:P1}")
+        content.AddLine($"""Confidence Score: {analysis.ConfidenceScore.ToString("P1")}""")
+        content.AddLine($"""Estimated Improvement: {analysis.EstimatedImprovement.ToString("P1")}""")
         content.AddLine("")
         
         if analysis.Issues.Length > 0 then
@@ -45,7 +45,7 @@ type PromptCommand() =
         
         let content = Markup()
         content.AddLine($"[bold]Strategy:[/] {improvement.Strategy}")
-        content.AddLine($"[bold]Confidence:[/] {improvement.ConfidenceScore:P1}")
+        content.AddLine($"""[bold]Confidence:[/] {improvement.ConfidenceScore.ToString("P1")}""")
         content.AddLine("")
         content.AddLine($"[bold]Reasoning:[/] {improvement.Reasoning}")
         content.AddLine("")
@@ -135,7 +135,7 @@ type PromptCommand() =
         table.AddColumn("Prompt 1") |> ignore
         table.AddColumn("Prompt 2") |> ignore
         
-        table.AddRow("Quality Score", $"{comparison.Prompt1.Score:P1}", $"{comparison.Prompt2.Score:P1}") |> ignore
+        table.AddRow("Quality Score", $"""{comparison.Prompt1.Score.ToString("P1")}""", $"""{comparison.Prompt2.Score.ToString("P1")}""") |> ignore
         table.AddRow("Issues Count", $"{comparison.Prompt1.Issues.Length}", $"{comparison.Prompt2.Issues.Length}") |> ignore
         table.AddRow("Length", $"{prompt1.Length} chars", $"{prompt2.Length} chars") |> ignore
         
@@ -151,7 +151,7 @@ type PromptCommand() =
         AnsiConsole.MarkupLine($"[{recommendationColor}]Recommendation: {comparison.Recommendation}[/]")
         
         if comparison.ScoreDifference > 0.1 then
-            AnsiConsole.MarkupLine($"[dim]Score difference: {comparison.ScoreDifference:P1}[/]")
+            AnsiConsole.MarkupLine($"""[dim]Score difference: {comparison.ScoreDifference.ToString("P1")}[/]""")
     
     /// Interactive prompt improvement session
     member self.Interactive() =
@@ -230,9 +230,9 @@ type PromptCommand() =
         let content = Markup()
         content.AddLine($"[bold]Total Prompts Tracked:[/] {stats.TotalPromptsTracked}")
         content.AddLine($"[bold]Total Improvements:[/] {stats.TotalImprovements}")
-        content.AddLine($"[bold]Average Success Rate:[/] {stats.AverageSuccessRate:P1}")
-        content.AddLine($"[bold]Average Response Time:[/] {stats.AverageResponseTime:F0}ms")
-        content.AddLine($"[bold]Average User Satisfaction:[/] {stats.AverageUserSatisfaction:F1}/5.0")
+        content.AddLine($"""[bold]Average Success Rate:[/] {stats.AverageSuccessRate.ToString("P1")}""")
+        content.AddLine($"""[bold]Average Response Time:[/] {stats.AverageResponseTime.ToString("F0")}ms""")
+        content.AddLine($"""[bold]Average User Satisfaction:[/] {stats.AverageUserSatisfaction.ToString("F1")}/5.0""")
         content.AddLine($"[bold]Most Used Strategy:[/] {stats.MostUsedStrategy}")
         content.AddLine($"[bold]Prompts Needing Improvement:[/] {stats.PromptsNeedingImprovement}")
         
@@ -290,13 +290,14 @@ type PromptCommand() =
             
             let content = Markup()
             content.AddLine($"[bold]Usage Count:[/] {performance.UsageCount}")
-            content.AddLine($"[bold]Success Rate:[/] {performance.SuccessRate:P1}")
-            content.AddLine($"[bold]Average Response Time:[/] {performance.AverageResponseTime:F0}ms")
-            content.AddLine($"[bold]User Satisfaction:[/] {performance.UserSatisfactionScore:F1}/5.0")
+            content.AddLine($"""[bold]Success Rate:[/] {performance.SuccessRate.ToString("P1")}""")
+            content.AddLine($"""[bold]Average Response Time:[/] {performance.AverageResponseTime.ToString("F0")}ms""")
+            content.AddLine($"""[bold]User Satisfaction:[/] {performance.UserSatisfactionScore.ToString("F1")}/5.0""")
             content.AddLine($"[bold]Error Count:[/] {performance.ErrorCount}")
-            content.AddLine($"[bold]Last Used:[/] {performance.LastUsed:yyyy-MM-dd HH:mm}")
+            content.AddLine($"""[bold]Last Used:[/] {performance.LastUsed.ToString("yyyy-MM-dd HH:mm")}""")
             
             panel.Content <- content
             AnsiConsole.Write(panel)
         | None ->
             AnsiConsole.MarkupLine($"[yellow]No performance data found for prompt '{promptId}'[/]")
+

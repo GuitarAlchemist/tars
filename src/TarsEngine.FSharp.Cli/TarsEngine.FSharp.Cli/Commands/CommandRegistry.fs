@@ -14,7 +14,8 @@ type CommandRegistry(
     mlService: MLService,
     dockerService: DockerService,
     mixtralService: MixtralService,
-    llmRouter: LLMRouter) =
+    llmRouter: LLMRouter,
+    searchService: TarsEngine.FSharp.OnDemandSearch.IOnDemandSearchService) =
     
     let commands = Dictionary<string, ICommand>()
     
@@ -107,6 +108,44 @@ type CommandRegistry(
         let serverLogger = loggerFactory.CreateLogger<HttpServerCommand>()
         let serverCommand = HttpServerCommand(serverLogger)
 
+        // Chat command - Interactive TARS chatbot
+        let chatLogger = loggerFactory.CreateLogger<ChatbotCommand>()
+        let chatCommand = ChatbotCommand(chatLogger, moeCommand)
+
+        // Diagnostics command - System health check
+        let diagnosticsLogger = loggerFactory.CreateLogger<DiagnosticsCommand>()
+        let diagnosticsCommand = DiagnosticsCommand(diagnosticsLogger)
+
+        // Non-Euclidean Vector Store command - Real hyperbolic geometry
+        let nonEuclideanLogger = loggerFactory.CreateLogger<NonEuclideanCommand>()
+        let nonEuclideanCommand = NonEuclideanCommand(nonEuclideanLogger)
+
+        // Demo command - Comprehensive TARS demonstrations
+        let demoCommand = DemoCommand()
+
+        // Concept Analysis - Sparse concept decomposition for interpretable AI
+        let conceptAnalysisCommand = ConceptAnalysisCommand()
+
+        // Enhanced Intelligence Command - Tier 6 & 7 capabilities
+        let enhancedIntelligenceLogger = loggerFactory.CreateLogger<EnhancedIntelligenceCommand>()
+        let enhancedIntelligenceCommand = EnhancedIntelligenceCommand(enhancedIntelligenceLogger)
+
+        // Web Search Command - Advanced web search capabilities
+        let webSearchLogger = loggerFactory.CreateLogger<WebSearchCommand>()
+        let webSearchCommand = WebSearchCommand(webSearchLogger, searchService)
+
+        // Unified Reasoning - Showcases all architectural improvements
+        // let unifiedReasoningCommand = UnifiedReasoningCommand()
+
+        // Ultimate Reasoning - Showcases ALL TARS capabilities
+        // let ultimateReasoningCommand = UltimateReasoningCommand()
+
+        // Interactive Multi-Agent Commands - Enhanced interactive capabilities
+        // let interactiveMultiAgentCommand = InteractiveMultiAgentCommand()
+        // let enhancedMultiAgentReasoningCommand = EnhancedMultiAgentReasoningCommand()
+        // let scenarioReasoningCommand = ScenarioReasoningCommand()
+        // let continuousReasoningCommand = ContinuousReasoningCommand()
+
         // Register working commands
         self.RegisterCommand(versionCommand)
         self.RegisterCommand(executeCommand)
@@ -123,7 +162,16 @@ type CommandRegistry(
         self.RegisterCommand(nexusCommand)
         self.RegisterCommand(advancedCommand)
         self.RegisterCommand(serverCommand)
-        
+        self.RegisterCommand(chatCommand)
+        self.RegisterCommand(diagnosticsCommand)
+        self.RegisterCommand(nonEuclideanCommand)
+        self.RegisterCommand(conceptAnalysisCommand)
+        self.RegisterCommand(enhancedIntelligenceCommand)
+        self.RegisterCommand(webSearchCommand)
+        // self.RegisterCommand(unifiedReasoningCommand)
+        // self.RegisterCommand(ultimateReasoningCommand)
+        self.RegisterCommand(demoCommand)
+
         // Create help command with all commands (must be last)
         let allCommands = self.GetAllCommands()
         let helpCommand = HelpCommand(allCommands)
