@@ -1,0 +1,209 @@
+# TARS SUPERINTELLIGENCE CONTAINER
+# Multi-stage build for Tier 1-11 superintelligence capabilities
+# Zero tolerance for simulations - all implementations are real
+
+# ===== BUILD STAGE =====
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+WORKDIR /src
+
+# Install additional tools for superintelligence capabilities
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    wget \
+    unzip \
+    python3 \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy project files
+COPY ["TarsEngine.FSharp.Core/TarsEngine.FSharp.Core.fsproj", "TarsEngine.FSharp.Core/"]
+COPY ["TarsEngine.FSharp.Cli/TarsEngine.FSharp.Cli.fsproj", "TarsEngine.FSharp.Cli/"]
+
+# Restore dependencies
+RUN dotnet restore "TarsEngine.FSharp.Core/TarsEngine.FSharp.Core.fsproj"
+RUN dotnet restore "TarsEngine.FSharp.Cli/TarsEngine.FSharp.Cli.fsproj"
+
+# Copy source code
+COPY . .
+
+# Build all superintelligence tiers
+WORKDIR "/src/TarsEngine.FSharp.Core"
+RUN dotnet build "TarsEngine.FSharp.Core.fsproj" -c Release
+
+WORKDIR "/src/TarsEngine.FSharp.Cli"
+RUN dotnet build "TarsEngine.FSharp.Cli.fsproj" -c Release
+
+# Publish for production
+RUN dotnet publish "TarsEngine.FSharp.Cli.fsproj" -c Release -o /app/publish --no-restore
+
+# ===== PRODUCTION RUNTIME STAGE =====
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS production
+WORKDIR /app
+
+# Install runtime dependencies for superintelligence
+RUN apt-get update && apt-get install -y \
+    curl \
+    wget \
+    git \
+    docker.io \
+    python3 \
+    python3-pip \
+    htop \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python packages for AI/ML capabilities
+RUN pip3 install --no-cache-dir \
+    numpy \
+    scipy \
+    scikit-learn \
+    pandas \
+    matplotlib
+
+# Copy published application
+COPY --from=build /app/publish .
+
+# Create TARS superintelligence directories
+RUN mkdir -p \
+    /app/data/tier1-autonomy \
+    /app/data/tier2-modification \
+    /app/data/tier3-multiagent \
+    /app/data/tier4-emergent \
+    /app/data/tier5-recursive \
+    /app/data/tier6-collective \
+    /app/data/tier7-decomposition \
+    /app/data/tier8-reflective \
+    /app/data/tier9-sandbox \
+    /app/data/tier10-metalearning \
+    /app/data/tier11-selfaware \
+    /app/logs \
+    /app/cache \
+    /app/models \
+    /app/config
+
+# Copy superintelligence configuration
+COPY docker/superintelligence-config.json /app/config/
+COPY docker/tier-configurations/ /app/config/tiers/
+
+# Set permissions
+RUN useradd -m -s /bin/bash tars && \
+    chown -R tars:tars /app && \
+    chmod +x /app/TarsEngine.FSharp.Cli
+
+# Environment variables for all superintelligence tiers
+ENV TARS_ENVIRONMENT=Production
+ENV TARS_SUPERINTELLIGENCE_ENABLED=true
+ENV TARS_ALL_TIERS_ENABLED=true
+ENV TARS_DATA_PATH=/app/data
+ENV TARS_LOGS_PATH=/app/logs
+ENV TARS_CACHE_PATH=/app/cache
+ENV TARS_MODELS_PATH=/app/models
+ENV TARS_CONFIG_PATH=/app/config
+ENV DOTNET_ENVIRONMENT=Production
+ENV DOTNET_RUNNING_IN_CONTAINER=true
+
+# Expose ports
+EXPOSE 8080 8081 8082
+
+# Health check for superintelligence
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8082/health/superintelligence || exit 1
+
+# Switch to tars user
+USER tars
+
+# Default command - start superintelligence system
+CMD ["dotnet", "TarsEngine.FSharp.Cli.dll", "superintelligence", "start", "--all-tiers"]
+
+# ===== STAGING RUNTIME STAGE =====
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS staging
+WORKDIR /app
+
+# Install runtime dependencies (lighter for staging)
+RUN apt-get update && apt-get install -y \
+    curl \
+    wget \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy published application
+COPY --from=build /app/publish .
+
+# Create staging directories
+RUN mkdir -p \
+    /app/data \
+    /app/logs \
+    /app/cache \
+    /app/config
+
+# Copy staging configuration
+COPY docker/staging-config.json /app/config/
+
+# Set permissions
+RUN useradd -m -s /bin/bash tars && \
+    chown -R tars:tars /app && \
+    chmod +x /app/TarsEngine.FSharp.Cli
+
+# Environment variables for staging
+ENV TARS_ENVIRONMENT=Staging
+ENV TARS_SUPERINTELLIGENCE_ENABLED=true
+ENV TARS_ALL_TIERS_ENABLED=true
+ENV TARS_DATA_PATH=/app/data
+ENV TARS_LOGS_PATH=/app/logs
+ENV TARS_CACHE_PATH=/app/cache
+ENV TARS_CONFIG_PATH=/app/config
+ENV DOTNET_ENVIRONMENT=Staging
+ENV DOTNET_RUNNING_IN_CONTAINER=true
+
+# Expose ports
+EXPOSE 8080 8081 8082
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8082/health/superintelligence || exit 1
+
+# Switch to tars user
+USER tars
+
+# Default command for staging
+CMD ["dotnet", "TarsEngine.FSharp.Cli.dll", "superintelligence", "start", "--staging"]
+
+# ===== DEVELOPMENT STAGE =====
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS development
+WORKDIR /app
+
+# Install development tools
+RUN apt-get update && apt-get install -y \
+    curl \
+    wget \
+    git \
+    vim \
+    htop \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy source code for development
+COPY . .
+
+# Create development directories
+RUN mkdir -p \
+    /app/data \
+    /app/logs \
+    /app/cache \
+    /app/config
+
+# Environment variables for development
+ENV TARS_ENVIRONMENT=Development
+ENV TARS_SUPERINTELLIGENCE_ENABLED=true
+ENV TARS_ALL_TIERS_ENABLED=true
+ENV TARS_DATA_PATH=/app/data
+ENV TARS_LOGS_PATH=/app/logs
+ENV TARS_CACHE_PATH=/app/cache
+ENV TARS_CONFIG_PATH=/app/config
+ENV DOTNET_ENVIRONMENT=Development
+ENV DOTNET_RUNNING_IN_CONTAINER=true
+
+# Expose ports
+EXPOSE 8080 8081 8082
+
+# Development command - watch for changes
+CMD ["dotnet", "watch", "run", "--project", "TarsEngine.FSharp.Cli", "--", "superintelligence", "start", "--development"]
