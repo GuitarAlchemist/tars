@@ -11,8 +11,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\TarsEngine.FSharp.Core\TarsEngine.FSharp.Core.fsproj" />
-    <ProjectReference Include="..\TarsEngine.FSharp.Metascript\TarsEngine.FSharp.Metascript.fsproj" />
+    <ProjectReference Include="..\..\TarsEngine.FSharp.Core\TarsEngine.FSharp.Core\TarsEngine.FSharp.Core.fsproj" />
+    <ProjectReference Include="..\TarsEngine.FSharp.Cli\TarsEngine.FSharp.Cli.fsproj" />
   </ItemGroup>
 
   <ItemGroup>

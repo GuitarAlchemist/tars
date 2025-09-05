@@ -1,0 +1,57 @@
+# TARS Blue-Green Evolution Dashboard - Docker Deployment
+# Multi-stage build for optimized container
+
+# Build stage
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+WORKDIR /src
+
+# Copy project files
+COPY TarsEngine.FSharp.Cli/TarsEngine.FSharp.Cli.fsproj TarsEngine.FSharp.Cli/
+COPY TarsEngine.FSharp.Core/TarsEngine.FSharp.Core.fsproj TarsEngine.FSharp.Core/
+
+# Restore dependencies
+RUN dotnet restore TarsEngine.FSharp.Cli/TarsEngine.FSharp.Cli.fsproj
+
+# Copy source code
+COPY TarsEngine.FSharp.Cli/ TarsEngine.FSharp.Cli/
+COPY TarsEngine.FSharp.Core/ TarsEngine.FSharp.Core/
+
+# Build application
+RUN dotnet build TarsEngine.FSharp.Cli/TarsEngine.FSharp.Cli.fsproj -c Release -o /app/build
+RUN dotnet publish TarsEngine.FSharp.Cli/TarsEngine.FSharp.Cli.fsproj -c Release -o /app/publish
+
+# Runtime stage
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
+WORKDIR /app
+
+# Install Docker CLI for Blue-Green operations
+RUN apt-get update && apt-get install -y \
+    docker.io \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy published application
+COPY --from=build /app/publish .
+
+# Create tars user
+RUN useradd -m -s /bin/bash tars && \
+    chown -R tars:tars /app
+
+# Switch to tars user
+USER tars
+
+# Expose dashboard port
+EXPOSE 8888
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8888/api/status || exit 1
+
+# Environment variables
+ENV TARS_MODE=Dashboard
+ENV TARS_DASHBOARD_PORT=8888
+ENV TARS_LOG_LEVEL=Information
+ENV ASPNETCORE_ENVIRONMENT=Production
+
+# Entry point
+ENTRYPOINT ["dotnet", "TarsEngine.FSharp.Cli.dll", "dashboard", "--port", "8888"]

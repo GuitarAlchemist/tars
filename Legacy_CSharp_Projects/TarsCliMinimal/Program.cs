@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NLog.Extensions.Logging;
+using TarsCliMinimal.Commands;
 
 namespace TarsCliMinimal
 {
@@ -49,6 +50,11 @@ namespace TarsCliMinimal
             var testGeneratorLogger = logger.GetLogger<TestGeneratorCommand>();
             var testGeneratorCommand = new TestGeneratorCommand(testGeneratorLogger);
             rootCommand.AddCommand(testGeneratorCommand);
+
+            // Add the autonomous instruction command
+            var autonomousLogger = logger.GetLogger<AutonomousInstructionCommand>();
+            var autonomousCommand = new AutonomousInstructionCommand(autonomousLogger);
+            rootCommand.AddCommand(autonomousCommand);
 
             // Execute the command
             await rootCommand.InvokeAsync(args);

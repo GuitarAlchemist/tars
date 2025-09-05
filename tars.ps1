@@ -29,5 +29,10 @@ if (-not (Test-Path $TarsExe)) {
 }
 
 # Pass all arguments to the TARS CLI executable
-& $TarsExe @Arguments
-exit $LASTEXITCODE
+try {
+    & $TarsExe @Arguments
+    exit $LASTEXITCODE
+} catch {
+    Write-Host "❌ Error running TARS CLI: $_" -ForegroundColor Red
+    exit 1
+}

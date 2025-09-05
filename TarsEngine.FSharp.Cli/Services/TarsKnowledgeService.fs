@@ -184,7 +184,7 @@ You are TARS (Tactical Autonomous Reasoning System), an advanced metascript exec
         $"""
 ## TARS System Status
 
-**Knowledge Base**: {stats.DocumentCount} documents ({float stats.TotalSize / (1024.0 * 1024.0):F2} MB)
+**Knowledge Base**: {stats.DocumentCount} documents ({(float stats.TotalSize / (1024.0 * 1024.0)).ToString("F2")} MB)
 **Core Knowledge**: {stats.CoreKnowledgeSize} characters
 **Vector Store**: {match stats.LastIngestion with | Some m -> $"{m.EmbeddingsGenerated} embeddings" | None -> "Not initialized"}
 
@@ -213,3 +213,4 @@ You are TARS (Tactical Autonomous Reasoning System), an advanced metascript exec
             MaxTokens = Some 2000
             Context = None
         }
+

@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Text.Json" Version="8.0.0" />
+    <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="Types.fs" />
+    <Compile Include="WorldModel.fs" />
+    <Compile Include="BeliefGraph.fs" />
+    <Compile Include="Skills/SkillSpec.fs" />
+    <Compile Include="Skills/SkillLibrary.fs" />
+    <Compile Include="Planner/HTNPlanner.fs" />
+    <Compile Include="Planner/POMDPSolver.fs" />
+    <Compile Include="MetaCognition.fs" />
+    <Compile Include="TarsEngine.fs" />
+  </ItemGroup>
+
+</Project>

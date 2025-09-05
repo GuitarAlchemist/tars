@@ -3,14 +3,13 @@ namespace TarsEngine.FSharp.Cli.Commands
 open System
 open System.Threading.Tasks
 open Microsoft.Extensions.Logging
-open TarsEngine.FSharp.Agents.AgentTypes
-open TarsEngine.FSharp.Agents.AgentPersonas
-open TarsEngine.FSharp.Agents.AgentOrchestrator
+open TarsEngine.FSharp.Cli.Core
 
 /// CLI command for managing TARS multi-agent system
 type AgentCommand(logger: ILogger<AgentCommand>) =
-    
-    let mutable orchestrator: TarsAgentOrchestrator option = None
+
+    // Placeholder for agent orchestrator - will be implemented later
+    let mutable orchestrator: obj option = None
     
     interface ICommand with
         member _.Name = "agent"

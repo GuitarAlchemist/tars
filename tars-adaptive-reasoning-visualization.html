@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>TARS Adaptive Multi-Agent Reasoning System</title>
+    <style>
+        body {{
+            margin: 0;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: #fff;
+            font-family: 'Consolas', monospace;
+            padding: 20px;
+        }}
+
+        .container {{
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }}
+
+        .main-area {{
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }}
+
+        .header {{
+            text-align: center;
+            padding: 20px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+        }}
+
+        .agents-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+        }}
+
+        .agent-card {{
+            background: linear-gradient(145deg, #2a2a3e, #1e1e32);
+            border-radius: 10px;
+            padding: 15px;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }}
+
+        .agent-card:hover {{
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(74, 158, 255, 0.3);
+        }}
+
+        .agent-card.cooperative {{ border-color: #00ff88; }}
+        .agent-card.competitive {{ border-color: #4a9eff; }}
+        .agent-card.evolutionary {{ border-color: #9b59b6; }}
+        .agent-card.auction {{ border-color: #ff6b6b; }}
+
+        .agent-header {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }}
+
+        .agent-header h4 {{
+            margin: 0;
+            color: #fff;
+        }}
+
+        .agent-type {{
+            background: rgba(74, 158, 255, 0.2);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+        }}
+
+        .agent-details {{
+            margin: 10px 0;
+            font-size: 0.9em;
+            opacity: 0.8;
+        }}
+
+        .agent-details > div {{
+            margin: 5px 0;
+        }}
+
+        .agent-actions {{
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }}
+
+        .agent-actions button {{
+            background: linear-gradient(145deg, #4a9eff, #357abd);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8em;
+            transition: all 0.2s ease;
+        }}
+
+        .agent-actions button:hover {{
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(74, 158, 255, 0.4);
+        }}
+
+        .sidebar {{
+            background: rgba(0,0,0,0.4);
+            border-radius: 10px;
+            padding: 20px;
+            height: fit-content;
+        }}
+
+        .control-section {{
+            margin-bottom: 20px;
+        }}
+
+        .control-section h4 {{
+            margin: 0 0 10px 0;
+            color: #4a9eff;
+        }}
+
+        .control-grid {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }}
+
+        .control-grid button {{
+            background: linear-gradient(145deg, #4a9eff, #357abd);
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.2s ease;
+        }}
+
+        .control-grid button:hover {{
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(74, 158, 255, 0.4);
+        }}
+
+        .status-item {{
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }}
+
+        .status-value {{
+            color: #00ff88;
+            font-weight: bold;
+        }}
+
+        .dept-summary {{
+            background: rgba(255,255,255,0.05);
+            padding: 10px;
+            border-radius: 5px;
+            margin: 5px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }}
+
+        .dept-summary h5 {{
+            margin: 0;
+            color: #4a9eff;
+        }}
+
+        @keyframes pulse {{
+            0% {{ opacity: 0.7; }}
+            50% {{ opacity: 1; }}
+            100% {{ opacity: 0.7; }}
+        }}
+
+        .agent-card.selected {{
+            animation: pulse 2s infinite;
+            border-color: #00ff88 !important;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="main-area">
+            <div class="header">
+                <h1>🎯 TARS Adaptive Multi-Agent Reasoning System</h1>
+                <p>Elmish-based reactive visualization with dynamic agent behavior</p>
+                <div class="status-bar">
+                    <span>Agents: 6</span> |
+                    <span>Departments: 3</span> |
+                    <span>View: Overview</span> |
+                    <span>Connections: ON</span>
+                </div>
+            </div>
+
+            <div class="agents-grid">
+                
+                    <div class="agent-card competitive" data-agent-id="agent-01">
+                        <div class="agent-header">
+                            <h4>Data Analyst</h4>
+                            <span class="agent-type">DataAnalyst</span>
+                        </div>
+                        <div class="agent-details">
+                            <div class="position">Position: (-3.0, 0.0, 0.0)</div>
+                            <div class="game-theory">Strategy: Non-Cooperative</div>
+                            <div class="department">Dept: dept-research</div>
+                        </div>
+                        <div class="agent-actions">
+                            <button onclick="selectAgent('agent-01')">Select</button>
+                            <button onclick="focusAgent('agent-01')">Focus</button>
+                        </div>
+                    </div>
+
+                    <div class="agent-card competitive" data-agent-id="agent-02">
+                        <div class="agent-header">
+                            <h4>Domain Expert (general)</h4>
+                            <span class="agent-type">DomainExpert "general"</span>
+                        </div>
+                        <div class="agent-details">
+                            <div class="position">Position: (-2.5, 0.0, 0.1)</div>
+                            <div class="game-theory">Strategy: Non-Cooperative</div>
+                            <div class="department">Dept: dept-research</div>
+                        </div>
+                        <div class="agent-actions">
+                            <button onclick="selectAgent('agent-02')">Select</button>
+                            <button onclick="focusAgent('agent-02')">Focus</button>
+                        </div>
+                    </div>
+
+                    <div class="agent-card evolutionary" data-agent-id="agent-03">
+                        <div class="agent-header">
+                            <h4>Game Theory Strategist</h4>
+                            <span class="agent-type">GameTheoryStrategist</span>
+                        </div>
+                        <div class="agent-details">
+                            <div class="position">Position: (3.0, 0.0, 0.0)</div>
+                            <div class="game-theory">Strategy: Evolutionary</div>
+                            <div class="department">Dept: dept-analysis</div>
+                        </div>
+                        <div class="agent-actions">
+                            <button onclick="selectAgent('agent-03')">Select</button>
+                            <button onclick="focusAgent('agent-03')">Focus</button>
+                        </div>
+                    </div>
+
+                    <div class="agent-card auction" data-agent-id="agent-04">
+                        <div class="agent-header">
+                            <h4>Communication Broker</h4>
+                            <span class="agent-type">CommunicationBroker</span>
+                        </div>
+                        <div class="agent-details">
+                            <div class="position">Position: (3.5, 0.0, 0.1)</div>
+                            <div class="game-theory">Strategy: Auction</div>
+                            <div class="department">Dept: dept-analysis</div>
+                        </div>
+                        <div class="agent-actions">
+                            <button onclick="selectAgent('agent-04')">Select</button>
+                            <button onclick="focusAgent('agent-04')">Focus</button>
+                        </div>
+                    </div>
+
+                    <div class="agent-card competitive" data-agent-id="agent-05">
+                        <div class="agent-header">
+                            <h4>3D Visualization Specialist</h4>
+                            <span class="agent-type">VisualizationSpecialist</span>
+                        </div>
+                        <div class="agent-details">
+                            <div class="position">Position: (0.0, 4.0, 0.0)</div>
+                            <div class="game-theory">Strategy: Non-Cooperative</div>
+                            <div class="department">Dept: dept-coordination</div>
+                        </div>
+                        <div class="agent-actions">
+                            <button onclick="selectAgent('agent-05')">Select</button>
+                            <button onclick="focusAgent('agent-05')">Focus</button>
+                        </div>
+                    </div>
+
+                    <div class="agent-card cooperative" data-agent-id="agent-06">
+                        <div class="agent-header">
+                            <h4>Coordinator</h4>
+                            <span class="agent-type">Coordinator</span>
+                        </div>
+                        <div class="agent-details">
+                            <div class="position">Position: (0.5, 4.0, 0.1)</div>
+                            <div class="game-theory">Strategy: Cooperative</div>
+                            <div class="department">Dept: dept-coordination</div>
+                        </div>
+                        <div class="agent-actions">
+                            <button onclick="selectAgent('agent-06')">Select</button>
+                            <button onclick="focusAgent('agent-06')">Focus</button>
+                        </div>
+                    </div>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <div class="control-section">
+                <h4>🎮 Controls</h4>
+                <div class="control-grid">
+                    <button onclick="dispatch('ToggleConnections')">Toggle Lines</button>
+                    <button onclick="dispatch('ChangeViewMode', 'Department')">Dept View</button>
+                    <button onclick="dispatch('ChangeViewMode', 'Agent')">Agent View</button>
+                    <button onclick="dispatch('ChangeViewMode', 'Overview')">Overview</button>
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h4>📊 System Status</h4>
+                <div class="status-item">
+                    <span>Total Agents:</span>
+                    <span class="status-value">6</span>
+                </div>
+                <div class="status-item">
+                    <span>Departments:</span>
+                    <span class="status-value">3</span>
+                </div>
+                <div class="status-item">
+                    <span>Simulation Time:</span>
+                    <span class="status-value">0.0s</span>
+                </div>
+                <div class="status-item">
+                    <span>View Mode:</span>
+                    <span class="status-value">Overview</span>
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h4>🏢 Departments</h4>
+                
+                    <div class="dept-summary">
+                        <h5>Research Department</h5>
+                        <span>2 agents</span>
+                        <span>Research "problem_analysis"</span>
+                    </div>
+
+                    <div class="dept-summary">
+                        <h5>Analysis Department</h5>
+                        <span>2 agents</span>
+                        <span>Analysis "data_processing"</span>
+                    </div>
+
+                    <div class="dept-summary">
+                        <h5>Coordination Department</h5>
+                        <span>2 agents</span>
+                        <span>Coordination "team_management"</span>
+                    </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Elmish-style message dispatcher
+        function dispatch(msgType, payload) {{
+            console.log('Dispatching:', msgType, payload);
+
+            switch(msgType) {{
+                case 'ToggleConnections':
+                    // Update UI to reflect connection toggle
+                    const cards = document.querySelectorAll('.agent-card');
+                    cards.forEach(card => {{
+                        card.style.borderWidth = card.style.borderWidth === '4px' ? '2px' : '4px';
+                    }});
+                    break;
+
+                case 'ChangeViewMode':
+                    // Update view mode display
+                    document.querySelectorAll('.agent-card').forEach(card => {{
+                        if (payload === 'Department') {{
+                            card.style.opacity = '0.7';
+                        }} else if (payload === 'Agent') {{
+                            card.style.opacity = '1';
+                        }} else {{
+                            card.style.opacity = '0.9';
+                        }}
+                    }});
+                    break;
+            }}
+        }}
+
+        function selectAgent(agentId) {{
+            // Remove previous selection
+            document.querySelectorAll('.agent-card').forEach(card => {{
+                card.classList.remove('selected');
+            }});
+
+            // Add selection to clicked agent
+            const selectedCard = document.querySelector(`[data-agent-id="${{agentId}}"]`);
+            if (selectedCard) {{
+                selectedCard.classList.add('selected');
+            }}
+
+            console.log('Selected agent:', agentId);
+        }}
+
+        function focusAgent(agentId) {{
+            const card = document.querySelector(`[data-agent-id="${{agentId}}"]`);
+            if (card) {{
+                card.scrollIntoView({{ behavior: 'smooth', block: 'center' }});
+                card.style.transform = 'scale(1.05)';
+                setTimeout(() => card.style.transform = 'scale(1)', 500);
+            }}
+
+            console.log('Focused agent:', agentId);
+        }}
+
+        // Adaptive simulation loop
+        let simulationTime = 0;
+        function simulationTick() {{
+            simulationTime += 0.1;
+
+            // Update simulation time display
+            const timeDisplay = document.querySelector('.status-value');
+            if (timeDisplay) {{
+                timeDisplay.textContent = simulationTime.toFixed(1) + 's';
+            }}
+
+            // Adaptive agent behavior
+            document.querySelectorAll('.agent-card').forEach((card, index) => {{
+                const time = simulationTime + index;
+                const pulse = 1 + 0.05 * Math.sin(time);
+                card.style.transform = `scale(${{pulse}})`;
+            }});
+
+            requestAnimationFrame(simulationTick);
+        }}
+
+        // Start adaptive simulation
+        simulationTick();
+
+        console.log('🎯 TARS Elmish Adaptive Multi-Agent System Active!');
+        console.log('Features: Reactive UI, Dynamic behavior, No static branching');
+    </script>
+</body>
+</html>

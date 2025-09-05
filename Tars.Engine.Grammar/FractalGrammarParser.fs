@@ -194,7 +194,7 @@ module FractalGrammarParser =
                 None
 
         /// Parse rule body content
-        member private this.ParseRuleBody(lexer: FractalLexer, errors: ResizeArray<string>, warnings: ResizeArray<string>) =
+        member private this.ParseRuleBody(lexer: FractalLexer, errors: ResizeArray<string>, warnings: ResizeArray<string>) : FractalRule =
             let mutable basePattern = ""
             let mutable recursivePattern = None
             let mutable terminationCondition = "max_depth_5"
@@ -255,14 +255,15 @@ module FractalGrammarParser =
                 
                 token <- lexer.NextToken()
             
-            {|
+            {
+                Name = "ParsedRule" // Default name, should be set by caller
                 BasePattern = basePattern
                 RecursivePattern = recursivePattern
                 TerminationCondition = terminationCondition
                 Transformations = List.rev transformations
                 Properties = properties
                 Dependencies = dependencies
-            |}
+            }
 
         /// Parse transformation specification
         member private this.ParseTransformation(lexer: FractalLexer, errors: ResizeArray<string>, warnings: ResizeArray<string>) : FractalTransformation =
@@ -318,42 +319,23 @@ module FractalGrammarParser =
 
         /// Build fractal grammar from parsed rules
         member private this.BuildFractalGrammar(rules: FractalRule list) : FractalGrammar =
-            let builder = FractalGrammarBuilder()
-            
-            builder
-                .WithName("ParsedFractalGrammar")
-                .WithVersion("1.0")
-                .WithBaseGrammar(Grammar.createInline "base" "// Parsed fractal grammar")
-            
+            let builder = FractalGrammar.FractalGrammarBuilder()
+
+            let builderWithSettings =
+                builder
+                    .WithName("ParsedFractalGrammar")
+                    .WithVersion("1.0")
+                    .WithBaseGrammar(Grammar.createInline "base" "// Parsed fractal grammar")
+
             for rule in rules do
-                builder.AddFractalRule(rule) |> ignore
-            
-            builder.Build()
+                builderWithSettings.AddFractalRule(rule) |> ignore
+
+            builderWithSettings.Build()
 
     /// Fractal grammar DSL for easy specification
     module FractalDSL =
-        
-        /// Create a fractal grammar using F# computation expression
-        type FractalGrammarBuilder() =
-            member this.Yield(rule: FractalRule) = [rule]
-            member this.Combine(rules1: FractalRule list, rules2: FractalRule list) = rules1 @ rules2
-            member this.For(items: 'a seq, f: 'a -> FractalRule list) = 
-                items |> Seq.collect f |> Seq.toList
-            member this.Zero() = []
-            
-            member this.Run(rules: FractalRule list) =
-                let builder = FractalGrammarBuilder()
-                builder
-                    .WithName("DSLFractalGrammar")
-                    .WithVersion("1.0")
-                    .WithBaseGrammar(Grammar.createInline "base" "// DSL fractal grammar")
-                
-                for rule in rules do
-                    builder.AddFractalRule(rule) |> ignore
-                
-                builder.Build()
-        
-        let fractalGrammar = FractalGrammarBuilder()
+
+        let fractalGrammar = FractalGrammar.FractalGrammarBuilder()
         
         /// Create a simple fractal rule
         let fractalRule name pattern =
@@ -404,7 +386,7 @@ module FractalGrammarParser =
                 Dependencies = []
             }
             
-            FractalGrammarBuilder()
+            FractalGrammar.FractalGrammarBuilder()
                 .WithName("SierpinskiTriangle")
                 .WithVersion("1.0")
                 .AddFractalRule(rule)
@@ -432,7 +414,7 @@ module FractalGrammarParser =
                 Dependencies = []
             }
             
-            FractalGrammarBuilder()
+            FractalGrammar.FractalGrammarBuilder()
                 .WithName("KochSnowflake")
                 .WithVersion("1.0")
                 .AddFractalRule(rule)

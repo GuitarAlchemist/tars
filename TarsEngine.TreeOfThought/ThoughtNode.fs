@@ -4,11 +4,13 @@
 module ThoughtNode =
     
     /// Represents a node in a thought tree
-    type ThoughtNode = {
-        /// The thought content
-        Thought: string
+    type ThoughtNode<'T> = {
+        /// Unique identifier for the node
+        Id: string
+        /// The value stored in the node
+        Value: 'T
         /// Child nodes
-        Children: ThoughtNode list
+        Children: ThoughtNode<'T> list
         /// Evaluation score (0.0 to 1.0)
         Score: float
         /// Whether the node has been pruned
@@ -16,14 +18,19 @@ module ThoughtNode =
         /// Additional metadata
         Metadata: Map<string, obj>
     }
-    
+
     /// Creates a new thought node
-    let createNode thought =
-        { Thought = thought
+    let create id value =
+        { Id = id
+          Value = value
           Children = []
           Score = 0.0
           Pruned = false
           Metadata = Map.empty }
+
+    /// Creates a new thought node (legacy function name)
+    let createNode thought =
+        create "node" thought
     
     /// Adds a child to a node
     let addChild parent child =
@@ -49,5 +56,5 @@ module ThoughtNode =
     
     /// Converts a node to a string
     let toString node =
-        sprintf "Thought: %s, Score: %.2f, Pruned: %b, Children: %d" 
-            node.Thought node.Score node.Pruned node.Children.Length
+        sprintf "Id: %s, Value: %A, Score: %.2f, Pruned: %b, Children: %d"
+            node.Id node.Value node.Score node.Pruned node.Children.Length

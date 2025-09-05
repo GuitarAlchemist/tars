@@ -15,7 +15,7 @@ let main args =
         // Create and run the CLI application
         let app = CliApplication()
         let exitCode = app.RunAsync(args).Result
-        
+
         // Return the exit code
         exitCode
     with

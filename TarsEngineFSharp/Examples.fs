@@ -97,13 +97,30 @@ module Examples =
         let! result = tars {
             // Define multiple async tasks
             let task1 = async {
-                do! Async.Sleep 1000
-                return "Task 1 result"
+                let startTime = System.DateTime.UtcNow
+
+                // Real computation for task 1
+                let! result = async {
+                    let numbers = [1..500]
+                    return numbers |> List.map (fun x -> x * 2) |> List.sum
+                }
+
+                let processingTime = (System.DateTime.UtcNow - startTime).TotalMilliseconds
+                return sprintf "Task 1 result: %d (%.2fms)" result processingTime
             }
-            
+
             let task2 = async {
-                do! Async.Sleep 2000
-                return "Task 2 result"
+                let startTime = System.DateTime.UtcNow
+
+                // Real computation for task 2
+                let! result = async {
+                    let text = "TARS autonomous improvement system analysis"
+                    let words = text.Split(' ')
+                    return words.Length * words.[0].Length
+                }
+
+                let processingTime = (System.DateTime.UtcNow - startTime).TotalMilliseconds
+                return sprintf "Task 2 result: %d (%.2fms)" result processingTime
             }
             
             // Execute tasks in parallel

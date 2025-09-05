@@ -1,371 +1,236 @@
 namespace TarsEngine.FSharp.Cli.Commands
 
 open System
+open System.IO
 open System.Threading.Tasks
 open Microsoft.Extensions.Logging
 open Spectre.Console
-open TarsEngine.FSharp.Cli.Services
+open TarsEngine.FSharp.Cli.Core
 
-/// Live demo with spectacular Spectre.Console widgets
-type LiveDemoCommand(logger: ILogger<LiveDemoCommand>, mixtralService: MixtralService) =
+/// Live Demo Command with real-time processing and interactive demonstrations
+type LiveDemoCommand(logger: ILogger<LiveDemoCommand>) =
+    interface ICommand with
+        member _.Name = "live-demo"
+        member _.Description = "Launch interactive live demonstrations of TARS capabilities"
+        member _.Usage = "tars live-demo [demo-type] [options]"
 
-    member private self.ShowSpectacularHeader() =
+        member self.ExecuteAsync args options =
+            task {
+                try
+                    let argsList = Array.toList args
+                    match argsList with
+                    | [] ->
+                        // Show demo menu
+                        self.ShowDemoMenu()
+                        return CommandResult.success "Demo menu displayed"
+
+                    | "processing" :: _ ->
+                        do! self.ShowLiveProcessingDemo()
+                        return CommandResult.success "Processing demo completed"
+
+                    | "agents" :: _ ->
+                        do! self.ShowAgentDemo()
+                        return CommandResult.success "Agent demo completed"
+
+                    | "intelligence" :: _ ->
+                        do! self.ShowIntelligenceDemo()
+                        return CommandResult.success "Intelligence demo completed"
+
+                    | demoType :: _ ->
+                        AnsiConsole.MarkupLine("[red]❌ Unknown demo type: {0}[/]", demoType)
+                        self.ShowDemoMenu()
+                        return CommandResult.failure($"Unknown demo type: {demoType}")
+
+                with
+                | ex ->
+                    logger.LogError(ex, "Live demo failed")
+                    AnsiConsole.MarkupLine("[red]❌ Live demo failed: {0}[/]", ex.Message)
+                    return CommandResult.failure($"Live demo failed: {ex.Message}")
+            }
+
+    /// <summary>
+    /// Show demo menu
+    /// </summary>
+    member private self.ShowDemoMenu() =
         AnsiConsole.Clear()
-        
-        // Create a beautiful figlet text
-        let figlet = FigletText("TARS LIVE")
-        figlet.Color <- Color.Cyan1
-        AnsiConsole.Write(figlet)
-        
-        // Add subtitle with gradient
-        let rule = Rule("[bold yellow]Real-Time AI Processing with Mixtral MoE[/]")
-        rule.Style <- Style.Parse("cyan")
-        AnsiConsole.Write(rule)
+
+        let menuPanel = Panel("🎬 TARS Live Demonstrations\n\nAvailable Demos:\n\n• processing - Real-time data processing demonstration\n• agents - Multi-agent system demonstration\n• intelligence - AI intelligence showcase\n• interactive - Interactive demo selection\n\nUsage:\n  tars live-demo [demo-type]\n  tars live-demo processing\n  tars live-demo agents\n  tars live-demo intelligence")
+        menuPanel.Header <- PanelHeader("🚀 TARS Live Demo Center")
+        menuPanel.Border <- BoxBorder.Rounded
+        menuPanel.BorderStyle <- Style.Parse("cyan")
+
+        AnsiConsole.Write(menuPanel)
         AnsiConsole.WriteLine()
 
-    member private self.CreateExpertStatusTable() =
-        let table = Table()
-        table.Border <- TableBorder.Rounded
-        table.BorderStyle <- Style.Parse("cyan")
-        
-        table.AddColumn(TableColumn("[bold cyan]Expert[/]").Centered()) |> ignore
-        table.AddColumn(TableColumn("[bold green]Status[/]").Centered()) |> ignore
-        table.AddColumn(TableColumn("[bold yellow]Confidence[/]").Centered()) |> ignore
-        table.AddColumn(TableColumn("[bold magenta]Tasks[/]").Centered()) |> ignore
-        table.AddColumn(TableColumn("[bold blue]Avg Time[/]").Centered()) |> ignore
-        
-        // Add expert data with live status
-        let experts = [
-            ("CodeGeneration", "🟢 Active", "0.92", "15", "1.2s")
-            ("CodeAnalysis", "🟢 Active", "0.88", "12", "0.9s")
-            ("Architecture", "🟡 Busy", "0.85", "8", "2.1s")
-            ("Testing", "🟢 Active", "0.91", "10", "1.5s")
-            ("Security", "🔴 Overload", "0.79", "20", "3.2s")
-            ("Performance", "🟢 Active", "0.94", "7", "0.8s")
-            ("DevOps", "🟡 Busy", "0.87", "9", "1.7s")
-            ("Documentation", "🟢 Active", "0.83", "5", "1.1s")
-        ]
-        
-        for (expert, status, confidence, tasks, avgTime) in experts do
-            table.AddRow(
-                $"[bold]{expert}[/]",
-                status,
-                $"[green]{confidence}[/]",
-                $"[yellow]{tasks}[/]",
-                $"[blue]{avgTime}[/]"
-            ) |> ignore
-        
-        table
+        // Interactive demo selection
+        let demoChoice = AnsiConsole.Prompt(
+            SelectionPrompt<string>()
+                .Title("[bold cyan]Select a demo to run:[/]")
+                .AddChoices(["processing"; "agents"; "intelligence"; "exit"])
+        )
 
+        match demoChoice with
+        | "processing" ->
+            task { do! self.ShowLiveProcessingDemo() } |> ignore
+        | "agents" ->
+            task { do! self.ShowAgentDemo() } |> ignore
+        | "intelligence" ->
+            task { do! self.ShowIntelligenceDemo() } |> ignore
+        | "exit" ->
+            AnsiConsole.MarkupLine("[yellow]👋 Goodbye![/]")
+        | _ ->
+            AnsiConsole.MarkupLine("[red]❌ Invalid selection[/]")
+
+    /// <summary>
+    /// Show spectacular header
+    /// </summary>
+    member private self.ShowSpectacularHeader() =
+        AnsiConsole.Clear()
+
+        let headerPanel = Panel("🎬 TARS LIVE DEMONSTRATION\n🚀 Real-time Processing & Intelligence Showcase\n\n✨ Featuring:\n• Live data processing\n• Multi-agent coordination\n• Real-time intelligence analysis\n• Interactive demonstrations\n\n🎯 Powered by TARS Autonomous System")
+        headerPanel.Header <- PanelHeader("🌟 SPECTACULAR LIVE DEMO")
+        headerPanel.Border <- BoxBorder.Double
+        headerPanel.BorderStyle <- Style.Parse("bold cyan")
+
+        AnsiConsole.Write(headerPanel)
+        AnsiConsole.WriteLine()
+
+    /// <summary>
+    /// Show live processing demo
+    /// </summary>
     member private self.ShowLiveProcessingDemo() =
         task {
             self.ShowSpectacularHeader()
-            
-            // Create layout with multiple panels
-            let layout = Layout("Root")
-                .SplitColumns(
-                    Layout("Left").SplitRows(
-                        Layout("Header", Size.Fixed(8)),
-                        Layout("Experts", Size.Fixed(12)),
-                        Layout("Progress")
-                    ),
-                    Layout("Right").SplitRows(
-                        Layout("Stats", Size.Fixed(6)),
-                        Layout("Live", Size.Fixed(15)),
-                        Layout("Results")
-                    )
+
+            AnsiConsole.MarkupLine("[bold cyan]🔄 Starting Live Processing Demo...[/]")
+            AnsiConsole.WriteLine()
+
+            // Simulate live processing with progress
+            AnsiConsole.Progress()
+                .Start(fun ctx ->
+                    let task1 = ctx.AddTask("[green]Data Ingestion[/]")
+                    let task2 = ctx.AddTask("[blue]Processing Pipeline[/]")
+                    let task3 = ctx.AddTask("[yellow]Intelligence Analysis[/]")
+                    let task4 = ctx.AddTask("[red]Output Generation[/]")
+
+                    while not ctx.IsFinished do
+                        // Simulate data ingestion
+                        task1.Increment(2.0)
+                        System.Threading.Thread.Sleep(100)
+
+                        // Simulate processing
+                        if task1.Value > 30.0 then
+                            task2.Increment(1.5)
+
+                        // Simulate analysis
+                        if task2.Value > 50.0 then
+                            task3.Increment(1.0)
+
+                        // Simulate output
+                        if task3.Value > 70.0 then
+                            task4.Increment(3.0)
                 )
-            
-            // Header panel
-            let headerPanel = Panel(
-                Align.Center(
-                    Markup("[bold cyan]🧠 TARS Mixtral MoE Engine[/]\n[yellow]Processing Live Data Streams[/]")
-                )
-            )
-            headerPanel.Border <- BoxBorder.Double
-            headerPanel.BorderStyle <- Style.Parse("cyan")
-            layout.["Header"].Update(headerPanel)
-            
-            // Expert status table
-            let expertTable = self.CreateExpertStatusTable()
-            let expertPanel = Panel(expertTable)
-            expertPanel.Header <- PanelHeader("[bold green]Expert Status Dashboard[/]")
-            expertPanel.Border <- BoxBorder.Rounded
-            layout.["Experts"].Update(expertPanel)
-            
-            // Stats panel
-            let statsTable = Table()
-            statsTable.Border <- TableBorder.None
-            statsTable.AddColumn("Metric") |> ignore
-            statsTable.AddColumn("Value") |> ignore
-            statsTable.AddRow("[cyan]Queries Processed[/]", "[green]1,247[/]") |> ignore
-            statsTable.AddRow("[cyan]Success Rate[/]", "[green]94.2%[/]") |> ignore
-            statsTable.AddRow("[cyan]Avg Response Time[/]", "[yellow]1.3s[/]") |> ignore
-            statsTable.AddRow("[cyan]Active Experts[/]", "[blue]8/10[/]") |> ignore
-            
-            let statsPanel = Panel(statsTable)
-            statsPanel.Header <- PanelHeader("[bold yellow]Live Statistics[/]")
-            layout.["Stats"].Update(statsPanel)
-            
-            // Initial render
-            AnsiConsole.Write(layout)
-            
-            // Simulate live processing with progress bars
-            do! self.SimulateLiveProcessing(layout)
+
+            AnsiConsole.MarkupLine("[green]✅ Live processing demo completed![/]")
+            AnsiConsole.WriteLine()
+
+            // Show results
+            let resultsTable = Table()
+            resultsTable.AddColumn("Metric")
+            resultsTable.AddColumn("Value")
+            resultsTable.AddColumn("Status")
+
+            resultsTable.AddRow("Data Processed", "1,247 MB", "[green]✅ Complete[/]")
+            resultsTable.AddRow("Processing Speed", "156 MB/s", "[green]✅ Optimal[/]")
+            resultsTable.AddRow("Intelligence Score", "94.7%", "[green]✅ Excellent[/]")
+            resultsTable.AddRow("Output Quality", "99.2%", "[green]✅ Superior[/]")
+
+            AnsiConsole.Write(resultsTable)
+            AnsiConsole.WriteLine()
         }
 
-    member private self.SimulateLiveProcessing(layout: Layout) =
+    /// <summary>
+    /// Show agent demo
+    /// </summary>
+    member private self.ShowAgentDemo() =
         task {
-            let random = Random()
-            
-            // Create progress bars for different data sources
-            let progressTasks = [
-                ("GitHub Trending", Color.Green)
-                ("Hacker News", Color.Orange1)
-                ("Crypto Markets", Color.Gold1)
-                ("Stack Overflow", Color.Blue)
-                ("Reddit Tech", Color.Red)
+            self.ShowSpectacularHeader()
+
+            AnsiConsole.MarkupLine("[bold cyan]🤖 Starting Multi-Agent Demo...[/]")
+            AnsiConsole.WriteLine()
+
+            // Simulate agent coordination
+            let agents = [
+                ("Reasoning Agent", "cyan")
+                ("Data Agent", "green")
+                ("Analysis Agent", "yellow")
+                ("Coordination Agent", "red")
             ]
-            
-            for (source, color) in progressTasks do
-                // Create progress bar
-                let progress = Progress()
-                progress.AutoClear <- false
-                
-                let task = progress.AddTask($"[{color}]Processing {source}[/]", maxValue = 100.0)
-                
-                // Update progress panel
-                let progressPanel = Panel(progress)
-                progressPanel.Header <- PanelHeader("[bold magenta]Live Data Processing[/]")
-                progressPanel.Border <- BoxBorder.Rounded
-                layout.["Progress"].Update(progressPanel)
-                
-                // Simulate processing with live updates
-                let! _ = progress.StartAsync(fun ctx ->
-                    task {
-                        while not task.IsFinished do
-                            let increment = random.NextDouble() * 15.0
-                            task.Increment(increment)
-                            
-                            // Update live results
-                            let liveText = self.GenerateLiveResults(source, task.Value)
-                            let livePanel = Panel(liveText)
-                            livePanel.Header <- PanelHeader($"[bold blue]Live Analysis: {source}[/]")
-                            livePanel.Border <- BoxBorder.Rounded
-                            layout.["Live"].Update(livePanel)
-                            
-                            // Update results
-                            let resultsText = self.GenerateResults(source, task.Value)
-                            let resultsPanel = Panel(resultsText)
-                            resultsPanel.Header <- PanelHeader("[bold green]AI Analysis Results[/]")
-                            resultsPanel.Border <- BoxBorder.Double
-                            layout.["Results"].Update(resultsPanel)
-                            
-                            // Re-render layout
-                            AnsiConsole.Clear()
-                            AnsiConsole.Write(layout)
-                            
-                            do! Task.Delay(200)
-                    }
-                )
-                
-                do! Task.Delay(500)
+
+            for (agentName, color) in agents do
+                AnsiConsole.MarkupLine($"[{color}]🤖 {agentName}:[/] Initializing...")
+                System.Threading.Thread.Sleep(500)
+                AnsiConsole.MarkupLine($"[{color}]🤖 {agentName}:[/] Ready for coordination")
+                System.Threading.Thread.Sleep(300)
+
+            AnsiConsole.WriteLine()
+            AnsiConsole.MarkupLine("[bold]🔄 Agent Coordination in Progress...[/]")
+
+            // Simulate agent communication
+            let communications = [
+                ("Reasoning Agent", "cyan", "Analyzing problem structure...")
+                ("Data Agent", "green", "Fetching relevant data...")
+                ("Analysis Agent", "yellow", "Processing analysis patterns...")
+                ("Coordination Agent", "red", "Coordinating agent responses...")
+                ("Reasoning Agent", "cyan", "Synthesis complete!")
+            ]
+
+            for (agent, color, message) in communications do
+                System.Threading.Thread.Sleep(800)
+                AnsiConsole.MarkupLine($"[{color}]🤖 {agent}:[/] {message}")
+
+            AnsiConsole.WriteLine()
+            AnsiConsole.MarkupLine("[green]✅ Multi-agent coordination demo completed![/]")
         }
 
-    member private self.GenerateLiveResults(source: string, progress: float) =
-        let items = [
-            "🔍 Analyzing data patterns..."
-            "🧠 Routing to expert: CodeAnalysis"
-            "⚡ Processing with Mixtral MoE..."
-            "📊 Generating insights..."
-            "✅ Analysis complete!"
-        ]
-        
-        let currentStep = int (progress / 20.0)
-        let visibleItems = items |> List.take (Math.Min(currentStep + 1, items.Length))
-        
-        let content = 
-            visibleItems
-            |> List.mapi (fun i item -> 
-                if i = currentStep then $"[yellow]▶ {item}[/]"
-                else $"[dim]✓ {item}[/]")
-            |> String.concat "\n"
-        
-        $"{content}\n\n[cyan]Progress: {progress:F1}%[/]"
-
-    member private self.GenerateResults(source: string, progress: float) =
-        if progress < 50.0 then
-            "[dim]Waiting for analysis to complete...[/]"
-        else
-            let insights = 
-                match source with
-                | "GitHub Trending" ->
-                    [
-                        "🚀 Emerging trend: Rust-based tools gaining momentum"
-                        "📈 AI/ML repositories showing 340% growth"
-                        "🔧 Developer tools focusing on productivity"
-                        "🌟 Open source adoption accelerating"
-                    ]
-                | "Hacker News" ->
-                    [
-                        "💡 Discussion focus: AI safety and ethics"
-                        "🔥 Hot topic: Quantum computing breakthroughs"
-                        "📱 Mobile development paradigm shifts"
-                        "🌐 Web3 technology maturation"
-                    ]
-                | "Crypto Markets" ->
-                    [
-                        "📊 Market sentiment: Cautiously optimistic"
-                        "⚡ DeFi protocols showing resilience"
-                        "🔒 Security improvements in smart contracts"
-                        "🌍 Global adoption metrics trending up"
-                    ]
-                | _ ->
-                    [
-                        "🔍 Pattern analysis revealing key insights"
-                        "📈 Positive trend indicators detected"
-                        "🎯 Strategic opportunities identified"
-                        "✨ Innovation potential confirmed"
-                    ]
-            
-            insights
-            |> List.map (fun insight -> $"• {insight}")
-            |> String.concat "\n"
-
-    member private self.ShowInteractiveWidgets() =
+    /// <summary>
+    /// Show intelligence demo
+    /// </summary>
+    member private self.ShowIntelligenceDemo() =
         task {
-            AnsiConsole.Clear()
             self.ShowSpectacularHeader()
-            
-            // Create a tree view of the system
-            let tree = Tree("🧠 TARS Mixtral MoE System")
-            tree.Style <- Style.Parse("cyan")
-            
-            let expertsNode = tree.AddNode("👥 [yellow]Expert Network[/]")
-            expertsNode.AddNode("🔧 [green]CodeGeneration Expert[/] - Active")
-            expertsNode.AddNode("🔍 [green]CodeAnalysis Expert[/] - Active")
-            expertsNode.AddNode("🏗️ [yellow]Architecture Expert[/] - Busy")
-            expertsNode.AddNode("🧪 [green]Testing Expert[/] - Active")
-            expertsNode.AddNode("🛡️ [red]Security Expert[/] - Overloaded")
-            
-            let routingNode = tree.AddNode("🧭 [yellow]Intelligent Routing[/]")
-            routingNode.AddNode("📊 Query Analysis Engine")
-            routingNode.AddNode("🎯 Expert Selection Algorithm")
-            routingNode.AddNode("⚖️ Load Balancing System")
-            
-            let dataNode = tree.AddNode("📡 [yellow]Live Data Sources[/]")
-            dataNode.AddNode("🐙 GitHub API - Connected")
-            dataNode.AddNode("📰 Hacker News API - Connected")
-            dataNode.AddNode("💰 Crypto APIs - Connected")
-            dataNode.AddNode("❓ Stack Overflow API - Connected")
-            
-            AnsiConsole.Write(tree)
+
+            AnsiConsole.MarkupLine("[bold cyan]🧠 Starting Intelligence Showcase...[/]")
             AnsiConsole.WriteLine()
-            
-            // Create a bar chart
-            let chart = BreakdownChart()
+
+            // Simulate intelligence analysis
+            let intelligenceMetrics = [
+                ("Pattern Recognition", 97.3)
+                ("Logical Reasoning", 94.8)
+                ("Creative Problem Solving", 91.2)
+                ("Adaptive Learning", 96.7)
+                ("Emotional Intelligence", 89.4)
+                ("Strategic Planning", 93.1)
+            ]
+
+            let chart = BarChart()
             chart.Width <- 60
-            chart.AddItem("CodeGeneration", 25.0, Color.Green)
-            chart.AddItem("CodeAnalysis", 20.0, Color.Blue)
-            chart.AddItem("Architecture", 15.0, Color.Yellow)
-            chart.AddItem("Testing", 18.0, Color.Cyan1)
-            chart.AddItem("Security", 12.0, Color.Red)
-            chart.AddItem("Performance", 10.0, Color.Purple)
-            
-            let chartPanel = Panel(chart)
-            chartPanel.Header <- PanelHeader("[bold green]Expert Workload Distribution[/]")
-            chartPanel.Border <- BoxBorder.Rounded
-            AnsiConsole.Write(chartPanel)
+
+            for (metric, score) in intelligenceMetrics do
+                chart.AddItem(metric, score, Color.Cyan1) |> ignore
+
+            AnsiConsole.Write(chart)
             AnsiConsole.WriteLine()
-            
-            // Create a calendar showing activity
-            let calendar = Calendar(DateTime.Now.Year, DateTime.Now.Month)
-            calendar.AddCalendarEvent(DateTime.Now.AddDays(-2), Color.Green)
-            calendar.AddCalendarEvent(DateTime.Now.AddDays(-1), Color.Yellow)
-            calendar.AddCalendarEvent(DateTime.Now, Color.Red)
-            calendar.HeaderStyle <- Style.Parse("blue bold")
-            
-            let calendarPanel = Panel(calendar)
-            calendarPanel.Header <- PanelHeader("[bold blue]Processing Activity Calendar[/]")
-            calendarPanel.Border <- BoxBorder.Double
-            AnsiConsole.Write(calendarPanel)
+
+            // Show intelligence insights
+            AnsiConsole.MarkupLine("[bold yellow]🧠 Intelligence Insights:[/]")
+            AnsiConsole.MarkupLine("• [green]Superior pattern recognition capabilities[/]")
+            AnsiConsole.MarkupLine("• [green]Advanced logical reasoning skills[/]")
+            AnsiConsole.MarkupLine("• [green]Creative problem-solving approach[/]")
+            AnsiConsole.MarkupLine("• [green]Continuous adaptive learning[/]")
+            AnsiConsole.MarkupLine("• [green]Emotional intelligence integration[/]")
+            AnsiConsole.MarkupLine("• [green]Strategic planning optimization[/]")
+            AnsiConsole.WriteLine()
+
+            AnsiConsole.MarkupLine("[green]✅ Intelligence showcase completed![/]")
         }
-
-    member private self.RunSpectacularDemo() =
-        task {
-            // Show header
-            self.ShowSpectacularHeader()
-            
-            AnsiConsole.MarkupLine("[bold green]🎯 Choose your spectacular demo:[/]")
-            AnsiConsole.WriteLine()
-            
-            let choice = AnsiConsole.Prompt(
-                (SelectionPrompt<string>())
-                    .Title("[bold cyan]Select Demo Mode[/]")
-                    .AddChoices([
-                        "🚀 Live Data Processing Dashboard"
-                        "📊 Interactive Widgets Showcase"
-                        "⚡ Real-time Expert Monitoring"
-                        "🎭 Full Spectacular Experience"
-                    ])
-            )
-            
-            match choice with
-            | "🚀 Live Data Processing Dashboard" ->
-                do! self.ShowLiveProcessingDemo()
-            | "📊 Interactive Widgets Showcase" ->
-                do! self.ShowInteractiveWidgets()
-            | "⚡ Real-time Expert Monitoring" ->
-                do! self.ShowLiveProcessingDemo()
-            | "🎭 Full Spectacular Experience" ->
-                do! self.ShowInteractiveWidgets()
-                do! Task.Delay(3000)
-                do! self.ShowLiveProcessingDemo()
-            | _ ->
-                do! self.ShowLiveProcessingDemo()
-            
-            AnsiConsole.WriteLine()
-            AnsiConsole.MarkupLine("[bold green]🎉 Demo completed! Press any key to continue...[/]")
-            Console.ReadKey(true) |> ignore
-        }
-
-    interface ICommand with
-        member _.Name = "livedemo"
-        member _.Description = "Spectacular live demo with Spectre.Console widgets"
-        member self.Usage = "tars livedemo [dashboard|widgets|monitoring|full]"
-        member self.Examples = [
-            "tars livedemo"
-            "tars livedemo dashboard"
-            "tars livedemo widgets"
-            "tars livedemo full"
-        ]
-        member self.ValidateOptions(options) = true
-
-        member self.ExecuteAsync(options) =
-            task {
-                try
-                    match options.Arguments with
-                    | "dashboard" :: _ ->
-                        do! self.ShowLiveProcessingDemo()
-                        return CommandResult.success("Live dashboard demo completed")
-                    | "widgets" :: _ ->
-                        do! self.ShowInteractiveWidgets()
-                        return CommandResult.success("Widgets demo completed")
-                    | "monitoring" :: _ ->
-                        do! self.ShowLiveProcessingDemo()
-                        return CommandResult.success("Monitoring demo completed")
-                    | "full" :: _ ->
-                        do! self.RunSpectacularDemo()
-                        return CommandResult.success("Full spectacular demo completed")
-                    | [] ->
-                        do! self.RunSpectacularDemo()
-                        return CommandResult.success("Spectacular demo completed")
-                    | unknown :: _ ->
-                        AnsiConsole.MarkupLine($"[red]❌ Unknown demo mode: {unknown}[/]")
-                        return CommandResult.failure($"Unknown mode: {unknown}")
-                with
-                | ex ->
-                    logger.LogError(ex, "Error in live demo command")
-                    AnsiConsole.MarkupLine($"[red]❌ Error: {ex.Message}[/]")
-                    return CommandResult.failure(ex.Message)
-            }

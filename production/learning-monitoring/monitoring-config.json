@@ -1,0 +1,20 @@
+
+{
+  "monitoring": {
+    "enabled": true,
+    "dashboard_port": 8090,
+    "update_interval": "30s",
+    "metrics": {
+      "programming_proficiency": true,
+      "metascript_evolution": true,
+      "code_improvement": true,
+      "learning_velocity": true,
+      "system_health": true
+    },
+    "alerts": {
+      "fitness_degradation": 0.1,
+      "learning_stagnation": "1h",
+      "improvement_failures": 3
+    }
+  }
+}

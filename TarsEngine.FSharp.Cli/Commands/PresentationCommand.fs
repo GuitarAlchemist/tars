@@ -130,7 +130,7 @@ Examples:
                 printfn $"📝 Presenter Notes: {result.PresenterNotes}"
                 printfn $"📋 Summary Report: {result.Summary}"
                 printfn $"🎯 Slide Count: {result.SlideCount}"
-                printfn $"⏱️  Generation Time: {result.GenerationTime.TotalSeconds:F1} seconds"
+                printfn $"""⏱️  Generation Time: {result.GenerationTime.TotalSeconds.ToString("F1")} seconds"""
                 printfn ""
                 printfn "🎯 PRESENTATION HIGHLIGHTS:"
                 printfn "├── 🤖 TARS introduces itself autonomously"
@@ -149,7 +149,7 @@ Examples:
                 return { IsSuccess = true; Message = Some "Self-introduction presentation generated"; ErrorMessage = None }
             else
                 printfn "❌ PRESENTATION GENERATION FAILED"
-                printfn $"⚠️  Generation Time: {result.GenerationTime.TotalSeconds:F1} seconds"
+                printfn $"""⚠️  Generation Time: {result.GenerationTime.TotalSeconds.ToString("F1")} seconds"""
                 printfn ""
                 return { IsSuccess = false; Message = None; ErrorMessage = Some "Failed to generate presentation" }
         }
@@ -266,3 +266,4 @@ Examples:
                 
                 return { IsSuccess = true; Message = Some "Metascript analyzed"; ErrorMessage = None }
         }
+

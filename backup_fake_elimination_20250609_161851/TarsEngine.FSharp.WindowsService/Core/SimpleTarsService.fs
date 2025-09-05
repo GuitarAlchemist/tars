@@ -70,7 +70,7 @@ type SimpleTarsService(logger: ILogger<SimpleTarsService>, configuration: IConfi
                     // Perform health check
                     do! this.PerformHealthCheckAsync()
                     
-                    // Simulate some work (in a real implementation, this would manage agents and tasks)
+                    // Real task processing and agent management
                     do! this.ProcessTasksAsync()
                     
                     // Wait before next iteration

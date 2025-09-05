@@ -24,9 +24,9 @@ type SummarizeCommand() =
         content.AddLine($"[bold]Summary:[/]")
         content.AddLine($"[dim]{result.Summary}[/]")
         content.AddLine("")
-        content.AddLine($"[bold]Compression:[/] {result.CompressionRatio:P1}")
-        content.AddLine($"[bold]Confidence:[/] {result.ConfidenceScore:P1}")
-        content.AddLine($"[bold]Processing Time:[/] {result.ProcessingTime.TotalMilliseconds:F0}ms")
+        content.AddLine($"""[bold]Compression:[/] {result.CompressionRatio.ToString("P1")}""")
+        content.AddLine($"""[bold]Confidence:[/] {result.ConfidenceScore.ToString("P1")}""")
+        content.AddLine($"""[bold]Processing Time:[/] {result.ProcessingTime.TotalMilliseconds.ToString("F0")}ms""")
         
         if result.CorrectionsMade.Length > 0 then
             content.AddLine("")
@@ -38,7 +38,7 @@ type SummarizeCommand() =
             content.AddLine("")
             content.AddLine($"[bold]Expert Consensus:[/]")
             for opinion in result.ExpertConsensus.Value do
-                content.AddLine($"  • {opinion.ExpertType}: {opinion.ConfidenceScore:P1} - {opinion.Reasoning}")
+                content.AddLine($"""  • {opinion.ExpertType}: {opinion.ConfidenceScore.ToString("P1")} - {opinion.Reasoning}""")
         
         panel.Content <- content
         AnsiConsole.Write(panel)
@@ -47,8 +47,8 @@ type SummarizeCommand() =
     member private self.DisplayMultiLevelSummary(multiLevel: MultiLevelSummary) =
         AnsiConsole.MarkupLine($"[bold cyan]📊 Multi-Level Summary Results[/]")
         AnsiConsole.MarkupLine($"[dim]Original Length: {multiLevel.OriginalLength} characters[/]")
-        AnsiConsole.MarkupLine($"[dim]Overall Quality: {multiLevel.OverallQuality:P1}[/]")
-        AnsiConsole.MarkupLine($"[dim]Processing Time: {multiLevel.ProcessingTime.TotalMilliseconds:F0}ms[/]")
+        AnsiConsole.MarkupLine($"""[dim]Overall Quality: {multiLevel.OverallQuality.ToString("P1")}[/]""")
+        AnsiConsole.MarkupLine($"""[dim]Processing Time: {multiLevel.ProcessingTime.TotalMilliseconds.ToString("F0")}ms[/]""")
         AnsiConsole.WriteLine()
         
         for kvp in multiLevel.Summaries do
@@ -159,8 +159,8 @@ type SummarizeCommand() =
         table.AddColumn("Approach 1") |> ignore
         table.AddColumn("Approach 2") |> ignore
         
-        table.AddRow("Quality Score", $"{comparison.Summary1Quality:P1}", $"{comparison.Summary2Quality:P1}") |> ignore
-        table.AddRow("Compression", $"{comparison.CompressionComparison.Summary1Compression:P1}", $"{comparison.CompressionComparison.Summary2Compression:P1}") |> ignore
+        table.AddRow("Quality Score", $"""{comparison.Summary1Quality.ToString("P1")}""", $"""{comparison.Summary2Quality.ToString("P1")}""") |> ignore
+        table.AddRow("Compression", $"""{comparison.CompressionComparison.Summary1Compression.ToString("P1")}""", $"""{comparison.CompressionComparison.Summary2Compression.ToString("P1")}""") |> ignore
         table.AddRow("Length", $"{result1.Summary.Length} chars", $"{result2.Summary.Length} chars") |> ignore
         
         AnsiConsole.Write(table)
@@ -296,8 +296,8 @@ type SummarizeCommand() =
                                 
                                 for kvp in multiLevel.Summaries do
                                     results.Add($"{kvp.Key} Summary: {kvp.Value.Summary}")
-                                    results.Add($"Compression: {kvp.Value.CompressionRatio:P1}")
-                                    results.Add($"Confidence: {kvp.Value.ConfidenceScore:P1}")
+                                    results.Add($"""Compression: {kvp.Value.CompressionRatio.ToString("P1")}""")
+                                    results.Add($"""Confidence: {kvp.Value.ConfidenceScore.ToString("P1")}""")
                                 
                                 results.Add("---")
                             
@@ -368,7 +368,7 @@ type SummarizeCommand() =
         content.AddLine("")
         content.AddLine($"[bold]Default Compression Ratios:[/]")
         for kvp in stats.DefaultCompressionRatios do
-            content.AddLine($"  • {kvp.Key}: {kvp.Value:P1}")
+            content.AddLine($"""  • {kvp.Key}: {kvp.Value.ToString("P1")}""")
         content.AddLine("")
         content.AddLine($"[bold]Features:[/]")
         for feature in stats.Features do
@@ -387,3 +387,4 @@ type SummarizeCommand() =
         panel.Content <- Text(syntaxHelp)
         
         AnsiConsole.Write(panel)
+

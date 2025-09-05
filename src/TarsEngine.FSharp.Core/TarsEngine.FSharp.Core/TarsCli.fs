@@ -12,6 +12,7 @@ open TarsEngine.FSharp.Core.Commands.SwarmCommand
 open TarsEngine.FSharp.Core.Commands.IntegrationCommand
 open TarsEngine.FSharp.Core.Commands.LearningCommand
 open TarsEngine.FSharp.Core.Commands.ReasoningCommand
+open TarsEngine.FSharp.Core.TarsInferenceCLI
 
 /// TARS CLI - Simple and functional
 module TarsCli =
@@ -34,6 +35,16 @@ module TarsCli =
         printfn "  integrate   - Master integration system (demo, status, production, performance, recovery, help)"
         printfn "  learn       - Adaptive learning system (start, stop, status, record, experiences, patterns, behaviors, demo, help)"
         printfn "  reason      - Advanced reasoning system (execute, status, entropy, partitions, memory, demo, help)"
+        printfn ""
+        printfn "🤖 TARS AI Inference Engine:"
+        printfn "  infer       - General AI inference (infer <prompt>)"
+        printfn "  chat        - Chat with TARS AI (chat <message>)"
+        printfn "  generate    - Generate content (generate <prompt>)"
+        printfn "  analyze     - Analyze data with AI (analyze <data>)"
+        printfn "  ai-research - AI-powered research (ai-research <topic>)"
+        printfn "  ai-diagnose - AI system diagnostics (ai-diagnose <data>)"
+        printfn "  interactive - Interactive AI mode"
+        printfn ""
         printfn "  version     - Show version"
         printfn "  help        - Show this help"
         printfn ""
@@ -178,6 +189,17 @@ module TarsCli =
             let command = parseReasoningCommand(reasoningArgs)
             let result = executeReasoningCommand(command)
             if result.Success then 0 else 1
+
+        // TARS Inference Engine Commands
+        | args when args.Length > 0 && (args.[0] = "infer" || args.[0] = "chat" || args.[0] = "generate" || args.[0] = "analyze" || args.[0] = "ai-research" || args.[0] = "ai-diagnose" || args.[0] = "interactive") ->
+            match parseInferenceCommand args with
+            | Some(inferenceCommand) ->
+                let result = executeInferenceCommand inferenceCommand
+                result.Result
+            | None ->
+                showInferenceHelp()
+                1
+
         | _ ->
             showHelp()
             0

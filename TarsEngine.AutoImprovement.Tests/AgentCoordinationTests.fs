@@ -47,7 +47,8 @@ type AgentCoordinationSystem() =
         printfn "🤖 Agent Hierarchy Established"
     
     member _.CreateAgent(role: AgentRole, hierarchyLevel: int) =
-        let capabilities = match role with
+        let capabilities =
+            match role with
             | MetaCoordinator -> ["orchestration"; "decision_making"; "resource_allocation"; "strategic_planning"]
             | VectorProcessor -> ["cuda_operations"; "similarity_computation"; "indexing"; "vector_optimization"]
             | KnowledgeExtractor -> ["pattern_recognition"; "semantic_analysis"; "insight_generation"; "data_mining"]

@@ -1,0 +1,60 @@
+# Build outputs
+**/bin/
+**/obj/
+**/build/
+**/out/
+
+# CUDA binaries with permission issues
+**/*.so
+**/*.cu
+**/cuda_binaries/
+**/TarsEngine.CUDA.VectorStore/
+
+# Node modules
+**/node_modules/
+**/package-lock.json
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vs/
+.vscode/
+*.user
+*.suo
+
+# Logs
+**/logs/
+**/*.log
+
+# Temporary files
+**/temp/
+**/tmp/
+**/.temp/
+
+# Backup files
+**/*.backup
+**/*.bak.*
+
+# Large data files
+**/data/
+**/cache/
+**/output/
+
+# Documentation
+**/*.md
+**/docs/
+
+# Test results
+**/TestResults/
+
+# Legacy projects
+Legacy_CSharp_Projects/
+backup_*/
+
+# Archive
+archive/
+
+# Experiments
+Experiments/

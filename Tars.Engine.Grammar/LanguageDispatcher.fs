@@ -99,7 +99,7 @@ module LanguageDispatcher =
             }
     
     /// Generate temporary file with given extension
-    let private generateTempFile extension content =
+    let private generateTempFile extension (content: string) =
         let tempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.{extension}")
         File.WriteAllText(tempFile, content)
         tempFile
@@ -247,7 +247,7 @@ fn main() {{
         }
 
     /// Execute Wolfram Language code
-    let executeWolfram code context =
+    let executeWolfram (code: string) context =
         let tempFile = generateTempFile "wl" code
         try
             // Try to execute using WolframScript (if available)
@@ -273,7 +273,7 @@ fn main() {{
             cleanupTempFile tempFile
 
     /// Execute Julia code
-    let executeJulia code context =
+    let executeJulia (code: string) context =
         let tempFile = generateTempFile "jl" code
         try
             // Try to execute using Julia (if available)

@@ -1,0 +1,115 @@
+DESCRIBE {
+    name: "Fix TARS CLI Chat Command Duplication"
+    version: "1.0"
+    description: "Remove duplicate command listings from TARS CLI chat interface"
+    author: "TARS Improvement System"
+}
+
+CONFIG {
+    model: "qwen3:latest"
+    temperature: 0.3
+    max_tokens: 4000
+    session_duration_minutes: 5
+}
+
+FSHARP {
+open System
+open System.IO
+
+printfn "🔧 FIXING TARS CLI CHAT COMMAND DUPLICATION"
+printfn "==========================================="
+printfn ""
+
+let chatbotFilePath = "src/TarsEngine.FSharp.Cli/TarsEngine.FSharp.Cli/Commands/ChatbotCommand.fs"
+
+printfn "📋 Reading ChatbotCommand.fs file..."
+
+if File.Exists(chatbotFilePath) then
+    let content = File.ReadAllText(chatbotFilePath)
+    
+    printfn "✅ File found and read successfully"
+    printfn "📊 Original file size: %d characters" content.Length
+    
+    // Find the problematic section and replace it
+    let oldHeaderContent = """let headerPanel = Panel("""[bold cyan]🤖 TARS Interactive Chatbot[/]
+[dim]Powered by Mixture of Experts AI System[/]
+
+[yellow]🎯 Available Commands:[/]
+• [green]run demo <n>[/] - Execute TARS demos
+• [green]analyze datastore[/] - Analyze in-memory data
+• [green]reverse engineer[/] - Comprehensive TARS system analysis
+• [green]ingest[/] - Re-ingest codebase into vector store
+• [green]search <query>[/] - Text search in codebase
+• [green]hybrid search <query>[/] - Hybrid semantic + text search
+• [green]list agents[/] - Show available agents
+• [green]list running[/] - Show running processes
+• [green]download model <n>[/] - Download AI models
+• [green]moe status[/] - Check expert status
+• [green]help[/] - Show all commands
+• [green]exit[/] - Exit chatbot
+
+[bold magenta]💡 Just ask naturally! TARS will route your request to the right expert.[/]""")"""
+    
+    let newHeaderContent = """let headerPanel = Panel("""[bold cyan]🤖 TARS Interactive Chatbot[/]
+[dim]Powered by Mixture of Experts AI System[/]
+
+[bold magenta]💡 Just ask naturally! TARS will route your request to the right expert.[/]
+[yellow]Type '[green]help[/]' to see available commands or '[green]exit[/]' to quit.[/]""")"""
+    
+    // Check if the old content exists
+    if content.Contains("Available Commands") then
+        printfn "🎯 Found duplicate command listing in header"
+        
+        // Create a backup
+        let backupPath = chatbotFilePath + ".backup"
+        File.Copy(chatbotFilePath, backupPath, true)
+        printfn "💾 Created backup: %s" backupPath
+        
+        // Try to find and replace the section
+        let lines = content.Split('\n')
+        let mutable newLines = []
+        let mutable inHeaderSection = false
+        let mutable skipLines = false
+        
+        for line in lines do
+            if line.Contains("let headerPanel = Panel(") then
+                inHeaderSection <- true
+                newLines <- """        let headerPanel = Panel("""[bold cyan]🤖 TARS Interactive Chatbot[/]""" :: newLines
+                newLines <- """[dim]Powered by Mixture of Experts AI System[/]""" :: newLines
+                newLines <- """""" :: newLines
+                newLines <- """[bold magenta]💡 Just ask naturally! TARS will route your request to the right expert.[/]""" :: newLines
+                newLines <- """[yellow]Type '[green]help[/]' to see available commands or '[green]exit[/]' to quit.[/]""")""" :: newLines
+                skipLines <- true
+            elif inHeaderSection && line.Contains("headerPanel.Header") then
+                inHeaderSection <- false
+                skipLines <- false
+                newLines <- line :: newLines
+            elif not skipLines then
+                newLines <- line :: newLines
+        
+        let newContent = String.Join("\n", List.rev newLines)
+        
+        // Write the fixed content
+        File.WriteAllText(chatbotFilePath, newContent)
+        
+        printfn "✅ Successfully removed duplicate command listing"
+        printfn "📊 New file size: %d characters" newContent.Length
+        printfn "📉 Reduced by: %d characters" (content.Length - newContent.Length)
+        
+        printfn ""
+        printfn "🎉 CHAT COMMAND DUPLICATION FIXED!"
+        printfn "=================================="
+        printfn "✅ Removed duplicate command list from header"
+        printfn "✅ Kept comprehensive help command intact"
+        printfn "✅ Improved user experience with cleaner interface"
+        printfn "✅ Commands now only shown when user types 'help'"
+        
+    else
+        printfn "ℹ️ No duplicate command listing found - file may already be fixed"
+        
+else
+    printfn "❌ ChatbotCommand.fs file not found at: %s" chatbotFilePath
+
+printfn ""
+printfn "🔧 TARS CLI Chat Duplication Fix: COMPLETE"
+}

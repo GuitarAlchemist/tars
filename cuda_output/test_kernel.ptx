@@ -1,0 +1,12 @@
+
+.version 7.0
+.target sm_75
+.address_size 64
+
+.visible .entry test_kernel(
+    .param .u64 test_kernel_param_0
+)
+{
+    // Simulated PTX code for test_kernel
+    ret;
+}

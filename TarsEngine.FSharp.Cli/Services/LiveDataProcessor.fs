@@ -131,7 +131,7 @@ type LiveDataProcessor(httpClient: HttpClient, mixtralService: MixtralService, l
                         {
                             Source = CryptoMarket
                             Title = $"{coin.GetProperty("name").GetString()} ({coin.GetProperty("symbol").GetString().ToUpper()})"
-                            Content = $"Price: ${coin.GetProperty("current_price").GetDouble():F2}, 24h change: {priceChange:F2}% {trend}"
+                            Content = $"Price: ${coin.GetProperty("current_price").GetDouble().ToString("F2")}, 24h change: {priceChange.ToString("F2")}% {trend}"
                             Url = None
                             Timestamp = DateTime.UtcNow
                             Metadata = Map [
@@ -268,7 +268,7 @@ type LiveDataProcessor(httpClient: HttpClient, mixtralService: MixtralService, l
                                 $"[cyan]{item.Source}[/]",
                                 $"[white]{item.Title |> fun s -> if s.Length > 30 then s.Substring(0, 30) + "..." else s}[/]",
                                 $"[yellow]{analysis.SelectedExpert}[/]",
-                                $"[green]{analysis.Confidence:F2}[/]",
+                                $"[green]{analysis.Confidence.ToString("F2")}[/]",
                                 "[green]✓ Analyzed[/]"
                             ) |> ignore
                             
@@ -302,9 +302,9 @@ type LiveDataProcessor(httpClient: HttpClient, mixtralService: MixtralService, l
             
             summaryTable.AddRow("Total Items Processed", totalProcessed.ToString()) |> ignore
             summaryTable.AddRow("Successful Analyses", successfulAnalyses.ToString()) |> ignore
-            summaryTable.AddRow("Success Rate", $"{(float successfulAnalyses / float totalProcessed * 100.0):F1}%") |> ignore
-            summaryTable.AddRow("Total Processing Time", $"{totalTime.TotalSeconds:F1}s") |> ignore
-            summaryTable.AddRow("Average Time per Item", $"{totalTime.TotalMilliseconds / float totalProcessed:F0}ms") |> ignore
+            summaryTable.AddRow("Success Rate", $"{(float successfulAnalyses / float totalProcessed * 100.0).ToString("F1")}%") |> ignore
+            summaryTable.AddRow("Total Processing Time", $"{totalTime.TotalSeconds.ToString("F1")}s") |> ignore
+            summaryTable.AddRow("Average Time per Item", $"{totalTime.TotalMilliseconds / float totalProcessed.ToString("F0")}ms") |> ignore
             
             let summaryPanel = Panel(summaryTable)
             summaryPanel.Header <- PanelHeader("[bold cyan]Processing Summary[/]")
@@ -313,3 +313,4 @@ type LiveDataProcessor(httpClient: HttpClient, mixtralService: MixtralService, l
             
             return (totalProcessed, successfulAnalyses, totalTime)
         }
+

@@ -114,7 +114,7 @@ module FluxAst =
     /// Function Parameter with Type Annotation
     type FunctionParameter = {
         Name: string
-        Type: FSharpType
+        Type: FluxType
     }
 
     /// Advanced Function Declaration with Comprehensible Syntax
@@ -137,6 +137,16 @@ module FluxAst =
         Type: FluxType
         DefaultValue: string option                         // Optional default value
         Constraint: string option                           // Human-readable constraint
+    }
+
+    /// Typed Function Declaration for execution context
+    and TypedFunctionDeclaration = {
+        Name: string
+        Parameters: FunctionParameter list
+        ReturnType: FluxType
+        Effects: FluxEffect list
+        Body: string option
+        LineNumber: int
     }
 
     /// Advanced Function Block with Comprehensible Syntax
@@ -280,6 +290,7 @@ module FluxAst =
         | MetaBlock of MetaBlock
         | GrammarBlock of GrammarBlock
         | LanguageBlock of LanguageBlock
+        | FunctionBlock of AdvancedFunctionBlock
         | AdvancedFunctionBlock of AdvancedFunctionBlock
         | MainBlock of MainBlock
         | ProofBlock of ProofBlock

@@ -6,6 +6,7 @@ open Microsoft.Extensions.DependencyInjection
 open Microsoft.Extensions.Logging
 open TarsEngine.FSharp.Cli.Commands
 open TarsEngine.FSharp.Cli.Services
+// open TarsEngine.FSharp.Core.AgentOS  // Temporarily disabled
 
 /// <summary>
 /// CLI application with separate metascript engine.
@@ -30,6 +31,15 @@ type CliApplication() =
         services.AddSingleton<DockerService>() |> ignore
         services.AddSingleton<MixtralService>() |> ignore
         services.AddSingleton<LLMRouter>() |> ignore
+
+        // Add Agent OS integration service - temporarily disabled
+        // services.AddSingleton<IAgentOSIntegrationService, AgentOSIntegrationService>() |> ignore
+
+        // Add web search services
+        services.AddSingleton<TarsEngine.FSharp.OnDemandSearch.WebSearchProvider>() |> ignore
+        services.AddSingleton<TarsEngine.FSharp.OnDemandSearch.AcademicSearchProvider>() |> ignore
+        services.AddSingleton<TarsEngine.FSharp.OnDemandSearch.TripleStoreSearchProvider>() |> ignore
+        services.AddSingleton<TarsEngine.FSharp.OnDemandSearch.IOnDemandSearchService, TarsEngine.FSharp.OnDemandSearch.OnDemandSearchService>() |> ignore
         
         services.BuildServiceProvider()
     
@@ -38,7 +48,8 @@ type CliApplication() =
     let dockerService = serviceProvider.GetRequiredService<DockerService>()
     let mixtralService = serviceProvider.GetRequiredService<MixtralService>()
     let llmRouter = serviceProvider.GetRequiredService<LLMRouter>()
-    let commandRegistry = CommandRegistry(intelligenceService, mlService, dockerService, mixtralService, llmRouter)
+    let searchService = serviceProvider.GetRequiredService<TarsEngine.FSharp.OnDemandSearch.IOnDemandSearchService>()
+    let commandRegistry = CommandRegistry(intelligenceService, mlService, dockerService, mixtralService, llmRouter, searchService)
     let commandLineParser = CommandLineParser()
     
     do

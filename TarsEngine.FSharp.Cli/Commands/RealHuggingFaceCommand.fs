@@ -61,7 +61,7 @@ type RealHuggingFaceCommand(logger: ILogger<RealHuggingFaceCommand>, huggingFace
 [cyan]Status:[/] {progress.Status}
 [green]Downloaded:[/] {progress.BytesDownloaded / 1024L} KB
 [blue]Total:[/] {progress.TotalBytes |> Option.map (fun t -> $"{t / 1024L} KB") |> Option.defaultValue "Unknown"}
-[magenta]Progress:[/] {progress.Percentage |> Option.map (fun p -> $"{p:F1}%%") |> Option.defaultValue "N/A"}
+[magenta]Progress:[/] {progress.Percentage |> Option.map (fun p -> let formatted = p.ToString("F1") in $"{formatted}%%") |> Option.defaultValue "N/A"}
 """
                 
                 if statusText <> lastStatus then
@@ -294,3 +294,4 @@ type RealHuggingFaceCommand(logger: ILogger<RealHuggingFaceCommand>, huggingFace
                     AnsiConsole.MarkupLine($"[red]❌ Error: {ex.Message}[/]")
                     return CommandResult.failure(ex.Message)
             }
+

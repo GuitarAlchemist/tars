@@ -1,0 +1,62 @@
+[
+  {
+    "Id": "9813e45a",
+    "DecisionType": "code_evaluation",
+    "Context": {
+      "complexity": 0.7,
+      "innovation": 0.5,
+      "quality": 0.6
+    },
+    "Decision": true,
+    "Confidence": 0.7917500000000001,
+    "Outcome": true,
+    "QualityScore": 0.6,
+    "Timestamp": "2025-08-29T02:32:38.4239321Z",
+    "LearningWeight": 0
+  },
+  {
+    "Id": "1eca3e5d",
+    "DecisionType": "code_evaluation",
+    "Context": {
+      "complexity": 0.9,
+      "innovation": 0.1,
+      "quality": 0.2
+    },
+    "Decision": true,
+    "Confidence": 0.7917500000000001,
+    "Outcome": false,
+    "QualityScore": 0.2,
+    "Timestamp": "2025-08-29T02:32:38.4231005Z",
+    "LearningWeight": 0
+  },
+  {
+    "Id": "d15b4852",
+    "DecisionType": "code_evaluation",
+    "Context": {
+      "complexity": 0.6,
+      "innovation": 0.7,
+      "quality": 0.9
+    },
+    "Decision": true,
+    "Confidence": 0.7917500000000001,
+    "Outcome": true,
+    "QualityScore": 0.9,
+    "Timestamp": "2025-08-29T02:32:38.421688Z",
+    "LearningWeight": 0
+  },
+  {
+    "Id": "beead28b",
+    "DecisionType": "code_evaluation",
+    "Context": {
+      "complexity": 0.7,
+      "innovation": 0.6,
+      "quality": 0.8
+    },
+    "Decision": true,
+    "Confidence": 0.6575000000000001,
+    "Outcome": true,
+    "QualityScore": 0.85,
+    "Timestamp": "2025-08-29T02:32:38.3277392Z",
+    "LearningWeight": 0.5
+  }
+]

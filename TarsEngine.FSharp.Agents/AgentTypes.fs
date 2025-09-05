@@ -89,6 +89,12 @@ module AgentTypes =
         Error: string option
         ExecutionTime: TimeSpan
         Metadata: Map<string, obj>
+        ValidationMessage: string
+        QualityScore: float
+        QualityGatesPassed: int
+        QualityGatesTotal: int
+        FileSize: int64
+        SlideCount: int
     }
     
     /// Long-running agent task with streaming results
@@ -175,3 +181,82 @@ module AgentTypes =
         Feedback: float // -1.0 (negative) to 1.0 (positive)
         Timestamp: DateTime
     }
+
+    /// Linear state space model for control systems
+    type LinearStateSpaceModel = {
+        StateMatrix: float[,]
+        InputMatrix: float[,]
+        OutputMatrix: float[,]
+        Feedthrough: float[,]
+        ProcessNoise: float[,]
+        MeasurementNoise: float[,]
+    }
+
+    /// Kalman filter state
+    type KalmanFilterState = {
+        State: float[]
+        Covariance: float[,]
+        Model: LinearStateSpaceModel
+    }
+
+    /// Chaos analyzer for system stability
+    type ChaosAnalyzer = {
+        LyapunovExponents: float[]
+        AttractorDimension: float
+        EntropyRate: float
+        StabilityMetrics: Map<string, float>
+    }
+
+/// Control system functions for agent orchestration
+module ControlSystems =
+    open AgentTypes
+    open System.Threading.Tasks
+
+    /// Create a linear state space model
+    let createLinearStateSpaceModel
+        (stateMatrix: float[,])
+        (inputMatrix: float[,])
+        (outputMatrix: float[,])
+        (feedthrough: float[,])
+        (processNoise: float[,])
+        (measurementNoise: float[,]) : Task<LinearStateSpaceModel> =
+        task {
+            return {
+                StateMatrix = stateMatrix
+                InputMatrix = inputMatrix
+                OutputMatrix = outputMatrix
+                Feedthrough = feedthrough
+                ProcessNoise = processNoise
+                MeasurementNoise = measurementNoise
+            }
+        }
+
+    /// Initialize Kalman filter
+    let initializeKalmanFilter
+        (model: LinearStateSpaceModel)
+        (initialState: float[])
+        (initialCovariance: float[,]) : Task<KalmanFilterState> =
+        task {
+            return {
+                State = initialState
+                Covariance = initialCovariance
+                Model = model
+            }
+        }
+
+    /// Create chaos analyzer
+    let createChaosAnalyzer () : ChaosAnalyzer =
+        {
+            LyapunovExponents = [|0.1; -0.2; 0.05|]
+            AttractorDimension = 2.3
+            EntropyRate = 0.15
+            StabilityMetrics = Map.empty
+        }
+
+    /// Create MPC parameters (placeholder)
+    let createMPCParameters () : obj =
+        {| HorizonLength = 10; ControlWeights = [|1.0; 1.0; 1.0|]; StateWeights = [|1.0; 1.0; 1.0; 1.0|] |}
+
+    /// Create topological stability analyzer (placeholder)
+    let createTopologicalStabilityAnalyzer () : obj =
+        {| StabilityThreshold = 0.95; AnalysisDepth = 5; TopologicalFeatures = [||] |}

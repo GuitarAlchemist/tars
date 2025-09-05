@@ -1,0 +1,46 @@
+﻿<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="TarsEngine.CSharp.Adapters\TarsEngine.CSharp.Adapters.csproj" />
+  <Project Path="TarsEngine.DSL.Tests\TarsEngine.DSL.Tests.fsproj" Type="Classic F#" />
+  <Project Path="TarsEngine.DSL\TarsEngine.DSL.fsproj" Type="Classic F#" />
+  <Project Path="TarsEngine.FSharp.Adapters\TarsEngine.FSharp.Adapters.csproj" />
+  <Project Path="TarsEngine.FSharp.Agents\TarsEngine.FSharp.Agents.fsproj" Type="Classic F#" />
+  <Project Path="TarsEngine.FSharp.Cli.Tests\TarsEngine.FSharp.Cli.Tests.fsproj" Type="Classic F#">
+    <Configuration Solution="Debug|x64" Project="Debug|Any CPU" />
+    <Configuration Solution="Debug|x86" Project="Debug|Any CPU" />
+    <Configuration Solution="Release|x64" Project="Release|Any CPU" />
+    <Configuration Solution="Release|x86" Project="Release|Any CPU" />
+  </Project>
+  <Project Path="TarsEngine.FSharp.Cli\TarsEngine.FSharp.Cli.fsproj" Type="Classic F#" />
+  <Project Path="TarsEngine.FSharp.Consciousness\TarsEngine.FSharp.Consciousness.fsproj" Type="Classic F#" />
+  <Project Path="TarsEngine.FSharp.Core.MetascriptTester\TarsEngine.FSharp.Core.MetascriptTester.fsproj" Type="Classic F#" />
+  <Project Path="TarsEngine.FSharp.Core.ML.Tests\TarsEngine.FSharp.Core.ML.Tests.fsproj" Type="Classic F#" />
+  <Project Path="TarsEngine.FSharp.Core.Simple\TarsEngine.FSharp.Core.Simple.fsproj" Type="Classic F#" />
+  <Project Path="TarsEngine.FSharp.Core.Tests\TarsEngine.FSharp.Core.Tests.fsproj" Type="Classic F#" />
+  <Project Path="TarsEngine.FSharp.Core.Unified\TarsEngine.FSharp.Core.Unified.fsproj" Type="Classic F#" />
+  <Project Path="TarsEngine.FSharp.Core\TarsEngine.FSharp.Core.fsproj" Type="Classic F#" />
+  <Project Path="TarsEngine.FSharp.DataSources\TarsEngine.FSharp.DataSources.fsproj" Type="Classic F#" />
+  <Project Path="TarsEngine.FSharp.Main.Tests\TarsEngine.FSharp.Main.Tests.fsproj" Type="Classic F#" />
+  <Project Path="TarsEngine.FSharp.Main\TarsEngine.FSharp.Main.fsproj" Type="Classic F#" />
+  <Project Path="TarsEngine.FSharp.Metascript.Console\TarsEngine.FSharp.Metascript.Console.fsproj" Type="Classic F#" />
+  <Project Path="TarsEngine.FSharp.Metascript.Runner\TarsEngine.FSharp.Metascript.Runner.fsproj" Type="Classic F#" />
+  <Project Path="TarsEngine.FSharp.Metascript.Standalone\TarsEngine.FSharp.Metascript.Standalone.fsproj" Type="Classic F#" />
+  <Project Path="TarsEngine.FSharp.Metascript.Test\TarsEngine.FSharp.Metascript.Test.fsproj" Type="Classic F#" />
+  <Project Path="TarsEngine.FSharp.Metascripts\TarsEngine.FSharp.Metascripts.fsproj" Type="Classic F#" />
+  <Project Path="TarsEngine.FSharp.Metascript\TarsEngine.FSharp.Metascript.fsproj" Type="Classic F#" />
+  <Project Path="TarsEngine.FSharp.ML.Tests\TarsEngine.FSharp.ML.Tests.fsproj" Type="Classic F#" />
+  <Project Path="TarsEngine.FSharp.ML\TarsEngine.FSharp.ML.fsproj" Type="Classic F#" />
+  <Project Path="TarsEngine.FSharp.Packaging\TarsEngine.FSharp.Packaging.fsproj" Type="Classic F#" />
+  <Project Path="TarsEngine.FSharp.ProjectGeneration\TarsEngine.FSharp.ProjectGeneration.fsproj" Type="Classic F#" />
+  <Project Path="TarsEngine.FSharp.SelfImprovement\TarsEngine.FSharp.SelfImprovement.fsproj" Type="Classic F#" />
+  <Project Path="TarsEngine.FSharp.Testing\TarsEngine.FSharp.Testing.fsproj" Type="Classic F#" />
+  <Project Path="TarsEngine.FSharpToRust\TarsEngine.FSharpToRust.fsproj" Type="Classic F#" />
+  <Project Path="TarsEngine.SelfImprovement.Tests\TarsEngine.SelfImprovement.Tests.fsproj" Type="Classic F#" />
+  <Project Path="TarsEngine.SelfImprovement\TarsEngine.SelfImprovement.fsproj" Type="Classic F#" />
+  <Project Path="TarsEngine.Services.AI\TarsEngine.Services.AI.csproj" />
+  <Project Path="TarsEngine.TreeOfThought\TarsEngine.TreeOfThought.fsproj" Type="Classic F#" />
+</Solution>

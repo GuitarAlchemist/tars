@@ -183,9 +183,9 @@ module FluxRuntime =
         member this.ExecuteWolfram(code: string, variables: Map<string, FluxValue>) =
             task {
                 let startTime = DateTime.UtcNow
+                // Create temporary Wolfram script file
+                let tempFile = Path.GetTempFileName() + ".wl"
                 try
-                    // Create temporary Wolfram script file
-                    let tempFile = Path.GetTempFileName() + ".wl"
 
                     // Convert FLUX variables to Wolfram format
                     let wolframVariables =
@@ -250,9 +250,9 @@ module FluxRuntime =
         member this.ExecuteJulia(code: string, variables: Map<string, FluxValue>) =
             task {
                 let startTime = DateTime.UtcNow
+                // Create temporary Julia script file
+                let tempFile = Path.GetTempFileName() + ".jl"
                 try
-                    // Create temporary Julia script file
-                    let tempFile = Path.GetTempFileName() + ".jl"
 
                     // Convert FLUX variables to Julia format
                     let juliaVariables =
@@ -418,6 +418,10 @@ module FluxRuntime =
                     let! result = this.ExecuteFunctionBlock(funcBlock, context)
                     return result
 
+                | AdvancedFunctionBlock funcBlock ->
+                    let! result = this.ExecuteFunctionBlock(funcBlock, context)
+                    return result
+
                 | MainBlock mainBlock ->
                     let! result = this.ExecuteMainBlock(mainBlock, context)
                     return result
@@ -446,6 +450,15 @@ module FluxRuntime =
 
                 | CommentBlock commentBlock ->
                     return sprintf "COMMENT block processed (%d chars)" commentBlock.Content.Length
+
+                | EffectHandlerBlock effectBlock ->
+                    return sprintf "EFFECT_HANDLER block processed: %s" effectBlock.Name
+
+                | TypeDefinitionBlock typeBlock ->
+                    return sprintf "TYPE_DEFINITION block processed: %s" typeBlock.Name
+
+                | ProofBlock proofBlock ->
+                    return sprintf "PROOF block processed: %s" proofBlock.Name
             }
         
         /// Execute grammar block
@@ -816,26 +829,35 @@ module FluxRuntime =
             }
 
         /// Execute function block - Register functions without executing them
-        member private this.ExecuteFunctionBlock(funcBlock: FunctionBlock, context: FluxExecutionContext) : Task<string> =
+        member private this.ExecuteFunctionBlock(funcBlock: AdvancedFunctionBlock, context: FluxExecutionContext) : Task<string> =
             task {
                 try
-                    let mutable registeredFunctions = []
+                    // Convert AdvancedFunctionBlock to TypedFunctionDeclaration
+                    let typedFunc = {
+                        Name = funcBlock.Name
+                        Parameters = funcBlock.Parameters |> List.map (fun p -> {
+                            Name = p.Name
+                            Type = p.Type
+                        })
+                        ReturnType = funcBlock.ReturnType
+                        Effects = funcBlock.Effects
+                        Body = funcBlock.Implementations |> List.tryPick (fun (lang, code) ->
+                            if lang = "fsharp" || lang = "F#" then Some code else None)
+                        LineNumber = funcBlock.LineNumber
+                    }
 
-                    // Register each function in the context
-                    for func in funcBlock.Functions do
-                        context.DeclaredFunctions.[func.Name] <- func
-                        registeredFunctions <- func.Name :: registeredFunctions
+                    // Register the converted function in the context
+                    context.DeclaredFunctions.[funcBlock.Name] <- typedFunc
 
-                        if context.TraceEnabled then
-                            let paramTypes = func.Parameters |> List.map (fun p -> sprintf "%s: %A" p.Name p.Type) |> String.concat ", "
-                            printfn "📝 Registered function: %s(%s) : %A" func.Name paramTypes func.ReturnType
+                    if context.TraceEnabled then
+                        let paramTypes = funcBlock.Parameters |> List.map (fun p -> sprintf "%s: %A" p.Name p.Type) |> String.concat ", "
+                        printfn "📝 Registered function: %s(%s) : %A" funcBlock.Name paramTypes funcBlock.ReturnType
 
-                    let functionNames = String.concat ", " (List.rev registeredFunctions)
-                    return sprintf "✅ FUNCTION(%s): Registered %d functions [%s]" funcBlock.Language funcBlock.Functions.Length functionNames
+                    return sprintf "✅ FUNCTION: Registered function [%s]" funcBlock.Name
 
                 with
                 | ex ->
-                    return sprintf "❌ FUNCTION(%s) registration error: %s" funcBlock.Language ex.Message
+                    return sprintf "❌ FUNCTION registration error: %s" ex.Message
             }
 
         /// Execute main block - Execute with access to declared functions
@@ -847,7 +869,8 @@ module FluxRuntime =
                         context.DeclaredFunctions.Values
                         |> Seq.map (fun func ->
                             let paramList = func.Parameters |> List.map (fun p -> sprintf "(%s: %A)" p.Name p.Type) |> String.concat " "
-                            sprintf "let %s %s : %A =\n%s" func.Name paramList func.ReturnType func.Body)
+                            let body = func.Body |> Option.defaultValue "// No implementation provided"
+                            sprintf "let %s %s : %A =\n%s" func.Name paramList func.ReturnType body)
                         |> String.concat "\n\n"
 
                     // Combine function declarations with main block content

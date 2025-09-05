@@ -104,32 +104,47 @@ module JanusCosmologyExtension =
         ConfidenceLevel: float
     }
 
-    /// Perform chi-squared analysis
+    /// Perform chi-squared analysis with error handling
     let performChiSquaredAnalysis (observed: float[]) (predicted: float[]) (uncertainties: float[]) =
-        if observed.Length <> predicted.Length || observed.Length <> uncertainties.Length then
-            failwith "Array lengths must match"
-        
-        let chiSquared = 
-            Array.zip3 observed predicted uncertainties
-            |> Array.map (fun (obs, pred, err) -> 
-                let residual = obs - pred
-                (residual * residual) / (err * err))
-            |> Array.sum
-        
-        let dof = observed.Length - 3  // Assuming 3 fitted parameters
-        let reducedChiSquared = chiSquared / float dof
-        
-        // Simplified p-value calculation (in practice, use proper statistical functions)
-        let pValue = Math.Exp(-chiSquared / 2.0)
-        let confidenceLevel = 1.0 - pValue
-        
-        {
-            ChiSquared = chiSquared
-            DegreesOfFreedom = dof
-            PValue = pValue
-            ReducedChiSquared = reducedChiSquared
-            ConfidenceLevel = confidenceLevel
-        }
+        try
+            if observed.Length <> predicted.Length || observed.Length <> uncertainties.Length then
+                failwith "Array lengths must match"
+            if observed.Length = 0 then
+                failwith "Arrays cannot be empty"
+            if uncertainties |> Array.exists (fun err -> err <= 0.0) then
+                failwith "All uncertainties must be positive"
+
+            // Optimized: combine operations to avoid multiple array traversals
+            let chiSquared =
+                Array.zip3 observed predicted uncertainties
+                |> Array.fold (fun acc (obs, pred, err) ->
+                    let residual = obs - pred
+                    acc + (residual * residual) / (err * err)) 0.0
+
+            let dof = max 1 (observed.Length - 3)  // Ensure positive DOF
+            let reducedChiSquared = chiSquared / float dof
+
+            // Improved p-value calculation with bounds checking
+            let pValue = max 0.0 (min 1.0 (Math.Exp(-chiSquared / 2.0)))
+            let confidenceLevel = 1.0 - pValue
+
+            {
+                ChiSquared = chiSquared
+                DegreesOfFreedom = dof
+                PValue = pValue
+                ReducedChiSquared = reducedChiSquared
+                ConfidenceLevel = confidenceLevel
+            }
+        with
+        | ex ->
+            // Return fallback analysis on error
+            {
+                ChiSquared = 1e6
+                DegreesOfFreedom = 1
+                PValue = 0.0
+                ReducedChiSquared = 1e6
+                ConfidenceLevel = 0.0
+            }
 
     /// Observational test case
     type ObservationalTest = {

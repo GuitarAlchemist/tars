@@ -714,4 +714,21 @@ SOFTWARE.
 ```
 
 
+## Acknowledgments
+
+### Agent OS Integration
+
+TARS includes integration with **Agent OS**, an open-source system for spec-driven agentic development created by **Brian Casel** at **Builder Methods**.
+
+- **Project**: [Agent OS on GitHub](https://github.com/buildermethods/agent-os)
+- **Creator**: Brian Casel ([@briancasel](https://twitter.com/briancasel))
+- **Organization**: [Builder Methods](https://buildermethods.com)
+- **License**: MIT License
+
+Agent OS provides structured workflows and standards management that enhance TARS's autonomous development capabilities. The integration enables TARS autonomous agents to follow proven spec-driven development methodology while maintaining TARS's advanced autonomous capabilities and quality standards.
+
+**Special thanks to Brian Casel and the Builder Methods community for creating and open-sourcing Agent OS, making this powerful integration possible.**
+
+---
+
 **Note: This includes experimental features that are under active development.**

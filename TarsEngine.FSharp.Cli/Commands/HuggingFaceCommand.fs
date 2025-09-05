@@ -139,7 +139,7 @@ type HuggingFaceCommand(logger: ILogger<HuggingFaceCommand>, huggingFaceService:
             let mutable currentProgress = ""
             
             let onProgress (progress: DownloadProgress) =
-                let percentageText = progress.Percentage |> Option.map (fun p -> $"{p:F1}%%") |> Option.defaultValue "N/A"
+                let percentageText = progress.Percentage |> Option.map (fun p -> $"""{p.ToString("F1")}%%""") |> Option.defaultValue "N/A"
                 currentProgress <- $"{progress.Status} - {percentageText}"
                 
                 progressTable.Rows.Clear()
@@ -328,3 +328,4 @@ type HuggingFaceCommand(logger: ILogger<HuggingFaceCommand>, huggingFaceService:
                     AnsiConsole.MarkupLine($"[red]❌ Error: {ex.Message}[/]")
                     return CommandResult.failure(ex.Message)
             }
+

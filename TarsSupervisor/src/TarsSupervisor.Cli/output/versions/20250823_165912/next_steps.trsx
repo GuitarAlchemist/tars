@@ -1,0 +1,20 @@
+﻿version: 0.1
+module: agentic_module_v1
+goals:
+  - "Strengthen iteration feedback loop"
+  - "Add metrics and rollback"
+  - "Integrate local LLM via Ollama"
+  - "Implement optional auto-apply"
+reflection:
+  summary: >
+    Previous versions lacked stable validation and metrics.
+    This cycle focuses on reliability first, then optional auto-apply.
+directives:
+  - id: VAL-001
+    text: "Introduce pluggable validators (dotnet build/test)"
+  - id: MET-002
+    text: "Emit detailed metrics.jsonl per iteration including code quality and test coverage"
+  - id: RBK-001
+    text: "Rollback to last successful iteration if validation fails"
+  - id: AUTO-APPLY-001
+    text: "Add optional auto-apply feature that applies changes automatically if validation passes"

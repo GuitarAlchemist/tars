@@ -115,7 +115,7 @@ module FractalGrammar =
             
             | Compose transformations ->
                 // Apply multiple transformations sequentially
-                transformations |> List.fold this.ApplyTransformation pattern
+                transformations |> List.fold (fun acc trans -> this.ApplyTransformation(acc, trans)) pattern
             
             | Recursive (depth, innerTransformation) ->
                 // Apply transformation recursively
@@ -143,9 +143,9 @@ module FractalGrammar =
             let nodeId = sprintf "%s_L%d_%s" rule.Name level (Guid.NewGuid().ToString("N").[..7])
             
             // Apply transformations to base pattern
-            let transformedPattern = 
-                rule.Transformations 
-                |> List.fold this.ApplyTransformation rule.BasePattern
+            let transformedPattern =
+                rule.Transformations
+                |> List.fold (fun acc trans -> this.ApplyTransformation(acc, trans)) rule.BasePattern
             
             // Generate children if recursion conditions are met
             let children = 
@@ -349,6 +349,19 @@ module FractalGrammar =
                 GenerationHistory = []
                 Metadata = GrammarMetadata.createDefault name
             }
+
+        // Computation Expression support
+        member this.Yield(rule: FractalRule) = [rule]
+        member this.Combine(rules1: FractalRule list, rules2: FractalRule list) = rules1 @ rules2
+        member this.For(items: 'a seq, f: 'a -> FractalRule list) =
+            items |> Seq.collect f |> Seq.toList
+        member this.Zero() = []
+
+        member this.Run(rulesList: FractalRule list) =
+            // Add all rules from computation expression
+            for rule in rulesList do
+                this.AddFractalRule(rule) |> ignore
+            this.Build()
 
     /// Fractal grammar service
     type FractalGrammarService() =

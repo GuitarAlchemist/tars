@@ -19,7 +19,7 @@ module OllamaCodeAnalyzer =
     
     type OllamaResponse = {
         response: string
-        `done`: bool
+        isDone: bool
     }
     
     /// Ollama code analyzer service
@@ -81,7 +81,7 @@ Focus on real issues that would improve code quality, performance, or maintainab
                         
                         // Parse the AI response
                         try
-                            let analysisResult = JsonSerializer.Deserialize<{| issues: {| line: int; severity: string; `type`: string; description: string; suggestion: string |} array; overall_quality: float; summary: string |}>(ollamaResponse.response)
+                            let analysisResult = JsonSerializer.Deserialize<{| issues: {| line: int; severity: string; issueType: string; description: string; suggestion: string |} array; overall_quality: float; summary: string |}>(ollamaResponse.response)
                             
                             let issues = 
                                 analysisResult.issues
@@ -94,7 +94,7 @@ Focus on real issues that would improve code quality, performance, or maintainab
                                         | _ -> Severity.Low
                                     
                                     let patternType =
-                                        match issue.`type` with
+                                        match issue.issueType with
                                         | "Performance" -> PatternType.Performance
                                         | "Security" -> PatternType.Security
                                         | "Documentation" -> PatternType.Documentation

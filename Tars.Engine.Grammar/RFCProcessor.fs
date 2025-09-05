@@ -39,7 +39,7 @@ module RFCProcessor =
     let private httpClient = new HttpClient()
     
     /// Get standard RFC URL
-    let getRFCUrl rfcId =
+    let getRFCUrl (rfcId: string) =
         let normalizedId = rfcId.ToLowerInvariant()
         if normalizedId.StartsWith("rfc") then
             sprintf "https://datatracker.ietf.org/doc/html/%s" normalizedId
@@ -91,15 +91,15 @@ module RFCProcessor =
         }
     
     /// Extract BNF/ABNF rules from RFC content
-    let extractBNFRules content =
+    let extractBNFRules (content: string) =
         let rules = ResizeArray<BNFRule>()
-        
+
         let patterns = [
             @"^\s*([a-zA-Z][a-zA-Z0-9_-]*)\s*=\s*([^;]+);?\s*$"
             @"^\s*([a-zA-Z][a-zA-Z0-9_-]*)\s*=\s*(.+)$"
             @"^\s*([a-zA-Z][a-zA-Z0-9_-]*)\s*::=\s*(.+)$"
         ]
-        
+
         let lines = content.Split('\n')
         for i, line in Array.indexed lines do
             for pattern in patterns do
@@ -196,8 +196,8 @@ module RFCProcessor =
                 
                 File.WriteAllText(filePath, grammarContent)
                 
-                let entry = {
-                    GrammarResolver.GrammarIndexEntry.Id = sprintf "%s_grammar" rfcId
+                let entry : GrammarResolver.GrammarIndexEntry = {
+                    Id = sprintf "%s_grammar" rfcId
                     File = fileName
                     Origin = "rfc"
                     Version = Some "v1.0"

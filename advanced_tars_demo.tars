@@ -13,8 +13,16 @@ FSHARP {
     
     // Async computational expression
     let asyncComputation = async {
-        do! Async.Sleep(100)
-        return "Async computation completed"
+        let startTime = System.DateTime.UtcNow
+
+        // Real async computation
+        let! result = async {
+            let data = [1..100] |> List.map (fun x -> x * x * x)
+            return data |> List.sum
+        }
+
+        let processingTime = (System.DateTime.UtcNow - startTime).TotalMilliseconds
+        return sprintf "Async computation completed: %d (%.2fms)" result processingTime
     }
     
     // Sequence computational expression

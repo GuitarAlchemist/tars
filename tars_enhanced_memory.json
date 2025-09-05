@@ -1,0 +1,238 @@
+[
+  {
+    "Id": "925a5160",
+    "Domain": "code",
+    "Context": {
+      "Domain": "code",
+      "PrimaryFeatures": {
+        "quality": 0.85
+      },
+      "SemanticFeatures": {
+        "understanding": 0.85
+      },
+      "ContextualFeatures": {
+        "feedback_quality": 1
+      },
+      "HistoricalSimilarity": 0.5,
+      "Complexity": 0.85,
+      "Confidence": 0.85
+    },
+    "Decision": true,
+    "Confidence": 0.85,
+    "Outcome": true,
+    "QualityScore": 0.85,
+    "Timestamp": "2025-08-29T02:52:13.3707352Z",
+    "LearningWeight": 0.5,
+    "CrossDomainRelevance": {
+      "data": 0.51,
+      "logic": 0.68,
+      "text": 0.34
+    },
+    "SemanticTags": [
+      "logical_reasoning",
+      "valid_syllogism",
+      "clear_conclusion"
+    ],
+    "SuccessFactors": [
+      "logical_reasoning",
+      "valid_syllogism",
+      "clear_conclusion"
+    ]
+  },
+  {
+    "Id": "14f88766",
+    "Domain": "code",
+    "Context": {
+      "Domain": "code",
+      "PrimaryFeatures": {
+        "quality": 0.7
+      },
+      "SemanticFeatures": {
+        "understanding": 0.7
+      },
+      "ContextualFeatures": {
+        "feedback_quality": 1
+      },
+      "HistoricalSimilarity": 0.5,
+      "Complexity": 0.7,
+      "Confidence": 0.7
+    },
+    "Decision": true,
+    "Confidence": 0.7,
+    "Outcome": true,
+    "QualityScore": 0.7,
+    "Timestamp": "2025-08-29T02:52:13.3695224Z",
+    "LearningWeight": 0.5,
+    "CrossDomainRelevance": {
+      "data": 0.42,
+      "logic": 0.5599999999999999,
+      "text": 0.27999999999999997
+    },
+    "SemanticTags": [
+      "technical_content",
+      "comprehensive_analysis",
+      "clear_structure"
+    ],
+    "SuccessFactors": [
+      "technical_content",
+      "comprehensive_analysis",
+      "clear_structure"
+    ]
+  },
+  {
+    "Id": "064dbf62",
+    "Domain": "code",
+    "Context": {
+      "Domain": "code",
+      "PrimaryFeatures": {
+        "quality": 0.8
+      },
+      "SemanticFeatures": {
+        "understanding": 0.8
+      },
+      "ContextualFeatures": {
+        "feedback_quality": 1
+      },
+      "HistoricalSimilarity": 0.5,
+      "Complexity": 0.8,
+      "Confidence": 0.8
+    },
+    "Decision": true,
+    "Confidence": 0.8,
+    "Outcome": true,
+    "QualityScore": 0.8,
+    "Timestamp": "2025-08-29T02:52:13.3684365Z",
+    "LearningWeight": 0.5,
+    "CrossDomainRelevance": {
+      "data": 0.48,
+      "logic": 0.6400000000000001,
+      "text": 0.32000000000000006
+    },
+    "SemanticTags": [
+      "structured_data",
+      "json_format",
+      "clear_schema"
+    ],
+    "SuccessFactors": [
+      "structured_data",
+      "json_format",
+      "clear_schema"
+    ]
+  },
+  {
+    "Id": "4c62d153",
+    "Domain": "code",
+    "Context": {
+      "Domain": "code",
+      "PrimaryFeatures": {
+        "quality": 0.9
+      },
+      "SemanticFeatures": {
+        "understanding": 0.9
+      },
+      "ContextualFeatures": {
+        "feedback_quality": 1
+      },
+      "HistoricalSimilarity": 0.5,
+      "Complexity": 0.9,
+      "Confidence": 0.9
+    },
+    "Decision": true,
+    "Confidence": 0.9,
+    "Outcome": true,
+    "QualityScore": 0.9,
+    "Timestamp": "2025-08-29T02:52:13.366475Z",
+    "LearningWeight": 0.5,
+    "CrossDomainRelevance": {
+      "data": 0.54,
+      "logic": 0.7200000000000001,
+      "text": 0.36000000000000004
+    },
+    "SemanticTags": [
+      "efficient_algorithm",
+      "functional_style",
+      "data_processing"
+    ],
+    "SuccessFactors": [
+      "efficient_algorithm",
+      "functional_style",
+      "data_processing"
+    ]
+  },
+  {
+    "Id": "test123",
+    "Domain": "code",
+    "Context": {
+      "Domain": "code",
+      "PrimaryFeatures": {
+        "quality": 0.85
+      },
+      "SemanticFeatures": {
+        "understanding": 0.85
+      },
+      "ContextualFeatures": {
+        "feedback_quality": 1
+      },
+      "HistoricalSimilarity": 0.5,
+      "Complexity": 0.85,
+      "Confidence": 0.85
+    },
+    "Decision": true,
+    "Confidence": 0.85,
+    "Outcome": true,
+    "QualityScore": 0.85,
+    "Timestamp": "2025-08-29T02:52:13.340424Z",
+    "LearningWeight": 0.5,
+    "CrossDomainRelevance": {
+      "data": 0.51,
+      "logic": 0.68,
+      "text": 0.34
+    },
+    "SemanticTags": [
+      "good_structure",
+      "clear_logic"
+    ],
+    "SuccessFactors": [
+      "good_structure",
+      "clear_logic"
+    ]
+  },
+  {
+    "Id": "test123",
+    "Domain": "code",
+    "Context": {
+      "Domain": "code",
+      "PrimaryFeatures": {
+        "quality": 0.85
+      },
+      "SemanticFeatures": {
+        "understanding": 0.85
+      },
+      "ContextualFeatures": {
+        "feedback_quality": 1
+      },
+      "HistoricalSimilarity": 0.5,
+      "Complexity": 0.85,
+      "Confidence": 0.85
+    },
+    "Decision": true,
+    "Confidence": 0.85,
+    "Outcome": true,
+    "QualityScore": 0.85,
+    "Timestamp": "2025-08-29T02:51:35.5007838Z",
+    "LearningWeight": 0.5,
+    "CrossDomainRelevance": {
+      "data": 0.51,
+      "logic": 0.68,
+      "text": 0.34
+    },
+    "SemanticTags": [
+      "good_structure",
+      "clear_logic"
+    ],
+    "SuccessFactors": [
+      "good_structure",
+      "clear_logic"
+    ]
+  }
+]

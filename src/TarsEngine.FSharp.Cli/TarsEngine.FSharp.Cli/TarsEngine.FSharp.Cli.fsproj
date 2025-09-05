@@ -9,7 +9,20 @@
   <ItemGroup>
     <!-- Core Types (consolidated) -->
     <Compile Include="Core/Types.fs" />
+    <Compile Include="Core/TarsEngineIntegration.fs" />
     <Compile Include="Core/FunctionalVariableSystem.fs" />
+    <Compile Include="Core/RdfTripleStore.fs" />
+    <Compile Include="Core/AgentSystemStub.fs" />
+    <Compile Include="Core/FluxIntegrationStub.fs" />
+    <Compile Include="Core/ThreeDVisualizationStub.fs" />
+    <Compile Include="Core/ConceptDecomposition.fs" />
+    <!-- <Compile Include="Core/MultiAgentDomain.fs" /> -->
+    <!-- <Compile Include="Core/UnifiedFormatting.fs" /> -->
+    <!-- <Compile Include="Core/HtmlComponents.fs" /> -->
+    <!-- <Compile Include="Core/PerformanceOptimizations.fs" /> -->
+    <!-- <Compile Include="Core/ResultBasedErrorHandling.fs" /> -->
+    <!-- <Compile Include="Core/AdvancedIntegrations.fs" /> -->
+    <!-- <Compile Include="Core/ConfigurationSystem.fs" /> -->
 
     <!-- Services (consolidated) -->
     <Compile Include="Services/YamlProcessingService.fs" />
@@ -29,6 +42,9 @@
     <Compile Include="Core/TarsAiIde.fs" />
     <Compile Include="Core/TarsSelfImprovingAi.fs" />
     <Compile Include="Core/TarsAdvancedAi.fs" />
+    <Compile Include="Core/SelfReflectiveAnalysis.fs" />
+    <Compile Include="Core/AutonomousSelfImprovement.fs" />
+    <!-- <Compile Include="Core/RealAISpaceshipAgents.fs" /> -->
     <Compile Include="Web/TarsAiIdeServer.fs" />
 
     <!-- Commands -->
@@ -41,7 +57,25 @@
     <Compile Include="Commands/MixtralCommand.fs" />
     <Compile Include="Commands/SimpleTransformerCommand.fs" />
     <Compile Include="Commands/MixtureOfExpertsCommand.fs" />
-    <!-- <Compile Include="Commands/ChatbotCommand.fs" /> -->
+    <Compile Include="Commands/ChatbotCommand.fs" />
+    <Compile Include="Commands/DiagnosticsCommand.fs" />
+    <Compile Include="Commands/NonEuclideanCommand.fs" />
+    <Compile Include="Commands/BspCodeAnalysisDemo.fs" />
+    <Compile Include="Commands/BspDemoRunner.fs" />
+    <Compile Include="Commands/HurwitzQuaternionDemo.fs" />
+    <Compile Include="Commands/HurwitzDemoRunner.fs" />
+    <Compile Include="Commands/ReasoningApplicationDemo.fs" />
+    <Compile Include="Commands/ReasoningDemoRunner.fs" />
+    <!-- <Compile Include="Commands/MultiAgentReasoningDemo.fs" /> -->
+    <!-- <Compile Include="Commands/UnifiedMultiAgentDemo.fs" /> -->
+    <!-- <Compile Include="Commands/UnifiedReasoningCommand.fs" /> -->
+    <!-- <Compile Include="Commands/ImprovedMultiAgentDemo.fs" /> -->
+    <!-- <Compile Include="Commands/UltimateReasoningCommand.fs" /> -->
+    <!-- <Compile Include="Commands/InteractiveMultiAgentCommand.fs" /> -->
+    <Compile Include="Commands/ConceptAnalysisCommand.fs" />
+    <Compile Include="Commands/EnhancedIntelligenceCommand.fs" />
+    <Compile Include="Commands/WebSearchCommand.fs" />
+    <Compile Include="Commands/DemoCommand.fs" />
     <!-- <Compile Include="Commands/TeamsCommand.fs" /> -->
     <!-- <Compile Include="Commands/VMCommand.fs" /> -->
     <!-- <Compile Include="Commands/ConfigCommand.fs" /> -->
@@ -75,6 +109,11 @@
     <!-- Program Entry Point (must be last) -->
     <Compile Include="Program.fs" />
   </ItemGroup>
+  <!-- Project References -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\TarsEngine.FSharp.OnDemandSearch\TarsEngine.FSharp.OnDemandSearch.fsproj" />
+  </ItemGroup>
+
   <!-- Temporarily remove broken metascript dependency -->
   <!--<ItemGroup>
     <ProjectReference Include="..\TarsEngine.FSharp.Metascripts\TarsEngine.FSharp.Metascripts.fsproj" />
@@ -101,6 +140,8 @@
     <PackageReference Include="Microsoft.ML.Tokenizers" Version="0.22.0" />
     <PackageReference Include="System.ServiceProcess.ServiceController" Version="9.0.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.1" />
+    <PackageReference Include="dotNetRdf.Core" Version="3.1.0" />
+    <PackageReference Include="dotNetRdf.Client" Version="3.1.0" />
   </ItemGroup>
 
   <ItemGroup>

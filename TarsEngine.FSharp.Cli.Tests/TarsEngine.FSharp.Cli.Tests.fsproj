@@ -19,8 +19,8 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="FsUnit.xUnit" Version="6.0.1" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.5" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.5" />
     <PackageReference Include="Moq" Version="4.20.72" />
     <PackageReference Include="System.Management" Version="9.0.0" />
     <PackageReference Include="BenchmarkDotNet" Version="0.13.12" />
@@ -31,16 +31,36 @@
   <ItemGroup>
     <ProjectReference Include="..\TarsEngine.FSharp.Cli\TarsEngine.FSharp.Cli.fsproj" />
     <ProjectReference Include="..\TarsEngine.FSharp.Core\TarsEngine.FSharp.Core.fsproj" />
-    <ProjectReference Include="..\TarsEngine.FSharp.Agents\TarsEngine.FSharp.Agents.fsproj" />
+    <!-- Temporarily disabled due to compilation errors -->
+    <!-- <ProjectReference Include="..\TarsEngine.FSharp.Agents\TarsEngine.FSharp.Agents.fsproj" /> -->
   </ItemGroup>
 
   <ItemGroup>
     <Compile Include="TestHelpers.fs" />
 
+    <!-- AI Inference Engine Tests -->
+    <Compile Include="AI/TarsAIInferenceEngineTests.fs" />
+    <Compile Include="AI/TarsModelFormatTests.fs" />
+    <Compile Include="AI/TarsCudaKernelsTests.fs" />
+
+    <!-- Acceleration Tests -->
+    <Compile Include="Acceleration/UnifiedCudaEngineTests.fs" />
+
     <!-- Real Diagnostics Tests -->
     <Compile Include="Diagnostics/TarsRealDiagnosticsTests.fs" />
     <Compile Include="UI/TarsDiagnosticsElmishUITests.fs" />
 
+    <!-- RDF and Semantic Learning Tests -->
+    <Compile Include="Services/RdfClientTests.fs" />
+    <Compile Include="Services/SemanticLearningServiceTests.fs" />
+    <Compile Include="Services/MindMapServiceTests.fs" />
+    <Compile Include="Services/LearningMemoryServiceRdfTests.fs" />
+    <Compile Include="Commands/SemanticLearningCommandTests.fs" />
+    <Compile Include="Commands/MindMapCommandTests.fs" />
+    <Compile Include="Integration/RdfIntegrationTests.fs" />
+    <Compile Include="Integration/AIInferenceIntegrationTests.fs" />
+
+    <!-- Existing test files -->
     <Compile Include="Commands/WebApiCommandTests.fs" />
     <Compile Include="Commands/LiveEndpointsCommandTests.fs" />
     <Compile Include="Commands/EvolveCommandTests.fs" />

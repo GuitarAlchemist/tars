@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AssemblyTitle>TARS Next Intelligence Tiers - Tier 6 &amp; Tier 7</AssemblyTitle>
+    <AssemblyDescription>Implementation of Emergent Collective Intelligence and Autonomous Problem Decomposition</AssemblyDescription>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Tier6_CollectiveIntelligence.fs" />
+    <Compile Include="Tier7_ProblemDecomposition.fs" />
+    <Compile Include="DevelopmentFramework.fs" />
+    <Compile Include="TierDemonstration.fs" />
+    <Compile Include="NextIntelligenceTiersMain.fs" />
+  </ItemGroup>
+
+</Project>

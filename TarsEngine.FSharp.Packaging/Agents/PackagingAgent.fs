@@ -13,16 +13,16 @@ type PackagingAgent(logger: ILogger<PackagingAgent>) =
     let wixGenerator = WixGenerator()
     
     /// Creates TARS self-packaging installer
-    member _.CreateTarsInstaller(version: string, outputDir: string) =
+    member agent.CreateTarsInstaller(version: string, outputDir: string) =
         async {
             try
                 logger.LogInformation("Creating TARS MSI installer version {Version}", version)
-                
+
                 // Define TARS installation files
-                let tarsFiles = this.GetTarsInstallationFiles()
-                
+                let tarsFiles = agent.GetTarsInstallationFiles()
+
                 // Create WiX project for TARS
-                let project = this.CreateTarsWixProject(version, tarsFiles)
+                let project = agent.CreateTarsWixProject(version, tarsFiles)
                 
                 // Generate WiX project
                 let generatedProject = wixGenerator.GenerateWixProject(project, outputDir)
@@ -45,13 +45,13 @@ type PackagingAgent(logger: ILogger<PackagingAgent>) =
         }
     
     /// Creates custom application installer
-    member _.CreateApplicationInstaller(appName: string, version: string, files: string list, outputDir: string) =
+    member agent.CreateApplicationInstaller(appName: string, version: string, files: string list, outputDir: string) =
         async {
             try
                 logger.LogInformation("Creating installer for {AppName} version {Version}", appName, version)
-                
+
                 // Create WiX project for application
-                let project = this.CreateApplicationWixProject(appName, version, files)
+                let project = agent.CreateApplicationWixProject(appName, version, files)
                 
                 // Generate WiX project
                 let generatedProject = wixGenerator.GenerateWixProject(project, outputDir)
@@ -75,57 +75,57 @@ type PackagingAgent(logger: ILogger<PackagingAgent>) =
         }
     
     /// Builds MSI installer using WiX
-    member _.BuildInstaller(projectDir: string) =
+    member agent.BuildInstaller(projectDir: string) =
         async {
             try
                 logger.LogInformation("Building MSI installer in {ProjectDir}", projectDir)
-                
+
                 // Check if WiX is installed
-                let! wixCheck = this.CheckWixInstallation()
+                let! wixCheck = agent.CheckWixInstallation()
                 match wixCheck with
-                | Error error -> return Error error
-                | Ok _ -> ()
-                
-                // Find build script
-                let buildScript = Path.Combine(projectDir, "build.cmd")
-                if not (File.Exists(buildScript)) then
-                    return Error $"Build script not found: {buildScript}"
-                
-                // Execute build script
-                let startInfo = ProcessStartInfo()
-                startInfo.FileName <- buildScript
-                startInfo.WorkingDirectory <- projectDir
-                startInfo.UseShellExecute <- false
-                startInfo.RedirectStandardOutput <- true
-                startInfo.RedirectStandardError <- true
-                startInfo.CreateNoWindow <- true
-                
-                let process = Process.Start(startInfo)
-                process.WaitForExit()
-                
-                let output = process.StandardOutput.ReadToEnd()
-                let error = process.StandardError.ReadToEnd()
-                
-                if process.ExitCode = 0 then
-                    logger.LogInformation("MSI installer built successfully")
-                    
-                    // Find generated MSI file
-                    let binDir = Path.Combine(projectDir, "bin", "Release")
-                    let msiFiles = 
-                        if Directory.Exists(binDir) then
-                            Directory.GetFiles(binDir, "*.msi")
+                | Error error ->
+                    return Error error
+                | Ok _ ->
+                    // Find build script
+                    let buildScript = Path.Combine(projectDir, "build.cmd")
+                    if not (File.Exists(buildScript)) then
+                        return Error $"Build script not found: {buildScript}"
+                    else
+                        // Execute build script
+                        let startInfo = ProcessStartInfo()
+                        startInfo.FileName <- buildScript
+                        startInfo.WorkingDirectory <- projectDir
+                        startInfo.UseShellExecute <- false
+                        startInfo.RedirectStandardOutput <- true
+                        startInfo.RedirectStandardError <- true
+                        startInfo.CreateNoWindow <- true
+
+                        let buildProcess = Process.Start(startInfo)
+                        buildProcess.WaitForExit()
+
+                        let output = buildProcess.StandardOutput.ReadToEnd()
+                        let error = buildProcess.StandardError.ReadToEnd()
+
+                        if buildProcess.ExitCode = 0 then
+                            logger.LogInformation("MSI installer built successfully")
+
+                            // Find generated MSI file
+                            let binDir = Path.Combine(projectDir, "bin", "Release")
+                            let msiFiles =
+                                if Directory.Exists(binDir) then
+                                    Directory.GetFiles(binDir, "*.msi")
+                                else
+                                    [||]
+
+                            return Ok {|
+                                Success = true
+                                Output = output
+                                MsiFiles = msiFiles |> Array.toList
+                                BuildDirectory = binDir
+                            |}
                         else
-                            [||]
-                    
-                    return Ok {|
-                        Success = true
-                        Output = output
-                        MsiFiles = msiFiles |> Array.toList
-                        BuildDirectory = binDir
-                    |}
-                else
-                    logger.LogError("MSI build failed: {Error}", error)
-                    return Error $"Build failed: {error}"
+                            logger.LogError("MSI build failed: {Error}", error)
+                            return Error $"Build failed: {error}"
                     
             with
             | ex ->
@@ -134,7 +134,7 @@ type PackagingAgent(logger: ILogger<PackagingAgent>) =
         }
     
     /// Checks if WiX Toolset is installed
-    member _.CheckWixInstallation() =
+    member agent.CheckWixInstallation() =
         async {
             try
                 let startInfo = ProcessStartInfo()
@@ -145,10 +145,10 @@ type PackagingAgent(logger: ILogger<PackagingAgent>) =
                 startInfo.RedirectStandardError <- true
                 startInfo.CreateNoWindow <- true
                 
-                let process = Process.Start(startInfo)
-                process.WaitForExit()
-                
-                if process.ExitCode = 0 then
+                let wixProcess = Process.Start(startInfo)
+                wixProcess.WaitForExit()
+
+                if wixProcess.ExitCode = 0 then
                     return Ok "WiX Toolset is installed"
                 else
                     return Error "WiX Toolset not found. Please install WiX Toolset from https://wixtoolset.org/releases/"
@@ -159,7 +159,7 @@ type PackagingAgent(logger: ILogger<PackagingAgent>) =
         }
     
     /// Gets TARS installation files
-    member _.GetTarsInstallationFiles() =
+    member agent.GetTarsInstallationFiles() =
         [
             "TarsEngine.FSharp.Cli.exe"
             "TarsEngine.FSharp.Cli.dll"
@@ -175,7 +175,7 @@ type PackagingAgent(logger: ILogger<PackagingAgent>) =
         ]
     
     /// Creates WiX project for TARS
-    member _.CreateTarsWixProject(version: string, files: string list) =
+    member agent.CreateTarsWixProject(version: string, files: string list) =
         let upgradeCode = Guid.Parse("12345678-1234-5678-9ABC-123456789012")  // Fixed GUID for TARS
         
         // Create directories
@@ -199,7 +199,7 @@ type PackagingAgent(logger: ILogger<PackagingAgent>) =
             WorkingDirectory = Some "[INSTALLFOLDER]"
             Icon = None
             IconIndex = 0
-            ShowCommand = Normal
+            ShowCommand = ShowCommand.Normal
         }
         
         // Add shortcut to main component
@@ -216,7 +216,7 @@ type PackagingAgent(logger: ILogger<PackagingAgent>) =
         // Create UI
         let ui = WixHelpers.createStandardUI None
         
-        WixHelpers.project "TARS"
+        (WixHelpers.project "TARS")
             .Version(version)
             .Manufacturer("TARS Development Team")
             .Description("TARS Autonomous Reasoning System - AI-powered development assistant")
@@ -235,7 +235,7 @@ type PackagingAgent(logger: ILogger<PackagingAgent>) =
             .Build()
     
     /// Creates WiX project for generic application
-    member _.CreateApplicationWixProject(appName: string, version: string, files: string list) =
+    member agent.CreateApplicationWixProject(appName: string, version: string, files: string list) =
         // Create directories
         let directories = WixHelpers.createAppDirectories appName files
         
@@ -250,7 +250,7 @@ type PackagingAgent(logger: ILogger<PackagingAgent>) =
         // Create UI
         let ui = WixHelpers.createStandardUI None
         
-        WixHelpers.project appName
+        (WixHelpers.project appName)
             .Version(version)
             .Manufacturer("TARS Generated")
             .Description($"{appName} application installer")
@@ -264,13 +264,13 @@ type PackagingAgent(logger: ILogger<PackagingAgent>) =
             .Build()
     
     /// Creates installer for infrastructure components
-    member _.CreateInfrastructureInstaller(stackName: string, version: string, outputDir: string) =
+    member agent.CreateInfrastructureInstaller(stackName: string, version: string, outputDir: string) =
         async {
             try
                 logger.LogInformation("Creating infrastructure installer for {StackName}", stackName)
-                
+
                 // Create WiX project for infrastructure stack
-                let project = this.CreateInfrastructureWixProject(stackName, version)
+                let project = agent.CreateInfrastructureWixProject(stackName, version)
                 
                 // Generate WiX project
                 let generatedProject = wixGenerator.GenerateWixProject(project, outputDir)
@@ -294,7 +294,7 @@ type PackagingAgent(logger: ILogger<PackagingAgent>) =
         }
     
     /// Creates WiX project for infrastructure components
-    member _.CreateInfrastructureWixProject(stackName: string, version: string) =
+    member agent.CreateInfrastructureWixProject(stackName: string, version: string) =
         let files = [
             "docker-compose.yml"
             ".env"
@@ -329,7 +329,7 @@ type PackagingAgent(logger: ILogger<PackagingAgent>) =
         // Create UI
         let ui = WixHelpers.createStandardUI None
         
-        WixHelpers.project $"{stackName}Infrastructure"
+        (WixHelpers.project $"{stackName}Infrastructure")
             .Version(version)
             .Manufacturer("TARS Infrastructure Generator")
             .Description($"{stackName} infrastructure stack installer")

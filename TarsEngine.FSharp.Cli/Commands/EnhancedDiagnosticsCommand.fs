@@ -24,7 +24,7 @@ module EnhancedDiagnosticsModule =
             elif diagnostics.OverallHealthScore > 75.0 then "🟡"
             else "🔴"
 
-        logger.LogInformation("🏥 OVERALL SYSTEM HEALTH: {HealthEmoji} {Health:F1}%", healthEmoji, diagnostics.OverallHealthScore)
+        logger.LogInformation("🏥 OVERALL SYSTEM HEALTH: {HealthEmoji} {Health.ToString("F1")}%", healthEmoji, diagnostics.OverallHealthScore)
         logger.LogInformation("📅 Timestamp: {Timestamp}", diagnostics.Timestamp.ToString("yyyy-MM-dd HH:mm:ss UTC"))
         logger.LogInformation("")
 
@@ -57,7 +57,7 @@ module EnhancedDiagnosticsModule =
             elif diagnostics.OverallHealthScore > 75.0 then "🟡"
             else "🔴"
 
-        logger.LogInformation("[{Timestamp}] {HealthEmoji} Health: {Health:F1}%",
+        logger.LogInformation("[{Timestamp}] {HealthEmoji} Health: {Health.ToString("F1")}%",
             timestamp, healthEmoji, diagnostics.OverallHealthScore)
 
     /// Generate HTML report
@@ -252,5 +252,6 @@ type EnhancedDiagnosticsCommand(logger: ILogger<EnhancedDiagnosticsCommand>) =
                     logger.LogError(ex, "❌ Enhanced diagnostics failed")
                     return { Success = false; Message = sprintf "Enhanced diagnostics failed: %s" ex.Message; ExitCode = 1 }
             }
+
 
 

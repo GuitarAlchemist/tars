@@ -1,6 +1,8 @@
 ﻿namespace TarsEngine.FSharp.Reasoning
 
 open System
+open System.Net.Http
+open System.Text
 open System.Threading.Tasks
 open System.Text.Json
 open Microsoft.Extensions.Logging
@@ -114,8 +116,10 @@ type QwenReasoningEngine(logger: ILogger<QwenReasoningEngine>) =
         try
             let modelName = modelToString model
             logger.LogInformation($"Calling Qwen3 model: {modelName}")
-            
-            // Simulate Ollama API call (replace with actual HTTP client)
+
+            use httpClient = new HttpClient()
+            httpClient.Timeout <- TimeSpan.FromMinutes(5.0) // 5 minute timeout for model inference
+
             let requestBody = JsonSerializer.Serialize({|
                 model = modelName
                 prompt = prompt
@@ -126,12 +130,30 @@ type QwenReasoningEngine(logger: ILogger<QwenReasoningEngine>) =
                     max_tokens = 32768
                 |}
             |})
-            
-            // TODO: Replace with actual HTTP client call to Ollama
-            // REAL IMPLEMENTATION NEEDED
-            let simulatedResponse = $"<think>Let me analyze this problem step by step...</think>Based on my analysis, the answer is: [Simulated response for {modelName}]"
-            
-            return simulatedResponse
+
+            // Real HTTP client call to Ollama API
+            let content = new StringContent(requestBody, Encoding.UTF8, "application/json")
+            let! response = httpClient.PostAsync("http://localhost:11434/api/generate", content) |> Async.AwaitTask
+
+            if response.IsSuccessStatusCode then
+                let! responseBody = response.Content.ReadAsStringAsync() |> Async.AwaitTask
+
+                // Parse Ollama response
+                let responseJson = JsonDocument.Parse(responseBody)
+                let mutable responseElement = Unchecked.defaultof<JsonElement>
+                let responseText =
+                    if responseJson.RootElement.TryGetProperty("response", &responseElement) then
+                        responseElement.GetString()
+                    else
+                        responseBody
+
+                logger.LogInformation($"Received response from {modelName}: {responseText.Substring(0, min 100 responseText.Length)}...")
+                return responseText
+            else
+                let! errorBody = response.Content.ReadAsStringAsync() |> Async.AwaitTask
+                let errorMsg = $"Ollama API error: {response.StatusCode} - {errorBody}"
+                logger.LogError(errorMsg)
+                return $"Error: {errorMsg}"
         with
         | ex ->
             logger.LogError(ex, $"Error calling Qwen3 model: {model}")

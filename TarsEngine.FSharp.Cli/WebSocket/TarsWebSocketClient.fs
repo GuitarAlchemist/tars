@@ -161,7 +161,8 @@ type TarsWebSocketClient(logger: ILogger<TarsWebSocketClient>) =
                 return true
             
             let ws = new ClientWebSocket()
-            let uri = Uri($"ws://{serviceUrl.Replace("http://", "").Replace("https://", "")}/ws")
+            let cleanUrl = serviceUrl.Replace("http://", "").Replace("https://", "")
+            let uri = Uri($"ws://{cleanUrl}/ws")
             
             logger.LogInformation($"🔌 Connecting to TARS service: {uri}")
             
@@ -290,7 +291,9 @@ type TarsWebSocketClient(logger: ILogger<TarsWebSocketClient>) =
                 this.DisconnectAsync() |> Async.AwaitTask |> Async.RunSynchronously
             with _ -> ()
             
-            cancellationTokenSource?.Dispose()
+            match cancellationTokenSource with
+            | null -> ()
+            | cts -> cts.Dispose()
             
             match webSocket with
             | Some ws -> ws.Dispose()

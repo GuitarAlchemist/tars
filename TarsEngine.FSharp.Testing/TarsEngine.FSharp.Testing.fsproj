@@ -12,12 +12,8 @@
 
   <ItemGroup>
     <Compile Include="TestTypes.fs" />
-    <Compile Include="WebDriverManager.fs" />
     <Compile Include="UITestFramework.fs" />
-    <Compile Include="APITestFramework.fs" />
-    <Compile Include="PerformanceTestFramework.fs" />
-    <Compile Include="AccessibilityTestFramework.fs" />
-    <Compile Include="TestReportGenerator.fs" />
+    <Compile Include="VMTestRunner.fs" />
     <Compile Include="TarsQAAgent.fs" />
   </ItemGroup>
 
