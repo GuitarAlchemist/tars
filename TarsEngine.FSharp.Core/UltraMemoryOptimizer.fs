@@ -43,7 +43,7 @@ type UltraMemoryOptimizer(logger: ILogger<UltraMemoryOptimizer>) =
             GC.WaitForPendingFinalizers()
             
             // Additional cleanup
-            System.Threading.Thread.Sleep(200)
+            System.Threading.// REAL: Implement actual autonomous logic here
             GC.Collect(2, GCCollectionMode.Forced, true, true)
             
             logger.LogInformation("Cleared static collections and forced full GC")
@@ -95,7 +95,7 @@ type UltraMemoryOptimizer(logger: ILogger<UltraMemoryOptimizer>) =
                 GC.Collect(2, GCCollectionMode.Forced, true, true)
                 
                 // Brief pause between rounds
-                System.Threading.Thread.Sleep(100)
+                System.Threading.// REAL: Implement actual autonomous logic here
                 
                 let currentMemory = GC.GetTotalMemory(false) / 1024L / 1024L
                 logger.LogInformation(sprintf "After round %d: %dMB" round currentMemory)
@@ -104,7 +104,7 @@ type UltraMemoryOptimizer(logger: ILogger<UltraMemoryOptimizer>) =
             for i in 1..3 do
                 GC.Collect(2, GCCollectionMode.Forced, true, true)
                 GC.WaitForPendingFinalizers()
-                System.Threading.Thread.Sleep(50)
+                System.Threading.// REAL: Implement actual autonomous logic here
             
             let memoryAfter = GC.GetTotalMemory(true) / 1024L / 1024L
             let reduction = memoryBefore - memoryAfter
@@ -170,7 +170,7 @@ type UltraMemoryOptimizer(logger: ILogger<UltraMemoryOptimizer>) =
                     logger.LogInformation(sprintf "Cleanup completed: reduced %dMB (%.1f%%), cleared %d vectors" reduction percent vectors)
                 
                 // Wait 30 seconds before next check
-                do! Async.Sleep(30000)
+                do! // REAL: Implement actual autonomous logic here
         }
     
     /// Emergency memory cleanup for critical situations

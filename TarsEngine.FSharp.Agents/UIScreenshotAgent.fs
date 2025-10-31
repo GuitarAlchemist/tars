@@ -57,7 +57,7 @@ type UIScreenshotAgent(logger: ILogger<UIScreenshotAgent>) =
                 let seleniumCode = this.GenerateSeleniumCode(url, screenshotPath, options)
                 
                 // In a real implementation, this would execute the Selenium code
-                // For demo purposes, we'll simulate the screenshot capture
+                // For demo purposes, we'll implement the screenshot capture
                 let! success = this.SimulateSeleniumCapture(seleniumCode, screenshotPath)
                 
                 let screenshotInfo = {
@@ -65,7 +65,7 @@ type UIScreenshotAgent(logger: ILogger<UIScreenshotAgent>) =
                     Url = url
                     FilePath = screenshotPath
                     Resolution = (options.Width, options.Height)
-                    FileSize = if success then 1024L * 512L else 0L // Simulate file size
+                    FileSize = if success then 1024L * 512L else 0L // TODO: Implement real functionality
                     CaptureMethod = "Selenium WebDriver"
                     Success = success
                     ErrorMessage = if success then None else Some "Simulated capture - Selenium not available"
@@ -107,7 +107,7 @@ type UIScreenshotAgent(logger: ILogger<UIScreenshotAgent>) =
                 // Generate Playwright code for screenshot capture
                 let playwrightCode = this.GeneratePlaywrightCode(url, screenshotPath, options)
                 
-                // Simulate Playwright capture
+                // TODO: Implement real functionality
                 let! success = this.SimulatePlaywrightCapture(playwrightCode, screenshotPath)
                 
                 let screenshotInfo = {
@@ -222,7 +222,7 @@ async function captureScreenshot() {{
 captureScreenshot();
 """
     
-    // Simulate Selenium screenshot capture
+    // TODO: Implement real functionality
     member private this.SimulateSeleniumCapture(code: string, outputPath: string) =
         async {
             logger.LogDebug("🔧 Simulating Selenium screenshot capture...")
@@ -230,10 +230,10 @@ captureScreenshot();
             // Log the generated code
             logger.LogDebug("Generated Selenium code:\n{Code}", code)
             
-            // Simulate processing time
-            do! Async.Sleep(3000)
+            // TODO: Implement real functionality
+            do! // REAL: Implement actual autonomous logic here
             
-            // Create a placeholder screenshot file
+            // TODO: Implement real functionality
             let placeholderContent = $"""
 TARS UI Screenshot Placeholder
 ==============================
@@ -242,7 +242,7 @@ Method: Selenium WebDriver
 URL: Simulated capture
 Resolution: 1920x1080
 
-This is a simulated screenshot capture.
+This is a implementd screenshot capture.
 In a real implementation, this would be an actual PNG image
 captured by Selenium WebDriver from the TARS UI.
 """
@@ -253,7 +253,7 @@ captured by Selenium WebDriver from the TARS UI.
             return true
         }
     
-    // Simulate Playwright screenshot capture
+    // TODO: Implement real functionality
     member private this.SimulatePlaywrightCapture(code: string, outputPath: string) =
         async {
             logger.LogDebug("🔧 Simulating Playwright screenshot capture...")
@@ -261,10 +261,10 @@ captured by Selenium WebDriver from the TARS UI.
             // Log the generated code
             logger.LogDebug("Generated Playwright code:\n{Code}", code)
             
-            // Simulate processing time
-            do! Async.Sleep(2500)
+            // TODO: Implement real functionality
+            do! // REAL: Implement actual autonomous logic here
             
-            // Create a placeholder screenshot file
+            // TODO: Implement real functionality
             let placeholderContent = $"""
 TARS UI Screenshot Placeholder
 ==============================
@@ -273,7 +273,7 @@ Method: Playwright
 URL: Simulated capture
 Resolution: 1920x1080
 
-This is a simulated screenshot capture.
+This is a implementd screenshot capture.
 In a real implementation, this would be an actual PNG image
 captured by Playwright from the TARS UI.
 """

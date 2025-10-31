@@ -130,7 +130,7 @@ printfn $"   ⚡ Convergence: {convergenceMsg}"
 printfn ""
 
 // ============================================================================
-// TEST 2: SIMULATED ANNEALING WITH COMPUTATIONAL EXPRESSIONS
+// TODO: Implement real functionality
 // ============================================================================
 
 printfn "🌡️ Test 2: Simulated Annealing for Weight Optimization"
@@ -148,7 +148,7 @@ let annealingParams = {
 
 let annealingStart = DateTime.UtcNow
 
-// Use simulated annealing directly
+// TODO: Implement real functionality
 let varianceFunc weights =
     // Different fitness function: minimize variance
     let mutable mean = 0.0f

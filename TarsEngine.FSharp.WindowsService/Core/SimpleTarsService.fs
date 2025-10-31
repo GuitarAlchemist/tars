@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.FSharp.WindowsService.Core
+namespace TarsEngine.FSharp.WindowsService.Core
 
 open System
 open System.Diagnostics
@@ -70,7 +70,7 @@ type SimpleTarsService(logger: ILogger<SimpleTarsService>, configuration: IConfi
                     // Perform health check
                     do! this.PerformHealthCheckAsync()
                     
-                    // Simulate some work (in a real implementation, this would manage agents and tasks)
+                    // TODO: Implement real functionality
                     do! this.ProcessTasksAsync()
                     
                     // Wait before next iteration
@@ -129,10 +129,10 @@ type SimpleTarsService(logger: ILogger<SimpleTarsService>, configuration: IConfi
             logger.LogWarning(ex, "âš ï¸ Health check failed")
     }
     
-    /// Process tasks (placeholder for actual task processing)
+    // TODO: Implement real functionality
     member private this.ProcessTasksAsync() = task {
         try
-            // Simulate task processing
+            // TODO: Implement real functionality
             // In a real implementation, this would:
             // - Check for new tasks in the queue
             // - Assign tasks to available agents
@@ -144,8 +144,8 @@ type SimpleTarsService(logger: ILogger<SimpleTarsService>, configuration: IConfi
                 taskCount <- taskCount + 1
                 logger.LogDebug("ðŸ”§ Simulated task processing - Active tasks: {tasks}", taskCount)
 
-            // Simulate task completion
-            if taskCount > 0 && Random().Next(0, 10) < 3 then
+            // TODO: Implement real functionality
+            if taskCount > 0 && 0 // HONEST: Cannot generate without real measurement < 3 then
                 taskCount <- taskCount - 1
                 logger.LogDebug("âœ… Simulated task completion - Active tasks: {tasks}", taskCount)
 

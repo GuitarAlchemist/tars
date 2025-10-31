@@ -1,6 +1,6 @@
-// PatternDetector.fs - Auto-generated placeholder
+// TODO: Implement real functionality
 // TODO: Implement PatternDetector functionality
 
 namespace TarsEngine.FSharp.DataSources.Core
 
-// Placeholder for PatternDetector implementation
+// TODO: Implement real functionality

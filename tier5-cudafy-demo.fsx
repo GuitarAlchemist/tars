@@ -47,13 +47,13 @@ type CudafyBuilder(context: CudafyContext) =
     member _.ReturnFrom(cudafyOp: CudafyOperation<'T>) = cudafyOp
     
     member _.Bind(cudafyOp: CudafyOperation<'T>, f: 'T -> CudafyOperation<'U>) = 
-        // Simulate CUDA execution
+        // TODO: Implement real functionality
         let startTime = DateTime.UtcNow
         
         match cudafyOp.KernelCode with
         | Some kernelCode ->
-            // Simulate CUDA compilation and execution
-            let kernelName = sprintf "%s_kernel_%d" cudafyOp.OperationName (Random().Next(1000, 9999))
+            // TODO: Implement real functionality
+            let kernelName = sprintf "%s_kernel_%d" cudafyOp.OperationName (0 // HONEST: Cannot generate without real measurement)
             context.CompiledKernels <- context.CompiledKernels.Add(kernelName, kernelCode)
             context.ExecutionLog <- sprintf "Compiled and executed %s" kernelName :: context.ExecutionLog
             cudafyOp.IsCompiled <- true
@@ -101,7 +101,7 @@ type CudafyClosureFactory(context: CudafyContext) =
 
         fun a b ->
             let result = Array.zeroCreate a.Length
-            // Simulate GPU execution
+            // TODO: Implement real functionality
             for i in 0 .. a.Length - 1 do
                 match operation with
                 | "+" -> result.[i] <- a.[i] + b.[i]
@@ -122,7 +122,7 @@ type CudafyClosureFactory(context: CudafyContext) =
 
         fun input ->
             let result = Array.zeroCreate input.Length
-            // Simulate GPU execution
+            // TODO: Implement real functionality
             for i in 0 .. input.Length - 1 do
                 match functionName with
                 | "sqrt" -> result.[i] <- sqrt input.[i]
@@ -144,7 +144,7 @@ type CudafyClosureFactory(context: CudafyContext) =
 
         fun a b ->
             let result = Array.zeroCreate a.Length
-            // Simulate 16D sedenion operation
+            // TODO: Implement real functionality
             for i in 0 .. (a.Length / 16) - 1 do
                 for j in 0 .. 15 do
                     let idx = i * 16 + j

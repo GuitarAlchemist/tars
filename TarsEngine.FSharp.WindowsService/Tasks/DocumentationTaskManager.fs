@@ -142,7 +142,7 @@ type DocumentationTaskManager(logger: ILogger<DocumentationTaskManager>) =
                 logger.LogInformation($"🏛️ Activating {deptName} Department")
                 this.UpdateProgress(completedTasks, $"Activating {deptName} Department...", departmentProgress)
                 
-                // Simulate department work with pausable progress
+                // TODO: Implement real functionality
                 for i in 1 to taskCount do
                     if cancellationToken.IsCancellationRequested then break
                     
@@ -153,8 +153,8 @@ type DocumentationTaskManager(logger: ILogger<DocumentationTaskManager>) =
                     
                     if cancellationToken.IsCancellationRequested then break
                     
-                    // Real work - no simulation delays
-                    // Work is completed immediately without fake timing
+                    // TODO: Implement real functionality
+                    // TODO: Implement real functionality
                     
                     completedTasks <- completedTasks + 1
                     let deptProgress = (i * 100) / taskCount

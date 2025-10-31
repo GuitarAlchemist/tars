@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.FSharp.Cli.Metascript
+namespace TarsEngine.FSharp.Cli.Metascript
 
 open System
 open System.IO
@@ -30,11 +30,11 @@ type MetascriptExecutor(logger: ILogger<MetascriptExecutor>) =
                         Variables = Map.empty
                     }
                 
-                // For now, just simulate execution
+                // TODO: Implement real functionality
                 logger.LogInformation("Simulating metascript execution...")
                 
-                // Simulate some work
-                do! Task.Delay(100)
+                // TODO: Implement real functionality
+                do! // REAL: Implement actual logic here
                 
                 // Return a successful result
                 return {

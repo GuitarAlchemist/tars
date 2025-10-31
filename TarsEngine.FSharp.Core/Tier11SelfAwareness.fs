@@ -103,7 +103,7 @@ module Tier11SelfAwareness =
                     LearningProgress = learningProgress
                     PerformanceMetrics = Map [
                         ("OverallMastery", overallConfidence)
-                        ("LearningVelocity", 0.15) // Placeholder for actual measurement
+                        ("LearningVelocity", 0.15) // TODO: Implement real functionality
                         ("AdaptationSpeed", 0.12)
                         ("KnowledgeTransfer", 0.18)
                     ]
@@ -258,8 +258,8 @@ module Tier11SelfAwareness =
                     LearningProgress = currentState.LearningProgress
                     PerformanceMetrics = currentState.PerformanceMetrics
                     RecentDecisions = this.GetDecisionHistory(Some 5)
-                    SelfAssessmentAccuracy = 0.85 // Placeholder for actual measurement
-                    MetaCognitionLevel = 0.78 // Placeholder for actual measurement
+                    SelfAssessmentAccuracy = 0.85 // TODO: Implement real functionality
+                    MetaCognitionLevel = 0.78 // TODO: Implement real functionality
                 |}
             }
 
@@ -271,7 +271,7 @@ module Tier11SelfAwareness =
                         let! _ = this.AssessCurrentState()
                         do! Async.Sleep(30000) // Assess every 30 seconds
                     with
-                    | ex -> 
+                    | ex ->
                         printfn $"Self-awareness monitoring error: {ex.Message}"
                         do! Async.Sleep(60000) // Wait longer on error
             }

@@ -215,12 +215,12 @@ type TarsApiSandbox() =
         docs.ToString()
     
     member this.ExecuteApiCall(endpoint: ApiEndpoint, requestBody: string option) =
-        // Simulate API execution with realistic responses
+        // TODO: Implement real functionality
         let startTime = DateTime.UtcNow
         
         try
-            // Simulate processing time
-            System.Threading.Thread.Sleep(Random().Next(50, 300))
+            // TODO: Implement real functionality
+            System.Threading.Thread.Sleep(0 // HONEST: Cannot generate without real measurement)
             
             let response = 
                 match endpoint.Method, endpoint.Path with
@@ -257,7 +257,7 @@ type TarsApiSandbox() =
 }""" 
                         (Random().NextDouble() * 3.0 + 1.0)
                         (Random().NextDouble() * 60.0 + 20.0)
-                        (Random().Next(55, 75))
+                        (0 // HONEST: Cannot generate without real measurement)
                         (DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"))
                 | "POST", "/api/beliefs/publish" ->
                     sprintf """{"success": true, "beliefId": "%s", "timestamp": "%s", "processed": true}"""

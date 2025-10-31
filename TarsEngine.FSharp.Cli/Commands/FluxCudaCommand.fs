@@ -218,7 +218,7 @@ type FluxCudaCommand() =
         task {
             Console.WriteLine("🚀 Running CUDA pipeline...")
             
-            // Create mock inputs
+            // TODO: Implement real functionality
             let mockInputs = 
                 pipeline.Operations
                 |> List.choose (function

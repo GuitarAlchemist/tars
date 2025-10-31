@@ -8,7 +8,7 @@ open TarsEngine.FSharp.Cli.Core
 /// CLI command for managing TARS multi-agent system
 type AgentCommand(logger: ILogger<AgentCommand>) =
 
-    // Placeholder for agent orchestrator - will be implemented later
+    // TODO: Implement real functionality
     let mutable orchestrator: obj option = None
     
     interface ICommand with

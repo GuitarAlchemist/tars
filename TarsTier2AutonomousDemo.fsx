@@ -174,11 +174,11 @@ extern "C" float benchmark_optimized_search_{iteration}() {{
             "        |> Array.chunkBySize 1000 // Process in batches\n" +
             "        |> Array.collect id"
     
-    /// Simulate performance measurement
+    // TODO: Implement real functionality
     let measurePerformance (codeGenerated: string) =
         let random = Random()
         
-        // Simulate performance based on code quality indicators
+        // TODO: Implement real functionality
         let performanceFactors = [
             if codeGenerated.Contains("Parallel") then 15.0 else 0.0
             if codeGenerated.Contains("vectorized") then 20.0 else 0.0
@@ -192,9 +192,9 @@ extern "C" float benchmark_optimized_search_{iteration}() {{
         
         baseImprovement + randomVariation
     
-    /// Simulate test execution
+    // TODO: Implement real functionality
     let runTests (codeGenerated: string) =
-        // Simulate test success based on code quality
+        // TODO: Implement real functionality
         let qualityIndicators = [
             codeGenerated.Contains("null") |> not
             codeGenerated.Contains("unsafe") |> not

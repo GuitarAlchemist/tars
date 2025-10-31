@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.FSharp.Reasoning
+namespace TarsEngine.FSharp.Reasoning
 
 open System
 open System.Threading.Tasks
@@ -115,7 +115,7 @@ type QwenReasoningEngine(logger: ILogger<QwenReasoningEngine>) =
             let modelName = modelToString model
             logger.LogInformation($"Calling Qwen3 model: {modelName}")
             
-            // Simulate Ollama API call (replace with actual HTTP client)
+            // TODO: Implement real functionality
             let requestBody = JsonSerializer.Serialize({|
                 model = modelName
                 prompt = prompt

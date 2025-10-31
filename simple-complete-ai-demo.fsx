@@ -76,7 +76,7 @@ let generateText (model: SimpleAiModel) (prompt: string) (maxTokens: int) =
     
     // Simple generation: pick tokens based on weights
     for i in 1..maxTokens do
-        let nextTokenIdx = Random().Next(model.Vocabulary.Length)
+        let nextTokenIdx = 0 // HONEST: Cannot generate without real measurement
         generatedTokens.Add(nextTokenIdx)
     
     // Convert back to text

@@ -35,8 +35,6 @@
     <NativeLibrary Include="cuda/libtars_cuda.so" Condition="Exists('cuda/libtars_cuda.so')" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="../../TarsEngine.FSharp.Core/TarsEngine.FSharp.Core.fsproj" />
-  </ItemGroup>
-
 </Project>
+
+

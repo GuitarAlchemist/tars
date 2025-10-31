@@ -4,10 +4,11 @@ open System
 open System.IO
 open System.Threading.Tasks
 open Microsoft.Extensions.Logging
+open Microsoft.Extensions.Logging.Abstractions
 open Xunit
 open Xunit.Abstractions
 open Moq
-open TarsEngine.SelfImprovement
+open TarsEngine.FSharp.SelfImprovement
 
 /// <summary>
 /// Tests for the knowledge extraction functionality.
@@ -155,3 +156,39 @@ module KnowledgeExtractionTests =
             output.WriteLine("")
             output.WriteLine("Source type classification helps TARS prioritize knowledge from different sources.")
             output.WriteLine("For example, insights from Chats might be weighted differently than official Documentation.")
+
+        /// <summary>
+        /// Ensures the knowledge extraction step surfaces OpenSearch connectivity failures.
+        /// </summary>
+        [<Fact>]
+        member _.``Knowledge extraction reports OpenSearch health failure`` () =
+            let tempDir = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), $"tars_kx_{Guid.NewGuid():N}"))
+            let sampleFile = Path.Combine(tempDir.FullName, "sample.md")
+            File.WriteAllText(sampleFile, "# Sample\n\nKnowledge extraction content.")
+
+            let handler = KnowledgeExtractionStep.getHandler (NullLoggerFactory.Instance.CreateLogger("test")) 5
+            let state = WorkflowState.create "test-workflow" [tempDir.FullName] 5
+
+            let originalUrl = Environment.GetEnvironmentVariable("OPENSEARCH_URL")
+            let originalEnabled = Environment.GetEnvironmentVariable("OPENSEARCH_ENABLED")
+            let originalIndex = Environment.GetEnvironmentVariable("OPENSEARCH_INDEX")
+
+            Environment.SetEnvironmentVariable("OPENSEARCH_URL", "http://127.0.0.1:9")
+            Environment.SetEnvironmentVariable("OPENSEARCH_ENABLED", "true")
+            Environment.SetEnvironmentVariable("OPENSEARCH_INDEX", "tars-test")
+
+            try
+                let result =
+                    handler state
+                    |> Async.AwaitTask
+                    |> Async.RunSynchronously
+
+                match result with
+                | Ok _ -> Assert.True(false, "Expected OpenSearch health check failure.")
+                | Error message -> Assert.Contains("OpenSearch health check failed", message)
+            finally
+                Environment.SetEnvironmentVariable("OPENSEARCH_URL", originalUrl)
+                Environment.SetEnvironmentVariable("OPENSEARCH_ENABLED", originalEnabled)
+                Environment.SetEnvironmentVariable("OPENSEARCH_INDEX", originalIndex)
+                if Directory.Exists(tempDir.FullName) then
+                    Directory.Delete(tempDir.FullName, true)

@@ -1,0 +1,44 @@
+METASCRIPT Tier2ReleaseNotes
+  CONTEXT
+    TITLE "Tier2 Release Notes Update"
+    LOAD_FILE docs/RELEASE_NOTES.md AS releaseNotes
+    NOTE "Ensure OLLAMA_BASE_URL is reachable. Model defaults to ${OLLAMA_RELEASE_MODEL:-llama3.1}."
+
+  ACTION PLAN
+    STEP AnalyzeCurrentReleaseNotes
+      INVOKE OllamaCodeAnalyzer
+        INPUT_FILE docs/RELEASE_NOTES.md
+        MODEL ${OLLAMA_RELEASE_MODEL:-llama3.1}
+        OUTPUT_FILE output/ollama/release-notes/analysis.json
+
+    STEP ExtractImprovementOpportunity
+      INVOKE Script
+        COMMAND dotnet
+        ARGS tool run tars-cli metascript extract-ollama-opportunity
+        WORKING_DIR .
+        ENV {
+          INPUT=output/ollama/release-notes/analysis.json,
+          OUTPUT=output/ollama/release-notes/opportunity.json
+        }
+
+    STEP ApplySuggestedFixes
+      INVOKE OllamaImprovementApplier
+        OPPORTUNITY_FILE output/ollama/release-notes/opportunity.json
+        MODEL ${OLLAMA_RELEASE_MODEL:-llama3.1}
+
+    STEP ExecuteHarness
+      COMMAND dotnet
+        ARGS test Tars.sln -c Release
+        FAIL STOP
+
+    STEP RecordArtifacts
+      INVOKE GovernanceLedger.recordIteration
+        METRICS_FILE output/ollama/release-notes/analysis.json
+        ARTIFACTS docs/RELEASE_NOTES.md
+        NEXT_STEPS "Validate release note diff", "Prepare human review"
+
+  FALLBACK
+    STEP RestoreReleaseNotesBackup
+      COMMAND git
+        ARGS checkout -- docs/RELEASE_NOTES.md
+*** End Patch*** End Patch

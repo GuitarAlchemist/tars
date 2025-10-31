@@ -215,7 +215,7 @@ let vectorAdd (a: float32 array) (b: float32 array) (result: float32 array) (n: 
             let kernelName = "test_kernel"
             let fsharpCode = "let add a b = a + b"
             
-            // Simulate CUDA code generation
+            // TODO: Implement real functionality
             let cudaCode = sprintf "#include <cuda_runtime.h>\n#include <stdio.h>\n#include <math.h>\n\n__global__ void %s(float* a, float* b, float* result, int n) {\n    int idx = blockIdx.x * blockDim.x + threadIdx.x;\n    if (idx < n) {\n        result[idx] = a[idx] + b[idx];\n    }\n}\n\nint main() {\n    printf(\"CUDA kernel '%s' compiled successfully\\n\");\n    return 0;\n}" kernelName kernelName
             
             // Validate CUDA code structure
@@ -261,7 +261,7 @@ let vectorAdd (a: float32 array) (b: float32 array) (result: float32 array) (n: 
             let mutable errorHandled = false
             
             try
-                // Simulate transpilation of invalid code
+                // TODO: Implement real functionality
                 let lines = invalidCode.Split([|'\n'|])
                 if lines.Length = 1 && not (lines.[0].Contains("let")) then
                     errorHandled <- true

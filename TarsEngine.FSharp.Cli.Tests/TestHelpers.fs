@@ -11,7 +11,7 @@ open TarsEngine.FSharp.Cli.Commands
 /// Test utilities and helpers for CLI testing
 module TestHelpers =
     
-    /// Mock logger for testing
+    // TODO: Implement real functionality
     type MockLogger<'T>() =
         let mutable logs = []
         
@@ -24,10 +24,10 @@ module TestHelpers =
                 let message = formatter.Invoke(state, ex)
                 logs <- (logLevel, message) :: logs
     
-    /// Create a mock logger
+    // TODO: Implement real functionality
     let createMockLogger<'T>() = new MockLogger<'T>()
     
-    /// Mock service provider for dependency injection
+    // TODO: Implement real functionality
     type MockServiceProvider() =
         let services = System.Collections.Generic.Dictionary<Type, obj>()
         
@@ -76,7 +76,7 @@ module TestHelpers =
     /// Create a temporary directory for testing
     let createTempDirectory() = new TempDirectory()
     
-    /// Mock MixtralService for testing
+    // TODO: Implement real functionality
     type MockMixtralService() =
         interface IMixtralService with
             member _.QueryAsync(query: string) =
@@ -91,7 +91,7 @@ module TestHelpers =
                     }
                 }
     
-    /// Create a mock MixtralService
+    // TODO: Implement real functionality
     let createMockMixtralService() = new MockMixtralService()
     
     /// Test assertion helpers

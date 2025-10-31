@@ -1,6 +1,6 @@
-// ClosureGenerator.fs - Auto-generated placeholder
+// TODO: Implement real functionality
 // TODO: Implement ClosureGenerator functionality
 
 namespace TarsEngine.FSharp.DataSources.Generation
 
-// Placeholder for ClosureGenerator implementation
+// TODO: Implement real functionality

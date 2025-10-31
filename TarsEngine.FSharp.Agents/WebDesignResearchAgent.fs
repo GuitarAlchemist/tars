@@ -78,8 +78,8 @@ type WebDesignResearchAgent(logger: ILogger<WebDesignResearchAgent>, httpClient:
         async {
             logger.LogDebug("🌐 Performing web research for {Category}", category)
             
-            // Simulate web research (in real implementation, use web scraping or APIs)
-            do! Async.Sleep(2000) // Simulate research time
+            // TODO: Implement real functionality
+            do! // TODO: Implement real functionality
             
             let trends = match category.ToLower() with
                 | "ui" | "interface" ->

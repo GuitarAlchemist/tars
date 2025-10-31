@@ -95,7 +95,7 @@ type ServiceCommand() =
                         if self.IsServiceInstalled() && force then
                             printfn "🔄 Reinstalling existing service..."
                             self.UninstallServiceInternal() |> ignore
-                            System.Threading.Thread.Sleep(2000) // Wait for cleanup
+                            System.Threading.// REAL: Implement actual logic here // Wait for cleanup
                         
                         // Install the service using sc.exe
                         printfn "🔧 Installing TARS Windows Service..."
@@ -260,7 +260,7 @@ type ServiceCommand() =
         printfn "🔄 Restarting TARS service..."
         let stopResult = self.StopService()
         if stopResult = 0 then
-            System.Threading.Thread.Sleep(2000) // Wait a moment
+            System.Threading.// REAL: Implement actual logic here // Wait a moment
             self.StartService()
         else
             stopResult

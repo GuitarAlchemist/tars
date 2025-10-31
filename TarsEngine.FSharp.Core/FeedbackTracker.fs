@@ -150,7 +150,7 @@ module FeedbackTracker =
                 actual_reward = act
                 regret = est - act
                 context = contextFn action
-                game_theory_model = sprintf "%A" stateBefore.GameTheoryModel
+                game_theory_model = $"%A{stateBefore.GameTheoryModel}"
                 cognitive_level = Some stateBefore.CognitiveLevel
                 belief_state = stateBefore.BeliefState
             })
@@ -159,7 +159,7 @@ module FeedbackTracker =
             before = stateBefore.Confidence
             after = stateAfter.Confidence
             delta = stateAfter.Confidence - stateBefore.Confidence
-            model_influence = sprintf "%A" stateBefore.GameTheoryModel
+            model_influence = $"%A{stateBefore.GameTheoryModel}"
         }
 
         let coordinationScore = 
@@ -174,7 +174,7 @@ module FeedbackTracker =
             decisions = decisions
             regret_update_policy = "modern_game_theory_enhanced"
             regret_decay_rate = decay
-            update_notes = sprintf "Game theory model: %A with enhanced coordination" stateBefore.GameTheoryModel
+            update_notes = $"Game theory model: %A{stateBefore.GameTheoryModel} with enhanced coordination"
             confidence_shift = confShift
             game_theory_model = stateBefore.GameTheoryModel
             convergence_metrics = convergenceMetrics
@@ -240,7 +240,7 @@ module FeedbackTracker =
                     EntryCount = entries.Length
                     AverageRegret = avgRegret
                     ConfidenceTrend = confidenceTrend
-                    PreferredModel = entries |> List.last |> fun e -> sprintf "%A" e.game_theory_model
+                    PreferredModel = entries |> List.last |> fun e -> $"%A{e.game_theory_model}"
                 |})
 
         {|
@@ -267,9 +267,9 @@ module FeedbackTracker =
             Operation = RevolutionaryTypes.RightPathAIReasoning(entry.task_id, Map.empty)
             Success = entry.coordination_score > 0.5
             Insights = [|
-                sprintf "Game theory model: %A" entry.game_theory_model
-                sprintf "Coordination score: %.3f" entry.coordination_score
-                sprintf "Agent confidence shift: %.3f" entry.confidence_shift.delta
+                $"Game theory model: %A{entry.game_theory_model}"
+                $"Coordination score: %.3f{entry.coordination_score}"
+                $"Agent confidence shift: %.3f{entry.confidence_shift.delta}"
                 "Modern game theory analysis completed"
             |]
             Improvements = [|

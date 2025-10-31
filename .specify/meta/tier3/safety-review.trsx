@@ -1,0 +1,8 @@
+# Safety Review Metascript
+
+CLOSURE_CREATE FRACTAL_METASCRIPT "Tier3SafetyReview"
+  grammar="@metascripts/fragments/safety_rules.trsx"
+  context.squad="Safety"
+  context.role="SafetyGovernor"
+
+NOTE "Evaluate patch impact on safety-critical behavior."

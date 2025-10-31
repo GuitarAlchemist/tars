@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.FSharp.Diagnostics
+namespace TarsEngine.FSharp.Diagnostics
 
 open System
 open System.IO
@@ -84,11 +84,11 @@ type MetascriptDiagnosticRunner(
             
             // Record metascript parsing phase
             diagnosticEngine.RecordPhase("Parsing", Running)
-            // REMOVED: Fake simulation delay; ("complexity", box (float i * 10.0))],
+            // TODO: Implement real functionality
                     if not success then Some "Component generation failed" else None
                 )
                 
-                // REMOVED: Fake simulation delay; ("actual_components", box 5)])
+                // TODO: Implement real functionality
             
             diagnosticEngine.RecordError(Error, "Button click events not firing", None,
                                        Map.ofList [("event_type", box "click"); ("target", box "button-1")])

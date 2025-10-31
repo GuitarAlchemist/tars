@@ -56,6 +56,16 @@
     <Compile Include="BSPReasoningEngine.fs" />
     <Compile Include="ComprehensiveTypes.fs" />
     <Compile Include="TempTypeFixes.fs" />
+    <!-- Metascript Execution -->
+    <Compile Include="Metascript\Types.fs" />
+    <Compile Include="Metascript\Parser.fs" />
+    <Compile Include="Metascript\AntiBSAnalyzer.fs" />
+    <Compile Include="Metascript\FractalGrammarMetascripts.fs" />
+    <Compile Include="Metascript\Services.fs" />
+    <!-- MCP Integration -->
+    <Compile Include="Mcp\McpRegistry.fs" />
+    <Compile Include="Mcp\McpRequest.fs" />
+    <Compile Include="Mcp\McpClient.fs" />
 
     <!-- Unified Deployment Module -->
     <Compile Include="UnifiedDeployment.fs" />
@@ -153,6 +163,7 @@
     <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.0" />
     <PackageReference Include="System.Text.Json" Version="9.0.0" />
+    <PackageReference Include="YamlDotNet" Version="16.1.3" />
     <PackageReference Include="FParsec" Version="1.1.1" />
     <!-- Real CUDA GPU Acceleration -->
     <PackageReference Include="ILGPU" Version="1.5.1" />

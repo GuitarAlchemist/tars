@@ -69,7 +69,7 @@ module MindMapServiceTests =
         }
     ]
     
-    /// Create a mock RDF client for testing
+    // TODO: Implement real functionality
     let createMockRdfClient() =
         let logger = createTestLogger<InMemoryRdfClient>()
         InMemoryRdfClient(logger) :> IRdfClient

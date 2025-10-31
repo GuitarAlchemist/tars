@@ -6,6 +6,9 @@ open TarsEngine.FSharp.Core.GameTheoryElmishModels
 /// Interstellar Movie-Style Visual Effects for Game Theory Visualization
 module GameTheoryInterstellarEffects =
 
+    // Random instance for effects
+    let private random = Random()
+
     /// Interstellar Effect Configuration
     type InterstellarConfig = {
         BlackHoleIntensity: float
@@ -303,71 +306,71 @@ module GameTheoryInterstellarEffects =
         
         /// Generate Interstellar scene setup JavaScript
         member this.GenerateInterstellarScene(config: InterstellarConfig) : string =
-            sprintf """
+            $"""
                 // TARS Interstellar Effects Initialization
-                function initInterstellarEffects() {
-                    if (!window.tarsGameTheoryScene) {
+                function initInterstellarEffects() {{
+                    if (!window.tarsGameTheoryScene) {{
                         console.error('TARS Game Theory scene not initialized');
                         return;
-                    }
+                    }}
                     
                     const scene = window.tarsGameTheoryScene.scene;
                     
                     // Create black hole if enabled
-                    if (%s) {
+                    if (%s{if config.GargantualEffects then "true" else "false"}) {{
                         const blackHoleGeometry = new THREE.SphereGeometry(2.0, 32, 32);
-                        const blackHoleMaterial = new THREE.ShaderMaterial({
+                        const blackHoleMaterial = new THREE.ShaderMaterial({{
                             vertexShader: `
                                 varying vec3 worldPosition;
                                 varying vec3 viewDirection;
-                                void main() {
+                                void main() {{
                                     worldPosition = (modelMatrix * vec4(position, 1.0)).xyz;
                                     viewDirection = normalize(worldPosition - cameraPosition);
                                     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                                }
+                                }}
                             `,
-                            fragmentShader: `%s`,
-                            uniforms: {
-                                time: { value: 0.0 },
-                                blackHolePosition: { value: new THREE.Vector3(%f, %f, %f) },
-                                eventHorizonRadius: { value: 1.5 },
-                                accretionDiskRadius: { value: 4.0 },
-                                cooperMode: { value: %s }
-                            },
+                            fragmentShader: `%s{InterstellarShaders.blackHoleShader}`,
+                            uniforms: {{
+                                time: {{ value: 0.0 }},
+                                blackHolePosition: {{ value: new THREE.Vector3(%f{let (x,y,z) = effectState.BlackHolePosition in x}, %f{let (x,y,z) = effectState.BlackHolePosition in y}, %f{let (x,y,z) = effectState.BlackHolePosition in z}) }},
+                                eventHorizonRadius: {{ value: 1.5 }},
+                                accretionDiskRadius: {{ value: 4.0 }},
+                                cooperMode: {{ value: %s{if config.CooperMode then "true" else "false"} }}
+                            }},
                             transparent: true
-                        });
+                        }});
                         
                         const blackHole = new THREE.Mesh(blackHoleGeometry, blackHoleMaterial);
-                        blackHole.position.set(%f, %f, %f);
+                        blackHole.position.set(%f{let (x,y,z) = effectState.BlackHolePosition in x}, %f{let (x,y,z) = effectState.BlackHolePosition in y}, %f{let (x,y,z) = effectState.BlackHolePosition in z});
                         scene.add(blackHole);
                         
                         window.tarsGameTheoryScene.blackHole = blackHole;
                         console.log('🕳️ Interstellar black hole created');
-                    }
+                    }}
                     
                     // Create wormhole portals if enabled
-                    if (%s) {
+                    if (%s{if config.WormholeEffects then "true" else "false"}) {{
                         const wormholeGeometry = new THREE.RingGeometry(1.0, 3.0, 32);
-                        const wormholeMaterial = new THREE.ShaderMaterial({
+                        const wormholeMaterial = new THREE.ShaderMaterial({{
                             vertexShader: `
                                 varying vec3 worldPosition;
                                 varying vec2 vUv;
-                                void main() {
+                                void main() {{
                                     worldPosition = (modelMatrix * vec4(position, 1.0)).xyz;
                                     vUv = uv;
                                     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                                }
+                                }}
                             `,
-                            fragmentShader: `%s`,
-                            uniforms: {
-                                time: { value: 0.0 },
-                                wormholeCenter: { value: new THREE.Vector3(0.0, 0.0, 0.0) },
-                                wormholeRadius: { value: 2.5 },
-                                enduranceMode: { value: %s }
-                            },
+                            fragmentShader: `%s{InterstellarShaders.wormholeShader}`,
+                            uniforms: {{
+                                time: {{ value: 0.0 }},
+                                wormholeCenter: {{ value: new THREE.Vector3(0.0, 0.0, 0.0) }},
+                                wormholeRadius: {{ value: 2.5 }},
+                                enduranceMode: {{ value: %s{if config.EnduranceShipMode then "true" else "false"} }}
+                            }},
                             transparent: true,
                             side: THREE.DoubleSide
-                        });
+                        }});
                         
                         const wormhole1 = new THREE.Mesh(wormholeGeometry, wormholeMaterial);
                         wormhole1.position.set(5.0, 0.0, 0.0);
@@ -381,29 +384,29 @@ module GameTheoryInterstellarEffects =
                         
                         window.tarsGameTheoryScene.wormholes = [wormhole1, wormhole2];
                         console.log('🌀 Interstellar wormholes created');
-                    }
+                    }}
                     
                     // Add gravitational wave effects if enabled
-                    if (%s) {
+                    if (%s{if config.GravitationalWaves then "true" else "false"}) {{
                         const waveGeometry = new THREE.PlaneGeometry(20, 20, 64, 64);
-                        const waveMaterial = new THREE.ShaderMaterial({
+                        const waveMaterial = new THREE.ShaderMaterial({{
                             vertexShader: `
                                 varying vec3 worldPosition;
-                                void main() {
+                                void main() {{
                                     worldPosition = (modelMatrix * vec4(position, 1.0)).xyz;
                                     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                                }
+                                }}
                             `,
-                            fragmentShader: `%s`,
-                            uniforms: {
-                                time: { value: 0.0 },
-                                waveAmplitude: { value: %f },
-                                waveSource: { value: new THREE.Vector3(0.0, 0.0, 0.0) },
-                                tarsMode: { value: %s }
-                            },
+                            fragmentShader: `%s{InterstellarShaders.gravitationalWaveShader}`,
+                            uniforms: {{
+                                time: {{ value: 0.0 }},
+                                waveAmplitude: {{ value: %f{effectState.GravitationalWaveAmplitude} }},
+                                waveSource: {{ value: new THREE.Vector3(0.0, 0.0, 0.0) }},
+                                tarsMode: {{ value: %s{if config.TARSRobotStyle then "true" else "false"} }}
+                            }},
                             transparent: true,
                             opacity: 0.3
-                        });
+                        }});
                         
                         const gravitationalWave = new THREE.Mesh(waveGeometry, waveMaterial);
                         gravitationalWave.rotation.x = -Math.PI / 2;
@@ -411,39 +414,23 @@ module GameTheoryInterstellarEffects =
                         
                         window.tarsGameTheoryScene.gravitationalWave = gravitationalWave;
                         console.log('🌊 Gravitational waves initialized');
-                    }
+                    }}
                     
                     // Store Interstellar configuration
-                    window.tarsGameTheoryScene.interstellarConfig = {
-                        blackHoleIntensity: %f,
-                        cooperMode: %s,
-                        tarsRobotStyle: %s,
-                        enduranceMode: %s
-                    };
+                    window.tarsGameTheoryScene.interstellarConfig = {{
+                        blackHoleIntensity: %f{config.BlackHoleIntensity},
+                        cooperMode: %s{if config.CooperMode then "true" else "false"},
+                        tarsRobotStyle: %s{if config.TARSRobotStyle then "true" else "false"},
+                        enduranceMode: %s{if config.EnduranceShipMode then "true" else "false"}
+                    }};
                     
                     console.log('🚀 Interstellar effects fully initialized');
-                }
+                }}
                 
                 // Initialize effects
                 initInterstellarEffects();
-            """ 
-                (if config.GargantualEffects then "true" else "false")
-                InterstellarShaders.blackHoleShader
-                (let (x,y,z) = effectState.BlackHolePosition in x) (let (x,y,z) = effectState.BlackHolePosition in y) (let (x,y,z) = effectState.BlackHolePosition in z)
-                (if config.CooperMode then "true" else "false")
-                (let (x,y,z) = effectState.BlackHolePosition in x) (let (x,y,z) = effectState.BlackHolePosition in y) (let (x,y,z) = effectState.BlackHolePosition in z)
-                (if config.WormholeEffects then "true" else "false")
-                InterstellarShaders.wormholeShader
-                (if config.EnduranceShipMode then "true" else "false")
-                (if config.GravitationalWaves then "true" else "false")
-                InterstellarShaders.gravitationalWaveShader
-                effectState.GravitationalWaveAmplitude
-                (if config.TARSRobotStyle then "true" else "false")
-                config.BlackHoleIntensity
-                (if config.CooperMode then "true" else "false")
-                (if config.TARSRobotStyle then "true" else "false")
-                (if config.EnduranceShipMode then "true" else "false")
-        
+            """
+
         /// Generate TARS personality interaction
         member this.GenerateTARSInteraction(message: string) : string =
             let responses = [
@@ -454,32 +441,32 @@ module GameTheoryInterstellarEffects =
                 "Cooper, this is no time for caution."
             ]
             
-            let randomResponse = responses.[Random().Next(responses.Length)]
-            
-            sprintf """
+            let randomResponse = responses.[random.Next(responses.Length)]
+
+            $"""
                 // TARS Personality Interaction
-                function tarsRespond(message) {
-                    console.log('🤖 TARS: %s');
+                function tarsRespond(message) {{
+                    console.log('🤖 TARS: %s{randomResponse}');
                     
                     // Update TARS visual state
-                    if (window.tarsGameTheoryScene && window.tarsGameTheoryScene.agents) {
-                        window.tarsGameTheoryScene.agents.forEach((agent) => {
-                            if (agent.userData.id.includes('TARS') || agent.userData.id.includes('Agent')) {
+                    if (window.tarsGameTheoryScene && window.tarsGameTheoryScene.agents) {{
+                        window.tarsGameTheoryScene.agents.forEach((agent) => {{
+                            if (agent.userData.id.includes('TARS') || agent.userData.id.includes('Agent')) {{
                                 // Add TARS-style glow effect
-                                if (agent.material.uniforms) {
-                                    agent.material.uniforms.tarsPersonality = { value: 1.0 };
-                                }
-                            }
-                        });
-                    }
+                                if (agent.material.uniforms) {{
+                                    agent.material.uniforms.tarsPersonality = {{ value: 1.0 }};
+                                }}
+                            }}
+                        }});
+                    }}
                     
-                    return '%s';
-                }
+                    return '%s{randomResponse}';
+                }}
                 
                 // Respond to message
-                tarsRespond('%s');
-            """ randomResponse randomResponse message
-        
+                tarsRespond('%s{message}');
+            """
+
         /// Update effect state
         member this.UpdateEffectState(newState: EffectState) =
             effectState <- newState
@@ -489,7 +476,7 @@ module GameTheoryInterstellarEffects =
         
         /// Generate Cooper voice line
         member this.GenerateCooperVoiceLine() : string =
-            let voiceLine = effectState.CooperVoiceLines.[Random().Next(effectState.CooperVoiceLines.Length)]
-            sprintf """
-                console.log('👨‍🚀 Cooper: "%s"');
-            """ voiceLine
+            let voiceLine = effectState.CooperVoiceLines.[random.Next(effectState.CooperVoiceLines.Length)]
+            $"""
+                console.log('👨‍🚀 Cooper: "%s{voiceLine}"');
+            """

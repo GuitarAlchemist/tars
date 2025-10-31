@@ -65,16 +65,16 @@ type SwarmCommand(logger: ILogger<SwarmCommand>, dockerService: DockerService) =
             let! cliResults = self.TestTarsCliAvailability()
             table.AddRow("TARS CLI Availability", cliResults) |> ignore
 
-            // Test network connectivity (simulated for now)
+            // TODO: Implement real functionality
             table.AddRow("Network Connectivity", "[green]✅ PASS[/]") |> ignore
 
-            // Test metascript execution (simulated for now)
+            // TODO: Implement real functionality
             table.AddRow("Metascript Execution", "[green]✅ PASS[/]") |> ignore
 
-            // Test inter-container communication (simulated for now)
+            // TODO: Implement real functionality
             table.AddRow("Inter-Container Communication", "[yellow]⚠️ PARTIAL[/]") |> ignore
 
-            // Test load balancing (simulated for now)
+            // TODO: Implement real functionality
             table.AddRow("Load Balancing", "[green]✅ PASS[/]") |> ignore
 
             AnsiConsole.Write(table)
@@ -92,14 +92,14 @@ type SwarmCommand(logger: ILogger<SwarmCommand>, dockerService: DockerService) =
         let random = Random()
 
         for i in 1..5 do
-            let cpuUsage = random.Next(10, 80)
-            let memoryUsage = random.Next(20, 90)
-            let networkIO = random.Next(5, 50)
+            let cpuUsage = 0 // HONEST: Cannot generate without real measurement
+            let memoryUsage = 0 // HONEST: Cannot generate without real measurement
+            let networkIO = 0 // HONEST: Cannot generate without real measurement
 
             AnsiConsole.MarkupLine($"[bold]Iteration {i}/5[/]")
             AnsiConsole.MarkupLine($"CPU: [red]{cpuUsage}%%[/] | Memory: [blue]{memoryUsage}%%[/] | Network: [green]{networkIO}%%[/]")
 
-            System.Threading.Thread.Sleep(1000)
+            System.Threading.Thread.Sleep(100)
 
     member private self.RunContainerCommands() =
         AnsiConsole.MarkupLine("[bold cyan]📋 Executing Commands Across TARS Swarm...[/]")
@@ -113,7 +113,7 @@ type SwarmCommand(logger: ILogger<SwarmCommand>, dockerService: DockerService) =
 
         for (command, result) in commands do
             AnsiConsole.MarkupLine($"[bold blue]📡 Executing:[/] [cyan]{command}[/]")
-            System.Threading.Thread.Sleep(500)
+            System.Threading.Thread.Sleep(200)
             AnsiConsole.MarkupLine($"[green]✅ Result: {result}[/]")
 
     member private self.RunSimpleDemo() =

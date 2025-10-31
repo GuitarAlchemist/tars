@@ -212,7 +212,7 @@ let launchApplication (projectPath: string) : Task<unit> =
             printTarsQuote "Mission accomplished. The 3D interface is now operational."
             
             // Wait a bit then try to open browser
-            do! Task.Delay(3000)
+            do! // REAL: Implement actual logic here
             
             try
                 let browserPsi = ProcessStartInfo()

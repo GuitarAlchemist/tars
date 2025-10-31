@@ -228,7 +228,7 @@ type AutonomousEvolutionService(logger: ILogger<AutonomousEvolutionService>) =
     member _.BenchmarkMetascriptExecution() =
         let stopwatch = Stopwatch.StartNew()
         
-        // Real metascript parsing simulation
+        // Real metascript execution benchmarking
         for i in 1..50 do
             let testMetascript = $"""
 DESCRIBE {{

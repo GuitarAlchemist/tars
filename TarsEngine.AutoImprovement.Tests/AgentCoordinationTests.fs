@@ -105,7 +105,7 @@ type AgentCoordinationSystem() =
         let mutable message = Unchecked.defaultof<AgentMessage>
         
         while messageQueue.TryDequeue(&message) do
-            // Simulate message processing
+            // TODO: Implement real functionality
             match agents.TryGetValue(message.ToAgent) with
             | true, agent ->
                 let updatedAgent = {
@@ -277,7 +277,7 @@ let ``Agent Coordination should support semantic inbox/outbox capability`` () =
     let knowledgeAgent = system.CreateAgent(KnowledgeExtractor, 2)
     let reasoningAgent = system.CreateAgent(ReasoningAgent, 3)
     
-    // Act - Simulate semantic routing based on message content
+    // TODO: Implement real functionality
     let vectorMessage = system.SendMessage("system", vectorAgent.Id, "VECTOR_TASK", "compute similarities", 1)
     let knowledgeMessage = system.SendMessage("system", knowledgeAgent.Id, "KNOWLEDGE_TASK", "extract patterns", 1)
     let reasoningMessage = system.SendMessage("system", reasoningAgent.Id, "REASONING_TASK", "analyze strategy", 1)

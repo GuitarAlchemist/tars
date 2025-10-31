@@ -288,7 +288,7 @@ type HTNPlanner() =
 /// Program Synthesis with Formal Verification
 type ProgramSynthesizer() =
     
-    /// Synthesize skill implementation (placeholder for actual synthesis)
+    // TODO: Implement real functionality
     member _.SynthesizeSkill(spec: SkillSpec) : string option =
         // In practice, this would use program synthesis techniques
         // For now, return a template implementation
@@ -408,7 +408,7 @@ type HybridGISystem() =
     member this.CognitiveCycle(goal: string) =
         let sw = System.Diagnostics.Stopwatch.StartNew()
         
-        // 1. Perceive (mock observation)
+        // TODO: Implement real functionality
         let observation = {
             Features = Vector<float>.Build.Dense([| 0.5; 0.3; 0.8; 0.2; 0.6 |])
             Timestamp = DateTime.UtcNow

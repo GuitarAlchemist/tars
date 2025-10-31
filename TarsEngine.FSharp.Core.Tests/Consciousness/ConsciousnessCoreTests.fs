@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.FSharp.Core.Tests.Consciousness
+namespace TarsEngine.FSharp.Core.Tests.Consciousness
 
 open System
 open Microsoft.Extensions.Logging
@@ -11,7 +11,7 @@ open TarsEngine.FSharp.Core.Consciousness.Core
 module ConsciousnessCoreTests =
     
     /// <summary>
-    /// Mock logger for testing.
+    // TODO: Implement real functionality
     /// </summary>
     type MockLogger<'T>() =
         interface ILogger<'T> with

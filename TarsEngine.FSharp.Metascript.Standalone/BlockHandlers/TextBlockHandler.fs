@@ -27,7 +27,7 @@ type TextBlockHandler(logger: ILogger<TextBlockHandler>) =
     /// </summary>
     /// <param name="block">The block to check.</param>
     /// <returns>Whether this handler can handle the block.</returns>
-    override this.CanHandle(block: MetascriptBlock) =
+    member this.CanHandleMultiple(block: MetascriptBlock) =
         block.Type = MetascriptBlockType.Text ||
         block.Type = MetascriptBlockType.Markdown ||
         block.Type = MetascriptBlockType.HTML ||

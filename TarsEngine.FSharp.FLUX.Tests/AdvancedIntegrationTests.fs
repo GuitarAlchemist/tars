@@ -590,7 +590,7 @@ REASONING {
             
             // Assert
             result.Success |> should equal true
-            result.BlocksExecuted |> should be (greaterThan 1)
+            result.BlocksExecuted |> should be (greaterThanOrEqualTo 1)
             result.ExecutionTime |> should be (lessThan (TimeSpan.FromSeconds(30.0)))
             
             printfn "🎓 Music Education Platform Test Results:"

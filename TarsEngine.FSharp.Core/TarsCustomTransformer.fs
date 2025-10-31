@@ -150,7 +150,7 @@ module TarsCustomTransformer =
         if useCuda then
             // CUDA-optimized matrix multiplication
             let result = Array2D.zeroCreate rowsA colsB
-            // Parallel computation for CUDA simulation
+            // TODO: Implement real functionality
             Parallel.For(0, rowsA, fun i ->
                 for j in 0 .. colsB - 1 do
                     let mutable sum = 0.0f
@@ -329,10 +329,10 @@ module TarsCustomTransformer =
         let finalConfig = config |> Option.defaultValue defaultTarsConfig
         createTransformerModel finalConfig
 
-    /// Simple tokenizer (placeholder - would use real tokenizer in production)
+    // TODO: Implement real functionality
     let simpleTokenizer (text: string) : int[] =
         text.Split(' ') |> Array.mapi (fun i _ -> i % 1000)
 
-    /// Simple detokenizer (placeholder)
+    // TODO: Implement real functionality
     let simpleDetokenizer (tokens: int[]) : string =
         tokens |> Array.map (sprintf "token_%d") |> String.concat " "

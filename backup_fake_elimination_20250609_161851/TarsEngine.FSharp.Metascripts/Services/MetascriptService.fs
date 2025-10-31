@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.FSharp.Metascripts.Services
+namespace TarsEngine.FSharp.Metascripts.Services
 
 open System
 open System.IO
@@ -342,7 +342,7 @@ type MetascriptService(
 
         sections |> Seq.toList
 
-    // Execute F# code using REAL F# Interactive - NO MORE FAKE CODE!
+    // TODO: Implement real functionality
     member private this.executeFSharpCode (code: string) (variables: Map<string, obj>) =
         task {
             try
@@ -393,8 +393,8 @@ type MetascriptService(
                     }
 
                 if code.Contains("let ") then
-                    // REMOVED: Fake let binding pattern matching
-                    let matches = // REMOVED: Fake regex execution
+                    // TODO: Implement real functionality
+                    let matches = // TODO: Implement real functionality
                     for m in matches do
                         if m.Groups.Count > 2 then
                             let varName = m.Groups.[1].Value

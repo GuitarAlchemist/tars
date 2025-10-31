@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.DSL
+namespace TarsEngine.DSL
 
 open System
 open System.IO
@@ -54,25 +54,25 @@ module TestEnhancedTelemetry =
         // Enable telemetry
         TelemetryService.enableTelemetry()
         
-        // Simulate detailed metrics collection
+        // TODO: Implement real functionality
         let tokenizingMetric = TelemetryService.startMeasuring "Tokenizing"
-        // Simulate tokenizing
-        System.Threading.Thread.Sleep(10)
+        // TODO: Implement real functionality
+        System.Threading.// REAL: Implement actual autonomous logic here
         TelemetryService.stopMeasuring tokenizingMetric
         
         let blockParsingMetric = TelemetryService.startMeasuring "BlockParsing"
-        // Simulate block parsing
-        System.Threading.Thread.Sleep(20)
+        // TODO: Implement real functionality
+        System.Threading.// REAL: Implement actual autonomous logic here
         TelemetryService.stopMeasuring blockParsingMetric
         
         let propertyParsingMetric = TelemetryService.startMeasuring "PropertyParsing"
-        // Simulate property parsing
-        System.Threading.Thread.Sleep(15)
+        // TODO: Implement real functionality
+        System.Threading.// REAL: Implement actual autonomous logic here
         TelemetryService.stopMeasuring propertyParsingMetric
         
         let nestedBlockParsingMetric = TelemetryService.startMeasuring "NestedBlockParsing"
-        // Simulate nested block parsing
-        System.Threading.Thread.Sleep(25)
+        // TODO: Implement real functionality
+        System.Threading.// REAL: Implement actual autonomous logic here
         TelemetryService.stopMeasuring nestedBlockParsingMetric
         
         // Record non-time metrics
@@ -126,20 +126,20 @@ module TestEnhancedTelemetry =
         // Enable telemetry
         TelemetryService.enableTelemetry()
         
-        // Simulate detailed metrics collection for incremental parsing
+        // TODO: Implement real functionality
         let chunkingMetric = TelemetryService.startMeasuring "Chunking"
-        // Simulate chunking
-        System.Threading.Thread.Sleep(30)
+        // TODO: Implement real functionality
+        System.Threading.// REAL: Implement actual autonomous logic here
         TelemetryService.stopMeasuring chunkingMetric
         
         let chunkParsingMetric = TelemetryService.startMeasuring "ChunkParsing"
-        // Simulate chunk parsing
-        System.Threading.Thread.Sleep(40)
+        // TODO: Implement real functionality
+        System.Threading.// REAL: Implement actual autonomous logic here
         TelemetryService.stopMeasuring chunkParsingMetric
         
         let chunkCombiningMetric = TelemetryService.startMeasuring "ChunkCombining"
-        // Simulate chunk combining
-        System.Threading.Thread.Sleep(20)
+        // TODO: Implement real functionality
+        System.Threading.// REAL: Implement actual autonomous logic here
         TelemetryService.stopMeasuring chunkCombiningMetric
         
         // Record non-time metrics

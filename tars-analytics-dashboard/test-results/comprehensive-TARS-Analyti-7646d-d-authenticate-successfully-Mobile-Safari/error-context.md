@@ -1,0 +1,74 @@
+# Page snapshot
+
+```yaml
+- iframe [ref=e1]:
+  - generic [ref=f1e2]:
+    - generic [ref=f1e3]: "Compiled with problems:"
+    - button "Dismiss" [ref=f1e4] [cursor=pointer]: ×
+    - generic [ref=f1e5]:
+      - generic [ref=f1e6]:
+        - generic [ref=f1e7] [cursor=pointer]: ERROR in ./src/index.tsx
+        - generic [ref=f1e8]: "Module build failed (from ./node_modules/ts-loader/index.js): Error: TypeScript emitted no output for C:\\Users\\spare\\source\\repos\\tars\\tars-analytics-dashboard\\src\\index.tsx. at makeSourceMapAndFinish (C:\\Users\\spare\\source\\repos\\tars\\tars-analytics-dashboard\\node_modules\\ts-loader\\dist\\index.js:55:18) at successLoader (C:\\Users\\spare\\source\\repos\\tars\\tars-analytics-dashboard\\node_modules\\ts-loader\\dist\\index.js:42:5) at Object.loader (C:\\Users\\spare\\source\\repos\\tars\\tars-analytics-dashboard\\node_modules\\ts-loader\\dist\\index.js:23:5)"
+      - generic [ref=f1e9]:
+        - generic [ref=f1e10]: ERROR in C:\Users\spare\source\repos\tars\tars-analytics-dashboard\src\contexts\AuthContext.tsx 123:28-33
+        - generic [ref=f1e11]:
+          - generic [ref=f1e12]: "[tsl]"
+          - generic [ref=f1e14]: ERROR
+          - generic [ref=f1e16]: in
+          - generic [ref=f1e18]: C:\Users\spare\source\repos\tars\tars-analytics-dashboard\src\contexts\AuthContext.tsx(123,29)
+          - generic [ref=f1e20]: "TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'."
+          - generic [ref=f1e22]: Type 'null' is not assignable to type 'string'.
+      - generic [ref=f1e23]:
+        - generic [ref=f1e24]: ERROR in C:\Users\spare\source\repos\tars\tars-analytics-dashboard\src\contexts\AuthContext.tsx 127:19-23
+        - generic [ref=f1e25]:
+          - generic [ref=f1e26]: "[tsl]"
+          - generic [ref=f1e28]: ERROR
+          - generic [ref=f1e30]: in
+          - generic [ref=f1e32]: C:\Users\spare\source\repos\tars\tars-analytics-dashboard\src\contexts\AuthContext.tsx(127,20)
+          - generic [ref=f1e34]: "TS2322: Type 'User | null' is not assignable to type 'User'."
+          - generic [ref=f1e36]: Type 'null' is not assignable to type 'User'.
+      - generic [ref=f1e37]:
+        - generic [ref=f1e38]: ERROR in C:\Users\spare\source\repos\tars\tars-analytics-dashboard\src\contexts\AuthContext.tsx 127:25-30
+        - generic [ref=f1e39]:
+          - generic [ref=f1e40]: "[tsl]"
+          - generic [ref=f1e42]: ERROR
+          - generic [ref=f1e44]: in
+          - generic [ref=f1e46]: C:\Users\spare\source\repos\tars\tars-analytics-dashboard\src\contexts\AuthContext.tsx(127,26)
+          - generic [ref=f1e48]: "TS2322: Type 'string | null' is not assignable to type 'string'."
+          - generic [ref=f1e50]: Type 'null' is not assignable to type 'string'.
+      - generic [ref=f1e51]:
+        - generic [ref=f1e52]: ERROR in C:\Users\spare\source\repos\tars\tars-analytics-dashboard\src\contexts\AuthContext.tsx 154:28-33
+        - generic [ref=f1e53]:
+          - generic [ref=f1e54]: "[tsl]"
+          - generic [ref=f1e56]: ERROR
+          - generic [ref=f1e58]: in
+          - generic [ref=f1e60]: C:\Users\spare\source\repos\tars\tars-analytics-dashboard\src\contexts\AuthContext.tsx(154,29)
+          - generic [ref=f1e62]: "TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'."
+          - generic [ref=f1e64]: Type 'null' is not assignable to type 'string'.
+      - generic [ref=f1e65]:
+        - generic [ref=f1e66]: ERROR in C:\Users\spare\source\repos\tars\tars-analytics-dashboard\src\contexts\AuthContext.tsx 158:19-23
+        - generic [ref=f1e67]:
+          - generic [ref=f1e68]: "[tsl]"
+          - generic [ref=f1e70]: ERROR
+          - generic [ref=f1e72]: in
+          - generic [ref=f1e74]: C:\Users\spare\source\repos\tars\tars-analytics-dashboard\src\contexts\AuthContext.tsx(158,20)
+          - generic [ref=f1e76]: "TS2322: Type 'User | null' is not assignable to type 'User'."
+          - generic [ref=f1e78]: Type 'null' is not assignable to type 'User'.
+      - generic [ref=f1e79]:
+        - generic [ref=f1e80]: ERROR in C:\Users\spare\source\repos\tars\tars-analytics-dashboard\src\contexts\AuthContext.tsx 158:25-30
+        - generic [ref=f1e81]:
+          - generic [ref=f1e82]: "[tsl]"
+          - generic [ref=f1e84]: ERROR
+          - generic [ref=f1e86]: in
+          - generic [ref=f1e88]: C:\Users\spare\source\repos\tars\tars-analytics-dashboard\src\contexts\AuthContext.tsx(158,26)
+          - generic [ref=f1e90]: "TS2322: Type 'string | null' is not assignable to type 'string'."
+          - generic [ref=f1e92]: Type 'null' is not assignable to type 'string'.
+      - generic [ref=f1e93]:
+        - generic [ref=f1e94]: ERROR in C:\Users\spare\source\repos\tars\tars-analytics-dashboard\src\utils\storage.ts 189:31-35
+        - generic [ref=f1e95]:
+          - generic [ref=f1e96]: "[tsl]"
+          - generic [ref=f1e98]: ERROR
+          - generic [ref=f1e100]: in
+          - generic [ref=f1e102]: C:\Users\spare\source\repos\tars\tars-analytics-dashboard\src\utils\storage.ts(189,32)
+          - generic [ref=f1e104]: "TS2345: Argument of type '{}' is not assignable to parameter of type 'string'."
+```

@@ -2,10 +2,12 @@
 
 open System
 open System.Threading.Tasks
+open System.Net.Http
 open Microsoft.Extensions.DependencyInjection
 open Microsoft.Extensions.Logging
 open TarsEngine.FSharp.Cli.Commands
 open TarsEngine.FSharp.Cli.Services
+open TarsEngine.FSharp.SelfImprovement
 // open TarsEngine.FSharp.Core.AgentOS  // Temporarily disabled
 
 /// <summary>
@@ -24,6 +26,11 @@ type CliApplication() =
         
         // Add HTTP client
         services.AddHttpClient() |> ignore
+
+        services.AddSingleton<ISelfImprovementService>(fun provider ->
+            let httpFactory = provider.GetRequiredService<System.Net.Http.IHttpClientFactory>()
+            let logger = provider.GetRequiredService<ILogger<SelfImprovementService>>()
+            new SelfImprovementService(httpFactory.CreateClient(), logger) :> ISelfImprovementService) |> ignore
 
         // Add CLI services
         services.AddSingleton<IntelligenceService>() |> ignore
@@ -49,7 +56,9 @@ type CliApplication() =
     let mixtralService = serviceProvider.GetRequiredService<MixtralService>()
     let llmRouter = serviceProvider.GetRequiredService<LLMRouter>()
     let searchService = serviceProvider.GetRequiredService<TarsEngine.FSharp.OnDemandSearch.IOnDemandSearchService>()
-    let commandRegistry = CommandRegistry(intelligenceService, mlService, dockerService, mixtralService, llmRouter, searchService)
+    let loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>()
+    let selfImprovementService = serviceProvider.GetRequiredService<ISelfImprovementService>()
+    let commandRegistry = CommandRegistry(intelligenceService, mlService, dockerService, mixtralService, llmRouter, searchService, selfImprovementService, loggerFactory)
     let commandLineParser = CommandLineParser()
     
     do

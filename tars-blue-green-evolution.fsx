@@ -97,7 +97,7 @@ let rec runEffect effect =
         printfn "  🔄 Evolving computation..."
         runEffect (computation())
 
-// Advanced metaprogramming simulation
+// TODO: Implement real functionality
 let generateAdvancedCode pattern =
     match pattern with
     | "MonadicComposition" ->

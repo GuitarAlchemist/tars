@@ -1,0 +1,7 @@
+# Safety validation rules for Tier3 cross-validation
+SPAWN QRE 1 HIERARCHICAL
+SPAWN ML 1 FRACTAL
+CONNECT leader agent-1 audit
+METRIC safety_risk 0.12
+METRIC mitigation_strength 0.88
+REPEAT safety-debrief 2

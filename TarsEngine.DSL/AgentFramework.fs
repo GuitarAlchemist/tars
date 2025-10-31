@@ -76,8 +76,8 @@ module AgentFramework =
                             // Execute the function block
                             // Note: This would call Interpreter.executeBlock in a real implementation
                             // For now, we'll just return a success result to avoid circular references
-                            AgentInterfaces.AgentResult.Success(StringValue("Function executed"))
-                        | None -> AgentInterfaces.AgentResult.Error $"Function '{fnName}' not found in task '{taskName}' for agent '{agentName}'"
+                            AgentResult.Success(StringValue("Function executed"))
+                        | None -> AgentResult.Error $"Function '{fnName}' not found in task '{taskName}' for agent '{agentName}'"
                     | None ->
                         // Execute the first function in the task
                         match task.Functions |> Map.toList |> List.tryHead with
@@ -94,10 +94,10 @@ module AgentFramework =
                             // Execute the function block
                             // Note: This would call Interpreter.executeBlock in a real implementation
                             // For now, we'll just return a success result to avoid circular references
-                            AgentInterfaces.AgentResult.Success(StringValue("Function executed"))
-                        | None -> AgentInterfaces.AgentResult.Error $"No functions found in task '{taskName}' for agent '{agentName}'"
-                | None -> AgentInterfaces.AgentResult.Error $"Task '{taskName}' not found for agent '{agentName}'"
-            | None -> AgentInterfaces.AgentResult.Error $"Agent '{agentName}' not found"
+                            AgentResult.Success(StringValue("Function executed"))
+                        | None -> AgentResult.Error $"No functions found in task '{taskName}' for agent '{agentName}'"
+                | None -> AgentResult.Error $"Task '{taskName}' not found for agent '{agentName}'"
+            | None -> AgentResult.Error $"Agent '{agentName}' not found"
 
         interface IAgentRegistry with
             member this.RegisterAgent(agent: obj) =

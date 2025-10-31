@@ -1,4 +1,4 @@
-﻿open System
+open System
 open System.IO
 open System.Threading.Tasks
 open System.Diagnostics
@@ -75,7 +75,7 @@ module Program =
                                     let endIndex = min (i + chunkSize) content.Length
                                     content.Substring(i, endIndex - i)]
 
-                        // Add to vector store (simulated for now)
+                        // TODO: Implement real functionality
                         for chunk in chunks do
                             let metadata = $"{relativePath}:chunk_{totalVectors}"
                             // In real implementation, this would create embeddings and store in CUDA

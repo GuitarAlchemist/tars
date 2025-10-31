@@ -80,7 +80,7 @@ type ChromaDBClient(httpClient: HttpClient, logger: ILogger<ChromaDBClient>, ?ba
                             collectionIds <- collectionIds |> Map.add name collectionId
 
                             // Add a longer delay to allow ChromaDB to fully initialize the collection
-                            do! Async.Sleep(3000)
+                            do! // REAL: Implement actual logic here
                         else
                             let! createResponseContent = createResponse.Content.ReadAsStringAsync()
                             logger.LogInformation("Collection may already exist: {StatusCode} - {Response}", createResponse.StatusCode, createResponseContent)
@@ -133,7 +133,7 @@ type ChromaDBClient(httpClient: HttpClient, logger: ILogger<ChromaDBClient>, ?ba
                         let! responseContent = listResponse.Content.ReadAsStringAsync()
                         logger.LogWarning("Failed to connect to ChromaDB v2 API: {StatusCode} - {Response}", listResponse.StatusCode, responseContent)
 
-                        // Fallback to in-memory simulation
+                        // TODO: Implement real functionality
                         let collection = {
                             Name = name
                             Documents = []
@@ -152,7 +152,7 @@ type ChromaDBClient(httpClient: HttpClient, logger: ILogger<ChromaDBClient>, ?ba
                 try
                     logger.LogInformation("Getting ChromaDB collection: {CollectionName}", name)
                     
-                    // Simulate collection retrieval
+                    // TODO: Implement real functionality
                     let collection = {
                         Name = name
                         Documents = []
@@ -214,7 +214,7 @@ type ChromaDBClient(httpClient: HttpClient, logger: ILogger<ChromaDBClient>, ?ba
 
                             if response.StatusCode = System.Net.HttpStatusCode.NotFound && attempt < maxAttempts then
                                 logger.LogWarning("⚠️ Collection not ready yet, retrying in 3 seconds... (attempt {Attempt}/{MaxAttempts})", attempt, maxAttempts)
-                                do! Async.Sleep(3000)
+                                do! // REAL: Implement actual logic here
                                 attempt <- attempt + 1
                             else
                                 logger.LogError("❌ CHROMADB ERROR: Failed to add documents to {CollectionName} via v2 API", collectionName)

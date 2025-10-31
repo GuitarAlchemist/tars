@@ -171,8 +171,8 @@ module TarsNeuralNetworkOptimizer =
                     // Calculate loss (simplified - would use actual loss computation)
                     let syncResult = tars_synchronize_device()
                     
-                    // For now, simulate loss calculation
-                    totalLoss <- 0.5f // Placeholder
+                    // TODO: Implement real functionality
+                    totalLoss <- 0.5f // TODO: Implement real functionality
                     
                     // Cleanup GPU memory
                     tars_cuda_free(gpuInputs) |> ignore
@@ -300,7 +300,7 @@ module TarsNeuralNetworkOptimizer =
                     // Run genetic algorithm first
                     let geneticResult = GeneticAlgorithm.optimize fitnessFunc geneticParams initialWeights
                     
-                    // Refine with simulated annealing
+                    // TODO: Implement real functionality
                     let annealingResult = SimulatedAnnealing.optimize fitnessFunc annealingParams geneticResult.BestSolution
                     
                     // Final refinement with Monte Carlo

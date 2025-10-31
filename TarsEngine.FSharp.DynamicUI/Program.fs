@@ -222,7 +222,7 @@ module Program =
     <script>
         console.log('🚀 TARS Autonomous UI Builder - Injecting Codebase Into Vector Store');
 
-        // SIMULATE TARS VECTOR STORE INJECTION LIKE METASCRIPT RUNNER
+        // TODO: Implement real functionality
         let vectorStoreData = {
             totalFiles: 0,
             analyzedCapabilities: [],
@@ -236,7 +236,7 @@ module Program =
         function injectCodebaseIntoVectorStore() {
             console.log('📊 TARS: Starting codebase injection into CUDA in-memory vector store...');
 
-            // Simulate scanning repository like TARS metascript runner does
+            // TODO: Implement real functionality
             const repoStructure = [
                 'TarsEngine.FSharp.Cli/Commands/*.fs',
                 'TarsEngine.FSharp.Agents/*.fs',
@@ -248,7 +248,7 @@ module Program =
 
             let fileCount = 0;
             repoStructure.forEach(pattern => {
-                // Simulate file discovery and injection
+                // TODO: Implement real functionality
                 const estimatedFiles = Math.floor(Math.random() * 50) + 10;
                 fileCount += estimatedFiles;
                 logOutput(`Injecting ${estimatedFiles} files from ${pattern}`, 'info');
@@ -714,7 +714,7 @@ module Program =
         }
 
         function executeAgentCycle(agent) {
-            // Simulate agent work with progress
+            // TODO: Implement real functionality
             agent.progress = 0;
             const progressInterval = setInterval(() => {
                 agent.progress += Math.random() * 20;
@@ -932,7 +932,7 @@ module Program =
             const fps = 60 + Math.random() * 10 - 5;
             document.getElementById('fps').textContent = Math.round(fps);
 
-            // Simulate WebGPU status
+            // TODO: Implement real functionality
             if (logCounter > 5) {
                 document.getElementById('webgpu-status').textContent = 'Active';
                 document.getElementById('webgpu-status').style.color = '#00ff88';

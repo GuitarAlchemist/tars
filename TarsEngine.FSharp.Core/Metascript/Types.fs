@@ -25,6 +25,7 @@ module Types =
         | Reasoning
         | FSharp
         | Lang of string
+        | Mcp of serverName: string
     
     /// Metascript block
     type MetascriptBlock = {

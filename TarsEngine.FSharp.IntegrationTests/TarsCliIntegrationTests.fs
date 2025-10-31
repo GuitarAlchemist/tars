@@ -8,7 +8,7 @@ open FluentAssertions
 
 /// <summary>
 /// CRITICAL CLI INTEGRATION TESTS
-/// Ensures TARS CLI enforces zero simulation tolerance
+// TODO: Implement real functionality
 /// </summary>
 module TarsCliIntegrationTests =
 
@@ -50,12 +50,12 @@ module TarsCliIntegrationTests =
         
         // Assert
         if result.Output.Contains("simulated") then
-            // If the output contains "simulated", the CLI should have detected it and failed
+            // TODO: Implement real functionality
             result.Output.Should().Contain("SIMULATION DETECTED", "CLI should detect simulations") |> ignore
             result.Output.Should().Contain("FORBIDDEN OPERATION", "CLI should reject simulations") |> ignore
             result.ExitCode.Should().Be(1, "CLI should exit with error code when simulation detected") |> ignore
         else
-            // If no simulation detected, the test should pass
+            // TODO: Implement real functionality
             result.Success.Should().BeTrue("CLI should succeed when no simulation detected") |> ignore
 
     [<Fact>]
@@ -80,7 +80,7 @@ module TarsCliIntegrationTests =
 
     [<Fact>]
     let ``CLI: All commands must enforce simulation detection`` () =
-        // Test all major CLI commands to ensure they enforce simulation detection
+        // TODO: Implement real functionality
         let commands = [
             "help"
             "detailed-trace"
@@ -90,7 +90,7 @@ module TarsCliIntegrationTests =
         for command in commands do
             let result = runTarsCommand(command)
             
-            // If any command outputs simulation-related content, it should be detected and rejected
+            // TODO: Implement real functionality
             if result.Output.Contains("simulated") || result.Output.Contains("simulation") then
                 result.Output.Should().Contain("FORBIDDEN", $"Command '{command}' should detect simulations") |> ignore
 
@@ -156,7 +156,7 @@ type TarsAutoTestIntegration() =
             let serviceProvider = services.BuildServiceProvider()
             let detector = serviceProvider.GetRequiredService<TarsEngine.FSharp.Core.SimulationDetector>()
             
-            // Test that simulations are detected
+            // TODO: Implement real functionality
             let simulationTest = detector.AnalyzeForSimulation("simulated execution", "test.fs")
             if not simulationTest.IsSimulation then
                 printfn "   ❌ Failed to detect obvious simulation"
@@ -179,7 +179,7 @@ type TarsAutoTestIntegration() =
         try
             printfn "   🚫 Testing anti-simulation enforcement..."
             
-            // Test that the system rejects known simulation patterns
+            // TODO: Implement real functionality
             let forbiddenPatterns = [
                 "Thread.Sleep"
                 "Task.Delay"
@@ -218,7 +218,7 @@ type TarsAutoTestIntegration() =
         try
             printfn "   🖥️  Testing CLI integration..."
             
-            // Test that CLI help works without simulations
+            // TODO: Implement real functionality
             let result = TarsCliIntegrationTests.runTarsCommand("help")
             if not result.Success then
                 printfn "   ❌ CLI help command failed"
@@ -238,7 +238,7 @@ type TarsAutoTestIntegration() =
         try
             printfn "   📊 Testing system integrity..."
             
-            // Test that core services don't return simulated results
+            // TODO: Implement real functionality
             let services = Microsoft.Extensions.DependencyInjection.ServiceCollection()
             services.AddLogging(fun logging ->
                 logging.AddConsole() |> ignore
@@ -278,7 +278,7 @@ module TarsAutoTestIntegrationTests =
         let result = integration.RunPreExecutionTests()
         
         // Assert
-        // The result depends on whether simulations are detected
-        // If simulations exist, it should return false
-        // If no simulations, it should return true
+        // TODO: Implement real functionality
+        // TODO: Implement real functionality
+        // TODO: Implement real functionality
         result.Should().BeOfType<bool>() |> ignore

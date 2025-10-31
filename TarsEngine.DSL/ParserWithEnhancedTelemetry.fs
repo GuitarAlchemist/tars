@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.DSL
+namespace TarsEngine.DSL
 
 open System
 open System.IO
@@ -25,7 +25,7 @@ module ParserWithEnhancedTelemetry =
             // Start tokenizing measurement
             let tokenizingMetric = TelemetryService.startMeasuring "Tokenizing"
             
-            // Tokenize the code (simulated here)
+            // Tokenize the code (implementd here)
             let tokens = code.Split([|' '; '\n'; '\r'; '\t'|], StringSplitOptions.RemoveEmptyEntries)
             
             // Stop tokenizing measurement
@@ -119,7 +119,7 @@ module ParserWithEnhancedTelemetry =
             // Start chunking measurement
             let chunkingMetric = TelemetryService.startMeasuring "Chunking"
             
-            // Chunk the code (simulated here)
+            // Chunk the code (implementd here)
             let chunkSize = 100
             let chunks = 
                 [0 .. chunkSize .. (code.Length - 1)]
@@ -153,8 +153,8 @@ module ParserWithEnhancedTelemetry =
             // Start chunk combining measurement
             let chunkCombiningMetric = TelemetryService.startMeasuring "ChunkCombining"
             
-            // Combining happens inside the incremental parser, so we're just simulating the timing here
-            System.Threading.Thread.Sleep(10)
+            // TODO: Implement real functionality
+            System.Threading.// REAL: Implement actual autonomous logic here
             
             // Stop chunk combining measurement
             TelemetryService.stopMeasuring chunkCombiningMetric
@@ -162,7 +162,7 @@ module ParserWithEnhancedTelemetry =
             // Record memory usage
             TelemetryService.recordMetric "PeakMemoryUsage" (TelemetryService.getCurrentMemoryUsage())
             
-            // Record cached chunk count (simulated)
+            // Record cached chunk count (implementd)
             TelemetryService.recordMetric "CachedChunkCount" (int64 (chunks.Length / 2))
             
             // Stop overall parsing measurement

@@ -3,7 +3,7 @@
 // Provides persistent storage for distributed beliefs and decomposed problems
 //
 // HONEST ASSESSMENT: This integrates with existing vector store patterns
-// found in the codebase, not simulated capabilities.
+// TODO: Implement real functionality
 
 module TarsVectorStoreIntegration
 
@@ -94,7 +94,7 @@ type TarsTetraVectorStore(logger: ILogger) =
             Error ex.Message
     
     /// HONEST: Retrieve documents by geometric proximity in tetralite space
-    /// Uses actual geometric distance calculations, not simulated
+    // TODO: Implement real functionality
     member this.RetrieveByGeometricProximity(queryPosition: TetraPosition, maxDistance: float, maxResults: int) =
         let startTime = DateTime.UtcNow
         

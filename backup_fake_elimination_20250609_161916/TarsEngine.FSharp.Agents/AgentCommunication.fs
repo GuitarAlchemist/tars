@@ -150,7 +150,7 @@ module AgentCommunication =
             this.SendMessageAsync(message)
         
         /// Get message stream for this agent
-        member this.GetMessageStream() = Seq.empty<AgentMessage> // Placeholder implementation
+        member this.GetMessageStream() = Seq.empty<AgentMessage> // TODO: Implement real functionality
         
         /// Reply to a message
         member this.ReplyToAsync(originalMessage: AgentMessage, response: obj) =

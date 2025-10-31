@@ -33,23 +33,23 @@ module GameTheoryElmishServices =
     /// Implementation of game theory analysis service
     type GameTheoryAnalysisService() =
         
-        /// Simulate multi-agent analysis
+        // TODO: Implement real functionality
         let simulateAgentAnalysis (model: GameTheoryModel) (agentCount: int) : Async<AgentUIState list> =
             async {
                 let random = Random()
                 return [
                     for i in 1..agentCount do
-                        let agentId = sprintf "Agent_%d" i
+                        let agentId = $"Agent_%d{i}"
                         let performance = 0.3 + (random.NextDouble() * 0.7)
                         let confidence = 0.4 + (random.NextDouble() * 0.6)
                         
                         yield {
                             AgentId = agentId
-                            CurrentStrategy = sprintf "%A" model
+                            CurrentStrategy = $"%A{model}"
                             ConfidenceLevel = confidence
                             RecentActions = [
-                                sprintf "Action_%d" (random.Next(1, 10))
-                                sprintf "Decision_%d" (random.Next(1, 10))
+                                $"Action_%d{random.Next(1000)}"
+                                $"Decision_%d{random.Next(1000)}"
                             ]
                             PerformanceScore = performance
                             GameTheoryModel = model
@@ -72,7 +72,7 @@ module GameTheoryElmishServices =
                     else activeAgents |> List.averageBy (_.ConfidenceLevel)
                 
                 let coordination = (avgPerformance + avgConfidence) / 2.0
-                let trend = Random().NextDouble() * 0.2 - 0.1 // Simulate trend
+                let trend = Random().NextDouble() * 0.2 - 0.1 // TODO: Implement real functionality
                 
                 return {
                     AverageCoordination = coordination
@@ -94,11 +94,11 @@ module GameTheoryElmishServices =
         /// Run comprehensive game theory analysis
         let runComprehensiveAnalysis (analysisType: string) : Async<string list> =
             async {
-                // Simulate analysis delay
-                do! Async.Sleep(2000)
-                
+                // TODO: Implement real functionality
+                do! Async.Sleep(100) // REAL: Implement actual logic here
+
                 return [
-                    sprintf "🎯 Analysis Type: %s" analysisType
+                    $"🎯 Analysis Type: %s{analysisType}"
                     "📊 Multi-agent coordination analysis completed"
                     "🎲 Game theory models evaluated: QRE, Cognitive Hierarchy, No-Regret Learning"
                     "⚖️ Equilibrium analysis: Nash, Correlated, Evolutionary"
@@ -131,7 +131,7 @@ module GameTheoryElmishServices =
                             before = agent.ConfidenceLevel - 0.1
                             after = agent.ConfidenceLevel
                             delta = 0.1
-                            model_influence = sprintf "%A" model
+                            model_influence = $"%A{model}"
                         }
                         decisions = [
                             {
@@ -141,7 +141,7 @@ module GameTheoryElmishServices =
                                 regret = 0.05
                                 cognitive_level = Some 2
                                 context = "sample_context"
-                                game_theory_model = sprintf "%A" model
+                                game_theory_model = $"%A{model}"
                                 belief_state = Map.ofList [("confidence", agent.ConfidenceLevel); ("performance", agent.PerformanceScore)]
                             }
                         ]
@@ -157,7 +157,7 @@ module GameTheoryElmishServices =
             member _.StartRealTimeUpdates dispatch =
                 let timer = new System.Timers.Timer(1000.0)
                 timer.Elapsed.Add(fun _ -> 
-                    // Simulate real-time updates
+                    // TODO: Implement real functionality
                     let random = Random()
                     if random.NextDouble() > 0.7 then
                         dispatch (Tick DateTime.UtcNow)
@@ -180,9 +180,8 @@ module GameTheoryElmishServices =
                 
             member _.SaveAnalysisResults results =
                 async {
-                    // Simulate saving results
-                    printfn "💾 Saving analysis results: %d items" results.Length
-                    do! Async.Sleep(500)
+                    printfn $"💾 Saving analysis results: %d{results.Length} items"
+                    do! Async.Sleep(100) // Simulate save operation
                 }
 
     /// Implementation of 3D visualization service
@@ -192,13 +191,13 @@ module GameTheoryElmishServices =
             member _.InitializeThreeJsScene containerId =
                 async {
                     // This would integrate with Three.js via JavaScript interop
-                    printfn "🌌 Initializing Three.js scene in container: %s" containerId
-                    do! Async.Sleep(1000)
+                    printfn $"🌌 Initializing Three.js scene in container: %s{containerId}"
+                    do! Async.Sleep(200) // Simulate scene initialization
                 }
                 
             member _.UpdateAgentPositions positions =
                 async {
-                    printfn "📍 Updating %d agent positions in 3D space" positions.Count
+                    printfn $"📍 Updating %d{positions.Count} agent positions in 3D space"
                     // Update Three.js scene with new positions
                 }
                 
@@ -210,7 +209,7 @@ module GameTheoryElmishServices =
                 
             member _.AnimateCoordinationFlow connections =
                 async {
-                    printfn "🔗 Animating %d coordination connections" connections.Length
+                    printfn $"🔗 Animating %d{connections.Length} coordination connections"
                     // Animate connection strengths between agents
                 }
 
@@ -283,7 +282,7 @@ module GameTheoryElmishServices =
         | StartAnalysis analysisType ->
             let newState = { state with CurrentAnalysis = Some analysisType; IsLoading = true; ErrorMessage = None }
             // In a real implementation, this would trigger async analysis
-            printfn "🔄 Starting analysis: %s" analysisType
+            printfn $"🔄 Starting analysis: %s{analysisType}"
             newState, Cmd.none
 
         | RefreshAllData ->
@@ -295,7 +294,7 @@ module GameTheoryElmishServices =
         | ChangeGameTheoryModel model ->
             let updatedVisualization = { state.Visualization with SelectedModel = Some model }
             let newState = { state with Visualization = updatedVisualization }
-            printfn "🎲 Changed game theory model to: %A" model
+            printfn $"🎲 Changed game theory model to: %A{model}"
             newState, Cmd.none
 
         | ToggleInterstellarMode ->

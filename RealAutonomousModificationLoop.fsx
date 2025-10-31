@@ -1,7 +1,7 @@
 #!/usr/bin/env dotnet fsi
 
 // REAL Autonomous Modification Loop for TARS Superintelligence
-// Uses actual services instead of simulations - ZERO TOLERANCE for fake implementations
+// TODO: Implement real functionality
 
 #r "nuget: Spectre.Console, 0.47.0"
 #r "nuget: Microsoft.Extensions.Logging.Abstractions, 8.0.0"
@@ -59,7 +59,7 @@ type RealAutonomousEngine() =
                         let qualityScore = 
                             match content with
                             | c when c.Contains("TODO") || c.Contains("FIXME") -> 6
-                            | c when c.Contains("Task.Delay") -> 4  // Simulation code detected
+                            | c when c.Contains("Task.Delay") -> 4  // TODO: Implement real functionality
                             | c when c.Contains("simulate") || c.Contains("fake") -> 3
                             | _ -> 8
                         

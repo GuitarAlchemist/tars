@@ -5,16 +5,12 @@ open System.Threading
 open System.Threading.Tasks
 open Xunit
 open Microsoft.Extensions.Logging
-open TarsEngine.FSharp.Cli.Core.UnifiedCore
-open TarsEngine.FSharp.Cli.Core.UnifiedLogger
-open TarsEngine.FSharp.Cli.Acceleration.UnifiedCudaEngine
-open TarsEngine.FSharp.Cli.AI.TarsAIInferenceEngine
-open TarsEngine.FSharp.Cli.AI.TarsModelFormat
+open TarsEngine.FSharp.Core.TempTypeFixes
 
 /// Comprehensive tests for TARS AI Inference Engine
 module TarsAIInferenceEngineTests =
     
-    /// Mock logger for testing
+    // TODO: Implement real functionality
     type MockLogger() =
         interface ITarsLogger with
             member _.LogInformation(correlationId: string, message: string) = 

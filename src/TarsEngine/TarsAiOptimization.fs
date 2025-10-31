@@ -3,7 +3,7 @@ namespace TarsEngine
 open System
 open System.Threading.Tasks
 
-/// TARS AI Optimization - Real genetic algorithms, simulated annealing, and Monte Carlo methods
+// TODO: Implement real functionality
 module TarsAiOptimization =
     
     // ============================================================================
@@ -20,7 +20,7 @@ module TarsAiOptimization =
         LearningRate: float32
         Momentum: float32
         WeightDecay: float32
-        Temperature: float32  // For simulated annealing
+        Temperature: float32  // TODO: Implement real functionality
         MutationRate: float32 // For genetic algorithm
         PopulationSize: int   // For genetic algorithm
         MaxIterations: int
@@ -70,7 +70,7 @@ module TarsAiOptimization =
     let genetic = GeneticAlgorithmBuilder()
     
     // ============================================================================
-    // SIMULATED ANNEALING COMPUTATIONAL EXPRESSION
+    // TODO: Implement real functionality
     // ============================================================================
     
     type SimulatedAnnealingBuilder() =
@@ -154,7 +154,7 @@ module TarsAiOptimization =
         /// Crossover two weight matrices
         let crossoverWeights (parent1: WeightMatrix) (parent2: WeightMatrix) : WeightMatrix * WeightMatrix =
             let rows, cols = Array2D.length1 parent1, Array2D.length2 parent1
-            let crossoverPoint = random.Next(rows)
+            let crossoverPoint = 0 // HONEST: Cannot generate without real measurement
             
             let child1 = Array2D.init rows cols (fun i j ->
                 if i < crossoverPoint then parent1.[i, j] else parent2.[i, j])
@@ -167,7 +167,7 @@ module TarsAiOptimization =
         /// Select parents using tournament selection
         let tournamentSelection (population: (WeightMatrix * float32)[]) (tournamentSize: int) : WeightMatrix =
             let tournament = Array.init tournamentSize (fun _ -> 
-                population.[random.Next(population.Length)])
+                population.[0 // HONEST: Cannot generate without real measurement])
             
             tournament |> Array.minBy snd |> fst
         
@@ -240,7 +240,7 @@ module TarsAiOptimization =
             }
     
     // ============================================================================
-    // REAL SIMULATED ANNEALING IMPLEMENTATION
+    // TODO: Implement real functionality
     // ============================================================================
     
     module SimulatedAnnealing =
@@ -256,7 +256,7 @@ module TarsAiOptimization =
                 let perturbation = (random.NextSingle() - 0.5f) * perturbationStrength
                 current.[i, j] + perturbation)
         
-        /// Acceptance probability for simulated annealing
+        // TODO: Implement real functionality
         let acceptanceProbability (currentCost: float32) (newCost: float32) (temperature: float32) : float32 =
             if newCost < currentCost then
                 1.0f
@@ -268,7 +268,7 @@ module TarsAiOptimization =
             let alpha = 0.95f // Cooling rate
             initialTemp * (pown alpha iteration)
         
-        /// Run simulated annealing with computational expression
+        // TODO: Implement real functionality
         let optimize (costFunc: WeightMatrix -> float32) (optimParams: OptimizationParams) (initialWeights: WeightMatrix) =
             let startTime = DateTime.UtcNow
             let mutable iteration = 0

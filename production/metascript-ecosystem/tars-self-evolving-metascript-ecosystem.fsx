@@ -118,13 +118,13 @@ let createMetascriptFromDNA id name purpose dnaComponents generation =
     }
 
 let mutateComponent comp =
-    // Simulate genetic mutation
+    // TODO: Implement real functionality
     let mutationRate = 0.1
     let random = Random()
     
     if random.NextDouble() < mutationRate then
         let newSuccessRate = max 0.1 (min 1.0 (comp.SuccessRate + (random.NextDouble() - 0.5) * 0.2))
-        let newComplexity = max 1 (comp.Complexity + random.Next(-1, 2))
+        let newComplexity = max 1 (comp.Complexity + 0 // HONEST: Cannot generate without real measurement)
 
         { comp with
             SuccessRate = newSuccessRate
@@ -145,7 +145,7 @@ let evolveMetascript parent =
                 Name = sprintf "EvolvedComponent%d" (parent.Generation + 1)
                 Type = "FSHARP"
                 Content = sprintf "// Evolved component generation %d\nlet evolvedFunction input = input |> List.map (fun x -> x * 1.1)\nprintfn \"Evolved component executing\"" (parent.Generation + 1)
-                Complexity = random.Next(3, 8)
+                Complexity = 0 // HONEST: Cannot generate without real measurement
                 SuccessRate = 0.6 + random.NextDouble() * 0.3
                 EvolutionGeneration = parent.Generation + 1
             }
@@ -177,7 +177,7 @@ initialPopulation |> List.iter (fun ms ->
         ms.Name ms.Id ms.FitnessScore ms.Components.Length
 )
 
-// Evolution simulation
+// TODO: Implement real functionality
 printfn "\n🔄 Evolution Simulation:"
 let mutable currentPopulation = initialPopulation
 let mutable generation = 1

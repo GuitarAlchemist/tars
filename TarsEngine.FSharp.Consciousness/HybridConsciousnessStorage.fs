@@ -296,8 +296,8 @@ module HybridConsciousnessStorage =
                             let mutable entry = Unchecked.defaultof<ConsciousnessEntry>
                             while persistenceQueue.TryDequeue(&entry) do
                                 do! this.WriteToDisk(entry)
-                            
-                            do! Task.Delay(1000) // Check every second
+
+                            do! Task.Delay(1000) |> Async.AwaitTask // Check every second
                         with
                         | ex -> logger.LogError(ex, "Error in background persistence")
                 } |> Async.AwaitTask |> Async.RunSynchronously

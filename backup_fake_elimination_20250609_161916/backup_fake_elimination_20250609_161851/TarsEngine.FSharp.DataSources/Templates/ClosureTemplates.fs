@@ -1,6 +1,6 @@
-// ClosureTemplates.fs - Auto-generated placeholder
+// TODO: Implement real functionality
 // TODO: Implement ClosureTemplates functionality
 
 namespace TarsEngine.FSharp.DataSources.Templates
 
-// Placeholder for ClosureTemplates implementation
+// TODO: Implement real functionality

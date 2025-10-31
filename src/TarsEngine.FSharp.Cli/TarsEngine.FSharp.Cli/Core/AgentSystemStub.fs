@@ -95,7 +95,7 @@ module AgentSystem =
             RequestId = requestId
         }
 
-        // For now, just simulate message sending
+        // TODO: Implement real functionality
         printfn "📤 Message sent: %s -> %s (%s)" fromAgent toAgent messageType
 
     /// Request agent capability
@@ -113,8 +113,8 @@ module AgentSystem =
                 RequestId = requestId
             }
 
-            // Simulate capability execution
-            do! Task.Delay(100)
+            // TODO: Implement real functionality
+            do! Task.Delay(1) // Placeholder async operation
             
             let response = {
                 RequestId = requestId
@@ -124,7 +124,7 @@ module AgentSystem =
                 ProcessingTime = TimeSpan.FromMilliseconds(100.0)
             }
 
-            return response
+            response
         }
 
     /// Shutdown orchestrator

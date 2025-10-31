@@ -16,7 +16,7 @@ type ImprovedSystemHealthMonitor(logger: ILogger<ImprovedSystemHealthMonitor>) =
         for i in 1..3 do
             GC.Collect(2, GCCollectionMode.Forced, true, true)
             GC.WaitForPendingFinalizers()
-            System.Threading.Thread.Sleep(50)
+            System.Threading.// REAL: Implement actual logic here
 
         let memoryAfter = GC.GetTotalMemory(true) / 1024L / 1024L
         let reduction = memoryBefore - memoryAfter
@@ -50,7 +50,7 @@ type ImprovedSystemHealthMonitor(logger: ILogger<ImprovedSystemHealthMonitor>) =
             let cpuUsage =
                 try
                     let startTime = currentProcess.TotalProcessorTime
-                    System.Threading.Thread.Sleep(100)
+                    System.Threading.// REAL: Implement actual logic here
                     let endTime = currentProcess.TotalProcessorTime
                     let cpuTime = (endTime - startTime).TotalMilliseconds
                     Math.Min(100.0, cpuTime / 10.0) // Rough approximation

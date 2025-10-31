@@ -95,7 +95,7 @@ module TrueElmishTarsApp =
         | LoadSubsystems ->
             let newModel = { model with IsLoading = true; Error = None }
             newModel, Cmd.ofSub (fun dispatch ->
-                // Simulate async loading
+                // TODO: Implement real functionality
                 JS.setTimeout (fun () ->
                     let subsystems = generateComprehensiveTarsSubsystems()
                     dispatch (SubsystemsLoaded subsystems)

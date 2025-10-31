@@ -137,19 +137,19 @@ type NotebookDiscoveryService(httpClient: HttpClient) =
     
     /// Search Kaggle for notebooks
     member private _.SearchKaggleAsync(criteria: SearchCriteria) : Async<DiscoveredNotebook list> = async {
-        // Kaggle search implementation (placeholder)
+        // TODO: Implement real functionality
         return []
     }
     
     /// Search Google Colab for notebooks
     member private _.SearchColabAsync(criteria: SearchCriteria) : Async<DiscoveredNotebook list> = async {
-        // Google Colab search implementation (placeholder)
+        // TODO: Implement real functionality
         return []
     }
     
     /// Search NBViewer for notebooks
     member private _.SearchNBViewerAsync(criteria: SearchCriteria) : Async<DiscoveredNotebook list> = async {
-        // NBViewer search implementation (placeholder)
+        // TODO: Implement real functionality
         return []
     }
     

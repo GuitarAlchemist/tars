@@ -178,7 +178,7 @@ let ``FLUX should handle React hooks-inspired effects`` () =
     let engine = FluxExecutionEngine()
     engine.EnableTypeProviders()
     
-    // Simulate React hooks-inspired effects in FLUX
+    // TODO: Implement real functionality
     let effectCode = """
     let useEffect (effect: unit -> unit) (dependencies: 'a list) =
         // FLUX effect system with dependency tracking

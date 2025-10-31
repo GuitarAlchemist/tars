@@ -84,7 +84,7 @@ module KanbanEngine =
         /// Get work items in a specific column
         member _.GetWorkItemsInColumn(board: KanbanBoard, columnId: Guid) =
             // This would typically query the work items by status/column
-            // For now, returning empty list as placeholder
+            // TODO: Implement real functionality
             []
         
         /// Calculate flow metrics for the board
@@ -113,9 +113,9 @@ module KanbanEngine =
                 LeadTime = averageLeadTime
                 CycleTime = averageLeadTime // Simplified - would calculate actual cycle time
                 Throughput = throughput
-                WipUtilization = 0.75 // Placeholder calculation
+                WipUtilization = 0.75 // TODO: Implement real functionality
                 BlockedTime = TimeSpan.Zero // Would calculate from blocked items
-                FlowEfficiency = 0.65 // Placeholder calculation
+                FlowEfficiency = 0.65 // TODO: Implement real functionality
             }
         
         /// Detect WIP limit violations
@@ -142,14 +142,14 @@ module KanbanEngine =
             board.Columns
             |> List.map (fun column ->
                 let itemsInColumn = this.GetWorkItemsInColumn(board, column.Id)
-                let averageWaitTime = TimeSpan.FromHours(2.5) // Placeholder calculation
+                let averageWaitTime = TimeSpan.FromHours(2.5) // TODO: Implement real functionality
                 
                 {
                     ColumnId = column.Id
                     ColumnName = column.Name
                     AverageWaitTime = averageWaitTime
                     QueueLength = itemsInColumn.Length
-                    ThroughputImpact = 0.15 // Placeholder calculation
+                    ThroughputImpact = 0.15 // TODO: Implement real functionality
                     Recommendations = [
                         if itemsInColumn.Length > 5 then "Consider increasing team capacity"
                         if averageWaitTime > TimeSpan.FromDays(2) then "Review and optimize process"

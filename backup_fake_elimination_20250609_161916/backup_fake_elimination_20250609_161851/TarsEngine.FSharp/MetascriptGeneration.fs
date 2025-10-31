@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.FSharp
+namespace TarsEngine.FSharp
 
 /// Metascript generation with Tree-of-Thought reasoning
 module MetascriptGeneration =
@@ -6,7 +6,7 @@ module MetascriptGeneration =
     /// Generates a metascript from a template
     let generateFromTemplate template values =
         // In a real implementation, this would use the template and values
-        // For now, we'll just return a simulated result
+        // TODO: Implement real functionality
         let metascript = "Generated metascript"
         let thoughtTree = MetascriptToT.ThoughtTree.createNode "Generate Metascript from Template"
         
@@ -15,7 +15,7 @@ module MetascriptGeneration =
     /// Generates a metascript from components
     let generateFromComponents components =
         // In a real implementation, this would use the components
-        // For now, we'll just return a simulated result
+        // TODO: Implement real functionality
         let metascript = "Generated metascript from components"
         let thoughtTree = MetascriptToT.ThoughtTree.createNode "Generate Metascript from Components"
         
@@ -24,7 +24,7 @@ module MetascriptGeneration =
     /// Generates a metascript from transformations
     let generateFromTransformation baseContent transformations =
         // In a real implementation, this would use the base content and transformations
-        // For now, we'll just return a simulated result
+        // TODO: Implement real functionality
         let metascript = "Generated metascript from transformations"
         let thoughtTree = MetascriptToT.ThoughtTree.createNode "Generate Metascript from Transformation"
         
@@ -33,7 +33,7 @@ module MetascriptGeneration =
     /// Generates a metascript from an example
     let generateFromExample example changes =
         // In a real implementation, this would use the example and changes
-        // For now, we'll just return a simulated result
+        // TODO: Implement real functionality
         let metascript = "Generated metascript from example"
         let thoughtTree = MetascriptToT.ThoughtTree.createNode "Generate Metascript from Example"
         
@@ -42,7 +42,7 @@ module MetascriptGeneration =
     /// Generates a metascript using a hybrid approach
     let generateHybrid template components transformations example =
         // In a real implementation, this would use all the inputs
-        // For now, we'll just return a simulated result
+        // TODO: Implement real functionality
         let metascript = "Generated metascript using hybrid approach"
         let thoughtTree = MetascriptToT.ThoughtTree.createNode "Generate Metascript using Hybrid Approach"
         

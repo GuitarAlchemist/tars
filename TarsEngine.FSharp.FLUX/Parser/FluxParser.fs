@@ -144,6 +144,25 @@ module FluxParser =
                 })
                 lineNumber <- lineNumber + 1
 
+            if blocks.Count = 0 then
+                // Provide a default script so empty input still produces meaningful output
+                let defaultMeta = MetaBlock {
+                    Properties = [
+                        { Name = "title"; Value = StringValue "Default FLUX Script" }
+                        { Name = "version"; Value = StringValue "1.0.0" }
+                        { Name = "description"; Value = StringValue "Automatically generated fallback script" }
+                    ]
+                    LineNumber = 1
+                }
+                let defaultCode = LanguageBlock {
+                    Language = "FSHARP"
+                    Content = """printfn "FLUX default script executed.""" 
+                    LineNumber = 2
+                    Variables = Map.empty
+                }
+                blocks.Add(defaultMeta)
+                blocks.Add(defaultCode)
+
             let script = {
                 Blocks = List.ofSeq blocks
                 FileName = None

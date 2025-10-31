@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.FSharp.Metascripts.Services
+namespace TarsEngine.FSharp.Metascripts.Services
 
 open System
 open System.IO
@@ -342,7 +342,7 @@ type MetascriptService(
 
         sections |> Seq.toList
 
-    // Execute F# code using REAL F# Interactive - NO MORE FAKE CODE!
+    // TODO: Implement real functionality
     member private this.executeFSharpCode (code: string) (variables: Map<string, obj>) =
         task {
             try

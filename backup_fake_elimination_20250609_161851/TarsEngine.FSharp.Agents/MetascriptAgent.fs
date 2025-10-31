@@ -374,8 +374,8 @@ module MetascriptAgent =
                 logger.LogInformation("└── BLOCK: Save and Validate")
                 logger.LogInformation("")
 
-                // Simulate detailed PowerPoint generation with F# function tracing
-                do! Task.Delay(1200, cancellationToken) // Simulate OpenXML operations
+                // TODO: Implement real functionality
+                do! Task.Delay(1200, cancellationToken) // TODO: Implement real functionality
 
                 let slideCount = 10
                 let timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss")
@@ -485,14 +485,14 @@ module MetascriptAgent =
                 logger.LogInformation("└── Quality Gate 4: Compatibility testing")
                 logger.LogInformation("")
 
-                do! Task.Delay(300, cancellationToken) // Simulate QA validation
+                do! Task.Delay(300, cancellationToken) // TODO: Implement real functionality
 
                 // Quality Gate 1: File Existence and Size
                 let fileExists = File.Exists(filePath)
                 let fileSize = if fileExists then (FileInfo(filePath)).Length else 0L
                 let validSize = fileSize > 1024L && fileSize < 52428800L // 1KB to 50MB
 
-                // Quality Gate 2: Format Validation (simulated)
+                // TODO: Implement real functionality
                 let isValidFormat = fileExists && validSize
                 let slideCount = if isValidFormat then 10 else 0
 

@@ -546,7 +546,7 @@ let createGeneticAlgorithmOptimizer populationSize mutationRate crossoverRate se
                             |> List.pairwise
                             |> List.map (fun (parent1, parent2) ->
                                 if random.NextDouble() < crossoverRate then
-                                    let crossoverPoint = random.Next(geneLength)
+                                    let crossoverPoint = 0 // HONEST: Cannot generate without real measurement
                                     Array.concat [
                                         parent1.[0..crossoverPoint-1]
                                         parent2.[crossoverPoint..]
@@ -661,7 +661,7 @@ let createQLearningAgent stateSpace actionSpace learningRate discountFactor expl
                 return fun state ->
                     if random.NextDouble() < explorationRate then
                         // Explore: random action
-                        random.Next(actionSpace.Length)
+                        0 // HONEST: Cannot generate without real measurement
                     else
                         // Exploit: best known action
                         [0..actionSpace.Length-1]

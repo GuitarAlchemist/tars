@@ -1,187 +1,123 @@
-C:\Users\spare\source\repos\tars\TarsEngine.FSharp.Metascript\TarsEngine.FSharp.Metascript.fsproj : warning NU1608: Detected package version outside of dependency constraint: FSharp.Compiler.Service 43.8.400 requires FSharp.Core (= 8.0.400) but version FSharp.Core 9.0.300 was resolved. [C:\Users\spare\source\repos\tars\TarsEngine.FSharp.Metascript.Runner\TarsEngine.FSharp.Metascript.Runner.fsproj]
-C:\Users\spare\source\repos\tars\TarsEngine.FSharp.Metascript\TarsEngine.FSharp.Metascript.fsproj : warning NU1608: Detected package version outside of dependency constraint: FSharp.Compiler.Service 43.8.400 requires FSharp.Core (= 8.0.400) but version FSharp.Core 9.0.300 was resolved.
-info: TarsApiRegistry[0]
-      TarsApiRegistry.Register: Registering TARS Engine API instance
-info: TarsApiRegistry[0]
-      TarsApiRegistry.Register: TARS Engine API successfully registered
-info: TarsApiRegistry[0]
-      TarsApiFactory.InitializeRegistry: TARS API registry initialized successfully
-info: TarsEngine.FSharp.Core.Metascript.Services.MetascriptService[0]
-      MetascriptService: TARS API Registry initialized
-info: TarsEngine.FSharp.Core.Metascript.Services.MetascriptService[0]
-      Executing metascript with REAL F# execution - NO SIMULATION
-info: TarsEngine.FSharp.Core.Metascript.Services.MetascriptService[0]
-      Reading metascript from file: .tars/test_real_implementations.trsx
-info: TarsEngine.FSharp.Core.Metascript.Services.MetascriptService[0]
-      Parsing metascript for F# code blocks
-info: TarsEngine.FSharp.Core.Metascript.Services.MetascriptService[0]
-      Parsing 158 lines for F# blocks
-info: TarsEngine.FSharp.Core.Metascript.Services.MetascriptService[0]
-      Found F# block start at line 4: FSHARP {
-info: TarsEngine.FSharp.Core.Metascript.Services.MetascriptService[0]
-      Extracted 1 F# blocks
-info: TarsEngine.FSharp.Core.Metascript.Services.MetascriptService[0]
-      Found 1 F# code blocks, executing...
-info: TarsEngine.FSharp.Core.Metascript.Services.MetascriptService[0]
-      Executing F# block 1
-info: TarsEngine.FSharp.Core.Metascript.Services.MetascriptService[0]
-      Executing basic F# expression
-info: TarsEngine.FSharp.Core.Metascript.Services.MetascriptService[0]
-      F# block 1 executed successfully
-info: TarsEngine.FSharp.Core.Metascript.Services.MetascriptService[0]
-      Metascript execution completed with 1 blocks
-Metascript execution completed.
-Status: SUCCESS
-Output:
-Block 1: F# code executed: open System
-    open System.Runtime.InteropServices
-    open System.IO
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Tars.Engine.VectorStore -> C:\Users\spare\source\repos\tars\Tars.Engine.VectorStore\bin\Release\net9.0\Tars.Engine.VectorStore.dll
+  TarsEngine.FSharp.Metascript -> C:\Users\spare\source\repos\tars\TarsEngine.FSharp.Metascript\bin\Release\net9.0\TarsEngine.FSharp.Metascript.dll
+  TarsEngine.DSL -> C:\Users\spare\source\repos\tars\TarsEngine.DSL\bin\Release\net9.0\TarsEngine.DSL.dll
+  Tars.Engine.Grammar -> C:\Users\spare\source\repos\tars\Tars.Engine.Grammar\bin\Release\net9.0\Tars.Engine.Grammar.dll
+  TarsEngine.FSharp.Core -> C:\Users\spare\source\repos\tars\TarsEngine.FSharp.Core\bin\Release\net9.0\TarsEngine.FSharp.Core.dll
+  TarsEngine.FSharp.Metascript.Standalone -> C:\Users\spare\source\repos\tars\TarsEngine.FSharp.Metascript.Standalone\bin\Release\net9.0\TarsEngine.FSharp.Metascript.Standalone.dll
+  TarsEngine.FSharp.SelfBuildingUI -> C:\Users\spare\source\repos\tars\TarsEngine.FSharp.SelfBuildingUI\bin\Release\net9.0\TarsEngine.FSharp.SelfBuildingUI.dll
+  TarsEngine.FSharp.Metascripts -> C:\Users\spare\source\repos\tars\TarsEngine.FSharp.Metascripts\bin\Release\net9.0\TarsEngine.FSharp.Metascripts.dll
+  TarsEngine.FSharp.SelfImprovement -> C:\Users\spare\source\repos\tars\TarsEngine.FSharp.SelfImprovement\bin\Release\net9.0\TarsEngine.FSharp.SelfImprovement.dll
+  TarsEngine.FSharp.ML -> C:\Users\spare\source\repos\tars\TarsEngine.FSharp.ML\bin\Release\net9.0\TarsEngine.FSharp.ML.dll
+  TarsEngine.FSharp.Metascript.Console -> C:\Users\spare\source\repos\tars\TarsEngine.FSharp.Metascript.Console\bin\Release\net9.0\TarsEngine.FSharp.Metascript.Console.dll
+  Tars.Engine.VectorStore.Tests -> C:\Users\spare\source\repos\tars\Tars.Engine.VectorStore.Tests\bin\Release\net9.0\Tars.Engine.VectorStore.Tests.dll
+  Tars.Engine.Grammar.Tests -> C:\Users\spare\source\repos\tars\Tars.Engine.Grammar.Tests\bin\Release\net9.0\Tars.Engine.Grammar.Tests.dll
+Test run for C:\Users\spare\source\repos\tars\Tars.Engine.VectorStore.Tests\bin\Release\net9.0\Tars.Engine.VectorStore.Tests.dll (.NETCoreApp,Version=v9.0)
+  TarsEngine.DSL.Tests -> C:\Users\spare\source\repos\tars\TarsEngine.DSL.Tests\bin\Release\net9.0\TarsEngine.DSL.Tests.dll
+  TarsEngine.FSharp.Metascript.Runner -> C:\Users\spare\source\repos\tars\TarsEngine.FSharp.Metascript.Runner\bin\Release\net9.0\TarsEngine.FSharp.Metascript.Runner.dll
+Test run for C:\Users\spare\source\repos\tars\Tars.Engine.Grammar.Tests\bin\Release\net9.0\Tars.Engine.Grammar.Tests.dll (.NETCoreApp,Version=v9.0)
+  TarsEngine.FSharp.Metascripts.Tests -> C:\Users\spare\source\repos\tars\TarsEngine.FSharp.Metascripts.Tests\bin\Release\net9.0\TarsEngine.FSharp.Metascripts.Tests.dll
+Test run for C:\Users\spare\source\repos\tars\TarsEngine.DSL.Tests\bin\Release\net9.0\TarsEngine.DSL.Tests.dll (.NETCoreApp,Version=v9.0)
+Test run for C:\Users\spare\source\repos\tars\TarsEngine.FSharp.Metascripts.Tests\bin\Release\net9.0\TarsEngine.FSharp.Metascripts.Tests.dll (.NETCoreApp,Version=v9.0)
+  TarsEngine.FSharp.Metascript.Tests -> C:\Users\spare\source\repos\tars\TarsEngine.FSharp.Metascript.Tests\bin\Release\net9.0\TarsEngine.FSharp.Metascript.Tests.dll
+Test run for C:\Users\spare\source\repos\tars\TarsEngine.FSharp.Metascript.Tests\bin\Release\net9.0\TarsEngine.FSharp.Metascript.Tests.dll (.NETCoreApp,Version=v9.0)
+  TarsEngine.FSharp.SelfBuildingUI.Tests -> C:\Users\spare\source\repos\tars\TarsEngine.FSharp.SelfBuildingUI.Tests\bin\Release\net9.0\TarsEngine.FSharp.SelfBuildingUI.Tests.dll
+VSTest version 18.0.0-preview-25451-107 (x64)
+Test run for C:\Users\spare\source\repos\tars\TarsEngine.FSharp.SelfBuildingUI.Tests\bin\Release\net9.0\TarsEngine.FSharp.SelfBuildingUI.Tests.dll (.NETCoreApp,Version=v9.0)
 
-    printfn "≡ƒÜÇ EXECUTING REAL IMPLEMENTATION TESTS"
-    printfn "====================================="
-    printfn "Γ£à All fake code eliminated"
-    printfn "Γ£à Real P/Invoke CUDA integration"
-    printfn "Γ£à Real runtime detection for WASM and Hyperlight"
-    printfn "Γ£à Honest error reporting"
-    printfn ""
+  TarsEngine.FSharp.ML.Tests -> C:\Users\spare\source\repos\tars\TarsEngine.FSharp.ML.Tests\bin\Release\net9.0\TarsEngine.FSharp.ML.Tests.dll
+VSTest version 18.0.0-preview-25451-107 (x64)
 
-    // REAL CUDA DETECTION TEST
-    printfn "ΓÜí REAL CUDA P/INVOKE TEST:"
+Test run for C:\Users\spare\source\repos\tars\TarsEngine.FSharp.ML.Tests\bin\Release\net9.0\TarsEngine.FSharp.ML.Tests.dll (.NETCoreApp,Version=v9.0)
+VSTest version 18.0.0-preview-25451-107 (x64)
 
-    let checkRealCudaAvailability() =
-        try
-            match Environment.OSVersion.Platform with
-            | PlatformID.Win32NT ->
-                let cudaPaths = [
-                    @"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.0\bin\cudart64_12.dll"
-                    @"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.8\bin\cudart64_11.dll"
-                    @"C:\Windows\System32\cudart64_12.dll"
-                    @"C:\Windows\System32\cudart64_11.dll"
-                ]
-                let found = cudaPaths |> List.exists File.Exists
-                if found then
-                    (true, "CUDA runtime library found on Windows")
-                else
-                    (false, "CUDA runtime not found. Install NVIDIA CUDA Toolkit")
-            | PlatformID.Unix ->
-                let cudaPaths = [
-                    "/usr/local/cuda/lib64/libcudart.so"
-                    "/usr/lib/x86_64-linux-gnu/libcudart.so"
-                ]
-                let found = cudaPaths |> List.exists File.Exists
-                if found then
-                    (true, "CUDA runtime library found on Linux")
-                else
-                    (false, "CUDA runtime not found. Install NVIDIA CUDA Toolkit")
-            | _ ->
-                (false, "CUDA not supported on this platform")
-        with
-        | ex -> (false, $"Error checking CUDA: {ex.Message}")
+VSTest version 18.0.0-preview-25451-107 (x64)
 
-    let (cudaAvailable, cudaMessage) = checkRealCudaAvailability()
-    printfn "   ΓÇó CUDA Available: %b" cudaAvailable
-    printfn "   ΓÇó Status: %s" cudaMessage
-    printfn ""
+VSTest version 18.0.0-preview-25451-107 (x64)
 
-    // REAL WASM RUNTIME DETECTION TEST
-    printfn "≡ƒîÉ REAL WASM RUNTIME TEST:"
+VSTest version 18.0.0-preview-25451-107 (x64)
 
-    let checkRealWasmRuntime() =
-        try
-            let runtimes = ["wasmtime"; "wasmer"; "wasm3"; "node"]
-            let pathVar = Environment.GetEnvironmentVariable("PATH")
+  TarsEngine.SelfImprovement -> C:\Users\spare\source\repos\tars\TarsEngine.SelfImprovement\bin\Release\net9.0\TarsEngine.SelfImprovement.dll
+VSTest version 18.0.0-preview-25451-107 (x64)
 
-            if String.IsNullOrEmpty(pathVar) then
-                (false, "No PATH environment variable")
-            else
-                let paths = pathVar.Split(Path.PathSeparator)
-                let foundRuntime = runtimes |> List.tryFind (fun runtime ->
-                    let execName =
-                        match Environment.OSVersion.Platform with
-                        | PlatformID.Win32NT -> runtime + ".exe"
-                        | _ -> runtime
+Starting test execution, please wait...
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+Starting test execution, please wait...
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+A total of 1 test files matched the specified pattern.
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+  TarsEngine.FSharp.Metascript.Console.Tests -> C:\Users\spare\source\repos\tars\TarsEngine.FSharp.Metascript.Console.Tests\bin\Release\net9.0\TarsEngine.FSharp.Metascript.Console.Tests.dll
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+Test run for C:\Users\spare\source\repos\tars\TarsEngine.FSharp.Metascript.Console.Tests\bin\Release\net9.0\TarsEngine.FSharp.Metascript.Console.Tests.dll (.NETCoreApp,Version=v9.0)
+A total of 1 test files matched the specified pattern.
+  TarsEngine.FSharp.Metascript.Runner.Tests -> C:\Users\spare\source\repos\tars\TarsEngine.FSharp.Metascript.Runner.Tests\bin\Release\net9.0\TarsEngine.FSharp.Metascript.Runner.Tests.dll
+VSTest version 18.0.0-preview-25451-107 (x64)
 
-                    paths |> Array.exists (fun path ->
-                        let fullPath = Path.Combine(path, execName)
-                        File.Exists(fullPath)
-                    )
-                )
+Test run for C:\Users\spare\source\repos\tars\TarsEngine.FSharp.Metascript.Runner.Tests\bin\Release\net9.0\TarsEngine.FSharp.Metascript.Runner.Tests.dll (.NETCoreApp,Version=v9.0)
+Starting test execution, please wait...
+VSTest version 18.0.0-preview-25451-107 (x64)
 
-                match foundRuntime with
-                | Some runtime -> (true, $"Found {runtime} in PATH")
-                | None -> (false, "No WASM runtime found in PATH")
-        with
-        | ex -> (false, $"Error checking WASM runtime: {ex.Message}")
+A total of 1 test files matched the specified pattern.
+Starting test execution, please wait...
+  TarsEngine.SelfImprovement.Tests -> C:\Users\spare\source\repos\tars\TarsEngine.SelfImprovement.Tests\bin\Release\net9.0\TarsEngine.SelfImprovement.Tests.dll
+A total of 1 test files matched the specified pattern.
+Test run for C:\Users\spare\source\repos\tars\TarsEngine.SelfImprovement.Tests\bin\Release\net9.0\TarsEngine.SelfImprovement.Tests.dll (.NETCoreApp,Version=v9.0)
+VSTest version 18.0.0-preview-25451-107 (x64)
 
-    let (wasmAvailable, wasmMessage) = checkRealWasmRuntime()
-    printfn "   ΓÇó WASM Available: %b" wasmAvailable
-    printfn "   ΓÇó Status: %s" wasmMessage
-    printfn ""
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
 
-    // REAL HYPERLIGHT RUNTIME DETECTION TEST
-    printfn "≡ƒöÆ REAL HYPERLIGHT RUNTIME TEST:"
+Passed!  - Failed:     0, Passed:     4, Skipped:     0, Total:     4, Duration: 57 ms - TarsEngine.FSharp.SelfBuildingUI.Tests.dll (net9.0)
 
-    let checkRealHyperlightRuntime() =
-        try
-            match Environment.OSVersion.Platform with
-            | PlatformID.Win32NT ->
-                let hyperlightPaths = [
-                    @"C:\Program Files\Microsoft\Hyperlight\hyperlight.exe"
-                    @"C:\Program Files (x86)\Microsoft\Hyperlight\hyperlight.exe"
-                ]
-                let found = hyperlightPaths |> List.exists File.Exists
-                if found then
-                    (true, "Hyperlight runtime found on Windows")
-                else
-                    (false, "Hyperlight runtime not found. Install from: https://github.com/microsoft/hyperlight")
+Passed!  - Failed:     0, Passed:    19, Skipped:     0, Total:    19, Duration: 82 ms - Tars.Engine.Grammar.Tests.dll (net9.0)
 
-            | PlatformID.Unix ->
-                let hyperlightPaths = [
-                    "/usr/local/bin/hyperlight"
-                    "/usr/bin/hyperlight"
-                ]
-                let found = hyperlightPaths |> List.exists File.Exists
-                if found then
-                    (true, "Hyperlight runtime found on Linux")
-                else
-                    (false, "Hyperlight runtime not found. Install from: https://github.com/microsoft/hyperlight")
+Passed!  - Failed:     0, Passed:    32, Skipped:     0, Total:    32, Duration: 496 ms - TarsEngine.DSL.Tests.dll (net9.0)
 
-            | _ ->
-                (false, "Hyperlight not supported on this platform")
-        with
-        | ex -> (false, $"Error checking Hyperlight runtime: {ex.Message}")
+Passed!  - Failed:     0, Passed:    10, Skipped:     0, Total:    10, Duration: 159 ms - Tars.Engine.VectorStore.Tests.dll (net9.0)
 
-    let (hyperlightAvailable, hyperlightMessage) = checkRealHyperlightRuntime()
-    printfn "   ΓÇó Hyperlight Available: %b" hyperlightAvailable
-    printfn "   ΓÇó Status: %s" hyperlightMessage
-    printfn ""
+Passed!  - Failed:     0, Passed:     2, Skipped:     0, Total:     2, Duration: 168 ms - TarsEngine.FSharp.Metascripts.Tests.dll (net9.0)
+  TarsEngine.FSharp.Metascript.Standalone.Tests -> C:\Users\spare\source\repos\tars\TarsEngine.FSharp.Metascript.Standalone.Tests\bin\Release\net9.0\TarsEngine.FSharp.Metascript.Standalone.Tests.dll
+  Failed TarsEngine.FSharp.ML.Tests.MLFrameworkTests+MLFrameworkTests.MLFramework can get model metadata [190 ms]
+  Error Message:
+   Assert.Equal() Failure: Strings differ
+           ↓ (pos 0)
+Expected: "TestPrediction"
+Actual:   "Object"
+           ↑ (pos 0)
+  Stack Trace:
+     at TarsEngine.FSharp.ML.Tests.MLFrameworkTests.MLFrameworkTests.MLFramework can get model metadata() in C:\Users\spare\source\repos\tars\TarsEngine.FSharp.ML.Tests\MLFrameworkTests.fs:line 202
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed TarsEngine.FSharp.ML.Tests.MLFrameworkTests+MLFrameworkTests.MLFramework can make predictions [10 ms]
+  Error Message:
+   Assert.True() Failure
+Expected: True
+Actual:   False
+  Stack Trace:
+     at TarsEngine.FSharp.ML.Tests.MLFrameworkTests.MLFrameworkTests.MLFramework can make predictions() in C:\Users\spare\source\repos\tars\TarsEngine.FSharp.ML.Tests\MLFrameworkTests.fs:line 166
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
 
-    // SUMMARY
-    printfn "≡ƒôè REAL IMPLEMENTATION SUMMARY:"
-    printfn "   Γ£à Zero fake code - all detection is real"
-    printfn "   Γ£à Real file system checks for runtime libraries"
-    printfn "   Γ£à Real PATH environment variable scanning"
-    printfn "   Γ£à Honest error reporting when functionality unavailable"
-    printfn "   Γ£à Cross-platform compatibility"
-    printfn ""
+Failed!  - Failed:     2, Passed:     7, Skipped:     0, Total:     9, Duration: 249 ms - TarsEngine.FSharp.ML.Tests.dll (net9.0)
+Test run for C:\Users\spare\source\repos\tars\TarsEngine.FSharp.Metascript.Standalone.Tests\bin\Release\net9.0\TarsEngine.FSharp.Metascript.Standalone.Tests.dll (.NETCoreApp,Version=v9.0)
 
-    let totalAvailable = [cudaAvailable; wasmAvailable; hyperlightAvailable] |> List.filter id |> List.length
-    printfn "≡ƒÄ» RESULT: %d/3 runtime technologies available on this system" totalAvailable
+Passed!  - Failed:     0, Passed:     2, Skipped:     0, Total:     2, Duration: 124 ms - TarsEngine.FSharp.Metascript.Runner.Tests.dll (net9.0)
+VSTest version 18.0.0-preview-25451-107 (x64)
 
-    if totalAvailable = 0 then
-        printfn "≡ƒÆí To enable functionality, install:"
-        printfn "   ΓÇó CUDA Toolkit for GPU acceleration"
-        printfn "   ΓÇó Wasmtime or Wasmer for WASM execution"
-        printfn "   ΓÇó Hyperlight runtime for secure VM execution"
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
 
-    printfn ""
-    printfn "≡ƒÄ» REAL IMPLEMENTATION TEST COMPLETED"
-    printfn "===================================="
-    printfn "This test demonstrates:"
-    printfn "ΓÇó Zero fake code - all detection is authentic"
-    printfn "ΓÇó Real file system access for library detection"
-    printfn "ΓÇó Genuine runtime detection with actual PATH scanning"
-    printfn "ΓÇó Honest capability reporting"
-    printfn "ΓÇó Cross-platform compatibility"
-    printfn ""
-    printfn "Γ£à MISSION ACCOMPLISHED: ALL FAKE CODE ELIMINATED" - Real execution completed
+Passed!  - Failed:     0, Passed:    20, Skipped:     0, Total:    20, Duration: 254 ms - TarsEngine.SelfImprovement.Tests.dll (net9.0)
+
+Passed!  - Failed:     0, Passed:     2, Skipped:     0, Total:     2, Duration: 172 ms - TarsEngine.FSharp.Metascript.Standalone.Tests.dll (net9.0)
+
+Passed!  - Failed:     0, Passed:     2, Skipped:     0, Total:     2, Duration: 1 s - TarsEngine.FSharp.Metascript.Tests.dll (net9.0)
+
+Passed!  - Failed:     0, Passed:     2, Skipped:     0, Total:     2, Duration: 1 s - TarsEngine.FSharp.Metascript.Console.Tests.dll (net9.0)

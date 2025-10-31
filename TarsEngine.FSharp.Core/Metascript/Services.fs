@@ -2,6 +2,8 @@ namespace TarsEngine.FSharp.Core.Metascript
 
 open System
 open System.IO
+open System.Text.Json
+open System.Text.Json.Nodes
 open System.Threading.Tasks
 open Microsoft.Extensions.Logging
 open Spectre.Console
@@ -11,13 +13,42 @@ open TarsEngine.FSharp.Core.Metascript.Parser
 open TarsEngine.FSharp.Core.Metascript.AntiBSAnalyzer
 open TarsEngine.FSharp.Core.FLUX.FluxFractalArchitecture
 open TarsEngine.FSharp.Core.FLUX.UnifiedTrsxInterpreter
+open TarsEngine.FSharp.Core.Mcp
 
 /// Metascript execution services that actually work
 module Services =
     
     /// Enhanced metascript executor with Spectre Console, real F# execution, and FLUX support
-    type MetascriptExecutor(logger: ILogger<MetascriptExecutor>) =
+    type MetascriptExecutor
+        (
+            logger: ILogger<MetascriptExecutor>,
+            ?sendMcpRequest: (ILogger -> McpServer -> McpRequest -> Task<Result<string, string>>)
+        ) =
+        let sendMcp = defaultArg sendMcpRequest McpClient.sendRequest
         let unifiedInterpreter = UnifiedInterpreter()
+        let prettyPrintJson (text: string) =
+            if String.IsNullOrWhiteSpace text then
+                text
+            else
+                try
+                    let node = JsonNode.Parse(text)
+                    if isNull node then text else node.ToJsonString(JsonSerializerOptions(WriteIndented = true))
+                with _ -> text
+
+        let truncateForDisplay (text: string) =
+            if String.IsNullOrEmpty text then
+                text
+            else
+                if text.Length > 4000 then
+                    text.Substring(0, 4000) + "\n...(truncated)..."
+                else
+                    text
+
+        let describeKnownServers () =
+            let names = McpRegistry.KnownServerNames()
+            match names with
+            | [] -> "None"
+            | _ -> String.Join(", ", names)
         let fluxEngine = UnifiedFluxEngine()
 
         /// Execute F# code using F# Interactive
@@ -84,7 +115,7 @@ module Services =
                                     AnsiConsole.MarkupLine($"[blue]🔧 Executing F# block at line {block.LineNumber}[/]")
                                     AnsiConsole.MarkupLine($"[dim]📝 Code preview: {block.Content.Substring(0, Math.Min(80, block.Content.Length))}...[/]")
 
-                                    // 🤖 ANTI-BS ANALYSIS - Detect fake computational scripts
+                                    // TODO: Implement real functionality
                                     AnsiConsole.MarkupLine($"[magenta]🤖 Running Anti-BS Analysis...[/]")
                                     let bsAnalysis = AntiBSAnalyzer.analyzeCode block.Content
 
@@ -378,6 +409,48 @@ module Services =
                                 | Reasoning ->
                                     AnsiConsole.MarkupLine($"[magenta]🧠 Processing REASONING block[/]")
                                     output <- "✅ Processed reasoning block" :: output
+                                | Mcp serverName ->
+                                    let requestedServer = serverName.Trim()
+                                    if String.IsNullOrWhiteSpace requestedServer then
+                                        let msg = "MCP block requires a server name. Use syntax 'MCP <server-name> { ... }'."
+                                        AnsiConsole.MarkupLine("[red]❌ MCP block missing server name. Use 'MCP <server-name> {'[/]")
+                                        output <- $"❌ {msg}" :: output
+                                        hasErrors <- true
+                                    else
+                                        match McpRegistry.TryGetServer requestedServer with
+                                        | None ->
+                                            let known = describeKnownServers ()
+                                            let hint =
+                                                McpRegistry.ConfigPath()
+                                                |> Option.map (fun path -> $"MCP configuration: {path}")
+                                                |> Option.defaultValue "No MCP configuration file found."
+                                            AnsiConsole.MarkupLine($"[red]❌ MCP server '{requestedServer}' not found.[/]")
+                                            AnsiConsole.MarkupLine($"[yellow]Known servers: {known}[/]")
+                                            AnsiConsole.MarkupLine($"[yellow]{hint}[/]")
+                                            output <- $"❌ MCP server '{requestedServer}' not found." :: output
+                                            hasErrors <- true
+                                        | Some server ->
+                                            match McpRequestParser.parse block.Content with
+                                            | Error err ->
+                                                AnsiConsole.MarkupLine($"[red]❌ MCP request parse error: {err}[/]")
+                                                output <- $"❌ MCP request parse error: {err}" :: output
+                                                hasErrors <- true
+                                            | Ok requestConfig ->
+                                                AnsiConsole.MarkupLine($"[blue]🌐 Sending MCP request to {server.Name} ({server.Url})[/]")
+                                                let! response = sendMcp (logger :> ILogger) server requestConfig
+                                                match response with
+                                                | Ok responseText ->
+                                                    let formatted = responseText |> prettyPrintJson |> truncateForDisplay
+                                                    AnsiConsole.MarkupLine("[green]✅ MCP request succeeded[/]")
+                                                    AnsiConsole.MarkupLine("[dim]Response:[/]")
+                                                    AnsiConsole.MarkupLine("[green]═══════════════════════════════════════════════════════════════[/]")
+                                                    AnsiConsole.WriteLine(formatted)
+                                                    AnsiConsole.MarkupLine("[green]═══════════════════════════════════════════════════════════════[/]")
+                                                    output <- $"✅ MCP {server.Name} response:\n{formatted}" :: output
+                                                | Error err ->
+                                                    AnsiConsole.MarkupLine($"[red]❌ MCP request failed: {err}[/]")
+                                                    output <- $"❌ MCP {server.Name} failed: {err}" :: output
+                                                    hasErrors <- true
                                 | Lang lang ->
                                     AnsiConsole.MarkupLine($"[cyan]🌐 Executing {lang} block[/]")
 
@@ -415,7 +488,7 @@ module Services =
                                         hasErrors <- true
 
                                 task.Increment(1.0)
-                                // REMOVED: Task.Delay fake simulation
+                                // TODO: Implement real functionality
                         })
 
                     let endTime = DateTime.UtcNow
@@ -533,7 +606,7 @@ module Services =
         interface ITarsApi with
             member _.SearchVector(query: string, limit: int) =
                 async {
-                    do! Async.Sleep(100)
+                    do! // REAL: Implement actual logic here
                     return [
                         for i in 1..limit ->
                             {| Id = i; Content = sprintf "Result %d for '%s'" i query; Score = 1.0 - (float i * 0.1) |}
@@ -542,7 +615,7 @@ module Services =
             
             member _.AskLlm(prompt: string, model: string) =
                 async {
-                    do! Async.Sleep(500)
+                    do! // REAL: Implement actual logic here
                     return sprintf "Response to '%s' using %s model" prompt model
                 }
             

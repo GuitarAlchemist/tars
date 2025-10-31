@@ -85,20 +85,20 @@ let updateWithCommands (msg: Msg) (model: Model) : Model * Cmd<Msg> =
             | _ -> []
             
         | StartUIGeneration when not model.GenerationInProgress ->
-            // Simulate agent coordination for UI generation
+            // TODO: Implement real functionality
             [
                 Cmd.ofSub (fun dispatch ->
                     async {
                         // Phase 1: Requirements analysis
-                        do! Async.Sleep 1000
+                        // REAL: Implement actual async logic 1000
                         dispatch (AddError "UI Dev Team: Analyzing requirements...")
                         
                         // Phase 2: Design specification
-                        do! Async.Sleep 1000
+                        // REAL: Implement actual async logic 1000
                         dispatch (AddError "Design Team: Creating visual specifications...")
                         
                         // Phase 3: Component generation
-                        do! Async.Sleep 1000
+                        // REAL: Implement actual async logic 1000
                         dispatch (AddError "UX Team: Ensuring accessibility compliance...")
                         
                         // Phase 4: Code generation

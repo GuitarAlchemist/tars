@@ -262,7 +262,7 @@ type ReasoningQualityMetrics(logger: ILogger<ReasoningQualityMetrics>) =
                 else min 1.0 (chain.OverallConfidence * 5.0 / float chain.Steps.Length)
             
             let resourceEfficiency = 
-                // Simulated resource efficiency (would be actual in real implementation)
+                // TODO: Implement real functionality
                 let avgComplexity = 
                     if chain.Steps.IsEmpty then 0.0
                     else chain.Steps |> List.map (fun s -> float s.ComplexityScore) |> List.average
@@ -463,7 +463,7 @@ type ReasoningQualityMetrics(logger: ILogger<ReasoningQualityMetrics>) =
         member this.MonitorQualityRealTime(reasoningId: string) =
             try
                 // TODO: Implement real-time quality monitoring
-                // For now, simulate monitoring
+                // TODO: Implement real functionality
                 let currentScore = Random().NextDouble() * 0.4 + 0.5  // 0.5-0.9 range
                 let trend = if currentScore > 0.7 then "Improving" else "Stable"
                 

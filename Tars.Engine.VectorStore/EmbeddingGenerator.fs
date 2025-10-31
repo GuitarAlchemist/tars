@@ -2,8 +2,45 @@ namespace Tars.Engine.VectorStore
 
 open System
 open System.Numerics
+open System.Text
+open System.Security.Cryptography
 open MathNet.Numerics
 open MathNet.Numerics.IntegralTransforms
+
+module private DeterministicEmbedding =
+    
+    /// Generate a deterministic vector in the range [-1, 1] based on the supplied seed
+    let generateVector (seed: string) (dimension: int) : FloatVector =
+        use sha = SHA256.Create()
+        let mutable generated = 0
+        let buffer = Array.zeroCreate<float> dimension
+        let mutable round = 0
+        let baseBytes = Encoding.UTF8.GetBytes(seed)
+
+        while generated < dimension do
+            let roundBytes = BitConverter.GetBytes(round)
+            let hashInput =
+                if round = 0 then baseBytes
+                else Array.concat [ baseBytes; roundBytes ]
+
+            let hash = sha.ComputeHash(hashInput)
+            let mutable offset = 0
+            while generated < dimension && offset <= hash.Length - 4 do
+                let value = BitConverter.ToUInt32(hash, offset)
+                let normalized = (float value / float UInt32.MaxValue) * 2.0 - 1.0
+                buffer.[generated] <- normalized
+                generated <- generated + 1
+                offset <- offset + 4
+
+            round <- round + 1
+
+        buffer
+
+    let computeHash (text: string) =
+        use sha = SHA256.Create()
+        sha.ComputeHash(Encoding.UTF8.GetBytes(text))
+        |> Array.map (fun b -> b.ToString("x2"))
+        |> String.concat ""
 
 /// Transform utilities for generating multi-space embeddings
 module EmbeddingTransforms =
@@ -82,31 +119,37 @@ module EmbeddingTransforms =
         if input.Length = 0 then Neither
         else
             let mean = Array.average input
-            let variance = input |> Array.map (fun x -> (x - mean) ** 2.0) |> Array.average
-            let skewness = input |> Array.map (fun x -> ((x - mean) / sqrt variance) ** 3.0) |> Array.average
-            
+            let variance =
+                input
+                |> Array.averageBy (fun value -> let diff = value - mean in diff * diff)
+            let variance = if Double.IsNaN variance then 0.0 else variance
+            let sigma = sqrt variance
+            let skewness =
+                if sigma <= 1e-8 then 0.0
+                else
+                    input
+                    |> Array.averageBy (fun value ->
+                        let z = (value - mean) / sigma
+                        z * z * z)
             match mean, variance, skewness with
-            | m, v, _ when m > 0.5 && v < 0.1 -> True      // High positive, low variance
-            | m, v, _ when m < -0.5 && v < 0.1 -> False    // High negative, low variance
-            | _, v, s when v > 0.5 && abs s < 0.1 -> Both  // High variance, symmetric
-            | _ -> Neither                                  // Everything else
+            | m, v, _ when m > 0.5 && v < 0.1 -> True
+            | m, v, _ when m < -0.5 && v < 0.1 -> False
+            | _, v, s when v > 0.5 && abs s < 0.1 -> Both
+            | _ -> Neither
 
 /// Multi-space embedding generator
 type MultiSpaceEmbeddingGenerator(config: VectorStoreConfig) =
     
-    /// Generate a simple embedding from text (placeholder - would use real model)
     let generateRawEmbedding (text: string) : FloatVector =
-        // Placeholder: simple hash-based embedding
-        let hash = text.GetHashCode()
-        let rng = Random(hash)
-        Array.init config.RawDimension (fun _ -> rng.NextDouble() * 2.0 - 1.0)
+        DeterministicEmbedding.generateVector text config.RawDimension
     
     interface IEmbeddingGenerator with
         
         member _.GenerateEmbedding (text: string) : Async<MultiSpaceEmbedding> =
             async {
                 let raw = generateRawEmbedding text
-                let timeComponent = float (DateTime.Now.Ticks % 1000000L) / 1000000.0
+                let timestamp = DateTime.UtcNow
+                let timeComponent = float (timestamp.Ticks % 1000000L) / 1000000.0
                 
                 let embedding = {
                     Raw = raw
@@ -119,9 +162,9 @@ type MultiSpaceEmbeddingGenerator(config: VectorStoreConfig) =
                     Pauli = if config.EnablePauli then EmbeddingTransforms.computePauli raw else TransformUtils.PauliI
                     Belief = EmbeddingTransforms.computeBelief raw
                     Metadata = Map.ofList [
-                        ("generated_at", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"))
+                        ("generated_at", timestamp.ToString("yyyy-MM-dd HH:mm:ss"))
                         ("text_length", text.Length.ToString())
-                        ("text_hash", text.GetHashCode().ToString())
+                        ("text_hash", DeterministicEmbedding.computeHash text)
                     ]
                 }
                 
@@ -139,37 +182,28 @@ type MultiSpaceEmbeddingGenerator(config: VectorStoreConfig) =
 
 /// Enhanced embedding generator with external model support
 type EnhancedEmbeddingGenerator(config: VectorStoreConfig, ?modelEndpoint: string) =
-    let baseGenerator = MultiSpaceEmbeddingGenerator(config)
+    let endpointKey = modelEndpoint |> Option.defaultValue "local"
     
-    /// Call external embedding model (placeholder)
     let callExternalModel (text: string) : Async<FloatVector> =
         async {
-            // Placeholder: would call OpenAI, Hugging Face, or local model
-            // For now, use enhanced hash-based approach
-            let words = text.Split([|' '; '\t'; '\n'; '\r'|], StringSplitOptions.RemoveEmptyEntries)
-            let wordEmbeddings = 
-                words 
-                |> Array.map (fun word -> 
-                    let hash = word.GetHashCode()
-                    let rng = Random(hash)
-                    Array.init (config.RawDimension / 4) (fun _ -> rng.NextDouble() * 2.0 - 1.0))
-            
-            // Average word embeddings
-            if wordEmbeddings.Length > 0 then
-                let avgEmbedding = Array.create (config.RawDimension / 4) 0.0
-                for wordEmb in wordEmbeddings do
-                    for i in 0..wordEmb.Length-1 do
-                        avgEmbedding.[i] <- avgEmbedding.[i] + wordEmb.[i]
-                
-                for i in 0..avgEmbedding.Length-1 do
-                    avgEmbedding.[i] <- avgEmbedding.[i] / float wordEmbeddings.Length
-                
-                // Pad to full dimension
-                let fullEmbedding = Array.create config.RawDimension 0.0
-                Array.blit avgEmbedding 0 fullEmbedding 0 (min avgEmbedding.Length fullEmbedding.Length)
-                return fullEmbedding
+            let tokens =
+                text.Split([|' '; '\t'; '\n'; '\r'|], StringSplitOptions.RemoveEmptyEntries)
+                |> Array.filter (fun token -> token.Length > 0)
+
+            if tokens.Length = 0 then
+                return DeterministicEmbedding.generateVector $"%s{endpointKey}:%s{text}" config.RawDimension
             else
-                return Array.create config.RawDimension 0.0
+                let accumulator = Array.zeroCreate<float> config.RawDimension
+                tokens
+                |> Array.iteri (fun idx token ->
+                    let seed = $"%s{endpointKey}:%d{idx}:%s{token.ToLowerInvariant()}"
+                    let vector = DeterministicEmbedding.generateVector seed config.RawDimension
+                    for i in 0 .. config.RawDimension - 1 do
+                        accumulator.[i] <- accumulator.[i] + vector.[i])
+                let count = float tokens.Length
+                for i in 0 .. config.RawDimension - 1 do
+                    accumulator.[i] <- accumulator.[i] / count
+                return accumulator
         }
     
     interface IEmbeddingGenerator with
@@ -177,7 +211,8 @@ type EnhancedEmbeddingGenerator(config: VectorStoreConfig, ?modelEndpoint: strin
         member _.GenerateEmbedding (text: string) : Async<MultiSpaceEmbedding> =
             async {
                 let! raw = callExternalModel text
-                let timeComponent = float (DateTime.Now.Ticks % 1000000L) / 1000000.0
+                let timestamp = DateTime.UtcNow
+                let timeComponent = float (timestamp.Ticks % 1000000L) / 1000000.0
                 
                 let embedding = {
                     Raw = raw
@@ -190,10 +225,10 @@ type EnhancedEmbeddingGenerator(config: VectorStoreConfig, ?modelEndpoint: strin
                     Pauli = if config.EnablePauli then EmbeddingTransforms.computePauli raw else TransformUtils.PauliI
                     Belief = EmbeddingTransforms.computeBelief raw
                     Metadata = Map.ofList [
-                        ("generated_at", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"))
+                        ("generated_at", timestamp.ToString("yyyy-MM-dd HH:mm:ss"))
                         ("text_length", text.Length.ToString())
-                        ("text_hash", text.GetHashCode().ToString())
-                        ("model_endpoint", modelEndpoint |> Option.defaultValue "local")
+                        ("text_hash", DeterministicEmbedding.computeHash text)
+                        ("model_endpoint", endpointKey)
                     ]
                 }
                 

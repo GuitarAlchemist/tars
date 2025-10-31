@@ -1,0 +1,7 @@
+# Critic federation rules for Tier3 cross-validation
+SPAWN QRE 1 HIERARCHICAL
+SPAWN ML 1 FRACTAL
+CONNECT leader agent-1 reconcile
+METRIC critic_confidence 0.90
+METRIC disagreement_ratio 0.10
+REPEAT critic-review 3

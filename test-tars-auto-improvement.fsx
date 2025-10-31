@@ -6,7 +6,7 @@ open System
 printfn "🚀 Testing TARS Auto-Improvement System"
 printfn "======================================="
 
-// Simulate the auto-improvement concept without complex dependencies
+// TODO: Implement real functionality
 type LimitationType =
     | AgentCoordination
     | TaskExecution  
@@ -73,7 +73,7 @@ for kvp in initialAgent.PerformanceMetrics do
     printfn "  📊 %s: %.0f%%" kvp.Key (kvp.Value * 100.0)
 printfn "Autonomy Level: %.0f%%" (initialAgent.AutonomyLevel * 100.0)
 
-// Simulate agent working and encountering limitations
+// TODO: Implement real functionality
 printfn "\n🔬 AGENT WORKING: Complex Research Project Coordination"
 printfn "======================================================"
 printfn "Agent attempts to coordinate a multi-agent Janus research project..."

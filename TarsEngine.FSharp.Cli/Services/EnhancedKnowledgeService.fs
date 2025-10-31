@@ -70,7 +70,7 @@ type EnhancedKnowledgeService(
                 | _ ->
                     logger.LogInformation("🌐 INTERNET FETCH: DuckDuckGo had no results, trying alternative search...")
 
-                    // Fallback to a simulated web search with common knowledge
+                    // TODO: Implement real functionality
                     let! (fallbackResult: Result<WebSearchResult list, string>) = this.SearchFallback(query)
                     return fallbackResult
             with

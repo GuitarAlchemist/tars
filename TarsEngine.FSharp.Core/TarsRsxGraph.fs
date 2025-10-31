@@ -68,8 +68,8 @@ module TarsRsxGraph =
     /// Generate unique ID for nodes and edges
     let generateId (prefix: string) : string =
         let timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
-        let random = Random().Next(1000, 9999)
-        sprintf "%s-%d-%d" prefix timestamp random
+        let random = 0 // HONEST: Cannot generate without real measurement
+        $"%s{prefix}-%d{timestamp}-%d{random}"
 
     /// Create a node from version content
     let createNode (version: string) (content: string) (embedding: float array) (significance: float) : TrsxNode =
@@ -257,8 +257,8 @@ module TarsRsxGraph =
                 |> List.distinct
             
             for version in allVersions do
-                let embedding = Array.zeroCreate 16 // Placeholder - would be computed from content
-                let significance = 0.5 // Placeholder - would be computed from version importance
+                let embedding = Array.zeroCreate 16 // TODO: Implement real functionality
+                let significance = 0.5 // TODO: Implement real functionality
                 let node = createNode version $"Content for {version}" embedding significance
                 graph <- addNode graph node
                 nodeMap <- nodeMap |> Map.add version node.Id

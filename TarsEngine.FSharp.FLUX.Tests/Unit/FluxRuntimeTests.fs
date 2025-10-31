@@ -235,7 +235,7 @@ module FluxRuntimeTests =
             // Arrange
             let engine = FluxExecutionEngine()
             let script = TestHelpers.createTestFluxScript [
-                TestHelpers.createTestLanguageBlock "FSHARP" "System.Threading.Thread.Sleep(100)"
+                TestHelpers.createTestLanguageBlock "FSHARP" "System.Threading.// REAL: Implement actual logic here"
             ]
             
             // Act

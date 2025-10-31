@@ -48,6 +48,41 @@ module WorkflowEngine =
         }
 
     /// <summary>
+    /// Executes workflow steps recursively
+    /// </summary>
+    let rec private executeSteps (logger: ILogger) (handlers: (WorkflowState -> Task<StepResult>) list) (currentState: WorkflowState) (index: int) =
+        task {
+            // Check if we've reached the end of the steps
+            if index >= currentState.Steps.Length then
+                // Complete the workflow
+                let completedState = WorkflowState.complete currentState
+                let! _ = WorkflowState.save completedState WorkflowState.defaultStatePath
+                return completedState
+            elif WorkflowState.hasExceededMaxDuration currentState then
+                // Check if the workflow has exceeded its maximum duration
+                logger.LogWarning("Workflow {WorkflowName} has exceeded its maximum duration of {MaxDurationMinutes} minutes",
+                                 currentState.Name,
+                                 currentState.MaxDurationMinutes)
+                // Fail the workflow
+                let failedState = WorkflowState.fail currentState
+                let! _ = WorkflowState.save failedState WorkflowState.defaultStatePath
+                return failedState
+            else
+                // Execute the current step
+                let! updatedState = executeStep logger handlers.[index] currentState index
+
+                // Check if the step failed
+                if updatedState.Steps.[index].Status = Failed then
+                    // Fail the workflow
+                    let failedState = WorkflowState.fail updatedState
+                    let! _ = WorkflowState.save failedState WorkflowState.defaultStatePath
+                    return failedState
+                else
+                    // Move to the next step
+                    return! executeSteps logger handlers updatedState (index + 1)
+        }
+
+    /// <summary>
     /// Executes a workflow
     /// </summary>
     let executeWorkflow (logger: ILogger) (handlers: (WorkflowState -> Task<StepResult>) list) (state: WorkflowState) =
@@ -67,7 +102,7 @@ module WorkflowEngine =
                     let steps =
                         handlers
                         |> List.mapi (fun i _ ->
-                            WorkflowState.createStep (sprintf "Step %d" (i + 1)))
+                            WorkflowState.createStep $"Step %d{i + 1}")
 
                     // Add steps to the workflow
                     let stateWithSteps =
@@ -87,41 +122,8 @@ module WorkflowEngine =
                 | Some index -> index
                 | None -> 0
 
-            // Execute the workflow steps recursively
-            let rec executeSteps (currentState: WorkflowState) (index: int) =
-                task {
-                    // Check if we've reached the end of the steps
-                    if index >= currentState.Steps.Length then
-                        // Complete the workflow
-                        let completedState = WorkflowState.complete currentState
-                        let! _ = WorkflowState.save completedState WorkflowState.defaultStatePath
-                        return completedState
-                    elif WorkflowState.hasExceededMaxDuration currentState then
-                        // Check if the workflow has exceeded its maximum duration
-                        logger.LogWarning("Workflow {WorkflowName} has exceeded its maximum duration of {MaxDurationMinutes} minutes",
-                                         currentState.Name,
-                                         currentState.MaxDurationMinutes)
-                        // Fail the workflow
-                        let failedState = WorkflowState.fail currentState
-                        let! _ = WorkflowState.save failedState WorkflowState.defaultStatePath
-                        return failedState
-                    else
-                        // Execute the current step
-                        let! updatedState = executeStep logger handlers.[index] currentState index
-
-                        // Check if the step failed
-                        if updatedState.Steps.[index].Status = Failed then
-                            // Fail the workflow
-                            let failedState = WorkflowState.fail updatedState
-                            let! _ = WorkflowState.save failedState WorkflowState.defaultStatePath
-                            return failedState
-                        else
-                            // Move to the next step
-                            return! executeSteps updatedState (index + 1)
-                }
-
             // Start executing the steps
-            return! executeSteps initialState currentStepIndex
+            return! executeSteps logger handlers initialState currentStepIndex
         }
 
     /// <summary>

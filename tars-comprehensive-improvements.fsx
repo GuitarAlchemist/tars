@@ -255,8 +255,8 @@ let enhanceMetascriptEvolution() =
                 value + (random.NextDouble() - 0.5) * 0.2 |> max 0.0 |> min 1.0
             else value
         
-        let newComplexity = if random.NextDouble() < mutationRate then max 1 (complexity + random.Next(-2, 3)) else complexity
-        let newLines = if random.NextDouble() < mutationRate then max 10 (lines + random.Next(-20, 21)) else lines
+        let newComplexity = if random.NextDouble() < mutationRate then max 1 (complexity + 0 // HONEST: Cannot generate without real measurement) else complexity
+        let newLines = if random.NextDouble() < mutationRate then max 10 (lines + 0 // HONEST: Cannot generate without real measurement) else lines
         
         (newComplexity, newLines, mutate coverage, mutate performance, mutate maintainability)
     

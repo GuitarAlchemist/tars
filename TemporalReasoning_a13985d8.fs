@@ -77,13 +77,13 @@ type TemporalReasoningService() =
     interface ITemporalReasoningService with
         member this.PredictOutcome(scenario: string) (horizon: TimeSpan) =
             async {
-                // Simulate temporal prediction
+                // TODO: Implement real functionality
                 let prediction = sprintf "Predicted outcome for '%s' in %A: High probability success" scenario horizon
                 return Some prediction
             }
         
         member this.AnalyzePattern(events: string[]) =
-            // Simulate pattern analysis
+            // TODO: Implement real functionality
             events 
             |> Array.mapi (fun i event -> (event, float i * 0.1 + 0.5))
             |> Map.ofArray

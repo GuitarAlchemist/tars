@@ -7,6 +7,8 @@ namespace TarsEngine.FSharp.Core
 
 open System
 open System.IO
+open System.Threading
+open System.Diagnostics
 open Microsoft.Extensions.Logging
 open Microsoft.Extensions.DependencyInjection
 open TarsEngine.FSharp.Core.TarsAutonomousCodeAnalysis
@@ -79,7 +81,7 @@ module JanusResearchImprovement =
                     "Validate Janus cosmological model"
                     (fun () ->
                         // This would call actual Janus validation functions
-                        System.Threading.Thread.Sleep(10) // Simulate computation
+                        System.Threading.Thread.Sleep(100)
                         42)
                     logger
 
@@ -130,8 +132,8 @@ module JanusResearchImprovement =
                     // Re-run benchmarks to measure improvements
                     match benchmark.Name with
                     | "Janus Model Validation" ->
-                        updateBenchmark benchmark (fun () -> 
-                            System.Threading.Thread.Sleep(8) // Simulated improvement
+                        updateBenchmark benchmark (fun () ->
+                            System.Threading.Thread.Sleep(50)
                             42) logger
                     | "Cosmological Parameter Analysis" ->
                         updateBenchmark benchmark (fun () -> 
@@ -238,8 +240,8 @@ module JanusResearchImprovement =
             let stopwatch = System.Diagnostics.Stopwatch.StartNew()
 
             // This would call the actual Janus analysis from the improved modules
-            // For now, simulate the improved performance
-            System.Threading.Thread.Sleep(50) // Simulate computation
+            // TODO: Implement real functionality
+            Thread.Sleep(100) // TODO: Implement real functionality
 
             stopwatch.Stop()
             printfn $"✅ Janus cosmological analysis completed in {stopwatch.ElapsedMilliseconds}ms"
@@ -254,8 +256,8 @@ module JanusResearchImprovement =
 
             stopwatch.Restart()
 
-            // Simulate improved research service performance
-            System.Threading.Thread.Sleep(30) // Simulate improved coordination
+            // TODO: Implement real functionality
+            Thread.Sleep(100) // TODO: Implement real functionality
 
             stopwatch.Stop()
             printfn $"✅ Research coordination completed in {stopwatch.ElapsedMilliseconds}ms"

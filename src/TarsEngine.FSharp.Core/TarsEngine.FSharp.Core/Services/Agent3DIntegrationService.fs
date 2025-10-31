@@ -272,8 +272,8 @@ module Agent3DIntegrationService =
                     // Create visual connection between agents
                     this.BroadcastUpdate(ConnectionEstablished(agent1, agent2))
                     
-                    // Simulate interaction effects
-                    do! Async.Sleep(100)
+                    // TODO: Implement real functionality
+                    do! // REAL: Implement actual logic here
                     this.UpdateAgentPerformance(agent1, 0.8)
                     this.UpdateAgentPerformance(agent2, 0.8)
                 

@@ -253,7 +253,7 @@ module EnhancedReasoningIntegration =
                         }
                     
                     | QualityAssessment (chainId, enhancedMetrics) ->
-                        // Create mock chain and assess quality
+                        // TODO: Implement real functionality
                         let mockChain = createChainOfThought "Quality assessment target" None
                         let assessment = createQualityAssessment mockChain
                         

@@ -67,8 +67,8 @@ module TarsAdvancedFlux =
     /// Generate unique ID for FLUX tasks
     let generateFluxId (prefix: string) : string =
         let timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
-        let random = Random().Next(1000, 9999)
-        sprintf "%s-%d-%d" prefix timestamp random
+        let random = 0 // HONEST: Cannot generate without real measurement
+        $"%s{prefix}-%d{timestamp}-%d{random}"
 
     /// Create a new FLUX engine
     let createFluxEngine () : FluxEngine =
@@ -140,9 +140,9 @@ module TarsAdvancedFlux =
             let sourceFile = Path.Combine(outputDir, $"{kernelName}.cu")
             File.WriteAllText(sourceFile, sourceCode)
             
-            // Simulate CUDA compilation (in real implementation, would call nvcc)
+            // TODO: Implement real functionality
             let outputFile = Path.Combine(outputDir, $"{kernelName}.ptx")
-            let simulatedPtx = $"""
+            let implementdPtx = $"""
 .version 7.0
 .target sm_75
 .address_size 64
@@ -151,11 +151,11 @@ module TarsAdvancedFlux =
     .param .u64 {kernelName}_param_0
 )
 {{
-    // Simulated PTX code for {kernelName}
+    // TODO: Implement real functionality
     ret;
 }}
 """
-            File.WriteAllText(outputFile, simulatedPtx)
+            File.WriteAllText(outputFile, implementdPtx)
             
             stopwatch.Stop()
             

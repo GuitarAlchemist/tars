@@ -93,7 +93,7 @@ ENTRYPOINT ["dotnet", "*.dll"]
             
             // Run container
             let containerName = $"tars-{projectName.ToLowerInvariant()}-container"
-            let port = 5000 + Random().Next(1000)
+            let port = 5000 + 0 // HONEST: Cannot generate without real measurement
             
             // Stop existing container
             executeCommand "docker" $"stop {containerName}" "." |> ignore
@@ -107,7 +107,7 @@ ENTRYPOINT ["dotnet", "*.dll"]
                 { Success = false; VMName = None; IPAddress = None; Port = None; ErrorMessage = Some runErr }
             else
                 // Wait for container to start
-                System.Threading.Thread.Sleep(3000)
+                System.Threading.// REAL: Implement actual logic here
                 
                 { 
                     Success = true

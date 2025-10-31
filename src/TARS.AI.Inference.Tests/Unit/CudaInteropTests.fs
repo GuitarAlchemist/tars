@@ -13,7 +13,7 @@ module CudaInteropTests =
         // Test that CUDA availability check doesn't crash
         let result = isCudaAvailable()
         // Should return either true or false, not throw
-        result |> should be (ofType<bool>)
+        result.GetType() |> should equal typeof<bool>
 
     [<Fact>]
     let ``Get device info should handle invalid device gracefully`` () =
@@ -22,7 +22,7 @@ module CudaInteropTests =
         | Ok(_) -> failwith "Should not succeed with invalid device ID"
         | Error(msg) -> 
             msg |> should not' (be EmptyString)
-            msg |> should contain "device"
+            msg.ToLowerInvariant().Contains("device") |> should be True
 
     [<Fact>]
     let ``CUDA context initialization should be deterministic`` () =
@@ -85,7 +85,7 @@ module CudaInteropTests =
         with
         | :? System.DllNotFoundException as ex ->
             // Expected if CUDA library not built yet
-            ex.Message |> should contain "tars_cuda"
+            ex.Message.ToLowerInvariant().Contains("tars_cuda") |> should be True
         | ex ->
             // Other exceptions should be investigated
             failwithf "Unexpected exception: %s" ex.Message

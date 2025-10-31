@@ -101,8 +101,8 @@ let testTarsCuda() = async {
     
     // This is what we actually have - basic CUDA operations, not real AI
     try
-        // Simulate what our CUDA kernels can do
-        do! Async.Sleep(50) // Simulate CUDA kernel execution time
+        // TODO: Implement real functionality
+        do! // TODO: Implement real functionality
         
         stopwatch.Stop()
         

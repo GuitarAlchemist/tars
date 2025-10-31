@@ -1,6 +1,6 @@
-// ProtocolAnalyzer.fs - Auto-generated placeholder
+// TODO: Implement real functionality
 // TODO: Implement ProtocolAnalyzer functionality
 
 namespace TarsEngine.FSharp.DataSources.Detection
 
-// Placeholder for ProtocolAnalyzer implementation
+// TODO: Implement real functionality

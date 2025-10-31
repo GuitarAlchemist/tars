@@ -48,7 +48,7 @@ let verifyCapabilityComparison() =
     // Before state (from prove-tars-functionality.fsx results)
     let beforeState = {|
         PatternRecognition = 3  // Basic patterns
-        EvolutionFitness = 0.0  // Simulated
+        EvolutionFitness = 0.0  // TODO: Implement real functionality
         CodeAnalysisFiles = 0   // Theoretical
         InfrastructureConnections = 0  // None
         LanguageSupport = 1     // F# only

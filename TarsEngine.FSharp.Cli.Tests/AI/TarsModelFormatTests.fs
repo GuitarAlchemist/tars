@@ -12,7 +12,7 @@ open TarsEngine.FSharp.Cli.AI.TarsModelFormat
 /// Comprehensive tests for TARS Model Format
 module TarsModelFormatTests =
     
-    /// Mock logger for testing
+    // TODO: Implement real functionality
     type MockLogger() =
         interface ITarsLogger with
             member _.LogInformation(correlationId: string, message: string) = 

@@ -54,7 +54,7 @@ module LlmService =
 
     let processWithFunctions (message: string) (functions: Function list) = async {
         // TODO: Implement actual LLM logic here
-        // For now, we'll just simulate processing the weather function
+        // TODO: Implement real functionality
         if message.ToLower().Contains("weather") then
             let weatherFunction = functions |> List.find (fun f -> f.Name = "get_weather")
             let args = Map.ofList [("location", "London" :> obj)]

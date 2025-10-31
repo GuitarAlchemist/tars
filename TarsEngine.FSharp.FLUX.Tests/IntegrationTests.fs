@@ -19,7 +19,7 @@ module IntegrationTests =
             let originalCode = "let x = 1\nprintfn \"Value: %d\" x"
             let! codeVectorId = vectorStoreService.AddFluxCodeAsync(originalCode)
             
-            // Simulate execution outcomes
+            // TODO: Implement real functionality
             let executionHistory = [
                 {
                     Expected = "Value: 1"
@@ -37,7 +37,7 @@ module IntegrationTests =
             let! similarCode = vectorStoreService.SearchSimilarCodeAsync(originalCode, 5)
             
             // Assert
-            Assert.NotEqual(codeVectorId, refinedVectorId)
+            Assert.NotEqual<string>(codeVectorId, refinedVectorId)
             Assert.NotEmpty(similarCode)
             Assert.Contains(similarCode, fun result -> result.Vector.Id = codeVectorId || result.Vector.Id = refinedVectorId)
             Assert.True(metrics.Accuracy > 0.0)
@@ -259,13 +259,13 @@ module IntegrationTests =
             let vectorStoreService = SemanticVectorStoreService()
             let refinementService = CrossEntropyRefinementService()
             
-            // Simulate a complete FLUX development workflow
+            // TODO: Implement real functionality
             let initialCode = "let calculate x = x * 2\nprintfn \"Result: %d\" (calculate 5)"
             
             // Step 1: Add initial code to vector store
             let! initialVectorId = vectorStoreService.AddFluxCodeAsync(initialCode)
             
-            // Step 2: Simulate execution and gather outcomes
+            // TODO: Implement real functionality
             let executionOutcomes = [
                 {
                     Expected = "Result: 10"

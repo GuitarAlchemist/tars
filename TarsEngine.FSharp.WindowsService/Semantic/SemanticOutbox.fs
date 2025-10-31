@@ -394,10 +394,10 @@ type SemanticOutbox(agentId: string, logger: ILogger<SemanticOutbox>) =
             // Deliver to each recipient
             for recipientId in outboundMessage.Recipients do
                 try
-                    // Simulate message delivery (in real implementation, this would use the communication system)
+                    // TODO: Implement real functionality
                     let deliveryStartTime = DateTime.UtcNow
                     
-                    // Simulate delivery delay
+                    // TODO: Implement real functionality
                     do! Task.Delay(TimeSpan.FromMilliseconds(10.0), cancellationToken)
                     
                     let deliveryTime = DateTime.UtcNow - deliveryStartTime

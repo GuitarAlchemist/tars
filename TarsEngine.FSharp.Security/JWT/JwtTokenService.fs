@@ -76,7 +76,7 @@ type JwtTokenService(config: TarsSecurityConfig, logger: ILogger<JwtTokenService
             
             let tokenInfo = {
                 Token = tokenString
-                RefreshToken = None // TODO: Implement refresh tokens
+                RefreshToken = Option.None // TODO: Implement refresh tokens
                 ExpiresAt = expires
                 IssuedAt = now
                 Subject = userId
@@ -103,13 +103,13 @@ type JwtTokenService(config: TarsSecurityConfig, logger: ILogger<JwtTokenService
             // Extract claims
             let userId =
                 let claim = principal.FindFirst(JwtRegisteredClaimNames.Sub)
-                if claim <> null then Some claim.Value else None
+                if claim <> null then Some claim.Value else Option.None
             let username =
                 let claim = principal.FindFirst(JwtRegisteredClaimNames.UniqueName)
-                if claim <> null then Some claim.Value else None
+                if claim <> null then Some claim.Value else Option.None
             let roleString =
                 let claim = principal.FindFirst("role")
-                if claim <> null then Some claim.Value else None
+                if claim <> null then Some claim.Value else Option.None
             let permissionClaims = principal.FindAll("permission") |> Seq.map (fun c -> c.Value) |> Seq.toList
             
             match userId, username, roleString with
@@ -159,7 +159,7 @@ type JwtTokenService(config: TarsSecurityConfig, logger: ILogger<JwtTokenService
             |> Seq.tryFind (fun c -> c.Type = JwtRegisteredClaimNames.Sub)
             |> Option.map (fun c -> c.Value)
         with
-        | _ -> None
+        | _ -> Option.None
     
     /// Check if token is expired
     member this.IsTokenExpired(token: string) =
@@ -183,7 +183,7 @@ type JwtTokenService(config: TarsSecurityConfig, logger: ILogger<JwtTokenService
 
         this.GenerateToken($"agent:{agentId}", $"{agentType}:{agentId}", Agent, permissions)
 
-    /// Refresh an existing token (placeholder for future implementation)
+    // TODO: Implement real functionality
     member this.RefreshToken(refreshToken: string) =
         // TODO: Implement refresh token logic
         Error "Refresh tokens not yet implemented"

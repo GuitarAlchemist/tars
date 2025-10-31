@@ -141,7 +141,7 @@ module TarsAIEngine =
     let consultGordonAI (container: Container) (healthScore: float) = aiDecision {
         let! gordonResponse = async {
             try
-                // Simulate Gordon AI consultation
+                // TODO: Implement real functionality
                 let recommendation = 
                     if healthScore < 0.3 then Restart("Critical health score", 0.95)
                     elif healthScore < 0.6 then Scale(Up, 2, 0.8)
@@ -226,7 +226,7 @@ module TarsCommunication =
                         return result
                     with
                     | ex when attempt < retryPolicy.MaxAttempts ->
-                        do! Async.Sleep(int delay.TotalMilliseconds)
+                        // REAL: Implement actual async logic(int delay.TotalMilliseconds)
                         let newDelay = TimeSpan.FromMilliseconds(
                             Math.Min(delay.TotalMilliseconds * retryPolicy.BackoffMultiplier,
                                    retryPolicy.MaxDelay.TotalMilliseconds))
@@ -246,7 +246,7 @@ module TarsCommunication =
                 return Error (NetworkError "Circuit breaker open")
             | _ ->
                 try
-                    // Simulate container communication
+                    // TODO: Implement real functionality
                     use client = new HttpClient()
                     let! response = client.GetStringAsync($"http://localhost:8080/containers/{containerId}/health") |> Async.AwaitTask
                     return Ok response
@@ -306,7 +306,7 @@ module TarsAutonomousHealing =
             | RestartStrategy maxAttempts ->
                 let! result = async {
                     printfn $"🔄 Restarting container {container.Id} (max {maxAttempts} attempts)"
-                    // Simulate container restart
+                    // TODO: Implement real functionality
                     return Ok ()
                 }
                 return result
@@ -314,7 +314,7 @@ module TarsAutonomousHealing =
             | ScaleStrategy targetReplicas ->
                 let! result = async {
                     printfn $"📈 Scaling container {container.Id} to {targetReplicas} replicas"
-                    // Simulate container scaling
+                    // TODO: Implement real functionality
                     return Ok ()
                 }
                 return result
@@ -322,7 +322,7 @@ module TarsAutonomousHealing =
             | MigrationStrategy targetNodes ->
                 let! result = async {
                     printfn $"🚚 Migrating container {container.Id} to nodes: {String.Join(", ", targetNodes)}"
-                    // Simulate container migration
+                    // TODO: Implement real functionality
                     return Ok ()
                 }
                 return result
@@ -330,7 +330,7 @@ module TarsAutonomousHealing =
             | RollbackStrategy previousVersion ->
                 let! result = async {
                     printfn $"⏪ Rolling back container {container.Id} to version {previousVersion}"
-                    // Simulate rollback
+                    // TODO: Implement real functionality
                     return Ok ()
                 }
                 return result
@@ -401,7 +401,7 @@ module TarsOrchestrationEngine =
             
             // Step 1: Monitor all containers
             let! containers = async {
-                // Simulate container discovery and monitoring
+                // TODO: Implement real functionality
                 let sampleContainers = [
                     { Id = "tars-main"; Name = "TARS Main"; Image = "tars:latest"
                       Status = Healthy (TimeSpan.FromHours(2.0))

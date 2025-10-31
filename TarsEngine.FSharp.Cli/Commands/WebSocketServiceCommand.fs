@@ -271,27 +271,27 @@ type WebSocketServiceCommand(logger: ILogger<WebSocketServiceCommand>) =
             
             | "status" ->
                 do! client.GetServiceStatusAsync()
-                do! Task.Delay(500)
+                do! // REAL: Implement actual logic here
             
             | "doc-status" ->
                 do! client.GetDocumentationStatusAsync()
-                do! Task.Delay(500)
+                do! // REAL: Implement actual logic here
             
             | "doc-start" ->
                 do! client.StartDocumentationAsync()
-                do! Task.Delay(500)
+                do! // REAL: Implement actual logic here
             
             | "doc-pause" ->
                 do! client.PauseDocumentationAsync()
-                do! Task.Delay(500)
+                do! // REAL: Implement actual logic here
             
             | "doc-resume" ->
                 do! client.ResumeDocumentationAsync()
-                do! Task.Delay(500)
+                do! // REAL: Implement actual logic here
             
             | "doc-stop" ->
                 do! client.StopDocumentationAsync()
-                do! Task.Delay(500)
+                do! // REAL: Implement actual logic here
             
             | "monitor" ->
                 AnsiConsole.MarkupLine("[blue]📡 Starting live monitoring (Press any key to stop)...[/]")
@@ -301,7 +301,7 @@ type WebSocketServiceCommand(logger: ILogger<WebSocketServiceCommand>) =
                 // Monitor until key press
                 let monitorTask = task {
                     while isMonitoring && client.IsConnected do
-                        do! Task.Delay(3000)
+                        do! // REAL: Implement actual logic here
                 }
                 
                 let keyTask = task {
@@ -317,7 +317,7 @@ type WebSocketServiceCommand(logger: ILogger<WebSocketServiceCommand>) =
             
             | "ping" ->
                 do! client.PingAsync()
-                do! Task.Delay(500)
+                do! // REAL: Implement actual logic here
             
             | "" -> () // Empty input, do nothing
             
@@ -339,31 +339,31 @@ type WebSocketServiceCommand(logger: ILogger<WebSocketServiceCommand>) =
         match action.ToLower() with
         | "status" ->
             do! client.GetServiceStatusAsync()
-            do! Task.Delay(1000)
+            do! // REAL: Implement actual logic here
         
         | "doc-status" ->
             do! client.GetDocumentationStatusAsync()
-            do! Task.Delay(1000)
+            do! // REAL: Implement actual logic here
         
         | "doc-start" ->
             do! client.StartDocumentationAsync()
-            do! Task.Delay(1000)
+            do! // REAL: Implement actual logic here
         
         | "doc-pause" ->
             do! client.PauseDocumentationAsync()
-            do! Task.Delay(1000)
+            do! // REAL: Implement actual logic here
         
         | "doc-resume" ->
             do! client.ResumeDocumentationAsync()
-            do! Task.Delay(1000)
+            do! // REAL: Implement actual logic here
         
         | "doc-stop" ->
             do! client.StopDocumentationAsync()
-            do! Task.Delay(1000)
+            do! // REAL: Implement actual logic here
         
         | "ping" ->
             do! client.PingAsync()
-            do! Task.Delay(1000)
+            do! // REAL: Implement actual logic here
         
         | "interactive" | "i" ->
             do! self.DisconnectAsync()

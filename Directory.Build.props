@@ -5,8 +5,8 @@
         <FSharpCoreVersion>9.0.300</FSharpCoreVersion>
         <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
         <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
-        <NoWarn>NU1608;NU1903;NU1701</NoWarn>
-        
+        <NoWarn>NU1608;NU1903;NU1701;NU1504;NU1605</NoWarn>
+
         <!-- TARS Specific Settings -->
         <Authors>TARS Development Team</Authors>
         <Company>TARS Project</Company>
@@ -16,10 +16,17 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <!-- Global Package References -->
+        <!-- Global Package Version Management - Update existing references -->
         <PackageReference Update="FSharp.Core" Version="$(FSharpCoreVersion)" />
-        <PackageReference Update="System.Text.Json" Version="8.0.5" />
+        <PackageReference Update="System.Text.Json" Version="9.0.0" />
         <PackageReference Update="Microsoft.Extensions.Logging" Version="9.0.0" />
+        <PackageReference Update="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
         <PackageReference Update="Microsoft.Extensions.Logging.Console" Version="9.0.0" />
+        <PackageReference Update="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />
+        <PackageReference Update="Microsoft.Extensions.Http" Version="9.0.0" />
+        <PackageReference Update="Microsoft.Extensions.Hosting" Version="9.0.0" />
+        <PackageReference Update="System.Threading.Channels" Version="9.0.0" />
+        <PackageReference Update="System.Management" Version="9.0.0" />
+        <PackageReference Update="System.ServiceProcess.ServiceController" Version="9.0.0" />
     </ItemGroup>
 </Project>

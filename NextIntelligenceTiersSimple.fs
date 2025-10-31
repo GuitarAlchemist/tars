@@ -237,7 +237,7 @@ module Tier7Demo =
         // Calculate overall metrics
         let totalSubProblems = decompositionResults |> List.sumBy (fun (_, sps, _) -> sps.Length)
         let avgImprovement = decompositionResults |> List.map (fun (_, _, imp) -> imp) |> List.filter (fun x -> x > 0.0) |> List.average
-        let decompositionAccuracy = 0.96  // Simulated accuracy score
+        let decompositionAccuracy = 0.96  // TODO: Implement real functionality
         
         printfn ""
         printfn "🎯 PROBLEM DECOMPOSITION PERFORMANCE:"

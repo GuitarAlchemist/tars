@@ -311,7 +311,7 @@ export default GenericAnalyzer_%s;
                 // Generate React component code
                 let reactCode = this.GenerateReactComponent(task)
                 
-                // Simulate real processing time based on task complexity
+                // TODO: Implement real functionality
                 let processingTime = 
                     match task.Priority with
                     | 1 -> 500 // High priority - fast execution
@@ -319,7 +319,7 @@ export default GenericAnalyzer_%s;
                     | 3 -> 1500
                     | _ -> 2000 // Lower priority - more processing time
                 
-                do! Async.Sleep(processingTime)
+                // REAL: Implement actual async logic(processingTime)
                 
                 let endTime = DateTime.UtcNow
                 let executionTime = (endTime - startTime).TotalMilliseconds

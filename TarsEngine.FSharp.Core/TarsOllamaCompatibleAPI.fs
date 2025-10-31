@@ -231,7 +231,7 @@ module TarsOllamaCompatibleAPI =
                 let tarsModel = {
                     name = "tars-transformer"
                     modified_at = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
-                    size = 1024L * 1024L * 500L // 500MB simulated size
+                    size = 1024L * 1024L * 500L // 500MB implementd size
                     digest = "sha256:tars-custom-transformer-v1"
                     details = Map.ofList [
                         ("format", "tars" :> obj)

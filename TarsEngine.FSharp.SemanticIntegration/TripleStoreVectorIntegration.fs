@@ -78,7 +78,7 @@ type SparqlClient(httpClient: HttpClient, logger: ILogger<SparqlClient>) =
             return Ok results
         with
         | ex ->
-            logger.LogError(ex, "SPARQL query failed for endpoint: {Endpoint}", endpoint)
+            logger.LogError(ex, "SPARQL query failed for endpoint: {Endpoint}", [| endpoint :> obj |])
             return Error ex.Message
     }
     

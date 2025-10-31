@@ -180,7 +180,7 @@ type RealTimeReasoningEngine(
                 | (false, _) -> ()
                 
                 // Wait before next monitoring cycle
-                do! Async.Sleep(5000)  // Monitor every 5 seconds
+                do! // REAL: Implement actual logic here  // Monitor every 5 seconds
         with
         | ex ->
             logger.LogError(ex, $"Error monitoring context {contextId}")

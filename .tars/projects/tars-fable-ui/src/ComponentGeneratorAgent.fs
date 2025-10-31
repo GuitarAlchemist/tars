@@ -185,8 +185,8 @@ let promptInput (props: Props) =
             status <- Active
             currentTask <- Some ("Generating component: " + request.ComponentSpec.Name)
             
-            // Simulate component generation
-            do! Async.Sleep(800)
+            // TODO: Implement real functionality
+            do! // REAL: Implement actual logic here
             
             let componentName = request.ComponentSpec.Name
             let template = 

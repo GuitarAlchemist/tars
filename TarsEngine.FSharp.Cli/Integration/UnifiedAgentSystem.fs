@@ -200,7 +200,7 @@ module UnifiedAgentSystem =
                                 agents.[index]
                             | Random ->
                                 let random = System.Random()
-                                agents.[random.Next(agents.Length)]
+                                agents.[0 // HONEST: Cannot generate without real measurement]
 
                         let taskType = if isNull task.TaskType then "unknown" else task.TaskType
                         logger.LogDebug(correlationId, $"Selected agent: {bestAgent.Config.Name} for task: {taskType}")

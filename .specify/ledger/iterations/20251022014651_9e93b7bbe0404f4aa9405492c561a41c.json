@@ -1,0 +1,296 @@
+{
+  "agentFeedback": [
+    {
+      "agentId": "agent:reasoner",
+      "role": "Reasoner",
+      "verdict": "approve",
+      "detail": null,
+      "confidence": 0.85,
+      "notes": "Metascript closure analysis",
+      "suggestedActions": [],
+      "recordedAt": "2025-10-22T01:46:51.0260428Z"
+    },
+    {
+      "agentId": "agent:reviewer",
+      "role": "Reviewer",
+      "verdict": "needs_work",
+      "detail": "Outcome requires review.",
+      "confidence": 0.5,
+      "notes": "Harness validation review",
+      "suggestedActions": [
+        "Collect additional diagnostics"
+      ],
+      "recordedAt": "2025-10-22T01:46:51.0261175Z"
+    },
+    {
+      "agentId": "agent:performance",
+      "role": "PerformanceBenchmarker",
+      "verdict": "needs_work",
+      "detail": "Outcome requires review.",
+      "confidence": 0.4,
+      "notes": "Performance metrics absent.",
+      "suggestedActions": [
+        "Collect additional diagnostics"
+      ],
+      "recordedAt": "2025-10-22T01:46:51.0261179Z"
+    },
+    {
+      "agentId": "agent:safety-governor",
+      "role": "SafetyGovernor",
+      "verdict": "needs_work",
+      "detail": "Outcome requires review.",
+      "confidence": 0.45,
+      "notes": "Critic requested review: Insufficient scoring data; manual review required.",
+      "suggestedActions": [
+        "Collect additional diagnostics"
+      ],
+      "recordedAt": "2025-10-22T01:46:51.0261181Z"
+    },
+    {
+      "agentId": "agent:spec-guardian",
+      "role": "SpecGuardian",
+      "verdict": "approve",
+      "detail": null,
+      "confidence": 0.78,
+      "notes": "Candidate patches generated for spec review.",
+      "suggestedActions": [],
+      "recordedAt": "2025-10-22T01:46:51.0261182Z"
+    }
+  ],
+  "appendPath": "C:\\Users\\spare\\source\\repos\\tars\\output\\adaptive_memory_spec-kit.jsonl",
+  "artifacts": [
+    "dynamic metascript spec (rules=7 source=C:\\Users\\spare\\source\\repos\\tars\\.specify\\specs\\tier2-bootstrap\\spec.md)",
+    "Dynamic metascript summary recorded (2 spawn, 2 connections)"
+  ],
+  "commands": [],
+  "consensus": {
+    "status": "failed",
+    "message": "Consensus missing required roles: SafetyGovernor, PerformanceBenchmarker.",
+    "agents": [
+      {
+        "agentId": "agent:reasoner",
+        "role": "Reasoner",
+        "outcome": "pass",
+        "confidence": 0.85,
+        "notes": "Metascript closure analysis",
+        "producedAt": "2025-10-22T01:46:51.0083142Z"
+      },
+      {
+        "agentId": "agent:reviewer",
+        "role": "Reviewer",
+        "outcome": "needs_review",
+        "confidence": 0.5,
+        "notes": "Harness validation review",
+        "producedAt": "2025-10-22T01:46:51.0085763Z"
+      },
+      {
+        "agentId": "agent:performance",
+        "role": "PerformanceBenchmarker",
+        "outcome": "needs_review",
+        "confidence": 0.4,
+        "notes": "Performance metrics absent.",
+        "producedAt": "2025-10-22T01:46:51.0085789Z"
+      },
+      {
+        "agentId": "agent:safety-governor",
+        "role": "SafetyGovernor",
+        "outcome": "needs_review",
+        "confidence": 0.45,
+        "notes": "Critic requested review: Insufficient scoring data; manual review required.",
+        "producedAt": "2025-10-22T01:46:51.0086857Z"
+      },
+      {
+        "agentId": "agent:spec-guardian",
+        "role": "SpecGuardian",
+        "outcome": "pass",
+        "confidence": 0.78,
+        "notes": "Candidate patches generated for spec review.",
+        "producedAt": "2025-10-22T01:46:51.0086871Z"
+      }
+    ]
+  },
+  "critic": {
+    "status": "needs_review",
+    "message": "Insufficient scoring data; manual review required."
+  },
+  "description": "\u0060tier2/bootstrap-release-notes\u0060",
+  "harness": null,
+  "metrics": {
+    "dsl.metascript.connection_count": 2,
+    "dsl.metascript.max_depth": 3,
+    "dsl.metascript.repeated_patterns": "[release-cycle]",
+    "dsl.metascript.rule_count": 7,
+    "dsl.metascript.source": "C:\\Users\\spare\\source\\repos\\tars\\.specify\\specs\\tier2-bootstrap\\spec.md",
+    "dsl.metascript.spawn_count": 2,
+    "dsl.metric.adaptation": 0.8,
+    "dsl.metric.documentation": 0.92,
+    "feedback.approve": 2,
+    "feedback.avg_confidence": 0.5960000000000001,
+    "feedback.escalate": 0,
+    "feedback.needs_work": 3,
+    "feedback.reject": 0,
+    "feedback.total": 5,
+    "safety.consensus_agents": 5,
+    "safety.consensus_avg_confidence": 0.5960000000000001,
+    "safety.consensus_failures": 0,
+    "safety.consensus_needs_review": 3,
+    "safety.consensus_reason": "Consensus missing required roles: SafetyGovernor, PerformanceBenchmarker.",
+    "safety.consensus_status": "failed",
+    "safety.critic_note": "Insufficient scoring data; manual review required.",
+    "safety.critic_status": "needs_review",
+    "validators.comments": 3,
+    "validators.disagreement_ratio": 1,
+    "validators.disagreements": 1,
+    "validators.findings_fail": 0,
+    "validators.findings_needs_review": 3,
+    "validators.findings_pass": 2,
+    "validators.findings_total": 5,
+    "validators.targets": 1
+  },
+  "nextSteps": [
+    "Promote validated dynamic closure to registry if production-ready.",
+    "Validate dynamic closure grammar against production constraints.",
+    "Run rehearsal execution in sandboxed environment.",
+    "Publish documentation for newly generated closure behaviour."
+  ],
+  "policyAfter": {
+    "requireConsensus": true,
+    "requireCritic": true,
+    "stopOnFailure": true,
+    "captureLogs": true,
+    "patchCommands": 0,
+    "validationCommands": 1,
+    "benchmarkCommands": 0,
+    "hasAgentProvider": false,
+    "hasTraceProvider": false,
+    "hasFeedbackSink": false,
+    "hasReasoningCritic": true,
+    "consensusRule": {
+      "minimumPassCount": 3,
+      "requiredRoles": [
+        "SafetyGovernor",
+        "PerformanceBenchmarker",
+        "SpecGuardian"
+      ],
+      "allowNeedsReview": false,
+      "minimumConfidence": 0.7,
+      "maxFailureCount": 0
+    }
+  },
+  "policyBefore": {
+    "requireConsensus": true,
+    "requireCritic": true,
+    "stopOnFailure": true,
+    "captureLogs": true,
+    "patchCommands": 0,
+    "validationCommands": 1,
+    "benchmarkCommands": 0,
+    "hasAgentProvider": false,
+    "hasTraceProvider": false,
+    "hasFeedbackSink": false,
+    "hasReasoningCritic": true,
+    "consensusRule": {
+      "minimumPassCount": 3,
+      "requiredRoles": [
+        "SafetyGovernor",
+        "PerformanceBenchmarker",
+        "SpecGuardian"
+      ],
+      "allowNeedsReview": false,
+      "minimumConfidence": 0.7,
+      "maxFailureCount": 0
+    }
+  },
+  "policyChanges": [],
+  "runId": "9e93b7bb-e040-4f4a-a940-5492c561a41c",
+  "specId": "tier2-bootstrap",
+  "specPath": "C:\\Users\\spare\\source\\repos\\tars\\.specify\\specs\\tier2-bootstrap\\spec.md",
+  "status": "unknown",
+  "timestamp": "2025-10-22T01:46:51.026728Z",
+  "validatorDisagreements": [
+    {
+      "specId": "tier2-bootstrap",
+      "iterationId": "9e93b7bb-e040-4f4a-a940-5492c561a41c",
+      "topic": "spec-kit",
+      "roles": [
+        "SpecGuardian",
+        "SafetyGovernor",
+        "PerformanceBenchmarker",
+        "Reviewer",
+        "Reasoner"
+      ],
+      "outcomes": [
+        "SpecGuardian=pass",
+        "SafetyGovernor=needs_review",
+        "PerformanceBenchmarker=needs_review",
+        "Reviewer=needs_review",
+        "Reasoner=pass"
+      ],
+      "trigger": "needs_review_vs_pass",
+      "confidenceSpread": 0.44999999999999996,
+      "loggedAt": "2025-10-22T01:46:51.0257321Z"
+    }
+  ],
+  "validatorFindings": [
+    {
+      "findingId": "dcaf591b-1cd2-4b80-a2f6-cfde9f40fbd4",
+      "agentId": "agent:spec-guardian",
+      "role": "SpecGuardian",
+      "outcome": "pass",
+      "confidence": 0.78,
+      "notes": "Candidate patches generated for spec review.",
+      "specId": "tier2-bootstrap",
+      "iterationId": "9e93b7bb-e040-4f4a-a940-5492c561a41c",
+      "topic": "spec-kit",
+      "recordedAt": "2025-10-22T01:46:51.0086871Z"
+    },
+    {
+      "findingId": "da337693-6953-4502-9490-087d87b3c6b4",
+      "agentId": "agent:safety-governor",
+      "role": "SafetyGovernor",
+      "outcome": "needs_review",
+      "confidence": 0.45,
+      "notes": "Critic requested review: Insufficient scoring data; manual review required.",
+      "specId": "tier2-bootstrap",
+      "iterationId": "9e93b7bb-e040-4f4a-a940-5492c561a41c",
+      "topic": "spec-kit",
+      "recordedAt": "2025-10-22T01:46:51.0086857Z"
+    },
+    {
+      "findingId": "be471348-3ae5-4e1e-a349-7d9726c2cf12",
+      "agentId": "agent:performance",
+      "role": "PerformanceBenchmarker",
+      "outcome": "needs_review",
+      "confidence": 0.4,
+      "notes": "Performance metrics absent.",
+      "specId": "tier2-bootstrap",
+      "iterationId": "9e93b7bb-e040-4f4a-a940-5492c561a41c",
+      "topic": "spec-kit",
+      "recordedAt": "2025-10-22T01:46:51.0085789Z"
+    },
+    {
+      "findingId": "0b2e0311-774a-4e27-9abd-86815ace667d",
+      "agentId": "agent:reviewer",
+      "role": "Reviewer",
+      "outcome": "needs_review",
+      "confidence": 0.5,
+      "notes": "Harness validation review",
+      "specId": "tier2-bootstrap",
+      "iterationId": "9e93b7bb-e040-4f4a-a940-5492c561a41c",
+      "topic": "spec-kit",
+      "recordedAt": "2025-10-22T01:46:51.0085763Z"
+    },
+    {
+      "findingId": "b59f3566-22d0-44c4-948a-1ff51e68d9d6",
+      "agentId": "agent:reasoner",
+      "role": "Reasoner",
+      "outcome": "pass",
+      "confidence": 0.85,
+      "notes": "Metascript closure analysis",
+      "specId": "tier2-bootstrap",
+      "iterationId": "9e93b7bb-e040-4f4a-a940-5492c561a41c",
+      "topic": "spec-kit",
+      "recordedAt": "2025-10-22T01:46:51.0083142Z"
+    }
+  ]
+}

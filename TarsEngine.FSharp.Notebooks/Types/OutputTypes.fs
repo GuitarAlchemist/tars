@@ -255,11 +255,11 @@ type OutputConverterFactory() =
         | HTML -> HtmlConverter() :> IOutputConverter
         | PDF -> PdfConverter() :> IOutputConverter
         | Python -> PythonConverter() :> IOutputConverter
-        | Markdown -> HtmlConverter() :> IOutputConverter // Placeholder
-        | LaTeX -> HtmlConverter() :> IOutputConverter // Placeholder
-        | Slides -> HtmlConverter() :> IOutputConverter // Placeholder
-        | Word -> HtmlConverter() :> IOutputConverter // Placeholder
-        | Excel -> HtmlConverter() :> IOutputConverter // Placeholder
+        | Markdown -> HtmlConverter() :> IOutputConverter // TODO: Implement real functionality
+        | LaTeX -> HtmlConverter() :> IOutputConverter // TODO: Implement real functionality
+        | Slides -> HtmlConverter() :> IOutputConverter // TODO: Implement real functionality
+        | Word -> HtmlConverter() :> IOutputConverter // TODO: Implement real functionality
+        | Excel -> HtmlConverter() :> IOutputConverter // TODO: Implement real functionality
     
     /// Get all available converters
     member this.GetAllConverters() : (OutputFormat * IOutputConverter) list =

@@ -47,7 +47,7 @@ type CudaVectorStore() =
     member _.ComputeSimilarity(vec1: float[], vec2: float[]) =
         if not cudaInitialized then failwith "CUDA not initialized"
         
-        // Simulate CUDA-accelerated cosine similarity
+        // TODO: Implement real functionality
         let dotProduct = Array.zip vec1 vec2 |> Array.sumBy (fun (a, b) -> a * b)
         let magnitude1 = vec1 |> Array.sumBy (fun x -> x * x) |> sqrt
         let magnitude2 = vec2 |> Array.sumBy (fun x -> x * x) |> sqrt

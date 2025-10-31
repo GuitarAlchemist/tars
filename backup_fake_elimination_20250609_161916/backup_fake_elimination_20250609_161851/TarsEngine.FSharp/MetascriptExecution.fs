@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.FSharp
+namespace TarsEngine.FSharp
 
 /// Metascript execution with Tree-of-Thought reasoning
 module MetascriptExecution =
@@ -22,7 +22,7 @@ module MetascriptExecution =
         /// Plans and executes a metascript
         let planAndExecuteMetascript metascript =
             // In a real implementation, this would execute the metascript
-            // For now, we'll just return a simulated result
+            // TODO: Implement real functionality
             let thoughtTree = MetascriptToT.ThoughtTree.createNode "Plan and Execute Metascript"
             let bestPlan = "Direct Execution Plan"
             let output = "Metascript executed successfully"

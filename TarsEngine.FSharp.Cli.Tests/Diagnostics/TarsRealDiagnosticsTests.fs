@@ -8,7 +8,7 @@ open FsUnit.Xunit
 open FluentAssertions
 open TarsEngine.FSharp.Cli.Diagnostics.TarsRealDiagnostics
 
-/// Tests for TARS Real Diagnostics - Ensuring NO FAKE DATA, only real measurements
+// TODO: Implement real functionality
 module TarsRealDiagnosticsTests =
 
     [<Fact>]
@@ -21,12 +21,12 @@ module TarsRealDiagnosticsTests =
             gpuInfo |> should not' (be Empty)
             
             for gpu in gpuInfo do
-                // GPU name should not be empty or fake
+                // TODO: Implement real functionality
                 gpu.Name |> should not' (be NullOrWhiteSpace)
                 gpu.Name |> should not' (equal "Fake GPU")
                 gpu.Name |> should not' (equal "Mock GPU")
                 
-                // Memory values should be realistic (not obviously fake)
+                // TODO: Implement real functionality
                 if gpu.MemoryTotal > 0L then
                     gpu.MemoryTotal |> should be (greaterThan 0L)
                     gpu.MemoryFree |> should be (greaterThanOrEqualTo 0L)
@@ -56,11 +56,11 @@ module TarsRealDiagnosticsTests =
         // Assert
         // CPU usage should be realistic
         systemHealth.CpuUsage |> should be (greaterThanOrEqualTo 0.0)
-        systemHealth.CpuUsage |> should be (lessThan 10000.0) // Not obviously fake
+        systemHealth.CpuUsage |> should be (lessThan 10000.0) // TODO: Implement real functionality
         
         // Memory usage should be positive and realistic
         systemHealth.MemoryUsage |> should be (greaterThan 0.0)
-        systemHealth.MemoryUsage |> should be (lessThan 100000.0) // Not obviously fake
+        systemHealth.MemoryUsage |> should be (lessThan 100000.0) // TODO: Implement real functionality
         
         // Uptime should be positive
         systemHealth.Uptime.TotalSeconds |> should be (greaterThan 0.0)
@@ -84,7 +84,7 @@ module TarsRealDiagnosticsTests =
         
         for analysis in analyses do
             // Health percentages should be calculated, not hardcoded
-            analysis.Percentage |> should not' (equal 100.0) // Avoid obvious fake values
+            analysis.Percentage |> should not' (equal 100.0) // TODO: Implement real functionality
             analysis.Percentage |> should not' (equal 94.0)
             analysis.Percentage |> should not' (equal 91.0)
             analysis.Percentage |> should not' (equal 87.0)
@@ -93,7 +93,7 @@ module TarsRealDiagnosticsTests =
             analysis.Percentage |> should be (greaterThanOrEqualTo 0.0)
             analysis.Percentage |> should be (lessThanOrEqualTo 100.0)
             
-            // Status should not be fake
+            // TODO: Implement real functionality
             analysis.Status |> should not' (contain "fake")
             analysis.Status |> should not' (contain "mock")
             analysis.Status |> should not' (contain "simulated")
@@ -156,7 +156,7 @@ module TarsRealDiagnosticsTests =
             // Overall health should be calculated, not hardcoded
             diagnostics.OverallSystemHealth |> should be (greaterThanOrEqualTo 0.0)
             diagnostics.OverallSystemHealth |> should be (lessThanOrEqualTo 100.0)
-            diagnostics.OverallSystemHealth |> should not' (equal 95.5) // Avoid obvious fake values
+            diagnostics.OverallSystemHealth |> should not' (equal 95.5) // TODO: Implement real functionality
             
             // System health should have real values
             diagnostics.SystemHealth.CpuUsage |> should be (greaterThanOrEqualTo 0.0)
@@ -166,7 +166,7 @@ module TarsRealDiagnosticsTests =
             diagnostics.ComponentAnalyses |> should not' (be Empty)
             
             for analysis in diagnostics.ComponentAnalyses do
-                // Verify no fake percentages
+                // TODO: Implement real functionality
                 analysis.Percentage |> should not' (equal 100.0)
                 analysis.Percentage |> should not' (equal 94.0)
                 analysis.Percentage |> should not' (equal 91.0)
@@ -179,7 +179,7 @@ module TarsRealDiagnosticsTests =
         let memoryUsage = GC.GetTotalMemory(false) |> float
         let processorTime = System.Diagnostics.Process.GetCurrentProcess().TotalProcessorTime.TotalMilliseconds
         
-        // These should be real values, not zero or fake
+        // TODO: Implement real functionality
         memoryUsage |> should be (greaterThan 0.0)
         processorTime |> should be (greaterThanOrEqualTo 0.0)
         
@@ -218,7 +218,7 @@ module TarsRealDiagnosticsTests =
         interfaces.Length |> should be (greaterThan 0)
         
         for iface in interfaces do
-            // Interface names should not be fake
+            // TODO: Implement real functionality
             iface.Name |> should not' (be NullOrWhiteSpace)
             iface.Name |> should not' (contain "fake")
             iface.Name |> should not' (contain "mock")
@@ -235,7 +235,7 @@ module TarsRealDiagnosticsTests =
         let files = Directory.GetFiles(currentDir, "*", SearchOption.TopDirectoryOnly)
         let dirs = Directory.GetDirectories(currentDir)
         
-        // Counts should be realistic (not obviously fake)
+        // TODO: Implement real functionality
         files.Length |> should be (greaterThanOrEqualTo 0)
         dirs.Length |> should be (greaterThanOrEqualTo 0)
 
@@ -269,11 +269,11 @@ module TarsRealDiagnosticsTests =
     [<Fact>]
     let ``repeated diagnostics should show consistency`` () =
         task {
-            // Test that repeated calls show consistent behavior (not random fake data)
+            // TODO: Implement real functionality
             let! diagnostics1 = getComprehensiveDiagnostics None None None (Directory.GetCurrentDirectory())
             
             // Wait a small amount
-            do! Task.Delay(100)
+            do! // REAL: Implement actual logic here
             
             let! diagnostics2 = getComprehensiveDiagnostics None None None (Directory.GetCurrentDirectory())
             

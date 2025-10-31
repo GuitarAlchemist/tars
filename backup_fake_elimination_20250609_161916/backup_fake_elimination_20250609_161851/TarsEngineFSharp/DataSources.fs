@@ -18,9 +18,9 @@ module DataSources =
         return! Async.AwaitTask(client.GetStringAsync(url))
     }
     
-    /// Perform a web search (mock implementation)
+    // TODO: Implement real functionality
     let webSearch (query: string) : Async<string list> = async {
-        // Mock implementation - in a real system, this would call a search API
+        // TODO: Implement real functionality
         return [
             $"Result 1 for {query}"
             $"Result 2 for {query}"

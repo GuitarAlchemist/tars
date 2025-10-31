@@ -90,8 +90,8 @@ type BSPReasoningEngine(logger: ILogger<BSPReasoningEngine>) =
         let startTime = DateTime.UtcNow
         stepCounter <- stepCounter + 1
         
-        logger.LogInformation(sprintf "🧠 BSP Step %d: %s (Depth: %d)" stepCounter stepType currentState.ReasoningDepth)
-        
+        logger.LogInformation $"🧠 BSP Step %d{stepCounter}: %s{stepType} (Depth: %d{currentState.ReasoningDepth})"
+
         let reasoningTrace = ResizeArray<string>()
         let metaCognition = ResizeArray<string>()
         
@@ -157,7 +157,7 @@ type BSPReasoningEngine(logger: ILogger<BSPReasoningEngine>) =
                 reasoningTrace.Add(sprintf "[%s] Engaging in meta-cognitive reflection" (DateTime.UtcNow.ToString("HH:mm:ss.fff")))
                 reasoningTrace.Add(sprintf "[%s] Evaluating reasoning quality and potential biases" (DateTime.UtcNow.ToString("HH:mm:ss.fff")))
                 
-                metaCognition.Add(sprintf "Reasoning depth: %d - appropriate for problem complexity" currentState.ReasoningDepth)
+                metaCognition.Add $"Reasoning depth: %d{currentState.ReasoningDepth} - appropriate for problem complexity"
                 metaCognition.Add(sprintf "Belief confidence average: %.2f - indicates %s certainty" 
                     (currentState.Beliefs |> Map.toList |> List.averageBy snd)
                     (if (currentState.Beliefs |> Map.toList |> List.averageBy snd) > 0.7 then "high" else "moderate"))
@@ -225,11 +225,11 @@ type BSPReasoningEngine(logger: ILogger<BSPReasoningEngine>) =
     member this.SolveProblemWithBSP(problem: BSPProblem) =
         async {
             solutionCounter <- solutionCounter + 1
-            let solutionId = sprintf "BSP_SOLUTION_%03d_%s" solutionCounter problem.ProblemId
+            let solutionId = $"BSP_SOLUTION_%03d{solutionCounter}_%s{problem.ProblemId}"
             let startTime = DateTime.UtcNow
             
-            logger.LogInformation(sprintf "🎯 Starting BSP reasoning for problem: %s" problem.Description)
-            
+            logger.LogInformation $"🎯 Starting BSP reasoning for problem: %s{problem.Description}"
+
             let initialState = this.InitializeBeliefState(problem)
             let reasoningSteps = ResizeArray<BSPReasoningStep>()
             let reasoningChains = ResizeArray<string[]>()
@@ -242,7 +242,7 @@ type BSPReasoningEngine(logger: ILogger<BSPReasoningEngine>) =
             let mutable targetReached = false
             for cycle in 1 .. (problem.MaxReasoningDepth / bspSteps.Length + 1) do
                 if not targetReached then
-                    logger.LogInformation(sprintf "🔄 BSP Reasoning Cycle %d" cycle)
+                    logger.LogInformation $"🔄 BSP Reasoning Cycle %d{cycle}"
 
                     for stepType in bspSteps do
                         if currentState.ReasoningDepth < problem.MaxReasoningDepth && not targetReached then
@@ -253,15 +253,14 @@ type BSPReasoningEngine(logger: ILogger<BSPReasoningEngine>) =
 
                             // Check if we've reached target confidence
                             if step.Confidence >= problem.RequiredConfidence then
-                                logger.LogInformation(sprintf "✅ Target confidence %.2f reached at step %d" step.Confidence step.StepId)
+                                logger.LogInformation $"✅ Target confidence %.2f{step.Confidence} reached at step %d{step.StepId}"
                                 targetReached <- true
             
             // Generate meta-reasoning insights
-            metaInsights.Add(sprintf "BSP reasoning completed with %d steps across %d cycles" reasoningSteps.Count (reasoningSteps.Count / bspSteps.Length + 1))
-            metaInsights.Add(sprintf "Final belief state contains %d beliefs with average confidence %.2f" 
-                currentState.Beliefs.Count (currentState.Beliefs |> Map.toList |> List.averageBy snd))
-            metaInsights.Add(sprintf "Detected %d contradictions requiring resolution" currentState.Contradictions.Length)
-            
+            metaInsights.Add $"BSP reasoning completed with %d{reasoningSteps.Count} steps across %d{reasoningSteps.Count / bspSteps.Length + 1} cycles"
+            metaInsights.Add $"Final belief state contains %d{currentState.Beliefs.Count} beliefs with average confidence %.2f{currentState.Beliefs |> Map.toList |> List.averageBy snd}"
+            metaInsights.Add $"Detected %d{currentState.Contradictions.Length} contradictions requiring resolution"
+
             let endTime = DateTime.UtcNow
             let totalTime = (endTime - startTime).TotalMilliseconds
             let solutionQuality = min 1.0 ((currentState.Beliefs |> Map.toList |> List.averageBy snd) * 1.2)
@@ -290,11 +289,11 @@ type BSPReasoningEngine(logger: ILogger<BSPReasoningEngine>) =
         
         sb.AppendLine("# BSP (Belief State Planning) Reasoning Report") |> ignore
         sb.AppendLine() |> ignore
-        sb.AppendLine(sprintf "**Problem ID:** %s" solution.ProblemId) |> ignore
-        sb.AppendLine(sprintf "**Solution ID:** %s" solution.SolutionId) |> ignore
-        sb.AppendLine(sprintf "**Total Reasoning Time:** %.1fms" solution.TotalReasoningTime) |> ignore
+        sb.AppendLine $"**Problem ID:** %s{solution.ProblemId}" |> ignore
+        sb.AppendLine $"**Solution ID:** %s{solution.SolutionId}" |> ignore
+        sb.AppendLine $"**Total Reasoning Time:** %.1f{solution.TotalReasoningTime}ms" |> ignore
         sb.AppendLine(sprintf "**Solution Quality:** %.1f%%" (solution.SolutionQuality * 100.0)) |> ignore
-        sb.AppendLine(sprintf "**Reasoning Steps:** %d" solution.ReasoningSteps.Length) |> ignore
+        sb.AppendLine $"**Reasoning Steps:** %d{solution.ReasoningSteps.Length}" |> ignore
         sb.AppendLine() |> ignore
         
         sb.AppendLine("## 🧠 BSP Reasoning Flow") |> ignore
@@ -321,27 +320,27 @@ type BSPReasoningEngine(logger: ILogger<BSPReasoningEngine>) =
         sb.AppendLine() |> ignore
         
         for step in solution.ReasoningSteps do
-            sb.AppendLine(sprintf "### Step %d: %s" step.StepId step.StepType) |> ignore
+            sb.AppendLine $"### Step %d{step.StepId}: %s{step.StepType}" |> ignore
             sb.AppendLine() |> ignore
             sb.AppendLine(sprintf "**Confidence:** %.1f%%" (step.Confidence * 100.0)) |> ignore
-            sb.AppendLine(sprintf "**Execution Time:** %.1fms" step.ExecutionTime) |> ignore
+            sb.AppendLine $"**Execution Time:** %.1f{step.ExecutionTime}ms" |> ignore
             sb.AppendLine() |> ignore
             
             sb.AppendLine("#### Reasoning Trace") |> ignore
             for trace in step.ReasoningTrace do
-                sb.AppendLine(sprintf "- %s" trace) |> ignore
+                sb.AppendLine $"- %s{trace}" |> ignore
             sb.AppendLine() |> ignore
             
             if step.MetaCognition.Length > 0 then
                 sb.AppendLine("#### Meta-Cognition") |> ignore
                 for meta in step.MetaCognition do
-                    sb.AppendLine(sprintf "- %s" meta) |> ignore
+                    sb.AppendLine $"- %s{meta}" |> ignore
                 sb.AppendLine() |> ignore
         
         sb.AppendLine("## 🎯 Meta-Reasoning Insights") |> ignore
         sb.AppendLine() |> ignore
         for insight in solution.MetaReasoningInsights do
-            sb.AppendLine(sprintf "- %s" insight) |> ignore
+            sb.AppendLine $"- %s{insight}" |> ignore
         sb.AppendLine() |> ignore
         
         sb.ToString()

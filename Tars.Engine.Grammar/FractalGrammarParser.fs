@@ -129,7 +129,7 @@ module FractalGrammarParser =
                     }
             with
             | ex ->
-                errors.Add(sprintf "Parse error: %s" ex.Message)
+                errors.Add $"Parse error: %s{ex.Message}"
                 {
                     Success = false
                     FractalGrammar = None
@@ -153,8 +153,8 @@ module FractalGrammarParser =
                 | Comment _ -> () // Skip comments
                 | Whitespace -> () // Skip whitespace
                 | _ -> 
-                    warnings.Add(sprintf "Unexpected token: %A" token)
-                
+                    warnings.Add $"Unexpected token: %A{token}"
+
                 token <- lexer.NextToken()
             
             rules |> Seq.toList
@@ -190,7 +190,7 @@ module FractalGrammarParser =
                 }
             with
             | ex ->
-                errors.Add(sprintf "Error parsing fractal rule: %s" ex.Message)
+                errors.Add $"Error parsing fractal rule: %s{ex.Message}"
                 None
 
         /// Parse rule body content
@@ -314,7 +314,7 @@ module FractalGrammarParser =
                 Compose (transforms |> Seq.toList)
             
             | _ ->
-                warnings.Add(sprintf "Unknown transformation: %A" token)
+                warnings.Add $"Unknown transformation: %A{token}"
                 Scale 1.0
 
         /// Build fractal grammar from parsed rules
@@ -342,7 +342,7 @@ module FractalGrammarParser =
             {
                 Name = name
                 BasePattern = pattern
-                RecursivePattern = Some (sprintf "(%s)*" pattern)
+                RecursivePattern = Some $"(%s{pattern})*"
                 TerminationCondition = "max_depth_5"
                 Transformations = [Scale 0.8]
                 Properties = FractalGrammarEngine().CreateDefaultProperties()

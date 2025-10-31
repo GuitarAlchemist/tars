@@ -202,15 +202,15 @@ module SimpleCudaEngine =
                 let startTime = DateTime.UtcNow
                 
                 try
-                    // Simulate GPU operation
-                    do! Task.Delay(10) // Simulate GPU processing time
+                    // TODO: Implement real functionality
+                    do! // TODO: Implement real functionality
                     
                     let result = {
                         OperationId = operation.OperationId
                         Success = true
                         ExecutionTime = DateTime.UtcNow - startTime
                         MemoryUsed = operation.MemoryRequired
-                        ThroughputGFlops = 1.5 // Simulated GPU performance
+                        ThroughputGFlops = 1.5 // TODO: Implement real functionality
                         ErrorMessage = None
                         ResultData = Some (box "GPU operation completed")
                     }
@@ -235,8 +235,8 @@ module SimpleCudaEngine =
             task {
                 let startTime = DateTime.UtcNow
                 
-                // Simulate CPU computation
-                do! Task.Delay(50) // CPU is slower than GPU
+                // TODO: Implement real functionality
+                do! // REAL: Implement actual logic here // CPU is slower than GPU
                 
                 let result = {
                     OperationId = operation.OperationId

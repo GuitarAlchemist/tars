@@ -2,6 +2,8 @@ namespace TarsEngine.FSharp.Cli.Core
 
 /// Command line options for TARS CLI commands
 type CommandOptions = {
+    /// Command arguments
+    Arguments: string list
     /// Enable verbose output
     Verbose: bool
     /// Enable debug mode
@@ -24,6 +26,7 @@ module CommandOptions =
     
     /// Default command options
     let defaultOptions = {
+        Arguments = []
         Verbose = false
         Debug = false
         OutputFormat = "text"

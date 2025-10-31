@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.FSharp.Main.Intelligence.Measurement
+namespace TarsEngine.FSharp.Main.Intelligence.Measurement
 
 open System
 open System.Collections.Generic
@@ -183,15 +183,15 @@ type IntelligenceProgressionReportGenerator
                 match primaryLearningCurve with
                 | Some lca -> lca.CurveType.ToString()
                 | None -> "Linear"
-            ForecastAccuracy = 0.85 // Placeholder accuracy
+            ForecastAccuracy = 0.85 // TODO: Implement real functionality
             ConfidenceLevel = 0.95
         }
         
         // Generate visualization data
         let visualizationData = {
-            ChartData = Map.empty // Placeholder
-            GraphData = Map.empty // Placeholder
-            TimelineData = Map.empty // Placeholder
+            ChartData = Map.empty // TODO: Implement real functionality
+            GraphData = Map.empty // TODO: Implement real functionality
+            TimelineData = Map.empty // TODO: Implement real functionality
         }
         
         // Generate key insights

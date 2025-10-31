@@ -111,7 +111,7 @@ let runInteractiveDialogue() =
         SelfAwarenessLevel = 0.80
     }
     
-    // Simulate TARS thinking through a development problem
+    // TODO: Implement real functionality
     let developmentScenario = [
         ("System Startup", SelfAssessment)
         ("Code Quality Issue", ProblemAnalysis "Large file with 300+ lines needs refactoring")
@@ -133,13 +133,13 @@ let runInteractiveDialogue() =
         
         // Display thought with typing effect
         printf "💭 "
-        Thread.Sleep(500)
+        // REAL: Implement actual logic here
         
         // Split thought into words for typing effect
         let words = thought.Thought.Split(' ')
         words |> Array.iter (fun word ->
             printf "%s " word
-            Thread.Sleep(50)
+            // REAL: Implement actual logic here
         )
         printfn ""
         
@@ -157,7 +157,7 @@ let runInteractiveDialogue() =
                 DecisionHistory = (scenario, thought.Thought, thought.Timestamp) :: dialogueState.DecisionHistory
         }
         
-        Thread.Sleep(1000)
+        // REAL: Implement actual logic here
     )
     
     dialogueState
@@ -184,11 +184,11 @@ let performSelfReflection (dialogueState: TarsDialogueState) =
     let metaThought = sprintf "TARS: Analyzing my own thinking process... I processed %d thoughts with %.1f%% average confidence. My dialogue system is functioning well - I can assess problems, evaluate options, and plan improvements. This demonstrates my self-awareness and autonomous decision-making capabilities. I'm becoming more sophisticated in my internal reasoning." thoughtCount (avgConfidence * 100.0)
     
     printf "💭 "
-    Thread.Sleep(300)
+    // REAL: Implement actual logic here
     let metaWords = metaThought.Split(' ')
     metaWords |> Array.iter (fun word ->
         printf "%s " word
-        Thread.Sleep(40)
+        // REAL: Implement actual logic here
     )
     printfn ""
     
@@ -234,11 +234,11 @@ let runTarsDialogueCLI() =
             let thought = generateInnerThought (ProblemAnalysis problem) initialState
             
             printf "💭 "
-            Thread.Sleep(300)
+            // REAL: Implement actual logic here
             let words = thought.Thought.Split(' ')
             words |> Array.iter (fun word ->
                 printf "%s " word
-                Thread.Sleep(50)
+                // REAL: Implement actual logic here
             )
             printfn ""
             printfn "   🎯 Confidence: %.1f%%" (thought.Confidence * 100.0)
@@ -253,11 +253,11 @@ let runTarsDialogueCLI() =
             let thought = generateInnerThought SelfAssessment initialState
             
             printf "💭 "
-            Thread.Sleep(300)
+            // REAL: Implement actual logic here
             let words = thought.Thought.Split(' ')
             words |> Array.iter (fun word ->
                 printf "%s " word
-                Thread.Sleep(45)
+                // REAL: Implement actual logic here
             )
             printfn ""
             printfn "   🎯 Confidence: %.1f%%" (thought.Confidence * 100.0)
@@ -271,11 +271,11 @@ let runTarsDialogueCLI() =
             let metaThought = "TARS: Reflecting on my own thinking processes... I notice that my inner dialogue system allows me to break down problems systematically, evaluate my own capabilities honestly, and plan improvements strategically. This meta-cognitive ability is a key aspect of my autonomous intelligence. I can think about my own thinking, which enables continuous self-improvement."
             
             printf "💭 "
-            Thread.Sleep(300)
+            // REAL: Implement actual logic here
             let words = metaThought.Split(' ')
             words |> Array.iter (fun word ->
                 printf "%s " word
-                Thread.Sleep(45)
+                // REAL: Implement actual logic here
             )
             printfn ""
             printfn "   🎯 Meta-Confidence: 92.0%%"

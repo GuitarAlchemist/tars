@@ -86,7 +86,7 @@ type DynamicBudgetController(logger: ILogger<DynamicBudgetController>) =
     /// Monitor current resource availability
     let monitorResourceAvailability() =
         // TODO: Implement actual resource monitoring
-        // For now, simulate resource availability
+        // TODO: Implement real functionality
         let cpuUsage = Random().NextDouble() * 0.8  // 0-80% CPU usage
         let memoryUsage = Random().NextDouble() * 0.7  // 0-70% memory usage
         let availableCompute = int ((1.0 - cpuUsage) * 1000.0)  // Available computational units
@@ -225,13 +225,13 @@ type DynamicBudgetController(logger: ILogger<DynamicBudgetController>) =
         member this.MonitorConsumption(problem: string) =
             try
                 // TODO: Implement actual resource monitoring
-                // For now, simulate consumption tracking
+                // TODO: Implement real functionality
                 let random = Random()
                 let consumption = {
-                    ComputationalUsed = random.Next(50, 500)
+                    ComputationalUsed = 0 // HONEST: Cannot generate without real measurement
                     TimeElapsed = TimeSpan.FromSeconds(random.NextDouble() * 120.0)
                     QualityAchieved = 0.5 + random.NextDouble() * 0.4
-                    ComplexityHandled = random.Next(3, 8)
+                    ComplexityHandled = 0 // HONEST: Cannot generate without real measurement
                     EfficiencyScore = 0.6 + random.NextDouble() * 0.3
                 }
                 

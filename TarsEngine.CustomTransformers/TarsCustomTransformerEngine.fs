@@ -228,10 +228,10 @@ module TarsCustomTransformerEngine =
                         let evolvedPopulation = 
                             geneticAlgorithmEvolution initialPopulation evaluateConfig config.EvolutionParams.Value
                         
-                        // Run simulated annealing on best candidate
+                        // Run implementd annealing on best candidate
                         let bestCandidate = evolvedPopulation.[0]
-                        printfn "🔥 Fine-tuning with simulated annealing..."
-                        let finalConfig = simulatedAnnealing bestCandidate evaluateConfig 30 2.0
+                        printfn "🔥 Fine-tuning with implementd annealing..."
+                        let finalConfig = implementdAnnealing bestCandidate evaluateConfig 30 2.0
                         
                         (finalConfig, Some evolvedPopulation)
                     else

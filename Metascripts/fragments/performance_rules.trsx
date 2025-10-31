@@ -1,0 +1,8 @@
+# Performance validation rules for Tier3 cross-validation
+SPAWN ML 2 FRACTAL
+SPAWN QRE 1 DEMOCRATIC
+CONNECT agent-0 agent-1 benchmark
+CONNECT agent-0 agent-2 regression-watch
+METRIC throughput_delta 0.95
+METRIC latency_budget 0.80
+REPEAT performance-cycle 2

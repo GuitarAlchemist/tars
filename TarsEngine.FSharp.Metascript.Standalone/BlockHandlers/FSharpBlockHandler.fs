@@ -5,7 +5,7 @@ open System.IO
 open System.Text
 open System.Threading.Tasks
 open Microsoft.Extensions.Logging
-open Microsoft.FSharp.Compiler.Interactive.Shell
+open FSharp.Compiler.Interactive.Shell
 open TarsEngine.FSharp.Metascript
 
 /// <summary>

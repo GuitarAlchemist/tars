@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.FSharp.ML.Services
+namespace TarsEngine.FSharp.ML.Services
 
 open System
 open System.IO
@@ -54,7 +54,7 @@ type MLService(logger: ILogger<MLService>, mlFramework: MLFramework) =
         task {
             logger.LogInformation("Getting model: {ModelId}", modelId)
             
-            // This is a placeholder implementation
+            // TODO: Implement real functionality
             // In a real implementation, we would retrieve the model from storage
             return None
         }
@@ -130,7 +130,7 @@ type MLService(logger: ILogger<MLService>, mlFramework: MLFramework) =
         task {
             logger.LogInformation("Training model: {ModelId}", modelId)
             
-            // This is a placeholder implementation
+            // TODO: Implement real functionality
             // In a real implementation, we would train the model using MLFramework
             return {
                 Model = {
@@ -179,7 +179,7 @@ type MLService(logger: ILogger<MLService>, mlFramework: MLFramework) =
         task {
             logger.LogInformation("Making prediction with model: {ModelId}", modelId)
             
-            // This is a placeholder implementation
+            // TODO: Implement real functionality
             // In a real implementation, we would use MLFramework to make predictions
             return {
                 Prediction = {
@@ -238,7 +238,7 @@ type MLService(logger: ILogger<MLService>, mlFramework: MLFramework) =
         task {
             logger.LogInformation("Evaluating model: {ModelId}", modelId)
             
-            // This is a placeholder implementation
+            // TODO: Implement real functionality
             // In a real implementation, we would evaluate the model using MLFramework
             return {
                 Accuracy = Some 0.95
@@ -266,7 +266,7 @@ type MLService(logger: ILogger<MLService>, mlFramework: MLFramework) =
         task {
             logger.LogInformation("Getting feature importances for model: {ModelId}", modelId)
             
-            // This is a placeholder implementation
+            // TODO: Implement real functionality
             // In a real implementation, we would calculate feature importances using MLFramework
             return {
                 Model = {
@@ -300,7 +300,7 @@ type MLService(logger: ILogger<MLService>, mlFramework: MLFramework) =
         task {
             logger.LogInformation("Comparing models: {ModelIds}", modelIds)
             
-            // This is a placeholder implementation
+            // TODO: Implement real functionality
             // In a real implementation, we would compare models using MLFramework
             let models = 
                 modelIds
@@ -361,7 +361,7 @@ type MLService(logger: ILogger<MLService>, mlFramework: MLFramework) =
         task {
             logger.LogInformation("Exporting model: {ModelId}", modelId)
             
-            // This is a placeholder implementation
+            // TODO: Implement real functionality
             // In a real implementation, we would export the model using MLFramework
             return {
                 Model = {
@@ -398,7 +398,7 @@ type MLService(logger: ILogger<MLService>, mlFramework: MLFramework) =
         task {
             logger.LogInformation("Importing model from: {Path}", path)
             
-            // This is a placeholder implementation
+            // TODO: Implement real functionality
             // In a real implementation, we would import the model using MLFramework
             return {
                 Model = {
@@ -432,7 +432,7 @@ type MLService(logger: ILogger<MLService>, mlFramework: MLFramework) =
         task {
             logger.LogInformation("Deleting model: {ModelId}", modelId)
             
-            // This is a placeholder implementation
+            // TODO: Implement real functionality
             // In a real implementation, we would delete the model using MLFramework
             return true
         }
@@ -471,7 +471,7 @@ type MLService(logger: ILogger<MLService>, mlFramework: MLFramework) =
         task {
             logger.LogInformation("Splitting dataset: {Name}", dataset.Name)
             
-            // This is a placeholder implementation
+            // TODO: Implement real functionality
             // In a real implementation, we would split the dataset
             let validationRatio = defaultArg validationRatio 0.0
             let stratified = defaultArg stratified false
@@ -525,7 +525,7 @@ type MLService(logger: ILogger<MLService>, mlFramework: MLFramework) =
         task {
             logger.LogInformation("Loading dataset from: {Path}", path)
             
-            // This is a placeholder implementation
+            // TODO: Implement real functionality
             // In a real implementation, we would load the dataset from a file
             return {
                 Name = defaultArg name (Path.GetFileNameWithoutExtension(path))
@@ -547,7 +547,7 @@ type MLService(logger: ILogger<MLService>, mlFramework: MLFramework) =
         task {
             logger.LogInformation("Saving dataset: {Name}", dataset.Name)
             
-            // This is a placeholder implementation
+            // TODO: Implement real functionality
             // In a real implementation, we would save the dataset to a file
             return true
         }

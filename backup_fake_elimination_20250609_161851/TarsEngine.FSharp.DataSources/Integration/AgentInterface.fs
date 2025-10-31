@@ -1,6 +1,6 @@
-// AgentInterface.fs - Auto-generated placeholder
+// TODO: Implement real functionality
 // TODO: Implement AgentInterface functionality
 
 namespace TarsEngine.FSharp.DataSources.Integration
 
-// Placeholder for AgentInterface implementation
+// TODO: Implement real functionality

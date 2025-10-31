@@ -208,7 +208,7 @@ type UITaskManager(logger: ILogger<UITaskManager>) =
                 
                 this.UpdateProgress(GreenStable, completedTasks, $"Green UI: {taskName}", components)
                 
-                // Simulate work
+                // TODO: Implement real functionality
                 let workDuration = taskDuration * 1000 // Convert to milliseconds
                 do! Task.Delay(workDuration, cancellationToken)
                 
@@ -272,7 +272,7 @@ type UITaskManager(logger: ILogger<UITaskManager>) =
                 
                 this.UpdateProgress(BlueExperimental, completedTasks, $"Blue UI: {taskName}", components)
                 
-                // Simulate work with more complex timing for experimental features
+                // TODO: Implement real functionality
                 let workDuration = taskDuration * 1500 // Longer for experimental work
                 do! Task.Delay(workDuration, cancellationToken)
                 

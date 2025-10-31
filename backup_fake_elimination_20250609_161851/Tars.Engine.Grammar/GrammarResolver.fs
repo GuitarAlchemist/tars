@@ -251,7 +251,7 @@ grammar {
         else
             Error (errors |> Seq.toList)
     
-    /// Generate grammar from examples (placeholder for future ML implementation)
+    // TODO: Implement real functionality
     let generateGrammarFromExamples name examples =
         // TODO: Implement ML-based grammar generation
         let placeholderGrammar = sprintf """// Generated grammar for %s

@@ -114,6 +114,7 @@ type IVectorStore =
     abstract member AddDocuments: VectorDocument list -> Async<unit>
     abstract member Search: VectorQuery -> Async<SearchResult list>
     abstract member GetDocument: string -> Async<VectorDocument option>
+    abstract member GetAllDocuments: unit -> Async<VectorDocument list>
     abstract member UpdateDocument: VectorDocument -> Async<unit>
     abstract member DeleteDocument: string -> Async<unit>
     abstract member GetDocumentCount: unit -> Async<int>

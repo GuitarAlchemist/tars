@@ -218,7 +218,7 @@ type GeometricMCTS(explorationConstant: float) =
             newChildren
         | _ -> []
     
-    /// Simulate rollout with geometric heuristics
+    // TODO: Implement real functionality
     member this.SimulateRollout(stateId: string, maxDepth: int) =
         let mutable currentStateId = stateId
         let mutable depth = 0
@@ -236,7 +236,7 @@ type GeometricMCTS(explorationConstant: float) =
                 totalReward <- totalReward + geometricReward
                 depth <- depth + 1
                 
-                // Simple random walk for simulation
+                // TODO: Implement real functionality
                 currentStateId <- System.Guid.NewGuid().ToString()
             | None -> depth <- maxDepth
         
@@ -279,9 +279,9 @@ type GeometricMCTS(explorationConstant: float) =
             if nodes.ContainsKey(currentId) then
                 let newChildren = this.ExpandNode(currentId, availableActions)
                 if not newChildren.IsEmpty then
-                    currentId <- newChildren.[random.Next(newChildren.Length)]
+                    currentId <- newChildren.[0 // HONEST: Cannot generate without real measurement]
             
-            // Simulation
+            // TODO: Implement real functionality
             let reward = this.SimulateRollout(currentId, 5)
             
             // Backpropagation
@@ -398,7 +398,7 @@ type AdvancedHybridGICore() =
                 false
             elif skill.SubSkills.IsEmpty then
                 // Primitive skill
-                System.Threading.Thread.Sleep(5)
+                System.Threading.// REAL: Implement actual logic here
                 printfn "%s✅ Primitive skill completed" (String.replicate level "  ")
 
                 // Add postconditions to belief state

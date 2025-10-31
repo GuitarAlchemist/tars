@@ -65,7 +65,7 @@ let counter = MailboxProcessor.Start(fun inbox ->
 """)
     ]
     
-    // Real pattern analysis (not simulated)
+    // TODO: Implement real functionality
     let analyzedPatterns = 
         complexPatterns
         |> List.map (fun (name, code) ->
@@ -130,7 +130,7 @@ let improveMetascriptEvolution() =
         
         (complexityScore * 0.3 + sizeScore * 0.2 + qualityScore * 0.5) |> min 1.0
     
-    // Real metascript evolution (not simulated)
+    // TODO: Implement real functionality
     let evolveMetascript generation =
         let baseMetrics = {
             CyclomaticComplexity = 8 - generation
@@ -262,7 +262,7 @@ let integrateWithLiveInfrastructure() =
     let connectedServices = connectionResults |> List.filter (fun (_, connected, _) -> connected) |> List.length
     let connectionRate = (float connectedServices / float services.Length) * 100.0
     
-    // Store learning data (simulate ChromaDB integration)
+    // TODO: Implement real functionality
     let storeLearningData() =
         let learningData = {|
             timestamp = DateTime.Now

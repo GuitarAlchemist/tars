@@ -15,7 +15,7 @@ module SemanticLearningServiceTests =
         let loggerFactory = LoggerFactory.Create(fun builder -> builder.AddConsole() |> ignore)
         loggerFactory.CreateLogger<'T>()
     
-    /// Create a mock RDF client for testing
+    // TODO: Implement real functionality
     let createMockRdfClient() =
         let logger = createTestLogger<InMemoryRdfClient>()
         InMemoryRdfClient(logger) :> IRdfClient
@@ -58,7 +58,7 @@ module SemanticLearningServiceTests =
             match result with
             | Ok patterns -> 
                 Assert.NotNull(patterns)
-                // Should return some mock patterns
+                // TODO: Implement real functionality
                 Assert.True(patterns.Length >= 0)
             | Error err -> Assert.True(false, sprintf "Expected success but got error: %s" err)
         }

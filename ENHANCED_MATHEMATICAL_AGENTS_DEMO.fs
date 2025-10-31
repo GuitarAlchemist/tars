@@ -199,7 +199,7 @@ module EnhancedMathematicalAgentsDemo =
         member private this.DemonstrateMathematicalReasoning() = async {
             logger.LogInformation("🧮 Demonstrating mathematical reasoning enhancement...")
             
-            // Simulate enhanced reasoning scenarios
+            // TODO: Implement real functionality
             let reasoningScenarios = [
                 ("Optimize database query performance", Map.ofList [("complexity", "high" :> obj); ("priority", "critical" :> obj)])
                 ("Design microservices architecture", Map.ofList [("scale", "enterprise" :> obj); ("team_size", 8 :> obj)])

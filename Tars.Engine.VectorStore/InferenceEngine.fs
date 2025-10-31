@@ -43,13 +43,13 @@ type MultiSpaceInferenceEngine(vectorStore: IVectorStore, embeddingGenerator: IE
         let startTime = DateTime.Now
         let reasoning = ResizeArray<string>()
         
-        reasoning.Add(sprintf "Processing query: %s" context.Query)
-        reasoning.Add(sprintf "Retrieved %d relevant documents" context.RetrievedDocuments.Length)
-        
+        reasoning.Add $"Processing query: %s{context.Query}"
+        reasoning.Add $"Retrieved %d{context.RetrievedDocuments.Length} relevant documents"
+
         // Extract key information
         let relevantInfo = extractRelevantInfo context.RetrievedDocuments context.Query
-        reasoning.Add(sprintf "Extracted %d relevant pieces of information" relevantInfo.Length)
-        
+        reasoning.Add $"Extracted %d{relevantInfo.Length} relevant pieces of information"
+
         // Analyze belief states from embeddings
         let beliefStates = 
             context.RetrievedDocuments 
@@ -58,8 +58,8 @@ type MultiSpaceInferenceEngine(vectorStore: IVectorStore, embeddingGenerator: IE
         
         reasoning.Add("Belief state analysis:")
         for (belief, count) in beliefStates do
-            reasoning.Add(sprintf "  %A: %d documents" belief count)
-        
+            reasoning.Add $"  %A{belief}: %d{count} documents"
+
         // Determine confidence based on belief consensus
         let confidence = 
             match beliefStates with
@@ -69,8 +69,8 @@ type MultiSpaceInferenceEngine(vectorStore: IVectorStore, embeddingGenerator: IE
             | beliefs when beliefs |> List.exists (fun (b, _) -> b = Both) -> 0.5
             | _ -> 0.3
         
-        reasoning.Add(sprintf "Computed confidence: %.2f" confidence)
-        
+        reasoning.Add $"Computed confidence: %.2f{confidence}"
+
         // Generate result based on available information
         let result = 
             if relevantInfo.Length > 0 then
@@ -80,8 +80,8 @@ type MultiSpaceInferenceEngine(vectorStore: IVectorStore, embeddingGenerator: IE
                 box "No specific information found, but documents were retrieved for context."
         
         let processingTime = DateTime.Now - startTime
-        reasoning.Add(sprintf "Processing completed in %A" processingTime)
-        
+        reasoning.Add $"Processing completed in %A{processingTime}"
+
         {
             Result = result
             Confidence = confidence
@@ -167,8 +167,8 @@ type AdvancedInferenceEngine(vectorStore: IVectorStore, embeddingGenerator: IEmb
             // Step 1: Initial retrieval
             steps.Add("Step 1: Initial document retrieval")
             let! initialDocs = (baseEngine :> IInferenceEngine).GetSimilarDocuments query 5
-            steps.Add(sprintf "Retrieved %d initial documents" initialDocs.Length)
-            
+            steps.Add $"Retrieved %d{initialDocs.Length} initial documents"
+
             // Step 2: Query expansion based on initial results
             steps.Add("Step 2: Query expansion")
             let expansionTerms = 
@@ -182,8 +182,8 @@ type AdvancedInferenceEngine(vectorStore: IVectorStore, embeddingGenerator: IEmb
             steps.Add("Step 3: Expanded retrieval")
             let expandedQuery = sprintf "%s %s" query (String.Join(" ", expansionTerms))
             let! expandedDocs = (baseEngine :> IInferenceEngine).GetSimilarDocuments expandedQuery 10
-            steps.Add(sprintf "Retrieved %d expanded documents" expandedDocs.Length)
-            
+            steps.Add $"Retrieved %d{expandedDocs.Length} expanded documents"
+
             // Step 4: Multi-space analysis
             steps.Add("Step 4: Multi-space analysis")
             let allDocs = (initialDocs @ expandedDocs) |> List.distinctBy (fun d -> d.Id)
@@ -223,11 +223,11 @@ type AdvancedInferenceEngine(vectorStore: IVectorStore, embeddingGenerator: IEmb
                 
                 min 0.95 (0.5 + beliefConsistency * 0.4)
             
-            let result = sprintf "Multi-step analysis of '%s' completed with %d documents analyzed across multiple mathematical spaces." query allDocs.Length
-            
+            let result = $"Multi-step analysis of '%s{query}' completed with %d{allDocs.Length} documents analyzed across multiple mathematical spaces."
+
             let processingTime = DateTime.Now - startTime
-            steps.Add(sprintf "Total processing time: %A" processingTime)
-            
+            steps.Add $"Total processing time: %A{processingTime}"
+
             return {
                 Result = box result
                 Confidence = confidence

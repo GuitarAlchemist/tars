@@ -6,7 +6,7 @@ open TarsEngine.FSharp.Requirements.Models
 
 /// <summary>
 /// Repository interface for requirement management
-/// Real implementation - no fake or placeholder methods
+// TODO: Implement real functionality
 /// </summary>
 type IRequirementRepository =
     

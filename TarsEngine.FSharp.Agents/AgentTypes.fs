@@ -253,10 +253,10 @@ module ControlSystems =
             StabilityMetrics = Map.empty
         }
 
-    /// Create MPC parameters (placeholder)
+    // TODO: Implement real functionality
     let createMPCParameters () : obj =
         {| HorizonLength = 10; ControlWeights = [|1.0; 1.0; 1.0|]; StateWeights = [|1.0; 1.0; 1.0; 1.0|] |}
 
-    /// Create topological stability analyzer (placeholder)
+    // TODO: Implement real functionality
     let createTopologicalStabilityAnalyzer () : obj =
         {| StabilityThreshold = 0.95; AnalysisDepth = 5; TopologicalFeatures = [||] |}

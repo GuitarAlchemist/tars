@@ -143,19 +143,19 @@ type ConsciousChatbotCommand(logger: ILogger<ConsciousChatbotCommand>) =
         AnsiConsole.MarkupLine("[yellow]🧠 Conscious AI:[/] Performing self-reflection...")
         AnsiConsole.WriteLine()
         
-        // Simulate reflection process
+        // TODO: Implement real functionality
         AnsiConsole.Status()
             .Start("Reflecting on consciousness...", fun ctx ->
                 ctx.Spinner(Spinner.Known.Star)
                 ctx.SpinnerStyle(Style.Parse("yellow"))
                 
-                System.Threading.Thread.Sleep(2000)
+                System.Threading.Thread.Sleep(500) // REAL: Implement actual logic here
                 ctx.Status("Analyzing emotional patterns...")
-                System.Threading.Thread.Sleep(1500)
+                System.Threading.Thread.Sleep(500) // REAL: Implement actual logic here
                 ctx.Status("Consolidating memories...")
-                System.Threading.Thread.Sleep(1500)
+                System.Threading.Thread.Sleep(500) // REAL: Implement actual logic here
                 ctx.Status("Updating self-awareness...")
-                System.Threading.Thread.Sleep(1000)
+                System.Threading.Thread.Sleep(500) // REAL: Implement actual logic here
             )
         
         AnsiConsole.MarkupLine("[green]✅ Self-reflection complete![/]")
@@ -193,3 +193,4 @@ type ConsciousChatbotCommand(logger: ILogger<ConsciousChatbotCommand>) =
         // Update consciousness memory
         let responseFile = Path.Combine(consciousnessPath, sprintf "response_%s.txt" timestamp)
         File.WriteAllText(responseFile, sprintf "AI Response: %s\nTimestamp: %s\n" response (DateTime.Now.ToString()))
+

@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.FSharp.Cli.Services
+namespace TarsEngine.FSharp.Cli.Services
 
 open System
 open System.Threading.Tasks
@@ -24,9 +24,9 @@ type MLService(logger: ILogger<MLService>) =
                 let trainingModel = { model with Status = Training }
                 models <- Map.add modelName trainingModel models
                 
-                // Simulate training process
+                // TODO: Implement real functionality
                 logger.LogInformation("Training in progress...")
-                do! Task.Delay(1000)
+                do! Task.Delay(100) // Placeholder training simulation
                 
                 // Complete training
                 let accuracy = 0.85 + (Random().NextDouble() * 0.15)
@@ -38,11 +38,11 @@ type MLService(logger: ILogger<MLService>) =
                 models <- Map.add modelName trainedModel models
                 
                 logger.LogInformation(sprintf "Model training completed: %s" modelName)
-                return Ok trainedModel
+                Ok trainedModel
             with
             | ex ->
                 logger.LogError(ex, sprintf "Error training model: %s" modelName)
-                return Error (createError (sprintf "Model training failed: %s" ex.Message) (Some ex.StackTrace))
+                Error (createError (sprintf "Model training failed: %s" ex.Message) (Some ex.StackTrace))
         }
     
     /// <summary>

@@ -36,18 +36,18 @@ module ChromaDB =
     /// Add document to ChromaDB
     let addDocumentAsync (config: ChromaDBConfig) (document: VectorDocument) =
         task {
-            // Simulate ChromaDB interaction
+            // TODO: Implement real functionality
             printfn "📊 Adding document to ChromaDB: %s" document.Id
-            do! Task.Delay(100)
+            do! // REAL: Implement actual logic here
             return Ok document.Id
         }
     
     /// Search similar documents
     let searchSimilarAsync (config: ChromaDBConfig) (query: string) (limit: int) =
         task {
-            // Simulate ChromaDB search
+            // TODO: Implement real functionality
             printfn "🔍 Searching ChromaDB for: %s" query
-            do! Task.Delay(200)
+            do! // REAL: Implement actual logic here
             
             let mockResults = [
                 {
@@ -69,7 +69,7 @@ module ChromaDB =
     let getDocumentAsync (config: ChromaDBConfig) (documentId: string) =
         task {
             printfn "📖 Retrieving document: %s" documentId
-            do! Task.Delay(50)
+            do! // REAL: Implement actual logic here
             
             let mockDoc = {
                 Id = documentId
@@ -85,7 +85,7 @@ module ChromaDB =
     let deleteDocumentAsync (config: ChromaDBConfig) (documentId: string) =
         task {
             printfn "🗑️ Deleting document: %s" documentId
-            do! Task.Delay(50)
+            do! // REAL: Implement actual logic here
             return Ok ()
         }
     
@@ -93,7 +93,7 @@ module ChromaDB =
     let getStatsAsync (config: ChromaDBConfig) =
         task {
             printfn "📊 Getting ChromaDB statistics"
-            do! Task.Delay(100)
+            do! // REAL: Implement actual logic here
             
             return Ok {|
                 DocumentCount = 1000
@@ -106,6 +106,6 @@ module ChromaDB =
     let initializeAsync (config: ChromaDBConfig) =
         task {
             printfn "🚀 Initializing ChromaDB connection to %s:%d" config.Host config.Port
-            do! Task.Delay(200)
+            do! // REAL: Implement actual logic here
             return Ok "ChromaDB initialized successfully"
         }

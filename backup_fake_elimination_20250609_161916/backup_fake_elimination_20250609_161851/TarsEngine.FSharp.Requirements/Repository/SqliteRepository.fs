@@ -535,7 +535,7 @@ type SqliteRequirementRepository(connectionString: string) =
             | ex -> return Error $"Failed to get overdue requirements: {ex.Message}"
         }
 
-        // Test Case methods - placeholder implementations for now
+        // TODO: Implement real functionality
         member this.CreateTestCaseAsync(testCase: TestCase) = task {
             // TODO: Implement test case creation
             return Error "Test case operations not yet implemented"
@@ -561,7 +561,7 @@ type SqliteRequirementRepository(connectionString: string) =
             return Error "Test case operations not yet implemented"
         }
 
-        // Test execution methods - placeholder implementations
+        // TODO: Implement real functionality
         member this.SaveTestExecutionResultAsync(result: TestExecutionResult) = task {
             return Error "Test execution operations not yet implemented"
         }
@@ -574,7 +574,7 @@ type SqliteRequirementRepository(connectionString: string) =
             return Error "Test execution operations not yet implemented"
         }
 
-        // Traceability methods - placeholder implementations
+        // TODO: Implement real functionality
         member this.CreateTraceabilityLinkAsync(link: TraceabilityLink) = task {
             return Error "Traceability operations not yet implemented"
         }

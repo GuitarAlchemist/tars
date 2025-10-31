@@ -11,7 +11,7 @@ open TarsEngine.FSharp.Cli.Acceleration.UnifiedCudaEngine
 /// Comprehensive tests for Unified CUDA Engine
 module UnifiedCudaEngineTests =
     
-    /// Mock logger for testing
+    // TODO: Implement real functionality
     type MockLogger() =
         interface ITarsLogger with
             member _.LogInformation(correlationId: string, message: string) = 

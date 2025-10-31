@@ -1,6 +1,7 @@
 namespace TarsEngine.FSharp.Security.Extensions
 
 open Microsoft.AspNetCore.Builder
+open Microsoft.AspNetCore.Http
 open Microsoft.Extensions.DependencyInjection
 open TarsEngine.FSharp.Security.Core
 open TarsEngine.FSharp.Security.JWT
@@ -21,16 +22,16 @@ module SecurityMiddlewareExtensions =
             app.UseCors() |> ignore
         
         // Add security headers
-        app.Use(fun context next ->
+        app.Use(fun (context: HttpContext) (next: System.Func<System.Threading.Tasks.Task>) ->
             // Add security headers
             context.Response.Headers.Add("X-Content-Type-Options", "nosniff")
             context.Response.Headers.Add("X-Frame-Options", "DENY")
             context.Response.Headers.Add("X-XSS-Protection", "1; mode=block")
             context.Response.Headers.Add("Referrer-Policy", "strict-origin-when-cross-origin")
-            
+
             if config.RequireHttps then
                 context.Response.Headers.Add("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
-            
+
             next.Invoke()
         ) |> ignore
         
@@ -61,14 +62,14 @@ module SecurityMiddlewareExtensions =
     
     /// Add security headers middleware
     let useSecurityHeaders (app: IApplicationBuilder) =
-        app.Use(fun context next ->
+        app.Use(fun (context: HttpContext) (next: System.Func<System.Threading.Tasks.Task>) ->
             // Standard security headers
             context.Response.Headers.Add("X-Content-Type-Options", "nosniff")
             context.Response.Headers.Add("X-Frame-Options", "DENY")
             context.Response.Headers.Add("X-XSS-Protection", "1; mode=block")
             context.Response.Headers.Add("Referrer-Policy", "strict-origin-when-cross-origin")
             context.Response.Headers.Add("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'")
-            
+
             next.Invoke()
         )
     
@@ -78,12 +79,12 @@ module SecurityMiddlewareExtensions =
             app.UseHttpsRedirection() |> ignore
         app
     
-    /// Add rate limiting middleware (placeholder)
+    // TODO: Implement real functionality
     let useRateLimiting (app: IApplicationBuilder) (config: TarsSecurityConfig) =
         if config.EnableRateLimiting then
             // TODO: Implement rate limiting middleware
-            app.Use(fun context next ->
-                // Placeholder for rate limiting logic
+            app.Use(fun (context: HttpContext) (next: System.Func<System.Threading.Tasks.Task>) ->
+                // TODO: Implement real functionality
                 next.Invoke()
             ) |> ignore
         app
@@ -139,4 +140,4 @@ module SecurityHelpers =
         
         | p, _ when requiresAdminAccess p -> Some SystemAdmin
         
-        | _ -> None
+        | _ -> Option.None

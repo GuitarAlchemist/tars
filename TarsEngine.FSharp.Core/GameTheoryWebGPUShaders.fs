@@ -379,63 +379,63 @@ module GameTheoryWebGPUShaders =
         
         /// Generate compute pipeline creation JavaScript
         member this.GenerateComputePipeline(name: string, shaderCode: string) : string =
-            sprintf """
-                // Create %s compute pipeline
-                if (window.tarsWebGPU && window.tarsWebGPU.device) {
+            $"""
+                // Create %s{name} compute pipeline
+                if (window.tarsWebGPU && window.tarsWebGPU.device) {{
                     const device = window.tarsWebGPU.device;
                     
-                    const shaderModule = device.createShaderModule({
-                        code: `%s`
-                    });
+                    const shaderModule = device.createShaderModule({{
+                        code: `%s{shaderCode}`
+                    }});
                     
-                    const computePipeline = device.createComputePipeline({
+                    const computePipeline = device.createComputePipeline({{
                         layout: 'auto',
-                        compute: {
+                        compute: {{
                             module: shaderModule,
                             entryPoint: 'main'
-                        }
-                    });
+                        }}
+                    }});
                     
-                    window.tarsWebGPU.computePipelines.set('%s', computePipeline);
-                    console.log('⚡ Created %s compute pipeline');
-                }
-            """ name shaderCode name name
-        
+                    window.tarsWebGPU.computePipelines.set('%s{name}', computePipeline);
+                    console.log('⚡ Created %s{name} compute pipeline');
+                }}
+            """
+
         /// Generate buffer creation JavaScript
         member this.GenerateBufferCreation(name: string, size: int, usage: string) : string =
-            sprintf """
-                // Create %s buffer
-                if (window.tarsWebGPU && window.tarsWebGPU.device) {
+            $"""
+                // Create %s{name} buffer
+                if (window.tarsWebGPU && window.tarsWebGPU.device) {{
                     const device = window.tarsWebGPU.device;
                     
-                    const buffer = device.createBuffer({
-                        size: %d,
-                        usage: GPUBufferUsage.%s
-                    });
+                    const buffer = device.createBuffer({{
+                        size: %d{size},
+                        usage: GPUBufferUsage.%s{usage}
+                    }});
                     
-                    window.tarsWebGPU.buffers.set('%s', buffer);
-                    console.log('📦 Created %s buffer (%d bytes)');
-                }
-            """ name size usage name name size
-        
+                    window.tarsWebGPU.buffers.set('%s{name}', buffer);
+                    console.log('📦 Created %s{name} buffer (%d{size} bytes)');
+                }}
+            """
+
         /// Generate compute dispatch JavaScript
         member this.GenerateComputeDispatch(pipelineName: string, workgroupsX: int, workgroupsY: int, workgroupsZ: int) : string =
-            sprintf """
-                // Dispatch %s compute shader
-                if (window.tarsWebGPU && window.tarsWebGPU.device) {
+            $"""
+                // Dispatch %s{pipelineName} compute shader
+                if (window.tarsWebGPU && window.tarsWebGPU.device) {{
                     const device = window.tarsWebGPU.device;
-                    const pipeline = window.tarsWebGPU.computePipelines.get('%s');
+                    const pipeline = window.tarsWebGPU.computePipelines.get('%s{pipelineName}');
                     
-                    if (pipeline) {
+                    if (pipeline) {{
                         const commandEncoder = device.createCommandEncoder();
                         const passEncoder = commandEncoder.beginComputePass();
                         
                         passEncoder.setPipeline(pipeline);
                         // Bind groups would be set here based on the specific pipeline
-                        passEncoder.dispatchWorkgroups(%d, %d, %d);
+                        passEncoder.dispatchWorkgroups(%d{workgroupsX}, %d{workgroupsY}, %d{workgroupsZ});
                         passEncoder.end();
                         
                         device.queue.submit([commandEncoder.finish()]);
-                    }
-                }
-            """ pipelineName pipelineName workgroupsX workgroupsY workgroupsZ
+                    }}
+                }}
+            """

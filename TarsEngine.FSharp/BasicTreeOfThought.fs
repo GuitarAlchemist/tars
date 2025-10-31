@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.FSharp
+namespace TarsEngine.FSharp
 
 /// A simple Tree-of-Thought implementation in F#
 module BasicTreeOfThought =
@@ -49,7 +49,7 @@ module BasicTreeOfThought =
             |> addChild patternMatching
             |> addChild semanticAnalysis
         
-        // Return the root and a simulated analysis result
+        // TODO: Implement real functionality
         (rootWithApproaches, "Code analysis completed successfully")
     
     /// Generates fixes using Tree-of-Thought reasoning
@@ -74,7 +74,7 @@ module BasicTreeOfThought =
             |> addChild refactoring
             |> addChild alternativeImplementation
         
-        // Return the root and a simulated fix result
+        // TODO: Implement real functionality
         (rootWithApproaches, "Fix generation completed successfully")
     
     /// Applies fixes using Tree-of-Thought reasoning
@@ -99,7 +99,7 @@ module BasicTreeOfThought =
             |> addChild stagedApplication
             |> addChild transactionalApplication
         
-        // Return the root and a simulated application result
+        // TODO: Implement real functionality
         (rootWithApproaches, "Fix application completed successfully")
     
     /// Selects the best approach from a thought tree

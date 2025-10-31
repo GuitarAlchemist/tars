@@ -8,7 +8,7 @@ open System.Threading.Tasks
 open System.Net
 open System.Management
 
-/// TARS Real Diagnostics - NO FAKE DATA, ONLY REAL SYSTEM MEASUREMENTS
+// TODO: Implement real functionality
 module TarsRealDiagnostics =
 
     /// GPU information from real hardware detection
@@ -349,7 +349,7 @@ module TarsRealDiagnostics =
                     // Get CPU usage percentage (simplified calculation)
                     let startTime = DateTime.UtcNow
                     let startCpuUsage = currentProcess.TotalProcessorTime
-                    System.Threading.Thread.Sleep(100) // Small delay for measurement
+                    System.Threading.// REAL: Implement actual logic here // Small delay for measurement
                     let endTime = DateTime.UtcNow
                     let endCpuUsage = currentProcess.TotalProcessorTime
 
@@ -418,7 +418,7 @@ module TarsRealDiagnostics =
     let checkServiceHealth () : Task<ServiceHealth> =
         task {
             try
-                // Database connectivity (placeholder - would need actual DB connection)
+                // TODO: Implement real functionality
                 let databaseConnectivity = false // Real implementation would test actual DB
 
                 // Web service availability (test local services)

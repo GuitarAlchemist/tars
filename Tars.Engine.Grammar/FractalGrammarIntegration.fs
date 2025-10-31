@@ -114,7 +114,7 @@ module FractalGrammarIntegration =
             
             with
             | ex ->
-                errors.Add(sprintf "Fractal execution failed: %s" ex.Message)
+                errors.Add $"Fractal execution failed: %s{ex.Message}"
                 {
                     Success = false
                     GeneratedGrammar = ""
@@ -154,12 +154,12 @@ module FractalGrammarIntegration =
                 |> Array.map (fun line ->
                     let parts = line.Split('=')
                     if parts.Length >= 2 then
-                        sprintf "  \"%s\": \"%s\"" (parts.[0].Trim()) (parts.[1].Trim().TrimEnd(';'))
+                        $"  \"%s{parts.[0].Trim()}\": \"%s{parts.[1].Trim().TrimEnd(';')}\""
                     else
-                        sprintf "  \"comment\": \"%s\"" (line.Trim()))
+                        $"  \"comment\": \"%s{line.Trim()}\"")
                 |> String.concat ",\n"
-            
-            sprintf "{\n  \"fractal_grammar\": {\n%s\n  }\n}" rules
+
+            $"{{\n  \"fractal_grammar\": {{\n%s{rules}\n  }}\n}}"
 
         /// Convert grammar to XML representation
         member private this.ConvertToXML(grammar: string) : string =
@@ -169,12 +169,12 @@ module FractalGrammarIntegration =
                 |> Array.map (fun line ->
                     let parts = line.Split('=')
                     if parts.Length >= 2 then
-                        sprintf "    <rule name=\"%s\">%s</rule>" (parts.[0].Trim()) (parts.[1].Trim().TrimEnd(';'))
+                        $"    <rule name=\"%s{parts.[0].Trim()}\">%s{parts.[1].Trim().TrimEnd(';')}</rule>"
                     else
-                        sprintf "    <!-- %s -->" (line.Trim()))
+                        $"    <!-- %s{line.Trim()} -->")
                 |> String.concat "\n"
-            
-            sprintf "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<fractal_grammar>\n%s\n</fractal_grammar>" rules
+
+            $"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<fractal_grammar>\n%s{rules}\n</fractal_grammar>"
 
         /// Convert grammar to GraphViz DOT format
         member private this.ConvertToGraphViz(grammar: string) : string =
@@ -187,9 +187,9 @@ module FractalGrammarIntegration =
                 |> Array.mapi (fun i line ->
                     let parts = line.Split('=')
                     if parts.Length >= 2 then
-                        sprintf "  \"%s\" -> \"rule_%d\" [label=\"%s\"];" (parts.[0].Trim()) i (parts.[1].Trim().TrimEnd(';'))
+                        $"  \"%s{parts.[0].Trim()}\" -> \"rule_%d{i}\" [label=\"%s{parts.[1].Trim().TrimEnd(';')}\"];"
                     else
-                        sprintf "  \"comment_%d\" [label=\"%s\"];" i (line.Trim()))
+                        $"  \"comment_%d{i}\" [label=\"%s{line.Trim()}\"];")
                 |> String.concat "\n"
             
             header + edges + "\n" + footer
@@ -198,7 +198,7 @@ module FractalGrammarIntegration =
         member private this.ConvertToSVG(grammar: string) : string =
             let width = 800
             let height = 600
-            let header = sprintf "<svg width=\"%d\" height=\"%d\" xmlns=\"http://www.w3.org/2000/svg\">" width height
+            let header = $"<svg width=\"%d{width}\" height=\"%d{height}\" xmlns=\"http://www.w3.org/2000/svg\">"
             let footer = "</svg>"
             
             let lines = grammar.Split('\n') |> Array.filter (fun line -> not (String.IsNullOrWhiteSpace(line)))
@@ -206,7 +206,7 @@ module FractalGrammarIntegration =
                 lines
                 |> Array.mapi (fun i line ->
                     let y = 50 + i * 30
-                    sprintf "  <text x=\"20\" y=\"%d\" font-family=\"monospace\" font-size=\"12\">%s</text>" y (line.Trim()))
+                    $"  <text x=\"20\" y=\"%d{y}\" font-family=\"monospace\" font-size=\"12\">%s{line.Trim()}</text>")
                 |> String.concat "\n"
             
             header + "\n" + elements + "\n" + footer
@@ -218,7 +218,7 @@ module FractalGrammarIntegration =
             | SVG -> this.TreeToSVG(tree)
             | JSON -> this.TreeToJSON(tree)
             | XML -> this.TreeToXML(tree)
-            | _ -> sprintf "Visualization for %A not implemented" format
+            | _ -> $"Visualization for %A{format} not implemented"
 
         /// Convert fractal tree to GraphViz
         member private this.TreeToGraphViz(tree: FractalNode) : string =
@@ -226,11 +226,11 @@ module FractalGrammarIntegration =
             let footer = "}"
             
             let rec generateNodes (node: FractalNode) =
-                let nodeLabel = sprintf "\"%s\" [label=\"%s\\nL%d\"];" node.Id node.Name node.Level
+                let nodeLabel = $"\"%s{node.Id}\" [label=\"%s{node.Name}\\nL%d{node.Level}\"];"
                 let childNodes = node.Children |> List.map generateNodes |> String.concat "\n"
                 let edges = 
                     node.Children 
-                    |> List.map (fun child -> sprintf "  \"%s\" -> \"%s\";" node.Id child.Id)
+                    |> List.map (fun child -> $"  \"%s{node.Id}\" -> \"%s{child.Id}\";")
                     |> String.concat "\n"
                 
                 nodeLabel + "\n" + childNodes + "\n" + edges
@@ -241,7 +241,7 @@ module FractalGrammarIntegration =
         member private this.TreeToSVG(tree: FractalNode) : string =
             let width = 1000
             let height = 800
-            let header = sprintf "<svg width=\"%d\" height=\"%d\" xmlns=\"http://www.w3.org/2000/svg\">" width height
+            let header = $"<svg width=\"%d{width}\" height=\"%d{height}\" xmlns=\"http://www.w3.org/2000/svg\">"
             let footer = "</svg>"
             
             let rec generateSVGNodes (node: FractalNode) (x: float) (y: float) (level: int) =
@@ -249,15 +249,15 @@ module FractalGrammarIntegration =
                 let levelHeight = 100.0
                 let nodeSpacing = 150.0
                 
-                let circle = sprintf "  <circle cx=\"%.1f\" cy=\"%.1f\" r=\"%.1f\" fill=\"lightblue\" stroke=\"black\"/>" x y nodeRadius
-                let text = sprintf "  <text x=\"%.1f\" y=\"%.1f\" text-anchor=\"middle\" font-family=\"Arial\" font-size=\"10\">%s</text>" x (y + 3.0) node.Name
-                
+                let circle = $"  <circle cx=\"%.1f{x}\" cy=\"%.1f{y}\" r=\"%.1f{nodeRadius}\" fill=\"lightblue\" stroke=\"black\"/>"
+                let text = $"  <text x=\"%.1f{x}\" y=\"%.1f{y + 3.0}\" text-anchor=\"middle\" font-family=\"Arial\" font-size=\"10\">%s{node.Name}</text>"
+
                 let childElements = 
                     node.Children
                     |> List.mapi (fun i child ->
                         let childX = x + (float i - float node.Children.Length / 2.0) * nodeSpacing
                         let childY = y + levelHeight
-                        let line = sprintf "  <line x1=\"%.1f\" y1=\"%.1f\" x2=\"%.1f\" y2=\"%.1f\" stroke=\"black\"/>" x y childX childY
+                        let line = $"  <line x1=\"%.1f{x}\" y1=\"%.1f{y}\" x2=\"%.1f{childX}\" y2=\"%.1f{childY}\" stroke=\"black\"/>"
                         line + "\n" + generateSVGNodes child childX childY (level + 1))
                     |> String.concat "\n"
                 
@@ -275,10 +275,9 @@ module FractalGrammarIntegration =
                         |> List.map nodeToJSON 
                         |> String.concat ", "
                         |> sprintf "[%s]"
-                
-                sprintf """{"id": "%s", "name": "%s", "level": %d, "pattern": "%s", "children": %s}""" 
-                    node.Id node.Name node.Level node.Pattern children
-            
+
+                $"""{{"id": "%s{node.Id}", "name": "%s{node.Name}", "level": %d{node.Level}, "pattern": "%s{node.Pattern}", "children": %s{children}}}"""
+
             nodeToJSON tree
 
         /// Convert fractal tree to XML
@@ -291,11 +290,11 @@ module FractalGrammarIntegration =
                             node.Children
                             |> List.map (fun child -> nodeToXML child (indent + "  "))
                             |> String.concat "\n"
-                        sprintf "\n%s\n%s" childrenXml indent
-                
-                sprintf "%s<node id=\"%s\" name=\"%s\" level=\"%d\" pattern=\"%s\">%s</node>" 
-                    indent node.Id node.Name node.Level node.Pattern children
-            
+
+                        $"\n%s{childrenXml}\n%s{indent}"
+
+                $"%s{indent}<node id=\"%s{node.Id}\" name=\"%s{node.Name}\" level=\"%d{node.Level}\" pattern=\"%s{node.Pattern}\">%s{children}</node>"
+
             "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + nodeToXML tree ""
 
         /// Calculate fractal dimension of tree
@@ -336,7 +335,7 @@ module FractalGrammarIntegration =
                     Success = false
                     FractalGrammar = None
                     ParsedRules = []
-                    ErrorMessages = [sprintf "File not found: %s" filePath]
+                    ErrorMessages = [ $"File not found: %s{filePath}" ]
                     Warnings = []
                     ParseTime = TimeSpan.Zero
                 }
@@ -378,7 +377,7 @@ module FractalGrammarIntegration =
                     | Some fractalGrammar ->
                         let success = manager.SaveFractalGrammar(fractalGrammar, outputFile, format)
                         if success then
-                            printfn "✅ Fractal grammar generated successfully: %s" outputFile
+                            printfn $"✅ Fractal grammar generated successfully: %s{outputFile}"
                         else
                             printfn "❌ Failed to generate fractal grammar"
                     | None ->
@@ -391,8 +390,8 @@ module FractalGrammarIntegration =
                 let parseResult = manager.ParseFractalGrammarFile(inputFile)
                 if parseResult.Success then
                     printfn "✅ Fractal grammar parsed successfully"
-                    printfn "📊 Rules found: %d" parseResult.ParsedRules.Length
-                    printfn "⏱️  Parse time: %A" parseResult.ParseTime
+                    printfn $"📊 Rules found: %d{parseResult.ParsedRules.Length}"
+                    printfn $"⏱️  Parse time: %A{parseResult.ParseTime}"
                 else
                     printfn "❌ Parse errors:"
                     parseResult.ErrorMessages |> List.iter (printfn "  %s")
@@ -409,7 +408,7 @@ module FractalGrammarIntegration =
                             match result.VisualizationData with
                             | Some svg ->
                                 File.WriteAllText(outputFile, svg)
-                                printfn "✅ Visualization saved: %s" outputFile
+                                printfn $"✅ Visualization saved: %s{outputFile}"
                             | None ->
                                 printfn "❌ No visualization data generated"
                         else
@@ -429,15 +428,15 @@ module FractalGrammarIntegration =
                         
                         printfn "📊 FRACTAL GRAMMAR ANALYSIS"
                         printfn "============================"
-                        printfn "Success: %b" result.Success
-                        printfn "Execution Time: %A" result.ExecutionTime
-                        printfn "Memory Used: %d KB" (result.MemoryUsed / 1024L)
-                        printfn "Iterations: %d" result.IterationsCompleted
-                        printfn "Fractal Dimension: %.3f" result.FractalDimension
-                        
+                        printfn $"Success: %b{result.Success}"
+                        printfn $"Execution Time: %A{result.ExecutionTime}"
+                        printfn $"Memory Used: %d{result.MemoryUsed / 1024L} KB"
+                        printfn $"Iterations: %d{result.IterationsCompleted}"
+                        printfn $"Fractal Dimension: %.3f{result.FractalDimension}"
+
                         printfn "\nComplexity Metrics:"
                         result.ComplexityMetrics |> Map.iter (fun key value ->
-                            printfn "  %s: %A" key value)
+                            printfn $"  %s{key}: %A{value}")
                     | None ->
                         printfn "❌ No fractal grammar parsed"
                 else

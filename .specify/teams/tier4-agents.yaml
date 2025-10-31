@@ -1,0 +1,18 @@
+team_id: tier4-recursive-loop
+squad: Recursive Loop Architects
+roles:
+  - name: MetaArchitect
+    contact: agent:tier4-meta
+    responsibilities:
+      - Own recursive policy adjustments across Tier4 metascripts
+      - Approve critic-threshold experiments before activation
+  - name: DeliveryLead
+    contact: agent:tier4-delivery
+    responsibilities:
+      - Coordinate release trains with provenance bundles
+      - Ensure remediation artifacts are embedded in promotion notes
+  - name: EvidenceScribe
+    contact: agent:tier4-scribe
+    responsibilities:
+      - Capture critic deltas, remediation tickets, and governance notes
+      - Sync Tier3 remediation files into Tier4 backlog

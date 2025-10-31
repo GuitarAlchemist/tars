@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.FSharp.IntegrationTests
+namespace TarsEngine.FSharp.IntegrationTests
 
 open System
 open System.IO
@@ -10,9 +10,9 @@ open Microsoft.Extensions.Logging
 open TarsEngine.FSharp.Core
 
 /// <summary>
-/// CRITICAL ENFORCEMENT TESTS: Anti-Simulation System
-/// These tests ensure TARS NEVER tolerates simulations or placeholders
-/// ZERO TOLERANCE POLICY - Any simulation = IMMEDIATE FAILURE
+// TODO: Implement real functionality
+// TODO: Implement real functionality
+// TODO: Implement real functionality
 /// </summary>
 module AntiSimulationEnforcementTests =
 
@@ -33,7 +33,7 @@ module AntiSimulationEnforcementTests =
         
         let sleepCode = """
             let simulateWork() =
-                // REMOVED: Fake simulation delay; 1; 4; 1; 5; 9; 2; 6]
+                // TODO: Implement real functionality
             printfn "Sorted: %A" sortedNumbers
         """
         
@@ -86,8 +86,17 @@ module AntiSimulationEnforcementTests =
         // Arrange
         let services = createTestServices()
         let detector = services.GetRequiredService<SimulationDetector>()
-        
+
         let obviousSimulation = """
-            // TODO: This is just a placeholder for demo purposes
+            // TODO: Implement real functionality
             let simulateComplexCalculation() =
-                // REMOVED: Fake simulation delay
+                // TODO: Implement real functionality
+                42
+        """
+
+        // Act
+        let analysis = detector.AnalyzeForSimulation(obviousSimulation, "test.fs")
+
+        // Assert - MAXIMUM CONFIDENCE
+        analysis.IsSimulation.Should().BeTrue("Obvious simulations must be detected") |> ignore
+        analysis.ConfidenceScore.Should().BeGreaterThan(0.9) |> ignore

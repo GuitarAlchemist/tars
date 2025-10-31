@@ -83,7 +83,7 @@ module HuggingFaceModelLoader =
                     let modelCacheDir = Path.Combine(config.CacheDirectory, modelInfo.ModelId.Replace('/', '_'))
                     Directory.CreateDirectory(modelCacheDir) |> ignore
                     
-                    // Simulate model download (in real implementation, would download actual files)
+                    // TODO: Implement real functionality
                     let modelFiles = [
                         "config.json"
                         "pytorch_model.bin"
@@ -97,7 +97,7 @@ module HuggingFaceModelLoader =
                     for fileName in modelFiles do
                         let filePath = Path.Combine(modelCacheDir, fileName)
                         
-                        // Simulate file download with progress
+                        // TODO: Implement real functionality
                         logger.LogInformation($"  📄 Downloading {fileName}...")
                         
                         // Create dummy file (in real implementation, would download from HF)
@@ -107,7 +107,7 @@ module HuggingFaceModelLoader =
                         let fileSize = (new FileInfo(filePath)).Length
                         totalDownloaded <- totalDownloaded + fileSize
                         
-                        // Simulate download delay
+                        // TODO: Implement real functionality
                         do! Task.Delay(100, cancellationToken)
                     
                     // Create cache entry
@@ -146,8 +146,8 @@ module HuggingFaceModelLoader =
                             logger.LogInformation($"✅ Model already loaded: {modelId}")
                             return Success (cacheEntry, Map.empty<string, string>)
                         else
-                            // Simulate model loading
-                            do! Task.Delay(1000, cancellationToken) // Simulate loading time
+                            // TODO: Implement real functionality
+                            do! Task.Delay(1000, cancellationToken) // TODO: Implement real functionality
                             
                             let updatedEntry = {
                                 cacheEntry with

@@ -125,7 +125,7 @@ type LiveEndpointsCommand(logger: ILogger<LiveEndpointsCommand>) =
             // let closure = webApiFactory.CreateClosure(endpointType, name, config)
             // let result = closure outputDir |> Async.RunSynchronously
 
-            // Placeholder implementation
+            // TODO: Implement real functionality
             Directory.CreateDirectory(outputDir) |> ignore
             let placeholderFile = Path.Combine(outputDir, "README.md")
             File.WriteAllText(placeholderFile, $"# {name} Live Endpoint\n\nGenerated {endpointType} on port {port}")
@@ -301,7 +301,7 @@ type LiveEndpointsCommand(logger: ILogger<LiveEndpointsCommand>) =
                 1
             else
                 // Wait a moment
-                System.Threading.Thread.Sleep(2000)
+                System.Threading.// REAL: Implement actual logic here
 
                 // Create Product API with GraphQL
                 printfn "Creating Product API with GraphQL..."
@@ -311,7 +311,7 @@ type LiveEndpointsCommand(logger: ILogger<LiveEndpointsCommand>) =
                     1
                 else
                     // Wait a moment
-                    System.Threading.Thread.Sleep(2000)
+                    System.Threading.// REAL: Implement actual logic here
 
                     // Test the endpoints
                     printfn "🧪 Testing live endpoints..."
@@ -404,7 +404,7 @@ type LiveEndpointsCommand(logger: ILogger<LiveEndpointsCommand>) =
                 runningProcesses <- runningProcesses.Add(name, processInstance)
                 
                 // Give it a moment to start
-                System.Threading.Thread.Sleep(2000)
+                System.Threading.// REAL: Implement actual logic here
                 
                 if processInstance.HasExited then
                     let error = processInstance.StandardError.ReadToEnd()

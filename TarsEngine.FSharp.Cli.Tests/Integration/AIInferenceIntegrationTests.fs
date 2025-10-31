@@ -16,7 +16,7 @@ open TarsEngine.FSharp.Cli.Commands.TarsAIInferenceCommand
 /// Integration tests for the complete TARS AI inference pipeline
 module AIInferenceIntegrationTests =
     
-    /// Mock logger for testing
+    // TODO: Implement real functionality
     type MockLogger() =
         interface ITarsLogger with
             member _.LogInformation(correlationId: string, message: string) = 
@@ -414,7 +414,7 @@ module AIInferenceIntegrationTests =
             let! _ = cudaEngine.InitializeAsync(CancellationToken.None)
             let! _ = aiEngine.InitializeAsync(CancellationToken.None)
             
-            // Simulate some work
+            // TODO: Implement real functionality
             let operation = CudaOperationFactory.createVectorSimilarity 64
             let testData = Array.create 64 1.0f
             let! _ = cudaEngine.ExecuteOperationAsync(operation, testData, CancellationToken.None)

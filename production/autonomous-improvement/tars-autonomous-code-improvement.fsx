@@ -290,7 +290,7 @@ let improvementResult = {
     FilesAnalyzed = testFiles.Length
     IssuesFound = allImprovements.Length
     ImprovementsApplied = allImprovements |> List.filter (fun i -> i.ConfidenceLevel > 0.8) |> List.length
-    QualityImprovement = 23.5  // Simulated improvement percentage
+    QualityImprovement = 23.5  // TODO: Implement real functionality
     ExecutionTime = TimeSpan.FromMilliseconds(1250.0)
 }
 

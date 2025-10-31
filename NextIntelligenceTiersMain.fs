@@ -162,7 +162,7 @@ let main argv =
     let tier7Progress = Map.ofList [
         ("DecompositionAccuracy", demoResults.Tier7Accuracy)
         ("EfficiencyImprovement", if demoResults.Tier7Accuracy > 0.95 then 0.6 else 0.3)
-        ("CrossDomainRate", 0.85)  // Simulated for demonstration
+        ("CrossDomainRate", 0.85)  // TODO: Implement real functionality
     ]
     
     // Update milestones

@@ -260,7 +260,7 @@ module WebApiCommandTests =
             let outputDir = "output/webapi/validationapi-rest"
             Assertions.assertDirectoryExists outputDir
             
-            // Check for README file (placeholder implementation)
+            // TODO: Implement real functionality
             let readmeFile = Path.Combine(outputDir, "README.md")
             Assertions.assertFileExists readmeFile
             

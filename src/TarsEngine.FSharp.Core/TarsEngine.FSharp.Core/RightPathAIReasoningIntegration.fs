@@ -63,7 +63,7 @@ module RightPathAIReasoningIntegration =
         Success: bool
     }
 
-    /// CUDA interop for belief diffusion (placeholder - would link to actual CUDA DLL)
+    // TODO: Implement real functionality
     [<DllImport("belief_cuda.dll", CallingConvention = CallingConvention.Cdecl)>]
     extern void diffuse_beliefs_cuda(
         float[] beliefs,

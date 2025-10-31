@@ -21,7 +21,7 @@ module SemanticVectorStoreTests =
             
             // Assert
             Assert.Equal(embedding1.Length, embedding2.Length)
-            Assert.Equal(embedding1, embedding2)
+            Assert.Equal<float array>(embedding1, embedding2)
             Assert.Equal(384, embedding1.Length)
         }
 
@@ -71,12 +71,14 @@ module SemanticVectorStoreTests =
         let v3 = [| 0.0; 1.0; 0.0 |]
         
         // Act
-        let similarity1 = store.GetType().GetMethod("CosineSimilarity", 
-            System.Reflection.BindingFlags.NonPublic ||| System.Reflection.BindingFlags.Instance)
-            .Invoke(store, [| v1; v2 |]) :?> float
-        let similarity2 = store.GetType().GetMethod("CosineSimilarity", 
-            System.Reflection.BindingFlags.NonPublic ||| System.Reflection.BindingFlags.Instance)
-            .Invoke(store, [| v1; v3 |]) :?> float
+        let similarity1 =
+            store.GetType().GetMethod("CosineSimilarity",
+                System.Reflection.BindingFlags.NonPublic ||| System.Reflection.BindingFlags.Instance)
+                .Invoke(store, [| v1; v2 |]) :?> float
+        let similarity2 =
+            store.GetType().GetMethod("CosineSimilarity",
+                System.Reflection.BindingFlags.NonPublic ||| System.Reflection.BindingFlags.Instance)
+                .Invoke(store, [| v1; v3 |]) :?> float
         
         // Assert
         Assert.Equal(1.0, similarity1, 3)
@@ -91,9 +93,10 @@ module SemanticVectorStoreTests =
         let v2 = [| 3.0; 4.0; 0.0 |]
         
         // Act
-        let distance = store.GetType().GetMethod("EuclideanDistance", 
-            System.Reflection.BindingFlags.NonPublic ||| System.Reflection.BindingFlags.Instance)
-            .Invoke(store, [| v1; v2 |]) :?> float
+        let distance =
+            store.GetType().GetMethod("EuclideanDistance",
+                System.Reflection.BindingFlags.NonPublic ||| System.Reflection.BindingFlags.Instance)
+                .Invoke(store, [| v1; v2 |]) :?> float
         
         // Assert
         Assert.Equal(5.0, distance, 3) // 3-4-5 triangle
@@ -284,16 +287,27 @@ module SemanticVectorStoreTests =
         }
 
     [<Theory>]
-    [<InlineData(CodeBlock, CodeBlock, 1.0)>]
-    [<InlineData(Documentation, Documentation, 1.0)>]
-    [<InlineData(CodeBlock, Documentation, 0.8)>]
-    [<InlineData(ErrorMessage, CodeBlock, 0.6)>]
-    let ``Semantic type relevance should be calculated correctly`` (type1: SemanticType, type2: SemanticType, expectedRelevance: float) =
+    [<InlineData(0, 0, 1.0)>] // CodeBlock, CodeBlock
+    [<InlineData(1, 1, 1.0)>] // Documentation, Documentation
+    [<InlineData(0, 1, 0.8)>] // CodeBlock, Documentation
+    [<InlineData(2, 0, 0.6)>] // ErrorMessage, CodeBlock
+    let ``Semantic type relevance should be calculated correctly`` (type1Int: int, type2Int: int, expectedRelevance: float) =
         task {
             // Arrange
             let embeddingService = SimpleEmbeddingService() :> IEmbeddingService
             let store = SemanticVectorStore(embeddingService)
-            
+
+            let intToSemanticType = function
+                | 0 -> CodeBlock
+                | 1 -> Documentation
+                | 2 -> ErrorMessage
+                | 3 -> ExecutionResult
+                | 4 -> UserQuery
+                | _ -> SystemResponse
+
+            let type1 = intToSemanticType type1Int
+            let type2 = intToSemanticType type2Int
+
             let! id1 = store.AddVectorAsync("content 1", type1)
             let! id2 = store.AddVectorAsync("content 2", type2)
             

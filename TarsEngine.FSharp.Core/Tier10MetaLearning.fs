@@ -206,7 +206,7 @@ module Tier10MetaLearning =
                             )
                         
                         if prerequisitesMet then
-                            // Simulate learning process with actual knowledge acquisition
+                            // TODO: Implement real functionality
                             let learningEfficiency = 1.0 - concept.Difficulty
                             let baseScore = 0.3 + (learningEfficiency * 0.7)
                             

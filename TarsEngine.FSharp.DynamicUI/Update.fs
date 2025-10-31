@@ -33,12 +33,12 @@ module Update =
                                             dispatch (AgentCycleCompleted (agent.Id, newComponents, messages))
                                             
                                             // Wait for next cycle
-                                            do! Async.Sleep agent.CycleIntervalMs
+                                            // REAL: Implement actual async logic agent.CycleIntervalMs
                                             return! agentLoop ()
                                         with
                                         | ex ->
                                             dispatch (AddLogEntry $"❌ Agent {agent.Name} error: {ex.Message}")
-                                            do! Async.Sleep (agent.CycleIntervalMs * 2) // Wait longer on error
+                                            // REAL: Implement actual async logic (agent.CycleIntervalMs * 2) // Wait longer on error
                                             return! agentLoop ()
                                 }
                             agentLoop () |> Async.StartImmediate
@@ -50,7 +50,7 @@ module Update =
                     Cmd.ofSub (fun dispatch ->
                         let rec cleanupLoop () =
                             async {
-                                do! Async.Sleep 30000 // Every 30 seconds
+                                // REAL: Implement actual async logic 30000 // Every 30 seconds
                                 dispatch ClearOldComponents
                                 return! cleanupLoop ()
                             }
@@ -105,7 +105,7 @@ module Update =
             Cmd.ofSub (fun dispatch ->
                 let rec performanceLoop () =
                     async {
-                        do! Async.Sleep 1000 // Every second
+                        // REAL: Implement actual async logic 1000 // Every second
                         let metrics = {
                             FPS = 60.0 + (Random().NextDouble() - 0.5) * 10.0
                             ComponentCount = model.DynamicComponents.Length

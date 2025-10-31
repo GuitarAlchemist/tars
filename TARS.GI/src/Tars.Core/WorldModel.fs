@@ -72,7 +72,7 @@ type WorldModelCore(dimensions: int) =
     member _.GetUncertainty() =
         currentState.Cov |> Array.mapi (fun i row -> row.[i]) |> Array.sum
     
-    /// Simulate action consequences (for planning)
+    // TODO: Implement real functionality
     member this.SimulateAction(action: Action, steps: int) =
         let mutable simState = currentState
         let mutable simResults = []

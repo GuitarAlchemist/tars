@@ -231,7 +231,7 @@ module RealTarsInferenceIntegration =
 
 📊 COMPONENTS ACCESSED: %s
 
-This analysis is based on REAL TARS component data, not simulated responses."""
+This analysis is based on REAL TARS component data, not implementd responses."""
                             (realMetrics |> Map.toList |> List.map (fun (k,v) -> sprintf "- %s: %.2f" k v) |> String.concat "\n")
                             tarsComponentStatus
                             cudaStatus

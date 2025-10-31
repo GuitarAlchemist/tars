@@ -2,7 +2,7 @@
 
 // TARS SUPERINTELLIGENCE INTEGRATION DEMO
 // Demonstrates complete Tier 1-11 superintelligence with Docker deployment readiness
-// Zero tolerance for simulations - all capabilities are real
+// TODO: Implement real functionality
 
 #r "nuget: Spectre.Console, 0.47.0"
 

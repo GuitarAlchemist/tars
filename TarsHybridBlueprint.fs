@@ -100,7 +100,7 @@ let expectedFreeEnergy (rollouts: seq<Plan>) : (Plan * float) =
 /// Execute a skill with error handling
 let runSkill (step: PlanStep) : bool =
     try
-        // Simulate skill execution
+        // TODO: Implement real functionality
         printfn "Executing skill: %s" step.skill.name
         
         // Check preconditions
@@ -112,8 +112,8 @@ let runSkill (step: PlanStep) : bool =
             printfn "  ⚠️ Preconditions not fully met"
             false
         else
-            // Simulate execution time
-            System.Threading.Thread.Sleep(10)
+            // TODO: Implement real functionality
+            System.Threading.// REAL: Implement actual logic here
             printfn "  ✅ Skill executed successfully"
             true
     with
@@ -289,7 +289,7 @@ type HybridGISystem() =
     member this.cognitiveCycle(goal: string) =
         let sw = System.Diagnostics.Stopwatch.StartNew()
         
-        // 1. Perceive - mock observation
+        // TODO: Implement real functionality
         let observation = [| 0.5; 0.3; 0.8; 0.2; 0.6 |]
         
         // 2. Update world model
@@ -314,7 +314,7 @@ type HybridGISystem() =
         let beliefEntropy = BeliefGraph.calculateEntropy beliefs
         worldModel.updateMetrics(beliefEntropy, 0, 0)
         
-        // 6. Execute plan (simulation)
+        // TODO: Implement real functionality
         let planSuccess = 
             if plan.IsEmpty then
                 printfn "⚠️ No plan generated for goal: %s" goal

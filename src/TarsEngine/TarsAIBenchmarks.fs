@@ -112,7 +112,7 @@ module TarsAIBenchmarks =
                 P99LatencyMs = p99Latency
                 ThroughputRPS = throughput
                 MemoryUsageMB = float modelConfig.MemoryRequirementMB
-                CpuUtilization = 0.75 // Simulated CPU usage
+                CpuUtilization = 0.75 // TODO: Implement real functionality
                 ErrorRate = errorRate
             }
         }

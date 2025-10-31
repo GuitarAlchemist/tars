@@ -169,7 +169,7 @@ module InferencePipeline =
         (correlationId: string) =
         task {
             try
-                // Simulate matrix multiplication: output = input * weights + bias
+                // TODO: Implement real functionality
                 let outputData = Array.create (inputTensor.Shape.[0] * outputSize) 0.1f
                 let outputTensor = {
                     Data = outputData
@@ -201,7 +201,7 @@ module InferencePipeline =
         (correlationId: string) =
         task {
             try
-                // Simulate embedding lookup
+                // TODO: Implement real functionality
                 let outputData = Array.create (inputTensor.Shape.[0] * embedDim) 0.1f
                 let outputTensor = {
                     Data = outputData

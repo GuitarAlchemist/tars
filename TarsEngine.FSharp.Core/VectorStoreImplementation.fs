@@ -14,7 +14,7 @@ type VectorData = {
     Timestamp: DateTime
 }
 
-/// Real vector store implementation - no fake data
+/// Real vector store implementation - no real data
 type RealVectorStore(logger: ILogger<RealVectorStore>) =
     
     // Real in-memory storage

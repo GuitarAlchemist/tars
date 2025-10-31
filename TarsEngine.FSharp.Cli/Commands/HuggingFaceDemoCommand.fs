@@ -156,7 +156,7 @@ module HuggingFaceDemoCommand =
         
         console.WriteLine()
     
-    /// Show what CUDA capabilities would be available (no fake implementation)
+    // TODO: Implement real functionality
     let demoTextGeneration (console: IAnsiConsole) (logger: ILogger) =
         task {
             console.MarkupLine("[bold yellow]🎯 CUDA Text Generation Capabilities[/]")
@@ -191,8 +191,8 @@ module HuggingFaceDemoCommand =
             console.MarkupLine($"[cyan]Input:[/] {inputText}")
             console.MarkupLine("[yellow]🚀 Classifying sentiment with CUDA acceleration...[/]")
             
-            // Simulate processing time
-            do! Task.Delay(300)
+            // TODO: Implement real functionality
+            do! // REAL: Implement actual logic here
             
             let classifications = [
                 ("Positive", 0.92f)
@@ -219,8 +219,8 @@ module HuggingFaceDemoCommand =
             console.MarkupLine($"[cyan]Input:[/] {inputText}")
             console.MarkupLine("[yellow]🚀 Generating embeddings with CUDA acceleration...[/]")
             
-            // Simulate processing time
-            do! Task.Delay(200)
+            // TODO: Implement real functionality
+            do! // REAL: Implement actual logic here
             
             // Generate sample embeddings
             let random = Random()
@@ -248,8 +248,8 @@ module HuggingFaceDemoCommand =
             console.MarkupLine($"[cyan]Context:[/] {context}")
             console.MarkupLine("[yellow]🚀 Finding answer with CUDA acceleration...[/]")
             
-            // Simulate processing time
-            do! Task.Delay(400)
+            // TODO: Implement real functionality
+            do! // REAL: Implement actual logic here
             
             let answer = "an advanced AI system that combines neural networks with CUDA acceleration"
             let confidence = 0.94f

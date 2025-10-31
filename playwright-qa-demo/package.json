@@ -1,0 +1,23 @@
+{
+  "name": "tars-playwright-qa-demo",
+  "version": "1.0.0",
+  "description": "TARS Autonomous Playwright QA System - Standalone Demonstration",
+  "main": "index.js",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "qa": "node autonomous-qa.js",
+    "setup": "npm install && npx playwright install"
+  },
+  "keywords": ["tars", "playwright", "qa", "autonomous", "testing"],
+  "author": "TARS Superintelligence System",
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "^1.40.0"
+  },
+  "dependencies": {
+    "fs-extra": "^11.1.1",
+    "chalk": "^4.1.2"
+  }
+}

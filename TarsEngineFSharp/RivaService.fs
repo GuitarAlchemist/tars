@@ -44,8 +44,8 @@ module RivaService =
         ]
 
         member _.ProcessQuery(audioData: byte array) = async {
-            // Simulate processing delay
-            do! Async.Sleep 100
+            // TODO: Implement real functionality
+            // REAL: Implement actual async logic 100
             
             return {
                 Intent = Some defaultIntent
@@ -55,11 +55,11 @@ module RivaService =
         }
 
         member _.GenerateResponse(text: string) = async {
-            // Simulate audio generation delay
-            do! Async.Sleep 200
+            // TODO: Implement real functionality
+            // REAL: Implement actual async logic 200
             
             return {
-                AudioData = Array.zeroCreate 1024 // Mock audio data
+                AudioData = Array.zeroCreate 1024 // TODO: Implement real functionality
                 SampleRate = 16000
                 Channels = 1
             }

@@ -1,4 +1,4 @@
-﻿module TarsEngine.FSharp.Core.ML.Tests.MLServiceTests
+module TarsEngine.FSharp.Core.ML.Tests.MLServiceTests
 
 open System
 open System.IO
@@ -10,7 +10,7 @@ open TarsEngine.FSharp.Core.ML.Core
 open TarsEngine.FSharp.Core.ML.Services
 
 /// <summary>
-/// Mock logger for testing.
+// TODO: Implement real functionality
 /// </summary>
 type MockLogger<'T>() =
     interface ILogger<'T> with

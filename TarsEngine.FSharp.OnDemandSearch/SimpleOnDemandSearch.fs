@@ -69,25 +69,25 @@ type WebSearchProvider(httpClient: HttpClient, logger: ILogger<WebSearchProvider
     member this.SearchAsync(query: string, maxResults: int) =
         async {
             // Check cache first
-            let cacheKey = sprintf "web_%s_%d" query maxResults
+            let cacheKey = $"web_%s{query}_%d{maxResults}"
             match searchCache.TryGetValue(cacheKey) with
             | true, (cachedResults, timestamp) when this.IsCacheValid(timestamp) ->
                 return cachedResults
             | _ ->
-                // Create mock results for demonstration
+                // TODO: Implement real functionality
                 let results = [|
-                    { Title = sprintf "Search result for: %s" query
+                    { Title = $"Search result for: %s{query}"
                       Url = "https://example.com/result1"
-                      Description = sprintf "Relevant information about %s found through web search" query
+                      Description = $"Relevant information about %s{query} found through web search"
                       Source = "Web"
                       Provider = "DuckDuckGo"
                       Relevance = 0.85
                       Credibility = 0.7
                       Timestamp = DateTime.UtcNow
                       Metadata = Map.empty }
-                    { Title = sprintf "Additional result for: %s" query
+                    { Title = $"Additional result for: %s{query}"
                       Url = "https://example.com/result2"
-                      Description = sprintf "More detailed information about %s from web sources" query
+                      Description = $"More detailed information about %s{query} from web sources"
                       Source = "Web"
                       Provider = "DuckDuckGo"
                       Relevance = 0.78
@@ -108,11 +108,11 @@ type AcademicSearchProvider(httpClient: HttpClient, logger: ILogger<AcademicSear
     member this.SearchAsync(query: string, domains: string[], maxResults: int) =
         async {
             try
-                // Create mock academic results
+                // TODO: Implement real functionality
                 let results = [|
-                    { Title = sprintf "Academic paper: %s" query
-                      Url = sprintf "https://arxiv.org/search?q=%s" (Uri.EscapeDataString(query))
-                      Description = sprintf "Academic research on %s" query
+                    { Title = $"Academic paper: %s{query}"
+                      Url = $"https://arxiv.org/search?q=%s{Uri.EscapeDataString(query)}"
+                      Description = $"Academic research on %s{query}"
                       Source = "Academic"
                       Provider = "arXiv"
                       Relevance = 0.82
@@ -133,11 +133,11 @@ type TripleStoreSearchProvider(httpClient: HttpClient, logger: ILogger<TripleSto
     member this.SearchAsync(query: string, endpoints: string[]) =
         async {
             try
-                // Create mock knowledge base results
+                // TODO: Implement real functionality
                 let results = [|
-                    { Title = sprintf "Knowledge base entry: %s" query
-                      Url = sprintf "https://wikidata.org/search?q=%s" (Uri.EscapeDataString(query))
-                      Description = sprintf "Structured knowledge about %s" query
+                    { Title = $"Knowledge base entry: %s{query}"
+                      Url = $"https://wikidata.org/search?q=%s{Uri.EscapeDataString(query)}"
+                      Description = $"Structured knowledge about %s{query}"
                       Source = "Knowledge Base"
                       Provider = "Wikidata"
                       Relevance = 0.75

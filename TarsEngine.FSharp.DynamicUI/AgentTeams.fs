@@ -151,7 +151,7 @@ module AgentTeams =
             
         | "component-factory" ->
             // Generate React/Elmish components
-            let agentCount = Random().Next(5, 15)
+            let agentCount = 0 // HONEST: Cannot generate without real measurement
             let component = {
                 Id = $"agent-status-{DateTime.Now.Ticks}"
                 Type = "AgentStatusPanel"

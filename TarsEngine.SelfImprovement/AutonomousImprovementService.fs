@@ -19,6 +19,7 @@ type AutonomousImprovementService(logger: ILogger) =
             let knowledgeExtractionHandler = KnowledgeExtractionStep.getHandler logger 100
             let codeAnalysisHandler = CodeAnalysisStep.getHandler logger
             let improvementApplicationHandler = ImprovementApplicationStep.getHandler logger 10
+            let executionValidationHandler = ExecutionValidationStep.getHandler logger
             let feedbackCollectionHandler = FeedbackCollectionStep.getHandler logger
             let reportingHandler = ReportingStep.getHandler logger
 
@@ -27,6 +28,7 @@ type AutonomousImprovementService(logger: ILogger) =
                 knowledgeExtractionHandler
                 codeAnalysisHandler
                 improvementApplicationHandler
+                executionValidationHandler
                 feedbackCollectionHandler
                 reportingHandler
             ]

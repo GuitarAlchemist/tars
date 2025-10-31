@@ -13,6 +13,8 @@
     <Compile Include="Core/FunctionalVariableSystem.fs" />
     <Compile Include="Core/RdfTripleStore.fs" />
     <Compile Include="Core/AgentSystemStub.fs" />
+    <Compile Include="Core/FluxCodexTypes.fs" />
+    <Compile Include="Core/FluxCodexRunner.fs" />
     <Compile Include="Core/FluxIntegrationStub.fs" />
     <Compile Include="Core/ThreeDVisualizationStub.fs" />
     <Compile Include="Core/ConceptDecomposition.fs" />
@@ -29,6 +31,8 @@
     <Compile Include="Services/FileOperationsService.fs" />
     <Compile Include="Services/DockerService.fs" />
     <Compile Include="Services/MixtralService.fs" />
+    <Compile Include="Services/AdvancedLLMService.fs" />
+    <!-- <Compile Include="Services/RealAutonomousImprovementService.fs" /> -->
     <!-- <Compile Include="Services/HuggingFaceService.fs" /> -->
     <Compile Include="Services/IntelligenceService.fs" />
     <Compile Include="Services/MLService.fs" />
@@ -62,6 +66,7 @@
     <Compile Include="Commands/NonEuclideanCommand.fs" />
     <Compile Include="Commands/BspCodeAnalysisDemo.fs" />
     <Compile Include="Commands/BspDemoRunner.fs" />
+    <Compile Include="Commands/FluxCommand.fs" />
     <Compile Include="Commands/HurwitzQuaternionDemo.fs" />
     <Compile Include="Commands/HurwitzDemoRunner.fs" />
     <Compile Include="Commands/ReasoningApplicationDemo.fs" />
@@ -75,7 +80,14 @@
     <Compile Include="Commands/ConceptAnalysisCommand.fs" />
     <Compile Include="Commands/EnhancedIntelligenceCommand.fs" />
     <Compile Include="Commands/WebSearchCommand.fs" />
+    <Compile Include="Commands/LiveDemoCommand.fs" />
+    <Compile Include="Commands/RealAICommand.fs" />
+    <Compile Include="Commands/SuperiorAICommand.fs" />
+    <!-- <Compile Include="Commands/RealAutonomousCommand.fs" /> -->
     <Compile Include="Commands/DemoCommand.fs" />
+    <Compile Include="WebUI/TarsWebServer.fs" />
+    <Compile Include="Commands/WebUICommand.fs" />
+    <Compile Include="Commands/AutoLoopCommand.fs" />
     <!-- <Compile Include="Commands/TeamsCommand.fs" /> -->
     <!-- <Compile Include="Commands/VMCommand.fs" /> -->
     <!-- <Compile Include="Commands/ConfigCommand.fs" /> -->
@@ -94,13 +106,20 @@
     <Compile Include="Commands/AiMetascriptCommand.fs" />
     <Compile Include="Commands/AiIdeCommand.fs" />
     <Compile Include="Commands/SelfImprovingAiCommand.fs" />
-    <Compile Include="Commands/AdvancedAiCommand.fs" />
     <Compile Include="Commands/HttpServerCommand.fs" />
     <!-- <Compile Include="Commands/HuggingFaceCommand.fs" /> -->
     <!-- <Compile Include="Commands/RealHuggingFaceCommand.fs" /> -->
 
     <!-- Services -->
     <!-- <Compile Include="Services/WebApiClosureFactory.fs" /> -->
+
+    <!-- Code Protection System -->
+    <Compile Include="CodeProtection/CodeIntegrityGuard.fs" />
+    <Compile Include="CodeProtection/AutonomousSystemValidator.fs" />
+    <Compile Include="CodeProtection/RAGCodeAnalyzer.fs" />
+    <Compile Include="Commands/CodeProtectionCommand.fs" />
+    <Compile Include="Commands/ASTAnalysisCommand.fs" />
+
     <Compile Include="Commands/CommandRegistry.fs" />
     
     <!-- Core Application -->
@@ -112,6 +131,7 @@
   <!-- Project References -->
   <ItemGroup>
     <ProjectReference Include="..\..\..\TarsEngine.FSharp.OnDemandSearch\TarsEngine.FSharp.OnDemandSearch.fsproj" />
+    <ProjectReference Include="..\..\..\TarsEngine.FSharp.SelfImprovement\TarsEngine.FSharp.SelfImprovement.fsproj" />
   </ItemGroup>
 
   <!-- Temporarily remove broken metascript dependency -->
@@ -125,9 +145,9 @@
   </ItemGroup> -->
   <ItemGroup>
     <PackageReference Include="Docker.DotNet" Version="3.125.15" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.5" />
-    <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.5" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.5" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.5" />
     <PackageReference Include="FSharp.Compiler.Service" Version="43.8.400" />
     <PackageReference Include="YamlDotNet" Version="16.1.3" />
@@ -136,10 +156,12 @@
     <PackageReference Include="FSharp.Control.AsyncSeq" Version="3.2.1" />
     <PackageReference Include="System.Text.Json" Version="9.0.0" />
     <PackageReference Include="Spectre.Console" Version="0.49.1" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" />
     <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.19.2" />
     <PackageReference Include="Microsoft.ML.Tokenizers" Version="0.22.0" />
     <PackageReference Include="System.ServiceProcess.ServiceController" Version="9.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.0" />
     <PackageReference Include="dotNetRdf.Core" Version="3.1.0" />
     <PackageReference Include="dotNetRdf.Client" Version="3.1.0" />
   </ItemGroup>
@@ -162,4 +184,8 @@
     </None>
   </ItemGroup>
 </Project>
+
+
+
+
 

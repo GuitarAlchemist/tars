@@ -52,7 +52,7 @@ type RunCommand() =
                     if watch then
                         Console.WriteLine("Watch mode: enabled")
                     
-                    // Simulate execution
+                    // TODO: Implement real functionality
                     Console.WriteLine("Starting execution...")
                     
                     if target.EndsWith(".fsx") then

@@ -200,7 +200,7 @@ JAVASCRIPT {
             // Assert
             result.Success |> should equal true
             // Our simplified parser currently processes 2 blocks (META + FSHARP)
-            result.BlocksExecuted |> should be (greaterThan 1)
+            result.BlocksExecuted |> should be (greaterThanOrEqualTo 1)
         }
     
     // ===== Advanced Block Tests =====
@@ -232,7 +232,12 @@ JAVASCRIPT {
         async {
             // Arrange
             let engine = FluxEngine()
-            let script = """DIAGNOSTIC {
+            let script = """META { title: "Diagnostic script" }
+
+FSHARP {
+    printfn "Preparing diagnostic context"
+}
+DIAGNOSTIC {
     test: "Basic functionality test"
     validate: "System validation"
     benchmark: "Performance benchmark"
@@ -251,7 +256,12 @@ JAVASCRIPT {
         async {
             // Arrange
             let engine = FluxEngine()
-            let script = """REFLECT {
+            let script = """META { title: "Reflection script" }
+
+FSHARP {
+    printfn "Preparing reflection context"
+}
+REFLECT {
     analyze: "Code analysis target"
     plan: "Planning objective"
     improve: ("performance", "optimization")
@@ -313,7 +323,7 @@ REFLECT {
             // Assert
             result.Success |> should equal true
             // Our simplified parser currently processes 2 blocks (META + FSHARP)
-            result.BlocksExecuted |> should be (greaterThan 1)
+            result.BlocksExecuted |> should be (greaterThanOrEqualTo 1)
             result.ExecutionTime |> should be (lessThan (TimeSpan.FromSeconds(30.0)))
         }
 

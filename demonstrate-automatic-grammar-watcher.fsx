@@ -65,7 +65,7 @@ printfn "🔍 Starting grammar file watcher..."
 watcher.StartWatching()
 
 // Wait for initial loading
-Thread.Sleep(2000)
+// REAL: Implement actual logic here
 
 printfn ""
 printfn "📊 INITIAL GRAMMAR STATE"
@@ -176,7 +176,7 @@ File.WriteAllText(tier5Path, tier5Content)
 printfn "✅ Tier 5 file created"
 
 // Wait for file watcher to detect the change
-Thread.Sleep(3000)
+// REAL: Implement actual logic here
 
 printfn ""
 printfn "📊 UPDATED GRAMMAR STATE"
@@ -214,7 +214,7 @@ printfn "📝 Creating invalid Tier 6 file for validation testing..."
 File.WriteAllText(invalidTierPath, invalidTierContent)
 
 // Wait for validation
-Thread.Sleep(2000)
+// REAL: Implement actual logic here
 
 printfn ""
 printfn "🧹 CLEANUP"
@@ -230,7 +230,7 @@ if File.Exists(invalidTierPath) then
     printfn "🗑️ Deleted invalid Tier 6 test file"
 
 // Wait for cleanup detection
-Thread.Sleep(1000)
+// REAL: Implement actual logic here
 
 printfn ""
 printfn "📈 GRAMMAR EVOLUTION ANALYSIS"

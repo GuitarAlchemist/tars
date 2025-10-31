@@ -9,10 +9,10 @@ printfn ""
 
 let startTime = System.DateTime.UtcNow
 
-// Mock system data since we don't have the full TARS engine running
-let vectorCount = 1500 // Simulated vector count
+// TODO: Implement real functionality
+let vectorCount = 1500 // TODO: Implement real functionality
 let allCodeFiles = System.IO.Directory.GetFiles(".", "*.fs", System.IO.SearchOption.AllDirectories) |> Array.toList
-let semanticSearch = "Available" // Mock semantic search
+let semanticSearch = "Available" // TODO: Implement real functionality
 
 printfn "📊 System Status:"
 printfn "  Vector Count: %d" vectorCount

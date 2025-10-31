@@ -375,7 +375,7 @@ type MultiBluTracksManager(logger: ILogger<MultiBluTracksManager>) =
                 
                 if cancellationToken.IsCancellationRequested then break
                 
-                // Simulate work with risk-adjusted duration
+                // TODO: Implement real functionality
                 let adjustedDuration = match track.RiskLevel with
                                       | Low -> taskDuration
                                       | Medium -> int (float taskDuration * 1.2)

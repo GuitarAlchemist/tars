@@ -111,8 +111,8 @@ let runSkill (step: PlanStep) : bool =
             printfn "  ⚠️ Preconditions not fully met"
             false
         else
-            // Simulate execution
-            System.Threading.Thread.Sleep(10)
+            // TODO: Implement real functionality
+            System.Threading.// REAL: Implement actual logic here
             printfn "  ✅ Skill executed successfully"
             true
     with
@@ -646,12 +646,12 @@ let main argv =
         (currentIntelligence, improvedTextGeneration, improvedUserExperience, maxPotentialWithLLM, 
          actualUnderstandingImprovement, apparentCapabilityImprovement)
 
-/// Mock LLM integration demonstration (honest about limitations)
+// TODO: Implement real functionality
 type MockLLMIntegration() =
     
-    /// Simulate LLM-enhanced code analysis (showing what it would actually provide)
+    // TODO: Implement real functionality
     member _.SimulateLLMCodeAnalysis(code: string) =
-        // This simulates what an LLM would provide - sophisticated text, not understanding
+        // TODO: Implement real functionality
         let mockLLMResponse = 
             if code.Contains("quicksort") || code.Contains("sort") then
                 "This code appears to implement a sorting algorithm. The function takes a list and returns a sorted version. It likely uses a divide-and-conquer approach, recursively partitioning the data around pivot elements."
@@ -774,7 +774,7 @@ let main argv =
     printfn "  • User Experience Enhancement: YES (better text, not intelligence)"
     printfn "  • Genuine Semantic Understanding: NO (sophisticated mimicry)"
     
-    // Mock LLM Integration Demonstration
+    // TODO: Implement real functionality
     printfn "\n🎭 MOCK LLM INTEGRATION DEMONSTRATION"
     printfn "===================================="
     

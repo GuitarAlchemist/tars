@@ -119,7 +119,7 @@ type FunctionalVariableManager(logger: ILogger<FunctionalVariableManager>) =
 
     /// Create a WebSocket abstraction as Observable
     member this.CreateWebSocketStream(name: string, uri: string) =
-        // Simulate WebSocket messages
+        // TODO: Implement real functionality
         let webSocketMessages = [
             for i in 1..5 -> sprintf "WebSocket message %d from %s" i uri
         ]

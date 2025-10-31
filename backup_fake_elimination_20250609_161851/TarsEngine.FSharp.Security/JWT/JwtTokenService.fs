@@ -183,7 +183,7 @@ type JwtTokenService(config: TarsSecurityConfig, logger: ILogger<JwtTokenService
 
         this.GenerateToken($"agent:{agentId}", $"{agentType}:{agentId}", Agent, permissions)
 
-    /// Refresh an existing token (placeholder for future implementation)
+    // TODO: Implement real functionality
     member this.RefreshToken(refreshToken: string) =
         // TODO: Implement refresh token logic
         Error "Refresh tokens not yet implemented"

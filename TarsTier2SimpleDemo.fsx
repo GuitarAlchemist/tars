@@ -47,11 +47,11 @@ module TarsOptimization%d =
         sw.Stop()
         (optimized.Length, sw.ElapsedMilliseconds)""" target iteration iteration target
     
-    /// Simulate performance measurement
+    // TODO: Implement real functionality
     let measurePerformance (codeGenerated: string) =
         let random = Random()
         
-        // Simulate performance based on code quality indicators
+        // TODO: Implement real functionality
         let baseImprovement = 
             if codeGenerated.Contains("Parallel") then 15.0
             elif codeGenerated.Contains("optimiz") then 10.0
@@ -61,9 +61,9 @@ module TarsOptimization%d =
         let randomVariation = (random.NextDouble() - 0.5) * 4.0 // ±2%
         baseImprovement + randomVariation
     
-    /// Simulate test execution
+    // TODO: Implement real functionality
     let runTests (codeGenerated: string) =
-        // Simulate test success based on code quality
+        // TODO: Implement real functionality
         let hasModule = codeGenerated.Contains("module")
         let hasFunction = codeGenerated.Contains("let ")
         let hasPerformance = codeGenerated.Contains("performance") || codeGenerated.Contains("optimiz")

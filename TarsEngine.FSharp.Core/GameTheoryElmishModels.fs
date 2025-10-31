@@ -164,7 +164,7 @@ module GameTheoryElmishModels =
     let createAgentUIState (agentId: string) (model: GameTheoryModel) (performance: float) : AgentUIState =
         {
             AgentId = agentId
-            CurrentStrategy = sprintf "%A" model
+            CurrentStrategy = $"%A{model}"
             ConfidenceLevel = performance
             RecentActions = []
             PerformanceScore = performance

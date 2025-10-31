@@ -1,4 +1,4 @@
-﻿module TarsEngine.FSharp.ML.Tests.MLFrameworkTests
+module TarsEngine.FSharp.ML.Tests.MLFrameworkTests
 
 open System
 open System.IO
@@ -7,11 +7,13 @@ open System.Threading.Tasks
 open Microsoft.Extensions.Logging
 open Microsoft.ML
 open Microsoft.ML.Data
+open Microsoft.ML.Calibrators
+open Microsoft.ML.Trainers
 open Xunit
 open TarsEngine.FSharp.ML.Core
 
 /// <summary>
-/// Mock logger for testing.
+/// Lightweight logger used to capture framework output during tests.
 /// </summary>
 type MockLogger<'T>() =
     interface ILogger<'T> with
@@ -42,6 +44,16 @@ type TestPrediction = {
     Label: float32
     Score: float32
 }
+
+// Helper function to convert ML.NET estimators to IEstimator<ITransformer>
+// This works around F#'s strict type inference with ML.NET's complex generic types
+let inline toIEstimator (estimator: ^T when ^T :> IEstimator<ITransformer>) : IEstimator<ITransformer> =
+    estimator :> IEstimator<ITransformer>
+
+let createBinaryPipeline (mlContext: MLContext) : IEstimator<ITransformer> =
+    mlContext.Transforms.Concatenate("Features", "Feature1", "Feature2")
+        .Append(mlContext.BinaryClassification.Trainers.SdcaLogisticRegression())
+    |> toIEstimator
 
 /// <summary>
 /// Tests for the MLFramework class.
@@ -107,12 +119,10 @@ type MLFrameworkTests() =
         |]
         
         // Create pipeline function
-        let createPipeline (mlContext: MLContext) =
-            mlContext.Transforms.Concatenate("Features", "Feature1", "Feature2")
-                .Append(mlContext.BinaryClassification.Trainers.SdcaLogisticRegression())
+        let createPipeline = createBinaryPipeline
         
         // Act
-        let result = framework.LoadOrCreateModelAsync("TestModel", createPipeline, trainingData).Result
+        let result = framework.LoadOrCreateModelAsync<TestData, TestPrediction>("TestModel", createPipeline, trainingData).Result
         
         // Assert
         Assert.True(result)
@@ -141,12 +151,10 @@ type MLFrameworkTests() =
         |]
         
         // Create pipeline function
-        let createPipeline (mlContext: MLContext) =
-            mlContext.Transforms.Concatenate("Features", "Feature1", "Feature2")
-                .Append(mlContext.BinaryClassification.Trainers.SdcaLogisticRegression())
+        let createPipeline = createBinaryPipeline
         
         // Train model
-        let result = framework.LoadOrCreateModelAsync("TestModel2", createPipeline, trainingData).Result
+        let result = framework.LoadOrCreateModelAsync<TestData, TestPrediction>("TestModel2", createPipeline, trainingData).Result
         Assert.True(result)
         
         // Act
@@ -155,6 +163,7 @@ type MLFrameworkTests() =
         
         // Assert
         Assert.True(prediction.IsSome)
+        prediction |> Option.iter (fun p -> Assert.Equal(testData.Feature1, p.Score, 3))
     
     /// <summary>
     /// Test that MLFramework can get model metadata.
@@ -176,12 +185,10 @@ type MLFrameworkTests() =
         |]
         
         // Create pipeline function
-        let createPipeline (mlContext: MLContext) =
-            mlContext.Transforms.Concatenate("Features", "Feature1", "Feature2")
-                .Append(mlContext.BinaryClassification.Trainers.SdcaLogisticRegression())
+        let createPipeline = createBinaryPipeline
         
         // Train model
-        let result = framework.LoadOrCreateModelAsync("TestModel3", createPipeline, trainingData).Result
+        let result = framework.LoadOrCreateModelAsync<TestData, TestPrediction>("TestModel3", createPipeline, trainingData).Result
         Assert.True(result)
         
         // Act
@@ -215,12 +222,10 @@ type MLFrameworkTests() =
         |]
         
         // Create pipeline function
-        let createPipeline (mlContext: MLContext) =
-            mlContext.Transforms.Concatenate("Features", "Feature1", "Feature2")
-                .Append(mlContext.BinaryClassification.Trainers.SdcaLogisticRegression())
+        let createPipeline = createBinaryPipeline
         
         // Train model
-        let result = framework.LoadOrCreateModelAsync("TestModel4", createPipeline, trainingData).Result
+        let result = framework.LoadOrCreateModelAsync<TestData, TestPrediction>("TestModel4", createPipeline, trainingData).Result
         Assert.True(result)
         
         // Verify model exists
@@ -233,3 +238,4 @@ type MLFrameworkTests() =
         // Assert
         Assert.True(deleteResult)
         Assert.False(File.Exists(modelPath))
+

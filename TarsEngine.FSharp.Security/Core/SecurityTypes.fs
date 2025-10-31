@@ -202,7 +202,7 @@ module TarsPermission =
         | "roadmaps:write" -> Some WriteRoadmaps
         | "roadmaps:manage" -> Some ManageRoadmaps
         | "system:admin" -> Some SystemAdmin
-        | _ -> None
+        | _ -> Option.None
     
     /// Check if permission allows action
     let allows (required: TarsPermission) (available: TarsPermission list) =

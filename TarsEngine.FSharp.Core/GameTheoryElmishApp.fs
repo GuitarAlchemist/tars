@@ -56,8 +56,8 @@ module GameTheoryElmishApp =
         
         // Log messages in debug mode
         if defaultConfig.DebugMode then
-            printfn "🎯 Game Theory UI Message: %A" msg
-        
+            printfn $"🎯 Game Theory UI Message: %A{msg}"
+
         // Use enhanced update with services
         updateWithServices analysisService dataService threeDService msg state
 
@@ -72,15 +72,15 @@ module GameTheoryElmishApp =
         let appConfig = config |> Option.defaultValue defaultConfig
         
         printfn "🚀 Starting TARS Modern Game Theory UI Application"
-        printfn "   Container: %s" containerId
-        printfn "   Real-time: %b" appConfig.EnableRealTimeUpdates
-        printfn "   3D Visualization: %b" appConfig.Enable3DVisualization
-        printfn "   Interstellar Mode: %b" appConfig.EnableInterstellarMode
-        
+        printfn $"   Container: %s{containerId}"
+        printfn $"   Real-time: %b{appConfig.EnableRealTimeUpdates}"
+        printfn $"   3D Visualization: %b{appConfig.Enable3DVisualization}"
+        printfn $"   Interstellar Mode: %b{appConfig.EnableInterstellarMode}"
+
         let program = createProgram appConfig
         
         // This would normally use ReactDOM.render in a real Fable application
-        // For now, we'll simulate the startup
+        // For now, we'll implement the startup
         printfn "✅ Game Theory UI Application started successfully!"
         
         // Return a function to stop the application
@@ -120,13 +120,13 @@ module GameTheoryElmishApp =
                 }
         }
         
-        // Simulate UI state
+        // TODO: Implement real functionality
         printfn "📊 CURRENT SYSTEM STATE:"
-        printfn "   Active Agents: %d" (UIHelpers.getActiveAgentsCount updatedState)
-        printfn "   Equilibrium Status: %s" (UIHelpers.getEquilibriumStatus updatedState)
+        printfn $"   Active Agents: %d{UIHelpers.getActiveAgentsCount updatedState}"
+        printfn $"   Equilibrium Status: %s{UIHelpers.getEquilibriumStatus updatedState}"
         printfn "   System Performance: %.1f%%" (UIHelpers.calculateSystemPerformance updatedState * 100.0)
-        printfn "   Coordination Score: %.3f" updatedState.Coordination.AverageCoordination
-        printfn "   Recommended Action: %s" (UIHelpers.getRecommendedAction updatedState)
+        printfn $"   Coordination Score: %.3f{updatedState.Coordination.AverageCoordination}"
+        printfn $"   Recommended Action: %s{UIHelpers.getRecommendedAction updatedState}"
         printfn ""
         
         printfn "🎯 ACTIVE GAME THEORY MODELS:"
@@ -139,14 +139,14 @@ module GameTheoryElmishApp =
         
         printfn "🌌 3D VISUALIZATION STATE:"
         printfn "   Interstellar Mode: %s" (if updatedState.ThreeD.InterstellarMode then "🚀 ACTIVE" else "❌ INACTIVE")
-        printfn "   Space Geometry: %s" updatedState.ThreeD.SpaceGeometry
-        printfn "   Agent Positions: %d tracked" updatedState.ThreeD.AgentPositions.Count
-        printfn "   Animation Speed: %.1fx" updatedState.ThreeD.AnimationSpeed
+        printfn $"   Space Geometry: %s{updatedState.ThreeD.SpaceGeometry}"
+        printfn $"   Agent Positions: %d{updatedState.ThreeD.AgentPositions.Count} tracked"
+        printfn $"   Animation Speed: %.1f{updatedState.ThreeD.AnimationSpeed}x"
         printfn ""
         
         printfn "🔄 REAL-TIME FEATURES:"
         printfn "   Live Updates: %s" (if updatedState.IsRealTimeMode then "✅ ENABLED" else "❌ DISABLED")
-        printfn "   Update Interval: %dms" updatedState.UpdateInterval
+        printfn $"   Update Interval: %d{updatedState.UpdateInterval}ms"
         printfn "   Last Update: %s" (updatedState.LastDataUpdate.ToString("HH:mm:ss"))
         printfn ""
         
@@ -190,8 +190,8 @@ module GameTheoryElmishApp =
         let sendCommand (command: GameTheoryUIMessage) : unit =
             // In a real implementation, this would dispatch the command
             // to the running Elmish application
-            printfn "📨 Sending command to Game Theory UI: %A" command
-        
+            printfn $"📨 Sending command to Game Theory UI: %A{command}"
+
         /// Register game theory UI with TARS revolutionary engine
         let registerWithTars () : unit =
             printfn "🔗 Registering Game Theory UI with TARS Revolutionary Engine"

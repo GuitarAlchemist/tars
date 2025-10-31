@@ -48,12 +48,19 @@
 
     <!-- Phase 2: Core TARS Features -->
     <Compile Include="Commands\QACommand.fs" />
+    <Compile Include="Commands\ProtectCommand.fs" />
+    <Compile Include="Commands\AutoImprovementDashboardCommand.fs" />
 
-    <!-- Phase 3: Advanced Intelligence Agents -->
-    <Compile Include="Agents\RealTarsQAAgent.fs" />
-    <Compile Include="Agents\AutonomousModificationEngine.fs" />
-    <Compile Include="Agents\MultiAgentCrossValidation.fs" />
-    <Compile Include="Agents\AdvancedFLUXEngine.fs" />
+    <!-- Phase 3: Advanced Intelligence Agents - Temporarily disabled for compilation -->
+    <!-- <Compile Include="Agents\RealExecutionHarness.fs" /> -->
+    <!-- <Compile Include="Agents\RealAutoValidation.fs" /> -->
+    <!-- <Compile Include="Agents\RealAutonomousEngine.fs" /> -->
+    <!-- <Compile Include="Agents\RealCudaVectorStore.fs" /> -->
+    <!-- <Compile Include="Commands\CudaCommand.fs" /> -->
+    <!-- <Compile Include="Agents\RealTarsQAAgent.fs" /> -->
+    <!-- <Compile Include="Agents\AutonomousModificationEngine.fs" /> -->
+    <!-- <Compile Include="Agents\MultiAgentCrossValidation.fs" /> -->
+    <!-- <Compile Include="Agents\AdvancedFLUXEngine.fs" /> -->
 
     <!-- Temporarily excluded problematic commands -->
     <!-- <Compile Include="Commands\DashboardCommand.fs" /> -->
@@ -173,9 +180,9 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Docker.DotNet" Version="3.125.15" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.5" />
-    <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.5" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.5" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.5" />
     <PackageReference Include="FSharp.Compiler.Service" Version="43.9.100" />
     <PackageReference Include="YamlDotNet" Version="16.1.3" />
@@ -213,3 +220,7 @@
     <ProjectReference Include="..\TarsEngine.FSharp.Testing\TarsEngine.FSharp.Testing.fsproj" />
   </ItemGroup> -->
 </Project>
+
+
+
+

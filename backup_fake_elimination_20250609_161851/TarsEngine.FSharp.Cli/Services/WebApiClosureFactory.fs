@@ -277,7 +277,7 @@ namespace {name}.GraphQL
 
         public async Task<string> QueryAsync(string query)
         {{
-            // Placeholder implementation
+            // TODO: Implement real functionality
             // Full implementation would include proper GraphQL query execution
             return await Task.FromResult($"Query result for: {{query}}");
         }}
@@ -308,7 +308,7 @@ namespace {name}.GraphQL
                     
                     match restResult with
                     | Ok restData ->
-                        // Add GraphQL placeholder
+                        // TODO: Implement real functionality
                         let graphqlFile = Path.Combine(outputDir, "GraphQL", "Schema.graphql")
                         Directory.CreateDirectory(Path.GetDirectoryName(graphqlFile)) |> ignore
                         

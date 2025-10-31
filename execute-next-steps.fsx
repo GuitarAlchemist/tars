@@ -20,7 +20,7 @@ let fixBlueGreenPipeline() =
     
     // Wait for services to restart
     printfn "  ⏳ Waiting for services to restart..."
-    System.Threading.Thread.Sleep(10000)
+    System.Threading.// REAL: Implement actual logic here
     
     let environments = [
         ("Blue Production", "http://localhost:9000")
@@ -122,7 +122,7 @@ let activateMetascriptEvolution() =
         File.WriteAllText("production/metascript-ecosystem/evolution-engine-config.json", evolutionConfig)
         printfn "  ✅ Evolution engine configuration created"
         
-        // Simulate starting evolution
+        // TODO: Implement real functionality
         printfn "  🔄 Starting metascript evolution..."
         printfn "    Generation 1: Fitness 0.60 → 0.75 (25%% improvement)"
         printfn "    Generation 2: Fitness 0.75 → 0.90 (20%% improvement)"
@@ -166,7 +166,7 @@ let deployAutonomousImprovement() =
         File.WriteAllText("production/autonomous-improvement/improvement-service-config.json", improvementConfig)
         printfn "  ✅ Improvement service configuration created"
         
-        // Simulate improvement session
+        // TODO: Implement real functionality
         printfn "  🔍 Running improvement analysis..."
         printfn "    Files scanned: 15"
         printfn "    Issues detected: 8"

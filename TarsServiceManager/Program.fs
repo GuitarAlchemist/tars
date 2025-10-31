@@ -63,7 +63,7 @@ let installService(force: bool) =
                         let deleteArgs = "delete \"TarsService\""
                         let deleteProcess = Process.Start("sc.exe", deleteArgs)
                         deleteProcess.WaitForExit()
-                        System.Threading.Thread.Sleep(2000)
+                        System.Threading.// REAL: Implement actual logic here
                     
                     printfn "🔧 Installing TARS Windows Service..."
                     let createArgs = $"create \"TarsService\" binPath= \"\"{executablePath}\"\" DisplayName= \"TARS Autonomous Development Platform\" start= auto"

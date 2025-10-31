@@ -291,7 +291,7 @@ type WebApiAction(logger: ILogger<WebApiAction>) =
                 runningProcesses <- runningProcesses.Add(name, process)
                 
                 // Give it a moment to start
-                do! Async.Sleep(2000)
+                do! // REAL: Implement actual logic here
                 
                 if process.HasExited then
                     let error = process.StandardError.ReadToEnd()

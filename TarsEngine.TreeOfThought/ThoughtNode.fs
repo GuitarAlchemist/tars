@@ -56,5 +56,4 @@ module ThoughtNode =
     
     /// Converts a node to a string
     let toString node =
-        sprintf "Id: %s, Value: %A, Score: %.2f, Pruned: %b, Children: %d"
-            node.Id node.Value node.Score node.Pruned node.Children.Length
+        $"Id: %s{node.Id}, Value: %A{node.Value}, Score: %.2f{node.Score}, Pruned: %b{node.Pruned}, Children: %d{node.Children.Length}"

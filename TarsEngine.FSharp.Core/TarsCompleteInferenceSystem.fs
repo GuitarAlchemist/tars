@@ -222,7 +222,7 @@ module TarsCompleteInferenceSystem =
                 return embeddings
             }
 
-        /// Train the model (placeholder for future implementation)
+        // TODO: Implement real functionality
         member this.TrainAsync(trainingData: (string * string)[], config: TrainingConfig) : Task<bool> =
             task {
                 if not config.EnableTraining then
@@ -231,7 +231,7 @@ module TarsCompleteInferenceSystem =
                 
                 logger.LogInformation("Starting model training with {DataCount} samples", trainingData.Length)
                 
-                // Placeholder for actual training implementation
+                // TODO: Implement real functionality
                 // In a real implementation, this would:
                 // 1. Prepare training batches
                 // 2. Implement backpropagation
@@ -239,7 +239,7 @@ module TarsCompleteInferenceSystem =
                 // 4. Save checkpoints
                 // 5. Validate on test set
                 
-                do! Task.Delay(1000) // Simulate training time
+                do! // TODO: Implement real functionality
                 
                 logger.LogInformation("Model training completed (placeholder implementation)")
                 return true

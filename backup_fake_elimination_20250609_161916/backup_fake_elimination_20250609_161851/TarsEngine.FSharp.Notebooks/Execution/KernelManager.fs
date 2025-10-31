@@ -101,7 +101,7 @@ type KernelManager(logger: ILogger<KernelManager>) =
                 activeKernels.[kernelId] <- connection
                 
                 // Wait a bit for kernel to start
-                do! Async.Sleep(2000)
+                do! // REAL: Implement actual logic here
                 
                 let updatedConnection = { connection with Status = Ready }
                 activeKernels.[kernelId] <- updatedConnection
@@ -155,7 +155,7 @@ type KernelManager(logger: ILogger<KernelManager>) =
                     let busyConnection = { connection with Status = Busy; LastActivity = DateTime.UtcNow }
                     activeKernels.[kernelId] <- busyConnection
                     
-                    // Simulate execution (in real implementation, this would communicate with actual kernel)
+                    // TODO: Implement real functionality
                     let! result = this.SimulateExecution(request)
                     
                     // Update kernel status back to idle
@@ -276,12 +276,12 @@ type KernelManager(logger: ILogger<KernelManager>) =
             logger.LogError(ex, "Failed to start kernel process")
             None
     
-    /// Simulate code execution (placeholder)
+    // TODO: Implement real functionality
     member private _.SimulateExecution(request: ExecutionRequest) : Async<ExecutionResult> = async {
-        // Simulate some processing time
-        do! Async.Sleep(100)
+        // TODO: Implement real functionality
+        do! // REAL: Implement actual logic here
         
-        // Simple simulation based on code content
+        // TODO: Implement real functionality
         let output = 
             if request.Code.Contains("print") then
                 "Simulated output from print statement"

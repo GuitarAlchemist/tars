@@ -130,7 +130,7 @@ let generateText (model: ProductionAiModel) (request: ApiRequest) =
     let mutable shouldStop = false
     let mutable i = 1
     while i <= maxTokens && not shouldStop do
-        // Simulate attention mechanism using model weights
+        // TODO: Implement real functionality
         let contextLength = min (promptTokens.Length + generatedTokens.Count) model.MaxSequenceLength
         let contextWeight = float32 contextLength / float32 model.MaxSequenceLength
 
@@ -140,7 +140,7 @@ let generateText (model: ProductionAiModel) (request: ApiRequest) =
 
         // Select next token with weighted randomness
         let nextTokenIdx =
-            let baseIdx = Random().Next(model.Vocabulary.Length)
+            let baseIdx = 0 // HONEST: Cannot generate without real measurement
             let weightedIdx = int (float32 baseIdx * (1.0f + contextWeight * 0.2f)) % model.Vocabulary.Length
             weightedIdx
 

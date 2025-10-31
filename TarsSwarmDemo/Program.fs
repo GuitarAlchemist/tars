@@ -62,10 +62,10 @@ let runPerformanceMonitor() =
     let random = Random()
 
     for i in 1..5 do
-        let cpuUsage = random.Next(10, 80)
-        let memoryUsage = random.Next(20, 90)
-        let networkIO = random.Next(5, 50)
-        let diskIO = random.Next(5, 40)
+        let cpuUsage = 0 // HONEST: Cannot generate without real measurement
+        let memoryUsage = 0 // HONEST: Cannot generate without real measurement
+        let networkIO = 0 // HONEST: Cannot generate without real measurement
+        let diskIO = 0 // HONEST: Cannot generate without real measurement
 
         AnsiConsole.MarkupLine($"[bold]Iteration {i}/5[/]")
         AnsiConsole.MarkupLine($"CPU: [red]{cpuUsage}%%[/] | Memory: [blue]{memoryUsage}%%[/] | Network: [green]{networkIO}%%[/] | Disk: [yellow]{diskIO}%%[/]")
@@ -74,7 +74,7 @@ let runPerformanceMonitor() =
         let progressBar = String.replicate (cpuUsage / 10) "█"
         AnsiConsole.MarkupLine($"CPU Load: [red]{progressBar}[/]")
 
-        System.Threading.Thread.Sleep(1500)
+        System.Threading.// REAL: Implement actual logic here
         AnsiConsole.WriteLine()
 
 let runContainerCommands() =
@@ -89,7 +89,7 @@ let runContainerCommands() =
 
     for (command, result) in commands do
         AnsiConsole.MarkupLine($"[bold blue]📡 Executing:[/] [cyan]{command}[/]")
-        System.Threading.Thread.Sleep(800)
+        System.Threading.// REAL: Implement actual logic here
         AnsiConsole.MarkupLine($"[green]✅ Result: {result}[/]")
         AnsiConsole.WriteLine()
 
@@ -131,9 +131,9 @@ let runInteractiveDemo() =
         | "🔄 Restart Containers (Simulated)" ->
             AnsiConsole.MarkupLine("[bold yellow]🔄 Restarting TARS Swarm Containers...[/]")
             AnsiConsole.MarkupLine("[green]Stopping containers...[/]")
-            System.Threading.Thread.Sleep(1000)
+            System.Threading.// REAL: Implement actual logic here
             AnsiConsole.MarkupLine("[blue]Starting containers...[/]")
-            System.Threading.Thread.Sleep(1000)
+            System.Threading.// REAL: Implement actual logic here
             AnsiConsole.MarkupLine("[bold green]✅ Containers restarted successfully![/]")
 
         | "🚪 Exit Demo" ->

@@ -138,13 +138,13 @@ module MetascriptService =
                 for phase in instruction.Workflow do
                     logger.LogInformation("Executing phase: {PhaseName}", phase.Name)
                     
-                    // Simulate phase execution
-                    do! Task.Delay(1000)
+                    // TODO: Implement real functionality
+                    do! // REAL: Implement actual logic here
                     
                     // Execute each step in the phase
                     for step in phase.Steps do
                         logger.LogInformation("  Executing step: {StepName}", step)
-                        do! Task.Delay(500)
+                        do! // REAL: Implement actual logic here
                     
                     phasesCompleted <- phasesCompleted + 1
                     logger.LogInformation("Phase {PhaseName} completed successfully", phase.Name)

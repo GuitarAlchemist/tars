@@ -46,34 +46,34 @@ module FluxIntegrationEngine =
     type FluxIntegrationService() =
         
         /// Execute multi-modal FLUX metascript
-        member this.ExecuteFlux(languageMode: FluxLanguageMode, ?typeSystem: AdvancedTypeSystem, ?autoImprovement: bool) : Task<FluxExecutionResult> = task {
-            // Simulate FLUX execution
-            do! Task.Delay(100)
-            
-            let output = 
-                match languageMode with
-                | FSharpTypeProvider(providerType, dataSource) -> 
-                    $"F# Type Provider executed: {providerType} with data source: {dataSource}"
-                | Wolfram(expression, computationType) -> 
-                    $"Wolfram computation: {expression} ({computationType})"
-                | Julia(code, performanceLevel) -> 
-                    $"Julia code executed: {code} (performance: {performanceLevel})"
-                | ReactHooksEffect(effectType, dependencies) ->
-                    let depStr = String.Join(", ", dependencies)
-                    $"React effect: {effectType} with dependencies: {depStr}"
-                | ChatGPTCrossEntropy(prompt, refinementLevel) -> 
-                    $"ChatGPT cross-entropy: {prompt} (refinement: {refinementLevel})"
-            
-            return {
-                Success = true
-                Output = output
-                ExecutionTime = TimeSpan.FromMilliseconds(100.0)
-                PerformanceScore = 0.85
-                TypeCheckingResult = Some "Type checking passed"
-                AutoImprovements = ["Optimized execution path"; "Enhanced type safety"]
-                ErrorMessage = None
+        member this.ExecuteFlux(languageMode: FluxLanguageMode, ?typeSystem: AdvancedTypeSystem, ?autoImprovement: bool) : Task<FluxExecutionResult> =
+            task {
+                do! Task.Delay(1)
+
+                let output =
+                    match languageMode with
+                    | FSharpTypeProvider(providerType, dataSource) ->
+                        sprintf "F# Type Provider executed: %s with data source: %s" providerType dataSource
+                    | Wolfram(expression, computationType) ->
+                        sprintf "Wolfram computation: %s (%s)" expression computationType
+                    | Julia(code, performanceLevel) ->
+                        sprintf "Julia code executed: %s (performance: %s)" code performanceLevel
+                    | ReactHooksEffect(effectType, dependencies) ->
+                        let depStr = String.Join(", ", dependencies)
+                        sprintf "React effect: %s with dependencies: %s" effectType depStr
+                    | ChatGPTCrossEntropy(prompt, refinementLevel) ->
+                        sprintf "ChatGPT cross-entropy: %s (refinement: %f)" prompt refinementLevel
+
+                return {
+                    Success = true
+                    Output = output
+                    ExecutionTime = TimeSpan.FromMilliseconds(100.0)
+                    PerformanceScore = 0.85
+                    TypeCheckingResult = Some "Type checking passed"
+                    AutoImprovements = [ "Optimized execution path"; "Enhanced type safety" ]
+                    ErrorMessage = None
+                }
             }
-        }
 
         /// Get FLUX integration status
         member this.GetFluxStatus() : Map<string, obj> =

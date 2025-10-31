@@ -1622,7 +1622,7 @@ type CompleteSREDFormGenerator(logger: ILogger<CompleteSREDFormGenerator>) =
 
         let formT661 = generateFormT661 tarsProject gaProject organizationInfo
 
-        logger.LogInformation("Complete Form T661 generated successfully with total SR&ED claim of ${Amount:F2}", formT661.TotalSREDTaxCreditClaimed)
+            logger.LogInformation("Complete Form T661 generated successfully with total SR&ED claim of ${Amount:F2}", formT661.TotalSREDTaxCreditClaimed)
 
             return formT661
         }

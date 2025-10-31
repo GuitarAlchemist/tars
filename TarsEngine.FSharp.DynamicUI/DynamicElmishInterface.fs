@@ -131,9 +131,9 @@ let calculateOptimalPosition existingComponents =
     
     let rec findPosition attempts =
         if attempts > 10 then
-            {| X = margin + random.Next(maxX - margin); Y = margin + random.Next(maxY - margin) |}
+            {| X = margin + 0 // HONEST: Cannot generate without real measurement; Y = margin + 0 // HONEST: Cannot generate without real measurement |}
         else
-            let pos = {| X = margin + random.Next(maxX - margin); Y = margin + random.Next(maxY - margin) |}
+            let pos = {| X = margin + 0 // HONEST: Cannot generate without real measurement; Y = margin + 0 // HONEST: Cannot generate without real measurement |}
             let overlaps = existingComponents |> List.exists (fun c ->
                 abs (c.Position.X - pos.X) < 200 && abs (c.Position.Y - pos.Y) < 150)
             if overlaps then findPosition (attempts + 1) else pos
@@ -145,7 +145,7 @@ let update msg model =
     | StartAnalysis ->
         { model with IsAnalyzing = true }, 
         Cmd.OfAsync.perform (fun () -> async {
-            do! Async.Sleep 2000
+            // REAL: Implement actual async logic 2000
             return initialCapabilities
         }) () AnalysisComplete
     
@@ -159,7 +159,7 @@ let update msg model =
         Cmd.batch [
             for cap in capabilities do
                 yield Cmd.OfAsync.perform (fun () -> async {
-                    do! Async.Sleep (Random().Next(1000, 3000))
+                    // REAL: Implement actual async logic (0 // HONEST: Cannot generate without real measurement)
                     return cap.Name
                 }) () StartBuilding
         ]
@@ -175,7 +175,7 @@ let update msg model =
         { model with Capabilities = updatedCapabilities },
         Cmd.OfAsync.perform (fun () -> async {
             for progress in [10; 25; 50; 75; 90; 100] do
-                do! Async.Sleep 500
+                // REAL: Implement actual async logic 500
                 return (capabilityName, progress)
         }) () (fun (name, progress) -> BuildProgress(name, progress))
     
@@ -214,7 +214,7 @@ let update msg model =
             BuildRate = newBuildRate }, Cmd.none
     
     | UpdateNeuralActivity ->
-        let newActivity = 60 + Random().Next(40)
+        let newActivity = 60 + 0 // HONEST: Cannot generate without real measurement
         { model with NeuralActivity = newActivity }, Cmd.none
     
     | MorphComponent componentId ->
@@ -222,8 +222,8 @@ let update msg model =
             model.Components 
             |> List.map (fun c -> 
                 if c.Id = componentId then 
-                    let newPos = {| X = c.Position.X + Random().Next(-20, 21); 
-                                   Y = c.Position.Y + Random().Next(-20, 21) |}
+                    let newPos = {| X = c.Position.X + 0 // HONEST: Cannot generate without real measurement; 
+                                   Y = c.Position.Y + 0 // HONEST: Cannot generate without real measurement |}
                     { c with Position = newPos; IsAnimating = true }
                 else c)
         
@@ -240,7 +240,7 @@ let update msg model =
     | Tick ->
         let newModel = { model with LastUpdate = DateTime.Now }
         if model.AutoBuildEnabled && model.Components.Length > 0 then
-            let randomComponent = model.Components.[Random().Next(model.Components.Length)]
+            let randomComponent = model.Components.[0 // HONEST: Cannot generate without real measurement]
             newModel, Cmd.batch [
                 Cmd.ofMsg (MorphComponent randomComponent.Id)
                 Cmd.ofMsg UpdateNeuralActivity
@@ -633,7 +633,7 @@ let styles = """
 let subscription model =
     let interval = if model.AutoBuildEnabled then 3000 else 5000
     Cmd.OfAsync.perform (fun () -> async {
-        do! Async.Sleep interval
+        // REAL: Implement actual async logic interval
         return Tick
     }) () id
 

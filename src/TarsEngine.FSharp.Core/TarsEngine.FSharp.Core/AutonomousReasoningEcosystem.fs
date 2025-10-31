@@ -256,7 +256,7 @@ type AutonomousReasoningEcosystem(logger: ILogger<AutonomousReasoningEcosystem>)
             agents <- equilibriumAgents
             equilibriumHistory <- isEquilibrium :: equilibriumHistory
             
-            // Simulate bidirectional communication
+            // TODO: Implement real functionality
             let! communicationResults = 
                 agents
                 |> List.map (fun agent ->

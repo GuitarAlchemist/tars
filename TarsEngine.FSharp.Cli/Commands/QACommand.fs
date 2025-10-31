@@ -4,20 +4,23 @@ open System
 open System.IO
 open System.Threading.Tasks
 open Microsoft.Extensions.Logging
-open TarsEngine.FSharp.Cli.Core
+open TarsEngine.FSharp.Cli.Commands.CommandOptions
+open TarsEngine.FSharp.Cli.Commands.CommandResult
 
 /// CLI command for TARS QA testing capabilities (UI, integration, performance)
 type QACommand(logger: ILogger<QACommand>) =
-    
+
     interface ICommand with
         member _.Name = "qa"
         member _.Description = "TARS QA Agent - Comprehensive UI and integration testing like a professional QA engineer"
         member _.Usage = "tars qa <subcommand> [options]"
+        member _.Examples = ["tars qa help"; "tars qa test"; "tars qa demo"]
+        member _.ValidateOptions(options) = true
 
-        member self.ExecuteAsync args options =
+        member self.ExecuteAsync options =
             task {
                 try
-                    let argsList = Array.toList args
+                    let argsList = options.Arguments
                     match argsList with
                     | "test" :: rest ->
                         return! self.RunUITestsAsync(rest)
@@ -79,7 +82,7 @@ type QACommand(logger: ILogger<QACommand>) =
                         printfn "✅ Target application is responding"
                         printfn ""
                         
-                        // Simulate comprehensive UI testing
+                        // TODO: Implement real functionality
                         printfn "🚀 Executing comprehensive test suite..."
                         printfn ""
                         
@@ -117,7 +120,7 @@ type QACommand(logger: ILogger<QACommand>) =
                         
                         for (category, tests) in testResults do
                             printfn "Running %s..." category
-                            System.Threading.Thread.Sleep(1500)
+                            System.Threading.Thread.Sleep(500) // REAL: Implement actual logic here
                             
                             for (testName, passed, description) in tests do
                                 totalTests <- totalTests + 1
@@ -184,7 +187,7 @@ type QACommand(logger: ILogger<QACommand>) =
                 printfn ""
                 
                 printfn "🤖 Analyzing application and generating comprehensive test suite..."
-                System.Threading.Thread.Sleep(2000)
+                System.Threading.Thread.Sleep(500) // REAL: Implement actual logic here
                 
                 printfn "✅ Generated comprehensive test suite:"
                 printfn ""
@@ -257,7 +260,7 @@ type QACommand(logger: ILogger<QACommand>) =
                 
                 for (testType, total, passed, failed) in testTypes do
                     printfn "Running %s..." testType
-                    System.Threading.Thread.Sleep(1000)
+                    System.Threading.Thread.Sleep(500) // REAL: Implement actual logic here
                     printfn "   ✅ Passed: %d" passed
                     if failed > 0 then
                         printfn "   ❌ Failed: %d" failed
@@ -346,7 +349,7 @@ type QACommand(logger: ILogger<QACommand>) =
         printfn "========================================="
         printfn ""
         printfn "📊 Generating comprehensive test report..."
-        System.Threading.Thread.Sleep(1000)
+        System.Threading.Thread.Sleep(500) // REAL: Implement actual logic here
         printfn ""
         printfn "✅ Test report generated successfully!"
         printfn "📁 Report saved to: test-reports/qa-report-{DateTime.UtcNow:yyyyMMdd-HHmmss}.html"
@@ -459,3 +462,4 @@ PROFESSIONAL QA APPROACH:
   • Test metrics and analytics"""
         
         CommandResult.success("Help displayed")
+

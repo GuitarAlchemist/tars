@@ -300,7 +300,7 @@ type MixtralCommand(logger: ILogger<MixtralCommand>, mixtralService: MixtralServ
             for (source, color) in dataSources do
                 AnsiConsole.MarkupLine($"[bold]🚀 Processing {source}...[/]")
 
-                // Simulate processing with progress
+                // TODO: Implement real functionality
                 for i in 1..10 do
                     let progress = float i * 10.0
                     AnsiConsole.MarkupLine($"""[dim]Processing... {progress.ToString("F0")}%%[/]""")
@@ -314,7 +314,7 @@ type MixtralCommand(logger: ILogger<MixtralCommand>, mixtralService: MixtralServ
                         AnsiConsole.Write(panel : Spectre.Console.Panel)
                         AnsiConsole.WriteLine()
 
-                    do! Task.Delay(300)
+                    do! // REAL: Implement actual logic here
 
                 // Show results
                 let results = self.GenerateMoEResults(source)
@@ -324,7 +324,7 @@ type MixtralCommand(logger: ILogger<MixtralCommand>, mixtralService: MixtralServ
                 AnsiConsole.Write(resultsPanel : Spectre.Console.Panel)
                 AnsiConsole.WriteLine()
 
-                do! Task.Delay(1000)
+                do! // REAL: Implement actual logic here
 
             // Final summary
             AnsiConsole.MarkupLine("[bold green]🎉 TARS Mixtral MoE Live Demo Complete![/]")

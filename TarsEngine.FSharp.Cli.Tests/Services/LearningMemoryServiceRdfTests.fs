@@ -15,7 +15,7 @@ module LearningMemoryServiceRdfTests =
         let loggerFactory = LoggerFactory.Create(fun builder -> builder.AddConsole() |> ignore)
         loggerFactory.CreateLogger<'T>()
     
-    /// Create a mock RDF client for testing
+    // TODO: Implement real functionality
     let createMockRdfClient() =
         let logger = createTestLogger<InMemoryRdfClient>()
         InMemoryRdfClient(logger) :> IRdfClient

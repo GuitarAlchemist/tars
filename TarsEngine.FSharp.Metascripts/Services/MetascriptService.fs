@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.FSharp.Metascripts.Services
+namespace TarsEngine.FSharp.Metascripts.Services
 
 open System
 open System.IO
@@ -39,18 +39,18 @@ type MetascriptService(
         member _.DiscoverMetascriptsAsync(directory: string) =
             task {
                 try
-                    logger.LogInformation(sprintf "Starting metascript discovery in: %s" directory)
+                    logger.LogInformation $"Starting metascript discovery in: %s{directory}"
                     let! result = discovery.DiscoverMetascriptsAsync(directory, true)
                     match result with
                     | Ok metascripts ->
-                        logger.LogInformation(sprintf "Discovery completed. Found %d metascripts" metascripts.Length)
+                        logger.LogInformation $"Discovery completed. Found %d{metascripts.Length} metascripts"
                         return Ok metascripts
                     | Error error ->
-                        logger.LogError(sprintf "Discovery failed: %s" error)
+                        logger.LogError $"Discovery failed: %s{error}"
                         return Error error
                 with
                 | ex ->
-                    let error = sprintf "Error during discovery: %s" ex.Message
+                    let error = $"Error during discovery: %s{ex.Message}"
                     logger.LogError(ex, error)
                     return Error error
             }
@@ -60,11 +60,11 @@ type MetascriptService(
                 try
                     logger.LogInformation("Listing all registered metascripts")
                     let metascripts = registry.GetAllMetascripts()
-                    logger.LogInformation(sprintf "Found %d registered metascripts" metascripts.Length)
+                    logger.LogInformation $"Found %d{metascripts.Length} registered metascripts"
                     return Ok metascripts
                 with
                 | ex ->
-                    let error = sprintf "Error listing metascripts: %s" ex.Message
+                    let error = $"Error listing metascripts: %s{ex.Message}"
                     logger.LogError(ex, error)
                     return Error error
             }
@@ -72,20 +72,20 @@ type MetascriptService(
         member _.GetMetascriptAsync(name: string) =
             task {
                 try
-                    logger.LogDebug(sprintf "Getting metascript: %s" name)
+                    logger.LogDebug $"Getting metascript: %s{name}"
                     let metascript = registry.GetMetascript(name)
                     return Ok metascript
                 with
                 | ex ->
-                    let error = sprintf "Error getting metascript %s: %s" name ex.Message
+                    let error = $"Error getting metascript %s{name}: %s{ex.Message}"
                     logger.LogError(ex, error)
                     return Error error
             }
         
-        member _.ExecuteMetascriptAsync(name: string) =
+        member this.ExecuteMetascriptAsync(name: string) =
             task {
                 try
-                    logger.LogInformation(sprintf "🚀 TARS: Starting metascript execution: %s" name)
+                    logger.LogInformation $"🚀 TARS: Starting metascript execution: %s{name}"
 
                     match registry.GetMetascript(name) with
                     | Some registered ->
@@ -106,7 +106,7 @@ type MetascriptService(
                         }
 
                         // Execute the metascript with real processing
-                        let! executionResult = MetascriptService.executeMetascriptContentStatic registered.Source executionContext logger
+                        let! executionResult = this.executeMetascriptContent registered.Source executionContext
 
                         let endTime = DateTime.UtcNow
                         let executionTime = endTime - startTime
@@ -123,17 +123,16 @@ type MetascriptService(
                             EndTime = Some endTime
                         }
 
-                        logger.LogInformation(sprintf "✅ TARS: Metascript execution completed: %s (took %dms)"
-                            name (int executionTime.TotalMilliseconds))
+                        logger.LogInformation $"✅ TARS: Metascript execution completed: %s{name} (took %d{int executionTime.TotalMilliseconds}ms)"
 
                         return Ok result
                     | None ->
-                        let error = sprintf "Metascript not found: %s" name
+                        let error = $"Metascript not found: %s{name}"
                         logger.LogWarning(error)
                         return Error error
                 with
                 | ex ->
-                    let error = sprintf "Error executing metascript %s: %s" name ex.Message
+                    let error = $"Error executing metascript %s{name}: %s{ex.Message}"
                     logger.LogError(ex, error)
                     return Error error
             }
@@ -146,7 +145,7 @@ type MetascriptService(
                     return Ok stats
                 with
                 | ex ->
-                    let error = sprintf "Error getting statistics: %s" ex.Message
+                    let error = $"Error getting statistics: %s{ex.Message}"
                     logger.LogError(ex, error)
                     return Error error
             }
@@ -154,12 +153,12 @@ type MetascriptService(
         member _.ValidateMetascriptAsync(source: MetascriptSource) =
             task {
                 try
-                    logger.LogDebug(sprintf "Validating metascript: %s" source.Name)
+                    logger.LogDebug $"Validating metascript: %s{source.Name}"
                     let validatedSource = manager.ValidateMetascript(source)
                     return Ok validatedSource
                 with
                 | ex ->
-                    let error = sprintf "Error validating metascript %s: %s" source.Name ex.Message
+                    let error = $"Error validating metascript %s{source.Name}: %s{ex.Message}"
                     logger.LogError(ex, error)
                     return Error error
             }
@@ -167,25 +166,16 @@ type MetascriptService(
         member _.RegisterMetascriptAsync(source: MetascriptSource) =
             task {
                 try
-                    logger.LogInformation(sprintf "Registering metascript: %s" source.Name)
+                    logger.LogInformation $"Registering metascript: %s{source.Name}"
 
-                    // Create registered metascript
-                    let registered = {
-                        Source = source
-                        RegistrationTime = DateTime.UtcNow
-                        UsageCount = 0
-                        LastUsed = None
-                        IsActive = true
-                    }
+                    // Register with the registry (it creates the RegisteredMetascript internally)
+                    let registered = registry.RegisterMetascript(source)
 
-                    // Register with the registry
-                    registry.RegisterMetascript(registered) |> ignore
-
-                    logger.LogInformation(sprintf "Metascript registered successfully: %s" source.Name)
+                    logger.LogInformation $"Metascript registered successfully: %s{source.Name}"
                     return Ok ()
                 with
                 | ex ->
-                    let error = sprintf "Error registering metascript %s: %s" source.Name ex.Message
+                    let error = $"Error registering metascript %s{source.Name}: %s{ex.Message}"
                     logger.LogError(ex, error)
                     return Error error
             }
@@ -201,7 +191,7 @@ type MetascriptService(
                 let logBuilder = System.Text.StringBuilder()
                 let appendLog (message: string) =
                     let timestamp = DateTime.Now.ToString("HH:mm:ss.fff")
-                    let logLine = sprintf "[%s] %s" timestamp message
+                    let logLine = $"[%s{timestamp}] %s{message}"
                     logBuilder.AppendLine(logLine) |> ignore
                     context.Logger.LogInformation(logLine)
 
@@ -209,100 +199,133 @@ type MetascriptService(
                 appendLog "TARS METASCRIPT EXECUTION LOG"
                 appendLog "=================================================================================="
                 appendLog (sprintf "Start Time: %s" (context.StartTime.ToString("yyyy-MM-dd HH:mm:ss")))
-                appendLog (sprintf "Metascript: %s" context.MetascriptName)
-                appendLog (sprintf "Session ID: %s" context.SessionId)
+                appendLog $"Metascript: %s{context.MetascriptName}"
+                appendLog $"Session ID: %s{context.SessionId}"
                 appendLog ""
 
                 // Parse metascript content
                 appendLog "📋 PHASE_START | METASCRIPT_PARSING | Parsing metascript content"
                 let parsedSections = this.parseMetascriptSections source.Content
-                appendLog (sprintf "📊 PARSING_RESULT | Found %d sections to execute" parsedSections.Length)
+                appendLog $"📊 PARSING_RESULT | Found %d{parsedSections.Length} sections to execute"
 
                 let mutable variables = context.Variables
                 let mutable executionOutput = System.Text.StringBuilder()
 
-                // Execute each section
-                for i, section in parsedSections |> List.indexed do
-                    appendLog (sprintf "🔧 SECTION_START | Section %d | Type: %s" (i+1) section.SectionType)
+                // Execute each section with early termination on error
+                let rec executeSections (sections: {| SectionType: string; Content: string |} list) (sectionIndex: int) (currentVariables: Map<string, obj>) =
+                    task {
+                        match sections with
+                        | [] ->
+                            return Ok currentVariables
+                        | section :: remainingSections ->
+                            appendLog $"🔧 SECTION_START | Section %d{sectionIndex} | Type: %s{section.SectionType}"
 
-                    match section.SectionType with
-                    | "fsharp" ->
-                        appendLog "💻 F#_EXECUTION | Executing F# code block"
-                        let! fsharpResult = this.executeFSharpCode section.Content variables
-                        if fsharpResult.Success then
-                            appendLog (sprintf "✅ F#_SUCCESS | F# code executed successfully")
-                            executionOutput.AppendLine(fsharpResult.Output) |> ignore
-                            variables <- fsharpResult.Variables
-                        else
-                            appendLog (sprintf "❌ F#_ERROR | F# execution failed: %s" (fsharpResult.Error |> Option.defaultValue "Unknown error"))
-                            return {
-                                Success = false
-                                Output = logBuilder.ToString()
-                                Error = fsharpResult.Error
-                                Variables = variables
-                            }
+                            match section.SectionType with
+                            | "fsharp" ->
+                                appendLog "💻 F#_EXECUTION | Executing F# code block"
+                                let! fsharpResult = this.executeFSharpCode section.Content currentVariables
+                                if fsharpResult.Success then
+                                    appendLog (sprintf "✅ F#_SUCCESS | F# code executed successfully")
+                                    executionOutput.AppendLine(fsharpResult.Output) |> ignore
+                                    appendLog $"✅ SECTION_END | Section %d{sectionIndex} completed"
+                                    return! executeSections remainingSections (sectionIndex + 1) fsharpResult.Variables
+                                else
+                                    appendLog (sprintf "❌ F#_ERROR | F# execution failed: %s" (fsharpResult.Error |> Option.defaultValue "Unknown error"))
+                                    return Error fsharpResult.Error
 
-                    | "yaml" ->
-                        appendLog "⚙️ YAML_PROCESSING | Processing YAML configuration"
-                        let yamlResult = this.processYamlSection section.Content
-                        appendLog "✅ YAML_SUCCESS | YAML configuration processed"
-                        variables <- Map.fold (fun acc key value -> Map.add key value acc) variables yamlResult
+                            | "yaml" ->
+                                appendLog "⚙️ YAML_PROCESSING | Processing YAML configuration"
+                                let yamlResult = this.processYamlSection section.Content
+                                appendLog "✅ YAML_SUCCESS | YAML configuration processed"
+                                let updatedVariables = Map.fold (fun acc key value -> Map.add key value acc) currentVariables yamlResult
+                                appendLog $"✅ SECTION_END | Section %d{sectionIndex} completed"
+                                return! executeSections remainingSections (sectionIndex + 1) updatedVariables
 
-                    | "markdown" ->
-                        appendLog "📝 MARKDOWN_PROCESSING | Processing markdown documentation"
-                        executionOutput.AppendLine(section.Content) |> ignore
-                        appendLog "✅ MARKDOWN_SUCCESS | Markdown content processed"
+                            | "command" ->
+                                appendLog "🛠 COMMAND_EXECUTION | Executing shell command block"
+                                let! commandResult = this.executeCommand section.Content currentVariables
+                                if commandResult.Success then
+                                    if not (String.IsNullOrWhiteSpace(commandResult.Output)) then
+                                        appendLog $"📤 COMMAND_OUTPUT | %s{commandResult.Output.Trim()}"
+                                    appendLog (sprintf "✅ COMMAND_SUCCESS | Command executed successfully")
+                                    appendLog $"✅ SECTION_END | Section %d{sectionIndex} completed"
+                                    return! executeSections remainingSections (sectionIndex + 1) commandResult.Variables
+                                else
+                                    appendLog (sprintf "❌ COMMAND_ERROR | %s" (commandResult.Error |> Option.defaultValue "Unknown error"))
+                                    return Error commandResult.Error
 
-                    | _ ->
-                        appendLog (sprintf "⚠️ UNKNOWN_SECTION | Unknown section type: %s" section.SectionType)
+                            | "markdown" ->
+                                appendLog "📝 MARKDOWN_PROCESSING | Processing markdown documentation"
+                                executionOutput.AppendLine(section.Content) |> ignore
+                                appendLog "✅ MARKDOWN_SUCCESS | Markdown content processed"
+                                appendLog $"✅ SECTION_END | Section %d{sectionIndex} completed"
+                                return! executeSections remainingSections (sectionIndex + 1) currentVariables
 
-                    appendLog (sprintf "✅ SECTION_END | Section %d completed" (i+1))
+                            | _ ->
+                                appendLog $"⚠️ UNKNOWN_SECTION | Unknown section type: %s{section.SectionType}"
+                                appendLog $"✅ SECTION_END | Section %d{sectionIndex} completed"
+                                return! executeSections remainingSections (sectionIndex + 1) currentVariables
+                    }
 
-                let endTime = DateTime.Now
-                let duration = endTime - context.StartTime
+                let! executionResult = executeSections parsedSections 1 variables
 
-                appendLog ""
-                appendLog "=================================================================================="
-                appendLog "METASCRIPT EXECUTION SUMMARY"
-                appendLog "=================================================================================="
-                appendLog (sprintf "End Time: %s" (endTime.ToString("yyyy-MM-dd HH:mm:ss")))
-                appendLog (sprintf "Total Duration: %.2f seconds" duration.TotalSeconds)
-                appendLog (sprintf "Sections Executed: %d" parsedSections.Length)
-                appendLog (sprintf "Variables Created: %d" variables.Count)
-                appendLog (sprintf "Success Rate: 100%%")
-                appendLog ""
-                appendLog "✅ SYSTEM_END | Metascript execution completed successfully"
-                appendLog "=================================================================================="
+                match executionResult with
+                | Ok finalVariables ->
+                    variables <- finalVariables
 
-                // Save execution log if output path is specified
-                match context.OutputPath with
-                | Some outputPath ->
-                    let logPath = Path.Combine(outputPath, "tars.log")
-                    Directory.CreateDirectory(outputPath) |> ignore
-                    File.WriteAllText(logPath, logBuilder.ToString())
-                    appendLog (sprintf "📄 LOG_SAVED | Execution log saved: %s" logPath)
-                | None -> ()
+                    let endTime = DateTime.Now
+                    let duration = endTime - context.StartTime
 
-                return {
-                    Success = true
-                    Output = logBuilder.ToString()
-                    Error = None
-                    Variables = variables
-                }
+                    appendLog ""
+                    appendLog "=================================================================================="
+                    appendLog "METASCRIPT EXECUTION SUMMARY"
+                    appendLog "=================================================================================="
+                    appendLog (sprintf "End Time: %s" (endTime.ToString("yyyy-MM-dd HH:mm:ss")))
+                    appendLog $"Total Duration: %.2f{duration.TotalSeconds} seconds"
+                    appendLog $"Sections Executed: %d{parsedSections.Length}"
+                    appendLog $"Variables Created: %d{variables.Count}"
+                    appendLog (sprintf "Success Rate: 100%%")
+                    appendLog ""
+                    appendLog "✅ SYSTEM_END | Metascript execution completed successfully"
+                    appendLog "=================================================================================="
+
+                    // Save execution log if output path is specified
+                    match context.OutputPath with
+                    | Some outputPath ->
+                        let logPath = Path.Combine(outputPath, "tars.log")
+                        Directory.CreateDirectory(outputPath) |> ignore
+                        File.WriteAllText(logPath, logBuilder.ToString())
+                        appendLog $"📄 LOG_SAVED | Execution log saved: %s{logPath}"
+                    | None -> ()
+
+                    return {
+                        Success = true
+                        Output = logBuilder.ToString()
+                        Error = None
+                        Variables = variables
+                    }
+
+                | Error errorMsg ->
+                    return {
+                        Success = false
+                        Output = logBuilder.ToString()
+                        Error = errorMsg
+                        Variables = variables
+                    }
 
             with
             | ex ->
-                context.Logger.LogError(ex, sprintf "❌ EXECUTION_ERROR | Metascript execution failed: %s" ex.Message)
+                context.Logger.LogError(ex, $"❌ EXECUTION_ERROR | Metascript execution failed: %s{ex.Message}")
                 return {
                     Success = false
-                    Output = sprintf "Metascript execution failed: %s" ex.Message
+                    Output = $"Metascript execution failed: %s{ex.Message}"
                     Error = Some ex.Message
                     Variables = context.Variables
                 }
         }
 
     // Parse metascript sections
-    member private this.parseMetascriptSections (content: string) =
+    member private this.parseMetascriptSections (content: string) : {| SectionType: string; Content: string |} list =
         let sections = System.Collections.Generic.List<{| SectionType: string; Content: string |}>()
 
         // Split content by code blocks
@@ -342,7 +365,7 @@ type MetascriptService(
 
         sections |> Seq.toList
 
-    // Execute F# code using REAL F# Interactive - NO MORE FAKE CODE!
+    // Execute F# code blocks using dotnet fsi to ensure real evaluation.
     member private this.executeFSharpCode (code: string) (variables: Map<string, obj>) =
         task {
             try
@@ -353,7 +376,7 @@ type MetascriptService(
                 let variableSetup =
                     variables
                     |> Map.toSeq
-                    |> Seq.map (fun (k, v) -> sprintf "let %s = %A" k v)
+                    |> Seq.map (fun (k, v) -> $"let %s{k} = %A{v}")
                     |> String.concat "\n"
 
                 let fullCode = if String.IsNullOrEmpty(variableSetup) then code else variableSetup + "\n\n" + code
@@ -362,7 +385,7 @@ type MetascriptService(
                 // Execute using dotnet fsi (REAL execution)
                 let psi = System.Diagnostics.ProcessStartInfo()
                 psi.FileName <- "dotnet"
-                psi.Arguments <- sprintf "fsi \"%s\"" tempFile
+                psi.Arguments <- $"fsi \"%s{tempFile}\""
                 psi.UseShellExecute <- false
                 psi.RedirectStandardOutput <- true
                 psi.RedirectStandardError <- true
@@ -376,6 +399,67 @@ type MetascriptService(
 
                 // Clean up temp file
                 try File.Delete(tempFile) with | _ -> ()
+
+                if proc.ExitCode = 0 then
+                    return {
+                        Success = true
+                        Output = output
+                        Error = None
+                        Variables = variables
+                    }
+                else
+                    return {
+                        Success = false
+                        Output = output
+                        Error = Some error
+                        Variables = variables
+                    }
+            with
+            | ex ->
+                return {
+                    Success = false
+                    Output = ""
+                    Error = Some ex.Message
+                    Variables = variables
+                }
+        }
+
+    // Execute command sections via the platform shell.
+    member private this.executeCommand (commandContent: string) (variables: Map<string, obj>) =
+        task {
+            try
+                let scriptPath =
+                    if OperatingSystem.IsWindows() then
+                        let path = Path.ChangeExtension(Path.GetTempFileName(), ".cmd")
+                        File.WriteAllText(path, commandContent)
+                        path
+                    else
+                        let path = Path.ChangeExtension(Path.GetTempFileName(), ".sh")
+                        let script = "#!/bin/bash\nset -euo pipefail\n" + commandContent
+                        File.WriteAllText(path, script)
+                        File.SetAttributes(path, File.GetAttributes(path) ||| FileAttributes.Normal)
+                        path
+
+                let psi = System.Diagnostics.ProcessStartInfo()
+                if OperatingSystem.IsWindows() then
+                    psi.FileName <- "cmd.exe"
+                    psi.Arguments <- $"/c \"%s{scriptPath}\""
+                else
+                    psi.FileName <- "/bin/bash"
+                    psi.Arguments <- $"\"%s{scriptPath}\""
+
+                psi.UseShellExecute <- false
+                psi.RedirectStandardOutput <- true
+                psi.RedirectStandardError <- true
+                psi.CreateNoWindow <- true
+
+                use proc = System.Diagnostics.Process.Start(psi)
+                proc.WaitForExit(30000) |> ignore
+
+                let output = proc.StandardOutput.ReadToEnd()
+                let error = proc.StandardError.ReadToEnd()
+
+                try File.Delete(scriptPath) with | _ -> ()
 
                 if proc.ExitCode = 0 then
                     return {
@@ -417,30 +501,3 @@ type MetascriptService(
                     variables.[key] <- box value
 
         variables |> Seq.map (|KeyValue|) |> Map.ofSeq
-
-    // Static method for execution that can be called from interface implementation
-    static member executeMetascriptContentStatic (source: MetascriptSource) (context: MetascriptExecutionContext) (logger: ILogger) =
-        task {
-            try
-                context.Logger.LogInformation(sprintf "[%s] 🚀 SYSTEM_START | Metascript Execution | Starting TARS metascript: %s"
-                    (DateTime.Now.ToString("HH:mm:ss.fff")) context.MetascriptName)
-
-                // Simple execution result for now
-                return {
-                    Success = true
-                    Output = sprintf "Metascript %s executed successfully" context.MetascriptName
-                    Error = None
-                    Variables = context.Variables
-                }
-
-            with
-            | ex ->
-                context.Logger.LogError(ex, sprintf "❌ EXECUTION_ERROR | Metascript execution failed: %s" ex.Message)
-                return {
-                    Success = false
-                    Output = sprintf "Metascript execution failed: %s" ex.Message
-                    Error = Some ex.Message
-                    Variables = context.Variables
-                }
-        }
-

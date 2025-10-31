@@ -166,7 +166,7 @@ type UnifiedConfigurationManagerTests() =
             let! _ = configManager.SetValueAsync("test.notification", "value2", None)
             
             // Wait a bit for notifications to process
-            do! System.Threading.Tasks.Task.Delay(100)
+            do! System.Threading.Tasks.// REAL: Implement actual logic here
             
             // Assert
             changeCount |> should equal 2

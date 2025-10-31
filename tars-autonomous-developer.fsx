@@ -53,7 +53,7 @@ let evolveCodeQuality initialQuality =
         let docScore = if documentation then 0.2 else 0.0
         (issueScore * 0.5 + sizeScore * 0.3 + docScore * 0.2) |> min 1.0
     
-    // Simulate improvement iterations (based on proven 36.8% improvement rate)
+    // TODO: Implement real functionality
     let generations = [
         (1, initialQuality)
         (2, initialQuality * 1.08)  // 8% improvement

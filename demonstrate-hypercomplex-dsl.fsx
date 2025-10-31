@@ -99,7 +99,7 @@ printfn "  Euclidean: %.4f" euclideanDist
 printfn "  Hyperbolic: %.4f" hyperbolicDist
 printfn "  Spherical: %.4f" sphericalDist
 
-// Mock CUDA handle for demonstration
+// TODO: Implement real functionality
 let mockCuda = { DeviceId = 0; StreamHandle = 0n; CublasHandle = 0n; IsValid = true }
 
 // BSP tree operations

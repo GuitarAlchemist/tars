@@ -6,13 +6,13 @@ open Xunit
 open FsUnit.Xunit
 open TarsEngine.FSharp.Cli.Core.UnifiedCore
 
-/// Tests for the Unified Agent System (placeholder - would need actual implementation)
+// TODO: Implement real functionality
 [<TestClass>]
 type UnifiedAgentSystemTests() =
     
     [<Fact>]
     let ``Agent system placeholder test`` () =
-        // This is a placeholder test for the agent system
+        // TODO: Implement real functionality
         // In a real implementation, this would test:
         // - Agent registration and discovery
         // - Task routing and execution

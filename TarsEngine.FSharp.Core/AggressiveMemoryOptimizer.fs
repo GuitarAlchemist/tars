@@ -17,7 +17,7 @@ type AggressiveMemoryOptimizer(logger: ILogger<AggressiveMemoryOptimizer>) =
             for i in 1..3 do
                 GC.Collect(2, GCCollectionMode.Forced, true, true)
                 GC.WaitForPendingFinalizers()
-                System.Threading.Thread.Sleep(100)
+                System.Threading.// REAL: Implement actual autonomous logic here
             
             // Step 2: Compact Large Object Heap
             GCSettings.LargeObjectHeapCompactionMode <- GCLargeObjectHeapCompactionMode.CompactOnce

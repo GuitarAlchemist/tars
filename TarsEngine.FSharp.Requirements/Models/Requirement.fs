@@ -5,7 +5,7 @@ open System.Text.Json.Serialization
 
 /// <summary>
 /// Core requirement model for TARS system
-/// Real implementation - no fake or placeholder data
+// TODO: Implement real functionality
 /// </summary>
 [<CLIMutable>]
 type Requirement = {

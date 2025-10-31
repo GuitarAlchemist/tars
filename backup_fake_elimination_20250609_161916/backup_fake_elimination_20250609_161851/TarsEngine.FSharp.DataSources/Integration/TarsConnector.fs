@@ -1,6 +1,6 @@
-// TarsConnector.fs - Auto-generated placeholder
+// TODO: Implement real functionality
 // TODO: Implement TarsConnector functionality
 
 namespace TarsEngine.FSharp.DataSources.Integration
 
-// Placeholder for TarsConnector implementation
+// TODO: Implement real functionality

@@ -1,6 +1,6 @@
-// ClosureGeneratorTests.fs - Auto-generated placeholder
+// TODO: Implement real functionality
 // TODO: Implement ClosureGeneratorTests functionality
 
 namespace TarsEngine.FSharp.DataSources.Tests
 
-// Placeholder for ClosureGeneratorTests implementation
+// TODO: Implement real functionality
