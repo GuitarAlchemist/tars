@@ -54,7 +54,7 @@ let testProgrammingLearningIntegration() =
     printfn "🧠 TESTING PROGRAMMING LEARNING INTEGRATION"
     printfn "=========================================="
     
-    // Simulate learning session with vector storage
+    // TODO: Implement real functionality
     let learningSession = {|
         timestamp = DateTime.Now
         patterns_learned = ["Railway-Oriented Programming"; "Discriminated Unions"]
@@ -123,7 +123,7 @@ let testAutonomousImprovement() =
     printfn "🔧 TESTING AUTONOMOUS CODE IMPROVEMENT"
     printfn "====================================="
     
-    // Simulate code improvement session
+    // TODO: Implement real functionality
     let improvementSession = {|
         original_issues = 3
         issues_fixed = 3

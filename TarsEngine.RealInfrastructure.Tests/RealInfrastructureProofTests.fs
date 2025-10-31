@@ -195,8 +195,9 @@ let ``DEFINITIVE PROOF: TARS test coverage is comprehensive`` () =
     
     let mutable implementedTestCategories = 0
     for category in testCategories do
-        let testFileExists = File.Exists($"TarsEngine.AutoImprovement.Tests/{category}.fs") ||
-                            File.Exists($"TarsEngine.RealInfrastructure.Tests/{category}.fs")
+        let testFileExists =
+            File.Exists($"TarsEngine.AutoImprovement.Tests/{category}.fs") ||
+            File.Exists($"TarsEngine.RealInfrastructure.Tests/{category}.fs")
         let icon = if testFileExists then "✅" else "❌"
         printfn "      %s %s" icon category
         if testFileExists then implementedTestCategories <- implementedTestCategories + 1
@@ -282,10 +283,11 @@ let ``ULTIMATE PROOF: TARS is a real, comprehensive AI system`` () =
         let percentage = float score
         totalScore <- totalScore + percentage
         maxScore <- maxScore + 100.0
-        
-        let status = if percentage >= 80.0 then "EXCELLENT" 
-                    elif percentage >= 60.0 then "GOOD"
-                    else "NEEDS_WORK"
+
+        let status =
+            if percentage >= 80.0 then "EXCELLENT"
+            elif percentage >= 60.0 then "GOOD"
+            else "NEEDS_WORK"
         
         printfn "      ✅ %s: %d%% (%s)" component score status
         printfn "         📋 %s" description

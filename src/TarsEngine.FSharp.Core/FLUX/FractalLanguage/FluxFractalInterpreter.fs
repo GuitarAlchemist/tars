@@ -265,7 +265,7 @@ module FluxFractalInterpreter =
             if code.Contains("BELIEF") then
                 reasoning.Add("belief_graph_constructed")
             
-            // Simulate fractal branching
+            // TODO: Implement real functionality
             let branchingFactor = reasoning.Count * 2
             reasoning.Add(sprintf "fractal_branching_factor_%d" branchingFactor)
             
@@ -282,7 +282,7 @@ module FluxFractalInterpreter =
             if code.Contains("AGENT_LANG") then
                 emergence.Add("agent_language_defined")
             
-            // Simulate recursive growth back to Tier 0
+            // TODO: Implement real functionality
             emergence.Add("recursive_growth_to_meta_meta")
             
             box (sprintf "Emergent complexity: [%s]" (String.Join("; ", emergence)))

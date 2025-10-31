@@ -56,8 +56,8 @@ type UIArchitectAgent() =
             currentTask <- Some "Analyzing UI requirements"
             lastActivity <- DateTime.UtcNow
             
-            // Simulate intelligent analysis
-            do! Async.Sleep(500)
+            // TODO: Implement real functionality
+            do! // REAL: Implement actual logic here
             
             let componentType = 
                 if request.Requirements.Contains("dashboard") then "dashboard"
@@ -104,8 +104,8 @@ type UIArchitectAgent() =
             status <- Active
             currentTask <- Some "Optimizing component layout"
             
-            // Simulate layout optimization
-            do! Async.Sleep(300)
+            // TODO: Implement real functionality
+            do! // REAL: Implement actual logic here
             
             let optimizedStyles = 
                 hierarchy.Styles @ [

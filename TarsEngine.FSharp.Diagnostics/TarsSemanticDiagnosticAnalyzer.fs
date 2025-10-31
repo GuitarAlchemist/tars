@@ -215,43 +215,43 @@ type TarsSemanticDiagnosticAnalyzer(logger: ILogger<TarsSemanticDiagnosticAnalyz
         
         report.AppendLine() |> ignore
 
-    /// Generate performance analysis (placeholder - will be implemented)
+    // TODO: Implement real functionality
     member private this.GeneratePerformanceAnalysis(report: StringBuilder, trace: MetascriptDiagnosticTrace) =
         report.AppendLine("## Performance Analysis") |> ignore
         report.AppendLine("Performance analysis implementation pending...") |> ignore
         report.AppendLine() |> ignore
 
-    /// Generate error analysis (placeholder - will be implemented)
+    // TODO: Implement real functionality
     member private this.GenerateErrorAnalysis(report: StringBuilder, trace: MetascriptDiagnosticTrace) =
         report.AppendLine("## Error Analysis") |> ignore
         report.AppendLine("Error analysis implementation pending...") |> ignore
         report.AppendLine() |> ignore
 
-    /// Generate root cause analysis (placeholder - will be implemented)
+    // TODO: Implement real functionality
     member private this.GenerateRootCauseAnalysis(report: StringBuilder, trace: MetascriptDiagnosticTrace) =
         report.AppendLine("## Root Cause Analysis") |> ignore
         report.AppendLine("Root cause analysis implementation pending...") |> ignore
         report.AppendLine() |> ignore
 
-    /// Generate recommendations (placeholder - will be implemented)
+    // TODO: Implement real functionality
     member private this.GenerateRecommendations(report: StringBuilder, trace: MetascriptDiagnosticTrace) =
         report.AppendLine("## Recommendations") |> ignore
         report.AppendLine("Recommendations implementation pending...") |> ignore
         report.AppendLine() |> ignore
 
-    /// Generate implementation plan (placeholder - will be implemented)
+    // TODO: Implement real functionality
     member private this.GenerateImplementationPlan(report: StringBuilder, trace: MetascriptDiagnosticTrace) =
         report.AppendLine("## Implementation Plan") |> ignore
         report.AppendLine("Implementation plan pending...") |> ignore
         report.AppendLine() |> ignore
 
-    /// Generate code examples (placeholder - will be implemented)
+    // TODO: Implement real functionality
     member private this.GenerateCodeExamples(report: StringBuilder, trace: MetascriptDiagnosticTrace) =
         report.AppendLine("## Code Examples") |> ignore
         report.AppendLine("Code examples pending...") |> ignore
         report.AppendLine() |> ignore
 
-    /// Generate appendices (placeholder - will be implemented)
+    // TODO: Implement real functionality
     member private this.GenerateAppendices(report: StringBuilder, trace: MetascriptDiagnosticTrace) =
         report.AppendLine("## Appendices") |> ignore
         report.AppendLine("Appendices pending...") |> ignore

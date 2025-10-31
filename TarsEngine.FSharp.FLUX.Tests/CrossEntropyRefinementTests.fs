@@ -67,9 +67,10 @@ module CrossEntropyRefinementTests =
         let engine = CrossEntropyRefinementEngine()
         
         // Act
-        let similarity = engine.GetType().GetMethod("CalculateStringSimilarity", 
-            System.Reflection.BindingFlags.NonPublic ||| System.Reflection.BindingFlags.Instance)
-            .Invoke(engine, [| "test"; "test" |]) :?> float
+        let similarity =
+            engine.GetType().GetMethod("CalculateStringSimilarity",
+                System.Reflection.BindingFlags.NonPublic ||| System.Reflection.BindingFlags.Instance)
+                .Invoke(engine, [| "test"; "test" |]) :?> float
         
         // Assert
         Assert.Equal(1.0, similarity, 3)
@@ -80,9 +81,10 @@ module CrossEntropyRefinementTests =
         let engine = CrossEntropyRefinementEngine()
         
         // Act
-        let similarity = engine.GetType().GetMethod("CalculateStringSimilarity", 
-            System.Reflection.BindingFlags.NonPublic ||| System.Reflection.BindingFlags.Instance)
-            .Invoke(engine, [| "abc"; "xyz" |]) :?> float
+        let similarity =
+            engine.GetType().GetMethod("CalculateStringSimilarity",
+                System.Reflection.BindingFlags.NonPublic ||| System.Reflection.BindingFlags.Instance)
+                .Invoke(engine, [| "abc"; "xyz" |]) :?> float
         
         // Assert
         Assert.True(similarity < 0.5, $"Expected similarity < 0.5, but got {similarity}")
@@ -93,9 +95,10 @@ module CrossEntropyRefinementTests =
         let engine = CrossEntropyRefinementEngine()
         
         // Act
-        let distance = engine.GetType().GetMethod("LevenshteinDistance", 
-            System.Reflection.BindingFlags.NonPublic ||| System.Reflection.BindingFlags.Instance)
-            .Invoke(engine, [| "kitten"; "sitting" |]) :?> int
+        let distance =
+            engine.GetType().GetMethod("LevenshteinDistance",
+                System.Reflection.BindingFlags.NonPublic ||| System.Reflection.BindingFlags.Instance)
+                .Invoke(engine, [| "kitten"; "sitting" |]) :?> int
         
         // Assert
         Assert.Equal(3, distance)
@@ -165,9 +168,10 @@ module CrossEntropyRefinementTests =
         let originalCode = "printfn \"Hello %s\" name"
         
         // Act
-        let optimizedCode = engine.GetType().GetMethod("OptimizeSyntax", 
-            System.Reflection.BindingFlags.NonPublic ||| System.Reflection.BindingFlags.Instance)
-            .Invoke(engine, [| originalCode |]) :?> string
+        let optimizedCode =
+            engine.GetType().GetMethod("OptimizeSyntax",
+                System.Reflection.BindingFlags.NonPublic ||| System.Reflection.BindingFlags.Instance)
+                .Invoke(engine, [| originalCode |]) :?> string
         
         // Assert
         Assert.Contains("printfn $\"", optimizedCode)

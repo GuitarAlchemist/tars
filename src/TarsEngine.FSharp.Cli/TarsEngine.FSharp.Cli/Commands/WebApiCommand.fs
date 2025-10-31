@@ -181,7 +181,7 @@ type WebApiCommand(logger: ILogger<WebApiCommand>) =
             // let closure = webApiFactory.CreateGraphQLClientClosure(name, schemaUrl)
             // let result = closure outputDir |> Async.RunSynchronously
 
-            // Placeholder implementation
+            // TODO: Implement real functionality
             Directory.CreateDirectory(outputDir) |> ignore
             let placeholderFile = Path.Combine(outputDir, "GraphQLClient.cs")
             File.WriteAllText(placeholderFile, $"// {name} GraphQL Client\n// Generated from schema: {schemaUrl}")
@@ -216,7 +216,7 @@ type WebApiCommand(logger: ILogger<WebApiCommand>) =
             // let closure = webApiFactory.CreateHybridApiClosure(name, config)
             // let result = closure outputDir |> Async.RunSynchronously
 
-            // Placeholder implementation
+            // TODO: Implement real functionality
             Directory.CreateDirectory(outputDir) |> ignore
             let placeholderFile = Path.Combine(outputDir, "README.md")
             File.WriteAllText(placeholderFile, $"# {name} Hybrid API\n\nGenerated hybrid API with REST and GraphQL")

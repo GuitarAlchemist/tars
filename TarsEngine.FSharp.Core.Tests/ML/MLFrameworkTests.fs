@@ -1,4 +1,4 @@
-﻿module TarsEngine.FSharp.Core.Tests.ML.MLFrameworkTests
+module TarsEngine.FSharp.Core.Tests.ML.MLFrameworkTests
 
 open System
 open System.IO
@@ -11,7 +11,7 @@ open Xunit
 open TarsEngine.FSharp.Core.ML.Core
 
 /// <summary>
-/// Mock logger for testing.
+// TODO: Implement real functionality
 /// </summary>
 type MockLogger<'T>() =
     interface ILogger<'T> with

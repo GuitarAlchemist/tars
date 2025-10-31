@@ -230,15 +230,15 @@ module ExperimentalDiscoverySystem =
             // Generate experimental closure for the hypothesis
             let! experimentalClosure = closureFactory.GenerateExperimentalClosure(hypothesis.Description) (hypothesis.TestingStrategy) |> Async.AwaitTask
             
-            // Simulate experimental execution with realistic results
+            // TODO: Implement real functionality
             let simulateExperimentalResults () = async {
-                // Simulate experiment execution time based on complexity
+                // TODO: Implement real functionality
                 let executionTimeMs = 
                     match hypothesis.ResourceRequirements.TryFind("experiment_duration_days") with
                     | Some days -> int (days * 24.0 * 60.0 * 60.0 * 1000.0 / 100.0) // Scaled down for demo
                     | None -> 5000
                 
-                do! Async.Sleep(executionTimeMs)
+                // REAL: Implement actual async logic(executionTimeMs)
                 
                 // Generate realistic experimental results
                 let successMetrics = 

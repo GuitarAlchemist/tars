@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.FSharp
+namespace TarsEngine.FSharp
 
 /// Metascript validation with Tree-of-Thought reasoning
 module MetascriptValidation =
@@ -34,7 +34,7 @@ module MetascriptValidation =
         /// Validates a metascript
         let validateMetascript metascript =
             // In a real implementation, this would validate the metascript
-            // For now, we'll just return a simulated result
+            // TODO: Implement real functionality
             let thoughtTree = MetascriptToT.ThoughtTree.createNode "Validate Metascript"
             let syntaxErrors = []
             let semanticErrors = []

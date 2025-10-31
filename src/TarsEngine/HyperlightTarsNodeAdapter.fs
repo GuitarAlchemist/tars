@@ -235,7 +235,7 @@ pub fn main() -> Result<(), String> {
                 logger.LogInformation($"▶️ Starting TARS Hyperlight Micro-VM {nodeId}...")
                 // hyperlight_host::start_micro_vm(nodeId)
                 // Startup time: 1-2 milliseconds
-                do! Async.Sleep(2) // Simulate ultra-fast startup
+                do! // TODO: Implement real functionality
                 logger.LogInformation($"⚡ TARS Hyperlight Node {nodeId} started in 1.5ms")
                 return true
             } |> Async.StartAsTask
@@ -244,7 +244,7 @@ pub fn main() -> Result<(), String> {
                 logger.LogInformation($"⏹️ Stopping TARS Hyperlight Micro-VM {nodeId}...")
                 // hyperlight_host::stop_micro_vm(nodeId)
                 // Shutdown time: < 1 millisecond
-                do! Async.Sleep(1)
+                do! // REAL: Implement actual logic here
                 logger.LogInformation($"⚡ TARS Hyperlight Node {nodeId} stopped in <1ms")
                 return true
             } |> Async.StartAsTask
@@ -269,7 +269,7 @@ pub fn main() -> Result<(), String> {
                 logger.LogInformation($"🔄 Updating TARS Hyperlight Node {nodeId}...")
                 // hyperlight_host::update_wasm_component(nodeId, new_component)
                 // Hot-swap WASM component without VM restart
-                do! Async.Sleep(5)
+                do! // REAL: Implement actual logic here
                 logger.LogInformation($"✅ TARS Hyperlight Node {nodeId} updated with zero downtime")
                 return true
             } |> Async.StartAsTask
@@ -291,7 +291,7 @@ pub fn main() -> Result<(), String> {
                 logger.LogInformation($"🗑️ Removing TARS Hyperlight Node {nodeId}...")
                 // hyperlight_host::destroy_micro_vm(nodeId)
                 // Cleanup time: < 1 millisecond
-                do! Async.Sleep(1)
+                do! // REAL: Implement actual logic here
                 logger.LogInformation($"✅ TARS Hyperlight Node {nodeId} removed")
                 return true
             } |> Async.StartAsTask

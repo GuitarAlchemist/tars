@@ -111,8 +111,8 @@ module FractalGrammar =
             
             | Translate (x, y) ->
                 // Translate pattern by adding positional modifiers
-                sprintf "(%s) [offset: %.2f, %.2f]" pattern x y
-            
+                $"(%s{pattern}) [offset: %.2f{x}, %.2f{y}]"
+
             | Compose transformations ->
                 // Apply multiple transformations sequentially
                 transformations |> List.fold (fun acc trans -> this.ApplyTransformation(acc, trans)) pattern
@@ -237,7 +237,7 @@ module FractalGrammar =
             
             with
             | ex ->
-                errors.Add(sprintf "Fractal generation failed: %s" ex.Message)
+                errors.Add $"Fractal generation failed: %s{ex.Message}"
                 {
                     Success = false
                     GeneratedGrammar = ""
@@ -277,8 +277,8 @@ module FractalGrammar =
 
         /// Convert fractal tree to grammar rules
         member private this.TreeToGrammarRules(tree: FractalNode) : string =
-            let mainRule = sprintf "%s = %s ;" tree.Name tree.Pattern
-            
+            let mainRule = $"%s{tree.Name} = %s{tree.Pattern} ;"
+
             let childRules = 
                 tree.Children
                 |> List.map this.TreeToGrammarRules
@@ -372,7 +372,7 @@ module FractalGrammar =
             {
                 Name = name
                 BasePattern = basePattern
-                RecursivePattern = Some (sprintf "(%s)*" basePattern)
+                RecursivePattern = Some $"(%s{basePattern})*"
                 TerminationCondition = "max_depth_5"
                 Transformations = [Scale 0.8; Recursive (3, Scale 0.9)]
                 Properties = engine.CreateDefaultProperties()

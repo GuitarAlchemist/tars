@@ -22,12 +22,12 @@ type JwtMiddleware(next: RequestDelegate, logger: ILogger<JwtMiddleware>) =
             if authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase) then
                 Some (authHeader.Substring(7))
             else
-                None
+                Option.None
         | _ ->
             // Try query parameter as fallback
             match context.Request.Query.TryGetValue("token") with
             | true, values when values.Count > 0 -> Some values.[0]
-            | _ -> None
+            | _ -> Option.None
     
     /// Set security context in HTTP context
     let setSecurityContext (context: HttpContext) (securityContext: TarsSecurityContext) =
@@ -45,9 +45,9 @@ type JwtMiddleware(next: RequestDelegate, logger: ILogger<JwtMiddleware>) =
             Username = "Anonymous"
             Role = Anonymous
             Permissions = []
-            AuthType = None
+            AuthType = TarsAuthType.None
             IsAuthenticated = false
-            ExpiresAt = None
+            ExpiresAt = Option.None
             Claims = []
         }
         setSecurityContext context anonymousContext
@@ -98,7 +98,7 @@ type JwtMiddleware(next: RequestDelegate, logger: ILogger<JwtMiddleware>) =
                         context.Response.StatusCode <- 403
                         do! context.Response.WriteAsync($"Access forbidden: {reason}")
                 
-                | None ->
+                | Option.None ->
                     // No token provided
                     if config.AllowAnonymous || allowsAnonymous context then
                         logger.LogDebug("Anonymous access allowed for path: {Path}", context.Request.Path)
@@ -137,28 +137,28 @@ module SecurityContext =
     let getTarsContext (httpContext: HttpContext) =
         match httpContext.Items.TryGetValue("TarsSecurityContext") with
         | true, context -> Some (context :?> TarsSecurityContext)
-        | _ -> None
-    
+        | _ -> Option.None
+
     /// Check if user has required permission
     let hasPermission (permission: TarsPermission) (httpContext: HttpContext) =
         match getTarsContext httpContext with
         | Some context -> TarsPermission.allows permission context.Permissions
-        | None -> false
+        | Option.None -> false
     
     /// Check if user has required role
     let hasRole (role: TarsRole) (httpContext: HttpContext) =
         match getTarsContext httpContext with
         | Some context -> context.Role = role || context.Role = System
-        | None -> false
-    
+        | Option.None -> false
+
     /// Get current user ID
     let getCurrentUserId (httpContext: HttpContext) =
         match getTarsContext httpContext with
         | Some context -> Some context.UserId
-        | None -> None
-    
+        | Option.None -> Option.None
+
     /// Check if user is authenticated
     let isAuthenticated (httpContext: HttpContext) =
         match getTarsContext httpContext with
         | Some context -> context.IsAuthenticated
-        | None -> false
+        | Option.None -> false

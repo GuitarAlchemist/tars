@@ -14,6 +14,7 @@
     <Compile Include="MetascriptEvolutionValidation.fs" />
     <Compile Include="AutonomousImprovementValidation.fs" />
     <Compile Include="ProductionIntegrationValidation.fs" />
+    <Compile Include="ValidationSuite.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
@@ -22,3 +23,7 @@
 
 
 </Project>
+
+
+
+

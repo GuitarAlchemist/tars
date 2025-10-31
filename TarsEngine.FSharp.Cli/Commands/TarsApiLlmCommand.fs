@@ -340,7 +340,7 @@ type TarsApiLlmCommand(logger: ILogger<TarsApiLlmCommand>, llmService: GenericLl
                                     | _ -> 5
                                 else 5
 
-                    // Real CUDA vector search simulation with actual TARS codebase results
+                    // TODO: Implement real functionality
                     return sprintf """CUDA Vector Search Results for '%s' (limit: %d):
 
 🔍 FOUND %d RELEVANT DOCUMENTS:
@@ -425,7 +425,7 @@ Agent is ready for task assignment!""" agentName agentId config agentId agentId
                     let path = parts.[0].Trim()
                     let content = if parts.Length > 1 then parts.[1].Trim() else ""
 
-                    // Simulate realistic file write with TARS context
+                    // TODO: Implement real functionality
                     let timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
                     return sprintf """📁 File Written Successfully!
 

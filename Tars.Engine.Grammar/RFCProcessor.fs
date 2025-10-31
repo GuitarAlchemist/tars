@@ -42,10 +42,10 @@ module RFCProcessor =
     let getRFCUrl (rfcId: string) =
         let normalizedId = rfcId.ToLowerInvariant()
         if normalizedId.StartsWith("rfc") then
-            sprintf "https://datatracker.ietf.org/doc/html/%s" normalizedId
+            $"https://datatracker.ietf.org/doc/html/%s{normalizedId}"
         else
-            sprintf "https://datatracker.ietf.org/doc/html/rfc%s" normalizedId
-    
+            $"https://datatracker.ietf.org/doc/html/rfc%s{normalizedId}"
+
     /// Download RFC content
     let downloadRFC rfcId =
         async {
@@ -54,7 +54,7 @@ module RFCProcessor =
                 let! response = httpClient.GetStringAsync(url) |> Async.AwaitTask
                 return Ok response
             with
-            | ex -> return Error (sprintf "Failed to download RFC %s: %s" rfcId ex.Message)
+            | ex -> return Error $"Failed to download RFC %s{rfcId}: %s{ex.Message}"
         }
     
     /// Extract RFC metadata from content
@@ -66,8 +66,8 @@ module RFCProcessor =
         let title = 
             match Regex.Match(content, titlePattern, RegexOptions.IgnoreCase) with
             | m when m.Success -> m.Groups.[1].Value.Trim()
-            | _ -> sprintf "RFC %s" rfcId
-        
+            | _ -> $"RFC %s{rfcId}"
+
         let abstractText =
             match Regex.Match(content, abstractPattern, RegexOptions.IgnoreCase ||| RegexOptions.Singleline) with
             | m when m.Success -> Some (m.Groups.[1].Value.Trim())
@@ -155,20 +155,20 @@ module RFCProcessor =
                     .Replace("(", " ( ")
                     .Replace(")", " ) ")
                     .Replace("|", " | ")
-            
-            sprintf "%s = %s ;" rule.Name ebnfDefinition
+
+            $"%s{rule.Name} = %s{ebnfDefinition} ;"
         )
     
     /// Generate TARS grammar from RFC rules
     let generateTARSGrammar rfcId rules =
         let metadata =
             "meta {\n" +
-            sprintf "  name: \"%s_grammar\"\n" rfcId +
+            $"  name: \"%s{rfcId}_grammar\"\n" +
             "  version: \"v1.0\"\n" +
             "  source: \"rfc\"\n" +
             "  language: \"EBNF\"\n" +
             sprintf "  created: \"%s\"\n" (DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")) +
-            sprintf "  description: \"Grammar extracted from %s\"\n" rfcId +
+            $"  description: \"Grammar extracted from %s{rfcId}\"\n" +
             "}"
 
         let ebnfRules = convertToEBNF rules
@@ -187,7 +187,7 @@ module RFCProcessor =
         async {
             try
                 let grammarContent = generateTARSGrammar rfcId rules
-                let fileName = sprintf "%s_grammar.tars" rfcId
+                let fileName = $"%s{rfcId}_grammar.tars"
                 let filePath = Path.Combine(".tars", "grammars", fileName)
                 
                 let directory = Path.GetDirectoryName(filePath)
@@ -197,7 +197,7 @@ module RFCProcessor =
                 File.WriteAllText(filePath, grammarContent)
                 
                 let entry : GrammarResolver.GrammarIndexEntry = {
-                    Id = sprintf "%s_grammar" rfcId
+                    Id = $"%s{rfcId}_grammar"
                     File = fileName
                     Origin = "rfc"
                     Version = Some "v1.0"
@@ -208,7 +208,7 @@ module RFCProcessor =
                 
                 return Ok filePath
             with
-            | ex -> return Error (sprintf "Failed to save RFC grammar: %s" ex.Message)
+            | ex -> return Error $"Failed to save RFC grammar: %s{ex.Message}"
         }
     
     /// Get well-known RFC grammars

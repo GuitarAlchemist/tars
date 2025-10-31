@@ -214,7 +214,7 @@ module PauliMatricesPracticalDemo =
             logger.LogInformation("  - Commutation relations: [σᵢ, σⱼ] = 2iεᵢⱼₖσₖ")
             logger.LogInformation("  - Anticommutation relations: {{σᵢ, σⱼ}} = 2δᵢⱼI")
             
-            // Simulate error correction scenarios
+            // TODO: Implement real functionality
             let errorScenarios = [
                 ("Bit flip error", "X")
                 ("Phase flip error", "Z")
@@ -225,7 +225,7 @@ module PauliMatricesPracticalDemo =
             let mutable correctionResults = []
             
             for (errorType, errorOperator) in errorScenarios do
-                // Simulate error detection and correction
+                // TODO: Implement real functionality
                 let detectionProbability = if errorOperator = "I" then 0.0 else 0.95
                 let correctionSuccess = if errorOperator = "I" then 1.0 else 0.98
                 
@@ -294,7 +294,7 @@ module PauliMatricesPracticalDemo =
                 EvolutionResults = List.rev evolutionResults
                 TimeEvolution = timeEvolution
                 HamiltonianCoefficients = hamiltonianCoeffs
-                QuantumCoherence = 0.95  // Simulated coherence
+                QuantumCoherence = 0.95  // TODO: Implement real functionality
                 GateOperationSuccess = true
             |}
         }

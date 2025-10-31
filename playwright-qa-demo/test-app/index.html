@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TARS Test Application - With Intentional Bugs</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        
+        .feature-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        button:hover {
+            background-color: #0056b3;
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        
+        /* BUG 1: Missing responsive design */
+        .responsive-test {
+            width: 100%; /* This will break on mobile */
+            overflow: hidden;
+            max-width: 100%;
+            max-width: 100%;
+            max-width: 100%;
+            max-width: 100%;
+            max-width: 100%;
+        }
+        
+        /* BUG 2: Poor accessibility - missing focus styles */
+        button:focus {
+            outline: none; /* This removes accessibility focus indicators */
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        #loading {
+            text-align: center;
+            font-size: 18px;
+            color: #666;
+        }
+        
+        .performance-test {
+            height: 200px;
+            overflow-y: scroll;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎭 TARS Test Application</h1>
+        <p>This application contains intentional bugs for testing the Autonomous Playwright QA System</p>
+        
+        <div class="feature-section">
+            <h2>Feature 1: Basic Functionality</h2>
+            <button id="basic-btn" onclick="basicFunction()">Click Me</button>
+            <div id="basic-result"></div>
+        </div>
+        
+        <div class="feature-section">
+            <h2>Feature 2: Form Handling</h2>
+            <form id="test-form">
+                <input type="text" id="name-input" placeholder="Enter your name" required>
+                <textarea id="message-input" placeholder="Enter a message"></textarea>
+                <button type="submit">Submit Form</button>
+            </form>
+            <div id="form-result"></div>
+        </div>
+        
+        <div class="feature-section">
+            <h2>Feature 3: Responsive Design Test</h2>
+            <div class="responsive-test">
+                <p>This section should be responsive but has bugs!</p>
+                <button onclick="testResponsive()">Test Responsive</button>
+            </div>
+        </div>
+        
+        <div class="feature-section">
+            <h2>Feature 4: Accessibility Test</h2>
+            <!-- BUG 3: Missing alt text on image -->
+            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzAwN2JmZiIvPjx0ZXh0IHg9IjUwIiB5PSI1NSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+VEVTVDwvdGV4dD48L3N2Zz4=" width="100" height="100" alt="TARS Test Image - Blue square with TEST text">
+            <!-- BUG 4: Missing ARIA labels -->
+            <button onclick="accessibilityTest()">Test Accessibility</button>
+        </div>
+        
+        <div class="feature-section">
+            <h2>Feature 5: Performance Test</h2>
+            <button onclick="performanceTest()">Run Performance Test</button>
+            <div class="performance-test" id="performance-results"></div>
+        </div>
+        
+        <div class="feature-section">
+            <h2>Feature 6: Error Handling</h2>
+            <button onclick="triggerError()">Trigger Error</button>
+            <button onclick="triggerAsyncError()">Trigger Async Error</button>
+            <div id="error-result"></div>
+        </div>
+        
+        <div id="loading" class="hidden">Loading...</div>
+    </div>
+
+    <script>
+        // BUG 5: Console errors
+        // Fixed: Removed intentional error
+        
+        function basicFunction() {
+            const result = document.getElementById('basic-result');
+            result.innerHTML = '<span class="success">✅ Basic function works!</span>';
+        }
+        
+        // BUG 6: Form submission doesn't prevent default
+        document.getElementById('test-form').addEventListener('submit', function(e) {
+            // Missing e.preventDefault() - this will cause page reload
+            const name = document.getElementById('name-input').value;
+            const message = document.getElementById('message-input').value;
+            
+            if (!name) {
+                document.getElementById('form-result').innerHTML = '<span class="error">❌ Name is required!</span>';
+                return;
+            }
+            
+            document.getElementById('form-result').innerHTML = `<span class="success">✅ Form submitted: ${name}</span>`;
+        });
+        
+        function testResponsive() {
+            // BUG 7: This function doesn't actually test responsiveness
+            alert('Responsive test - but this is not actually responsive!');
+        }
+        
+        function accessibilityTest() {
+            // BUG 8: Poor accessibility implementation
+            const result = document.createElement('div');
+            result.innerHTML = 'Accessibility test completed';
+            // Missing proper ARIA announcements
+            document.body.appendChild(result);
+        }
+        
+        function performanceTest() {
+            const results = document.getElementById('performance-results');
+            results.innerHTML = '';
+            
+            // BUG 9: Inefficient performance test that blocks the UI
+            const start = performance.now();
+            
+            // Simulate heavy computation (blocking)
+            for (let i = 0; i < 100000; i++) {
+                const div = document.createElement('div');
+                div.textContent = `Performance test item ${i}`;
+                results.appendChild(div);
+                
+                // BUG 10: Synchronous operation that blocks UI
+                if (i % 1000 === 0) {
+                    // This should be async but isn't
+                    const now = performance.now();
+                    console.log(`Processed ${i} items in ${now - start}ms`);
+                }
+            }
+            
+            const end = performance.now();
+            console.log(`Performance test completed in ${end - start}ms`);
+        }
+        
+        function triggerError() {
+            // BUG 11: Unhandled error
+            throw new Error("Intentional error for testing error handling");
+        }
+        
+        async function triggerAsyncError() {
+            // Fixed: Added proper error handling
+            try {
+                return new Promise((resolve, reject) => {
+                    setTimeout(() => {
+                        reject(new Error("Intentional async error"));
+                    }, 100);
+                });
+            } catch (error) {
+                console.log('Async error handled:', error.message);
+                document.getElementById('error-result').innerHTML = '<span class="error">❌ Async error handled: ' + error.message + '</span>';
+            }
+        } catch (error) {
+                console.log('Async error handled:', error.message);
+                document.getElementById('error-result').innerHTML = '<span class="error">❌ Async error handled: ' + error.message + '</span>';
+            }
+        } catch (error) {
+                console.log('Async error handled:', error.message);
+                document.getElementById('error-result').innerHTML = '<span class="error">❌ Async error handled: ' + error.message + '</span>';
+            }
+        } catch (error) {
+                console.log('Async error handled:', error.message);
+                document.getElementById('error-result').innerHTML = '<span class="error">❌ Async error handled: ' + error.message + '</span>';
+            }
+        } catch (error) {
+                console.log('Async error handled:', error.message);
+                document.getElementById('error-result').innerHTML = '<span class="error">❌ Async error handled: ' + error.message + '</span>';
+            }
+        }
+        
+        // BUG 13: Missing error handlers
+        window.addEventListener('error', function(e) {
+            console.error('Global error caught:', e.error);
+            document.getElementById('error-result').innerHTML = '<span class="error">❌ Error occurred: ' + e.error.message + '</span>';
+        });
+        
+        // BUG 14: Missing unhandled promise rejection handler
+        window.addEventListener('unhandledrejection', function(e) {
+            console.error('Unhandled promise rejection:', e.reason);
+            document.getElementById('error-result').innerHTML = '<span class="error">❌ Async error: ' + e.reason.message + '</span>';
+        });
+        
+        // BUG 15: Slow loading simulation
+        setTimeout(() => {
+            document.getElementById('loading').classList.add('hidden');
+        }, 2000); // Artificially slow loading
+        
+        // Show loading initially
+        document.getElementById('loading').classList.remove('hidden');
+    </script>
+</body>
+</html>

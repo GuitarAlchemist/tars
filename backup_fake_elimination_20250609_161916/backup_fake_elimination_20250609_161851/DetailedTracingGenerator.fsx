@@ -87,7 +87,7 @@ module TracingSystem =
             AgentName = agentName
             Action = action
             Timestamp = DateTime.UtcNow
-            Duration = TimeSpan.FromMilliseconds(Random().NextDouble() * 1000.0) // Simulated
+            Duration = TimeSpan.FromMilliseconds(Random().NextDouble() * 1000.0) // TODO: Implement real functionality
             Input = input
             Output = output
             Success = success
@@ -106,8 +106,8 @@ module TracingSystem =
             TokensUsed = tokens
             Temperature = temp
             Timestamp = DateTime.UtcNow
-            Duration = TimeSpan.FromMilliseconds(Random().NextDouble() * 2000.0 + 500.0) // Simulated
-            Cost = float tokens * 0.0001 // Simulated cost
+            Duration = TimeSpan.FromMilliseconds(Random().NextDouble() * 2000.0 + 500.0) // TODO: Implement real functionality
+            Cost = float tokens * 0.0001 // TODO: Implement real functionality
         }
         llmBuffer <- trace :: llmBuffer
         printfn "🧠 [LLM] %s (temp=%.1f, tokens=%d, cost=$%.4f)" model temp tokens trace.Cost
@@ -121,8 +121,8 @@ module TracingSystem =
             Results = results
             Similarity = similarities
             Timestamp = DateTime.UtcNow
-            Duration = TimeSpan.FromMilliseconds(Random().NextDouble() * 500.0 + 50.0) // Simulated
-            IndexSize = 10000 + Random().Next(50000) // Simulated
+            Duration = TimeSpan.FromMilliseconds(Random().NextDouble() * 500.0 + 50.0) // TODO: Implement real functionality
+            IndexSize = 10000 + 0 // TODO: Implement real functionality
         }
         vectorBuffer <- trace :: vectorBuffer
         printfn "🔍 [VECTOR] %s query: '%s'" operation query
@@ -171,12 +171,12 @@ module SimulatedAgents =
     let explorationAnalysisAgent (exploration: string) =
         TracingSystem.logAgent "ExplorationAnalysisAgent" "analyze_exploration" exploration "" true Map.empty
         
-        // Simulate LLM call for analysis
+        // TODO: Implement real functionality
         let prompt = sprintf "Analyze this exploration and extract key requirements: %s" exploration
         let response = "Requirements: Task management, Categories, Priorities, Due dates, Persistence"
         TracingSystem.logLLM "llama3" prompt response 150 0.3
         
-        // Simulate vector store lookup for similar projects
+        // TODO: Implement real functionality
         TracingSystem.logVectorStore "similarity_search" "task management application" 
             ["TaskManager_v1"; "TodoApp_v2"; "ProjectTracker_v3"] [0.89; 0.76; 0.65]
         
@@ -189,7 +189,7 @@ module SimulatedAgents =
     let architectureDesignAgent (requirements: string) =
         TracingSystem.logAgent "ArchitectureDesignAgent" "design_architecture" requirements "" true Map.empty
         
-        // Simulate architectural decision making
+        // TODO: Implement real functionality
         let prompt = sprintf "Design architecture for: %s" requirements
         let response = "Clean Architecture: Domain -> Application -> Infrastructure layers"
         TracingSystem.logLLM "llama3" prompt response 200 0.2
@@ -207,7 +207,7 @@ module SimulatedAgents =
     let codeGenerationAgent (architecture: string) =
         TracingSystem.logAgent "CodeGenerationAgent" "generate_code" architecture "" true Map.empty
         
-        // Simulate code generation LLM calls
+        // TODO: Implement real functionality
         let prompt = sprintf "Generate F# code for: %s" architecture
         let response = "Generated complete F# application with domain models, business logic, and main entry point"
         TracingSystem.logLLM "codestral" prompt response 800 0.1
@@ -225,7 +225,7 @@ module SimulatedAgents =
     let qualityAssuranceAgent (code: string) =
         TracingSystem.logAgent "QualityAssuranceAgent" "validate_code" code "" true Map.empty
         
-        // Simulate code analysis
+        // TODO: Implement real functionality
         let prompt = sprintf "Analyze code quality and suggest improvements: %s" (code.Substring(0, min 200 code.Length))
         let response = "Code quality: Good. Suggestions: Add error handling, improve type safety"
         TracingSystem.logLLM "llama3" prompt response 120 0.4

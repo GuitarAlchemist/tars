@@ -1,8 +1,15 @@
-﻿namespace TarsEngine.DSL
+namespace TarsEngine.DSL
 
 open System
+open System.IO
+open System.Text
 open System.Text.RegularExpressions
 open System.Collections.Generic
+open System.Globalization
+open System.Diagnostics
+open System.Threading
+open System.Text.Json
+open System.Security.Cryptography
 open Microsoft.FSharp.Core
 
 /// Module containing a simplified implementation of the TARS DSL
@@ -67,6 +74,130 @@ module SimpleDsl =
     type ExecutionResult =
         | Success of PropertyValue
         | Error of string
+
+    let private invariantCulture = CultureInfo.InvariantCulture
+
+    let private workspaceRoot = Directory.GetCurrentDirectory()
+    let private mcpBaseDirectory = Path.Combine(workspaceRoot, ".tars", "mcp")
+    let private mcpOutboxDirectory = Path.Combine(mcpBaseDirectory, "outbox")
+    let private mcpInboxDirectory = Path.Combine(mcpBaseDirectory, "inbox")
+    let private notificationDirectory = Path.Combine(workspaceRoot, ".tars", "notifications")
+    let private notificationLogFile = Path.Combine(notificationDirectory, "notifications.log")
+
+    let private ensureDirectoryExists (path: string) =
+        if not (Directory.Exists(path)) then
+            Directory.CreateDirectory(path) |> ignore
+
+    let rec private propertyValueToPlainObject (value: PropertyValue) : obj =
+        match value with
+        | StringValue s -> box s
+        | NumberValue n -> box n
+        | BoolValue b -> box b
+        | ListValue items ->
+            let list = ResizeArray<obj>()
+            for item in items do
+                list.Add(propertyValueToPlainObject item)
+            list :> obj
+        | ObjectValue map ->
+            let dict = Dictionary<string, obj>()
+            for KeyValue(key, v) in map do
+                dict.[key] <- propertyValueToPlainObject v
+            dict :> obj
+
+    let private propertyValueToString (value: PropertyValue) =
+        match value with
+        | StringValue s -> s
+        | NumberValue n -> n.ToString(invariantCulture)
+        | BoolValue b -> b.ToString()
+        | _ -> JsonSerializer.Serialize(propertyValueToPlainObject value)
+
+    let rec private jsonElementToPropertyValue (element: JsonElement) =
+        match element.ValueKind with
+        | JsonValueKind.String -> StringValue(element.GetString())
+        | JsonValueKind.Number ->
+            match element.TryGetDouble() with
+            | true, v -> NumberValue(v)
+            | _ -> StringValue(element.ToString())
+        | JsonValueKind.True -> BoolValue true
+        | JsonValueKind.False -> BoolValue false
+        | JsonValueKind.Object ->
+            element.EnumerateObject()
+            |> Seq.fold (fun acc prop -> Map.add prop.Name (jsonElementToPropertyValue prop.Value) acc) Map.empty
+            |> ObjectValue
+        | JsonValueKind.Array ->
+            element.EnumerateArray()
+            |> Seq.map jsonElementToPropertyValue
+            |> Seq.toList
+            |> ListValue
+        | JsonValueKind.Null -> StringValue("")
+        | _ -> StringValue(element.ToString())
+
+    let private parseListFromString (value: string) =
+        let trimmed = value.Trim()
+        if String.IsNullOrWhiteSpace(trimmed) then
+            []
+        else
+            trimmed.Trim([|'[';']'|])
+            |> fun inner ->
+                inner.Split([|','; ';'|], StringSplitOptions.RemoveEmptyEntries)
+            |> Array.map (fun item -> item.Trim().Trim('"'))
+            |> Array.filter (fun item -> not (String.IsNullOrWhiteSpace item))
+            |> Array.toList
+
+    let rec private resolvePropertyPath (value: PropertyValue) (segments: string list) =
+        match segments with
+        | [] -> Some value
+        | head :: tail ->
+            match value with
+            | ObjectValue map ->
+                Map.tryFind head map
+                |> Option.bind (fun nested -> resolvePropertyPath nested tail)
+            | _ -> None
+
+    let private tryResolveVariable (variableName: string) (environment: Dictionary<string, PropertyValue>) =
+        let segments =
+            variableName.Split([|'.'|], StringSplitOptions.RemoveEmptyEntries)
+            |> Array.toList
+
+        match segments with
+        | [] -> None
+        | head :: tail ->
+            if environment.ContainsKey(head) then
+                let baseValue = environment.[head]
+                if List.isEmpty tail then
+                    Some baseValue
+                else
+                    resolvePropertyPath baseValue tail
+            else
+                None
+
+    let private sanitizeForFileName (value: string) =
+        let trimmed = value.Trim()
+        if String.IsNullOrWhiteSpace trimmed then
+            "unnamed"
+        else
+            let invalid = Path.GetInvalidFileNameChars()
+            let builder = StringBuilder(trimmed.Length)
+            for ch in trimmed do
+                if invalid |> Array.contains ch then
+                    builder.Append('_') |> ignore
+                else
+                    builder.Append(ch) |> ignore
+            builder.ToString().Trim([|' '; '_'|])
+
+    let private resolvePath (path: string) =
+        let trimmed = path.Trim()
+        if Path.IsPathRooted(trimmed) then
+            Path.GetFullPath(trimmed)
+        else
+            Path.GetFullPath(Path.Combine(workspaceRoot, trimmed))
+
+    let private propertyMapToDictionary (map: Map<string, PropertyValue>) =
+        let dict = Dictionary<string, obj>(StringComparer.OrdinalIgnoreCase)
+        for KeyValue(key, value) in map do
+            dict.[key] <- propertyValueToPlainObject value
+        dict
+
 
     /// Parse a string into a block type
     let parseBlockType (blockType: string) =
@@ -246,15 +377,13 @@ module SimpleDsl =
         let variableRegex = Regex(@"\$\{([^}]+)\}")
 
         variableRegex.Replace(text, fun m ->
-            let variableName = m.Groups.[1].Value
+            let variableName = m.Groups.[1].Value.Trim()
 
-            if environment.ContainsKey(variableName) then
-                match environment.[variableName] with
-                | StringValue s -> s
-                | NumberValue n -> n.ToString()
-                | BoolValue b -> b.ToString()
-                | _ -> m.Value // Keep the original for complex types
-            else
+            match tryResolveVariable variableName environment with
+            | Some value -> propertyValueToString value
+            | None when environment.ContainsKey(variableName) ->
+                propertyValueToString environment.[variableName]
+            | None ->
                 m.Value // Keep the original if variable not found
         )
 
@@ -316,6 +445,604 @@ module SimpleDsl =
             // Default to false for unknown conditions
             false
 
+    and private getStringProperty (block: Block) key (environment: Dictionary<string, PropertyValue>) =
+        match Map.tryFind key block.Properties with
+        | Some (StringValue value) -> Some (substituteVariables value environment)
+        | Some value -> Some (propertyValueToString value)
+        | None -> None
+
+    and private getBoolProperty (block: Block) key (environment: Dictionary<string, PropertyValue>) defaultValue =
+        match Map.tryFind key block.Properties with
+        | Some (BoolValue b) -> b
+        | Some (StringValue value) ->
+            let substituted = substituteVariables value environment
+            match Boolean.TryParse(substituted) with
+            | true, result -> result
+            | _ -> defaultValue
+        | Some other ->
+            match Boolean.TryParse(propertyValueToString other) with
+            | true, result -> result
+            | _ -> defaultValue
+        | None -> defaultValue
+
+    and private getStringListProperty (block: Block) key (environment: Dictionary<string, PropertyValue>) =
+        match Map.tryFind key block.Properties with
+        | Some (ListValue items) ->
+            items
+            |> List.collect (fun item ->
+                match item with
+                | StringValue s -> parseListFromString (substituteVariables s environment)
+                | _ -> parseListFromString (propertyValueToString item))
+        | Some (StringValue value) ->
+            parseListFromString (substituteVariables value environment)
+        | Some other ->
+            parseListFromString (propertyValueToString other)
+        | None -> []
+
+    and private storeResultIfRequested (block: Block) (environment: Dictionary<string, PropertyValue>) (value: PropertyValue) =
+        let variableName =
+            ["result_variable"; "output_variable"]
+            |> List.tryPick (fun key -> getStringProperty block key environment)
+
+        match variableName with
+        | Some name when not (String.IsNullOrWhiteSpace name) ->
+            environment.[name] <- value
+        | _ -> ()
+
+    and private normalizePropertyValue (value: PropertyValue) (environment: Dictionary<string, PropertyValue>) =
+        match value with
+        | StringValue s -> StringValue(substituteVariables s environment)
+        | ListValue items -> ListValue(items |> List.map (fun item -> normalizePropertyValue item environment))
+        | ObjectValue map -> ObjectValue(map |> Map.map (fun _ v -> normalizePropertyValue v environment))
+        | _ -> value
+
+    and private getParametersMap (block: Block) (environment: Dictionary<string, PropertyValue>) =
+        match Map.tryFind "parameters" block.Properties with
+        | Some (ObjectValue map) ->
+            Some (map |> Map.map (fun _ v -> normalizePropertyValue v environment))
+        | Some (StringValue text) ->
+            let substituted = substituteVariables text environment
+            try
+                use doc = JsonDocument.Parse(substituted)
+                match jsonElementToPropertyValue doc.RootElement with
+                | ObjectValue map -> Some map
+                | other -> Some (Map.ofList [("value", other)])
+            with
+            | _ -> Some (Map.ofList [("value", StringValue substituted)])
+        | Some value ->
+            Some (Map.ofList [("value", normalizePropertyValue value environment)])
+        | None -> None
+
+    and private executeActionBlock (block: Block) (environment: Dictionary<string, PropertyValue>) =
+        match getStringProperty block "type" environment with
+        | None -> Error("Action block has no type property")
+        | Some actionType ->
+            let normalizedType =
+                actionType.Trim().Trim('"').ToLowerInvariant()
+
+            match normalizedType with
+            | "log" ->
+                let message = getStringProperty block "message" environment |> Option.defaultValue ""
+                printfn $"%s{message}"
+                let resultValue = StringValue message
+                storeResultIfRequested block environment resultValue
+                Success resultValue
+
+            | "mcp_send" ->
+                match getStringProperty block "target" environment,
+                      getStringProperty block "action" environment with
+                | Some target, Some actionName ->
+                    ensureDirectoryExists mcpOutboxDirectory
+                    let createdAt = DateTime.UtcNow
+                    let requestId = Guid.NewGuid().ToString("N")
+                    let timestampSegment = createdAt.ToString("yyyyMMdd_HHmmss_fff", invariantCulture)
+                    let sanitizedTarget = sanitizeForFileName target
+                    let fileName = $"{timestampSegment}_{sanitizedTarget}_{requestId}.json"
+                    let filePath = Path.Combine(mcpOutboxDirectory, fileName)
+
+                    let parameters =
+                        getParametersMap block environment
+                        |> Option.defaultValue Map.empty
+
+                    let payload =
+                        {| id = requestId
+                           target = target
+                           action = actionName
+                           createdUtc = createdAt
+                           parameters = propertyMapToDictionary parameters |}
+
+                    let jsonOptions = JsonSerializerOptions(WriteIndented = true)
+                    File.WriteAllText(filePath, JsonSerializer.Serialize(payload, jsonOptions))
+
+                    let resultValue =
+                        ObjectValue(
+                            Map.ofList [
+                                "requestId", StringValue requestId
+                                "target", StringValue target
+                                "action", StringValue actionName
+                                "path", StringValue filePath
+                                "createdUtc", StringValue (createdAt.ToString("o", invariantCulture))
+                                "parameters", ObjectValue parameters
+                            ])
+
+                    storeResultIfRequested block environment resultValue
+                    printfn $"[MCP] queued %s{target} → %s{actionName} (%s{requestId})"
+                    Success resultValue
+                | _ ->
+                    Error("MCP send action requires 'target' and 'action' properties")
+
+            | "mcp_receive" ->
+                match getStringProperty block "source" environment with
+                | None -> Error("MCP receive action requires 'source' property")
+                | Some source ->
+                    ensureDirectoryExists mcpInboxDirectory
+                    let timeoutSeconds =
+                        match Map.tryFind "timeout" block.Properties with
+                        | Some (NumberValue n) -> n
+                        | Some (StringValue value) ->
+                            match Double.TryParse(substituteVariables value environment, NumberStyles.Float, invariantCulture) with
+                            | true, result -> result
+                            | _ -> 30.0
+                        | _ -> 30.0
+                    let keepFile = getBoolProperty block "keep_file" environment false
+                    let sanitizedSource = sanitizeForFileName source
+                    let pattern = $"{sanitizedSource}_*.json"
+                    let pollDelayMs = 200
+                    let timeout = TimeSpan.FromSeconds(timeoutSeconds)
+                    let stopwatch = Stopwatch.StartNew()
+                    let mutable received: PropertyValue option = None
+
+                    while received.IsNone && stopwatch.Elapsed <= timeout do
+                        if Directory.Exists(mcpInboxDirectory) then
+                            let files =
+                                Directory.GetFiles(mcpInboxDirectory, pattern)
+                                |> Array.sortBy File.GetCreationTimeUtc
+
+                            if files.Length > 0 then
+                                let filePath = files.[0]
+                                let json = File.ReadAllText(filePath)
+                                use document = JsonDocument.Parse(json)
+                                let payloadValue = jsonElementToPropertyValue document.RootElement
+                                let receivedAt = DateTime.UtcNow
+
+                                if not keepFile then
+                                    try
+                                        File.Delete(filePath)
+                                    with
+                                    | _ -> ()
+
+                                let resultValue =
+                                    ObjectValue(
+                                        Map.ofList [
+                                            "source", StringValue source
+                                            "path", StringValue filePath
+                                            "receivedUtc", StringValue (receivedAt.ToString("o", invariantCulture))
+                                            "payload", payloadValue
+                                        ])
+
+                                storeResultIfRequested block environment resultValue
+                                printfn $"[MCP] received payload from %s{source} (%s{filePath})"
+                                received <- Some resultValue
+                            else
+                                Thread.Sleep(pollDelayMs)
+                        else
+                            Thread.Sleep(pollDelayMs)
+
+                    match received with
+                    | Some value -> Success value
+                    | None -> Error $"No MCP message from %s{source} within %.1f{timeoutSeconds} seconds"
+
+            | "file_read"
+            | "read_file" ->
+                match getStringProperty block "path" environment with
+                | None -> Error("File read action requires 'path' property")
+                | Some pathValue ->
+                    let resolvedPath = resolvePath pathValue
+                    if File.Exists(resolvedPath) then
+                        let encodingName = getStringProperty block "encoding" environment |> Option.defaultValue "utf-8"
+                        let encoding =
+                            try Encoding.GetEncoding(encodingName)
+                            with _ -> Encoding.UTF8
+                        let content = File.ReadAllText(resolvedPath, encoding)
+                        let resultValue = StringValue content
+                        storeResultIfRequested block environment resultValue
+                        Success resultValue
+                    else
+                        Error $"File not found: %s{resolvedPath}"
+
+            | "file_write"
+            | "write_file" ->
+                match getStringProperty block "path" environment with
+                | None -> Error("File write action requires 'path' property")
+                | Some pathValue ->
+                    let resolvedPath = resolvePath pathValue
+                    let contentValue =
+                        match Map.tryFind "content" block.Properties with
+                        | Some value -> normalizePropertyValue value environment |> propertyValueToString
+                        | None -> ""
+                    let append = getBoolProperty block "append" environment false
+                    let encodingName = getStringProperty block "encoding" environment |> Option.defaultValue "utf-8"
+                    let encoding =
+                        try Encoding.GetEncoding(encodingName)
+                        with _ -> Encoding.UTF8
+
+                    ensureDirectoryExists (Path.GetDirectoryName(resolvedPath))
+
+                    let writer =
+                        if append then
+                            new StreamWriter(resolvedPath, true, encoding) :> TextWriter
+                        else
+                            new StreamWriter(resolvedPath, false, encoding) :> TextWriter
+                    use _ = writer
+                    writer.Write(contentValue)
+
+                    let resultValue =
+                        ObjectValue(
+                            Map.ofList [
+                                "path", StringValue resolvedPath
+                                "length", NumberValue(float contentValue.Length)
+                                "append", BoolValue append
+                            ])
+
+                    storeResultIfRequested block environment resultValue
+                    Success resultValue
+
+            | "file_delete" ->
+                match getStringProperty block "path" environment with
+                | None -> Error("File delete action requires 'path' property")
+                | Some pathValue ->
+                    let resolvedPath = resolvePath pathValue
+                    if File.Exists(resolvedPath) then
+                        File.Delete(resolvedPath)
+                        let resultValue =
+                            ObjectValue(
+                                Map.ofList [
+                                    "path", StringValue resolvedPath
+                                    "deleted", BoolValue true
+                                ])
+                        storeResultIfRequested block environment resultValue
+                        Success resultValue
+                    else
+                        Error $"File not found: %s{resolvedPath}"
+
+            | "http_request" ->
+                match getStringProperty block "url" environment with
+                | None -> Error("HTTP request action requires 'url' property")
+                | Some url ->
+                    let method = getStringProperty block "method" environment |> Option.defaultValue "GET"
+                    let headers =
+                        match Map.tryFind "headers" block.Properties with
+                        | Some (ObjectValue headerMap) ->
+                            headerMap
+                            |> Map.map (fun _ v -> propertyValueToString (normalizePropertyValue v environment))
+                        | _ -> Map.empty
+                    let body =
+                        match Map.tryFind "body" block.Properties with
+                        | Some value -> propertyValueToString (normalizePropertyValue value environment)
+                        | None -> ""
+
+                    use client = new System.Net.Http.HttpClient()
+                    for KeyValue(key, value) in headers do
+                        client.DefaultRequestHeaders.Remove(key) |> ignore
+                        client.DefaultRequestHeaders.Add(key, value)
+
+                    use request = new System.Net.Http.HttpRequestMessage()
+                    request.RequestUri <- Uri(url)
+                    request.Method <- new System.Net.Http.HttpMethod(method.ToUpperInvariant())
+                    if not (String.IsNullOrWhiteSpace body) then
+                        request.Content <- new System.Net.Http.StringContent(body, Encoding.UTF8, "application/json")
+
+                    let response = client.SendAsync(request).Result
+                    let responseContent = response.Content.ReadAsStringAsync().Result
+
+                    let resultValue =
+                        ObjectValue(
+                            Map.ofList [
+                                "url", StringValue url
+                                "statusCode", NumberValue(float (int response.StatusCode))
+                                "reason", StringValue response.ReasonPhrase
+                                "body", StringValue responseContent
+                            ])
+                    storeResultIfRequested block environment resultValue
+                    Success resultValue
+
+            | "shell_execute" ->
+                match getStringProperty block "command" environment with
+                | None -> Error("Shell execute action requires 'command' property")
+                | Some command ->
+                    let workingDirectory =
+                        getStringProperty block "working_directory" environment
+                        |> Option.map resolvePath
+                        |> Option.defaultValue workspaceRoot
+                    let timeoutSeconds =
+                        match Map.tryFind "timeout" block.Properties with
+                        | Some (NumberValue n) -> n
+                        | Some (StringValue value) ->
+                            match Double.TryParse(substituteVariables value environment, NumberStyles.Float, invariantCulture) with
+                            | true, result -> result
+                            | _ -> 120.0
+                        | _ -> 120.0
+
+                    let psi = ProcessStartInfo()
+                    psi.FileName <- "pwsh"
+                    psi.Arguments <- $"-NoLogo -Command {command}"
+                    psi.RedirectStandardOutput <- true
+                    psi.RedirectStandardError <- true
+                    psi.UseShellExecute <- false
+                    psi.CreateNoWindow <- true
+                    psi.WorkingDirectory <- workingDirectory
+
+                    use proc = new Process()
+                    proc.StartInfo <- psi
+                    proc.Start() |> ignore
+                    let output = proc.StandardOutput.ReadToEndAsync()
+                    let error = proc.StandardError.ReadToEndAsync()
+
+                    if not (proc.WaitForExit(int (timeoutSeconds * 1000.0))) then
+                        try proc.Kill(true) with | _ -> ()
+                        Error $"Command timed out after %.1f{timeoutSeconds} seconds"
+                    else
+                        let resultValue =
+                            ObjectValue(
+                                Map.ofList [
+                                    "exitCode", NumberValue(float proc.ExitCode)
+                                    "stdout", StringValue(output.Result)
+                                    "stderr", StringValue(error.Result)
+                                ])
+
+                        if proc.ExitCode = 0 then
+                            storeResultIfRequested block environment resultValue
+                            Success resultValue
+                        else
+                            Error $"Command failed with exit code %d{proc.ExitCode}"
+
+            | "analyze" ->
+                match getStringProperty block "target" environment with
+                | None -> Error("Analyze action requires 'target' property")
+                | Some target ->
+                    let path = resolvePath target
+                    if File.Exists(path) then
+                        let content = File.ReadAllText(path)
+                        let lines = content.Split([|'\n'|], StringSplitOptions.None)
+                        let nonEmptyLines = lines |> Array.filter (fun line -> not (String.IsNullOrWhiteSpace line))
+                        let tokens = Regex.Matches(content, @"[A-Za-z0-9_]+")
+                        let fileInfo = FileInfo(path)
+                        use sha256 = SHA256.Create()
+                        let hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(content))
+                        let hash = Convert.ToHexString(hashBytes).ToLowerInvariant()
+
+                        let resultValue =
+                            ObjectValue(
+                                Map.ofList [
+                                    "path", StringValue path
+                                    "bytes", NumberValue(float fileInfo.Length)
+                                    "lineCount", NumberValue(float lines.Length)
+                                    "nonEmptyLineCount", NumberValue(float nonEmptyLines.Length)
+                                    "tokenCount", NumberValue(float tokens.Count)
+                                    "sha256", StringValue hash
+                                ])
+
+                        storeResultIfRequested block environment resultValue
+                        Success resultValue
+                    else
+                        Error $"Analyze action could not find file: %s{path}"
+
+            | "pattern_recognition" ->
+                match getStringProperty block "target" environment with
+                | None -> Error("Pattern recognition action requires 'target' property")
+                | Some target ->
+                    let path = resolvePath target
+                    if File.Exists(path) then
+                        let content = File.ReadAllText(path)
+                        let tokens =
+                            Regex.Matches(content, @"[A-Za-z0-9_]+")
+                            |> Seq.cast<System.Text.RegularExpressions.Match>
+                            |> Seq.map (fun m -> m.Value.ToLowerInvariant())
+                        let frequency =
+                            tokens
+                            |> Seq.groupBy id
+                            |> Seq.map (fun (token, instances) -> token, Seq.length instances)
+                            |> Seq.sortByDescending snd
+                            |> Seq.truncate 10
+                            |> Seq.map (fun (token, count) ->
+                                ObjectValue(Map.ofList [
+                                    "token", StringValue token
+                                    "count", NumberValue(float count)
+                                ]))
+                            |> Seq.toList
+
+                        let resultValue =
+                            ObjectValue(
+                                Map.ofList [
+                                    "path", StringValue path
+                                    "topTokens", ListValue frequency
+                                ])
+                        storeResultIfRequested block environment resultValue
+                        Success resultValue
+                    else
+                        Error $"Pattern recognition action could not find file: %s{path}"
+
+            | "refactor" ->
+                match getStringProperty block "target" environment with
+                | None -> Error("Refactor action requires 'target' property")
+                | Some target ->
+                    let path = resolvePath target
+                    if File.Exists(path) then
+                        let createBackup = getBoolProperty block "create_backup" environment true
+                        let original = File.ReadAllLines(path)
+                        if createBackup then
+                            let backupPath = path + ".bak"
+                            File.Copy(path, backupPath, true)
+
+                        let trimmedLines = original |> Array.map (fun line -> line.TrimEnd())
+                        let condensed =
+                            trimmedLines
+                            |> Array.fold
+                                (fun (acc, previousBlankCount) line ->
+                                    if String.IsNullOrWhiteSpace line then
+                                        if previousBlankCount = 0 then
+                                            (line :: acc, 1)
+                                        else
+                                            (acc, 1)
+                                    else
+                                        (line :: acc, 0))
+                                ([], 0)
+                            |> fst
+                            |> List.rev
+                            |> List.toArray
+
+                        let normalizedContent =
+                            condensed
+                            |> String.concat Environment.NewLine
+                        let finalContent =
+                            if normalizedContent.EndsWith(Environment.NewLine, StringComparison.Ordinal) then
+                                normalizedContent
+                            else
+                                normalizedContent + Environment.NewLine
+
+                        File.WriteAllText(path, finalContent, Encoding.UTF8)
+
+                        let resultValue =
+                            ObjectValue(
+                                Map.ofList [
+                                    "path", StringValue path
+                                    "originalLines", NumberValue(float original.Length)
+                                    "updatedLines", NumberValue(float condensed.Length)
+                                    "backupCreated", BoolValue createBackup
+                                ])
+                        storeResultIfRequested block environment resultValue
+                        Success resultValue
+                    else
+                        Error $"Refactor action could not find file: %s{path}"
+
+            | "test" ->
+                match getStringProperty block "command" environment with
+                | None -> Error("Test action requires 'command' property")
+                | Some command ->
+                    let workingDirectory =
+                        getStringProperty block "working_directory" environment
+                        |> Option.map resolvePath
+                        |> Option.defaultValue workspaceRoot
+
+                    let psi = ProcessStartInfo()
+                    psi.FileName <- "pwsh"
+                    psi.Arguments <- $"-NoLogo -Command {command}"
+                    psi.RedirectStandardOutput <- true
+                    psi.RedirectStandardError <- true
+                    psi.UseShellExecute <- false
+                    psi.CreateNoWindow <- true
+                    psi.WorkingDirectory <- workingDirectory
+
+                    use proc = Process.Start(psi)
+                    let output = proc.StandardOutput.ReadToEnd()
+                    let error = proc.StandardError.ReadToEnd()
+                    proc.WaitForExit()
+
+                    let resultValue =
+                        ObjectValue(
+                            Map.ofList [
+                                "command", StringValue command
+                                "exitCode", NumberValue(float proc.ExitCode)
+                                "stdout", StringValue output
+                                "stderr", StringValue error
+                            ])
+
+                    if proc.ExitCode = 0 then
+                        storeResultIfRequested block environment resultValue
+                        Success resultValue
+                    else
+                        Error $"Test command failed with exit code %d{proc.ExitCode}"
+
+            | "get_files" ->
+                match getStringProperty block "directory" environment with
+                | None -> Error("Get files action requires 'directory' property")
+                | Some directory ->
+                    let resolvedDirectory = resolvePath directory
+                    if Directory.Exists(resolvedDirectory) then
+                        let recursive = getBoolProperty block "recursive" environment false
+                        let extensions =
+                            getStringListProperty block "extensions" environment
+                            |> List.map (fun ext -> if ext.StartsWith(".", StringComparison.Ordinal) then ext.ToLowerInvariant() else "." + ext.ToLowerInvariant())
+                        let searchOption = if recursive then SearchOption.AllDirectories else SearchOption.TopDirectoryOnly
+                        let files =
+                            Directory.GetFiles(resolvedDirectory, "*", searchOption)
+                            |> Array.filter (fun path ->
+                                if List.isEmpty extensions then true
+                                else extensions |> List.exists (fun ext -> path.ToLowerInvariant().EndsWith(ext, StringComparison.Ordinal)))
+                            |> Array.map (fun path -> StringValue path)
+                            |> Array.toList
+                        let resultValue = ListValue files
+                        storeResultIfRequested block environment resultValue
+                        Success resultValue
+                    else
+                        Error $"Directory not found: %s{resolvedDirectory}"
+
+            | "generate_report" ->
+                let title = getStringProperty block "title" environment |> Option.defaultValue "Report"
+                let format = getStringProperty block "format" environment |> Option.defaultValue "markdown"
+                let outputPath =
+                    getStringProperty block "output_file" environment
+                    |> Option.map resolvePath
+                    |> Option.defaultValue (Path.Combine(workspaceRoot, sanitizeForFileName title + ".md"))
+                let content =
+                    match Map.tryFind "content" block.Properties with
+                    | Some value -> normalizePropertyValue value environment
+                    | None -> ObjectValue Map.empty
+
+                let reportText =
+                    match format.ToLowerInvariant() with
+                    | "markdown" | "md" ->
+                        let builder = StringBuilder()
+                        builder.AppendLine($"# {title}") |> ignore
+                        match content with
+                        | ObjectValue map ->
+                            for KeyValue(key, value) in map do
+                                builder.AppendLine($"- **{key}**: {propertyValueToString value}") |> ignore
+                        | other ->
+                            builder.AppendLine(propertyValueToString other) |> ignore
+                        builder.ToString()
+                    | "json" ->
+                        JsonSerializer.Serialize(propertyValueToPlainObject content)
+                    | _ ->
+                        propertyValueToString content
+
+                ensureDirectoryExists (Path.GetDirectoryName(outputPath))
+                File.WriteAllText(outputPath, reportText)
+
+                let resultValue =
+                    ObjectValue(
+                        Map.ofList [
+                            "title", StringValue title
+                            "format", StringValue format
+                            "path", StringValue outputPath
+                        ])
+                storeResultIfRequested block environment resultValue
+                Success resultValue
+
+            | "notify" ->
+                let message = getStringProperty block "message" environment |> Option.defaultValue ""
+                let channels = getStringListProperty block "channels" environment
+                ensureDirectoryExists notificationDirectory
+                let entry =
+                    sprintf "[%s] %s (%s)%s"
+                        (DateTime.UtcNow.ToString("o", invariantCulture))
+                        message
+                        (String.Join(", ", channels))
+                        Environment.NewLine
+                File.AppendAllText(notificationLogFile, entry)
+                let resultValue =
+                    ObjectValue(
+                        Map.ofList [
+                            "message", StringValue message
+                            "channels", ListValue (channels |> List.map StringValue)
+                            "logPath", StringValue notificationLogFile
+                        ])
+                storeResultIfRequested block environment resultValue
+                Success resultValue
+
+            | other ->
+                Error($"Unknown action type: '{other}'")
+
     /// Execute a block
     and executeBlock (block: Block) (environment: Dictionary<string, PropertyValue>) =
         match block.Type with
@@ -373,418 +1100,7 @@ module SimpleDsl =
                 Error("Prompt block has no text property")
 
         | BlockType.Action ->
-            // Get the action type
-            match block.Properties.TryFind("type") with
-            | Some (StringValue actionType) ->
-                // Debug output
-                printfn "Action type: '%s'" actionType
-
-                // Remove quotes if present
-                let cleanActionType =
-                    if actionType.StartsWith('"') && actionType.EndsWith('"') && actionType.Length >= 2 then
-                        actionType.Substring(1, actionType.Length - 2)
-                    else
-                        actionType
-
-                printfn "Clean action type: '%s'" cleanActionType
-
-                match cleanActionType.ToLower().Trim() with
-                | "log" ->
-                    // Get the message
-                    match block.Properties.TryFind("message") with
-                    | Some (StringValue message) ->
-                        // Substitute variables
-                        let substitutedMessage = substituteVariables message environment
-
-                        // Log the message
-                        printfn "%s" substitutedMessage
-
-                        Success(StringValue(substitutedMessage))
-                    | _ ->
-                        Error("Log action has no message property")
-
-                | "mcp_send" ->
-                    // Get the required parameters
-                    let targetOpt = block.Properties.TryFind("target")
-                    let actionOpt = block.Properties.TryFind("action")
-                    let parametersOpt = block.Properties.TryFind("parameters")
-                    let resultVarOpt = block.Properties.TryFind("result_variable")
-
-                    match targetOpt, actionOpt with
-                    | Some (StringValue target), Some (StringValue action) ->
-                        // Substitute variables in target and action
-                        let substitutedTarget = substituteVariables target environment
-                        let substitutedAction = substituteVariables action environment
-
-                        // Get parameters as object if available
-                        let parameters =
-                            match parametersOpt with
-                            | Some (ObjectValue paramMap) -> paramMap
-                            | _ -> Map.empty
-
-                        // Substitute variables in parameters
-                        let substitutedParams =
-                            parameters |> Map.map (fun _ value ->
-                                match value with
-                                | StringValue s -> StringValue(substituteVariables s environment)
-                                | _ -> value
-                            )
-
-                        // In a real implementation, this would send an MCP request
-                        // For now, just return a mock response
-                        let mockResponse = $"MCP request to {substitutedTarget}, action: {substitutedAction}, parameters: {substitutedParams.Count} parameters"
-                        printfn "[MCP] %s" mockResponse
-
-                        // Store the result in the specified variable if provided
-                        match resultVarOpt with
-                        | Some (StringValue resultVar) ->
-                            environment.[resultVar] <- StringValue(mockResponse)
-                        | _ -> ()
-
-                        Success(StringValue(mockResponse))
-                    | _ ->
-                        Error("MCP action requires 'target' and 'action' properties")
-
-                | "mcp_receive" ->
-                    // Get the timeout parameter
-                    let timeoutOpt = block.Properties.TryFind("timeout")
-                    let resultVarOpt = block.Properties.TryFind("result_variable")
-
-                    // Get timeout value or use default
-                    let timeout =
-                        match timeoutOpt with
-                        | Some (NumberValue t) -> t
-                        | _ -> 30.0 // Default timeout in seconds
-
-                    // Real MCP request handling - no mock responses
-                    let realResponse = $"MCP request handler initialized (timeout: {timeout}s) - awaiting real connection"
-                    printfn "[MCP] %s" realResponse
-
-                    // Store the result in the specified variable if provided
-                    match resultVarOpt with
-                    | Some (StringValue resultVar) ->
-                        environment.[resultVar] <- StringValue(realResponse)
-                    | _ -> ()
-
-                    Success(StringValue(realResponse))
-
-                | "file_read" ->
-                    // Get the required parameters
-                    let pathOpt = block.Properties.TryFind("path")
-                    let resultVarOpt = block.Properties.TryFind("result_variable")
-
-                    match pathOpt, resultVarOpt with
-                    | Some (StringValue path), Some (StringValue resultVar) ->
-                        // Substitute variables in path
-                        let substitutedPath = substituteVariables path environment
-
-                        try
-                            // Read the file
-                            let content = System.IO.File.ReadAllText(substitutedPath)
-
-                            // Store the result in the result variable
-                            environment.[resultVar] <- StringValue(content)
-
-                            Success(StringValue($"File read successfully: {substitutedPath}"))
-                        with
-                        | ex -> Error($"Error reading file {substitutedPath}: {ex.Message}")
-                    | _ ->
-                        Error("File read action requires 'path' and 'result_variable' properties")
-
-                | "file_write" ->
-                    // Get the required parameters
-                    let pathOpt = block.Properties.TryFind("path")
-                    let contentOpt = block.Properties.TryFind("content")
-
-                    match pathOpt, contentOpt with
-                    | Some (StringValue path), Some (StringValue content) ->
-                        // Substitute variables in path and content
-                        let substitutedPath = substituteVariables path environment
-                        let substitutedContent = substituteVariables content environment
-
-                        try
-                            // Write the file
-                            System.IO.File.WriteAllText(substitutedPath, substitutedContent)
-
-                            Success(StringValue($"File written successfully: {substitutedPath}"))
-                        with
-                        | ex -> Error($"Error writing file {substitutedPath}: {ex.Message}")
-                    | _ ->
-                        Error("File write action requires 'path' and 'content' properties")
-
-                | "file_delete" ->
-                    // Get the required parameters
-                    let pathOpt = block.Properties.TryFind("path")
-
-                    match pathOpt with
-                    | Some (StringValue path) ->
-                        // Substitute variables in path
-                        let substitutedPath = substituteVariables path environment
-
-                        try
-                            // Check if file exists
-                            if System.IO.File.Exists(substitutedPath) then
-                                // Delete the file
-                                System.IO.File.Delete(substitutedPath)
-                                Success(StringValue($"File deleted successfully: {substitutedPath}"))
-                            else
-                                Error($"File not found: {substitutedPath}")
-                        with
-                        | ex -> Error($"Error deleting file {substitutedPath}: {ex.Message}")
-                    | _ ->
-                        Error("File delete action requires 'path' property")
-
-                | "http_request" ->
-                    // Get the required parameters
-                    let urlOpt = block.Properties.TryFind("url")
-                    let methodOpt = block.Properties.TryFind("method")
-                    let headersOpt = block.Properties.TryFind("headers")
-                    let bodyOpt = block.Properties.TryFind("body")
-                    let resultVarOpt = block.Properties.TryFind("result_variable")
-
-                    match urlOpt, resultVarOpt with
-                    | Some (StringValue url), Some (StringValue resultVar) ->
-                        // Substitute variables in url
-                        let substitutedUrl = substituteVariables url environment
-
-                        // Get method (default to GET)
-                        let method =
-                            match methodOpt with
-                            | Some (StringValue m) -> substituteVariables m environment
-                            | _ -> "GET"
-
-                        // Get headers
-                        let headers =
-                            match headersOpt with
-                            | Some (ObjectValue headerMap) ->
-                                headerMap |> Map.map (fun _ value ->
-                                    match value with
-                                    | StringValue s -> substituteVariables s environment
-                                    | _ -> "")
-                            | _ -> Map.empty
-
-                        // Get body
-                        let body =
-                            match bodyOpt with
-                            | Some (StringValue b) -> substituteVariables b environment
-                            | _ -> ""
-
-                        try
-                            // Use HttpClient for HTTP requests
-                            use client = new System.Net.Http.HttpClient()
-
-                            // Add headers
-                            for KeyValue(key, value) in headers do
-                                client.DefaultRequestHeaders.Add(key, value)
-
-                            // Create the request message
-                            let requestMessage = new System.Net.Http.HttpRequestMessage()
-                            requestMessage.RequestUri <- new System.Uri(substitutedUrl)
-
-                            // Set the method
-                            match method with
-                            | "GET" -> requestMessage.Method <- System.Net.Http.HttpMethod.Get
-                            | "POST" -> requestMessage.Method <- System.Net.Http.HttpMethod.Post
-                            | "PUT" -> requestMessage.Method <- System.Net.Http.HttpMethod.Put
-                            | "DELETE" -> requestMessage.Method <- System.Net.Http.HttpMethod.Delete
-                            | "PATCH" -> requestMessage.Method <- System.Net.Http.HttpMethod.Patch
-                            | "HEAD" -> requestMessage.Method <- System.Net.Http.HttpMethod.Head
-                            | "OPTIONS" -> requestMessage.Method <- System.Net.Http.HttpMethod.Options
-                            | _ -> requestMessage.Method <- new System.Net.Http.HttpMethod(method)
-
-                            // Add body for POST, PUT, etc.
-                            if method <> "GET" && method <> "HEAD" && body <> "" then
-                                requestMessage.Content <- new System.Net.Http.StringContent(body, System.Text.Encoding.UTF8, "application/json")
-
-                            // Get the response
-                            let response = client.SendAsync(requestMessage).Result
-                            let responseText = response.Content.ReadAsStringAsync().Result
-
-                            // Store the result in the result variable
-                            environment.[resultVar] <- StringValue(responseText)
-
-                            Success(StringValue(sprintf "HTTP request successful: %s" substitutedUrl))
-                        with
-                        | ex -> Error(sprintf "Error making HTTP request to %s: %s" substitutedUrl ex.Message)
-                    | _ ->
-                        Error("HTTP request action requires 'url' and 'result_variable' properties")
-
-                | "shell_execute" ->
-                    // Get the required parameters
-                    let commandOpt = block.Properties.TryFind("command")
-                    let resultVarOpt = block.Properties.TryFind("result_variable")
-
-                    match commandOpt with
-                    | Some (StringValue command) ->
-                        // Substitute variables in command
-                        let substitutedCommand = substituteVariables command environment
-
-                        try
-                            // Create the process
-                            let processInfo = new System.Diagnostics.ProcessStartInfo()
-                            processInfo.FileName <- "cmd.exe"
-                            processInfo.Arguments <- $"/c {substitutedCommand}"
-                            processInfo.RedirectStandardOutput <- true
-                            processInfo.RedirectStandardError <- true
-                            processInfo.UseShellExecute <- false
-                            processInfo.CreateNoWindow <- true
-
-                            // Start the process
-                            use proc = System.Diagnostics.Process.Start(processInfo)
-                            let output = proc.StandardOutput.ReadToEnd()
-                            let error = proc.StandardError.ReadToEnd()
-                            proc.WaitForExit()
-
-                            // Store the result in the result variable if provided
-                            match resultVarOpt with
-                            | Some (StringValue resultVar) ->
-                                environment.[resultVar] <- StringValue(output)
-                            | _ -> ()
-
-                            // Check if the process exited successfully
-                            if proc.ExitCode = 0 then
-                                Success(StringValue(sprintf "Command executed successfully: %s" substitutedCommand))
-                            else
-                                Error(sprintf "Command failed with exit code %d: %s" proc.ExitCode error)
-                        with
-                        | ex -> Error(sprintf "Error executing command %s: %s" substitutedCommand ex.Message)
-                    | _ ->
-                        Error("Shell execute action requires 'command' property")
-
-                | "mcp_send" ->
-                    // Get the required parameters
-                    let targetOpt = block.Properties.TryFind("target")
-                    let actionOpt = block.Properties.TryFind("action")
-                    let parametersOpt = block.Properties.TryFind("parameters")
-                    let resultVarOpt = block.Properties.TryFind("result_variable")
-
-                    match targetOpt, actionOpt with
-                    | Some (StringValue target), Some (StringValue action) ->
-                        // Substitute variables
-                        let substitutedTarget = substituteVariables target environment
-                        let substitutedAction = substituteVariables action environment
-
-                        // Get parameters as a map
-                        let parameters =
-                            match parametersOpt with
-                            | Some (ObjectValue paramsMap) ->
-                                // Substitute variables in parameter values
-                                paramsMap |> Map.map (fun _ value ->
-                                    match value with
-                                    | StringValue s -> StringValue(substituteVariables s environment)
-                                    | _ -> value)
-                            | _ -> Map.empty
-
-                        // In a real implementation, this would send a message to the MCP target
-                        // REAL IMPLEMENTATION NEEDED
-                        let response =
-                            match substitutedTarget, substitutedAction with
-                            | "augment", "code_generation" ->
-                                "// Generated code\nfunction helloWorld() {\n  console.log('Hello from Augment!');\n}"
-                            | "augment", "code_enhancement" ->
-                                "// Enhanced code\nfunction helloWorld() {\n  console.log('Hello from Augment with optimizations!');\n}"
-                            | _ ->
-                                $"Response from {substitutedTarget} for action {substitutedAction}"
-
-                        // Store the result in the result variable if provided
-                        match resultVarOpt with
-                        | Some (StringValue resultVar) ->
-                            environment.[resultVar] <- StringValue(response)
-                        | _ -> ()
-
-                        Success(StringValue($"MCP message sent to {substitutedTarget}"))
-                    | _ ->
-                        Error("MCP send action requires 'target' and 'action' properties")
-
-                | "mcp_receive" ->
-                    // Get the required parameters
-                    let sourceOpt = block.Properties.TryFind("source")
-                    let timeoutOpt = block.Properties.TryFind("timeout")
-                    let resultVarOpt = block.Properties.TryFind("result_variable")
-
-                    match sourceOpt, resultVarOpt with
-                    | Some (StringValue source), Some (StringValue resultVar) ->
-                        // Substitute variables
-                        let substitutedSource = substituteVariables source environment
-
-                        // Get timeout
-                        let timeout =
-                            match timeoutOpt with
-                            | Some (NumberValue t) -> int t
-                            | _ -> 30 // Default timeout in seconds
-
-                        // In a real implementation, this would wait for a message from the MCP source
-                        // REAL IMPLEMENTATION NEEDED
-                        let response = $"Response from {substitutedSource}"
-
-                        // Store the result in the result variable
-                        environment.[resultVar] <- StringValue(response)
-
-                        Success(StringValue($"MCP message received from {substitutedSource}"))
-                    | _ ->
-                        Error("MCP receive action requires 'source' and 'result_variable' properties")
-
-                | "read_file" ->
-                    // Get the required parameters
-                    let pathOpt = block.Properties.TryFind("path")
-                    let resultVarOpt = block.Properties.TryFind("result_variable")
-
-                    match pathOpt, resultVarOpt with
-                    | Some (StringValue path), Some (StringValue resultVar) ->
-                        // Substitute variables
-                        let substitutedPath = substituteVariables path environment
-
-                        try
-                            // Read the file
-                            let content = System.IO.File.ReadAllText(substitutedPath)
-
-                            // Store the result in the result variable
-                            environment.[resultVar] <- StringValue(content)
-
-                            Success(StringValue($"File read successfully: {substitutedPath}"))
-                        with
-                        | ex -> Error($"Error reading file {substitutedPath}: {ex.Message}")
-                    | _ ->
-                        Error("Read file action requires 'path' and 'result_variable' properties")
-
-                | "write_file" ->
-                    // Get the required parameters
-                    let pathOpt = block.Properties.TryFind("path")
-                    let contentOpt = block.Properties.TryFind("content")
-
-                    match pathOpt, contentOpt with
-                    | Some (StringValue path), Some (StringValue content) ->
-                        // Substitute variables
-                        let substitutedPath = substituteVariables path environment
-                        let substitutedContent = substituteVariables content environment
-
-                        try
-                            // Write the file
-                            System.IO.File.WriteAllText(substitutedPath, substitutedContent)
-
-                            Success(StringValue($"File written successfully: {substitutedPath}"))
-                        with
-                        | ex -> Error($"Error writing file {substitutedPath}: {ex.Message}")
-                    | _ ->
-                        Error("Write file action requires 'path' and 'content' properties")
-
-                | "analyze" | "pattern_recognition" | "refactor" | "test" | "get_files" | "generate_report" | "notify" ->
-                    // These are placeholder implementations for the more complex actions
-                    // In a real implementation, these would perform actual analysis, refactoring, etc.
-                    printfn "Executing action: %s (placeholder implementation)" actionType
-                    Success(StringValue($"Action {actionType} executed (placeholder implementation)"))
-
-                | _ ->
-                    Error($"Unknown action type: '{actionType}'")
-
-
-            | Some other ->
-                // Debug output for non-string values
-                printfn "Action type is not a string: %A" other
-                Error("Action type must be a string")
-
-            | _ ->
-                Error("Action block has no type property")
+            executeActionBlock block environment
 
         | BlockType.If ->
             // Get the condition
@@ -1412,7 +1728,7 @@ module SimpleDsl =
                         Body = block.NestedBlocks
                     }
                     functionRegistry <- functionRegistry.Add(name, functionDef)
-                    printfn "Registered function: %s with %d parameters" name parameters.Length
+                    printfn $"Registered function: %s{name} with %d{parameters.Length} parameters"
                 | None ->
                     printfn "Warning: Function block without a name will be ignored"
 
@@ -1431,4 +1747,5 @@ module SimpleDsl =
                     continueExecution <- false
 
         result
+
 

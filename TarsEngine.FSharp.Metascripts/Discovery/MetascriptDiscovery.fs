@@ -17,8 +17,8 @@ type MetascriptDiscovery(registry: MetascriptRegistry, manager: MetascriptManage
     member _.DiscoverMetascriptsAsync(directory: string, recursive: bool) =
         task {
             try
-                logger.LogInformation(sprintf "Discovering metascripts in: %s (recursive: %b)" directory recursive)
-                
+                logger.LogInformation $"Discovering metascripts in: %s{directory} (recursive: %b{recursive})"
+
                 if Directory.Exists(directory) then
                     let searchOption = if recursive then SearchOption.AllDirectories else SearchOption.TopDirectoryOnly
                     let files = Directory.GetFiles(directory, "*.tars", searchOption)
@@ -31,24 +31,24 @@ type MetascriptDiscovery(registry: MetascriptRegistry, manager: MetascriptManage
                             match loadResult with
                             | Ok registered ->
                                 discoveredMetascripts.Add(registered)
-                                logger.LogDebug(sprintf "Discovered metascript: %s" registered.Source.Name)
+                                logger.LogDebug $"Discovered metascript: %s{registered.Source.Name}"
                             | Error error ->
-                                logger.LogWarning(sprintf "Failed to load metascript from %s: %s" filePath error)
+                                logger.LogWarning $"Failed to load metascript from %s{filePath}: %s{error}"
                         with
                         | ex ->
-                            logger.LogWarning(ex, sprintf "Error processing file: %s" filePath)
+                            logger.LogWarning(ex, $"Error processing file: %s{filePath}")
                     
                     let results = discoveredMetascripts |> Seq.toList
-                    logger.LogInformation(sprintf "Discovery completed. Found %d metascripts" results.Length)
-                    
+                    logger.LogInformation $"Discovery completed. Found %d{results.Length} metascripts"
+
                     return Ok results
                 else
-                    let error = sprintf "Directory not found: %s" directory
+                    let error = $"Directory not found: %s{directory}"
                     logger.LogWarning(error)
                     return Error error
             with
             | ex ->
-                let error = sprintf "Error during metascript discovery: %s" ex.Message
+                let error = $"Error during metascript discovery: %s{ex.Message}"
                 logger.LogError(ex, error)
                 return Error error
         }
@@ -77,15 +77,15 @@ type MetascriptDiscovery(registry: MetascriptRegistry, manager: MetascriptManage
                         | Ok metascripts ->
                             allDiscovered.AddRange(metascripts)
                         | Error error ->
-                            logger.LogDebug(sprintf "No metascripts found in %s: %s" path error)
-                
+                            logger.LogDebug $"No metascripts found in %s{path}: %s{error}"
+
                 let results = allDiscovered |> Seq.toList
-                logger.LogInformation(sprintf "Common location discovery completed. Found %d metascripts" results.Length)
-                
+                logger.LogInformation $"Common location discovery completed. Found %d{results.Length} metascripts"
+
                 return Ok results
             with
             | ex ->
-                let error = sprintf "Error during common location discovery: %s" ex.Message
+                let error = $"Error during common location discovery: %s{ex.Message}"
                 logger.LogError(ex, error)
                 return Error error
         }
@@ -102,24 +102,24 @@ type MetascriptDiscovery(registry: MetascriptRegistry, manager: MetascriptManage
                 
                 watcher.Created.Add(fun args ->
                     try
-                        logger.LogInformation(sprintf "New metascript detected: %s" args.FullPath)
+                        logger.LogInformation $"New metascript detected: %s{args.FullPath}"
                         let loadResult = manager.LoadMetascriptAsync(args.FullPath).Result
                         match loadResult with
                         | Ok registered ->
                             callback registered
                         | Error error ->
-                            logger.LogWarning(sprintf "Failed to load new metascript: %s" error)
+                            logger.LogWarning $"Failed to load new metascript: %s{error}"
                     with
                     | ex ->
-                        logger.LogError(ex, sprintf "Error processing new metascript: %s" args.FullPath)
+                        logger.LogError(ex, $"Error processing new metascript: %s{args.FullPath}")
                 )
                 
-                logger.LogInformation(sprintf "Started watching directory: %s" directory)
+                logger.LogInformation $"Started watching directory: %s{directory}"
                 Some watcher
             else
-                logger.LogWarning(sprintf "Cannot watch non-existent directory: %s" directory)
+                logger.LogWarning $"Cannot watch non-existent directory: %s{directory}"
                 None
         with
         | ex ->
-            logger.LogError(ex, sprintf "Error starting directory watch: %s" directory)
+            logger.LogError(ex, $"Error starting directory watch: %s{directory}")
             None

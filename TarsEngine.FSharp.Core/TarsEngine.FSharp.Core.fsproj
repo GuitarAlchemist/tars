@@ -19,7 +19,7 @@
     <Compile Include="Tier11SelfAwareness.fs" />
     <!-- Re-enabled after fixing compilation errors -->
     <Compile Include="AutonomousKnowledgeBridge.fs" />
-    <Compile Include="AutonomousCompetencyValidation.fs" />
+    <!-- Removed fake AutonomousCompetencyValidation.fs - was all placeholders -->
     <Compile Include="FeedbackTracker.fs" />
     <Compile Include="GameTheoryFeedbackCLI.fs" />
 
@@ -40,6 +40,17 @@
     <Compile Include="BSPReasoningEngine.fs" />
     <Compile Include="ComprehensiveTypes.fs" />
     <Compile Include="TempTypeFixes.fs" />
+    <Compile Include="Closures\UnifiedEvolutionaryClosureFactory.fs" />
+    <Compile Include="Metascript\FractalGrammarMetascripts.fs" />
+    <Compile Include="Metascript\MetascriptSpecLoader.fs" />
+    <Compile Include="Metascript\MetascriptGrammarRegistry.fs" />
+    <Compile Include="Mcp\McpRegistry.fs" />
+    <Compile Include="Mcp\McpRequest.fs" />
+    <Compile Include="Mcp\McpClient.fs" />
+    <Compile Include="Specs\SpecKitIntegration.fs" />
+    <Compile Include="Services\CrossAgentValidation.fs" />
+    <Compile Include="Services\ReasoningTrace.fs" />
+    <Compile Include="Services\MetascriptClosureIntegrationService.fs" />
 
     <!-- TARS Auto-Improvement System -->
     <Compile Include="TarsProjectDiscovery.fs" />
@@ -68,12 +79,12 @@
     <Compile Include="RealEvolutionRunner.fs" />
     <Compile Include="JanusResearchImprovement.fs" />
     <Compile Include="FullJanusResearchRunner.fs" />
-    <Compile Include="TarsOllamaReplacement.fs" />
+    <!-- <Compile Include="TarsOllamaReplacement.fs" /> -->
     <Compile Include="TarsInferenceValidation.fs" />
 
     <Compile Include="TarsCustomTransformer.fs" />
     <Compile Include="TarsNonEuclideanVectorStore.fs" />
-    <Compile Include="AllTarsFeaturesTesting.fs" />
+    <!-- <Compile Include="AllTarsFeaturesTesting.fs" /> -->
   </ItemGroup>
 
   <ItemGroup>
@@ -81,14 +92,12 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />
     <PackageReference Include="System.Text.Json" Version="9.0.0" />
+    <PackageReference Include="YamlDotNet" Version="15.1.0" />
   </ItemGroup>
 
-  <!-- Project references removed to eliminate warnings -->
-  <!-- <ItemGroup>
-    <ProjectReference Include="../Tars.Engine.VectorStore/Tars.Engine.VectorStore.csproj" />
-    <ProjectReference Include="../Tars.Engine.Grammar/Tars.Engine.Grammar.csproj" />
-    <ProjectReference Include="../Tars.Engine.Integration/Tars.Engine.Integration.csproj" />
-    <ProjectReference Include="../TarsEngine.CustomTransformers/TarsEngine.CustomTransformers.csproj" />
-  </ItemGroup> -->
+  <ItemGroup>
+    <ProjectReference Include="..\src\TARS.AI.Inference\TARS.AI.Inference.fsproj" />
+    <ProjectReference Include="..\Tars.Engine.Grammar\Tars.Engine.Grammar.fsproj" />
+  </ItemGroup>
 
 </Project>

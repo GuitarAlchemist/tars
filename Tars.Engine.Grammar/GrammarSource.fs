@@ -4,6 +4,8 @@ open System
 open System.IO
 open System.Security.Cryptography
 open System.Text
+open System.Net.Http
+open System.Text.RegularExpressions
 
 /// Represents the source of a grammar definition
 type GrammarSource =
@@ -60,12 +62,112 @@ type ExtendedBlockType =
 
 module GrammarSource =
     
+    let private httpClient =
+        lazy
+            let client = new HttpClient()
+            client.Timeout <- TimeSpan.FromSeconds(30.0)
+            client
+
+    let private normaliseRfcId (rfcId: string) =
+        let trimmed = rfcId.Trim()
+        if trimmed.StartsWith("rfc", StringComparison.OrdinalIgnoreCase) then
+            trimmed.ToLowerInvariant()
+        else
+            "rfc" + trimmed.ToLowerInvariant()
+
+    let private rfcCacheDirectory =
+        Path.Combine(Directory.GetCurrentDirectory(), ".tars", "cache", "rfc")
+
+    let private ensureRfcCacheDirectory () =
+        if not (Directory.Exists(rfcCacheDirectory)) then
+            Directory.CreateDirectory(rfcCacheDirectory) |> ignore
+
+    let private getRfcCachePath rfcId =
+        Path.Combine(rfcCacheDirectory, $"{normaliseRfcId rfcId}.txt")
+
+    let private localRfcDirectories =
+        [ Path.Combine(Directory.GetCurrentDirectory(), "docs", "rfc")
+          Path.Combine(Directory.GetCurrentDirectory(), ".tars", "rfc")
+          Path.Combine(Directory.GetCurrentDirectory(), "data", "rfc") ]
+
+    let private tryLoadLocalRfc rfcId =
+        let fileName = $"{normaliseRfcId rfcId}.txt"
+        localRfcDirectories
+        |> List.tryPick (fun dir ->
+            if Directory.Exists(dir) then
+                let candidate = Path.Combine(dir, fileName)
+                if File.Exists(candidate) then
+                    Some (File.ReadAllText(candidate))
+                else
+                    None
+            else
+                None)
+
+    let private downloadRfc rfcId =
+        let normalized = normaliseRfcId rfcId
+        let url = $"https://www.rfc-editor.org/rfc/{normalized}.txt"
+
+        try
+            let response = httpClient.Value.GetAsync(url).Result
+            if not response.IsSuccessStatusCode then
+                failwith $"Failed to download {rfcId} from {url}: {response.StatusCode}"
+
+            response.Content.ReadAsStringAsync().Result
+        with
+        | :? AggregateException as agg when agg.InnerExceptions.Count > 0 ->
+            raise agg.InnerExceptions.[0]
+
+    let private loadRfcContent rfcId =
+        ensureRfcCacheDirectory()
+        let cachePath = getRfcCachePath rfcId
+
+        if File.Exists(cachePath) then
+            File.ReadAllText(cachePath)
+        else
+            match tryLoadLocalRfc rfcId with
+            | Some local -> 
+                File.WriteAllText(cachePath, local)
+                local
+            | None ->
+                let downloaded = downloadRfc rfcId
+                File.WriteAllText(cachePath, downloaded)
+                downloaded
+
+    let private extractRfcRule (rfcText: string) (ruleName: string) =
+        let lines =
+            rfcText.Replace("\r\n", "\n").Split('\n')
+
+        let isRuleStart (line: string) =
+            let trimmed = line.TrimStart()
+            let escapedRule = Regex.Escape(ruleName)
+            Regex.IsMatch(trimmed, $"^{escapedRule}\\s*=", RegexOptions.IgnoreCase)
+
+        let mutable index = 0
+        let mutable extracted: string list option = None
+
+        while index < lines.Length && extracted.IsNone do
+            if isRuleStart lines.[index] then
+                let builder = ResizeArray<string>()
+                builder.Add(lines.[index].TrimEnd())
+                index <- index + 1
+
+                while index < lines.Length && (lines.[index].StartsWith(" ") || lines.[index].StartsWith("\t")) do
+                    builder.Add(lines.[index].TrimEnd())
+                    index <- index + 1
+
+                extracted <- Some (List.ofSeq builder)
+            else
+                index <- index + 1
+
+        extracted
+        |> Option.map (String.concat Environment.NewLine)
+    
     /// Get the name of a grammar source
     let getName = function
         | Inline (name, _) -> name
         | External file -> Path.GetFileNameWithoutExtension(file.Name)
-        | EmbeddedRFC (rfcId, ruleName) -> sprintf "%s_%s" rfcId ruleName
-    
+        | EmbeddedRFC (rfcId, ruleName) -> $"%s{rfcId}_%s{ruleName}"
+
     /// Get the content of a grammar source
     let getContent = function
         | Inline (_, content) -> content
@@ -73,14 +175,21 @@ module GrammarSource =
             if file.Exists then File.ReadAllText(file.FullName)
             else failwith $"Grammar file not found: {file.FullName}"
         | EmbeddedRFC (rfcId, ruleName) -> 
-            // TODO: Implement RFC rule extraction
-            failwith $"RFC extraction not yet implemented for {rfcId}:{ruleName}"
+            let rfcContent = loadRfcContent rfcId
+            match extractRfcRule rfcContent ruleName with
+            | Some rule -> rule
+            | None -> failwith $"Unable to locate rule '{ruleName}' in RFC {rfcId}"
     
     /// Check if a grammar source exists
     let exists = function
         | Inline _ -> true
         | External file -> file.Exists
-        | EmbeddedRFC _ -> false // TODO: Implement RFC availability check
+        | EmbeddedRFC (rfcId, ruleName) ->
+            try
+                let rfcContent = loadRfcContent rfcId
+                extractRfcRule rfcContent ruleName |> Option.isSome
+            with
+            | _ -> false
     
     /// Get the last modified time of a grammar source
     let getLastModified = function

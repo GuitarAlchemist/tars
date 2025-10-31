@@ -7,7 +7,7 @@ open Xunit
 open FsUnit.Xunit
 
 // === REAL CUDA VECTOR STORE INTEGRATION TESTS ===
-// These tests PROVE we're using actual CUDA GPU acceleration, not CPU simulation
+// TODO: Implement real functionality
 
 [<DllImport("libtars_cuda.so", CallingConvention = CallingConvention.Cdecl)>]
 extern IntPtr tars_cuda_create_store(int max_vectors, int vector_dim)

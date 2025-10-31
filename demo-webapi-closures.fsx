@@ -4,7 +4,7 @@
 open System
 open System.IO
 
-// Simulate the WebAPI closure factory functionality
+// TODO: Implement real functionality
 type HttpMethod = GET | POST | PUT | DELETE | PATCH
 
 type EndpointParameter = {

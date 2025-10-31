@@ -44,7 +44,7 @@ with
 | ex ->
     printfn "❌ Error: %s" ex.Message
 
-// Test 3: Simulate TARS observing usage patterns
+// TODO: Implement real functionality
 printfn "👁️ Test 3: Simulating TARS Usage Pattern Analysis"
 printfn "---------------------------------------------------"
 
@@ -134,7 +134,7 @@ with
 | ex ->
     printfn "❌ Evolution error: %s" ex.Message
 
-// Test 5: Simulate feedback collection and next evolution
+// TODO: Implement real functionality
 printfn "📈 Test 5: Feedback Collection & Next Evolution Planning"
 printfn "--------------------------------------------------------"
 

@@ -7,7 +7,7 @@ open Microsoft.Extensions.Logging
 open TarsEngine.FSharp.Core
 
 /// Authentic diagnostic engine that generates real traces like hyperlight_deployment_20250605_090820.yaml
-/// NO SIMULATION - Everything is real, programmatic, and authentic
+// TODO: Implement real functionality
 type AuthenticDiagnosticEngine(logger: ILogger<AuthenticDiagnosticEngine>, httpClient: HttpClient) =
     
     let complexProblemSolver = ComplexProblemSolver(logger, httpClient)

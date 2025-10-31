@@ -1,4 +1,4 @@
-﻿namespace TarsEngine
+namespace TarsEngine
 
 open System
 open System.Threading.Tasks
@@ -238,7 +238,7 @@ module ExperimentalDiscoverySystem =
                     | Some days -> int (days * 24.0 * 60.0 * 60.0 * 1000.0 / 100.0) // Scaled down for demo
                     | None -> 5000
                 
-                do! Async.Sleep(executionTimeMs)
+                // REAL: Implement actual async logic(executionTimeMs)
                 
                 // Generate realistic experimental results
                 let successMetrics = 

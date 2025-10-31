@@ -1,0 +1,334 @@
+{
+  "agentFeedback": [
+    {
+      "agentId": "agent:reasoner",
+      "role": "Reasoner",
+      "verdict": "approve",
+      "detail": null,
+      "confidence": 0.85,
+      "notes": "Metascript closure analysis",
+      "suggestedActions": [],
+      "recordedAt": "2025-10-27T02:20:18.446145Z"
+    },
+    {
+      "agentId": "agent:reviewer",
+      "role": "Reviewer",
+      "verdict": "reject",
+      "detail": "Validation failure detected.",
+      "confidence": 0.3,
+      "notes": "Harness validation review",
+      "suggestedActions": [
+        "Initiate rollback",
+        "Schedule manual review"
+      ],
+      "recordedAt": "2025-10-27T02:20:18.4462136Z"
+    },
+    {
+      "agentId": "agent:performance",
+      "role": "PerformanceBenchmarker",
+      "verdict": "reject",
+      "detail": "Validation failure detected.",
+      "confidence": 0.2,
+      "notes": "Environment override (performance) forced failure.",
+      "suggestedActions": [
+        "Initiate rollback",
+        "Schedule manual review"
+      ],
+      "recordedAt": "2025-10-27T02:20:18.4462139Z"
+    },
+    {
+      "agentId": "agent:safety-governor",
+      "role": "SafetyGovernor",
+      "verdict": "reject",
+      "detail": "Validation failure detected.",
+      "confidence": 0.2,
+      "notes": "Harness failures detected.",
+      "suggestedActions": [
+        "Initiate rollback",
+        "Schedule manual review"
+      ],
+      "recordedAt": "2025-10-27T02:20:18.446214Z"
+    },
+    {
+      "agentId": "agent:spec-guardian",
+      "role": "SpecGuardian",
+      "verdict": "approve",
+      "detail": null,
+      "confidence": 0.78,
+      "notes": "Candidate patches generated for spec review.",
+      "suggestedActions": [],
+      "recordedAt": "2025-10-27T02:20:18.4462142Z"
+    }
+  ],
+  "appendPath": "/mnt/c/Users/spare/source/repos/tars/output/adaptive_memory_spec-kit.jsonl",
+  "artifacts": [
+    "dynamic metascript spec (rules=8 source=/mnt/c/Users/spare/source/repos/tars/.specify/specs/superintelligence-ascension/spec.md)",
+    "Dynamic metascript summary recorded (3 spawn, 2 connections)"
+  ],
+  "commands": [
+    {
+      "name": "dotnet-test",
+      "stage": "validation",
+      "exitCode": 1,
+      "durationSeconds": 3.706427,
+      "startedAt": "2025-10-27T02:20:14.7146773Z",
+      "completedAt": "2025-10-27T02:20:18.4211043Z"
+    }
+  ],
+  "consensus": {
+    "status": "failed",
+    "message": "Consensus missing required roles: SafetyGovernor, PerformanceBenchmarker.",
+    "agents": [
+      {
+        "agentId": "agent:reasoner",
+        "role": "Reasoner",
+        "outcome": "pass",
+        "confidence": 0.85,
+        "notes": "Metascript closure analysis",
+        "producedAt": "2025-10-27T02:20:18.4293298Z"
+      },
+      {
+        "agentId": "agent:reviewer",
+        "role": "Reviewer",
+        "outcome": "fail",
+        "confidence": 0.3,
+        "notes": "Harness validation review",
+        "producedAt": "2025-10-27T02:20:18.4294513Z"
+      },
+      {
+        "agentId": "agent:performance",
+        "role": "PerformanceBenchmarker",
+        "outcome": "fail",
+        "confidence": 0.2,
+        "notes": "Environment override (performance) forced failure.",
+        "producedAt": "2025-10-27T02:20:18.429456Z"
+      },
+      {
+        "agentId": "agent:safety-governor",
+        "role": "SafetyGovernor",
+        "outcome": "fail",
+        "confidence": 0.2,
+        "notes": "Harness failures detected.",
+        "producedAt": "2025-10-27T02:20:18.4299672Z"
+      },
+      {
+        "agentId": "agent:spec-guardian",
+        "role": "SpecGuardian",
+        "outcome": "pass",
+        "confidence": 0.78,
+        "notes": "Candidate patches generated for spec review.",
+        "producedAt": "2025-10-27T02:20:18.4299712Z"
+      }
+    ]
+  },
+  "critic": {
+    "status": "accept",
+    "message": null,
+    "source": "model:54",
+    "threshold": 0.782894736842105,
+    "sampleSize": 54,
+    "indicators": []
+  },
+  "description": null,
+  "harness": {
+    "status": "failed",
+    "failureReason": "Command \u0027dotnet-test\u0027 failed with exit code 1",
+    "failedCommandCount": 1
+  },
+  "metrics": {
+    "agents.performance.confidence": 0.2,
+    "agents.performance.notes": "Environment override (performance) forced failure.",
+    "agents.performance.outcome": "fail",
+    "agents.safety.confidence": 0.2,
+    "agents.safety.notes": "Harness failures detected.",
+    "agents.safety.outcome": "fail",
+    "capability.avg_duration_seconds": 3.706427,
+    "capability.benchmark_duration_seconds": 0,
+    "capability.command_count": 1,
+    "capability.failure_count": 1,
+    "capability.max_duration_seconds": 3.706427,
+    "capability.pass_ratio": 0,
+    "capability.prevalidation_duration_seconds": 0,
+    "capability.success_count": 0,
+    "capability.total_duration_seconds": 3.706427,
+    "capability.validation_duration_seconds": 3.706427,
+    "dsl.metascript.connection_count": 2,
+    "dsl.metascript.max_depth": 8,
+    "dsl.metascript.repeated_patterns": "[ascension-iteration]",
+    "dsl.metascript.rule_count": 8,
+    "dsl.metascript.source": "/mnt/c/Users/spare/source/repos/tars/.specify/specs/superintelligence-ascension/spec.md",
+    "dsl.metascript.spawn_count": 3,
+    "dsl.metric.capability_acceleration": 0.92,
+    "dsl.metric.safety_confidence": 0.88,
+    "feedback.approve": 2,
+    "feedback.avg_confidence": 0.466,
+    "feedback.escalate": 0,
+    "feedback.needs_work": 0,
+    "feedback.reject": 3,
+    "feedback.total": 5,
+    "safety.consensus_agents": 5,
+    "safety.consensus_avg_confidence": 0.466,
+    "safety.consensus_failures": 3,
+    "safety.consensus_needs_review": 0,
+    "safety.consensus_reason": "Consensus missing required roles: SafetyGovernor, PerformanceBenchmarker.",
+    "safety.consensus_status": "failed",
+    "safety.critic_samples": 54,
+    "safety.critic_source": "model:54",
+    "safety.critic_status": "accept",
+    "safety.critic_threshold": 0.782894736842105,
+    "validators.comments": 3,
+    "validators.disagreement_ratio": 1,
+    "validators.disagreements": 1,
+    "validators.findings_fail": 3,
+    "validators.findings_needs_review": 0,
+    "validators.findings_pass": 2,
+    "validators.findings_total": 5,
+    "validators.targets": 1
+  },
+  "nextSteps": [
+    "Promote validated dynamic closure to registry if production-ready.",
+    "Validate dynamic closure grammar against production constraints.",
+    "Run rehearsal execution in sandboxed environment.",
+    "Publish documentation for newly generated closure behaviour."
+  ],
+  "policyAfter": {
+    "requireConsensus": true,
+    "requireCritic": true,
+    "stopOnFailure": true,
+    "captureLogs": true,
+    "patchCommands": 0,
+    "validationCommands": 1,
+    "benchmarkCommands": 0,
+    "hasAgentProvider": false,
+    "hasTraceProvider": true,
+    "hasFeedbackSink": false,
+    "hasReasoningCritic": true,
+    "consensusRule": {
+      "minimumPassCount": 3,
+      "requiredRoles": [
+        "SafetyGovernor",
+        "PerformanceBenchmarker",
+        "SpecGuardian"
+      ],
+      "allowNeedsReview": false,
+      "minimumConfidence": 0.7,
+      "maxFailureCount": 0
+    }
+  },
+  "policyBefore": {
+    "requireConsensus": true,
+    "requireCritic": true,
+    "stopOnFailure": true,
+    "captureLogs": true,
+    "patchCommands": 0,
+    "validationCommands": 1,
+    "benchmarkCommands": 0,
+    "hasAgentProvider": false,
+    "hasTraceProvider": true,
+    "hasFeedbackSink": false,
+    "hasReasoningCritic": true,
+    "consensusRule": {
+      "minimumPassCount": 3,
+      "requiredRoles": [
+        "SafetyGovernor",
+        "PerformanceBenchmarker",
+        "SpecGuardian"
+      ],
+      "allowNeedsReview": false,
+      "minimumConfidence": 0.7,
+      "maxFailureCount": 0
+    }
+  },
+  "policyChanges": [],
+  "runId": "887deddb-5f4c-43df-ac25-7b3e1ec65fc3",
+  "specId": "superintelligence-ascension",
+  "specPath": "/mnt/c/Users/spare/source/repos/tars/.specify/specs/superintelligence-ascension/spec.md",
+  "status": "failed:Command \u0027dotnet-test\u0027 failed with exit code 1",
+  "timestamp": "2025-10-27T02:20:18.4468378Z",
+  "validatorDisagreements": [
+    {
+      "specId": "superintelligence-ascension",
+      "iterationId": "887deddb-5f4c-43df-ac25-7b3e1ec65fc3",
+      "topic": "spec-kit",
+      "roles": [
+        "SpecGuardian",
+        "SafetyGovernor",
+        "PerformanceBenchmarker",
+        "Reviewer",
+        "Reasoner"
+      ],
+      "outcomes": [
+        "SpecGuardian=pass",
+        "SafetyGovernor=fail",
+        "PerformanceBenchmarker=fail",
+        "Reviewer=fail",
+        "Reasoner=pass"
+      ],
+      "trigger": "conflicting_pass_fail",
+      "confidenceSpread": 0.6499999999999999,
+      "loggedAt": "2025-10-27T02:20:18.4457756Z"
+    }
+  ],
+  "validatorFindings": [
+    {
+      "findingId": "8e2aef0f-cf1d-4965-a950-d0889fd1ac80",
+      "agentId": "agent:spec-guardian",
+      "role": "SpecGuardian",
+      "outcome": "pass",
+      "confidence": 0.78,
+      "notes": "Candidate patches generated for spec review.",
+      "specId": "superintelligence-ascension",
+      "iterationId": "887deddb-5f4c-43df-ac25-7b3e1ec65fc3",
+      "topic": "spec-kit",
+      "recordedAt": "2025-10-27T02:20:18.4299712Z"
+    },
+    {
+      "findingId": "91cc40d0-fd74-47ff-8566-02c1314084a8",
+      "agentId": "agent:safety-governor",
+      "role": "SafetyGovernor",
+      "outcome": "fail",
+      "confidence": 0.2,
+      "notes": "Harness failures detected.",
+      "specId": "superintelligence-ascension",
+      "iterationId": "887deddb-5f4c-43df-ac25-7b3e1ec65fc3",
+      "topic": "spec-kit",
+      "recordedAt": "2025-10-27T02:20:18.4299672Z"
+    },
+    {
+      "findingId": "682cecbb-fa71-4e88-9058-e6a59e6cd354",
+      "agentId": "agent:performance",
+      "role": "PerformanceBenchmarker",
+      "outcome": "fail",
+      "confidence": 0.2,
+      "notes": "Environment override (performance) forced failure.",
+      "specId": "superintelligence-ascension",
+      "iterationId": "887deddb-5f4c-43df-ac25-7b3e1ec65fc3",
+      "topic": "spec-kit",
+      "recordedAt": "2025-10-27T02:20:18.429456Z"
+    },
+    {
+      "findingId": "3cab0a61-cfc8-468b-941d-d88e51e2ab58",
+      "agentId": "agent:reviewer",
+      "role": "Reviewer",
+      "outcome": "fail",
+      "confidence": 0.3,
+      "notes": "Harness validation review",
+      "specId": "superintelligence-ascension",
+      "iterationId": "887deddb-5f4c-43df-ac25-7b3e1ec65fc3",
+      "topic": "spec-kit",
+      "recordedAt": "2025-10-27T02:20:18.4294513Z"
+    },
+    {
+      "findingId": "666686a1-1c6c-4351-b7b7-528340fba2ad",
+      "agentId": "agent:reasoner",
+      "role": "Reasoner",
+      "outcome": "pass",
+      "confidence": 0.85,
+      "notes": "Metascript closure analysis",
+      "specId": "superintelligence-ascension",
+      "iterationId": "887deddb-5f4c-43df-ac25-7b3e1ec65fc3",
+      "topic": "spec-kit",
+      "recordedAt": "2025-10-27T02:20:18.4293298Z"
+    }
+  ]
+}

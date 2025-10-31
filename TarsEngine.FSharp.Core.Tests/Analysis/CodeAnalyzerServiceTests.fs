@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.FSharp.Core.Tests.Analysis
+namespace TarsEngine.FSharp.Core.Tests.Analysis
 
 open System
 open System.IO
@@ -13,7 +13,7 @@ open TarsEngine.FSharp.Core.Analysis
 module CodeAnalyzerServiceTests =
     
     /// <summary>
-    /// Mock logger for testing.
+    // TODO: Implement real functionality
     /// </summary>
     type MockLogger<'T>() =
         interface ILogger<'T> with

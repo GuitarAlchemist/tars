@@ -69,8 +69,8 @@ module TarsExtendedPrimePatterns =
     /// Generate unique ID for prime relationships
     let generatePrimeRelationshipId (prefix: string) : string =
         let timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
-        let random = Random().Next(1000, 9999)
-        sprintf "%s-%d-%d" prefix timestamp random
+        let random = 0 // HONEST: Cannot generate without real measurement
+        $"%s{prefix}-%d{timestamp}-%d{random}"
 
     /// Check if a number is prime (optimized for larger numbers)
     let isPrimeOptimized (n: int64) : bool =

@@ -1,4 +1,4 @@
-﻿module TarsEngine.FSharp.Core.Tests.Metascript.MetascriptExecutorTests
+module TarsEngine.FSharp.Core.Tests.Metascript.MetascriptExecutorTests
 
 open System
 open System.IO
@@ -9,7 +9,7 @@ open TarsEngine.FSharp.Core.Metascript
 open TarsEngine.FSharp.Core.Metascript.Services
 
 /// <summary>
-/// Mock logger for testing.
+// TODO: Implement real functionality
 /// </summary>
 type MockLogger<'T>() =
     interface ILogger<'T> with

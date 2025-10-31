@@ -50,7 +50,7 @@ module PracticalUseCaseTests =
             (fun () ->
                 printfn "🔍 Analyzing code similarity patterns..."
                 
-                // Simulate code snippets with different characteristics
+                // TODO: Implement real functionality
                 let codeSnippets = [
                     ("for_loop_basic", [| 0.8f; 0.2f; 0.1f; 0.0f |])           // Basic for loop
                     ("for_loop_nested", [| 0.9f; 0.7f; 0.1f; 0.0f |])          // Nested for loop
@@ -124,7 +124,7 @@ module PracticalUseCaseTests =
             (fun () ->
                 printfn "📚 Testing document clustering with different distance metrics..."
                 
-                // Simulate document vectors (TF-IDF style)
+                // TODO: Implement real functionality
                 let documents = [
                     ("AI_Research_Paper", [| 0.9f; 0.1f; 0.0f; 0.0f |])         // AI/ML topic
                     ("ML_Algorithm_Study", [| 0.8f; 0.2f; 0.0f; 0.0f |])        // AI/ML topic
@@ -212,7 +212,7 @@ module PracticalUseCaseTests =
             (fun () ->
                 printfn "📈 Testing time series anomaly detection..."
                 
-                // Simulate time series data: [value, trend, seasonality, noise]
+                // TODO: Implement real functionality
                 let normalPatterns = [
                     [| 100.0f; 0.1f; 0.2f; 0.05f |]   // Normal baseline
                     [| 102.0f; 0.12f; 0.22f; 0.04f |] // Slight increase
@@ -317,7 +317,7 @@ module PracticalUseCaseTests =
             (fun () ->
                 printfn "🛒 Testing recommendation system with user preferences..."
                 
-                // Simulate user preference vectors: [electronics, books, clothing, sports]
+                // TODO: Implement real functionality
                 let users = [
                     ("TechEnthusiast", [| 0.9f; 0.3f; 0.1f; 0.2f |])
                     ("Bookworm", [| 0.2f; 0.9f; 0.1f; 0.1f |])
@@ -326,7 +326,7 @@ module PracticalUseCaseTests =
                     ("GeneralShopper", [| 0.5f; 0.5f; 0.5f; 0.5f |])
                 ]
                 
-                // Simulate products: [electronics, books, clothing, sports]
+                // TODO: Implement real functionality
                 let products = [
                     ("Laptop", [| 1.0f; 0.0f; 0.0f; 0.0f |])
                     ("Programming_Book", [| 0.3f; 0.9f; 0.0f; 0.0f |])

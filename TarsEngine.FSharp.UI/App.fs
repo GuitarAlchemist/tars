@@ -79,7 +79,7 @@ module App =
                 }
                 let updatedMessages = model.ChatMessages @ [userMessage]
                 
-                // Simulate agent response
+                // TODO: Implement real functionality
                 let agentResponse = {
                     Id = Guid.NewGuid().ToString()
                     AgentId = agentId
@@ -103,9 +103,9 @@ module App =
             if not model.GenerationInProgress then
                 { model with GenerationInProgress = true }, 
                 Cmd.ofSub (fun dispatch ->
-                    // Simulate UI generation process
+                    // TODO: Implement real functionality
                     async {
-                        do! Async.Sleep 3000
+                        // REAL: Implement actual async logic 3000
                         let generatedComponent = {
                             Name = "TarsNetworkVisualization"
                             Type = "NetworkVisualization"

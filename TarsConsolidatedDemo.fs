@@ -47,7 +47,7 @@ type ConsolidatedTarsEngine() =
     member this.EnhancedInfer(beliefs: EnhancedBelief list) =
         let enhancedBeliefs = 
             if activeAgents.Count > 1 then
-                let convergenceScore = 0.85 // Simulated convergence
+                let convergenceScore = 0.85 // TODO: Implement real functionality
                 performanceMetrics <- { performanceMetrics with tier6_consensus_rate = convergenceScore }
                 beliefs |> List.map (fun belief ->
                     { belief with 

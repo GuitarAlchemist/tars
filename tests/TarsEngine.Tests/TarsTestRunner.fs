@@ -226,7 +226,7 @@ module TarsTestRunner =
             |> List.choose (fun r -> r.ErrorMessage)
             |> List.distinct
         
-        // Simulate code coverage calculation (would need actual coverage tool)
+        // TODO: Implement real functionality
         let codeCoverage = 
             let totalLines = 5000.0  // Estimated total lines of code
             let coveredLines = float passedTests * 50.0  // Estimate based on test success

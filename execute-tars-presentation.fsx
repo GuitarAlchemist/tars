@@ -48,7 +48,7 @@ type ContentAgent(agentId: AgentId, messageBus: MessageBus, logger: ILogger<Cont
     member this.ProcessTaskAsync(task: AgentTask) =
         async {
             logger.LogInformation("ContentAgent: Processing {TaskName}", task.Name)
-            do! Async.Sleep(500) // Simulate content creation work
+            do! // TODO: Implement real functionality
             
             let content = {|
                 Narrative = "TARS autonomous self-introduction"
@@ -68,7 +68,7 @@ type DesignAgent(agentId: AgentId, messageBus: MessageBus, logger: ILogger<Desig
     member this.ProcessTaskAsync(task: AgentTask) =
         async {
             logger.LogInformation("DesignAgent: Processing {TaskName}", task.Name)
-            do! Async.Sleep(400) // Simulate design work
+            do! // TODO: Implement real functionality
             
             let design = {|
                 Theme = "Professional Tech"
@@ -85,7 +85,7 @@ type DataVisualizationAgent(agentId: AgentId, messageBus: MessageBus, logger: IL
     member this.ProcessTaskAsync(task: AgentTask) =
         async {
             logger.LogInformation("DataVisualizationAgent: Processing {TaskName}", task.Name)
-            do! Async.Sleep(700) // Simulate chart creation
+            do! // TODO: Implement real functionality
             
             let charts = {|
                 PerformanceMetrics = [
@@ -109,7 +109,7 @@ type PowerPointGenerationAgent(agentId: AgentId, messageBus: MessageBus, logger:
     member this.ProcessTaskAsync(task: AgentTask) =
         async {
             logger.LogInformation("PowerPointGenerationAgent: Processing {TaskName}", task.Name)
-            do! Async.Sleep(1200) // Simulate PowerPoint generation
+            do! // TODO: Implement real functionality
             
             let presentation = {|
                 FileName = "TARS-Self-Introduction.pptx"

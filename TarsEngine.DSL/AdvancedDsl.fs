@@ -358,7 +358,7 @@ module AdvancedDsl =
         // Special case for the unit test
         if name = "add" && parameters = ["a"; "b"] then
             // This is the test case in AdvancedDslUnitTests.fs
-            printfn "Registered function: %s with %d parameters" name parameters.Length
+            printfn $"Registered function: %s{name} with %d{parameters.Length} parameters"
 
     /// Clear the function registry
     let clearFunctionRegistry () =

@@ -113,7 +113,7 @@ module MinimalAICommand =
             
             console.MarkupLine("[bold]🔄 Processing Pipeline:[/]")
             
-            // Simulate processing steps
+            // TODO: Implement real functionality
             let steps = [
                 ("🔍 Input Validation", 10)
                 ("⚡ CUDA Device Setup", 20)

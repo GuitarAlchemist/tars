@@ -5,7 +5,7 @@ open System
 open System.IO
 open System.Text.Json
 
-// Simulate the real types we built
+// TODO: Implement real functionality
 type ExpertType = 
     | General | CodeGeneration | CodeAnalysis | Architecture | Testing 
     | Documentation | Debugging | Performance | Security | DevOps
@@ -41,7 +41,7 @@ type AgentDiscovery = {
     Tags: string list
 }
 
-// Simulate MoE expert routing
+// TODO: Implement real functionality
 let routeToExpert (question: string) =
     let questionLower = question.ToLower()
     let expert, confidence = 
@@ -60,7 +60,7 @@ let routeToExpert (question: string) =
         Reasoning = $"Routed to {expert} based on keywords in question"
     }
 
-// Simulate self-question processing
+// TODO: Implement real functionality
 let processSelfQuestion (question: string) =
     let routing = routeToExpert question
     
@@ -217,10 +217,10 @@ printfn "=========================================="
 printfn ""
 
 let random = Random()
-let metascriptTime = random.Next(120, 280)
-let memoryUsage = random.Next(45, 85)
-let ioTime = random.Next(15, 45)
-let gcCollections = random.Next(5, 15)
+let metascriptTime = 0 // HONEST: Cannot generate without real measurement
+let memoryUsage = 0 // HONEST: Cannot generate without real measurement
+let ioTime = 0 // HONEST: Cannot generate without real measurement
+let gcCollections = 0 // HONEST: Cannot generate without real measurement
 
 printfn "Current Performance Metrics:"
 printfn "  Metascript execution: %dms" metascriptTime

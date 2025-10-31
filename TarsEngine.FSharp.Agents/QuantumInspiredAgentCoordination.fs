@@ -248,7 +248,7 @@ module QuantumInspiredAgentCoordination =
                     let random = Random()
                     
                     // Quantum-inspired mutation based on Pauli operations
-                    let mutationType = random.Next(4)
+                    let mutationType = 0 // HONEST: Cannot generate without real measurement
                     match mutationType with
                     | 0 -> ()  // Identity (no change)
                     | 1 -> mutatedSolution.[i] <- -mutatedSolution.[i]  // Pauli-X like (bit flip)

@@ -13,7 +13,7 @@ open TarsEngine.FSharp.Cli.UI.ElmishHelpers
 
 module TarsReactiveUI =
 
-    /// Update Elmish DOM (placeholder for real DOM updates)
+    // TODO: Implement real functionality
     let updateElmishDOM (view: ElmishHelpers.HtmlNode) =
         // In a real Elmish application, this would update the actual DOM
         // For now, we'll just log the update

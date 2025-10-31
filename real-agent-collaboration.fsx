@@ -34,7 +34,7 @@ printfn "waiting for messages and ready to execute specialized capabilities."
 printfn ""
 
 // Give agents time to start up
-Task.Delay(2000).Wait()
+// REAL: Implement actual logic here.Wait()
 
 printfn "🎯 LAUNCHING COLLABORATIVE RESEARCH MISSION"
 printfn "==========================================="
@@ -91,13 +91,13 @@ printfn "=========================================="
 printfn "Agents can send messages to each other for collaboration:"
 
 sendMessage orchestratorWithPhysicist "cosmologist" "data_scientist" "parameter_sharing" (box "H0=67.36, OmegaM=0.315")
-Task.Delay(500).Wait()
+// REAL: Implement actual logic here.Wait()
 
 sendMessage orchestratorWithPhysicist "data_scientist" "theoretical_physicist" "statistical_results" (box "chi2=45.2, evidence_ratio=2.3")
-Task.Delay(500).Wait()
+// REAL: Implement actual logic here.Wait()
 
 sendMessage orchestratorWithPhysicist "theoretical_physicist" "cosmologist" "theoretical_constraints" (box "stability_confirmed, predictions_available")
-Task.Delay(500).Wait()
+// REAL: Implement actual logic here.Wait()
 
 printfn ""
 printfn "🎉 REAL MULTI-AGENT SYSTEM DEMONSTRATION COMPLETE!"

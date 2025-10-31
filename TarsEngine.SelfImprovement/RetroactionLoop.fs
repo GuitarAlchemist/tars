@@ -342,16 +342,16 @@ module RetroactionLoop =
                     // This is very simplified - real pattern generation would be more sophisticated
                     let escapedBefore = System.Text.RegularExpressions.Regex.Escape(before)
                     let pattern = createPattern
-                                    (sprintf "Auto-generated pattern for %s" context)
-                                    (sprintf "Pattern generated from successful improvement in %s" context)
+                                    $"Auto-generated pattern for %s{context}"
+                                    $"Pattern generated from successful improvement in %s{context}"
                                     escapedBefore
                                     after
                                     context
                     
                     newPatterns <- newPatterns @ [pattern]
-                    logger.LogInformation(sprintf "Generated new pattern for context %s" context)
+                    logger.LogInformation $"Generated new pattern for context %s{context}"
                 with ex ->
-                    logger.LogError(ex, sprintf "Error generating pattern for context %s" context)
+                    logger.LogError(ex, $"Error generating pattern for context %s{context}")
         
         // Add the new patterns to the state
         let updatedState =

@@ -265,7 +265,7 @@ type TarsApiLlmCommand(logger: ILogger<TarsApiLlmCommand>, llmService: GenericLl
                     let query = parts.[0].Trim().Trim('"')
                     let limit = if parts.Length > 1 then Int32.Parse(parts.[1].Trim()) else 5
                     
-                    // Simulate vector search (in real implementation would call actual TARS API)
+                    // TODO: Implement real functionality
                     return sprintf "Vector search results for '%s':\n- Found %d relevant documents\n- Top result: CUDA implementation in TarsEngine.FSharp.Core\n- Relevance score: 0.95" query limit
                 
                 | "ask_llm" ->
@@ -297,7 +297,7 @@ type TarsApiLlmCommand(logger: ILogger<TarsApiLlmCommand>, llmService: GenericLl
                     let path = parts.[0].Trim().Trim('"')
                     let content = if parts.Length > 1 then parts.[1].Trim().Trim('"') else ""
                     
-                    // Simulate file write (in real implementation would call actual TARS API)
+                    // TODO: Implement real functionality
                     return sprintf "File written successfully: %s (%d bytes)" path content.Length
                 
                 | "execute_metascript" ->

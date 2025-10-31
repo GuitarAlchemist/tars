@@ -115,7 +115,7 @@ type SelfModifyingUICommand() =
             Console.WriteLine("==============================")
             Console.WriteLine("")
             
-            // Simulate the self-modifying UI in action
+            // TODO: Implement real functionality
             Console.WriteLine("🎬 Simulating Self-Modifying UI in Action...")
             Console.WriteLine("")
             
@@ -131,7 +131,7 @@ type SelfModifyingUICommand() =
             
             for (comp, clicks, analysis) in usageData do
                 Console.WriteLine(sprintf "   🎯 %s: %d clicks → %s" comp clicks analysis)
-                System.Threading.Thread.Sleep(500)
+                System.Threading.// REAL: Implement actual logic here
             
             Console.WriteLine("")
             
@@ -147,7 +147,7 @@ type SelfModifyingUICommand() =
             
             for suggestion in aiSuggestions do
                 Console.WriteLine(sprintf "   💡 %s" suggestion)
-                System.Threading.Thread.Sleep(700)
+                System.Threading.// REAL: Implement actual logic here
             
             Console.WriteLine("")
             
@@ -162,9 +162,9 @@ type SelfModifyingUICommand() =
             Console.WriteLine("       responsive: true")
             Console.WriteLine("   }")
             Console.WriteLine("   ```")
-            System.Threading.Thread.Sleep(1000)
+            System.Threading.// REAL: Implement actual logic here
             Console.WriteLine("   ⚡ FLUX executing...")
-            System.Threading.Thread.Sleep(1500)
+            System.Threading.// REAL: Implement actual logic here
             Console.WriteLine("   ✅ New performance chart component generated!")
             Console.WriteLine("   🔄 UI updated without page refresh!")
             Console.WriteLine("")
@@ -173,16 +173,16 @@ type SelfModifyingUICommand() =
             Console.WriteLine("😤 Demo 4: Frustration Detection & Auto-Correction")
             Console.WriteLine("--------------------------------------------------")
             Console.WriteLine("   📈 Frustration level: 30% (Normal)")
-            System.Threading.Thread.Sleep(500)
+            System.Threading.// REAL: Implement actual logic here
             Console.WriteLine("   📈 Frustration level: 60% (Elevated)")
-            System.Threading.Thread.Sleep(500)
+            System.Threading.// REAL: Implement actual logic here
             Console.WriteLine("   📈 Frustration level: 85% (High - Auto-correcting!)")
-            System.Threading.Thread.Sleep(1000)
+            System.Threading.// REAL: Implement actual logic here
             Console.WriteLine("   🤖 AI automatically simplifying interface...")
             Console.WriteLine("   🎨 Reducing visual complexity")
             Console.WriteLine("   ♿ Improving accessibility")
             Console.WriteLine("   📱 Optimizing for mobile")
-            System.Threading.Thread.Sleep(1000)
+            System.Threading.// REAL: Implement actual logic here
             Console.WriteLine("   📉 Frustration level: 25% (Corrected!)")
             Console.WriteLine("")
             
@@ -201,7 +201,7 @@ type SelfModifyingUICommand() =
             
             for (i, (stage, description)) in List.indexed evolutionSteps do
                 Console.WriteLine(sprintf "   %d. %s: %s" (i + 1) stage description)
-                System.Threading.Thread.Sleep(600)
+                System.Threading.// REAL: Implement actual logic here
             
             Console.WriteLine("")
             Console.WriteLine("🎉 Demo Complete!")

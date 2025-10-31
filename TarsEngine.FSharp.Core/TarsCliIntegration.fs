@@ -109,17 +109,14 @@ module TarsCliIntegration =
                             match args.Format with
                             | "json" ->
                                 // Simplified JSON representation
-                                sprintf """{"source": "%s", "target": "%s", "significance": %f, "sections": %d}"""
-                                    diff.SourceVersion diff.TargetVersion diff.OverallSignificance diff.SectionChanges.Length
+                                $"""{{"source": "%s{diff.SourceVersion}", "target": "%s{diff.TargetVersion}", "significance": %f{diff.OverallSignificance}, "sections": %d{diff.SectionChanges.Length}}}"""
                             | "yaml" ->
                                 // Simplified YAML representation
-                                sprintf """source: %s
-target: %s
-significance: %f
-sections: %d
-timestamp: %s"""
-                                    diff.SourceVersion diff.TargetVersion diff.OverallSignificance
-                                    diff.SectionChanges.Length (diff.Timestamp.ToString("yyyy-MM-dd HH:mm:ss"))
+                                $"""source: %s{diff.SourceVersion}
+target: %s{diff.TargetVersion}
+significance: %f{diff.OverallSignificance}
+sections: %d{diff.SectionChanges.Length}
+timestamp: %s{diff.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")}"""
                             | _ -> formatDiff diff
 
                         match args.OutputFile with
@@ -174,21 +171,18 @@ timestamp: %s"""
                         let output =
                             match args.Format with
                             | "json" ->
-                                sprintf """{"vectors": %d, "nodes": %d, "max_depth": %d, "total_points": %d}"""
-                                    vectorCount nodeCount tree.MaxDepth tree.TotalPoints
+                                $"""{{"vectors": %d{vectorCount}, "nodes": %d{nodeCount}, "max_depth": %d{tree.MaxDepth}, "total_points": %d{tree.TotalPoints}}}"""
                             | "yaml" ->
-                                sprintf """vectors: %d
-nodes: %d
-max_depth: %d
-total_points: %d"""
-                                    vectorCount nodeCount tree.MaxDepth tree.TotalPoints
+                                $"""vectors: %d{vectorCount}
+nodes: %d{nodeCount}
+max_depth: %d{tree.MaxDepth}
+total_points: %d{tree.TotalPoints}"""
                             | _ ->
-                                sprintf """BSP Tree Partitioning Results:
-Vectors processed: %d
-Nodes created: %d
-Maximum depth: %d
-Total points: %d"""
-                                    vectorCount nodeCount tree.MaxDepth tree.TotalPoints
+                                $"""BSP Tree Partitioning Results:
+Vectors processed: %d{vectorCount}
+Nodes created: %d{nodeCount}
+Maximum depth: %d{tree.MaxDepth}
+Total points: %d{tree.TotalPoints}"""
 
                         match args.OutputFile with
                         | Some outputFile ->
@@ -231,26 +225,20 @@ Total points: %d"""
                     let output =
                         match args.Format with
                         | "json" ->
-                            sprintf """{"partitions_analyzed": %d, "insights_generated": %d, "contradictions_detected": %d, "analysis_rate": %f}"""
-                                performance.PartitionsAnalyzed performance.InsightsGenerated
-                                performance.ContradictionsDetected performance.AnalysisRate
+                            $"""{{"partitions_analyzed": %d{performance.PartitionsAnalyzed}, "insights_generated": %d{performance.InsightsGenerated}, "contradictions_detected": %d{performance.ContradictionsDetected}, "analysis_rate": %f{performance.AnalysisRate}}}"""
                         | "yaml" ->
-                            sprintf """partitions_analyzed: %d
-insights_generated: %d
-contradictions_detected: %d
-analysis_rate: %f
-elapsed_ms: %d"""
-                                performance.PartitionsAnalyzed performance.InsightsGenerated
-                                performance.ContradictionsDetected performance.AnalysisRate performance.ElapsedMs
+                            $"""partitions_analyzed: %d{performance.PartitionsAnalyzed}
+insights_generated: %d{performance.InsightsGenerated}
+contradictions_detected: %d{performance.ContradictionsDetected}
+analysis_rate: %f{performance.AnalysisRate}
+elapsed_ms: %d{performance.ElapsedMs}"""
                         | _ ->
-                            sprintf """Auto-Reflection Analysis Results:
-Partitions analyzed: %d
-Insights generated: %d
-Contradictions detected: %d
-Analysis rate: %.0f partitions/second
-Elapsed time: %d ms"""
-                                performance.PartitionsAnalyzed performance.InsightsGenerated
-                                performance.ContradictionsDetected performance.AnalysisRate performance.ElapsedMs
+                            $"""Auto-Reflection Analysis Results:
+Partitions analyzed: %d{performance.PartitionsAnalyzed}
+Insights generated: %d{performance.InsightsGenerated}
+Contradictions detected: %d{performance.ContradictionsDetected}
+Analysis rate: %.0f{performance.AnalysisRate} partitions/second
+Elapsed time: %d{performance.ElapsedMs} ms"""
 
                     match args.OutputFile with
                     | Some outputFile ->

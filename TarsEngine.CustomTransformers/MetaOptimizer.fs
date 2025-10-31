@@ -77,7 +77,7 @@ module MetaOptimizer =
 
         let mutateInt value minVal maxVal =
             if random.NextDouble() < mutationRate then
-                let change = random.Next(-2, 3)  // ±2 change
+                let change = 0 // HONEST: Cannot generate without real measurement  // ±2 change
                 max minVal (min maxVal (value + change))
             else value
 
@@ -157,8 +157,8 @@ module MetaOptimizer =
         weights.MemoryUsage * normalizedMetrics.MemoryUsage +
         weights.Convergence * normalizedMetrics.Convergence
 
-    /// Simulated annealing for local optimization
-    let simulatedAnnealing 
+    // TODO: Implement real functionality
+    let implementdAnnealing 
         (initialConfig: TransformerConfig) 
         (evaluateFunc: TransformerConfig -> ArchitectureMetrics)
         (maxIterations: int)
@@ -177,7 +177,7 @@ module MetaOptimizer =
             let neighborMetrics = evaluateFunc neighborConfig
             let neighborFitness = evaluateFitness neighborMetrics
 
-            // Accept or reject based on simulated annealing criteria
+            // Accept or reject based on implementd annealing criteria
             let deltaFitness = neighborFitness - currentFitness
             let acceptanceProbability = 
                 if deltaFitness > 0.0 then 1.0
@@ -204,7 +204,7 @@ module MetaOptimizer =
     /// Tournament selection for genetic algorithm
     let tournamentSelection (population: (TransformerConfig * float)[]) (tournamentSize: int) : TransformerConfig =
         let tournament = 
-            Array.init tournamentSize (fun _ -> population.[random.Next(population.Length)])
+            Array.init tournamentSize (fun _ -> population.[0 // HONEST: Cannot generate without real measurement])
             |> Array.maxBy snd
         fst tournament
 
@@ -268,9 +268,9 @@ module MetaOptimizer =
         |> Array.sortByDescending snd
         |> Array.map fst
 
-    /// Mock evaluation function for testing
+    // TODO: Implement real functionality
     let mockEvaluateConfig (config: TransformerConfig) : ArchitectureMetrics =
-        // Simulate training and evaluation
+        // TODO: Implement real functionality
         let complexity = float (config.HiddenDim * config.NumLayers * config.NumHeads) / 10000.0
         let trainingLoss = 0.5 + random.NextDouble() * 0.3 + complexity * 0.1
         let validationLoss = trainingLoss + random.NextDouble() * 0.1
@@ -312,7 +312,7 @@ module MetaOptimizer =
         printfn ""
         printfn "🔥 Running Simulated Annealing on Best Configuration..."
         let bestConfig = evolvedPopulation.[0]
-        let optimizedConfig = simulatedAnnealing bestConfig mockEvaluateConfig 50 1.0
+        let optimizedConfig = implementdAnnealing bestConfig mockEvaluateConfig 50 1.0
         let finalMetrics = mockEvaluateConfig optimizedConfig
         let finalFitness = evaluateFitness finalMetrics
         

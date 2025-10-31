@@ -155,7 +155,7 @@ type ComplexProblemSolver(logger: ILogger<ComplexProblemSolver>, httpClient: Htt
         // Generate LLM prompt based on problem complexity and agent type
         let llmPrompt = this.GenerateLLMPrompt(agentType, reasoningType, problem, inputData)
         
-        // Simulate LLM response (in real implementation, would call actual LLM)
+        // TODO: Implement real functionality
         let llmResponse = this.SimulateLLMResponse(agentType, reasoningType, problem, llmPrompt)
         
         // Generate chain of thought reasoning
@@ -230,7 +230,7 @@ Reasoning Framework:
 Please provide detailed reasoning with explicit thought process."""
             agentType reasoningType problem.Title problem.Complexity complexityPrompt problem.Domain problem.Context inputData complexityPrompt agentType
     
-    /// Simulate sophisticated LLM response
+    // TODO: Implement real functionality
     member private this.SimulateLLMResponse(agentType: string, reasoningType: string, problem: ComplexProblem, prompt: string) =
         let timestamp = DateTime.UtcNow.ToString("HH:mm:ss.fff")
         

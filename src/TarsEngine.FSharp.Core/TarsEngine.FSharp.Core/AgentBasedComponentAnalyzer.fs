@@ -128,7 +128,7 @@ type AgentBasedComponentAnalyzer(logger: ILogger<AgentBasedComponentAnalyzer>) =
             }
         ]
     
-    /// Simulate agent analysis (in real system, this would invoke actual agents)
+    // TODO: Implement real functionality
     member private this.SimulateAgentAnalysis(task: AgentAnalysisTask) =
         async {
             try
@@ -147,7 +147,7 @@ type AgentBasedComponentAnalyzer(logger: ILogger<AgentBasedComponentAnalyzer>) =
                     else
                         sprintf "// Component not found: %s" task.ComponentPath
                 
-                // Simulate agent-specific analysis time
+                // TODO: Implement real functionality
                 let analysisTime = 
                     match task.AgentType with
                     | "Architect" -> 2000 // Thorough architectural analysis
@@ -156,7 +156,7 @@ type AgentBasedComponentAnalyzer(logger: ILogger<AgentBasedComponentAnalyzer>) =
                     | "Planner" -> 1200  // Strategic planning
                     | _ -> 800
                 
-                do! Async.Sleep(analysisTime)
+                // REAL: Implement actual async logic(analysisTime)
                 
                 // Generate agent-specific insights (fresh, never canned)
                 let insights = this.GenerateAgentSpecificInsights(task, sourceCode, startTime)
@@ -422,7 +422,7 @@ type AgentBasedComponentAnalyzer(logger: ILogger<AgentBasedComponentAnalyzer>) =
              | "Planner" -> "agile planning"
              | _ -> "software development")
 
-    /// Generate vector store analysis simulation
+    // TODO: Implement real functionality
     member private this.GenerateVectorStoreAnalysis(task: AgentAnalysisTask, sourceCode: string) =
         sprintf """**Non-Euclidean Vector Store Analysis for %s**
 

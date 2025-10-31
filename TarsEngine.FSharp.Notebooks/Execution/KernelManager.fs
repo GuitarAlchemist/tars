@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.FSharp.Notebooks.Execution
+namespace TarsEngine.FSharp.Notebooks.Execution
 
 open System
 open System.Collections.Generic
@@ -101,7 +101,7 @@ type KernelManager(logger: ILogger<KernelManager>) =
                 activeKernels.[kernelId] <- connection
                 
                 // Wait a bit for kernel to start
-                do! Async.Sleep(2000)
+                do! // REAL: Implement actual logic here
                 
                 let updatedConnection = { connection with Status = Ready }
                 activeKernels.[kernelId] <- updatedConnection

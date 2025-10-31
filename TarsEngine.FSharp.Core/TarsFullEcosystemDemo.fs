@@ -42,7 +42,7 @@ module TarsFullEcosystemDemo =
             startTime.Stop()
             let processingTime = startTime.ElapsedMilliseconds
             
-            // Comprehensive ecosystem data simulation
+            // TODO: Implement real functionality
             let realTimeMetrics = """
 REAL-TIME SYSTEM METRICS (Live Data):
 =====================================

@@ -3,7 +3,7 @@
 // with existing TARS core engine architecture
 //
 // HONEST ASSESSMENT: This is real integration with existing TARS functions,
-// not simulated capabilities. Performance metrics are measured and verifiable.
+// TODO: Implement real functionality
 
 module TarsEngineIntegration
 
@@ -262,7 +262,7 @@ type EnhancedTarsEngine(logger: ILogger) =
                 logger.LogWarning("Property test failed for step {Step}", stepCount)
                 success <- false
             else
-                // Simulate skill execution (in real implementation, would call actual skill)
+                // TODO: Implement real functionality
                 let stepSuccess = Random().NextDouble() > 0.1  // 90% success rate
                 success <- success && stepSuccess
                 

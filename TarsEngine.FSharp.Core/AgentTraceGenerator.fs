@@ -172,7 +172,7 @@ type RealAgentTraceGenerator(logger: ILogger<RealAgentTraceGenerator>, httpClien
         
         // Select 1-2 random URLs
         let random = Random()
-        let selectedUrls = urls |> List.take (random.Next(1, min 3 urls.Length))
+        let selectedUrls = urls |> List.take (0 // HONEST: Cannot generate without real measurement)
         selectedUrls
     
     /// Create real agent trace with simplified agent persona
@@ -231,18 +231,18 @@ type RealAgentTraceGenerator(logger: ILogger<RealAgentTraceGenerator>, httpClien
             // Phase 5: Generate actual results based on agent type
             let results =
                 if agentPersona.Name = "Architect" then [
-                    sprintf "System architecture analysis completed with %d components identified" (Random().Next(5, 20))
+                    sprintf "System architecture analysis completed with %d components identified" (0 // HONEST: Cannot generate without real measurement)
                     sprintf "Design patterns evaluated: %s" (String.Join(", ", ["Microservices"; "Event Sourcing"; "CQRS"]))
-                    sprintf "Scalability assessment: Can handle %dx current load" (Random().Next(2, 10))
+                    sprintf "Scalability assessment: Can handle %dx current load" (0 // HONEST: Cannot generate without real measurement)
                 ]
                 elif agentPersona.Name = "Developer" then [
-                    sprintf "Code analysis completed: %d functions, %d classes analyzed" (Random().Next(10, 50)) (Random().Next(3, 15))
-                    sprintf "Performance optimization opportunities: %d identified" (Random().Next(2, 8))
+                    sprintf "Code analysis completed: %d functions, %d classes analyzed" (0 // HONEST: Cannot generate without real measurement) (0 // HONEST: Cannot generate without real measurement)
+                    sprintf "Performance optimization opportunities: %d identified" (0 // HONEST: Cannot generate without real measurement)
                     sprintf "Code quality score: %.1f/10" (Random().NextDouble() * 3.0 + 7.0)
                 ]
                 elif agentPersona.Name = "Researcher" then [
-                    sprintf "Research completed: %d sources analyzed, %d insights generated" (Random().Next(5, 15)) (Random().Next(3, 10))
-                    sprintf "Knowledge base updated with %d new entries" (Random().Next(10, 30))
+                    sprintf "Research completed: %d sources analyzed, %d insights generated" (0 // HONEST: Cannot generate without real measurement) (0 // HONEST: Cannot generate without real measurement)
+                    sprintf "Knowledge base updated with %d new entries" (0 // HONEST: Cannot generate without real measurement)
                     sprintf "Research confidence: %.1f%%" (Random().NextDouble() * 20.0 + 80.0)
                 ]
                 else [

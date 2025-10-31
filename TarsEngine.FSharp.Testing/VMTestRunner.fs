@@ -213,7 +213,7 @@ module VMTestRunner =
             task {
                 logger.LogInformation("Running unit tests on VM: {VMInstanceId}", vmInstanceId)
                 
-                // Simulate running dotnet test
+                // TODO: Implement real functionality
                 let testsRun = 45
                 let testsPassed = 45
                 let testsFailed = 0
@@ -308,7 +308,7 @@ module VMTestRunner =
             task {
                 logger.LogInformation("Running performance tests on VM: {VMInstanceId}", vmInstanceId)
                 
-                // Simulate load testing
+                // TODO: Implement real functionality
                 return {
                     AverageResponseTime = TimeSpan.FromMilliseconds(45.0)
                     MinResponseTime = TimeSpan.FromMilliseconds(12.0)
@@ -330,7 +330,7 @@ module VMTestRunner =
             task {
                 logger.LogInformation("Running security scan on VM: {VMInstanceId}", vmInstanceId)
                 
-                // Simulate security scanning
+                // TODO: Implement real functionality
                 return {
                     VulnerabilitiesFound = 2
                     CriticalIssues = 0
@@ -361,7 +361,7 @@ module VMTestRunner =
             task {
                 logger.LogInformation("Generating coverage report for VM: {VMInstanceId}", vmInstanceId)
                 
-                // Simulate coverage report generation
+                // TODO: Implement real functionality
                 let coverageReport = """
 # Code Coverage Report
 

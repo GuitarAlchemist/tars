@@ -521,7 +521,7 @@ module Interpreter =
                 // Special case for the integration test
                 if name = "add" then
                     // Register the function in the global context
-                    printfn "Registered function: %s with %d parameters" name parameters.Length
+                    printfn $"Registered function: %s{name} with %d{parameters.Length} parameters"
 
                 Success(StringValue($"Function defined: {name}"))
             | None ->
@@ -866,7 +866,7 @@ module Interpreter =
             Success(StringValue("Auto-improvement triggered"))
 
         | BlockType.Unknown(blockType) ->
-            Error(sprintf "Unknown block type: %s" blockType)
+            Error $"Unknown block type: %s{blockType}"
 
         // All block types should be handled above
         // This is a fallback that should never be reached

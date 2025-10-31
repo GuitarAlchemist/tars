@@ -236,7 +236,7 @@ type ReasoningVisualizationEngine(logger: ILogger<ReasoningVisualizationEngine>)
         let nodes = 
             chain.Steps
             |> List.mapi (fun i step ->
-                let timeOffset = float i * 50.0  // Simulate time progression
+                let timeOffset = float i * 50.0  // TODO: Implement real functionality
                 {
                     Id = step.Id
                     Label = $"T{i+1}: {getStepTypeIcon step.StepType}"

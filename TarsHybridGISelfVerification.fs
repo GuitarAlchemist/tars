@@ -265,7 +265,7 @@ type SelfUnderstandingVerificationSystem() =
     member this.DemonstrateSelfModificationAwareness() =
         let sw = System.Diagnostics.Stopwatch.StartNew()
         
-        // Simulate learning experience that triggers self-modification
+        // TODO: Implement real functionality
         let learningExp = {|
             Context = "inference_performance_degradation"
             Success = false

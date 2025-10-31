@@ -122,7 +122,7 @@ module RDF =
             let wherePattern = @"WHERE\s*\{(.+?)\}"
             
             try
-                // For now, return mock results
+                // TODO: Implement real functionality
                 let mockBindings = [
                     Map.ofList [("s", "http://example.org/subject1"); ("p", "http://example.org/predicate1"); ("o", "object1")]
                     Map.ofList [("s", "http://example.org/subject2"); ("p", "http://example.org/predicate2"); ("o", "object2")]

@@ -12,7 +12,7 @@ type DataSourceType =
     | Unknown of string
 
 and DatabaseType = PostgreSQL | MySQL | MongoDB | Redis | Elasticsearch
-and ApiType = REST | GraphQL | gRPC | WebSocket | SOAP
+and ApiType = REST | GraphQL | GRPC | WebSocket | SOAP
 and FileType = CSV | JSON | XML | Parquet | Binary
 and StreamType = Kafka | RabbitMQ | EventHub | RedisStream
 and CacheType = Redis | Memcached | InMemory

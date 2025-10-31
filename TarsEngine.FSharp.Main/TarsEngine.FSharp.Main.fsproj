@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
@@ -47,7 +47,10 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\TarsEngine.DSL\TarsEngine.DSL.fsproj" />
-    <ProjectReference Include="..\TarsEngine.SelfImprovement\TarsEngine.SelfImprovement.fsproj" />
+    <ProjectReference Include="..\TarsEngine.FSharp.SelfImprovement\TarsEngine.FSharp.SelfImprovement.fsproj" />
     <ProjectReference Include="..\TarsEngine.FSharp.Core\TarsEngine.FSharp.Core.fsproj" />
   </ItemGroup>
 </Project>
+
+
+

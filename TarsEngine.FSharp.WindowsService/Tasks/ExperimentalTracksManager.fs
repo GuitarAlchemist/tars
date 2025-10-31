@@ -286,7 +286,7 @@ type ExperimentalTracksManager(logger: ILogger<ExperimentalTracksManager>) =
         try
             logger.LogInformation($"🚀 Starting {track.Domain} {track.Type} track: {track.Name}")
             
-            // Real execution - no fake delays
+            // TODO: Implement real functionality
 
             for i in 1 to track.TotalTasks do
                 if cancellationToken.IsCancellationRequested then break
@@ -294,12 +294,12 @@ type ExperimentalTracksManager(logger: ILogger<ExperimentalTracksManager>) =
                 // Check if track is paused
                 let currentTrack = tracks.[track.Id]
                 while currentTrack.Status = Paused && not cancellationToken.IsCancellationRequested do
-                    // Real pause handling without fake delays
+                    // TODO: Implement real functionality
                     if cancellationToken.IsCancellationRequested then break
                 
                 if cancellationToken.IsCancellationRequested then break
                 
-                // Simulate work
+                // TODO: Implement real functionality
                 do! Task.Delay(taskDuration, cancellationToken)
                 
                 let taskName = match track.Domain, track.Type with

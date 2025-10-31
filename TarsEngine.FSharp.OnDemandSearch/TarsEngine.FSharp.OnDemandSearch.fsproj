@@ -21,8 +21,13 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
-  <ItemGroup>
+  <!-- Temporarily remove broken core dependency -->
+  <!--<ItemGroup>
     <ProjectReference Include="..\TarsEngine.FSharp.Core\TarsEngine.FSharp.Core.fsproj" />
-  </ItemGroup>
+  </ItemGroup>-->
 
 </Project>
+
+
+
+

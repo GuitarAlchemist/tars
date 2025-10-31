@@ -1,5 +1,5 @@
 // TARS Real Proof - Minimal Working Multi-Agent System
-// This is REAL, compilable, testable code - not a simulation
+// TODO: Implement real functionality
 
 open System
 open Microsoft.Extensions.Logging
@@ -225,7 +225,7 @@ let main argv =
     printfn "  Success Rate: %.1f%%" (successRate * 100.0)
     printfn "  Proposals Processed: %d" testProposals.Length
     
-    // Test 4: Self-Improvement Simulation
+    // TODO: Implement real functionality
     printfn "\n4. Testing Self-Improvement Logic:"
     let currentPerformance = 100.0
     let improvementFactor = 1.15 // 15% improvement

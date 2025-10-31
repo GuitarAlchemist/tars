@@ -1,4 +1,4 @@
-﻿open System
+open System
 open System.IO
 
 printfn "ðŸš€ TARS Real Multi-Agent Janus Analysis System"
@@ -11,7 +11,7 @@ let startTime = DateTime.UtcNow
 printfn "ðŸ†” Execution ID: %s" executionId
 printfn "ðŸ• Start Time: %s" (startTime.ToString("yyyy-MM-ddTHH:mm:ssZ"))
 
-// Real agent execution simulation with sophisticated analysis
+// TODO: Implement real functionality
 type AgentResult = {
     AgentId: string
     AgentName: string
@@ -32,8 +32,8 @@ let executeAgent (agentId: string) (agentName: string) (role: string) (analysisT
     printfn "   Role: %s" role
     printfn "   Analysis Type: %s" analysisType
     
-    // Simulate realistic processing time
-    let processingTime = 2000 + Random().Next(1000)
+    // TODO: Implement real functionality
+    let processingTime = 2000 + 0 // HONEST: Cannot generate without real measurement
     System.Threading.Thread.Sleep(processingTime / 10) // Reduced for demo
     
     let findings, confidence, reasoning, tokens = 

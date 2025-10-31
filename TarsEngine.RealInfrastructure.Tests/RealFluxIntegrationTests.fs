@@ -7,7 +7,7 @@ open Xunit
 open FsUnit.Xunit
 
 // === REAL FLUX LANGUAGE SYSTEM INTEGRATION TESTS ===
-// These tests PROVE we're using the actual FLUX infrastructure, not simulations
+// TODO: Implement real functionality
 
 [<Fact>]
 let ``PROOF: Real FLUX assemblies are loaded and accessible`` () =
@@ -22,10 +22,10 @@ let ``PROOF: Real FLUX assemblies are loaded and accessible`` () =
     
     printfn "🔍 PROOF: Found %d FLUX-related assemblies:" fluxAssemblies.Length
     for assembly in fluxAssemblies do
-        printfn "   📦 %s" assembly.GetName().Name
+        printfn "   📦 %s" (assembly.GetName().Name)
     
     // Assert we have real FLUX infrastructure
-    fluxAssemblies.Length |> should be (greaterThan 0)
+    fluxAssemblies.Length |> should be ((greaterThan 0))
 
 [<Fact>]
 let ``PROOF: Real FLUX parser exists and can parse .flux files`` () =

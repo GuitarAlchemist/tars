@@ -121,7 +121,7 @@ module TarsEnhancedEvolution =
             | PartitionResult.Success tree ->
                 match performReflection tree logger with
                 | ReflectionResult.Success performance ->
-                    // Create mock insights
+                    // TODO: Implement real functionality
                     let insights = [
                         {
                             Id = generateReflectionId "insight"
@@ -256,9 +256,9 @@ __global__ void evolution_kernel(float* data, int n, float evolution_factor) {
                 
                 // Step 1: Run base evolution (simplified for demonstration)
                 logger.LogInformation("📊 Running base evolution step")
-                // Simulate evolution success for demonstration
+                // TODO: Implement real functionality
                 session <- { session with BaseSession = { session.BaseSession with OverallSuccess = true } }
-                logger.LogInformation("✅ Base evolution successful: simulated improvement")
+                logger.LogInformation("✅ Base evolution successful: implementd improvement")
                 
                 // Step 2: Capture belief state
                 if config.EnableBeliefTracking && cycle % config.BeliefTrackingInterval = 0 then

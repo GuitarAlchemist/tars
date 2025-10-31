@@ -19,7 +19,7 @@ type MLFramework(logger: ILogger<MLFramework>, ?options: MLFrameworkOptions) =
         | None -> Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Models")
     
     let loadedModels = Dictionary<string, ITransformer>()
-    let predictionEngines = Dictionary<string, PredictionEngine<obj, obj>>()
+    let predictionEngines = Dictionary<string, obj>()
     let modelLastUpdated = Dictionary<string, DateTime>()
     let modelMetadata = Dictionary<string, MLModelMetadata>()
     
@@ -48,30 +48,34 @@ type MLFramework(logger: ILogger<MLFramework>, ?options: MLFrameworkOptions) =
                 // Check if model exists and is up to date
                 if File.Exists(modelPath) then
                     let fileInfo = FileInfo(modelPath)
-                    
+
                     // If model is already loaded and hasn't changed, return
-                    if loadedModels.ContainsKey(modelName) &&
-                       modelLastUpdated.TryGetValue(modelName, &(let mutable lastUpdated = DateTime.MinValue; lastUpdated)) &&
-                       lastUpdated >= fileInfo.LastWriteTimeUtc then
+                    let mutable lastUpdated = DateTime.MinValue
+                    let isUpToDate =
+                        loadedModels.ContainsKey(modelName) &&
+                        modelLastUpdated.TryGetValue(modelName, &lastUpdated) &&
+                        lastUpdated >= fileInfo.LastWriteTimeUtc
+
+                    if isUpToDate then
                         return true
-                    
-                    // Load model
-                    logger.LogInformation("Loading model: {ModelName}", modelName)
-                    let modelSchema = DataViewSchema()
-                    let loadedModel = mlContext.Model.Load(modelPath, &modelSchema)
-                    
-                    // Store model
-                    loadedModels.[modelName] <- loadedModel
-                    modelLastUpdated.[modelName] <- fileInfo.LastWriteTimeUtc
-                    
-                    // Create prediction engine
-                    let typedPredictionEngine = mlContext.Model.CreatePredictionEngine<'TData, 'TPrediction>(loadedModel)
-                    predictionEngines.[modelName] <- typedPredictionEngine :?> PredictionEngine<obj, obj>
-                    
-                    // Load metadata if exists
-                    do! this.LoadModelMetadataAsync(modelName)
-                    
-                    return true
+                    else
+                        // Load model
+                        logger.LogInformation("Loading model: {ModelName}", modelName)
+                        let mutable modelSchema = Unchecked.defaultof<DataViewSchema>
+                        let loadedModel = mlContext.Model.Load(modelPath, &modelSchema)
+
+                        // Store model
+                        loadedModels.[modelName] <- loadedModel
+                        modelLastUpdated.[modelName] <- fileInfo.LastWriteTimeUtc
+
+                        // Create prediction engine
+                        let typedPredictionEngine = mlContext.Model.CreatePredictionEngine<'TData, 'TPrediction>(loadedModel)
+                        predictionEngines.[modelName] <- box typedPredictionEngine
+
+                        // Load metadata if exists
+                        do! this.LoadModelMetadataAsync(modelName)
+
+                        return true
                 else
                     // If no training data provided, can't create model
                     match trainingData with
@@ -104,7 +108,7 @@ type MLFramework(logger: ILogger<MLFramework>, ?options: MLFrameworkOptions) =
                             
                             // Create prediction engine
                             let predictionEngine = mlContext.Model.CreatePredictionEngine<'TData, 'TPrediction>(model)
-                            predictionEngines.[modelName] <- predictionEngine :?> PredictionEngine<obj, obj>
+                            predictionEngines.[modelName] <- box predictionEngine
                             
                             // Create and save metadata
                             let metadata = {
@@ -189,7 +193,7 @@ type MLFramework(logger: ILogger<MLFramework>, ?options: MLFrameworkOptions) =
                 
                 // Create prediction engine
                 let predictionEngine = mlContext.Model.CreatePredictionEngine<'TData, 'TPrediction>(model)
-                predictionEngines.[modelName] <- predictionEngine :?> PredictionEngine<obj, obj>
+                predictionEngines.[modelName] <- box predictionEngine
                 
                 // Update metadata
                 let metadata =
@@ -238,17 +242,17 @@ type MLFramework(logger: ILogger<MLFramework>, ?options: MLFrameworkOptions) =
         ) : 'TPrediction option =
         
         try
-            let mutable engine = Unchecked.defaultof<PredictionEngine<obj, obj>>
+            let mutable engine = Unchecked.defaultof<obj>
             if not (predictionEngines.TryGetValue(modelName, &engine)) then
                 logger.LogWarning("Prediction engine not found for model: {ModelName}", modelName)
                 None
             else
-                let typedEngine = engine :?> PredictionEngine<'TData, 'TPrediction>
-                if isNull (box typedEngine) then
+                match engine with
+                | :? PredictionEngine<'TData, 'TPrediction> as typedEngine ->
+                    Some (typedEngine.Predict(data))
+                | _ ->
                     logger.LogWarning("Invalid prediction engine type for model: {ModelName}", modelName)
                     None
-                else
-                    Some (typedEngine.Predict(data))
         with
         | ex ->
             logger.LogError(ex, "Error making prediction with model: {ModelName}", modelName)
@@ -317,8 +321,8 @@ type MLFramework(logger: ILogger<MLFramework>, ?options: MLFrameworkOptions) =
                 
                 let! json = File.ReadAllTextAsync(metadataPath)
                 let metadata = System.Text.Json.JsonSerializer.Deserialize<MLModelMetadata>(json)
-                
-                if not (isNull metadata) then
+
+                if not (isNull (box metadata)) then
                     modelMetadata.[modelName] <- metadata
             with
             | ex ->
@@ -352,8 +356,10 @@ type MLFramework(logger: ILogger<MLFramework>, ?options: MLFrameworkOptions) =
             // Dispose prediction engines
             for engine in predictionEngines.Values do
                 if not (isNull engine) then
-                    engine.Dispose()
-            
+                    match engine with
+                    | :? IDisposable as disposable -> disposable.Dispose()
+                    | _ -> ()
+
             predictionEngines.Clear()
             loadedModels.Clear()
             modelLastUpdated.Clear()

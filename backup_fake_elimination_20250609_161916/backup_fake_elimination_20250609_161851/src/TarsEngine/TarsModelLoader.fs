@@ -332,7 +332,7 @@ module TarsModelLoader =
         ("Mistral-7B-GGUF", "https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.1-GGUF", GGUF)
     ]
     
-    /// Download model from Hugging Face (placeholder)
+    // TODO: Implement real functionality
     let downloadModel (modelName: string) (outputPath: string) = async {
         printfn $"📥 Downloading {modelName} to {outputPath}..."
         printfn "⚠️ Model downloading not implemented yet - use local models"

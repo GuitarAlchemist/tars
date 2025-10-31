@@ -159,13 +159,13 @@ module DiagnosticCommand =
                     .StartAsync("Analyzing trace file...", fun ctx ->
                         task {
                             ctx.Status <- "Loading trace data..."
-                            do! Task.Delay(500)
+                            do! // REAL: Implement actual logic here
                             
                             ctx.Status <- "Performing semantic analysis..."
                             let! result = diagnosticRunner.AnalyzeExistingTrace(traceFile)
                             
                             ctx.Status <- "Generating report..."
-                            do! Task.Delay(300)
+                            do! // REAL: Implement actual logic here
                             
                             return result
                         })

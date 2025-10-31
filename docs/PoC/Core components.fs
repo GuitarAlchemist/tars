@@ -158,7 +158,7 @@ type TarsRuntime(program: TarsProgram) =
                 
             context <- Map.add key contextValue context
     
-    // Execute a prompt block (simulated in the PoC)
+    // TODO: Implement real functionality
     member private this.ExecutePromptBlock(block: TarsBlock) = task {
         // Extract prompt text
         let promptText = 

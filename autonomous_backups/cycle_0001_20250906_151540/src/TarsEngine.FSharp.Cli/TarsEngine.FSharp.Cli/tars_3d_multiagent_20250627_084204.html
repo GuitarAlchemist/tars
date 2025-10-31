@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>TARS 3D Multi-Agent System</title>
+    <style>
+        body { margin: 0; background: #1a1a2e; color: white; font-family: 'Courier New', monospace; }
+        .container { padding: 20px; }
+        .agent-3d {
+            position: absolute;
+            width: 60px; height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            box-shadow: 0 0 20px rgba(0,255,255,0.5);
+        }
+        .research { background: linear-gradient(45deg, #ff6b6b, #ee5a24); }
+        .analysis { background: linear-gradient(45deg, #4834d4, #686de0); }
+        .communication { background: linear-gradient(45deg, #00d2d3, #01a3a4); }
+        .visualization { background: linear-gradient(45deg, #ff9ff3, #f368e0); }
+        .coordination { background: linear-gradient(45deg, #feca57, #ff9f43); }
+        .space-3d {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            margin: 20px auto;
+            border: 2px solid #00d2d3;
+            background: radial-gradient(circle, #16213e, #0f0f23);
+            perspective: 1000px;
+        }
+        .title { text-align: center; color: #00d2d3; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">🧠🤖 TARS 3D Multi-Agent Reasoning System</h1>
+        <div class="space-3d">
+            <div class="agent-3d research" style="left: 100px; top: 250px;">R1</div>
+            <div class="agent-3d research" style="left: 120px; top: 270px;">R2</div>
+            <div class="agent-3d research" style="left: 80px; top: 230px;">R3</div>
+
+            <div class="agent-3d analysis" style="right: 100px; top: 250px;">A1</div>
+            <div class="agent-3d analysis" style="right: 120px; top: 270px;">A2</div>
+            <div class="agent-3d analysis" style="right: 80px; top: 230px;">A3</div>
+            <div class="agent-3d analysis" style="right: 140px; top: 290px;">A4</div>
+
+            <div class="agent-3d communication" style="left: 350px; top: 100px;">C1</div>
+            <div class="agent-3d communication" style="left: 370px; top: 120px;">C2</div>
+
+            <div class="agent-3d visualization" style="left: 350px; bottom: 100px;">V1</div>
+            <div class="agent-3d visualization" style="left: 370px; bottom: 120px;">V2</div>
+            <div class="agent-3d visualization" style="left: 330px; bottom: 80px;">V3</div>
+
+            <div class="agent-3d coordination" style="left: 350px; top: 50px;">CO1</div>
+            <div class="agent-3d coordination" style="left: 370px; top: 30px;">CO2</div>
+        </div>
+        <p style="text-align: center; color: #00d2d3;">
+            🎯 Autonomous Vehicle Navigation System<br>
+            📊 14 Specialized Agents | 5 Departments | 3D Spatial Coordination<br>
+            🎮 Game Theory Communication | Real-time Collaboration
+        </p>
+    </div>
+</body>
+</html>

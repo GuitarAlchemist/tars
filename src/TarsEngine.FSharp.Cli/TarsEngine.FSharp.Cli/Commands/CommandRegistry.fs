@@ -3,7 +3,7 @@ namespace TarsEngine.FSharp.Cli.Commands
 open System.Collections.Generic
 open Microsoft.Extensions.Logging
 open TarsEngine.FSharp.Cli.Services
-// open TarsEngine.FSharp.Agents
+open TarsEngine.FSharp.SelfImprovement
 
 
 /// <summary>
@@ -15,7 +15,9 @@ type CommandRegistry(
     dockerService: DockerService,
     mixtralService: MixtralService,
     llmRouter: LLMRouter,
-    searchService: TarsEngine.FSharp.OnDemandSearch.IOnDemandSearchService) =
+    searchService: TarsEngine.FSharp.OnDemandSearch.IOnDemandSearchService,
+    selfImprovementService: ISelfImprovementService,
+    loggerFactory: ILoggerFactory) =
     
     let commands = Dictionary<string, ICommand>()
     
@@ -47,7 +49,6 @@ type CommandRegistry(
         let versionCommand = new VersionCommand()
 
         // Metascript commands (standalone implementation)
-        let loggerFactory = LoggerFactory.Create(fun builder -> builder.AddConsole() |> ignore)
         let executeLogger = loggerFactory.CreateLogger<ExecuteCommand>()
         let yamlLogger = loggerFactory.CreateLogger<YamlProcessingService>()
         let fileLogger = loggerFactory.CreateLogger<FileOperationsService>()
@@ -100,9 +101,7 @@ type CommandRegistry(
         let nexusLogger = loggerFactory.CreateLogger<SelfImprovingAiCommand>()
         let nexusCommand = SelfImprovingAiCommand(nexusLogger)
 
-        // Advanced AI command - Next-generation AI capabilities
-        let advancedLogger = loggerFactory.CreateLogger<AdvancedAiCommand>()
-        let advancedCommand = AdvancedAiCommand(advancedLogger)
+
 
         // HTTP Server command - API for VS Code extension
         let serverLogger = loggerFactory.CreateLogger<HttpServerCommand>()
@@ -123,8 +122,15 @@ type CommandRegistry(
         // Demo command - Comprehensive TARS demonstrations
         let demoCommand = DemoCommand()
 
+        // Web UI command - Autonomous software engineering web interface
+        let webUICommand = WebUICommand()
+
         // Concept Analysis - Sparse concept decomposition for interpretable AI
         let conceptAnalysisCommand = ConceptAnalysisCommand()
+
+        // Flux Codex workflow command
+        let fluxLogger = loggerFactory.CreateLogger<FluxCommand>()
+        let fluxCommand = FluxCommand(fluxLogger)
 
         // Enhanced Intelligence Command - Tier 6 & 7 capabilities
         let enhancedIntelligenceLogger = loggerFactory.CreateLogger<EnhancedIntelligenceCommand>()
@@ -133,6 +139,29 @@ type CommandRegistry(
         // Web Search Command - Advanced web search capabilities
         let webSearchLogger = loggerFactory.CreateLogger<WebSearchCommand>()
         let webSearchCommand = WebSearchCommand(webSearchLogger, searchService)
+
+        // TODO: Implement real functionality
+        let statusLogger = loggerFactory.CreateLogger<LiveDemoCommand>()
+        let statusCommand = LiveDemoCommand(statusLogger, mixtralService)
+
+        // Real AI Command - Genuine AI capabilities with honest reporting
+        let realAILogger = loggerFactory.CreateLogger<RealAICommand>()
+        let realAICommand = RealAICommand(realAILogger, mixtralService)
+
+        // Advanced LLM Service and Superior AI Command
+        let advancedLLMLogger = loggerFactory.CreateLogger<AdvancedLLMService>()
+        let httpClient = new System.Net.Http.HttpClient()
+        let advancedLLMService = AdvancedLLMService(advancedLLMLogger, httpClient)
+        let superiorAILogger = loggerFactory.CreateLogger<SuperiorAICommand>()
+        let superiorAICommand = SuperiorAICommand(superiorAILogger, advancedLLMService)
+
+        // Real Autonomous Improvement Service and Command (temporarily disabled)
+        // let realAutonomousLogger = loggerFactory.CreateLogger<RealAutonomousImprovementService>()
+        // let realAutonomousService = RealAutonomousImprovementService(realAutonomousLogger, advancedLLMService)
+        // let realAutoCommandLogger = loggerFactory.CreateLogger<RealAutonomousCommand>()
+        // let realAutoCommand = RealAutonomousCommand(realAutoCommandLogger, realAutonomousService)
+
+
 
         // Unified Reasoning - Showcases all architectural improvements
         // let unifiedReasoningCommand = UnifiedReasoningCommand()
@@ -145,6 +174,10 @@ type CommandRegistry(
         // let enhancedMultiAgentReasoningCommand = EnhancedMultiAgentReasoningCommand()
         // let scenarioReasoningCommand = ScenarioReasoningCommand()
         // let continuousReasoningCommand = ContinuousReasoningCommand()
+
+        // Code Protection System
+        let codeProtectionCommand = CodeProtectionCommand()
+        let astAnalysisCommand = ASTAnalysisCommand()
 
         // Register working commands
         self.RegisterCommand(versionCommand)
@@ -160,17 +193,27 @@ type CommandRegistry(
         self.RegisterCommand(aiMetascriptCommand)
         self.RegisterCommand(aiIdeCommand)
         self.RegisterCommand(nexusCommand)
-        self.RegisterCommand(advancedCommand)
         self.RegisterCommand(serverCommand)
         self.RegisterCommand(chatCommand)
         self.RegisterCommand(diagnosticsCommand)
         self.RegisterCommand(nonEuclideanCommand)
         self.RegisterCommand(conceptAnalysisCommand)
+        self.RegisterCommand(fluxCommand)
         self.RegisterCommand(enhancedIntelligenceCommand)
         self.RegisterCommand(webSearchCommand)
+        self.RegisterCommand(statusCommand)
+        self.RegisterCommand(realAICommand)
+        self.RegisterCommand(superiorAICommand)
+        // self.RegisterCommand(realAutoCommand)  // Temporarily disabled
         // self.RegisterCommand(unifiedReasoningCommand)
         // self.RegisterCommand(ultimateReasoningCommand)
         self.RegisterCommand(demoCommand)
+        self.RegisterCommand(webUICommand)
+        self.RegisterCommand(codeProtectionCommand)
+        self.RegisterCommand(astAnalysisCommand)
+        let autoLoopLogger = loggerFactory.CreateLogger<AutoLoopCommand>()
+        let autoLoopCommand = AutoLoopCommand(autoLoopLogger, selfImprovementService, loggerFactory)
+        self.RegisterCommand(autoLoopCommand)
 
         // Create help command with all commands (must be last)
         let allCommands = self.GetAllCommands()

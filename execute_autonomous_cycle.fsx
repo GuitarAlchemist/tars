@@ -84,7 +84,7 @@ for i, task in improvementTasks |> List.indexed do
     printfn $"           Expected Benefit: {task.expectedBenefit:P1}"
     printfn $"           Risk Level: {task.implementationRisk:P1}"
 
-// Phase 3: Simulate Secure Testing (Windows Sandbox simulation)
+// TODO: Implement real functionality
 printfn "\n🔒 Phase 3: Secure Testing Simulation"
 printfn "   🔧 Checking Windows Sandbox availability..."
 
@@ -108,13 +108,13 @@ let sandboxAvailable =
 let sandboxStatus = if sandboxAvailable then "✅ Available" else "⚠️ Not Available (using fallback)"
 printfn $"   Windows Sandbox: {sandboxStatus}"
 
-// Simulate testing each improvement
+// TODO: Implement real functionality
 let testResults = 
     improvementTasks
     |> List.map (fun task ->
         printfn $"   🧪 Testing: {task.description}"
         
-        // Simulate comprehensive testing
+        // TODO: Implement real functionality
         let syntaxValid = task.proposedCode.Contains("async") || task.proposedCode.Contains("let")
         let safetyScore = if task.proposedCode.Contains("unsafe") then 0.3 else 0.85
         let performanceGain = task.expectedBenefit * 0.8 // Realistic performance gain

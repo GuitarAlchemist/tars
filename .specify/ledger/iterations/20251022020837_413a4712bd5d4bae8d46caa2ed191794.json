@@ -1,0 +1,296 @@
+{
+  "agentFeedback": [
+    {
+      "agentId": "agent:reasoner",
+      "role": "Reasoner",
+      "verdict": "approve",
+      "detail": null,
+      "confidence": 0.85,
+      "notes": "Metascript closure analysis",
+      "suggestedActions": [],
+      "recordedAt": "2025-10-22T02:08:37.2005459Z"
+    },
+    {
+      "agentId": "agent:reviewer",
+      "role": "Reviewer",
+      "verdict": "approve",
+      "detail": null,
+      "confidence": 0.9,
+      "notes": "Harness validation review",
+      "suggestedActions": [],
+      "recordedAt": "2025-10-22T02:08:37.2005805Z"
+    },
+    {
+      "agentId": "agent:performance",
+      "role": "PerformanceBenchmarker",
+      "verdict": "approve",
+      "detail": null,
+      "confidence": 0.72,
+      "notes": "No performance benchmarks configured; passing with reduced confidence.",
+      "suggestedActions": [],
+      "recordedAt": "2025-10-22T02:08:37.2005808Z"
+    },
+    {
+      "agentId": "agent:safety-governor",
+      "role": "SafetyGovernor",
+      "verdict": "approve",
+      "detail": null,
+      "confidence": 0.88,
+      "notes": "Harness and critic sign-off achieved.",
+      "suggestedActions": [],
+      "recordedAt": "2025-10-22T02:08:37.200581Z"
+    },
+    {
+      "agentId": "agent:spec-guardian",
+      "role": "SpecGuardian",
+      "verdict": "approve",
+      "detail": null,
+      "confidence": 0.78,
+      "notes": "Candidate patches generated for spec review.",
+      "suggestedActions": [],
+      "recordedAt": "2025-10-22T02:08:37.2005811Z"
+    }
+  ],
+  "appendPath": "C:\\Users\\spare\\source\\repos\\tars\\output\\adaptive_memory_spec-kit.jsonl",
+  "artifacts": [
+    "dynamic metascript spec (rules=7 source=C:\\Users\\spare\\source\\repos\\tars\\.specify\\specs\\tier2-bootstrap\\spec.md)",
+    "Dynamic metascript summary recorded (2 spawn, 2 connections)"
+  ],
+  "commands": [
+    {
+      "name": "update-release-notes",
+      "stage": "pre-validation",
+      "exitCode": 0,
+      "durationSeconds": 3.6166805,
+      "startedAt": "2025-10-22T02:08:29.4233381Z",
+      "completedAt": "2025-10-22T02:08:33.0400186Z"
+    },
+    {
+      "name": "dotnet-test",
+      "stage": "validation",
+      "exitCode": 0,
+      "durationSeconds": 4.1393974,
+      "startedAt": "2025-10-22T02:08:33.042346Z",
+      "completedAt": "2025-10-22T02:08:37.1817434Z"
+    }
+  ],
+  "consensus": {
+    "status": "passed",
+    "message": null,
+    "agents": [
+      {
+        "agentId": "agent:reasoner",
+        "role": "Reasoner",
+        "outcome": "pass",
+        "confidence": 0.85,
+        "notes": "Metascript closure analysis",
+        "producedAt": "2025-10-22T02:08:37.1854979Z"
+      },
+      {
+        "agentId": "agent:reviewer",
+        "role": "Reviewer",
+        "outcome": "pass",
+        "confidence": 0.9,
+        "notes": "Harness validation review",
+        "producedAt": "2025-10-22T02:08:37.1856044Z"
+      },
+      {
+        "agentId": "agent:performance",
+        "role": "PerformanceBenchmarker",
+        "outcome": "pass",
+        "confidence": 0.72,
+        "notes": "No performance benchmarks configured; passing with reduced confidence.",
+        "producedAt": "2025-10-22T02:08:37.1856078Z"
+      },
+      {
+        "agentId": "agent:safety-governor",
+        "role": "SafetyGovernor",
+        "outcome": "pass",
+        "confidence": 0.88,
+        "notes": "Harness and critic sign-off achieved.",
+        "producedAt": "2025-10-22T02:08:37.1856256Z"
+      },
+      {
+        "agentId": "agent:spec-guardian",
+        "role": "SpecGuardian",
+        "outcome": "pass",
+        "confidence": 0.78,
+        "notes": "Candidate patches generated for spec review.",
+        "producedAt": "2025-10-22T02:08:37.1856269Z"
+      }
+    ]
+  },
+  "critic": {
+    "status": "accept",
+    "message": null
+  },
+  "description": "\u0060tier2/bootstrap-release-notes\u0060",
+  "harness": {
+    "status": "passed",
+    "failureReason": null,
+    "failedCommandCount": 0
+  },
+  "metrics": {
+    "capability.avg_duration_seconds": 3.87803895,
+    "capability.benchmark_duration_seconds": 0,
+    "capability.command_count": 2,
+    "capability.failure_count": 0,
+    "capability.max_duration_seconds": 4.1393974,
+    "capability.pass_ratio": 1,
+    "capability.prevalidation_duration_seconds": 3.6166805,
+    "capability.success_count": 2,
+    "capability.total_duration_seconds": 7.7560779,
+    "capability.validation_duration_seconds": 4.1393974,
+    "dsl.metascript.connection_count": 2,
+    "dsl.metascript.max_depth": 3,
+    "dsl.metascript.repeated_patterns": "[release-cycle]",
+    "dsl.metascript.rule_count": 7,
+    "dsl.metascript.source": "C:\\Users\\spare\\source\\repos\\tars\\.specify\\specs\\tier2-bootstrap\\spec.md",
+    "dsl.metascript.spawn_count": 2,
+    "dsl.metric.adaptation": 0.8,
+    "dsl.metric.documentation": 0.92,
+    "feedback.approve": 5,
+    "feedback.avg_confidence": 0.826,
+    "feedback.escalate": 0,
+    "feedback.needs_work": 0,
+    "feedback.reject": 0,
+    "feedback.total": 5,
+    "safety.consensus_agents": 5,
+    "safety.consensus_avg_confidence": 0.826,
+    "safety.consensus_failures": 0,
+    "safety.consensus_needs_review": 0,
+    "safety.consensus_status": "passed",
+    "safety.critic_status": "accept",
+    "validators.comments": 0,
+    "validators.disagreement_ratio": 0,
+    "validators.disagreements": 0,
+    "validators.findings_fail": 0,
+    "validators.findings_needs_review": 0,
+    "validators.findings_pass": 5,
+    "validators.findings_total": 5,
+    "validators.targets": 1
+  },
+  "nextSteps": [
+    "Promote validated dynamic closure to registry if production-ready.",
+    "Validate dynamic closure grammar against production constraints.",
+    "Run rehearsal execution in sandboxed environment.",
+    "Publish documentation for newly generated closure behaviour."
+  ],
+  "policyAfter": {
+    "requireConsensus": true,
+    "requireCritic": true,
+    "stopOnFailure": true,
+    "captureLogs": true,
+    "patchCommands": 1,
+    "validationCommands": 1,
+    "benchmarkCommands": 0,
+    "hasAgentProvider": false,
+    "hasTraceProvider": true,
+    "hasFeedbackSink": false,
+    "hasReasoningCritic": true,
+    "consensusRule": {
+      "minimumPassCount": 3,
+      "requiredRoles": [
+        "SafetyGovernor",
+        "PerformanceBenchmarker",
+        "SpecGuardian"
+      ],
+      "allowNeedsReview": false,
+      "minimumConfidence": 0.7,
+      "maxFailureCount": 0
+    }
+  },
+  "policyBefore": {
+    "requireConsensus": true,
+    "requireCritic": true,
+    "stopOnFailure": true,
+    "captureLogs": true,
+    "patchCommands": 1,
+    "validationCommands": 1,
+    "benchmarkCommands": 0,
+    "hasAgentProvider": false,
+    "hasTraceProvider": true,
+    "hasFeedbackSink": false,
+    "hasReasoningCritic": true,
+    "consensusRule": {
+      "minimumPassCount": 3,
+      "requiredRoles": [
+        "SafetyGovernor",
+        "PerformanceBenchmarker",
+        "SpecGuardian"
+      ],
+      "allowNeedsReview": false,
+      "minimumConfidence": 0.7,
+      "maxFailureCount": 0
+    }
+  },
+  "policyChanges": [],
+  "runId": "413a4712-bd5d-4bae-8d46-caa2ed191794",
+  "specId": "tier2-bootstrap",
+  "specPath": "C:\\Users\\spare\\source\\repos\\tars\\.specify\\specs\\tier2-bootstrap\\spec.md",
+  "status": "passed",
+  "timestamp": "2025-10-22T02:08:37.2012232Z",
+  "validatorDisagreements": [],
+  "validatorFindings": [
+    {
+      "findingId": "da3bbf09-4018-48d1-bc33-52b5c144fe22",
+      "agentId": "agent:spec-guardian",
+      "role": "SpecGuardian",
+      "outcome": "pass",
+      "confidence": 0.78,
+      "notes": "Candidate patches generated for spec review.",
+      "specId": "tier2-bootstrap",
+      "iterationId": "413a4712-bd5d-4bae-8d46-caa2ed191794",
+      "topic": "spec-kit",
+      "recordedAt": "2025-10-22T02:08:37.1856269Z"
+    },
+    {
+      "findingId": "12096e90-196b-472a-b684-26171cc827e1",
+      "agentId": "agent:safety-governor",
+      "role": "SafetyGovernor",
+      "outcome": "pass",
+      "confidence": 0.88,
+      "notes": "Harness and critic sign-off achieved.",
+      "specId": "tier2-bootstrap",
+      "iterationId": "413a4712-bd5d-4bae-8d46-caa2ed191794",
+      "topic": "spec-kit",
+      "recordedAt": "2025-10-22T02:08:37.1856256Z"
+    },
+    {
+      "findingId": "c8f0d573-3229-4e32-86c6-284feab720c0",
+      "agentId": "agent:performance",
+      "role": "PerformanceBenchmarker",
+      "outcome": "pass",
+      "confidence": 0.72,
+      "notes": "No performance benchmarks configured; passing with reduced confidence.",
+      "specId": "tier2-bootstrap",
+      "iterationId": "413a4712-bd5d-4bae-8d46-caa2ed191794",
+      "topic": "spec-kit",
+      "recordedAt": "2025-10-22T02:08:37.1856078Z"
+    },
+    {
+      "findingId": "95b55a45-017e-4f3a-b20d-8727a2e476d6",
+      "agentId": "agent:reviewer",
+      "role": "Reviewer",
+      "outcome": "pass",
+      "confidence": 0.9,
+      "notes": "Harness validation review",
+      "specId": "tier2-bootstrap",
+      "iterationId": "413a4712-bd5d-4bae-8d46-caa2ed191794",
+      "topic": "spec-kit",
+      "recordedAt": "2025-10-22T02:08:37.1856044Z"
+    },
+    {
+      "findingId": "168d932f-052b-4b40-9fe5-22202f24b65c",
+      "agentId": "agent:reasoner",
+      "role": "Reasoner",
+      "outcome": "pass",
+      "confidence": 0.85,
+      "notes": "Metascript closure analysis",
+      "specId": "tier2-bootstrap",
+      "iterationId": "413a4712-bd5d-4bae-8d46-caa2ed191794",
+      "topic": "spec-kit",
+      "recordedAt": "2025-10-22T02:08:37.1854979Z"
+    }
+  ]
+}

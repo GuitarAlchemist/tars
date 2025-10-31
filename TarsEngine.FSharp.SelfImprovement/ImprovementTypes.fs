@@ -40,18 +40,25 @@ module ImprovementTypes =
         AnalyzedAt: DateTime
     }
     
-    /// Applied improvement tracking
-    type AppliedImprovement = {
-        Id: Guid
+    /// Pattern match result
+    type PatternMatch = {
+        PatternId: string
+        LineNumber: int
+        Context: string
         FilePath: string
-        Pattern: ImprovementPattern
+    }
+
+    /// Applied improvement tracking (extended version for Ollama integration)
+    type AppliedImprovement = {
+        FilePath: string
+        PatternId: string
+        PatternName: string
+        LineNumber: int option
         OriginalCode: string
         ImprovedCode: string
         AppliedAt: DateTime
-        Success: bool
-        Notes: string option
     }
-    
+
     /// Self-improvement session
     type ImprovementSession = {
         Id: Guid

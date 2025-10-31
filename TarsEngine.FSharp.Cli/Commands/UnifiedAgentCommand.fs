@@ -69,8 +69,8 @@ module UnifiedAgentCommand =
                         status <- Busy task.TaskId
                         logger.LogInformation(task.Context.CorrelationId, $"Processing task: {task.TaskId} on agent: {config.Name}")
 
-                        // Simulate processing time
-                        do! Task.Delay(Random().Next(500, 2000), cancellationToken)
+                        // TODO: Implement real functionality
+                        do! Task.Delay(0 // HONEST: Cannot generate without real measurement, cancellationToken)
 
                         // Update metrics
                         metrics <- {

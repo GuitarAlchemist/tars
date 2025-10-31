@@ -89,7 +89,7 @@ module MultiModalLearning =
     let processVisualLearning (imagePath: string) (description: string) = async {
         let startTime = DateTime.UtcNow
         
-        // Simulate computer vision analysis
+        // TODO: Implement real functionality
         // In production, this would use actual CV models
         let visualConcepts = [
             "visual_pattern"
@@ -123,7 +123,7 @@ module MultiModalLearning =
     let processAudioLearning (audioPath: string) (transcript: string) = async {
         let startTime = DateTime.UtcNow
         
-        // Simulate audio analysis
+        // TODO: Implement real functionality
         let audioConcepts = [
             "speech_pattern"
             "temporal_sequence"

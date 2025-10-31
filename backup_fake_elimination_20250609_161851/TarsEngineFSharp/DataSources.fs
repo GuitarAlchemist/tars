@@ -1,4 +1,4 @@
-﻿namespace Tars.DSL
+namespace Tars.DSL
 
 open System
 open System.IO
@@ -18,7 +18,7 @@ module DataSources =
         return! Async.AwaitTask(client.GetStringAsync(url))
     }
     
-    /// Perform a web search (mock implementation)
+    // TODO: Implement real functionality
     let webSearch (query: string) : Async<string list> = async {
         // REAL IMPLEMENTATION NEEDED
         return [

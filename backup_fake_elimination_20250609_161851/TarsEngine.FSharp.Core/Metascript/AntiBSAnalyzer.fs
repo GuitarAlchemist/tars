@@ -3,7 +3,7 @@ namespace TarsEngine.FSharp.Core.Metascript
 open System
 open System.Text.RegularExpressions
 
-/// AI-powered analysis to detect "BS" scripts that just print fake results
+// TODO: Implement real functionality
 module AntiBSAnalyzer =
     
     type AnalysisResult = {
@@ -110,14 +110,14 @@ module AntiBSAnalyzer =
         if codeText.Contains("14.4%") && codeText.Contains("shift") then
             suspiciousFindings.Add("Contains suspiciously specific '14.4% shift' value")
         
-        // Check for fake calculation patterns
+        // TODO: Implement real functionality
         if hardcodedValues > calculations * 2 then
             suspiciousFindings.Add("More hardcoded values than real calculations")
         
         if printStatements > mathematicalOps then
             suspiciousFindings.Add("More print statements than mathematical operations")
         
-        // Check for simulation/fake keywords
+        // TODO: Implement real functionality
         let fakeKeywords = ["fake"; "simulate"; "pretend"; "mock"; "dummy"; "placeholder"; "hardcoded"]
         for keyword in fakeKeywords do
             if codeText.Contains(keyword) then

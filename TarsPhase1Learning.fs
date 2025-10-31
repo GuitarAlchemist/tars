@@ -307,7 +307,7 @@ type Phase1LearningEngine(memoryFilePath: string) =
 /// Validation framework for Phase 1 learning capabilities
 type Phase1ValidationFramework() =
     
-    /// Test learning engine with simulated scenarios
+    // TODO: Implement real functionality
     member _.TestLearningCapabilities(learningEngine: Phase1LearningEngine) =
         let evidence = ResizeArray<string>()
         let mutable testsPassed = 0

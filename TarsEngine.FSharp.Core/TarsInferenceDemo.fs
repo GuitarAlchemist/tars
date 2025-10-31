@@ -382,7 +382,7 @@ TARS Autonomous Reasoning System | CUDA Accelerated | Real-time Analysis""" prom
                 
                 let demo5Stopwatch = System.Diagnostics.Stopwatch.StartNew()
                 
-                // Simulate performance comparison
+                // TODO: Implement real functionality
                 let tarsTimes = [85; 92; 78; 88; 95; 82; 90; 87]
                 let ollamaTimes = [320; 380; 295; 350; 410; 305; 365; 340]
                 

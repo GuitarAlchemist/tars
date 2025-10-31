@@ -162,7 +162,7 @@ module AdvancedAIClosureFactory =
                 }
             )
             
-            // Advanced materials simulation closures
+            // TODO: Implement real functionality
             ("memristor_simulation", fun (voltage: float, resistance: float) ->
                 async {
                     let (newResistance, current) = MaterialsSimulation.simulateMemristor voltage resistance
@@ -335,7 +335,7 @@ module AdvancedAIClosureFactory =
             
             ("tars_consciousness_simulation", fun (thoughtPattern: string) ->
                 async {
-                    // Simulate consciousness using quantum-neuromorphic hybrid
+                    // TODO: Implement real functionality
                     let consciousnessInput = {|
                         ThoughtPattern = thoughtPattern
                         ConsciousnessLevel = 0.85

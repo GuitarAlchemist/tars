@@ -71,14 +71,14 @@ for (format, description, status) in supportedFormats do
 printfn ""
 
 // ============================================================================
-// PHASE 2: PRODUCTION AI ENGINE SIMULATION
+// TODO: Implement real functionality
 // ============================================================================
 
 printfn "🏭 PHASE 2: PRODUCTION AI ENGINE"
 printfn "================================"
 printfn ""
 
-// Simulate production AI engine with real optimization
+// TODO: Implement real functionality
 type ProductionAiModel = {
     ModelName: string
     ParameterCount: int64

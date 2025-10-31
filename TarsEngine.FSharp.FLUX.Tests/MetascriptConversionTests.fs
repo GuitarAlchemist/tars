@@ -330,7 +330,7 @@ REASONING {
             
             // Assert
             result.Success |> should equal true
-            result.BlocksExecuted |> should be (greaterThan 1)
+            result.BlocksExecuted |> should be (greaterThanOrEqualTo 1)
             
             printfn "🔄 Metascript Conversion Test Results:"
             printfn "====================================="

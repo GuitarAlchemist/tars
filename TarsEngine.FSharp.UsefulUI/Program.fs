@@ -438,7 +438,7 @@ agent "DataAnalyzer" {
         renderAgents();
         renderFileTree();
         
-        // Simulate some activity
+        // TODO: Implement real functionality
         setInterval(() => {
             const runningAgents = agents.filter(a => a.status === 'Running');
             if (runningAgents.length > 0) {

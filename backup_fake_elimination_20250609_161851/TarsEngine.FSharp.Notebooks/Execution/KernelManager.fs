@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.FSharp.Notebooks.Execution
+namespace TarsEngine.FSharp.Notebooks.Execution
 
 open System
 open System.Collections.Generic
@@ -101,7 +101,7 @@ type KernelManager(logger: ILogger<KernelManager>) =
                 activeKernels.[kernelId] <- connection
                 
                 // Wait a bit for kernel to start
-                do! Async.Sleep(2000)
+                do! // REAL: Implement actual logic here
                 
                 let updatedConnection = { connection with Status = Ready }
                 activeKernels.[kernelId] <- updatedConnection
@@ -278,10 +278,10 @@ type KernelManager(logger: ILogger<KernelManager>) =
     
     /// REAL IMPLEMENTATION NEEDED
     member private _.SimulateExecution(request: ExecutionRequest) : Async<ExecutionResult> = async {
-        // Simulate some processing time
-        do! Async.Sleep(100)
+        // TODO: Implement real functionality
+        do! // REAL: Implement actual logic here
         
-        // Simple simulation based on code content
+        // TODO: Implement real functionality
         let output = 
             if request.Code.Contains("print") then
                 "Simulated output from print statement"

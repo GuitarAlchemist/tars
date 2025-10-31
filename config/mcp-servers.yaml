@@ -1,0 +1,84 @@
+servers:
+  # TARS Core Servers
+  - name: tars-default
+    url: http://localhost:8999/
+    description: "Default TARS MCP server"
+  - name: augment-local
+    url: http://localhost:9000/
+    description: "Local Augment MCP endpoint"
+    headers:
+      # Authorization: "Bearer <token>"
+
+  # Development Tools (Common in WebStorm)
+  - name: filesystem
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-filesystem", "."]
+    description: "File system operations for current directory"
+
+  - name: git
+    command: uvx
+    args: ["mcp-server-git", "--repository", "."]
+    description: "Git repository operations"
+
+  - name: github
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-github"]
+    description: "GitHub API integration"
+    env:
+      GITHUB_PERSONAL_ACCESS_TOKEN: "${GITHUB_TOKEN}"
+
+  - name: gitlab
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-gitlab"]
+    description: "GitLab API integration"
+    env:
+      GITLAB_PERSONAL_ACCESS_TOKEN: "${GITLAB_TOKEN}"
+
+  # Database Servers
+  - name: postgres
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-postgres"]
+    description: "PostgreSQL database operations"
+    env:
+      DATABASE_URL: "${POSTGRES_URL}"
+
+  # Web & API Tools
+  - name: puppeteer
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-puppeteer"]
+    description: "Browser automation and web scraping"
+
+  # Search & Knowledge
+  - name: brave-search
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-brave-search"]
+    description: "Web search via Brave Search API"
+    env:
+      BRAVE_API_KEY: "${BRAVE_API_KEY}"
+
+  # Productivity Tools
+  - name: slack
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-slack"]
+    description: "Slack workspace integration"
+    env:
+      SLACK_BOT_TOKEN: "${SLACK_BOT_TOKEN}"
+
+  - name: memory
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-memory"]
+    description: "Persistent memory for conversations"
+
+  # Development Utilities
+  - name: docker
+    command: npx
+    args: ["-y", "mcp-server-docker"]
+    description: "Docker container management"
+
+  # Additional verified servers
+  - name: everart
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-everart"]
+    description: "EverArt image generation"
+    env:
+      EVERART_API_KEY: "${EVERART_API_KEY}"

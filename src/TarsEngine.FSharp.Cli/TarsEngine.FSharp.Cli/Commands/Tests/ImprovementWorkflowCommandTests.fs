@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.FSharp.Cli.Commands.Tests
+namespace TarsEngine.FSharp.Cli.Commands.Tests
 
 open System
 open System.IO
@@ -23,7 +23,7 @@ module ImprovementWorkflowCommandTests =
         let loggerMock = Mock<ILogger<ImprovementWorkflowCommand>>()
         let metascriptExecutorMock = Mock<IMetascriptExecutor>()
         
-        // Create a mock improvement
+        // TODO: Implement real functionality
         let improvement = {|
             Id = "imp-123"
             Name = "Refactor MyClass"

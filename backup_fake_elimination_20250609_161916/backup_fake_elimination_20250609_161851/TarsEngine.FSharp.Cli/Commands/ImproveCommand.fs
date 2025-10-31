@@ -23,7 +23,7 @@ type ImproveCommand() =
         
         member self.ExecuteAsync(options) =
             Task.Run(fun () ->
-                // For now, just simulate the improvement process
+                // TODO: Implement real functionality
                 Console.WriteLine("Running auto-improvement pipeline...")
                 Console.WriteLine("Analyzing codebase...")
                 Console.WriteLine("Generating improvements...")

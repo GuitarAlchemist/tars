@@ -109,20 +109,7 @@ type InfrastructureClosureParameters = {
 
 /// Infrastructure component builder for fluent API
 type InfrastructureBuilder(infraType: InfrastructureType) =
-    let mutable config = {
-        Name = infraType.ToString().ToLower()
-        Type = infraType
-        Version = "latest"
-        Port = this.GetDefaultPort(infraType)
-        Environment = Map.empty
-        Volumes = []
-        Networks = ["default"]
-        HealthCheck = None
-        Dependencies = []
-        CustomConfig = Map.empty
-    }
-    
-    member _.GetDefaultPort(infraType: InfrastructureType) =
+    let getDefaultPort (infraType: InfrastructureType) =
         match infraType with
         | Redis -> 6379
         | MongoDB -> 27017
@@ -134,32 +121,45 @@ type InfrastructureBuilder(infraType: InfrastructureType) =
         | MinIO -> 9000
         | Prometheus -> 9090
         | Grafana -> 3000
-    
-    member _.Name(name: string) =
+
+    let mutable config = {
+        Name = infraType.ToString().ToLower()
+        Type = infraType
+        Version = "latest"
+        Port = getDefaultPort infraType
+        Environment = Map.empty
+        Volumes = []
+        Networks = ["default"]
+        HealthCheck = None
+        Dependencies = []
+        CustomConfig = Map.empty
+    }
+
+    member this.Name(name: string) =
         config <- { config with Name = name }
         this
-    
-    member _.Version(version: string) =
+
+    member this.Version(version: string) =
         config <- { config with Version = version }
         this
     
-    member _.Port(port: int) =
+    member this.Port(port: int) =
         config <- { config with Port = port }
         this
-    
-    member _.Environment(key: string, value: string) =
+
+    member this.Environment(key: string, value: string) =
         config <- { config with Environment = config.Environment.Add(key, value) }
         this
-    
-    member _.Volume(volume: string) =
+
+    member this.Volume(volume: string) =
         config <- { config with Volumes = volume :: config.Volumes }
         this
-    
-    member _.Network(network: string) =
+
+    member this.Network(network: string) =
         config <- { config with Networks = network :: config.Networks }
         this
-    
-    member _.HealthCheck(command: string, ?interval: TimeSpan, ?timeout: TimeSpan, ?retries: int) =
+
+    member this.HealthCheck(command: string, ?interval: TimeSpan, ?timeout: TimeSpan, ?retries: int) =
         let healthCheck = {
             Command = command
             Interval = defaultArg interval (TimeSpan.FromSeconds(30))
@@ -169,12 +169,12 @@ type InfrastructureBuilder(infraType: InfrastructureType) =
         }
         config <- { config with HealthCheck = Some healthCheck }
         this
-    
-    member _.DependsOn(dependency: string) =
+
+    member this.DependsOn(dependency: string) =
         config <- { config with Dependencies = dependency :: config.Dependencies }
         this
-    
-    member _.CustomConfig(key: string, value: obj) =
+
+    member this.CustomConfig(key: string, value: obj) =
         config <- { config with CustomConfig = config.CustomConfig.Add(key, value) }
         this
     
@@ -241,7 +241,7 @@ module InfrastructureHelpers =
     
     /// Creates a Redis configuration
     let redis() =
-        infrastructure Redis
+        (infrastructure Redis)
             .Name("redis")
             .Version("7-alpine")
             .Port(6379)
@@ -250,7 +250,7 @@ module InfrastructureHelpers =
     
     /// Creates a MongoDB configuration
     let mongodb() =
-        infrastructure MongoDB
+        (infrastructure MongoDB)
             .Name("mongodb")
             .Version("6.0")
             .Port(27017)
@@ -258,10 +258,10 @@ module InfrastructureHelpers =
             .Environment("MONGO_INITDB_ROOT_PASSWORD", "password")
             .HealthCheck("echo 'db.runCommand(\"ping\").ok' | mongosh localhost:27017/test --quiet")
             .Volume("mongodb_data:/data/db")
-    
+
     /// Creates a MySQL configuration
     let mysql() =
-        infrastructure MySQL
+        (infrastructure MySQL)
             .Name("mysql")
             .Version("8.0")
             .Port(3306)
@@ -271,10 +271,10 @@ module InfrastructureHelpers =
             .Environment("MYSQL_PASSWORD", "apppassword")
             .HealthCheck("mysqladmin ping -h localhost")
             .Volume("mysql_data:/var/lib/mysql")
-    
+
     /// Creates a PostgreSQL configuration
     let postgresql() =
-        infrastructure PostgreSQL
+        (infrastructure PostgreSQL)
             .Name("postgresql")
             .Version("15-alpine")
             .Port(5432)
@@ -283,10 +283,10 @@ module InfrastructureHelpers =
             .Environment("POSTGRES_PASSWORD", "apppassword")
             .HealthCheck("pg_isready -U appuser -d appdb")
             .Volume("postgresql_data:/var/lib/postgresql/data")
-    
+
     /// Creates a RabbitMQ configuration
     let rabbitmq() =
-        infrastructure RabbitMQ
+        (infrastructure RabbitMQ)
             .Name("rabbitmq")
             .Version("3-management-alpine")
             .Port(5672)
@@ -294,10 +294,10 @@ module InfrastructureHelpers =
             .Environment("RABBITMQ_DEFAULT_PASS", "password")
             .HealthCheck("rabbitmq-diagnostics -q ping")
             .Volume("rabbitmq_data:/var/lib/rabbitmq")
-    
+
     /// Creates an Elasticsearch configuration
     let elasticsearch() =
-        infrastructure Elasticsearch
+        (infrastructure Elasticsearch)
             .Name("elasticsearch")
             .Version("8.8.0")
             .Port(9200)
@@ -305,20 +305,20 @@ module InfrastructureHelpers =
             .Environment("ES_JAVA_OPTS", "-Xms512m -Xmx512m")
             .HealthCheck("curl -f http://localhost:9200/_cluster/health")
             .Volume("elasticsearch_data:/usr/share/elasticsearch/data")
-    
+
     /// Creates a complete LAMP stack
     let lampStack() =
-        stack "lamp"
+        (stack "lamp")
             .Description("Complete LAMP stack with MySQL, Redis, and monitoring")
             .Component(mysql().Build())
             .Component(redis().Build())
             .Network("lamp_network")
             .Volume("mysql_data")
             .Volume("redis_data")
-    
+
     /// Creates a microservices stack
     let microservicesStack() =
-        stack "microservices"
+        (stack "microservices")
             .Description("Microservices infrastructure with databases, messaging, and monitoring")
             .Component(postgresql().Build())
             .Component(redis().Build())

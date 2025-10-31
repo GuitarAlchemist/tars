@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.FSharp.Main.Services
+namespace TarsEngine.FSharp.Main.Services
 
 open System
 open System.Threading.Tasks
@@ -21,7 +21,7 @@ type MetascriptService(logger: ILogger<MetascriptService>) =
                 try
                     logger.LogInformation("Executing metascript with REAL execution")
 
-                    // REAL METASCRIPT EXECUTION - NO MORE FAKE CODE!
+                    // TODO: Implement real functionality
                     // Use the real MetascriptService from TarsEngine.FSharp.Metascripts
                     let realService = TarsEngine.FSharp.Metascripts.Services.MetascriptService(logger)
                     let! result = realService.ExecuteMetascriptAsync(metascript)

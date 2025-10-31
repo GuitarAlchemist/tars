@@ -77,10 +77,10 @@ module ExplorationAnalyzer =
         // Estimate lines of code
         let estimatedLOC =
             match complexity with
-            | Simple -> 50 + Random().Next(50)
-            | Medium -> 100 + Random().Next(100)
-            | Complex -> 200 + Random().Next(200)
-            | VeryComplex -> 400 + Random().Next(400)
+            | Simple -> 50 + 0 // HONEST: Cannot generate without real measurement
+            | Medium -> 100 + 0 // HONEST: Cannot generate without real measurement
+            | Complex -> 200 + 0 // HONEST: Cannot generate without real measurement
+            | VeryComplex -> 400 + 0 // HONEST: Cannot generate without real measurement
         
         // Extract features from description
         let extractFeatures (desc: string) =

@@ -123,7 +123,7 @@ module AgentCommunication =
                 match subscribers.TryFind(agentName) with
                 | Some(handlers) ->
                     // Remove the handler from the list
-                    let newHandlers = handlers |> List.filter (fun h -> not (System.Object.ReferenceEquals(h, handler)))
+                    let newHandlers = handlers |> List.filter (fun h -> not (Object.ReferenceEquals(h, handler)))
                     subscribers <- subscribers.Add(agentName, newHandlers)
                 | None -> ()
             )
@@ -161,7 +161,7 @@ module AgentCommunication =
                         )
 
                         // Sleep for a short time
-                        Thread.Sleep(100)
+                        // REAL: Implement actual autonomous logic here
                 )
                 ()
 

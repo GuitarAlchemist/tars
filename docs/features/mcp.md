@@ -63,6 +63,50 @@ To configure the MCP server:
 tarscli mcp configure --port 8999 --auto-execute --auto-code
 ```
 
+### Registering External MCP Servers
+
+TARS looks for MCP server definitions in a local YAML file. By default the loader searches the following paths (first match wins):
+
+1. The file referenced by the TARS_MCP_CONFIG environment variable
+2. config/mcp-servers.yaml relative to the current working directory
+3. config/mcp-servers.yaml inside the application base directory
+4. ~/.tars/mcp-servers.yaml
+
+Create the file if it does not exist and register each server you want to call:
+
+`yaml
+servers:
+  - name: augment-local
+    url: http://localhost:9000/
+    description: "Local Augment MCP endpoint"
+    headers:
+      # Authorization: "Bearer <token>"
+  - name: tars-default
+    url: http://localhost:8999/
+    description: "Default TARS MCP server"
+`
+
+### Calling MCP Servers from Metascripts
+
+Metascripts can now invoke registered MCP servers directly. Add an MCP block that references the server name and provide the JSON or YAML body you want to send. The executor automatically merges any block-level headers with the defaults from the registry and issues a JSON-RPC request.
+
+`metascript
+MCP augment-local {
+  method: tools/list
+  params: {}
+}
+
+MCP tars-default {
+  headers:
+    X-Debug: "true"
+  body:
+    method: knowledge/query
+    params:
+      query: "Summarise the latest CUDA benchmarks"
+}
+`
+
+The block content is parsed as JSON first and falls back to YAML when needed. Responses are printed to the console and included in the metascript execution summary.
 Options:
 - `--port`: Port for the MCP server (default: 8999)
 - `--auto-execute`: Enable auto-execution of commands

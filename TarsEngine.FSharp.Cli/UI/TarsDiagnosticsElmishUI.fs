@@ -126,7 +126,7 @@ module TarsDiagnosticsElmishUI =
             Uptime = System.Diagnostics.Process.GetCurrentProcess().TotalProcessorTime // Real uptime
         }
 
-    /// Get REAL component analyses from actual TARS systems - NO FAKE PERCENTAGES
+    // TODO: Implement real functionality
     let getRealComponentAnalyses (cognitiveEngine: obj option) (beliefBus: obj option) (projectManager: obj option) =
         let analyses = ResizeArray<ComponentAnalysis>()
 
@@ -324,7 +324,7 @@ module TarsDiagnosticsElmishUI =
             ]
         ]
 
-    /// Main view function using REAL Elmish MVU - no fake HTML
+    // TODO: Implement real functionality
     let view model dispatch =
         div [ ("class", "tars-diagnostics-ui") ] [
             // Header

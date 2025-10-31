@@ -48,5 +48,5 @@ module ExplorationFileProcessor =
                 return! File.ReadAllTextAsync(filePath)
             with
             | ex -> 
-                return sprintf "Error reading file: %s" ex.Message
+                return $"Error reading file: %s{ex.Message}"
         }

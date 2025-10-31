@@ -248,7 +248,7 @@ module CrossEntropyRefinement =
             let mutable iteration = 0
             
             while iteration < maxIterations do
-                // Simulate execution outcomes (in real implementation, this would execute the code)
+                // TODO: Implement real functionality
                 let outcomes = this.SimulateExecution(currentCode)
                 let (refinedCode, metrics) = this.RefineFluxCode(currentCode, outcomes)
                 
@@ -263,9 +263,9 @@ module CrossEntropyRefinement =
             
             (currentCode, List.rev allMetrics)
         
-        /// Simulate code execution for testing purposes
+        // TODO: Implement real functionality
         member private this.SimulateExecution(code: string) : ExecutionOutcome list =
-            // This is a simplified simulation - in real implementation, 
+            // TODO: Implement real functionality
             // this would actually execute the FLUX code and capture outcomes
             let random = Random()
             [1..5] |> List.map (fun i ->

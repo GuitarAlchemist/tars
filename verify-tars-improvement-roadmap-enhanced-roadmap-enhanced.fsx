@@ -60,7 +60,7 @@ let verifyCapabilityComparison() =
         PatternRecognition =
         3  // Basic patterns
         EvolutionFitness =
-        0.0  // Simulated
+        0.0  // TODO: Implement real functionality
         CodeAnalysisFiles =
         0   // Theoretical
         InfrastructureConnections =

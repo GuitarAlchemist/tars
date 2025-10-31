@@ -11,12 +11,12 @@ module MonadicDsl =
     type DslResult<'T> = Result<'T, string>
 
     /// Environment type for DSL execution
-    type DslEnvironment = Dictionary<string, SimpleDsl.PropertyValue>
+    type DslEnvironment = Dictionary<string, PropertyValue>
 
     /// State type for DSL execution
     type DslState = {
         Environment: DslEnvironment
-        LastResult: SimpleDsl.PropertyValue
+        LastResult: PropertyValue
     }
 
     /// Computation type for DSL execution
@@ -57,43 +57,43 @@ module MonadicDsl =
             State (fun s -> (Ok (), { s with Environment = env }))
 
         /// Get a variable from the environment
-        let getVariable (name: string) : DslComputation<SimpleDsl.PropertyValue> =
+        let getVariable (name: string) : DslComputation<PropertyValue> =
             State (fun s ->
                 match s.Environment.TryGetValue(name) with
                 | true, value -> (Ok value, s)
                 | false, _ -> (Error $"Variable '{name}' not found", s))
 
         /// Set a variable in the environment
-        let setVariable (name: string) (value: SimpleDsl.PropertyValue) : DslComputation<unit> =
+        let setVariable (name: string) (value: PropertyValue) : DslComputation<unit> =
             State (fun s ->
                 s.Environment.[name] <- value
                 (Ok (), s))
 
         /// Get the last result
-        let getLastResult : DslComputation<SimpleDsl.PropertyValue> =
+        let getLastResult : DslComputation<PropertyValue> =
             State (fun s -> (Ok s.LastResult, s))
 
         /// Set the last result
-        let setLastResult (value: SimpleDsl.PropertyValue) : DslComputation<unit> =
+        let setLastResult (value: PropertyValue) : DslComputation<unit> =
             State (fun s -> (Ok (), { s with LastResult = value }))
 
         /// Execute a block in the DSL monad
-        let executeBlock (block: SimpleDsl.Block) : DslComputation<SimpleDsl.PropertyValue> =
+        let executeBlock (block: Block) : DslComputation<PropertyValue> =
             State (fun s ->
-                match SimpleDsl.executeBlock block s.Environment with
-                | SimpleDsl.Success value -> (Ok value, { s with LastResult = value })
+                match executeBlock block s.Environment with
+                | Success value -> (Ok value, { s with LastResult = value })
                 | SimpleDsl.Error msg -> (Error msg, s))
 
         /// Execute a program in the DSL monad
-        let executeProgram (program: SimpleDsl.Program) : DslComputation<SimpleDsl.PropertyValue> =
+        let executeProgram (program: Program) : DslComputation<PropertyValue> =
             State (fun s ->
-                match SimpleDsl.executeProgram program with
-                | SimpleDsl.Success value -> (Ok value, { s with LastResult = value })
+                match executeProgram program with
+                | Success value -> (Ok value, { s with LastResult = value })
                 | SimpleDsl.Error msg -> (Error msg, s))
 
         /// Run a DSL computation with an initial environment
         let run (comp: DslComputation<'T>) (env: DslEnvironment) =
-            let initialState = { Environment = env; LastResult = SimpleDsl.StringValue("") }
+            let initialState = { Environment = env; LastResult = StringValue("") }
             State.run comp initialState
 
     /// Computation expression builder for DSL monad
@@ -134,7 +134,7 @@ module MonadicDsl =
                 | Ok value -> (Ok value, s')
                 | Error msg ->
                     // Set the error message in the environment
-                    s'.Environment.["error"] <- SimpleDsl.StringValue(msg)
+                    s'.Environment.["error"] <- StringValue(msg)
                     // Run the handler
                     State.run (handler (Exception(msg))) s')
 
@@ -168,19 +168,19 @@ module MonadicDsl =
             let! env = Dsl.getEnvironment
 
             // Set a variable
-            do! Dsl.setVariable "x" (SimpleDsl.NumberValue 42.0)
+            do! Dsl.setVariable "x" (NumberValue 42.0)
 
             // Get a variable
             let! x = Dsl.getVariable "x"
 
             // Execute a block
             let block = {
-                Type = SimpleDsl.BlockType.Action
+                Type = BlockType.Action
                 Name = Option.None
                 Content = ""
                 Properties = Map.ofList [
-                    "type", SimpleDsl.StringValue "log"
-                    "message", SimpleDsl.StringValue "Hello, World!"
+                    "type", StringValue "log"
+                    "message", StringValue "Hello, World!"
                 ]
                 NestedBlocks = []
             }

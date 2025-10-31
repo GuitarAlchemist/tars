@@ -81,8 +81,8 @@ module TarsMetaCognitiveLoops =
     /// Generate unique ID for meta-cognitive components
     let generateMetaCognitiveId (prefix: string) : string =
         let timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
-        let random = Random().Next(1000, 9999)
-        sprintf "%s-%d-%d" prefix timestamp random
+        let random = 0 // HONEST: Cannot generate without real measurement
+        $"%s{prefix}-%d{timestamp}-%d{random}"
 
     /// Create initial meta-cognitive state
     let createInitialMetaCognitiveState () : MetaCognitiveState =
@@ -186,7 +186,7 @@ module TarsMetaCognitiveLoops =
                     PatternType = "performance_oscillation"
                     Description = "System performance shows oscillating behavior"
                     Confidence = 0.8
-                    SupportingEvidence = [sprintf "Oscillation detected over %d cycles" perfHistory.Length]
+                    SupportingEvidence = [ $"Oscillation detected over %d{perfHistory.Length} cycles" ]
                     EmergenceTimestamp = DateTime.UtcNow
                     StabilityScore = 0.6
                     PredictivePower = 0.7
@@ -203,7 +203,7 @@ module TarsMetaCognitiveLoops =
                     PatternType = "dimension_convergence"
                     Description = $"Embedding dimensions converged to {recentDims.Head}"
                     Confidence = 0.9
-                    SupportingEvidence = [sprintf "Stable at %d dimensions for 3 cycles" recentDims.Head]
+                    SupportingEvidence = [ $"Stable at %d{recentDims.Head} dimensions for 3 cycles" ]
                     EmergenceTimestamp = DateTime.UtcNow
                     StabilityScore = 0.9
                     PredictivePower = 0.8
@@ -251,7 +251,7 @@ module TarsMetaCognitiveLoops =
                     (Map [("amplification_factor", 1.3); ("confidence_threshold", 0.8)])
             ]
             
-            // Simulate strategy application and performance improvement
+            // TODO: Implement real functionality
             let random = Random()
             let improvementFactor = 1.0 + (random.NextDouble() * 0.1) // 0-10% improvement
             let currentValue = baselineValue * improvementFactor
@@ -321,27 +321,28 @@ module TarsMetaCognitiveLoops =
                 |> List.map (fun c -> c.ImprovementPercentage)
                 |> List.average
 
-            insights <- sprintf "Average improvement over last 3 cycles: %.2f" recentImprovements :: insights
+            insights <- $"Average improvement over last 3 cycles: %.2f{recentImprovements}" :: insights
         
         // Strategy effectiveness
         let bestStrategy = 
             state.ActiveStrategies 
             |> List.maxBy (fun s -> s.SuccessRate)
         
-        insights <- sprintf "Most effective strategy: %s (%.1f success)" bestStrategy.Name (bestStrategy.SuccessRate * 100.0) :: insights
+        insights <- $"Most effective strategy: %s{bestStrategy.Name} (%.1f{bestStrategy.SuccessRate * 100.0} success)"
+                 :: insights
         
         // Embedding adaptation
         let currentDim = state.AdaptiveEmbedding.CurrentDimensions
         let optimalDim = state.AdaptiveEmbedding.OptimalDimensions
         
         if currentDim = optimalDim then
-            insights <- sprintf "Embedding dimensions optimized at %d" currentDim :: insights
+            insights <- $"Embedding dimensions optimized at %d{currentDim}" :: insights
         else
-            insights <- sprintf "Embedding adapting: %d → %d (optimal)" currentDim optimalDim :: insights
+            insights <- $"Embedding adapting: %d{currentDim} → %d{optimalDim} (optimal)" :: insights
         
         // Emergent patterns
         let stablePatterns = state.EmergentPatterns |> List.filter (fun p -> p.StabilityScore > 0.8)
-        insights <- sprintf "Stable emergent patterns detected: %d" stablePatterns.Length :: insights
+        insights <- $"Stable emergent patterns detected: %d{stablePatterns.Length}" :: insights
         
         logger.LogInformation($"💡 Generated {insights.Length} meta-cognitive insights")
         insights

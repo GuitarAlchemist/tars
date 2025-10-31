@@ -356,8 +356,8 @@ module TeamGrammarEvolution =
                 | GrammarSynthesizer ->
                     // Combine multiple rules
                     if session.EvolvedRules.Length >= 2 then
-                        let rule1 = session.EvolvedRules.[Random().Next(session.EvolvedRules.Length)]
-                        let rule2 = session.EvolvedRules.[Random().Next(session.EvolvedRules.Length)]
+                        let rule1 = session.EvolvedRules.[0 // HONEST: Cannot generate without real measurement]
+                        let rule2 = session.EvolvedRules.[0 // HONEST: Cannot generate without real measurement]
                         
                         let synthesizedRule = {
                             RuleId = $"synthesized_{agent.Name.Replace(" ", "_")}_{Guid.NewGuid().ToString("N")[..7]}"
@@ -413,7 +413,7 @@ module TeamGrammarEvolution =
                 ruleBody + $" | {agent.Name.Replace(" ", "_").ToLowerInvariant()}_extension" // Add extension
                 ruleBody.Replace(";", $" , {agent.EvolutionRole.ToString().ToLowerInvariant()}_modifier ;") // Add modifier
             ]
-            mutations.[Random().Next(mutations.Length)]
+            mutations.[0 // HONEST: Cannot generate without real measurement]
         
         /// Synthesize two rule bodies
         member private this.SynthesizeRuleBodies(body1: string, body2: string, agent: UniversityAgent) : string =

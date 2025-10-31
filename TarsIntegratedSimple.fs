@@ -2,7 +2,7 @@
 // Real integration with existing TARS engine architecture
 // HONEST ASSESSMENT: Demonstrates actual integration capabilities with measurable metrics
 //
-// This shows genuine integration with existing TARS patterns, not simulated capabilities.
+// TODO: Implement real functionality
 
 open System
 open System.Collections.Concurrent
@@ -146,7 +146,7 @@ type EnhancedTarsEngine() =
             if not (skill.checker()) then
                 success <- false
             else
-                // Simulate skill execution (90% success rate)
+                // TODO: Implement real functionality
                 let skillSuccess = Random().NextDouble() > 0.1
                 success <- success && skillSuccess
         

@@ -3,8 +3,14 @@ namespace TarsEngine.FSharp.FLUX.Execution
 open System
 open System.IO
 open System.Diagnostics
+open System.ComponentModel
+open System.Globalization
+open System.Text
+open System.Text.Json
+open System.Text.Json.Nodes
 open System.Threading.Tasks
 open System.Collections.Generic
+open System.Text.RegularExpressions
 open TarsEngine.FSharp.FLUX.Ast.FluxAst
 open TarsEngine.FSharp.FLUX.Parser.FluxParser
 
@@ -35,6 +41,122 @@ module FluxRuntime =
         Error: string option
         Variables: Map<string, obj>
     }
+
+    let private identifierRegex = Regex("^[A-Za-z_][A-Za-z0-9_]*$", RegexOptions.Compiled)
+
+    let private invariantFloat (value: float) =
+        value.ToString("G17", CultureInfo.InvariantCulture)
+
+    let rec private fluxValueToJsonNode (value: FluxValue) : JsonNode =
+        match value with
+        | StringValue s -> JsonValue.Create(s) :> JsonNode
+        | BooleanValue b -> JsonValue.Create(b) :> JsonNode
+        | NumberValue n -> JsonValue.Create(n) :> JsonNode
+        | ArrayValue items ->
+            let arr = JsonArray()
+            for item in items do
+                arr.Add(fluxValueToJsonNode item) |> ignore
+            arr :> JsonNode
+        | ObjectValue map ->
+            let objNode = JsonObject()
+            map |> Map.iter (fun key value -> objNode[key] <- fluxValueToJsonNode value)
+            objNode :> JsonNode
+        | NullValue -> JsonValue.Create<string>(null) :> JsonNode
+
+    let private serializeVariablesToBase64 (variables: Map<string, FluxValue>) =
+        let json =
+            if Map.isEmpty variables then
+                "{}"
+            else
+                let obj = JsonObject()
+                variables |> Map.iter (fun key value -> obj[key] <- fluxValueToJsonNode value)
+                obj.ToJsonString()
+        Convert.ToBase64String(Encoding.UTF8.GetBytes(json))
+
+    let private generatePythonVariableBootstrap (variables: Map<string, FluxValue>) =
+        let base64Payload = serializeVariablesToBase64 variables
+        if String.IsNullOrWhiteSpace(base64Payload) then
+            ""
+        else
+            String.Join(
+                Environment.NewLine,
+                [
+                    "import base64"
+                    "import json"
+                    $"__flux_payload = base64.b64decode(\"{base64Payload}\").decode(\"utf-8\")"
+                    "__flux_variables = json.loads(__flux_payload)"
+                    "for __flux_name, __flux_value in __flux_variables.items():"
+                    "    globals()[__flux_name] = __flux_value"
+                    ""
+                ])
+
+    let private generateJavaScriptVariableBootstrap (variables: Map<string, FluxValue>) =
+        let base64Payload = serializeVariablesToBase64 variables
+        if String.IsNullOrWhiteSpace(base64Payload) then
+            ""
+        else
+            String.Join(
+                Environment.NewLine,
+                [
+                    "const __fluxPayload = Buffer.from(\"" + base64Payload + "\", \"base64\").toString(\"utf8\");"
+                    "const __fluxVariables = JSON.parse(__fluxPayload);"
+                    "for (const [__fluxName, __fluxValue] of Object.entries(__fluxVariables)) {"
+                    "  global[__fluxName] = __fluxValue;"
+                    "}"
+                    ""
+                ])
+
+    let private formatInterpreterError (executables: string list) (ex: Exception) =
+        match ex with
+        | :? Win32Exception as win32Ex when win32Ex.NativeErrorCode = 2 || win32Ex.NativeErrorCode = 3 ->
+            let candidates = String.concat ", " executables
+            sprintf "Interpreter not available. Tried: %s. Install the required runtime or ensure it is on PATH." candidates
+        | _ -> ex.Message
+
+    let private escapeCSharpString (value: string) =
+        value
+            .Replace("\\", "\\\\")
+            .Replace("\"", "\\\"")
+            .Replace("\r", "\\r")
+            .Replace("\n", "\\n")
+            .Replace("\t", "\\t")
+
+    let private generateCSharpVariableBootstrap (variables: Map<string, FluxValue>) =
+        if Map.isEmpty variables then
+            ""
+        else
+            let base64Payload = serializeVariablesToBase64 variables
+            let builder = StringBuilder()
+            builder.AppendLine("using System;") |> ignore
+            builder.AppendLine("using System.Text;") |> ignore
+            builder.AppendLine("using System.Text.Json;") |> ignore
+            builder.AppendLine("using System.Text.Json.Nodes;") |> ignore
+            builder.AppendLine("using System.Collections.Generic;") |> ignore
+            builder.AppendLine() |> ignore
+            builder.AppendLine($"var __fluxPayload = Encoding.UTF8.GetString(Convert.FromBase64String(\"{base64Payload}\"));") |> ignore
+            builder.AppendLine("var __fluxVariables = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(__fluxPayload)!;") |> ignore
+            builder.AppendLine() |> ignore
+
+            for KeyValue(name, fluxValue) in variables do
+                if identifierRegex.IsMatch(name) then
+                    match fluxValue with
+                    | StringValue _ ->
+                        builder.AppendLine($"var {name} = __fluxVariables[\"{escapeCSharpString name}\"].GetString();") |> ignore
+                    | BooleanValue _ ->
+                        builder.AppendLine($"var {name} = __fluxVariables[\"{escapeCSharpString name}\"].GetBoolean();") |> ignore
+                    | NumberValue _ ->
+                        builder.AppendLine($"var {name} = __fluxVariables[\"{escapeCSharpString name}\"].GetDouble();") |> ignore
+                    | ArrayValue _ ->
+                        builder.AppendLine($"var {name} = JsonNode.Parse(__fluxVariables[\"{escapeCSharpString name}\"].GetRawText())!.AsArray();") |> ignore
+                    | ObjectValue _ ->
+                        builder.AppendLine($"var {name} = JsonNode.Parse(__fluxVariables[\"{escapeCSharpString name}\"].GetRawText())!.AsObject();") |> ignore
+                    | NullValue ->
+                        builder.AppendLine($"object? {name} = null;") |> ignore
+                else
+                    builder.AppendLine($"// Variable '{name}' contains characters not valid in C# identifiers. Access it via __fluxVariables[\"{escapeCSharpString name}\"].") |> ignore
+
+            builder.AppendLine() |> ignore
+            builder.ToString()
 
     /// Simplified F# Interactive Service
     type SimpleFSharpInteractiveService() =
@@ -84,6 +206,42 @@ module FluxRuntime =
     type LanguageExecutionService() =
         let fsharpService = SimpleFSharpInteractiveService()
         let mutable fsharpMode = Interactive  // Default to Interactive for metascripts
+
+        member private _.TryExecuteProcess(executables: string list, configure: ProcessStartInfo -> unit) =
+            let rec loop remaining =
+                task {
+                    match remaining with
+                    | [] ->
+                        return Error (Win32Exception("No executable candidates were available for the requested language runtime.") :> Exception)
+                    | executable :: tail ->
+                        try
+                            let psi = ProcessStartInfo()
+                            psi.FileName <- executable
+                            psi.UseShellExecute <- false
+                            psi.RedirectStandardOutput <- true
+                            psi.RedirectStandardError <- true
+                            psi.CreateNoWindow <- true
+                            configure psi
+
+                            use proc = new Process()
+                            proc.StartInfo <- psi
+                            proc.Start() |> ignore
+
+                            let outputTask = proc.StandardOutput.ReadToEndAsync()
+                            let errorTask = proc.StandardError.ReadToEndAsync()
+                            let! _ = proc.WaitForExitAsync()
+                            let! output = outputTask
+                            let! error = errorTask
+                            return Ok(executable, proc.ExitCode, output, error)
+                        with
+                        | :? Win32Exception as ex when (ex.NativeErrorCode = 2 || ex.NativeErrorCode = 3) && not tail.IsEmpty ->
+                            return! loop tail
+                        | :? Win32Exception as ex ->
+                            return Error (ex :> Exception)
+                        | ex ->
+                            return Error (Exception($"Failed to start process '{executable}': {ex.Message}", ex))
+                }
+            loop executables
 
         /// Set F# execution mode
         member this.SetFSharpMode(mode: FSharpExecutionMode) =
@@ -140,177 +298,301 @@ module FluxRuntime =
                     }
             }
 
-        /// Execute Python code (simplified)
+        /// Execute Python code via the system interpreter
         member this.ExecutePython(code: string, variables: Map<string, FluxValue>) =
             task {
-                return {
-                    Success = true
-                    Output = sprintf "Python code executed (%d chars)" code.Length
-                    Error = None
-                    ExitCode = 0
-                    ExecutionTime = TimeSpan.FromMilliseconds(50.0)
-                    Variables = variables
-                }
+                let startTime = DateTime.UtcNow
+                // Persist script to a temporary file
+                let tempFile = Path.GetTempFileName() + ".py"
+                try
+                    let bootstrap = generatePythonVariableBootstrap variables
+                    let scriptContent =
+                        if String.IsNullOrWhiteSpace(bootstrap) then
+                            code
+                        else
+                            bootstrap + Environment.NewLine + code
+
+                    File.WriteAllText(tempFile, scriptContent, Encoding.UTF8)
+
+                    let executables =
+                        if OperatingSystem.IsWindows() then
+                            [ "python"; "python.exe"; "py"; "py.exe"; "python3.exe" ]
+                        else
+                            [ "python3"; "python" ]
+
+                    let! execResult =
+                        this.TryExecuteProcess(
+                            executables,
+                            fun psi -> psi.Arguments <- $"\"{tempFile}\""
+                        )
+
+                    let endTime = DateTime.UtcNow
+
+                    match execResult with
+                    | Ok(_, exitCode, output, error) ->
+                        return {
+                            Success = exitCode = 0
+                            Output = output
+                            Error = if String.IsNullOrWhiteSpace(error) then None else Some error
+                            ExitCode = exitCode
+                            ExecutionTime = endTime - startTime
+                            Variables = variables
+                        }
+                    | Error ex ->
+                        return {
+                            Success = false
+                            Output = ""
+                            Error = Some (formatInterpreterError executables ex)
+                            ExitCode = -1
+                            ExecutionTime = DateTime.UtcNow - startTime
+                            Variables = variables
+                        }
+                finally
+                    if File.Exists(tempFile) then
+                        File.Delete(tempFile)
             }
 
-        /// Execute JavaScript code (simplified)
+        /// Execute JavaScript code using Node.js
         member this.ExecuteJavaScript(code: string, variables: Map<string, FluxValue>) =
             task {
-                return {
-                    Success = true
-                    Output = sprintf "JavaScript code executed (%d chars)" code.Length
-                    Error = None
-                    ExitCode = 0
-                    ExecutionTime = TimeSpan.FromMilliseconds(50.0)
-                    Variables = variables
-                }
+                let startTime = DateTime.UtcNow
+                let tempFile = Path.GetTempFileName() + ".js"
+                try
+                    let bootstrap = generateJavaScriptVariableBootstrap variables
+                    let scriptContent =
+                        if String.IsNullOrWhiteSpace(bootstrap) then
+                            code
+                        else
+                            bootstrap + Environment.NewLine + code
+
+                    File.WriteAllText(tempFile, scriptContent, Encoding.UTF8)
+
+                    let executables =
+                        if OperatingSystem.IsWindows() then
+                            [ "node"; "node.exe"; "nodejs" ]
+                        else
+                            [ "node"; "nodejs" ]
+
+                    let! execResult =
+                        this.TryExecuteProcess(
+                            executables,
+                            fun psi -> psi.Arguments <- $"\"{tempFile}\""
+                        )
+
+                    let endTime = DateTime.UtcNow
+
+                    match execResult with
+                    | Ok(_, exitCode, output, error) ->
+                        return {
+                            Success = exitCode = 0
+                            Output = output
+                            Error = if String.IsNullOrWhiteSpace(error) then None else Some error
+                            ExitCode = exitCode
+                            ExecutionTime = endTime - startTime
+                            Variables = variables
+                        }
+                    | Error ex ->
+                        return {
+                            Success = false
+                            Output = ""
+                            Error = Some (formatInterpreterError executables ex)
+                            ExitCode = -1
+                            ExecutionTime = DateTime.UtcNow - startTime
+                            Variables = variables
+                        }
+                finally
+                    if File.Exists(tempFile) then
+                        File.Delete(tempFile)
             }
 
-        /// Execute C# code (simplified)
+        /// Execute C# code by compiling a temporary project with dotnet
         member this.ExecuteCSharp(code: string, variables: Map<string, FluxValue>) =
             task {
-                return {
-                    Success = true
-                    Output = sprintf "C# code executed (%d chars)" code.Length
-                    Error = None
-                    ExitCode = 0
-                    ExecutionTime = TimeSpan.FromMilliseconds(100.0)
-                    Variables = variables
-                }
+                let startTime = DateTime.UtcNow
+                let tempDir = Path.Combine(Path.GetTempPath(), "flux-csharp-" + Guid.NewGuid().ToString("N"))
+                let projectPath = Path.Combine(tempDir, "FluxScript.csproj")
+                let programPath = Path.Combine(tempDir, "Program.cs")
+
+                try
+                    Directory.CreateDirectory(tempDir) |> ignore
+
+                    let bootstrap = generateCSharpVariableBootstrap variables
+                    let scriptBuilder = StringBuilder()
+                    if not (String.IsNullOrWhiteSpace(bootstrap)) then
+                        scriptBuilder.AppendLine(bootstrap) |> ignore
+                    scriptBuilder.AppendLine(code) |> ignore
+
+                    File.WriteAllText(programPath, scriptBuilder.ToString(), Encoding.UTF8)
+
+                    let projectContent = """
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+</Project>
+"""
+                    File.WriteAllText(projectPath, projectContent, Encoding.UTF8)
+
+                    let! execResult =
+                        this.TryExecuteProcess(
+                            [ "dotnet" ],
+                            fun psi ->
+                                psi.WorkingDirectory <- tempDir
+                                psi.Arguments <- $"run --project \"{projectPath}\" --no-launch-profile"
+                        )
+
+                    let endTime = DateTime.UtcNow
+
+                    match execResult with
+                    | Ok(_, exitCode, output, error) ->
+                        return {
+                            Success = exitCode = 0
+                            Output = output
+                            Error = if String.IsNullOrWhiteSpace(error) then None else Some error
+                            ExitCode = exitCode
+                            ExecutionTime = endTime - startTime
+                            Variables = variables
+                        }
+                    | Error ex ->
+                        return {
+                            Success = false
+                            Output = ""
+                            Error = Some (formatInterpreterError [ "dotnet" ] ex)
+                            ExitCode = -1
+                            ExecutionTime = DateTime.UtcNow - startTime
+                            Variables = variables
+                        }
+                finally
+                    try
+                        if Directory.Exists(tempDir) then
+                            Directory.Delete(tempDir, true)
+                    with
+                    | _ -> ()
             }
 
         /// Execute Wolfram Language code using Wolfram Engine
         member this.ExecuteWolfram(code: string, variables: Map<string, FluxValue>) =
             task {
                 let startTime = DateTime.UtcNow
-                // Create temporary Wolfram script file
                 let tempFile = Path.GetTempFileName() + ".wl"
                 try
-
-                    // Convert FLUX variables to Wolfram format
                     let wolframVariables =
                         variables
                         |> Map.toSeq
                         |> Seq.map (fun (k, v) ->
                             match v with
                             | StringValue s -> sprintf "%s = \"%s\";" k s
-                            | NumberValue n -> sprintf "%s = %.15g;" k n
+                            | NumberValue n -> sprintf "%s = %s;" k (invariantFloat n)
                             | BooleanValue b -> sprintf "%s = %s;" k (if b then "True" else "False")
                             | _ -> sprintf "%s = \"%A\";" k v)
                         |> String.concat "\n"
 
-                    // Prepare Wolfram script with variable setup
-                    let fullCode = if String.IsNullOrEmpty(wolframVariables) then code else wolframVariables + "\n\n" + code
-                    File.WriteAllText(tempFile, fullCode)
+                    let fullCode =
+                        if String.IsNullOrEmpty(wolframVariables) then code
+                        else wolframVariables + "\n\n" + code
 
-                    // Try to execute using WolframScript (if available)
-                    let psi = ProcessStartInfo()
-                    psi.FileName <- "wolframscript"
-                    psi.Arguments <- sprintf "-file \"%s\"" tempFile
-                    psi.UseShellExecute <- false
-                    psi.RedirectStandardOutput <- true
-                    psi.RedirectStandardError <- true
-                    psi.CreateNoWindow <- true
+                    File.WriteAllText(tempFile, fullCode, Encoding.UTF8)
 
-                    use proc = new Process()
-                    proc.StartInfo <- psi
+                    let executables =
+                        if OperatingSystem.IsWindows() then
+                            [ "wolframscript.exe"; "wolframscript" ]
+                        else
+                            [ "wolframscript" ]
 
-                    let mutable success = false
-                    let mutable output = ""
-                    let mutable error = ""
-
-                    try
-                        proc.Start() |> ignore
-                        let! _ = proc.WaitForExitAsync()
-                        output <- proc.StandardOutput.ReadToEnd()
-                        error <- proc.StandardError.ReadToEnd()
-                        success <- proc.ExitCode = 0
-                    with
-                    | :? System.ComponentModel.Win32Exception ->
-                        // WolframScript not found, fall back to mathematical simulation
-                        success <- true
-                        output <- sprintf "🔬 Wolfram Language Mathematical Analysis\n==========================================\n\nExecuted Wolfram code (%d chars):\n%s\n\n✅ Mathematical computations completed\n✅ Symbolic analysis performed\n✅ Results generated" code.Length (code.Substring(0, min 200 code.Length))
-                        error <- ""
+                    let! execResult =
+                        this.TryExecuteProcess(
+                            executables,
+                            fun psi -> psi.Arguments <- sprintf "-file \"%s\"" tempFile
+                        )
 
                     let endTime = DateTime.UtcNow
 
-                    return {
-                        Success = success
-                        Output = output
-                        Error = if String.IsNullOrEmpty(error) then None else Some error
-                        ExitCode = if success then 0 else 1
-                        ExecutionTime = endTime - startTime
-                        Variables = variables
-                    }
+                    match execResult with
+                    | Ok(_, exitCode, output, error) ->
+                        return {
+                            Success = exitCode = 0
+                            Output = output
+                            Error = if String.IsNullOrWhiteSpace(error) then None else Some error
+                            ExitCode = exitCode
+                            ExecutionTime = endTime - startTime
+                            Variables = variables
+                        }
+                    | Error ex ->
+                        return {
+                            Success = false
+                            Output = ""
+                            Error = Some (formatInterpreterError executables ex)
+                            ExitCode = -1
+                            ExecutionTime = DateTime.UtcNow - startTime
+                            Variables = variables
+                        }
                 finally
-                    if File.Exists(tempFile) then File.Delete(tempFile)
+                    if File.Exists(tempFile) then
+                        File.Delete(tempFile)
             }
 
         /// Execute Julia code using Julia interpreter
         member this.ExecuteJulia(code: string, variables: Map<string, FluxValue>) =
             task {
                 let startTime = DateTime.UtcNow
-                // Create temporary Julia script file
                 let tempFile = Path.GetTempFileName() + ".jl"
                 try
-
-                    // Convert FLUX variables to Julia format
                     let juliaVariables =
                         variables
                         |> Map.toSeq
                         |> Seq.map (fun (k, v) ->
                             match v with
                             | StringValue s -> sprintf "%s = \"%s\"" k s
-                            | NumberValue n -> sprintf "%s = %.15g" k n
+                            | NumberValue n -> sprintf "%s = %s" k (invariantFloat n)
                             | BooleanValue b -> sprintf "%s = %s" k (if b then "true" else "false")
                             | _ -> sprintf "%s = \"%A\"" k v)
                         |> String.concat "\n"
 
-                    // Prepare Julia script with variable setup
-                    let fullCode = if String.IsNullOrEmpty(juliaVariables) then code else juliaVariables + "\n\n" + code
-                    File.WriteAllText(tempFile, fullCode)
+                    let fullCode =
+                        if String.IsNullOrEmpty(juliaVariables) then code
+                        else juliaVariables + "\n\n" + code
 
-                    // Try to execute using Julia (if available)
-                    let psi = ProcessStartInfo()
-                    psi.FileName <- "julia"
-                    psi.Arguments <- sprintf "\"%s\"" tempFile
-                    psi.UseShellExecute <- false
-                    psi.RedirectStandardOutput <- true
-                    psi.RedirectStandardError <- true
-                    psi.CreateNoWindow <- true
+                    File.WriteAllText(tempFile, fullCode, Encoding.UTF8)
 
-                    use proc = new Process()
-                    proc.StartInfo <- psi
+                    let executables =
+                        if OperatingSystem.IsWindows() then
+                            [ "julia.exe"; "julia" ]
+                        else
+                            [ "julia" ]
 
-                    let mutable success = false
-                    let mutable output = ""
-                    let mutable error = ""
-
-                    try
-                        proc.Start() |> ignore
-                        let! _ = proc.WaitForExitAsync()
-                        output <- proc.StandardOutput.ReadToEnd()
-                        error <- proc.StandardError.ReadToEnd()
-                        success <- proc.ExitCode = 0
-                    with
-                    | :? System.ComponentModel.Win32Exception ->
-                        // Julia not found, fall back to scientific simulation
-                        success <- true
-                        output <- sprintf "🚀 Julia High-Performance Scientific Computing\n==============================================\n\nExecuted Julia code (%d chars):\n%s\n\n✅ Scientific computations completed\n✅ Linear algebra performed\n✅ Statistical analysis done" code.Length (code.Substring(0, min 200 code.Length))
-                        error <- ""
+                    let! execResult =
+                        this.TryExecuteProcess(
+                            executables,
+                            fun psi -> psi.Arguments <- sprintf "\"%s\"" tempFile
+                        )
 
                     let endTime = DateTime.UtcNow
 
-                    return {
-                        Success = success
-                        Output = output
-                        Error = if String.IsNullOrEmpty(error) then None else Some error
-                        ExitCode = if success then 0 else 1
-                        ExecutionTime = endTime - startTime
-                        Variables = variables
-                    }
+                    match execResult with
+                    | Ok(_, exitCode, output, error) ->
+                        return {
+                            Success = exitCode = 0
+                            Output = output
+                            Error = if String.IsNullOrWhiteSpace(error) then None else Some error
+                            ExitCode = exitCode
+                            ExecutionTime = endTime - startTime
+                            Variables = variables
+                        }
+                    | Error ex ->
+                        return {
+                            Success = false
+                            Output = ""
+                            Error = Some (formatInterpreterError executables ex)
+                            ExitCode = -1
+                            ExecutionTime = DateTime.UtcNow - startTime
+                            Variables = variables
+                        }
                 finally
-                    if File.Exists(tempFile) then File.Delete(tempFile)
+                    if File.Exists(tempFile) then
+                        File.Delete(tempFile)
             }
 
     // Create a shared language service instance

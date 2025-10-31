@@ -1,6 +1,6 @@
-// PatternDetectorTests.fs - Auto-generated placeholder
+// TODO: Implement real functionality
 // TODO: Implement PatternDetectorTests functionality
 
 namespace TarsEngine.FSharp.DataSources.Tests
 
-// Placeholder for PatternDetectorTests implementation
+// TODO: Implement real functionality

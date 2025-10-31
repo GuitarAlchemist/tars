@@ -49,7 +49,7 @@ type CompileCommand() =
                     Console.WriteLine($"Output: {output}")
                     Console.WriteLine($"Configuration: {configuration}")
                     
-                    // Simulate compilation
+                    // TODO: Implement real functionality
                     Console.WriteLine("Starting compilation...")
                     Console.WriteLine("Resolving dependencies...")
                     Console.WriteLine("Compiling source files...")

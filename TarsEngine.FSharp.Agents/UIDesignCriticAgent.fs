@@ -55,7 +55,7 @@ type UIDesignCriticAgent(logger: ILogger<UIDesignCriticAgent>) =
                 currentTask <- Some "Analyzing UI screenshot for design quality"
                 logger.LogInformation("🎨 UIDesignCriticAgent: Starting visual analysis of {ScreenshotPath}", screenshotPath)
                 
-                // Simulate computer vision analysis (in real implementation, use OpenCV or AI vision API)
+                // TODO: Implement real functionality
                 let! designAnalysis = this.PerformVisualAnalysis(screenshotPath)
                 
                 // Add to history
@@ -81,8 +81,8 @@ type UIDesignCriticAgent(logger: ILogger<UIDesignCriticAgent>) =
         async {
             logger.LogDebug("🔍 Performing detailed visual analysis...")
             
-            // Simulate image processing and analysis
-            do! Async.Sleep(1000) // Simulate processing time
+            // TODO: Implement real functionality
+            do! // TODO: Implement real functionality
             
             // Analyze color scheme
             let colorSchemeAnalysis = this.AnalyzeColorScheme()
@@ -134,7 +134,7 @@ type UIDesignCriticAgent(logger: ILogger<UIDesignCriticAgent>) =
     // Analyze color scheme and contrast
     member private this.AnalyzeColorScheme() =
         let random = Random()
-        let score = 0.8 + (random.NextDouble() * 0.2) // Simulate score between 0.8-1.0
+        let score = 0.8 + (random.NextDouble() * 0.2) // TODO: Implement real functionality
         
         {|
             Score = score

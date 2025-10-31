@@ -158,7 +158,7 @@ fix to auto-repair issues"
                             printfn "🤖 Using Codestral LLM to analyze and fix issues..."
                             printfn ""
                             
-                            // For demo, simulate test results with some failures
+                            // TODO: Implement real functionality
                             let sampleFailedResults = [
                                 {
                                     TestCaseId = "test1"

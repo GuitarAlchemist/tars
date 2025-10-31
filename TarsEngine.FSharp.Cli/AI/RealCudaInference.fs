@@ -7,7 +7,7 @@ open System.Runtime.InteropServices
 open TarsEngine.FSharp.Cli.Core.UnifiedCore
 open Microsoft.Extensions.Logging
 
-/// REAL CUDA Inference Engine - NO SIMULATIONS, ACTUAL GPU PROCESSING
+// TODO: Implement real functionality
 module RealCudaInference =
     
     // REAL CUDA P/Invoke declarations - actual CUDA runtime API

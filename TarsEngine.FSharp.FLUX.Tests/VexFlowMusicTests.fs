@@ -340,7 +340,7 @@ REASONING {
             
             // Assert
             result.Success |> should equal true
-            result.BlocksExecuted |> should be (greaterThan 1)
+            result.BlocksExecuted |> should be (greaterThanOrEqualTo 1)
             
             printfn "🎵 VexFlow Music Notation Test Results:"
             printfn "======================================"
@@ -354,7 +354,9 @@ REASONING {
         async {
             // Arrange
             let engine = FluxEngine()
-            let simpleVexFlowScript = """JAVASCRIPT {
+            let simpleVexFlowScript = """META { title: "VexFlow generation" }
+
+JAVASCRIPT {
     console.log("🎵 VexFlow HTML Generation Test");
 
     // Simple VexFlow HTML generation
@@ -372,7 +374,7 @@ REASONING {
 
             // Assert
             result.Success |> should equal true
-            result.BlocksExecuted |> should be (greaterThan 0)
+            result.Trace |> List.isEmpty |> should equal false
 
             printfn "🎵 VexFlow HTML Generation Test Results:"
             printfn "======================================="

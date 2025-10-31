@@ -67,6 +67,24 @@ module FeedbackCollectionStep =
         }
 
     /// <summary>
+    /// Finds the nearest .csproj or .fsproj file
+    /// </summary>
+    let rec private findProjectFile (dir: string) =
+        if String.IsNullOrEmpty(dir) || not (Directory.Exists(dir)) then
+            None
+        else
+            let projectFiles =
+                Directory.GetFiles(dir, "*.?sproj")
+                |> Array.filter (fun f ->
+                    f.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase) ||
+                    f.EndsWith(".fsproj", StringComparison.OrdinalIgnoreCase))
+
+            if projectFiles.Length > 0 then
+                Some projectFiles.[0]
+            else
+                findProjectFile (Path.GetDirectoryName(dir))
+
+    /// <summary>
     /// Validates an improvement by building the project
     /// </summary>
     let validateImprovement (logger: ILogger) (improvement: AppliedImprovement) =
@@ -74,22 +92,6 @@ module FeedbackCollectionStep =
             try
                 // Get the project directory
                 let projectDir = Path.GetDirectoryName(improvement.FilePath)
-
-                // Find the nearest .csproj or .fsproj file
-                let rec findProjectFile (dir: string) =
-                    if String.IsNullOrEmpty(dir) || not (Directory.Exists(dir)) then
-                        None
-                    else
-                        let projectFiles =
-                            Directory.GetFiles(dir, "*.?sproj")
-                            |> Array.filter (fun f ->
-                                f.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase) ||
-                                f.EndsWith(".fsproj", StringComparison.OrdinalIgnoreCase))
-
-                        if projectFiles.Length > 0 then
-                            Some projectFiles.[0]
-                        else
-                            findProjectFile (Path.GetDirectoryName(dir))
 
                 match findProjectFile projectDir with
                 | Some projectFile ->

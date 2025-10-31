@@ -26,7 +26,7 @@ type PerformanceMetrics = {
     ThroughputMBps: float     // data processing throughput
 }
 
-/// Real system health monitor - no fake metrics
+/// Real system health monitor - no real metrics
 type RealSystemHealthMonitor(logger: ILogger<RealSystemHealthMonitor>) =
     
     let mutable startTime = DateTime.UtcNow

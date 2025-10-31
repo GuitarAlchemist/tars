@@ -14,6 +14,7 @@
     <Compile Include="DemoTest.fs" />
     <Compile Include="CoolDemoTest.fs" />
     <Compile Include="ComprehensiveTests.fs" />
+    <Compile Include="LanguageExecutionServiceTests.fs" />
     <Compile Include="VexFlowMusicTests.fs" />
     <Compile Include="ElmishUITests.fs" />
     <Compile Include="AdvancedIntegrationTests.fs" />
@@ -59,3 +60,5 @@
   </ItemGroup>
 
 </Project>
+
+

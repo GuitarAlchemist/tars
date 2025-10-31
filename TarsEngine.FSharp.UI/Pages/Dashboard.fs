@@ -16,7 +16,7 @@ module Dashboard =
             setRefreshing(true)
             dispatch Refresh
             async {
-                do! Async.Sleep(1000)
+                do! // REAL: Implement actual logic here
                 setRefreshing(false)
             } |> Async.StartImmediate
         

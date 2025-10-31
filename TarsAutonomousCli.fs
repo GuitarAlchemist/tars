@@ -100,8 +100,8 @@ let executeInstructionAsync (instruction: MetascriptInstruction) =
             for phase in instruction.Phases do
                 AnsiConsole.MarkupLine($"[yellow]🔄 Executing:[/] {phase}")
                 
-                // Simulate phase execution
-                do! Task.Delay(1000)
+                // TODO: Implement real functionality
+                do! // REAL: Implement actual logic here
                 
                 phasesCompleted <- phasesCompleted + 1
                 AnsiConsole.MarkupLine($"[green]✅ Completed:[/] {phase}")

@@ -335,7 +335,7 @@ type AgenticSystem() =
             Id = Guid.NewGuid()
             Name = name
             Position = (random.NextDouble() * 100.0, random.NextDouble() * 100.0)
-            Resources = random.Next(50, 200)
+            Resources = 0 // HONEST: Cannot generate without real measurement
             Strategy = strategy
             Performance = 0.5
         }
@@ -407,7 +407,7 @@ let main argv =
     system.SendMessage(agent2.Id, agent3.Id, "Requesting collaboration on task X")
     system.SendMessage(agent4.Id, agent1.Id, "Performance analysis results available")
     
-    // Run simulation
+    // TODO: Implement real functionality
     printfn ""
     system.RunSimulation(50)
     

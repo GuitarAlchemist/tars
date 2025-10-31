@@ -70,7 +70,7 @@ printfn ""
 printfn "🧬 PROOF 2: METASCRIPT EVOLUTION CAPABILITY"
 printfn "=========================================="
 
-// Simulate evolution over generations with measurable improvements
+// TODO: Implement real functionality
 let generation1 =
         (1, 0.60, "Basic metascript with simple function")
 let generation2 =

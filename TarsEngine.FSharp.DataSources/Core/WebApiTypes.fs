@@ -108,7 +108,7 @@ and AuthConfig = {
 }
 
 and AuthType =
-    | None
+    | NoAuth
     | ApiKey
     | JWT
     | OAuth2
@@ -190,23 +190,23 @@ type RestEndpointBuilder() =
         Implementation = ""
     }
     
-    member _.Route(route: string) =
+    member this.Route(route: string) =
         endpoint <- { endpoint with Route = route }
         this
-    
-    member _.Method(method: HttpMethod) =
+
+    member this.Method(method: HttpMethod) =
         endpoint <- { endpoint with Method = method }
         this
-    
-    member _.Name(name: string) =
+
+    member this.Name(name: string) =
         endpoint <- { endpoint with Name = name }
         this
-    
-    member _.Description(description: string) =
+
+    member this.Description(description: string) =
         endpoint <- { endpoint with Description = description }
         this
     
-    member _.Parameter(name: string, paramType: ParameterType, dataType: string, ?required: bool, ?description: string) =
+    member this.Parameter(name: string, paramType: ParameterType, dataType: string, ?required: bool, ?description: string) =
         let param = {
             Name = name
             Type = paramType
@@ -217,8 +217,8 @@ type RestEndpointBuilder() =
         }
         endpoint <- { endpoint with Parameters = param :: endpoint.Parameters }
         this
-    
-    member _.Response(statusCode: int, dataType: string, ?description: string) =
+
+    member this.Response(statusCode: int, dataType: string, ?description: string) =
         let response = {
             StatusCode = statusCode
             DataType = dataType
@@ -228,19 +228,19 @@ type RestEndpointBuilder() =
         }
         endpoint <- { endpoint with Responses = response :: endpoint.Responses }
         this
-    
-    member _.RequiresAuth() =
+
+    member this.RequiresAuth() =
         endpoint <- { endpoint with RequiresAuth = true }
         this
-    
-    member _.RateLimit(requestsPerMinute: int) =
+
+    member this.RateLimit(requestsPerMinute: int) =
         endpoint <- { endpoint with RateLimit = Some requestsPerMinute }
         this
-    
-    member _.Implementation(code: string) =
+
+    member this.Implementation(code: string) =
         endpoint <- { endpoint with Implementation = code }
         this
-    
+
     member _.Build() = endpoint
 
 /// GraphQL type builder for fluent API
@@ -253,11 +253,11 @@ type GraphQLTypeBuilder(name: string, kind: GraphQLTypeKind) =
         Interfaces = []
     }
     
-    member _.Description(description: string) =
+    member this.Description(description: string) =
         graphqlType <- { graphqlType with Description = Some description }
         this
-    
-    member _.Field(name: string, fieldType: string, ?description: string, ?nullable: bool, ?resolver: string) =
+
+    member this.Field(name: string, fieldType: string, ?description: string, ?nullable: bool, ?resolver: string) =
         let field = {
             Name = name
             Type = fieldType
@@ -268,11 +268,11 @@ type GraphQLTypeBuilder(name: string, kind: GraphQLTypeKind) =
         }
         graphqlType <- { graphqlType with Fields = field :: graphqlType.Fields }
         this
-    
-    member _.Interface(interfaceName: string) =
+
+    member this.Interface(interfaceName: string) =
         graphqlType <- { graphqlType with Interfaces = interfaceName :: graphqlType.Interfaces }
         this
-    
+
     member _.Build() = graphqlType
 
 /// Helper functions for web API generation
@@ -331,6 +331,6 @@ module WebApiHelpers =
     /// Converts parameter type to route template
     let parameterToRoute param =
         match param.Type with
-        | Route name -> $"{{{name}}}"
-        | Query name -> $"?{name}={{value}}"
+        | Route _ -> $"{{{param.Name}}}"
+        | Query _ -> $"?{param.Name}={{value}}"
         | _ -> ""

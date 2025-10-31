@@ -19,9 +19,11 @@ type GraphQLGenerator() =
                 sb.AppendLine($"type {graphqlType.Name} {{") |> ignore
                 for field in graphqlType.Fields do
                     let nullable = if field.Nullable then "" else "!"
-                    let args = 
+                    let args =
                         if field.Arguments.IsEmpty then ""
-                        else $"({field.Arguments |> List.map (fun arg -> $"{arg.Name}: {arg.DataType}") |> String.concat ", "})"
+                        else
+                            let argList = field.Arguments |> List.map (fun arg -> $"{arg.Name}: {arg.DataType}") |> String.concat ", "
+                            $"({argList})"
                     sb.AppendLine($"  {field.Name}{args}: {field.Type}{nullable}") |> ignore
                 sb.AppendLine("}") |> ignore
                 sb.AppendLine() |> ignore
@@ -46,20 +48,24 @@ type GraphQLGenerator() =
         if not schema.Queries.IsEmpty then
             sb.AppendLine("type Query {") |> ignore
             for query in schema.Queries do
-                let args = 
+                let args =
                     if query.Arguments.IsEmpty then ""
-                    else $"({query.Arguments |> List.map (fun arg -> $"{arg.Name}: {arg.DataType}") |> String.concat ", "})"
+                    else
+                        let argList = query.Arguments |> List.map (fun arg -> $"{arg.Name}: {arg.DataType}") |> String.concat ", "
+                        $"({argList})"
                 sb.AppendLine($"  {query.Name}{args}: {query.Type}") |> ignore
             sb.AppendLine("}") |> ignore
             sb.AppendLine() |> ignore
-        
+
         // Generate Mutation type
         if not schema.Mutations.IsEmpty then
             sb.AppendLine("type Mutation {") |> ignore
             for mutation in schema.Mutations do
-                let args = 
+                let args =
                     if mutation.Arguments.IsEmpty then ""
-                    else $"({mutation.Arguments |> List.map (fun arg -> $"{arg.Name}: {arg.DataType}") |> String.concat ", "})"
+                    else
+                        let argList = mutation.Arguments |> List.map (fun arg -> $"{arg.Name}: {arg.DataType}") |> String.concat ", "
+                        $"({argList})"
                 sb.AppendLine($"  {mutation.Name}{args}: {mutation.Type}") |> ignore
             sb.AppendLine("}") |> ignore
             sb.AppendLine() |> ignore

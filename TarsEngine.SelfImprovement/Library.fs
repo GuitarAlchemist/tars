@@ -68,8 +68,7 @@ module SelfAnalyzer =
                     |> fun s -> s.Replace("\t", "\\t")
 
                 let requestBody =
-                    sprintf "{\"model\": \"%s\", \"prompt\": \"%s\", \"stream\": false}"
-                        model escapedPrompt
+                    $"{{\"model\": \"%s{model}\", \"prompt\": \"%s{escapedPrompt}\", \"stream\": false}}"
 
                 let! response = Http.AsyncRequestString(ollamaUrl, httpMethod = "POST", body = TextRequest requestBody)
 
@@ -214,8 +213,7 @@ module SelfImprover =
                     |> fun s -> s.Replace("\t", "\\t")
 
                 let requestBody =
-                    sprintf "{\"model\": \"%s\", \"prompt\": \"%s\", \"stream\": false}"
-                        model escapedPrompt
+                    $"{{\"model\": \"%s{model}\", \"prompt\": \"%s{escapedPrompt}\", \"stream\": false}}"
 
                 let! response = Http.AsyncRequestString(ollamaUrl, httpMethod = "POST", body = TextRequest requestBody)
 

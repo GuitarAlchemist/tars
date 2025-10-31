@@ -91,7 +91,7 @@ printfn "\n🔬 Attempting Janus Research with Basic Grammar:"
 printfn "Task: %s" basicJanusTask.Description
 printfn "Grammar Level: %A" basicJanusTask.RequiredGrammarLevel
 
-// Simulate grammar limitation detection
+// TODO: Implement real functionality
 printfn "\n❌ LIMITATION DETECTED!"
 printfn "Basic task assignment cannot express cosmological concepts."
 printfn "Need: Domain-specific scientific constructs"

@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.FSharp.Core.Tests.Compilation
+namespace TarsEngine.FSharp.Core.Tests.Compilation
 
 open System
 open System.IO
@@ -14,7 +14,7 @@ open TarsEngine.FSharp.Core.Compilation
 module FSharpCompilerAdapterTests =
     
     /// <summary>
-    /// Mock logger for testing.
+    // TODO: Implement real functionality
     /// </summary>
     type MockLogger<'T>() =
         interface ILogger<'T> with

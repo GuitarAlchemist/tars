@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env dotnet fsi
+#!/usr/bin/env dotnet fsi
 
 open System
 open System.Diagnostics
@@ -101,8 +101,8 @@ let testTarsCuda() = async {
     
     // This is what we actually have - basic CUDA operations, not real AI
     try
-        // Simulate what our CUDA kernels can do
-        do! Async.Sleep(50) // REAL IMPLEMENTATION NEEDED
+        // TODO: Implement real functionality
+        do! // REAL: Implement actual logic here // REAL IMPLEMENTATION NEEDED
         
         stopwatch.Stop()
         

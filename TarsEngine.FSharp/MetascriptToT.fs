@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.FSharp
+namespace TarsEngine.FSharp
 
 /// Tree-of-Thought reasoning implementation for metascripts in F#
 module MetascriptToT =
@@ -97,7 +97,7 @@ module MetascriptToT =
                 |> ThoughtTree.addChild patternMatching
                 |> ThoughtTree.addChild semanticAnalysis
             
-            // Return the root and a simulated analysis result
+            // TODO: Implement real functionality
             (rootWithApproaches, "Code analysis completed successfully")
     
     /// Functions for fix generation using Tree-of-Thought reasoning
@@ -127,7 +127,7 @@ module MetascriptToT =
                 |> ThoughtTree.addChild refactoring
                 |> ThoughtTree.addChild alternativeImplementation
             
-            // Return the root and a simulated fix result
+            // TODO: Implement real functionality
             (rootWithApproaches, "Fix generation completed successfully")
     
     /// Functions for fix application using Tree-of-Thought reasoning
@@ -157,5 +157,5 @@ module MetascriptToT =
                 |> ThoughtTree.addChild stagedApplication
                 |> ThoughtTree.addChild transactionalApplication
             
-            // Return the root and a simulated application result
+            // TODO: Implement real functionality
             (rootWithApproaches, "Fix application completed successfully")

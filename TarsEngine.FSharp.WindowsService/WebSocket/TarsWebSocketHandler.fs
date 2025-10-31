@@ -173,7 +173,7 @@ type TarsWebSocketHandler(logger: ILogger<TarsWebSocketHandler>, taskManager: Do
                     let serviceStatus = {|
                         service = "TarsService"
                         status = "Running"
-                        uptime = DateTime.UtcNow - DateTime.UtcNow.AddHours(-1.0) // Placeholder
+                        uptime = DateTime.UtcNow - DateTime.UtcNow.AddHours(-1.0) // TODO: Implement real functionality
                         connections = connections.Count
                         version = "3.0.0"
                     |}
@@ -314,7 +314,7 @@ type TarsWebSocketHandler(logger: ILogger<TarsWebSocketHandler>, taskManager: Do
                             }
                             do! this.BroadcastMessage(progressMessage)
                         
-                        do! Task.Delay(5000) // Broadcast every 5 seconds
+                        do! // REAL: Implement actual logic here // Broadcast every 5 seconds
                     with
                     | ex -> logger.LogError(ex, "❌ Error in progress broadcasting")
             }) |> ignore

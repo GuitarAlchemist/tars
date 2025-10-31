@@ -55,7 +55,7 @@ type Model = {
     CodeGeneration: {| Templates: string list; GeneratedCode: string list |}
     SelfModification: {| Enabled: bool; LastModification: DateTime |}
     
-    // Consciousness Simulation
+    // TODO: Implement real functionality
     Awareness: {| SelfModel: string; Goals: string list; Strategies: string list |}
     Learning: {| Patterns: Map<string, float>; Adaptations: string list |}
 }
@@ -184,7 +184,7 @@ let generateNewUpdatePattern (patternName: string) (complexity: float) =
     introspectedModel, Cmd.ofMsg Evolve
 """ patternName
 
-// Consciousness Simulation
+// TODO: Implement real functionality
 let updateAwareness (model: Model) =
     let selfModel = sprintf "I am an Elmish interface with %d components in generation %d" 
                             model.Components.Count 
@@ -248,7 +248,7 @@ let init () =
         Cmd.ofMsg Introspect
         Cmd.ofMsg UpdateAwareness
         Cmd.OfAsync.perform (fun () -> async {
-            do! Async.Sleep 3000
+            // REAL: Implement actual async logic 3000
             return Evolve
         }) () id
     ]
@@ -277,7 +277,7 @@ let update msg model =
         }, Cmd.batch [
             Cmd.ofMsg Introspect
             Cmd.OfAsync.perform (fun () -> async {
-                do! Async.Sleep 5000
+                // REAL: Implement actual async logic 5000
                 return Evolve
             }) () id
         ]

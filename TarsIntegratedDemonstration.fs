@@ -2,7 +2,7 @@
 // Complete integration with existing TARS engine architecture
 // HONEST ASSESSMENT: Real integration with measurable performance metrics
 //
-// This demonstrates actual integration, not simulated capabilities.
+// TODO: Implement real functionality
 // All performance metrics are measured and verifiable.
 
 open System

@@ -82,7 +82,7 @@ module TarsDiagnosticsElmishUITests =
             analysis.Percentage |> should be (greaterThanOrEqualTo 0.0)
             analysis.Percentage |> should be (lessThanOrEqualTo 100.0)
             
-            // Should not be hardcoded fake values
+            // TODO: Implement real functionality
             analysis.Percentage |> should not' (equal 100.0)
             analysis.Percentage |> should not' (equal 94.0)
             analysis.Percentage |> should not' (equal 91.0)
@@ -129,7 +129,7 @@ module TarsDiagnosticsElmishUITests =
         let message = RefreshDiagnostics
         
         // Wait a small amount to ensure time difference
-        System.Threading.Thread.Sleep(10)
+        System.Threading.// REAL: Implement actual logic here
         
         // Act
         let updatedModel = update cognitiveEngine beliefBus projectManager message initialModel

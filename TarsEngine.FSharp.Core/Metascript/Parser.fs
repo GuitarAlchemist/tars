@@ -26,6 +26,19 @@ module Parser =
             | line when line.StartsWith("FSHARP {") ->
                 currentBlock <- Some (FSharp, lineNum)
                 currentContent <- []
+            | line when line.StartsWith("MCP", StringComparison.OrdinalIgnoreCase) ->
+                let trimmed = line.Substring(3).Trim()
+                let serverWithBrace =
+                    if String.IsNullOrWhiteSpace(trimmed) then ""
+                    else trimmed
+
+                let serverName =
+                    if serverWithBrace.EndsWith("{") then
+                        serverWithBrace.Substring(0, serverWithBrace.Length - 1).Trim()
+                    else serverWithBrace.Trim()
+
+                currentBlock <- Some (Mcp serverName, lineNum)
+                currentContent <- []
             | line when line = "}" ->
                 match currentBlock with
                 | Some (blockType, startLine) ->

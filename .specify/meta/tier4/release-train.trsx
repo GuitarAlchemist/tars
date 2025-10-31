@@ -1,0 +1,19 @@
+# Tier4 Release Train Conductor
+
+CLOSURE_CREATE FRACTAL_METASCRIPT "Tier4ReleaseTrain"
+  grammar="@metascripts/fragments/safety_rules.trsx"
+  context.squad="ReleaseTrain"
+  context.role="DeliveryLead"
+  context.stage="Tier4"
+
+NOTE "Bundle validated Tier3/Tier4 artifacts with provenance and schedule promotion experiments."
+
+METRIC promotion_success 0.95
+METRIC provenance_completeness 1.00
+
+SPAWN DeliveryAgent 1 HIERARCHICAL
+SPAWN ProvenanceScribe 1 FRACTAL
+SPAWN RiskOfficer 1 DEMOCRATIC
+CONNECT DeliveryAgent ProvenanceScribe package
+CONNECT ProvenanceScribe RiskOfficer audit
+REPEAT release-window 3

@@ -235,14 +235,14 @@ module UnifiedCudaEngineCore =
                     LastUpdate = DateTime.UtcNow
             }
         
-        /// Execute operation on GPU (placeholder for real implementation)
+        // TODO: Implement real functionality
         member private this.ExecuteGpuOperation(operation: CudaOperationContext, data: obj, correlationId: string) =
             task {
                 let startTime = DateTime.UtcNow
                 
                 try
                     // Real GPU operation would go here
-                    // For now, simulate with actual computation
+                    // TODO: Implement real functionality
                     let result = {
                         OperationId = operation.OperationId
                         Success = true

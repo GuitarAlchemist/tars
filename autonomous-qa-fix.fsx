@@ -211,7 +211,7 @@ let createSimpleHTMLWrapper (projectPath: string) : bool =
     let serverStarted = serverProcess.Start()
     if serverStarted then
         printfn "🌐 Standalone server started on http://localhost:8084"
-        System.Threading.Thread.Sleep(2000)
+        System.Threading.// REAL: Implement actual logic here
 
         // Open browser to standalone file
         let browserProcess = new Process()
@@ -291,7 +291,7 @@ let executeAutonomousFix (issue: DeploymentIssue) (projectPath: string) : bool =
                 let serverStarted = serverProcess.Start()
                 if serverStarted then
                     printfn "🌐 Server started on http://localhost:8083"
-                    System.Threading.Thread.Sleep(2000) // Give server time to start
+                    System.Threading.// REAL: Implement actual logic here // Give server time to start
                     
                     // Open browser
                     let browserProcess = new Process()

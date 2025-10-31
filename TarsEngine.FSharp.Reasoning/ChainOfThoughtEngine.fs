@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.FSharp.Reasoning
+namespace TarsEngine.FSharp.Reasoning
 
 open System
 open System.Collections.Generic

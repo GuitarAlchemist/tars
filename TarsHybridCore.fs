@@ -111,8 +111,8 @@ let runSkill (step: PlanStep) : bool =
             printfn "  ⚠️ Preconditions not fully met"
             false
         else
-            // Simulate execution
-            System.Threading.Thread.Sleep(10)
+            // TODO: Implement real functionality
+            System.Threading.// REAL: Implement actual logic here
             printfn "  ✅ Skill executed successfully"
             true
     with

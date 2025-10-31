@@ -224,14 +224,14 @@ type WebApiClosureFactory() =
         // For now, return sample schema
         {
             Types = [
-                WebApiHelpers.graphqlType "User" Object
+                (WebApiHelpers.graphqlType "User" Object)
                     .Description("A user in the system")
                     .Field("id", "ID!", "User identifier")
                     .Field("name", "String!", "User name")
                     .Field("email", "String!", "User email")
                     .Build()
-                
-                WebApiHelpers.graphqlType "CreateUserInput" InputObject
+
+                (WebApiHelpers.graphqlType "CreateUserInput" InputObject)
                     .Description("Input for creating a user")
                     .Field("name", "String!", "User name")
                     .Field("email", "String!", "User email")

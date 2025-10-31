@@ -1,6 +1,6 @@
-// CodeSynthesizer.fs - Auto-generated placeholder
+// TODO: Implement real functionality
 // TODO: Implement CodeSynthesizer functionality
 
 namespace TarsEngine.FSharp.DataSources.Generation
 
-// Placeholder for CodeSynthesizer implementation
+// TODO: Implement real functionality

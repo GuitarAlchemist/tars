@@ -145,7 +145,7 @@ type TarsAgentOSIntegrationService() =
             let mutable performanceMetrics = Map.empty<string, float>
             let mutable qualityValidation = Map.empty<string, bool>
             
-            // Simulate execution of each task with quality validation
+            // TODO: Implement real functionality
             for task in spec.Tasks do
                 let qualityPassed = 
                     task.QualityGates

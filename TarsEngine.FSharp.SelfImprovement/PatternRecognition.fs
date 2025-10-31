@@ -7,7 +7,33 @@ open ImprovementTypes
 
 /// Advanced pattern recognition for code improvement
 module PatternRecognition =
-    
+
+    /// Pattern with ID for matching
+    type PatternWithId = {
+        Id: string
+        Name: string
+        Description: string
+        PatternType: PatternType
+        Severity: Severity
+        Example: string option
+        Recommendation: string
+    }
+
+    /// Common patterns with IDs (for Ollama integration)
+    let commonPatterns = [
+        { Id = "CS003"; Name = "String concatenation in loop"; Description = "String concatenation using + in loops"; PatternType = PatternType.Performance; Severity = Severity.Medium; Example = Some "for(...) { str += item; }"; Recommendation = "Use StringBuilder for better performance" }
+        { Id = "CS004"; Name = "LINQ in tight loops"; Description = "LINQ operations in performance-critical loops"; PatternType = PatternType.Performance; Severity = Severity.Medium; Example = Some "for(...) { var x = list.Where(...); }"; Recommendation = "Use traditional loops for better performance" }
+        { Id = "CS005"; Name = "Collection without capacity"; Description = "Collections initialized without capacity"; PatternType = PatternType.Performance; Severity = Severity.Low; Example = Some "var list = new List<int>();"; Recommendation = "Initialize with estimated capacity" }
+        { Id = "CS006"; Name = "Async void"; Description = "Async void methods"; PatternType = PatternType.Maintainability; Severity = Severity.High; Example = Some "async void Method()"; Recommendation = "Use async Task instead" }
+        { Id = "CS007"; Name = "Missing using"; Description = "IDisposable without using"; PatternType = PatternType.Maintainability; Severity = Severity.High; Example = Some "var stream = new FileStream(...)"; Recommendation = "Use using declaration" }
+        { Id = "FS003"; Name = "Non-tail recursion"; Description = "Recursive function without tail call"; PatternType = PatternType.Performance; Severity = Severity.Medium; Example = Some "let rec factorial n = if n = 0 then 1 else n * factorial (n-1)"; Recommendation = "Use tail recursion with accumulator" }
+        { Id = "FS004"; Name = "List concatenation in loop"; Description = "List concatenation using @ in loops"; PatternType = PatternType.Performance; Severity = Severity.Medium; Example = Some "for x in xs do list <- list @ [x]"; Recommendation = "Use list comprehension" }
+        { Id = "FS005"; Name = "Missing type annotation"; Description = "Function without type annotation"; PatternType = PatternType.Documentation; Severity = Severity.Low; Example = Some "let func x = x + 1"; Recommendation = "Add type annotation for clarity" }
+        { Id = "GEN003"; Name = "Commented code"; Description = "Commented out code"; PatternType = PatternType.Maintainability; Severity = Severity.Low; Example = Some "// oldFunction()"; Recommendation = "Remove commented code" }
+        { Id = "GEN004"; Name = "Magic string"; Description = "Hardcoded string values"; PatternType = PatternType.Maintainability; Severity = Severity.Medium; Example = Some "var x = \"hardcoded_value\""; Recommendation = "Extract to named constant" }
+        { Id = "GEN005"; Name = "Complex condition"; Description = "Complex conditional expression"; PatternType = PatternType.Maintainability; Severity = Severity.Medium; Example = Some "if (a && b || c && d)"; Recommendation = "Break down into named boolean" }
+    ]
+
     /// Built-in improvement patterns for F# and C#
     let private builtInPatterns = [
         // F# specific patterns

@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.DSL
+namespace TarsEngine.DSL
 
 open System
 open System.Text.RegularExpressions
@@ -431,7 +431,7 @@ module SimpleDsl =
                             )
 
                         // In a real implementation, this would send an MCP request
-                        // For now, just return a mock response
+                        // TODO: Implement real functionality
                         let mockResponse = $"MCP request to {substitutedTarget}, action: {substitutedAction}, parameters: {substitutedParams.Count} parameters"
                         printfn "[MCP] %s" mockResponse
 
@@ -457,7 +457,7 @@ module SimpleDsl =
                         | _ -> 30.0 // Default timeout in seconds
 
                     // In a real implementation, this would wait for an MCP request
-                    // For now, just return a mock response
+                    // TODO: Implement real functionality
                     let mockResponse = $"Received MCP request (timeout: {timeout}s)"
                     printfn "[MCP] %s" mockResponse
 
@@ -770,7 +770,7 @@ module SimpleDsl =
                         Error("Write file action requires 'path' and 'content' properties")
 
                 | "analyze" | "pattern_recognition" | "refactor" | "test" | "get_files" | "generate_report" | "notify" ->
-                    // These are placeholder implementations for the more complex actions
+                    // TODO: Implement real functionality
                     // In a real implementation, these would perform actual analysis, refactoring, etc.
                     printfn "Executing action: %s (placeholder implementation)" actionType
                     Success(StringValue($"Action {actionType} executed (placeholder implementation)"))

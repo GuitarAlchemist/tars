@@ -111,7 +111,7 @@ module FusekiIntegration =
                         logger |> Option.iter (fun l -> l.LogInformation("Downloading Apache Jena Fuseki..."))
                         
                         // Note: In production, this would download from Apache mirrors
-                        // For now, we'll create a placeholder that indicates manual installation needed
+                        // TODO: Implement real functionality
                         let readmeContent = """
 # TARS Fuseki Integration
 
@@ -169,7 +169,7 @@ The jar file should be named: fuseki-server.jar
                             serverProcess <- Some proc
 
                             // Wait a bit for server to start
-                            do! Task.Delay(3000)
+                            do! // REAL: Implement actual logic here
 
                             if proc.HasExited then
                                 currentStatus <- Error $"Fuseki failed to start. Exit code: {proc.ExitCode}"

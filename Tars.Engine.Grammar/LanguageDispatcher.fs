@@ -4,6 +4,8 @@ open System
 open System.IO
 open System.Diagnostics
 open System.Text
+open System.Text.RegularExpressions
+open Microsoft.Data.Sqlite
 open Tars.Engine.Grammar.GrammarSource
 
 /// Language-specific code execution and compilation
@@ -235,16 +237,119 @@ fn main() {{
         finally
             cleanupTempFile tempFile
     
-    /// Execute SQL code (placeholder - requires database connection)
-    let executeSQL code context =
-        // TODO: Implement SQL execution with configurable database connections
-        {
-            Success = false
-            Output = ""
-            Error = Some "SQL execution not yet implemented - requires database configuration"
-            ExitCode = -1
-            ExecutionTime = TimeSpan.Zero
-        }
+    /// Split SQL script into executable statements while respecting quoted literals
+    let private splitSqlStatements (sql: string) =
+        let builder = StringBuilder()
+        let statements = ResizeArray<string>()
+        let mutable inString = false
+        let mutable stringDelimiter = '\000'
+        let mutable previousChar = '\000'
+
+        for ch in sql do
+            match ch with
+            | '\'' | '"' as quote when not inString ->
+                inString <- true
+                stringDelimiter <- quote
+                builder.Append(ch) |> ignore
+            | _ when inString && ch = stringDelimiter && previousChar <> '\\' ->
+                inString <- false
+                builder.Append(ch) |> ignore
+            | ';' when not inString ->
+                let statement = builder.ToString().Trim()
+                if not (String.IsNullOrWhiteSpace(statement)) then
+                    statements.Add(statement)
+                builder.Clear() |> ignore
+            | _ ->
+                builder.Append(ch) |> ignore
+
+            previousChar <- ch
+
+        let trailing = builder.ToString().Trim()
+        if not (String.IsNullOrWhiteSpace(trailing)) then
+            statements.Add(trailing)
+
+        statements |> Seq.toList
+
+    /// Execute SQL code using SQLite (configurable via metadata/environment)
+    let executeSQL (block: LanguageBlock) context =
+        let stopwatch = Stopwatch.StartNew()
+
+        let connectionString =
+            block.Metadata
+            |> Map.tryFind "connectionString"
+            |> Option.orElse (context.EnvironmentVariables |> Map.tryFind "TARS_SQL_CONNECTION")
+            |> Option.defaultValue "Data Source=:memory:;Mode=Memory;Cache=Shared"
+
+        let provider =
+            block.Metadata
+            |> Map.tryFind "provider"
+            |> Option.defaultValue "sqlite"
+
+        let statements = splitSqlStatements block.Code
+
+        match provider.ToLowerInvariant() with
+        | "sqlite" ->
+            try
+                use connection = new SqliteConnection(connectionString)
+                connection.Open()
+
+                let outputs = ResizeArray<string>()
+
+                for statement in statements do
+                    use command = connection.CreateCommand()
+                    command.CommandText <- statement
+
+                    let isQuery =
+                        Regex.IsMatch(statement, @"^(SELECT|PRAGMA|WITH)\b", RegexOptions.IgnoreCase)
+
+                    if isQuery then
+                        use reader = command.ExecuteReader()
+
+                        if reader.FieldCount = 0 then
+                            outputs.Add("Query executed (no columns returned)")
+                        else
+                            let header =
+                                [for i in 0 .. reader.FieldCount - 1 -> reader.GetName(i)]
+                                |> String.concat "\t"
+                            outputs.Add(header)
+
+                            while reader.Read() do
+                                let row =
+                                    [for i in 0 .. reader.FieldCount - 1 ->
+                                        if reader.IsDBNull(i) then
+                                            "NULL"
+                                        else
+                                            reader.GetValue(i).ToString()]
+                                    |> String.concat "\t"
+                                outputs.Add(row)
+                    else
+                        let affected = command.ExecuteNonQuery()
+                        outputs.Add $"Statement executed (%d{affected} rows affected)"
+
+                {
+                    Success = true
+                    Output = String.concat Environment.NewLine outputs
+                    Error = None
+                    ExitCode = 0
+                    ExecutionTime = stopwatch.Elapsed
+                }
+            with
+            | ex ->
+                {
+                    Success = false
+                    Output = ""
+                    Error = Some ex.Message
+                    ExitCode = -1
+                    ExecutionTime = stopwatch.Elapsed
+                }
+        | unsupported ->
+            {
+                Success = false
+                Output = ""
+                Error = Some $"Unsupported SQL provider: {unsupported}"
+                ExitCode = -1
+                ExecutionTime = stopwatch.Elapsed
+            }
 
     /// Execute Wolfram Language code
     let executeWolfram (code: string) context =
@@ -257,17 +362,15 @@ fn main() {{
             if result.Success then
                 result
             else
-                // WolframScript not found, provide mathematical simulation
-                let startTime = DateTime.UtcNow
-                let codePreview = if code.Length > 200 then code.Substring(0, 200) + "..." else code
-                let output = sprintf "🔬 Wolfram Language Mathematical Analysis\n==========================================\n\nExecuted Wolfram code (%d chars):\n%s\n\n✅ Mathematical computations completed\n✅ Symbolic analysis performed\n✅ Results generated\n\nNote: WolframScript not available, using mathematical simulation mode." code.Length codePreview
+                let errorMessage =
+                    match result.Error with
+                    | Some err when not (String.IsNullOrWhiteSpace err) -> err
+                    | _ -> "WolframScript runtime is unavailable or failed to execute the supplied code."
 
                 {
-                    Success = true
-                    Output = output
-                    Error = None
-                    ExitCode = 0
-                    ExecutionTime = DateTime.UtcNow - startTime
+                    result with
+                        Success = false
+                        Error = Some errorMessage
                 }
         finally
             cleanupTempFile tempFile
@@ -283,24 +386,15 @@ fn main() {{
             if result.Success then
                 result
             else
-                // Julia not found, provide scientific simulation
-                let startTime = DateTime.UtcNow
-                let codePreview = if code.Length > 200 then code.Substring(0, 200) + "..." else code
-                let output =
-                    "🚀 Julia High-Performance Scientific Computing\n" +
-                    "==============================================\n\n" +
-                    sprintf "Executed Julia code (%d chars):\n%s\n\n" code.Length codePreview +
-                    "✅ Scientific computations completed\n" +
-                    "✅ Linear algebra performed\n" +
-                    "✅ Statistical analysis done\n\n" +
-                    "Note: Julia not available, using scientific simulation mode."
+                let errorMessage =
+                    match result.Error with
+                    | Some err when not (String.IsNullOrWhiteSpace err) -> err
+                    | _ -> "Julia runtime is unavailable or failed to execute the supplied code."
 
                 {
-                    Success = true
-                    Output = output
-                    Error = None
-                    ExitCode = 0
-                    ExecutionTime = DateTime.UtcNow - startTime
+                    result with
+                        Success = false
+                        Error = Some errorMessage
                 }
         finally
             cleanupTempFile tempFile
@@ -316,7 +410,7 @@ fn main() {{
         | "TYPESCRIPT" -> executeTypeScript block.Code context
         | "POWERSHELL" -> executePowerShell block.Code context
         | "BASH" -> executeBash block.Code context
-        | "SQL" -> executeSQL block.Code context
+        | "SQL" -> executeSQL block context
         | "WOLFRAM" -> executeWolfram block.Code context
         | "JULIA" -> executeJulia block.Code context
         | unsupported ->
@@ -358,10 +452,10 @@ fn main() {{
             result.Success
         | "WOLFRAM" ->
             let result = executeProcess "wolframscript" "--version" { context with CaptureOutput = false }
-            result.Success || true  // Always available in simulation mode
+            result.Success
         | "JULIA" ->
             let result = executeProcess "julia" "--version" { context with CaptureOutput = false }
-            result.Success || true  // Always available in simulation mode
+            result.Success
         | _ -> false
     
     /// Get available languages on the system
@@ -386,3 +480,4 @@ fn main() {{
             Ok block
         else
             Error (errors |> Seq.toList)
+

@@ -22,7 +22,7 @@ type ApiKeyMiddleware(next: RequestDelegate, logger: ILogger<ApiKeyMiddleware>) 
             // Try query parameter as fallback
             match context.Request.Query.TryGetValue("api_key") with
             | true, values when values.Count > 0 -> Some values.[0]
-            | _ -> None
+            | _ -> Option.None
     
     /// Set security context in HTTP context
     let setSecurityContext (context: HttpContext) (securityContext: TarsSecurityContext) =
@@ -40,9 +40,9 @@ type ApiKeyMiddleware(next: RequestDelegate, logger: ILogger<ApiKeyMiddleware>) 
             Username = "Anonymous"
             Role = Anonymous
             Permissions = []
-            AuthType = None
+            AuthType = TarsAuthType.None
             IsAuthenticated = false
-            ExpiresAt = None
+            ExpiresAt = Option.None
             Claims = []
         }
         setSecurityContext context anonymousContext
@@ -90,7 +90,7 @@ type ApiKeyMiddleware(next: RequestDelegate, logger: ILogger<ApiKeyMiddleware>) 
                         context.Response.StatusCode <- 403
                         do! context.Response.WriteAsync($"Access forbidden: {reason}")
                 
-                | None ->
+                | Option.None ->
                     // No API key provided - fall back to other authentication methods
                     // or allow anonymous if configured
                     if config.AllowAnonymous || allowsAnonymous context then

@@ -87,7 +87,7 @@ module CustomCudaInferenceEngine =
                 return {
                     Success = true
                     Confidence = 0.85
-                    Output = sprintf "Inference result for: %s" input
+                    Output = $"Inference result for: %s{input}"
                     ExecutionTime = TimeSpan.FromMilliseconds(50.0)
                 }
             }

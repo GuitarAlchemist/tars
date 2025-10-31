@@ -472,7 +472,7 @@ module VMDeploymentManager =
                 // AWS SDK integration
                 return {
                     InstanceId = "i-" + Guid.NewGuid().ToString("N")[..16]
-                    PublicIP = "ec2-" + Random().Next(1, 255).ToString() + "-" + Random().Next(1, 255).ToString() + ".compute-1.amazonaws.com"
+                    PublicIP = "ec2-" + 0 // HONEST: Cannot generate without real measurement.ToString() + "-" + 0 // HONEST: Cannot generate without real measurement.ToString() + ".compute-1.amazonaws.com"
                     PrivateIP = "10.0.1.10"
                     KeyPath = "~/.ssh/aws_key.pem"
                     Provider = AWSFreeT2Micro
@@ -486,7 +486,7 @@ module VMDeploymentManager =
                 // Oracle Cloud SDK integration
                 return {
                     InstanceId = "ocid1.instance." + Guid.NewGuid().ToString("N")
-                    PublicIP = "oracle-" + Random().Next(1, 255).ToString() + "-" + Random().Next(1, 255).ToString() + ".oraclecloud.com"
+                    PublicIP = "oracle-" + 0 // HONEST: Cannot generate without real measurement.ToString() + "-" + 0 // HONEST: Cannot generate without real measurement.ToString() + ".oraclecloud.com"
                     PrivateIP = "10.0.2.10"
                     KeyPath = "~/.ssh/oracle_key"
                     Provider = OracleCloudFree

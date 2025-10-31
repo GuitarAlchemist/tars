@@ -83,7 +83,7 @@ type OnnxModel(modelPath: string, tokenizerPath: string option) =
                 // Simple text generation (this would need proper tokenization for real models)
                 let inputText = prompt
 
-                // For now, return a simulated response
+                // TODO: Implement real functionality
                 // In real implementation, this would:
                 // 1. Tokenize input text
                 // 2. Run ONNX inference
@@ -256,7 +256,7 @@ type HuggingFaceService(httpClient: HttpClient, logger: ILogger<HuggingFaceServi
                             logger.LogInformation("Downloaded {FileName} for model {ModelId}", fileName, modelId)
                         else
                             logger.LogWarning("Failed to download {FileName} for model {ModelId}: {StatusCode}", fileName, modelId, response.StatusCode)
-                            // Create placeholder file
+                            // TODO: Implement real functionality
                             File.WriteAllText(filePath, $"# Placeholder for {fileName}\n# Model: {modelId}")
                     with
                     | ex ->
@@ -384,7 +384,7 @@ type HuggingFaceService(httpClient: HttpClient, logger: ILogger<HuggingFaceServi
                         // Retry generation after loading
                         return! this.GenerateTextAsync(modelInfo, prompt, maxTokensValue, temperatureValue)
                     | Error error ->
-                        // Fallback to simulated response
+                        // TODO: Implement real functionality
                         logger.LogWarning("Model not loaded, using fallback response for {ModelId}", modelInfo.ModelId)
 
                         let response =

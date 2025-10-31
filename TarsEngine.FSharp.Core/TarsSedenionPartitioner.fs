@@ -184,7 +184,7 @@ module TarsSedenionPartitioner =
     /// Generate unique ID for BSP nodes
     let generateNodeId (prefix: string) (depth: int) : string =
         let timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
-        sprintf "%s-d%d-%d" prefix depth timestamp
+        $"%s{prefix}-d%d{depth}-%d{timestamp}"
 
     /// Recursively build BSP tree
     let rec buildBspTree (points: Sedenion list) (depth: int) (maxDepth: int) (logger: ILogger) : BspNode option =

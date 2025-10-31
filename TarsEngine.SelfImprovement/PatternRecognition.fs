@@ -150,7 +150,7 @@ module PatternRecognition =
               IsRegex = true
               Severity = 3
               Recommendation = "Use async Task instead of async void except for event handlers"
-              Examples = ["public async void DoSomethingAsync() { await Task.Delay(1000); }"]
+              Examples = ["public async void DoSomethingAsync() { await // REAL: Implement actual logic here; }"]
               Tags = ["csharp"; "async"; "error-handling"; "best-practice"] }
 
             { Id = "CS007"

@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningsAsErrors />
+    <WarningsNotAsErrors>FS0988</WarningsNotAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Tier6_CollectiveIntelligence.fs" />
+    <Compile Include="Tier7_ProblemDecomposition.fs" />
+    <Compile Include="TierIntegrationSuperintelligence.fs" />
+    <Compile Include="CompleteSuperintelligenceMain.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FSharp.Core" Version="8.0.400" />
+  </ItemGroup>
+
+</Project>
+
+
+
+

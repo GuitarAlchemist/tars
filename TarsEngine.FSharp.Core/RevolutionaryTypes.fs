@@ -207,9 +207,9 @@ module RevolutionaryTypes =
         /// Generate revolutionary insights from results
         let generateInsights (results: RevolutionaryResult array) : string array =
             [|
-                sprintf "Performed %d revolutionary operations" results.Length
+                $"Performed %d{results.Length} revolutionary operations"
                 sprintf "Success rate: %.1f%%" (results |> Array.filter (_.Success) |> Array.length |> float |> (*) 100.0 |> (/) <| float results.Length)
-                sprintf "Average performance gain: %.2fx" (results |> Array.choose (_.PerformanceGain) |> Array.average)
+                $"Average performance gain: %.2f{results |> Array.choose (_.PerformanceGain) |> Array.average}x"
                 "Revolutionary capabilities are evolving autonomously"
                 "System demonstrates emergent intelligence and self-improvement"
             |]

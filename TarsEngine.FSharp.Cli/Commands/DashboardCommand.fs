@@ -260,7 +260,7 @@ module DashboardCommand =
             document.getElementById('evolution-status').textContent = 'Running...';
             addLogEntry('🚀 Blue-Green evolution initiated via dashboard', 'log-success');
             
-            // Simulate evolution phases
+            // TODO: Implement real functionality
             const phases = [
                 '🤖 AI system verification',
                 '🐳 Docker replica creation', 

@@ -191,7 +191,7 @@ module GameTheory3DIntegrationService =
                     let agent3D = sceneManager.CreateAgent3D(agent)
                     agentScript.AppendLine(sceneManager.AddAgentToScene(agent3D)) |> ignore
                 
-                agentScript.AppendLine(sprintf "console.log('👥 Added %d agents to 3D scene');" agents.Length) |> ignore
+                agentScript.AppendLine $"console.log('👥 Added %d{agents.Length} agents to 3D scene');" |> ignore
                 agentScript.ToString()
         
         /// Create coordination connections
@@ -219,7 +219,8 @@ module GameTheory3DIntegrationService =
                 connectionScript.AppendLine("// Creating coordination connections") |> ignore
                 connectionScript.AppendLine("// ===============================") |> ignore
                 connectionScript.AppendLine(sceneManager.CreateConnections(connections)) |> ignore
-                connectionScript.AppendLine(sprintf "console.log('🔗 Created %d coordination connections');" connections.Length) |> ignore
+                connectionScript.AppendLine
+                    $"console.log('🔗 Created %d{connections.Length} coordination connections');" |> ignore
                 connectionScript.ToString()
         
         /// Update agent positions with game theory dynamics
@@ -305,11 +306,11 @@ module GameTheory3DIntegrationService =
                 report.AppendLine() |> ignore
                 
                 report.AppendLine(sprintf "📊 Scene Configuration:") |> ignore
-                report.AppendLine(sprintf "   • Container: %s" currentConfig.ContainerId) |> ignore
-                report.AppendLine(sprintf "   • Resolution: %dx%d" currentConfig.SceneWidth currentConfig.SceneHeight) |> ignore
-                report.AppendLine(sprintf "   • Max Agents: %d" currentConfig.MaxAgents) |> ignore
-                report.AppendLine(sprintf "   • Max Connections: %d" currentConfig.MaxConnections) |> ignore
-                report.AppendLine(sprintf "   • Quality Level: %s" currentConfig.QualityLevel) |> ignore
+                report.AppendLine $"   • Container: %s{currentConfig.ContainerId}" |> ignore
+                report.AppendLine $"   • Resolution: %d{currentConfig.SceneWidth}x%d{currentConfig.SceneHeight}" |> ignore
+                report.AppendLine $"   • Max Agents: %d{currentConfig.MaxAgents}" |> ignore
+                report.AppendLine $"   • Max Connections: %d{currentConfig.MaxConnections}" |> ignore
+                report.AppendLine $"   • Quality Level: %s{currentConfig.QualityLevel}" |> ignore
                 report.AppendLine() |> ignore
                 
                 report.AppendLine("🚀 Available Features:") |> ignore

@@ -200,13 +200,13 @@ else
 printfn ""
 
 // ============================================================================
-// METASCRIPT INTEGRATION SIMULATION
+// TODO: Implement real functionality
 // ============================================================================
 
 printfn "🎨 METASCRIPT INTEGRATION SIMULATION"
 printfn "===================================="
 
-// Simulate metascript CUDA block
+// TODO: Implement real functionality
 let metascriptCudaBlock (fsharpCode: string) (kernelName: string) : string =
     let result = transpileFSharpToCuda fsharpCode kernelName
 

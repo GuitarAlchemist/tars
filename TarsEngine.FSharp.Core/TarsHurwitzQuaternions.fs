@@ -85,7 +85,7 @@ module TarsHurwitzQuaternions =
     /// Format Hurwitz quaternion for display
     let format (q: HurwitzQuaternion) : string =
         let offset = if q.IsHalf then "+½" else ""
-        sprintf "(%g%s + %gi%s + %gj%s + %gk%s)" q.A offset q.B offset q.C offset q.D offset
+        $"(%g{q.A}%s{offset} + %g{q.B}i%s{offset} + %g{q.C}j%s{offset} + %g{q.D}k%s{offset})"
 
     /// Quaternion multiplication (non-commutative)
     let multiply (q1: HurwitzQuaternion) (q2: HurwitzQuaternion) : HurwitzQuaternion =

@@ -139,7 +139,7 @@ Examples:
             printfn $"🏆 Achievements for {roadmapId}:"
             printfn "=============================="
 
-            // Placeholder for achievement tracking
+            // TODO: Implement real functionality
             printfn "• Core architecture implemented ✅"
             printfn "• CLI system functional ✅"
             printfn "• Agent framework established ✅"
@@ -153,7 +153,7 @@ Examples:
             printfn "📋 Current Tasks:"
             printfn "================"
 
-            // Placeholder for task management
+            // TODO: Implement real functionality
             printfn "• Fix remaining CLI build errors (High Priority) 🔥"
             printfn "• Implement CUDA vector store optimization (Medium) ⚡"
             printfn "• Enhance agent communication protocols (Low) 📡"
@@ -165,7 +165,7 @@ Examples:
             printfn "🎯 Next Recommended Tasks:"
             printfn "=========================="
 
-            // Placeholder for next task recommendations
+            // TODO: Implement real functionality
             printfn "1. Complete CLI build error fixes (Estimated: 2 hours)"
             printfn "2. Test all command functionality (Estimated: 1 hour)"
             printfn "3. Implement basic CUDA benchmarks (Estimated: 4 hours)"
@@ -176,7 +176,7 @@ Examples:
         task {
             printfn $"🔄 Updating task: {taskId}"
 
-            // Placeholder for task update logic
+            // TODO: Implement real functionality
             match args with
             | "--status" :: status :: _ ->
                 printfn $"✅ Task {taskId} status updated to: {status}"

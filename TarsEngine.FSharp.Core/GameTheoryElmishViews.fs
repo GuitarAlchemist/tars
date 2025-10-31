@@ -47,11 +47,11 @@ module GameTheoryElmishViews =
         [
             "🤝 MULTI-AGENT COORDINATION ANALYSIS"
             "======================================"
-            sprintf "Average Coordination: %.3f %s" coordination.AverageCoordination trendIcon
-            sprintf "Trend: %+.3f" coordination.CoordinationTrend
-            sprintf "Status: %s %s" statusIcon coordination.EquilibriumStatus
-            sprintf "Active Agents: %d" coordination.ActiveAgents
-            sprintf "Recommended Model: %s" coordination.RecommendedModel
+            $"Average Coordination: %.3f{coordination.AverageCoordination} %s{trendIcon}"
+            $"Trend: %+.3f{coordination.CoordinationTrend}"
+            $"Status: %s{statusIcon} %s{coordination.EquilibriumStatus}"
+            $"Active Agents: %d{coordination.ActiveAgents}"
+            $"Recommended Model: %s{coordination.RecommendedModel}"
             ""
         ]
 
@@ -62,8 +62,8 @@ module GameTheoryElmishViews =
             "=========================================="
             ""
             sprintf "System Performance: %.1f%%" (UIHelpers.calculateSystemPerformance state * 100.0)
-            sprintf "Equilibrium Status: %s" (UIHelpers.getEquilibriumStatus state)
-            sprintf "Active Agents: %d" (UIHelpers.getActiveAgentsCount state)
+            $"Equilibrium Status: %s{UIHelpers.getEquilibriumStatus state}"
+            $"Active Agents: %d{UIHelpers.getActiveAgentsCount state}"
             sprintf "Real-time Mode: %s" (if state.IsRealTimeMode then "🔴 LIVE" else "⏸️ STATIC")
             sprintf "Last Update: %s" (state.LastDataUpdate.ToString("yyyy-MM-dd HH:mm:ss"))
             ""
@@ -80,8 +80,8 @@ module GameTheoryElmishViews =
                 renderAgentText agent (selectedAgent = Some agent.AgentId)
         ] @ [
             ""
-            sprintf "Total Agents: %d" agents.Length
-            sprintf "Active Agents: %d" (agents |> List.filter (_.IsActive) |> List.length)
+            $"Total Agents: %d{agents.Length}"
+            $"Active Agents: %d{agents |> List.filter (_.IsActive) |> List.length}"
             ""
         ]
 
@@ -91,11 +91,11 @@ module GameTheoryElmishViews =
             "🌌 3D GAME THEORY SPACE VISUALIZATION"
             "====================================="
             ""
-            sprintf "Geometry: %s" threeDState.SpaceGeometry
+            $"Geometry: %s{threeDState.SpaceGeometry}"
             let (x,y,z) = threeDState.CameraPosition
-            sprintf "Camera Position: (%.1f, %.1f, %.1f)" x y z
-            sprintf "Agent Positions: %d tracked" threeDState.AgentPositions.Count
-            sprintf "Animation Speed: %.1fx" threeDState.AnimationSpeed
+            $"Camera Position: (%.1f{x}, %.1f{y}, %.1f{z})"
+            $"Agent Positions: %d{threeDState.AgentPositions.Count} tracked"
+            $"Animation Speed: %.1f{threeDState.AnimationSpeed}x"
             sprintf "Show Trajectories: %s" (if threeDState.ShowTrajectories then "✅" else "❌")
             sprintf "Interstellar Mode: %s" (if threeDState.InterstellarMode then "🚀 ACTIVE" else "❌ INACTIVE")
             ""
@@ -153,7 +153,7 @@ module GameTheoryElmishViews =
             ""
             sprintf "Currently Selected: %s"
                 (match selectedModel with
-                 | Some model -> sprintf "%A" model
+                 | Some model -> $"%A{model}"
                  | None -> "None")
             ""
         ]
@@ -207,4 +207,4 @@ module GameTheoryElmishViews =
         let lines = renderView state
         System.Console.Clear()
         for line in lines do
-            printfn "%s" line
+            printfn $"%s{line}"

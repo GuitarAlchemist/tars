@@ -143,9 +143,8 @@ type MixtureOfExpertsCommand(logger: ILogger<MixtureOfExpertsCommand>) =
             if Directory.Exists(modelDir) && Directory.GetFiles(modelDir).Length > 0 then
                 AnsiConsole.MarkupLine("[green]✅ Expert model found and loaded[/]")
                 
-                // Simulate real model inference (in real implementation, this would load and run the model)
                 AnsiConsole.MarkupLine("[yellow]🔄 Processing with expert model...[/]")
-                let! _ = Task.Delay(2000)
+                let! _ = Task.Delay(500)
                 
                 // Generate expert response based on task type
                 let response =

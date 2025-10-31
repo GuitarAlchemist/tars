@@ -87,7 +87,7 @@ module FluxAst =
     and FluxEffect =
         // Traditional effects
         | ObserveTelescope                                  // Can observe telescope data
-        | SimulateUniverse                                  // Can run universe simulations
+        | SimulateUniverse                                  // TODO: Implement real functionality
         | ValidateTheory                                    // Can validate scientific theories
         | FileIO                                            // Can read/write files
         | NetworkIO                                         // Can access network

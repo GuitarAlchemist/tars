@@ -176,12 +176,12 @@ type TarsAutonomousEvolutionLoop() =
                 for objective in objectives do
                     logger.LogInformation("Executing objective: {ObjectiveName}", objective.Name)
                     
-                    // Simulate Agent OS spec creation and execution
+                    // TODO: Implement real functionality
                     match objective.AgentOSSpec with
                     | Some specDescription ->
                         logger.LogInformation("Creating Agent OS spec: {SpecDescription}", specDescription)
                         
-                        // Simulate spec-driven development
+                        // TODO: Implement real functionality
                         let tasks = [
                             "Analyze current state"
                             "Design improvement approach"
@@ -193,9 +193,9 @@ type TarsAutonomousEvolutionLoop() =
                         
                         for task in tasks do
                             logger.LogInformation("  Executing task: {Task}", task)
-                            do! Task.Delay(200) // Simulate work
+                            do! // TODO: Implement real functionality
                         
-                        // Simulate success criteria validation
+                        // TODO: Implement real functionality
                         let criteriasMet = objective.SuccessCriteria.Length
                         let achievement = sprintf "Completed %s - %d/%d criteria met" 
                                             objective.Name criteriasMet objective.SuccessCriteria.Length

@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.FSharp.Reasoning
+namespace TarsEngine.FSharp.Reasoning
 
 open System
 open System.Collections.Generic
@@ -262,7 +262,7 @@ type ReasoningQualityMetrics(logger: ILogger<ReasoningQualityMetrics>) =
                 else min 1.0 (chain.OverallConfidence * 5.0 / float chain.Steps.Length)
             
             let resourceEfficiency = 
-                // Simulated resource efficiency (would be actual in real implementation)
+                // TODO: Implement real functionality
                 let avgComplexity = 
                     if chain.Steps.IsEmpty then 0.0
                     else chain.Steps |> List.map (fun s -> float s.ComplexityScore) |> List.average

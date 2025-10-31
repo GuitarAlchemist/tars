@@ -4,9 +4,25 @@ open System
 open System.IO
 open System.Text.Json
 open System.Collections.Generic
+open System.Text
+open System.Text.RegularExpressions
 
 /// Grammar resolution and management
 module GrammarResolver =
+    
+    let private sanitizeIdentifier (input: string) =
+        let sanitized = Regex.Replace(input.ToLowerInvariant(), "[^a-z0-9]+", "_").Trim([|'_'|])
+        if String.IsNullOrWhiteSpace(sanitized) then "example" else sanitized
+
+    let private tokenizeExample (example: string) =
+        Regex.Matches(example, @"[A-Za-z0-9_]+|\S")
+        |> Seq.cast<System.Text.RegularExpressions.Match>
+        |> Seq.map (fun m -> m.Value)
+        |> Seq.toList
+
+    let private encodeToken (token: string) =
+        let escaped = token.Replace("\"", "\\\"")
+        $"\"{escaped}\""
     
     let private grammarsDirectory = ".tars/evolution/grammars/base"
     let private grammarIndexFile = ".tars/evolution/grammars/base/grammar_index.json"
@@ -116,28 +132,20 @@ module GrammarResolver =
 
             // Create TARS grammar file content
             let content =
-                sprintf """meta {
-  name: "%s"
-  version: "%s"
-  source: "%s"
-  language: "%s"
-  created: "%s"
-  description: "%s"
-}
+                $"""meta {{
+  name: "%s{grammar.Metadata.Name}"
+  version: "%s{grammar.Metadata.Version |> Option.defaultValue "v1.0"}"
+  source: "%s{grammar.Metadata.Source |> Option.defaultValue "manual"}"
+  language: "%s{grammar.Metadata.Language}"
+  created: "%s{grammar.Metadata.Created |> Option.map (fun d -> d.ToString("yyyy-MM-dd HH:mm:ss")) |> Option.defaultValue ""}"
+  description: "%s{grammar.Metadata.Description |> Option.defaultValue ""}"
+}}
 
-grammar {
-  LANG("%s") {
-%s
-  }
-}"""
-                    grammar.Metadata.Name
-                    (grammar.Metadata.Version |> Option.defaultValue "v1.0")
-                    (grammar.Metadata.Source |> Option.defaultValue "manual")
-                    grammar.Metadata.Language
-                    (grammar.Metadata.Created |> Option.map (fun d -> d.ToString("yyyy-MM-dd HH:mm:ss")) |> Option.defaultValue "")
-                    (grammar.Metadata.Description |> Option.defaultValue "")
-                    grammar.Metadata.Language
-                    (grammar.Content.Split('\n') |> Array.map (fun line -> "    " + line) |> String.concat "\n")
+grammar {{
+  LANG("%s{grammar.Metadata.Language}") {{
+%s{grammar.Content.Split('\n') |> Array.map (fun line -> "    " + line) |> String.concat "\n"}
+  }}
+}}"""
 
             File.WriteAllText(filePath, content)
 
@@ -152,11 +160,11 @@ grammar {
             }
             updateGrammarIndex entry
 
-            printfn "✅ Grammar '%s' saved to %s" grammar.Metadata.Name filePath
+            printfn $"✅ Grammar '%s{grammar.Metadata.Name}' saved to %s{filePath}"
             true
         with
         | ex ->
-            printfn "❌ Failed to save grammar '%s': %s" grammar.Metadata.Name ex.Message
+            printfn $"❌ Failed to save grammar '%s{grammar.Metadata.Name}': %s{ex.Message}"
             false
     
     /// Load grammar from external file
@@ -168,7 +176,7 @@ grammar {
                 Some grammar
             with
             | ex ->
-                printfn "❌ Failed to load grammar '%s': %s" name ex.Message
+                printfn $"❌ Failed to load grammar '%s{name}': %s{ex.Message}"
                 None
         | _ -> None
     
@@ -176,7 +184,7 @@ grammar {
     let extractInlineGrammar name content =
         let grammar = Grammar.createInline name content
         if saveGrammar grammar then
-            printfn "✅ Extracted inline grammar '%s' to external file" name
+            printfn $"✅ Extracted inline grammar '%s{name}' to external file"
             true
         else
             false
@@ -187,7 +195,7 @@ grammar {
         | Some grammar ->
             Some grammar.Content
         | None ->
-            printfn "❌ Grammar '%s' not found" name
+            printfn $"❌ Grammar '%s{name}' not found"
             None
     
     /// Detect duplicate inline grammars and suggest extraction
@@ -239,28 +247,53 @@ grammar {
         let openBraces = grammar.Content |> Seq.filter ((=) '{') |> Seq.length
         let closeBraces = grammar.Content |> Seq.filter ((=) '}') |> Seq.length
         if openBraces <> closeBraces then
-            errors.Add(sprintf "Unbalanced braces: %d open, %d close" openBraces closeBraces)
+            errors.Add $"Unbalanced braces: %d{openBraces} open, %d{closeBraces} close"
 
         let openBrackets = grammar.Content |> Seq.filter ((=) '[') |> Seq.length
         let closeBrackets = grammar.Content |> Seq.filter ((=) ']') |> Seq.length
         if openBrackets <> closeBrackets then
-            errors.Add(sprintf "Unbalanced brackets: %d open, %d close" openBrackets closeBrackets)
-        
+            errors.Add $"Unbalanced brackets: %d{openBrackets} open, %d{closeBrackets} close"
+
         if errors.Count = 0 then
             Ok grammar
         else
             Error (errors |> Seq.toList)
     
-    /// Generate grammar from examples (placeholder for future ML implementation)
+    /// Generates an EBNF grammar that recognises the supplied examples
     let generateGrammarFromExamples name examples =
-        // TODO: Implement ML-based grammar generation
-        let placeholderGrammar = sprintf """// Generated grammar for %s
-start = expression ;
-expression = term , { ( "+" | "-" ) , term } ;
-term = factor , { ( "*" | "/" ) , factor } ;
-factor = number | "(" , expression , ")" ;
-number = digit , { digit } ;
-digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;""" name
-        
-        let grammar = Grammar.createInline name placeholderGrammar
-        grammar
+        if List.isEmpty examples then
+            invalidArg "examples" "At least one example is required to infer a grammar."
+
+        let sanitizedName = sanitizeIdentifier name
+
+        let tokenised =
+            examples
+            |> List.map tokenizeExample
+
+        let ruleNames =
+            tokenised
+            |> List.mapi (fun index _ -> $"%s{sanitizedName}_example_%02d{index + 1}")
+
+        let startRule =
+            "start = " + (ruleNames |> String.concat " | ") + " ;"
+
+        let ruleLines =
+            (tokenised, ruleNames)
+            ||> List.map2 (fun tokens ruleName ->
+                let body =
+                    match tokens with
+                    | [] -> "\"\""
+                    | _ ->
+                        tokens
+                        |> List.map encodeToken
+                        |> String.concat " , "
+
+                $"%s{ruleName} = %s{body} ;")
+
+        let header =
+            $"(* Auto-generated grammar for '%s{name}' using %d{examples.Length} example(s) *)"
+
+        let grammarContent =
+            String.concat Environment.NewLine (header :: startRule :: ruleLines)
+
+        Grammar.createInline name grammarContent

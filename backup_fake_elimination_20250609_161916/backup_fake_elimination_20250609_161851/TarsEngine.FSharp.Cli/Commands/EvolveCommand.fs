@@ -287,7 +287,7 @@ type EvolveCommand(logger: ILogger<EvolveCommand>) =
     member self.BenchmarkMetascriptExecution() =
         let stopwatch = Stopwatch.StartNew()
         
-        // Simulate metascript parsing and execution
+        // TODO: Implement real functionality
         for i in 1..100 do
             let testContent = $"DESCRIBE {{ name: \"test{i}\" }}\nACTION {{ type: \"test\" }}"
             let lines = testContent.Split('\n')

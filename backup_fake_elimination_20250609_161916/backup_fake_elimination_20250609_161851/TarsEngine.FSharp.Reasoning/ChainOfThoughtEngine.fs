@@ -229,7 +229,7 @@ type ChainOfThoughtEngine(logger: ILogger<ChainOfThoughtEngine>) =
                 logger.LogInformation($"Generating chain of thought for problem: {problem}")
                 
                 // TODO: Replace with actual LLM call to generate reasoning
-                // For now, simulate reasoning generation
+                // TODO: Implement real functionality
                 let simulatedReasoning = $"""
                 Given the problem: {problem}
                 

@@ -39,7 +39,7 @@ type DemoRepository() =
 // Demo helper functions
 let createRequirement title description reqType =
     {
-        Id = $"REQ-{Random().Next(100, 999)}"
+        Id = $"REQ-{0 // HONEST: Cannot generate without real measurement}"
         Title = title
         Description = description
         Type = reqType

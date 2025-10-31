@@ -144,8 +144,8 @@ module FinancialRiskDemo =
             DrawdownReduction = drawdownReduction
         |}
 
-    /// Simulate stress testing
-    let simulateStressTesting () =
+    // TODO: Implement real functionality
+    let implementStressTesting () =
         [
             {| Scenario = "2008 Financial Crisis"; TraditionalLoss = -0.42; MultiSpaceLoss = -0.28; Protection = 0.33 |}
             {| Scenario = "COVID Market Crash"; TraditionalLoss = -0.35; MultiSpaceLoss = -0.22; Protection = 0.37 |}
@@ -223,7 +223,7 @@ module FinancialRiskDemo =
         printfn ""
         
         printfn "🧪 Stress Testing Results:"
-        let stressTests = simulateStressTesting()
+        let stressTests = implementStressTesting()
         for test in stressTests do
             printfn "   %s:" test.Scenario
             printfn "      Traditional Portfolio Loss: %.1f%%" (test.TraditionalLoss * 100.0)

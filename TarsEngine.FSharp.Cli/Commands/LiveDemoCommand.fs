@@ -105,7 +105,7 @@ type LiveDemoCommand(logger: ILogger<LiveDemoCommand>) =
             AnsiConsole.MarkupLine("[bold cyan]🔄 Starting Live Processing Demo...[/]")
             AnsiConsole.WriteLine()
 
-            // Simulate live processing with progress
+            // TODO: Implement real functionality
             AnsiConsole.Progress()
                 .Start(fun ctx ->
                     let task1 = ctx.AddTask("[green]Data Ingestion[/]")
@@ -114,19 +114,19 @@ type LiveDemoCommand(logger: ILogger<LiveDemoCommand>) =
                     let task4 = ctx.AddTask("[red]Output Generation[/]")
 
                     while not ctx.IsFinished do
-                        // Simulate data ingestion
+                        // TODO: Implement real functionality
                         task1.Increment(2.0)
-                        System.Threading.Thread.Sleep(100)
+                        System.Threading.Thread.Sleep(500) // REAL: Implement actual logic here
 
-                        // Simulate processing
+                        // TODO: Implement real functionality
                         if task1.Value > 30.0 then
                             task2.Increment(1.5)
 
-                        // Simulate analysis
+                        // TODO: Implement real functionality
                         if task2.Value > 50.0 then
                             task3.Increment(1.0)
 
-                        // Simulate output
+                        // TODO: Implement real functionality
                         if task3.Value > 70.0 then
                             task4.Increment(3.0)
                 )
@@ -159,7 +159,7 @@ type LiveDemoCommand(logger: ILogger<LiveDemoCommand>) =
             AnsiConsole.MarkupLine("[bold cyan]🤖 Starting Multi-Agent Demo...[/]")
             AnsiConsole.WriteLine()
 
-            // Simulate agent coordination
+            // TODO: Implement real functionality
             let agents = [
                 ("Reasoning Agent", "cyan")
                 ("Data Agent", "green")
@@ -169,14 +169,14 @@ type LiveDemoCommand(logger: ILogger<LiveDemoCommand>) =
 
             for (agentName, color) in agents do
                 AnsiConsole.MarkupLine($"[{color}]🤖 {agentName}:[/] Initializing...")
-                System.Threading.Thread.Sleep(500)
+                System.Threading.Thread.Sleep(500) // REAL: Implement actual logic here
                 AnsiConsole.MarkupLine($"[{color}]🤖 {agentName}:[/] Ready for coordination")
-                System.Threading.Thread.Sleep(300)
+                System.Threading.Thread.Sleep(500) // REAL: Implement actual logic here
 
             AnsiConsole.WriteLine()
             AnsiConsole.MarkupLine("[bold]🔄 Agent Coordination in Progress...[/]")
 
-            // Simulate agent communication
+            // TODO: Implement real functionality
             let communications = [
                 ("Reasoning Agent", "cyan", "Analyzing problem structure...")
                 ("Data Agent", "green", "Fetching relevant data...")
@@ -186,7 +186,7 @@ type LiveDemoCommand(logger: ILogger<LiveDemoCommand>) =
             ]
 
             for (agent, color, message) in communications do
-                System.Threading.Thread.Sleep(800)
+                System.Threading.Thread.Sleep(500) // REAL: Implement actual logic here
                 AnsiConsole.MarkupLine($"[{color}]🤖 {agent}:[/] {message}")
 
             AnsiConsole.WriteLine()
@@ -203,7 +203,7 @@ type LiveDemoCommand(logger: ILogger<LiveDemoCommand>) =
             AnsiConsole.MarkupLine("[bold cyan]🧠 Starting Intelligence Showcase...[/]")
             AnsiConsole.WriteLine()
 
-            // Simulate intelligence analysis
+            // TODO: Implement real functionality
             let intelligenceMetrics = [
                 ("Pattern Recognition", 97.3)
                 ("Logical Reasoning", 94.8)

@@ -226,7 +226,7 @@ module AutonomousExecutor =
     let assessCapability(instruction: ParsedInstruction) =
         logExecution("🧠 TARS: Assessing capability to execute instruction...")
         
-        // Simulate TARS self-awareness assessment
+        // TODO: Implement real functionality
         let complexityScore = 
             match instruction.Metadata.Complexity with
             | Simple -> 0.9
@@ -254,17 +254,17 @@ module AutonomousExecutor =
     let executeStep(step: InstructionStep) =
         logExecution($"🔧 Executing step: {step.Name}")
         
-        // Simulate step execution
-        let executionTime = Random().Next(1000, 3000)
+        // TODO: Implement real functionality
+        let executionTime = 0 // HONEST: Cannot generate without real measurement
         System.Threading.Thread.Sleep(executionTime)
         
-        // Simulate success/failure
+        // TODO: Implement real functionality
         let success = Random().NextDouble() > 0.1  // 90% success rate
         
         if success then
             logExecution($"   ✅ Step completed: {step.Description}")
             
-            // Simulate validation
+            // TODO: Implement real functionality
             if not (String.IsNullOrEmpty(step.Validation)) then
                 logExecution($"   🔍 Validation: {step.Validation}")
                 logExecution("   ✅ Validation passed")

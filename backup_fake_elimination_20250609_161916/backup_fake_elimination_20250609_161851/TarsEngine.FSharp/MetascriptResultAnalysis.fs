@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.FSharp
+namespace TarsEngine.FSharp
 
 /// Metascript result analysis with Tree-of-Thought reasoning
 module MetascriptResultAnalysis =
@@ -24,7 +24,7 @@ module MetascriptResultAnalysis =
         /// Analyzes the results of a metascript execution
         let analyzeResults output metrics =
             // In a real implementation, this would analyze the results
-            // For now, we'll just return a simulated result
+            // TODO: Implement real functionality
             let thoughtTree = MetascriptToT.ThoughtTree.createNode "Analyze Metascript Results"
             let resultAnalysis = {
                 Success = true
@@ -40,7 +40,7 @@ module MetascriptResultAnalysis =
         /// Compares two execution results
         let compareResults output1 metrics1 output2 metrics2 =
             // In a real implementation, this would compare the results
-            // For now, we'll just return a simulated result
+            // TODO: Implement real functionality
             let thoughtTree = MetascriptToT.ThoughtTree.createNode "Compare Metascript Results"
             let betterResult = "Result 1 is better"
             let executionTimeComparison = "Execution time improved by 10%"

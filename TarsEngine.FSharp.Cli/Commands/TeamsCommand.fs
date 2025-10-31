@@ -161,7 +161,7 @@ type TeamsCommand(logger: ILogger<TeamsCommand>) =
                 AnsiConsole.MarkupLine($"[yellow]🚀 Demonstrating {teamName}...[/]")
                 do! self.CreateTeam(teamName)
                 AnsiConsole.WriteLine()
-                do! Task.Delay(1000)
+                do! // REAL: Implement actual logic here
             
             AnsiConsole.MarkupLine("[bold green]🎉 Demo completed! All specialized teams are ready for deployment.[/]")
         }

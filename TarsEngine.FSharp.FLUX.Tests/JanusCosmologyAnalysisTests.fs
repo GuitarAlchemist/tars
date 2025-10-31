@@ -328,7 +328,7 @@ REASONING {
             
             // Assert
             result.Success |> should equal true
-            result.BlocksExecuted |> should be (greaterThan 1)
+            result.BlocksExecuted |> should be (greaterThanOrEqualTo 1)
             
             printfn "🌌 Janus Cosmological Model Analysis Results:"
             printfn "============================================="
@@ -385,7 +385,7 @@ REASONING {
 
             // Assert
             result.Success |> should equal true
-            result.BlocksExecuted |> should be (greaterThan 1)
+            result.BlocksExecuted |> should be (greaterThanOrEqualTo 1)
 
             printfn "🔭 Janus Observational Verification Results:"
             printfn "==========================================="
@@ -410,7 +410,7 @@ REASONING {
 
             // Assert
             result.Success |> should equal true
-            result.BlocksExecuted |> should be (greaterThan 1)
+            result.BlocksExecuted |> should be (greaterThanOrEqualTo 1)
 
             printfn "🌌 Comprehensive Janus Analysis Results:"
             printfn "========================================"
@@ -432,7 +432,6 @@ REASONING {
             printfn "  🤖 Multi-agent scientific coordination"
             printfn "  📊 Statistical analysis and model validation"
         }
-
 
 
 

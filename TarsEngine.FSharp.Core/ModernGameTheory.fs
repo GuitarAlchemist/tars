@@ -134,7 +134,7 @@ module ModernGameTheory =
         /// Check if strategy profile is a correlated equilibrium
         member this.IsCorrelatedEquilibrium(strategies: Map<string, Map<string, float>>, payoffs: Map<string * string[], float>) =
             // Simplified check - in practice this requires solving linear constraints
-            true // Placeholder implementation
+            true // TODO: Implement real functionality
 
     /// Evolutionary Game Theory Implementation
     type EvolutionaryGameEngine(mutationRate: float, logger: ILogger) =
@@ -183,8 +183,8 @@ module ModernGameTheory =
         /// Execute game theory reasoning with specified model
         member this.ExecuteGameTheoryReasoning(model: GameTheoryModel, agents: Map<string, AgentPolicy>) =
             async {
-                logger.LogInformation(sprintf "🎯 Executing game theory reasoning with model: %A" model)
-                
+                logger.LogInformation $"🎯 Executing game theory reasoning with model: %A{model}"
+
                 match model with
                 | QuantalResponseEquilibrium temperature ->
                     let qre = QuantalResponseEngine(temperature, logger)
@@ -222,7 +222,7 @@ module ModernGameTheory =
                 Operation = RightPathAIReasoning("Modern Game Theory Analysis", Map.empty)
                 Success = true
                 Insights = [|
-                    sprintf "Applied %s model for multi-agent reasoning" equilibriumType
+                    $"Applied %s{equilibriumType} model for multi-agent reasoning"
                     "Advanced game theory beyond Nash equilibrium"
                     "Improved agent coordination and decision-making"
                     "Enhanced strategic thinking capabilities"
@@ -261,7 +261,7 @@ module ModernGameTheory =
                 IsConverged = avgRegret < 0.1
                 ConvergenceRate = stabilityScore
                 StabilityScore = stabilityScore
-                EquilibriumType = sprintf "%A" currentState.CurrentModel
+                EquilibriumType = $"%A{currentState.CurrentModel}"
                 PerformanceGain = 1.0 + stabilityScore * 0.5
             }
 
@@ -309,7 +309,7 @@ module ModernGameTheory =
                 Policy = policy
                 ProcessDecision = fun () ->
                     async {
-                        // Simulate enhanced decision processing
+                        // TODO: Implement real functionality
                         let bestAction =
                             policy.ActionWeights
                             |> Map.toSeq

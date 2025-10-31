@@ -313,7 +313,7 @@ Provide actual F# code that can be implemented."""
             try
                 context.Logger.LogInformation(context.CorrelationId, sprintf "Validating evolution modification %s" modification.ModificationId)
                 
-                // Simulate validation (in real implementation, this would compile and test the code)
+                // TODO: Implement real functionality
                 let validationResults = Map [
                     ("SyntaxValidation", true)
                     ("SecurityValidation", true)

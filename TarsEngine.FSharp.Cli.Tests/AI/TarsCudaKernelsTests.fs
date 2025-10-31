@@ -12,7 +12,7 @@ open TarsEngine.FSharp.Cli.AI.TarsCudaKernels
 /// Comprehensive tests for TARS CUDA Kernels
 module TarsCudaKernelsTests =
     
-    /// Mock logger for testing
+    // TODO: Implement real functionality
     type MockLogger() =
         interface ITarsLogger with
             member _.LogInformation(correlationId: string, message: string) = 
@@ -42,7 +42,7 @@ module TarsCudaKernelsTests =
             let kernelExecutor = createTestKernelExecutor()
             let correlationId = generateCorrelationId()
             
-            // Mock memory pointers (in real implementation, these would be actual CUDA memory)
+            // TODO: Implement real functionality
             let inputEmbeddings = nativeint 0x1000
             let positionEmbeddings = nativeint 0x2000
             let attentionWeights = nativeint 0x3000
@@ -66,7 +66,7 @@ module TarsCudaKernelsTests =
             // Assert
             match result with
             | Success (_, metadata) ->
-                // Should succeed even without actual CUDA hardware (mock implementation)
+                // TODO: Implement real functionality
                 Assert.True(true)
                 let executionTime = metadata.TryFind("executionTime") |> Option.map unbox<float> |> Option.defaultValue 0.0
                 Assert.True(executionTime >= 0.0)
@@ -84,7 +84,7 @@ module TarsCudaKernelsTests =
             let kernelExecutor = createTestKernelExecutor()
             let correlationId = generateCorrelationId()
             
-            // Mock memory pointers
+            // TODO: Implement real functionality
             let query = nativeint 0x1000
             let key = nativeint 0x2000
             let value = nativeint 0x3000

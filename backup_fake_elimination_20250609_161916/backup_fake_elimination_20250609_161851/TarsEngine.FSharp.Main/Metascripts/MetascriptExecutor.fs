@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.FSharp.Main.Metascripts
+namespace TarsEngine.FSharp.Main.Metascripts
 
 open System
 open System.IO
@@ -34,11 +34,11 @@ type MetascriptExecutor(logger: ILogger<MetascriptExecutor>) =
                     let metascriptContent = File.ReadAllText(metascriptPath)
                     
                     // Execute the metascript
-                    // This is a placeholder implementation
+                    // TODO: Implement real functionality
                     // In a real implementation, we would execute the metascript using a JavaScript engine
                     
-                    // For now, we'll just return a placeholder result
-                    do! Task.Delay(100) // Simulate work
+                    // TODO: Implement real functionality
+                    do! // TODO: Implement real functionality
                     
                     return {
                         Success = true

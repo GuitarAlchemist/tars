@@ -29,7 +29,7 @@ type ApiKeyService(config: TarsSecurityConfig, logger: ILogger<ApiKeyService>) =
     let createKeyWithPrefix (key: string) =
         match config.ApiKeyPrefix with
         | Some prefix -> $"{prefix}{key}"
-        | None -> key
+        | Option.None -> key
     
     /// Extract key from prefixed key
     let extractKeyFromPrefix (prefixedKey: string) =
@@ -47,7 +47,7 @@ type ApiKeyService(config: TarsSecurityConfig, logger: ILogger<ApiKeyService>) =
             let expiration = 
                 match expirationDays with
                 | Some days -> Some (DateTime.UtcNow.AddDays(float days))
-                | None -> None
+                | Option.None -> Option.None
             
             let apiKeyInfo = {
                 KeyId = Guid.NewGuid().ToString()
@@ -57,7 +57,7 @@ type ApiKeyService(config: TarsSecurityConfig, logger: ILogger<ApiKeyService>) =
                 ExpiresAt = expiration
                 IsActive = true
                 CreatedAt = DateTime.UtcNow
-                LastUsedAt = None
+                LastUsedAt = Option.None
             }
             
             logger.LogInformation("API key generated: {Name} with {PermissionCount} permissions", name, permissions.Length)
@@ -68,7 +68,7 @@ type ApiKeyService(config: TarsSecurityConfig, logger: ILogger<ApiKeyService>) =
             logger.LogError(ex, "Failed to generate API key for: {Name}", name)
             Error $"API key generation failed: {ex.Message}"
     
-    /// Validate API key (placeholder - in production, use proper storage)
+    // TODO: Implement real functionality
     member this.ValidateApiKey(apiKey: string) =
         try
             let key = extractKeyFromPrefix apiKey
@@ -85,7 +85,7 @@ type ApiKeyService(config: TarsSecurityConfig, logger: ILogger<ApiKeyService>) =
                     ExpiresAt = Some (DateTime.UtcNow.AddDays(30.0))
                     IsActive = true
                     CreatedAt = DateTime.UtcNow.AddDays(-1.0)
-                    LastUsedAt = None
+                    LastUsedAt = Option.None
                 }
             ]
             
@@ -110,7 +110,7 @@ type ApiKeyService(config: TarsSecurityConfig, logger: ILogger<ApiKeyService>) =
                     
                     logger.LogDebug("API key validated: {KeyId}", keyInfo.KeyId)
                     Valid securityContext
-            | None ->
+            | Option.None ->
                 logger.LogWarning("Invalid API key provided")
                 Invalid "Invalid API key"
                 
@@ -119,7 +119,7 @@ type ApiKeyService(config: TarsSecurityConfig, logger: ILogger<ApiKeyService>) =
             logger.LogError(ex, "Error validating API key")
             Invalid $"API key validation error: {ex.Message}"
     
-    /// Revoke API key (placeholder)
+    // TODO: Implement real functionality
     member this.RevokeApiKey(keyId: string) =
         try
             // TODO: Implement API key revocation in storage
@@ -130,7 +130,7 @@ type ApiKeyService(config: TarsSecurityConfig, logger: ILogger<ApiKeyService>) =
             logger.LogError(ex, "Failed to revoke API key: {KeyId}", keyId)
             Error $"Failed to revoke API key: {ex.Message}"
     
-    /// List API keys (placeholder)
+    // TODO: Implement real functionality
     member this.ListApiKeys() =
         try
             // TODO: Implement API key listing from storage
@@ -143,7 +143,7 @@ type ApiKeyService(config: TarsSecurityConfig, logger: ILogger<ApiKeyService>) =
                     ExpiresAt = Some (DateTime.UtcNow.AddDays(30.0))
                     IsActive = true
                     CreatedAt = DateTime.UtcNow.AddDays(-1.0)
-                    LastUsedAt = None
+                    LastUsedAt = Option.None
                 }
             ]
             Ok mockKeys

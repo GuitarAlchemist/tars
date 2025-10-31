@@ -60,8 +60,9 @@ type InMemoryRequirementRepository() =
         
         member this.GetRequirementAsync(id: string) = task {
             try
-                let found = requirements.TryGetValue(id)
-                return Ok (if fst found then Some (snd found) else None)
+                match requirements.TryGetValue(id) with
+                | (true, requirement) -> return Ok (Some requirement)
+                | (false, _) -> return Ok None
             with
             | ex -> return Error $"Failed to get requirement: {ex.Message}"
         }
@@ -79,11 +80,9 @@ type InMemoryRequirementRepository() =
         
         member this.DeleteRequirementAsync(id: string) = task {
             try
-                let removed = requirements.TryRemove(id)
-                if fst removed then
-                    return Ok ()
-                else
-                    return Error $"Requirement with ID {id} not found"
+                match requirements.TryRemove(id) with
+                | (true, _) -> return Ok ()
+                | (false, _) -> return Error $"Requirement with ID {id} not found"
             with
             | ex -> return Error $"Failed to delete requirement: {ex.Message}"
         }

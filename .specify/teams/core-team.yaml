@@ -1,0 +1,23 @@
+teams:
+  - name: Tier2Team
+    description: Core bootstrap squad responsible for release notes automation.
+    participants:
+      - id: spec-wrangler
+        role: SpecGuardian
+        metascript: metascripts/spec-kit/review.trsx
+        description: Ensures Spec Kit stories remain aligned with governance criteria.
+      - id: release-scribe
+        role: DocsMaintainer
+        metascript: metascripts/docs/release-notes.trsx
+        description: AI-assisted agent that drafts release note updates.
+      - id: qa-sentinel
+        role: SafetyGovernor
+        metascript: metascripts/qa/harness-audit.trsx
+        description: Validates harness outcomes and flags anomalies.
+    assignments:
+      - tags: ["spec-kit", "tier2-bootstrap"]
+        itemTypes: ["story"]
+        participants: ["spec-wrangler"]
+      - tags: ["release-notes"]
+        itemTypes: ["story", "spike"]
+        participants: ["release-scribe", "qa-sentinel"]

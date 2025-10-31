@@ -148,9 +148,12 @@ type RestEndpointGenerator() =
         | Some cors ->
             sb.AppendLine("        builder.Services.AddCors(fun options ->") |> ignore
             sb.AppendLine("            options.AddDefaultPolicy(fun policy ->") |> ignore
-            sb.AppendLine($"                policy.WithOrigins({cors.AllowedOrigins |> List.map (sprintf "\"%s\"") |> String.concat ", "})") |> ignore
-            sb.AppendLine($"                      .WithMethods({cors.AllowedMethods |> List.map (sprintf "\"%s\"") |> String.concat ", "})") |> ignore
-            sb.AppendLine($"                      .WithHeaders({cors.AllowedHeaders |> List.map (sprintf "\"%s\"") |> String.concat ", "})") |> ignore
+            let origins = cors.AllowedOrigins |> List.map (sprintf "\"%s\"") |> String.concat ", "
+            let methods = cors.AllowedMethods |> List.map (sprintf "\"%s\"") |> String.concat ", "
+            let headers = cors.AllowedHeaders |> List.map (sprintf "\"%s\"") |> String.concat ", "
+            sb.AppendLine($"                policy.WithOrigins({origins})") |> ignore
+            sb.AppendLine($"                      .WithMethods({methods})") |> ignore
+            sb.AppendLine($"                      .WithHeaders({headers})") |> ignore
             if cors.AllowCredentials then
                 sb.AppendLine("                      .AllowCredentials()") |> ignore
             sb.AppendLine("            )") |> ignore

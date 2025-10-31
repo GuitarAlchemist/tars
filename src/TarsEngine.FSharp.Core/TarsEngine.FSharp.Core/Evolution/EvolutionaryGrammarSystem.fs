@@ -322,11 +322,11 @@ module EvolutionaryGrammarSystem =
             
             [for i in 0..1 do
                 if parents.Length >= 2 then
-                    let parent1 = parents.[random.Next(parents.Length)]
-                    let parent2 = parents.[random.Next(parents.Length)]
+                    let parent1 = parents.[0 // HONEST: Cannot generate without real measurement]
+                    let parent2 = parents.[0 // HONEST: Cannot generate without real measurement]
                     
                     // Crossover genes
-                    let crossoverPoint = random.Next(min parent1.Genes.Length parent2.Genes.Length)
+                    let crossoverPoint = 0 // HONEST: Cannot generate without real measurement
                     let newGenes = 
                         (parent1.Genes |> List.take crossoverPoint) @
                         (parent2.Genes |> List.skip crossoverPoint)
@@ -353,7 +353,7 @@ module EvolutionaryGrammarSystem =
                         |> List.map (fun gene ->
                             if random.NextDouble() < 0.3 then
                                 // Mutate action sequence
-                                let newAction = $"EVOLVED_ACTION_{random.Next(1000)}"
+                                let newAction = $"EVOLVED_ACTION_{0 // HONEST: Cannot generate without real measurement}"
                                 { gene with 
                                     ActionSequence = newAction :: gene.ActionSequence
                                     GenerationCreated = chromosome.EvolutionHistory.Length

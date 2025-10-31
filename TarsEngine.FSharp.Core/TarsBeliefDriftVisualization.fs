@@ -80,8 +80,8 @@ module TarsBeliefDriftVisualization =
     /// Generate unique ID for belief tracking
     let generateBeliefId (prefix: string) : string =
         let timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
-        let random = Random().Next(1000, 9999)
-        sprintf "%s-%d-%d" prefix timestamp random
+        let random = 0 // HONEST: Cannot generate without real measurement
+        $"%s{prefix}-%d{timestamp}-%d{random}"
 
     /// Create a belief timestamp
     let createBeliefTimestamp (sessionId: string) (sequenceNumber: int) : BeliefTimestamp =
@@ -378,9 +378,9 @@ module TarsBeliefDriftVisualization =
             logger.LogInformation("🧪 Testing belief drift visualization")
             
             // Generate test belief states
-            let sessionId = "test-session-" + string (Random().Next(1000, 9999))
+            let sessionId = "test-session-" + string (Random().Next(10000))
             let mutable states = []
-            
+
             for i in 1..5 do
                 // Generate test data
                 let random = Random(i * 42) // Different seed for each state
@@ -392,7 +392,7 @@ module TarsBeliefDriftVisualization =
                 | PartitionResult.Success tree ->
                     match performReflection tree logger with
                     | ReflectionResult.Success performance ->
-                        // Create mock insights and contradictions
+                        // TODO: Implement real functionality
                         let insights = [
                             {
                                 Id = generateBeliefId "insight"

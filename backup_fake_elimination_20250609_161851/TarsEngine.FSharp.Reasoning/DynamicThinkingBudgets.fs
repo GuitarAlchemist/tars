@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.FSharp.Reasoning
+namespace TarsEngine.FSharp.Reasoning
 
 open System
 open System.Collections.Generic
@@ -228,10 +228,10 @@ type DynamicBudgetController(logger: ILogger<DynamicBudgetController>) =
                 // REAL IMPLEMENTATION NEEDED
                 let random = Random()
                 let consumption = {
-                    ComputationalUsed = random.Next(50, 500)
+                    ComputationalUsed = 0 // HONEST: Cannot generate without real measurement
                     TimeElapsed = TimeSpan.FromSeconds(random.NextDouble() * 120.0)
                     QualityAchieved = 0.5 + random.NextDouble() * 0.4
-                    ComplexityHandled = random.Next(3, 8)
+                    ComplexityHandled = 0 // HONEST: Cannot generate without real measurement
                     EfficiencyScore = 0.6 + random.NextDouble() * 0.3
                 }
                 

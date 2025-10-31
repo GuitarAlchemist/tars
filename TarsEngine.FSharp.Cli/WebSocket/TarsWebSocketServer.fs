@@ -11,7 +11,7 @@ open TarsEngine.FSharp.Cli.BeliefPropagation
 open TarsEngine.FSharp.Cli.CognitivePsychology
 
 // ============================================================================
-// TARS REAL-TIME WEBSOCKET SERVER - NO SIMULATION
+// TODO: Implement real functionality
 // ============================================================================
 
 type WebSocketMessage = {

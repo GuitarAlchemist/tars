@@ -24,8 +24,10 @@ module DataSourceCommands =
                 
                 printfn $"📊 Detection Result:"
                 printfn $"  Type: {result.SourceType}"
-                printfn $"  Confidence: {result.Confidence:P0}"
-                printfn $"  Protocol: {result.Protocol |> Option.defaultValue "Unknown"}"
+                let confidenceStr = result.Confidence.ToString("P0")
+                printfn $"  Confidence: {confidenceStr}"
+                let protocolStr = result.Protocol |> Option.defaultValue "Unknown"
+                printfn $"  Protocol: {protocolStr}"
                 
                 if result.Confidence >= detector.GetConfidenceThreshold() then
                     printfn "✅ Detection successful - ready for closure generation"

@@ -226,7 +226,7 @@ type TierDemonstrationRunner() =
         printfn "Verifying decomposition correctness..."
         
         let verificationResults = decompositions |> List.map (fun decomp ->
-            // Simulate verification (in real implementation, would use actual verification)
+            // TODO: Implement real functionality
             let accuracy = 0.92 + (Random().NextDouble() * 0.06)  // 92-98% accuracy
             (decomp.OriginalProblem, accuracy))
         

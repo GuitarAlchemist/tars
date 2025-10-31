@@ -1,0 +1,8 @@
+# Performance Review Metascript
+
+CLOSURE_CREATE FRACTAL_METASCRIPT "Tier3PerformanceReview"
+  grammar="@metascripts/fragments/performance_rules.trsx"
+  context.squad="Performance"
+  context.role="PerformanceBenchmarker"
+
+NOTE "Collect benchmark indicators for the proposed change."

@@ -17,26 +17,26 @@ type MetascriptManager(registry: MetascriptRegistry, logger: ILogger<MetascriptM
     member _.LoadMetascriptAsync(filePath: string) =
         task {
             try
-                logger.LogInformation(sprintf "Loading metascript from: %s" filePath)
-                
+                logger.LogInformation $"Loading metascript from: %s{filePath}"
+
                 if File.Exists(filePath) then
                     let content = File.ReadAllText(filePath)
                     let name = Path.GetFileNameWithoutExtension(filePath)
                     
-                    let metadata = MetascriptHelpers.createMetadata name (sprintf "Loaded from %s" filePath) "TARS"
+                    let metadata = MetascriptHelpers.createMetadata name $"Loaded from %s{filePath}" "TARS"
                     let source = MetascriptHelpers.createMetascriptSource name content filePath metadata
                     
                     let registered = registry.RegisterMetascript(source)
-                    logger.LogInformation(sprintf "Metascript loaded successfully: %s" name)
-                    
+                    logger.LogInformation $"Metascript loaded successfully: %s{name}"
+
                     return Ok registered
                 else
-                    let error = sprintf "File not found: %s" filePath
+                    let error = $"File not found: %s{filePath}"
                     logger.LogError(error)
                     return Error error
             with
             | ex ->
-                let error = sprintf "Error loading metascript: %s" ex.Message
+                let error = $"Error loading metascript: %s{ex.Message}"
                 logger.LogError(ex, error)
                 return Error error
         }
@@ -47,19 +47,19 @@ type MetascriptManager(registry: MetascriptRegistry, logger: ILogger<MetascriptM
     member _.SaveMetascriptAsync(source: MetascriptSource, filePath: string) =
         task {
             try
-                logger.LogInformation(sprintf "Saving metascript to: %s" filePath)
-                
+                logger.LogInformation $"Saving metascript to: %s{filePath}"
+
                 let directory = Path.GetDirectoryName(filePath)
                 if not (Directory.Exists(directory)) then
                     Directory.CreateDirectory(directory) |> ignore
                 
                 File.WriteAllText(filePath, source.Content)
-                logger.LogInformation(sprintf "Metascript saved successfully: %s" filePath)
-                
+                logger.LogInformation $"Metascript saved successfully: %s{filePath}"
+
                 return Ok ()
             with
             | ex ->
-                let error = sprintf "Error saving metascript: %s" ex.Message
+                let error = $"Error saving metascript: %s{ex.Message}"
                 logger.LogError(ex, error)
                 return Error error
         }
@@ -87,7 +87,7 @@ type MetascriptManager(registry: MetascriptRegistry, logger: ILogger<MetascriptM
             { source with IsValid = isValid; ValidationErrors = validationErrors }
         with
         | ex ->
-            logger.LogError(ex, sprintf "Error validating metascript: %s" source.Name)
+            logger.LogError(ex, $"Error validating metascript: %s{source.Name}")
             { source with IsValid = false; ValidationErrors = [ex.Message] }
     
     /// <summary>
@@ -109,7 +109,7 @@ type MetascriptManager(registry: MetascriptRegistry, logger: ILogger<MetascriptM
                 return Ok ()
             with
             | ex ->
-                let error = sprintf "Error during cleanup: %s" ex.Message
+                let error = $"Error during cleanup: %s{ex.Message}"
                 logger.LogError(ex, error)
                 return Error error
         }

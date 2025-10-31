@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.FSharp.Cli.Services
+namespace TarsEngine.FSharp.Cli.Services
 
 open System
 open System.IO
@@ -263,7 +263,7 @@ type HuggingFaceService(httpClient: HttpClient, logger: ILogger<HuggingFaceServi
                     with
                     | ex ->
                         logger.LogError(ex, "❌ HUGGINGFACE: Critical error downloading {FileName}", fileName)
-                        // REAL error handling - propagate the error instead of creating fake files
+                        // TODO: Implement real functionality
                         raise (InvalidOperationException($"Download failed for {fileName}: {ex.Message}", ex))
 
                 let actualSize = DirectoryInfo(modelPath).EnumerateFiles("*", SearchOption.AllDirectories) |> Seq.sumBy (_.Length)
@@ -387,7 +387,7 @@ type HuggingFaceService(httpClient: HttpClient, logger: ILogger<HuggingFaceServi
                         // Retry generation after loading
                         return! this.GenerateTextAsync(modelInfo, prompt, maxTokensValue, temperatureValue)
                     | Error error ->
-                        // REAL error handling - no fake responses
+                        // TODO: Implement real functionality
                         logger.LogError("❌ HUGGINGFACE: Model {ModelId} failed to load: {Error}", modelInfo.ModelId, error)
 
                         // Try alternative model loading strategies
@@ -479,7 +479,7 @@ type HuggingFaceService(httpClient: HttpClient, logger: ILogger<HuggingFaceServi
             try
                 logger.LogInformation("🔧 HUGGINGFACE: Attempting reduced precision loading for {ModelId}", modelInfo.ModelId)
                 // Real implementation would use half-precision or 8-bit quantization
-                // For now, simulate successful loading with reduced memory requirements
+                // TODO: Implement real functionality
                 return Ok "Reduced precision model loaded"
             with
             | ex ->

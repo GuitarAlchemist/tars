@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.FSharp.Main.Metascripts
+namespace TarsEngine.FSharp.Main.Metascripts
 
 open System
 open System.IO
@@ -37,5 +37,5 @@ type MetascriptExecutor(logger: ILogger<MetascriptExecutor>) =
                     // REAL IMPLEMENTATION NEEDED
                     // In a real implementation, we would execute the metascript using a JavaScript engine
                     
-                    // For now, we'll just return a placeholder result
-                    // REMOVED: Fake simulation delay
+                    // TODO: Implement real functionality
+                    // TODO: Implement real functionality

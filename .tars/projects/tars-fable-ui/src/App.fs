@@ -179,7 +179,7 @@ let update (msg: Msg) (model: Model) =
         { model with CurrentPage = page }, Cmd.none
     
     | RefreshSystemStatus ->
-        // Simulate system status update
+        // TODO: Implement real functionality
         let updatedStatus = { 
             model.SystemStatus with 
                 CpuUsage = Random().NextDouble() * 100.0

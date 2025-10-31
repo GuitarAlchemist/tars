@@ -65,8 +65,8 @@ module TarsAutoReflection =
     /// Generate unique ID for insights and contradictions
     let generateReflectionId (prefix: string) : string =
         let timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
-        let random = Random().Next(1000, 9999)
-        sprintf "%s-%d-%d" prefix timestamp random
+        let random = 0 // HONEST: Cannot generate without real measurement
+        $"%s{prefix}-%d{timestamp}-%d{random}"
 
     /// Analyze density of points in a BSP partition
     let analyzePartitionDensity (node: BspNode) : float =
@@ -193,7 +193,7 @@ module TarsAutoReflection =
                 Title = "High Coherence Cluster"
                 Description = "Partition shows exceptional coherence, indicating strong semantic similarity"
                 Significance = analysis.Coherence
-                SupportingEvidence = [sprintf "Coherence: %.3f" analysis.Coherence]
+                SupportingEvidence = [ $"Coherence: %.3f{analysis.Coherence}" ]
                 Recommendations = ["Use as template for similar partitions"; "Investigate coherence factors"]
                 Timestamp = DateTime.UtcNow
             }
@@ -238,7 +238,8 @@ module TarsAutoReflection =
                 Type = "logical"
                 Description = "Conflicting density patterns detected across partitions"
                 Confidence = 0.8
-                Evidence = [sprintf "High density partitions: %d" highDensityCount; sprintf "Low density partitions: %d" lowDensityCount]
+                Evidence = [ $"High density partitions: %d{highDensityCount}";
+                             $"Low density partitions: %d{lowDensityCount}" ]
                 Timestamp = DateTime.UtcNow
             }
             contradictions <- contradiction :: contradictions
@@ -251,7 +252,7 @@ module TarsAutoReflection =
                     Type = "mathematical"
                     Description = "High coherence partition with significance-density mismatch"
                     Confidence = 0.7
-                    Evidence = [sprintf "Coherence: %.3f" analysis.Coherence; "Significance-density mismatch detected"]
+                    Evidence = [ $"Coherence: %.3f{analysis.Coherence}"; "Significance-density mismatch detected"]
                     Timestamp = DateTime.UtcNow
                 }
                 contradictions <- contradiction :: contradictions

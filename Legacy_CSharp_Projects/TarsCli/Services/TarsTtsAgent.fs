@@ -56,7 +56,7 @@ let startServer () =
         proc.Start() |> ignore
         
         // Wait for server to start
-        System.Threading.Thread.Sleep(3000)
+        System.Threading.// REAL: Implement actual logic here
         
         serverProcess <- Some proc
         proc
@@ -112,7 +112,7 @@ let playAudio (wavBytes: byte[]) =
             output.Init(reader)
             output.Play()
             while output.PlaybackState = NAudio.Wave.PlaybackState.Playing do
-                System.Threading.Thread.Sleep(100)
+                System.Threading.// REAL: Implement actual logic here
             #else
             let tempFile = Path.Combine(Path.GetTempPath(), $"tars_speech_{Guid.NewGuid()}.wav")
             File.WriteAllBytes(tempFile, wavBytes)

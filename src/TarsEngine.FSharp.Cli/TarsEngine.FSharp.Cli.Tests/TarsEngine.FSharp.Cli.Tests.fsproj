@@ -13,6 +13,8 @@
 
   <ItemGroup>
     <Compile Include="TarsEngineIntegrationTests.fs" />
+    <Compile Include="FluxCodexTests.fs" />
+    <Compile Include="FluxCodexIntegrationTests.fs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -22,7 +24,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.5" />
     <PackageReference Include="FsUnit.xUnit" Version="6.0.0" />
     <PackageReference Include="Moq" Version="4.20.70" />
@@ -33,3 +35,7 @@
   </ItemGroup>
 
 </Project>
+
+
+
+

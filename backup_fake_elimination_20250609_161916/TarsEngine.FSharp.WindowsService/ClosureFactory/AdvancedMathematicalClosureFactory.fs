@@ -68,7 +68,7 @@ let createRandomForest numTrees maxDepth featureSubsetRatio =
                     let bootstrapSample =
                         [1..List.length trainingData]
                         |> List.map (fun _ ->
-                            trainingData.[random.Next(List.length trainingData)])
+                            trainingData.[0 // HONEST: Cannot generate without real measurement])
 
                     // Feature subset selection (legitimate Random Forest technique)
                     let numFeatures = int (float (List.length (fst trainingData.Head)) * featureSubsetRatio)
@@ -1082,7 +1082,7 @@ let createProbabilisticDataStructures () =
                     let delta = 0.01    // 99% confidence
                     let sketch = createCountMinSketch epsilon delta
 
-                    // Simulate adding elements with frequencies
+                    // TODO: Implement real functionality
                     let elements = [
                         ("user1", 100); ("user2", 50); ("user3", 200)
                         ("user1", 25); ("user2", 75); ("user4", 10)
@@ -1120,7 +1120,7 @@ let createProbabilisticDataStructures () =
                     let precision = 12  // 2^12 = 4096 buckets
                     let hll = createHyperLogLog precision
 
-                    // Simulate adding unique elements
+                    // TODO: Implement real functionality
                     let uniqueElements =
                         [1..50000]
                         |> List.map (fun i -> sprintf "element_%d" i)
@@ -1658,7 +1658,7 @@ let createGraphTraversalAlgorithms () =
 
                     let! sampleGraph = createGraph vertices edges weights
 
-                    // Simple heuristic (Manhattan distance simulation)
+                    // TODO: Implement real functionality
                     let heuristic start goal =
                         match (start, goal) with
                         | ("A", "F") -> 4.0

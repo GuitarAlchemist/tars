@@ -198,7 +198,7 @@ type TarsContextEngineeringDemo() =
             spans
             |> List.map (fun span ->
                 if span.Salience < 0.5 && span.Source.Contains("debug") then
-                    // Simulate compression
+                    // TODO: Implement real functionality
                     let compressedText = 
                         if span.Text.Length > 50 then
                             span.Text.[0..30] + "...[compressed]..." + span.Text.[span.Text.Length-15..]

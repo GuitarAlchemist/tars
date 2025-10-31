@@ -89,7 +89,7 @@ module LearningDatabase =
                 else
                     return createDatabase()
             with ex ->
-                printfn "Error loading learning database: %s" ex.Message
+                printfn $"Error loading learning database: %s{ex.Message}"
                 return createDatabase()
         }
 
@@ -106,7 +106,7 @@ module LearningDatabase =
                 do! File.WriteAllTextAsync(databasePath, json) |> Async.AwaitTask
                 return true
             with ex ->
-                printfn "Error saving learning database: %s" ex.Message
+                printfn $"Error saving learning database: %s{ex.Message}"
                 return false
         }
 
@@ -123,13 +123,13 @@ module LearningDatabase =
         database.Events
         |> List.groupBy (fun e -> e.EventType)
         |> List.iter (fun (eventType, events) ->
-            statistics.[sprintf "EventType:%s" eventType] <- events.Length)
+            statistics.[ $"EventType:%s{eventType}"] <- events.Length)
 
         // Count events by file type
         database.Events
         |> List.groupBy (fun e -> e.FileType)
         |> List.iter (fun (fileType, events) ->
-            statistics.[sprintf "FileType:%s" fileType] <- events.Length)
+            statistics.[ $"FileType:%s{fileType}"] <- events.Length)
 
         // Count successful vs. failed events
         let (successful, failed) =
@@ -144,7 +144,7 @@ module LearningDatabase =
         |> List.collect (fun e -> e.Tags)
         |> List.groupBy id
         |> List.iter (fun (tag, occurrences) ->
-            statistics.[sprintf "Tag:%s" tag] <- occurrences.Length)
+            statistics.[ $"Tag:%s{tag}"] <- occurrences.Length)
 
         { database with
             Statistics = statistics
@@ -349,7 +349,7 @@ module LearningDatabase =
             |> Seq.sortByDescending (fun kvp -> kvp.Value)
             |> Seq.iter (fun kvp ->
                 let eventType = kvp.Key.Substring("EventType:".Length)
-                sb.AppendLine(sprintf "  %s: %d" eventType kvp.Value) |> ignore
+                sb.AppendLine $"  %s{eventType}: %d{kvp.Value}" |> ignore
             )
 
             // File types
@@ -360,7 +360,7 @@ module LearningDatabase =
             |> Seq.sortByDescending (fun kvp -> kvp.Value)
             |> Seq.iter (fun kvp ->
                 let fileType = kvp.Key.Substring("FileType:".Length)
-                sb.AppendLine(sprintf "  %s: %d" fileType kvp.Value) |> ignore
+                sb.AppendLine $"  %s{fileType}: %d{kvp.Value}" |> ignore
             )
 
             // Tags
@@ -371,7 +371,7 @@ module LearningDatabase =
             |> Seq.sortByDescending (fun kvp -> kvp.Value)
             |> Seq.iter (fun kvp ->
                 let tag = kvp.Key.Substring("Tag:".Length)
-                sb.AppendLine(sprintf "  %s: %d" tag kvp.Value) |> ignore
+                sb.AppendLine $"  %s{tag}: %d{kvp.Value}" |> ignore
             )
 
             return sb.ToString()

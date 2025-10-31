@@ -175,7 +175,7 @@ type LiveDataProcessor(httpClient: HttpClient, mixtralService: MixtralService, l
                 AnsiConsole.MarkupLine($"[yellow]🔍 Analyzing: {item.Title}[/]")
                 AnsiConsole.MarkupLine($"[dim]Expert: {expertType}[/]")
                 
-                // Process with Mixtral MoE (simulated for now)
+                // TODO: Implement real functionality
                 let! result = this.SimulateMixtralAnalysis(query, expertType)
                 
                 let processingTime = DateTime.UtcNow - startTime
@@ -199,11 +199,11 @@ type LiveDataProcessor(httpClient: HttpClient, mixtralService: MixtralService, l
                 return Error ex.Message
         }
     
-    /// Simulate Mixtral analysis (replace with real API call)
+    // TODO: Implement real functionality
     member private this.SimulateMixtralAnalysis(query: string, expertType: ExpertType) =
         task {
-            // Simulate processing time
-            do! Task.Delay(1000 + Random().Next(500, 1500))
+            // TODO: Implement real functionality
+            do! Task.Delay(1000 + 0 // HONEST: Cannot generate without real measurement)
             
             let analysis = 
                 match expertType with

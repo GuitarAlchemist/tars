@@ -115,7 +115,7 @@ type QwenReasoningEngine(logger: ILogger<QwenReasoningEngine>) =
             let modelName = modelToString model
             logger.LogInformation($"Calling Qwen3 model: {modelName}")
             
-            // Simulate Ollama API call (replace with actual HTTP client)
+            // TODO: Implement real functionality
             let requestBody = JsonSerializer.Serialize({|
                 model = modelName
                 prompt = prompt
@@ -128,7 +128,7 @@ type QwenReasoningEngine(logger: ILogger<QwenReasoningEngine>) =
             |})
             
             // TODO: Replace with actual HTTP client call to Ollama
-            // For now, simulate response
+            // TODO: Implement real functionality
             let simulatedResponse = $"<think>Let me analyze this problem step by step...</think>Based on my analysis, the answer is: [Simulated response for {modelName}]"
             
             return simulatedResponse

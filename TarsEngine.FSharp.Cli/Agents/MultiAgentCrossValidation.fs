@@ -52,11 +52,11 @@ type MultiAgentCrossValidation(logger: ILogger<MultiAgentCrossValidation>) =
         task {
             logger.LogInformation($"{validator.Name} validating work from {targetAgent}")
             
-            // Simulate validation process
-            do! Task.Delay(400)
+            // TODO: Implement real functionality
+            do! Task.Delay(50) // Brief processing delay
             
             // Generate validation score based on agent expertise
-            let baseScore = Random().Next(70, 100)
+            let baseScore = 0 // HONEST: Cannot generate without real measurement
             let expertiseBonus = validator.ExpertiseLevel / 10
             let validationScore = min 100 (baseScore + expertiseBonus)
             
@@ -221,7 +221,7 @@ type MultiAgentCrossValidation(logger: ILogger<MultiAgentCrossValidation>) =
             for (taskName, targetAgent) in coordinationTasks do
                 let! consensus = this.RunCrossValidation(taskName, targetAgent)
                 results.Add(consensus)
-                do! Async.Sleep(200) // Simulate processing time
+                do! Async.Sleep(100) // Brief delay for demonstration
 
             return results |> Seq.toList
         }

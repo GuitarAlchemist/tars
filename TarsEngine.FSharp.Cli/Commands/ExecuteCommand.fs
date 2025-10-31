@@ -169,7 +169,7 @@ type ExecuteCommand(
             if yamlBlocks.Length > 0 then
                 appendLog (sprintf "✅ PHASE_END | YAML_CONFIGURATION | Processed %d YAML blocks, extracted %d total variables" yamlBlocks.Length variables.Count)
 
-            // Execute each F# block with enhanced simulation + real file operations
+            // TODO: Implement real functionality
             if fsharpBlocks.Length > 0 then
                 appendLog "🚀 PHASE_START | F#_CODE_EXECUTION | Executing F# code blocks with enhanced engine"
                 Console.WriteLine("├── ⚡ Execution")
@@ -752,7 +752,7 @@ type ExecuteCommand(
         | ex -> (sprintf "⚠️ ANALYSIS_ERROR: Unable to analyze F# block", ex.Message, 0)
 
     member private self.executeFSharpBlock (code: string) =
-        // REAL F# execution using F# Interactive - NO MORE SIMULATION!
+        // TODO: Implement real functionality
         try
             let tempFile = Path.GetTempFileName() + ".fsx"
             File.WriteAllText(tempFile, code)

@@ -152,8 +152,8 @@ let runGeometricSkill (step: PlanStep) : bool =
             printfn "  ⚠️ Geometric preconditions not fully met"
             false
         else
-            // Simulate execution with geometric feedback
-            System.Threading.Thread.Sleep(10)
+            // TODO: Implement real functionality
+            System.Threading.// REAL: Implement actual logic here
             printfn "  ✅ Geometric skill executed successfully"
             true
     with

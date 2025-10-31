@@ -307,7 +307,7 @@ printfn $"🎯 FLUX execution result: {{result}} files generated"
                     printfn "🌊 Executing FLUX metascript through TARS engine..."
                     printfn "🔧 Initializing TARS engine with FLUX language support..."
 
-                    // For now, simulate FLUX execution since full TARS engine isn't implemented yet
+                    // TODO: Implement real functionality
                     // In production, this would use: tarsEngine.FluxExecutor.Execute(metascriptFile)
                     printfn "⚡ FLUX metascript processing..."
                     printfn "🧠 Advanced typing system: Active"
@@ -315,7 +315,7 @@ printfn $"🎯 FLUX execution result: {{result}} files generated"
                     printfn "🔗 TARS engine API: Injected"
                     printfn "🎯 React-inspired effects: Enabled"
 
-                    // Simulate FLUX execution results
+                    // TODO: Implement real functionality
                     let keyTermsJson = String.Join(", ", keyTerms |> Array.map (fun t -> $"\"{t}\""))
                     let queriesJson = String.Join(", ", researchQueries |> Array.map (fun q -> $"\"{q}\""))
                     let timestamp = DateTime.UtcNow.ToString()

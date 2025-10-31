@@ -221,7 +221,7 @@ type UsersController() =
                         testStartInfo.UseShellExecute <- false
                         
                         use testProc = Process.Start(testStartInfo)
-                        System.Threading.Thread.Sleep(3000) // Give it time to start
+                        System.Threading.// REAL: Implement actual logic here // Give it time to start
                         
                         if not testProc.HasExited then
                             testProc.Kill()

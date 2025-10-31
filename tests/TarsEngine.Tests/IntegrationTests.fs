@@ -106,7 +106,7 @@ module IntegrationTests =
             // Test grammar tier to CUDA transpilation integration
             let grammarStart = DateTime.UtcNow
             
-            // Simulate grammar tier 5 with CUDA operations
+            // TODO: Implement real functionality
             let tier5Operations = [
                 "cudafyTranspilation"
                 "cudafyClosureFactory"
@@ -132,7 +132,7 @@ let vectorAdd (a: float32 array) (b: float32 array) (result: float32 array) (n: 
         result.[i] <- a.[i] + b.[i]
 """
             
-            // Simulate transpilation
+            // TODO: Implement real functionality
             let hasForLoop = fsharpCode.Contains("for i in")
             let hasArrayAccess = fsharpCode.Contains(".[i]")
             let hasOperation = fsharpCode.Contains("+")
@@ -203,7 +203,7 @@ let vectorAdd (a: float32 array) (b: float32 array) (result: float32 array) (n: 
                 let hasValidName = not (String.IsNullOrEmpty(exprName))
                 let hasValidTierRange = not (String.IsNullOrEmpty(tierRange))
                 
-                // Simulate expression execution
+                // TODO: Implement real functionality
                 let mockResult = sprintf "%s expression executed successfully" exprName
                 let hasResult = not (String.IsNullOrEmpty(mockResult))
                 
@@ -218,7 +218,7 @@ let vectorAdd (a: float32 array) (b: float32 array) (result: float32 array) (n: 
             // Test expression composition
             let compositionStart = DateTime.UtcNow
             
-            // Simulate nested expression execution
+            // TODO: Implement real functionality
             let nestedExpressions = [
                 "sedenion { vector { ... } }"
                 "cudafy { sedenion { ... } }"
@@ -365,11 +365,11 @@ let vectorAdd (a: float32 array) (b: float32 array) (result: float32 array) (n: 
             for (scenario, errorMessage) in errorScenarios do
                 let errorStart = DateTime.UtcNow
                 
-                // Simulate error handling
+                // TODO: Implement real functionality
                 let mutable errorCaught = false
                 
                 try
-                    // Simulate error condition
+                    // TODO: Implement real functionality
                     match scenario with
                     | "InvalidGrammarTier" -> 
                         let invalidTier = -1

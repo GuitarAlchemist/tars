@@ -75,7 +75,7 @@ printfn $"   ⚡ Convergence: {convergenceMsg}"
 printfn ""
 
 // ============================================================================
-// TEST 2: SIMULATED ANNEALING
+// TODO: Implement real functionality
 // ============================================================================
 
 printfn "🌡️ Test 2: Simulated Annealing for Weight Optimization"

@@ -1,6 +1,6 @@
-// TemplateEngine.fs - Auto-generated placeholder
+// TODO: Implement real functionality
 // TODO: Implement TemplateEngine functionality
 
 namespace TarsEngine.FSharp.DataSources.Templates
 
-// Placeholder for TemplateEngine implementation
+// TODO: Implement real functionality

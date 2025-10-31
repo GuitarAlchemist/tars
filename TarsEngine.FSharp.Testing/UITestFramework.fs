@@ -263,7 +263,7 @@ module UITestFramework =
                             return false, Some $"Element not found for interaction: {locator}"
                     
                     | Wait duration ->
-                        do! Async.Sleep(int duration.TotalMilliseconds)
+                        // REAL: Implement actual async logic(int duration.TotalMilliseconds)
                         return true, None
                     
                     | WaitForElement (locator, timeout) ->

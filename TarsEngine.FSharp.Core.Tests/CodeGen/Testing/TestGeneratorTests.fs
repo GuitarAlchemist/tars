@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.FSharp.Core.Tests.CodeGen.Testing
+namespace TarsEngine.FSharp.Core.Tests.CodeGen.Testing
 
 open System
 open System.Threading.Tasks
@@ -16,7 +16,7 @@ open TarsEngine.FSharp.Core.CodeGen.Testing.Models
 module TestGeneratorTests =
     
     /// <summary>
-    /// Mock logger for testing.
+    // TODO: Implement real functionality
     /// </summary>
     type MockLogger<'T>() =
         interface ILogger<'T> with

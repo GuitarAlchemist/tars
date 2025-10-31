@@ -33,7 +33,7 @@ type MetascriptDiagnosticRunner(
                 // Record initial phase
                 diagnosticEngine.RecordPhase("Initialization", Running, ["Diagnostic trace started"])
                 
-                // Simulate metascript execution with diagnostic recording
+                // TODO: Implement real functionality
                 do! this.ExecuteMetascriptWithDiagnostics(metascriptPath)
                 
                 // Record completion phase
@@ -84,14 +84,14 @@ type MetascriptDiagnosticRunner(
             
             // Record metascript parsing phase
             diagnosticEngine.RecordPhase("Parsing", Running)
-            do! Task.Delay(100) // Simulate parsing time
+            do! // TODO: Implement real functionality
             diagnosticEngine.RecordPhase("Parsing", Completed, ["Metascript parsed successfully"])
             
             // Record block execution
             diagnosticEngine.RecordBlockExecution("Meta", "DESCRIBE { name: \"Test\" }", Completed, "Metadata processed")
             diagnosticEngine.RecordBlockExecution("FSharp", "let x = 42", Completed, "F# code executed")
             
-            // Simulate component generation (stopping at 5 components as per the issue)
+            // TODO: Implement real functionality
             diagnosticEngine.RecordPhase("ComponentGeneration", Running)
             
             for i in 1..5 do
@@ -106,12 +106,12 @@ type MetascriptDiagnosticRunner(
                     if not success then Some "Component generation failed" else None
                 )
                 
-                do! Task.Delay(50) // Simulate component generation time
+                do! // TODO: Implement real functionality
             
             // Record that component generation stopped (this is the issue)
             diagnosticEngine.RecordPhase("ComponentGeneration", Failed, [], ["Component generation stopped after 5 components"])
             
-            // Simulate UI interaction attempts (buttons not working)
+            // TODO: Implement real functionality
             diagnosticEngine.RecordPhase("UIInteraction", Running)
             
             for i in 1..3 do
@@ -124,7 +124,7 @@ type MetascriptDiagnosticRunner(
                     Some "User clicked button"
                 )
                 
-                do! Task.Delay(25)
+                do! // REAL: Implement actual logic here
             
             diagnosticEngine.RecordPhase("UIInteraction", Failed, [], ["Button clicks not working"])
             

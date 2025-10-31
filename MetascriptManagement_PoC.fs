@@ -1,4 +1,4 @@
-﻿// Proof of Concept: TARS Metascript Management System
+// Proof of Concept: TARS Metascript Management System
 // This demonstrates the key concepts for managing .tars metascripts
 
 namespace TarsEngine.FSharp.MetascriptManagement
@@ -181,7 +181,7 @@ module MetascriptManagementDemo =
                 printfn "  %A: %d scripts" category scripts.Length
         )
         
-        // Simulate auto-improvement tracking
+        // TODO: Implement real functionality
         printfn "\n3. Tracking auto-improvement metascripts..."
         let improvement1 = tracker.TrackGenerated("Fix code complexity", "refactoring", "temp/improvement_refactoring.tars")
         let improvement2 = tracker.TrackGenerated("Add unit tests", "testing", "temp/improvement_testing.tars")

@@ -34,7 +34,7 @@ module SimpleDemo =
         printfn "============================="
         printfn ""
         
-        // Simulate embeddings in different geometric spaces
+        // TODO: Implement real functionality
         let euclideanEmb = [| 0.8; 0.3; 0.6; 0.2 |]
         let hyperbolicEmb = [| 0.4; 0.7; 0.2 |]  // In Poincaré disk (norm < 1)
         let projectiveEmb = [| 0.577; 0.577; 0.577 |]  // Normalized
@@ -80,7 +80,7 @@ module SimpleDemo =
         printfn "Statement 2: %s" statement2
         printfn ""
         
-        // Simulate belief alignment analysis
+        // TODO: Implement real functionality
         let beliefAlignment = 0.25  // Low alignment suggests contradiction
         let contradictionScore = 1.0 - beliefAlignment
         let isContradiction = contradictionScore > 0.6
@@ -112,7 +112,7 @@ module SimpleDemo =
         printfn "=============================="
         printfn ""
         
-        // Simulate transformer configurations
+        // TODO: Implement real functionality
         
         let initialConfigs = [|
             { HiddenDim = 256; NumLayers = 4; LearningRate = 2e-5; Fitness = 0.73 }
@@ -125,7 +125,7 @@ module SimpleDemo =
             printfn "   Config %d: Hidden=%d, Layers=%d, Fitness=%.3f" 
                 (i+1) config.HiddenDim config.NumLayers config.Fitness
         
-        // Simulate evolution
+        // TODO: Implement real functionality
         let bestConfig = initialConfigs |> Array.maxBy (fun c -> c.Fitness)
         let evolvedConfig = { 
             bestConfig with 
@@ -157,7 +157,7 @@ module SimpleDemo =
         printfn "============================="
         printfn ""
         
-        // Simulate belief nodes
+        // TODO: Implement real functionality
         
         let beliefs = [|
             { Concept = "Quantum Computing Impact"; Strength = 0.85; Evidence = 0.9 }

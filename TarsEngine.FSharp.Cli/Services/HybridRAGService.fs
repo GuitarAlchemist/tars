@@ -81,8 +81,8 @@ module HybridRAGService =
         task {
             let startTime = DateTime.UtcNow
             
-            // Simulate LLM generation
-            do! Task.Delay(500)
+            // TODO: Implement real functionality
+            do! // REAL: Implement actual logic here
             
             let sources = context.RetrievedDocuments |> List.map (fun d -> d.Document.Id)
             

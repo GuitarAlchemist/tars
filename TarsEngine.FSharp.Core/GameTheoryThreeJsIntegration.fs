@@ -193,27 +193,27 @@ module GameTheoryThreeJsIntegration =
         /// Initialize Three.js scene
         member this.InitializeScene(config: SceneConfig) : string =
             let (camX, camY, camZ) = sceneState.CameraPosition
-            sprintf """
+            $"""
                 // TARS Game Theory 3D Scene Initialization
-                const container = document.getElementById('%s');
-                if (!container) {
-                    console.error('Container not found: %s');
+                const container = document.getElementById('%s{config.ContainerId}');
+                if (!container) {{
+                    console.error('Container not found: %s{config.ContainerId}');
                     return;
-                }
+                }}
 
                 // Scene setup
                 const scene = new THREE.Scene();
-                scene.background = new THREE.Color(0x%06x);
-                scene.fog = new THREE.Fog(0x%06x, %f, %f);
+                scene.background = new THREE.Color(0x%06x{config.BackgroundColor});
+                scene.fog = new THREE.Fog(0x%06x{config.FogColor}, %f{config.FogNear}, %f{config.FogFar});
 
                 // Camera setup
-                const camera = new THREE.PerspectiveCamera(%f, container.clientWidth / container.clientHeight, %f, %f);
-                camera.position.set(%f, %f, %f);
+                const camera = new THREE.PerspectiveCamera(%f{config.CameraFov}, container.clientWidth / container.clientHeight, %f{config.CameraNear}, %f{config.CameraFar});
+                camera.position.set(%f{camX}, %f{camY}, %f{camZ});
 
                 // Renderer setup with WebGPU support
-                const renderer = new THREE.WebGPURenderer({ antialias: true });
+                const renderer = new THREE.WebGPURenderer({{ antialias: true }});
                 renderer.setSize(container.clientWidth, container.clientHeight);
-                renderer.shadowMap.enabled = %s;
+                renderer.shadowMap.enabled = %s{if config.EnableShadows then "true" else "false"};
                 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
                 container.appendChild(renderer.domElement);
 
@@ -223,7 +223,7 @@ module GameTheoryThreeJsIntegration =
 
                 const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
                 directionalLight.position.set(5, 5, 5);
-                directionalLight.castShadow = %s;
+                directionalLight.castShadow = %s{if config.EnableShadows then "true" else "false"};
                 scene.add(directionalLight);
 
                 // Controls
@@ -232,26 +232,19 @@ module GameTheoryThreeJsIntegration =
                 controls.dampingFactor = 0.05;
 
                 // Store references globally for TARS integration
-                window.tarsGameTheoryScene = {
+                window.tarsGameTheoryScene = {{
                     scene: scene,
                     camera: camera,
                     renderer: renderer,
                     controls: controls,
                     agents: new Map(),
                     connections: [],
-                    interstellarMode: %s
-                };
+                    interstellarMode: %s{if config.InterstellarMode then "true" else "false"}
+                }};
 
                 console.log('🌌 TARS Game Theory 3D Scene initialized');
             """
-                config.ContainerId config.ContainerId
-                config.BackgroundColor config.FogColor config.FogNear config.FogFar
-                config.CameraFov config.CameraNear config.CameraFar
-                camX camY camZ
-                (if config.EnableShadows then "true" else "false")
-                (if config.EnableShadows then "true" else "false")
-                (if config.InterstellarMode then "true" else "false")
-        
+
         /// Create agent 3D representation
         member this.CreateAgent3D(agent: AgentUIState) : Agent3D =
             let color = 
@@ -279,91 +272,80 @@ module GameTheoryThreeJsIntegration =
         /// Generate JavaScript for adding agent to scene
         member this.AddAgentToScene(agent: Agent3D) : string =
             let (posX, posY, posZ) = agent.Position
-            sprintf """
-                // Add agent %s to 3D scene
-                if (window.tarsGameTheoryScene) {
+            $"""
+                // Add agent %s{agent.Id} to 3D scene
+                if (window.tarsGameTheoryScene) {{
                     const scene = window.tarsGameTheoryScene.scene;
 
                     // Create agent geometry
-                    const geometry = new THREE.SphereGeometry(%f, 32, 32);
+                    const geometry = new THREE.SphereGeometry(%f{agent.Size}, 32, 32);
 
                     // Create custom material with shaders
-                    const material = new THREE.ShaderMaterial({
-                        vertexShader: `%s`,
-                        fragmentShader: `%s`,
-                        uniforms: {
-                            time: { value: 0.0 },
-                            performanceScore: { value: %f },
-                            agentColor: { value: new THREE.Color(0x%06x) },
-                            interstellarMode: { value: %s }
-                        },
+                    const material = new THREE.ShaderMaterial({{
+                        vertexShader: `%s{Shaders.agentVertexShader}`,
+                        fragmentShader: `%s{Shaders.agentFragmentShader}`,
+                        uniforms: {{
+                            time: {{ value: 0.0 }},
+                            performanceScore: {{ value: %f{agent.PerformanceScore} }},
+                            agentColor: {{ value: new THREE.Color(0x%06x{agent.Color}) }},
+                            interstellarMode: {{ value: %s{if sceneState.InterstellarEffects then "true" else "false"} }}
+                        }},
                         transparent: true
-                    });
+                    }});
 
                     const agentMesh = new THREE.Mesh(geometry, material);
-                    agentMesh.position.set(%f, %f, %f);
+                    agentMesh.position.set(%f{posX}, %f{posY}, %f{posZ});
                     agentMesh.castShadow = true;
                     agentMesh.receiveShadow = true;
-                    agentMesh.userData = {
-                        id: '%s',
-                        gameTheoryModel: '%A',
-                        performance: %f
-                    };
+                    agentMesh.userData = {{
+                        id: '%s{agent.Id}',
+                        gameTheoryModel: '%A{agent.GameTheoryModel}',
+                        performance: %f{agent.PerformanceScore}
+                    }};
 
                     scene.add(agentMesh);
-                    window.tarsGameTheoryScene.agents.set('%s', agentMesh);
+                    window.tarsGameTheoryScene.agents.set('%s{agent.Id}', agentMesh);
 
-                    console.log('🎯 Added agent %s to 3D scene');
-                }
+                    console.log('🎯 Added agent %s{agent.Id} to 3D scene');
+                }}
             """
-                agent.Id agent.Size
-                Shaders.agentVertexShader Shaders.agentFragmentShader
-                agent.PerformanceScore agent.Color
-                (if sceneState.InterstellarEffects then "true" else "false")
-                posX posY posZ
-                agent.Id agent.GameTheoryModel agent.PerformanceScore
-                agent.Id agent.Id
-        
+
         /// Generate JavaScript for creating connections
         member this.CreateConnections(connections: AgentConnection list) : string =
             let connectionJs = 
                 connections
                 |> List.map (fun conn ->
-                    sprintf """
-                        // Create connection from %s to %s
-                        if (window.tarsGameTheoryScene) {
+                    $"""
+                        // Create connection from %s{conn.FromAgent} to %s{conn.ToAgent}
+                        if (window.tarsGameTheoryScene) {{
                             const scene = window.tarsGameTheoryScene.scene;
-                            const fromAgent = window.tarsGameTheoryScene.agents.get('%s');
-                            const toAgent = window.tarsGameTheoryScene.agents.get('%s');
+                            const fromAgent = window.tarsGameTheoryScene.agents.get('%s{conn.FromAgent}');
+                            const toAgent = window.tarsGameTheoryScene.agents.get('%s{conn.ToAgent}');
                             
-                            if (fromAgent && toAgent) {
+                            if (fromAgent && toAgent) {{
                                 const points = [fromAgent.position, toAgent.position];
                                 const geometry = new THREE.BufferGeometry().setFromPoints(points);
                                 
-                                const material = new THREE.ShaderMaterial({
-                                    vertexShader: `%s`,
-                                    fragmentShader: `%s`,
-                                    uniforms: {
-                                        time: { value: 0.0 },
-                                        animationSpeed: { value: %f },
-                                        connectionColor: { value: new THREE.Color(0x%06x) },
-                                        interstellarMode: { value: %s }
-                                    },
+                                const material = new THREE.ShaderMaterial({{
+                                    vertexShader: `%s{Shaders.connectionVertexShader}`,
+                                    fragmentShader: `%s{Shaders.connectionFragmentShader}`,
+                                    uniforms: {{
+                                        time: {{ value: 0.0 }},
+                                        animationSpeed: {{ value: %f{sceneState.AnimationSpeed} }},
+                                        connectionColor: {{ value: new THREE.Color(0x%06x{conn.Color}) }},
+                                        interstellarMode: {{ value: %s{if sceneState.InterstellarEffects then "true" else "false"} }}
+                                    }},
                                     transparent: true,
-                                    opacity: %f
-                                });
+                                    opacity: %f{conn.Strength}
+                                }});
                                 
                                 const line = new THREE.Line(geometry, material);
                                 scene.add(line);
                                 window.tarsGameTheoryScene.connections.push(line);
-                            }
-                        }
-                    """ 
-                        conn.FromAgent conn.ToAgent conn.FromAgent conn.ToAgent
-                        Shaders.connectionVertexShader Shaders.connectionFragmentShader
-                        sceneState.AnimationSpeed conn.Color
-                        (if sceneState.InterstellarEffects then "true" else "false")
-                        conn.Strength)
+                            }}
+                        }}
+                    """
+                )
                 |> String.concat "\n"
             
             connectionJs
@@ -411,46 +393,43 @@ module GameTheoryThreeJsIntegration =
         /// Toggle Interstellar mode
         member this.ToggleInterstellarMode(enabled: bool) : string =
             sceneState <- { sceneState with InterstellarEffects = enabled }
-            sprintf """
+            $"""
                 // Toggle Interstellar Mode
-                if (window.tarsGameTheoryScene) {
-                    window.tarsGameTheoryScene.interstellarMode = %s;
+                if (window.tarsGameTheoryScene) {{
+                    window.tarsGameTheoryScene.interstellarMode = %s{if enabled then "true" else "false"};
                     
                     // Update all agent materials
-                    window.tarsGameTheoryScene.agents.forEach((agent) => {
-                        if (agent.material.uniforms) {
-                            agent.material.uniforms.interstellarMode.value = %s;
-                        }
-                    });
+                    window.tarsGameTheoryScene.agents.forEach((agent) => {{
+                        if (agent.material.uniforms) {{
+                            agent.material.uniforms.interstellarMode.value = %s{if enabled then "true" else "false"};
+                        }}
+                    }});
                     
                     // Update all connection materials
-                    window.tarsGameTheoryScene.connections.forEach((connection) => {
-                        if (connection.material.uniforms) {
-                            connection.material.uniforms.interstellarMode.value = %s;
-                        }
-                    });
+                    window.tarsGameTheoryScene.connections.forEach((connection) => {{
+                        if (connection.material.uniforms) {{
+                            connection.material.uniforms.interstellarMode.value = %s{if enabled then "true" else "false"};
+                        }}
+                    }});
                     
-                    console.log('🚀 Interstellar mode: %s');
-                }
-            """ 
-                (if enabled then "true" else "false")
-                (if enabled then "true" else "false")
-                (if enabled then "true" else "false")
-                (if enabled then "ENABLED" else "DISABLED")
-        
+                    console.log('🚀 Interstellar mode: %s{if enabled then "ENABLED" else "DISABLED"}');
+                }}
+            """
+
         /// Update agent positions
         member this.UpdateAgentPositions(positions: Map<string, float * float * float>) : string =
             let updateJs = 
                 positions
                 |> Map.toSeq
                 |> Seq.map (fun (agentId, (x, y, z)) ->
-                    sprintf """
-                        // Update position for agent %s
-                        const agent = window.tarsGameTheoryScene.agents.get('%s');
-                        if (agent) {
-                            agent.position.set(%f, %f, %f);
-                        }
-                    """ agentId agentId x y z)
+                    $"""
+                        // Update position for agent %s{agentId}
+                        const agent = window.tarsGameTheoryScene.agents.get('%s{agentId}');
+                        if (agent) {{
+                            agent.position.set(%f{x}, %f{y}, %f{z});
+                        }}
+                    """
+                )
                 |> String.concat "\n"
             
             updateJs

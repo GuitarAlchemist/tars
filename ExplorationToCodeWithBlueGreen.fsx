@@ -195,7 +195,7 @@ type MLTrainer() =
         printfn "🔵 [ML] Added training data: (%.2f, %.2f) -> %s" x y label
     
     member _.TrainModel() =
-        // Simplified model training simulation
+        // TODO: Implement real functionality
         let accuracy = 0.85 + (Random().NextDouble() * 0.1)
         let precision = 0.80 + (Random().NextDouble() * 0.15)
         let recall = 0.75 + (Random().NextDouble() * 0.2)

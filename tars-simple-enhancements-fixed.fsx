@@ -90,7 +90,7 @@ let improveMetascriptEvolution() =
         let qualityScore = (coverage + performance) / 2.0
         (complexityScore * 0.3 + sizeScore * 0.2 + qualityScore * 0.5) |> min 1.0
     
-    // Evolution simulation with real metrics
+    // TODO: Implement real functionality
     let generation1 = (1, calculateFitness 8 150 0.6 0.7)
     let generation2 = (2, calculateFitness 7 140 0.7 0.75)
     let generation3 = (3, calculateFitness 6 130 0.8 0.8)

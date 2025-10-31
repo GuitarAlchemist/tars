@@ -122,7 +122,7 @@ module UnifiedPerformanceCommand =
                 
                 // Wait for some metrics to be collected
                 AnsiConsole.MarkupLine("[dim]Collecting metrics for 10 seconds...[/]")
-                do! Task.Delay(10000)
+                do! // REAL: Implement actual logic here
                 
                 // Get system health
                 AnsiConsole.MarkupLine("[green]🏥 System Health Status:[/]")

@@ -152,7 +152,7 @@ Examples:
                 printfn "🎯 KANBAN COACHING INSIGHTS"
                 printfn "==========================="
                 
-                // Mock data for demonstration
+                // TODO: Implement real functionality
                 let board = kanbanService.CreateBoard("Demo Board", Guid.NewGuid(), kanbanService.CreateDefaultSoftwareColumns())
                 let workItems = [] // Would load actual work items
                 
@@ -185,7 +185,7 @@ Examples:
                 printfn "📋 SPRINT PLANNING"
                 printfn "=================="
                 
-                // Mock team and backlog for demonstration
+                // TODO: Implement real functionality
                 let team = {
                     Id = Guid.NewGuid()
                     Name = "Development Team Alpha"
@@ -302,7 +302,7 @@ Examples:
                     printfn $"  {i + 1}. {question}"
                 printfn ""
                 
-                // Mock responses for analysis
+                // TODO: Implement real functionality
                 let responses = [
                     {
                         Date = DateTime.UtcNow
@@ -362,7 +362,7 @@ Examples:
                 printfn "📊 CREATING GANTT CHART"
                 printfn "======================="
                 
-                // Mock project data
+                // TODO: Implement real functionality
                 let project = {
                     Id = Guid.NewGuid()
                     Name = "Project Alpha"
@@ -418,7 +418,7 @@ Examples:
             printfn "📊 EXECUTIVE DASHBOARD"
             printfn "====================="
             
-            // Mock data for demonstration
+            // TODO: Implement real functionality
             let projects = []
             let ganttCharts = []
             

@@ -160,7 +160,7 @@ module InteractiveDemo =
             printfn "   Config %d: Hidden=%d, Layers=%d, LR=%.2e" 
                 (i+1) config.HiddenDim config.NumLayers config.LearningRate
         
-        // Simulate evolution
+        // TODO: Implement real functionality
         let evolvedConfigs = 
             initialConfigs 
             |> Array.map (fun config -> mutateConfig config 0.2)
@@ -171,7 +171,7 @@ module InteractiveDemo =
             printfn "   Config %d: Hidden=%d, Layers=%d, LR=%.2e" 
                 (i+1) config.HiddenDim config.NumLayers config.LearningRate
         
-        // Simulate crossover
+        // TODO: Implement real functionality
         let offspring = crossoverConfigs evolvedConfigs.[0] evolvedConfigs.[1]
         printfn ""
         printfn "👶 Crossover Offspring:"
@@ -198,7 +198,7 @@ module InteractiveDemo =
             Recommendations = [
                 "Run full evolution with larger population"
                 "Implement multi-objective optimization"
-                "Add simulated annealing for fine-tuning"
+                "Add implementd annealing for fine-tuning"
                 "Monitor convergence and diversity metrics"
             ]
             Success = true

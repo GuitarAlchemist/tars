@@ -213,18 +213,24 @@ module SemanticVectorStore =
         /// Perform semantic clustering
         member this.PerformSemanticClustering(numClusters: int) : SemanticCluster list =
             let allVectors = vectors.Values |> Seq.toList
-            if allVectors.Length < numClusters then []
+            if allVectors.IsEmpty then []
             else
+                let requestedClusters =
+                    numClusters
+                    |> max 1
+                    |> min allVectors.Length
+                if requestedClusters = 0 then []
+                else
                 // Simple K-means clustering implementation
                 let random = Random()
                 let dimensions = embeddingService.GetEmbeddingDimensions()
-                
+
                 // Initialize centroids randomly
-                let mutable centroids = 
-                    [1..numClusters] 
+                let mutable centroids =
+                    [1..requestedClusters]
                     |> List.map (fun i ->
                         Array.init dimensions (fun _ -> random.NextDouble() * 2.0 - 1.0))
-                
+
                 let mutable assignments = Array.create allVectors.Length 0
                 let mutable converged = false
                 let mutable iterations = 0
@@ -271,7 +277,7 @@ module SemanticVectorStore =
                     iterations <- iterations + 1
                 
                 // Create cluster results
-                [0..numClusters-1]
+                [0..requestedClusters-1]
                 |> List.map (fun clusterId ->
                     let clusterVectors = 
                         allVectors 
@@ -279,6 +285,11 @@ module SemanticVectorStore =
                         |> List.filter (fun (i, _) -> assignments.[i] = clusterId)
                         |> List.map snd
                     
+                    let clamp01 value =
+                        if value < 0.0 then 0.0
+                        elif value > 1.0 then 1.0
+                        else value
+
                     let coherence = 
                         if clusterVectors.Length <= 1 then 1.0
                         else
@@ -286,16 +297,24 @@ module SemanticVectorStore =
                                 [for i in 0..clusterVectors.Length-2 do
                                     for j in i+1..clusterVectors.Length-1 do
                                         yield this.CosineSimilarity(clusterVectors.[i].Embedding, clusterVectors.[j].Embedding)]
-                            if similarities.IsEmpty then 1.0 else List.average similarities
+                            if similarities.IsEmpty then 1.0 
+                            else
+                                let averageSim = List.average similarities
+                                // Normalize cosine similarity (-1..1) to 0..1 range and clamp
+                                let normalized = (averageSim + 1.0) / 2.0
+                                clamp01 normalized
                     
-                    let diversity = 1.0 - coherence
+                    let diversity = clamp01 (1.0 - coherence)
                     
                     let semanticTheme = 
-                        clusterVectors
-                        |> List.groupBy (fun v -> v.SemanticType)
-                        |> List.maxBy (fun (_, vectors) -> vectors.Length)
-                        |> fst
-                        |> sprintf "%A"
+                        if clusterVectors.IsEmpty then
+                            "Unclassified"
+                        else
+                            clusterVectors
+                            |> List.groupBy (fun v -> v.SemanticType)
+                            |> List.maxBy (fun (_, vectors) -> vectors.Length)
+                            |> fst
+                            |> sprintf "%A"
                     
                     {
                         Id = sprintf "cluster_%d" clusterId
@@ -344,7 +363,11 @@ module SemanticVectorStore =
         
         /// Perform semantic analysis of FLUX codebase
         member this.AnalyzeFluxCodebase() : SemanticCluster list =
-            vectorStore.PerformSemanticClustering(5)
+            let total = vectorStore.GetAllVectors().Length
+            if total = 0 then []
+            else
+                let desired = Math.Min(5, total)
+                vectorStore.PerformSemanticClustering(desired)
         
         /// Get semantic insights
         member this.GetSemanticInsights() : Map<string, obj> =
@@ -352,10 +375,15 @@ module SemanticVectorStore =
             let codeVectors = allVectors |> List.filter (fun v -> v.SemanticType = CodeBlock)
             let clusters = vectorStore.PerformSemanticClustering(3)
             
+            let averageCoherence =
+                match clusters with
+                | [] -> 0.0
+                | _ -> clusters |> List.map (fun c -> c.Coherence) |> List.average
+
             Map.ofList [
                 ("TotalVectors", box allVectors.Length)
                 ("CodeVectors", box codeVectors.Length)
                 ("Clusters", box clusters.Length)
-                ("AverageClusterCoherence", box (clusters |> List.map (fun c -> c.Coherence) |> List.average))
+                ("AverageClusterCoherence", box averageCoherence)
                 ("SemanticTypes", box (allVectors |> List.groupBy (fun v -> v.SemanticType) |> List.map (fun (t, vs) -> (sprintf "%A" t, vs.Length))))
             ]

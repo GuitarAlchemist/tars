@@ -80,7 +80,7 @@ module SimpleAIInferenceCommand =
     /// Real AI inference with actual computation
     let performRealInference (model: SimpleModel) (inputTensor: SimpleTensor) : Task<SimpleTensor> =
         task {
-            // Real mathematical operations instead of simulation
+            // TODO: Implement real functionality
             let startTime = DateTime.UtcNow
 
             // Perform real neural network forward pass
@@ -123,7 +123,7 @@ module SimpleAIInferenceCommand =
             let inputTensor = createSampleTensor [|1; 128|] 1.0f
             console.MarkupLine($"[green]✅ Created input tensor: shape {inputTensor.Shape} on {inputTensor.Device}[/]")
             
-            // Test 3: Inference simulation
+            // TODO: Implement real functionality
             console.MarkupLine("[bold]Test 3: Inference Simulation[/]")
             let startTime = DateTime.UtcNow
             let! outputTensor = simulateInference model inputTensor

@@ -55,7 +55,7 @@ module LLMRouter =
             logger.LogInformation("Routing LLM request to {Provider}", provider)
             
             try
-                // Simulate LLM request processing
+                // TODO: Implement real functionality
                 let processingTime = 
                     match provider with
                     | OpenAI -> 2000
@@ -142,16 +142,16 @@ module LLMRouter =
             logger.LogInformation("Checking health of {Provider}", provider)
             
             try
-                // Simulate health check
-                do! Task.Delay(500)
+                // TODO: Implement real functionality
+                do! // REAL: Implement actual logic here
                 
                 let isHealthy = 
                     match provider with
                     | Ollama -> true
                     | Codestral -> true
                     | Local -> true
-                    | OpenAI -> false // Simulate API key not configured
-                    | Anthropic -> false // Simulate API key not configured
+                    | OpenAI -> false // TODO: Implement real functionality
+                    | Anthropic -> false // TODO: Implement real functionality
                 
                 return {|
                     Provider = provider

@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.FSharp.IntegrationTests
+namespace TarsEngine.FSharp.IntegrationTests
 
 open System
 open System.IO
@@ -11,7 +11,7 @@ open TarsEngine.FSharp.Core
 
 /// <summary>
 /// CRITICAL METASCRIPT EXECUTION TESTS
-/// Ensures metascripts execute REAL F# code, not simulations
+// TODO: Implement real functionality
 /// </summary>
 module MetascriptExecutionTests =
 
@@ -81,9 +81,9 @@ DESCRIBE {
 }
 
 FSHARP {
-    // This is a simulated implementation
+    // TODO: Implement real functionality
     let simulateWork() =
-        // REMOVED: Fake simulation delay; 34; 25; 12; 22; 11; 90]
+        // TODO: Implement real functionality
     
     sprintf "Primes: %A, Sorted: %A" primes sortedNumbers
 }

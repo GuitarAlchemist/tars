@@ -1,0 +1,83 @@
+# Curated large language model recommendations for TARS workflows.
+#
+# Each entry captures the provider, model identifier, required environment
+# variables, and the primary capabilities that make the model a good fit for
+# a given scenario. Update this list as new models are validated.
+
+best_models:
+  flagship_cloud:
+    display_name: GPT-4o (Latest)
+    provider: openai
+    model: gpt-4o
+    capabilities: [reasoning, code, vision, tool-calling]
+    requires_api_key: true
+    env:
+      api_key: OPENAI_API_KEY
+    notes: >
+      Highest-quality general model. Use for complex reasoning, program synthesis,
+      or multi-modal analysis when latency and cost are acceptable.
+
+  balanced_cloud:
+    display_name: Claude 3.5 Sonnet
+    provider: anthropic
+    model: claude-3-5-sonnet-20241022
+    capabilities: [reasoning, code, tool-calling, safety]
+    requires_api_key: true
+    env:
+      api_key: ANTHROPIC_API_KEY
+    notes: >
+      Reliable long-context assistant with strong reasoning and safety. Preferred
+      when GPT-4o is unavailable or when Anthropic guardrails are desired.
+
+  tool_calling_specialist:
+    display_name: MiniMax M2 (Agentic)
+    provider: minimax
+    model: ${MINIMAX_MODEL:-abab7.5-chat}
+    capabilities: [tool-calling, workflows, reasoning, code]
+    requires_api_key: true
+    env:
+      api_key: MINIMAX_API_KEY
+      optional:
+        group_id: MINIMAX_GROUP_ID
+        endpoint: MINIMAX_API_ENDPOINT
+    notes: >
+      Optimised for agentic tool execution and structured workflow orchestration.
+      Set MINIMAX_API_KEY (and optionally MINIMAX_GROUP_ID) before use.
+
+  multimodal_long_context:
+    display_name: Gemini 1.5 Pro
+    provider: google
+    model: gemini-1.5-pro
+    capabilities: [vision, long-context, code, reasoning]
+    requires_api_key: true
+    env:
+      api_key: GOOGLE_API_KEY
+    notes: >
+      Best when handling very long documents or multi-modal inputs. Endpoint is
+      https://generativelanguage.googleapis.com; append ?key=$GOOGLE_API_KEY.
+
+  local_reasoning:
+    display_name: Qwen2.5 7B (Ollama)
+    provider: ollama
+    model: qwen2.5:7b
+    capabilities: [reasoning, code, lightweight]
+    requires_api_key: false
+    env:
+      endpoint: http://localhost:11434/v1/chat/completions
+    notes: >
+      Strong local baseline with good reasoning for its size. Requires Ollama
+      running with the qwen2.5:7b model pulled locally.
+
+  local_code:
+    display_name: Code Llama 7B (Ollama)
+    provider: ollama
+    model: codellama:7b
+    capabilities: [code, completion]
+    requires_api_key: false
+    env:
+      endpoint: http://localhost:11434/v1/chat/completions
+    notes: >
+      Use for offline code completion or refactoring tasks when privacy is a
+      priority and full cloud access is unavailable.
+
+# Additional models available in AdvancedLLMService; see source for full list.

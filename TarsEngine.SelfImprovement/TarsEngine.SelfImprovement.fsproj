@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
@@ -22,6 +22,7 @@
     <Compile Include="KnowledgeExtractionStep.fs" />
     <Compile Include="CodeAnalysisStep.fs" />
     <Compile Include="OllamaCodeAnalyzer.fs" />
+    <Compile Include="ExecutionValidationStep.fs" />
     <Compile Include="ImprovementApplicationStep.fs" />
     <Compile Include="OllamaImprovementApplier.fs" />
     <Compile Include="FeedbackCollectionStep.fs" />
@@ -36,4 +37,11 @@
     <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\TarsEngine.FSharp.SelfImprovement\TarsEngine.FSharp.SelfImprovement.fsproj" />
+  </ItemGroup>
+
 </Project>
+
+
+

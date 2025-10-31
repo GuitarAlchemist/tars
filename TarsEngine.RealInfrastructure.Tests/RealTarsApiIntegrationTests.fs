@@ -6,7 +6,7 @@ open Xunit
 open FsUnit.Xunit
 
 // === REAL TARS API INTEGRATION TESTS ===
-// These tests PROVE we're using the actual TARS API infrastructure, not mock implementations
+// TODO: Implement real functionality
 
 [<Fact>]
 let ``PROOF: Real TARS API assemblies exist and are loadable`` () =
@@ -78,7 +78,7 @@ let ``PROOF: Real TarsApiRegistry implementation exists`` () =
             let registryTypes = assembly.GetTypes() |> Array.filter (fun t -> t.Name.Contains("TarsApiRegistry"))
             if registryTypes.Length > 0 then
                 registryFound <- true
-                printfn "   ✅ TarsApiRegistry found in: %s" assembly.GetName().Name
+                printfn "   ✅ TarsApiRegistry found in: %s" (assembly.GetName().Name)
                 
                 for registryType in registryTypes do
                     let methods = registryType.GetMethods() |> Array.filter (fun m -> not m.IsSpecialName)
@@ -125,7 +125,7 @@ let ``PROOF: Real IVectorStoreApi interface is defined`` () =
             
             if vectorTypes.Length > 0 then
                 vectorApiFound <- true
-                printfn "   ✅ Vector Store API found in: %s" assembly.GetName().Name
+                printfn "   ✅ Vector Store API found in: %s" (assembly.GetName().Name)
                 
                 for vectorType in vectorTypes do
                     let methods = vectorType.GetMethods() |> Array.map (fun m -> m.Name)
@@ -171,7 +171,7 @@ let ``PROOF: Real ICudaEngineApi interface is defined`` () =
             
             if cudaTypes.Length > 0 then
                 cudaApiFound <- true
-                printfn "   ✅ CUDA Engine API found in: %s" assembly.GetName().Name
+                printfn "   ✅ CUDA Engine API found in: %s" (assembly.GetName().Name)
                 
                 for cudaType in cudaTypes do
                     let methods = cudaType.GetMethods() |> Array.map (fun m -> m.Name)
@@ -217,7 +217,7 @@ let ``PROOF: Real IAgentCoordinatorApi interface is defined`` () =
             
             if agentTypes.Length > 0 then
                 agentApiFound <- true
-                printfn "   ✅ Agent Coordinator API found in: %s" assembly.GetName().Name
+                printfn "   ✅ Agent Coordinator API found in: %s" (assembly.GetName().Name)
                 
                 for agentType in agentTypes do
                     let methods = agentType.GetMethods() |> Array.map (fun m -> m.Name)
@@ -263,7 +263,7 @@ let ``PROOF: Real ILlmServiceApi interface is defined`` () =
             
             if llmTypes.Length > 0 then
                 llmApiFound <- true
-                printfn "   ✅ LLM Service API found in: %s" assembly.GetName().Name
+                printfn "   ✅ LLM Service API found in: %s" (assembly.GetName().Name)
                 
                 for llmType in llmTypes do
                     let methods = llmType.GetMethods() |> Array.map (fun m -> m.Name)

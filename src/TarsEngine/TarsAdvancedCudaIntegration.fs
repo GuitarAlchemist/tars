@@ -278,7 +278,7 @@ module TarsAdvancedCudaIntegration =
         (stream: nativeint) : TarsCudaResult<CudaTensor> =
         
         // This would implement a complete transformer layer
-        // For now, return a placeholder
+        // TODO: Implement real functionality
         Ok input
 
     // ============================================================================

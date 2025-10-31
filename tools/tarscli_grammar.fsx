@@ -9,7 +9,7 @@ open System
 open System.IO
 open System.Text.Json
 
-// Simulate the grammar types and functions
+// TODO: Implement real functionality
 type GrammarIndexEntry = {
     Id: string
     File: string

@@ -1,6 +1,6 @@
-// SchemaInferencer.fs - Auto-generated placeholder
+// TODO: Implement real functionality
 // TODO: Implement SchemaInferencer functionality
 
 namespace TarsEngine.FSharp.DataSources.Detection
 
-// Placeholder for SchemaInferencer implementation
+// TODO: Implement real functionality

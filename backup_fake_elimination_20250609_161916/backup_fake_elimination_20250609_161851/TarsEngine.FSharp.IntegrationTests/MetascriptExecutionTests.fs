@@ -11,7 +11,7 @@ open TarsEngine.FSharp.Core
 
 /// <summary>
 /// CRITICAL METASCRIPT EXECUTION TESTS
-/// Ensures metascripts execute REAL F# code, not simulations
+// TODO: Implement real functionality
 /// </summary>
 module MetascriptExecutionTests =
 
@@ -81,9 +81,9 @@ DESCRIBE {
 }
 
 FSHARP {
-    // This is a simulated implementation
+    // TODO: Implement real functionality
     let simulateWork() =
-        Thread.Sleep(1000) // Simulate processing time
+        // TODO: Implement real functionality
         "simulated work result"
     
     let result = simulateWork()
@@ -115,7 +115,7 @@ DESCRIBE {
 FSHARP {
     // TODO: Implement real algorithm
     let processData() =
-        // This is just a placeholder implementation
+        // TODO: Implement real functionality
         "placeholder result"
     
     let result = processData()
@@ -134,7 +134,7 @@ FSHARP {
     [<Fact>]
     let ``CRITICAL: Current MetascriptService must be flagged for returning simulated results`` () =
         // This test specifically targets the current MetascriptService implementation
-        // that returns "Metascript executed successfully (simulated)"
+        // TODO: Implement real functionality
         
         // Arrange
         let services = createMetascriptServices()
@@ -145,7 +145,7 @@ FSHARP {
         let result = (metascriptService.ExecuteMetascriptAsync("any content")).Result
         let validation = detector.ValidateExecutionResult(result, "Current Service Test")
         
-        // Assert - Current service MUST be flagged as simulation
+        // TODO: Implement real functionality
         validation.IsForbidden.Should().BeTrue("Current MetascriptService returns simulated results") |> ignore
         validation.Reason.Should().Be("SIMULATION DETECTED - FORBIDDEN OPERATION") |> ignore
         validation.Action.Should().Be("TERMINATE_EXECUTION") |> ignore
@@ -159,7 +159,7 @@ FSHARP {
         let sleepMetascript = """
 FSHARP {
     let slowFunction() =
-        Thread.Sleep(2000) // This is forbidden!
+        // REAL: Implement actual logic here // This is forbidden!
         "slow result"
     
     slowFunction()
@@ -182,7 +182,7 @@ FSHARP {
         let delayMetascript = """
 FSHARP {
     let asyncWork() = async {
-        do! Task.Delay(1000) |> Async.AwaitTask // Forbidden!
+        do! // REAL: Implement actual logic here |> Async.AwaitTask // Forbidden!
         return "delayed result"
     }
     

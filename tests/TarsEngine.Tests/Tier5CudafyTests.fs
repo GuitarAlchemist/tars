@@ -64,7 +64,7 @@ module Tier5CudafyTests =
                 ExecutionTime = TimeSpan.Zero
             }
             
-            // Simulate cudafy expression execution
+            // TODO: Implement real functionality
             let operationStart = DateTime.UtcNow
             mockOperation.IsCompiled <- true
             mockOperation.ExecutionTime <- DateTime.UtcNow - operationStart
@@ -222,7 +222,7 @@ module Tier5CudafyTests =
             let sedenionStart = DateTime.UtcNow
             let sedenionResult = Array.zeroCreate testSedenion1.Length
             
-            // Simulate 16D sedenion addition
+            // TODO: Implement real functionality
             for i in 0 .. (testSedenion1.Length / 16) - 1 do
                 for j in 0 .. 15 do
                     let idx = i * 16 + j
@@ -347,7 +347,7 @@ module Tier5CudafyTests =
         try
             let context = createMockCudafyContext()
             
-            // Simulate multiple operations with performance tracking
+            // TODO: Implement real functionality
             let operations = ["vector_add"; "vector_mul"; "math_sqrt"; "sedenion_add"]
             let mutable totalOperations = 0
             let mutable totalTime = 0.0
@@ -355,8 +355,8 @@ module Tier5CudafyTests =
             for operation in operations do
                 let opStart = DateTime.UtcNow
                 
-                // Simulate operation execution
-                System.Threading.Thread.Sleep(1) // Small delay to simulate work
+                // TODO: Implement real functionality
+                System.Threading.// TODO: Implement real functionality
                 
                 let opTime = (DateTime.UtcNow - opStart).TotalMilliseconds
                 totalTime <- totalTime + opTime

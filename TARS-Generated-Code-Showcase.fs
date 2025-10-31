@@ -94,7 +94,7 @@ module TarsAIEngine =
     let consultGordonAI (container: Container) (healthScore: float) = aiDecision {
         let! gordonResponse = async {
             try
-                // Simulate Gordon AI consultation
+                // TODO: Implement real functionality
                 let recommendation = 
                     if healthScore < 0.3 then Restart("Critical health score", 0.95)
                     elif healthScore < 0.6 then Scale(Up, 2, 0.8)

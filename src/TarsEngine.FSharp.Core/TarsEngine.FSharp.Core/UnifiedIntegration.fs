@@ -102,7 +102,7 @@ module UnifiedIntegration =
                     // Execute revolutionary operation
                     let! revolutionaryResult = revolutionaryEngine.ExecuteRevolutionaryOperation(operation)
                     
-                    // Simulate FLUX operation (simplified)
+                    // TODO: Implement real functionality
                     let fluxResult =
                         match content with
                         | Some c -> Some (sprintf "FLUX processed: %s" (c.Substring(0, min 50 c.Length)))

@@ -1,4 +1,4 @@
-﻿namespace TarsEngine.FSharp.Core.Tests.CodeGen.Workflow
+namespace TarsEngine.FSharp.Core.Tests.CodeGen.Workflow
 
 open System
 open System.Threading
@@ -13,7 +13,7 @@ open TarsEngine.FSharp.Core.CodeGen.Workflow
 module WorkflowCoordinatorTests =
     
     /// <summary>
-    /// Mock logger for testing.
+    // TODO: Implement real functionality
     /// </summary>
     type MockLogger<'T>() =
         interface ILogger<'T> with
@@ -197,8 +197,8 @@ module WorkflowCoordinatorTests =
                     task { 
                         step2Started <- true
                         
-                        // Simulate a long-running operation
-                        do! Task.Delay(1000)
+                        // TODO: Implement real functionality
+                        do! // REAL: Implement actual logic here
                         
                         step2Completed <- true
                         return "Step 2 result" :> obj 
@@ -212,7 +212,7 @@ module WorkflowCoordinatorTests =
         
         // Wait for step 2 to start
         while not step2Started do
-            do! Task.Delay(10)
+            do! // REAL: Implement actual logic here
         
         // Cancel the workflow
         let cancelled = coordinator.CancelWorkflow(workflow.Id)
