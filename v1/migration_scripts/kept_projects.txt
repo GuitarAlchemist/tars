@@ -1,0 +1,4 @@
+v1/src\TarsEngine.FSharp.Core\TarsEngine.FSharp.Core\TarsEngine.FSharp.Core.fsproj
+v1\src\TARS.AI.Inference\TARS.AI.Inference.fsproj
+v1\src\Tars.Engine.Grammar\Tars.Engine.Grammar.fsproj
+v1\src\Tars.Engine.VectorStore\Tars.Engine.VectorStore.fsproj

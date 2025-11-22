@@ -1,0 +1,12 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="TARS.AI.Inference/TARS.AI.Inference.fsproj" Type="Classic F#" />
+  <Project Path="Tars.Engine.Grammar/Tars.Engine.Grammar.fsproj" Type="Classic F#" />
+  <Project Path="Tars.Engine.VectorStore/Tars.Engine.VectorStore.fsproj" Type="Classic F#" />
+  <Project Path="TarsEngine.FSharp.Core/TarsEngine.FSharp.Core.fsproj" Type="Classic F#" />
+  <Project Path="TarsEngine.FSharp.Metascript/TarsEngine.FSharp.Metascript.fsproj" Type="Classic F#" />
+</Solution>

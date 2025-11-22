@@ -1,8 +1,0 @@
-{
-  "servers": {
-    "TARS": {
-      "type": "sse",
-      "url": "http://localhost:9000/"
-    }
-  }
-}
