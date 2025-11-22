@@ -31,6 +31,55 @@ This document captures key architectural ideas and design decisions for TARS v2,
 
 ---
 
+## Delta From `pre_v2` Review
+
+Concrete updates folded in so the branch visibly diverges from `pre_v2` while keeping the original intent intact.
+
+### Immutable Surfaces and Change Control
+
+- Immutable core: `Tars.Kernel` contracts, `Tars.Cortex` cognitive interfaces, shared discriminated unions for `Message`/`AgentState`/`SkillResult`.
+- Enforcement: code owners + ADRs + signed releases for immutable packages; all changes flow through the evolution gate (below) with rollback playbooks.
+
+### Evolution Gate (Pass/Fail Rubric)
+
+1. **Proposal** with owner + rationale.
+2. **Static checks**: formatting, analyzer, exhaustive pattern-matching.
+3. **Tests**: unit/integration + replay harness where available.
+4. **Sandbox run**: containerized/process-isolated execution with budget caps.
+5. **Metrics review**: latency/cost/constraint adherence vs baseline; auto rollback trigger defined up front.
+6. **Canary** (if long-lived service) before promotion; lineage + metrics artifacts persisted.
+
+### Skill Manifest Defaults (per skill)
+
+- Fields: `name`, `version`, `isolation` (`process`/`docker`/`wasm`), `cpu_limit`, `memory_limit_mb`, `wall_clock_timeout_ms`, `network_policy` (`none`/`egress-allowlist`), `audit_level` (inputs/outputs/metrics), `log_path`.
+- Default budget: 1 vCPU share, 256MB RAM, 30s wall clock, no external network unless allowlisted.
+
+### Memory Plan and Migration
+
+- Belief graph: SQLite schema with explicit version column on nodes/edges; migrations must ship with backfill scripts + compatibility matrix.
+- Vector store: simple folder-based shim now; promote to vector DB once size/latency thresholds are exceeded, with checksum-backed backfill plan.
+
+### Cortex Defaults and Fallbacks
+
+- Deterministic-first defaults: `seed = 0`, `temperature = 0.1`, grammar-constrained requests where possible.
+- Fallback chain: local runner → remote provider; all prompts/responses logged with request id, seed, grammar id, and timing.
+
+### Minimal Graphiti/FLUX Slice for v2
+
+- One ingestion/query path wired end-to-end; one FLUX metascript transforming a Graphiti subgraph into grammar rules stored via `IGrammarStore`.
+- Grammars versioned alongside metascripts; audit log records the source graph snapshot and grammar id.
+
+### Supervision Mapping Example
+
+- Use `MailboxProcessor` or `System.Threading.Channels` per agent; parent/child links propagate cancellation/timeouts; restarts follow Erlang-style strategy (one-for-one) with exponential backoff.
+
+### Ops/CI Baseline
+
+- CI jobs: build, formatting, unit tests, and replay harness where present.
+- Packaging: devcontainer or Dockerfile with pinned SDK/CLI versions to make the gate reproducible.
+
+---
+
 ## Synthesized Feedback
 
 ### What Gemini Got Right
