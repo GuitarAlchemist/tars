@@ -75,9 +75,6 @@ internal-nlog.txt
 docker/backups/
 **/docker/backups/
 
-# TARS Generated Content - Exclude from version control
-.tars/
-
 # Large files and Docker volumes
 docker/volumes/
 *.mp4
