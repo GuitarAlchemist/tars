@@ -80,6 +80,53 @@ Concrete updates folded in so the branch visibly diverges from `pre_v2` while ke
 
 ---
 
+## V1 Component Reusability
+
+### Vector Store: InMemoryVectorStore (High Reuse)
+
+**Status:** ✅ **Recommended for v2 with simplification**
+
+**V1 Location:** `v1/src/TarsEngine.FSharp.Core/VectorStore/Core/`
+
+**Reusability Assessment:** ~70% direct code reuse, 2-3 hours adaptation effort
+
+**What makes it reusable:**
+
+- Already implements file-based JSON persistence (exactly what v2 Phase 3 needs)
+- Clean `IVectorStore` interface with 8 well-defined methods
+- Thread-safe with `ConcurrentDictionary` for in-memory caching
+- Async API patterns throughout
+- Solid CRUD operations and batch utilities
+
+**Simplification required:**
+
+- Remove `MultiSpaceEmbedding` complexity (9 mathematical spaces: Raw, FFT, Dual, Projective, Hyperbolic, Wavelet, Minkowski, Pauli, Belief)
+- Use simple `float[]` vectors with metadata only
+- Remove tetravalent logic and quantum-like operations
+- Simplify similarity computation to cosine similarity only
+- Defer advanced features (hyperbolic embeddings, etc.) to v3+
+
+**V2 additions needed:**
+
+- Checksum generation/validation per document
+- Version tracking for schema evolution
+- Migration metadata (status, target, progress)
+- Migration trigger thresholds (10K docs or 500ms latency)
+
+**Migration path:**
+
+- Interface-based design allows swapping to Qdrant/Pinecone/Chroma without changing consumers
+- File-based storage provides easy backfill for external vector DB migration
+
+**Alignment with v2 principles:**
+
+- ✅ Small, local, pragmatic
+- ✅ Easy to evolve later
+- ✅ Defers complexity to future phases
+- ✅ Battle-tested code from v1
+
+---
+
 ## Synthesized Feedback
 
 ### What Gemini Got Right
@@ -236,6 +283,38 @@ This gets TARS thinking.
 - Local
 - Pragmatic
 - Easy to evolve later
+
+**Vector Store Implementation Strategy:**
+
+Reuse v1's `InMemoryVectorStore` with simplification:
+
+**✅ What to keep from v1:**
+
+- `IVectorStore` interface (8 methods - perfect as-is)
+- File-based JSON persistence (one file per document)
+- `ConcurrentDictionary` for in-memory caching
+- Async API patterns
+- Search, filter, and CRUD operations
+- Batch operations and utilities
+
+**❌ What to simplify/remove:**
+
+- `MultiSpaceEmbedding` complexity (9 different mathematical spaces)
+- Hyperbolic embeddings (defer to v3+)
+- FFT/Wavelet/Minkowski/Pauli matrices (defer to v3+)
+- Tetravalent logic and quantum-like operations
+- Complex similarity computers
+
+**✅ What to add for v2:**
+
+- Checksum generation/validation per document
+- Version tracking for schema evolution
+- Migration metadata (status, target, progress)
+- Simple cosine similarity only
+
+**Estimated effort:** 2-3 hours to adapt v1 code (~70% direct reuse)
+
+**Migration path:** Interface-based design allows swapping to Qdrant/Pinecone/Chroma later without changing consumers
 
 ### Phase 4: Skills (But Safe)
 
