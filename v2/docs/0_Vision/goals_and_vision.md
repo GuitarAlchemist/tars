@@ -62,5 +62,5 @@ To achieve this, TARS v2 is built on three non-negotiable pillars:
 We will know V2 is successful when:
 
 1. [ ] TARS can clone a random GitHub repo and fix a GitHub Issue without human intervention.
-2. [ ] TARS can write a PR to its own codebase that improves its own performance by 10%, pass all tests, and merge it.
+2. [ ] TARS can write a PR to its own codebase that **improves its own intelligence** (e.g., implements a new cognitive strategy, reduces reasoning errors, or solves a task it previously failed), pass all tests, and merge it.
 3. [ ] The user can switch between these two tasks instantly.
