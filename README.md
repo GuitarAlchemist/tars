@@ -6,6 +6,9 @@
 
 TARS (The Automated Reasoning System & AI Inference Engine) is a high-performance, F#-based AI system designed for autonomous reasoning, self-improvement, and multi-agent collaboration.
 
+![Task Decomposition](./v2/docs/assets/task_decomposition.jpg)
+*TARS breaks down complex tasks into manageable steps through autonomous reasoning and multi-agent collaboration.*
+
 ---
 
 ## Repository Structure
