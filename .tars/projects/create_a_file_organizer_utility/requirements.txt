@@ -1,8 +1,0 @@
-Here is the complete `requirements.txt` file:
-
-```
-tkinter
-os
-shutil
-datetime
-```

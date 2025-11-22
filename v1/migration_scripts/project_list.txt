@@ -1,0 +1,6 @@
+﻿TARS.AI.Inference\TARS.AI.Inference.fsproj
+Tars.Engine.Grammar\Tars.Engine.Grammar.fsproj
+Tars.Engine.VectorStore\Tars.Engine.VectorStore.fsproj
+TarsEngine.FSharp.Core\TarsEngine.FSharp.Core.fsproj
+TarsEngine.FSharp.Core\TarsEngine.FSharp.Core\TarsEngine.FSharp.Core.fsproj
+TarsEngine.FSharp.Metascript\TarsEngine.FSharp.Metascript.fsproj

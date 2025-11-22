@@ -1,0 +1,4 @@
+v1/src\TarsEngine.FSharp.Core\TarsEngine.FSharp.Core\TarsEngine.FSharp.Core.fsproj|Tars.Engine.VectorStore.csproj
+v1/src\TarsEngine.FSharp.Core\TarsEngine.FSharp.Core\TarsEngine.FSharp.Core.fsproj|Tars.Engine.Grammar.csproj
+v1/src\TarsEngine.FSharp.Core\TarsEngine.FSharp.Core\TarsEngine.FSharp.Core.fsproj|Tars.Engine.Integration.csproj
+v1/src\TarsEngine.FSharp.Core\TarsEngine.FSharp.Core\TarsEngine.FSharp.Core.fsproj|TarsEngine.CustomTransformers.csproj
