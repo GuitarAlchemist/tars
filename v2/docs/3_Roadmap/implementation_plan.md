@@ -1,6 +1,6 @@
 # TARS v2 Implementation Plan
 
-**Date:** November 23, 2025
+**Date:** November 26, 2025
 **Status:** Approved
 **Goal:** Build TARS v2.0 - A Modular, Secure, and Agentic AI System.
 
@@ -33,23 +33,23 @@
 **Goal:** Establish the secure runtime environment and core message passing.
 **Acceptance Criteria:**
 
-* [ ] `dotnet run --project src/Tars.Interface.Cli -- demo-ping` works.
-* [ ] Kernel spins up `EventBus`.
-* [ ] Demo agent subscribes, receives message, and logs it.
-* [ ] **Golden Run:** 1 test that runs CLI, captures trace, and replays it.
+* [x] `dotnet run --project src/Tars.Interface.Cli -- demo-ping` works.
+* [x] Kernel spins up `EventBus`.
+* [x] Demo agent subscribes, receives message, and logs it.
+* [x] **Golden Run:** 1 test that runs CLI, captures trace, and replays it.
 
-* [ ] **1.1 Project Setup**: Initialize `Tars.sln` with F# structure (Kernel, Core, Interface).
-* [ ] **1.2 Tars.Kernel**: Implement `EventBus` (System.Threading.Channels) and `IAgent`.
-* [ ] **1.3 Docker Sandbox**: Create `tars-sandbox` image (read-only fs, no network).
-* [ ] **1.4 Security Core**: Implement `CredentialVault` and `SandboxedProcess`.
+* [x] **1.1 Project Setup**: Initialize `Tars.sln` with F# structure (Kernel, Core, Interface).
+* [x] **1.2 Tars.Kernel**: Implement `EventBus` (System.Threading.Channels) and `IAgent`.
+* [x] **1.3 Docker Sandbox**: Create `tars-sandbox` image (read-only fs, no network).
+* [x] **1.4 Security Core**: Implement `CredentialVault` and `SandboxedProcess`.
 
 ### Phase 2: The Brain (Inference & Memory)
 
 **Goal:** Enable reasoning and state persistence.
 
-* [ ] **2.1 Semantic Kernel Integration**: Implement `ICognitiveProvider` (Single model, one prompt).
+* [x] **2.1 LLM Integration**: Implement `Tars.Llm` (Ollama & vLLM support).
 * [ ] **2.2 Memory Grid**: Set up ChromaDB (Docker) and simple `VectorStore` client.
-* [ ] **2.3 Grammar Engine (Minimal)**: "Garden Shed" grammar to parse simple goals -> F# AST.
+* [x] **2.3 Grammar Engine (Minimal)**: "Garden Shed" grammar to parse simple goals -> F# AST.
 * [ ] **2.4 Graph Memory**: Evaluate **Graphiti** (via AutoGen) for long-term memory.
 
 ### Phase 3: The Body (Interface & Tools)
@@ -61,14 +61,15 @@
 * [ ] **3.3 Tool Registry**: Create `SkillRegistry` to load standard tools.
 * [ ] **3.4 Cost Budget**: Implement `TokenAccountant` middleware.
 
-### Phase 4: The Soul (Agents & Autonomy)
+### Phase 4: The Soul (Evolution & Autonomy)
 
-**Goal:** Bring the system to life with autonomous agents.
+**Goal:** Implement the Agent0-inspired Co-Evolution Loop.
 
-* [ ] **4.1 AutoGen Bridge**: Create the Python-F# bridge for multi-agent orchestration.
-* [ ] **4.2 Agent Personas**: Define "Consultant" and "Architect" agents.
-* [ ] **4.3 Golden Run Testing**: Expand trace recorder for complex agent behaviors.
-* [ ] **4.4 Self-Correction Loop**: Implement the "Code-Execute-Repair" loop.
+* [ ] **4.1 Tars.Evolution Project**: Create the project structure for the evolution engine.
+* [ ] **4.2 The Protocol**: Define `TaskDefinition` and `ValidationResult` DUs.
+* [ ] **4.3 Curriculum Agent**: Implement the "Teacher" that generates tasks.
+* [ ] **4.4 Executor Agent**: Implement the "Student" that solves tasks using the Graph.
+* [ ] **4.5 The Loop**: Wire them together: `Curriculum -> Task -> Executor -> Result -> Memory`.
 
 ---
 
@@ -103,19 +104,7 @@
 
 ### Phase 2: The Brain
 
-#### 2.1 Semantic Kernel
-
-* **Action**: Implement `Tars.Cortex.Inference`.
-* **Scope**: Single `ICognitiveProvider` wrapping Semantic Kernel.
-* **Test**: `tars ask "Hello"` returns a response from LLM.
-
-#### 2.2 Memory Grid
-
-* **Action**: `docker-compose up chroma`.
-* **Code**: Simple `VectorStore` client (Add/Search).
-* **Scope**: One collection, basic cosine similarity.
-
-#### 2.3 Grammar Engine (Minimal)
+#### 2.1 LLM Integration
 
 * **Action**: Implement `Tars.Cortex.Grammar`.
 * **Scope**: Parse a simple `.trsx` file with 2-3 block types (Goal, Task).
@@ -129,8 +118,42 @@
 
 ## 🚀 First Coding Session Checklist
 
-1. [ ] Create `Tars.sln` and projects.
-2. [ ] Implement `EventBus` and `IAgent`.
-3. [ ] Create `DemoAgent` (logs to console).
-4. [ ] Implement `tars demo-ping` CLI command.
-5. [ ] Write 1 Golden Run test for `demo-ping`.
+1. [x] Create `Tars.sln` and projects.
+2. [x] Implement `EventBus` and `IAgent`.
+3. [x] Create `DemoAgent` (logs to console).
+4. [x] Implement `tars demo-ping` CLI command.
+5. [x] Write 1 Golden Run test for `demo-ping`.
+
+---
+
+## ✅ Evidence of Completion
+
+> **See full QA Report:** [docs/QA/Phase1_Sandbox.md](../QA/Phase1_Sandbox.md)
+
+### Phase 1: Foundation
+
+**1. CLI Demo Ping (`tars demo-ping`)**
+
+```text
+[15:09:28 INF] Starting TARS v2 Demo Ping...
+[15:09:28 INF] DemoAgent received: PING
+[15:09:31 INF] Ping sent.
+DEBUG: Ping sent (Console).
+[15:09:28 INF] Publishing message...
+```
+
+**2. Golden Run Test (`dotnet test`)**
+
+```text
+Test summary: total: 30, failed: 0, succeeded: 30, skipped: 0
+```
+
+**Test Coverage:**
+
+* KernelTests (3 tests): Agent creation, state updates, message handling
+* GrammarTests (4 tests): Goal/task parsing, whitespace handling
+* SecurityTests (8 tests): CredentialVault, FilesystemPolicy
+* GraphTests (8 tests): ResponseParser, PromptBuilder
+* LlmServiceTests (4 tests): Routing, Ollama/vLLM clients
+* OpenWebUiTests (1 test): Model listing with authentication
+* GoldenRun (1 test): End-to-end CLI demo-ping

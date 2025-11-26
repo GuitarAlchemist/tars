@@ -1,0 +1,84 @@
+Build started 2025-11-26 5:20:32 PM.
+     1>Project "C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\Tars.Cortex.fsproj" on node 1 (Restore target(s)).
+     1>_GetAllRestoreProjectPathItems:
+         Determining projects to restore...
+     1>Project "C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\Tars.Cortex.fsproj" (1) is building "C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\Tars.Kernel.fsproj" (3:4) on node 2 (_GenerateProjectRestoreGraph target(s)).
+     3>AddPrunePackageReferences:
+         Loading prune package data from PrunePackageData folder
+         Failed to load prune package data from PrunePackageData folder, loading from targeting packs instead
+         Looking for targeting packs in C:\Program Files\dotnet\packs\Microsoft.NETCore.App.Ref
+         Pack directories found: C:\Program Files\dotnet\packs\Microsoft.NETCore.App.Ref\10.0.0
+         Found package overrides file C:\Program Files\dotnet\packs\Microsoft.NETCore.App.Ref\10.0.0\data\PackageOverrides.txt
+     1>Project "C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\Tars.Cortex.fsproj" (1) is building "C:\Users\spare\source\repos\tars\v2\src\Tars.Core\Tars.Core.fsproj" (2:4) on node 1 (_GenerateProjectRestoreGraph target(s)).
+     2>AddPrunePackageReferences:
+         Loading prune package data from PrunePackageData folder
+         Failed to load prune package data from PrunePackageData folder, loading from targeting packs instead
+         Looking for targeting packs in C:\Program Files\dotnet\packs\Microsoft.NETCore.App.Ref
+         Pack directories found: C:\Program Files\dotnet\packs\Microsoft.NETCore.App.Ref\10.0.0
+         Found package overrides file C:\Program Files\dotnet\packs\Microsoft.NETCore.App.Ref\10.0.0\data\PackageOverrides.txt
+     3>Done Building Project "C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\Tars.Kernel.fsproj" (_GenerateProjectRestoreGraph target(s)).
+     2>Done Building Project "C:\Users\spare\source\repos\tars\v2\src\Tars.Core\Tars.Core.fsproj" (_GenerateProjectRestoreGraph target(s)).
+     1>Restore:
+         X.509 certificate chain validation will use the default trust store selected by .NET for code signing.
+         X.509 certificate chain validation will use the default trust store selected by .NET for timestamping.
+         Assets file has not changed. Skipping assets file writing. Path: C:\Users\spare\source\repos\tars\v2\src\Tars.Core\obj\project.assets.json
+         Assets file has not changed. Skipping assets file writing. Path: C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\obj\project.assets.json
+         Assets file has not changed. Skipping assets file writing. Path: C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\obj\project.assets.json
+         Restored C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\Tars.Cortex.fsproj (in 43 ms).
+         Restored C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\Tars.Kernel.fsproj (in 43 ms).
+         Restored C:\Users\spare\source\repos\tars\v2\src\Tars.Core\Tars.Core.fsproj (in 43 ms).
+         
+         NuGet Config files used:
+             C:\Users\spare\AppData\Roaming\NuGet\NuGet.Config
+             C:\Program Files (x86)\NuGet\Config\Microsoft.VisualStudio.FallbackLocation.config
+             C:\Program Files (x86)\NuGet\Config\Microsoft.VisualStudio.Offline.config
+         
+         Feeds used:
+             https://api.nuget.org/v3/index.json
+             C:\Program Files (x86)\Microsoft SDKs\NuGetPackages\
+             C:\Program Files\dotnet\library-packs
+             C:\Program Files\dotnet\sdk\10.0.100\FSharp\library-packs
+         All projects are up-to-date for restore.
+     1>Done Building Project "C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\Tars.Cortex.fsproj" (Restore target(s)).
+   1:7>Project "C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\Tars.Cortex.fsproj" on node 2 (default targets).
+   1:7>Project "C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\Tars.Cortex.fsproj" (1:7) is building "C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\Tars.Kernel.fsproj" (3:6) on node 1 (default targets).
+     3>GenerateTargetFrameworkMonikerAttribute:
+       Skipping target "GenerateTargetFrameworkMonikerAttribute" because all output files are up-to-date with respect to the input files.
+   1:7>Project "C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\Tars.Cortex.fsproj" (1:7) is building "C:\Users\spare\source\repos\tars\v2\src\Tars.Core\Tars.Core.fsproj" (2:6) on node 2 (default targets).
+     2>GenerateTargetFrameworkMonikerAttribute:
+       Skipping target "GenerateTargetFrameworkMonikerAttribute" because all output files are up-to-date with respect to the input files.
+       CoreGenerateAssemblyInfo:
+       Skipping target "CoreGenerateAssemblyInfo" because all output files are up-to-date with respect to the input files.
+       _GenerateSourceLinkFile:
+         Source Link file 'obj\Debug\net10.0\Tars.Core.sourcelink.json' is up-to-date.
+       CoreCompile:
+       Skipping target "CoreCompile" because all output files are up-to-date with respect to the input files.
+       CopyFilesToOutputDirectory:
+         Tars.Core -> C:\Users\spare\source\repos\tars\v2\src\Tars.Core\bin\Debug\net10.0\Tars.Core.dll
+     2>Done Building Project "C:\Users\spare\source\repos\tars\v2\src\Tars.Core\Tars.Core.fsproj" (default targets).
+     3>CoreGenerateAssemblyInfo:
+       Skipping target "CoreGenerateAssemblyInfo" because all output files are up-to-date with respect to the input files.
+       _GenerateSourceLinkFile:
+         Source Link file 'obj\Debug\net10.0\Tars.Kernel.sourcelink.json' is up-to-date.
+       CoreCompile:
+       Skipping target "CoreCompile" because all output files are up-to-date with respect to the input files.
+       CopyFilesToOutputDirectory:
+         Tars.Kernel -> C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\bin\Debug\net10.0\Tars.Kernel.dll
+     3>Done Building Project "C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\Tars.Kernel.fsproj" (default targets).
+     1>GenerateTargetFrameworkMonikerAttribute:
+       Skipping target "GenerateTargetFrameworkMonikerAttribute" because all output files are up-to-date with respect to the input files.
+       CoreGenerateAssemblyInfo:
+       Skipping target "CoreGenerateAssemblyInfo" because all output files are up-to-date with respect to the input files.
+       _GenerateSourceLinkFile:
+         Source Link file 'obj\Debug\net10.0\Tars.Cortex.sourcelink.json' is up-to-date.
+       CoreCompile:
+       Skipping target "CoreCompile" because all output files are up-to-date with respect to the input files.
+       CopyFilesToOutputDirectory:
+         Tars.Cortex -> C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\bin\Debug\net10.0\Tars.Cortex.dll
+     1>Done Building Project "C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\Tars.Cortex.fsproj" (default targets).
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:01.12

@@ -8,6 +8,7 @@
   <ItemGroup>
     <Compile Include="Grammar.fs" />
     <Compile Include="Inference.fs" />
+    <Compile Include="InMemoryVectorStore.fs" />
     <Compile Include="VectorStore.fs" />
   </ItemGroup>
 

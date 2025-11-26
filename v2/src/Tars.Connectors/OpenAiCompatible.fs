@@ -53,7 +53,7 @@ module OpenAiCompatible =
                     let options = JsonSerializerOptions(PropertyNameCaseInsensitive = true)
                     let respObj = JsonSerializer.Deserialize<ChatResponse>(responseString, options)
                     if respObj.Choices <> null && respObj.Choices.Length > 0 then
-                        return Ok respObj.Choices.[0].Message.Content
+                        return Ok respObj.Choices[0].Message.Content
                     else
                         return Error "No choices returned from LLM"
                 else

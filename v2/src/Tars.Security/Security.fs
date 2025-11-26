@@ -15,11 +15,33 @@ module CredentialVault =
     /// Retrieve a secret from environment variables or in-memory vault
     let getSecret (key: string) =
         match Environment.GetEnvironmentVariable(key) with
-        | null -> 
+        | null ->
             match secrets.TryGetValue(key) with
             | true, value -> Ok value
             | _ -> Error $"Secret '%s{key}' not found"
         | value -> Ok value
+
+    /// Load secrets from a JSON file on disk
+    /// The file should be a simple key-value map: {"KEY": "VALUE"}
+    let loadSecretsFromDisk (filePath: string) =
+        try
+            if File.Exists(filePath) then
+                let json = File.ReadAllText(filePath)
+                // Simple parsing to avoid heavy dependencies for now, or use System.Text.Json
+                // Assuming simple flat JSON object
+                let dict =
+                    System.Text.Json.JsonSerializer.Deserialize<System.Collections.Generic.Dictionary<string, string>>(
+                        json
+                    )
+
+                for kvp in dict do
+                    registerSecret kvp.Key kvp.Value
+
+                Ok()
+            else
+                Error $"Secrets file not found: {filePath}"
+        with ex ->
+            Error $"Failed to load secrets from disk: {ex.Message}"
 
 module FilesystemPolicy =
     /// Ensure a requested path is within a specific base directory

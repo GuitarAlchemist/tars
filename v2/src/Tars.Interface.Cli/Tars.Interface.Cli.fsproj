@@ -3,9 +3,16 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
+    <UserSecretsId>tars-v2-secrets-7d8e9f0a-1b2c-4d3e-5f6g-7h8i9j0k1l2m</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="Commands\Ask.fs" />
+    <Compile Include="Commands\TestGrammar.fs" />
+    <Compile Include="Commands\Memory.fs" />
+    <Compile Include="Commands\Demo.fs" />
+    <Compile Include="Commands\Chat.fs" />
+    <Compile Include="Commands\Evolve.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
@@ -16,9 +23,13 @@
     <ProjectReference Include="..\Tars.Graph\Tars.Graph.fsproj" />
     <ProjectReference Include="..\Tars.Connectors\Tars.Connectors.fsproj" />
     <ProjectReference Include="..\Tars.Cortex\Tars.Cortex.fsproj" />
+    <ProjectReference Include="..\Tars.Evolution\Tars.Evolution.fsproj" />
+    <ProjectReference Include="..\Tars.Llm\Tars.Llm.fsproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
   </ItemGroup>

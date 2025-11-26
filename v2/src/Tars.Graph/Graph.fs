@@ -39,7 +39,7 @@ module ResponseParser =
             let parts = text.Split(':', 3)
 
             if parts.Length = 3 then
-                ToolCall(parts.[1], parts.[2])
+                ToolCall(parts[1], parts[2])
             else
                 TextResponse text
         else

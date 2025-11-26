@@ -28,7 +28,7 @@ type KernelTests (output: ITestOutputHelper) =
         Assert.Equal(AgentId agentId, agent.Id)
         Assert.Equal(name, agent.Name)
         Assert.True(updatedCtx.Agents.ContainsKey (AgentId agentId))
-        Assert.Equal(agent, updatedCtx.Agents.[AgentId agentId])
+        Assert.Equal(agent, updatedCtx.Agents[AgentId agentId])
         output.WriteLine("Agent registered successfully.")
 
     [<Fact>]
@@ -47,7 +47,7 @@ type KernelTests (output: ITestOutputHelper) =
         let updatedCtx = Kernel.updateAgent updatedAgent ctx
 
         // Assert
-        let storedAgent = updatedCtx.Agents.[AgentId agentId]
+        let storedAgent = updatedCtx.Agents[AgentId agentId]
         Assert.Equal(newState, storedAgent.State)
         output.WriteLine("Agent state updated verified.")
 
@@ -71,6 +71,6 @@ type KernelTests (output: ITestOutputHelper) =
         let updatedAgent = Kernel.receiveMessage msg agent
 
         // Assert
-        Assert.Single(updatedAgent.Memory)
+        Assert.Single(updatedAgent.Memory) |> ignore
         Assert.Equal(msg, updatedAgent.Memory.Head)
         output.WriteLine("Message received and stored in memory.")

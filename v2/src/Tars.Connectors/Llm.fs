@@ -5,8 +5,8 @@ module Llm =
         let parts = modelConfig.Split(':', 2)
         
         if parts.Length = 2 then
-            let provider = parts.[0].ToLowerInvariant()
-            let modelName = parts.[1]
+            let provider = parts[0].ToLowerInvariant()
+            let modelName = parts[1]
             
             match provider with
             | "ollama" ->

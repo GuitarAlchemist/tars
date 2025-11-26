@@ -22,10 +22,10 @@ goal "MyGoal" {
         output.WriteLine($"Parsed {goals.Length} goals.")
         
         Assert.Equal(1, goals.Length)
-        let goal = goals.[0]
+        let goal = goals[0]
         Assert.Equal("MyGoal", goal.Name)
         Assert.Equal(1, goal.Tasks.Length)
-        Assert.Equal("Task1", goal.Tasks.[0].Name)
+        Assert.Equal("Task1", goal.Tasks[0].Name)
         output.WriteLine("Verified goal name and task.")
 
     [<Fact>]
@@ -51,10 +51,10 @@ goal "G2" {
         // "parseGoals ({ ... } :: acc) remaining" -> effectively reverse order if not reversed at end.
         // The code does "List.rev acc" in parseGoals, so order should be preserved.
         
-        Assert.Equal("G1", goals.[0].Name)
-        Assert.Equal(1, goals.[0].Tasks.Length)
-        Assert.Equal("G2", goals.[1].Name)
-        Assert.Equal(2, goals.[1].Tasks.Length)
+        Assert.Equal("G1", goals[0].Name)
+        Assert.Equal(1, goals[0].Tasks.Length)
+        Assert.Equal("G2", goals[1].Name)
+        Assert.Equal(2, goals[1].Tasks.Length)
         output.WriteLine("Verified multiple goals and their tasks.")
 
     [<Fact>]
@@ -71,8 +71,8 @@ goal "Complex Goal" {
         
         let goals = Parser.parse input
         output.WriteLine($"Parsed {goals.Length} goals.")
-        Assert.Equal("Complex Goal", goals.[0].Name)
-        Assert.Equal("Task One", goals.[0].Tasks.[0].Name)
+        Assert.Equal("Complex Goal", goals[0].Name)
+        Assert.Equal("Task One", goals[0].Tasks[0].Name)
         output.WriteLine("Verified names with spaces.")
 
     [<Fact>]
@@ -90,5 +90,5 @@ goal "Spaced" {
 
         let goals = Parser.parse input
         output.WriteLine($"Parsed {goals.Length} goals.")
-        Assert.Equal(1, goals.[0].Tasks.Length)
+        Assert.Equal(1, goals[0].Tasks.Length)
         output.WriteLine("Verified parsing with extra whitespace.")

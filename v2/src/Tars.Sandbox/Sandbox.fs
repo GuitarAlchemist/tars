@@ -7,17 +7,15 @@ open Docker.DotNet.Models
 
 module DockerClient =
     let createClient () =
-        let uri =
-            if
-                System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
-                    System.Runtime.InteropServices.OSPlatform.Windows
-                )
-            then
-                Uri("npipe://./pipe/docker_engine")
-            else
-                Uri("unix:///var/run/docker.sock")
-
-        (new DockerClientConfiguration(uri)).CreateClient()
+        if
+            System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
+                System.Runtime.InteropServices.OSPlatform.Windows
+            )
+        then
+            new DockerClientConfiguration(Uri("npipe://./pipe/docker_engine"))
+        else
+            new DockerClientConfiguration(Uri("unix:///var/run/docker.sock"))
+        |> fun config -> config.CreateClient()
 
     let runContainer (client: DockerClient) (image: string) (cmd: string list) =
         task {
@@ -29,6 +27,7 @@ module DockerClient =
                 config.Tty <- false
                 config.AttachStdout <- true
                 config.AttachStderr <- true
+                config.HostConfig <- HostConfig(NetworkMode = "none")
 
                 let! response = client.Containers.CreateContainerAsync(config)
                 let id = response.ID
@@ -41,17 +40,17 @@ module DockerClient =
                 else
                     // 3. Wait for Container
                     let! waitResponse = client.Containers.WaitContainerAsync(id)
-                    
+
                     // 4. Get Logs
                     let logParams = ContainerLogsParameters()
                     logParams.ShowStdout <- true
                     logParams.ShowStderr <- true
-                    
+
                     // MultiplexedStream
                     let! stream = client.Containers.GetContainerLogsAsync(id, true, logParams)
                     let! (stdout, stderr) = stream.ReadOutputToEndAsync(System.Threading.CancellationToken.None)
 
-                    return Ok (stdout, stderr, waitResponse.StatusCode)
+                    return Ok(stdout, stderr, waitResponse.StatusCode)
 
             with ex ->
                 return Error $"Docker Error: %s{ex.Message}"

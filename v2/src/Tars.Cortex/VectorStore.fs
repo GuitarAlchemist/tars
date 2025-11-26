@@ -84,9 +84,9 @@ type ChromaVectorStore(baseUrl: string) =
                 let results = 
                     [0 .. ids.GetArrayLength() - 1]
                     |> List.map (fun i ->
-                        let id = ids.[i].GetString()
-                        let dist = distances.[i].GetSingle() // Chroma returns distance, not similarity usually?
-                        let metaElem = metadatas.[i]
+                        let id = ids[i].GetString()
+                        let dist = distances[i].GetSingle() // Chroma returns distance, not similarity usually?
+                        let metaElem = metadatas[i]
                         let meta = 
                             if metaElem.ValueKind = JsonValueKind.Object then
                                 metaElem.EnumerateObject()

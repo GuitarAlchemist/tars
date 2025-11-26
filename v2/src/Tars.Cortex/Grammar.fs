@@ -85,7 +85,7 @@ module internal Ebnf =
             | [] -> List.rev acc
             | name::"::="::rest ->
                 let (exprs, rem) = parseExpr rest
-                let body = if exprs.Length = 1 then exprs.[0] else Sequence exprs
+                let body = if exprs.Length = 1 then exprs[0] else Sequence exprs
                 parseRules rem ({ Name = name; Body = body } :: acc)
             | _ -> failwith "Invalid EBNF syntax"
 
@@ -108,14 +108,14 @@ module internal Interpreter =
         let rec loop i acc =
             if i >= len then List.rev acc
             else
-                match source.[i] with
+                match source[i] with
                 | c when Char.IsWhiteSpace(c) -> loop (i + 1) acc
                 | '{' -> loop (i + 1) (TSymbol "{" :: acc)
                 | '}' -> loop (i + 1) (TSymbol "}" :: acc)
                 | '"' ->
                     let start = i + 1
                     let mutable endP = start
-                    while endP < len && source.[endP] <> '"' do endP <- endP + 1
+                    while endP < len && source[endP] <> '"' do endP <- endP + 1
                     if endP >= len then List.rev acc
                     else 
                         let s = source.Substring(start, endP - start)
@@ -123,7 +123,7 @@ module internal Interpreter =
                 | c when Char.IsLetter(c) ->
                     let start = i
                     let mutable endP = start
-                    while endP < len && Char.IsLetter(source.[endP]) do endP <- endP + 1
+                    while endP < len && Char.IsLetter(source[endP]) do endP <- endP + 1
                     let word = source.Substring(start, endP - start)
                     loop endP (TIdentifier word :: acc)
                 | _ -> loop (i + 1) acc

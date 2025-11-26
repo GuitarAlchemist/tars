@@ -4,9 +4,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{23550AFD-C0F3-49A8-8A19-8C057FD6DF0B}"
-	ProjectSection(SolutionItems) = preProject
-		docs\Links.txt = docs\Links.txt
-	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "0_Vision", "0_Vision", "{67A5C493-1B56-4993-BC31-5D4C6BFA5951}"
 	ProjectSection(SolutionItems) = preProject
@@ -19,6 +16,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "1_Tutorials", "1_Tutorials"
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "2_Analysis", "2_Analysis", "{D80CA444-DE5E-4A70-922D-78EB23293037}"
+	ProjectSection(SolutionItems) = preProject
+		docs\2_Analysis\Memory_Architecture.md = docs\2_Analysis\Memory_Architecture.md
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "3_Roadmap", "3_Roadmap", "{DF3CABF4-09FF-4714-88BF-CBF3C835C563}"
 	ProjectSection(SolutionItems) = preProject
@@ -33,6 +33,17 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "__research", "__research", "{024732D5-25F5-4093-8213-6D096A007A0B}"
 	ProjectSection(SolutionItems) = preProject
 		docs\__research\Grothendieck Groups and their Application to Artificial Intelligence.md = docs\__research\Grothendieck Groups and their Application to Artificial Intelligence.md
+		docs\__research\Links.txt = docs\__research\Links.txt
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "conversations", "conversations", "{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}"
+	ProjectSection(SolutionItems) = preProject
+		docs\conversations\ChatGPT-What is vLLM.md = docs\conversations\ChatGPT-What is vLLM.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "QA", "QA", "{B2C3D4E5-F6A7-8901-BCDE-F12345678901}"
+	ProjectSection(SolutionItems) = preProject
+		docs\QA\Phase1_Sandbox.md = docs\QA\Phase1_Sandbox.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Architecture", "Architecture", "{38FB5B3B-7682-480B-A730-AD2AB09A3400}"
@@ -55,6 +66,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "V1_Insights", "V1_Insights"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "00_Overview", "00_Overview", "{E43ACCE4-362A-4E59-9ECD-E2D47BB79AAE}"
 	ProjectSection(SolutionItems) = preProject
+		docs\2_Analysis\Architecture\00_Overview\architecture_fusion.md = docs\2_Analysis\Architecture\00_Overview\architecture_fusion.md
 		docs\2_Analysis\Architecture\00_Overview\tars_v2_architecture.md = docs\2_Analysis\Architecture\00_Overview\tars_v2_architecture.md
 	EndProjectSection
 EndProject
@@ -62,6 +74,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "01_Decisions", "01_Decision
 	ProjectSection(SolutionItems) = preProject
 		docs\2_Analysis\Architecture\01_Decisions\agent_framework_comparison.md = docs\2_Analysis\Architecture\01_Decisions\agent_framework_comparison.md
 		docs\2_Analysis\Architecture\01_Decisions\agent_protocols_analysis.md = docs\2_Analysis\Architecture\01_Decisions\agent_protocols_analysis.md
+		docs\2_Analysis\Architecture\01_Decisions\vector_store_gpu_strategy.md = docs\2_Analysis\Architecture\01_Decisions\vector_store_gpu_strategy.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "02_Integration", "02_Integration", "{B8474C22-137E-4EBB-B7D7-7794BA1787D3}"
@@ -78,6 +91,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "03_Operational", "03_Operat
 		docs\2_Analysis\Architecture\03_Operational\cost_budget.md = docs\2_Analysis\Architecture\03_Operational\cost_budget.md
 		docs\2_Analysis\Architecture\03_Operational\security_model.md = docs\2_Analysis\Architecture\03_Operational\security_model.md
 		docs\2_Analysis\Architecture\03_Operational\testing_strategy.md = docs\2_Analysis\Architecture\03_Operational\testing_strategy.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "conversations", "conversations", "{A1B2C3D4-E5F6-4A5B-8C9D-0E1F2A3B4C5D}"
+	ProjectSection(SolutionItems) = preProject
+		docs\conversations\ChatGPT-What is vLLM.md = docs\conversations\ChatGPT-What is vLLM.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72D-47B6-A68D-7590B98EB39B}"
@@ -109,6 +127,10 @@ EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Tars.Cortex", "src\Tars.Cortex\Tars.Cortex.fsproj", "{D4E59029-692E-4B7A-A05D-7AAFF398271A}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "04_Agents", "04_Agents", "{4D1F5A6F-B5FE-6DE7-0694-4351F9E4A297}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Tars.Evolution", "src\Tars.Evolution\Tars.Evolution.fsproj", "{D6811111-E4F2-4580-9D2D-8452B6708437}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Tars.Llm", "src\Tars.Llm\Tars.Llm.fsproj", "{A364AC6B-401C-45A3-9262-214E16A92588}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -228,24 +250,35 @@ Global
 		{D4E59029-692E-4B7A-A05D-7AAFF398271A}.Release|x64.Build.0 = Release|Any CPU
 		{D4E59029-692E-4B7A-A05D-7AAFF398271A}.Release|x86.ActiveCfg = Release|Any CPU
 		{D4E59029-692E-4B7A-A05D-7AAFF398271A}.Release|x86.Build.0 = Release|Any CPU
+		{D6811111-E4F2-4580-9D2D-8452B6708437}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D6811111-E4F2-4580-9D2D-8452B6708437}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D6811111-E4F2-4580-9D2D-8452B6708437}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D6811111-E4F2-4580-9D2D-8452B6708437}.Debug|x64.Build.0 = Debug|Any CPU
+		{D6811111-E4F2-4580-9D2D-8452B6708437}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{D6811111-E4F2-4580-9D2D-8452B6708437}.Debug|x86.Build.0 = Debug|Any CPU
+		{D6811111-E4F2-4580-9D2D-8452B6708437}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D6811111-E4F2-4580-9D2D-8452B6708437}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D6811111-E4F2-4580-9D2D-8452B6708437}.Release|x64.ActiveCfg = Release|Any CPU
+		{D6811111-E4F2-4580-9D2D-8452B6708437}.Release|x64.Build.0 = Release|Any CPU
+		{D6811111-E4F2-4580-9D2D-8452B6708437}.Release|x86.ActiveCfg = Release|Any CPU
+		{D6811111-E4F2-4580-9D2D-8452B6708437}.Release|x86.Build.0 = Release|Any CPU
+		{A364AC6B-401C-45A3-9262-214E16A92588}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A364AC6B-401C-45A3-9262-214E16A92588}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A364AC6B-401C-45A3-9262-214E16A92588}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{A364AC6B-401C-45A3-9262-214E16A92588}.Debug|x64.Build.0 = Debug|Any CPU
+		{A364AC6B-401C-45A3-9262-214E16A92588}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{A364AC6B-401C-45A3-9262-214E16A92588}.Debug|x86.Build.0 = Debug|Any CPU
+		{A364AC6B-401C-45A3-9262-214E16A92588}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A364AC6B-401C-45A3-9262-214E16A92588}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A364AC6B-401C-45A3-9262-214E16A92588}.Release|x64.ActiveCfg = Release|Any CPU
+		{A364AC6B-401C-45A3-9262-214E16A92588}.Release|x64.Build.0 = Release|Any CPU
+		{A364AC6B-401C-45A3-9262-214E16A92588}.Release|x86.ActiveCfg = Release|Any CPU
+		{A364AC6B-401C-45A3-9262-214E16A92588}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{E49751A8-4684-5464-DC78-70FEA7F05886} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
-		{B0B7B20B-3F6B-49A8-968D-5581223F866A} = {E49751A8-4684-5464-DC78-70FEA7F05886}
-		{C02221CA-8CFC-4BD5-9B6C-0725B36A538D} = {E49751A8-4684-5464-DC78-70FEA7F05886}
-		{D2B18A00-C2C5-4A88-BAE7-B1D59408CDF7} = {E49751A8-4684-5464-DC78-70FEA7F05886}
-		{C1A37BC8-0014-7242-D339-93319D3C84AC} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
-		{D64AB5CC-FA0D-4199-B172-69C942F397E2} = {C1A37BC8-0014-7242-D339-93319D3C84AC}
-		{FF5FEBF6-5286-4729-8E75-7CA97517F380} = {C1A37BC8-0014-7242-D339-93319D3C84AC}
-		{E9CF68A7-5461-4737-9E2F-B0BE93A9B9C3} = {C1A37BC8-0014-7242-D339-93319D3C84AC}
-		{F2250A6D-D5A5-7171-D13C-E7FD50981AA9} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
-		{03D347B7-2100-400C-A1F7-B96786DB308D} = {F2250A6D-D5A5-7171-D13C-E7FD50981AA9}
-		{0CDD7CB0-57F6-4018-9BDA-16D7B27E6BFF} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
-		{D4E59029-692E-4B7A-A05D-7AAFF398271A} = {4D1F5A6F-B5FE-6DE7-0694-4351F9E4A297}
-		{4D1F5A6F-B5FE-6DE7-0694-4351F9E4A297} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{67A5C493-1B56-4993-BC31-5D4C6BFA5951} = {23550AFD-C0F3-49A8-8A19-8C057FD6DF0B}
 		{82FF2E6C-7A3C-4A55-B43C-11C9CB62424B} = {23550AFD-C0F3-49A8-8A19-8C057FD6DF0B}
 		{D80CA444-DE5E-4A70-922D-78EB23293037} = {23550AFD-C0F3-49A8-8A19-8C057FD6DF0B}
@@ -259,5 +292,20 @@ Global
 		{CB16877C-80C1-43A5-B0B4-FF9BD2A3141A} = {38FB5B3B-7682-480B-A730-AD2AB09A3400}
 		{B8474C22-137E-4EBB-B7D7-7794BA1787D3} = {38FB5B3B-7682-480B-A730-AD2AB09A3400}
 		{03E22593-FD12-4D1E-85F1-5ABD30031510} = {38FB5B3B-7682-480B-A730-AD2AB09A3400}
+		{E49751A8-4684-5464-DC78-70FEA7F05886} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{B0B7B20B-3F6B-49A8-968D-5581223F866A} = {E49751A8-4684-5464-DC78-70FEA7F05886}
+		{C02221CA-8CFC-4BD5-9B6C-0725B36A538D} = {E49751A8-4684-5464-DC78-70FEA7F05886}
+		{D2B18A00-C2C5-4A88-BAE7-B1D59408CDF7} = {E49751A8-4684-5464-DC78-70FEA7F05886}
+		{C1A37BC8-0014-7242-D339-93319D3C84AC} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{D64AB5CC-FA0D-4199-B172-69C942F397E2} = {C1A37BC8-0014-7242-D339-93319D3C84AC}
+		{FF5FEBF6-5286-4729-8E75-7CA97517F380} = {C1A37BC8-0014-7242-D339-93319D3C84AC}
+		{E9CF68A7-5461-4737-9E2F-B0BE93A9B9C3} = {C1A37BC8-0014-7242-D339-93319D3C84AC}
+		{F2250A6D-D5A5-7171-D13C-E7FD50981AA9} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{03D347B7-2100-400C-A1F7-B96786DB308D} = {F2250A6D-D5A5-7171-D13C-E7FD50981AA9}
+		{0CDD7CB0-57F6-4018-9BDA-16D7B27E6BFF} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+		{D4E59029-692E-4B7A-A05D-7AAFF398271A} = {4D1F5A6F-B5FE-6DE7-0694-4351F9E4A297}
+		{4D1F5A6F-B5FE-6DE7-0694-4351F9E4A297} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{D6811111-E4F2-4580-9D2D-8452B6708437} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{A364AC6B-401C-45A3-9262-214E16A92588} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 	EndGlobalSection
 EndGlobal

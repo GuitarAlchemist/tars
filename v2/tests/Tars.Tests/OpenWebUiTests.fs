@@ -47,7 +47,7 @@ type OpenWebUiTests(output: Xunit.Abstractions.ITestOutputHelper) =
                              resp.StatusCode <- 200
                              writeJson json
                         elif req.Url.AbsolutePath.EndsWith("/api/models") && req.HttpMethod = "GET" then
-                             let auth = req.Headers.["Authorization"]
+                             let auth = req.Headers["Authorization"]
                              if auth = "Bearer fake_token" then
                                  let json = """{
                                     "object": "list",
