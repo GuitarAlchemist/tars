@@ -155,3 +155,4 @@ metascript_test_results_*.json
 .idea/scopes/scope_settings.xml
 .idea/vcs.xml
 .idea/jsLibraryMappings.xml
+.tars/
