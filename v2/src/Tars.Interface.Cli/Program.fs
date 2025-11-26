@@ -236,5 +236,11 @@ let main argv =
 
         0
     | _ ->
-        printfn "Usage: tars chat"
+        printfn "Usage:"
+        printfn "  tars chat                        Start the interactive chat mode"
+        printfn "  tars ask <prompt>                Ask a question to the AI"
+        printfn "  tars test-grammar <file>         Parse a grammar file"
+        printfn "  tars memory-add <coll> <id> <text> Add text to vector memory"
+        printfn "  tars memory-search <coll> <text> Search vector memory"
+        printfn "  tars demo-ping                   Run a demo ping agent"
         1
