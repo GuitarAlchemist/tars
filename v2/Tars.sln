@@ -34,11 +34,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "__research", "__research", 
 	ProjectSection(SolutionItems) = preProject
 		docs\__research\Grothendieck Groups and their Application to Artificial Intelligence.md = docs\__research\Grothendieck Groups and their Application to Artificial Intelligence.md
 		docs\__research\Links.txt = docs\__research\Links.txt
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "conversations", "conversations", "{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}"
-	ProjectSection(SolutionItems) = preProject
-		docs\conversations\ChatGPT-What is vLLM.md = docs\conversations\ChatGPT-What is vLLM.md
+		docs\__research\ChatGPT-Backpressure in AI systems.md = docs\__research\ChatGPT-Backpressure in AI systems.md
+		docs\__research\ChatGPT-Markov chains in stock analysis.md = docs\__research\ChatGPT-Markov chains in stock analysis.md
+		docs\__research\ChatGPT-Multi-agent system protocols.md = docs\__research\ChatGPT-Multi-agent system protocols.md
+		docs\__research\ChatGPT-K-theory and TARS query.md = docs\__research\ChatGPT-K-theory and TARS query.md
+		docs\__research\ChatGPT-Leverage Code Wiki for TARS.md = docs\__research\ChatGPT-Leverage Code Wiki for TARS.md
+		docs\__research\ChatGPT-Document feedback summary (1).md = docs\__research\ChatGPT-Document feedback summary (1).md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "QA", "QA", "{B2C3D4E5-F6A7-8901-BCDE-F12345678901}"
@@ -131,6 +132,10 @@ EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Tars.Evolution", "src\Tars.Evolution\Tars.Evolution.fsproj", "{D6811111-E4F2-4580-9D2D-8452B6708437}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Tars.Llm", "src\Tars.Llm\Tars.Llm.fsproj", "{A364AC6B-401C-45A3-9262-214E16A92588}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Tars.Tools", "src\Tars.Tools\Tars.Tools.fsproj", "{C93D6592-2892-49BA-9090-6111B6F51D5B}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Tars.Metascript", "src\Tars.Metascript\Tars.Metascript.fsproj", "{254B4861-DB55-4D21-83B0-6C0B6FE5DEAC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -274,6 +279,30 @@ Global
 		{A364AC6B-401C-45A3-9262-214E16A92588}.Release|x64.Build.0 = Release|Any CPU
 		{A364AC6B-401C-45A3-9262-214E16A92588}.Release|x86.ActiveCfg = Release|Any CPU
 		{A364AC6B-401C-45A3-9262-214E16A92588}.Release|x86.Build.0 = Release|Any CPU
+		{C93D6592-2892-49BA-9090-6111B6F51D5B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C93D6592-2892-49BA-9090-6111B6F51D5B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C93D6592-2892-49BA-9090-6111B6F51D5B}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{C93D6592-2892-49BA-9090-6111B6F51D5B}.Debug|x64.Build.0 = Debug|Any CPU
+		{C93D6592-2892-49BA-9090-6111B6F51D5B}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{C93D6592-2892-49BA-9090-6111B6F51D5B}.Debug|x86.Build.0 = Debug|Any CPU
+		{C93D6592-2892-49BA-9090-6111B6F51D5B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C93D6592-2892-49BA-9090-6111B6F51D5B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C93D6592-2892-49BA-9090-6111B6F51D5B}.Release|x64.ActiveCfg = Release|Any CPU
+		{C93D6592-2892-49BA-9090-6111B6F51D5B}.Release|x64.Build.0 = Release|Any CPU
+		{C93D6592-2892-49BA-9090-6111B6F51D5B}.Release|x86.ActiveCfg = Release|Any CPU
+		{C93D6592-2892-49BA-9090-6111B6F51D5B}.Release|x86.Build.0 = Release|Any CPU
+		{254B4861-DB55-4D21-83B0-6C0B6FE5DEAC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{254B4861-DB55-4D21-83B0-6C0B6FE5DEAC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{254B4861-DB55-4D21-83B0-6C0B6FE5DEAC}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{254B4861-DB55-4D21-83B0-6C0B6FE5DEAC}.Debug|x64.Build.0 = Debug|Any CPU
+		{254B4861-DB55-4D21-83B0-6C0B6FE5DEAC}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{254B4861-DB55-4D21-83B0-6C0B6FE5DEAC}.Debug|x86.Build.0 = Debug|Any CPU
+		{254B4861-DB55-4D21-83B0-6C0B6FE5DEAC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{254B4861-DB55-4D21-83B0-6C0B6FE5DEAC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{254B4861-DB55-4D21-83B0-6C0B6FE5DEAC}.Release|x64.ActiveCfg = Release|Any CPU
+		{254B4861-DB55-4D21-83B0-6C0B6FE5DEAC}.Release|x64.Build.0 = Release|Any CPU
+		{254B4861-DB55-4D21-83B0-6C0B6FE5DEAC}.Release|x86.ActiveCfg = Release|Any CPU
+		{254B4861-DB55-4D21-83B0-6C0B6FE5DEAC}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -307,5 +336,7 @@ Global
 		{4D1F5A6F-B5FE-6DE7-0694-4351F9E4A297} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{D6811111-E4F2-4580-9D2D-8452B6708437} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{A364AC6B-401C-45A3-9262-214E16A92588} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{C93D6592-2892-49BA-9090-6111B6F51D5B} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{254B4861-DB55-4D21-83B0-6C0B6FE5DEAC} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 	EndGlobalSection
 EndGlobal

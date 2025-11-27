@@ -55,6 +55,12 @@ module OllamaClient =
             : OllamaMessageDto)
         |> List.toArray
 
+    [<CLIMutable>]
+    type OllamaEmbeddingRequestDto = { model: string; prompt: string }
+
+    [<CLIMutable>]
+    type OllamaEmbeddingResponseDto = { embedding: float32[] }
+
     let sendChatAsync (http: HttpClient) (baseUri: Uri) (model: string) (req: LlmRequest) : Task<LlmResponse> =
         task {
             let dto: OllamaRequestDto =
@@ -80,4 +86,22 @@ module OllamaClient =
                     { Text = parsed.message.content
                       FinishReason = Some(if parsed.isDone then "done" else "unknown")
                       Raw = Some raw }
+        }
+
+    let getEmbeddingsAsync (http: HttpClient) (baseUri: Uri) (model: string) (text: string) : Task<float32[]> =
+        task {
+            let dto: OllamaEmbeddingRequestDto = { model = model; prompt = text }
+            let uri = Uri(baseUri, "/api/embeddings")
+            use! resp = http.PostAsJsonAsync(uri, dto, jsonOptions)
+            resp.EnsureSuccessStatusCode() |> ignore
+
+            let! raw = resp.Content.ReadAsStringAsync()
+
+            let parsed =
+                JsonSerializer.Deserialize<OllamaEmbeddingResponseDto>(raw, jsonOptions)
+
+            if isNull (box parsed) || isNull parsed.embedding then
+                return [||]
+            else
+                return parsed.embedding
         }

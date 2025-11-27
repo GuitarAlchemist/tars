@@ -1,0 +1,23 @@
+{
+  "name": "Hello Metascript",
+  "description": "A simple test workflow",
+  "version": "1.0",
+  "inputs": [],
+  "steps": [
+    {
+      "id": "step1",
+      "type": "agent",
+      "agent": "Greeter",
+      "instruction": "Say hello to TARS.",
+      "outputs": ["greeting"]
+    },
+    {
+      "id": "step2",
+      "type": "tool",
+      "tool": "run_command",
+      "params": {
+        "command": "echo {{step1.greeting}}"
+      }
+    }
+  ]
+}

@@ -12,6 +12,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Tars.Core\Tars.Core.fsproj" />
     <ProjectReference Include="..\Tars.Connectors\Tars.Connectors.fsproj" />
+    <ProjectReference Include="..\Tars.Llm\Tars.Llm.fsproj" />
   </ItemGroup>
 
 </Project>

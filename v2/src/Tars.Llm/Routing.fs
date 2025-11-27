@@ -17,7 +17,8 @@ type RoutingConfig =
       DefaultVllmModel: string
       DefaultOpenAIModel: string
       DefaultGoogleGeminiModel: string
-      DefaultAnthropicModel: string }
+      DefaultAnthropicModel: string
+      DefaultEmbeddingModel: string }
 
 /// Super simple, easy-to-evolve routing logic
 let chooseBackend (cfg: RoutingConfig) (req: LlmRequest) : RoutedBackend =

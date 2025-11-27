@@ -1,0 +1,45 @@
+namespace Tars.Metascript
+
+open System
+open System.Collections.Generic
+
+module Domain =
+
+    type StepType =
+        | Agent
+        | Tool
+        | Loop
+        | Decision
+
+    type StepContextRef = { StepId: string; OutputName: string }
+
+    type WorkflowStep =
+        { Id: string
+          Type: string // "agent", "tool", etc.
+          Agent: string option
+          Tool: string option
+          Instruction: string option
+          Params: Map<string, string> option
+          Context: StepContextRef list option
+          Outputs: string list option
+          Tools: string list option }
+
+    type WorkflowInput =
+        { Name: string
+          Type: string
+          Description: string }
+
+    type Workflow =
+        { Name: string
+          Description: string
+          Version: string
+          Inputs: WorkflowInput list
+          Steps: WorkflowStep list }
+
+    /// Runtime state of a workflow execution
+    type WorkflowState =
+        { Workflow: Workflow
+          CurrentStepIndex: int
+          Variables: Map<string, obj> // Global variables and inputs
+          StepOutputs: Map<string, Map<string, obj>> // StepId -> OutputName -> Value
+          ExecutionTrace: string list }

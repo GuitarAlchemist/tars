@@ -5,6 +5,8 @@ open Tars.Connectors
 open System.Threading.Tasks
 open System.Text
 open System
+open Tars.Llm
+open Tars.Llm.LlmService
 
 module PromptBuilder =
     let buildSystemPrompt (agent: Agent) (history: Message list) =
@@ -15,9 +17,10 @@ module PromptBuilder =
         for msg in history do
             let sourceName =
                 match msg.Source with
-                | System -> "System"
-                | User -> "User"
-                | Agent _ -> "Assistant"
+                | MessageEndpoint.System -> "System"
+                | MessageEndpoint.User -> "User"
+                | MessageEndpoint.Agent _ -> "Assistant"
+
             sb.AppendLine $"{sourceName}: {msg.Content}" |> ignore
 
         sb.AppendLine(
@@ -47,13 +50,15 @@ module ResponseParser =
 
 module Graph =
     type GraphContext =
-        { Kernel: KernelContext; MaxSteps: int }
+        { Kernel: KernelContext
+          Llm: ILlmService
+          MaxSteps: int }
 
     let private createMessage (source: MessageEndpoint) (content: string) =
         { Id = Guid.NewGuid()
           CorrelationId = CorrelationId(Guid.NewGuid()) // ideally propagate from context
           Source = source
-          Target = System // or generic target
+          Target = MessageEndpoint.System // or generic target
           Content = content
           Timestamp = DateTime.UtcNow
           Metadata = Map.empty }
@@ -66,42 +71,41 @@ module Graph =
         | msgs -> { agent with State = Thinking msgs }
         |> Task.FromResult
 
-    let private handleThinking (agent: Agent) (history: Message list) =
+    let private handleThinking (agent: Agent) (history: Message list) (ctx: GraphContext) =
         task {
             // 1. Construct Prompt
             let prompt = PromptBuilder.buildSystemPrompt agent history
 
             // 2. Call LLM
-            let! response = Llm.generate agent.Model prompt
+            let req =
+                { ModelHint = Some agent.Model
+                  MaxTokens = Some 1024
+                  Temperature = Some 0.7
+                  Messages = [ { Role = Role.User; Content = prompt } ] }
 
-            match response with
-            | Result.Ok text ->
-                match ResponseParser.parse text with
-                | ResponseParser.ToolCall(name, input) ->
-                    match agent.Tools |> List.tryFind (fun t -> t.Name = name) with
-                    | Some tool ->
-                        // Record the tool call in memory
-                        let msg = createMessage (Agent agent.Id) text
-                        let newMemory = agent.Memory @ [msg]
-                        
-                        return
-                            { agent with
-                                Memory = newMemory
-                                State = Acting(tool, input) }
-                    | None ->
-                        return
-                            { agent with
-                                State = WaitingForUser $"Error: Tool %s{name} not found." }
-                | ResponseParser.TextResponse responseText ->
-                    // For final response, we might want to add it to memory too, 
-                    // but currently the loop ends here.
+            let! response = ctx.Llm.CompleteAsync req
+
+            // 3. Parse Response
+            match ResponseParser.parse response.Text with
+            | ResponseParser.ToolCall(name, input) ->
+                match agent.Tools |> List.tryFind (fun t -> t.Name = name) with
+                | Some tool ->
+                    // Record the tool call in memory
+                    let msg = createMessage (MessageEndpoint.Agent agent.Id) response.Text
+                    let newMemory = agent.Memory @ [ msg ]
+
                     return
                         { agent with
-                            State = WaitingForUser responseText }
-            | Result.Error err ->
+                            Memory = newMemory
+                            State = Acting(tool, input) }
+                | None ->
+                    return
+                        { agent with
+                            State = WaitingForUser $"Error: Tool %s{name} not found." }
+            | ResponseParser.TextResponse responseText ->
                 return
                     { agent with
-                        State = AgentState.Error $"LLM Error: %s{err}" }
+                        State = WaitingForUser responseText }
         }
 
     let private handleActing (agent: Agent) (tool: Tool) (input: string) =
@@ -121,9 +125,9 @@ module Graph =
 
     let private handleObserving (agent: Agent) (tool: Tool) (output: string) =
         // Record the observation
-        let msg = createMessage System $"Result of {tool.Name}: {output}"
-        let newMemory = agent.Memory @ [msg]
-        
+        let msg = createMessage MessageEndpoint.System $"Result of {tool.Name}: {output}"
+        let newMemory = agent.Memory @ [ msg ]
+
         Task.FromResult
             { agent with
                 Memory = newMemory
@@ -133,7 +137,7 @@ module Graph =
         task {
             match agent.State with
             | Idle -> return! handleIdle agent
-            | Thinking history -> return! handleThinking agent history
+            | Thinking history -> return! handleThinking agent history ctx
             | Acting(tool, input) -> return! handleActing agent tool input
             | Observing(tool, output) -> return! handleObserving agent tool output
             | WaitingForUser _ -> return agent

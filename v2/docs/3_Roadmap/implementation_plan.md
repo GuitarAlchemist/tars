@@ -56,7 +56,8 @@
 
 **Goal:** Allow TARS to interact with the world.
 
-* [ ] **3.1 Terminal UI**: Build the interactive CLI using **Spectre.Console**.
+* [x] **3.1 Terminal UI**: Build the interactive CLI using **Spectre.Console**.
+  * Added "Wow" splash screen and interactive chat with spinner.
 * [ ] **3.2 MCP Client**: Implement basic JSON-RPC client for external tools.
 * [ ] **3.3 Tool Registry**: Create `SkillRegistry` to load standard tools.
 * [ ] **3.4 Cost Budget**: Implement `TokenAccountant` middleware.
@@ -65,13 +66,41 @@
 
 **Goal:** Implement the Agent0-inspired Co-Evolution Loop.
 
-* [ ] **4.1 Tars.Evolution Project**: Create the project structure for the evolution engine.
-* [ ] **4.2 The Protocol**: Define `TaskDefinition` and `ValidationResult` DUs.
-* [ ] **4.3 Curriculum Agent**: Implement the "Teacher" that generates tasks.
-* [ ] **4.4 Executor Agent**: Implement the "Student" that solves tasks using the Graph.
-* [ ] **4.5 The Loop**: Wire them together: `Curriculum -> Task -> Executor -> Result -> Memory`.
+* [x] **4.1 Tars.Evolution Project**: Create the project structure for the evolution engine.
+* [x] **4.2 The Protocol**: Define `TaskDefinition` and `ValidationResult` DUs.
+* [x] **4.3 Curriculum Agent**: Implement the "Teacher" that generates tasks.
+  * *Status:* Implemented using `LlmService` and `qwen2.5-coder`.
+* [x] **4.4 Executor Agent**: Implement the "Student" that solves tasks using the Graph.
+  * *Status:* Implemented using `Graph.step` and `LlmService`.
+* [x] **4.5 The Loop**: Wire them together: `Curriculum -> Task -> Executor -> Result -> Memory`.
+  * *Status:* Working loop in `Evolve.fs`. Results are saved to `InMemoryVectorStore` (ephemeral).
 
----
+### Phase 5: The Mind (Metascript Engine)
+
+**Goal:** Enable complex, multi-step workflows defined in a DSL.
+
+* [x] **5.1 Metascript DSL**: Define the schema for `.tars` files (JSON).
+* [x] **5.2 Workflow Engine**: Implement the engine to parse and execute these scripts.
+* [x] **5.3 CLI Integration**: `tars run <script>` to execute workflows.
+
+### Phase 6: Cognitive Architecture (Backpressure & Resource Control)
+
+**Goal:** Implement AI-native backpressure patterns to prevent cognitive overload.
+
+**Based on:** Research synthesis from `docs/__research` (Multi-agent protocols + Backpressure patterns)
+
+* [ ] **6.1 Budget Governor**: Implement `BudgetGovernor` for token/time/cost limits
+  * Add to `EvolutionContext` and `MetascriptContext`
+  * Enforce `TryConsume` before LLM calls
+* [ ] **6.2 Agent Speech Acts**: Formalize `AgentIntent` DU (ASK, TELL, PROPOSE, etc.)
+  * Update `AgentMessage` to include `Intent` and `ContentType`
+  * Implement in `Tars.Kernel`
+* [ ] **6.3 Semantic Fan-out Limiter**: Cap Curriculum Agent's task generation to top-K
+  * Add scoring to `TaskDefinition`
+  * Select top-K subtasks by priority
+* [ ] **6.4 Adaptive Reflection**: Stop reflection when improvement < epsilon
+  * Track quality delta between reflection rounds
+  * Implement `reflectUntilConvergence` in Evolution Engine
 
 ## 🛠️ Detailed Task Breakdown
 

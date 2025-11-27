@@ -6,14 +6,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Protocol.fs" />
+    <Compile Include="Domain.fs" />
     <Compile Include="Engine.fs" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Tars.Core\Tars.Core.fsproj" />
-    <ProjectReference Include="..\Tars.Graph\Tars.Graph.fsproj" />
     <ProjectReference Include="..\Tars.Llm\Tars.Llm.fsproj" />
+    <ProjectReference Include="..\Tars.Kernel\Tars.Kernel.fsproj" />
+    <ProjectReference Include="..\Tars.Tools\Tars.Tools.fsproj" />
   </ItemGroup>
 
 </Project>

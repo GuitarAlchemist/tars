@@ -20,7 +20,8 @@ let run (prompt: string) =
               DefaultVllmModel = "qwen2.5-72b-instruct"
               DefaultOpenAIModel = "gpt-4o"
               DefaultGoogleGeminiModel = "gemini-pro"
-              DefaultAnthropicModel = "claude-3-opus-20240229" }
+              DefaultAnthropicModel = "claude-3-opus-20240229"
+              DefaultEmbeddingModel = "nomic-embed-text" }
 
         let svcCfg: LlmServiceConfig = { Routing = routingCfg }
 

@@ -32,7 +32,8 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
               DefaultVllmModel = "vllm-model"
               DefaultOpenAIModel = "gpt-4o"
               DefaultGoogleGeminiModel = "gemini-pro"
-              DefaultAnthropicModel = "claude-3-opus-20240229" }
+              DefaultAnthropicModel = "claude-3-opus-20240229"
+              DefaultEmbeddingModel = "nomic-embed-text" }
 
         let req =
             { ModelHint = Some "code"
@@ -58,7 +59,8 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
               DefaultVllmModel = "vllm-model"
               DefaultOpenAIModel = "gpt-4o"
               DefaultGoogleGeminiModel = "gemini-pro"
-              DefaultAnthropicModel = "claude-3-opus-20240229" }
+              DefaultAnthropicModel = "claude-3-opus-20240229"
+              DefaultEmbeddingModel = "nomic-embed-text" }
 
         let req =
             { ModelHint = Some "reasoning"

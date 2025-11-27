@@ -6,6 +6,11 @@ open Serilog
 open Tars.Core
 open Tars.Kernel
 open Tars.Graph
+open Spectre.Console
+open System.Net.Http
+open Tars.Llm
+open Tars.Llm.Routing
+open Tars.Llm.LlmService
 
 let run (logger: ILogger) =
     task {
@@ -17,25 +22,48 @@ let run (logger: ILogger) =
             Kernel.createAgent (Guid.NewGuid()) "TARS" "llama3.2" "You are a helpful assistant." []
 
         let ctx = Kernel.registerAgent agent ctx
-        let graphCtx: Graph.GraphContext = { Kernel = ctx; MaxSteps = 10 }
+
+        // Initialize LLM Service
+        let routingCfg: RoutingConfig =
+            { OllamaBaseUri = Uri("http://localhost:11434/")
+              VllmBaseUri = Uri("http://localhost:8000/")
+              OpenAIBaseUri = Uri("https://api.openai.com/")
+              GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com/")
+              AnthropicBaseUri = Uri("https://api.anthropic.com/")
+              DefaultOllamaModel = "qwen2.5-coder:latest"
+              DefaultVllmModel = "qwen2.5-72b-instruct"
+              DefaultOpenAIModel = "gpt-4o"
+              DefaultGoogleGeminiModel = "gemini-pro"
+              DefaultAnthropicModel = "claude-3-opus-20240229"
+              DefaultEmbeddingModel = "nomic-embed-text" }
+
+        let svcCfg: LlmServiceConfig = { Routing = routingCfg }
+        use httpClient = new HttpClient()
+        httpClient.Timeout <- TimeSpan.FromSeconds(120.0)
+        let llmService = DefaultLlmService(httpClient, svcCfg) :> ILlmService
+
+        let graphCtx: Graph.GraphContext =
+            { Kernel = ctx
+              Llm = llmService
+              MaxSteps = 10 }
 
         let mutable currentAgent = agent
         let mutable running = true
 
-        printfn "TARS v2 Chat initialized. Type 'exit' to quit."
+        AnsiConsole.MarkupLine("[bold green]TARS v2 Chat initialized.[/] Type [bold red]'exit'[/] to quit.")
+        AnsiConsole.WriteLine()
 
         while running do
-            printf "> "
-            let input = Console.ReadLine()
+            let input = AnsiConsole.Ask<string>("[bold yellow]User>[/]")
 
-            if isNull input || input = "exit" then
+            if input = "exit" then
                 running <- false
             else
                 let msg =
                     { Id = Guid.NewGuid()
                       CorrelationId = CorrelationId(Guid.NewGuid())
-                      Source = User
-                      Target = Agent agent.Id
+                      Source = MessageEndpoint.User
+                      Target = MessageEndpoint.Agent agent.Id
                       Content = input
                       Timestamp = DateTime.UtcNow
                       Metadata = Map.empty }
@@ -46,22 +74,40 @@ let run (logger: ILogger) =
                 let mutable stepCount = 0
                 let mutable finished = false
 
-                while not finished && stepCount < graphCtx.MaxSteps do
-                    let! next = Graph.step stepAgent graphCtx
-                    stepAgent <- next
-                    stepCount <- stepCount + 1
+                let! (finalAgent, isFinished) =
+                    AnsiConsole
+                        .Status()
+                        .Spinner(Spinner.Known.Dots)
+                        .StartAsync(
+                            "Thinking...",
+                            fun ctx ->
+                                task {
+                                    let mutable sAgent = stepAgent
+                                    let mutable sCount = stepCount
+                                    let mutable sFinished = finished
 
-                    match stepAgent.State with
-                    | WaitingForUser _
-                    | AgentState.Error _ -> finished <- true
-                    | _ -> ()
+                                    while not sFinished && sCount < graphCtx.MaxSteps do
+                                        let! next = Graph.step sAgent graphCtx
+                                        sAgent <- next
+                                        sCount <- sCount + 1
 
-                currentAgent <- stepAgent
+                                        match sAgent.State with
+                                        | WaitingForUser _
+                                        | AgentState.Error _ -> sFinished <- true
+                                        | _ -> ()
+
+                                    return (sAgent, sFinished)
+                                }
+                        )
+
+                currentAgent <- finalAgent
 
                 match currentAgent.State with
-                | WaitingForUser prompt -> printfn $"TARS: %s{prompt}"
+                | WaitingForUser prompt ->
+                    AnsiConsole.MarkupLine($"[bold cyan]TARS>[/] {Markup.Escape(prompt)}")
+                    AnsiConsole.WriteLine()
                 | AgentState.Error err ->
-                    printfn $"Agent Error: %s{err}"
+                    AnsiConsole.MarkupLine($"[bold red]Agent Error: {Markup.Escape(err)}[/]")
                     logger.Error("Agent Error: {Error}", err)
                 | _ -> ()
 

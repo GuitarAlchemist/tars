@@ -6,14 +6,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Protocol.fs" />
-    <Compile Include="Engine.fs" />
+    <Compile Include="Registry.fs" />
+    <Compile Include="StandardTools.fs" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Tars.Core\Tars.Core.fsproj" />
-    <ProjectReference Include="..\Tars.Graph\Tars.Graph.fsproj" />
-    <ProjectReference Include="..\Tars.Llm\Tars.Llm.fsproj" />
+    <ProjectReference Include="..\Tars.Security\Tars.Security.fsproj" />
   </ItemGroup>
 
 </Project>

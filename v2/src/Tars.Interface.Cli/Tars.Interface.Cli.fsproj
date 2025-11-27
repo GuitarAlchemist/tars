@@ -7,12 +7,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="Tui.fs" />
     <Compile Include="Commands\Ask.fs" />
     <Compile Include="Commands\TestGrammar.fs" />
     <Compile Include="Commands\Memory.fs" />
     <Compile Include="Commands\Demo.fs" />
     <Compile Include="Commands\Chat.fs" />
     <Compile Include="Commands\Evolve.fs" />
+    <Compile Include="Commands\Run.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
@@ -25,6 +27,7 @@
     <ProjectReference Include="..\Tars.Cortex\Tars.Cortex.fsproj" />
     <ProjectReference Include="..\Tars.Evolution\Tars.Evolution.fsproj" />
     <ProjectReference Include="..\Tars.Llm\Tars.Llm.fsproj" />
+    <ProjectReference Include="..\Tars.Metascript\Tars.Metascript.fsproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -32,6 +35,7 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
+    <PackageReference Include="Spectre.Console" Version="0.54.0" />
   </ItemGroup>
 
 </Project>

@@ -60,6 +60,15 @@ module OpenAiCompatibleClient =
             : OpenAiMessageDto)
         |> List.toArray
 
+    [<CLIMutable>]
+    type OpenAiEmbeddingRequestDto = { input: string; model: string }
+
+    [<CLIMutable>]
+    type OpenAiEmbeddingDataDto = { embedding: float32[] }
+
+    [<CLIMutable>]
+    type OpenAiEmbeddingResponseDto = { data: OpenAiEmbeddingDataDto[] }
+
     let sendChatAsync (http: HttpClient) (baseUri: Uri) (model: string) (req: LlmRequest) : Task<LlmResponse> =
         task {
             let dto: OpenAiRequestDto =
@@ -99,4 +108,22 @@ module OpenAiCompatibleClient =
                         { Text = c.message.content
                           FinishReason = Some c.finish_reason
                           Raw = Some raw }
+        }
+
+    let getEmbeddingsAsync (http: HttpClient) (baseUri: Uri) (model: string) (text: string) : Task<float32[]> =
+        task {
+            let dto: OpenAiEmbeddingRequestDto = { input = text; model = model }
+            let uri = Uri(baseUri, "/v1/embeddings")
+            use! resp = http.PostAsJsonAsync(uri, dto, jsonOptions)
+            resp.EnsureSuccessStatusCode() |> ignore
+
+            let! raw = resp.Content.ReadAsStringAsync()
+
+            let parsed =
+                JsonSerializer.Deserialize<OpenAiEmbeddingResponseDto>(raw, jsonOptions)
+
+            if isNull (box parsed) || isNull parsed.data || parsed.data.Length = 0 then
+                return [||]
+            else
+                return parsed.data[0].embedding
         }

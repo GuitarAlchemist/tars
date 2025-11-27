@@ -6,6 +6,10 @@ open Serilog
 open Tars.Core
 open Tars.Kernel
 open Tars.Evolution
+open System.Net.Http
+open Tars.Llm
+open Tars.Llm.Routing
+open Tars.Llm.LlmService
 
 let run (logger: ILogger) =
     task {
@@ -25,28 +29,60 @@ let run (logger: ILogger) =
         let ctx = Kernel.registerAgent curriculumAgent ctx
         let ctx = Kernel.registerAgent executorAgent ctx
 
-        // 3. Initialize Evolution State
-        let evoState: EvolutionState =
-            { Generation = 0
-              CurriculumAgentId = AgentId curriculumId
-              ExecutorAgentId = AgentId executorId
-              CompletedTasks = []
-              CurrentTask = None }
+        // Initialize LLM Service
+        let routingCfg: RoutingConfig =
+            { OllamaBaseUri = Uri("http://localhost:11434/")
+              VllmBaseUri = Uri("http://localhost:11434/") // Use Ollama as vLLM substitute
+              OpenAIBaseUri = Uri("https://api.openai.com/")
+              GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com/")
+              AnthropicBaseUri = Uri("https://api.anthropic.com/")
+              DefaultOllamaModel = "qwen2.5-coder:1.5b"
+              DefaultVllmModel = "qwen2.5-coder:1.5b"
+              DefaultOpenAIModel = "gpt-4o"
+              DefaultGoogleGeminiModel = "gemini-pro"
+              DefaultAnthropicModel = "claude-3-opus-20240229"
+              DefaultEmbeddingModel = "nomic-embed-text" }
 
-        let evoCtx: Engine.EvolutionContext = { Kernel = ctx }
+        let svcCfg: LlmServiceConfig = { Routing = routingCfg }
+        use httpClient = new HttpClient()
+        httpClient.Timeout <- TimeSpan.FromSeconds(120.0)
+        let llmService = DefaultLlmService(httpClient, svcCfg) :> ILlmService
 
-        let mutable currentState = evoState
+        // Initialize Vector Store
+        let vectorStore = Tars.Cortex.InMemoryVectorStore() :> IVectorStore
 
-        for i in 1..5 do
-            printfn "--- Generation %d ---" currentState.Generation
-            let! nextState = Engine.step evoCtx currentState
-            currentState <- nextState
+        try
+            // 3. Initialize Evolution State
+            let evoState: EvolutionState =
+                { Generation = 0
+                  CurriculumAgentId = AgentId curriculumId
+                  ExecutorAgentId = AgentId executorId
+                  CompletedTasks = []
+                  CurrentTask = None }
 
-            match currentState.CurrentTask with
-            | Some task -> printfn "Task Generated: %s" task.Goal
-            | None -> printfn "Task Completed. History: %d" currentState.CompletedTasks.Length
+            let evoCtx: Engine.EvolutionContext =
+                { Kernel = ctx
+                  Llm = llmService
+                  VectorStore = vectorStore }
 
-            do! Task.Delay(1000)
+            let mutable currentState = evoState
 
-        return 0
+            for i in 1..5 do
+                printfn "--- Generation %d ---" currentState.Generation
+                let! nextState = Engine.step evoCtx currentState
+                currentState <- nextState
+
+                match currentState.CurrentTask with
+                | Some task -> printfn "Task Generated: %s" task.Goal
+                | None ->
+                    let lastResult = currentState.CompletedTasks.Head
+                    printfn "Task Completed. Output:\n%s" lastResult.Output
+                    printfn "History: %d" currentState.CompletedTasks.Length
+
+                do! Task.Delay(1000)
+
+            return 0
+        with ex ->
+            logger.Error(ex, "Evolution Engine Failed")
+            return 1
     }

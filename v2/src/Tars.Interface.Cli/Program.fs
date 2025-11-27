@@ -5,6 +5,7 @@ open Serilog
 open Tars.Security
 open System.Threading.Tasks
 open Tars.Interface.Cli.Commands
+open Tars.Interface.Cli
 open Microsoft.Extensions.Configuration
 
 [<EntryPoint>]
@@ -33,11 +34,16 @@ let main argv =
         | [| "memory-add"; coll; id; text |] -> return! Memory.add coll id text
         | [| "memory-search"; coll; text |] -> return! Memory.search coll text
         | [| "demo-ping" |] -> return! Demo.ping logger
-        | [| "chat" |] -> return! Chat.run logger
+        | [| "chat" |] ->
+            Tui.showSplashScreen ()
+            return! Chat.run logger
         | [| "evolve" |] -> return! Evolve.run logger
+        | [| "run"; script |] -> return! Run.execute logger script
         | _ ->
+            Tui.showSplashScreen ()
             printfn "Usage:"
             printfn "  tars chat                        Start the interactive chat mode"
+            printfn "  tars run <script.tars>           Execute a Metascript workflow"
             printfn "  tars ask <prompt>                Ask a question to the AI"
             printfn "  tars test-grammar <file>         Parse a grammar file"
             printfn "  tars memory-add <coll> <id> <text> Add text to vector memory"
