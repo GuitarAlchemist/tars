@@ -13,6 +13,7 @@ type TaskDefinition =
         /// The validation logic (could be a script, a regex, or a function name)
         ValidationCriteria: string
         Timeout: TimeSpan
+        Score: float
     }
 
 /// The result of an attempted task execution

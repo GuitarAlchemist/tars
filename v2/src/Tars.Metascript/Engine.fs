@@ -98,8 +98,20 @@ Output only the requested result."""
                             |> Option.defaultValue Map.empty
                             |> Map.map (fun _ v -> resolveVariables v state)
 
-                        let! result = tool.ExecuteAsync(args)
-                        return Map [ "stdout", box result ]
+                        let input =
+                            if args.ContainsKey("input") then
+                                args["input"]
+                            elif args.ContainsKey("command") then
+                                args["command"]
+                            else
+                                // Fallback: Serialize to JSON
+                                System.Text.Json.JsonSerializer.Serialize(args)
+
+                        let! result = tool.Execute(input)
+
+                        match result with
+                        | Result.Ok s -> return Map [ "stdout", box s ]
+                        | Result.Error e -> return Map [ "error", box e ]
                     | None -> return Map [ "error", box (sprintf "Tool '%s' not found" toolName) ]
                 | None -> return Map.empty
 

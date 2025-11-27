@@ -2,29 +2,24 @@ namespace Tars.Kernel
 
 open System
 open System.Threading.Tasks
-
-/// Represents a message flowing through the system
-type IMessage =
-    abstract member Id: Guid
-    abstract member CorrelationId: Guid
-    abstract member Source: string
-    abstract member Target: string option
-    abstract member Content: obj
-    abstract member Timestamp: DateTime
+open Tars.Core
 
 /// Represents an autonomous agent
 type IAgent =
     abstract member Id: string
     abstract member Name: string
-    abstract member HandleAsync: IMessage -> Task
+    /// Handles a semantic message. The agent must respect the Performative and Constraints.
+    abstract member HandleAsync: SemanticMessage<obj> -> Task
 
-/// Represents the central nervous system
+/// Represents the central nervous system (Semantic Bus)
 type IEventBus =
-    abstract member PublishAsync: IMessage -> Task
-    abstract member Subscribe: string * (IMessage -> Task) -> IDisposable
+    /// Publishes a semantic message to the bus
+    abstract member PublishAsync: SemanticMessage<obj> -> Task
+    /// Subscribes to messages.
+    /// topic: Can be a specific AgentId, or a broadcast topic like "system.events"
+    abstract member Subscribe: topic: string * handler: (SemanticMessage<obj> -> Task) -> IDisposable
 
 /// Represents a provider for cognitive services (LLM)
 type ICognitiveProvider =
     abstract member AskAsync: prompt: string -> Task<string>
     abstract member GetEmbeddingsAsync: texts: string list -> Task<float32[][]>
-

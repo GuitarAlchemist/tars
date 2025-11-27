@@ -12,15 +12,8 @@ We define TARS v2 not just as an agent framework, but as a **Self-Evolving Runti
 
 * **From TARS v1:** We keep the **Metascript** concept, but redefine it as a serialized **Graph Definition**. We also keep the **Zero Tolerance** policy for quality.
 * **From TARS v2:** We use the **Functional Micro-Kernel** and **Immutable State** to ensure that self-modification is safe and verifiable.
-* **From Agent0:** We adopt the **Curriculum-Executor** loop as the primary driver of autonomy.
 
----
-
-## 2. The Architecture Layers
-
-### Layer 1: The Substrate (Tars.Core & Tars.Graph)
-
-* **Immutable Kernel:** The event loop that passes messages.
+* **Immutable Kernel:** The Semantic Bus that enforces protocol and passes messages.
 * **Graph Engine:** A finite state machine that executes agent logic.
 * **Sandbox:** A Docker-based isolation layer for executing generated code.
 

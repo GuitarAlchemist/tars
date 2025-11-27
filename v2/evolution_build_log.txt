@@ -1,0 +1,20 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Tars.Core -> C:\Users\spare\source\repos\tars\v2\src\Tars.Core\bin\Debug\net10.0\Tars.Core.dll
+  Tars.Llm -> C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\bin\Debug\net10.0\Tars.Llm.dll
+  Tars.Security -> C:\Users\spare\source\repos\tars\v2\src\Tars.Security\bin\Debug\net10.0\Tars.Security.dll
+  Tars.Connectors -> C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\bin\Debug\net10.0\Tars.Connectors.dll
+  Tars.Graph -> C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\bin\Debug\net10.0\Tars.Graph.dll
+C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Engine.fs(120,23): error FS0039: The record label 'Source' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Engine.fs(121,23): error FS0039: The record label 'Target' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Engine.fs(118,21): error FS0764: No assignment given for field 'Sender' of type 'Tars.Core.SemanticMessage<_>' [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
+
+Build FAILED.
+
+C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Engine.fs(120,23): error FS0039: The record label 'Source' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Engine.fs(121,23): error FS0039: The record label 'Target' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Engine.fs(118,21): error FS0764: No assignment given for field 'Sender' of type 'Tars.Core.SemanticMessage<_>' [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
+    0 Warning(s)
+    3 Error(s)
+
+Time Elapsed 00:00:02.48

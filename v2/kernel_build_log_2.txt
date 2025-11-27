@@ -1,0 +1,23 @@
+  Determining projects to restore...
+  Restored C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\Tars.Kernel.fsproj (in 190 ms).
+  Restored C:\Users\spare\source\repos\tars\v2\src\Tars.Core\Tars.Core.fsproj (in 190 ms).
+  Tars.Core -> C:\Users\spare\source\repos\tars\v2\src\Tars.Core\bin\Debug\net10.0\Tars.Core.dll
+C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\EventBus.fs(38,70): error FS0001: This expression was expected to have type    'MessageEndpoint'    but here has type    'string' [C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\Tars.Kernel.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\EventBus.fs(45,66): error FS0001: This expression was expected to have type    'string'    but here has type    'MessageEndpoint' [C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\Tars.Kernel.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\EventBus.fs(60,67): error FS0001: This expression was expected to have type    'string'    but here has type    'MessageEndpoint' [C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\Tars.Kernel.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\EventBus.fs(66,78): error FS0001: This expression was expected to have type    'string'    but here has type    'MessageEndpoint' [C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\Tars.Kernel.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\EventBus.fs(75,78): error FS0001: This expression was expected to have type    'string'    but here has type    'MessageEndpoint' [C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\Tars.Kernel.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\EventBus.fs(122,44): error FS0001: This expression was expected to have type    'Guid'    but here has type    'CorrelationId' [C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\Tars.Kernel.fsproj]
+
+Build FAILED.
+
+C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\EventBus.fs(38,70): error FS0001: This expression was expected to have type    'MessageEndpoint'    but here has type    'string' [C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\Tars.Kernel.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\EventBus.fs(45,66): error FS0001: This expression was expected to have type    'string'    but here has type    'MessageEndpoint' [C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\Tars.Kernel.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\EventBus.fs(60,67): error FS0001: This expression was expected to have type    'string'    but here has type    'MessageEndpoint' [C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\Tars.Kernel.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\EventBus.fs(66,78): error FS0001: This expression was expected to have type    'string'    but here has type    'MessageEndpoint' [C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\Tars.Kernel.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\EventBus.fs(75,78): error FS0001: This expression was expected to have type    'string'    but here has type    'MessageEndpoint' [C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\Tars.Kernel.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\EventBus.fs(122,44): error FS0001: This expression was expected to have type    'Guid'    but here has type    'CorrelationId' [C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\Tars.Kernel.fsproj]
+    0 Warning(s)
+    6 Error(s)
+
+Time Elapsed 00:00:02.60

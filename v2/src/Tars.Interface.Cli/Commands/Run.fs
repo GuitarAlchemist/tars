@@ -51,7 +51,7 @@ let execute (logger: ILogger) (scriptPath: string) =
 
                 // Initialize Tools
                 let tools = Tars.Tools.ToolRegistry()
-                tools.Register(Tars.Tools.Standard.RunCommandTool())
+                tools.RegisterAssembly(typeof<Tars.Tools.ToolRegistry>.Assembly)
 
                 let metaCtx: MetascriptContext =
                     { Llm = llmService

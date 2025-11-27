@@ -7,11 +7,19 @@
 
   <ItemGroup>
     <Compile Include="Interfaces.fs" />
+    <Compile Include="Governance.fs" />
+    <Compile Include="SafetyGate.fs" />
+    <Compile Include="Router.fs" />
     <Compile Include="EventBus.fs" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Serilog" Version="4.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Tars.Core\Tars.Core.fsproj" />
+    <ProjectReference Include="..\Tars.Sandbox\Tars.Sandbox.fsproj" />
   </ItemGroup>
 
 </Project>

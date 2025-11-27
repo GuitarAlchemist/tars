@@ -40,6 +40,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "__research", "__research", 
 		docs\__research\ChatGPT-K-theory and TARS query.md = docs\__research\ChatGPT-K-theory and TARS query.md
 		docs\__research\ChatGPT-Leverage Code Wiki for TARS.md = docs\__research\ChatGPT-Leverage Code Wiki for TARS.md
 		docs\__research\ChatGPT-Document feedback summary (1).md = docs\__research\ChatGPT-Document feedback summary (1).md
+		docs\__research\ChatGPT-AI semantic bus research.md = docs\__research\ChatGPT-AI semantic bus research.md
+		docs\__research\ChatGPT-Agentic AI Interfaces.md = docs\__research\ChatGPT-Agentic AI Interfaces.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "QA", "QA", "{B2C3D4E5-F6A7-8901-BCDE-F12345678901}"

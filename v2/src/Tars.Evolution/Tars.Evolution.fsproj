@@ -14,6 +14,7 @@
     <ProjectReference Include="..\Tars.Core\Tars.Core.fsproj" />
     <ProjectReference Include="..\Tars.Graph\Tars.Graph.fsproj" />
     <ProjectReference Include="..\Tars.Llm\Tars.Llm.fsproj" />
+    <ProjectReference Include="..\Tars.Kernel\Tars.Kernel.fsproj" />
   </ItemGroup>
 
 </Project>

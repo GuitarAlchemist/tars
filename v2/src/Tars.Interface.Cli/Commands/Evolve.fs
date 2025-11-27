@@ -21,10 +21,10 @@ let run (logger: ILogger) =
         let executorId = Guid.NewGuid()
 
         let curriculumAgent =
-            Kernel.createAgent curriculumId "Curriculum" "llama3.2" "You are a teacher." []
+            Kernel.createAgent curriculumId "Curriculum" "0.1.0" "llama3.2" "You are a teacher." []
 
         let executorAgent =
-            Kernel.createAgent executorId "Executor" "llama3.2" "You are a student." []
+            Kernel.createAgent executorId "Executor" "0.1.0" "llama3.2" "You are a student." []
 
         let ctx = Kernel.registerAgent curriculumAgent ctx
         let ctx = Kernel.registerAgent executorAgent ctx
@@ -49,7 +49,17 @@ let run (logger: ILogger) =
         let llmService = DefaultLlmService(httpClient, svcCfg) :> ILlmService
 
         // Initialize Vector Store
-        let vectorStore = Tars.Cortex.InMemoryVectorStore() :> IVectorStore
+        let memoryStore = Tars.Cortex.InMemoryVectorStore()
+        let memoryFile = "memory.json"
+
+        let! loaded = memoryStore.LoadFromFileAsync(memoryFile)
+
+        if loaded then
+            logger.Information("Loaded memory from {File}", memoryFile)
+        else
+            logger.Information("No existing memory file found at {File}", memoryFile)
+
+        let vectorStore = memoryStore :> IVectorStore
 
         try
             // 3. Initialize Evolution State
@@ -77,7 +87,12 @@ let run (logger: ILogger) =
                 | None ->
                     let lastResult = currentState.CompletedTasks.Head
                     printfn "Task Completed. Output:\n%s" lastResult.Output
+                    printfn "Trace:\n%s" (String.Join("\n", lastResult.ExecutionTrace))
                     printfn "History: %d" currentState.CompletedTasks.Length
+
+                    // Save memory after each successful task
+                    do! memoryStore.PersistToFileAsync(memoryFile)
+                    logger.Information("Memory saved to {File}", memoryFile)
 
                 do! Task.Delay(1000)
 

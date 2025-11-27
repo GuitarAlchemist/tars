@@ -15,33 +15,41 @@ module OpenWebUi =
     let mutable private cachedToken: string option = None
 
     type AuthResponse =
-        { [<JsonPropertyName("token")>] Token: string }
+        { [<JsonPropertyName("token")>]
+          Token: string }
 
     type ModelInfo =
-        { id: string; name: string; object: string; created: int64; owned_by: string }
+        { id: string
+          name: string
+          object: string
+          created: int64
+          owned_by: string }
 
-    type ModelListResponse =
-        { object: string; data: ModelInfo[] }
+    type ModelListResponse = { object: string; data: ModelInfo[] }
+
+    type OpenWebUiMessage = { Role: string; Content: string }
 
     let private login (baseUrl: string) =
         task {
             // Try to get secrets
             let emailResult = CredentialVault.getSecret "OPENWEBUI_EMAIL"
             let passResult = CredentialVault.getSecret "OPENWEBUI_PASSWORD"
-            
+
             match emailResult, passResult with
             | Ok email, Ok password ->
                 try
                     let req = {| email = email; password = password |}
                     let json = JsonSerializer.Serialize(req)
                     let content = new StringContent(json, Encoding.UTF8, "application/json")
-                    
-                    let url = 
-                        if baseUrl.EndsWith("/") then baseUrl + "api/v1/auths/signin"
-                        else baseUrl + "/api/v1/auths/signin"
-                    
+
+                    let url =
+                        if baseUrl.EndsWith("/") then
+                            baseUrl + "api/v1/auths/signin"
+                        else
+                            baseUrl + "/api/v1/auths/signin"
+
                     let! response = client.PostAsync(url, content)
-                    
+
                     if response.IsSuccessStatusCode then
                         let! respString = response.Content.ReadAsStringAsync()
                         let options = JsonSerializerOptions(PropertyNameCaseInsensitive = true)
@@ -65,31 +73,30 @@ module OpenWebUi =
             // 1. Ensure we have a token
             let! tokenResult =
                 match cachedToken with
-                | Some t -> Task.FromResult (Ok t)
+                | Some t -> Task.FromResult(Ok t)
                 | None -> login baseUrl
-            
+
             match tokenResult with
             | Error e -> return Error e
             | Ok token ->
                 cachedToken <- Some token
-                
+
                 try
-                    let url = 
-                        if baseUrl.EndsWith("/") then baseUrl + "api/models"
-                        else baseUrl + "/api/models"
+                    let url =
+                        if baseUrl.EndsWith("/") then
+                            baseUrl + "api/models"
+                        else
+                            baseUrl + "/api/models"
 
                     use requestMessage = new HttpRequestMessage(HttpMethod.Get, url)
                     requestMessage.Headers.Authorization <- AuthenticationHeaderValue("Bearer", token)
-                    
+
                     let! response = client.SendAsync(requestMessage)
-                    
+
                     if response.IsSuccessStatusCode then
                         let! json = response.Content.ReadAsStringAsync()
                         let options = JsonSerializerOptions(PropertyNameCaseInsensitive = true)
                         let respObj = JsonSerializer.Deserialize<ModelListResponse>(json, options)
-                        // Open WebUI sometimes returns data as a list, but we used ModelListResponse wrapper
-                        // If the API returns just a list or different structure, this might fail.
-                        // But based on OpenAI compat, it should be { data: [...] }
                         return Ok respObj.data
                     else
                         let! err = response.Content.ReadAsStringAsync()
@@ -98,52 +105,48 @@ module OpenWebUi =
                     return Error $"Exception during listModels: {ex.Message}"
         }
 
-    let generate (baseUrl: string) (model: string) (prompt: string) =
+    let generate (baseUrl: string) (model: string) (messages: OpenWebUiMessage list) =
         task {
             // 1. Ensure we have a token
             let! tokenResult =
                 match cachedToken with
-                | Some t -> Task.FromResult (Ok t)
+                | Some t -> Task.FromResult(Ok t)
                 | None -> login baseUrl
-            
+
             match tokenResult with
             | Error e -> return Error e
             | Ok token ->
                 cachedToken <- Some token
-                
+
                 try
                     // 2. Prepare Chat Request
-                    // We use the types from OpenAiCompatible if possible, or define anonymous here
                     let req =
                         {| model = model
-                           messages = [ {| role = "user"; content = prompt |} ]
+                           messages = messages |> List.map (fun m -> {| role = m.Role; content = m.Content |})
                            stream = false |}
-                    
+
                     let json = JsonSerializer.Serialize(req)
                     let content = new StringContent(json, Encoding.UTF8, "application/json")
-                    
-                    // 3. Determine URL (Open WebUI usually proxies OpenAI at /api/chat/completions)
-                    // Note: Some versions might use /v1/chat/completions or /ollama/api/chat
-                    // Based on "Open WebUI protocol", it is fully OpenAI compatible.
-                    // We will try /api/chat/completions as it is common for the backend.
-                    // If the user URL is the frontend URL, the API is usually at /api.
-                    
-                    let url = 
-                        if baseUrl.EndsWith("/") then baseUrl + "api/chat/completions"
-                        else baseUrl + "/api/chat/completions"
+
+                    let url =
+                        if baseUrl.EndsWith("/") then
+                            baseUrl + "api/chat/completions"
+                        else
+                            baseUrl + "/api/chat/completions"
 
                     use requestMessage = new HttpRequestMessage(HttpMethod.Post, url)
                     requestMessage.Content <- content
                     requestMessage.Headers.Authorization <- AuthenticationHeaderValue("Bearer", token)
-                    
+
                     let! response = client.SendAsync(requestMessage)
-                    
+
                     if response.IsSuccessStatusCode then
                         let! responseString = response.Content.ReadAsStringAsync()
                         let options = JsonSerializerOptions(PropertyNameCaseInsensitive = true)
                         // Reuse OpenAiCompatible types
-                        let respObj = JsonSerializer.Deserialize<OpenAiCompatible.ChatResponse>(responseString, options)
-                        
+                        let respObj =
+                            JsonSerializer.Deserialize<OpenAiCompatible.ChatResponse>(responseString, options)
+
                         if respObj.Choices <> null && respObj.Choices.Length > 0 then
                             return Ok respObj.Choices[0].Message.Content
                         else
@@ -151,7 +154,7 @@ module OpenWebUi =
                     else
                         let! errorBody = response.Content.ReadAsStringAsync()
                         return Error $"HTTP Error {response.StatusCode}: {errorBody}"
-                        
+
                 with ex ->
                     return Error $"Exception during generation: {ex.Message}"
         }

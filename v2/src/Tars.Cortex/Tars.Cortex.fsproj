@@ -9,6 +9,7 @@
     <Compile Include="Grammar.fs" />
     <Compile Include="Inference.fs" />
     <Compile Include="InMemoryVectorStore.fs" />
+    <Compile Include="KnowledgeGraph.fs" />
     <Compile Include="VectorStore.fs" />
   </ItemGroup>
 
@@ -18,6 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="FSharp.SystemTextJson" Version="1.4.36" />
     <PackageReference Include="Microsoft.SemanticKernel" Version="1.67.1" />
   </ItemGroup>
 

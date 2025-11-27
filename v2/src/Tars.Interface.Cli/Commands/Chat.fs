@@ -19,7 +19,7 @@ let run (logger: ILogger) =
         let ctx = Kernel.init ()
 
         let agent =
-            Kernel.createAgent (Guid.NewGuid()) "TARS" "llama3.2" "You are a helpful assistant." []
+            Kernel.createAgent (Guid.NewGuid()) "TARS" "0.1.0" "llama3.2" "You are a helpful assistant." []
 
         let ctx = Kernel.registerAgent agent ctx
 
@@ -42,10 +42,11 @@ let run (logger: ILogger) =
         httpClient.Timeout <- TimeSpan.FromSeconds(120.0)
         let llmService = DefaultLlmService(httpClient, svcCfg) :> ILlmService
 
-        let graphCtx: Graph.GraphContext =
+        let graphCtx: GraphRuntime.GraphContext =
             { Kernel = ctx
               Llm = llmService
-              MaxSteps = 10 }
+              MaxSteps = 10
+              BudgetGovernor = Some(BudgetGovernor(100000)) }
 
         let mutable currentAgent = agent
         let mutable running = true
@@ -62,8 +63,10 @@ let run (logger: ILogger) =
                 let msg =
                     { Id = Guid.NewGuid()
                       CorrelationId = CorrelationId(Guid.NewGuid())
-                      Source = MessageEndpoint.User
-                      Target = MessageEndpoint.Agent agent.Id
+                      Sender = MessageEndpoint.User
+                      Receiver = Some(MessageEndpoint.Agent agent.Id)
+                      Performative = Performative.Request
+                      Constraints = SemanticConstraints.Default
                       Content = input
                       Timestamp = DateTime.UtcNow
                       Metadata = Map.empty }
@@ -87,7 +90,7 @@ let run (logger: ILogger) =
                                     let mutable sFinished = finished
 
                                     while not sFinished && sCount < graphCtx.MaxSteps do
-                                        let! next = Graph.step sAgent graphCtx
+                                        let! next = GraphRuntime.step sAgent graphCtx
                                         sAgent <- next
                                         sCount <- sCount + 1
 

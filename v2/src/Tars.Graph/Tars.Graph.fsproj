@@ -6,6 +6,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="Domain.fs" />
+    <Compile Include="Engine.fs" />
     <Compile Include="Graph.fs" />
   </ItemGroup>
 
@@ -13,6 +15,7 @@
     <ProjectReference Include="..\Tars.Core\Tars.Core.fsproj" />
     <ProjectReference Include="..\Tars.Connectors\Tars.Connectors.fsproj" />
     <ProjectReference Include="..\Tars.Llm\Tars.Llm.fsproj" />
+    <ProjectReference Include="..\Tars.Kernel\Tars.Kernel.fsproj" />
   </ItemGroup>
 
 </Project>

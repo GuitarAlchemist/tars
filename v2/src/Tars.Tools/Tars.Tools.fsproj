@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="Attributes.fs" />
     <Compile Include="Registry.fs" />
     <Compile Include="StandardTools.fs" />
   </ItemGroup>
@@ -13,6 +14,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Tars.Core\Tars.Core.fsproj" />
     <ProjectReference Include="..\Tars.Security\Tars.Security.fsproj" />
+    <ProjectReference Include="..\Tars.Sandbox\Tars.Sandbox.fsproj" />
   </ItemGroup>
 
 </Project>

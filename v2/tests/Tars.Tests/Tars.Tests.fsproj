@@ -7,11 +7,15 @@
 
   <ItemGroup>
     <Compile Include="KernelTests.fs" />
+    <Compile Include="GovernanceTests.fs" />
+    <Compile Include="KnowledgeGraphTests.fs" />
+    <Compile Include="RouterTests.fs" />
     <Compile Include="GrammarTests.fs" />
     <Compile Include="GoldenRun.fs" />
     <Compile Include="OpenWebUiTests.fs" />
     <Compile Include="LlmServiceTests.fs" />
     <Compile Include="SandboxTests.fs" />
+    <Compile Include="ToolTests.fs" />
     <Compile Include="VectorStoreTests.fs" />
   </ItemGroup>
 
@@ -24,11 +28,13 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Tars.Core\Tars.Core.fsproj" />
+    <ProjectReference Include="..\..\src\Tars.Kernel\Tars.Kernel.fsproj" />
     <ProjectReference Include="..\..\src\Tars.Cortex\Tars.Cortex.fsproj" />
     <ProjectReference Include="..\..\src\Tars.Connectors\Tars.Connectors.fsproj" />
     <ProjectReference Include="..\..\src\Tars.Security\Tars.Security.fsproj" />
     <ProjectReference Include="..\..\src\Tars.Llm\Tars.Llm.fsproj" />
     <ProjectReference Include="..\..\src\Tars.Sandbox\Tars.Sandbox.fsproj" />
+    <ProjectReference Include="..\..\src\Tars.Tools\Tars.Tools.fsproj" />
   </ItemGroup>
 
 </Project>

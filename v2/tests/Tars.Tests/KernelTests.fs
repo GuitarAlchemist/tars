@@ -5,10 +5,10 @@ open Xunit
 open Xunit.Abstractions
 open Tars.Core
 
-type KernelTests (output: ITestOutputHelper) =
+type KernelTests(output: ITestOutputHelper) =
 
     [<Fact>]
-    member _.``Can create and register agent`` () =
+    member _.``Can create and register agent``() =
         output.WriteLine("Starting test: Can create and register agent")
         // Arrange
         let agentId = Guid.NewGuid()
@@ -19,7 +19,7 @@ type KernelTests (output: ITestOutputHelper) =
         output.WriteLine($"Creating agent '{name}' with ID {agentId}")
 
         // Act
-        let agent = Kernel.createAgent agentId name model prompt tools
+        let agent = Kernel.createAgent agentId name "0.1.0" model prompt tools
         let ctx = Kernel.init ()
         output.WriteLine("Registering agent...")
         let updatedCtx = Kernel.registerAgent agent ctx
@@ -27,18 +27,18 @@ type KernelTests (output: ITestOutputHelper) =
         // Assert
         Assert.Equal(AgentId agentId, agent.Id)
         Assert.Equal(name, agent.Name)
-        Assert.True(updatedCtx.Agents.ContainsKey (AgentId agentId))
+        Assert.True(updatedCtx.Agents.ContainsKey(AgentId agentId))
         Assert.Equal(agent, updatedCtx.Agents[AgentId agentId])
         output.WriteLine("Agent registered successfully.")
 
     [<Fact>]
-    member _.``Can update agent state`` () =
+    member _.``Can update agent state``() =
         output.WriteLine("Starting test: Can update agent state")
         // Arrange
         let agentId = Guid.NewGuid()
-        let agent = Kernel.createAgent agentId "Updater" "model" "prompt" []
+        let agent = Kernel.createAgent agentId "Updater" "0.1.0" "model" "prompt" []
         let ctx = Kernel.init () |> Kernel.registerAgent agent
-        
+
         let newState = Error "Something happened"
         let updatedAgent = { agent with State = newState }
         output.WriteLine($"Updating agent {agentId} state to: {newState}")
@@ -52,19 +52,23 @@ type KernelTests (output: ITestOutputHelper) =
         output.WriteLine("Agent state updated verified.")
 
     [<Fact>]
-    member _.``Receive message adds to memory`` () =
+    member _.``Receive message adds to memory``() =
         output.WriteLine("Starting test: Receive message adds to memory")
         // Arrange
-        let agent = Kernel.createAgent (Guid.NewGuid()) "Receiver" "model" "prompt" []
-        let msg = {
-            Id = Guid.NewGuid()
-            CorrelationId = CorrelationId (Guid.NewGuid())
-            Source = System
-            Target = Agent agent.Id
-            Content = "Hello"
-            Timestamp = DateTime.UtcNow
-            Metadata = Map.empty
-        }
+        let agent =
+            Kernel.createAgent (Guid.NewGuid()) "Receiver" "0.1.0" "model" "prompt" []
+
+        let msg =
+            { Id = Guid.NewGuid()
+              CorrelationId = CorrelationId(Guid.NewGuid())
+              Sender = MessageEndpoint.System
+              Receiver = Some(MessageEndpoint.Agent agent.Id)
+              Performative = Performative.Inform
+              Constraints = SemanticConstraints.Default
+              Content = "Hello"
+              Timestamp = DateTime.UtcNow
+              Metadata = Map.empty }
+
         output.WriteLine($"Sending message {msg.Id} to agent {agent.Id}")
 
         // Act

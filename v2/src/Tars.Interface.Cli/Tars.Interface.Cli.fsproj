@@ -14,6 +14,7 @@
     <Compile Include="Commands\Demo.fs" />
     <Compile Include="Commands\Chat.fs" />
     <Compile Include="Commands\Evolve.fs" />
+    <Compile Include="Commands\Experiment.fs" />
     <Compile Include="Commands\Run.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>

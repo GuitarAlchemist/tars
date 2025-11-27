@@ -47,7 +47,7 @@ module DockerClient =
                     logParams.ShowStderr <- true
 
                     // MultiplexedStream
-                    let! stream = client.Containers.GetContainerLogsAsync(id, true, logParams)
+                    let! stream = client.Containers.GetContainerLogsAsync(id, false, logParams)
                     let! (stdout, stderr) = stream.ReadOutputToEndAsync(System.Threading.CancellationToken.None)
 
                     return Ok(stdout, stderr, waitResponse.StatusCode)

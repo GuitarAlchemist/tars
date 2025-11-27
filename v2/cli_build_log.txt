@@ -1,0 +1,43 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Tars.Llm -> C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\bin\Debug\net10.0\Tars.Llm.dll
+  Tars.Core -> C:\Users\spare\source\repos\tars\v2\src\Tars.Core\bin\Debug\net10.0\Tars.Core.dll
+  Tars.Security -> C:\Users\spare\source\repos\tars\v2\src\Tars.Security\bin\Debug\net10.0\Tars.Security.dll
+  Tars.Kernel -> C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\bin\Debug\net10.0\Tars.Kernel.dll
+  Tars.Connectors -> C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\bin\Debug\net10.0\Tars.Connectors.dll
+  Tars.Tools -> C:\Users\spare\source\repos\tars\v2\src\Tars.Tools\bin\Debug\net10.0\Tars.Tools.dll
+  Tars.Cortex -> C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\bin\Debug\net10.0\Tars.Cortex.dll
+  Tars.Graph -> C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\bin\Debug\net10.0\Tars.Graph.dll
+  Tars.Evolution -> C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\bin\Debug\net10.0\Tars.Evolution.dll
+  Tars.Metascript -> C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\bin\Debug\net10.0\Tars.Metascript.dll
+C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\Demo.fs(9,15): error FS0039: The type 'IAgent' is not defined. Maybe you want one of the following:   Agent   IEvent [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\Demo.fs(9,15): error FS0887: The type 'obj' is not an interface type [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\Demo.fs(9,15): error FS0039: The type 'IAgent' is not defined. Maybe you want one of the following:   Agent   IEvent [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\Demo.fs(9,15): error FS0039: The type 'IAgent' is not defined. Maybe you want one of the following:   Agent   IEvent [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\Demo.fs(10,18): error FS0859: No abstract property was found that corresponds to this override [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\Demo.fs(11,18): error FS0859: No abstract property was found that corresponds to this override [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\Demo.fs(13,18): error FS0855: No abstract or interface member was found that corresponds to this override [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\Demo.fs(24,28): error FS0039: The type 'EventBus' is not defined. Maybe you want one of the following:   Event   EventArgs [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\Demo.fs(25,31): error FS0039: The type 'IEventBus' is not defined. Maybe you want one of the following:   IEvent   Event [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\Demo.fs(27,50): error FS0039: The type 'IAgent' is not defined. Maybe you want one of the following:   Agent   IEvent [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\Demo.fs(29,17): error FS0072: Lookup on object of indeterminate type based on information prior to this program point. A type annotation may be needed prior to this program point to constrain the type of the object. This may allow the lookup to be resolved. [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\Demo.fs(44,13): error FS0072: Lookup on object of indeterminate type based on information prior to this program point. A type annotation may be needed prior to this program point to constrain the type of the object. This may allow the lookup to be resolved. [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
+
+Build FAILED.
+
+C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\Demo.fs(9,15): error FS0039: The type 'IAgent' is not defined. Maybe you want one of the following:   Agent   IEvent [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\Demo.fs(9,15): error FS0887: The type 'obj' is not an interface type [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\Demo.fs(9,15): error FS0039: The type 'IAgent' is not defined. Maybe you want one of the following:   Agent   IEvent [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\Demo.fs(9,15): error FS0039: The type 'IAgent' is not defined. Maybe you want one of the following:   Agent   IEvent [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\Demo.fs(10,18): error FS0859: No abstract property was found that corresponds to this override [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\Demo.fs(11,18): error FS0859: No abstract property was found that corresponds to this override [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\Demo.fs(13,18): error FS0855: No abstract or interface member was found that corresponds to this override [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\Demo.fs(24,28): error FS0039: The type 'EventBus' is not defined. Maybe you want one of the following:   Event   EventArgs [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\Demo.fs(25,31): error FS0039: The type 'IEventBus' is not defined. Maybe you want one of the following:   IEvent   Event [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\Demo.fs(27,50): error FS0039: The type 'IAgent' is not defined. Maybe you want one of the following:   Agent   IEvent [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\Demo.fs(29,17): error FS0072: Lookup on object of indeterminate type based on information prior to this program point. A type annotation may be needed prior to this program point to constrain the type of the object. This may allow the lookup to be resolved. [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\Demo.fs(44,13): error FS0072: Lookup on object of indeterminate type based on information prior to this program point. A type annotation may be needed prior to this program point to constrain the type of the object. This may allow the lookup to be resolved. [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
+    0 Warning(s)
+    12 Error(s)
+
+Time Elapsed 00:00:02.89

@@ -38,6 +38,7 @@ let main argv =
             Tui.showSplashScreen ()
             return! Chat.run logger
         | [| "evolve" |] -> return! Evolve.run logger
+        | [| "experiment" |] -> return! Experiment.run logger
         | [| "run"; script |] -> return! Run.execute logger script
         | _ ->
             Tui.showSplashScreen ()
@@ -50,6 +51,7 @@ let main argv =
             printfn "  tars memory-search <coll> <text> Search vector memory"
             printfn "  tars demo-ping                   Run a demo ping agent"
             printfn "  tars evolve                      Run the evolution engine"
+            printfn "  tars experiment                  Run an A/B testing experiment"
             return 1
     }
     |> Async.AwaitTask
