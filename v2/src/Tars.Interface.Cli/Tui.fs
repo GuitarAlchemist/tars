@@ -6,8 +6,8 @@ let showSplashScreen () =
     // Skip splash when console is not interactive or explicitly disabled
     let noSplashEnv = System.Environment.GetEnvironmentVariable("TARS_NO_SPLASH")
     let shouldSkip =
-        not (System.Console.IsOutputRedirected || System.Console.IsInputRedirected)
-        |> not
+        System.Console.IsOutputRedirected
+        || System.Console.IsInputRedirected
         || (noSplashEnv |> System.String.IsNullOrEmpty |> not)
 
     if shouldSkip then

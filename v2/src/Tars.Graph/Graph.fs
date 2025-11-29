@@ -9,11 +9,48 @@ open Tars.Llm
 open Tars.Llm.LlmService
 open Tars.Kernel
 
+module ToolGrammar =
+    let spec =
+        GrammarDistill.fromJsonExamples [ """{"name":"tool_name","arguments":{"param":"value"}}""" ]
+
 module PromptBuilder =
+    /// Formats tool descriptions for the system prompt
+    let private formatTools (tools: Tool list) =
+        if tools.IsEmpty then
+            ""
+        else
+            let sb = StringBuilder()
+            sb.AppendLine("\n## Available Tools") |> ignore
+            sb.AppendLine("You have access to the following tools:\n") |> ignore
+
+            for tool in tools do
+                sb.AppendLine($"### {tool.Name}") |> ignore
+                sb.AppendLine($"  {tool.Description}") |> ignore
+
+            sb.AppendLine("\n## Tool Call Format") |> ignore
+            sb.AppendLine("To use a tool, respond with a JSON block:") |> ignore
+            sb.AppendLine("```tool") |> ignore
+
+            sb.AppendLine("""{"name": "tool_name", "arguments": {"arg1": "value1"}}""")
+            |> ignore
+
+            sb.AppendLine("```") |> ignore
+            sb.AppendLine("Or use the simple format: TOOL:name:input") |> ignore
+
+            sb.AppendLine("\nAfter receiving tool results, incorporate them into your response.\n")
+            |> ignore
+
+            sb.ToString()
+
     let buildSystemPrompt (agent: Agent) (history: Message list) =
         let sb = StringBuilder()
         sb.AppendLine(agent.SystemPrompt) |> ignore
-        sb.AppendLine("History:") |> ignore
+
+        // Add tool descriptions if agent has tools
+        if not agent.Tools.IsEmpty then
+            sb.Append(formatTools agent.Tools) |> ignore
+
+        sb.AppendLine("\n## Conversation History") |> ignore
 
         for msg in history do
             let sourceName =
@@ -23,39 +60,141 @@ module PromptBuilder =
                 | MessageEndpoint.Agent _ -> "Assistant"
                 | MessageEndpoint.Alias name -> name
 
-            sb.AppendLine $"{sourceName}: {msg.Content}" |> ignore
+            let performative = sprintf "[%A]" msg.Performative
+            sb.AppendLine $"{sourceName} {performative}: {msg.Content}" |> ignore
 
-        sb.AppendLine(
-            "Instructions: Reply to the user. If you want to use a tool, format it as TOOL:Name:Input. Otherwise just reply."
-        )
-        |> ignore
+        if agent.Tools.IsEmpty then
+            sb.AppendLine("\nInstructions: Reply to the user directly.") |> ignore
+        else
+            sb.AppendLine("\nInstructions: Reply to the user. Use tools when needed to accomplish tasks.")
+            |> ignore
+
+            sb.AppendLine(
+                ToolGrammar.spec.PromptHint
+                + " Wrap tool calls in ```tool``` fenced JSON with fields \"name\" and \"arguments\"."
+            )
+            |> ignore
 
         sb.ToString()
 
 module ResponseParser =
+    open System.Text.Json
+    open System.Text.RegularExpressions
+
     type ParsedResponse =
         | ToolCall of name: string * input: string
+        | MultiToolCall of calls: (string * string) list
         | TextResponse of text: string
 
-    let parse (response: string) =
+    /// Parses tool calls in multiple formats:
+    /// 1. TOOL:name:input (legacy format)
+    /// 2. ```tool\n{"name": "...", "input": "..."}\n``` (JSON block)
+    /// 3. <tool_call>{"name": "...", "arguments": {...}}</tool_call> (XML-style)
+    /// 4. {"tool": "name", "args": {...}} (inline JSON)
+    let parseWithValidator (response: string) (validatorOpt: (string -> bool) option) =
         let text = response.Trim()
 
+        let isValid =
+            match validatorOpt with
+            | Some v -> v
+            | None -> fun _ -> true
+
+        // Try legacy TOOL: format first
         if text.StartsWith("TOOL:") then
             let parts = text.Split(':', 3)
 
             if parts.Length = 3 then
-                ToolCall(parts[1], parts[2])
+                ToolCall(parts[1].Trim(), parts[2].Trim())
             else
                 TextResponse text
         else
-            TextResponse text
+            // Try to find JSON tool call patterns
+            let toolCallPattern = @"<tool_call>\s*(\{[^}]+\})\s*</tool_call>"
+            let jsonBlockPattern = @"```(?:tool|json)\s*(\{[^`]+\})\s*```"
+
+            let inlineJsonPattern =
+                @"\{[^{}]*""(?:tool|name|function)""\s*:\s*""([^""]+)""[^{}]*(?:""(?:args|arguments|input|parameters)""\s*:\s*(\{[^{}]*\}|""[^""]*""))?[^{}]*\}"
+
+            let tryParseToolJson (json: string) =
+                try
+                    let doc = JsonDocument.Parse(json)
+                    let root = doc.RootElement
+                    let mutable nameProp = Unchecked.defaultof<JsonElement>
+                    let mutable inputProp = Unchecked.defaultof<JsonElement>
+
+                    let name =
+                        if root.TryGetProperty("name", &nameProp) then
+                            nameProp.GetString()
+                        elif root.TryGetProperty("tool", &nameProp) then
+                            nameProp.GetString()
+                        elif root.TryGetProperty("function", &nameProp) then
+                            nameProp.GetString()
+                        else
+                            null
+
+                    let input =
+                        if root.TryGetProperty("input", &inputProp) then
+                            inputProp.GetRawText()
+                        elif root.TryGetProperty("arguments", &inputProp) then
+                            inputProp.GetRawText()
+                        elif root.TryGetProperty("args", &inputProp) then
+                            inputProp.GetRawText()
+                        elif root.TryGetProperty("parameters", &inputProp) then
+                            inputProp.GetRawText()
+                        else
+                            "{}"
+
+                    if not (isNull name) && isValid json then
+                        Some(name, input)
+                    else
+                        None
+                with _ ->
+                    None
+
+            // Try XML-style tool_call
+            let xmlMatch = Regex.Match(text, toolCallPattern, RegexOptions.Singleline)
+
+            if xmlMatch.Success then
+                match tryParseToolJson (xmlMatch.Groups.[1].Value) with
+                | Some(name, input) -> ToolCall(name, input)
+                | None -> TextResponse text
+            else
+                // Try ```tool block
+                let blockMatch = Regex.Match(text, jsonBlockPattern, RegexOptions.Singleline)
+
+                if blockMatch.Success then
+                    match tryParseToolJson (blockMatch.Groups.[1].Value) with
+                    | Some(name, input) -> ToolCall(name, input)
+                    | None -> TextResponse text
+                else
+                    // Try to find inline JSON with tool/name/function key
+                    let inlineMatches = Regex.Matches(text, inlineJsonPattern, RegexOptions.Singleline)
+
+                    if inlineMatches.Count > 0 then
+                        let calls =
+                            inlineMatches
+                            |> Seq.cast<Match>
+                            |> Seq.choose (fun m ->
+                                let fullMatch = m.Value
+                                tryParseToolJson fullMatch)
+                            |> Seq.toList
+
+                        match calls with
+                        | [] -> TextResponse text
+                        | [ (name, input) ] -> ToolCall(name, input)
+                        | multiple -> MultiToolCall multiple
+                    else
+                        TextResponse text
+
+    let parse (response: string) = parseWithValidator response None
 
 module GraphRuntime =
     type GraphContext =
         { Kernel: KernelContext
           Llm: ILlmService
           MaxSteps: int
-          BudgetGovernor: BudgetGovernor option }
+          BudgetGovernor: BudgetGovernor option
+          Logger: string -> unit }
 
     let private createMessage (source: MessageEndpoint) (content: string) =
         { Id = Guid.NewGuid()
@@ -82,6 +221,7 @@ module GraphRuntime =
     let private handleThinking (agent: Agent) (history: Message list) (ctx: GraphContext) =
         task {
             // 1. Construct Prompt
+            ctx.Logger $"[Thinking] Agent {agent.Name} is thinking..."
             let prompt = PromptBuilder.buildSystemPrompt agent history
 
             // 1.5 Check Budget
@@ -125,7 +265,13 @@ module GraphRuntime =
                 | None -> ()
 
                 // 3. Parse Response
-                match ResponseParser.parse response.Text with
+                let parsed =
+                    if agent.Tools.IsEmpty then
+                        ResponseParser.parse response.Text
+                    else
+                        ResponseParser.parseWithValidator response.Text (Some ToolGrammar.spec.Validator)
+
+                match parsed with
                 | ResponseParser.ToolCall(name, input) ->
                     match agent.Tools |> List.tryFind (fun t -> t.Name = name) with
                     | Some tool ->
@@ -143,6 +289,30 @@ module GraphRuntime =
                             { agent with
                                 State = WaitingForUser $"Error: Tool %s{name} not found." }
                             |> Success
+                | ResponseParser.MultiToolCall calls ->
+                    // For now, just take the first one. Future: support parallel tool calls.
+                    match calls with
+                    | (name, input) :: _ ->
+                        match agent.Tools |> List.tryFind (fun t -> t.Name = name) with
+                        | Some tool ->
+                            let msg = createMessage (MessageEndpoint.Agent agent.Id) response.Text
+                            let newMemory = agent.Memory @ [ msg ]
+
+                            return
+                                { agent with
+                                    Memory = newMemory
+                                    State = Acting(tool, input) }
+                                |> Success
+                        | None ->
+                            return
+                                { agent with
+                                    State = WaitingForUser $"Error: Tool %s{name} not found." }
+                                |> Success
+                    | [] ->
+                        return
+                            { agent with
+                                State = WaitingForUser "Error: Empty multi-tool call." }
+                            |> Success
                 | ResponseParser.TextResponse responseText ->
                     return
                         { agent with
@@ -150,8 +320,9 @@ module GraphRuntime =
                         |> Success
         }
 
-    let private handleActing (agent: Agent) (tool: Tool) (input: string) =
+    let private handleActing (agent: Agent) (tool: Tool) (input: string) (ctx: GraphContext) =
         task {
+            ctx.Logger $"[Acting] Agent {agent.Name} is executing tool {tool.Name} with input: {input}"
             let! (result: Result<string, string>) = tool.Execute input |> Async.StartAsTask
 
             match result with
@@ -167,8 +338,9 @@ module GraphRuntime =
                     |> Success
         }
 
-    let private handleObserving (agent: Agent) (tool: Tool) (output: string) =
+    let private handleObserving (agent: Agent) (tool: Tool) (output: string) (ctx: GraphContext) =
         // Record the observation
+        ctx.Logger $"[Observing] Agent {agent.Name} observed output from {tool.Name}"
         let msg = createMessage MessageEndpoint.System $"Result of {tool.Name}: {output}"
         let newMemory = agent.Memory @ [ msg ]
 
@@ -183,8 +355,8 @@ module GraphRuntime =
             match agent.State with
             | Idle -> return! handleIdle agent
             | Thinking history -> return! handleThinking agent history ctx
-            | Acting(tool, input) -> return! handleActing agent tool input
-            | Observing(tool, output) -> return! handleObserving agent tool output
+            | Acting(tool, input) -> return! handleActing agent tool input ctx
+            | Observing(tool, output) -> return! handleObserving agent tool output ctx
             | WaitingForUser _ -> return Success agent
             | AgentState.Error _ -> return Success agent
         }

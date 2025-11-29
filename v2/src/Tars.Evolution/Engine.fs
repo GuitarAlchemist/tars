@@ -3,6 +3,7 @@ namespace Tars.Evolution
 open System
 open System.Threading.Tasks
 open Tars.Core
+open Tars.Core.Knowledge
 open Tars.Graph
 open Tars.Llm
 open Tars.Llm.LlmService
@@ -18,7 +19,9 @@ module Engine =
           Llm: ILlmService
           VectorStore: IVectorStore
           Epistemic: IEpistemicGovernor option
-          Budget: BudgetGovernor option }
+          Budget: BudgetGovernor option
+          KnowledgeBase: KnowledgeBase option
+          Logger: string -> unit }
 
     let private scoreTask (task: TaskDefinition) : float =
         // Simple heuristic for now:
@@ -73,94 +76,122 @@ JSON:"""
                     state.CompletedTasks.Length
                     guidance
 
-            let req =
-                { ModelHint = Some "code" // Use smart model for curriculum
-                  MaxTokens = None // Some 500
-                  Temperature = None // Some 0.7
-                  Messages = [ { Role = Role.User; Content = prompt } ] }
+            // 1. Retrieve Curriculum Agent
+            match Kernel.getAgent state.CurriculumAgentId ctx.Kernel with
+            | None -> return []
+            | Some agent ->
+                // 2. Initialize Graph Executor
+                let graphExecutor = GraphExecutor(ctx.Kernel, ctx.Llm, ctx.Budget, ctx.Logger)
 
-            let! response = ctx.Llm.CompleteAsync req
+                // 3. Create Request Message
+                let msg =
+                    { Id = Guid.NewGuid()
+                      CorrelationId = CorrelationId(Guid.NewGuid())
+                      Sender = MessageEndpoint.System
+                      Receiver = Some(MessageEndpoint.Agent agent.Id)
+                      Performative = Performative.Request
+                      Constraints = SemanticConstraints.Default
+                      Ontology = None
+                      Language = "text"
+                      Content = prompt
+                      Timestamp = DateTime.UtcNow
+                      Metadata = Map.empty }
 
-            try
-                let json = response.Text.Trim()
+                let agentWithMsg = Kernel.receiveMessage msg agent
 
-                let json =
-                    if json.StartsWith("```json") then
-                        json.Substring(7, json.Length - 10).Trim()
-                    elif json.StartsWith("```") then
-                        json.Substring(3, json.Length - 6).Trim()
-                    else
-                        json
+                // 4. Run Execution
+                let! outcome = graphExecutor.RunAgentLoop agentWithMsg 20
 
-                let doc = JsonDocument.Parse(json)
-                let root = doc.RootElement
+                let responseText =
+                    match outcome with
+                    | Success(_, output, _) -> output
+                    | PartialSuccess((_, output, _), _) -> output
+                    | Failure err -> ""
 
-                let mutable tasksElem = Unchecked.defaultof<JsonElement>
+                if String.IsNullOrWhiteSpace(responseText) then
+                    return []
+                else
+                    try
+                        let json = responseText.Trim()
 
-                let tasks =
-                    if root.ValueKind = JsonValueKind.Array then
-                        root.EnumerateArray() |> Seq.map id
-                    elif
-                        root.TryGetProperty("tasks", &tasksElem)
-                        && tasksElem.ValueKind = JsonValueKind.Array
-                    then
-                        tasksElem.EnumerateArray() |> Seq.map id
-                    else
-                        Seq.empty
+                        let json =
+                            if json.StartsWith("```json") then
+                                json.Substring(7, json.Length - 10).Trim()
+                            elif json.StartsWith("```") then
+                                json.Substring(3, json.Length - 6).Trim()
+                            else
+                                json
 
-                let parsedTasks =
-                    tasks
-                    |> Seq.map (fun t ->
-                        let goal = t.GetProperty("goal").GetString()
+                        let doc = JsonDocument.Parse(json)
+                        let root = doc.RootElement
 
-                        let constraints =
-                            t.GetProperty("constraints").EnumerateArray()
-                            |> Seq.map (fun e -> e.GetString())
+                        let mutable tasksElem = Unchecked.defaultof<JsonElement>
+
+                        let tasks =
+                            if root.ValueKind = JsonValueKind.Array then
+                                root.EnumerateArray() |> Seq.map id
+                            elif
+                                root.TryGetProperty("tasks", &tasksElem)
+                                && tasksElem.ValueKind = JsonValueKind.Array
+                            then
+                                tasksElem.EnumerateArray() |> Seq.map id
+                            else
+                                Seq.empty
+
+                        let parsedTasks =
+                            tasks
+                            |> Seq.map (fun t ->
+                                let goal = t.GetProperty("goal").GetString()
+
+                                let constraints =
+                                    t.GetProperty("constraints").EnumerateArray()
+                                    |> Seq.map (fun e -> e.GetString())
+                                    |> Seq.toList
+
+                                let criteria = t.GetProperty("validation_criteria").GetString()
+
+                                let taskDef =
+                                    { Id = Guid.NewGuid()
+                                      DifficultyLevel = state.Generation + 1
+                                      Goal = goal
+                                      Constraints = constraints
+                                      ValidationCriteria = criteria
+                                      Timeout = TimeSpan.FromMinutes(1.0)
+                                      Score = 0.0 }
+
+                                let score = scoreTask taskDef
+                                { taskDef with Score = score })
                             |> Seq.toList
 
-                        let criteria = t.GetProperty("validation_criteria").GetString()
+                        // Select Top K (Fan-out Limiter)
+                        let k = 3
 
-                        let taskDef =
-                            { Id = Guid.NewGuid()
-                              DifficultyLevel = state.Generation + 1
-                              Goal = goal
-                              Constraints = constraints
-                              ValidationCriteria = criteria
-                              Timeout = TimeSpan.FromMinutes(1.0)
-                              Score = 0.0 }
+                        let topK =
+                            parsedTasks |> List.sortByDescending (fun t -> t.Score) |> List.truncate k
 
-                        let score = scoreTask taskDef
-                        { taskDef with Score = score })
-                    |> Seq.toList
+                        if topK.IsEmpty then
+                            return
+                                [ { Id = Guid.NewGuid()
+                                    DifficultyLevel = state.Generation + 1
+                                    Goal = "Failed to parse tasks. Write a hello world script."
+                                    Constraints = []
+                                    ValidationCriteria = "Output 'Hello World'"
+                                    Timeout = TimeSpan.FromMinutes(1.0)
+                                    Score = 0.0 } ]
+                        else
+                            return topK
 
-                // Select Top K (Fan-out Limiter)
-                // TODO: Make K configurable via CLI
-                let k = 3
+                    with ex ->
+                        return
+                            [ { Id = Guid.NewGuid()
+                                DifficultyLevel = state.Generation + 1
+                                Goal = "Failed to parse task. Write a hello world script."
+                                Constraints = []
+                                ValidationCriteria = "Output 'Hello World'"
+                                Timeout = TimeSpan.FromMinutes(1.0)
+                                Score = 0.0 } ]
 
-                let topK =
-                    parsedTasks |> List.sortByDescending (fun t -> t.Score) |> List.truncate k
 
-                if topK.IsEmpty then
-                    return
-                        [ { Id = Guid.NewGuid()
-                            DifficultyLevel = state.Generation + 1
-                            Goal = "Failed to parse tasks. Write a hello world script."
-                            Constraints = []
-                            ValidationCriteria = "Output 'Hello World'"
-                            Timeout = TimeSpan.FromMinutes(1.0)
-                            Score = 0.0 } ]
-                else
-                    return topK
-
-            with ex ->
-                return
-                    [ { Id = Guid.NewGuid()
-                        DifficultyLevel = state.Generation + 1
-                        Goal = "Failed to parse task. Write a hello world script."
-                        Constraints = []
-                        ValidationCriteria = "Output 'Hello World'"
-                        Timeout = TimeSpan.FromMinutes(1.0)
-                        Score = 0.0 } ]
         }
 
     /// Attempts to solve a task using the Executor Agent
@@ -178,7 +209,7 @@ JSON:"""
                       Duration = TimeSpan.Zero }
             | Some executor ->
                 // 2. Initialize Graph Executor
-                let graphExecutor = GraphExecutor(ctx.Kernel, ctx.Llm, ctx.Budget)
+                let graphExecutor = GraphExecutor(ctx.Kernel, ctx.Llm, ctx.Budget, ctx.Logger)
 
                 // 3. Construct the Task Prompt
                 let taskPrompt =

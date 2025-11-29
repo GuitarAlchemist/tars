@@ -7,7 +7,12 @@ open Tars.Core.AgentWorkflow
 open Tars.Kernel
 
 /// Executor that runs an agent loop until completion
-type GraphExecutor(kernel: KernelContext, llm: Tars.Llm.LlmService.ILlmService, budget: BudgetGovernor option) =
+type GraphExecutor
+    (kernel: KernelContext, llm: Tars.Llm.LlmService.ILlmService, budget: BudgetGovernor option, logger: string -> unit)
+    =
+
+    // Default constructor for backward compatibility
+    new(kernel, llm, budget) = GraphExecutor(kernel, llm, budget, fun _ -> ())
 
     /// Helper to run the agent loop until it produces a response or errors
     member this.RunAgentLoop (agent: Agent) (maxSteps: int) : Task<ExecutionOutcome<Agent * string * string list>> =
@@ -23,7 +28,8 @@ type GraphExecutor(kernel: KernelContext, llm: Tars.Llm.LlmService.ILlmService, 
                 { Kernel = kernel
                   Llm = llm
                   MaxSteps = maxSteps
-                  BudgetGovernor = budget }
+                  BudgetGovernor = budget
+                  Logger = logger }
 
             while not finished && stepCount < maxSteps do
                 trace <- trace @ [ sprintf "Step %d: %A" stepCount currentAgent.State ]
