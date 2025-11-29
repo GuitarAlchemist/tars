@@ -7,11 +7,19 @@
 
   <ItemGroup>
     <Compile Include="Domain.fs" />
+    <Compile Include="Validation.fs" />
+    <Compile Include="Parser.fs" />
+    <Compile Include="Templates.fs" />
     <Compile Include="Engine.fs" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="FSharp.SystemTextJson" Version="1.4.36" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Tars.Core\Tars.Core.fsproj" />
+    <ProjectReference Include="..\Tars.Cortex\Tars.Cortex.fsproj" />
     <ProjectReference Include="..\Tars.Llm\Tars.Llm.fsproj" />
     <ProjectReference Include="..\Tars.Kernel\Tars.Kernel.fsproj" />
     <ProjectReference Include="..\Tars.Tools\Tars.Tools.fsproj" />

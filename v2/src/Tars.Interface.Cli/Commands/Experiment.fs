@@ -14,7 +14,12 @@ let run (logger: ILogger) =
         // 1. Setup Infrastructure
         let router = AgentRouter()
         // Use a dummy budget for now
-        let governance = BudgetGovernor(100000)
+        let governance =
+            BudgetGovernor(
+                { Budget.Infinite with
+                    MaxTokens = Some 100000<token> }
+            )
+
         let breaker = CircuitBreaker(5, TimeSpan.FromMinutes(1.0))
         let eventBus = new EventBus(logger, breaker, governance, router)
         let bus = eventBus :> IEventBus
@@ -113,6 +118,8 @@ let run (logger: ILogger) =
                   Receiver = Some(MessageEndpoint.Alias "Assistant")
                   Performative = Performative.Request
                   Constraints = SemanticConstraints.Default
+                  Ontology = None
+                  Language = "text"
                   Content = prompt :> obj
                   Timestamp = DateTime.UtcNow
                   Metadata = Map.empty }

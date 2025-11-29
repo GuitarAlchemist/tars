@@ -64,6 +64,8 @@ module GraphRuntime =
           Receiver = Some MessageEndpoint.System // or generic target
           Performative = Performative.Inform
           Constraints = SemanticConstraints.Default
+          Ontology = None
+          Language = "text"
           Content = content
           Timestamp = DateTime.UtcNow
           Metadata = Map.empty }
@@ -74,6 +76,7 @@ module GraphRuntime =
             { agent with
                 State = WaitingForUser "How can I help you?" }
         | msgs -> { agent with State = Thinking msgs }
+        |> Success
         |> Task.FromResult
 
     let private handleThinking (agent: Agent) (history: Message list) (ctx: GraphContext) =
@@ -91,13 +94,11 @@ module GraphRuntime =
 
             let canSpend =
                 match ctx.BudgetGovernor with
-                | Some governor -> governor.CanSpend(correlationId, 100<token>) // Estimate 100 tokens for prompt?
+                | Some governor -> governor.CanAfford { Cost.Zero with Tokens = 100<token> }
                 | None -> true
 
             if not canSpend then
-                return
-                    { agent with
-                        State = AgentState.Error "Budget Exhausted" }
+                return Failure [ PartialFailure.Error "Budget Exhausted" ]
             else
 
                 // 2. Call LLM
@@ -112,9 +113,15 @@ module GraphRuntime =
                 // Record Usage if BudgetGovernor is present
                 match ctx.BudgetGovernor with
                 | Some governor ->
-                    // Estimate usage: 1 token per 4 chars of response + prompt
-                    let tokens = (prompt.Length + response.Text.Length) / 4
-                    governor.RecordUsage(correlationId, tokens * 1<token>)
+                    let tokens =
+                        match response.Usage with
+                        | Some u -> u.TotalTokens
+                        | None -> (prompt.Length + response.Text.Length) / 4 // Fallback estimation
+
+                    governor.Consume
+                        { Cost.Zero with
+                            Tokens = tokens * 1<token> }
+                    |> ignore
                 | None -> ()
 
                 // 3. Parse Response
@@ -130,14 +137,17 @@ module GraphRuntime =
                             { agent with
                                 Memory = newMemory
                                 State = Acting(tool, input) }
+                            |> Success
                     | None ->
                         return
                             { agent with
                                 State = WaitingForUser $"Error: Tool %s{name} not found." }
+                            |> Success
                 | ResponseParser.TextResponse responseText ->
                     return
                         { agent with
                             State = WaitingForUser responseText }
+                        |> Success
         }
 
     let private handleActing (agent: Agent) (tool: Tool) (input: string) =
@@ -149,10 +159,12 @@ module GraphRuntime =
                 return
                     { agent with
                         State = Observing(tool, output) }
+                    |> Success
             | Result.Error err ->
                 return
                     { agent with
                         State = AgentState.Error err }
+                    |> Success
         }
 
     let private handleObserving (agent: Agent) (tool: Tool) (output: string) =
@@ -160,10 +172,11 @@ module GraphRuntime =
         let msg = createMessage MessageEndpoint.System $"Result of {tool.Name}: {output}"
         let newMemory = agent.Memory @ [ msg ]
 
-        Task.FromResult
-            { agent with
-                Memory = newMemory
-                State = Idle }
+        { agent with
+            Memory = newMemory
+            State = Idle }
+        |> Success
+        |> Task.FromResult
 
     let step (agent: Agent) (ctx: GraphContext) =
         task {
@@ -172,6 +185,6 @@ module GraphRuntime =
             | Thinking history -> return! handleThinking agent history ctx
             | Acting(tool, input) -> return! handleActing agent tool input
             | Observing(tool, output) -> return! handleObserving agent tool output
-            | WaitingForUser _ -> return agent
-            | AgentState.Error _ -> return agent
+            | WaitingForUser _ -> return Success agent
+            | AgentState.Error _ -> return Success agent
         }

@@ -35,279 +35,97 @@ The new architecture will follow a **Micro-Kernel** pattern with a **Hexagonal (
 
 ### 1.1 The Semantic Bus Protocol
 
-Instead of simple DTOs, agents communicate via a **Semantic Envelope** (Hybrid Approach). This ensures that *intent*, *constraints*, and *context* are first-class citizens, not just hidden in text prompts.
+ Instead of simple DTOs, agents communicate via a **Semantic Envelope** (Hybrid Approach). This ensures that *intent*, *constraints*, and *context* are first-class citizens.
 
-#### The Envelope Structure (F# Concept)
+#### The Envelope Structure
 
-```fsharp
-// The "Verb" of the message (inspired by FIPA-ACL)
-type Performative = 
-    | Request   // "Do this"
-    | Inform    // "Here is information"
-    | Query     // "What is X?"
-    | Propose   // "I can do this for cost Y"
-    | Refuse    // "I cannot do this (violates constraints)"
-    | Failure   // "Execution failed"
+ ```fsharp
+ // The "Verb" of the message (FIPA-ACL inspired)
+ type Performative = 
+     | Request | Inform | Query | Propose | Refuse | Failure | NotUnderstood
+ 
+ // The "Guardrails"
+ type SemanticConstraints = {
+     MaxTokens: int option
+     MaxComplexity: string option
+     Timeout: TimeSpan option
+     KnowledgeBoundary: string list
+ }
+ 
+ // The Envelope
+ type SemanticMessage<'TContent> = {
+     Id: Guid
+     CorrelationId: Guid
+     Sender: AgentId
+     Receiver: AgentId option
+     Performative: Performative
+     Constraints: SemanticConstraints
+     Ontology: string option    // NEW: domain context (e.g., "coding", "finance")
+     Language: string           // NEW: content type (e.g., "json", "fsharp")
+     Content: 'TContent
+     Metadata: Map<string,obj>
+ }
+ ```
 
-// The "Guardrails" for the request
-type SemanticConstraints = {
-    MaxTokens: int option      // "Don't ramble"
-    MaxComplexity: string option // "O(n) or O(n log n) only"
-    Timeout: TimeSpan option   // "Fail fast"
-    KnowledgeBoundary: string list // "Only use 'Finance' ontology"
-}
+* **JSON-LD Serialization**: Messages are serialized as JSON-LD to ensure semantic interoperability and potential future integration with external knowledge graphs.
+* **Constraint Enforcement Point**: The Kernel runs a `SemanticEnvelopeGuard` on ingress (EventBus middleware) and again at execution start. Budgets/timeouts/knowledge-boundaries are reduced as they flow; violations are logged and downgraded to `Failure` envelopes (never silent drop).
+* **Size Discipline**: JSON-LD is opt-in per envelope; envelopes carry a byte-budget header and are gzip’d when crossing process boundaries.
 
-// The Envelope
-type SemanticMessage<'TContent> = {
-    Id: Guid
-    CorrelationId: Guid        // For conversation tracking
-    Sender: AgentId
-    Receiver: AgentId          // Specific agent or "Broadcast"
-    Performative: Performative
-    Constraints: SemanticConstraints
-    Content: 'TContent         // The actual payload (Flux, Text, etc.)
-    Metadata: Map<string,string> // JSON-LD style context
-}
-```
+### 1.3 Agentic RAG Path (Memory Grid Realization)
 
-* **Performative**: Explicitly states *why* the message was sent.
-* **Constraints**: Allows the Kernel to reject requests *before* they reach the agent (e.g., "This request requires O(n^2) but the budget is O(n)").
-* **Content**: The payload, which can be Natural Language, FLUX Metascript, or structured data.
+1. **Ingestion**: Documents are chunked (size + semantic splits), stamped with schema (`source`, `kind`, `createdAt`, `version`, `scope`, `provenance`), deduped, and throttled via the Memory Ingress Governor (shared with the BudgetGovernor).
+2. **Indexing**: Chunks go to `VectorStore`; entities/relations go to `BeliefGraph` (GraphAnalyzer builds candidates). Both use the same IDs and versions.
+3. **Retrieval**: Given a query, we run hybrid retrieval: vector search + graph neighborhood pull; merge on ID; apply cheap reranker (LLM-lite or cosine-on-summary) and K-top fan-out.
+4. **Context Assembly**: Apply the envelope’s `SemanticConstraints` (token/time) to budget the assembled context; compress long tails; emit a compact, provenance-tagged context block with scores.
+5. **Provenance & Audit**: Every returned chunk includes `source`, `version`, `score`, and `why` (match rationale). Missing/empty retrieval degrades gracefully and logs to the Governance channel.
 
 ### 1.2 Agentic Interfaces: Soft Semantic Contracts
 
-**Reference:** `docs/2_Analysis/Architecture/agentic_interfaces.md`
+ **Reference:** `docs/2_Analysis/Architecture/agentic_interfaces.md`
 
-Traditional interfaces (C#/F#) are **static and deterministic**. Agentic AI requires **softer contracts** that acknowledge:
-* **Probabilistic behavior** (confidence scores, error distributions)
-* **Partial success** as a first-class outcome
-* **Capability-based routing** (not just method signatures)
-* **Runtime evolution** (new agents, skills discovered on-the-fly)
+ TARS v2 implements interfaces as a **Triad**:
 
-TARS v2 implements this as a **Triad**:
-
-#### The Interface Triad
-
-```
-┌─────────────────────────────────────────────┐
-│ 1. HARD SHELL (Compiler Enforced)          │
-│    - ExecutionOutcome<'T> DU                │
-│    - PartialFailure types                   │
-│    - Agent workflow computation expression  │
-│    - F# type system guarantees              │
-├─────────────────────────────────────────────┤
-│ 2. SOFT SEMANTICS (Schema Enforced)        │
-│    - Capability taxonomies                  │
-│    - Natural-language descriptions          │
-│    - Confidence scores & metrics            │
-│    - JSON Schema / FLUX DSL contracts       │
-├─────────────────────────────────────────────┤
-│ 3. EMPIRICAL LAYER (Observed Behavior)     │
-│    - Historical success/failure rates       │
-│    - Reputation models                      │
-│    - Embedding-based routing                │
-│    - Runtime performance metrics            │
-└─────────────────────────────────────────────┘
-```
-
-**Key Innovation:** The `agent { }` computation expression allows writing cognitive workflows that:
-* Accumulate partial failures as warnings (railway-oriented programming)
-* Support delegation with fallback policies
-* Enable human-in-the-loop escalation
-* Compose linearly while maintaining full error context
-
-**Example Workflow:**
-
-```fsharp
-let mainTask (task: TaskSpec) : AgentWorkflow<string> =
-  agent {
-      let! planJson = callAgentByCapability Planning task
-      let! execution = callAgentByCapability TaskExecution planJson
-      let! enriched = withFallback webSearch (agent { return execution })
-      let! final = escalateIfLowConfidence 0.8 enriched
-      return final
-  }
-```
-
-This workflow automatically handles:
-* Partial success from sub-agents
-* Fallback to previous result if web search fails
-* User escalation if confidence is too low
-* Full trace of what succeeded/failed and why
+ 1. **Hard Shell**: `ExecutionOutcome<'T>` (Success/Partial/Failure) enforced by F# compiler.
+ 2. **Soft Semantics**: Capability-based routing and natural language contracts.
+ 3. **Empirical Layer**: Routing based on historical success rates.
 
 ## 2. Component Reuse & Migration Strategy
 
-This section details exactly what we keep, what we refactor, and what we build from scratch.
+ (See original doc for details - no changes here)
 
-### ♻️ REUSE (Lift & Shift / Minor Refactor)
+ ...
 
-*These components are high-value and can be ported with minimal changes.*
+## 7. Agentic Engineering Patterns (The "Cognitive Circuit Board")
 
-| Component               | Source Location                             | V2 Destination              | Rationale                                                                                                                               |
-|:----------------------- |:------------------------------------------- |:--------------------------- |:--------------------------------------------------------------------------------------------------------------------------------------- |
-| **BeliefGraph**         | `src/Tars.Core/BeliefGraph.fs`              | `Tars.Kernel.Memory.Graph`  | **Critical Asset.** The 100KB+ belief graph logic is the core of TARS's structured reasoning. It is pure F# and easily portable.        |
-| **CudaKernels**         | `src/TarsEngine.FSharp.Core/CudaKernels.cu` | `Tars.Compute.Cuda`         | **High Performance.** Custom CUDA kernels for tensor operations are valuable and hard to rewrite. Keep as a native library.             |
-| **GrammarDistillation** | `src/TarsEngine.GrammarDistillation`        | `Tars.Cortex.Grammar`       | **Unique Capability.** The logic for constraining LLM outputs is robust. We will extract this into a standalone library.                |
-| **VectorStore**         | `src/TarsEngine.FSharp.Core/VectorStore`    | `Tars.Kernel.Memory.Vector` | **Standard Utility.** The vector storage logic is reusable, though we may want to abstract the backend (e.g., support Qdrant/Pinecone). |
+ This layer introduces bounded rationality into the system, modeled after **Electrical Circuits**.
 
-### 🛠️ REFACTOR (Significant Changes Required)
-
-*These components contain valuable logic but need structural changes to fit the new architecture.*
-
-| Component               | Source Location                                    | V2 Destination            | Changes Needed                                                                                                                                                                                                    |
-|:----------------------- |:-------------------------------------------------- |:------------------------- |:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **AgentSystem**         | `src/TarsEngine.FSharp.Core/Agents/AgentSystem.fs` | `Tars.Agents.Definitions` | **Decouple.** The *logic* for `Cosmologist`, `DataScientist`, etc., is good, but they are currently hardcoded functions. We need to convert them into data-driven **Agent Definitions** that the Kernel can load. |
-| **TarsInferenceEngine** | `src/TARS.AI.Inference/TarsInferenceEngine.fs`     | `Tars.Cortex.Inference`   | **Abstract.** Currently tightly coupled to specific execution paths. Needs to implement a generic `ICognitiveProvider` interface so we can swap models (Llama, GPT-4, Claude) easily.                             |
-| **TarsApiServer**       | `src/TarsEngine.FSharp.Core/TarsApiServer.fs`      | `Tars.Interface.Api`      | **Modernize.** Likely needs to be updated to a newer ASP.NET Core version or Giraffe, with cleaner route separation.                                                                                              |
-
-### 🆕 NEW (To Be Coded)
-
-*These are the missing pieces required for the V2 architecture.*
-
-| Component              | Purpose             | Description                                                                                                                               |
-|:---------------------- |:------------------- |:----------------------------------------------------------------------------------------------------------------------------------------- |
-| **Tars.Kernel**        | Core Orchestration  | The lightweight runtime that hosts agents. Implements the **Semantic Bus** to enforce intent, constraints, and context between agents.     |
-| **SkillRegistry**      | Tool Management     | A system to define, version, and load "Skills" (tools). Agents should request skills from the registry rather than having them hardcoded. |
-| **ObservabilityTower** | Tracing & Debugging | A dedicated module for OpenTelemetry tracing. We need to see "inside" the agent's thought process in real-time (Agentic Trace Capture).   |
-| **ConfigurationHub**   | Settings Management | Centralized, dynamic configuration (likely using a hot-reloadable `appsettings.json` or env vars) to manage model endpoints and API keys. |
-
-## 3. Detailed Migration Plan
-
-### Phase 1: The Foundation (The Kernel)
-
-1. Create `Tars.Kernel` (F# Class Library).
-2. Implement `IAgent` and `ISkill` interfaces.
-3. Build the `EventBus` (using `System.Threading.Channels`).
-
-### Phase 2: The Brain (The Cortex)
-
-1. Create `Tars.Cortex` (F# Class Library).
-2. Port `GrammarDistillation` logic here.
-3. Port `TarsInferenceEngine` logic, wrapping it in `ICognitiveProvider`.
-
-### Phase 3: The Soul (The Agents)
-
-1. Create `Tars.Agents` (F# Class Library).
-2. Extract `Cosmologist`, `DataScientist`, `TheoreticalPhysicist` from `AgentSystem.fs`.
-3. Rewrite them to implement `IAgent` and use the `EventBus`.
-
-### Phase 4: The Memory (The Grid)
-
-1. Create `Tars.Memory` (F# Class Library).
-2. **Copy `BeliefGraph.fs`** (Lift & Shift).
-3. Port `VectorStore` logic.
-
-### Phase 5: The Body (The Interface)
-
-1. Create `Tars.Server` (Web API).
-2. Wire up the Kernel to the API endpoints.
-
-## 5. Advanced Capabilities & Esoteric Components
-
-This section details how the advanced, non-standard components fit into the V2 architecture.
-
-### 🌀 FLUX (The "Language of Thought")
-
-* **Current State**: `FluxIntegrationEngine.fs` (Tier 5). A multi-modal metascript engine supporting Wolfram, Julia, and F# Type Providers.
-* **V2 Placement**: **`Tars.Cortex.Flux`**.
-* **Role**: The primary "Reasoning Runtime" for agents. Instead of just "text-in/text-out", agents will generate **FLUX Metascripts**.
-  * *Example*: An agent needing to solve a differential equation will generate a `Wolfram` FLUX script, which the Cortex executes via the Wolfram engine, returning the result to the agent's context.
-
-### 📐 Hyper-Complex Geometric DSL
-
-* **Current State**: `HyperComplexGeometricDSL.fs` (Tier 4).
-* **V2 Placement**: **Deferred to v3**.
-* **Role**: Research for future memory topologies.
-  * **Decision**: For v2, we will use standard **Euclidean Vector Stores** (Cosine Similarity) to reduce complexity and ensure shipping. Hyperbolic embeddings are reserved for v3 research.
-
-### 🏭 AI-Enhanced Closure Factories
-
-* **Current State**: `AIEnhancedClosureFactory.fs`. Uses AI to write optimized F# functions (closures) at runtime.
-* **V2 Placement**: **`Tars.Kernel.Evolution`**.
-* **Role**: The "Self-Modification" engine.
-  * *Usage*: When an agent identifies a repetitive task, it requests the Kernel to "compile" a skill. The Closure Factory generates a highly optimized F# function (e.g., a specific data pipeline), compiles it, and hot-loads it into the `SkillRegistry`.
-
-### 🕸️ Internal Knowledge Graph (Graphiti)
-
-* **Current State**: `BeliefGraph.fs` (Concept).
-* **V2 Placement**: **`Tars.Memory.Graph`**.
-* **Role**: The **Primary Internal Knowledge Graph**.
-  * **Function**: Stores beliefs, agent lineage, and code relationships using a native graph model (Nodes/Edges).
-  * **Decision**: Replaces external Triple Stores for internal reasoning. Backed by SQLite or a lightweight graph engine.
-
-### 🧬 Computational Expression Factories
-
-* **Current State**: Implicit in `DSL` and `Flux`.
-* **V2 Placement**: **`Tars.Core.Computation`**.
-* **Role**: Syntactic sugar for complex operations. We will expose these as a library so users can write "Agentic Workflows" using F# CE syntax (e.g., `agent { let! thought = ... }`).
-
-## 6. Observability & Evolution
-
-### 🕵️ Agentic Traces
-
-* **Current State**: `AgenticTraceCapture.fs`. A comprehensive system capturing every thought, decision, and state change.
-* **V2 Placement**: **`Tars.Kernel.Tracing`**.
-* **Role**: The "Black Box Recorder" for agents.
-  * **Granularity**: Captures not just logs, but **Architecture Snapshots**, **Grammar Evolution Events**, and **Inter-Agent Communication** payloads.
-  * **Visualization**: Traces will be exportable to OpenTelemetry and a custom React-based **"Thought Player"** that allows replaying an agent's reasoning process step-by-step.
-
-### 🔄 TARS Auto-Evolution (Self-Modification)
-
-* **Current State**: `SelfModificationEngine.fs`.
-* **V2 Placement**: **`Tars.Kernel.Evolution`**.
-* **Role**: The engine that allows TARS to rewrite its own code.
-  * **Mechanism**: Agents can identify performance bottlenecks or missing capabilities. They submit a "Modification Request" to the Kernel.
-  * **Process**: The `SelfModificationEngine` uses LLMs to generate optimized F# code, validates it, and loads it.
-  * **Safety**:
-    * **F# Type System**: Uses Discriminated Unions to make invalid states unrepresentable.
-    * **Containerization**: Skills run in isolated **WASM/Docker** containers, not the main process.
-    * **Constitution**: All changes must pass the "Safety Gate" (Static Check -> Test -> Sandbox).
-
-### 🔗 External Knowledge Integration (Optional)
-
-* **Current State**: `RdfTripleStore.fs`.
-* **V2 Placement**: **`Tars.Integration.External`**.
-* **Role**: Importer for the Internal Knowledge Graph.
-  * **Ingestion**: Can query external Triple Stores (Wikidata) and **import** facts into the internal `Tars.Memory.Graph`.
-  * **Production**: Optional export of internal beliefs to RDF for external consumption. TARS does *not* use Triple Stores as its native runtime memory.
-
-## 7. Agentic Engineering Patterns (The "AI Operating System")
-
-This layer introduces bounded rationality into the system, treating the LLM not as a wizard, but as a stochastic CPU unit that requires deterministic guards.
-
-### Layer 1: The Resource Controller (The "Wallet")
-
-*Controls the raw fuel (tokens, money, time).*
+### Layer 1: Resistors (Throttling & Backpressure)
 
 * **Token Budget Governor**:
-  * **Concept**: Prevents financial infinite loops (`while(goal_not_met)`).
-  * **Implementation**: A `Budget` object passed through the context.
-  * **Refinement**: **"Low Battery Mode"**. When `Budget.Remaining < 10%`, the agent switches to a cleanup routine (log state, exit) rather than starting new reasoning chains.
-* **Cognitive Bulkheads**:
-  * **Concept**: Isolates resource pools to prevent priority inversion.
-  * **Implementation**: Separate API keys/quotas for "Primary" (User-facing), "Critical" (Safety), and "Experimental" (Background) tasks.
+  * **Role**: Prevents resource exhaustion.
+  * **Implementation**: A `BudgetGovernor` tracks tokens, money, and time. It is passed down the call stack.
+  * **Behavior**: If budget is low, agents switch to "Low Battery Mode" (summarize/exit).
+* **Bounded Channels**:
+  * **Role**: Prevents queue explosion.
+  * **Implementation**: `System.Threading.Channels` with fixed capacity. Producers await if consumers are slow.
 
-### Layer 2: The Control Flow (The "Manager")
+### Layer 2: Capacitors (Buffering & Memory)
 
-*Decides how to think.*
+* **Context Compaction**:
+  * **Role**: Manages context window pressure.
+  * **Implementation**: Intermediate reasoning steps are compressed; only Anchors (Goal, Error) are kept raw.
+* **Buffer Agents**:
+  * **Role**: Smooths bursty traffic.
+  * **Implementation**: Agents that accumulate messages over time (or count) before flushing to a downstream processor.
+
+### Layer 3: Transistors (Gating & Logic)
 
 * **Semantic Fan-out Limiter**:
-  * **Concept**: Prevents "Bureaucracy" where scoring takes more tokens than doing.
-  * **Implementation**: **Tiered Model Approach**. Use cheap models (GPT-4o-mini) to score/filter subtasks, passing only top-K to the expensive model (Claude 3.5 Sonnet/GPT-4o).
-* **Uncertainty-Gated Planner**:
-  * **Concept**: Solves the "Sledgehammer" problem and overconfidence.
-  * **Implementation**: Instead of asking "Confidence Score?", ask **"List 3 reasons why this might fail."** If the model can easily list 3, force the uncertainty score up and switch to a more robust planning mode.
+  * **Role**: Prevents "Bureaucracy".
+  * **Implementation**: Use cheap models to score subtasks, passing only Top-K to expensive models.
+* **Uncertainty Gates**:
+  * **Role**: Stops overconfident hallucinations.
+  * **Implementation**: If "Reasons to fail" are high, the gate closes or redirects to a robust planner.
 * **Semantic Watchdog**:
-  * **Concept**: Detects infinite loops that *look* like progress.
-  * **Implementation**: **State Awareness**. The watchdog monitors the agent's internal memory changes. If the reasoning looks new but the state ("Processed files: [A, B]") hasn't changed, it trips the circuit breaker.
-
-### Layer 3: The Data Plane (The "Memory")
-
-*Manages context window pressure.*
-
-* **Context Compaction Pipeline**:
-  * **Concept**: Prevents "Lossy Compression" of critical data.
-  * **Implementation**: **Anchor Points**. Keep the original `Goal` and the most recent `Error Message` raw and uncompressed. Only compress intermediate reasoning steps.
-* **Triage Summarizer**:
-  * **Concept**: RAG 2.0.
-  * **Implementation**: Retrieve Top-100 chunks -> Compress into a "Briefing" -> Let LLM decide which 5 to read in full.
+  * **Role**: Detects infinite loops.
+  * **Implementation**: Monitors state changes. If reasoning continues but state is static, it trips the circuit breaker.

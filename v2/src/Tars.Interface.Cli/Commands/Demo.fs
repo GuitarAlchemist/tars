@@ -12,10 +12,15 @@ type DemoAgent(id: Guid, logger: ILogger) =
         member _.Name = "Demo Agent"
 
         member _.HandleAsync(msg: SemanticMessage<obj>) =
-            Task.Run(fun () ->
-                match msg.Content with
-                | :? string as text -> logger.Information($"DemoAgent received: {text}")
-                | _ -> logger.Warning("DemoAgent received unknown message type"))
+            task {
+                do!
+                    Task.Run(fun () ->
+                        match msg.Content with
+                        | :? string as text -> logger.Information($"DemoAgent received: {text}")
+                        | _ -> logger.Warning("DemoAgent received unknown message type"))
+
+                return Success()
+            }
 
 let ping (logger: ILogger) =
     task {
@@ -28,7 +33,7 @@ let ping (logger: ILogger) =
         let agentId = Guid.NewGuid()
         let demoAgent = new DemoAgent(agentId, logger) :> IAgent
         logger.Information("Subscribing agent {Id}...", demoAgent.Id)
-        let _ = bus.Subscribe(demoAgent.Id, demoAgent.HandleAsync)
+        let _ = bus.Subscribe(demoAgent.Id, fun msg -> demoAgent.HandleAsync(msg) :> Task)
         logger.Information("Subscribed.")
 
         let msg =
@@ -38,6 +43,8 @@ let ping (logger: ILogger) =
               Receiver = Some(MessageEndpoint.Agent(AgentId agentId))
               Performative = Performative.Request
               Constraints = SemanticConstraints.Default
+              Ontology = None
+              Language = "text"
               Content = "PING" :> obj
               Timestamp = DateTime.UtcNow
               Metadata = Map.empty }

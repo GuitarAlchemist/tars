@@ -34,4 +34,6 @@ type EvolutionState =
       CurriculumAgentId: AgentId
       ExecutorAgentId: AgentId
       CompletedTasks: TaskResult list
-      CurrentTask: TaskDefinition option }
+      CurrentTask: TaskDefinition option
+      TaskQueue: TaskDefinition list
+      ActiveBeliefs: string list }

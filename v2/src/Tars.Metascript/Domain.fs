@@ -36,10 +36,17 @@ module Domain =
           Inputs: WorkflowInput list
           Steps: WorkflowStep list }
 
+    type StepExecutionTrace =
+        { StepId: string
+          StartedAt: DateTime
+          Duration: TimeSpan
+          Outputs: Map<string, obj>
+          Notes: string list }
+
     /// Runtime state of a workflow execution
     type WorkflowState =
         { Workflow: Workflow
           CurrentStepIndex: int
           Variables: Map<string, obj> // Global variables and inputs
           StepOutputs: Map<string, Map<string, obj>> // StepId -> OutputName -> Value
-          ExecutionTrace: string list }
+          ExecutionTrace: StepExecutionTrace list }

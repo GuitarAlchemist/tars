@@ -24,8 +24,7 @@ type GraphTests(output: ITestOutputHelper) =
             Assert.Equal("Calculator", name)
             Assert.Equal("2+2", input)
             output.WriteLine($"Correctly parsed tool call: {name} with input: {input}")
-        | ResponseParser.TextResponse text ->
-            Assert.Fail($"Expected ToolCall but got TextResponse: {text}")
+        | ResponseParser.TextResponse text -> Assert.Fail($"Expected ToolCall but got TextResponse: {text}")
 
     [<Fact>]
     member _.``ResponseParser: Parses text response correctly``() =
@@ -41,8 +40,7 @@ type GraphTests(output: ITestOutputHelper) =
         | ResponseParser.TextResponse text ->
             Assert.Equal("Hello, how can I help you today?", text)
             output.WriteLine($"Correctly parsed text response: {text}")
-        | ResponseParser.ToolCall(name, _) ->
-            Assert.Fail($"Expected TextResponse but got ToolCall: {name}")
+        | ResponseParser.ToolCall(name, _) -> Assert.Fail($"Expected TextResponse but got ToolCall: {name}")
 
     [<Fact>]
     member _.``ResponseParser: Handles tool call with colons in input``() =
@@ -59,8 +57,7 @@ type GraphTests(output: ITestOutputHelper) =
             Assert.Equal("WebSearch", name)
             Assert.Equal("query:with:colons", input)
             output.WriteLine($"Correctly handled colons in input: {input}")
-        | ResponseParser.TextResponse text ->
-            Assert.Fail($"Expected ToolCall but got TextResponse: {text}")
+        | ResponseParser.TextResponse text -> Assert.Fail($"Expected ToolCall but got TextResponse: {text}")
 
     [<Fact>]
     member _.``ResponseParser: Treats incomplete tool format as text``() =
@@ -76,8 +73,7 @@ type GraphTests(output: ITestOutputHelper) =
         | ResponseParser.TextResponse text ->
             Assert.Equal("TOOL:OnlyName", text)
             output.WriteLine("Correctly treated incomplete tool format as text")
-        | ResponseParser.ToolCall(name, _) ->
-            Assert.Fail($"Expected TextResponse but got ToolCall: {name}")
+        | ResponseParser.ToolCall(name, _) -> Assert.Fail($"Expected TextResponse but got ToolCall: {name}")
 
     [<Fact>]
     member _.``ResponseParser: Trims whitespace from response``() =
@@ -94,8 +90,7 @@ type GraphTests(output: ITestOutputHelper) =
             Assert.Equal("Calculator", name)
             Assert.Equal("5*5", input)
             output.WriteLine("Correctly trimmed whitespace and parsed tool call")
-        | ResponseParser.TextResponse text ->
-            Assert.Fail($"Expected ToolCall but got TextResponse: {text}")
+        | ResponseParser.TextResponse text -> Assert.Fail($"Expected ToolCall but got TextResponse: {text}")
 
     [<Fact>]
     member _.``ResponseParser: Case sensitive TOOL prefix``() =
@@ -111,8 +106,7 @@ type GraphTests(output: ITestOutputHelper) =
         | ResponseParser.TextResponse text ->
             Assert.Equal("tool:Calculator:2+2", text)
             output.WriteLine("Correctly treated lowercase 'tool' as text response")
-        | ResponseParser.ToolCall(name, _) ->
-            Assert.Fail($"Expected TextResponse but got ToolCall: {name}")
+        | ResponseParser.ToolCall(name, _) -> Assert.Fail($"Expected TextResponse but got ToolCall: {name}")
 
     // PromptBuilder Tests
 
@@ -120,15 +114,19 @@ type GraphTests(output: ITestOutputHelper) =
     member _.``PromptBuilder: Builds system prompt with agent info``() =
         output.WriteLine("Starting test: Builds system prompt with agent info")
         // Arrange
-        let agent: Tars.Core.Agent = {
-            Id = Tars.Core.AgentId(Guid.NewGuid())
-            Name = "TestAgent"
-            Model = "test-model"
-            SystemPrompt = "You are a helpful assistant."
-            Tools = []
-            Memory = []
-            State = Tars.Core.Idle
-        }
+        let agent: Tars.Core.Agent =
+            { Id = Tars.Core.AgentId(Guid.NewGuid())
+              Name = "TestAgent"
+              Version = "1.0.0"
+              ParentVersion = None
+              CreatedAt = DateTime.UtcNow
+              Model = "test-model"
+              SystemPrompt = "You are a helpful assistant."
+              Tools = []
+              Capabilities = []
+              Memory = []
+              State = Tars.Core.Idle }
+
         let history: Tars.Core.Message list = []
 
         // Act
@@ -144,35 +142,42 @@ type GraphTests(output: ITestOutputHelper) =
     member _.``PromptBuilder: Includes message history``() =
         output.WriteLine("Starting test: Includes message history")
         // Arrange
-        let agent: Tars.Core.Agent = {
-            Id = Tars.Core.AgentId(Guid.NewGuid())
-            Name = "TestAgent"
-            Model = "test-model"
-            SystemPrompt = "You are a helpful assistant."
-            Tools = []
-            Memory = []
-            State = Tars.Core.Idle
-        }
-        let history: Tars.Core.Message list = [
-            {
-                Id = Guid.NewGuid()
+        let agent: Tars.Core.Agent =
+            { Id = Tars.Core.AgentId(Guid.NewGuid())
+              Name = "TestAgent"
+              Version = "1.0.0"
+              ParentVersion = None
+              CreatedAt = DateTime.UtcNow
+              Model = "test-model"
+              SystemPrompt = "You are a helpful assistant."
+              Tools = []
+              Capabilities = []
+              Memory = []
+              State = Tars.Core.Idle }
+
+        let history: Tars.Core.Message list =
+            [ { Id = Guid.NewGuid()
                 CorrelationId = Tars.Core.CorrelationId(Guid.NewGuid())
-                Source = Tars.Core.User
-                Target = Tars.Core.System
+                Sender = Tars.Core.User
+                Receiver = Some Tars.Core.System
+                Performative = Tars.Core.Inform
+                Constraints = Tars.Core.SemanticConstraints.Default
+                Ontology = None
+                Language = "text"
                 Content = "Hello there!"
                 Timestamp = DateTime.UtcNow
-                Metadata = Map.empty
-            }
-            {
-                Id = Guid.NewGuid()
+                Metadata = Map.empty }
+              { Id = Guid.NewGuid()
                 CorrelationId = Tars.Core.CorrelationId(Guid.NewGuid())
-                Source = Tars.Core.Agent(agent.Id)
-                Target = Tars.Core.User
+                Sender = Tars.Core.Agent(agent.Id)
+                Receiver = Some Tars.Core.User
+                Performative = Tars.Core.Inform
+                Constraints = Tars.Core.SemanticConstraints.Default
+                Ontology = None
+                Language = "text"
                 Content = "Hi! How can I help?"
                 Timestamp = DateTime.UtcNow
-                Metadata = Map.empty
-            }
-        ]
+                Metadata = Map.empty } ]
 
         // Act
         let prompt = PromptBuilder.buildSystemPrompt agent history

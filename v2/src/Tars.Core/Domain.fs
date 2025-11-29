@@ -24,6 +24,7 @@ type Performative =
     | Propose // "I can do this for cost Y"
     | Refuse // "I cannot do this (violates constraints)"
     | Failure // "Execution failed"
+    | NotUnderstood // "I don't know what you mean"
     | Event // "Something happened"
 
 /// The "Guardrails" for the request
@@ -47,12 +48,47 @@ type SemanticMessage<'T> =
       Receiver: MessageEndpoint option // None = Broadcast
       Performative: Performative
       Constraints: SemanticConstraints
+      Ontology: string option // Domain context (e.g., "coding", "finance")
+      Language: string // Content type (e.g., "json", "fsharp", "natural")
       Content: 'T
       Timestamp: DateTime
       Metadata: Map<string, string> }
 
 /// Alias for text-based messages (common case)
 type Message = SemanticMessage<string>
+
+/// Represents a non-fatal issue encountered during execution
+type PartialFailure =
+    | Warning of message: string
+    | Error of message: string
+    | Degradation of feature: string * reason: string
+    | Timeout of operation: string * duration: TimeSpan
+    | SubAgentTimeout of agentId: AgentId * taskId: Guid
+    | ToolError of tool: string * error: string
+    | LowConfidence of score: float * details: string
+    | ProtocolViolation of message: string
+    | ConstraintViolation of violation: string
+
+/// Represents the outcome of an agentic operation, supporting partial success
+type ExecutionOutcome<'T> =
+    | Success of value: 'T
+    | PartialSuccess of value: 'T * warnings: PartialFailure list
+    | Failure of errors: PartialFailure list
+
+type CapabilityKind =
+    | Summarization
+    | WebSearch
+    | CodeGeneration
+    | DataAnalysis
+    | Planning
+    | TaskExecution
+    | Custom of string
+
+type Capability =
+    { Kind: CapabilityKind
+      Description: string
+      InputSchema: string option
+      OutputSchema: string option }
 
 /// Represents a tool that an agent can execute
 type Tool =
@@ -85,6 +121,7 @@ type Agent =
       Model: string
       SystemPrompt: string
       Tools: Tool list
+      Capabilities: Capability list
       State: AgentState
       Memory: Message list } // Short-term memory/context
 

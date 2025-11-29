@@ -12,6 +12,8 @@
     <Compile Include="Commands\TestGrammar.fs" />
     <Compile Include="Commands\Memory.fs" />
     <Compile Include="Commands\Demo.fs" />
+    <Compile Include="Commands\Diagnostics.fs" />
+    <Compile Include="Commands\RagDemo.fs" />
     <Compile Include="Commands\Chat.fs" />
     <Compile Include="Commands\Evolve.fs" />
     <Compile Include="Commands\Experiment.fs" />

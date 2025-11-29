@@ -20,7 +20,15 @@ type RouterTests(output: ITestOutputHelper) =
             let router = AgentRouter()
 
             let eventBus =
-                new EventBus(logger, CircuitBreaker(5, TimeSpan.FromMinutes(1.0)), BudgetGovernor(100000), router)
+                new EventBus(
+                    logger,
+                    CircuitBreaker(5, TimeSpan.FromMinutes(1.0)),
+                    BudgetGovernor(
+                        { Budget.Infinite with
+                            MaxTokens = Some 100000<token> }
+                    ),
+                    router
+                )
 
             let bus = eventBus :> IEventBus
 
@@ -45,6 +53,8 @@ type RouterTests(output: ITestOutputHelper) =
                   Receiver = Some(MessageEndpoint.Alias "Coder")
                   Performative = Performative.Request
                   Constraints = SemanticConstraints.Default
+                  Ontology = None
+                  Language = "text"
                   Content = "Task 1" :> obj
                   Timestamp = DateTime.UtcNow
                   Metadata = Map.empty }

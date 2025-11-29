@@ -4,11 +4,49 @@ open System
 open System.Collections.Concurrent
 open System.Threading.Channels
 open System.Threading.Tasks
+open System.Text
 open Serilog
 open Tars.Core
 
 type EventBus(logger: ILogger, circuitBreaker: CircuitBreaker, budgetGovernor: BudgetGovernor, router: AgentRouter) =
     let channel = Channel.CreateUnbounded<SemanticMessage<obj>>()
+
+    let maxEnvelopeBytes = 64 * 1024
+
+    let approxTokenCount (msg: SemanticMessage<obj>) : int<token> =
+        match msg.Content with
+        | :? string as s -> (s.Length / 4) * 1<token>
+        | _ -> 256 * 1<token>
+
+    /// Applies guardrails to envelopes before they enter the bus.
+    /// If violated, returns a downgraded Failure envelope addressed back to the sender.
+    let guardEnvelope (msg: SemanticMessage<obj>) =
+        let sizeBytes =
+            match msg.Content with
+            | :? string as s -> Encoding.UTF8.GetByteCount s
+            | _ -> 1024
+
+        let tokenEstimate = approxTokenCount msg
+
+        let violation =
+            if sizeBytes > maxEnvelopeBytes then
+                Some $"Envelope size exceeded ({sizeBytes} > {maxEnvelopeBytes} bytes)"
+            else
+                match msg.Constraints.MaxTokens with
+                | Some limit when tokenEstimate > limit -> Some $"Token guard exceeded ({tokenEstimate} > {limit})"
+                | _ -> None
+
+        match violation with
+        | Some reason ->
+            logger.Warning("SemanticEnvelopeGuard: {Reason} on {Id}", reason, msg.Id)
+
+            { msg with
+                Performative = Performative.Failure
+                Receiver = Some msg.Sender // bounce back to origin
+                Language = "text/failure"
+                Content = box $"SemanticEnvelopeGuard: {reason}"
+                Metadata = msg.Metadata |> Map.add "guard.failure" reason }
+        | None -> msg
 
     let subscribers =
         ConcurrentDictionary<string, ConcurrentDictionary<Guid, SemanticMessage<obj> -> Task>>()
@@ -130,20 +168,34 @@ type EventBus(logger: ILogger, circuitBreaker: CircuitBreaker, budgetGovernor: B
     let _ = Task.Run(fun () -> processLoop ())
 
     new(logger: ILogger) =
-        EventBus(logger, CircuitBreaker(5, TimeSpan.FromMinutes(1.0)), BudgetGovernor(100000), AgentRouter())
+        EventBus(
+            logger,
+            CircuitBreaker(5, TimeSpan.FromMinutes(1.0)),
+            BudgetGovernor(
+                { Budget.Infinite with
+                    MaxTokens = Some 100000<token> }
+            ),
+            AgentRouter()
+        )
 
     interface IEventBus with
         member _.PublishAsync(msg) =
             task {
+                // Apply envelope guard (downgrade to failure instead of silent drop)
+                let guarded = guardEnvelope msg
+
                 // Check Budget before publishing
-                let (CorrelationId cid) = msg.CorrelationId
+                let (CorrelationId cid) = guarded.CorrelationId
 
                 // 1. Check Budget
-                let budgetOk = budgetGovernor.CanSpend(cid, 1<token>)
+                let budgetOk =
+                    match budgetGovernor.TryConsume { Cost.Zero with Tokens = 1<token> } with
+                    | Result.Ok _ -> true
+                    | Result.Error _ -> false
 
                 // 2. Check Semantic Constraints
                 let constraintsOk =
-                    match msg.Constraints.MaxTokens with
+                    match guarded.Constraints.MaxTokens with
                     | Some limit ->
                         // Simplified check: if limit is very small, maybe reject?
                         // For now, we just pass this through, as token usage is checked at consumption time
@@ -153,16 +205,16 @@ type EventBus(logger: ILogger, circuitBreaker: CircuitBreaker, budgetGovernor: B
                 if budgetOk && constraintsOk then
                     // Resolve Alias if present
                     let resolvedMsg =
-                        match msg.Receiver with
+                        match guarded.Receiver with
                         | Some(MessageEndpoint.Alias name) ->
                             match router.Resolve(name) with
                             | Some agentId ->
-                                { msg with
+                                { guarded with
                                     Receiver = Some(MessageEndpoint.Agent agentId) }
                             | None ->
                                 logger.Warning("EventBus: Could not resolve alias {Alias}", name)
-                                msg // Or drop? For now, keep as is, it will fail in loop
-                        | _ -> msg
+                                guarded // Or drop? For now, keep as is, it will fail in loop
+                        | _ -> guarded
 
                     do! channel.Writer.WriteAsync(resolvedMsg)
                 else

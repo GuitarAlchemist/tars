@@ -33,7 +33,9 @@ module OllamaClient =
         { model: string
           message: OllamaResponseMessageDto
           [<JsonPropertyName("done")>]
-          isDone: bool }
+          isDone: bool
+          eval_count: int option
+          prompt_eval_count: int option }
 
     let private jsonOptions =
         JsonSerializerOptions(
@@ -61,6 +63,12 @@ module OllamaClient =
     [<CLIMutable>]
     type OllamaEmbeddingResponseDto = { embedding: float32[] }
 
+    [<CLIMutable>]
+    type OllamaModelDto = { name: string; model: string }
+
+    [<CLIMutable>]
+    type OllamaTagsResponseDto = { models: OllamaModelDto list }
+
     let sendChatAsync (http: HttpClient) (baseUri: Uri) (model: string) (req: LlmRequest) : Task<LlmResponse> =
         task {
             let dto: OllamaRequestDto =
@@ -69,7 +77,7 @@ module OllamaClient =
                   stream = false
                   temperature = req.Temperature }
 
-            let uri = Uri(baseUri, "/api/chat")
+            let uri = Uri(baseUri, "api/chat")
             use! resp = http.PostAsJsonAsync(uri, dto, jsonOptions)
             resp.EnsureSuccessStatusCode() |> ignore
 
@@ -80,18 +88,29 @@ module OllamaClient =
                 return
                     { Text = ""
                       FinishReason = Some "parse_error"
+                      Usage = None
                       Raw = Some raw }
             else
+                let usage =
+                    match parsed.prompt_eval_count, parsed.eval_count with
+                    | Some p, Some c ->
+                        Some
+                            { PromptTokens = p
+                              CompletionTokens = c
+                              TotalTokens = p + c }
+                    | _ -> None
+
                 return
                     { Text = parsed.message.content
                       FinishReason = Some(if parsed.isDone then "done" else "unknown")
+                      Usage = usage
                       Raw = Some raw }
         }
 
     let getEmbeddingsAsync (http: HttpClient) (baseUri: Uri) (model: string) (text: string) : Task<float32[]> =
         task {
             let dto: OllamaEmbeddingRequestDto = { model = model; prompt = text }
-            let uri = Uri(baseUri, "/api/embeddings")
+            let uri = Uri(baseUri, "api/embeddings")
             use! resp = http.PostAsJsonAsync(uri, dto, jsonOptions)
             resp.EnsureSuccessStatusCode() |> ignore
 
@@ -104,4 +123,18 @@ module OllamaClient =
                 return [||]
             else
                 return parsed.embedding
+        }
+
+    let getTagsAsync (http: HttpClient) (baseUri: Uri) : Task<string list> =
+        task {
+            let uri = Uri(baseUri, "api/tags")
+            let! resp = http.GetAsync(uri)
+            resp.EnsureSuccessStatusCode() |> ignore
+            let! raw = resp.Content.ReadAsStringAsync()
+            let parsed = JsonSerializer.Deserialize<OllamaTagsResponseDto>(raw, jsonOptions)
+
+            if isNull (box parsed) || isNull (box parsed.models) then
+                return []
+            else
+                return parsed.models |> List.map (fun m -> m.name)
         }

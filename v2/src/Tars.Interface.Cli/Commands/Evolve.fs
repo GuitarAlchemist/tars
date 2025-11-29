@@ -11,7 +11,9 @@ open Tars.Llm
 open Tars.Llm.Routing
 open Tars.Llm.LlmService
 
-let run (logger: ILogger) =
+type EvolveOptions = { MaxIterations: int; Quiet: bool }
+
+let run (logger: ILogger) (options: EvolveOptions) =
     task {
         logger.Information("Starting TARS v2 Evolution Engine...")
 
@@ -68,16 +70,29 @@ let run (logger: ILogger) =
                   CurriculumAgentId = AgentId curriculumId
                   ExecutorAgentId = AgentId executorId
                   CompletedTasks = []
-                  CurrentTask = None }
+                  CurrentTask = None
+                  TaskQueue = []
+                  ActiveBeliefs = [] }
+
+            let epistemic = Tars.Cortex.EpistemicGovernor(llmService, None)
+
+            let budget =
+                BudgetGovernor(
+                    { Budget.Infinite with
+                        MaxTokens = Some 1000000<token> // 1M token budget for the session
+                        MaxMoney = Some 10.0m<usd> }
+                )
 
             let evoCtx: Engine.EvolutionContext =
                 { Kernel = ctx
                   Llm = llmService
-                  VectorStore = vectorStore }
+                  VectorStore = vectorStore
+                  Epistemic = Some(epistemic :> Tars.Cortex.IEpistemicGovernor)
+                  Budget = Some budget }
 
             let mutable currentState = evoState
 
-            for i in 1..5 do
+            for i in 1 .. options.MaxIterations do
                 printfn "--- Generation %d ---" currentState.Generation
                 let! nextState = Engine.step evoCtx currentState
                 currentState <- nextState

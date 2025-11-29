@@ -9,7 +9,7 @@ type IAgent =
     abstract member Id: string
     abstract member Name: string
     /// Handles a semantic message. The agent must respect the Performative and Constraints.
-    abstract member HandleAsync: SemanticMessage<obj> -> Task
+    abstract member HandleAsync: SemanticMessage<obj> -> Task<ExecutionOutcome<unit>>
 
 /// Represents the central nervous system (Semantic Bus)
 type IEventBus =

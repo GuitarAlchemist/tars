@@ -20,10 +20,16 @@ type LlmRequest =
       Temperature: float option
       Messages: LlmMessage list }
 
+type TokenUsage =
+    { PromptTokens: int
+      CompletionTokens: int
+      TotalTokens: int }
+
 /// Unified response type
 type LlmResponse =
     { Text: string
       FinishReason: string option
+      Usage: TokenUsage option
       Raw: string option } // raw JSON if you want to log/debug
 
 type LlmBackend =

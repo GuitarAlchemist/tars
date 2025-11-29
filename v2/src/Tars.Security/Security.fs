@@ -12,14 +12,15 @@ module CredentialVault =
     let registerSecret (key: string) (value: string) =
         secrets.AddOrUpdate(key, value, (fun _ _ -> value)) |> ignore
 
-    /// Retrieve a secret from environment variables or in-memory vault
+    /// Retrieve a secret from in-memory vault or environment variables
     let getSecret (key: string) =
+        // Environment always wins to allow secure overrides
         match Environment.GetEnvironmentVariable(key) with
-        | null ->
+        | value when not (isNull value) -> Ok value
+        | _ ->
             match secrets.TryGetValue(key) with
             | true, value -> Ok value
             | _ -> Error $"Secret '%s{key}' not found"
-        | value -> Ok value
 
     /// Load secrets from a JSON file on disk
     /// The file should be a simple key-value map: {"KEY": "VALUE"}

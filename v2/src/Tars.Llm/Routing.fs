@@ -35,7 +35,14 @@ let chooseBackend (cfg: RoutingConfig) (req: LlmRequest) : RoutedBackend =
         ->
         { Backend = Vllm cfg.DefaultVllmModel
           Endpoint = cfg.VllmBaseUri }
+    | hint when
+        hint.Contains("llama", StringComparison.OrdinalIgnoreCase)
+        || hint.Contains("qwen", StringComparison.OrdinalIgnoreCase)
+        || hint.Contains("mistral", StringComparison.OrdinalIgnoreCase)
+        ->
+        { Backend = Ollama cfg.DefaultOllamaModel
+          Endpoint = cfg.OllamaBaseUri }
     | _ ->
-        // Default: send to vLLM (better throughput for agent swarms)
-        { Backend = Vllm cfg.DefaultVllmModel
-          Endpoint = cfg.VllmBaseUri }
+        // Default: send to Ollama (safest for local dev)
+        { Backend = Ollama cfg.DefaultOllamaModel
+          Endpoint = cfg.OllamaBaseUri }

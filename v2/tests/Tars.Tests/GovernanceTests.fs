@@ -3,30 +3,102 @@ namespace Tars.Tests
 open System
 open Xunit
 open Tars.Core
-open Tars.Kernel
 
-type GovernanceTests() =
+module GovernanceTests =
 
     [<Fact>]
-    member _.``BudgetGovernor tracks tokens correctly with units``() =
-        // Arrange
-        let maxTokens = 100
-        let governor = BudgetGovernor(maxTokens)
-        let correlationId = Guid.NewGuid()
+    let ``BudgetGovernor tracks token usage`` () =
+        let budget =
+            { Budget.Infinite with
+                MaxTokens = Some 100<token> }
 
-        // Act
-        // Spend 50 tokens
-        let canSpend1 = governor.CanSpend(correlationId, 50<token>)
-        governor.RecordUsage(correlationId, 50<token>)
+        let governor = BudgetGovernor(budget)
 
-        // Check remaining
-        let (remTokens, _, _) = governor.GetRemainingBudget(correlationId)
+        let cost = { Cost.Zero with Tokens = 50<token> }
+        let result = governor.Consume(cost)
 
-        // Spend 60 tokens (should fail check if we were strict, but CanSpend just checks if current + est <= max)
-        // 50 used + 60 est = 110 > 100. Should return false.
-        let canSpend2 = governor.CanSpend(correlationId, 60<token>)
+        Assert.True(
+            match result with
+            | Result.Ok _ -> true
+            | _ -> false
+        )
 
-        // Assert
-        Assert.True(canSpend1)
-        Assert.Equal(50<token>, remTokens)
-        Assert.False(canSpend2)
+        let remaining = governor.Remaining
+        Assert.Equal(Some 50<token>, remaining.MaxTokens)
+
+    [<Fact>]
+    let ``BudgetGovernor prevents spending over limit`` () =
+        let budget =
+            { Budget.Infinite with
+                MaxTokens = Some 100<token> }
+
+        let governor = BudgetGovernor(budget)
+
+        // Spend 80
+        let _ = governor.Consume({ Cost.Zero with Tokens = 80<token> })
+
+        // Try to spend 30 (should fail)
+        let resultFail = governor.TryConsume({ Cost.Zero with Tokens = 30<token> })
+
+        Assert.True(
+            match resultFail with
+            | Result.Error _ -> true
+            | _ -> false
+        )
+
+        // Try to spend 10 (should succeed)
+        let resultSuccess = governor.TryConsume({ Cost.Zero with Tokens = 10<token> })
+
+        Assert.True(
+            match resultSuccess with
+            | Result.Ok _ -> true
+            | _ -> false
+        )
+
+    [<Fact>]
+    let ``BudgetGovernor tracks calls`` () =
+        let budget =
+            { Budget.Infinite with
+                MaxCalls = Some 100<requests> }
+
+        let governor = BudgetGovernor(budget)
+
+        // Consume 99 calls
+        let cost =
+            { Cost.Zero with
+                CallCount = 99<requests> }
+
+        let _ = governor.Consume(cost)
+
+        // 100th call should succeed
+        let result100 =
+            governor.TryConsume(
+                { Cost.Zero with
+                    CallCount = 1<requests> }
+            )
+
+        Assert.True(
+            match result100 with
+            | Result.Ok _ -> true
+            | _ -> false
+        )
+
+        // Actually consume it
+        let _ =
+            governor.Consume(
+                { Cost.Zero with
+                    CallCount = 1<requests> }
+            )
+
+        // 101st call should fail
+        let result101 =
+            governor.TryConsume(
+                { Cost.Zero with
+                    CallCount = 1<requests> }
+            )
+
+        Assert.True(
+            match result101 with
+            | Result.Error _ -> true
+            | _ -> false
+        )

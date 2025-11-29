@@ -36,9 +36,16 @@ module OpenAiCompatibleClient =
           finish_reason: string }
 
     [<CLIMutable>]
+    type OpenAiUsageDto =
+        { prompt_tokens: int
+          completion_tokens: int
+          total_tokens: int }
+
+    [<CLIMutable>]
     type OpenAiResponseDto =
         { id: string
-          choices: OpenAiChoiceDto[] }
+          choices: OpenAiChoiceDto[]
+          usage: OpenAiUsageDto option }
 
     let private jsonOptions =
         JsonSerializerOptions(
@@ -89,6 +96,7 @@ module OpenAiCompatibleClient =
                 return
                     { Text = ""
                       FinishReason = Some "parse_error"
+                      Usage = None
                       Raw = Some raw }
             else
                 let choice =
@@ -102,11 +110,22 @@ module OpenAiCompatibleClient =
                     return
                         { Text = ""
                           FinishReason = Some "no_choices"
+                          Usage = None
                           Raw = Some raw }
                 | Some c ->
+                    let usage =
+                        match parsed.usage with
+                        | Some u ->
+                            Some
+                                { PromptTokens = u.prompt_tokens
+                                  CompletionTokens = u.completion_tokens
+                                  TotalTokens = u.total_tokens }
+                        | None -> None
+
                     return
                         { Text = c.message.content
                           FinishReason = Some c.finish_reason
+                          Usage = usage
                           Raw = Some raw }
         }
 

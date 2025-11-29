@@ -43,6 +43,7 @@ module Kernel =
           Model = model
           SystemPrompt = systemPrompt
           Tools = tools
+          Capabilities = []
           State = Idle
           Memory = [] }
 
@@ -75,3 +76,16 @@ module Kernel =
     let receiveMessage (msg: Message) (agent: Agent) =
         { agent with
             Memory = agent.Memory @ [ msg ] }
+
+    /// Implementation of IAgentRegistry over a KernelContext
+    type KernelRegistry(ctx: KernelContext) =
+        interface IAgentRegistry with
+            member _.GetAgent(id) = async { return getAgent id ctx }
+
+            member _.FindAgents(capability) =
+                async {
+                    return
+                        ctx.Agents.Values
+                        |> Seq.filter (fun a -> a.Capabilities |> List.exists (fun c -> c.Kind = capability))
+                        |> Seq.toList
+                }

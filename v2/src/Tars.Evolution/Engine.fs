@@ -8,6 +8,7 @@ open Tars.Llm
 open Tars.Llm.LlmService
 open System.Text.Json
 open Tars.Kernel
+open Tars.Cortex
 
 module Engine =
 
@@ -15,7 +16,9 @@ module Engine =
     type EvolutionContext =
         { Kernel: KernelContext
           Llm: ILlmService
-          VectorStore: IVectorStore }
+          VectorStore: IVectorStore
+          Epistemic: IEpistemicGovernor option
+          Budget: BudgetGovernor option }
 
     let private scoreTask (task: TaskDefinition) : float =
         // Simple heuristic for now:
@@ -26,11 +29,38 @@ module Engine =
     /// Generates a new task using the Curriculum Agent
     let private generateTask (ctx: EvolutionContext) (state: EvolutionState) =
         task {
+            // Check Budget Criticality
+            let isCritical =
+                match ctx.Budget with
+                | Some b -> b.IsCritical(0.1) // Less than 10% remaining
+                | None -> false
+
+            // Epistemic Governor: Get Curriculum Suggestions
+            let! suggestion =
+                match ctx.Epistemic with
+                | Some governor ->
+                    let recentOutputs =
+                        state.CompletedTasks
+                        |> List.truncate 5
+                        |> List.map (fun t -> t.Output.Substring(0, Math.Min(t.Output.Length, 100)) + "...")
+
+                    governor.SuggestCurriculum(recentOutputs, state.ActiveBeliefs)
+                | None -> Task.FromResult "Focus on basic coding tasks."
+
+            let guidance =
+                if isCritical then
+                    suggestion + " WARNING: Budget is critical. Generate simpler, cheaper tasks."
+                else
+                    suggestion
+
             let prompt =
                 sprintf
                     """You are a Curriculum Agent. Your goal is to generate a new coding task for an AI agent to solve.
 The current generation is %d.
 Previous completed tasks: %d.
+
+Guidance from the Epistemic Governor:
+"%s"
 
 Generate a JSON object containing a list of 3 potential tasks under the key "tasks".
 Each task should have:
@@ -41,6 +71,7 @@ Each task should have:
 JSON:"""
                     state.Generation
                     state.CompletedTasks.Length
+                    guidance
 
             let req =
                 { ModelHint = Some "code" // Use smart model for curriculum
@@ -102,64 +133,34 @@ JSON:"""
                         { taskDef with Score = score })
                     |> Seq.toList
 
-                // Select Top 1 (Fan-out Limiter)
-                match parsedTasks |> List.sortByDescending (fun t -> t.Score) with
-                | best :: _ -> return best
-                | [] ->
+                // Select Top K (Fan-out Limiter)
+                // TODO: Make K configurable via CLI
+                let k = 3
+
+                let topK =
+                    parsedTasks |> List.sortByDescending (fun t -> t.Score) |> List.truncate k
+
+                if topK.IsEmpty then
                     return
-                        { Id = Guid.NewGuid()
-                          DifficultyLevel = state.Generation + 1
-                          Goal = "Failed to parse tasks. Write a hello world script."
-                          Constraints = []
-                          ValidationCriteria = "Output 'Hello World'"
-                          Timeout = TimeSpan.FromMinutes(1.0)
-                          Score = 0.0 }
+                        [ { Id = Guid.NewGuid()
+                            DifficultyLevel = state.Generation + 1
+                            Goal = "Failed to parse tasks. Write a hello world script."
+                            Constraints = []
+                            ValidationCriteria = "Output 'Hello World'"
+                            Timeout = TimeSpan.FromMinutes(1.0)
+                            Score = 0.0 } ]
+                else
+                    return topK
 
             with ex ->
                 return
-                    { Id = Guid.NewGuid()
-                      DifficultyLevel = state.Generation + 1
-                      Goal = "Failed to parse task. Write a hello world script."
-                      Constraints = []
-                      ValidationCriteria = "Output 'Hello World'"
-                      Timeout = TimeSpan.FromMinutes(1.0)
-                      Score = 0.0 }
-        }
-
-    /// Helper to run the agent loop until it produces a response or errors
-    let private runAgentLoop (agent: Agent) (graphCtx: GraphRuntime.GraphContext) =
-        task {
-            let mutable currentAgent = agent
-            let mutable stepCount = 0
-            let mutable finished = false
-            let mutable trace = []
-            let mutable resultOutput = ""
-            let mutable success = false
-
-            while not finished && stepCount < graphCtx.MaxSteps do
-                trace <- trace @ [ sprintf "Step %d: %A" stepCount currentAgent.State ]
-                let! next = GraphRuntime.step currentAgent graphCtx
-                currentAgent <- next
-                stepCount <- stepCount + 1
-
-                match currentAgent.State with
-                | WaitingForUser response ->
-                    trace <- trace @ [ sprintf "Response: %s" response ]
-                    resultOutput <- response
-                    success <- true
-                    finished <- true
-                | AgentState.Error err ->
-                    trace <- trace @ [ sprintf "Error: %s" err ]
-                    resultOutput <- err
-                    success <- false
-                    finished <- true
-                | _ -> ()
-
-            if not finished then
-                resultOutput <- "Timeout or incomplete"
-                success <- false
-
-            return (currentAgent, success, resultOutput, trace)
+                    [ { Id = Guid.NewGuid()
+                        DifficultyLevel = state.Generation + 1
+                        Goal = "Failed to parse task. Write a hello world script."
+                        Constraints = []
+                        ValidationCriteria = "Output 'Hello World'"
+                        Timeout = TimeSpan.FromMinutes(1.0)
+                        Score = 0.0 } ]
         }
 
     /// Attempts to solve a task using the Executor Agent
@@ -176,12 +177,8 @@ JSON:"""
                       ExecutionTrace = []
                       Duration = TimeSpan.Zero }
             | Some executor ->
-                // 2. Initialize Graph Context for the task
-                let graphCtx: GraphRuntime.GraphContext =
-                    { Kernel = ctx.Kernel
-                      Llm = ctx.Llm
-                      MaxSteps = 20
-                      BudgetGovernor = Some(BudgetGovernor(100000)) }
+                // 2. Initialize Graph Executor
+                let graphExecutor = GraphExecutor(ctx.Kernel, ctx.Llm, ctx.Budget)
 
                 // 3. Construct the Task Prompt
                 let taskPrompt =
@@ -202,6 +199,8 @@ Please solve this task. Output your solution code or answer."""
                       Receiver = Some(MessageEndpoint.Agent executor.Id)
                       Performative = Performative.Request
                       Constraints = SemanticConstraints.Default
+                      Ontology = None
+                      Language = "text"
                       Content = taskPrompt
                       Timestamp = DateTime.UtcNow
                       Metadata = Map.empty }
@@ -210,7 +209,14 @@ Please solve this task. Output your solution code or answer."""
                 let agentWithMsg = Kernel.receiveMessage msg executor
 
                 // 5. Run Initial Execution
-                let! (agentAfterExec, success, output, trace) = runAgentLoop agentWithMsg graphCtx
+                let! outcome = graphExecutor.RunAgentLoop agentWithMsg 20
+
+                let (agentAfterExec, success, output, trace) =
+                    match outcome with
+                    | Success(a, o, t) -> (a, true, o, t)
+                    | PartialSuccess((a, o, t), _) -> (a, true, o, t)
+                    | Failure err ->
+                        (agentWithMsg, false, String.concat "; " (err |> List.map (fun e -> sprintf "%A" e)), [])
 
                 if not success then
                     return
@@ -222,11 +228,20 @@ Please solve this task. Output your solution code or answer."""
                           Duration = TimeSpan.FromSeconds(5.0) }
                 else
                     // 6. Adaptive Reflection Loop (Phase 6.4)
-                    // We will try to reflect once for now.
-                    let reflectionPrompt =
-                        sprintf
-                            """You have generated a solution.
-Previous Output:
+                    let maxReflections = 3
+                    let mutable currentOutput = output
+                    let mutable currentTrace = trace
+                    let mutable reflectionCount = 0
+                    let mutable isOptimal = false
+                    let mutable currentAgent = agentAfterExec
+
+                    while reflectionCount < maxReflections && not isOptimal do
+                        reflectionCount <- reflectionCount + 1
+
+                        let reflectionPrompt =
+                            sprintf
+                                """You have generated a solution.
+Current Output:
 %s
 
 Please reflect on this solution.
@@ -234,60 +249,96 @@ Please reflect on this solution.
 2. Verify if it meets all constraints: %A
 3. If you can improve it, output the IMPROVED solution.
 4. If it is already optimal, output "OPTIMAL"."""
-                            output
-                            taskDef.Constraints
+                                currentOutput
+                                taskDef.Constraints
 
-                    let reflectionMsg =
-                        { Id = Guid.NewGuid()
-                          CorrelationId = CorrelationId(Guid.NewGuid())
-                          Sender = MessageEndpoint.System
-                          Receiver = Some(MessageEndpoint.Agent executor.Id)
-                          Performative = Performative.Request
-                          Constraints = SemanticConstraints.Default
-                          Content = reflectionPrompt
-                          Timestamp = DateTime.UtcNow
-                          Metadata = Map.empty }
+                        let reflectionMsg =
+                            { Id = Guid.NewGuid()
+                              CorrelationId = CorrelationId(Guid.NewGuid())
+                              Sender = MessageEndpoint.System
+                              Receiver = Some(MessageEndpoint.Agent executor.Id)
+                              Performative = Performative.Request
+                              Constraints = SemanticConstraints.Default
+                              Ontology = None
+                              Language = "text"
+                              Content = reflectionPrompt
+                              Timestamp = DateTime.UtcNow
+                              Metadata = Map.empty }
 
-                    let agentWithReflection = Kernel.receiveMessage reflectionMsg agentAfterExec
+                        let agentWithReflection = Kernel.receiveMessage reflectionMsg currentAgent
+                        let! reflectOutcome = graphExecutor.RunAgentLoop agentWithReflection 20
 
-                    let! (agentAfterReflect, reflectSuccess, reflectOutput, reflectTrace) =
-                        runAgentLoop agentWithReflection graphCtx
+                        match reflectOutcome with
+                        | Success(nextAgent, reflectOutput, reflectTrace) ->
+                            currentAgent <- nextAgent
+                            currentTrace <- currentTrace @ [ $"--- REFLECTION {reflectionCount} ---" ] @ reflectTrace
 
-                    let finalOutput =
-                        if reflectSuccess && not (reflectOutput.Contains("OPTIMAL")) then
-                            reflectOutput
-                        else
-                            output
+                            if reflectOutput.Contains("OPTIMAL") then
+                                isOptimal <- true
+                            else
+                                currentOutput <- reflectOutput
+                        | PartialSuccess((nextAgent, reflectOutput, reflectTrace), _) ->
+                            currentAgent <- nextAgent
 
-                    let fullTrace = trace @ [ "--- REFLECTION ---" ] @ reflectTrace
+                            currentTrace <-
+                                currentTrace
+                                @ [ $"--- REFLECTION {reflectionCount} (Partial) ---" ]
+                                @ reflectTrace
+
+                            currentOutput <- reflectOutput
+                        | Failure err ->
+                            // If reflection fails, stop and keep previous result
+                            currentTrace <- currentTrace @ [ $"--- REFLECTION {reflectionCount} FAILED ---" ]
+                            // Don't update output, just stop
+                            reflectionCount <- maxReflections
 
                     return
                         { TaskId = taskDef.Id
                           ExecutorId = state.ExecutorAgentId
                           Success = true
-                          Output = finalOutput
-                          ExecutionTrace = fullTrace
-                          Duration = TimeSpan.FromSeconds(10.0) }
+                          Output = currentOutput
+                          ExecutionTrace = currentTrace
+                          Duration = TimeSpan.FromSeconds(10.0 * float (reflectionCount + 1)) }
         }
 
     /// The main tick of the evolutionary loop
     let step (ctx: EvolutionContext) (state: EvolutionState) =
         task {
             match state.CurrentTask with
-            | None ->
-                // 1. Curriculum Phase: Generate new task
-                let! newTask = generateTask ctx state
-
-                return
-                    { state with
-                        CurrentTask = Some newTask }
-
             | Some taskDef ->
                 // 2. Execution Phase: Attempt to solve
                 let! result = executeTask ctx state taskDef
 
                 // 3. Evaluation Phase (simplified)
                 if result.Success then
+                    let mutable newBeliefs = state.ActiveBeliefs
+
+                    // Epistemic Governor: Extract Principle
+                    match ctx.Epistemic with
+                    | Some governor ->
+                        try
+                            let! belief = governor.ExtractPrinciple(taskDef.Goal, result.Output)
+
+                            // Store belief in VectorStore
+                            let! embedding = ctx.Llm.EmbedAsync belief.Statement
+
+                            let payload =
+                                Map
+                                    [ "type", "belief"
+                                      "statement", belief.Statement
+                                      "context", belief.Context
+                                      "confidence", string belief.Confidence
+                                      "derived_from", string taskDef.Id ]
+
+                            do! ctx.VectorStore.SaveAsync("tars-beliefs", string belief.Id, embedding, payload)
+
+                            // Update Active Beliefs (keep last 10)
+                            newBeliefs <- (belief.Statement :: newBeliefs) |> List.truncate 10
+                        with ex ->
+                            // Log error but continue
+                            printfn "Epistemic extraction failed: %s" ex.Message
+                    | None -> ()
+
                     // Save to Memory
                     try
                         let! embedding = ctx.Llm.EmbedAsync taskDef.Goal
@@ -300,18 +351,38 @@ Please reflect on this solution.
 
                         do! ctx.VectorStore.SaveAsync("tars-evolution-memory", string taskDef.Id, embedding, payload)
                     with ex ->
-                        // Log error but continue
                         printfn "Failed to save to memory: %s" ex.Message
 
                     return
                         { state with
                             Generation = state.Generation + 1
                             CompletedTasks = result :: state.CompletedTasks
-                            CurrentTask = None }
+                            CurrentTask = None
+                            ActiveBeliefs = newBeliefs }
                 else
                     // Retry or fail? For now, just log and clear
                     return
                         { state with
                             CompletedTasks = result :: state.CompletedTasks
-                            CurrentTask = None } // Move to next task anyway for this demo
+                            CurrentTask = None }
+
+            | None ->
+                // Check Queue first
+                match state.TaskQueue with
+                | nextTask :: remainingQueue ->
+                    return
+                        { state with
+                            CurrentTask = Some nextTask
+                            TaskQueue = remainingQueue }
+                | [] ->
+                    // 1. Curriculum Phase: Generate new tasks
+                    let! newTasks = generateTask ctx state
+
+                    match newTasks with
+                    | first :: rest ->
+                        return
+                            { state with
+                                CurrentTask = Some first
+                                TaskQueue = rest }
+                    | [] -> return state
         }

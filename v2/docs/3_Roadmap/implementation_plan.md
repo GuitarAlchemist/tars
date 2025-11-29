@@ -15,6 +15,7 @@
   * One LLM provider (OpenAI or Ollama).
   * One Vector Store collection (ChromaDB).
   * Minimal "Garden Shed" Grammar (parse simple goals).
+* ✅ **Phase 3 (Body - Partial):** Terminal UI, Basic Tool Registry.
 * ✅ **CLI:** `tars run script.trsx` (basic execution).
 
 **Deferred to v2.x (Nice-to-have):**
@@ -29,19 +30,6 @@
 ## � The TARS Constitution (New in v2.1)
 
 **Core Insight:** To prevent entropy in a self-evolving system, TARS needs a "Constitution" — a set of inviolable laws that precede modules.
-
-1. **Immutability by Default**: Configs, grammars, agent definitions, and skills are versioned and immutable once released. Mutation only happens via explicit evolution workflows.
-2. **Universal Versioning**: Everything (Agents, Skills, Grammars, Beliefs) must have `version`, `parentVersion`, and `createdAt`. This enables rollback and evolution tracking.
-3. **Time as First-Class Citizen**: All state must have `validFrom`, `lastUsed`, and `decayScore`. The system must actively prune and compact old state.
-4. **Safety Gates (Jidoka)**: "Stop the Line" mentality. No code mutation without passing: Static Checks → Test Harness → Sandbox Execution. If a check fails, the process halts immediately.
-5. **Omotenashi (DX First)**: Every error must be actionable. Every trace must be readable. The system serves the human, not the other way around.
-6. **Kaizen (Evolution)**: The system favors small, frequent self-improvements (1% better every day) over large, risky leaps.
-7. **Monozukuri (Craftsmanship)**: We value long-term maintainability. Code is written to last decades, not just to ship features.
-8. **Hansei (Reflection)**: After every task, the system performs a self-reflection step to learn from mistakes.
-
----
-
-## �📅 Phased Roadmap
 
 ### Phase 1: The Foundation (Kernel & Security)
 
@@ -62,23 +50,7 @@
 
 * [x] **2.4.3 Persistence**: Add JSON serialization for the graph.
 * [x] **2.4.4 Querying**: Implement basic traversal (e.g., "Find all files created by Agent X").
-
-### Phase 2.5: Cognitive Hardening (Safety & Types)
-
-**Goal:** Enforce safety through F# type system.
-
-* [x] **4.1 Tars.Evolution Project**: Create the project structure for the evolution engine.
-* [x] **4.2 The Protocol**: Define `TaskDefinition` and `ValidationResult` DUs.
-* [x] **4.3 Curriculum Agent**: Implement the "Teacher" that generates tasks.
-  * *Status:* Implemented using `LlmService` and `qwen2.5-coder`.
-* [x] **4.4 Executor Agent**: Implement the "Student" that solves tasks using the Graph.
-  * *Status:* Implemented using `Graph.step` and `LlmService`.
-* [x] **4.5 The Loop**: Wire them together: `Curriculum -> Task -> Executor -> Result -> Memory`.
   * *Status:* Working loop in `Evolve.fs`. Results are saved to `InMemoryVectorStore` (ephemeral).
-
-### Phase 5: The Mind (Metascript Engine)
-
-**Goal:** Enable complex, multi-step workflows defined in a DSL.
 
 ### Phase 5: The Mind (Metascript Engine)
 
@@ -113,6 +85,8 @@
 
 **Rationale**: Enforce immutability and safety before adding more complexity.
 
+**Reference**: `docs/3_Roadmap/phase6_integration_strategy.md`
+
 **Tasks:**
 
 * [ ] **Repo Structure**: Align folders (Kernel, Cortex, Memory, Agents, Skills, Observability).
@@ -139,8 +113,8 @@
   }
   ```
 
-* [ ] Refactor `EventBus` to be a **Semantic Bus** that routes `SemanticMessage<'T>`.
-* [ ] Implement **Constraint Enforcement** middleware in the Kernel (reject messages that violate constraints).
+* [x] Refactor `EventBus` to be a **Semantic Bus** that routes `SemanticMessage<'T>`.
+* [x] Implement **Constraint Enforcement** middleware in the Kernel (reject messages that violate constraints).
 * [ ] Update Evolution Engine to use speech acts (Curriculum → Request, Executor → Inform).
 * [ ] Add telemetry/logging for all agent interactions by intent type
 
@@ -150,119 +124,186 @@
 * Logs show clear interaction patterns: "Curriculum ASKed → Executor TOLD"
 * Tests validate routing by intent
 
-#### Phase 6.3: Semantic Fan-out Limiter (Prevent Task Explosion)
+#### Phase 6.1: Budget Governor (Resource Control)
 
-**Priority**: High (v2.1)
+* **Status**: Complete
+* **K-Theory Integration**:
+  * ✅ **K0 (Conservation)**: Validated via `KTheoryTests.fs`.
+  * ✅ **K1 (Topology)**: Validated via `GraphAnalyzer.detectCycles`.
 
-**Rationale**: Without fan-out limiting, a planner can generate 50 subtasks → 500 sub-subtasks → bankruptcy.
-
-**Research Pattern**: "Semantic Fan-out Limiter" from backpressure analysis.
-
-**Tasks:**
-
-* [ ] Add `Score: float` field to `TaskDefinition`
-* [ ] Implement `scoreTask` function in Curriculum Agent:
-
-  ```fsharp
-  let scoreTask (task: TaskDefinition) : float =
-      // Score based on:
-      // - Novelty (not similar to past tasks)
-      // - Difficulty alignment (not too easy/hard)
-      // - Budget efficiency (expected tokens vs. value)
-  ```
-
-* [ ] Add `selectTopK` in `generateTask`:
-
-  ```fsharp
-  let selectTopK (tasks: TaskDefinition list) (k: int) =
-      tasks
-      |> List.sortByDescending (fun t -> t.Score)
-      |> List.truncate k
-  ```
-
-* [ ] Add `--max-subtasks` CLI flag (default: 5)
-
-* [ ] Log when tasks are pruned: "Generated 12 subtasks, selected top 5 by score"
-
-**Acceptance Criteria:**
-
-* Curriculum Agent never generates more than K subtasks per level
-* Tests verify scoring and selection logic
-* Pruned tasks are logged with scores
-
-#### Phase 6.4: Adaptive Reflection (Stop When Converged)
-
-**Priority**: Medium (v2.1)
-
-**Rationale**: Reflection improves quality but has diminishing returns. Stop when improvement < epsilon.
-
-**Research Pattern**: "Adaptive Reflection Loop" from backpressure analysis.
+* **Resistors** = throttling (bounded queues, rate limits)
+* **Capacitors** = buffering (message queues, working memory)
+* **Transistors** = gating (conditional flow, task dependencies)
 
 **Tasks:**
 
-* [ ] Add `reflectOnTask` function to Executor Agent
-* [ ] Implement `measureImprovement`:
+* [x] **6.1.1 Budget Governor Core**:
+  * `BudgetGovernor` class in `Tars.Core`.
+  * `IsCritical` logic for graceful degradation.
+  * Added `VRAM`, `Energy`, `Requests` units and `Custom` map for extensibility.
+* [x] **6.1.2 Integration**:
+  * Hooked into `Evolution.Engine`.
+  * Curriculum Agent receives warnings when budget is low.
+* [x] **6.1.3 Session Budget**:
+  * `tars evolve` enforces 1M token limit.
 
+##### Phase 6.7.1: Resistors (Throttling & Backpressure)
+
+* [ ] **Bounded Message Channels**:
+  
   ```fsharp
-  let measureImprovement (before: TaskResult) (after: TaskResult) : float =
-      // Options:
-      // 1. LLM judges quality delta
-      // 2. Test pass rate delta
-      // 3. Code complexity reduction
+  type BoundedChannel<'T> = {
+      Capacity: int
+      Current: 'T Queue
+      RejectOnFull: bool  // vs. block
+  }
+  
+  member channel.TryWrite(item: 'T) : bool
   ```
 
-* [ ] Implement `reflectUntilConvergence`:
+* [ ] Update `EventBus` to use bounded channels with configurable capacity
+* [ ] Add backpressure signals when channels are full
+* [ ] Implement adaptive throttling: slow down producers when consumers lag
 
+##### Phase 6.7.2: Capacitors (Buffering & Batching)
+
+* [ ] **Buffer Agent** for collecting and batching messages:
+  
   ```fsharp
-  let rec reflectUntilConvergence (state: TaskResult) (maxReflections: int) (budget: BudgetGovernor) =
-      task {
-          if maxReflections = 0 || not (budget.TryConsume(500, 1)) then
-              return state
-          else
-              let! newState = reflectOnce state
-              let improvement = measureImprovement state newState
-              if improvement < 0.05 then  // < 5% improvement
-                  return newState
-              else
-                  return! reflectUntilConvergence newState (maxReflections - 1) budget
-      }
+  type BufferAgent<'T> = {
+      Capacity: int
+      TimeWindow: TimeSpan option
+      OnFlush: 'T list -> Async<unit>
+  }
+  
+  member agent.Accumulate(item: 'T) : Async<unit>
+  member agent.Flush() : Async<unit>
   ```
 
-* [ ] Add to Evolution Engine `executeTask`
+* [ ] Use TPL Dataflow `BatchBlock<T>` for automatic batching
+* [ ] Add `ContextSummaryBuffer` that compresses long message histories before forwarding
 
-* [ ] Add `--max-reflections` CLI flag (default: 2)
+* [ ] Implement working memory as a capacitor:
+  
+  ```fsharp
+  type WorkingMemory<'T> = {
+      Items: 'T Queue
+      MaxSize: int
+      DecayFn: 'T -> TimeSpan -> float  // importance decay
+  }
+  
+  member memory.Add(item: 'T) : unit
+  member memory.Prune() : unit  // Remove low-importance items
+  ```
+
+##### Phase 6.7.3: Transistors (Gating & Conditional Flow)
+
+* [ ] **Task Dependency Gates** (already partially implemented, formalize):
+  
+  ```fsharp
+  type Gate = {
+      Condition: unit -> Async<bool>
+      OnOpen: unit -> Async<unit>
+      OnClose: unit -> Async<unit>
+  }
+  
+  member gate.WaitForOpen() : Async<unit>
+  ```
+
+* [ ] Use TPL Dataflow `JoinBlock<T1,T2>` for multi-input gates (wait for multiple signals)
+
+* [ ] Implement mutual exclusion gates:
+  
+  ```fsharp
+  type MutexGate(maxConcurrent: int) =
+      let semaphore = new SemaphoreSlim(maxConcurrent)
+      
+      member _.Acquire() : Async<unit>
+      member _.Release() : unit
+  ```
+
+##### Phase 6.7.4: Pre-LLM Transformer Pipeline
+
+**Research Insight**: Use smaller transformers to process prompts *before* main LLM for safety, intent classification, summarization, and rewriting.
+
+* [ ] Define pre-LLM pipeline stages:
+  
+  ```fsharp
+  type IPreLlmStage =
+      abstract member Name: string
+      abstract member Execute: 
+          ctx: PreLlmContext * ct: CancellationToken 
+          -> Async<PreLlmContext>
+  
+  type PreLlmContext = {
+      Raw: RawUserInput
+      Safety: SafetyStatus option
+      Intent: Intent option
+      ContextSummary: string option
+      RewrittenText: string option
+  }
+  ```
+
+* [ ] Implement concrete stages:
+  * `SafetyFilterStage` - block/redact unsafe content
+  * `IntentClassifierStage` - detect user intent (coding, planning, etc.)
+  * `ContextSummarizerStage` - compress long context
+  * `PromptRewriterStage` - normalize/clarify prompts
+
+* [ ] Wire pipeline into Evolution Engine before LLM calls:
+  
+  ```fsharp
+  let executeWithPreProcessing (prompt: string) = async {
+      let! ctx = PreLlmPipeline.run pipeline ctx
+      match ctx.Safety with
+      | Some (Blocked reason) -> 
+          return Error $"Blocked: {reason}"
+      | _ ->
+          let finalPrompt = ctx.RewrittenText |> Option.defaultValue prompt
+          let! result = LlmService.generate finalPrompt
+          return Ok result
+  }
+  ```
 
 **Acceptance Criteria:**
 
-* Reflection stops when improvement plateaus
-* Budget prevents runaway reflection loops
-* Logs show: "Reflection 1: +12% improvement, Reflection 2: +3% improvement, stopped"
+* EventBus uses bounded channels with backpressure
+* Buffer agents collect and batch messages before forwarding
+* Task dependencies act as gates (already working, formalize)
+* Pre-LLM pipeline processes all user prompts through safety → intent → summarization → rewriting
+* Tests show:
+  * Backpressure prevents queue overflow
+  * Buffers smooth bursty message patterns
+  * Gates coordinate multi-agent workflows correctly
+  * Pre-LLM pipeline improves prompt quality (measured by LLM success rate)
 
-#### Phase 6.5: Agentic Interfaces (Soft Semantic Contracts)
+#### Phase 6.8: The Epistemic Governor (Anti-Hack / Pro-Learning)
 
-**Priority**: Critical (Immediate)
+**Priority**: High (v2.2)
 
-**Rationale**: Move from rigid contracts to soft semantic interfaces that support partial failure, capability-based routing, and probabilistic outcomes.
+**Rationale**: Prevent overfitting and enforce deep learning.
 
-**Reference**: `docs/2_Analysis/Architecture/agentic_interfaces.md`
+**Reference**: `docs/2_Analysis/Architecture/epistemic_governor.md`
 
 **Tasks:**
 
-##### Phase 6.5.1: Core Types (Hard Shell)
-
-* [ ] Define `PartialFailure` DU in `Tars.Core/Domain.fs`
+* [x] **6.8.1 Variant Generator**:
+  * `EpistemicGovernor.GenerateVariants(task)`
+  * Perturbs the task (change inputs, constraints) to test generalization.
+* [x] **6.8.2 Principle Extractor**:
+  * `EpistemicGovernor.ExtractPrinciple(solution)`
+  * LLM prompt to distill "Why it works" into a `Belief`.
+* [x] **6.8.3 Integration with Evolution Loop**:
+  * Hook into `Evolution.Engine.step`.
+  * Store extracted beliefs in `VectorStore` (temporary Belief Store).
+* [x] **6.8.4 Curriculum Feedback**:
+  * Use `BeliefGraph` density to guide `CurriculumAgent`.
+  * "We have too many beliefs about 'Sorting', but few about 'Networking'. Generate networking tasks."
 
 **Acceptance Criteria:**
 
-* All agent execution returns `ExecutionOutcome<'T>` instead of raw results
-* Partial failures are captured as warnings, not lost
-* Agents can be selected by capability matching
-* Computation expression allows linear workflow composition
-* Tests validate that PartialSuccess correctly accumulates warnings
-
----
-
-## 🛠️ Detailed Task Breakdown
+* Solutions must pass N=3 variations of the task.
+* Every solved task must produce at least one new `Belief` node.
 
 ### Phase 1: The Foundation (✅ Complete)
 
@@ -288,6 +329,27 @@
   * *Future*: Evaluate ChromaDB/GAM only when scale demands it.
 * [ ] **2.4 Internal Knowledge Graph**: Graphiti-style internal graph
   * *Decision*: Drop external Triple Stores. Use internal graph for beliefs/lineage.
+
+#### Phase 2.5: Epistemic RAG (Graphiti)
+
+**Goal**: Enable semantic understanding of the codebase structure and "Belief" management.
+
+* [x] **2.5.1 Code Graph Ingestion**:
+  * Use F# Compiler Services / Roslyn to parse code.
+  * Extract nodes: `Module`, `Type`, `Function`, `Value`.
+  * Extract edges: `Calls`, `Inherits`, `DependsOn`.
+* [ ] **2.5.2 Belief Store**:
+  * Implement `BeliefGraph` (as defined in Epistemic Governor).
+  * Store `Principles` extracted from successful tasks.
+* [x] **2.5.3 Hybrid Retrieval**:
+  * Query: "Find all functions that call `LlmService.generate` and are not async."
+  * Mechanism: Graph traversal + Vector similarity.
+* [x] **2.5.4 Advanced RAG Capabilities**:
+  * **Hybrid Search**: BM25 + Cosine Similarity.
+  * **Query Routing**: Classify queries (Factual, Analytical, Conversational).
+  * **Time Decay**: Prioritize fresher documents.
+  * **Multi-Hop**: Traverse Knowledge Graph for deep answers.
+  * **Metadata Filtering**: Precise context narrowing.
 
 ### Phase 3: The Body (Partial)
 
@@ -391,10 +453,15 @@
 ### v2.0 Alpha (Current Target)
 
 * [x] Phase 1: Foundation ✅
+* [x] Phase 2: Brain (Partial) ✅
+* [x] Phase 3: Body (Partial) ✅
 
 * [x] Phase 4: Evolution Loop ✅
 * [x] Phase 5: Metascript Engine ✅
-* [ ] Phase 6.1-6.4: Cognitive Architecture 🚧
+* [x] Phase 6.1: Budget Governor (See `docs/QA/Phase6_AcceptanceCriteria.md`)
+* [ ] Phase 6.2: Speech Acts (See `docs/QA/Phase6_AcceptanceCriteria.md`)
+* [x] Phase 6.3: Fan-out Limiter (See `docs/QA/Phase6_AcceptanceCriteria.md`)
+* [x] Phase 6.4: Adaptive Reflection (See `docs/QA/Phase6_AcceptanceCriteria.md`)
 
 **Exit Criteria:**
 
@@ -406,9 +473,10 @@
 ### v2.1 Beta (Next Milestone)
 
 * [ ] Phase 2.2: Persistent Memory (ChromaDB)
-
 * [ ] Phase 3.2: MCP Client
 * [ ] Phase 6.5-6.8: Advanced backpressure patterns
+* [ ] Phase 6.6: Semantic Message Bus (JSON-LD + FIPA-ACL)
+* [ ] Phase 6.7: Circuit Flow Control (Resistors, Capacitors, Transistors)
 * [ ] Benchmark: Evolution Loop on standard tasks (HotpotQA, LoCoMo)
 
 ### v2.2 Production
@@ -427,16 +495,21 @@
 
 1. ✅ `ChatGPT-Multi-agent system protocols.md` → Phase 6.2 (Speech Acts)
 2. ✅ `ChatGPT-Backpressure in AI systems.md` → Phase 6.1-6.4 (Backpressure Patterns)
-3. ⏳ `ChatGPT-K-theory and TARS query.md` → Future (theoretical foundations)
-4. ⏳ `Grothendieck Groups and their Application to AI.md` → Future (category theory)
+3. ✅ `ChatGPT-AI semantic bus research.md` → Phase 6.6 (Semantic Message Bus)
+4. ✅ `ChatGPT-Circuit-based AI architecture.md` → Phase 6.7 (Circuit Flow Control)
+5. ✅ `ChatGPT-Agentic AI Interfaces.md` → Phase 6.5 (Agentic Interfaces)
+6. ⏳ `ChatGPT-K-theory and TARS query.md` → Future (theoretical foundations)
+7. ⏳ `Grothendieck Groups and their Application to AI.md` → Future (category theory)
 
 ### Key Insights Applied
 
 * **Backpressure Patterns**: 12 design patterns → 4 implemented in Phase 6
-
+* **Semantic Bus**: Move from DTOs to rich semantic messages with context, constraints, and intent
+* **Circuit Analogies**: Resistors (throttling), Capacitors (buffering), Transistors (gating) for flow control
 * **Emerging Standards**: OpenAI-compatible REST + MCP + JSON-RPC → roadmap alignment
 * **Semantic Load**: Tokens/calls/time as first-class resources → `BudgetGovernor`
-* **Speech Acts**: ASK/TELL/PROPOSE → `AgentIntent` DU
+* **Speech Acts**: ASK/TELL/PROPOSE → `AgentIntent` DU (extended with FIPA-ACL semantics)
+* **Pre-LLM Pipeline**: Transformer stages before main LLM (safety, intent, summarization, rewriting)
 
 ### Research-Driven Decisions
 
@@ -444,6 +517,9 @@
 2. **Fan-out Limiter** (from Pattern #2: Semantic Fan-out Limiter)
 3. **Adaptive Reflection** (from Pattern #3: Adaptive Reflection Loop)
 4. **Agent Protocol** (from Multi-agent protocols analysis)
+5. **Semantic Message Bus** (from AI semantic bus research - JSON-LD + FIPA ACL)
+6. **Circuit-Inspired Flow Control** (from circuit-based architecture - resistors, capacitors, transistors)
+7. **Pre-LLM Transformer Pipeline** (from circuit architecture - staged processing)
 
 ---
 
@@ -471,6 +547,11 @@
 1. Phase 2.2: Memory Grid (ChromaDB or GAM)
 2. Phase 3.2: MCP Client
 3. v2.1 Beta release
+
+### Completed (Phase 6.8)
+
+* [x] **Epistemic Governor**: Implemented `GenerateVariants`, `ExtractPrinciple`, and Evolution Loop integration.
+* [x] **Tests**: Verified with `GoldenRun` and `EvolutionTests`.
 
 ### Phase 1: The Foundation
 

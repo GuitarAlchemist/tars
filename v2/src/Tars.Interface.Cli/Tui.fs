@@ -3,23 +3,33 @@ module Tars.Interface.Cli.Tui
 open Spectre.Console
 
 let showSplashScreen () =
-    AnsiConsole.Clear()
+    // Skip splash when console is not interactive or explicitly disabled
+    let noSplashEnv = System.Environment.GetEnvironmentVariable("TARS_NO_SPLASH")
+    let shouldSkip =
+        not (System.Console.IsOutputRedirected || System.Console.IsInputRedirected)
+        |> not
+        || (noSplashEnv |> System.String.IsNullOrEmpty |> not)
 
-    let font = FigletFont.Default
+    if shouldSkip then
+        ()
+    else
+        AnsiConsole.Clear()
 
-    AnsiConsole.Write(FigletText(font, "TARS v2").Centered().Color(Color.Cyan1))
+        let font = FigletFont.Default
 
-    let panel =
-        Panel("[bold white]The Automated Reasoning System[/]\n[dim]v2.0-alpha[/]")
-            .Border(BoxBorder.Rounded)
-            .BorderStyle(Style(Color.Blue))
-            .Padding(2, 1, 2, 1)
-            .Expand()
+        AnsiConsole.Write(FigletText(font, "TARS v2").Centered().Color(Color.Cyan1))
 
-    AnsiConsole.Write(panel)
+        let panel =
+            Panel("[bold white]The Automated Reasoning System[/]\n[dim]v2.0-alpha[/]")
+                .Border(BoxBorder.Rounded)
+                .BorderStyle(Style(Color.Blue))
+                .Padding(2, 1, 2, 1)
+                .Expand()
 
-    AnsiConsole.MarkupLine("[grey]Initializing kernel...[/]")
-    // Simulate some loading for effect
-    // System.Threading.Thread.Sleep(500)
-    AnsiConsole.MarkupLine("[green]Ready.[/]")
-    AnsiConsole.WriteLine()
+        AnsiConsole.Write(panel)
+
+        AnsiConsole.MarkupLine("[grey]Initializing kernel...[/]")
+        // Simulate some loading for effect
+        // System.Threading.Thread.Sleep(500)
+        AnsiConsole.MarkupLine("[green]Ready.[/]")
+        AnsiConsole.WriteLine()

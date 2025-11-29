@@ -53,10 +53,21 @@ let execute (logger: ILogger) (scriptPath: string) =
                 let tools = Tars.Tools.ToolRegistry()
                 tools.RegisterAssembly(typeof<Tars.Tools.ToolRegistry>.Assembly)
 
+                let metaBudget =
+                    BudgetGovernor(
+                        { Budget.Infinite with
+                            MaxTokens = Some 50000<token>
+                            MaxCalls = Some 200<requests> }
+                    )
+
                 let metaCtx: MetascriptContext =
                     { Llm = llmService
                       Kernel = ctx
-                      Tools = tools }
+                      Tools = tools
+                      Budget = Some metaBudget
+                      VectorStore = None
+                      KnowledgeGraph = None
+                      RagConfig = RagConfig.Default }
 
                 // Execute
                 let! finalState = Engine.run metaCtx workflow Map.empty
@@ -69,6 +80,11 @@ let execute (logger: ILogger) (scriptPath: string) =
 
                     for outKvp in kvp.Value do
                         printfn "  %s: %A" outKvp.Key outKvp.Value
+
+                printfn "\nExecution Trace:"
+
+                for trace in finalState.ExecutionTrace do
+                    printfn "- %s (%O ms) outputs=%d" trace.StepId trace.Duration.TotalMilliseconds trace.Outputs.Count
 
                 return 0
             with ex ->

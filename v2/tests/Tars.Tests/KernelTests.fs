@@ -1,4 +1,4 @@
-﻿namespace Tars.Tests
+namespace Tars.Tests
 
 open System
 open Xunit
@@ -65,6 +65,8 @@ type KernelTests(output: ITestOutputHelper) =
               Receiver = Some(MessageEndpoint.Agent agent.Id)
               Performative = Performative.Inform
               Constraints = SemanticConstraints.Default
+              Ontology = None
+              Language = "text"
               Content = "Hello"
               Timestamp = DateTime.UtcNow
               Metadata = Map.empty }
