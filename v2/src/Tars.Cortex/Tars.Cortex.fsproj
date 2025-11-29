@@ -9,12 +9,16 @@
     <Compile Include="Grammar.fs" />
     <Compile Include="VectorStore.fs" />
     <Compile Include="InMemoryVectorStore.fs" />
+    <Compile Include="AnnVectorStore.fs" />
     <Compile Include="SqliteVectorStore.fs" />
     <Compile Include="Chunking.fs" />
     <Compile Include="KnowledgeGraph.fs" />
     <Compile Include="GraphAnalyzer.fs" />
-    <Compile Include="Inference.fs" />
+    <Compile Include="CognitiveAnalyzer.fs" />
+    <Compile Include="ContextCompression.fs" />
     <Compile Include="EpistemicGovernor.fs" />
+    <Compile Include="CapabilityStore.fs" />
+    <Compile Include="Inference.fs" />
   </ItemGroup>
 
   <ItemGroup>

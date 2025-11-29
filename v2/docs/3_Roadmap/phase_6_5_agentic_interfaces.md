@@ -208,27 +208,11 @@ Phase 6.5 introduces **Soft Semantic Contracts** for agentic AI - moving beyond 
 
 **Tasks:**
 
-- [ ] Create `Tars.Core/Capabilities.fs`
-- [ ] Define capability taxonomy (extend `CapabilityKind`)
-- [ ] Implement capability matching/scoring algorithm
-- [ ] Add embedding-based similarity search (using existing VectorStore)
-- [ ] Create `CapabilityStore` in `Tars.Cortex`
-  - Store agent capabilities
-  - Query by similarity
-  - Track capability usage metrics
-
-### Phase 6.5.4: Capability System
-
-**Effort:** 4-5 hours  
-**Priority:** Medium
-
-**Tasks:**
-
 - [x] Create `Tars.Core/Capabilities.fs` (Merged into `Domain.fs`)
 - [x] Define capability taxonomy (extend `CapabilityKind`)
 - [x] Implement capability matching/scoring algorithm (Basic filtering in `KernelRegistry`)
-- [ ] Add embedding-based similarity search (using existing VectorStore)
-- [ ] Create `CapabilityStore` in `Tars.Cortex`
+- [x] Add embedding-based similarity search (using existing VectorStore)
+- [x] Create `CapabilityStore` in `Tars.Cortex`
   - Store agent capabilities
   - Query by similarity
   - Track capability usage metrics
