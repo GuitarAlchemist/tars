@@ -115,8 +115,8 @@
 
 * [x] Refactor `EventBus` to be a **Semantic Bus** that routes `SemanticMessage<'T>`.
 * [x] Implement **Constraint Enforcement** middleware in the Kernel (reject messages that violate constraints).
-* [ ] Update Evolution Engine to use speech acts (Curriculum → Request, Executor → Inform).
-* [ ] Add telemetry/logging for all agent interactions by intent type
+* [x] Update Evolution Engine to use speech acts (Curriculum → Request, Executor → Inform).
+* [x] Add telemetry/logging for all agent interactions by intent type
 
 **Acceptance Criteria:**
 
@@ -475,6 +475,7 @@
 * [x] Phase 6.2: Speech Acts (See `docs/QA/Phase6_AcceptanceCriteria.md`)
 * [x] Phase 6.3: Fan-out Limiter (See `docs/QA/Phase6_AcceptanceCriteria.md`)
 * [x] Phase 6.4: Adaptive Reflection (See `docs/QA/Phase6_AcceptanceCriteria.md`)
+* [x] Phase 6.5: Agentic Interfaces (Partial - Capability Store & Core Types)
 
 **Exit Criteria:**
 
@@ -601,9 +602,25 @@
 * **Scope**: Parse a simple `.trsx` file with 2-3 block types (Goal, Task).
 * **Output**: Generate strongly-typed F# AST messages.
 
-#### 2.4 Graph Memory
+#### 2.4 Temporal Knowledge Graph (Graphiti Integration)
 
-* **Action**: Research/Evaluate Graphiti.
+* **Goal**: Implement a bi-temporal knowledge graph for belief tracking and pattern recognition.
+* **Reference**: `docs/2_Analysis/Research/graphiti_integration_research.md`
+
+* [ ] **2.4.1 Core Temporal Graph**:
+  * Extend `GraphNode` with `ValidFrom`, `InvalidAt` (Event Time).
+  * Extend `GraphEdge` with `Created` (Ingestion Time).
+  * Implement `Episode` ingestion pipeline.
+* [ ] **2.4.2 Semantic Layer**:
+  * Entity resolution (deduplication via embeddings).
+  * Fact extraction (LLM-based).
+  * Contradiction detection (temporal edge invalidation).
+* [ ] **2.4.3 Pattern Recognition**:
+  * Community detection (Label Propagation).
+  * Pattern tagging (Structural, Behavioral).
+* [ ] **2.4.4 Grammar Distillation**:
+  * Extract F# grammars from community patterns.
+  * Hot-reload distilled grammars.
 
 ---
 
@@ -649,4 +666,4 @@ Test summary: total: 30, failed: 0, succeeded: 30, skipped: 0
 * OpenWebUiTests (1 test): Model listing with authentication
 * GoldenRun (1 test): End-to-end CLI demo-ping
 
-> Status: In-flight. Phase 6.7 code landed; integration hardening + testing still ongoing. See phase_6_7_summary.md for current status and next focus.
+> Status: Phase 6.2 (Speech Acts) and Phase 6.7 (Epistemic Governor) complete. Phase 6.5 (Agentic Interfaces) in progress (Capability Store implemented). Integration hardening ongoing.
