@@ -7,17 +7,29 @@ open Tars.Llm
 open Tars.Llm.Routing
 open Tars.Llm.LlmService
 
-let run (prompt: string) =
+let run (config: Microsoft.Extensions.Configuration.IConfiguration) (prompt: string) =
     task {
-        // TODO: Load this from configuration/secrets
+        // Load from user secrets/env; no fallback to hardcoded defaults
+        let ollama = config["OLLAMA_BASE_URL"] |> Option.ofObj
+        let defaultModel = config["DEFAULT_OLLAMA_MODEL"] |> Option.ofObj
+
+        match ollama, defaultModel with
+        | None, _ ->
+            printfn "Missing OLLAMA_BASE_URL (set via user secrets or env)."
+            return 1
+        | _, None ->
+            printfn "Missing DEFAULT_OLLAMA_MODEL (set via user secrets or env)."
+            return 1
+        | Some ollamaUrl, Some model ->
+
         let routingCfg: RoutingConfig =
-            { OllamaBaseUri = Uri("http://localhost:11434/")
+            { OllamaBaseUri = Uri(ollamaUrl)
               VllmBaseUri = Uri("http://localhost:8000/")
               OpenAIBaseUri = Uri("https://api.openai.com/")
               GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com/")
               AnthropicBaseUri = Uri("https://api.anthropic.com/")
-              DefaultOllamaModel = "qwen2.5-coder:latest"
-              DefaultVllmModel = "qwen2.5-72b-instruct"
+              DefaultOllamaModel = model
+              DefaultVllmModel = model
               DefaultOpenAIModel = "gpt-4o"
               DefaultGoogleGeminiModel = "gemini-pro"
               DefaultAnthropicModel = "claude-3-opus-20240229"

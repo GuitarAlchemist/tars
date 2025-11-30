@@ -81,6 +81,7 @@ module EvolutionTests =
                 Task.FromResult("suggestion")
 
             member _.Verify(_statement) = Task.FromResult(true)
+            member _.GetRelatedCodeContext(_) = Task.FromResult("mock context")
 
     [<Fact>]
     let ``TaskQueue supports multiple tasks`` () =
@@ -149,17 +150,21 @@ module EvolutionTests =
 
         let curriculumAgent =
             let (AgentId id) = state.CurriculumAgentId
-            Kernel.createAgent id "Curriculum" "1.0.0" "test-model" "System Prompt" []
+            Tars.Kernel.AgentFactory.create id "Curriculum" "1.0.0" "test-model" "System Prompt" [] []
 
-        let kernel = Kernel.init () |> Kernel.registerAgent curriculumAgent
+        let registry = Tars.Kernel.AgentRegistry()
+        registry.Register(curriculumAgent)
+        let registry = registry :> IAgentRegistry
 
         let evoCtx: Engine.EvolutionContext =
-            { Kernel = kernel
+            { Registry = registry
               Llm = llm :> Tars.Llm.LlmService.ILlmService
               VectorStore = StubVectorStore() :> IVectorStore
               Epistemic = Some(stubEpistemic :> IEpistemicGovernor)
               Budget = None
+              OutputGuard = None
               KnowledgeBase = None
+              KnowledgeGraph = None
               Logger = ignore }
 
         let nextState =

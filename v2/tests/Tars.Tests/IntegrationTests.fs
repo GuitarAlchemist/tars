@@ -134,7 +134,8 @@ type IntegrationTests(output: ITestOutputHelper) =
                         )
 
                     member _.SuggestCurriculum(_, _) = Task.FromResult("none")
-                    member _.Verify(_) = Task.FromResult(true) }
+                    member _.Verify(_) = Task.FromResult(true)
+                    member _.GetRelatedCodeContext(_) = Task.FromResult("mock context") }
 
             let belief =
                 governor.ExtractPrinciple("test task", "result")
