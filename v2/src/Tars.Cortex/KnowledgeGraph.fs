@@ -134,7 +134,7 @@ type KnowledgeGraph() =
         | Concept _ -> true
         | _ -> false
 
-    /// <summary>Check if node is a FileNode</summary>
+    /// <summary>Check if node is a File</summary>
     member private _.IsFileNode(node: GraphNode) =
         match node with
         | FileNode _ -> true

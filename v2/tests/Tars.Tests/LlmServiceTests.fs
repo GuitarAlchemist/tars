@@ -194,3 +194,167 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
             finally
                 listener.Stop()
         }
+
+    [<Fact>]
+    member this.``Ollama Client streaming collects all tokens``() =
+        task {
+            let port = getFreePort ()
+            let baseUri = Uri($"http://localhost:{port}/")
+            use listener = new HttpListener()
+            listener.Prefixes.Add(baseUri.ToString())
+            listener.Start()
+
+            let serverLoop =
+                task {
+                    while listener.IsListening do
+                        try
+                            let! context = listener.GetContextAsync()
+                            let req = context.Request
+                            let resp = context.Response
+
+                            if req.Url.AbsolutePath = "/api/chat" && req.HttpMethod = "POST" then
+                                resp.ContentType <- "application/x-ndjson"
+
+                                // Simulate streaming NDJSON chunks
+                                let chunks = [|
+                                    """{"model":"test","message":{"role":"assistant","content":"Hello"},"done":false}"""
+                                    """{"model":"test","message":{"role":"assistant","content":" world"},"done":false}"""
+                                    """{"model":"test","message":{"role":"assistant","content":"!"},"done":true}"""
+                                |]
+
+                                for chunk in chunks do
+                                    let bytes = Encoding.UTF8.GetBytes(chunk + "\n")
+                                    resp.OutputStream.Write(bytes, 0, bytes.Length)
+                                    resp.OutputStream.Flush()
+
+                                resp.OutputStream.Close()
+                            else
+                                resp.StatusCode <- 404
+                                resp.Close()
+                        with _ -> ()
+                }
+
+            try
+                use httpClient = new HttpClient()
+                let tokens = ResizeArray<string>()
+
+                let req =
+                    { ModelHint = None
+                      MaxTokens = None
+                      Temperature = None
+                      Messages = [ { Role = Role.User; Content = "hello" } ] }
+
+                let! response = OllamaClient.sendChatStreamAsync httpClient baseUri "test" req (fun t -> tokens.Add(t))
+
+                // Verify all tokens were collected
+                Assert.Equal(3, tokens.Count)
+                Assert.Equal("Hello", tokens.[0])
+                Assert.Equal(" world", tokens.[1])
+                Assert.Equal("!", tokens.[2])
+
+                // Verify final response
+                Assert.Equal("Hello world!", response.Text)
+                let allTokens = String.Join("", tokens)
+                output.WriteLine($"Streaming collected {tokens.Count} tokens: {allTokens}")
+            finally
+                listener.Stop()
+        }
+
+    [<Fact>]
+    member this.``OpenAI Client streaming handles SSE format``() =
+        task {
+            let port = getFreePort ()
+            let baseUri = Uri($"http://localhost:{port}/")
+            use listener = new HttpListener()
+            listener.Prefixes.Add(baseUri.ToString())
+            listener.Start()
+
+            let serverLoop =
+                task {
+                    while listener.IsListening do
+                        try
+                            let! context = listener.GetContextAsync()
+                            let req = context.Request
+                            let resp = context.Response
+
+                            if req.Url.AbsolutePath = "/v1/chat/completions" && req.HttpMethod = "POST" then
+                                resp.ContentType <- "text/event-stream"
+
+                                // Simulate SSE streaming chunks
+                                let chunks = [|
+                                    """data: {"id":"1","choices":[{"delta":{"content":"Hi"}}]}"""
+                                    """data: {"id":"1","choices":[{"delta":{"content":" there"}}]}"""
+                                    """data: {"id":"1","choices":[{"delta":{"content":"!"}}]}"""
+                                    """data: [DONE]"""
+                                |]
+
+                                for chunk in chunks do
+                                    let bytes = Encoding.UTF8.GetBytes(chunk + "\n\n")
+                                    resp.OutputStream.Write(bytes, 0, bytes.Length)
+                                    resp.OutputStream.Flush()
+
+                                resp.OutputStream.Close()
+                            else
+                                resp.StatusCode <- 404
+                                resp.Close()
+                        with _ -> ()
+                }
+
+            try
+                use httpClient = new HttpClient()
+                let tokens = ResizeArray<string>()
+
+                let req =
+                    { ModelHint = None
+                      MaxTokens = None
+                      Temperature = None
+                      Messages = [ { Role = Role.User; Content = "hello" } ] }
+
+                let! response = OpenAiCompatibleClient.sendChatStreamAsync httpClient baseUri "test" req (fun t -> tokens.Add(t))
+
+                // Verify all tokens were collected
+                Assert.Equal(3, tokens.Count)
+                Assert.Equal("Hi", tokens.[0])
+                Assert.Equal(" there", tokens.[1])
+                Assert.Equal("!", tokens.[2])
+
+                // Verify final response
+                Assert.Equal("Hi there!", response.Text)
+                let allTokens = String.Join("", tokens)
+                output.WriteLine($"SSE streaming collected {tokens.Count} tokens: {allTokens}")
+            finally
+                listener.Stop()
+        }
+
+    [<Fact>]
+    member this.``ILlmService CompleteStreamAsync interface works``() =
+        task {
+            // Create a mock service that implements streaming
+            let tokens = ResizeArray<string>()
+
+            let mockService =
+                { new ILlmService with
+                    member _.CompleteAsync(req) =
+                        task { return { Text = "Hello"; FinishReason = Some "stop"; Usage = None; Raw = None } }
+                    member _.EmbedAsync(text) =
+                        task { return [| 0.1f; 0.2f; 0.3f |] }
+                    member _.CompleteStreamAsync(req, onToken) =
+                        task {
+                            onToken "Hello"
+                            onToken " "
+                            onToken "World"
+                            return { Text = "Hello World"; FinishReason = Some "stop"; Usage = None; Raw = None }
+                        } }
+
+            let req =
+                { ModelHint = None
+                  MaxTokens = None
+                  Temperature = None
+                  Messages = [ { Role = Role.User; Content = "test" } ] }
+
+            let! response = mockService.CompleteStreamAsync(req, fun t -> tokens.Add(t))
+
+            Assert.Equal(3, tokens.Count)
+            Assert.Equal("Hello World", response.Text)
+            output.WriteLine("ILlmService streaming interface works correctly")
+        }

@@ -498,6 +498,13 @@ type DemoLlm() =
                 return createSemanticEmbedding text
             }
 
+        member this.CompleteStreamAsync(req, onToken) =
+            task {
+                let! response = (this :> ILlmService).CompleteAsync(req)
+                onToken response.Text
+                return response
+            }
+
     member _.EmbedCallCount = embedCallCount
 
 /// <summary>Live LLM that uses actual Ollama API</summary>
@@ -530,6 +537,9 @@ type LiveLlm(chatModel: string, embedModel: string) =
                     // Fallback to random if no embedding returned
                     return createSemanticEmbedding text
             }
+
+        member _.CompleteStreamAsync(req, onToken) =
+            OllamaClient.sendChatStreamAsync http baseUri chatModel req onToken
 
     member _.EmbedCallCount = embedCallCount
 
@@ -659,11 +669,11 @@ let private runRetrievalWithConfig (llm: ILlmService) (vectorStore: IVectorStore
     task {
         let ctx = {
             Llm = llm
-            Kernel = Kernel.init()
             Tools = ToolRegistry()
             Budget = None
             VectorStore = Some vectorStore
             KnowledgeGraph = None
+            SemanticMemory = None
             RagConfig = config
         }
 
@@ -988,11 +998,11 @@ let private runScenario
             // Build context and workflow
             let ctx = {
                 Llm = llm
-                Kernel = Kernel.init()
                 Tools = ToolRegistry()
                 Budget = None
                 VectorStore = Some vectorStore
                 KnowledgeGraph = None
+                SemanticMemory = None
                 RagConfig = scenario.Config
             }
 

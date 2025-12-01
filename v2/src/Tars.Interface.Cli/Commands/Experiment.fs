@@ -47,22 +47,24 @@ let run (logger: ILogger) =
 
         // Agent A: Concise
         let agent1 =
-            Kernel.createAgent
+            Tars.Kernel.AgentFactory.create
                 id1
                 "Assistant_V1"
                 "1.0.0"
                 modelName
                 "You are a helpful assistant. You answer in extremely short, concise sentences. One line only."
                 []
+                []
 
         // Agent B: Poetic
         let agent2 =
-            Kernel.createAgent
+            Tars.Kernel.AgentFactory.create
                 id2
                 "Assistant_V2"
                 "2.0.0"
                 modelName
                 "You are a helpful assistant. You answer in the form of a short haiku or poem."
+                []
                 []
 
         // Register in Kernel (mocking kernel context since we are just using EventBus for this demo)

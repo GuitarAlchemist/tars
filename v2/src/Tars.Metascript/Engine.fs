@@ -177,13 +177,14 @@ module Engine =
     type MetascriptContext =
         {
             Llm: ILlmService
-            Kernel: KernelContext
             Tools: ToolRegistry
             Budget: BudgetGovernor option
             /// Vector store for RAG - optional for backward compatibility
             VectorStore: IVectorStore option
             /// Knowledge graph for relationship-based context
             KnowledgeGraph: KnowledgeGraph option
+            /// Semantic Memory for long-term learning
+            SemanticMemory: ISemanticMemory option
             /// RAG configuration
             RagConfig: RagConfig
         }
@@ -651,6 +652,8 @@ module Engine =
                     |> Array.map (fun t -> GraphNode.Concept t)
                     |> Array.toList
 
+                let mutable relatedConcepts = []
+
                 // Helper to extract name from GraphNode for deduplication
                 let nodeKey (node: GraphNode) =
                     match node with
@@ -658,12 +661,15 @@ module Engine =
                     | GraphNode.AgentNode id -> id.ToString()
                     | GraphNode.FileNode path -> path
                     | GraphNode.TaskNode id -> id.ToString()
+                    | GraphNode.BeliefNode (id, _) -> id.ToString()
+                    | GraphNode.ModuleNode name -> name
+                    | GraphNode.TypeNode name -> name
+                    | GraphNode.FunctionNode name -> name
 
                 // Find related concepts via BFS up to MaxHops
                 let mutable visited = Set.empty<string>
                 let mutable frontier = queryTerms |> List.map nodeKey |> Set.ofList
                 let mutable frontierNodes = queryTerms
-                let mutable relatedConcepts = []
 
                 for hop in 1 .. config.MaxHops do
                     let mutable nextFrontier = Set.empty<string>
@@ -1639,15 +1645,17 @@ Instruction: %s"""
                                     windowed
                                     content)
                             |> String.concat "\n\n"
-                            |> fun s ->
-                                if s.Length > effectiveConfig.MaxContextChars then
-                                    notes.Add(
-                                        $"Retrieval: context truncated from {s.Length} to {effectiveConfig.MaxContextChars} chars"
-                                    )
+                        let combinedContext = contextParts + kgContext
 
-                                    s.Substring(0, effectiveConfig.MaxContextChars)
-                                else
-                                    s
+                        let boundedContext =
+                            if combinedContext.Length > effectiveConfig.MaxContextChars then
+                                notes.Add(
+                                    $"Retrieval: context truncated from {combinedContext.Length} to {effectiveConfig.MaxContextChars} chars (includes KG)"
+                                )
+
+                                combinedContext.Substring(0, effectiveConfig.MaxContextChars)
+                            else
+                                combinedContext
 
                         let outputName =
                             match defaultArg step.Outputs [] with
@@ -1664,7 +1672,7 @@ Instruction: %s"""
                                 :> obj)
 
                         let baseOutputs =
-                            Map [ outputName, box (contextParts + kgContext); "results", box structuredResults ]
+                            Map [ outputName, box boundedContext; "results", box structuredResults ]
 
                         let finalOutputs =
                             attributionMap |> Map.fold (fun acc k v -> Map.add k v acc) baseOutputs
@@ -1687,10 +1695,43 @@ Instruction: %s"""
                     let msg = String.concat "; " errs
                     raise (ArgumentException(msg))
 
+            // 1. Retrieve Memory
+            let! memoryContext = 
+                match ctx.SemanticMemory with
+                | Some mem -> 
+                    task {
+                        // Construct a query from the workflow description or inputs
+                        let queryText = 
+                            inputs 
+                            |> Map.tryFind "goal" 
+                            |> Option.map string 
+                            |> Option.defaultValue workflow.Description
+                        
+                        let query = {
+                            TaskId = workflow.Name
+                            TaskKind = "metascript"
+                            TextContext = queryText
+                            Tags = []
+                        }
+                        let! results = mem.Retrieve query
+                        
+                        // Format results for context
+                        if results.IsEmpty then return ""
+                        else
+                            let summaries = 
+                                results 
+                                |> List.choose (fun s -> s.Logical |> Option.map (fun l -> l.ProblemSummary))
+                                |> String.concat "\n- "
+                            return sprintf "\nRelevant Past Experiences:\n- %s\n" summaries
+                    }
+                | None -> Task.FromResult ""
+
+            let inputsWithMemory = inputs.Add("memory_context", box memoryContext)
+
             let mutable state =
                 { Workflow = validated
                   CurrentStepIndex = 0
-                  Variables = inputs
+                  Variables = inputsWithMemory
                   StepOutputs = Map.empty
                   ExecutionTrace = [] }
 
@@ -1714,6 +1755,22 @@ Instruction: %s"""
                 state <-
                     { state with
                         ExecutionTrace = state.ExecutionTrace @ [ trace ] }
+
+            // 2. Grow Memory
+            match ctx.SemanticMemory with
+            | Some mem ->
+                try
+                    let memTrace = {
+                        MemoryTrace.TaskId = workflow.Name
+                        Variables = state.Variables
+                        StepOutputs = state.StepOutputs
+                    }
+                    let! _ = mem.Grow(memTrace, obj())
+                    ()
+                with ex ->
+                    // Don't fail workflow if memory fails
+                    Console.WriteLine($"[Warning] Failed to grow memory: {ex.Message}")
+            | None -> ()
 
             return state
         }

@@ -302,7 +302,10 @@ module KTheoryTests =
                     Tokens = 100<token> }
             )
 
-        Assert.False(result, "Should fail when cost exceeds budget")
+        match result with
+        | Result.Error _ -> () // Expected
+        | Result.Ok _ -> Assert.Fail("Should fail when cost exceeds budget")
+
         Assert.Equal(0<token>, governor.Consumed.Tokens)
 
     [<Fact>]
@@ -319,7 +322,10 @@ module KTheoryTests =
                     Tokens = 50<token> }
             )
 
-        Assert.True(result, "Should succeed when cost is under budget")
+        match result with
+        | Result.Ok _ -> ()
+        | Result.Error e -> Assert.Fail($"Should succeed when cost is under budget: {e}")
+
         Assert.Equal(50<token>, governor.Consumed.Tokens)
 
     [<Fact>]
@@ -347,11 +353,13 @@ module KTheoryTests =
 
         let governor = BudgetGovernor(budget)
 
-        // Consume 95%
+        // Consume 95%, remaining is 5%
         governor.Consume({ Cost.Zero with Tokens = 95<token> }) |> ignore
 
-        Assert.True(governor.IsCritical(10.0), "Should be critical at 5% remaining")
-        Assert.False(governor.IsCritical(1.0), "Should not be critical with 1% threshold")
+        // IsCritical(percentage) checks if remaining/total < percentage
+        // At 5% remaining: 0.05 < 0.10 is true, 0.05 < 0.03 is false
+        Assert.True(governor.IsCritical(0.10), "Should be critical when remaining (5%) < threshold (10%)")
+        Assert.False(governor.IsCritical(0.03), "Should not be critical when remaining (5%) >= threshold (3%)")
 
     [<Fact>]
     let ``Budget: Infinite budget always affordable`` () =
@@ -364,7 +372,10 @@ module KTheoryTests =
                 Ram = 1000000000L<bytes> }
 
         Assert.True(governor.CanAfford(hugeCost))
-        Assert.True(governor.TryConsume(hugeCost))
+
+        match governor.TryConsume(hugeCost) with
+        | Result.Ok _ -> ()
+        | Result.Error e -> Assert.Fail($"Infinite budget should always succeed: {e}")
 
     [<Fact>]
     let ``Budget: Allocation fails when insufficient`` () =
@@ -405,7 +416,9 @@ module KTheoryTests =
                     CallCount = 1<requests> }
             )
 
-        Assert.False(result, "Should fail when any dimension is over budget")
+        match result with
+        | Result.Error _ -> () // Expected
+        | Result.Ok _ -> Assert.Fail("Should fail when any dimension is over budget")
 
     // === Edge Case Tests for Graph Analysis ===
 

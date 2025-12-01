@@ -51,11 +51,13 @@ module Chunking =
     /// <summary>Split text into fixed-size chunks</summary>
     let fixedSizeChunk (config: ChunkingConfig) (docId: string) (text: string) : Chunk list =
         let chunks = ResizeArray<Chunk>()
+        // Clamp to avoid zero/negative sizes that can cause infinite loops
+        let chunkSize = max 1 config.ChunkSize
         let mutable pos = 0
         let mutable idx = 0
         
         while pos < text.Length do
-            let endPos = min (pos + config.ChunkSize) text.Length
+            let endPos = min (pos + chunkSize) text.Length
             let content = text.Substring(pos, endPos - pos)
             
             if content.Length >= config.MinChunkSize then
@@ -72,19 +74,22 @@ module Chunking =
                 })
                 idx <- idx + 1
             
-            pos <- pos + config.ChunkSize
+            pos <- pos + chunkSize
         
         chunks |> Seq.toList
     
     /// <summary>Split text using sliding window with overlap</summary>
     let slidingWindowChunk (config: ChunkingConfig) (docId: string) (text: string) : Chunk list =
         let chunks = ResizeArray<Chunk>()
-        let step = config.ChunkSize - config.ChunkOverlap
+        // Prevent overlap >= chunk size from creating a zero step (hang)
+        let chunkSize = max 1 config.ChunkSize
+        let overlap = min config.ChunkOverlap (chunkSize - 1)
+        let step = max 1 (chunkSize - overlap)
         let mutable pos = 0
         let mutable idx = 0
         
         while pos < text.Length do
-            let endPos = min (pos + config.ChunkSize) text.Length
+            let endPos = min (pos + chunkSize) text.Length
             let content = text.Substring(pos, endPos - pos)
             
             if content.Length >= config.MinChunkSize then
@@ -231,13 +236,20 @@ module Chunking =
         let parts = splitRecursive text 0
         parts
         |> List.mapi (fun idx content ->
+            // Track approximate offsets by accumulating lengths up to this chunk
+            let startPos =
+                parts
+                |> List.take idx
+                |> List.sumBy (fun c -> c.Length)
+
+            let endPos = startPos + content.Length
             {
                 Id = $"{docId}_chunk_{idx}"
                 Content = content.Trim()
                 Metadata = {
                     Index = idx
-                    StartChar = 0  // Simplified - would need tracking
-                    EndChar = content.Length
+                    StartChar = startPos
+                    EndChar = endPos
                     ParentId = Some docId
                     Strategy = "Recursive"
                 }
@@ -283,4 +295,3 @@ module Chunking =
             | x :: rest -> merge (x :: acc) rest
 
         merge [] chunks
-

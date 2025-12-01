@@ -7,6 +7,9 @@
 
   <ItemGroup>
     <Compile Include="Interfaces.fs" />
+    <Compile Include="Registry.fs" />
+    <Compile Include="SemanticMemory.fs" />
+    <Compile Include="Factory.fs" />
     <Compile Include="Governance.fs" />
     <Compile Include="SafetyGate.fs" />
     <Compile Include="Router.fs" />

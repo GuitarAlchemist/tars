@@ -103,6 +103,8 @@ let main argv =
         | [| "test-grammar"; file |] -> return TestGrammar.run file
         | [| "memory-add"; coll; id; text |] -> return! Memory.add coll id text
         | [| "memory-search"; coll; text |] -> return! Memory.search coll text
+        | args when args.Length > 0 && args.[0] = "smem" ->
+            return! SemanticMemoryCommand.run config (args |> Array.skip 1)
         | [| "demo-ping" |] -> return! Demo.ping logger
         | [| "diag" |] -> return! Diagnostics.run logger
         | [| "diag"; "--verbose" |] -> return! Diagnostics.runWithVerbose logger true

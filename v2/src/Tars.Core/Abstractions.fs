@@ -15,7 +15,29 @@ type IVectorStore =
 type IAgentRegistry =
     abstract member GetAgent: AgentId -> Async<Agent option>
     abstract member FindAgents: CapabilityKind -> Async<Agent list>
+    abstract member GetAllAgents: unit -> Async<Agent list>
 
 /// Interface for executing agents
 type IAgentExecutor =
     abstract member Execute: agentId: AgentId * task: string -> Async<ExecutionOutcome<string>>
+
+/// Interface for epistemic governance operations
+type IEpistemicGovernor =
+    /// <summary>Generates task variants for testing generalization.</summary>
+    abstract member GenerateVariants: taskDescription: string * count: int -> Task<string list>
+
+    /// <summary>Verifies that a solution generalizes to variants.</summary>
+    abstract member VerifyGeneralization:
+        taskDescription: string * solution: string * variants: string list -> Task<VerificationResult>
+
+    /// <summary>Extracts a reusable principle from a task solution.</summary>
+    abstract member ExtractPrinciple: taskDescription: string * solution: string -> Task<Belief>
+
+    /// <summary>Suggests next learning tasks based on history.</summary>
+    abstract member SuggestCurriculum: completedTasks: string list * activeBeliefs: string list -> Task<string>
+
+    /// <summary>Verifies a statement against established beliefs.</summary>
+    abstract member Verify: statement: string -> Task<bool>
+
+    /// <summary>Retrieves relevant code context from the knowledge graph.</summary>
+    abstract member GetRelatedCodeContext: query: string -> Task<string>

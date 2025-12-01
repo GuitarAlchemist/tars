@@ -42,6 +42,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "__research", "__research", 
 		docs\__research\ChatGPT-Document feedback summary (1).md = docs\__research\ChatGPT-Document feedback summary (1).md
 		docs\__research\ChatGPT-AI semantic bus research.md = docs\__research\ChatGPT-AI semantic bus research.md
 		docs\__research\ChatGPT-Agentic AI Interfaces.md = docs\__research\ChatGPT-Agentic AI Interfaces.md
+		docs\__research\state_space_observability_for_agent_mesh.md = docs\__research\state_space_observability_for_agent_mesh.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "QA", "QA", "{B2C3D4E5-F6A7-8901-BCDE-F12345678901}"

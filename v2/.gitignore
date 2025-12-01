@@ -2,7 +2,16 @@
 **/obj/
 *.log
 build_log*.txt
+*_build_log*.txt
+build_*_warnings.txt
+build_output.md
+cli_build_log.txt
+cli_experiment_build_log*.txt
 demo_output*.txt
 demo_verify.txt
+test_output*.txt
+test_output*.log
 secrets.json
+token.json
+memory.json
 *.out

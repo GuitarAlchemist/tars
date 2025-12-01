@@ -1,5 +1,7 @@
 namespace Tars.Graph
 
+open Tars.Core
+
 open System.Collections.Concurrent
 open System.IO
 open System.Text.Json

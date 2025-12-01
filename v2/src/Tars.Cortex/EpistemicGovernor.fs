@@ -1,47 +1,54 @@
+/// <summary>
+/// Epistemic governance for managing agent knowledge and beliefs.
+/// Provides LLM-powered verification, generalization, and curriculum generation.
+/// </summary>
 namespace Tars.Cortex
 
 open System
 open System.Threading.Tasks
 open Tars.Core
+open Tars.Core.Units
 open Tars.Llm
 open Tars.Llm.LlmService
 
-type EpistemicStatus =
-    | Hypothesis // Proposed solution, untested generalization
-    | VerifiedFact // Passed generalization tests
-    | UniversalPrinciple // Abstracted and reused successfully > N times
-    | Heuristic // Useful but known to be brittle (flagged)
-    | Fallacy // Proven false
+type EpistemicGovernor(llm: ILlmService, knowledgeGraph: KnowledgeGraph option, budget: BudgetGovernor option) =
+    let recordBudget (tokens: int) =
+        match budget with
+        | Some governor ->
+            let cost =
+                { Cost.Zero with
+                    Tokens = Units.toTokens tokens
+                    CallCount = Units.toRequests 1 }
 
-type Belief =
-    { Id: Guid
-      Statement: string
-      Context: string // When does this apply?
-      Status: EpistemicStatus
-      Confidence: float
-      DerivedFrom: Guid list // TaskIds
-      CreatedAt: DateTime
-      LastVerified: DateTime }
-
-type VerificationResult =
-    { IsVerified: bool
-      Score: float
-      Feedback: string
-      FailedVariants: string list }
-
-type IEpistemicGovernor =
-    abstract member GenerateVariants: taskDescription: string * count: int -> Task<string list>
-
-    abstract member VerifyGeneralization:
-        taskDescription: string * solution: string * variants: string list -> Task<VerificationResult>
-
-    abstract member ExtractPrinciple: taskDescription: string * solution: string -> Task<Belief>
-
-    abstract member SuggestCurriculum: completedTasks: string list * activeBeliefs: string list -> Task<string>
-
-type EpistemicGovernor(llm: ILlmService, knowledgeGraph: KnowledgeGraph option) =
+            governor.TryConsume(cost) |> ignore
+        | None -> ()
 
     interface IEpistemicGovernor with
+        member this.Verify(statement) =
+            task {
+                // Simple verification against LLM for now
+                // In future, this would query the Belief Graph
+                let prompt =
+                    sprintf
+                        """Verify the following statement for accuracy and safety:
+"%s"
+
+Reply with "VERIFIED" if it is accurate and safe.
+Reply with "REJECTED" if it is false or unsafe."""
+                        statement
+
+                let req =
+                    { ModelHint = Some "reasoning"
+                      MaxTokens = Some 50
+                      Temperature = Some 0.0
+                      Messages = [ { Role = Role.User; Content = prompt } ] }
+
+                let! response = llm.CompleteAsync req
+                recordBudget (response.Usage |> Option.map (fun u -> u.TotalTokens) |> Option.defaultValue 0)
+
+                return response.Text.Contains("VERIFIED")
+            }
+
         member this.GenerateVariants(taskDescription, count) =
             task {
                 let prompt =
@@ -61,7 +68,18 @@ Return ONLY the variations as a numbered list (e.g., "1. Variation...")."""
                       Temperature = Some 0.8
                       Messages = [ { Role = Role.User; Content = prompt } ] }
 
-                let! response = llm.CompleteAsync req
+                let! response =
+                    task {
+                        let llmTask = llm.CompleteAsync req
+                        let! completed = Task.WhenAny(llmTask, Task.Delay(30000))
+
+                        if obj.ReferenceEquals(completed, (llmTask :> Task)) then
+                            let! resp = llmTask
+                            resp.Usage |> Option.iter (fun u -> recordBudget u.TotalTokens)
+                            return resp
+                        else
+                            return! Task.FromException<LlmResponse>(TimeoutException("GenerateVariants timeout"))
+                    }
 
                 return
                     response.Text.Split([| '\n'; '\r' |], StringSplitOptions.RemoveEmptyEntries)
@@ -112,7 +130,19 @@ If no, explain why.
                       Temperature = Some 0.2
                       Messages = [ { Role = Role.User; Content = prompt } ] }
 
-                let! response = llm.CompleteAsync req
+                let! response =
+                    task {
+                        let llmTask = llm.CompleteAsync req
+                        let! completed = Task.WhenAny(llmTask, Task.Delay(30000))
+
+                        if obj.ReferenceEquals(completed, (llmTask :> Task)) then
+                            let! resp = llmTask
+                            resp.Usage |> Option.iter (fun u -> recordBudget u.TotalTokens)
+                            return resp
+                        else
+                            return! Task.FromException<LlmResponse>(TimeoutException("VerifyGeneralization timeout"))
+                    }
+
                 let isVerified = response.Text.Contains("VERIFIED")
 
                 return
@@ -151,7 +181,18 @@ Context: <When to apply this>
                       Temperature = Some 0.5
                       Messages = [ { Role = Role.User; Content = prompt } ] }
 
-                let! response = llm.CompleteAsync req
+                let! response =
+                    task {
+                        let llmTask = llm.CompleteAsync req
+                        let! completed = Task.WhenAny(llmTask, Task.Delay(20000))
+
+                        if obj.ReferenceEquals(completed, (llmTask :> Task)) then
+                            let! resp = llmTask
+                            resp.Usage |> Option.iter (fun u -> recordBudget u.TotalTokens)
+                            return resp
+                        else
+                            return! Task.FromException<LlmResponse>(TimeoutException("ExtractPrinciple timeout"))
+                    }
 
                 let lines =
                     response.Text.Split([| '\n'; '\r' |], StringSplitOptions.RemoveEmptyEntries)
@@ -216,6 +257,74 @@ Output a single sentence suggestion."""
                       Temperature = Some 0.7
                       Messages = [ { Role = Role.User; Content = prompt } ] }
 
-                let! response = llm.CompleteAsync req
+                let! response =
+                    task {
+                        let llmTask = llm.CompleteAsync req
+                        let! completed = Task.WhenAny(llmTask, Task.Delay(15000))
+
+                        if obj.ReferenceEquals(completed, (llmTask :> Task)) then
+                            let! resp = llmTask
+                            resp.Usage |> Option.iter (fun u -> recordBudget u.TotalTokens)
+                            return resp
+                        else
+                            return! Task.FromException<LlmResponse>(TimeoutException("SuggestCurriculum timeout"))
+                    }
+
                 return response.Text.Trim()
+            }
+
+        member this.GetRelatedCodeContext(query: string) =
+            task {
+                match knowledgeGraph with
+                | None -> return "No knowledge graph available."
+                | Some graph ->
+                    let terms =
+                        query.ToLowerInvariant().Split([| ' '; ','; '.'; '_' |], StringSplitOptions.RemoveEmptyEntries)
+                        |> Array.filter (fun t -> t.Length > 3) // Skip short words
+
+                    if terms.Length = 0 then
+                        return "Query too short to find context."
+                    else
+                        let nodes = graph.GetAllNodes()
+
+                        let relevantNodes =
+                            nodes
+                            |> List.filter (fun node ->
+                                let name =
+                                    match node with
+                                    | ModuleNode n -> n
+                                    | TypeNode n -> n
+                                    | FunctionNode n -> n
+                                    | FileNode n -> n
+                                    | Concept n -> n
+                                    | _ -> ""
+
+                                let nameLower = name.ToLowerInvariant()
+                                terms |> Array.exists (fun term -> nameLower.Contains(term)))
+                            |> List.truncate 20 // Limit results
+
+                        if relevantNodes.IsEmpty then
+                            return "No relevant code context found in knowledge graph."
+                        else
+                            let sb = System.Text.StringBuilder()
+                            sb.AppendLine("Related Code Structure:") |> ignore
+
+                            for node in relevantNodes do
+                                match node with
+                                | ModuleNode name -> sb.AppendLine($"- Module: {name}") |> ignore
+                                | TypeNode name -> sb.AppendLine($"- Type: {name}") |> ignore
+                                | FunctionNode name -> sb.AppendLine($"- Function: {name}") |> ignore
+                                | FileNode name -> sb.AppendLine($"- File: {name}") |> ignore
+                                | _ -> ()
+
+                                // Add immediate neighbors (e.g. what module a function is in)
+                                let neighbors = graph.GetNeighbors(node)
+
+                                for (neighbor, edge) in neighbors do
+                                    match neighbor, edge with
+                                    | ModuleNode n, Contains -> sb.AppendLine($"  - In Module: {n}") |> ignore
+                                    | FileNode n, Contains -> sb.AppendLine($"  - In File: {n}") |> ignore
+                                    | _ -> ()
+
+                            return sb.ToString()
             }

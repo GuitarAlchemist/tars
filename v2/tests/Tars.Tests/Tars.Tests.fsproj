@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="FunctionalPatternsTests.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Include="KernelTests.fs" />
     <Compile Include="GovernanceTests.fs" />
     <Compile Include="AgentWorkflowTests.fs" />
@@ -26,6 +30,17 @@
     <Compile Include="SecurityTests.fs" />
     <Compile Include="ToolTests.fs" />
     <Compile Include="VectorStoreTests.fs" />
+    <Compile Include="OutputGuardTests.fs" />
+    <Compile Include="OutputGuardLlmTests.fs" />
+
+    <Compile Include="ChunkingTests.fs" />
+    <Compile Include="AnnVectorStoreTests.fs" />
+    <Compile Include="MetricsTests.fs" />
+    <Compile Include="ContextCompressionTests.fs" />
+    <Compile Include="KnowledgeTests.fs" />
+    <Compile Include="ValidationTests.fs" />
+    <Compile Include="OfflineEval.fs" />
+    <Compile Include="IntegrationTests.fs" />
   </ItemGroup>
 
   <ItemGroup>

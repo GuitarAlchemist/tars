@@ -79,7 +79,8 @@ module AstIngestor =
             try
                 let content = File.ReadAllText(filePath)
                 let sourceText = SourceText.ofString content
-                let! parseRes = checker.ParseFile(filePath, sourceText, FSharpParsingOptions.Default)
+                let options = { FSharpParsingOptions.Default with SourceFiles = [| filePath |] }
+                let! parseRes = checker.ParseFile(filePath, sourceText, options)
                 
                 let tree = parseRes.ParseTree
                 match tree with
@@ -110,4 +111,26 @@ module AstIngestor =
                     if not (file.Contains(Path.DirectorySeparatorChar.ToString() + "obj" + Path.DirectorySeparatorChar.ToString()) || 
                             file.Contains(Path.DirectorySeparatorChar.ToString() + "bin" + Path.DirectorySeparatorChar.ToString())) then
                         do! ingestFile graph file
+        }
+
+    let extractCodeStructure (graph: KnowledgeGraph) : CodeStructure =
+        let nodes = graph.GetAllNodes()
+        
+        let modules = 
+            nodes 
+            |> List.choose (function ModuleNode name -> Some name | _ -> None)
+            
+        let types = 
+            nodes 
+            |> List.choose (function TypeNode name -> Some name | _ -> None)
+            
+        let functions = 
+            nodes 
+            |> List.choose (function FunctionNode name -> Some name | _ -> None)
+            
+        {
+            Modules = modules
+            Types = types
+            Functions = functions
+            Dependencies = []
         }

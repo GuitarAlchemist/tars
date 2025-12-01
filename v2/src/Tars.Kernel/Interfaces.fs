@@ -23,3 +23,8 @@ type IEventBus =
 type ICognitiveProvider =
     abstract member AskAsync: prompt: string -> Task<string>
     abstract member GetEmbeddingsAsync: texts: string list -> Task<float32[][]>
+
+/// Context holding kernel services
+type KernelContext = {
+    SemanticMemory : ISemanticMemory
+}

@@ -11,13 +11,17 @@ open Tars.Evolution
 open System.Net.Http
 open Tars.Llm
 open Tars.Llm.Routing
+open Tars.Llm.Routing
 open Tars.Llm.LlmService
+open Tars.Cortex
+open Tars.Security
 
 type EvolveOptions =
     { MaxIterations: int
       Quiet: bool
       DemoMode: bool
-      Model: string option }
+      Model: string option
+      Trace: bool }
 
 /// Console output helpers with colors
 module ConsoleUI =
@@ -99,34 +103,69 @@ let run (logger: ILogger) (options: EvolveOptions) =
 
         logger.Information("Starting TARS v2 Evolution Engine...")
 
-        let ctx = Kernel.init ()
+        logger.Information("Starting TARS v2 Evolution Engine...")
+        
+        let registry = AgentRegistry()
         let curriculumId = Guid.NewGuid()
         let executorId = Guid.NewGuid()
 
         let model = options.Model |> Option.defaultValue "qwen2.5-coder:1.5b"
 
+        let curriculumCapabilities =
+            [ { Kind = CapabilityKind.Planning
+                Description = "Can generate curriculum and plan tasks"
+                InputSchema = None
+                OutputSchema = None }
+              { Kind = CapabilityKind.Reasoning
+                Description = "Can reason about task difficulty and progression"
+                InputSchema = None
+                OutputSchema = None } ]
+
         let curriculumAgent =
-            Kernel.createAgent
+            AgentFactory.create
                 curriculumId
                 "Curriculum"
                 "0.1.0"
                 model
                 "You are a curriculum agent that generates progressively harder coding tasks."
                 []
+                curriculumCapabilities
+
+        let executorCapabilities =
+            [ { Kind = CapabilityKind.CodeGeneration
+                Description = "Can write code to solve tasks"
+                InputSchema = None
+                OutputSchema = None }
+              { Kind = CapabilityKind.TaskExecution
+                Description = "Can execute tasks using tools"
+                InputSchema = None
+                OutputSchema = None }
+              { Kind = CapabilityKind.Reasoning
+                Description = "Can reflect on solutions and improve them"
+                InputSchema = None
+                OutputSchema = None } ]
 
         let executorAgent =
-            Kernel.createAgent
+            AgentFactory.create
                 executorId
                 "Executor"
                 "0.1.0"
                 model
                 "You are a coding assistant that solves programming tasks step by step."
                 []
+                executorCapabilities
 
-        let ctx = Kernel.registerAgent curriculumAgent ctx
-        let ctx = Kernel.registerAgent executorAgent ctx
+        registry.Register(curriculumAgent)
+        registry.Register(executorAgent)
 
         // Initialize LLM Service
+        // Ensure secret is registered
+        CredentialVault.registerSecret "OLLAMA_BASE_URL" "http://localhost:11434"
+
+        match CredentialVault.getSecret "OLLAMA_BASE_URL" with
+        | Microsoft.FSharp.Core.Result.Ok _ -> ()
+        | Microsoft.FSharp.Core.Result.Error e -> logger.Warning("Secret registration FAILED: {Error}", e)
+
         let routingCfg: RoutingConfig =
             { OllamaBaseUri = Uri("http://localhost:11434/")
               VllmBaseUri = Uri("http://localhost:11434/")
@@ -143,18 +182,46 @@ let run (logger: ILogger) (options: EvolveOptions) =
         let svcCfg: LlmServiceConfig = { Routing = routingCfg }
         use httpClient = new HttpClient()
         httpClient.Timeout <- TimeSpan.FromSeconds(120.0)
-        let llmService = DefaultLlmService(httpClient, svcCfg) :> ILlmService
+        let baseLlmService = DefaultLlmService(httpClient, svcCfg) :> ILlmService
+
+        // Setup Tracing if enabled
+        let traceRecorder = TraceRecorder()
+
+        let llmService =
+            if options.Trace then
+                if not options.Quiet then
+                    ConsoleUI.info "🔍 Tracing enabled\n"
+
+                TracingLlmService(baseLlmService, traceRecorder) :> ILlmService
+            else
+                baseLlmService
+
+        if options.Trace then
+            let! traceId = (traceRecorder :> ITraceRecorder).StartTraceAsync() |> Async.StartAsTask
+            logger.Information("Started trace {TraceId}", traceId)
 
         // Initialize Vector Store
-        let memoryStore = Tars.Cortex.InMemoryVectorStore()
-        let memoryFile = "memory.json"
+        let tarsDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".tars")
+        if not (Directory.Exists(tarsDir)) then
+            Directory.CreateDirectory(tarsDir) |> ignore
+            
+        let dbPath = Path.Combine(tarsDir, "memory.db")
+        let vectorStore = Tars.Cortex.SqliteVectorStore(dbPath) :> IVectorStore
 
-        let! loaded = memoryStore.LoadFromFileAsync(memoryFile)
+        if not options.Quiet then
+            ConsoleUI.info $"📁 Using persistent memory at {dbPath}\n"
 
-        if loaded && not options.Quiet then
-            ConsoleUI.info "📁 Loaded existing memory\n"
+        // Initialize Capability Store and register agents
+        let capabilityStore = CapabilityStore(vectorStore, llmService)
 
-        let vectorStore = memoryStore :> IVectorStore
+        if not options.Quiet then
+            ConsoleUI.info "🧠 Registering agent capabilities...\n"
+
+        for cap in curriculumAgent.Capabilities do
+            do! capabilityStore.RegisterAsync(curriculumAgent.Id, cap)
+
+        for cap in executorAgent.Capabilities do
+            do! capabilityStore.RegisterAsync(executorAgent.Id, cap)
 
         // Initialize Knowledge Base
         let knowledgePath =
@@ -186,6 +253,10 @@ let run (logger: ILogger) (options: EvolveOptions) =
                     None
                 else
                     Some(Tars.Cortex.EpistemicGovernor(llmService, None, Some budget) :> IEpistemicGovernor)
+            
+            // Initialize Output Guard
+            // Use basic guard for now. In future, we can compose with LlmOutputGuardAnalyzer
+            let outputGuard = OutputGuard.defaultGuard
 
             let evoState: EvolutionState =
                 { Generation = 0
@@ -196,13 +267,26 @@ let run (logger: ILogger) (options: EvolveOptions) =
                   TaskQueue = []
                   ActiveBeliefs = [] }
 
+            // Initialize Knowledge Graph and Ingest Codebase
+            let knowledgeGraph = KnowledgeGraph()
+            if not options.Quiet then
+                ConsoleUI.info "🧠 Ingesting codebase into Knowledge Graph...\n"
+            
+            // Ingest current directory
+            CodeGraphIngestor.ingestDirectory knowledgeGraph Environment.CurrentDirectory
+            
+            if not options.Quiet then
+                ConsoleUI.info $"   Loaded {knowledgeGraph.NodeCount} nodes and {knowledgeGraph.EdgeCount} edges\n"
+
             let evoCtx: Engine.EvolutionContext =
-                { Kernel = ctx
+                { Registry = registry
                   Llm = llmService
                   VectorStore = vectorStore
                   Epistemic = epistemic
                   Budget = Some budget
+                  OutputGuard = Some outputGuard
                   KnowledgeBase = Some knowledgeBase
+                  KnowledgeGraph = Some knowledgeGraph
                   Logger = fun s -> logger.Information("{Evolution}", s) }
 
             let mutable currentState = evoState
@@ -238,14 +322,26 @@ let run (logger: ILogger) (options: EvolveOptions) =
 
                         ConsoleUI.printDivider ()
 
-                    // Save memory after each task
-                    do! memoryStore.PersistToFileAsync(memoryFile)
+                    // Auto-saved by SqliteVectorStore
                 | None -> ()
 
                 do! Task.Delay(500)
 
             if not options.Quiet then
                 ConsoleUI.printSummary currentState.CompletedTasks.Length (Some budget)
+
+            if options.Trace then
+                let timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss")
+                let tracePath = $"trace_{timestamp}.json"
+                if not options.Quiet then
+                    ConsoleUI.info $"💾 Saving trace to {tracePath}...\n"
+                try
+                    do! traceRecorder.SaveToFileAsync(tracePath) |> Async.StartAsTask
+                    if not options.Quiet then
+                        ConsoleUI.info "Trace saved successfully.\n"
+                with ex ->
+                    ConsoleUI.error $"Failed to save trace: {ex.Message}\n"
+                    logger.Error(ex, "Trace Saving Failed")
 
             return 0
         with ex ->

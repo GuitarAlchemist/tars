@@ -3,12 +3,15 @@ namespace Tars.Tools.Standard
 open System
 open System.IO
 open System.Threading.Tasks
+open System.Net.Http
+open System.Text.RegularExpressions
 open Tars.Tools
 open Tars.Sandbox
 
 module StandardTools =
 
     let private dockerClient = lazy (DockerClient.createClient ())
+    let private httpClient = lazy (new HttpClient())
 
     [<TarsToolAttribute("run_command", "Executes a shell command in a secure sandbox. Input: command string.")>]
     let runCommand (command: string) =
@@ -27,6 +30,35 @@ module StandardTools =
                 else
                     return sprintf "Error (Exit Code %d): %s\nStdout: %s" exitCode (stderr.Trim()) (stdout.Trim())
             | Error e -> return sprintf "Sandbox Error: %s" e
+        }
+
+    [<TarsToolAttribute("html_to_text", "Converts HTML to plain text. Input JSON: { \"html\": \"...\" }")>]
+    let htmlToText (args: string) =
+        task {
+            try
+                let html =
+                    try
+                        let doc = System.Text.Json.JsonDocument.Parse(args)
+                        let root = doc.RootElement
+                        let mutable prop = Unchecked.defaultof<System.Text.Json.JsonElement>
+                        if root.TryGetProperty("html", &prop) then
+                            prop.GetString()
+                        else
+                            args
+                    with _ ->
+                        args
+
+                if String.IsNullOrWhiteSpace html then
+                    return "html_to_text error: missing html"
+                else
+                    // naive strip tags
+                    let text = Regex.Replace(html, "<.*?>", " ")
+                    let decoded = System.Net.WebUtility.HtmlDecode(text)
+                    // collapse whitespace
+                    let cleaned = Regex.Replace(decoded, "\\s+", " ").Trim()
+                    return cleaned
+            with ex ->
+                return $"html_to_text error: {ex.Message}"
         }
 
     [<TarsToolAttribute("read_file", "Reads a text file (UTF-8). Input JSON: { \"path\": \"relative/or/absolute\" }")>]
@@ -87,4 +119,36 @@ module StandardTools =
                     return entries
             with ex ->
                 return $"list_dir error: {ex.Message}"
+        }
+
+    [<TarsToolAttribute("web_fetch", "Fetches a URL over HTTP(S) and returns the text content. Input JSON: { \"url\": \"https://...\" }")>]
+    let webFetch (args: string) =
+        task {
+            try
+                let url =
+                    try
+                        let doc = System.Text.Json.JsonDocument.Parse(args)
+                        let root = doc.RootElement
+                        let mutable prop = Unchecked.defaultof<System.Text.Json.JsonElement>
+                        if root.TryGetProperty("url", &prop) then
+                            prop.GetString()
+                        else
+                            args
+                    with _ ->
+                        args
+
+                if String.IsNullOrWhiteSpace url then
+                    return "web_fetch error: missing url"
+                else
+                    let! resp = httpClient.Value.GetAsync(url)
+                    resp.EnsureSuccessStatusCode() |> ignore
+                    let! content = resp.Content.ReadAsStringAsync()
+                    let trimmed =
+                        if content.Length > 64000 then
+                            content.Substring(0, 64000) + "... [truncated]"
+                        else
+                            content
+                    return trimmed
+            with ex ->
+                return $"web_fetch error: {ex.Message}"
         }

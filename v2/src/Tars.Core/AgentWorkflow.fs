@@ -1,22 +1,56 @@
+/// <summary>
+/// Agent workflow computation expression for building composable, fault-tolerant agent operations.
+/// Provides automatic cancellation checking, warning accumulation, and budget governance.
+/// </summary>
+/// <example>
+/// <code>
+/// let myWorkflow = agent {
+///     let! result = someOperation ()
+///     do! AgentWorkflow.checkBudget cost
+///     return result
+/// }
+/// </code>
+/// </example>
 namespace Tars.Core
 
 open System
+open System.Diagnostics
 open System.Threading
 open System.Threading.Tasks
+open Tars.Core.Metrics
 
-/// Context passed to the agent workflow
+/// <summary>
+/// Context passed to agent workflow operations.
+/// Contains the executing agent, service references, and resource constraints.
+/// </summary>
 type AgentContext =
-    { Self: Agent
-      Registry: IAgentRegistry
-      Executor: IAgentExecutor
-      Logger: string -> unit
-      Budget: BudgetGovernor option
-      CancellationToken: CancellationToken }
+    {
+        /// The agent executing this workflow
+        Self: Agent
+        /// Registry for looking up other agents
+        Registry: IAgentRegistry
+        /// Executor for invoking other agents
+        Executor: IAgentExecutor
+        /// Logger for diagnostic output
+        Logger: string -> unit
+        /// Optional budget governor for resource tracking
+        Budget: BudgetGovernor option
+        /// Optional epistemic governor for truth verification
+        Epistemic: IEpistemicGovernor option
+        /// Cancellation token for cooperative cancellation
+        CancellationToken: CancellationToken
+    }
 
-/// A workflow that returns an ExecutionOutcome
+/// <summary>
+/// An agent workflow is a function from context to an async execution outcome.
+/// This enables composable, cancellable, budget-aware agent operations.
+/// </summary>
 type AgentWorkflow<'T> = AgentContext -> Async<ExecutionOutcome<'T>>
 
-// ... (AgentBuilder implementation remains the same) ...
+/// <summary>
+/// Computation expression builder for agent workflows.
+/// Handles cancellation, warning accumulation, and outcome propagation.
+/// </summary>
 type AgentBuilder() =
     member _.Return(value: 'T) : AgentWorkflow<'T> = fun _ -> async { return Success value }
 
@@ -25,31 +59,50 @@ type AgentBuilder() =
     member _.Bind(workflow: AgentWorkflow<'T>, f: 'T -> AgentWorkflow<'U>) : AgentWorkflow<'U> =
         fun ctx ->
             async {
-                // 1. Check Cancellation
-                if ctx.CancellationToken.IsCancellationRequested then
-                    return Failure [ PartialFailure.Warning "Operation cancelled" ]
-                else
-                    // 2. Run the first step
-                    let! result = workflow ctx
+                let start = Stopwatch.GetTimestamp()
 
-                    match result with
-                    | Success value ->
-                        // 3. Continue to next step
-                        return! f value ctx
+                let! finalResult =
+                    async {
+                        // 1. Check Cancellation
+                        if ctx.CancellationToken.IsCancellationRequested then
+                            return Failure [ PartialFailure.Warning "Operation cancelled" ]
+                        else
+                            // 2. Run the first step
+                            let! result = workflow ctx
 
-                    | PartialSuccess(value, warnings) ->
-                        // 4. Continue, but accumulate warnings
-                        let! nextResult = f value ctx
+                            match result with
+                            | Success value ->
+                                // 3. Continue to next step
+                                return! f value ctx
 
-                        match nextResult with
-                        | Success nextValue -> return PartialSuccess(nextValue, warnings)
-                        | PartialSuccess(nextValue, nextWarnings) ->
-                            return PartialSuccess(nextValue, warnings @ nextWarnings)
-                        | Failure errors -> return Failure(warnings @ errors) // Keep warnings as context for failure
+                            | PartialSuccess(value, warnings) ->
+                                // 4. Continue, but accumulate warnings
+                                let! nextResult = f value ctx
 
-                    | Failure errors ->
-                        // 5. Short-circuit
-                        return Failure errors
+                                match nextResult with
+                                | Success nextValue -> return PartialSuccess(nextValue, warnings)
+                                | PartialSuccess(nextValue, nextWarnings) ->
+                                    return PartialSuccess(nextValue, warnings @ nextWarnings)
+                                | Failure errors -> return Failure(warnings @ errors) // Keep warnings as context for failure
+
+                            | Failure errors ->
+                                // 5. Short-circuit
+                                return Failure errors
+                    }
+
+                let durationMs =
+                    float (Stopwatch.GetTimestamp() - start)
+                    * 1000.0
+                    / float Stopwatch.Frequency
+
+                let status =
+                    match finalResult with
+                    | Success _ -> "success"
+                    | PartialSuccess _ -> "partial"
+                    | Failure _ -> "failure"
+
+                Metrics.record "agent.bind" status durationMs (Some ctx.Self.Id) Map.empty
+                return finalResult
             }
 
     member _.Zero() : AgentWorkflow<unit> = fun _ -> async { return Success() }
@@ -73,42 +126,63 @@ type AgentBuilder() =
 
     member _.Delay(f: unit -> AgentWorkflow<'T>) : AgentWorkflow<'T> = fun ctx -> f () ctx
 
+/// <summary>
+/// Helper functions for building agent workflows.
+/// </summary>
 [<AutoOpen>]
 module AgentWorkflow =
+    /// <summary>The agent computation expression builder instance.</summary>
     let agent = AgentBuilder()
 
-    /// Helper to lift a value into a successful workflow
+    /// <summary>Lifts a value into a successful workflow.</summary>
+    /// <param name="value">The value to wrap in Success.</param>
     let succeed (value: 'T) : AgentWorkflow<'T> = fun _ -> async { return Success value }
 
-    /// Helper to lift a failure into the workflow
+    /// <summary>Creates a workflow that immediately fails with the given error.</summary>
+    /// <param name="error">The failure reason.</param>
     let fail (error: PartialFailure) : AgentWorkflow<'T> =
         fun _ -> async { return Failure [ error ] }
 
-    /// Helper to lift a list of failures
+    /// <summary>Creates a workflow that immediately fails with multiple errors.</summary>
+    /// <param name="errors">The list of failure reasons.</param>
     let failMany (errors: PartialFailure list) : AgentWorkflow<'T> =
         fun _ -> async { return Failure errors }
 
-    /// Helper to emit a warning but continue with a value
+    /// <summary>Creates a partial success with a value and a warning.</summary>
+    /// <param name="value">The result value.</param>
+    /// <param name="warning">The warning to attach.</param>
     let warnWith (value: 'T) (warning: PartialFailure) : AgentWorkflow<'T> =
         fun _ -> async { return PartialSuccess(value, [ warning ]) }
 
-    /// Helper to access the context
+    /// <summary>Accesses the current agent context.</summary>
     let getContext: AgentWorkflow<AgentContext> =
         fun ctx -> async { return Success ctx }
 
-    /// Helper to check budget
+    /// <summary>
+    /// Checks if the specified cost can be consumed from the budget.
+    /// Fails the workflow if the budget would be exceeded.
+    /// </summary>
+    /// <param name="cost">The cost to consume.</param>
     let checkBudget (cost: Cost) : AgentWorkflow<unit> =
         fun ctx ->
             async {
                 match ctx.Budget with
                 | Some governor ->
                     match governor.TryConsume cost with
-                    | Result.Ok _ -> return Success()
-                    | Result.Error err -> return Failure [ PartialFailure.Warning $"Budget exceeded: {err}" ]
+                    | Result.Ok _ ->
+                        Metrics.recordSimple "budget.check" "ok" (Some ctx.Self.Id) None None
+                        return Success()
+                    | Result.Error err ->
+                        Metrics.recordSimple "budget.check" "exceeded" (Some ctx.Self.Id) None None
+                        return Failure [ PartialFailure.Warning $"Budget exceeded: {err}" ]
                 | None -> return Success()
             }
 
-    /// Call an agent by capability
+    /// <summary>
+    /// Finds and executes an agent with the specified capability.
+    /// </summary>
+    /// <param name="kind">The capability to search for.</param>
+    /// <param name="taskSpec">The task specification to send to the agent.</param>
     let callAgentByCapability (kind: CapabilityKind) (taskSpec: string) : AgentWorkflow<string> =
         fun ctx ->
             async {
@@ -119,7 +193,7 @@ module AgentWorkflow =
                 | agent :: _ -> return! ctx.Executor.Execute(agent.Id, taskSpec)
             }
 
-    /// Fallback logic
+    /// <summary>Provides a fallback workflow if the primary fails.</summary>
     let withFallback (primary: AgentWorkflow<'T>) (backup: AgentWorkflow<'T>) : AgentWorkflow<'T> =
         fun ctx ->
             async {
@@ -133,7 +207,12 @@ module AgentWorkflow =
                     return! backup ctx
             }
 
-    /// Escalate if confidence is low
+    /// <summary>
+    /// Escalates to failure if the confidence score is below threshold.
+    /// </summary>
+    /// <param name="minConfidence">Minimum acceptable confidence (0.0-1.0).</param>
+    /// <param name="result">The result value.</param>
+    /// <param name="confidence">The confidence score.</param>
     let escalateIfLowConfidence (minConfidence: float) (result: string) (confidence: float) : AgentWorkflow<string> =
         fun ctx ->
             async {
@@ -144,7 +223,11 @@ module AgentWorkflow =
                     return Success result
             }
 
-    /// Retry with backoff
+    /// <summary>
+    /// Retries a workflow with exponential backoff on failure.
+    /// </summary>
+    /// <param name="workflow">The workflow to retry.</param>
+    /// <param name="maxRetries">Maximum number of retry attempts.</param>
     let retryWithBackoff (workflow: AgentWorkflow<'T>) (maxRetries: int) : AgentWorkflow<'T> =
         let rec loop retries =
             fun ctx ->
@@ -169,7 +252,11 @@ module AgentWorkflow =
 
         loop maxRetries
 
-    /// Aggregate results
+    /// <summary>
+    /// Runs multiple workflows in parallel and aggregates results.
+    /// Collects all warnings and fails if any workflow fails.
+    /// </summary>
+    /// <param name="workflows">The workflows to run in parallel.</param>
     let aggregateResults (workflows: AgentWorkflow<'T> list) : AgentWorkflow<'T list> =
         fun ctx ->
             async {
@@ -197,11 +284,16 @@ module AgentWorkflow =
             }
 
     // ==========================================
-    // Phase 6.5.5: Circuit Combinators
+    // Circuit Combinators (Electronics-inspired workflow patterns)
     // ==========================================
 
-    /// Transformer: Impedance Matching
-    /// Transforms the output of a workflow from one type to another (Step Down / Step Up)
+    /// <summary>
+    /// Transformer: Impedance Matching.
+    /// Transforms the output of a workflow from one type to another.
+    /// Like an electrical transformer that steps voltage up or down.
+    /// </summary>
+    /// <param name="mapping">The transformation function.</param>
+    /// <param name="workflow">The workflow to transform.</param>
     let transform (mapping: 'T -> 'U) (workflow: AgentWorkflow<'T>) : AgentWorkflow<'U> =
         fun ctx ->
             async {
@@ -213,34 +305,51 @@ module AgentWorkflow =
                 | Failure e -> return Failure e
             }
 
-    /// Inductor: Context Inertia
-    /// Resists rapid changes in direction. If the new plan deviates too much from the status quo,
-    /// it requires higher confidence or budget to proceed.
-    /// (Currently a semantic wrapper, will integrate with Vector Store for similarity checks later)
+    /// <summary>
+    /// Inductor: Context Inertia.
+    /// Resists rapid changes in direction. If the new plan deviates too much
+    /// from the status quo, it requires higher confidence or budget to proceed.
+    /// Like an electrical inductor that resists changes in current.
+    /// </summary>
+    /// <param name="inertia">The resistance to change (0.0-1.0).</param>
+    /// <param name="workflow">The workflow to stabilize.</param>
     let stabilize (inertia: float) (workflow: AgentWorkflow<'T>) : AgentWorkflow<'T> =
         fun ctx ->
             async {
                 // TODO: Measure semantic distance from previous state
-                // For now, we simulate inertia by adding a small delay or logging
                 if inertia > 0.5 then
                     ctx.Logger $"[Inductor] Stabilizing workflow with inertia {inertia}..."
 
                 return! workflow ctx
             }
 
-    /// Diode: Directed Flow
-    /// Prevents cycles by checking if the target agent/task has already been visited in this chain.
+    /// <summary>
+    /// Diode: Directed Flow.
+    /// Prevents cycles by checking if the target agent/task has already been
+    /// visited in this chain. Like an electrical diode that only allows
+    /// current to flow in one direction.
+    /// </summary>
+    /// <param name="workflow">The workflow to protect from cycles.</param>
     let forwardOnly (workflow: AgentWorkflow<'T>) : AgentWorkflow<'T> =
         fun ctx ->
             async {
                 // TODO: Check recursion depth or history in Context
-                // For now, we just tag the execution
                 ctx.Logger "[Diode] Enforcing forward-only flow."
                 return! workflow ctx
             }
 
-    /// Grounding: Reference Potential
+    /// <summary>
+    /// Grounding: Reference Potential.
     /// Verifies the output against a source of truth (Epistemic Governor).
+    /// Like an electrical ground that provides a stable reference point.
+    /// </summary>
+    /// <param name="workflow">The workflow to ground.</param>
+    /// <summary>
+    /// Grounding: Reference Potential.
+    /// Verifies the output against a source of truth (Epistemic Governor).
+    /// Like an electrical ground that provides a stable reference point.
+    /// </summary>
+    /// <param name="workflow">The workflow to ground.</param>
     let grounded (workflow: AgentWorkflow<'T>) : AgentWorkflow<'T> =
         fun ctx ->
             async {
@@ -248,11 +357,32 @@ module AgentWorkflow =
 
                 match result with
                 | Success v ->
-                    // TODO: Call EpistemicGovernor.Verify(v)
-                    ctx.Logger $"[Grounding] Verifying result: {v}"
-                    return Success v
+                    match ctx.Epistemic with
+                    | Some governor ->
+                        let! verified = governor.Verify(v.ToString()) |> Async.AwaitTask
+
+                        if verified then
+                            ctx.Logger $"[Grounding] Verified result: {v}"
+                            return Success v
+                        else
+                            ctx.Logger $"[Grounding] Rejected result: {v}"
+                            return Failure [ PartialFailure.Error $"Epistemic Governor rejected result: {v}" ]
+                    | None ->
+                        ctx.Logger "[Grounding] No Epistemic Governor available. Skipping verification."
+                        return Success v
+
                 | PartialSuccess(v, w) ->
-                    ctx.Logger $"[Grounding] Verifying partial result: {v}"
-                    return PartialSuccess(v, w)
+                    match ctx.Epistemic with
+                    | Some governor ->
+                        let! verified = governor.Verify(v.ToString()) |> Async.AwaitTask
+
+                        if verified then
+                            ctx.Logger $"[Grounding] Verified partial result: {v}"
+                            return PartialSuccess(v, w)
+                        else
+                            ctx.Logger $"[Grounding] Rejected partial result: {v}"
+                            return Failure(w @ [ PartialFailure.Error $"Epistemic Governor rejected result: {v}" ])
+                    | None -> return PartialSuccess(v, w)
+
                 | Failure e -> return Failure e
             }

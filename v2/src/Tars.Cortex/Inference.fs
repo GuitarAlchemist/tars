@@ -1,10 +1,21 @@
-﻿namespace Tars.Cortex
+﻿/// <summary>
+/// Inference providers for TARS cognitive operations.
+/// Wraps Semantic Kernel for LLM and embedding operations.
+/// </summary>
+namespace Tars.Cortex
 
 open System.Threading.Tasks
 open Microsoft.SemanticKernel
 open Microsoft.Extensions.AI
 open Tars.Kernel
 
+/// <summary>
+/// Semantic Kernel-based cognitive provider.
+/// Implements ICognitiveProvider using Microsoft Semantic Kernel for LLM operations.
+/// </summary>
+/// <param name="apiKey">OpenAI API key.</param>
+/// <param name="modelId">Chat model ID (e.g., "gpt-4").</param>
+/// <param name="embeddingModelId">Embedding model ID (e.g., "text-embedding-ada-002").</param>
 type SemanticKernelProvider(apiKey: string, modelId: string, embeddingModelId: string) =
     let kernel =
         Kernel.CreateBuilder()

@@ -8,11 +8,12 @@ open Tars.Kernel
 
 /// Executor that runs an agent loop until completion
 type GraphExecutor
-    (kernel: KernelContext, llm: Tars.Llm.LlmService.ILlmService, budget: BudgetGovernor option, logger: string -> unit)
+    (registry: IAgentRegistry, llm: Tars.Llm.LlmService.ILlmService, budget: BudgetGovernor option, outputGuard: IOutputGuard option, logger: string -> unit)
     =
 
     // Default constructor for backward compatibility
-    new(kernel, llm, budget) = GraphExecutor(kernel, llm, budget, fun _ -> ())
+    new(registry, llm, budget) = GraphExecutor(registry, llm, budget, None, fun _ -> ())
+    new(registry, llm, budget, logger) = GraphExecutor(registry, llm, budget, None, logger)
 
     /// Helper to run the agent loop until it produces a response or errors
     member this.RunAgentLoop (agent: Agent) (maxSteps: int) : Task<ExecutionOutcome<Agent * string * string list>> =
@@ -25,10 +26,11 @@ type GraphExecutor
             let mutable success = false
 
             let graphCtx: GraphRuntime.GraphContext =
-                { Kernel = kernel
+                { Registry = registry
                   Llm = llm
                   MaxSteps = maxSteps
                   BudgetGovernor = budget
+                  OutputGuard = outputGuard
                   Logger = logger }
 
             while not finished && stepCount < maxSteps do
@@ -81,7 +83,8 @@ type GraphExecutor
         member this.Execute(agentId, taskSpec) =
             async {
                 // 1. Retrieve Agent
-                match Kernel.getAgent agentId kernel with
+                let! agentOpt = registry.GetAgent(agentId)
+                match agentOpt with
                 | None -> return Failure [ PartialFailure.Error $"Agent {agentId} not found" ]
                 | Some agent ->
                     // 2. Send Task Message
@@ -101,7 +104,7 @@ type GraphExecutor
                           Timestamp = DateTime.UtcNow
                           Metadata = Map.empty }
 
-                    let agentWithMsg = Kernel.receiveMessage msg agent
+                    let agentWithMsg = agent.ReceiveMessage(msg)
 
                     // 3. Run Loop
                     let! result = this.RunAgentLoop agentWithMsg 20 |> Async.AwaitTask

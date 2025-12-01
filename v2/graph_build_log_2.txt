@@ -1,25 +1,0 @@
-  Determining projects to restore...
-  All projects are up-to-date for restore.
-  Tars.Core -> C:\Users\spare\source\repos\tars\v2\src\Tars.Core\bin\Debug\net10.0\Tars.Core.dll
-  Tars.Security -> C:\Users\spare\source\repos\tars\v2\src\Tars.Security\bin\Debug\net10.0\Tars.Security.dll
-  Tars.Connectors -> C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\bin\Debug\net10.0\Tars.Connectors.dll
-  Tars.Llm -> C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\bin\Debug\net10.0\Tars.Llm.dll
-C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\Graph.fs(10,11): error FS0039: The namespace 'Kernel' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\Tars.Graph.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\Graph.fs(57,27): error FS0039: The type 'BudgetGovernor' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\Tars.Graph.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\Graph.fs(57,27): error FS0039: The type 'BudgetGovernor' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\Tars.Graph.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\Graph.fs(94,15): error FS0001: This expression was expected to have type    'obj'    but here has type    ''a option' [C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\Tars.Graph.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\Graph.fs(105,15): error FS0001: This expression was expected to have type    'obj'    but here has type    ''a option' [C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\Tars.Graph.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\Graph.fs(93,19): error FS0025: Incomplete pattern matches on this expression. [C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\Tars.Graph.fsproj]
-
-Build FAILED.
-
-C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\Graph.fs(10,11): error FS0039: The namespace 'Kernel' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\Tars.Graph.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\Graph.fs(57,27): error FS0039: The type 'BudgetGovernor' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\Tars.Graph.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\Graph.fs(57,27): error FS0039: The type 'BudgetGovernor' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\Tars.Graph.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\Graph.fs(94,15): error FS0001: This expression was expected to have type    'obj'    but here has type    ''a option' [C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\Tars.Graph.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\Graph.fs(105,15): error FS0001: This expression was expected to have type    'obj'    but here has type    ''a option' [C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\Tars.Graph.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\Graph.fs(93,19): error FS0025: Incomplete pattern matches on this expression. [C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\Tars.Graph.fsproj]
-    0 Warning(s)
-    6 Error(s)
-
-Time Elapsed 00:00:02.09

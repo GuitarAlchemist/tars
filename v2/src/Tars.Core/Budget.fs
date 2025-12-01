@@ -1,24 +1,48 @@
+/// <summary>
+/// Multi-dimensional budget and cost management for TARS agents.
+/// Provides thread-safe resource tracking, consumption, and allocation.
+/// </summary>
+/// <remarks>
+/// The Cost type forms a Commutative Monoid under addition, enabling
+/// composable cost tracking across complex agent workflows.
+/// </remarks>
 namespace Tars.Core
 
 open System
 
-/// Represents the cost of an operation
-/// This type forms a Commutative Monoid under addition, with Zero as the identity.
+/// <summary>
+/// Represents the multi-dimensional cost of an operation.
+/// Forms a Commutative Monoid under addition with Zero as identity.
+/// </summary>
 type Cost =
-    { Tokens: int<token>
+    { /// LLM tokens consumed
+      Tokens: int<token>
+      /// Monetary cost in USD
       Money: decimal<usd>
+      /// Time duration in milliseconds
       Duration: float<ms>
+      /// Number of API/service calls
       CallCount: int<requests>
+      /// RAM memory used in bytes
       Ram: int64<bytes>
+      /// GPU VRAM used in bytes
       Vram: int64<bytes>
+      /// Disk I/O in bytes
       Disk: int64<bytes>
+      /// Network I/O in bytes
       Network: int64<bytes>
+      /// CPU cycles consumed
       Cpu: int64<cycles>
+      /// Cognitive attention cost
       Attention: float<attention>
+      /// Graph nodes processed
       Nodes: int<nodes>
+      /// Energy consumed in joules
       Energy: float<joules>
+      /// Custom dimensions for extensibility
       Custom: Map<string, float> }
 
+    /// <summary>The zero cost identity element.</summary>
     static member Zero =
         { Tokens = 0<token>
           Money = 0m<usd>
@@ -55,22 +79,39 @@ type Cost =
           Energy = a.Energy + b.Energy
           Custom = mergeMaps a.Custom b.Custom }
 
-/// Represents the budget limits for a workflow
+/// <summary>
+/// Represents the budget limits for a workflow.
+/// Each dimension is optional - None means unlimited.
+/// </summary>
 type Budget =
-    { MaxTokens: int<token> option
+    { /// Maximum tokens allowed
+      MaxTokens: int<token> option
+      /// Maximum monetary cost in USD
       MaxMoney: decimal<usd> option
+      /// Maximum duration in milliseconds
       MaxDuration: float<ms> option
+      /// Maximum API/service calls
       MaxCalls: int<requests> option
+      /// Maximum RAM usage in bytes
       MaxRam: int64<bytes> option
+      /// Maximum GPU VRAM in bytes
       MaxVram: int64<bytes> option
+      /// Maximum disk I/O in bytes
       MaxDisk: int64<bytes> option
+      /// Maximum network I/O in bytes
       MaxNetwork: int64<bytes> option
+      /// Maximum CPU cycles
       MaxCpu: int64<cycles> option
+      /// Maximum attention cost
       MaxAttention: float<attention> option
+      /// Maximum graph nodes
       MaxNodes: int<nodes> option
+      /// Maximum energy in joules
       MaxEnergy: float<joules> option
+      /// Custom dimension limits
       MaxCustom: Map<string, float> }
 
+    /// <summary>An infinite budget with no limits.</summary>
     static member Infinite =
         { MaxTokens = None
           MaxMoney = None
@@ -86,7 +127,10 @@ type Budget =
           MaxEnergy = None
           MaxCustom = Map.empty }
 
-/// Manages resource consumption against a budget
+/// <summary>
+/// Thread-safe resource consumption manager.
+/// Tracks costs against a budget and prevents over-consumption.
+/// </summary>
 type BudgetGovernor(budget: Budget) =
     let mutable consumed = Cost.Zero
     let lockObj = obj ()

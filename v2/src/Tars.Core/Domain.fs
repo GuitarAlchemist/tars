@@ -82,6 +82,7 @@ type CapabilityKind =
     | DataAnalysis
     | Planning
     | TaskExecution
+    | Reasoning
     | Custom of string
 
 type Capability =
@@ -124,6 +125,9 @@ type Agent =
       Capabilities: Capability list
       State: AgentState
       Memory: Message list } // Short-term memory/context
+    
+    member this.ReceiveMessage(msg: Message) =
+        { this with Memory = this.Memory @ [ msg ] }
 
 /// The result of a kernel operation
 type KernelResult<'T> = Result<'T, string>
@@ -144,6 +148,10 @@ type GraphNode =
     | AgentNode of AgentId
     | FileNode of path: string
     | TaskNode of taskId: Guid
+    | BeliefNode of beliefId: Guid * content: string
+    | ModuleNode of name: string
+    | TypeNode of name: string
+    | FunctionNode of name: string
 
 /// Represents an edge/relationship in the internal knowledge graph
 type GraphEdge =
@@ -151,3 +159,55 @@ type GraphEdge =
     | CreatedBy
     | DependsOn
     | Solves
+    | HasBelief
+    | IsA
+    | Contains
+
+
+
+/// Represents the epistemic status of a belief
+type EpistemicStatus =
+    /// Proposed solution, untested generalization
+    | Hypothesis
+    /// Passed generalization tests on variants
+    | VerifiedFact
+    /// Abstracted and reused successfully multiple times
+    | UniversalPrinciple
+    /// Useful but known to be brittle
+    | Heuristic
+    /// Proven false through testing
+    | Fallacy
+
+/// A belief held by the agent, with tracking of its epistemic status
+type Belief =
+    {
+        /// Unique identifier
+        Id: Guid
+        /// The belief statement
+        Statement: string
+        /// When/where this belief applies
+        Context: string
+        /// Current epistemic status
+        Status: EpistemicStatus
+        /// Confidence score (0.0-1.0)
+        Confidence: float
+        /// Task IDs this was derived from
+        DerivedFrom: Guid list
+        /// When the belief was created
+        CreatedAt: DateTime
+        /// Last verification timestamp
+        LastVerified: DateTime
+    }
+
+/// Result of a generalization verification
+type VerificationResult =
+    {
+        /// Whether the generalization holds
+        IsVerified: bool
+        /// Verification score (0.0-1.0)
+        Score: float
+        /// Feedback message
+        Feedback: string
+        /// Variants that failed verification
+        FailedVariants: string list
+    }

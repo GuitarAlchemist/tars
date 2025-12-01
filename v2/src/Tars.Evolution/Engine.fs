@@ -15,12 +15,14 @@ module Engine =
 
     /// The context for the evolution engine
     type EvolutionContext =
-        { Kernel: KernelContext
+        { Registry: IAgentRegistry
           Llm: ILlmService
           VectorStore: IVectorStore
           Epistemic: IEpistemicGovernor option
           Budget: BudgetGovernor option
+          OutputGuard: IOutputGuard option
           KnowledgeBase: KnowledgeBase option
+          KnowledgeGraph: KnowledgeGraph option
           Logger: string -> unit }
 
     let private scoreTask (task: TaskDefinition) : float =
@@ -77,11 +79,12 @@ JSON:"""
                     guidance
 
             // 1. Retrieve Curriculum Agent
-            match Kernel.getAgent state.CurriculumAgentId ctx.Kernel with
+            let! agentOpt = ctx.Registry.GetAgent(state.CurriculumAgentId)
+            match agentOpt with
             | None -> return []
             | Some agent ->
                 // 2. Initialize Graph Executor
-                let graphExecutor = GraphExecutor(ctx.Kernel, ctx.Llm, ctx.Budget, ctx.Logger)
+                let graphExecutor = GraphExecutor(ctx.Registry, ctx.Llm, ctx.Budget, ctx.OutputGuard, ctx.Logger)
 
                 // 3. Create Request Message
                 let msg =
@@ -97,7 +100,7 @@ JSON:"""
                       Timestamp = DateTime.UtcNow
                       Metadata = Map.empty }
 
-                let agentWithMsg = Kernel.receiveMessage msg agent
+                let agentWithMsg = agent.ReceiveMessage(msg)
 
                 // 4. Run Execution
                 let! outcome = graphExecutor.RunAgentLoop agentWithMsg 20
@@ -198,7 +201,8 @@ JSON:"""
     let private executeTask (ctx: EvolutionContext) (state: EvolutionState) (taskDef: TaskDefinition) =
         task {
             // 1. Retrieve Executor Agent
-            match Kernel.getAgent state.ExecutorAgentId ctx.Kernel with
+            let! agentOpt = ctx.Registry.GetAgent(state.ExecutorAgentId)
+            match agentOpt with
             | None ->
                 return
                     { TaskId = taskDef.Id
@@ -209,19 +213,30 @@ JSON:"""
                       Duration = TimeSpan.Zero }
             | Some executor ->
                 // 2. Initialize Graph Executor
-                let graphExecutor = GraphExecutor(ctx.Kernel, ctx.Llm, ctx.Budget, ctx.Logger)
+                let graphExecutor = GraphExecutor(ctx.Registry, ctx.Llm, ctx.Budget, ctx.OutputGuard, ctx.Logger)
 
                 // 3. Construct the Task Prompt
+                let! codeContext =
+                    match ctx.Epistemic with
+                    | Some governor -> governor.GetRelatedCodeContext(taskDef.Goal)
+                    | None -> Task.FromResult ""
+
+                if not (String.IsNullOrWhiteSpace codeContext) then
+                    ctx.Logger($"[Context] Retrieved context for goal '{taskDef.Goal}':\n{codeContext}")
+
                 let taskPrompt =
                     sprintf
                         """Task Goal: %s
 Constraints: %A
 Validation Criteria: %s
 
+%s
+
 Please solve this task. Output your solution code or answer."""
                         taskDef.Goal
                         taskDef.Constraints
                         taskDef.ValidationCriteria
+                        codeContext
 
                 let msg =
                     { Id = Guid.NewGuid()
@@ -237,7 +252,7 @@ Please solve this task. Output your solution code or answer."""
                       Metadata = Map.empty }
 
                 // 4. Send message to Executor
-                let agentWithMsg = Kernel.receiveMessage msg executor
+                let agentWithMsg = executor.ReceiveMessage(msg)
 
                 // 5. Run Initial Execution
                 let! outcome = graphExecutor.RunAgentLoop agentWithMsg 20
@@ -296,7 +311,7 @@ Please reflect on this solution.
                               Timestamp = DateTime.UtcNow
                               Metadata = Map.empty }
 
-                        let agentWithReflection = Kernel.receiveMessage reflectionMsg currentAgent
+                        let agentWithReflection = currentAgent.ReceiveMessage(reflectionMsg)
                         let! reflectOutcome = graphExecutor.RunAgentLoop agentWithReflection 20
 
                         match reflectOutcome with

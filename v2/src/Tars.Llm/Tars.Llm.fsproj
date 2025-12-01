@@ -6,12 +6,18 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="LlmErrors.fs" />
     <Compile Include="Domain.fs" />
     <Compile Include="Routing.fs" />
     <Compile Include="OllamaClient.fs" />
+    <Compile Include="OllamaClientAsync.fs" />
     <Compile Include="OpenAiCompatibleClient.fs" />
     <Compile Include="LlmService.fs" />
+    <Compile Include="TracingLlmService.fs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Tars.Core\Tars.Core.fsproj" />
+  </ItemGroup>
 
 </Project>

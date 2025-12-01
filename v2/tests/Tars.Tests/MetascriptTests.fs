@@ -27,6 +27,20 @@ type StubLlm(responseText: string, tokens: int) =
                       Raw = None }
             }
 
+        member _.CompleteStreamAsync(_req: LlmRequest, onToken: string -> unit) : Task<LlmResponse> =
+            task {
+                onToken responseText
+                return
+                    { Text = responseText
+                      FinishReason = Some "stop"
+                      Usage =
+                        Some
+                            { PromptTokens = tokens
+                              CompletionTokens = tokens
+                              TotalTokens = tokens * 2 }
+                      Raw = None }
+            }
+
         member _.EmbedAsync(_text: string) : Task<float32[]> =
             task { return [| 0.1f; 0.2f; 0.3f; 0.4f |] }
 
@@ -69,11 +83,11 @@ type MetascriptTests() =
 
         let ctx =
             { Llm = llm
-              Kernel = Kernel.init ()
               Tools = ToolRegistry()
               Budget = None
               VectorStore = None
               KnowledgeGraph = None
+              SemanticMemory = None
               RagConfig = RagConfig.Default }
 
         let wf =
@@ -113,11 +127,11 @@ type MetascriptTests() =
 
         let ctx =
             { Llm = llm
-              Kernel = Kernel.init ()
               Tools = ToolRegistry()
               Budget = Some budget
               VectorStore = None
               KnowledgeGraph = None
+              SemanticMemory = None
               RagConfig = RagConfig.Default }
 
         let wf =
@@ -152,11 +166,11 @@ type MetascriptTests() =
 
         let ctx =
             { Llm = llm
-              Kernel = Kernel.init ()
               Tools = ToolRegistry()
               Budget = None
               VectorStore = None
               KnowledgeGraph = None
+              SemanticMemory = None
               RagConfig = RagConfig.Default }
 
         let wf =
@@ -204,11 +218,11 @@ type MetascriptTests() =
 
         let ctx =
             { Llm = llm
-              Kernel = Kernel.init ()
               Tools = ToolRegistry()
               Budget = None
               VectorStore = Some vs
               KnowledgeGraph = None
+              SemanticMemory = None
               RagConfig =
                 { RagConfig.Default with
                     MinScore = 0.0f } }
@@ -248,11 +262,11 @@ type MetascriptTests() =
 
         let ctx =
             { Llm = llm
-              Kernel = Kernel.init ()
               Tools = ToolRegistry()
               Budget = None
               VectorStore = None
               KnowledgeGraph = Some kg
+              SemanticMemory = None
               RagConfig =
                 { RagConfig.Default with
                     AutoIndex = false } }
@@ -310,11 +324,11 @@ type MetascriptTests() =
 
         let ctx =
             { Llm = llm
-              Kernel = Kernel.init ()
               Tools = ToolRegistry()
               Budget = None
               VectorStore = Some vs
               KnowledgeGraph = None
+              SemanticMemory = None
               RagConfig =
                 { RagConfig.Default with
                     MinScore = 0.0f
@@ -371,11 +385,11 @@ type MetascriptTests() =
 
         let ctx =
             { Llm = llm
-              Kernel = Kernel.init ()
               Tools = ToolRegistry()
               Budget = None
               VectorStore = Some vs
               KnowledgeGraph = None
+              SemanticMemory = None
               RagConfig =
                 { RagConfig.Default with
                     MinScore = 0.0f
@@ -474,11 +488,11 @@ type MetascriptTests() =
 
         let ctx =
             { Llm = llm
-              Kernel = Kernel.init ()
               Tools = ToolRegistry()
               Budget = None
               VectorStore = Some vs
               KnowledgeGraph = None
+              SemanticMemory = None
               RagConfig =
                 { RagConfig.Default with
                     MinScore = 0.0f
@@ -532,11 +546,11 @@ type MetascriptTests() =
 
         let ctx =
             { Llm = llm
-              Kernel = Kernel.init ()
               Tools = ToolRegistry()
               Budget = None
               VectorStore = Some vs
               KnowledgeGraph = None
+              SemanticMemory = None
               RagConfig =
                 { RagConfig.Default with
                     MinScore = 0.0f
@@ -587,11 +601,11 @@ type MetascriptTests() =
 
         let ctx =
             { Llm = llm
-              Kernel = Kernel.init ()
               Tools = ToolRegistry()
               Budget = None
               VectorStore = Some vs
               KnowledgeGraph = None
+              SemanticMemory = None
               RagConfig =
                 { RagConfig.Default with
                     MinScore = 0.0f
@@ -645,11 +659,11 @@ type MetascriptTests() =
 
         let ctx =
             { Llm = llm
-              Kernel = Kernel.init ()
               Tools = ToolRegistry()
               Budget = None
               VectorStore = Some vs
               KnowledgeGraph = None
+              SemanticMemory = None
               RagConfig =
                 { RagConfig.Default with
                     MinScore = 0.0f
@@ -676,6 +690,59 @@ type MetascriptTests() =
             let! _ = run ctx wf Map.empty
             Assert.True(metrics.TotalQueries >= 1L, $"Expected TotalQueries >= 1, got {metrics.TotalQueries}")
             Assert.True(metrics.TotalLatencyMs >= 0L, $"Expected TotalLatencyMs >= 0, got {metrics.TotalLatencyMs}")
+        }
+        |> Async.AwaitTask
+        |> Async.RunSynchronously
+
+    [<Fact>]
+    member _.``Engine calls Retrieve and Grow on SemanticMemory``() =
+        let llm = StubLlm("unused", 1) :> ILlmService
+        
+        let mutable retrieveCalled = false
+        let mutable growCalled = false
+        
+        let memory =
+            { new ISemanticMemory with
+                member _.Retrieve _ = async { 
+                    retrieveCalled <- true
+                    return [] 
+                }
+                member _.Grow(trace, verif) = async {
+                    growCalled <- true
+                    return "schema-id"
+                }
+                member _.Refine() = async { return () }
+            }
+
+        let ctx =
+            { Llm = llm
+              Tools = ToolRegistry()
+              Budget = None
+              VectorStore = None
+              KnowledgeGraph = None
+              SemanticMemory = Some memory
+              RagConfig = RagConfig.Default }
+
+        let wf =
+            { Name = "memory-test"
+              Description = ""
+              Version = "1.0"
+              Inputs = []
+              Steps =
+                [ { Id = "dummy"
+                    Type = "decision"
+                    Agent = None
+                    Tool = None
+                    Instruction = None
+                    Params = Some(Map [ ("condition", "true"); ("trueOutput", "ok"); ("falseOutput", "fail") ])
+                    Context = None
+                    Outputs = Some [ "out" ]
+                    Tools = None } ] }
+
+        task {
+            let! _ = run ctx wf Map.empty
+            Assert.True(retrieveCalled, "Retrieve should be called")
+            Assert.True(growCalled, "Grow should be called")
         }
         |> Async.AwaitTask
         |> Async.RunSynchronously

@@ -4,6 +4,7 @@ open System
 open Xunit
 open Xunit.Abstractions
 open Tars.Core
+open Tars.Kernel
 
 type KernelTests(output: ITestOutputHelper) =
 
@@ -19,16 +20,19 @@ type KernelTests(output: ITestOutputHelper) =
         output.WriteLine($"Creating agent '{name}' with ID {agentId}")
 
         // Act
-        let agent = Kernel.createAgent agentId name "0.1.0" model prompt tools
-        let ctx = Kernel.init ()
+        let agent = AgentFactory.create agentId name "0.1.0" model prompt tools []
+        let registry = AgentRegistry()
         output.WriteLine("Registering agent...")
-        let updatedCtx = Kernel.registerAgent agent ctx
+        registry.Register(agent)
 
         // Assert
-        Assert.Equal(AgentId agentId, agent.Id)
-        Assert.Equal(name, agent.Name)
-        Assert.True(updatedCtx.Agents.ContainsKey(AgentId agentId))
-        Assert.Equal(agent, updatedCtx.Agents[AgentId agentId])
+        let retrieved = 
+            (registry :> IAgentRegistry).GetAgent(AgentId agentId) 
+            |> Async.RunSynchronously
+        
+        Assert.True(retrieved.IsSome)
+        Assert.Equal(AgentId agentId, retrieved.Value.Id)
+        Assert.Equal(name, retrieved.Value.Name)
         output.WriteLine("Agent registered successfully.")
 
     [<Fact>]
@@ -36,18 +40,23 @@ type KernelTests(output: ITestOutputHelper) =
         output.WriteLine("Starting test: Can update agent state")
         // Arrange
         let agentId = Guid.NewGuid()
-        let agent = Kernel.createAgent agentId "Updater" "0.1.0" "model" "prompt" []
-        let ctx = Kernel.init () |> Kernel.registerAgent agent
+        let agent = AgentFactory.create agentId "Updater" "0.1.0" "model" "prompt" [] []
+        let registry = AgentRegistry()
+        registry.Register(agent)
 
         let newState = Error "Something happened"
         let updatedAgent = { agent with State = newState }
         output.WriteLine($"Updating agent {agentId} state to: {newState}")
 
         // Act
-        let updatedCtx = Kernel.updateAgent updatedAgent ctx
+        registry.Register(updatedAgent) // Register acts as AddOrUpdate
 
         // Assert
-        let storedAgent = updatedCtx.Agents[AgentId agentId]
+        let storedAgent = 
+            (registry :> IAgentRegistry).GetAgent(AgentId agentId) 
+            |> Async.RunSynchronously
+            |> Option.get
+
         Assert.Equal(newState, storedAgent.State)
         output.WriteLine("Agent state updated verified.")
 
@@ -56,7 +65,7 @@ type KernelTests(output: ITestOutputHelper) =
         output.WriteLine("Starting test: Receive message adds to memory")
         // Arrange
         let agent =
-            Kernel.createAgent (Guid.NewGuid()) "Receiver" "0.1.0" "model" "prompt" []
+            AgentFactory.create (Guid.NewGuid()) "Receiver" "0.1.0" "model" "prompt" [] []
 
         let msg =
             { Id = Guid.NewGuid()
@@ -74,7 +83,7 @@ type KernelTests(output: ITestOutputHelper) =
         output.WriteLine($"Sending message {msg.Id} to agent {agent.Id}")
 
         // Act
-        let updatedAgent = Kernel.receiveMessage msg agent
+        let updatedAgent = agent.ReceiveMessage(msg)
 
         // Assert
         Assert.Single(updatedAgent.Memory) |> ignore

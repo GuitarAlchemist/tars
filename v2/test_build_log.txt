@@ -1,29 +1,0 @@
-  Determining projects to restore...
-  Restored C:\Users\spare\source\repos\tars\v2\src\Tars.Security\Tars.Security.fsproj (in 253 ms).
-  Restored C:\Users\spare\source\repos\tars\v2\src\Tars.Core\Tars.Core.fsproj (in 253 ms).
-  Restored C:\Users\spare\source\repos\tars\v2\src\Tars.Sandbox\Tars.Sandbox.fsproj (in 253 ms).
-  Restored C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\Tars.Cortex.fsproj (in 253 ms).
-  Restored C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\Tars.Llm.fsproj (in 253 ms).
-  Restored C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\Tars.Connectors.fsproj (in 253 ms).
-  Restored C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\Tars.Kernel.fsproj (in 253 ms).
-  Restored C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\Tars.Tests.fsproj (in 253 ms).
-  Tars.Core -> C:\Users\spare\source\repos\tars\v2\src\Tars.Core\bin\Debug\net10.0\Tars.Core.dll
-  Tars.Llm -> C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\bin\Debug\net10.0\Tars.Llm.dll
-  Tars.Security -> C:\Users\spare\source\repos\tars\v2\src\Tars.Security\bin\Debug\net10.0\Tars.Security.dll
-  Tars.Kernel -> C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\bin\Debug\net10.0\Tars.Kernel.dll
-  Tars.Connectors -> C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\bin\Debug\net10.0\Tars.Connectors.dll
-  Tars.Sandbox -> C:\Users\spare\source\repos\tars\v2\src\Tars.Sandbox\bin\Debug\net10.0\Tars.Sandbox.dll
-  Tars.Cortex -> C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\bin\Debug\net10.0\Tars.Cortex.dll
-C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\RouterTests.fs(19,56): error FS0039: The type 'LoggerSinkConfiguration' does not define the field, constructor or member 'Console'. [C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\Tars.Tests.fsproj]
-C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\RouterTests.fs(53,34): error FS0001: Type mismatch. Expecting a    'SemanticMessage<obj>'    but given a    'SemanticMessage<string>'    The type 'obj' does not match the type 'string' [C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\Tars.Tests.fsproj]
-C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\RouterTests.fs(74,34): error FS0001: Type mismatch. Expecting a    'SemanticMessage<obj>'    but given a    'SemanticMessage<string>'    The type 'obj' does not match the type 'string' [C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\Tars.Tests.fsproj]
-
-Build FAILED.
-
-C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\RouterTests.fs(19,56): error FS0039: The type 'LoggerSinkConfiguration' does not define the field, constructor or member 'Console'. [C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\Tars.Tests.fsproj]
-C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\RouterTests.fs(53,34): error FS0001: Type mismatch. Expecting a    'SemanticMessage<obj>'    but given a    'SemanticMessage<string>'    The type 'obj' does not match the type 'string' [C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\Tars.Tests.fsproj]
-C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\RouterTests.fs(74,34): error FS0001: Type mismatch. Expecting a    'SemanticMessage<obj>'    but given a    'SemanticMessage<string>'    The type 'obj' does not match the type 'string' [C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\Tars.Tests.fsproj]
-    0 Warning(s)
-    3 Error(s)
-
-Time Elapsed 00:00:04.19

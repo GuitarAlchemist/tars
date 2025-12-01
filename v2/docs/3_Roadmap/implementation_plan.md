@@ -475,7 +475,7 @@
 * [x] Phase 6.2: Speech Acts (See `docs/QA/Phase6_AcceptanceCriteria.md`)
 * [x] Phase 6.3: Fan-out Limiter (See `docs/QA/Phase6_AcceptanceCriteria.md`)
 * [x] Phase 6.4: Adaptive Reflection (See `docs/QA/Phase6_AcceptanceCriteria.md`)
-* [x] Phase 6.5: Agentic Interfaces (Partial - Capability Store & Core Types)
+* [x] Phase 6.5: Agentic Interfaces (Capability Store, Agent Capabilities, Workflow CE)
 
 **Exit Criteria:**
 
@@ -666,4 +666,4 @@ Test summary: total: 30, failed: 0, succeeded: 30, skipped: 0
 * OpenWebUiTests (1 test): Model listing with authentication
 * GoldenRun (1 test): End-to-end CLI demo-ping
 
-> Status: Phase 6.2 (Speech Acts) and Phase 6.7 (Epistemic Governor) complete. Phase 6.5 (Agentic Interfaces) in progress (Capability Store implemented). Integration hardening ongoing.
+> Status: Phase 6.2, 6.5, and 6.7 complete. Integration hardening ongoing.

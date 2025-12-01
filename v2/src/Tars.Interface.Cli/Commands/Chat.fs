@@ -17,11 +17,15 @@ open Tars.Security
 type AuthRequest = { email: string; password: string }
 type AuthResponse = { token: string }
 
+type ChatOptions =
+    { Streaming: bool
+      Model: string option }
+
 let run (logger: ILogger) : Task<int> =
     task {
         logger.Information("Starting TARS v2 Chat...")
 
-        let ctx = Kernel.init ()
+        let registry = Tars.Kernel.AgentRegistry()
 
         // Load secrets from secrets.json
         let secretsPath = "secrets.json"
@@ -31,9 +35,9 @@ let run (logger: ILogger) : Task<int> =
         | Result.Error err -> logger.Warning("Could not load secrets: {Error}", err)
 
         let agent =
-            Kernel.createAgent (Guid.NewGuid()) "TARS" "0.1.0" "llama3.2" "You are a helpful assistant." []
+            Tars.Kernel.AgentFactory.create (Guid.NewGuid()) "TARS" "0.1.0" "llama3.2" "You are a helpful assistant." [] []
 
-        let ctx = Kernel.registerAgent agent ctx
+        registry.Register(agent)
 
         // Initialize LLM Service
         let ollamaBaseUri =
@@ -42,8 +46,7 @@ let run (logger: ILogger) : Task<int> =
                 logger.Information("Using Ollama from secrets: {Url}", url)
                 Uri(url)
             | Result.Error _ ->
-                let errorMsg =
-                    "OLLAMA_BASE_URL secret is MISSING! Cannot proceed without remote URL."
+                let errorMsg = "DEBUG: OLLAMA_BASE_URL secret is MISSING! (Modified)"
 
                 logger.Fatal(errorMsg)
                 failwith errorMsg
@@ -103,8 +106,9 @@ let run (logger: ILogger) : Task<int> =
 
         let llmService = DefaultLlmService(httpClient, svcCfg) :> ILlmService
 
+        let llmService = DefaultLlmService(httpClient, svcCfg) :> ILlmService
         let graphCtx: GraphRuntime.GraphContext =
-            { Kernel = ctx
+            { Registry = registry
               Llm = llmService
               MaxSteps = 10
               BudgetGovernor =
@@ -113,7 +117,9 @@ let run (logger: ILogger) : Task<int> =
                         { Budget.Infinite with
                             MaxTokens = Some 100000<token> }
                     )
-                ) }
+                )
+              OutputGuard = Some OutputGuard.defaultGuard
+              Logger = (fun s -> logger.Information("{GraphLog}", s)) }
 
         // Test LLM connection before starting chat
         let! connectionOk =
@@ -174,7 +180,7 @@ let run (logger: ILogger) : Task<int> =
                           Timestamp = DateTime.UtcNow
                           Metadata = Map.empty }
 
-                    currentAgent <- Kernel.receiveMessage msg currentAgent
+                    currentAgent <- currentAgent.ReceiveMessage(msg)
 
                     let mutable stepAgent = currentAgent
                     let mutable stepCount = 0
@@ -231,4 +237,81 @@ let run (logger: ILogger) : Task<int> =
                     | _ -> ()
 
             return 0
+    }
+
+/// Streaming chat that outputs tokens in real-time
+let runStreaming (logger: ILogger) (options: ChatOptions) : Task<int> =
+    task {
+        logger.Information("Starting TARS v2 Streaming Chat...")
+
+        // Load secrets
+        let secretsPath = "secrets.json"
+
+        match CredentialVault.loadSecretsFromDisk secretsPath with
+        | Result.Ok() -> ()
+        | Result.Error _ -> ()
+
+        let ollamaBaseUri =
+            match CredentialVault.getSecret "OLLAMA_BASE_URL" with
+            | Result.Ok url -> Uri(url)
+            | Result.Error _ -> Uri("http://localhost:11434/")
+
+        let model = options.Model |> Option.defaultValue "qwen2.5-coder:1.5b"
+
+        let routingCfg: RoutingConfig =
+            { OllamaBaseUri = ollamaBaseUri
+              VllmBaseUri = Uri("http://localhost:8000/")
+              OpenAIBaseUri = Uri("https://api.openai.com/")
+              GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com/")
+              AnthropicBaseUri = Uri("https://api.anthropic.com/")
+              DefaultOllamaModel = model
+              DefaultVllmModel = model
+              DefaultOpenAIModel = "gpt-4o"
+              DefaultGoogleGeminiModel = "gemini-pro"
+              DefaultAnthropicModel = "claude-3-opus-20240229"
+              DefaultEmbeddingModel = "nomic-embed-text" }
+
+        let svcCfg: LlmServiceConfig = { Routing = routingCfg }
+        use httpClient = new HttpClient()
+        httpClient.Timeout <- TimeSpan.FromSeconds(120.0)
+        let llmService = DefaultLlmService(httpClient, svcCfg) :> ILlmService
+
+        AnsiConsole.MarkupLine("[bold green]TARS v2 Streaming Chat[/] (Type [bold red]'exit'[/] to quit)")
+        AnsiConsole.MarkupLine($"[dim]Model: {model} | Streaming: enabled[/]")
+        AnsiConsole.WriteLine()
+
+        let mutable history: LlmMessage list = []
+        let mutable running = true
+
+        while running do
+            let input = AnsiConsole.Ask<string>("[bold yellow]You>[/]")
+
+            if input.ToLower() = "exit" then
+                running <- false
+            else
+                history <- history @ [ { Role = Role.User; Content = input } ]
+
+                let req: LlmRequest =
+                    { ModelHint = Some model
+                      Messages = history
+                      Temperature = Some 0.7
+                      MaxTokens = Some 2048 }
+
+                AnsiConsole.Markup("[bold cyan]TARS>[/] ")
+
+                try
+                    let! response = llmService.CompleteStreamAsync(req, fun token -> Console.Write(token))
+
+                    Console.WriteLine()
+                    Console.WriteLine()
+
+                    history <-
+                        history
+                        @ [ { Role = Role.Assistant
+                              Content = response.Text } ]
+                with ex ->
+                    AnsiConsole.MarkupLine($"[red]Error: {Markup.Escape(ex.Message)}[/]")
+                    AnsiConsole.WriteLine()
+
+        return 0
     }

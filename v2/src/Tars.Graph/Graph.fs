@@ -190,10 +190,11 @@ module ResponseParser =
 
 module GraphRuntime =
     type GraphContext =
-        { Kernel: KernelContext
+        { Registry: IAgentRegistry
           Llm: ILlmService
           MaxSteps: int
           BudgetGovernor: BudgetGovernor option
+          OutputGuard: IOutputGuard option
           Logger: string -> unit }
 
     let private createMessage (source: MessageEndpoint) (content: string) =
@@ -222,16 +223,16 @@ module GraphRuntime =
         task {
             // 1. Construct Prompt
             ctx.Logger $"[Thinking] Agent {agent.Name} is thinking..."
-            let prompt = PromptBuilder.buildSystemPrompt agent history
+            let basePrompt = PromptBuilder.buildSystemPrompt agent history
+            
+            let mutable currentPromptMessages = [ { Role = Role.User; Content = basePrompt } ]
+            let mutable attempts = 0
+            let maxAttempts = 3
+            let mutable finalResponseText = ""
+            let mutable guardPassed = false
+            let mutable failureReason = ""
 
             // 1.5 Check Budget
-            let correlationId =
-                match history |> List.tryLast with
-                | Some msg ->
-                    match msg.CorrelationId with
-                    | CorrelationId id -> id
-                | None -> Guid.Empty
-
             let canSpend =
                 match ctx.BudgetGovernor with
                 | Some governor -> governor.CanAfford { Cost.Zero with Tokens = 100<token> }
@@ -240,62 +241,91 @@ module GraphRuntime =
             if not canSpend then
                 return Failure [ PartialFailure.Error "Budget Exhausted" ]
             else
+                while attempts < maxAttempts && not guardPassed do
+                    attempts <- attempts + 1
+                    
+                    // 2. Call LLM
+                    let req =
+                        { ModelHint = Some agent.Model
+                          MaxTokens = Some 1024
+                          Temperature = Some 0.7
+                          Messages = currentPromptMessages }
 
-                // 2. Call LLM
-                let req =
-                    { ModelHint = Some agent.Model
-                      MaxTokens = Some 1024
-                      Temperature = Some 0.7
-                      Messages = [ { Role = Role.User; Content = prompt } ] }
+                    let! response = ctx.Llm.CompleteAsync req
 
-                let! response = ctx.Llm.CompleteAsync req
+                    // Record Usage if BudgetGovernor is present
+                    match ctx.BudgetGovernor with
+                    | Some governor ->
+                        let tokens =
+                            match response.Usage with
+                            | Some u -> u.TotalTokens
+                            | None -> (basePrompt.Length + response.Text.Length) / 4 // Fallback estimation
 
-                // Record Usage if BudgetGovernor is present
-                match ctx.BudgetGovernor with
-                | Some governor ->
-                    let tokens =
-                        match response.Usage with
-                        | Some u -> u.TotalTokens
-                        | None -> (prompt.Length + response.Text.Length) / 4 // Fallback estimation
+                        governor.Consume
+                            { Cost.Zero with
+                                Tokens = tokens * 1<token> }
+                        |> ignore
+                    | None -> ()
 
-                    governor.Consume
-                        { Cost.Zero with
-                            Tokens = tokens * 1<token> }
-                    |> ignore
-                | None -> ()
+                    // 2.5 Apply Output Guard
+                    match ctx.OutputGuard with
+                    | None -> 
+                        finalResponseText <- response.Text
+                        guardPassed <- true
+                    | Some guard ->
+                        let guardInput = 
+                            { ResponseText = response.Text
+                              Grammar = None // Could extract from agent tools if needed
+                              ExpectedJsonFields = None
+                              RequireCitations = false
+                              Citations = None
+                              AllowExtraFields = true
+                              Metadata = Map.empty }
+                        
+                        let! guardResult = guard.Evaluate guardInput |> Async.StartAsTask
+                        
+                        match guardResult.Action with
+                        | GuardAction.Accept ->
+                            finalResponseText <- response.Text
+                            guardPassed <- true
+                        | GuardAction.RetryWithHint hint ->
+                            ctx.Logger $"[Guard] Retry attempt {attempts}: {hint}"
+                            currentPromptMessages <- currentPromptMessages @ 
+                                [ { Role = Role.Assistant; Content = response.Text }
+                                  { Role = Role.User; Content = $"Output rejected. Hint: {hint}" } ]
+                        | GuardAction.AskForEvidence hint ->
+                             ctx.Logger $"[Guard] Asking for evidence: {hint}"
+                             currentPromptMessages <- currentPromptMessages @ 
+                                [ { Role = Role.Assistant; Content = response.Text }
+                                  { Role = Role.User; Content = $"Please provide evidence: {hint}" } ]
+                        | GuardAction.Reject reason ->
+                            ctx.Logger $"[Guard] Rejected: {reason}"
+                            failureReason <- reason
+                            attempts <- maxAttempts // Stop loop
+                        | GuardAction.Fallback text ->
+                            ctx.Logger $"[Guard] Fallback triggered"
+                            finalResponseText <- text
+                            guardPassed <- true
 
-                // 3. Parse Response
-                let parsed =
-                    if agent.Tools.IsEmpty then
-                        ResponseParser.parse response.Text
-                    else
-                        ResponseParser.parseWithValidator response.Text (Some ToolGrammar.spec.Validator)
+                if not guardPassed then
+                     return 
+                        { agent with 
+                            State = AgentState.Error (if String.IsNullOrEmpty failureReason then "Max retry attempts exceeded" else failureReason) }
+                        |> Success
+                else
+                    // 3. Parse Response
+                    let parsed =
+                        if agent.Tools.IsEmpty then
+                            ResponseParser.parse finalResponseText
+                        else
+                            ResponseParser.parseWithValidator finalResponseText (Some ToolGrammar.spec.Validator)
 
-                match parsed with
-                | ResponseParser.ToolCall(name, input) ->
-                    match agent.Tools |> List.tryFind (fun t -> t.Name = name) with
-                    | Some tool ->
-                        // Record the tool call in memory
-                        let msg = createMessage (MessageEndpoint.Agent agent.Id) response.Text
-                        let newMemory = agent.Memory @ [ msg ]
-
-                        return
-                            { agent with
-                                Memory = newMemory
-                                State = Acting(tool, input) }
-                            |> Success
-                    | None ->
-                        return
-                            { agent with
-                                State = WaitingForUser $"Error: Tool %s{name} not found." }
-                            |> Success
-                | ResponseParser.MultiToolCall calls ->
-                    // For now, just take the first one. Future: support parallel tool calls.
-                    match calls with
-                    | (name, input) :: _ ->
+                    match parsed with
+                    | ResponseParser.ToolCall(name, input) ->
                         match agent.Tools |> List.tryFind (fun t -> t.Name = name) with
                         | Some tool ->
-                            let msg = createMessage (MessageEndpoint.Agent agent.Id) response.Text
+                            // Record the tool call in memory
+                            let msg = createMessage (MessageEndpoint.Agent agent.Id) finalResponseText
                             let newMemory = agent.Memory @ [ msg ]
 
                             return
@@ -308,16 +338,35 @@ module GraphRuntime =
                                 { agent with
                                     State = WaitingForUser $"Error: Tool %s{name} not found." }
                                 |> Success
-                    | [] ->
+                    | ResponseParser.MultiToolCall calls ->
+                        // For now, just take the first one. Future: support parallel tool calls.
+                        match calls with
+                        | (name, input) :: _ ->
+                            match agent.Tools |> List.tryFind (fun t -> t.Name = name) with
+                            | Some tool ->
+                                let msg = createMessage (MessageEndpoint.Agent agent.Id) finalResponseText
+                                let newMemory = agent.Memory @ [ msg ]
+
+                                return
+                                    { agent with
+                                        Memory = newMemory
+                                        State = Acting(tool, input) }
+                                    |> Success
+                            | None ->
+                                return
+                                    { agent with
+                                        State = WaitingForUser $"Error: Tool %s{name} not found." }
+                                    |> Success
+                        | [] ->
+                            return
+                                { agent with
+                                    State = WaitingForUser "Error: Empty multi-tool call." }
+                                |> Success
+                    | ResponseParser.TextResponse responseText ->
                         return
                             { agent with
-                                State = WaitingForUser "Error: Empty multi-tool call." }
+                                State = WaitingForUser responseText }
                             |> Success
-                | ResponseParser.TextResponse responseText ->
-                    return
-                        { agent with
-                            State = WaitingForUser responseText }
-                        |> Success
         }
 
     let private handleActing (agent: Agent) (tool: Tool) (input: string) (ctx: GraphContext) =

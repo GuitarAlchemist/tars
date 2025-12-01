@@ -14,6 +14,7 @@ open Tars.Metascript
 open Tars.Metascript.Domain
 open Tars.Metascript.Engine
 open System.Net.Http
+open Tars.Cortex
 
 let execute (logger: ILogger) (scriptPath: string) =
     task {
@@ -29,7 +30,6 @@ let execute (logger: ILogger) (scriptPath: string) =
                 let workflow = JsonSerializer.Deserialize<Workflow>(json, options)
 
                 // Initialize Kernel & LLM
-                let ctx = Kernel.init ()
 
                 let routingCfg: RoutingConfig =
                     { OllamaBaseUri = Uri("http://localhost:11434/")
@@ -47,7 +47,7 @@ let execute (logger: ILogger) (scriptPath: string) =
                 let svcCfg: LlmServiceConfig = { Routing = routingCfg }
                 use httpClient = new HttpClient()
                 httpClient.Timeout <- TimeSpan.FromSeconds(120.0)
-                let llmService = DefaultLlmService(httpClient, svcCfg) :> ILlmService
+                let llmService = DefaultLlmService(httpClient, svcCfg)
 
                 // Initialize Tools
                 let tools = Tars.Tools.ToolRegistry()
@@ -60,17 +60,37 @@ let execute (logger: ILogger) (scriptPath: string) =
                             MaxCalls = Some 200<requests> }
                     )
 
+                // Initialize Kernel
+                let storageRoot = Path.Combine(Environment.CurrentDirectory, "knowledge", "semantic_memory")
+                let embedder (text: string) = async {
+                    match! (llmService :> ILlmServiceFunctional).EmbedAsync text with
+                    | Result.Ok embedding -> return embedding
+                    | Result.Error _ -> return Array.empty<float32>
+                }
+                let kernel = KernelBootstrap.createKernel storageRoot embedder
+
                 let metaCtx: MetascriptContext =
                     { Llm = llmService
-                      Kernel = ctx
                       Tools = tools
                       Budget = Some metaBudget
                       VectorStore = None
                       KnowledgeGraph = None
+                      SemanticMemory = Some kernel.SemanticMemory
                       RagConfig = RagConfig.Default }
+                // Ingest Code Structure
+                let! codeStructureInput = task {
+                    let kg = KnowledgeGraph()
+                    let srcDir = Path.Combine(Environment.CurrentDirectory, "src")
+                    if Directory.Exists srcDir then
+                        do! AstIngestor.ingestDirectory kg srcDir |> Async.StartAsTask
+                        let cs = AstIngestor.extractCodeStructure kg
+                        return Map [ "code_structure", box cs ]
+                    else
+                        return Map.empty
+                }
 
                 // Execute
-                let! finalState = Engine.run metaCtx workflow Map.empty
+                let! finalState = Engine.run metaCtx workflow codeStructureInput
 
                 printfn "\nWorkflow Completed."
                 printfn "Final Outputs:"

@@ -5,6 +5,7 @@ module Tars.Interface.Cli.Commands.Diagnostics
 
 open System
 open System.IO
+open System.Diagnostics
 open System.Net.Http
 open System.Runtime.InteropServices
 open System.Threading.Tasks
@@ -22,6 +23,13 @@ type DiagnosticResult = {
 
 /// <summary>Console output helpers for diagnostics</summary>
 module Console =
+    let private supportsUnicode () =
+        let asciiEnv = System.Environment.GetEnvironmentVariable("TARS_ASCII")
+        let cp = System.Console.OutputEncoding.CodePage
+        let unicodeCapable = cp = 65001 || cp = 1200 || cp = 28591
+        let redirected = System.Console.IsOutputRedirected || System.Console.IsErrorRedirected
+        unicodeCapable && System.String.IsNullOrWhiteSpace(asciiEnv) && not redirected
+
     let private writeColor (color: ConsoleColor) (text: string) =
         let prev = System.Console.ForegroundColor
         System.Console.ForegroundColor <- color
@@ -29,32 +37,48 @@ module Console =
         System.Console.ForegroundColor <- prev
 
     let header (text: string) =
+        let useUnicode = supportsUnicode ()
         System.Console.WriteLine()
-        writeColor ConsoleColor.Cyan "╔════════════════════════════════════════════════════════════╗"
-        System.Console.WriteLine()
-        writeColor ConsoleColor.Cyan "║  "
-        writeColor ConsoleColor.White text
-        let padding = 58 - text.Length
-        System.Console.Write(String.replicate padding " ")
-        writeColor ConsoleColor.Cyan "║"
-        System.Console.WriteLine()
-        writeColor ConsoleColor.Cyan "╚════════════════════════════════════════════════════════════╝"
+        if useUnicode then
+            writeColor ConsoleColor.Cyan "╔════════════════════════════════════════════════════════════╗"
+            System.Console.WriteLine()
+            writeColor ConsoleColor.Cyan "║  "
+            writeColor ConsoleColor.White text
+            let padding = 58 - text.Length
+            System.Console.Write(String.replicate padding " ")
+            writeColor ConsoleColor.Cyan "║"
+            System.Console.WriteLine()
+            writeColor ConsoleColor.Cyan "╚════════════════════════════════════════════════════════════╝"
+        else
+            let line = "+----------------------------------------------------------+"
+            writeColor ConsoleColor.Cyan line
+            System.Console.WriteLine()
+            writeColor ConsoleColor.Cyan "| "
+            writeColor ConsoleColor.White text
+            let padding = (line.Length - 3) - text.Length
+            System.Console.Write(String.replicate padding " ")
+            writeColor ConsoleColor.Cyan "|"
+            System.Console.WriteLine()
+            writeColor ConsoleColor.Cyan line
         System.Console.WriteLine()
 
     let checkOk (name: string) (details: string) =
-        writeColor ConsoleColor.Green "  ✓ "
+        let prefix = if supportsUnicode () then "  ✓ " else "  [OK] "
+        writeColor ConsoleColor.Green prefix
         writeColor ConsoleColor.White $"{name}: "
         writeColor ConsoleColor.Gray details
         System.Console.WriteLine()
 
     let checkFail (name: string) (details: string) =
-        writeColor ConsoleColor.Red "  ✗ "
+        let prefix = if supportsUnicode () then "  ✗ " else "  [X] "
+        writeColor ConsoleColor.Red prefix
         writeColor ConsoleColor.White $"{name}: "
         writeColor ConsoleColor.DarkGray details
         System.Console.WriteLine()
 
     let checkWarn (name: string) (details: string) =
-        writeColor ConsoleColor.Yellow "  ⚠ "
+        let prefix = if supportsUnicode () then "  ⚠ " else "  [!] "
+        writeColor ConsoleColor.Yellow prefix
         writeColor ConsoleColor.White $"{name}: "
         writeColor ConsoleColor.Gray details
         System.Console.WriteLine()
@@ -65,7 +89,8 @@ module Console =
 
     let subHeader (text: string) =
         System.Console.WriteLine()
-        writeColor ConsoleColor.DarkCyan $"  ─── {text} ───"
+        let line = if supportsUnicode () then $"  ─── {text} ───" else $"  --- {text} ---"
+        writeColor ConsoleColor.DarkCyan line
         System.Console.WriteLine()
 
 /// <summary>Check if a URL is localhost</summary>
@@ -126,6 +151,7 @@ let private checkOllama () =
 let private checkEnvConfig () =
     let checks = [
         ("OLLAMA_BASE_URL", CredentialVault.getSecret "OLLAMA_BASE_URL")
+        ("DEFAULT_OLLAMA_MODEL", CredentialVault.getSecret "DEFAULT_OLLAMA_MODEL")
         ("OPENWEBUI_EMAIL", CredentialVault.getSecret "OPENWEBUI_EMAIL")
         ("OPENWEBUI_PASSWORD", CredentialVault.getSecret "OPENWEBUI_PASSWORD")
     ]
@@ -305,6 +331,66 @@ let private checkNetworkConnectivity (verbose: bool) =
         return results |> Array.toList
     }
 
+/// <summary>Run a shell process and capture stdout with a timeout.</summary>
+let private tryRunProcess (exe: string) (args: string) (timeoutMs: int) =
+    try
+        let psi = ProcessStartInfo(exe, args)
+        psi.RedirectStandardOutput <- true
+        psi.RedirectStandardError <- true
+        psi.UseShellExecute <- false
+        psi.CreateNoWindow <- true
+        use proc = new Process()
+        proc.StartInfo <- psi
+        let started = proc.Start()
+        if not started then
+            Error "failed to start"
+        else
+            if proc.WaitForExit(timeoutMs) then
+                let output = proc.StandardOutput.ReadToEnd()
+                let err = proc.StandardError.ReadToEnd()
+                if proc.ExitCode = 0 then Ok output
+                else Error (if String.IsNullOrWhiteSpace(err) then output else err)
+            else
+                try proc.Kill(true) with _ -> ()
+                Error "timeout"
+    with ex ->
+        Error ex.Message
+
+/// <summary>Check Docker availability.</summary>
+let private checkDocker () =
+    match tryRunProcess "docker" "--version" 5000 with
+    | Ok output ->
+        { Name = "Docker Engine"; Status = "Available"; Details = output.Trim(); IsOk = true }
+    | Error err ->
+        { Name = "Docker Engine"; Status = "Unavailable"; Details = err; IsOk = false }
+
+/// <summary>List running containers (names + status).</summary>
+let private listDockerContainers () =
+    match tryRunProcess "docker" "ps --format \"{{.Names}}|{{.Status}}\"" 5000 with
+    | Ok output ->
+        let lines =
+            output.Split([|'\n';'\r'|], StringSplitOptions.RemoveEmptyEntries)
+            |> Array.toList
+        let containers =
+            lines
+            |> List.choose (fun line ->
+                match line.Split('|') with
+                | [|name; status|] -> Some (name.Trim(), status.Trim())
+                | _ -> None)
+        Ok containers
+    | Error err -> Error err
+
+/// <summary>Check for presence of key TARS infra containers.</summary>
+let private checkTarsInfraContainers (containers: (string * string) list) =
+    let required = [ "graphiti"; "chroma"; "postgres"; "redis"; "ollama" ]
+    required
+    |> List.map (fun name ->
+        match containers |> List.tryFind (fun (n, _) -> n.IndexOf(name, StringComparison.OrdinalIgnoreCase) >= 0) with
+        | Some (_, status) ->
+            { Name = $"Container: {name}"; Status = "Running"; Details = status; IsOk = true }
+        | None ->
+            { Name = $"Container: {name}"; Status = "Missing"; Details = "Not found in docker ps"; IsOk = false })
+
 /// <summary>Get TARS-specific information</summary>
 let private getTarsInfo () =
     let workspaceDir = Environment.CurrentDirectory
@@ -364,6 +450,31 @@ let runWithVerbose (logger: ILogger) (verbose: bool) =
             if r.IsOk then Console.checkOk r.Name r.Details
             else Console.checkWarn r.Name r.Details
 
+        // Docker / Infra
+        Console.subHeader "Infra (Docker / Containers)"
+        let dockerResult = checkDocker ()
+        if dockerResult.IsOk then Console.checkOk dockerResult.Name dockerResult.Details
+        else Console.checkWarn dockerResult.Name dockerResult.Details
+
+        let containerResults =
+            match listDockerContainers () with
+            | Ok containers ->
+                if containers.Length = 0 then
+                    Console.info "No running containers detected."
+                    []
+                else
+                    Console.info $"Containers ({containers.Length}):"
+                    let toShow = if verbose then containers else containers |> List.truncate 10
+                    toShow |> List.iter (fun (n, s) -> Console.info $"  • {n} [{s}]")
+                    if not verbose && containers.Length > 10 then
+                        Console.info $"  ... and {containers.Length - 10} more (use --verbose to see all)"
+                    checkTarsInfraContainers containers
+            | Error err ->
+                Console.checkWarn "Docker ps" err
+                []
+        for r in containerResults do
+            if r.IsOk then Console.checkOk r.Name r.Details else Console.checkWarn r.Name r.Details
+
         // Environment checks
         Console.subHeader "Environment Variables"
         let envResults = checkEnvConfig ()
@@ -406,6 +517,9 @@ let runWithVerbose (logger: ILogger) (verbose: bool) =
         let highMem = memInfo |> List.exists (fun r -> not r.IsOk)
         if highMem then issues <- issues + 1
         let noGpu = gpuInfo |> List.forall (fun r -> r.Status = "Not Found" || r.Status = "Not Available")
+        if not dockerResult.IsOk then issues <- issues + 1
+        let missingInfra = containerResults |> List.filter (fun r -> not r.IsOk) |> List.length
+        issues <- issues + missingInfra
 
         if issues = 0 then
             Console.checkOk "System Status" "All checks passed ✨"
@@ -422,4 +536,3 @@ let runWithVerbose (logger: ILogger) (verbose: bool) =
 
 /// <summary>Run all diagnostics (non-verbose)</summary>
 let run (logger: ILogger) = runWithVerbose logger false
-

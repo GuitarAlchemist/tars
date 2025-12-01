@@ -1,20 +1,38 @@
+/// <summary>
+/// Graph analysis tools for agent dependency graphs.
+/// Uses K-Theory concepts to analyze cyclomatic complexity and detect cycles.
+/// </summary>
 namespace Tars.Cortex
 
 open System
 open Tars.Core
 
+/// <summary>
+/// Analyzes agent dependency graphs for cycles and complexity.
+/// </summary>
 module GraphAnalyzer =
 
-    /// Represents a directed graph as an adjacency matrix
+    /// <summary>
+    /// Represents a directed graph as an adjacency matrix.
+    /// </summary>
     type AdjacencyMatrix =
-        { NodeIndex: Map<AgentId, int>
+        { /// Maps agent IDs to matrix indices
+          NodeIndex: Map<AgentId, int>
+          /// The adjacency matrix (1.0 = edge exists)
           Matrix: float[,] }
 
-    /// Tools for K-Theory analysis of the agent graph
+    /// <summary>
+    /// K-Theory analysis tools for computing graph invariants.
+    /// Based on algebraic topology concepts applied to agent graphs.
+    /// </summary>
     module KTheory =
 
-        /// Computes the Kernel (Null Space) of a matrix using Gaussian Elimination
-        /// Returns the dimension of the kernel (Nullity) and basis vectors
+        /// <summary>
+        /// Computes the Kernel (Null Space) of a matrix using Gaussian Elimination.
+        /// Returns the dimension of the kernel (Nullity) and basis vectors.
+        /// </summary>
+        /// <param name="matrix">The matrix to analyze.</param>
+        /// <returns>Tuple of (nullity, basis vectors).</returns>
         let computeKernel (matrix: float[,]) =
             let rows = Array2D.length1 matrix
             let cols = Array2D.length2 matrix
@@ -130,11 +148,21 @@ module GraphAnalyzer =
                 // This gives the number of independent cycles
                 max 0 (m - n + components)
 
+    /// <summary>Result of cycle detection analysis.</summary>
     type CycleDetectionResult =
-        { HasCycles: bool
+        { /// True if cycles were detected
+          HasCycles: bool
+          /// Number of independent cycles found
           CycleCount: int
+          /// Human-readable analysis message
           Message: string }
 
+    /// <summary>
+    /// Analyzes an agent graph for cycles using K-Theory.
+    /// </summary>
+    /// <param name="agents">List of agents in the graph.</param>
+    /// <param name="interactions">List of directed edges (caller, callee).</param>
+    /// <returns>Analysis result with cycle count and message.</returns>
     let analyzeGraph (agents: Agent list) (interactions: (AgentId * AgentId) list) =
         let ids = agents |> List.map (fun a -> a.Id)
         let k1 = KTheory.detectCycles ids interactions

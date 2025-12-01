@@ -1,25 +1,0 @@
-  Determining projects to restore...
-  All projects are up-to-date for restore.
-  Tars.Llm -> C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\bin\Debug\net10.0\Tars.Llm.dll
-  Tars.Core -> C:\Users\spare\source\repos\tars\v2\src\Tars.Core\bin\Debug\net10.0\Tars.Core.dll
-  Tars.Security -> C:\Users\spare\source\repos\tars\v2\src\Tars.Security\bin\Debug\net10.0\Tars.Security.dll
-  Tars.Kernel -> C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\bin\Debug\net10.0\Tars.Kernel.dll
-  Tars.Tools -> C:\Users\spare\source\repos\tars\v2\src\Tars.Tools\bin\Debug\net10.0\Tars.Tools.dll
-  Tars.Connectors -> C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\bin\Debug\net10.0\Tars.Connectors.dll
-  Tars.Cortex -> C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\bin\Debug\net10.0\Tars.Cortex.dll
-  Tars.Graph -> C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\bin\Debug\net10.0\Tars.Graph.dll
-  Tars.Evolution -> C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\bin\Debug\net10.0\Tars.Evolution.dll
-  Tars.Metascript -> C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\bin\Debug\net10.0\Tars.Metascript.dll
-C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\Experiment.fs(60,104): error FS0001: Two anonymous record types are from different assemblies 'Tars.Connectors' and 'Tars.Interface.Cli' [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\Experiment.fs(64,27): error FS0001: This expression was expected to have type    'Result<string,string>'    but here has type    'AgentState' [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\Experiment.fs(62,31): error FS0025: Incomplete pattern matches on this expression. [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
-
-Build FAILED.
-
-C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\Experiment.fs(60,104): error FS0001: Two anonymous record types are from different assemblies 'Tars.Connectors' and 'Tars.Interface.Cli' [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\Experiment.fs(64,27): error FS0001: This expression was expected to have type    'Result<string,string>'    but here has type    'AgentState' [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\Experiment.fs(62,31): error FS0025: Incomplete pattern matches on this expression. [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
-    0 Warning(s)
-    3 Error(s)
-
-Time Elapsed 00:00:02.83

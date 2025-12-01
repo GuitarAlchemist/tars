@@ -13,12 +13,15 @@
     <Compile Include="SqliteVectorStore.fs" />
     <Compile Include="Chunking.fs" />
     <Compile Include="KnowledgeGraph.fs" />
+    <Compile Include="AstIngestor.fs" />
+    <Compile Include="CodeGraphIngestor.fs" />
     <Compile Include="GraphAnalyzer.fs" />
     <Compile Include="CognitiveAnalyzer.fs" />
     <Compile Include="ContextCompression.fs" />
     <Compile Include="EpistemicGovernor.fs" />
     <Compile Include="CapabilityStore.fs" />
     <Compile Include="Inference.fs" />
+    <Compile Include="OutputGuardAnalyzerLlm.fs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -28,6 +31,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="FSharp.Compiler.Service" Version="43.10.100" />
     <PackageReference Include="FSharp.SystemTextJson" Version="1.4.36" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.5" />
     <PackageReference Include="Microsoft.SemanticKernel" Version="1.67.1" />

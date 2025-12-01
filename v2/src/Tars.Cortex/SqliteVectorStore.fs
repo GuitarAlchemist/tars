@@ -14,7 +14,9 @@ open Tars.Core
 /// </summary>
 type SqliteVectorStore(dbPath: string) =
     let connectionString = $"Data Source={dbPath}"
-    
+    /// Cap rows scanned per query to keep demo-friendly; tune or replace with ANN for scale
+    let maxScanRows = 5000
+
     /// Initialize the database schema
     let initializeDb () =
         use conn = new SqliteConnection(connectionString)
@@ -53,6 +55,13 @@ type SqliteVectorStore(dbPath: string) =
         let v = Array.zeroCreate<float32>(bytes.Length / 4)
         Buffer.BlockCopy(bytes, 0, v, 0, bytes.Length)
         v
+
+    let computeChecksum (vector: float32[]) (payload: Map<string, string>) =
+        use sha = System.Security.Cryptography.SHA256.Create()
+        let vecBytes = vectorToBytes vector
+        let metaBytes = System.Text.Encoding.UTF8.GetBytes(JsonSerializer.Serialize(payload))
+        let combined = Array.append vecBytes metaBytes
+        sha.ComputeHash(combined) |> Convert.ToHexString |> fun s -> s.ToLowerInvariant()
     
     do
         // Ensure directory exists
@@ -92,7 +101,7 @@ type SqliteVectorStore(dbPath: string) =
                 cmd.Parameters.AddWithValue("@coll", collection) |> ignore
                 cmd.Parameters.AddWithValue("@vec", vectorToBytes vector) |> ignore
                 cmd.Parameters.AddWithValue("@meta", JsonSerializer.Serialize(payload)) |> ignore
-                cmd.Parameters.AddWithValue("@chk", "") |> ignore
+                cmd.Parameters.AddWithValue("@chk", computeChecksum vector payload) |> ignore
                 cmd.Parameters.AddWithValue("@ver", version) |> ignore
                 cmd.Parameters.AddWithValue("@created", DateTime.UtcNow.ToString("o")) |> ignore
                 cmd.Parameters.AddWithValue("@used", DateTime.UtcNow.ToString("o")) |> ignore
@@ -105,8 +114,10 @@ type SqliteVectorStore(dbPath: string) =
                 do! conn.OpenAsync()
                 
                 use cmd = conn.CreateCommand()
-                cmd.CommandText <- "SELECT id, vector, metadata FROM vectors WHERE collection = @coll"
+                let scanLimit = Math.Max(limit, maxScanRows)
+                cmd.CommandText <- "SELECT id, vector, metadata FROM vectors WHERE collection = @coll LIMIT @lim"
                 cmd.Parameters.AddWithValue("@coll", collection) |> ignore
+                cmd.Parameters.AddWithValue("@lim", scanLimit) |> ignore
                 
                 use! reader = cmd.ExecuteReaderAsync()
                 let results = ResizeArray<string * float32 * Map<string, string>>()
@@ -153,4 +164,3 @@ type SqliteVectorStore(dbPath: string) =
                 names.Add(reader.GetString(0))
             return names |> Seq.toList
         }
-
