@@ -37,9 +37,18 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
 
         let req =
             { ModelHint = Some "code"
+              Model = None
+              SystemPrompt = None
               MaxTokens = None
               Temperature = None
-              Messages = [] }
+              Stop = []
+              Messages = []
+              Tools = []
+              ToolChoice = None
+              ResponseFormat = None
+              Stream = false
+              JsonMode = false
+              Seed = None }
 
         let routed = chooseBackend routingCfg req
 
@@ -64,9 +73,18 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
 
         let req =
             { ModelHint = Some "reasoning"
+              Model = None
+              SystemPrompt = None
               MaxTokens = None
               Temperature = None
-              Messages = [] }
+              Stop = []
+              Messages = []
+              Tools = []
+              ToolChoice = None
+              ResponseFormat = None
+              Stream = false
+              JsonMode = false
+              Seed = None }
 
         let routed = chooseBackend routingCfg req
 
@@ -119,9 +137,18 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
 
                 let req =
                     { ModelHint = None
+                      Model = None
+                      SystemPrompt = None
                       MaxTokens = None
                       Temperature = None
-                      Messages = [ { Role = Role.User; Content = "hello" } ] }
+                      Stop = []
+                      Messages = [ { Role = Role.User; Content = "hello" } ]
+                      Tools = []
+                      ToolChoice = None
+                      ResponseFormat = None
+                      Stream = false
+                      JsonMode = false
+                      Seed = None }
 
                 let! response = OllamaClient.sendChatAsync httpClient baseUri "test-model" req
 
@@ -183,9 +210,18 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
 
                 let req =
                     { ModelHint = None
+                      Model = None
+                      SystemPrompt = None
                       MaxTokens = None
                       Temperature = None
-                      Messages = [ { Role = Role.User; Content = "hello" } ] }
+                      Stop = []
+                      Messages = [ { Role = Role.User; Content = "hello" } ]
+                      Tools = []
+                      ToolChoice = None
+                      ResponseFormat = None
+                      Stream = false
+                      JsonMode = false
+                      Seed = None }
 
                 let! response = OpenAiCompatibleClient.sendChatAsync httpClient baseUri "vllm-model" req
 
@@ -216,11 +252,10 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
                                 resp.ContentType <- "application/x-ndjson"
 
                                 // Simulate streaming NDJSON chunks
-                                let chunks = [|
-                                    """{"model":"test","message":{"role":"assistant","content":"Hello"},"done":false}"""
-                                    """{"model":"test","message":{"role":"assistant","content":" world"},"done":false}"""
-                                    """{"model":"test","message":{"role":"assistant","content":"!"},"done":true}"""
-                                |]
+                                let chunks =
+                                    [| """{"model":"test","message":{"role":"assistant","content":"Hello"},"done":false}"""
+                                       """{"model":"test","message":{"role":"assistant","content":" world"},"done":false}"""
+                                       """{"model":"test","message":{"role":"assistant","content":"!"},"done":true}""" |]
 
                                 for chunk in chunks do
                                     let bytes = Encoding.UTF8.GetBytes(chunk + "\n")
@@ -231,7 +266,8 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
                             else
                                 resp.StatusCode <- 404
                                 resp.Close()
-                        with _ -> ()
+                        with _ ->
+                            ()
                 }
 
             try
@@ -240,9 +276,18 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
 
                 let req =
                     { ModelHint = None
+                      Model = None
+                      SystemPrompt = None
                       MaxTokens = None
                       Temperature = None
-                      Messages = [ { Role = Role.User; Content = "hello" } ] }
+                      Stop = []
+                      Messages = [ { Role = Role.User; Content = "hello" } ]
+                      Tools = []
+                      ToolChoice = None
+                      ResponseFormat = None
+                      Stream = false
+                      JsonMode = false
+                      Seed = None }
 
                 let! response = OllamaClient.sendChatStreamAsync httpClient baseUri "test" req (fun t -> tokens.Add(t))
 
@@ -281,12 +326,11 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
                                 resp.ContentType <- "text/event-stream"
 
                                 // Simulate SSE streaming chunks
-                                let chunks = [|
-                                    """data: {"id":"1","choices":[{"delta":{"content":"Hi"}}]}"""
-                                    """data: {"id":"1","choices":[{"delta":{"content":" there"}}]}"""
-                                    """data: {"id":"1","choices":[{"delta":{"content":"!"}}]}"""
-                                    """data: [DONE]"""
-                                |]
+                                let chunks =
+                                    [| """data: {"id":"1","choices":[{"delta":{"content":"Hi"}}]}"""
+                                       """data: {"id":"1","choices":[{"delta":{"content":" there"}}]}"""
+                                       """data: {"id":"1","choices":[{"delta":{"content":"!"}}]}"""
+                                       """data: [DONE]""" |]
 
                                 for chunk in chunks do
                                     let bytes = Encoding.UTF8.GetBytes(chunk + "\n\n")
@@ -297,7 +341,8 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
                             else
                                 resp.StatusCode <- 404
                                 resp.Close()
-                        with _ -> ()
+                        with _ ->
+                            ()
                 }
 
             try
@@ -306,11 +351,21 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
 
                 let req =
                     { ModelHint = None
+                      Model = None
+                      SystemPrompt = None
                       MaxTokens = None
                       Temperature = None
-                      Messages = [ { Role = Role.User; Content = "hello" } ] }
+                      Stop = []
+                      Messages = [ { Role = Role.User; Content = "hello" } ]
+                      Tools = []
+                      ToolChoice = None
+                      ResponseFormat = None
+                      Stream = false
+                      JsonMode = false
+                      Seed = None }
 
-                let! response = OpenAiCompatibleClient.sendChatStreamAsync httpClient baseUri "test" req (fun t -> tokens.Add(t))
+                let! response =
+                    OpenAiCompatibleClient.sendChatStreamAsync httpClient baseUri "test" req (fun t -> tokens.Add(t))
 
                 // Verify all tokens were collected
                 Assert.Equal(3, tokens.Count)
@@ -335,22 +390,43 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
             let mockService =
                 { new ILlmService with
                     member _.CompleteAsync(req) =
-                        task { return { Text = "Hello"; FinishReason = Some "stop"; Usage = None; Raw = None } }
-                    member _.EmbedAsync(text) =
-                        task { return [| 0.1f; 0.2f; 0.3f |] }
+                        task {
+                            return
+                                { Text = "Hello"
+                                  FinishReason = Some "stop"
+                                  Usage = None
+                                  Raw = None }
+                        }
+
+                    member _.EmbedAsync(text) = task { return [| 0.1f; 0.2f; 0.3f |] }
+
                     member _.CompleteStreamAsync(req, onToken) =
                         task {
                             onToken "Hello"
                             onToken " "
                             onToken "World"
-                            return { Text = "Hello World"; FinishReason = Some "stop"; Usage = None; Raw = None }
+
+                            return
+                                { Text = "Hello World"
+                                  FinishReason = Some "stop"
+                                  Usage = None
+                                  Raw = None }
                         } }
 
             let req =
                 { ModelHint = None
+                  Model = None
+                  SystemPrompt = None
                   MaxTokens = None
                   Temperature = None
-                  Messages = [ { Role = Role.User; Content = "test" } ] }
+                  Stop = []
+                  Messages = [ { Role = Role.User; Content = "test" } ]
+                  Tools = []
+                  ToolChoice = None
+                  ResponseFormat = None
+                  Stream = false
+                  JsonMode = false
+                  Seed = None }
 
             let! response = mockService.CompleteStreamAsync(req, fun t -> tokens.Add(t))
 

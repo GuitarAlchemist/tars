@@ -18,7 +18,9 @@ module Engine =
         { Registry: IAgentRegistry
           Llm: ILlmService
           VectorStore: IVectorStore
+          SemanticMemory: ISemanticMemory option // Added Semantic Memory
           Epistemic: IEpistemicGovernor option
+          PreLlm: PreLlmPipeline option // Added Pre-LLM Pipeline
           Budget: BudgetGovernor option
           OutputGuard: IOutputGuard option
           KnowledgeBase: KnowledgeBase option
@@ -80,11 +82,13 @@ JSON:"""
 
             // 1. Retrieve Curriculum Agent
             let! agentOpt = ctx.Registry.GetAgent(state.CurriculumAgentId)
+
             match agentOpt with
             | None -> return []
             | Some agent ->
                 // 2. Initialize Graph Executor
-                let graphExecutor = GraphExecutor(ctx.Registry, ctx.Llm, ctx.Budget, ctx.OutputGuard, ctx.Logger)
+                let graphExecutor =
+                    GraphExecutor(ctx.Registry, ctx.Llm, ctx.Budget, ctx.OutputGuard, ctx.Logger)
 
                 // 3. Create Request Message
                 let msg =
@@ -93,6 +97,7 @@ JSON:"""
                       Sender = MessageEndpoint.System
                       Receiver = Some(MessageEndpoint.Agent agent.Id)
                       Performative = Performative.Request
+                      Intent = Some AgentIntent.Planning
                       Constraints = SemanticConstraints.Default
                       Ontology = None
                       Language = "text"
@@ -202,6 +207,7 @@ JSON:"""
         task {
             // 1. Retrieve Executor Agent
             let! agentOpt = ctx.Registry.GetAgent(state.ExecutorAgentId)
+
             match agentOpt with
             | None ->
                 return
@@ -213,7 +219,8 @@ JSON:"""
                       Duration = TimeSpan.Zero }
             | Some executor ->
                 // 2. Initialize Graph Executor
-                let graphExecutor = GraphExecutor(ctx.Registry, ctx.Llm, ctx.Budget, ctx.OutputGuard, ctx.Logger)
+                let graphExecutor =
+                    GraphExecutor(ctx.Registry, ctx.Llm, ctx.Budget, ctx.OutputGuard, ctx.Logger)
 
                 // 3. Construct the Task Prompt
                 let! codeContext =
@@ -221,8 +228,46 @@ JSON:"""
                     | Some governor -> governor.GetRelatedCodeContext(taskDef.Goal)
                     | None -> Task.FromResult ""
 
+                // 3.1 Retrieve Semantic Memory (Lessons Learned)
+                let! memories =
+                    match ctx.SemanticMemory with
+                    | Some smem ->
+                        let query =
+                            { TaskId = ""
+                              TaskKind = "coding"
+                              TextContext = taskDef.Goal
+                              Tags = taskDef.Constraints }
+
+                        smem.Retrieve query |> Async.StartAsTask
+                    | None -> Task.FromResult []
+
+                let memoryContext =
+                    if memories.IsEmpty then
+                        ""
+                    else
+                        let summaries =
+                            memories
+                            |> List.map (fun m ->
+                                let summary =
+                                    m.Logical
+                                    |> Option.map (fun l -> l.ProblemSummary)
+                                    |> Option.defaultValue "Unknown Task"
+
+                                let outcome =
+                                    m.Logical
+                                    |> Option.map (fun l -> l.OutcomeLabel)
+                                    |> Option.defaultValue "unknown"
+
+                                sprintf "- [%s] %s" outcome summary)
+                            |> String.concat "\n"
+
+                        sprintf "\nLessons Learned from Past Episodes:\n%s\n" summaries
+
                 if not (String.IsNullOrWhiteSpace codeContext) then
                     ctx.Logger($"[Context] Retrieved context for goal '{taskDef.Goal}':\n{codeContext}")
+
+                if not memories.IsEmpty then
+                    ctx.Logger($"[Memory] Retrieved {memories.Length} past experiences.")
 
                 let taskPrompt =
                     sprintf
@@ -231,120 +276,149 @@ Constraints: %A
 Validation Criteria: %s
 
 %s
+%s
 
 Please solve this task. Output your solution code or answer."""
                         taskDef.Goal
                         taskDef.Constraints
                         taskDef.ValidationCriteria
                         codeContext
+                        memoryContext
 
-                let msg =
-                    { Id = Guid.NewGuid()
-                      CorrelationId = CorrelationId(Guid.NewGuid())
-                      Sender = MessageEndpoint.System // System assigns the task
-                      Receiver = Some(MessageEndpoint.Agent executor.Id)
-                      Performative = Performative.Request
-                      Constraints = SemanticConstraints.Default
-                      Ontology = None
-                      Language = "text"
-                      Content = taskPrompt
-                      Timestamp = DateTime.UtcNow
-                      Metadata = Map.empty }
+                // Pre-LLM Pipeline Check
+                let! (finalPrompt, isSafe) =
+                    match ctx.PreLlm with
+                    | Some pipeline ->
+                        task {
+                            let! pCtx = pipeline.ExecuteAsync(taskPrompt)
 
-                // 4. Send message to Executor
-                let agentWithMsg = executor.ReceiveMessage(msg)
+                            if not pCtx.IsSafe then
+                                return (pCtx.BlockReason |> Option.defaultValue "Unsafe", false)
+                            else
+                                return (pCtx.CurrentPrompt, true)
+                        }
+                    | None -> Task.FromResult(taskPrompt, true)
 
-                // 5. Run Initial Execution
-                let! outcome = graphExecutor.RunAgentLoop agentWithMsg 20
-
-                let (agentAfterExec, success, output, trace) =
-                    match outcome with
-                    | Success(a, o, t) -> (a, true, o, t)
-                    | PartialSuccess((a, o, t), _) -> (a, true, o, t)
-                    | Failure err ->
-                        (agentWithMsg, false, String.concat "; " (err |> List.map (fun e -> sprintf "%A" e)), [])
-
-                if not success then
+                if not isSafe then
                     return
                         { TaskId = taskDef.Id
                           ExecutorId = state.ExecutorAgentId
                           Success = false
-                          Output = output
-                          ExecutionTrace = trace
-                          Duration = TimeSpan.FromSeconds(5.0) }
+                          Output = $"Blocked by Safety Filter: {finalPrompt}"
+                          ExecutionTrace = []
+                          Duration = TimeSpan.Zero }
                 else
-                    // 6. Adaptive Reflection Loop (Phase 6.4)
-                    let maxReflections = 3
-                    let mutable currentOutput = output
-                    let mutable currentTrace = trace
-                    let mutable reflectionCount = 0
-                    let mutable isOptimal = false
-                    let mutable currentAgent = agentAfterExec
+                    let msg =
+                        { Id = Guid.NewGuid()
+                          CorrelationId = CorrelationId(Guid.NewGuid())
+                          Sender = MessageEndpoint.System // System assigns the task
+                          Receiver = Some(MessageEndpoint.Agent executor.Id)
+                          Performative = Performative.Request
+                          Intent = Some AgentIntent.Coding
+                          Constraints = SemanticConstraints.Default
+                          Ontology = None
+                          Language = "text"
+                          Content = finalPrompt
+                          Timestamp = DateTime.UtcNow
+                          Metadata = Map.empty }
 
-                    while reflectionCount < maxReflections && not isOptimal do
-                        reflectionCount <- reflectionCount + 1
+                    // 4. Send message to Executor
+                    let agentWithMsg = executor.ReceiveMessage(msg)
 
-                        let reflectionPrompt =
-                            sprintf
-                                """You have generated a solution.
-Current Output:
-%s
+                    // 5. Run Initial Execution
+                    let! outcome = graphExecutor.RunAgentLoop agentWithMsg 20
 
-Please reflect on this solution.
-1. Identify any potential bugs or inefficiencies.
-2. Verify if it meets all constraints: %A
-3. If you can improve it, output the IMPROVED solution.
-4. If it is already optimal, output "OPTIMAL"."""
-                                currentOutput
-                                taskDef.Constraints
-
-                        let reflectionMsg =
-                            { Id = Guid.NewGuid()
-                              CorrelationId = CorrelationId(Guid.NewGuid())
-                              Sender = MessageEndpoint.System
-                              Receiver = Some(MessageEndpoint.Agent executor.Id)
-                              Performative = Performative.Request
-                              Constraints = SemanticConstraints.Default
-                              Ontology = None
-                              Language = "text"
-                              Content = reflectionPrompt
-                              Timestamp = DateTime.UtcNow
-                              Metadata = Map.empty }
-
-                        let agentWithReflection = currentAgent.ReceiveMessage(reflectionMsg)
-                        let! reflectOutcome = graphExecutor.RunAgentLoop agentWithReflection 20
-
-                        match reflectOutcome with
-                        | Success(nextAgent, reflectOutput, reflectTrace) ->
-                            currentAgent <- nextAgent
-                            currentTrace <- currentTrace @ [ $"--- REFLECTION {reflectionCount} ---" ] @ reflectTrace
-
-                            if reflectOutput.Contains("OPTIMAL") then
-                                isOptimal <- true
-                            else
-                                currentOutput <- reflectOutput
-                        | PartialSuccess((nextAgent, reflectOutput, reflectTrace), _) ->
-                            currentAgent <- nextAgent
-
-                            currentTrace <-
-                                currentTrace
-                                @ [ $"--- REFLECTION {reflectionCount} (Partial) ---" ]
-                                @ reflectTrace
-
-                            currentOutput <- reflectOutput
+                    let (agentAfterExec, success, output, trace) =
+                        match outcome with
+                        | Success(a, o, t) -> (a, true, o, t)
+                        | PartialSuccess((a, o, t), _) -> (a, true, o, t)
                         | Failure err ->
-                            // If reflection fails, stop and keep previous result
-                            currentTrace <- currentTrace @ [ $"--- REFLECTION {reflectionCount} FAILED ---" ]
-                            // Don't update output, just stop
-                            reflectionCount <- maxReflections
+                            (agentWithMsg, false, String.concat "; " (err |> List.map (fun e -> sprintf "%A" e)), [])
 
-                    return
-                        { TaskId = taskDef.Id
-                          ExecutorId = state.ExecutorAgentId
-                          Success = true
-                          Output = currentOutput
-                          ExecutionTrace = currentTrace
-                          Duration = TimeSpan.FromSeconds(10.0 * float (reflectionCount + 1)) }
+                    if not success then
+                        return
+                            { TaskId = taskDef.Id
+                              ExecutorId = state.ExecutorAgentId
+                              Success = false
+                              Output = output
+                              ExecutionTrace = trace
+                              Duration = TimeSpan.FromSeconds(5.0) }
+                    else
+                        // 6. Adaptive Reflection Loop (Phase 6.4)
+                        let maxReflections = 3
+                        let mutable currentOutput = output
+                        let mutable currentTrace = trace
+                        let mutable reflectionCount = 0
+                        let mutable isOptimal = false
+                        let mutable currentAgent = agentAfterExec
+
+                        while reflectionCount < maxReflections && not isOptimal do
+                            reflectionCount <- reflectionCount + 1
+
+                            let reflectionPrompt =
+                                sprintf
+                                    """You have generated a solution.
+    Current Output:
+    %s
+
+    Please reflect on this solution.
+    1. Identify any potential bugs or inefficiencies.
+    2. Verify if it meets all constraints: %A
+    3. If you can improve it, output the IMPROVED solution.
+    4. If it is already optimal, output "OPTIMAL"."""
+                                    currentOutput
+                                    taskDef.Constraints
+
+                            let reflectionMsg =
+                                { Id = Guid.NewGuid()
+                                  CorrelationId = CorrelationId(Guid.NewGuid())
+                                  Sender = MessageEndpoint.System
+                                  Receiver = Some(MessageEndpoint.Agent executor.Id)
+                                  Performative = Performative.Request
+                                  Intent = Some AgentIntent.Reasoning
+                                  Constraints = SemanticConstraints.Default
+                                  Ontology = None
+                                  Language = "text"
+                                  Content = reflectionPrompt
+                                  Timestamp = DateTime.UtcNow
+                                  Metadata = Map.empty }
+
+                            let agentWithReflection = currentAgent.ReceiveMessage(reflectionMsg)
+                            let! reflectOutcome = graphExecutor.RunAgentLoop agentWithReflection 20
+
+                            match reflectOutcome with
+                            | Success(nextAgent, reflectOutput, reflectTrace) ->
+                                currentAgent <- nextAgent
+
+                                currentTrace <-
+                                    currentTrace @ [ $"--- REFLECTION {reflectionCount} ---" ] @ reflectTrace
+
+                                if reflectOutput.Contains("OPTIMAL") then
+                                    isOptimal <- true
+                                else
+                                    currentOutput <- reflectOutput
+                            | PartialSuccess((nextAgent, reflectOutput, reflectTrace), _) ->
+                                currentAgent <- nextAgent
+
+                                currentTrace <-
+                                    currentTrace
+                                    @ [ $"--- REFLECTION {reflectionCount} (Partial) ---" ]
+                                    @ reflectTrace
+
+                                currentOutput <- reflectOutput
+                            | Failure err ->
+                                // If reflection fails, stop and keep previous result
+                                currentTrace <- currentTrace @ [ $"--- REFLECTION {reflectionCount} FAILED ---" ]
+                                // Don't update output, just stop
+                                reflectionCount <- maxReflections
+
+                        return
+                            { TaskId = taskDef.Id
+                              ExecutorId = state.ExecutorAgentId
+                              Success = true
+                              Output = currentOutput
+                              ExecutionTrace = currentTrace
+                              Duration = TimeSpan.FromSeconds(10.0 * float (reflectionCount + 1)) }
         }
 
     /// The main tick of the evolutionary loop
@@ -385,7 +459,23 @@ Please reflect on this solution.
                             printfn "Epistemic extraction failed: %s" ex.Message
                     | None -> ()
 
-                    // Save to Memory
+                    // Save to Semantic Memory (Grow)
+                    match ctx.SemanticMemory with
+                    | Some smem ->
+                        try
+                            // Construct a trace object (simplified for now)
+                            let trace: MemoryTrace =
+                                { TaskId = string taskDef.Id
+                                  Variables = Map [ "output", box result.Output; "trace", box result.ExecutionTrace ]
+                                  StepOutputs = Map.empty }
+
+                            let! schemaId = smem.Grow(trace, obj ())
+                            ctx.Logger($"[Memory] Grew new memory schema: {schemaId}")
+                        with ex ->
+                            ctx.Logger($"[Memory] Failed to grow memory: {ex.Message}")
+                    | None -> ()
+
+                    // Save to Legacy Memory (Backup)
                     try
                         let! embedding = ctx.Llm.EmbedAsync taskDef.Goal
 

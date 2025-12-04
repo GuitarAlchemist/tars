@@ -37,6 +37,7 @@
     <Compile Include="AnnVectorStoreTests.fs" />
     <Compile Include="MetricsTests.fs" />
     <Compile Include="ContextCompressionTests.fs" />
+    <Compile Include="PreLlmPipelineTests.fs" />
     <Compile Include="KnowledgeTests.fs" />
     <Compile Include="ValidationTests.fs" />
     <Compile Include="OfflineEval.fs" />

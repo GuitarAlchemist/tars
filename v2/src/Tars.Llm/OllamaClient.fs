@@ -27,13 +27,20 @@ module OllamaClient =
     [<CLIMutable>]
     type OllamaMessageDto = { role: string; content: string }
 
+    type OllamaOptionsDto =
+        { stop: string[] option
+          seed: int option
+          num_predict: int option
+          temperature: float option }
+
     /// <summary>DTO for Ollama chat request.</summary>
     [<CLIMutable>]
     type OllamaRequestDto =
         { model: string
           messages: OllamaMessageDto[]
           stream: bool
-          temperature: float option }
+          format: string option
+          options: OllamaOptionsDto option }
 
     /// <summary>DTO for Ollama response message.</summary>
     [<CLIMutable>]
@@ -61,13 +68,20 @@ module OllamaClient =
         | Role.User -> "user"
         | Role.Assistant -> "assistant"
 
-    let private toOllamaMessages (msgs: LlmMessage list) =
-        msgs
-        |> List.map (fun m ->
-            { role = toOllamaRole m.Role
-              content = m.Content }
-            : OllamaMessageDto)
-        |> List.toArray
+    let private toOllamaMessages (systemPrompt: string option) (msgs: LlmMessage list) : OllamaMessageDto[] =
+        let systemMsg =
+            match systemPrompt with
+            | Some p -> [ ({ role = "system"; content = p }: OllamaMessageDto) ]
+            | None -> []
+
+        let otherMsgs =
+            msgs
+            |> List.map (fun m ->
+                { role = toOllamaRole m.Role
+                  content = m.Content }
+                : OllamaMessageDto)
+
+        (systemMsg @ otherMsgs) |> List.toArray
 
     /// <summary>DTO for Ollama embedding request.</summary>
     [<CLIMutable>]
@@ -95,11 +109,22 @@ module OllamaClient =
     /// <returns>The LLM response with generated text and usage stats.</returns>
     let sendChatAsync (http: HttpClient) (baseUri: Uri) (model: string) (req: LlmRequest) : Task<LlmResponse> =
         task {
+            let options =
+                { stop =
+                    if List.isEmpty req.Stop then
+                        None
+                    else
+                        Some(List.toArray req.Stop)
+                  seed = req.Seed
+                  num_predict = req.MaxTokens
+                  temperature = req.Temperature }
+
             let dto: OllamaRequestDto =
                 { model = model
-                  messages = toOllamaMessages req.Messages
+                  messages = toOllamaMessages req.SystemPrompt req.Messages
                   stream = false
-                  temperature = req.Temperature }
+                  format = if req.JsonMode then Some "json" else None
+                  options = Some options }
 
             let uri = Uri(baseUri, "api/chat")
             use! resp = http.PostAsJsonAsync(uri, dto, jsonOptions)
@@ -195,11 +220,22 @@ module OllamaClient =
         (onToken: string -> unit)
         : Task<LlmResponse> =
         task {
+            let options =
+                { stop =
+                    if List.isEmpty req.Stop then
+                        None
+                    else
+                        Some(List.toArray req.Stop)
+                  seed = req.Seed
+                  num_predict = req.MaxTokens
+                  temperature = req.Temperature }
+
             let dto: OllamaRequestDto =
                 { model = model
-                  messages = toOllamaMessages req.Messages
+                  messages = toOllamaMessages req.SystemPrompt req.Messages
                   stream = true
-                  temperature = req.Temperature }
+                  format = if req.JsonMode then Some "json" else None
+                  options = Some options }
 
             let uri = Uri(baseUri, "api/chat")
 

@@ -15,7 +15,12 @@ let main argv =
     Encoding.RegisterProvider(CodePagesEncodingProvider.Instance)
     let isRedirected = Console.IsOutputRedirected || Console.IsErrorRedirected
     // When redirected (e.g., piping to clip), include BOM so downstream readers detect UTF-8
-    let outputEncoding = if isRedirected then new UTF8Encoding(true) else new UTF8Encoding(false)
+    let outputEncoding =
+        if isRedirected then
+            new UTF8Encoding(true)
+        else
+            new UTF8Encoding(false)
+
     Console.OutputEncoding <- outputEncoding
     Console.InputEncoding <- new UTF8Encoding(false)
 
@@ -96,8 +101,7 @@ let main argv =
             return GuardOutputCommand.run config path (Some fields) false false
         | [| "guard-output"; path; "--fields"; fields; "--allow-extra" |] ->
             return GuardOutputCommand.run config path (Some fields) false true
-        | [| "guard-output"; path; "--require-citations" |] ->
-            return GuardOutputCommand.run config path None true false
+        | [| "guard-output"; path; "--require-citations" |] -> return GuardOutputCommand.run config path None true false
         | [| "guard-output"; path; "--fields"; fields; "--require-citations" |] ->
             return GuardOutputCommand.run config path (Some fields) true false
         | [| "test-grammar"; file |] -> return TestGrammar.run file
@@ -108,6 +112,7 @@ let main argv =
         | [| "demo-ping" |] -> return! Demo.ping logger
         | [| "diag" |] -> return! Diagnostics.run logger
         | [| "diag"; "--verbose" |] -> return! Diagnostics.runWithVerbose logger true
+        | [| "diag"; "--arch" |] -> return! Diagnostics.runWithArch logger
         | args when args.Length > 0 && args.[0] = "demo-rag" ->
             let options = parseRagOptions args
             return! RagDemo.runWithOptions logger options

@@ -39,9 +39,18 @@ Reply with "REJECTED" if it is false or unsafe."""
 
                 let req =
                     { ModelHint = Some "reasoning"
+                      Model = None
+                      SystemPrompt = None
                       MaxTokens = Some 50
                       Temperature = Some 0.0
-                      Messages = [ { Role = Role.User; Content = prompt } ] }
+                      Stop = []
+                      Messages = [ { Role = Role.User; Content = prompt } ]
+                      Tools = []
+                      ToolChoice = None
+                      ResponseFormat = None
+                      Stream = false
+                      JsonMode = false
+                      Seed = None }
 
                 let! response = llm.CompleteAsync req
                 recordBudget (response.Usage |> Option.map (fun u -> u.TotalTokens) |> Option.defaultValue 0)
@@ -64,9 +73,18 @@ Return ONLY the variations as a numbered list (e.g., "1. Variation...")."""
 
                 let req =
                     { ModelHint = Some "reasoning"
+                      Model = None
+                      SystemPrompt = None
                       MaxTokens = Some 500
                       Temperature = Some 0.8
-                      Messages = [ { Role = Role.User; Content = prompt } ] }
+                      Stop = []
+                      Messages = [ { Role = Role.User; Content = prompt } ]
+                      Tools = []
+                      ToolChoice = None
+                      ResponseFormat = None
+                      Stream = false
+                      JsonMode = false
+                      Seed = None }
 
                 let! response =
                     task {
@@ -126,9 +144,18 @@ If no, explain why.
 
                 let req =
                     { ModelHint = Some "reasoning"
+                      Model = None
+                      SystemPrompt = None
                       MaxTokens = Some 500
                       Temperature = Some 0.2
-                      Messages = [ { Role = Role.User; Content = prompt } ] }
+                      Stop = []
+                      Messages = [ { Role = Role.User; Content = prompt } ]
+                      Tools = []
+                      ToolChoice = None
+                      ResponseFormat = None
+                      Stream = false
+                      JsonMode = false
+                      Seed = None }
 
                 let! response =
                     task {
@@ -177,9 +204,18 @@ Context: <When to apply this>
 
                 let req =
                     { ModelHint = Some "reasoning"
+                      Model = None
+                      SystemPrompt = None
                       MaxTokens = Some 300
                       Temperature = Some 0.5
-                      Messages = [ { Role = Role.User; Content = prompt } ] }
+                      Stop = []
+                      Messages = [ { Role = Role.User; Content = prompt } ]
+                      Tools = []
+                      ToolChoice = None
+                      ResponseFormat = None
+                      Stream = false
+                      JsonMode = false
+                      Seed = None }
 
                 let! response =
                     task {
@@ -253,9 +289,18 @@ Output a single sentence suggestion."""
 
                 let req =
                     { ModelHint = Some "reasoning"
+                      Model = None
+                      SystemPrompt = None
                       MaxTokens = Some 100
                       Temperature = Some 0.7
-                      Messages = [ { Role = Role.User; Content = prompt } ] }
+                      Stop = []
+                      Messages = [ { Role = Role.User; Content = prompt } ]
+                      Tools = []
+                      ToolChoice = None
+                      ResponseFormat = None
+                      Stream = false
+                      JsonMode = false
+                      Seed = None }
 
                 let! response =
                     task {

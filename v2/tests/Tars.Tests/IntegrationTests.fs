@@ -39,11 +39,20 @@ type IntegrationTests(output: ITestOutputHelper) =
 
             let req =
                 { ModelHint = None
+                  Model = None
+                  SystemPrompt = None
                   MaxTokens = None
                   Temperature = None
+                  Stop = []
                   Messages =
                     [ { Role = Role.User
-                        Content = "Say hello in one word" } ] }
+                        Content = "Say hello in one word" } ]
+                  Tools = []
+                  ToolChoice = None
+                  ResponseFormat = None
+                  Stream = false
+                  JsonMode = false
+                  Seed = None }
 
             let! response = OllamaClient.sendChatAsync httpClient ollamaUri "llama3.2" req
 
@@ -95,7 +104,7 @@ type IntegrationTests(output: ITestOutputHelper) =
             let compressor = ContextCompressor(llm, EntropyMonitor())
 
             let result =
-                compressor.AutoCompress("repeat repeat repeat repeat", 0.8)
+                compressor.AutoCompress("repeat repeat repeat repeat")
                 |> Async.AwaitTask
                 |> Async.RunSynchronously
 

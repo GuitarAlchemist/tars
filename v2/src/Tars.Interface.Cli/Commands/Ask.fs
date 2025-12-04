@@ -22,43 +22,52 @@ let run (config: Microsoft.Extensions.Configuration.IConfiguration) (prompt: str
             return 1
         | Some ollamaUrl, Some model ->
 
-        let routingCfg: RoutingConfig =
-            { OllamaBaseUri = Uri(ollamaUrl)
-              VllmBaseUri = Uri("http://localhost:8000/")
-              OpenAIBaseUri = Uri("https://api.openai.com/")
-              GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com/")
-              AnthropicBaseUri = Uri("https://api.anthropic.com/")
-              DefaultOllamaModel = model
-              DefaultVllmModel = model
-              DefaultOpenAIModel = "gpt-4o"
-              DefaultGoogleGeminiModel = "gemini-pro"
-              DefaultAnthropicModel = "claude-3-opus-20240229"
-              DefaultEmbeddingModel = "nomic-embed-text" }
+            let routingCfg: RoutingConfig =
+                { OllamaBaseUri = Uri(ollamaUrl)
+                  VllmBaseUri = Uri("http://localhost:8000/")
+                  OpenAIBaseUri = Uri("https://api.openai.com/")
+                  GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com/")
+                  AnthropicBaseUri = Uri("https://api.anthropic.com/")
+                  DefaultOllamaModel = model
+                  DefaultVllmModel = model
+                  DefaultOpenAIModel = "gpt-4o"
+                  DefaultGoogleGeminiModel = "gemini-pro"
+                  DefaultAnthropicModel = "claude-3-opus-20240229"
+                  DefaultEmbeddingModel = "nomic-embed-text" }
 
-        let svcCfg: LlmServiceConfig = { Routing = routingCfg }
+            let svcCfg: LlmServiceConfig = { Routing = routingCfg }
 
-        // In a real app, HttpClient should be injected/shared
-        use httpClient = new HttpClient()
-        httpClient.Timeout <- TimeSpan.FromSeconds(120.0)
+            // In a real app, HttpClient should be injected/shared
+            use httpClient = new HttpClient()
+            httpClient.Timeout <- TimeSpan.FromSeconds(120.0)
 
-        let llmService = DefaultLlmService(httpClient, svcCfg) :> ILlmService
+            let llmService = DefaultLlmService(httpClient, svcCfg) :> ILlmService
 
-        let req: LlmRequest =
-            { ModelHint = None // Let routing decide, or pass "code"/"reasoning" based on args
-              MaxTokens = Some 1024
-              Temperature = Some 0.7
-              Messages = [ { Role = Role.User; Content = prompt } ] }
+            let req: LlmRequest =
+                { ModelHint = None
+                  Model = None
+                  SystemPrompt = None
+                  MaxTokens = Some 1024
+                  Temperature = Some 0.7
+                  Stop = []
+                  Messages = [ { Role = Role.User; Content = prompt } ]
+                  Tools = []
+                  ToolChoice = None
+                  ResponseFormat = None
+                  Stream = false
+                  JsonMode = false
+                  Seed = None }
 
-        try
-            let! response = llmService.CompleteAsync(req)
+            try
+                let! response = llmService.CompleteAsync(req)
 
-            if response.FinishReason = Some "parse_error" then
-                printfn "Error parsing response: %A" response.Raw
+                if response.FinishReason = Some "parse_error" then
+                    printfn "Error parsing response: %A" response.Raw
+                    return 1
+                else
+                    printfn "%s" response.Text
+                    return 0
+            with ex ->
+                printfn "Error: %s" ex.Message
                 return 1
-            else
-                printfn "%s" response.Text
-                return 0
-        with ex ->
-            printfn "Error: %s" ex.Message
-            return 1
     }

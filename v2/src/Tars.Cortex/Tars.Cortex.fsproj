@@ -18,6 +18,7 @@
     <Compile Include="GraphAnalyzer.fs" />
     <Compile Include="CognitiveAnalyzer.fs" />
     <Compile Include="ContextCompression.fs" />
+    <Compile Include="PreLlmPipeline.fs" />
     <Compile Include="EpistemicGovernor.fs" />
     <Compile Include="CapabilityStore.fs" />
     <Compile Include="Inference.fs" />

@@ -160,12 +160,14 @@ module EvolutionTests =
             { Registry = registry
               Llm = llm :> Tars.Llm.LlmService.ILlmService
               VectorStore = StubVectorStore() :> IVectorStore
+              SemanticMemory = None
               Epistemic = Some(stubEpistemic :> IEpistemicGovernor)
+              PreLlm = None // No pipeline for tests yet
               Budget = None
               OutputGuard = None
               KnowledgeBase = None
               KnowledgeGraph = None
-              Logger = ignore }
+              Logger = fun _ -> () }
 
         let nextState =
             Engine.step evoCtx state |> Async.AwaitTask |> Async.RunSynchronously

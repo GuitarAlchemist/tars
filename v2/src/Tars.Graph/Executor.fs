@@ -8,8 +8,13 @@ open Tars.Kernel
 
 /// Executor that runs an agent loop until completion
 type GraphExecutor
-    (registry: IAgentRegistry, llm: Tars.Llm.LlmService.ILlmService, budget: BudgetGovernor option, outputGuard: IOutputGuard option, logger: string -> unit)
-    =
+    (
+        registry: IAgentRegistry,
+        llm: Tars.Llm.LlmService.ILlmService,
+        budget: BudgetGovernor option,
+        outputGuard: IOutputGuard option,
+        logger: string -> unit
+    ) =
 
     // Default constructor for backward compatibility
     new(registry, llm, budget) = GraphExecutor(registry, llm, budget, None, fun _ -> ())
@@ -84,6 +89,7 @@ type GraphExecutor
             async {
                 // 1. Retrieve Agent
                 let! agentOpt = registry.GetAgent(agentId)
+
                 match agentOpt with
                 | None -> return Failure [ PartialFailure.Error $"Agent {agentId} not found" ]
                 | Some agent ->
@@ -97,6 +103,7 @@ type GraphExecutor
                           Sender = MessageEndpoint.System
                           Receiver = Some(MessageEndpoint.Agent agent.Id)
                           Performative = Performative.Request
+                          Intent = None
                           Constraints = SemanticConstraints.Default
                           Ontology = None
                           Language = "text"

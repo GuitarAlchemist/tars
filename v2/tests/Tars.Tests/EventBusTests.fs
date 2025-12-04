@@ -34,6 +34,7 @@ module EventBusTests =
                   Sender = MessageEndpoint.User
                   Receiver = Some(MessageEndpoint.Alias agentId)
                   Performative = Performative.Request
+                  Intent = None
                   Constraints = SemanticConstraints.Default
                   Ontology = None
                   Language = "text"
@@ -78,6 +79,7 @@ module EventBusTests =
                   Sender = MessageEndpoint.User
                   Receiver = None // Broadcast
                   Performative = Performative.Event
+                  Intent = None
                   Constraints = SemanticConstraints.Default
                   Ontology = None
                   Language = "text"
@@ -92,4 +94,45 @@ module EventBusTests =
 
             Assert.Equal(msg.Id, received1.Id)
             Assert.Equal(msg.Id, received2.Id)
+        }
+
+    [<Fact>]
+    let ``EventBus routes message via Intent when Receiver is None`` () =
+        task {
+            let logger = createNullLogger ()
+            let router = AgentRouter()
+            let bus = EventBus(logger, Some router) :> IEventBus
+            let agentId = Guid.NewGuid()
+            let tcs = TaskCompletionSource<SemanticMessage<obj>>()
+
+            // Register Intent Route
+            router.SetRoute("Intent:Coding", Pinned(AgentId agentId))
+
+            use sub =
+                bus.Subscribe(
+                    agentId.ToString(),
+                    fun msg ->
+                        tcs.SetResult(msg)
+                        Task.CompletedTask
+                )
+
+            let msg =
+                { Id = Guid.NewGuid()
+                  CorrelationId = CorrelationId(Guid.NewGuid())
+                  Sender = MessageEndpoint.User
+                  Receiver = None // Should fallback to Intent
+                  Performative = Performative.Request
+                  Intent = Some AgentIntent.Coding
+                  Constraints = SemanticConstraints.Default
+                  Ontology = None
+                  Language = "text"
+                  Content = "Code this" :> obj
+                  Timestamp = DateTime.UtcNow
+                  Metadata = Map.empty }
+
+            do! bus.PublishAsync(msg)
+
+            let! received = tcs.Task
+            Assert.Equal(msg.Id, received.Id)
+            Assert.Equal(Some(MessageEndpoint.Agent(AgentId agentId)), received.Receiver)
         }

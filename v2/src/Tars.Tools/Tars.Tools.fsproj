@@ -9,6 +9,7 @@
     <Compile Include="Attributes.fs" />
     <Compile Include="Registry.fs" />
     <Compile Include="StandardTools.fs" />
+    <Compile Include="SemanticTools.fs" />
   </ItemGroup>
 
   <ItemGroup>

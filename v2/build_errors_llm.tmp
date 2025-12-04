@@ -1,0 +1,20 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Tars.Core -> C:\Users\spare\source\repos\tars\v2\src\Tars.Core\bin\Debug\net10.0\Tars.Core.dll
+C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\OllamaClient.fs(84,22): error FS0001: Type mismatch. Expecting a    'OllamaResponseMessageDto list'    but given a    'OllamaMessageDto list'    The type 'OllamaResponseMessageDto' does not match the type 'OllamaMessageDto' [C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\Tars.Llm.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\OllamaClient.fs(124,30): error FS0001: The type 'OllamaMessageDto' does not match the type 'OllamaResponseMessageDto' [C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\Tars.Llm.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\OllamaClient.fs(124,30): error FS0001: The type 'OllamaMessageDto' does not match the type 'OllamaResponseMessageDto' [C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\Tars.Llm.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\OllamaClient.fs(235,30): error FS0001: The type 'OllamaMessageDto' does not match the type 'OllamaResponseMessageDto' [C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\Tars.Llm.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\OllamaClient.fs(235,30): error FS0001: The type 'OllamaMessageDto' does not match the type 'OllamaResponseMessageDto' [C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\Tars.Llm.fsproj]
+
+Build FAILED.
+
+C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\OllamaClient.fs(84,22): error FS0001: Type mismatch. Expecting a    'OllamaResponseMessageDto list'    but given a    'OllamaMessageDto list'    The type 'OllamaResponseMessageDto' does not match the type 'OllamaMessageDto' [C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\Tars.Llm.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\OllamaClient.fs(124,30): error FS0001: The type 'OllamaMessageDto' does not match the type 'OllamaResponseMessageDto' [C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\Tars.Llm.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\OllamaClient.fs(124,30): error FS0001: The type 'OllamaMessageDto' does not match the type 'OllamaResponseMessageDto' [C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\Tars.Llm.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\OllamaClient.fs(235,30): error FS0001: The type 'OllamaMessageDto' does not match the type 'OllamaResponseMessageDto' [C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\Tars.Llm.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\OllamaClient.fs(235,30): error FS0001: The type 'OllamaMessageDto' does not match the type 'OllamaResponseMessageDto' [C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\Tars.Llm.fsproj]
+    0 Warning(s)
+    5 Error(s)
+
+Time Elapsed 00:00:02.42

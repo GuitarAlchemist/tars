@@ -104,7 +104,7 @@ let run (logger: ILogger) (options: EvolveOptions) =
         logger.Information("Starting TARS v2 Evolution Engine...")
 
         logger.Information("Starting TARS v2 Evolution Engine...")
-        
+
         let registry = AgentRegistry()
         let curriculumId = Guid.NewGuid()
         let executorId = Guid.NewGuid()
@@ -145,14 +145,21 @@ let run (logger: ILogger) (options: EvolveOptions) =
                 InputSchema = None
                 OutputSchema = None } ]
 
+        // Initialize Tools
+        let toolRegistry = Tars.Tools.ToolRegistry()
+        toolRegistry.RegisterAssembly(typeof<Tars.Tools.ToolRegistry>.Assembly)
+
+        let semanticTools =
+            [ "explore_project"; "read_code"; "patch_code" ] |> List.choose toolRegistry.Get
+
         let executorAgent =
             AgentFactory.create
                 executorId
                 "Executor"
                 "0.1.0"
                 model
-                "You are a coding assistant that solves programming tasks step by step."
-                []
+                "You are a coding assistant that solves programming tasks step by step. Use the provided tools to explore and modify the codebase."
+                semanticTools
                 executorCapabilities
 
         registry.Register(curriculumAgent)
@@ -201,10 +208,12 @@ let run (logger: ILogger) (options: EvolveOptions) =
             logger.Information("Started trace {TraceId}", traceId)
 
         // Initialize Vector Store
-        let tarsDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".tars")
+        let tarsDir =
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".tars")
+
         if not (Directory.Exists(tarsDir)) then
             Directory.CreateDirectory(tarsDir) |> ignore
-            
+
         let dbPath = Path.Combine(tarsDir, "memory.db")
         let vectorStore = Tars.Cortex.SqliteVectorStore(dbPath) :> IVectorStore
 
@@ -253,7 +262,7 @@ let run (logger: ILogger) (options: EvolveOptions) =
                     None
                 else
                     Some(Tars.Cortex.EpistemicGovernor(llmService, None, Some budget) :> IEpistemicGovernor)
-            
+
             // Initialize Output Guard
             // Use basic guard for now. In future, we can compose with LlmOutputGuardAnalyzer
             let outputGuard = OutputGuard.defaultGuard
@@ -269,20 +278,53 @@ let run (logger: ILogger) (options: EvolveOptions) =
 
             // Initialize Knowledge Graph and Ingest Codebase
             let knowledgeGraph = KnowledgeGraph()
+
             if not options.Quiet then
                 ConsoleUI.info "🧠 Ingesting codebase into Knowledge Graph...\n"
-            
+
             // Ingest current directory
-            CodeGraphIngestor.ingestDirectory knowledgeGraph Environment.CurrentDirectory
-            
+            do!
+                CodeGraphIngestor.ingestDirectory knowledgeGraph Environment.CurrentDirectory
+                |> Async.StartAsTask
+
             if not options.Quiet then
                 ConsoleUI.info $"   Loaded {knowledgeGraph.NodeCount} nodes and {knowledgeGraph.EdgeCount} edges\n"
+
+            // Initialize Semantic Memory
+            let embedder: Embedder =
+                fun text ->
+                    async {
+                        try
+                            let! res = llmService.EmbedAsync text |> Async.AwaitTask
+                            return res
+                        with _ ->
+                            return Array.empty
+                    }
+
+            let storageRoot =
+                Path.Combine(Environment.CurrentDirectory, "knowledge", "semantic_memory")
+
+            let kernel = KernelBootstrap.createKernel storageRoot embedder llmService
+
+            if not options.Quiet then
+                ConsoleUI.info $"🧠 Semantic Memory initialized at {storageRoot}\n"
+
+            // Initialize Pre-LLM Pipeline
+            let safetyStage = SafetyFilterStage() :> IPreLlmStage
+            let intentStage = IntentClassifierStage() :> IPreLlmStage
+            let entropyMonitor = EntropyMonitor()
+            let compressor = ContextCompressor(llmService, entropyMonitor)
+            let summarizerStage = ContextSummarizerStage(compressor) :> IPreLlmStage
+
+            let preLlmPipeline = PreLlmPipeline([ safetyStage; intentStage; summarizerStage ])
 
             let evoCtx: Engine.EvolutionContext =
                 { Registry = registry
                   Llm = llmService
                   VectorStore = vectorStore
+                  SemanticMemory = Some kernel.SemanticMemory
                   Epistemic = epistemic
+                  PreLlm = Some preLlmPipeline
                   Budget = Some budget
                   OutputGuard = Some outputGuard
                   KnowledgeBase = Some knowledgeBase
@@ -322,7 +364,7 @@ let run (logger: ILogger) (options: EvolveOptions) =
 
                         ConsoleUI.printDivider ()
 
-                    // Auto-saved by SqliteVectorStore
+                // Auto-saved by SqliteVectorStore
                 | None -> ()
 
                 do! Task.Delay(500)
@@ -333,10 +375,13 @@ let run (logger: ILogger) (options: EvolveOptions) =
             if options.Trace then
                 let timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss")
                 let tracePath = $"trace_{timestamp}.json"
+
                 if not options.Quiet then
                     ConsoleUI.info $"💾 Saving trace to {tracePath}...\n"
+
                 try
                     do! traceRecorder.SaveToFileAsync(tracePath) |> Async.StartAsTask
+
                     if not options.Quiet then
                         ConsoleUI.info "Trace saved successfully.\n"
                 with ex ->

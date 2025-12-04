@@ -52,6 +52,7 @@ type RouterTests(output: ITestOutputHelper) =
                   Sender = MessageEndpoint.System
                   Receiver = Some(MessageEndpoint.Alias "Coder")
                   Performative = Performative.Request
+                  Intent = None
                   Constraints = SemanticConstraints.Default
                   Ontology = None
                   Language = "text"
@@ -89,4 +90,59 @@ type RouterTests(output: ITestOutputHelper) =
             Assert.True(received2, "Agent 2 should have received the message")
 
             output.WriteLine("Routing test passed.")
+        }
+
+    [<Fact>]
+    member _.``Can route message via Intent``() =
+        task {
+            output.WriteLine("Starting test: Can route message via Intent")
+
+            // Arrange
+            let logger = LoggerConfiguration().CreateLogger()
+            let router = AgentRouter()
+
+            let eventBus =
+                new EventBus(
+                    logger,
+                    CircuitBreaker(5, TimeSpan.FromMinutes(1.0)),
+                    BudgetGovernor(
+                        { Budget.Infinite with
+                            MaxTokens = Some 100000<token> }
+                    ),
+                    router
+                )
+
+            let bus = eventBus :> IEventBus
+
+            let agentId = Guid.NewGuid()
+            let mutable received = false
+
+            // Subscribe agent
+            let _ = bus.Subscribe(agentId.ToString(), fun _ -> task { received <- true })
+
+            // Point "Intent:Coding" to Agent
+            router.SetRoute("Intent:Coding", Pinned(AgentId agentId))
+            output.WriteLine($"Routed 'Intent:Coding' to {agentId}")
+
+            let msg =
+                { Id = Guid.NewGuid()
+                  CorrelationId = CorrelationId(Guid.NewGuid())
+                  Sender = MessageEndpoint.System
+                  Receiver = None // Broadcast initially
+                  Performative = Performative.Request
+                  Intent = Some AgentIntent.Coding
+                  Constraints = SemanticConstraints.Default
+                  Ontology = None
+                  Language = "text"
+                  Content = "Write code" :> obj
+                  Timestamp = DateTime.UtcNow
+                  Metadata = Map.empty }
+
+            // Act
+            do! bus.PublishAsync(msg)
+            do! Task.Delay(500)
+
+            // Assert
+            Assert.True(received, "Agent should have received the message via Intent routing")
+            output.WriteLine("Intent routing test passed.")
         }

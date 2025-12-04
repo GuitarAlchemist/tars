@@ -2,11 +2,12 @@
 
 This directory contains the verification outcomes of key system features through demo execution.
 
-## Outcomes Index
+## Outcomes
 
-| ID | Date | Feature | Status | Link |
-| :--- | :--- | :--- | :--- | :--- |
-| 001 | 2025-12-01 | Perceptual Memory Integration | ✅ SUCCESS | [View Outcome](outcomes/001_perceptual_memory.md) |
+| ID | Date | Feature | Status |
+|----|------|---------|--------|
+| [001](outcomes/001_perceptual_memory.md) | 2025-11-29 | Perceptual Memory Demo | ✅ Success |
+| [002](outcomes/002_semantic_memory_cli.md) | 2025-12-01 | Semantic Memory CLI | ✅ Success |
 
 ## How to Add a New Outcome
 

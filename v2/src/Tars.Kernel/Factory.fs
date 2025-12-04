@@ -5,7 +5,7 @@ open Tars.Core
 
 /// Factory for creating agent instances
 module AgentFactory =
-    
+
     /// Create a new agent with default state
     let create (id: Guid) name version model systemPrompt tools capabilities =
         { Id = AgentId id
@@ -23,16 +23,15 @@ module AgentFactory =
 /// Factory for creating the kernel context
 module KernelBootstrap =
     open Tars.Core
+    open Tars.Llm
+    open Tars.Llm.LlmService
     open SemanticMemory
 
-    let createKernel (storageRoot: string) (embedder: Embedder) =
-        let semMemConfig = {
-            StorageRoot = storageRoot
-            TopK = 8
-        }
-        
-        let semMem = SemanticMemoryService(semMemConfig, embedder) :> ISemanticMemory
-        
-        {
-            SemanticMemory = semMem
-        }
+    type KernelContext = { SemanticMemory: ISemanticMemory }
+
+    let createKernel (storageRoot: string) (embedder: Embedder) (llm: ILlmService) =
+        let semMemConfig = { StorageRoot = storageRoot; TopK = 8 }
+
+        let semMem = SemanticMemoryService(semMemConfig, embedder, llm) :> ISemanticMemory
+
+        { SemanticMemory = semMem }

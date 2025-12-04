@@ -442,9 +442,18 @@ module Engine =
 
                 let req =
                     { ModelHint = Some "fast"
+                      Model = None
+                      SystemPrompt = None
                       MaxTokens = Some 50
                       Temperature = Some 0.0
-                      Messages = [ { Role = Role.User; Content = prompt } ] }
+                      Stop = []
+                      Messages = [ { Role = Role.User; Content = prompt } ]
+                      Tools = []
+                      ToolChoice = None
+                      ResponseFormat = None
+                      Stream = false
+                      JsonMode = false
+                      Seed = None }
 
                 try
                     let! response = llm.CompleteAsync req
@@ -571,9 +580,18 @@ module Engine =
 
                 let req =
                     { ModelHint = Some "fast"
+                      Model = None
+                      SystemPrompt = None
                       MaxTokens = Some 150
                       Temperature = Some 0.7
-                      Messages = [ { Role = Role.User; Content = prompt } ] }
+                      Stop = []
+                      Messages = [ { Role = Role.User; Content = prompt } ]
+                      Tools = []
+                      ToolChoice = None
+                      ResponseFormat = None
+                      Stream = false
+                      JsonMode = false
+                      Seed = None }
 
                 try
                     let! response = llm.CompleteAsync req
@@ -661,7 +679,7 @@ module Engine =
                     | GraphNode.AgentNode id -> id.ToString()
                     | GraphNode.FileNode path -> path
                     | GraphNode.TaskNode id -> id.ToString()
-                    | GraphNode.BeliefNode (id, _) -> id.ToString()
+                    | GraphNode.BeliefNode(id, _) -> id.ToString()
                     | GraphNode.ModuleNode name -> name
                     | GraphNode.TypeNode name -> name
                     | GraphNode.FunctionNode name -> name
@@ -899,9 +917,18 @@ module Engine =
 
                                 let req =
                                     { ModelHint = Some "fast"
+                                      Model = None
+                                      SystemPrompt = None
                                       MaxTokens = Some(config.CompressionMaxChars / 3)
                                       Temperature = Some 0.0
-                                      Messages = [ { Role = Role.User; Content = prompt } ] }
+                                      Stop = []
+                                      Messages = [ { Role = Role.User; Content = prompt } ]
+                                      Tools = []
+                                      ToolChoice = None
+                                      ResponseFormat = None
+                                      Stream = false
+                                      JsonMode = false
+                                      Seed = None }
 
                                 try
                                     let! response = llm.CompleteAsync req
@@ -1103,9 +1130,18 @@ module Engine =
 
                             let req =
                                 { ModelHint = Some config.CrossEncoderModel
+                                  Model = None
+                                  SystemPrompt = None
                                   MaxTokens = Some 5
                                   Temperature = Some 0.0
-                                  Messages = [ { Role = Role.User; Content = prompt } ] }
+                                  Stop = []
+                                  Messages = [ { Role = Role.User; Content = prompt } ]
+                                  Tools = []
+                                  ToolChoice = None
+                                  ResponseFormat = None
+                                  Stream = false
+                                  JsonMode = false
+                                  Seed = None }
 
                             try
                                 let! response = llm.CompleteAsync req
@@ -1273,9 +1309,18 @@ Output only the requested result."""
 
                 let req =
                     { ModelHint = Some "reasoning"
+                      Model = None
+                      SystemPrompt = None
                       MaxTokens = None
                       Temperature = None
-                      Messages = [ { Role = Role.User; Content = prompt } ] }
+                      Stop = []
+                      Messages = [ { Role = Role.User; Content = prompt } ]
+                      Tools = []
+                      ToolChoice = None
+                      ResponseFormat = None
+                      Stream = false
+                      JsonMode = false
+                      Seed = None }
 
                 let! response = ctx.Llm.CompleteAsync req
 
@@ -1385,9 +1430,18 @@ Instruction: %s"""
 
                         let req =
                             { ModelHint = Some "reasoning"
+                              Model = None
+                              SystemPrompt = None
                               MaxTokens = None
                               Temperature = None
-                              Messages = [ { Role = Role.User; Content = prompt } ] }
+                              Stop = []
+                              Messages = [ { Role = Role.User; Content = prompt } ]
+                              Tools = []
+                              ToolChoice = None
+                              ResponseFormat = None
+                              Stream = false
+                              JsonMode = false
+                              Seed = None }
 
                         let! response = ctx.Llm.CompleteAsync req
                         recordBudget ctx.Budget (response.Usage |> Option.map (fun u -> u.TotalTokens))
@@ -1645,6 +1699,7 @@ Instruction: %s"""
                                     windowed
                                     content)
                             |> String.concat "\n\n"
+
                         let combinedContext = contextParts + kgContext
 
                         let boundedContext =
@@ -1696,32 +1751,34 @@ Instruction: %s"""
                     raise (ArgumentException(msg))
 
             // 1. Retrieve Memory
-            let! memoryContext = 
+            let! memoryContext =
                 match ctx.SemanticMemory with
-                | Some mem -> 
+                | Some mem ->
                     task {
                         // Construct a query from the workflow description or inputs
-                        let queryText = 
-                            inputs 
-                            |> Map.tryFind "goal" 
-                            |> Option.map string 
+                        let queryText =
+                            inputs
+                            |> Map.tryFind "goal"
+                            |> Option.map string
                             |> Option.defaultValue workflow.Description
-                        
-                        let query = {
-                            TaskId = workflow.Name
-                            TaskKind = "metascript"
-                            TextContext = queryText
-                            Tags = []
-                        }
+
+                        let query =
+                            { TaskId = workflow.Name
+                              TaskKind = "metascript"
+                              TextContext = queryText
+                              Tags = [] }
+
                         let! results = mem.Retrieve query
-                        
+
                         // Format results for context
-                        if results.IsEmpty then return ""
+                        if results.IsEmpty then
+                            return ""
                         else
-                            let summaries = 
-                                results 
+                            let summaries =
+                                results
                                 |> List.choose (fun s -> s.Logical |> Option.map (fun l -> l.ProblemSummary))
                                 |> String.concat "\n- "
+
                             return sprintf "\nRelevant Past Experiences:\n- %s\n" summaries
                     }
                 | None -> Task.FromResult ""
@@ -1760,12 +1817,12 @@ Instruction: %s"""
             match ctx.SemanticMemory with
             | Some mem ->
                 try
-                    let memTrace = {
-                        MemoryTrace.TaskId = workflow.Name
-                        Variables = state.Variables
-                        StepOutputs = state.StepOutputs
-                    }
-                    let! _ = mem.Grow(memTrace, obj())
+                    let memTrace =
+                        { MemoryTrace.TaskId = workflow.Name
+                          Variables = state.Variables
+                          StepOutputs = state.StepOutputs }
+
+                    let! _ = mem.Grow(memTrace, obj ())
                     ()
                 with ex ->
                     // Don't fail workflow if memory fails

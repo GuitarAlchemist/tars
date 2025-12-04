@@ -27,6 +27,15 @@ type Performative =
     | NotUnderstood // "I don't know what you mean"
     | Event // "Something happened"
 
+/// <summary>
+/// Represents the detected intent of a user prompt or agent message.
+/// </summary>
+type AgentIntent =
+    | Coding
+    | Planning
+    | Reasoning
+    | Chat
+
 /// The "Guardrails" for the request
 type SemanticConstraints =
     { MaxTokens: int<token> option
@@ -47,6 +56,7 @@ type SemanticMessage<'T> =
       Sender: MessageEndpoint
       Receiver: MessageEndpoint option // None = Broadcast
       Performative: Performative
+      Intent: AgentIntent option
       Constraints: SemanticConstraints
       Ontology: string option // Domain context (e.g., "coding", "finance")
       Language: string // Content type (e.g., "json", "fsharp", "natural")
@@ -125,9 +135,10 @@ type Agent =
       Capabilities: Capability list
       State: AgentState
       Memory: Message list } // Short-term memory/context
-    
+
     member this.ReceiveMessage(msg: Message) =
-        { this with Memory = this.Memory @ [ msg ] }
+        { this with
+            Memory = this.Memory @ [ msg ] }
 
 /// The result of a kernel operation
 type KernelResult<'T> = Result<'T, string>

@@ -203,6 +203,7 @@ module GraphRuntime =
           Sender = source
           Receiver = Some MessageEndpoint.System // or generic target
           Performative = Performative.Inform
+          Intent = None // Default to None, or infer?
           Constraints = SemanticConstraints.Default
           Ontology = None
           Language = "text"
@@ -224,8 +225,11 @@ module GraphRuntime =
             // 1. Construct Prompt
             ctx.Logger $"[Thinking] Agent {agent.Name} is thinking..."
             let basePrompt = PromptBuilder.buildSystemPrompt agent history
-            
-            let mutable currentPromptMessages = [ { Role = Role.User; Content = basePrompt } ]
+
+            let mutable currentPromptMessages =
+                [ { Role = Role.User
+                    Content = basePrompt } ]
+
             let mutable attempts = 0
             let maxAttempts = 3
             let mutable finalResponseText = ""
@@ -243,13 +247,22 @@ module GraphRuntime =
             else
                 while attempts < maxAttempts && not guardPassed do
                     attempts <- attempts + 1
-                    
+
                     // 2. Call LLM
                     let req =
                         { ModelHint = Some agent.Model
+                          Model = None
+                          SystemPrompt = None
                           MaxTokens = Some 1024
                           Temperature = Some 0.7
-                          Messages = currentPromptMessages }
+                          Stop = []
+                          Messages = currentPromptMessages
+                          Tools = []
+                          ToolChoice = None
+                          ResponseFormat = None
+                          Stream = false
+                          JsonMode = false
+                          Seed = None }
 
                     let! response = ctx.Llm.CompleteAsync req
 
@@ -269,11 +282,11 @@ module GraphRuntime =
 
                     // 2.5 Apply Output Guard
                     match ctx.OutputGuard with
-                    | None -> 
+                    | None ->
                         finalResponseText <- response.Text
                         guardPassed <- true
                     | Some guard ->
-                        let guardInput = 
+                        let guardInput =
                             { ResponseText = response.Text
                               Grammar = None // Could extract from agent tools if needed
                               ExpectedJsonFields = None
@@ -281,23 +294,31 @@ module GraphRuntime =
                               Citations = None
                               AllowExtraFields = true
                               Metadata = Map.empty }
-                        
+
                         let! guardResult = guard.Evaluate guardInput |> Async.StartAsTask
-                        
+
                         match guardResult.Action with
                         | GuardAction.Accept ->
                             finalResponseText <- response.Text
                             guardPassed <- true
                         | GuardAction.RetryWithHint hint ->
                             ctx.Logger $"[Guard] Retry attempt {attempts}: {hint}"
-                            currentPromptMessages <- currentPromptMessages @ 
-                                [ { Role = Role.Assistant; Content = response.Text }
-                                  { Role = Role.User; Content = $"Output rejected. Hint: {hint}" } ]
+
+                            currentPromptMessages <-
+                                currentPromptMessages
+                                @ [ { Role = Role.Assistant
+                                      Content = response.Text }
+                                    { Role = Role.User
+                                      Content = $"Output rejected. Hint: {hint}" } ]
                         | GuardAction.AskForEvidence hint ->
-                             ctx.Logger $"[Guard] Asking for evidence: {hint}"
-                             currentPromptMessages <- currentPromptMessages @ 
-                                [ { Role = Role.Assistant; Content = response.Text }
-                                  { Role = Role.User; Content = $"Please provide evidence: {hint}" } ]
+                            ctx.Logger $"[Guard] Asking for evidence: {hint}"
+
+                            currentPromptMessages <-
+                                currentPromptMessages
+                                @ [ { Role = Role.Assistant
+                                      Content = response.Text }
+                                    { Role = Role.User
+                                      Content = $"Please provide evidence: {hint}" } ]
                         | GuardAction.Reject reason ->
                             ctx.Logger $"[Guard] Rejected: {reason}"
                             failureReason <- reason
@@ -308,9 +329,15 @@ module GraphRuntime =
                             guardPassed <- true
 
                 if not guardPassed then
-                     return 
-                        { agent with 
-                            State = AgentState.Error (if String.IsNullOrEmpty failureReason then "Max retry attempts exceeded" else failureReason) }
+                    return
+                        { agent with
+                            State =
+                                AgentState.Error(
+                                    if String.IsNullOrEmpty failureReason then
+                                        "Max retry attempts exceeded"
+                                    else
+                                        failureReason
+                                ) }
                         |> Success
                 else
                     // 3. Parse Response

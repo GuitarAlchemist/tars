@@ -119,6 +119,7 @@ let run (logger: ILogger) =
                   Sender = MessageEndpoint.User
                   Receiver = Some(MessageEndpoint.Alias "Assistant")
                   Performative = Performative.Request
+                  Intent = None
                   Constraints = SemanticConstraints.Default
                   Ontology = None
                   Language = "text"

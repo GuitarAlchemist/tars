@@ -56,7 +56,17 @@ type ISemanticMemory =
 * **Storage**: Simple JSON-based storage for schemas (`data/semantic_memory/records/`) and a lightweight index (`data/semantic_memory/index.json`).
 * **Vector Store Integration**: Use the existing `IVectorStore` to generate and query embeddings.
 
-### 4. Integration Points
+### 4. Data Ingestion & Chunking Strategy
+
+Effective chunking is critical for RAG performance. Based on modern best practices (e.g., [DataCamp Chunking Strategies](https://www.datacamp.com/blog/chunking-strategies)), we will implement a multi-strategy approach:
+
+* **Code**: Use **Recursive** or **AST-based** chunking to respect function/class boundaries.
+* **Text/Documentation**: Use **Semantic Chunking** (embedding similarity) or **Sliding Window** with overlap to maintain context.
+* **Agentic Chunking**: For complex episodes, use an LLM to determine logical breakpoints (e.g., "Problem Statement", "Attempt 1", "Error Analysis").
+
+The `Tars.Cortex.Chunking` module will be upgraded to support these advanced strategies, moving beyond simple fixed-size splitting.
+
+### 5. Integration Points
 
 #### A. Kernel Bootstrap
 
@@ -89,20 +99,22 @@ type ISemanticMemory =
 
 ### Phase 3: The Memory Cycle (Completed)
 
-1. Update `AgentRunner` (or equivalent in `Tars.Core`/`Tars.Interface.Cli`) to retrieve memories before execution.
-2. Update `AgentRunner` to call `Grow` after execution/verification.
-3. *Note*: This requires mapping `AgentTrace` and `DiagnosticsResult` to the `LogicalMemory` format.
+1. [x] Update `EvolutionEngine` to retrieve memories before execution.
+2. [x] Update `EvolutionEngine` to call `Grow` after execution/verification.
+3. [x] Integrate `SemanticMemory` into `EvolutionContext`.
 
-### Phase 4: CLI & Refinement
+### Phase 4: CLI & Refinement (Completed)
 
-1. Add `SemanticMemory` command group to `Tars.Interface.Cli`.
-2. Implement a basic `Refine` method (e.g., deduplication based on embedding similarity).
+1. [x] Add `SemanticMemory` command group to `Tars.Interface.Cli`.
+2. [x] Implement a basic `Refine` method (deduplication based on embedding similarity).
+3. [x] Implement `demo-perceptual` to validate ingestion and growth.
+4. [x] Implement `query` to validate retrieval.
 
-## Dependencies
+### Phase 5: Advanced Ingestion (Completed)
 
-* **AST Ingestor**: Will provide data for `PerceptualMemory` (file structure, symbols).
-* **Vector Store**: Required for embeddings.
-* **LLM Service**: Required for generating summaries (Problem/Strategy) during `Grow`.
+1. [x] Upgrade `Tars.Cortex.Chunking` with **Semantic Chunking** (using `Tars.Llm` embeddings).
+2. [x] Implement **Agentic Chunking** for episode summarization.
+3. [x] Integrate **AST-based Chunking** for code files in `PerceptualMemory`.
 
 ## Verification
 

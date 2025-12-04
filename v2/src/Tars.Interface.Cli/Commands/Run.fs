@@ -61,13 +61,17 @@ let execute (logger: ILogger) (scriptPath: string) =
                     )
 
                 // Initialize Kernel
-                let storageRoot = Path.Combine(Environment.CurrentDirectory, "knowledge", "semantic_memory")
-                let embedder (text: string) = async {
-                    match! (llmService :> ILlmServiceFunctional).EmbedAsync text with
-                    | Result.Ok embedding -> return embedding
-                    | Result.Error _ -> return Array.empty<float32>
-                }
-                let kernel = KernelBootstrap.createKernel storageRoot embedder
+                let storageRoot =
+                    Path.Combine(Environment.CurrentDirectory, "knowledge", "semantic_memory")
+
+                let embedder (text: string) =
+                    async {
+                        match! (llmService :> ILlmServiceFunctional).EmbedAsync text with
+                        | Result.Ok embedding -> return embedding
+                        | Result.Error _ -> return Array.empty<float32>
+                    }
+
+                let kernel = KernelBootstrap.createKernel storageRoot embedder llmService
 
                 let metaCtx: MetascriptContext =
                     { Llm = llmService
@@ -78,16 +82,18 @@ let execute (logger: ILogger) (scriptPath: string) =
                       SemanticMemory = Some kernel.SemanticMemory
                       RagConfig = RagConfig.Default }
                 // Ingest Code Structure
-                let! codeStructureInput = task {
-                    let kg = KnowledgeGraph()
-                    let srcDir = Path.Combine(Environment.CurrentDirectory, "src")
-                    if Directory.Exists srcDir then
-                        do! AstIngestor.ingestDirectory kg srcDir |> Async.StartAsTask
-                        let cs = AstIngestor.extractCodeStructure kg
-                        return Map [ "code_structure", box cs ]
-                    else
-                        return Map.empty
-                }
+                let! codeStructureInput =
+                    task {
+                        let kg = KnowledgeGraph()
+                        let srcDir = Path.Combine(Environment.CurrentDirectory, "src")
+
+                        if Directory.Exists srcDir then
+                            do! AstIngestor.ingestDirectory kg srcDir |> Async.StartAsTask
+                            let cs = AstIngestor.extractCodeStructure kg
+                            return Map [ "code_structure", box cs ]
+                        else
+                            return Map.empty
+                    }
 
                 // Execute
                 let! finalState = Engine.run metaCtx workflow codeStructureInput

@@ -26,10 +26,9 @@ type KernelTests(output: ITestOutputHelper) =
         registry.Register(agent)
 
         // Assert
-        let retrieved = 
-            (registry :> IAgentRegistry).GetAgent(AgentId agentId) 
-            |> Async.RunSynchronously
-        
+        let retrieved =
+            (registry :> IAgentRegistry).GetAgent(AgentId agentId) |> Async.RunSynchronously
+
         Assert.True(retrieved.IsSome)
         Assert.Equal(AgentId agentId, retrieved.Value.Id)
         Assert.Equal(name, retrieved.Value.Name)
@@ -52,8 +51,8 @@ type KernelTests(output: ITestOutputHelper) =
         registry.Register(updatedAgent) // Register acts as AddOrUpdate
 
         // Assert
-        let storedAgent = 
-            (registry :> IAgentRegistry).GetAgent(AgentId agentId) 
+        let storedAgent =
+            (registry :> IAgentRegistry).GetAgent(AgentId agentId)
             |> Async.RunSynchronously
             |> Option.get
 
@@ -73,6 +72,7 @@ type KernelTests(output: ITestOutputHelper) =
               Sender = MessageEndpoint.System
               Receiver = Some(MessageEndpoint.Agent agent.Id)
               Performative = Performative.Inform
+              Intent = None
               Constraints = SemanticConstraints.Default
               Ontology = None
               Language = "text"

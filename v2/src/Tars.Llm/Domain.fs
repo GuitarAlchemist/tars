@@ -22,34 +22,58 @@ type LlmMessage = { Role: Role; Content: string }
 /// High-level request from TARS – independent of specific backend.
 /// </summary>
 type LlmRequest =
-    { /// <summary>Hint for routing (e.g., "code", "reasoning", "cheap", "deep").</summary>
-      ModelHint: string option
-      /// <summary>Maximum tokens to generate.</summary>
-      MaxTokens: int option
-      /// <summary>Sampling temperature (0.0 = deterministic, 1.0+ = creative).</summary>
-      Temperature: float option
-      /// <summary>Conversation messages.</summary>
-      Messages: LlmMessage list }
+    {
+        /// <summary>Hint for routing (e.g., "code", "reasoning", "cheap", "deep").</summary>
+        ModelHint: string option
+        /// <summary>Specific model override (optional).</summary>
+        Model: string option
+        /// <summary>System prompt override (optional).</summary>
+        SystemPrompt: string option
+        /// <summary>Maximum tokens to generate.</summary>
+        MaxTokens: int option
+        /// <summary>Sampling temperature (0.0 = deterministic, 1.0+ = creative).</summary>
+        Temperature: float option
+        /// <summary>Stop sequences.</summary>
+        Stop: string list
+        /// <summary>Conversation messages.</summary>
+        Messages: LlmMessage list
+        /// <summary>Tool definitions (optional).</summary>
+        Tools: obj list
+        /// <summary>Tool choice (optional).</summary>
+        ToolChoice: obj option
+        /// <summary>Response format (e.g. json_object).</summary>
+        ResponseFormat: obj option
+        /// <summary>Whether to stream the response.</summary>
+        Stream: bool
+        /// <summary>Whether to enforce JSON mode.</summary>
+        JsonMode: bool
+        /// <summary>Random seed (optional).</summary>
+        Seed: int option
+    }
 
 /// <summary>Token usage statistics from an LLM response.</summary>
 type TokenUsage =
-    { /// <summary>Tokens in the prompt.</summary>
-      PromptTokens: int
-      /// <summary>Tokens generated in the response.</summary>
-      CompletionTokens: int
-      /// <summary>Total tokens (prompt + completion).</summary>
-      TotalTokens: int }
+    {
+        /// <summary>Tokens in the prompt.</summary>
+        PromptTokens: int
+        /// <summary>Tokens generated in the response.</summary>
+        CompletionTokens: int
+        /// <summary>Total tokens (prompt + completion).</summary>
+        TotalTokens: int
+    }
 
 /// <summary>Unified response type from any LLM backend.</summary>
 type LlmResponse =
-    { /// <summary>Generated text content.</summary>
-      Text: string
-      /// <summary>Reason for completion (e.g., "stop", "length").</summary>
-      FinishReason: string option
-      /// <summary>Token usage statistics if available.</summary>
-      Usage: TokenUsage option
-      /// <summary>Raw JSON response for debugging.</summary>
-      Raw: string option }
+    {
+        /// <summary>Generated text content.</summary>
+        Text: string
+        /// <summary>Reason for completion (e.g., "stop", "length").</summary>
+        FinishReason: string option
+        /// <summary>Token usage statistics if available.</summary>
+        Usage: TokenUsage option
+        /// <summary>Raw JSON response for debugging.</summary>
+        Raw: string option
+    }
 
 /// <summary>Supported LLM backends.</summary>
 type LlmBackend =

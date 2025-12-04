@@ -108,7 +108,13 @@ module OllamaClientAsync =
         : AsyncResult<LlmResponse, LlmError> =
 
         // Validate model name
-        if not (model.StartsWith("tars-") || model.StartsWith("llama") || model.StartsWith("mistral")) then
+        if
+            not (
+                model.StartsWith("tars-")
+                || model.StartsWith("llama")
+                || model.StartsWith("mistral")
+            )
+        then
             AsyncResult.ofResult (Result.Error(ModelNotFound $"Unknown model: {model}"))
         // Validate messages
         elif req.Messages |> List.exists (fun m -> String.IsNullOrWhiteSpace m.Content) then
@@ -131,9 +137,18 @@ module OllamaClientAsyncExamples =
         async {
             let req: LlmRequest =
                 { ModelHint = None
+                  Model = None
+                  SystemPrompt = None
                   MaxTokens = None
                   Temperature = Some 0.7
-                  Messages = [{ Role = Role.User; Content = "Hello!" }] }
+                  Stop = []
+                  Messages = [ { Role = Role.User; Content = "Hello!" } ]
+                  Tools = []
+                  ToolChoice = None
+                  ResponseFormat = None
+                  Stream = false
+                  JsonMode = false
+                  Seed = None }
 
             let! result = generateAsync http baseUri "llama3.2" req
 
@@ -147,9 +162,18 @@ module OllamaClientAsyncExamples =
         async {
             let req: LlmRequest =
                 { ModelHint = None
+                  Model = None
+                  SystemPrompt = None
                   MaxTokens = None
                   Temperature = Some 0.7
-                  Messages = [{ Role = Role.User; Content = "Hello!" }] }
+                  Stop = []
+                  Messages = [ { Role = Role.User; Content = "Hello!" } ]
+                  Tools = []
+                  ToolChoice = None
+                  ResponseFormat = None
+                  Stream = false
+                  JsonMode = false
+                  Seed = None }
 
             let! result = generateWithRetry http baseUri "llama3.2" req 3
 
@@ -164,9 +188,20 @@ module OllamaClientAsyncExamples =
             // First call
             let req1: LlmRequest =
                 { ModelHint = None
+                  Model = None
+                  SystemPrompt = None
                   MaxTokens = None
                   Temperature = Some 0.1
-                  Messages = [{ Role = Role.User; Content = "What is 2+2?" }] }
+                  Stop = []
+                  Messages =
+                    [ { Role = Role.User
+                        Content = "What is 2+2?" } ]
+                  Tools = []
+                  ToolChoice = None
+                  ResponseFormat = None
+                  Stream = false
+                  JsonMode = false
+                  Seed = None }
 
             let! result1 = generateAsync http baseUri "llama3.2" req1
 
@@ -176,13 +211,24 @@ module OllamaClientAsyncExamples =
                 // Second call using first response
                 let req2: LlmRequest =
                     { ModelHint = None
+                      Model = None
+                      SystemPrompt = None
                       MaxTokens = None
                       Temperature = Some 0.1
-                      Messages = [
-                          { Role = Role.User; Content = "What is 2+2?" }
-                          { Role = Role.Assistant; Content = response1.Text }
-                          { Role = Role.User; Content = "Now multiply that by 5" }
-                      ] }
+                      Stop = []
+                      Messages =
+                        [ { Role = Role.User
+                            Content = "What is 2+2?" }
+                          { Role = Role.Assistant
+                            Content = response1.Text }
+                          { Role = Role.User
+                            Content = "Now multiply that by 5" } ]
+                      Tools = []
+                      ToolChoice = None
+                      ResponseFormat = None
+                      Stream = false
+                      JsonMode = false
+                      Seed = None }
 
                 let! result2 = generateAsync http baseUri "llama3.2" req2
 

@@ -35,7 +35,14 @@ let run (logger: ILogger) : Task<int> =
         | Result.Error err -> logger.Warning("Could not load secrets: {Error}", err)
 
         let agent =
-            Tars.Kernel.AgentFactory.create (Guid.NewGuid()) "TARS" "0.1.0" "llama3.2" "You are a helpful assistant." [] []
+            Tars.Kernel.AgentFactory.create
+                (Guid.NewGuid())
+                "TARS"
+                "0.1.0"
+                "llama3.2"
+                "You are a helpful assistant."
+                []
+                []
 
         registry.Register(agent)
 
@@ -107,6 +114,7 @@ let run (logger: ILogger) : Task<int> =
         let llmService = DefaultLlmService(httpClient, svcCfg) :> ILlmService
 
         let llmService = DefaultLlmService(httpClient, svcCfg) :> ILlmService
+
         let graphCtx: GraphRuntime.GraphContext =
             { Registry = registry
               Llm = llmService
@@ -129,9 +137,18 @@ let run (logger: ILogger) : Task<int> =
 
                     let testRequest: LlmRequest =
                         { ModelHint = Some routingCfg.DefaultOllamaModel
+                          Model = None
+                          SystemPrompt = None
                           Messages = [ { Role = Role.User; Content = "test" } ]
                           Temperature = Some 0.1
-                          MaxTokens = Some 10 }
+                          MaxTokens = Some 10
+                          Stop = []
+                          Tools = []
+                          ToolChoice = None
+                          ResponseFormat = None
+                          Stream = false
+                          JsonMode = false
+                          Seed = None }
 
                     let! testResponse = llmService.CompleteAsync(testRequest)
                     logger.Information("LLM connection successful")
@@ -173,6 +190,7 @@ let run (logger: ILogger) : Task<int> =
                           Sender = MessageEndpoint.User
                           Receiver = Some(MessageEndpoint.Agent agent.Id)
                           Performative = Performative.Request
+                          Intent = Some AgentIntent.Chat
                           Constraints = SemanticConstraints.Default
                           Ontology = None
                           Language = "text"
@@ -293,9 +311,18 @@ let runStreaming (logger: ILogger) (options: ChatOptions) : Task<int> =
 
                 let req: LlmRequest =
                     { ModelHint = Some model
+                      Model = None
+                      SystemPrompt = None
                       Messages = history
                       Temperature = Some 0.7
-                      MaxTokens = Some 2048 }
+                      MaxTokens = Some 2048
+                      Stop = []
+                      Tools = []
+                      ToolChoice = None
+                      ResponseFormat = None
+                      Stream = true
+                      JsonMode = false
+                      Seed = None }
 
                 AnsiConsole.Markup("[bold cyan]TARS>[/] ")
 

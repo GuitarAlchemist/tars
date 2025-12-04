@@ -190,6 +190,17 @@ type EventBus(logger: ILogger, circuitBreaker: CircuitBreaker, budgetGovernor: B
             AgentRouter()
         )
 
+    new(logger: ILogger, router: AgentRouter option) =
+        EventBus(
+            logger,
+            CircuitBreaker(5, TimeSpan.FromMinutes(1.0)),
+            BudgetGovernor(
+                { Budget.Infinite with
+                    MaxTokens = Some 100000<token> }
+            ),
+            router |> Option.defaultValue (AgentRouter())
+        )
+
     interface IEventBus with
         member _.PublishAsync(msg) =
             task {
@@ -215,7 +226,7 @@ type EventBus(logger: ILogger, circuitBreaker: CircuitBreaker, budgetGovernor: B
                     | None -> true
 
                 if budgetOk && constraintsOk then
-                    // Resolve Alias if present
+                    // Resolve Alias or Intent if present
                     let resolvedMsg =
                         match guarded.Receiver with
                         | Some(MessageEndpoint.Alias name) ->
@@ -225,7 +236,19 @@ type EventBus(logger: ILogger, circuitBreaker: CircuitBreaker, budgetGovernor: B
                                     Receiver = Some(MessageEndpoint.Agent agentId) }
                             | None ->
                                 logger.Warning("EventBus: Could not resolve alias {Alias}", name)
-                                guarded // Or drop? For now, keep as is, it will fail in loop
+                                guarded // Keep as is, will fail or broadcast? Actually logic below handles specific receiver.
+                        | None ->
+                            // If Receiver is None, check if we can route by Intent
+                            match guarded.Intent with
+                            | Some intent ->
+                                let intentKey = $"Intent:{intent}"
+
+                                match router.Resolve(intentKey) with
+                                | Some agentId ->
+                                    { guarded with
+                                        Receiver = Some(MessageEndpoint.Agent agentId) }
+                                | None -> guarded // Continue to broadcast
+                            | None -> guarded
                         | _ -> guarded
 
                     if channel.Writer.TryWrite(resolvedMsg) |> not then

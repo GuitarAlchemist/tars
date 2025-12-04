@@ -8,18 +8,13 @@ open Tars.Llm.LlmService
 
 /// LLM-backed output guard analyzer. Expects the model to return JSON:
 /// { "risk": 0.0-1.0, "action": "accept|ask|retry|reject|fallback", "reasons": ["..."] }
-type LlmOutputGuardAnalyzer
-    (
-        llm: ILlmServiceFunctional,
-        ?modelHint: string,
-        ?temperature: float,
-        ?maxTokens: int
-    ) =
+type LlmOutputGuardAnalyzer(llm: ILlmServiceFunctional, ?modelHint: string, ?temperature: float, ?maxTokens: int) =
 
     let parseResult (text: string) =
         try
             use doc = JsonDocument.Parse(text)
             let root = doc.RootElement
+
             let risk =
                 match root.TryGetProperty("risk") with
                 | true, v when v.ValueKind = JsonValueKind.Number ->
@@ -27,6 +22,7 @@ type LlmOutputGuardAnalyzer
                     | true, d -> Math.Max(0.0, Math.Min(1.0, d))
                     | _ -> 0.5
                 | _ -> 0.5
+
             let action =
                 match root.TryGetProperty("action") with
                 | true, v when v.ValueKind = JsonValueKind.String ->
@@ -37,14 +33,23 @@ type LlmOutputGuardAnalyzer
                     | "fallback" -> GuardAction.Fallback "Fallback to minimal safe response"
                     | _ -> GuardAction.Accept
                 | _ -> GuardAction.Accept
+
             let reasons =
                 match root.TryGetProperty("reasons") with
                 | true, v when v.ValueKind = JsonValueKind.Array ->
                     v.EnumerateArray()
-                    |> Seq.choose (fun e -> if e.ValueKind = JsonValueKind.String then Some(e.GetString()) else None)
+                    |> Seq.choose (fun e ->
+                        if e.ValueKind = JsonValueKind.String then
+                            Some(e.GetString())
+                        else
+                            None)
                     |> Seq.toList
                 | _ -> []
-            Some { Risk = risk; Action = action; Messages = reasons }
+
+            Some
+                { Risk = risk
+                  Action = action
+                  Messages = reasons }
         with _ ->
             None
 
@@ -53,10 +58,12 @@ type LlmOutputGuardAnalyzer
             match input.ExpectedJsonFields with
             | None -> "[]"
             | Some xs -> JsonSerializer.Serialize(xs)
+
         let citations =
             match input.Citations with
             | None -> "[]"
             | Some xs -> JsonSerializer.Serialize(xs)
+
         $"""You are an output guard. Classify the response for hallucination, cargo-cult code, or fabrication risk.
 Respond ONLY with JSON: {{"risk": <0-1>, "action": "accept|ask|retry|reject|fallback", "reasons": ["..."]}}
 Response: ```{input.ResponseText}```
@@ -72,14 +79,24 @@ GrammarProvided: {input.Grammar.IsSome}
             async {
                 try
                     let prompt = buildPrompt input
+
                     let req: LlmRequest =
                         { ModelHint = modelHint
+                          Model = None
+                          SystemPrompt = None
                           MaxTokens = maxTokens
                           Temperature = temperature
+                          Stop = []
                           Messages =
                             [ { Role = Role.System
                                 Content = "You are a strict output guard. Return only JSON with risk/action/reasons." }
-                              { Role = Role.User; Content = prompt } ] }
+                              { Role = Role.User; Content = prompt } ]
+                          Tools = []
+                          ToolChoice = None
+                          ResponseFormat = None
+                          Stream = false
+                          JsonMode = true
+                          Seed = None }
 
                     let! res = llm.CompleteAsync req
 
@@ -131,5 +148,6 @@ module OutputGuardAnalyzerFactory =
             Environment.GetEnvironmentVariable("DEFAULT_OLLAMA_MODEL")
             |> Option.ofObj
             |> Option.defaultValue "qwen2.5-coder:latest"
+
         let uri = defaultUri "http://localhost:11434/" baseUrl
         createOllamaAnalyzer uri model

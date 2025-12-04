@@ -22,6 +22,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Tars.Core\Tars.Core.fsproj" />
+    <ProjectReference Include="..\Tars.Llm\Tars.Llm.fsproj" />
     <ProjectReference Include="..\Tars.Sandbox\Tars.Sandbox.fsproj" />
   </ItemGroup>
 
