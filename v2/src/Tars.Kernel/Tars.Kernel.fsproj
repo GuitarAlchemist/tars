@@ -13,6 +13,8 @@
     <Compile Include="Governance.fs" />
     <Compile Include="SafetyGate.fs" />
     <Compile Include="Router.fs" />
+    <Compile Include="Capacitor.fs" />
+    <Compile Include="Transistor.fs" />
     <Compile Include="EventBus.fs" />
   </ItemGroup>
 

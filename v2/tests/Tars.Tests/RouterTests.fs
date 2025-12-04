@@ -27,7 +27,8 @@ type RouterTests(output: ITestOutputHelper) =
                         { Budget.Infinite with
                             MaxTokens = Some 100000<token> }
                     ),
-                    router
+                    router,
+                    1000
                 )
 
             let bus = eventBus :> IEventBus
@@ -109,7 +110,8 @@ type RouterTests(output: ITestOutputHelper) =
                         { Budget.Infinite with
                             MaxTokens = Some 100000<token> }
                     ),
-                    router
+                    router,
+                    1000
                 )
 
             let bus = eventBus :> IEventBus

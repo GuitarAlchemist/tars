@@ -20,8 +20,13 @@ open Tars.Core
 /// <param name="circuitBreaker">Circuit breaker for failure protection.</param>
 /// <param name="budgetGovernor">Budget governor for resource tracking.</param>
 /// <param name="router">Agent router for message delivery.</param>
-type EventBus(logger: ILogger, circuitBreaker: CircuitBreaker, budgetGovernor: BudgetGovernor, router: AgentRouter) =
-    let channel = Channel.CreateUnbounded<SemanticMessage<obj>>()
+type EventBus
+    (logger: ILogger, circuitBreaker: CircuitBreaker, budgetGovernor: BudgetGovernor, router: AgentRouter, capacity: int)
+    =
+    let channel =
+        Channel.CreateBounded<SemanticMessage<obj>>(
+            BoundedChannelOptions(capacity, FullMode = BoundedChannelFullMode.Wait)
+        )
 
     let maxEnvelopeBytes = 64 * 1024
 
@@ -187,7 +192,8 @@ type EventBus(logger: ILogger, circuitBreaker: CircuitBreaker, budgetGovernor: B
                 { Budget.Infinite with
                     MaxTokens = Some 100000<token> }
             ),
-            AgentRouter()
+            AgentRouter(),
+            1000 // Default capacity
         )
 
     new(logger: ILogger, router: AgentRouter option) =
@@ -198,7 +204,8 @@ type EventBus(logger: ILogger, circuitBreaker: CircuitBreaker, budgetGovernor: B
                 { Budget.Infinite with
                     MaxTokens = Some 100000<token> }
             ),
-            router |> Option.defaultValue (AgentRouter())
+            router |> Option.defaultValue (AgentRouter()),
+            1000 // Default capacity
         )
 
     interface IEventBus with
@@ -251,8 +258,11 @@ type EventBus(logger: ILogger, circuitBreaker: CircuitBreaker, budgetGovernor: B
                             | None -> guarded
                         | _ -> guarded
 
-                    if channel.Writer.TryWrite(resolvedMsg) |> not then
-                        logger.Warning("EventBus: failed to enqueue message {Id}", resolvedMsg.Id)
+                    // Use WriteAsync to apply backpressure if channel is full
+                    try
+                        do! channel.Writer.WriteAsync(resolvedMsg).AsTask()
+                    with ex ->
+                        logger.Warning(ex, "EventBus: failed to enqueue message {Id} (Channel Closed?)", resolvedMsg.Id)
                 else
                     if not budgetOk then
                         logger.Warning(
