@@ -5,6 +5,7 @@ open System.Threading.Tasks
 open Xunit
 open Tars.Core
 open Tars.Cortex
+open Tars.Core.TemporalKnowledgeGraph
 open Tars.Llm
 open Tars.Llm.LlmService
 open Tars.Metascript.Domain
@@ -30,6 +31,7 @@ type StubLlm(responseText: string, tokens: int) =
         member _.CompleteStreamAsync(_req: LlmRequest, onToken: string -> unit) : Task<LlmResponse> =
             task {
                 onToken responseText
+
                 return
                     { Text = responseText
                       FinishReason = Some "stop"
@@ -254,7 +256,7 @@ type MetascriptTests() =
     [<Fact>]
     member _.``Knowledge graph enriches agent context``() =
         let llm = StubLlm("enriched response", 1) :> ILlmService
-        let kg = KnowledgeGraph()
+        let kg = TemporalGraph()
 
         // Add some related concepts
         kg.AddEdge(GraphNode.Concept "testing", GraphNode.Concept "unit testing", GraphEdge.RelatesTo 0.8)
@@ -697,22 +699,25 @@ type MetascriptTests() =
     [<Fact>]
     member _.``Engine calls Retrieve and Grow on SemanticMemory``() =
         let llm = StubLlm("unused", 1) :> ILlmService
-        
+
         let mutable retrieveCalled = false
         let mutable growCalled = false
-        
+
         let memory =
             { new ISemanticMemory with
-                member _.Retrieve _ = async { 
-                    retrieveCalled <- true
-                    return [] 
-                }
-                member _.Grow(trace, verif) = async {
-                    growCalled <- true
-                    return "schema-id"
-                }
-                member _.Refine() = async { return () }
-            }
+                member _.Retrieve _ =
+                    async {
+                        retrieveCalled <- true
+                        return []
+                    }
+
+                member _.Grow(trace, verif) =
+                    async {
+                        growCalled <- true
+                        return "schema-id"
+                    }
+
+                member _.Refine() = async { return () } }
 
         let ctx =
             { Llm = llm

@@ -167,6 +167,7 @@ module EvolutionTests =
               OutputGuard = None
               KnowledgeBase = None
               KnowledgeGraph = None
+              MemoryBuffer = None
               Logger = fun _ -> () }
 
         let nextState =

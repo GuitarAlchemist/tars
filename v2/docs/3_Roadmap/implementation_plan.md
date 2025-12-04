@@ -273,11 +273,12 @@
 
 **Deferred:**
 
-* [ ] **2.2 Memory Grid**: Simple Persistence (SQLite/File)
+* [x] **2.2 Memory Grid**: Simple Persistence (SQLite/File)
   * *Decision*: Start simple (SQLite/File) before adding complex Vector DBs.
   * *Future*: Evaluate ChromaDB/GAM only when scale demands it.
-* [ ] **2.4 Internal Knowledge Graph**: Graphiti-style internal graph
+* [x] **2.4 Internal Knowledge Graph**: Graphiti-style internal graph
   * *Decision*: Drop external Triple Stores. Use internal graph for beliefs/lineage.
+  * *Status*: Core temporal graph implemented in `Tars.Core/KnowledgeGraph.fs`. Integration pending.
 
 #### Phase 2.5: Epistemic RAG (Graphiti)
 
@@ -305,12 +306,11 @@
 **Completed:**
 
 * [x] **3.1 Terminal UI**: Spectre.Console with splash screen, spinner, interactive chat
+* [x] **3.2 MCP Client**: Model Context Protocol for external tools
+  * *Status*: Implemented basic client, stdio transport, and CLI command.
 
 **Deferred:**
 
-* [ ] **3.2 MCP Client**: Model Context Protocol for external tools
-  * *Decision*: Phase 3.2 deferred to v2.2
-  * *Research*: MCP + OpenAI-compatible stack is emerging standard
 * [ ] **3.3 Tool Registry**: SkillRegistry with hardcoded tools
   * *Status*: Basic `ToolRegistry` implemented in `Tars.Tools`
   * *Next*: Add circuit breakers (Phase 6.5)
@@ -425,8 +425,8 @@
 * [ ] Phase 2.2: Persistent Memory (ChromaDB)
 * [ ] Phase 3.2: MCP Client
 * [ ] Phase 6.5-6.8: Advanced backpressure patterns
-* [ ] Phase 6.6: Semantic Message Bus (JSON-LD + FIPA-ACL)
-* [ ] Phase 6.7: Circuit Flow Control (Resistors, Capacitors, Transistors)
+* [x] Phase 6.6: Semantic Message Bus (JSON-LD + FIPA-ACL)
+* [x] Phase 6.7: Circuit Flow Control (Resistors, Capacitors, Transistors)
 * [ ] Benchmark: Evolution Loop on standard tasks (HotpotQA, LoCoMo)
 
 ### v2.2 Production
@@ -475,28 +475,21 @@
 
 ## 🚀 Next Actions
 
-### Immediate (Tonight/Tomorrow)
+### Immediate (Next Session)
 
-1. Review and approve this plan
-2. Optional: Start Phase 6.1 (Budget Governor)
+1. **Phase 3.2: MCP Client**: ✅ Completed.
+2. **Phase 2.4: Internal Knowledge Graph**: Core temporal graph implemented. Integration pending.
+3. **Benchmarks**: Run Evolution Loop on standard tasks.
 
 ### Short-Term (This Week)
 
-1. Implement Phase 6.1 (Budget Governor)
-2. Implement Phase 6.2 (Agent Speech Acts)
-3. Run benchmarks: Evolution Loop with budgets
+1. Harden integration of all Phase 6 components.
+2. Write v2.0 Alpha release notes.
 
 ### Medium-Term (This Month)
 
-1. Complete Phase 6.3-6.4
-2. Benchmark against baselines
-3. Write v2.0 Alpha release notes
-
-### Long-Term (Q1 2026)
-
-1. Phase 2.2: Memory Grid (ChromaDB or GAM)
-2. Phase 3.2: MCP Client
-3. v2.1 Beta release
+1. v2.1 Beta release.
+2. Evaluate GAM integration.
 
 ### Completed (Phase 6.8)
 

@@ -81,6 +81,7 @@ module AdaptiveReflectionTests =
                   OutputGuard = None
                   KnowledgeBase = None
                   KnowledgeGraph = None
+                  MemoryBuffer = None
                   Logger = fun _ -> () }
 
             let taskDef =
@@ -159,6 +160,7 @@ module AdaptiveReflectionTests =
                   OutputGuard = None
                   KnowledgeBase = None
                   KnowledgeGraph = None
+                  MemoryBuffer = None
                   Logger = fun _ -> () }
 
             let taskDef =

@@ -18,8 +18,10 @@
     <Compile Include="Commands\Chat.fs" />
     <Compile Include="Commands\Evolve.fs" />
     <Compile Include="Commands\Knowledge.fs" />
+    <Compile Include="Commands\McpCommand.fs" />
     <Compile Include="Commands\SemanticMemoryCommand.fs" />
     <Compile Include="Commands\Experiment.fs" />
+    <Compile Include="Commands\Secrets.fs" />
     <Compile Include="Commands\Run.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>

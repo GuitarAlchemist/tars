@@ -105,6 +105,14 @@ type EventBus
                                 receiverStr
                             )
 
+                            // Log full semantic payload in debug
+                            if logger.IsEnabled(Serilog.Events.LogEventLevel.Debug) then
+                                try
+                                    let jsonLd = SemanticSerialization.toJsonLd msg
+                                    logger.Debug("EventBus Payload: {JsonLd}", jsonLd)
+                                with ex ->
+                                    logger.Warning(ex, "Failed to serialize message {Id} to JSON-LD", msg.Id)
+
                             // 2. Check Circuit Breaker for Receiver
                             let canProceed =
                                 match msg.Receiver with
@@ -207,6 +215,9 @@ type EventBus
             router |> Option.defaultValue (AgentRouter()),
             1000 // Default capacity
         )
+
+    new(logger: ILogger, circuitBreaker: CircuitBreaker, budgetGovernor: BudgetGovernor, router: AgentRouter) =
+        EventBus(logger, circuitBreaker, budgetGovernor, router, 1000)
 
     interface IEventBus with
         member _.PublishAsync(msg) =

@@ -1,36 +1,52 @@
 namespace Tars.Tests
 
 open System
+open System.Threading.Tasks
 open Xunit
 open Tars.Core
-open Tars.Cortex
+open Tars.Core.TemporalKnowledgeGraph
 
-type KnowledgeGraphTests() =
+module KnowledgeGraphTests =
 
     [<Fact>]
-    member _.``Can add nodes and edges``() =
-        let graph = KnowledgeGraph()
-        let nodeA = Concept "A"
-        let nodeB = Concept "B"
-        let edge = RelatesTo 1.0
+    let ``Can add nodes and edges`` () =
+        let graph = TemporalGraph()
+        let node1 = Concept "Time"
+        let node2 = Concept "Space"
 
-        graph.AddEdge(nodeA, nodeB, edge)
+        graph.AddNode(node1)
+        graph.AddNode(node2)
+        graph.AddEdge(node1, node2, RelatesTo 1.0)
 
-        let neighbors = graph.GetNeighbors(nodeA)
+        let nodes = graph.GetNodes()
+        let edges = graph.GetEdges()
+
+        Assert.Equal(2, nodes.Length)
+        Assert.Single(edges) |> ignore
+
+        let neighbors = graph.GetNeighbors(node1)
         Assert.Single(neighbors) |> ignore
-        Assert.Equal(nodeB, fst neighbors.Head)
+        Assert.Equal(node2, fst neighbors.Head)
 
     [<Fact>]
-    member _.``Can find path``() =
-        let graph = KnowledgeGraph()
-        let nodeA = Concept "A"
-        let nodeB = Concept "B"
-        let nodeC = Concept "C"
+    let ``Can retrieve temporal snapshot`` () =
+        let graph = TemporalGraph()
+        let node1 = Concept "Past"
 
-        graph.AddEdge(nodeA, nodeB, RelatesTo 1.0)
-        graph.AddEdge(nodeB, nodeC, RelatesTo 1.0)
+        graph.AddNode(node1)
+        let time1 = DateTime.UtcNow
 
-        let path = graph.FindPath(nodeA, nodeC)
+        // Wait a bit to ensure timestamp difference
+        System.Threading.Thread.Sleep(10)
 
-        Assert.True(path.IsSome)
-        Assert.Equal(2, path.Value.Length) // A->B, B->C
+        let node2 = Concept "Future"
+        graph.AddNode(node2)
+        let time2 = DateTime.UtcNow
+
+        let (nodes1, _) = graph.GetSnapshot(time1)
+        let (nodes2, _) = graph.GetSnapshot(time2)
+
+        Assert.Single(nodes1) |> ignore
+        Assert.Equal(node1, nodes1.Head)
+
+        Assert.Equal(2, nodes2.Length)

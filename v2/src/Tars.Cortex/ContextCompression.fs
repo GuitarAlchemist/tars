@@ -1,8 +1,5 @@
 namespace Tars.Cortex
 
-open System
-open System.Threading.Tasks
-open Tars.Core
 open Tars.Llm
 open Tars.Llm.LlmService
 

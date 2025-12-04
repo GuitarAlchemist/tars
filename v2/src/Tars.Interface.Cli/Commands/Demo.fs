@@ -40,6 +40,8 @@ let ping (logger: ILogger) =
         logger.Information("Starting TARS v2 Demo Ping...")
         Console.WriteLine("DEBUG: Program Started")
 
+
+
         let eventBus = new EventBus(logger)
         let bus = eventBus :> IEventBus
 

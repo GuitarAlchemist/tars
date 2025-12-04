@@ -19,7 +19,6 @@
     <Compile Include="EvolutionTests.fs" />
     <Compile Include="ExecutionTests.fs" />
     <Compile Include="MetascriptTests.fs" />
-    <Compile Include="KnowledgeGraphTests.fs" />
     <Compile Include="GraphTests.fs" />
     <Compile Include="RouterTests.fs" />
     <Compile Include="EpistemicGovernorTests.fs" />
@@ -39,14 +38,11 @@
     <Compile Include="OutputGuardLlmTests.fs" />
 
     <Compile Include="ChunkingTests.fs" />
+    <Compile Include="SemanticSerializationTests.fs" />
+    <Compile Include="McpTests.fs" />
+    <Compile Include="KnowledgeGraphTests.fs" />
     <Compile Include="AnnVectorStoreTests.fs" />
-    <Compile Include="MetricsTests.fs" />
-    <Compile Include="ContextCompressionTests.fs" />
-    <Compile Include="PreLlmPipelineTests.fs" />
-    <Compile Include="KnowledgeTests.fs" />
-    <Compile Include="ValidationTests.fs" />
-    <Compile Include="OfflineEval.fs" />
-    <Compile Include="IntegrationTests.fs" />
+    <Compile Include="PersistenceTests.fs" />
   </ItemGroup>
 
   <ItemGroup>

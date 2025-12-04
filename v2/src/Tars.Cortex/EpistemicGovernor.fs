@@ -1,7 +1,3 @@
-/// <summary>
-/// Epistemic governance for managing agent knowledge and beliefs.
-/// Provides LLM-powered verification, generalization, and curriculum generation.
-/// </summary>
 namespace Tars.Cortex
 
 open System
@@ -11,7 +7,12 @@ open Tars.Core.Units
 open Tars.Llm
 open Tars.Llm.LlmService
 
-type EpistemicGovernor(llm: ILlmService, knowledgeGraph: KnowledgeGraph option, budget: BudgetGovernor option) =
+/// <summary>
+/// Epistemic governance for managing agent knowledge and beliefs.
+/// Provides LLM-powered verification, generalization, and curriculum generation.
+/// </summary>
+type EpistemicGovernor
+    (llm: ILlmService, knowledgeGraph: TemporalKnowledgeGraph.TemporalGraph option, budget: BudgetGovernor option) =
     let recordBudget (tokens: int) =
         match budget with
         | Some governor ->
@@ -330,7 +331,7 @@ Output a single sentence suggestion."""
                     if terms.Length = 0 then
                         return "Query too short to find context."
                     else
-                        let nodes = graph.GetAllNodes()
+                        let nodes = graph.GetNodes()
 
                         let relevantNodes =
                             nodes

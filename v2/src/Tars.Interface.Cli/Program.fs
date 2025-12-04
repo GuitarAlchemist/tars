@@ -193,6 +193,7 @@ let main argv =
 
             Knowledge.run options
             return 0
+        | [| "mcp"; command; args |] -> return! McpCommand.run command args
         | _ ->
             Tui.showSplashScreen ()
             printfn "Usage:"

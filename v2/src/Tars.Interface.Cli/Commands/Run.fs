@@ -84,7 +84,7 @@ let execute (logger: ILogger) (scriptPath: string) =
                 // Ingest Code Structure
                 let! codeStructureInput =
                     task {
-                        let kg = KnowledgeGraph()
+                        let kg = TemporalKnowledgeGraph.TemporalGraph()
                         let srcDir = Path.Combine(Environment.CurrentDirectory, "src")
 
                         if Directory.Exists srcDir then

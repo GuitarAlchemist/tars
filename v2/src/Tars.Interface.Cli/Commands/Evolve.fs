@@ -277,7 +277,7 @@ let run (logger: ILogger) (options: EvolveOptions) =
                   ActiveBeliefs = [] }
 
             // Initialize Knowledge Graph and Ingest Codebase
-            let knowledgeGraph = KnowledgeGraph()
+            let knowledgeGraph = TemporalKnowledgeGraph.TemporalGraph()
 
             if not options.Quiet then
                 ConsoleUI.info "🧠 Ingesting codebase into Knowledge Graph...\n"
@@ -318,6 +318,19 @@ let run (logger: ILogger) (options: EvolveOptions) =
 
             let preLlmPipeline = PreLlmPipeline([ safetyStage; intentStage; summarizerStage ])
 
+            // Initialize Memory Buffer (Capacitor)
+            let onFlush (items: Engine.MemoryItem list) =
+                task {
+                    for item in items do
+                        match item with
+                        | Engine.Belief(col, id, vec, pay) -> do! vectorStore.SaveAsync(col, id, vec, pay)
+                        | Engine.Legacy(col, id, vec, pay) -> do! vectorStore.SaveAsync(col, id, vec, pay)
+                }
+                :> Task
+
+            let memoryBuffer =
+                BufferAgent<Engine.MemoryItem>(10, TimeSpan.FromSeconds(5.0), onFlush)
+
             let evoCtx: Engine.EvolutionContext =
                 { Registry = registry
                   Llm = llmService
@@ -329,6 +342,7 @@ let run (logger: ILogger) (options: EvolveOptions) =
                   OutputGuard = Some outputGuard
                   KnowledgeBase = Some knowledgeBase
                   KnowledgeGraph = Some knowledgeGraph
+                  MemoryBuffer = Some memoryBuffer
                   Logger = fun s -> logger.Information("{Evolution}", s) }
 
             let mutable currentState = evoState

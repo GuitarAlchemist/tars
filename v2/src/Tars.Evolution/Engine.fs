@@ -13,18 +13,24 @@ open Tars.Cortex
 
 module Engine =
 
+    /// Item to be buffered for memory storage
+    type MemoryItem =
+        | Belief of collection: string * id: string * vector: float32[] * payload: Map<string, string>
+        | Legacy of collection: string * id: string * vector: float32[] * payload: Map<string, string>
+
     /// The context for the evolution engine
     type EvolutionContext =
         { Registry: IAgentRegistry
           Llm: ILlmService
           VectorStore: IVectorStore
-          SemanticMemory: ISemanticMemory option // Added Semantic Memory
+          SemanticMemory: ISemanticMemory option
           Epistemic: IEpistemicGovernor option
-          PreLlm: PreLlmPipeline option // Added Pre-LLM Pipeline
+          PreLlm: PreLlmPipeline option
           Budget: BudgetGovernor option
           OutputGuard: IOutputGuard option
           KnowledgeBase: KnowledgeBase option
-          KnowledgeGraph: KnowledgeGraph option
+          KnowledgeGraph: TemporalKnowledgeGraph.TemporalGraph option
+          MemoryBuffer: BufferAgent<MemoryItem> option // Added Capacitor
           Logger: string -> unit }
 
     let private scoreTask (task: TaskDefinition) : float =
@@ -479,7 +485,7 @@ Please fix the solution based on this feedback. Output the IMPROVED solution."""
                         try
                             let! belief = governor.ExtractPrinciple(taskDef.Goal, result.Output)
 
-                            // Store belief in VectorStore
+                            // Store belief in VectorStore (Buffered)
                             let! embedding = ctx.Llm.EmbedAsync belief.Statement
 
                             let payload =
@@ -490,7 +496,11 @@ Please fix the solution based on this feedback. Output the IMPROVED solution."""
                                       "confidence", string belief.Confidence
                                       "derived_from", string taskDef.Id ]
 
-                            do! ctx.VectorStore.SaveAsync("tars-beliefs", string belief.Id, embedding, payload)
+                            match ctx.MemoryBuffer with
+                            | Some buffer ->
+                                buffer.Accumulate(Belief("tars-beliefs", string belief.Id, embedding, payload))
+                            | None ->
+                                do! ctx.VectorStore.SaveAsync("tars-beliefs", string belief.Id, embedding, payload)
 
                             // Update Active Beliefs (keep last 10)
                             newBeliefs <- (belief.Statement :: newBeliefs) |> List.truncate 10
@@ -499,20 +509,30 @@ Please fix the solution based on this feedback. Output the IMPROVED solution."""
                             printfn "Epistemic extraction failed: %s" ex.Message
                     | None -> ()
 
+                    // Construct a trace object (simplified for now)
+                    let trace: MemoryTrace =
+                        { TaskId = string taskDef.Id
+                          Variables = Map [ "output", box result.Output; "trace", box result.ExecutionTrace ]
+                          StepOutputs = Map.empty }
+
                     // Save to Semantic Memory (Grow)
                     match ctx.SemanticMemory with
                     | Some smem ->
                         try
-                            // Construct a trace object (simplified for now)
-                            let trace: MemoryTrace =
-                                { TaskId = string taskDef.Id
-                                  Variables = Map [ "output", box result.Output; "trace", box result.ExecutionTrace ]
-                                  StepOutputs = Map.empty }
-
                             let! schemaId = smem.Grow(trace, obj ())
                             ctx.Logger($"[Memory] Grew new memory schema: {schemaId}")
                         with ex ->
                             ctx.Logger($"[Memory] Failed to grow memory: {ex.Message}")
+                    | None -> ()
+
+                    // Save to Knowledge Graph (Ingest Episode)
+                    match ctx.KnowledgeGraph with
+                    | Some kg ->
+                        try
+                            kg.IngestEpisode(trace)
+                            ctx.Logger($"[KnowledgeGraph] Ingested episode for task: {taskDef.Id}")
+                        with ex ->
+                            ctx.Logger($"[KnowledgeGraph] Failed to ingest episode: {ex.Message}")
                     | None -> ()
 
                     // Save to Legacy Memory (Backup)
@@ -525,7 +545,17 @@ Please fix the solution based on this feedback. Output the IMPROVED solution."""
                                   "output", result.Output
                                   "generation", string state.Generation ]
 
-                        do! ctx.VectorStore.SaveAsync("tars-evolution-memory", string taskDef.Id, embedding, payload)
+                        match ctx.MemoryBuffer with
+                        | Some buffer ->
+                            buffer.Accumulate(Legacy("tars-evolution-memory", string taskDef.Id, embedding, payload))
+                        | None ->
+                            do!
+                                ctx.VectorStore.SaveAsync(
+                                    "tars-evolution-memory",
+                                    string taskDef.Id,
+                                    embedding,
+                                    payload
+                                )
                     with ex ->
                         printfn "Failed to save to memory: %s" ex.Message
 

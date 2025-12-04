@@ -21,7 +21,13 @@
     <Compile Include="AgentWorkflow.fs" />
     <Compile Include="Knowledge.fs" />
     <Compile Include="SemanticMemoryTypes.fs" />
+    <Compile Include="KnowledgeGraph.fs" />
+    <Compile Include="SemanticSerialization.fs" />
     <Compile Include="Execution.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FSharp.SystemTextJson" Version="1.3.13" />
   </ItemGroup>
 
 </Project>

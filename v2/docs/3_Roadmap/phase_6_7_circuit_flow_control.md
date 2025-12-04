@@ -78,7 +78,7 @@ member this.WaitForOpen() : Async<unit>
 
 ## Acceptance Criteria
 
-* [ ] `EventBus` drops or blocks messages when capacity is exceeded (Resistor).
-* [ ] `BufferAgent` correctly flushes on size or time (Capacitor).
-* [ ] `Gate` blocks execution until condition is true (Transistor).
-* [ ] All existing tests pass.
+* [x] `EventBus` drops or blocks messages when capacity is exceeded (Resistor).
+* [x] `BufferAgent` correctly flushes on size or time (Capacitor).
+* [x] `Gate` blocks execution until condition is true (Transistor).
+* [x] All existing tests pass.

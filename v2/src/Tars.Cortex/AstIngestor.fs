@@ -18,23 +18,29 @@ module AstIngestor =
         match synLid with
         | SynLongIdent(id, _, _) -> getLongIdentName id
 
-    let rec private walkSynModuleDecl (graph: KnowledgeGraph) (parentNode: GraphNode) (decl: SynModuleDecl) =
+    let rec private walkSynModuleDecl
+        (graph: TemporalKnowledgeGraph.TemporalGraph)
+        (parentNode: GraphNode)
+        (decl: SynModuleDecl)
+        =
         match decl with
-        | SynModuleDecl.NestedModule(moduleInfo=moduleInfo; decls=decls) ->
+        | SynModuleDecl.NestedModule(moduleInfo = moduleInfo; decls = decls) ->
             match moduleInfo with
-            | SynComponentInfo(longId=id) ->
+            | SynComponentInfo(longId = id) ->
                 let name = getLongIdentName id
                 let node = ModuleNode name
                 graph.AddNode(node)
                 graph.AddEdge(parentNode, node, Contains)
-                for d in decls do walkSynModuleDecl graph node d
+
+                for d in decls do
+                    walkSynModuleDecl graph node d
 
         | SynModuleDecl.Types(typeDefns, _) ->
             for typeDefn in typeDefns do
                 match typeDefn with
-                | SynTypeDefn(typeInfo=typeInfo; typeRepr=_repr; members=members) ->
+                | SynTypeDefn(typeInfo = typeInfo; typeRepr = _repr; members = members) ->
                     match typeInfo with
-                    | SynComponentInfo(longId=id) ->
+                    | SynComponentInfo(longId = id) ->
                         let name = getLongIdentName id
                         let node = TypeNode name
                         graph.AddNode(node)
@@ -43,11 +49,11 @@ module AstIngestor =
                         // Members
                         for m in members do
                             match m with
-                            | SynMemberDefn.Member(memberDefn=binding) ->
+                            | SynMemberDefn.Member(memberDefn = binding) ->
                                 match binding with
-                                | SynBinding(headPat=pat) ->
+                                | SynBinding(headPat = pat) ->
                                     match pat with
-                                    | SynPat.LongIdent(longDotId=longDotId) ->
+                                    | SynPat.LongIdent(longDotId = longDotId) ->
                                         let funcName = getSynLongIdentName longDotId
                                         let funcNode = FunctionNode funcName
                                         graph.AddNode(funcNode)
@@ -55,34 +61,39 @@ module AstIngestor =
                                     | _ -> ()
                             | _ -> ()
 
-        | SynModuleDecl.Let(bindings=bindings) ->
+        | SynModuleDecl.Let(bindings = bindings) ->
             for binding in bindings do
                 match binding with
-                | SynBinding(headPat=pat) ->
+                | SynBinding(headPat = pat) ->
                     match pat with
-                    | SynPat.LongIdent(longDotId=longDotId) ->
+                    | SynPat.LongIdent(longDotId = longDotId) ->
                         let funcName = getSynLongIdentName longDotId
                         let funcNode = FunctionNode funcName
                         graph.AddNode(funcNode)
                         graph.AddEdge(parentNode, funcNode, Contains)
-                    | SynPat.Named(ident=ident) ->
-                         let (SynIdent(ident, _)) = ident
-                         let node = FunctionNode ident.idText
-                         graph.AddNode(node)
-                         graph.AddEdge(parentNode, node, Contains)
+                    | SynPat.Named(ident = ident) ->
+                        let (SynIdent(ident, _)) = ident
+                        let node = FunctionNode ident.idText
+                        graph.AddNode(node)
+                        graph.AddEdge(parentNode, node, Contains)
                     | _ -> ()
 
         | _ -> ()
 
-    let ingestFile (graph: KnowledgeGraph) (filePath: string) =
+    let ingestFile (graph: TemporalKnowledgeGraph.TemporalGraph) (filePath: string) =
         async {
             try
                 let content = File.ReadAllText(filePath)
                 let sourceText = SourceText.ofString content
-                let options = { FSharpParsingOptions.Default with SourceFiles = [| filePath |] }
+
+                let options =
+                    { FSharpParsingOptions.Default with
+                        SourceFiles = [| filePath |] }
+
                 let! parseRes = checker.ParseFile(filePath, sourceText, options)
-                
+
                 let tree = parseRes.ParseTree
+
                 match tree with
                 | ParsedInput.ImplFile(parsedImplFileInput) ->
                     let fileName = Path.GetFileName(filePath)
@@ -91,46 +102,64 @@ module AstIngestor =
 
                     for moduleOrNs in parsedImplFileInput.Contents do
                         match moduleOrNs with
-                        | SynModuleOrNamespace(longId=id; decls=decls) ->
+                        | SynModuleOrNamespace(longId = id; decls = decls) ->
                             let name = getLongIdentName id
                             let node = ModuleNode name
                             graph.AddNode(node)
                             graph.AddEdge(fileNode, node, Contains)
 
-                            for d in decls do walkSynModuleDecl graph node d
+                            for d in decls do
+                                walkSynModuleDecl graph node d
                 | _ -> ()
             with ex ->
                 printfn "Failed to parse %s: %s" filePath ex.Message
         }
 
-    let ingestDirectory (graph: KnowledgeGraph) (rootPath: string) =
+    let ingestDirectory (graph: TemporalKnowledgeGraph.TemporalGraph) (rootPath: string) =
         async {
             if Directory.Exists(rootPath) then
                 let files = Directory.GetFiles(rootPath, "*.fs", SearchOption.AllDirectories)
+
                 for file in files do
-                    if not (file.Contains(Path.DirectorySeparatorChar.ToString() + "obj" + Path.DirectorySeparatorChar.ToString()) || 
-                            file.Contains(Path.DirectorySeparatorChar.ToString() + "bin" + Path.DirectorySeparatorChar.ToString())) then
+                    if
+                        not (
+                            file.Contains(
+                                Path.DirectorySeparatorChar.ToString()
+                                + "obj"
+                                + Path.DirectorySeparatorChar.ToString()
+                            )
+                            || file.Contains(
+                                Path.DirectorySeparatorChar.ToString()
+                                + "bin"
+                                + Path.DirectorySeparatorChar.ToString()
+                            )
+                        )
+                    then
                         do! ingestFile graph file
         }
 
-    let extractCodeStructure (graph: KnowledgeGraph) : CodeStructure =
-        let nodes = graph.GetAllNodes()
-        
-        let modules = 
-            nodes 
-            |> List.choose (function ModuleNode name -> Some name | _ -> None)
-            
-        let types = 
-            nodes 
-            |> List.choose (function TypeNode name -> Some name | _ -> None)
-            
-        let functions = 
-            nodes 
-            |> List.choose (function FunctionNode name -> Some name | _ -> None)
-            
-        {
-            Modules = modules
-            Types = types
-            Functions = functions
-            Dependencies = []
-        }
+    let extractCodeStructure (graph: TemporalKnowledgeGraph.TemporalGraph) : CodeStructure =
+        let nodes = graph.GetNodes()
+
+        let modules =
+            nodes
+            |> List.choose (function
+                | ModuleNode name -> Some name
+                | _ -> None)
+
+        let types =
+            nodes
+            |> List.choose (function
+                | TypeNode name -> Some name
+                | _ -> None)
+
+        let functions =
+            nodes
+            |> List.choose (function
+                | FunctionNode name -> Some name
+                | _ -> None)
+
+        { Modules = modules
+          Types = types
+          Functions = functions
+          Dependencies = [] }

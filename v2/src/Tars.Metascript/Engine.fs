@@ -10,6 +10,8 @@ open Tars.Llm.LlmService
 open Tars.Tools
 open Domain
 
+type TemporalGraph = Tars.Core.TemporalKnowledgeGraph.TemporalGraph
+
 module Engine =
 
     /// Metadata filter for retrieval
@@ -182,7 +184,7 @@ module Engine =
             /// Vector store for RAG - optional for backward compatibility
             VectorStore: IVectorStore option
             /// Knowledge graph for relationship-based context
-            KnowledgeGraph: KnowledgeGraph option
+            KnowledgeGraph: TemporalGraph option
             /// Semantic Memory for long-term learning
             SemanticMemory: ISemanticMemory option
             /// RAG configuration
@@ -316,7 +318,7 @@ module Engine =
 
     /// Enriches context using the knowledge graph by finding related concepts
     let private enrichWithKnowledgeGraph
-        (kg: KnowledgeGraph option)
+        (kg: TemporalGraph option)
         (conceptHints: string list)
         (notes: System.Collections.Generic.List<string>)
         =
@@ -653,7 +655,7 @@ module Engine =
     let private multiHopRetrieval
         (vectorStore: IVectorStore)
         (llm: ILlmService)
-        (kg: KnowledgeGraph option)
+        (kg: TemporalGraph option)
         (config: RagConfig)
         (query: string)
         (notes: System.Collections.Generic.List<string>)
@@ -1187,7 +1189,7 @@ module Engine =
     let private executeFallback
         (vectorStore: IVectorStore)
         (llm: ILlmService)
-        (kg: KnowledgeGraph option)
+        (kg: TemporalGraph option)
         (config: RagConfig)
         (query: string)
         (currentResults: (string * float32 * Map<string, string>) list)

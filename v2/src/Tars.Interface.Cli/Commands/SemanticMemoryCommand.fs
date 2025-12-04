@@ -107,7 +107,7 @@ let run (config: IConfiguration) (args: string array) =
 
         | [| "demo-perceptual" |] ->
             AnsiConsole.MarkupLine("[bold cyan]Ingesting source code from 'src'...[/]")
-            let kg = KnowledgeGraph()
+            let kg = TemporalKnowledgeGraph.TemporalGraph()
             let srcDir = Path.Combine(Environment.CurrentDirectory, "src")
 
             if Directory.Exists srcDir then
