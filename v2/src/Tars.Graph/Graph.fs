@@ -75,6 +75,19 @@ module PromptBuilder =
             )
             |> ignore
 
+        sb.AppendLine("\n## Communication Protocol") |> ignore
+
+        sb.AppendLine(
+            "You can perform specific speech acts by starting your response with ACT: <PERFORMATIVE>: <CONTENT>"
+        )
+        |> ignore
+
+        sb.AppendLine("Valid performatives: REQUEST, INFORM, QUERY, PROPOSE, REFUSE, FAILURE, EVENT")
+        |> ignore
+
+        sb.AppendLine("Example: ACT: PROPOSE: I can optimize this function for $5.")
+        |> ignore
+
         sb.ToString()
 
 module ResponseParser =
@@ -85,6 +98,7 @@ module ResponseParser =
         | ToolCall of name: string * input: string
         | MultiToolCall of calls: (string * string) list
         | TextResponse of text: string
+        | SpeechAct of performative: Performative * content: string
 
     /// Parses tool calls in multiple formats:
     /// 1. TOOL:name:input (legacy format)
@@ -99,8 +113,32 @@ module ResponseParser =
             | Some v -> v
             | None -> fun _ -> true
 
-        // Try legacy TOOL: format first
-        if text.StartsWith("TOOL:") then
+        let parsePerformative (s: string) =
+            match s.ToUpperInvariant() with
+            | "REQUEST" -> Some Performative.Request
+            | "INFORM" -> Some Performative.Inform
+            | "QUERY" -> Some Performative.Query
+            | "PROPOSE" -> Some Performative.Propose
+            | "REFUSE" -> Some Performative.Refuse
+            | "FAILURE" -> Some Performative.Failure
+            | "NOTUNDERSTOOD" -> Some Performative.NotUnderstood
+            | "EVENT" -> Some Performative.Event
+            | _ -> None
+
+        // Try Speech Act format: ACT: <PERFORMATIVE>: <CONTENT>
+        if text.StartsWith("ACT:") then
+            let parts = text.Split(':', 3)
+
+            if parts.Length = 3 then
+                let performativeStr = parts[1].Trim()
+                let content = parts[2].Trim()
+
+                match parsePerformative performativeStr with
+                | Some p -> SpeechAct(p, content)
+                | None -> TextResponse text
+            else
+                TextResponse text
+        elif text.StartsWith("TOOL:") then
             let parts = text.Split(':', 3)
 
             if parts.Length = 3 then
@@ -393,6 +431,18 @@ module GraphRuntime =
                         return
                             { agent with
                                 State = WaitingForUser responseText }
+                            |> Success
+                    | ResponseParser.SpeechAct(perf, content) ->
+                        let msg =
+                            { createMessage (MessageEndpoint.Agent agent.Id) content with
+                                Performative = perf }
+
+                        let newMemory = agent.Memory @ [ msg ]
+
+                        return
+                            { agent with
+                                Memory = newMemory
+                                State = WaitingForUser $"ACT: {perf}: {content}" }
                             |> Success
         }
 

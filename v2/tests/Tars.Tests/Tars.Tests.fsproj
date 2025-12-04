@@ -22,6 +22,7 @@
     <Compile Include="KnowledgeGraphTests.fs" />
     <Compile Include="GraphTests.fs" />
     <Compile Include="RouterTests.fs" />
+    <Compile Include="SpeechActsTests.fs" />
     <Compile Include="GrammarTests.fs" />
     <Compile Include="GoldenRun.fs" />
     <Compile Include="OpenWebUiTests.fs" />
