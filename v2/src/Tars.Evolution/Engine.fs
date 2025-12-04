@@ -355,62 +355,102 @@ Please solve this task. Output your solution code or answer."""
                         while reflectionCount < maxReflections && not isOptimal do
                             reflectionCount <- reflectionCount + 1
 
-                            let reflectionPrompt =
-                                sprintf
-                                    """You have generated a solution.
-    Current Output:
-    %s
+                            // 6.1 Epistemic Verification (if available)
+                            let! (verificationFeedback, isVerified) =
+                                task {
+                                    match ctx.Epistemic with
+                                    | Some governor ->
+                                        try
+                                            // Generate minimal variants for quick check
+                                            let! variants = governor.GenerateVariants(taskDef.Goal, 1)
 
-    Please reflect on this solution.
-    1. Identify any potential bugs or inefficiencies.
-    2. Verify if it meets all constraints: %A
-    3. If you can improve it, output the IMPROVED solution.
-    4. If it is already optimal, output "OPTIMAL"."""
-                                    currentOutput
-                                    taskDef.Constraints
+                                            let! result =
+                                                governor.VerifyGeneralization(taskDef.Goal, currentOutput, variants)
 
-                            let reflectionMsg =
-                                { Id = Guid.NewGuid()
-                                  CorrelationId = CorrelationId(Guid.NewGuid())
-                                  Sender = MessageEndpoint.System
-                                  Receiver = Some(MessageEndpoint.Agent executor.Id)
-                                  Performative = Performative.Request
-                                  Intent = Some AgentIntent.Reasoning
-                                  Constraints = SemanticConstraints.Default
-                                  Ontology = None
-                                  Language = "text"
-                                  Content = reflectionPrompt
-                                  Timestamp = DateTime.UtcNow
-                                  Metadata = Map.empty }
+                                            return (result.Feedback, result.IsVerified)
+                                        with ex ->
+                                            return ($"Verification failed: {ex.Message}", false)
+                                    | None -> return ("", false)
+                                }
 
-                            let agentWithReflection = currentAgent.ReceiveMessage(reflectionMsg)
-                            let! reflectOutcome = graphExecutor.RunAgentLoop agentWithReflection 20
+                            if isVerified then
+                                isOptimal <- true
+                                currentTrace <- currentTrace @ [ $"--- VERIFIED by Epistemic Governor ---" ]
+                            else
+                                // 6.2 Construct Reflection Prompt
+                                let reflectionPrompt =
+                                    if String.IsNullOrEmpty verificationFeedback then
+                                        // Standard Reflection
+                                        sprintf
+                                            """You have generated a solution.
+Current Output:
+%s
 
-                            match reflectOutcome with
-                            | Success(nextAgent, reflectOutput, reflectTrace) ->
-                                currentAgent <- nextAgent
+Please reflect on this solution.
+1. Identify any potential bugs or inefficiencies.
+2. Verify if it meets all constraints: %A
+3. If you can improve it, output the IMPROVED solution.
+4. If it is already optimal, output "OPTIMAL"."""
+                                            currentOutput
+                                            taskDef.Constraints
+                                    else
+                                        // Epistemic Feedback Reflection
+                                        sprintf
+                                            """Your solution failed verification.
+Current Output:
+%s
 
-                                currentTrace <-
-                                    currentTrace @ [ $"--- REFLECTION {reflectionCount} ---" ] @ reflectTrace
+Feedback from Epistemic Governor:
+%s
 
-                                if reflectOutput.Contains("OPTIMAL") then
-                                    isOptimal <- true
-                                else
+Please fix the solution based on this feedback. Output the IMPROVED solution."""
+                                            currentOutput
+                                            verificationFeedback
+
+                                let reflectionMsg =
+                                    { Id = Guid.NewGuid()
+                                      CorrelationId = CorrelationId(Guid.NewGuid())
+                                      Sender = MessageEndpoint.System
+                                      Receiver = Some(MessageEndpoint.Agent executor.Id)
+                                      Performative = Performative.Request
+                                      Intent = Some AgentIntent.Reasoning
+                                      Constraints = SemanticConstraints.Default
+                                      Ontology = None
+                                      Language = "text"
+                                      Content = reflectionPrompt
+                                      Timestamp = DateTime.UtcNow
+                                      Metadata = Map.empty }
+
+                                let agentWithReflection = currentAgent.ReceiveMessage(reflectionMsg)
+                                let! reflectOutcome = graphExecutor.RunAgentLoop agentWithReflection 20
+
+                                match reflectOutcome with
+                                | Success(nextAgent, reflectOutput, reflectTrace) ->
+                                    currentAgent <- nextAgent
+
+                                    currentTrace <-
+                                        currentTrace @ [ $"--- REFLECTION {reflectionCount} ---" ] @ reflectTrace
+
+                                    if
+                                        reflectOutput.Contains("OPTIMAL") && String.IsNullOrEmpty verificationFeedback
+                                    then
+                                        isOptimal <- true
+                                    else
+                                        currentOutput <- reflectOutput
+                                | PartialSuccess((nextAgent, reflectOutput, reflectTrace), _) ->
+                                    currentAgent <- nextAgent
+
+                                    currentTrace <-
+                                        currentTrace
+                                        @ [ $"--- REFLECTION {reflectionCount} (Partial) ---" ]
+                                        @ reflectTrace
+
                                     currentOutput <- reflectOutput
-                            | PartialSuccess((nextAgent, reflectOutput, reflectTrace), _) ->
-                                currentAgent <- nextAgent
-
-                                currentTrace <-
-                                    currentTrace
-                                    @ [ $"--- REFLECTION {reflectionCount} (Partial) ---" ]
-                                    @ reflectTrace
-
-                                currentOutput <- reflectOutput
-                            | Failure err ->
-                                // If reflection fails, stop and keep previous result
-                                currentTrace <- currentTrace @ [ $"--- REFLECTION {reflectionCount} FAILED ---" ]
-                                // Don't update output, just stop
-                                reflectionCount <- maxReflections
+                                | Failure err ->
+                                    // If reflection fails, stop and keep previous result
+                                    currentTrace <- currentTrace @ [ $"--- REFLECTION {reflectionCount} FAILED ---" ]
+                                    // Don't update output, just stop
+                                    reflectionCount <- maxReflections
 
                         return
                             { TaskId = taskDef.Id
