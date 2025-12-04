@@ -19,7 +19,20 @@ type DemoAgent(id: Guid, logger: ILogger) =
                         | :? string as text -> logger.Information($"DemoAgent received: {text}")
                         | _ -> logger.Warning("DemoAgent received unknown message type"))
 
-                return Success()
+                let dummyAgent =
+                    { Id = AgentId(id)
+                      Name = "Demo Agent"
+                      Version = "1.0.0"
+                      ParentVersion = None
+                      CreatedAt = DateTime.UtcNow
+                      Model = "demo"
+                      SystemPrompt = ""
+                      Tools = []
+                      Capabilities = []
+                      State = Idle
+                      Memory = [] }
+
+                return Success dummyAgent
             }
 
 let ping (logger: ILogger) =

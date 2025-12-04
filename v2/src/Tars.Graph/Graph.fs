@@ -367,16 +367,13 @@ module GraphRuntime =
                             guardPassed <- true
 
                 if not guardPassed then
-                    return
-                        { agent with
-                            State =
-                                AgentState.Error(
-                                    if String.IsNullOrEmpty failureReason then
-                                        "Max retry attempts exceeded"
-                                    else
-                                        failureReason
-                                ) }
-                        |> Success
+                    let reason =
+                        if String.IsNullOrEmpty failureReason then
+                            "Max retry attempts exceeded"
+                        else
+                            failureReason
+
+                    return Failure [ PartialFailure.Error reason ]
                 else
                     // 3. Parse Response
                     let parsed =
@@ -399,6 +396,7 @@ module GraphRuntime =
                                     State = Acting(tool, input) }
                                 |> Success
                         | None ->
+                            // Tool not found is a recoverable error, so we return Success but with a message to the agent
                             return
                                 { agent with
                                     State = WaitingForUser $"Error: Tool %s{name} not found." }
@@ -458,10 +456,12 @@ module GraphRuntime =
                         State = Observing(tool, output) }
                     |> Success
             | Result.Error err ->
-                return
+                // Tool execution error is treated as a PartialSuccess so the agent can recover
+                let nextAgent =
                     { agent with
-                        State = AgentState.Error err }
-                    |> Success
+                        State = Observing(tool, $"Error: {err}") }
+
+                return PartialSuccess(nextAgent, [ PartialFailure.ToolError(tool.Name, err) ])
         }
 
     let private handleObserving (agent: Agent) (tool: Tool) (output: string) (ctx: GraphContext) =

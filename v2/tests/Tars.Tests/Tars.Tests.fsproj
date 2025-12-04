@@ -24,6 +24,7 @@
     <Compile Include="RouterTests.fs" />
     <Compile Include="EpistemicGovernorTests.fs" />
     <Compile Include="AdaptiveReflectionTests.fs" />
+    <Compile Include="GraphRuntimeTests.fs" />
     <Compile Include="SpeechActsTests.fs" />
     <Compile Include="GrammarTests.fs" />
     <Compile Include="GoldenRun.fs" />
