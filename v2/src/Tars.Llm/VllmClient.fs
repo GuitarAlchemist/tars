@@ -101,6 +101,7 @@ module VllmClient =
                 return
                     { Text = ""
                       FinishReason = Some "parse_error"
+                      Usage = None
                       Raw = Some raw }
             else
                 let choice =
@@ -114,10 +115,12 @@ module VllmClient =
                     return
                         { Text = ""
                           FinishReason = Some "no_choices"
+                          Usage = None
                           Raw = Some raw }
                 | Some c ->
                     return
                         { Text = c.message.content
                           FinishReason = Some c.finish_reason
+                          Usage = None
                           Raw = Some raw }
         }
