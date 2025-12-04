@@ -1,7 +1,3 @@
-/// <summary>
-/// Event bus for inter-agent communication in TARS.
-/// Provides asynchronous message passing with guardrails, budget enforcement, and routing.
-/// </summary>
 namespace Tars.Kernel
 
 open System
@@ -16,6 +12,10 @@ open Tars.Core
 /// Central event bus for agent communication.
 /// Implements semantic envelope validation, budget tracking, and message routing.
 /// </summary>
+/// <remarks>
+/// Event bus for inter-agent communication in TARS.
+/// Provides asynchronous message passing with guardrails, budget enforcement, and routing.
+/// </remarks>
 /// <param name="logger">Serilog logger for diagnostics.</param>
 /// <param name="circuitBreaker">Circuit breaker for failure protection.</param>
 /// <param name="budgetGovernor">Budget governor for resource tracking.</param>
