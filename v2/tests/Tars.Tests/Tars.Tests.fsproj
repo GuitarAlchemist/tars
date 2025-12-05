@@ -42,6 +42,7 @@
     <Compile Include="McpTests.fs" />
     <Compile Include="KnowledgeGraphTests.fs" />
     <Compile Include="TemporalKnowledgeGraphTests.fs" />
+    <Compile Include="LpaTests.fs" />
     <Compile Include="AnnVectorStoreTests.fs" />
     <Compile Include="PersistenceTests.fs" />
     <!-- <Compile Include="GraphitiTypesTests.fs" /> -->

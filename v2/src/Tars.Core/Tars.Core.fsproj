@@ -24,6 +24,7 @@
     <Compile Include="GraphitiTypes.fs" />
     <Compile Include="EpisodeStore.fs" />
     <Compile Include="TemporalKnowledgeGraph.fs" />
+    <Compile Include="CommunityDetection.fs" />
     <Compile Include="KnowledgeGraph.fs" />
     <Compile Include="SemanticSerialization.fs" />
     <Compile Include="Execution.fs" />
