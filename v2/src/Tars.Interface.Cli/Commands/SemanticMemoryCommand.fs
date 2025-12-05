@@ -67,7 +67,7 @@ let private createEmbedder (llmService: ILlmServiceFunctional) : Embedder =
 let run (config: IConfiguration) (args: string array) =
     task {
         let storageRoot =
-            Path.Combine(Environment.CurrentDirectory, "knowledge", "semantic_memory")
+            Path.Combine(Environment.CurrentDirectory, ".tars", "knowledge", "semantic_memory")
 
         let llmService, llmServiceFunctional = createLlmService config
         let embedder = createEmbedder llmServiceFunctional

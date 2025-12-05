@@ -62,7 +62,7 @@ let execute (logger: ILogger) (scriptPath: string) =
 
                 // Initialize Kernel
                 let storageRoot =
-                    Path.Combine(Environment.CurrentDirectory, "knowledge", "semantic_memory")
+                    Path.Combine(Environment.CurrentDirectory, ".tars", "knowledge", "semantic_memory")
 
                 let embedder (text: string) =
                     async {
