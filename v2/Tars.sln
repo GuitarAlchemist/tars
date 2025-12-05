@@ -51,7 +51,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "4_Research", "4_Research", 
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "QA", "QA", "{B2C3D4E5-F6A7-8901-BCDE-F12345678901}"
 	ProjectSection(SolutionItems) = preProject
-		docs\QA\Phase1_Sandbox.md = docs\QA\Phase1_Sandbox.md
+		docs\QA\Cargo_Cult_Defense.md = docs\QA\Cargo_Cult_Defense.md
+		docs\QA\README.md = docs\QA\README.md
+		docs\QA\outcomes\001_perceptual_memory.md = docs\QA\outcomes\001_perceptual_memory.md
+		docs\QA\outcomes\002_semantic_chunking.md = docs\QA\outcomes\002_semantic_chunking.md
+		docs\QA\outcomes\002_semantic_memory_cli.md = docs\QA\outcomes\002_semantic_memory_cli.md
+		docs\QA\outcomes\003_agentic_chunking.md = docs\QA\outcomes\003_agentic_chunking.md
+		docs\QA\outcomes\004_ast_chunking.md = docs\QA\outcomes\004_ast_chunking.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Architecture", "Architecture", "{38FB5B3B-7682-480B-A730-AD2AB09A3400}"
