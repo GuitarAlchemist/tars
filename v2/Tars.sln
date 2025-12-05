@@ -10,14 +10,18 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "0_Vision", "0_Vision", "{67
 		docs\0_Vision\goals_and_vision.md = docs\0_Vision\goals_and_vision.md
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "1_Tutorials", "1_Tutorials", "{82FF2E6C-7A3C-4A55-B43C-11C9CB62424B}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "1_Getting_Started", "1_Getting_Started", "{82FF2E6C-7A3C-4A55-B43C-11C9CB62424B}"
 	ProjectSection(SolutionItems) = preProject
-		docs\1_Tutorials\Building an IA Coding Agent in Python.md = docs\1_Tutorials\Building an IA Coding Agent in Python.md
+		docs\1_Getting_Started\Building an IA Coding Agent in Python.md = docs\1_Getting_Started\Building an IA Coding Agent in Python.md
+		docs\1_Getting_Started\README.md = docs\1_Getting_Started\README.md
+		docs\1_Getting_Started\Web_Ingest_and_Learn.md = docs\1_Getting_Started\Web_Ingest_and_Learn.md
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "2_Analysis", "2_Analysis", "{D80CA444-DE5E-4A70-922D-78EB23293037}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "2_Architecture", "2_Architecture", "{D80CA444-DE5E-4A70-922D-78EB23293037}"
 	ProjectSection(SolutionItems) = preProject
-		docs\2_Analysis\Memory_Architecture.md = docs\2_Analysis\Memory_Architecture.md
+		docs\2_Architecture\Capability_Ownership_Map.md = docs\2_Architecture\Capability_Ownership_Map.md
+		docs\2_Architecture\Metascript_Specification.md = docs\2_Architecture\Metascript_Specification.md
+		docs\2_Architecture\README.md = docs\2_Architecture\README.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "3_Roadmap", "3_Roadmap", "{DF3CABF4-09FF-4714-88BF-CBF3C835C563}"
@@ -30,19 +34,19 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "assets", "assets", "{3C5FF0
 		docs\assets\task_decomposition.jpg = docs\assets\task_decomposition.jpg
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "__research", "__research", "{024732D5-25F5-4093-8213-6D096A007A0B}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "4_Research", "4_Research", "{024732D5-25F5-4093-8213-6D096A007A0B}"
 	ProjectSection(SolutionItems) = preProject
-		docs\__research\Grothendieck Groups and their Application to Artificial Intelligence.md = docs\__research\Grothendieck Groups and their Application to Artificial Intelligence.md
-		docs\__research\Links.txt = docs\__research\Links.txt
-		docs\__research\ChatGPT-Backpressure in AI systems.md = docs\__research\ChatGPT-Backpressure in AI systems.md
-		docs\__research\ChatGPT-Markov chains in stock analysis.md = docs\__research\ChatGPT-Markov chains in stock analysis.md
-		docs\__research\ChatGPT-Multi-agent system protocols.md = docs\__research\ChatGPT-Multi-agent system protocols.md
-		docs\__research\ChatGPT-K-theory and TARS query.md = docs\__research\ChatGPT-K-theory and TARS query.md
-		docs\__research\ChatGPT-Leverage Code Wiki for TARS.md = docs\__research\ChatGPT-Leverage Code Wiki for TARS.md
-		docs\__research\ChatGPT-Document feedback summary (1).md = docs\__research\ChatGPT-Document feedback summary (1).md
-		docs\__research\ChatGPT-AI semantic bus research.md = docs\__research\ChatGPT-AI semantic bus research.md
-		docs\__research\ChatGPT-Agentic AI Interfaces.md = docs\__research\ChatGPT-Agentic AI Interfaces.md
-		docs\__research\state_space_observability_for_agent_mesh.md = docs\__research\state_space_observability_for_agent_mesh.md
+		docs\4_Research\ChatGPT-AI semantic bus research.md = docs\4_Research\ChatGPT-AI semantic bus research.md
+		docs\4_Research\ChatGPT-Agentic AI Interfaces.md = docs\4_Research\ChatGPT-Agentic AI Interfaces.md
+		docs\4_Research\ChatGPT-Backpressure in AI systems.md = docs\4_Research\ChatGPT-Backpressure in AI systems.md
+		docs\4_Research\ChatGPT-Document feedback summary (1).md = docs\4_Research\ChatGPT-Document feedback summary (1).md
+		docs\4_Research\ChatGPT-K-theory and TARS query.md = docs\4_Research\ChatGPT-K-theory and TARS query.md
+		docs\4_Research\ChatGPT-Leverage Code Wiki for TARS.md = docs\4_Research\ChatGPT-Leverage Code Wiki for TARS.md
+		docs\4_Research\ChatGPT-Markov chains in stock analysis.md = docs\4_Research\ChatGPT-Markov chains in stock analysis.md
+		docs\4_Research\ChatGPT-Multi-agent system protocols.md = docs\4_Research\ChatGPT-Multi-agent system protocols.md
+		docs\4_Research\Grothendieck Groups and their Application to Artificial Intelligence.md = docs\4_Research\Grothendieck Groups and their Application to Artificial Intelligence.md
+		docs\4_Research\Links.txt = docs\4_Research\Links.txt
+		docs\4_Research\state_space_observability_for_agent_mesh.md = docs\4_Research\state_space_observability_for_agent_mesh.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "QA", "QA", "{B2C3D4E5-F6A7-8901-BCDE-F12345678901}"
@@ -54,47 +58,47 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Architecture", "Architectur
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Planning", "Planning", "{367EAA1F-57E0-4297-8313-FF4A1D72BA67}"
 	ProjectSection(SolutionItems) = preProject
-		docs\2_Analysis\Planning\leveraging_codewiki.md = docs\2_Analysis\Planning\leveraging_codewiki.md
-		docs\2_Analysis\Planning\ouroboros_implementation_plan.md = docs\2_Analysis\Planning\ouroboros_implementation_plan.md
-		docs\2_Analysis\Planning\v2_ideas.md = docs\2_Analysis\Planning\v2_ideas.md
-		docs\2_Analysis\Planning\v2_ideas_review_and_roadmap.md = docs\2_Analysis\Planning\v2_ideas_review_and_roadmap.md
+		docs\4_Research\Planning\leveraging_codewiki.md = docs\4_Research\Planning\leveraging_codewiki.md
+		docs\4_Research\Planning\ouroboros_implementation_plan.md = docs\4_Research\Planning\ouroboros_implementation_plan.md
+		docs\4_Research\Planning\v2_ideas.md = docs\4_Research\Planning\v2_ideas.md
+		docs\4_Research\Planning\v2_ideas_review_and_roadmap.md = docs\4_Research\Planning\v2_ideas_review_and_roadmap.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "V1_Insights", "V1_Insights", "{421EEBA2-BFE9-44BA-9046-544CF723CEE2}"
 	ProjectSection(SolutionItems) = preProject
-		docs\2_Analysis\V1_Insights\ChatGPT-Document feedback summary.md = docs\2_Analysis\V1_Insights\ChatGPT-Document feedback summary.md
-		docs\2_Analysis\V1_Insights\v1_chat_insights.md = docs\2_Analysis\V1_Insights\v1_chat_insights.md
-		docs\2_Analysis\V1_Insights\v1_component_reusability_analysis.md = docs\2_Analysis\V1_Insights\v1_component_reusability_analysis.md
-		docs\2_Analysis\V1_Insights\v1_tars_artifacts_analysis.md = docs\2_Analysis\V1_Insights\v1_tars_artifacts_analysis.md
+		docs\4_Research\V1_Insights\ChatGPT-Document feedback summary.md = docs\4_Research\V1_Insights\ChatGPT-Document feedback summary.md
+		docs\4_Research\V1_Insights\v1_chat_insights.md = docs\4_Research\V1_Insights\v1_chat_insights.md
+		docs\4_Research\V1_Insights\v1_component_reusability_analysis.md = docs\4_Research\V1_Insights\v1_component_reusability_analysis.md
+		docs\4_Research\V1_Insights\v1_tars_artifacts_analysis.md = docs\4_Research\V1_Insights\v1_tars_artifacts_analysis.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "00_Overview", "00_Overview", "{E43ACCE4-362A-4E59-9ECD-E2D47BB79AAE}"
 	ProjectSection(SolutionItems) = preProject
-		docs\2_Analysis\Architecture\00_Overview\architecture_fusion.md = docs\2_Analysis\Architecture\00_Overview\architecture_fusion.md
-		docs\2_Analysis\Architecture\00_Overview\tars_v2_architecture.md = docs\2_Analysis\Architecture\00_Overview\tars_v2_architecture.md
+		docs\4_Research\Architecture\00_Overview\architecture_fusion.md = docs\4_Research\Architecture\00_Overview\architecture_fusion.md
+		docs\4_Research\Architecture\00_Overview\tars_v2_architecture.md = docs\4_Research\Architecture\00_Overview\tars_v2_architecture.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "01_Decisions", "01_Decisions", "{CB16877C-80C1-43A5-B0B4-FF9BD2A3141A}"
 	ProjectSection(SolutionItems) = preProject
-		docs\2_Analysis\Architecture\01_Decisions\agent_framework_comparison.md = docs\2_Analysis\Architecture\01_Decisions\agent_framework_comparison.md
-		docs\2_Analysis\Architecture\01_Decisions\agent_protocols_analysis.md = docs\2_Analysis\Architecture\01_Decisions\agent_protocols_analysis.md
-		docs\2_Analysis\Architecture\01_Decisions\vector_store_gpu_strategy.md = docs\2_Analysis\Architecture\01_Decisions\vector_store_gpu_strategy.md
+		docs\4_Research\Architecture\01_Decisions\agent_framework_comparison.md = docs\4_Research\Architecture\01_Decisions\agent_framework_comparison.md
+		docs\4_Research\Architecture\01_Decisions\agent_protocols_analysis.md = docs\4_Research\Architecture\01_Decisions\agent_protocols_analysis.md
+		docs\4_Research\Architecture\01_Decisions\vector_store_gpu_strategy.md = docs\4_Research\Architecture\01_Decisions\vector_store_gpu_strategy.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "02_Integration", "02_Integration", "{B8474C22-137E-4EBB-B7D7-7794BA1787D3}"
 	ProjectSection(SolutionItems) = preProject
-		docs\2_Analysis\Architecture\02_Integration\external_tools_landscape.md = docs\2_Analysis\Architecture\02_Integration\external_tools_landscape.md
-		docs\2_Analysis\Architecture\02_Integration\Infra and tools.md = docs\2_Analysis\Architecture\02_Integration\Infra and tools.md
-		docs\2_Analysis\Architecture\02_Integration\mcp_server_landscape.md = docs\2_Analysis\Architecture\02_Integration\mcp_server_landscape.md
+		docs\4_Research\Architecture\02_Integration\external_tools_landscape.md = docs\4_Research\Architecture\02_Integration\external_tools_landscape.md
+		docs\4_Research\Architecture\02_Integration\Infra and tools.md = docs\4_Research\Architecture\02_Integration\Infra and tools.md
+		docs\4_Research\Architecture\02_Integration\mcp_server_landscape.md = docs\4_Research\Architecture\02_Integration\mcp_server_landscape.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "03_Operational", "03_Operational", "{03E22593-FD12-4D1E-85F1-5ABD30031510}"
 	ProjectSection(SolutionItems) = preProject
-		docs\2_Analysis\Architecture\03_Operational\analysis_gaps.md = docs\2_Analysis\Architecture\03_Operational\analysis_gaps.md
-		docs\2_Analysis\Architecture\03_Operational\BRIDGING_THE_GAPS.md = docs\2_Analysis\Architecture\03_Operational\BRIDGING_THE_GAPS.md
-		docs\2_Analysis\Architecture\03_Operational\cost_budget.md = docs\2_Analysis\Architecture\03_Operational\cost_budget.md
-		docs\2_Analysis\Architecture\03_Operational\security_model.md = docs\2_Analysis\Architecture\03_Operational\security_model.md
-		docs\2_Analysis\Architecture\03_Operational\testing_strategy.md = docs\2_Analysis\Architecture\03_Operational\testing_strategy.md
+		docs\4_Research\Architecture\03_Operational\analysis_gaps.md = docs\4_Research\Architecture\03_Operational\analysis_gaps.md
+		docs\4_Research\Architecture\03_Operational\BRIDGING_THE_GAPS.md = docs\4_Research\Architecture\03_Operational\BRIDGING_THE_GAPS.md
+		docs\4_Research\Architecture\03_Operational\cost_budget.md = docs\4_Research\Architecture\03_Operational\cost_budget.md
+		docs\4_Research\Architecture\03_Operational\security_model.md = docs\4_Research\Architecture\03_Operational\security_model.md
+		docs\4_Research\Architecture\03_Operational\testing_strategy.md = docs\4_Research\Architecture\03_Operational\testing_strategy.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "conversations", "conversations", "{A1B2C3D4-E5F6-4A5B-8C9D-0E1F2A3B4C5D}"
