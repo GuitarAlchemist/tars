@@ -158,3 +158,211 @@ module EntityResolver =
             match group with
             | [] | [_] -> []
             | first :: rest -> rest |> List.map (fun e -> (first, e)))
+
+
+/// Fact extraction from entities
+module FactExtractor =
+    
+    open System.Text.Json
+    open System.Text.Json.Serialization
+    open System.Threading.Tasks
+    open EntityExtractor
+    open Tars.Llm
+    
+    /// Prompt templates for fact extraction
+    module Prompts =
+        
+        let factExtractionSystem = """You are a relationship extraction system for a software development knowledge graph.
+Given a list of entities and their context, identify relationships between them.
+
+Return a JSON array of facts:
+[
+  {"type": "depends_on", "source": "entity_name", "target": "entity_name", "strength": 0.0-1.0},
+  {"type": "implements", "source": "entity_name", "target": "entity_name", "confidence": 0.0-1.0},
+  {"type": "similar_to", "source": "entity_name", "target": "entity_name", "similarity": 0.0-1.0},
+  {"type": "contradicts", "source": "entity_name", "target": "entity_name", "resolution": "explanation"},
+  {"type": "evolved_from", "source": "entity_name", "target": "entity_name", "delta": "changes"},
+  {"type": "derived_from", "source": "entity_name", "target": "entity_name"}
+]
+
+Relationship types:
+- depends_on: Source depends on/requires target
+- implements: Source implements/realizes target concept
+- similar_to: Source and target are conceptually similar
+- contradicts: Source and target are in conflict
+- evolved_from: Source evolved/changed from target
+- derived_from: Source is derived/based on target
+
+Only include relationships clearly supported by the content. Be conservative."""
+
+        let factExtractionUser (entities: string) (context: string) = 
+            $"""Extract relationships between these entities:
+
+Entities:
+{entities}
+
+Context:
+{context}
+
+Return valid JSON array only."""
+    
+    /// JSON DTO for parsing LLM output
+    [<CLIMutable>]
+    type FactDto = {
+        [<JsonPropertyName("type")>] Type: string
+        [<JsonPropertyName("source")>] Source: string
+        [<JsonPropertyName("target")>] Target: string
+        [<JsonPropertyName("strength")>] Strength: Nullable<float>
+        [<JsonPropertyName("confidence")>] Confidence: Nullable<float>
+        [<JsonPropertyName("similarity")>] Similarity: Nullable<float>
+        [<JsonPropertyName("resolution")>] Resolution: string
+        [<JsonPropertyName("delta")>] Delta: string
+    }
+    
+    let private jsonOptions = 
+        let opts = JsonSerializerOptions()
+        opts.PropertyNameCaseInsensitive <- true
+        opts.PropertyNamingPolicy <- JsonNamingPolicy.CamelCase
+        opts
+    
+    /// Format entities for the prompt  
+    let private formatEntities (entities: TarsEntity list) : string =
+        entities
+        |> List.map (fun e ->
+            match e with
+            | Tars.Core.ConceptE c -> $"- Concept: {c.Name} - {c.Description}"
+            | Tars.Core.CodePatternE p -> $"- Pattern: {p.Name} ({p.Category})"
+            | Tars.Core.AgentBeliefE b -> $"- Belief: {b.Statement} (confidence: {b.Confidence})"
+            | Tars.Core.CodeModuleE m -> $"- Module: {m.Path}"
+            | Tars.Core.AnomalyE a -> $"- Anomaly: {a.Location} ({a.Severity})"
+            | Tars.Core.GrammarRuleE g -> $"- Grammar: {g.Name}")
+        |> String.concat "\n"
+    
+    /// Create placeholder entity for fact reference
+    let private createPlaceholder (name: string) : TarsEntity =
+        Tars.Core.ConceptE { Name = name; Description = ""; RelatedConcepts = [] }
+    
+    /// Convert DTO to TarsFact
+    let private dtoToFact (entityMap: Map<string, TarsEntity>) (dto: FactDto) : Tars.Core.TarsFact option =
+        let getEntity name = 
+            entityMap |> Map.tryFind name |> Option.defaultValue (createPlaceholder name)
+        
+        if String.IsNullOrEmpty dto.Source || String.IsNullOrEmpty dto.Target then
+            None
+        else
+            let source = getEntity dto.Source
+            let target = getEntity dto.Target
+            let factType = if isNull dto.Type then "" else dto.Type.ToLowerInvariant()
+            
+            match factType with
+            | "depends_on" -> 
+                let strength = if dto.Strength.HasValue then dto.Strength.Value else 0.5
+                Some (Tars.Core.DependsOn(source, target, strength))
+            | "implements" -> 
+                let conf = if dto.Confidence.HasValue then dto.Confidence.Value else 0.5
+                Some (Tars.Core.Implements(source, target, conf))
+            | "similar_to" -> 
+                let sim = if dto.Similarity.HasValue then dto.Similarity.Value else 0.5
+                Some (Tars.Core.SimilarTo(source, target, sim))
+            | "contradicts" -> 
+                let resolution = if isNull dto.Resolution then None else Some dto.Resolution
+                Some (Tars.Core.Contradicts(source, target, resolution))
+            | "evolved_from" -> 
+                let delta = if isNull dto.Delta then "" else dto.Delta
+                Some (Tars.Core.EvolvedFrom(source, target, delta))
+            | "derived_from" -> 
+                Some (Tars.Core.DerivedFrom(source, target))
+            | _ -> None
+    
+    /// Extract JSON from LLM response (handles markdown code blocks)
+    let private extractJson (text: string) : string =
+        let text = text.Trim()
+        if text.StartsWith("```json") then
+            text.Substring(7).TrimStart().TrimEnd('`').Trim()
+        elif text.StartsWith("```") then
+            text.Substring(3).TrimStart().TrimEnd('`').Trim()
+        else
+            text
+    
+    /// Build entity name map for fact resolution
+    let private buildEntityMap (entities: TarsEntity list) : Map<string, TarsEntity> =
+        entities 
+        |> List.choose (fun e -> 
+            let name = 
+                match e with
+                | Tars.Core.ConceptE c -> Some c.Name
+                | Tars.Core.CodePatternE p -> Some p.Name
+                | Tars.Core.AgentBeliefE b -> Some b.Statement
+                | Tars.Core.CodeModuleE m -> Some m.Path
+                | Tars.Core.AnomalyE a -> Some a.Location
+                | Tars.Core.GrammarRuleE g -> Some g.Name
+            name |> Option.map (fun n -> (n, e)))
+        |> Map.ofList
+    
+    /// Result of fact extraction
+    type FactExtractionResult = 
+        | FactSuccess of Tars.Core.TarsFact list
+        | FactFailure of ExtractionError
+
+    /// Extract facts from entities using LLM
+    let extractFactsAsync 
+        (llmService: LlmService.ILlmService) 
+        (entities: TarsEntity list)
+        (context: string)
+        : Task<FactExtractionResult> =
+        task {
+            if entities.IsEmpty then
+                return FactSuccess []
+            else
+                let entityStr = formatEntities entities
+                let request : LlmRequest = {
+                    ModelHint = Some "reasoning"
+                    Model = None
+                    SystemPrompt = Some Prompts.factExtractionSystem
+                    MaxTokens = Some 1500
+                    Temperature = Some 0.1
+                    Stop = []
+                    Messages = [
+                        { Role = Role.User; Content = Prompts.factExtractionUser entityStr context }
+                    ]
+                    Tools = []
+                    ToolChoice = None
+                    ResponseFormat = None
+                    Stream = false
+                    JsonMode = true
+                    Seed = None
+                }
+                
+                try
+                    let! response = llmService.CompleteAsync(request)
+                    let jsonText = extractJson response.Text
+                    
+                    try
+                        let dtos = JsonSerializer.Deserialize<FactDto array>(jsonText, jsonOptions)
+                        let entityMap = buildEntityMap entities
+                        
+                        let facts = 
+                            if isNull dtos then []
+                            else dtos |> Array.choose (dtoToFact entityMap) |> Array.toList
+                        
+                        return FactSuccess facts
+                    with ex ->
+                        return FactFailure (ParseError ex.Message)
+                with ex ->
+                    return FactFailure (LlmError ex.Message)
+        }
+    
+    /// Extract relationships between specific entity pairs using heuristics
+    let suggestRelationships (e1: TarsEntity) (e2: TarsEntity) : Tars.Core.TarsFact option =
+        // Simple heuristic-based relationship detection without LLM
+        match e1, e2 with
+        | Tars.Core.CodePatternE p1, Tars.Core.CodePatternE p2 when p1.Category = p2.Category ->
+            Some (Tars.Core.SimilarTo(e1, e2, 0.7))
+        | Tars.Core.CodeModuleE m1, Tars.Core.CodeModuleE m2 when m1.Dependencies |> List.contains m2.Path ->
+            Some (Tars.Core.DependsOn(e1, e2, 0.9))
+        | Tars.Core.ConceptE c1, Tars.Core.ConceptE c2 when c1.RelatedConcepts |> List.contains c2.Name ->
+            Some (Tars.Core.SimilarTo(e1, e2, 0.6))
+        | Tars.Core.AgentBeliefE b1, Tars.Core.AgentBeliefE b2 when b1.Statement = b2.Statement && b1.Confidence <> b2.Confidence ->
+            Some (Tars.Core.EvolvedFrom(e1, e2, $"Confidence changed: {b2.Confidence} -> {b1.Confidence}"))
+        | _ -> None
+
