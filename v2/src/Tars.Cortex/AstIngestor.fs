@@ -19,7 +19,7 @@ module AstIngestor =
         | SynLongIdent(id, _, _) -> getLongIdentName id
 
     let rec private walkSynModuleDecl
-        (graph: TemporalKnowledgeGraph.TemporalGraph)
+        (graph: LegacyKnowledgeGraph.TemporalGraph)
         (parentNode: GraphNode)
         (decl: SynModuleDecl)
         =
@@ -80,7 +80,7 @@ module AstIngestor =
 
         | _ -> ()
 
-    let ingestFile (graph: TemporalKnowledgeGraph.TemporalGraph) (filePath: string) =
+    let ingestFile (graph: LegacyKnowledgeGraph.TemporalGraph) (filePath: string) =
         async {
             try
                 let content = File.ReadAllText(filePath)
@@ -115,7 +115,7 @@ module AstIngestor =
                 printfn "Failed to parse %s: %s" filePath ex.Message
         }
 
-    let ingestDirectory (graph: TemporalKnowledgeGraph.TemporalGraph) (rootPath: string) =
+    let ingestDirectory (graph: LegacyKnowledgeGraph.TemporalGraph) (rootPath: string) =
         async {
             if Directory.Exists(rootPath) then
                 let files = Directory.GetFiles(rootPath, "*.fs", SearchOption.AllDirectories)
@@ -138,7 +138,7 @@ module AstIngestor =
                         do! ingestFile graph file
         }
 
-    let extractCodeStructure (graph: TemporalKnowledgeGraph.TemporalGraph) : CodeStructure =
+    let extractCodeStructure (graph: LegacyKnowledgeGraph.TemporalGraph) : CodeStructure =
         let nodes = graph.GetNodes()
 
         let modules =

@@ -29,7 +29,7 @@ module Engine =
           Budget: BudgetGovernor option
           OutputGuard: IOutputGuard option
           KnowledgeBase: KnowledgeBase option
-          KnowledgeGraph: TemporalKnowledgeGraph.TemporalGraph option
+          KnowledgeGraph: LegacyKnowledgeGraph.TemporalGraph option
           MemoryBuffer: BufferAgent<MemoryItem> option // Added Capacitor
           Logger: string -> unit }
 

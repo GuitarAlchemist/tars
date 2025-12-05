@@ -4,7 +4,7 @@ open System
 open System.Threading.Tasks
 open Xunit
 open Tars.Core
-open Tars.Core.TemporalKnowledgeGraph
+open Tars.Core.LegacyKnowledgeGraph
 
 module KnowledgeGraphTests =
 

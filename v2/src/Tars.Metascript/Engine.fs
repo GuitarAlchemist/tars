@@ -10,7 +10,7 @@ open Tars.Llm.LlmService
 open Tars.Tools
 open Domain
 
-type TemporalGraph = Tars.Core.TemporalKnowledgeGraph.TemporalGraph
+type TemporalGraph = Tars.Core.LegacyKnowledgeGraph.TemporalGraph
 
 module Engine =
 

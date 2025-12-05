@@ -41,6 +41,7 @@
     <Compile Include="SemanticSerializationTests.fs" />
     <Compile Include="McpTests.fs" />
     <Compile Include="KnowledgeGraphTests.fs" />
+    <Compile Include="TemporalKnowledgeGraphTests.fs" />
     <Compile Include="AnnVectorStoreTests.fs" />
     <Compile Include="PersistenceTests.fs" />
     <!-- <Compile Include="GraphitiTypesTests.fs" /> -->

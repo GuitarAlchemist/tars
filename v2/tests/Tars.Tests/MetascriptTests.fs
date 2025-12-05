@@ -5,7 +5,7 @@ open System.Threading.Tasks
 open Xunit
 open Tars.Core
 open Tars.Cortex
-open Tars.Core.TemporalKnowledgeGraph
+open Tars.Core.LegacyKnowledgeGraph
 open Tars.Llm
 open Tars.Llm.LlmService
 open Tars.Metascript.Domain

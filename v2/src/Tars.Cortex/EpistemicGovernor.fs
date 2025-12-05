@@ -12,7 +12,7 @@ open Tars.Llm.LlmService
 /// Provides LLM-powered verification, generalization, and curriculum generation.
 /// </summary>
 type EpistemicGovernor
-    (llm: ILlmService, knowledgeGraph: TemporalKnowledgeGraph.TemporalGraph option, budget: BudgetGovernor option) =
+    (llm: ILlmService, knowledgeGraph: LegacyKnowledgeGraph.TemporalGraph option, budget: BudgetGovernor option) =
     let recordBudget (tokens: int) =
         match budget with
         | Some governor ->

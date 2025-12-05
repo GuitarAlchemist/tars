@@ -8,7 +8,7 @@ open System.Text.Json.Serialization
 open System.Threading.Tasks
 open FSharp.SystemTextJson
 
-module TemporalKnowledgeGraph =
+module LegacyKnowledgeGraph =
 
     type NodeId = string
 
