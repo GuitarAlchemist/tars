@@ -141,6 +141,30 @@ module TemporalKnowledgeGraph =
             |> Seq.map (fun e -> e.Fact)
             |> Seq.toList
 
+        /// Get all valid nodes
+        member this.GetNodes() =
+            nodes.Values 
+            |> Seq.filter (fun n -> TemporalValidityOps.isValidAt DateTime.UtcNow n.Validity)
+            |> Seq.map (fun n -> n.Entity)
+            |> Seq.toList
+
+        /// Get all valid edges
+        member this.GetEdges() =
+            edges.Values
+            |> Seq.filter (fun e -> TemporalValidityOps.isValidAt DateTime.UtcNow e.Validity)
+            |> Seq.toList
+
+        /// Get neighbors for an entity
+        member this.GetNeighbors(entity: TarsEntity) =
+            let id = getEntityId entity
+            match edgesBySource.TryFind id with
+            | Some edgeIds ->
+                edgeIds
+                |> List.choose (fun eid -> edges.TryFind eid)
+                |> List.filter (fun e -> TemporalValidityOps.isValidAt DateTime.UtcNow e.Validity)
+                |> List.choose (fun e -> TarsFact.target e.Fact)
+            | None -> []
+
         /// Get all current valid facts
         member this.GetCurrentFacts() =
             this.GetSnapshot(DateTime.UtcNow)

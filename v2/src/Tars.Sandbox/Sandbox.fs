@@ -1,46 +1,57 @@
-module Sandbox
+namespace Tars.Sandbox
 
 open System
-open Tars.Core
-open Tars.Core.TemporalKnowledgeGraph
-open Tars.Core.CommunityDetection
+open System.Threading.Tasks
+open Docker.DotNet
+open Docker.DotNet.Models
 
-[<EntryPoint>]
-let main argv =
-    printfn "Running LPA Verification..."
-    
-    let graph = TemporalGraph()
-    
-    // Community 1: A <-> B
-    let a = ConceptE { Name = "A"; Description = ""; RelatedConcepts = [] }
-    let b = ConceptE { Name = "B"; Description = ""; RelatedConcepts = [] }
-    graph.AddFact(SimilarTo(a, b, 1.0)) |> ignore
-    
-    // Community 2: C <-> D
-    let c = ConceptE { Name = "C"; Description = ""; RelatedConcepts = [] }
-    let d = ConceptE { Name = "D"; Description = ""; RelatedConcepts = [] }
-    graph.AddFact(SimilarTo(c, d, 1.0)) |> ignore
-    
-    let communities = labelPropagation graph 10 DateTime.UtcNow
-    
-    let idA = TarsEntity.getId a
-    let idB = TarsEntity.getId b
-    let idC = TarsEntity.getId c
-    let idD = TarsEntity.getId d
-    
-    printfn "Community A: %s" communities.[idA]
-    printfn "Community B: %s" communities.[idB]
-    printfn "Community C: %s" communities.[idC]
-    printfn "Community D: %s" communities.[idD]
-    
-    let success = 
-        communities.[idA] = communities.[idB] &&
-        communities.[idC] = communities.[idD] &&
-        communities.[idA] <> communities.[idC]
-        
-    if success then
-        printfn "SUCCESS: Communities detected correctly."
-        0
-    else
-        printfn "FAILURE: Community detection failed."
-        1
+module DockerClient =
+    let createClient () =
+        if
+            System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
+                System.Runtime.InteropServices.OSPlatform.Windows
+            )
+        then
+            new DockerClientConfiguration(Uri("npipe://./pipe/docker_engine"))
+        else
+            new DockerClientConfiguration(Uri("unix:///var/run/docker.sock"))
+        |> fun config -> config.CreateClient()
+
+    let runContainer (client: DockerClient) (image: string) (cmd: string list) =
+        task {
+            try
+                // 1. Create Container
+                let config = CreateContainerParameters()
+                config.Image <- image
+                config.Cmd <- ResizeArray(cmd)
+                config.Tty <- false
+                config.AttachStdout <- true
+                config.AttachStderr <- true
+                config.HostConfig <- HostConfig(NetworkMode = "none")
+
+                let! response = client.Containers.CreateContainerAsync(config)
+                let id = response.ID
+
+                // 2. Start Container
+                let! started = client.Containers.StartContainerAsync(id, ContainerStartParameters())
+
+                if not started then
+                    return Error "Failed to start container"
+                else
+                    // 3. Wait for Container
+                    let! waitResponse = client.Containers.WaitContainerAsync(id)
+
+                    // 4. Get Logs
+                    let logParams = ContainerLogsParameters()
+                    logParams.ShowStdout <- true
+                    logParams.ShowStderr <- true
+
+                    // MultiplexedStream
+                    let! stream = client.Containers.GetContainerLogsAsync(id, false, logParams)
+                    let! (stdout, stderr) = stream.ReadOutputToEndAsync(System.Threading.CancellationToken.None)
+
+                    return Ok(stdout, stderr, waitResponse.StatusCode)
+
+            with ex ->
+                return Error $"Docker Error: %s{ex.Message}"
+        }
