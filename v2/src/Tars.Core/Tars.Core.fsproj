@@ -21,6 +21,8 @@
     <Compile Include="AgentWorkflow.fs" />
     <Compile Include="Knowledge.fs" />
     <Compile Include="SemanticMemoryTypes.fs" />
+    <Compile Include="GraphitiTypes.fs" />
+    <Compile Include="EpisodeStore.fs" />
     <Compile Include="KnowledgeGraph.fs" />
     <Compile Include="SemanticSerialization.fs" />
     <Compile Include="Execution.fs" />

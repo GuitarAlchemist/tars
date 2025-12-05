@@ -43,6 +43,7 @@
     <Compile Include="KnowledgeGraphTests.fs" />
     <Compile Include="AnnVectorStoreTests.fs" />
     <Compile Include="PersistenceTests.fs" />
+    <!-- <Compile Include="GraphitiTypesTests.fs" /> -->
   </ItemGroup>
 
   <ItemGroup>
