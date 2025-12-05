@@ -22,6 +22,7 @@
     <Compile Include="CodeGraphIngestor.fs" />
     <Compile Include="Inference.fs" />
     <Compile Include="OutputGuardAnalyzerLlm.fs" />
+    <Compile Include="EntityExtractor.fs" />
   </ItemGroup>
 
   <ItemGroup>
