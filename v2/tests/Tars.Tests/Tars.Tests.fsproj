@@ -44,6 +44,7 @@
     <Compile Include="TemporalKnowledgeGraphTests.fs" />
     <Compile Include="LpaTests.fs" />
     <Compile Include="PatternRecognitionTests.fs" />
+    <Compile Include="GrammarDistillationTests.fs" />
     <Compile Include="AnnVectorStoreTests.fs" />
     <Compile Include="PersistenceTests.fs" />
     <!-- <Compile Include="GraphitiTypesTests.fs" /> -->
