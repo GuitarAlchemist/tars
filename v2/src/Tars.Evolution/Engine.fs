@@ -29,9 +29,11 @@ module Engine =
           Budget: BudgetGovernor option
           OutputGuard: IOutputGuard option
           KnowledgeBase: KnowledgeBase option
-          KnowledgeGraph: LegacyKnowledgeGraph.TemporalGraph option
+          KnowledgeGraph: obj option // Tars.Core.LegacyKnowledgeGraph.TemporalGraph option
           MemoryBuffer: BufferAgent<MemoryItem> option // Added Capacitor
-          Logger: string -> unit }
+          Logger: string -> unit
+          Verbose: bool
+          ShowSemanticMessage: Message -> bool -> unit }
 
     let private scoreTask (task: TaskDefinition) : float =
         // Simple heuristic for now:
@@ -52,12 +54,18 @@ module Engine =
             let! suggestion =
                 match ctx.Epistemic with
                 | Some governor ->
-                    let recentOutputs =
-                        state.CompletedTasks
-                        |> List.truncate 5
-                        |> List.map (fun t -> t.Output.Substring(0, Math.Min(t.Output.Length, 100)) + "...")
+                    task {
+                        try
+                            let recentOutputs =
+                                state.CompletedTasks
+                                |> List.truncate 5
+                                |> List.map (fun t -> t.Output.Substring(0, Math.Min(t.Output.Length, 100)) + "...")
 
-                    governor.SuggestCurriculum(recentOutputs, state.ActiveBeliefs)
+                            return! governor.SuggestCurriculum(recentOutputs, state.ActiveBeliefs)
+                        with ex ->
+                            ctx.Logger($"[Epistemic] SuggestCurriculum failed: {ex.Message}")
+                            return "Focus on basic coding tasks."
+                    }
                 | None -> Task.FromResult "Focus on basic coding tasks."
 
             let guidance =
@@ -68,23 +76,27 @@ module Engine =
 
             let prompt =
                 sprintf
-                    """You are a Curriculum Agent. Your goal is to generate a new coding task for an AI agent to solve.
-The current generation is %d.
-Previous completed tasks: %d.
+                    """IMPORTANT: You are generating F# CODING TASKS. Do NOT ask questions. Output ONLY JSON.
 
-Guidance from the Epistemic Governor:
-"%s"
+Generation: %d. Completed tasks: %d.
 
-Generate a JSON object containing a list of 3 potential tasks under the key "tasks".
-Each task should have:
-- goal: A clear description of the task
-- constraints: A list of strings
-- validation_criteria: A string describing how to verify success
+Create 3 concrete F# programming tasks. Each task must be:
+- A specific coding problem (NOT a question)
+- Solvable with code (NOT a discussion)
+- Related to: %s
 
-JSON:"""
+RESPOND WITH THIS EXACT JSON FORMAT (no other text):
+{"tasks":[
+  {"goal":"Write an F# function that reverses a list using recursion","constraints":["Pure functional","No mutable state"],"validation_criteria":"Returns reversed list"},
+  {"goal":"Implement a binary search function in F#","constraints":["Handle empty lists","Return Option type"],"validation_criteria":"Finds element or returns None"},
+  {"goal":"Create a function to calculate Fibonacci numbers","constraints":["Use tail recursion","Handle negative inputs"],"validation_criteria":"Returns correct Fibonacci number"}
+]}"""
                     state.Generation
                     state.CompletedTasks.Length
-                    guidance
+                    (if String.IsNullOrWhiteSpace(guidance) then
+                         "basic algorithms"
+                     else
+                         guidance.Substring(0, Math.Min(guidance.Length, 50)))
 
             // 1. Retrieve Curriculum Agent
             let! agentOpt = ctx.Registry.GetAgent(state.CurriculumAgentId)
@@ -111,10 +123,24 @@ JSON:"""
                       Timestamp = DateTime.UtcNow
                       Metadata = Map.empty }
 
+                // Show semantic message in demo mode
+                ctx.ShowSemanticMessage msg ctx.Verbose
                 let agentWithMsg = agent.ReceiveMessage(msg)
 
                 // 4. Run Execution
                 let! outcome = graphExecutor.RunAgentLoop agentWithMsg 20
+
+                // Log the outcome for debugging
+                match outcome with
+                | Success(_, output, _) ->
+                    ctx.Logger(
+                        $"[Curriculum] Agent returned success: {output.Substring(0, Math.Min(output.Length, 100))}..."
+                    )
+                | PartialSuccess((_, output, _), errors) ->
+                    ctx.Logger($"[Curriculum] Agent returned partial success with {errors.Length} errors")
+                | Failure err ->
+                    let errStr = err |> List.map string |> String.concat "; "
+                    ctx.Logger(sprintf "[Curriculum] Agent returned failure: %s" errStr)
 
                 let responseText =
                     match outcome with
@@ -123,19 +149,57 @@ JSON:"""
                     | Failure err -> ""
 
                 if String.IsNullOrWhiteSpace(responseText) then
-                    return []
+                    // Return a fallback task when no response is received
+                    ctx.Logger("[Curriculum] No response received, using fallback task")
+
+                    return
+                        [ { Id = Guid.NewGuid()
+                            DifficultyLevel = state.Generation + 1
+                            Goal = "Write a simple F# function that calculates the factorial of a number"
+                            Constraints = [ "Use recursion"; "Handle edge cases for 0 and negative numbers" ]
+                            ValidationCriteria = "Function returns correct factorial values"
+                            Timeout = TimeSpan.FromMinutes(1.0)
+                            Score = 1.0 } ]
                 else
                     try
                         let json = responseText.Trim()
+                        ctx.Logger($"[Curriculum] Raw response: {json.Substring(0, Math.Min(json.Length, 200))}...")
+
+                        // Handle Speech Act prefix (ACT: <performative>: <content>)
+                        // Strip any prefix before the JSON
+                        let json =
+                            // Look for the start of JSON (either { or [)
+                            let jsonStart =
+                                let braceIdx = json.IndexOf('{')
+                                let bracketIdx = json.IndexOf('[')
+
+                                match braceIdx, bracketIdx with
+                                | -1, -1 -> -1
+                                | -1, b -> b
+                                | b, -1 -> b
+                                | a, b -> Math.Min(a, b)
+
+                            if jsonStart > 0 then json.Substring(jsonStart) else json
 
                         let json =
                             if json.StartsWith("```json") then
-                                json.Substring(7, json.Length - 10).Trim()
+                                let endIdx = json.LastIndexOf("```")
+
+                                if endIdx > 7 then
+                                    json.Substring(7, endIdx - 7).Trim()
+                                else
+                                    json.Substring(7).Trim()
                             elif json.StartsWith("```") then
-                                json.Substring(3, json.Length - 6).Trim()
+                                let endIdx = json.LastIndexOf("```")
+
+                                if endIdx > 3 then
+                                    json.Substring(3, endIdx - 3).Trim()
+                                else
+                                    json.Substring(3).Trim()
                             else
                                 json
 
+                        ctx.Logger($"[Curriculum] Cleaned JSON: {json.Substring(0, Math.Min(json.Length, 200))}...")
                         let doc = JsonDocument.Parse(json)
                         let root = doc.RootElement
 
@@ -196,14 +260,34 @@ JSON:"""
                             return topK
 
                     with ex ->
+                        // Use practical, useful tasks as fallback
+                        ctx.Logger($"[Curriculum] JSON parse failed: {ex.Message}")
+
+                        let practicalTasks =
+                            [| // Test Generation
+                               "Review the DemoVisualization.fs module and write 3 unit tests for the showSemanticMessage function"
+                               // Documentation
+                               "Read the ToolFactory.fs file and add XML documentation comments to all public functions"
+                               // Code Improvement
+                               "Analyze the Engine.fs generateTask function and suggest 2 improvements for better error handling"
+                               // Bug Finding
+                               "Review the ResponseParser module in Graph.fs and identify any edge cases that might cause parsing failures"
+                               // Refactoring
+                               "Examine the showTaskComplete function in DemoVisualization.fs and refactor to reduce code duplication" |]
+
+                        let random = Random()
+                        let selectedTask = practicalTasks[random.Next(practicalTasks.Length)]
+                        ctx.Logger($"[Curriculum] Assigned practical task: {selectedTask}")
+
                         return
                             [ { Id = Guid.NewGuid()
                                 DifficultyLevel = state.Generation + 1
-                                Goal = "Failed to parse task. Write a hello world script."
-                                Constraints = []
-                                ValidationCriteria = "Output 'Hello World'"
-                                Timeout = TimeSpan.FromMinutes(1.0)
-                                Score = 0.0 } ]
+                                Goal = selectedTask
+                                Constraints =
+                                  [ "Work with the TARS v2 codebase"; "Use explore_project and read_code tools" ]
+                                ValidationCriteria = "Provide concrete, actionable output"
+                                Timeout = TimeSpan.FromMinutes(2.0)
+                                Score = 1.0 } ]
 
 
         }
@@ -328,7 +412,10 @@ Please solve this task. Output your solution code or answer."""
                           Timestamp = DateTime.UtcNow
                           Metadata = Map.empty }
 
-                    // 4. Send message to Executor
+                    // 4. Send message to Executor - show semantic message
+                    ctx.ShowSemanticMessage msg ctx.Verbose
+                    DemoVisualization.showTaskStart taskDef.Goal taskDef.Constraints
+
                     let agentWithMsg = executor.ReceiveMessage(msg)
 
                     // 5. Run Initial Execution
@@ -350,13 +437,20 @@ Please solve this task. Output your solution code or answer."""
                               ExecutionTrace = trace
                               Duration = TimeSpan.FromSeconds(5.0) }
                     else
-                        // 6. Adaptive Reflection Loop (Phase 6.4)
-                        let maxReflections = 3
-                        let mutable currentOutput = output
+                        // Handle Speech Act prefix in output
+                        let cleanOutput (text: string) =
+                            if text.StartsWith("ACT:") then
+                                let parts = text.Split(':', 3)
+                                if parts.Length = 3 then parts[2].Trim() else text
+                            else
+                                text
+
+                        let mutable currentOutput = cleanOutput output
                         let mutable currentTrace = trace
                         let mutable reflectionCount = 0
                         let mutable isOptimal = false
                         let mutable currentAgent = agentAfterExec
+                        let maxReflections = 3
 
                         while reflectionCount < maxReflections && not isOptimal do
                             reflectionCount <- reflectionCount + 1
@@ -427,6 +521,12 @@ Please fix the solution based on this feedback. Output the IMPROVED solution."""
                                       Timestamp = DateTime.UtcNow
                                       Metadata = Map.empty }
 
+                                // Show reflection visualization
+                                DemoVisualization.showReflection
+                                    reflectionCount
+                                    maxReflections
+                                    (Some verificationFeedback)
+
                                 let agentWithReflection = currentAgent.ReceiveMessage(reflectionMsg)
                                 let! reflectOutcome = graphExecutor.RunAgentLoop agentWithReflection 20
 
@@ -468,7 +568,7 @@ Please fix the solution based on this feedback. Output the IMPROVED solution."""
         }
 
     /// The main tick of the evolutionary loop
-    let step (ctx: EvolutionContext) (state: EvolutionState) =
+    let rec step (ctx: EvolutionContext) (state: EvolutionState) =
         task {
             match state.CurrentTask with
             | Some taskDef ->
@@ -525,9 +625,11 @@ Please fix the solution based on this feedback. Output the IMPROVED solution."""
                             ctx.Logger($"[Memory] Failed to grow memory: {ex.Message}")
                     | None -> ()
 
-                    // Save to Knowledge Graph (Ingest Episode)
+                    // Save to Knowledge            // Ingest trace into KG
                     match ctx.KnowledgeGraph with
-                    | Some kg ->
+                    | Some kgObj ->
+                        let kg = kgObj :?> Tars.Core.LegacyKnowledgeGraph.TemporalGraph
+
                         try
                             kg.IngestEpisode(trace)
                             ctx.Logger($"[KnowledgeGraph] Ingested episode for task: {taskDef.Id}")
@@ -559,6 +661,9 @@ Please fix the solution based on this feedback. Output the IMPROVED solution."""
                     with ex ->
                         printfn "Failed to save to memory: %s" ex.Message
 
+                    // Display task completion with generated solution
+                    DemoVisualization.showTaskComplete result.Success result.Output result.Duration
+
                     return
                         { state with
                             Generation = state.Generation + 1
@@ -567,6 +672,8 @@ Please fix the solution based on this feedback. Output the IMPROVED solution."""
                             ActiveBeliefs = newBeliefs }
                 else
                     // Retry or fail? For now, just log and clear
+                    DemoVisualization.showTaskComplete result.Success result.Output result.Duration
+
                     return
                         { state with
                             CompletedTasks = result :: state.CompletedTasks
@@ -576,19 +683,32 @@ Please fix the solution based on this feedback. Output the IMPROVED solution."""
                 // Check Queue first
                 match state.TaskQueue with
                 | nextTask :: remainingQueue ->
-                    return
+                    // Execute task immediately instead of just setting it
+                    ctx.Logger
+                        $"[Evolution] Picking task from queue: {nextTask.Goal.Substring(0, Math.Min(nextTask.Goal.Length, 50))}..."
+
+                    let stateWithTask =
                         { state with
                             CurrentTask = Some nextTask
                             TaskQueue = remainingQueue }
+                    // Recursively call step to execute the task
+                    return! step ctx stateWithTask
                 | [] ->
                     // 1. Curriculum Phase: Generate new tasks
                     let! newTasks = generateTask ctx state
 
                     match newTasks with
                     | first :: rest ->
-                        return
+                        ctx.Logger
+                            $"[Evolution] Generated {newTasks.Length} tasks, executing first: {first.Goal.Substring(0, Math.Min(first.Goal.Length, 50))}..."
+
+                        let stateWithTask =
                             { state with
                                 CurrentTask = Some first
                                 TaskQueue = rest }
-                    | [] -> return state
+                        // Recursively call step to execute the task
+                        return! step ctx stateWithTask
+                    | [] ->
+                        ctx.Logger "[Evolution] No tasks generated"
+                        return state
         }

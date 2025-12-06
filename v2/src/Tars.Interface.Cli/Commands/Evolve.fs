@@ -20,6 +20,7 @@ type EvolveOptions =
     { MaxIterations: int
       Quiet: bool
       DemoMode: bool
+      Verbose: bool
       Model: string option
       Trace: bool }
 
@@ -150,7 +151,25 @@ let run (logger: ILogger) (options: EvolveOptions) =
         toolRegistry.RegisterAssembly(typeof<Tars.Tools.ToolRegistry>.Assembly)
 
         let semanticTools =
-            [ "explore_project"; "read_code"; "patch_code" ] |> List.choose toolRegistry.Get
+            [ "explore_project"
+              "read_code"
+              "patch_code"
+              "write_code"
+              "git_commit"
+              "git_status"
+              "git_diff"
+              "think_step_by_step"
+              "plan_task"
+              "summarize"
+              "lookup_docs"
+              "run_tests"
+              "generate_test"
+              "analyze_code"
+              "build_project"
+              "improve_prompt"
+              "reflect_on_task"
+              "report_progress" ]
+            |> List.choose toolRegistry.Get
 
         let executorAgent =
             AgentFactory.create
@@ -158,12 +177,39 @@ let run (logger: ILogger) (options: EvolveOptions) =
                 "Executor"
                 "0.1.0"
                 model
-                "You are a coding assistant that solves programming tasks step by step. Use the provided tools to explore and modify the codebase."
+                "You are a coding assistant that solves programming tasks step by step. Use the provided tools to explore, modify, and save code. Use write_code to save your solutions and git_commit to commit changes."
                 semanticTools
                 executorCapabilities
 
+        // Define Reviewer Agent for code review
+        let reviewerId = Guid.NewGuid()
+
+        let reviewerCapabilities =
+            [ { Kind = CapabilityKind.Reasoning
+                Description = "Can analyze code for quality and correctness"
+                InputSchema = None
+                OutputSchema = None }
+              { Kind = CapabilityKind.Planning
+                Description = "Can suggest improvements and identify issues"
+                InputSchema = None
+                OutputSchema = None } ]
+
+        let reviewerTools =
+            [ "read_code"; "git_diff"; "git_status" ] |> List.choose toolRegistry.Get
+
+        let reviewerAgent =
+            AgentFactory.create
+                reviewerId
+                "Reviewer"
+                "0.1.0"
+                model
+                "You are a code reviewer. Analyze code for bugs, style issues, and improvements. Be constructive and specific. Format your review as: APPROVED if code is good, or NEEDS_WORK with specific feedback."
+                reviewerTools
+                reviewerCapabilities
+
         registry.Register(curriculumAgent)
         registry.Register(executorAgent)
+        registry.Register(reviewerAgent)
 
         // Initialize LLM Service
         // Ensure secret is registered
@@ -277,18 +323,18 @@ let run (logger: ILogger) (options: EvolveOptions) =
                   ActiveBeliefs = [] }
 
             // Initialize Knowledge Graph and Ingest Codebase
-            let knowledgeGraph = TemporalKnowledgeGraph.TemporalGraph()
+            // let knowledgeGraph = Tars.Core.LegacyKnowledgeGraph.TemporalGraph()
 
             if not options.Quiet then
                 ConsoleUI.info "🧠 Ingesting codebase into Knowledge Graph...\n"
 
             // Ingest current directory
-            do!
-                CodeGraphIngestor.ingestDirectory knowledgeGraph Environment.CurrentDirectory
-                |> Async.StartAsTask
+            // do!
+            //     CodeGraphIngestor.ingestDirectory knowledgeGraph Environment.CurrentDirectory
+            //     |> Async.StartAsTask
 
-            if not options.Quiet then
-                ConsoleUI.info $"   Loaded {knowledgeGraph.NodeCount} nodes and {knowledgeGraph.EdgeCount} edges\n"
+            // if not options.Quiet then
+            //     ConsoleUI.info $"   Loaded {knowledgeGraph.NodeCount} nodes and {knowledgeGraph.EdgeCount} edges\n"
 
             // Initialize Semantic Memory
             let embedder: Embedder =
@@ -341,9 +387,11 @@ let run (logger: ILogger) (options: EvolveOptions) =
                   Budget = Some budget
                   OutputGuard = Some outputGuard
                   KnowledgeBase = Some knowledgeBase
-                  KnowledgeGraph = Some knowledgeGraph
+                  KnowledgeGraph = None // Some knowledgeGraph
                   MemoryBuffer = Some memoryBuffer
-                  Logger = fun s -> logger.Information("{Evolution}", s) }
+                  Logger = fun s -> logger.Information("{Evolution}", s)
+                  Verbose = options.Verbose
+                  ShowSemanticMessage = DemoVisualization.showSemanticMessage }
 
             let mutable currentState = evoState
 

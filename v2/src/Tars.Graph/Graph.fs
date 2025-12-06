@@ -2,6 +2,7 @@ namespace Tars.Graph
 
 open Tars.Core
 open Tars.Connectors
+open Tars.Tools
 open System.Threading.Tasks
 open System.Text
 open System
@@ -396,11 +397,27 @@ module GraphRuntime =
                                     State = Acting(tool, input) }
                                 |> Success
                         | None ->
-                            // Tool not found is a recoverable error, so we return Success but with a message to the agent
-                            return
-                                { agent with
-                                    State = WaitingForUser $"Error: Tool %s{name} not found." }
-                                |> Success
+                            // Tool not found - try to create it dynamically!
+                            match ToolFactory.tryCreateTool name input [] with
+                            | ToolFactory.Created tool ->
+                                // Add the new tool to the agent and use it
+                                let msg = createMessage (MessageEndpoint.Agent agent.Id) finalResponseText
+                                let newMemory = agent.Memory @ [ msg ]
+
+                                let agentWithNewTool =
+                                    { agent with
+                                        Tools = agent.Tools @ [ tool ] }
+
+                                return
+                                    { agentWithNewTool with
+                                        Memory = newMemory
+                                        State = Acting(tool, input) }
+                                    |> Success
+                            | ToolFactory.CreationFailed reason ->
+                                return
+                                    { agent with
+                                        State = WaitingForUser $"Error: Could not create tool {name}: {reason}" }
+                                    |> Success
                     | ResponseParser.MultiToolCall calls ->
                         // For now, just take the first one. Future: support parallel tool calls.
                         match calls with
