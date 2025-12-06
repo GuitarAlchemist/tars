@@ -75,7 +75,35 @@ type GraphExecutor
                 | _ -> false
 
             if not finished then
-                resultOutput <- "Timeout or incomplete"
+                // Provide more context about what happened
+                let lastState =
+                    match currentAgent.State with
+                    | Idle -> "idle (never started)"
+                    | Thinking _ -> "thinking (LLM call may have stalled)"
+                    | Acting(tool, _) -> sprintf "acting on tool '%s'" tool.Name
+                    | Observing(tool, output) ->
+                        let preview =
+                            if output.Length > 50 then
+                                output.Substring(0, 50) + "..."
+                            else
+                                output
+
+                        sprintf "observing '%s' result: %s" tool.Name preview
+                    | WaitingForUser _ -> "waiting for user"
+                    | AgentState.Error e -> sprintf "error: %s" e
+
+                let lastTraceEntry =
+                    if trace.Length > 0 then
+                        trace.[trace.Length - 1]
+                    else
+                        "no trace"
+
+                resultOutput <-
+                    sprintf
+                        "Task incomplete - agent was %s. Last trace: %s. Consider increasing iterations or simplifying the task."
+                        lastState
+                        lastTraceEntry
+
                 let warnings = [ Timeout("AgentLoop", TimeSpan.Zero) ]
                 return PartialSuccess((currentAgent, resultOutput, trace), warnings)
             elif isError then

@@ -104,13 +104,16 @@ let run (logger: ILogger) (options: EvolveOptions) =
 
         logger.Information("Starting TARS v2 Evolution Engine...")
 
-        logger.Information("Starting TARS v2 Evolution Engine...")
-
         let registry = AgentRegistry()
         let curriculumId = Guid.NewGuid()
         let executorId = Guid.NewGuid()
 
         let model = options.Model |> Option.defaultValue "qwen2.5-coder:1.5b"
+
+        // Log model and agent info
+        printfn $"🤖 LLM Model: {model}"
+        printfn $"📋 Curriculum Agent: {curriculumId}"
+        printfn $"⚙️  Executor Agent: {executorId}"
 
         let curriculumCapabilities =
             [ { Kind = CapabilityKind.Planning
@@ -168,7 +171,14 @@ let run (logger: ILogger) (options: EvolveOptions) =
               "build_project"
               "improve_prompt"
               "reflect_on_task"
-              "report_progress" ]
+              "report_progress"
+              "run_metascript"
+              "parse_metascript"
+              "create_metascript"
+              "list_files"
+              "search_code"
+              "count_lines"
+              "find_todos" ]
             |> List.choose toolRegistry.Get
 
         let executorAgent =

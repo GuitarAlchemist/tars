@@ -181,23 +181,28 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
 
                             if jsonStart > 0 then json.Substring(jsonStart) else json
 
+                        // More robust backtick removal
                         let json =
-                            if json.StartsWith("```json") then
-                                let endIdx = json.LastIndexOf("```")
+                            let mutable cleaned = json
+                            // Remove opening ```json or ```
+                            if cleaned.StartsWith("```json") then
+                                cleaned <- cleaned.Substring(7)
+                            elif cleaned.StartsWith("```") then
+                                cleaned <- cleaned.Substring(3)
 
-                                if endIdx > 7 then
-                                    json.Substring(7, endIdx - 7).Trim()
-                                else
-                                    json.Substring(7).Trim()
-                            elif json.StartsWith("```") then
-                                let endIdx = json.LastIndexOf("```")
+                            // Remove closing ``` (may be on its own line)
+                            cleaned <- cleaned.TrimEnd()
 
-                                if endIdx > 3 then
-                                    json.Substring(3, endIdx - 3).Trim()
-                                else
-                                    json.Substring(3).Trim()
-                            else
-                                json
+                            if cleaned.EndsWith("```") then
+                                cleaned <- cleaned.Substring(0, cleaned.Length - 3)
+
+                            // Also handle case where ``` is followed by newline content
+                            let lastBackticks = cleaned.LastIndexOf("\n```")
+
+                            if lastBackticks > 0 then
+                                cleaned <- cleaned.Substring(0, lastBackticks)
+
+                            cleaned.Trim()
 
                         ctx.Logger($"[Curriculum] Cleaned JSON: {json.Substring(0, Math.Min(json.Length, 200))}...")
                         let doc = JsonDocument.Parse(json)
