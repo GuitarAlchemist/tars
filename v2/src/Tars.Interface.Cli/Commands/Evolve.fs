@@ -458,11 +458,68 @@ let run (logger: ILogger) (options: EvolveOptions) =
                 let! nextState =
                     try
                         Engine.step evoCtx currentState
-                    with ex ->
-                        logger.Error(ex, "Evolution Step Failed")
-                        printfn "CRITICAL ERROR: %s" ex.Message
-                        printfn "%s" ex.StackTrace
-                        reraise ()
+                    with
+                    | :? System.Threading.Tasks.TaskCanceledException as ex ->
+                        // Timeout - log but continue with a failed task result
+                        logger.Warning("Evolution step timed out: {Message}", ex.Message)
+                        printfn "⚠️ TIMEOUT: Task took too long, skipping to next task..."
+
+                        // Create a failed task result and continue
+                        let failedResult: TaskResult =
+                            { TaskId =
+                                currentState.CurrentTask
+                                |> Option.map (fun t -> t.Id)
+                                |> Option.defaultValue (Guid.NewGuid())
+                              ExecutorId = currentState.ExecutorAgentId
+                              Success = false
+                              Output = sprintf "Task timed out after 120 seconds: %s" ex.Message
+                              ExecutionTrace = [ "TIMEOUT" ]
+                              Duration = TimeSpan.FromSeconds(120.0) }
+
+                        Task.FromResult
+                            { currentState with
+                                CompletedTasks = failedResult :: currentState.CompletedTasks
+                                CurrentTask = None }
+                    | :? System.Net.Http.HttpRequestException as ex ->
+                        // Network error - log but continue
+                        logger.Warning("Network error during evolution: {Message}", ex.Message)
+                        printfn "⚠️ NETWORK ERROR: %s, continuing..." ex.Message
+
+                        let failedResult: TaskResult =
+                            { TaskId =
+                                currentState.CurrentTask
+                                |> Option.map (fun t -> t.Id)
+                                |> Option.defaultValue (Guid.NewGuid())
+                              ExecutorId = currentState.ExecutorAgentId
+                              Success = false
+                              Output = sprintf "Network error: %s" ex.Message
+                              ExecutionTrace = [ "NETWORK_ERROR" ]
+                              Duration = TimeSpan.Zero }
+
+                        Task.FromResult
+                            { currentState with
+                                CompletedTasks = failedResult :: currentState.CompletedTasks
+                                CurrentTask = None }
+                    | ex ->
+                        // Other errors - log and continue
+                        logger.Error(ex, "Evolution Step Failed: {Message}", ex.Message)
+                        printfn "⚠️ ERROR: %s" ex.Message
+
+                        let failedResult: TaskResult =
+                            { TaskId =
+                                currentState.CurrentTask
+                                |> Option.map (fun t -> t.Id)
+                                |> Option.defaultValue (Guid.NewGuid())
+                              ExecutorId = currentState.ExecutorAgentId
+                              Success = false
+                              Output = sprintf "Error: %s" ex.Message
+                              ExecutionTrace = [ ex.GetType().Name ]
+                              Duration = TimeSpan.Zero }
+
+                        Task.FromResult
+                            { currentState with
+                                CompletedTasks = failedResult :: currentState.CompletedTasks
+                                CurrentTask = None }
 
                 currentState <- nextState
 
