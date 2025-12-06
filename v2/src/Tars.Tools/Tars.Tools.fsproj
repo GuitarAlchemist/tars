@@ -17,6 +17,13 @@
     <Compile Include="PromptTools.fs" />
     <Compile Include="MetascriptTools.fs" />
     <Compile Include="WorkflowTools.fs" />
+    <Compile Include="AgentTools.fs" />
+    <Compile Include="UtilityTools.fs" />
+    <Compile Include="LlmTools.fs" />
+    <Compile Include="ToolValidation.fs" />
+    <Compile Include="SystemTools.fs" />
+    <Compile Include="KnowledgeTools.fs" />
+    <Compile Include="AutomationTools.fs" />
   </ItemGroup>
 
   <ItemGroup>
