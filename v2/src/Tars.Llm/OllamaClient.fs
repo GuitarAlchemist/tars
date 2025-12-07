@@ -68,6 +68,13 @@ module OllamaClient =
         | Role.User -> "user"
         | Role.Assistant -> "assistant"
 
+    /// Get the API path prefix - use /ollama/ for OpenWebUI (non-localhost URLs)
+    let private getApiPrefix (baseUri: Uri) =
+        if baseUri.Host = "localhost" || baseUri.Host = "127.0.0.1" then
+            "api/"
+        else
+            "ollama/api/"
+
     let private toOllamaMessages (systemPrompt: string option) (msgs: LlmMessage list) : OllamaMessageDto[] =
         let systemMsg =
             match systemPrompt with
@@ -126,7 +133,7 @@ module OllamaClient =
                   format = if req.JsonMode then Some "json" else None
                   options = Some options }
 
-            let uri = Uri(baseUri, "api/chat")
+            let uri = Uri(baseUri, getApiPrefix baseUri + "chat")
             use! resp = http.PostAsJsonAsync(uri, dto, jsonOptions)
             resp.EnsureSuccessStatusCode() |> ignore
 
@@ -167,7 +174,7 @@ module OllamaClient =
     let getEmbeddingsAsync (http: HttpClient) (baseUri: Uri) (model: string) (text: string) : Task<float32[]> =
         task {
             let dto: OllamaEmbeddingRequestDto = { model = model; prompt = text }
-            let uri = Uri(baseUri, "api/embeddings")
+            let uri = Uri(baseUri, getApiPrefix baseUri + "embeddings")
             use! resp = http.PostAsJsonAsync(uri, dto, jsonOptions)
             resp.EnsureSuccessStatusCode() |> ignore
 
@@ -190,7 +197,7 @@ module OllamaClient =
     /// <returns>List of model names.</returns>
     let getTagsAsync (http: HttpClient) (baseUri: Uri) : Task<string list> =
         task {
-            let uri = Uri(baseUri, "api/tags")
+            let uri = Uri(baseUri, getApiPrefix baseUri + "tags")
             let! resp = http.GetAsync(uri)
             resp.EnsureSuccessStatusCode() |> ignore
             let! raw = resp.Content.ReadAsStringAsync()
@@ -237,7 +244,7 @@ module OllamaClient =
                   format = if req.JsonMode then Some "json" else None
                   options = Some options }
 
-            let uri = Uri(baseUri, "api/chat")
+            let uri = Uri(baseUri, getApiPrefix baseUri + "chat")
 
             let content =
                 new StringContent(

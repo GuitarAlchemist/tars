@@ -32,7 +32,10 @@ module CommunityDetection =
             ) Map.empty<string, string list>
 
         // 2. Initialize labels (each node is its own community)
-        let allNodes = adjacency.Keys |> Seq.toList
+        // Include ALL nodes from graph, not just those with edges
+        let graphNodes = graph.GetNodes() |> List.map TarsEntity.getId
+        let adjacencyNodes = adjacency.Keys |> Seq.toList
+        let allNodes = (graphNodes @ adjacencyNodes) |> List.distinct
         let initialLabels = allNodes |> List.map (fun n -> n, n) |> Map.ofList
 
         // 3. Iterate

@@ -35,9 +35,8 @@ module Validation =
                 errors <- error $"Step '{step.Id}': Tool name is required for tool steps" errors
         | "loop"
         | "decision"
-        | "retrieval" -> () // optional specifics validated in execution
-        | other ->
-            errors <- error $"Step '{step.Id}': Unsupported type '{other}'" errors
+        | "retrieval"
+        | _ -> () // Unknown types are checked against MacroRegistry at runtime
 
         match step.Context with
         | Some ctxList ->
@@ -69,8 +68,12 @@ module Validation =
 
         // validate steps with knowledge of prior steps for context references
         let mutable seen = Set.empty
+
         for step in workflow.Steps do
             errors <- errors @ (validateStep step seen)
             seen <- seen.Add step.Id
 
-        if errors.IsEmpty then Ok workflow else Error(List.rev errors)
+        if errors.IsEmpty then
+            Ok workflow
+        else
+            Error(List.rev errors)

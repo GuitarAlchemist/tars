@@ -1,0 +1,32 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Tars.Security -> C:\Users\spare\source\repos\tars\v2\src\Tars.Security\bin\Debug\net10.0\Tars.Security.dll
+  Tars.Core -> C:\Users\spare\source\repos\tars\v2\src\Tars.Core\bin\Debug\net10.0\Tars.Core.dll
+  Tars.Llm -> C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\bin\Debug\net10.0\Tars.Llm.dll
+  Tars.Sandbox -> C:\Users\spare\source\repos\tars\v2\src\Tars.Sandbox\bin\Debug\net10.0\Tars.Sandbox.dll
+  Tars.Kernel -> C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\bin\Debug\net10.0\Tars.Kernel.dll
+  Tars.Tools -> C:\Users\spare\source\repos\tars\v2\src\Tars.Tools\bin\Debug\net10.0\Tars.Tools.dll
+  Tars.Cortex -> C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\bin\Debug\net10.0\Tars.Cortex.dll
+C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\MetascriptTools.fs(21,36): error FS0039: The constructor, module or namespace 'Failure' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\Tars.Metascript.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\MetascriptTools.fs(21,60): error FS0001: All branches of a pattern match expression must return values implicitly convertible to the type of the first branch, which here is 'Result<string,string>'. This branch returns a value of type 'AgentState'. [C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\Tars.Metascript.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\MetascriptTools.fs(17,33): error FS0025: Incomplete pattern matches on this expression. [C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\Tars.Metascript.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\MetascriptTools.fs(23,34): error FS0001: This expression was expected to have type    'Result<string,string>'    but here has type    'AgentState' [C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\Tars.Metascript.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\MetascriptTools.fs(40,37): error FS0039: The value, constructor, namespace or type 'IsNullOrWhiteSpace' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\Tars.Metascript.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\MetascriptTools.fs(45,34): error FS0001: This expression was expected to have type    'Result<string,string>'    but here has type    'AgentState' [C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\Tars.Metascript.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\MetascriptTools.fs(61,44): error FS0001: All branches of a pattern match expression must return values implicitly convertible to the type of the first branch, which here is 'Result<string,'a>'. This branch returns a value of type 'AgentState'. [C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\Tars.Metascript.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\MetascriptTools.fs(63,34): error FS0001: This expression was expected to have type    'Result<string,string>'    but here has type    'AgentState' [C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\Tars.Metascript.fsproj]
+
+Build FAILED.
+
+C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\MetascriptTools.fs(21,36): error FS0039: The constructor, module or namespace 'Failure' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\Tars.Metascript.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\MetascriptTools.fs(21,60): error FS0001: All branches of a pattern match expression must return values implicitly convertible to the type of the first branch, which here is 'Result<string,string>'. This branch returns a value of type 'AgentState'. [C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\Tars.Metascript.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\MetascriptTools.fs(17,33): error FS0025: Incomplete pattern matches on this expression. [C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\Tars.Metascript.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\MetascriptTools.fs(23,34): error FS0001: This expression was expected to have type    'Result<string,string>'    but here has type    'AgentState' [C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\Tars.Metascript.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\MetascriptTools.fs(40,37): error FS0039: The value, constructor, namespace or type 'IsNullOrWhiteSpace' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\Tars.Metascript.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\MetascriptTools.fs(45,34): error FS0001: This expression was expected to have type    'Result<string,string>'    but here has type    'AgentState' [C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\Tars.Metascript.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\MetascriptTools.fs(61,44): error FS0001: All branches of a pattern match expression must return values implicitly convertible to the type of the first branch, which here is 'Result<string,'a>'. This branch returns a value of type 'AgentState'. [C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\Tars.Metascript.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\MetascriptTools.fs(63,34): error FS0001: This expression was expected to have type    'Result<string,string>'    but here has type    'AgentState' [C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\Tars.Metascript.fsproj]
+    0 Warning(s)
+    8 Error(s)
+
+Time Elapsed 00:00:03.41

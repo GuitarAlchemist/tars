@@ -123,3 +123,8 @@ type ToolRegistry() =
         | _ -> None
 
     member this.GetAll() = tools.Values |> Seq.toList
+
+    interface IToolRegistry with
+        member this.Register(tool: Tool) = this.Register(tool)
+        member this.Get(name: string) = this.Get(name)
+        member this.GetAll() = this.GetAll()

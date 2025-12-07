@@ -7,189 +7,12 @@ open Tars.Core
 open Tars.Cortex
 open Tars.Llm
 open Tars.Llm.LlmService
-open Tars.Tools
 open Domain
+open Config
 
-type TemporalGraph = Tars.Core.LegacyKnowledgeGraph.TemporalGraph
+type TemporalGraph = Tars.Core.TemporalKnowledgeGraph.TemporalGraph
 
 module Engine =
-
-    /// Metadata filter for retrieval
-    type MetadataFilter =
-        { Field: string
-          Operator: string // "eq", "ne", "contains", "gt", "lt", "gte", "lte"
-          Value: string }
-
-    /// Query type for routing
-    type QueryType =
-        | Factual // Direct fact lookup
-        | Analytical // Requires reasoning/analysis
-        | Conversational // Follow-up or contextual
-        | Keyword // Keyword-heavy search
-        | Unknown
-
-    /// Retrieval metrics for observability
-    type RetrievalMetrics =
-        { mutable TotalQueries: int64
-          mutable CacheHits: int64
-          mutable CacheMisses: int64
-          mutable TotalLatencyMs: int64
-          mutable AvgResultCount: float
-          mutable FallbackTriggered: int64
-          mutable CompressionApplied: int64 }
-
-        static member Create() =
-            { TotalQueries = 0L
-              CacheHits = 0L
-              CacheMisses = 0L
-              TotalLatencyMs = 0L
-              AvgResultCount = 0.0
-              FallbackTriggered = 0L
-              CompressionApplied = 0L }
-
-    /// Configuration for RAG (Retrieval Augmented Generation)
-    type RagConfig =
-        {
-            /// Collection name for storing/retrieving embeddings
-            CollectionName: string
-            /// Number of results to retrieve for context
-            TopK: int
-            /// Minimum similarity score (0.0-1.0) for including results
-            MinScore: float32
-            /// Whether to auto-index agent outputs
-            AutoIndex: bool
-            /// Max characters per stored chunk
-            MaxChunkChars: int
-            /// Max chunks per document to index
-            MaxChunks: int
-            /// Max characters to include in assembled context
-            MaxContextChars: int
-            /// Enable hybrid search (combine keyword + semantic)
-            EnableHybridSearch: bool
-            /// Weight for semantic score in hybrid search (0.0-1.0)
-            SemanticWeight: float32
-            /// Rerank results using LLM (slower but more accurate)
-            EnableReranking: bool
-            /// Use LLM to expand query with related terms
-            EnableQueryExpansion: bool
-            /// Number of expanded queries to generate
-            QueryExpansionCount: int
-            /// Enable multi-hop retrieval via knowledge graph
-            EnableMultiHop: bool
-            /// Max hops in knowledge graph traversal
-            MaxHops: int
-            /// Metadata filters to apply before scoring
-            MetadataFilters: MetadataFilter list
-            /// Cache embeddings to avoid recomputation
-            EnableEmbeddingCache: bool
-            /// Max cache entries
-            EmbeddingCacheSize: int
-            /// Enable async batching of embeddings
-            EnableAsyncBatching: bool
-            /// Batch size for async embedding
-            BatchSize: int
-            /// Use Reciprocal Rank Fusion to combine retrieval methods
-            EnableRRF: bool
-            /// RRF constant k (typically 60)
-            RRFConstant: int
-            // ===== NEW BATCH 2 OPTIONS =====
-            /// Use LLM to extract only relevant portions from retrieved docs
-            EnableContextualCompression: bool
-            /// Max chars to keep per doc after compression
-            CompressionMaxChars: int
-            /// Enable parent document retrieval (store small, retrieve large)
-            EnableParentDocRetrieval: bool
-            /// Collection name for parent documents
-            ParentCollectionName: string
-            /// Enable sentence window expansion
-            EnableSentenceWindow: bool
-            /// Number of sentences to expand on each side
-            SentenceWindowSize: int
-            /// Apply time decay to fresher documents
-            EnableTimeDecay: bool
-            /// Half-life for time decay in days (after this, score halves)
-            TimeDecayHalfLifeDays: float
-            /// Enable semantic chunking (vs fixed-size)
-            EnableSemanticChunking: bool
-            /// Min chars per semantic chunk
-            SemanticChunkMinChars: int
-            /// Max chars per semantic chunk
-            SemanticChunkMaxChars: int
-            /// Enable cross-encoder reranking (lighter than full LLM)
-            EnableCrossEncoder: bool
-            /// Cross-encoder model hint
-            CrossEncoderModel: string
-            /// Enable automatic query routing
-            EnableQueryRouting: bool
-            /// Enable answer attribution tracking
-            EnableAnswerAttribution: bool
-            /// Enable retrieval metrics collection
-            EnableMetrics: bool
-            /// Shared metrics instance
-            Metrics: RetrievalMetrics option
-            /// Enable fallback chain when results are insufficient
-            EnableFallbackChain: bool
-            /// Minimum results before triggering fallback
-            FallbackMinResults: int
-        }
-
-        static member Default =
-            { CollectionName = "tars_context"
-              TopK = 5
-              MinScore = 0.3f
-              AutoIndex = true
-              MaxChunkChars = 800
-              MaxChunks = 8
-              MaxContextChars = 4000
-              EnableHybridSearch = true
-              SemanticWeight = 0.7f
-              EnableReranking = false
-              EnableQueryExpansion = false
-              QueryExpansionCount = 3
-              EnableMultiHop = false
-              MaxHops = 2
-              MetadataFilters = []
-              EnableEmbeddingCache = true
-              EmbeddingCacheSize = 1000
-              EnableAsyncBatching = true
-              BatchSize = 10
-              EnableRRF = false
-              RRFConstant = 60
-              // Batch 2 defaults
-              EnableContextualCompression = false
-              CompressionMaxChars = 500
-              EnableParentDocRetrieval = false
-              ParentCollectionName = "tars_parents"
-              EnableSentenceWindow = false
-              SentenceWindowSize = 2
-              EnableTimeDecay = false
-              TimeDecayHalfLifeDays = 30.0
-              EnableSemanticChunking = false
-              SemanticChunkMinChars = 200
-              SemanticChunkMaxChars = 1000
-              EnableCrossEncoder = false
-              CrossEncoderModel = "fast"
-              EnableQueryRouting = false
-              EnableAnswerAttribution = false
-              EnableMetrics = false
-              Metrics = None
-              EnableFallbackChain = false
-              FallbackMinResults = 2 }
-
-    type MetascriptContext =
-        {
-            Llm: ILlmService
-            Tools: ToolRegistry
-            Budget: BudgetGovernor option
-            /// Vector store for RAG - optional for backward compatibility
-            VectorStore: IVectorStore option
-            /// Knowledge graph for relationship-based context
-            KnowledgeGraph: TemporalGraph option
-            /// Semantic Memory for long-term learning
-            SemanticMemory: ISemanticMemory option
-            /// RAG configuration
-            RagConfig: RagConfig
-        }
 
     let private resolveVariables (text: string) (state: WorkflowState) =
         let pattern = "\{\{([^}]+)\}\}"
@@ -277,69 +100,42 @@ module Engine =
 
         chunks |> Seq.take maxChunks |> Seq.toList
 
-    let private autoIndexContent
-        (ctx: MetascriptContext)
-        (stepId: string)
-        (outputName: string)
-        (content: string)
-        (metadata: Map<string, string>)
-        (notes: System.Collections.Generic.List<string>)
-        =
-        task {
-            if ctx.RagConfig.AutoIndex && not (String.IsNullOrWhiteSpace content) then
-                match ctx.VectorStore with
-                | Some vectorStore ->
-                    try
-                        let chunks =
-                            chunkContent content ctx.RagConfig.MaxChunkChars ctx.RagConfig.MaxChunks
 
-                        for idx, chunk in chunks |> List.indexed do
-                            let! embedding = ctx.Llm.EmbedAsync(chunk)
-
-                            let id =
-                                sprintf "%s_%s_%s_%d" stepId outputName (Guid.NewGuid().ToString("N").[..6]) idx
-
-                            let payload =
-                                metadata
-                                |> Map.add "content" chunk
-                                |> Map.add "stepId" stepId
-                                |> Map.add "outputName" outputName
-                                |> Map.add "chunkIndex" (string idx)
-                                |> Map.add "chunkTotal" (string chunks.Length)
-                                |> Map.add "timestamp" (DateTime.UtcNow.ToString("o"))
-
-                            do! vectorStore.SaveAsync(ctx.RagConfig.CollectionName, id, embedding, payload)
-
-                        notes.Add($"Auto-indexed {chunks.Length} chunk(s) from {stepId}/{outputName}")
-                    with ex ->
-                        notes.Add($"Auto-index failed: {ex.Message}")
-                | None -> ()
-        }
 
     /// Enriches context using the knowledge graph by finding related concepts
     let private enrichWithKnowledgeGraph
-        (kg: TemporalGraph option)
+        (kg: obj option) // TemporalGraph option
         (conceptHints: string list)
         (notes: System.Collections.Generic.List<string>)
         =
         match kg with
-        | Some graph ->
+        | Some kgObj ->
+            let graph = kgObj :?> TemporalGraph
+
             let related =
                 conceptHints
                 |> List.collect (fun hint ->
-                    let node = GraphNode.Concept hint
-                    let neighbors = graph.GetNeighbors(node)
+                    let node =
+                        TarsEntity.ConceptE
+                            { Name = hint
+                              Description = ""
+                              RelatedConcepts = [] }
 
-                    neighbors
-                    |> List.choose (fun (neighborNode, edge) ->
-                        match neighborNode with
-                        | GraphNode.Concept name ->
+                    let facts = graph.GetOutgoingFacts(node)
+
+                    facts
+                    |> List.choose (fun fact ->
+                        match TarsFact.target fact with
+                        | Some(TarsEntity.ConceptE c) ->
                             let weight =
-                                match edge with
-                                | GraphEdge.RelatesTo w -> w
+                                match fact with
+                                | TarsFact.SimilarTo(_, _, w) -> w
+                                | TarsFact.DependsOn(_, _, w) -> w
+                                | TarsFact.Implements(_, _, w) -> w
+                                | TarsFact.BelongsTo _ -> 0.8 // High relevance for community membership
                                 | _ -> 0.5
 
-                            Some(name, weight)
+                            Some(c.Name, weight)
                         | _ -> None)
                     |> List.filter (fun (_, w) -> w > 0.3))
                 |> List.distinctBy fst
@@ -655,7 +451,7 @@ module Engine =
     let private multiHopRetrieval
         (vectorStore: IVectorStore)
         (llm: ILlmService)
-        (kg: TemporalGraph option)
+        (kg: obj option) // TemporalGraph option
         (config: RagConfig)
         (query: string)
         (notes: System.Collections.Generic.List<string>)
@@ -663,28 +459,24 @@ module Engine =
         task {
             match kg with
             | None -> return []
-            | Some graph when not config.EnableMultiHop -> return []
-            | Some graph ->
+            | Some kgObj when not config.EnableMultiHop -> return []
+            | Some kgObj ->
+                let graph = kgObj :?> TemporalGraph
                 // Extract key concepts from query
                 let queryTerms =
                     query.ToLowerInvariant().Split([| ' '; ','; '.'; '?'; '!' |], StringSplitOptions.RemoveEmptyEntries)
                     |> Array.filter (fun t -> t.Length > 3) // Skip short words
-                    |> Array.map (fun t -> GraphNode.Concept t)
+                    |> Array.map (fun t ->
+                        TarsEntity.ConceptE
+                            { Name = t
+                              Description = ""
+                              RelatedConcepts = [] })
                     |> Array.toList
 
                 let mutable relatedConcepts = []
 
-                // Helper to extract name from GraphNode for deduplication
-                let nodeKey (node: GraphNode) =
-                    match node with
-                    | GraphNode.Concept name -> name
-                    | GraphNode.AgentNode id -> id.ToString()
-                    | GraphNode.FileNode path -> path
-                    | GraphNode.TaskNode id -> id.ToString()
-                    | GraphNode.BeliefNode(id, _) -> id.ToString()
-                    | GraphNode.ModuleNode name -> name
-                    | GraphNode.TypeNode name -> name
-                    | GraphNode.FunctionNode name -> name
+                // Helper to extract name from TarsEntity for deduplication
+                let nodeKey (node: TarsEntity) = TarsEntity.getId node
 
                 // Find related concepts via BFS up to MaxHops
                 let mutable visited = Set.empty<string>
@@ -700,22 +492,29 @@ module Engine =
 
                         if not (visited.Contains key) then
                             visited <- visited.Add key
-                            let neighbors = graph.GetNeighbors concept
+                            let neighbors = graph.GetOutgoingFacts(concept)
 
-                            for (neighbor, edge) in neighbors do
-                                let neighborKey = nodeKey neighbor
+                            for fact in neighbors do
+                                match TarsFact.target fact with
+                                | Some neighbor ->
+                                    let neighborKey = nodeKey neighbor
 
-                                let weight =
-                                    match edge with
-                                    | GraphEdge.RelatesTo w -> w
-                                    | _ -> 0.5
+                                    let weight =
+                                        match fact with
+                                        | TarsFact.SimilarTo(_, _, w) -> w
+                                        | TarsFact.DependsOn(_, _, w) -> w
+                                        | TarsFact.Implements(_, _, w) -> w
+                                        | TarsFact.BelongsTo _ -> 0.8
+                                        | TarsFact.DerivedFrom _ -> 0.7
+                                        | _ -> 0.0
 
-                                if weight > 0.3 && not (visited.Contains neighborKey) then
-                                    relatedConcepts <- (neighbor, weight, hop) :: relatedConcepts
+                                    if weight > 0.3 && not (visited.Contains neighborKey) then
+                                        relatedConcepts <- (neighbor, weight, hop) :: relatedConcepts
 
-                                    if not (nextFrontier.Contains neighborKey) then
-                                        nextFrontier <- nextFrontier.Add neighborKey
-                                        nextFrontierNodes <- neighbor :: nextFrontierNodes
+                                        if not (nextFrontier.Contains neighborKey) then
+                                            nextFrontier <- nextFrontier.Add neighborKey
+                                            nextFrontierNodes <- neighbor :: nextFrontierNodes
+                                | None -> ()
 
                     frontierNodes <- nextFrontierNodes
 
@@ -1009,6 +808,48 @@ module Engine =
 
             chunks |> List.rev
 
+    let private autoIndexContent
+        (ctx: MetascriptContext)
+        (stepId: string)
+        (outputName: string)
+        (content: string)
+        (metadata: Map<string, string>)
+        (notes: System.Collections.Generic.List<string>)
+        =
+        task {
+            if ctx.RagConfig.AutoIndex && not (String.IsNullOrWhiteSpace content) then
+                match ctx.VectorStore with
+                | Some vectorStore ->
+                    try
+                        let chunks =
+                            if ctx.RagConfig.EnableSemanticChunking then
+                                semanticChunk ctx.RagConfig content
+                            else
+                                chunkContent content ctx.RagConfig.MaxChunkChars ctx.RagConfig.MaxChunks
+
+                        for idx, chunk in chunks |> List.indexed do
+                            let! embedding = ctx.Llm.EmbedAsync(chunk)
+
+                            let id =
+                                sprintf "%s_%s_%s_%d" stepId outputName (Guid.NewGuid().ToString("N").[..6]) idx
+
+                            let payload =
+                                metadata
+                                |> Map.add "content" chunk
+                                |> Map.add "stepId" stepId
+                                |> Map.add "outputName" outputName
+                                |> Map.add "chunkIndex" (string idx)
+                                |> Map.add "chunkTotal" (string chunks.Length)
+                                |> Map.add "timestamp" (DateTime.UtcNow.ToString("o"))
+
+                            do! vectorStore.SaveAsync(ctx.RagConfig.CollectionName, id, embedding, payload)
+
+                        notes.Add($"Auto-indexed {chunks.Length} chunk(s) from {stepId}/{outputName}")
+                    with ex ->
+                        notes.Add($"Auto-index failed: {ex.Message}")
+                | None -> ()
+        }
+
     // ========== SENTENCE WINDOW RETRIEVAL ==========
     /// Expand retrieved content to include surrounding sentences
     let private expandSentenceWindow
@@ -1189,7 +1030,7 @@ module Engine =
     let private executeFallback
         (vectorStore: IVectorStore)
         (llm: ILlmService)
-        (kg: TemporalGraph option)
+        (kg: obj option) // TemporalGraph option
         (config: RagConfig)
         (query: string)
         (currentResults: (string * float32 * Map<string, string>) list)
@@ -1260,7 +1101,7 @@ module Engine =
             if total > 0L then
                 m.AvgResultCount <- (m.AvgResultCount * float (total - 1L) + float resultCount) / float total)
 
-    let executeStep
+    let rec executeStep
         (ctx: MetascriptContext)
         (step: WorkflowStep)
         (state: WorkflowState)
@@ -1740,10 +1581,43 @@ Instruction: %s"""
                     notes.Add("Retrieval: no vector store configured, skipping")
                     return (Map [ "context", box ""; "results", box []; "attributions", box [] ], List.ofSeq notes)
 
-            | _ -> return (Map.empty, List.ofSeq notes)
+            | unknownType ->
+                match ctx.MacroRegistry with
+                | Some registry ->
+                    let! macroOpt = registry.Get unknownType
+
+                    match macroOpt with
+                    | Some macroWorkflow ->
+                        notes.Add($"Executing macro '{unknownType}' as sub-workflow")
+
+                        // Resolve inputs for the macro
+                        let macroInputs =
+                            step.Params
+                            |> Option.defaultValue Map.empty
+                            |> Map.map (fun _ v -> resolveVariables v state |> box)
+
+                        // Recursively run the macro workflow
+                        try
+                            let! subState = run ctx macroWorkflow macroInputs
+
+                            // Return the variables from the sub-workflow as outputs
+                            let outputs = subState.Variables |> Map.map (fun k v -> v)
+
+                            notes.Add($"Macro '{unknownType}' completed with {outputs.Count} outputs")
+                            return (outputs, List.ofSeq notes)
+                        with ex ->
+                            notes.Add($"Macro '{unknownType}' failed: {ex.Message}")
+                            return! Task.FromException<Map<string, obj> * string list>(ex)
+
+                    | None ->
+                        notes.Add($"Unknown step type or missing macro: {unknownType}")
+                        return (Map.empty, List.ofSeq notes)
+                | None ->
+                    notes.Add($"Unknown step type '{unknownType}' and no MacroRegistry available")
+                    return (Map.empty, List.ofSeq notes)
         }
 
-    let run (ctx: MetascriptContext) (workflow: Workflow) (inputs: Map<string, obj>) =
+    and run (ctx: MetascriptContext) (workflow: Workflow) (inputs: Map<string, obj>) =
         task {
             let validated: Workflow =
                 match Tars.Metascript.Validation.validateWorkflow workflow with

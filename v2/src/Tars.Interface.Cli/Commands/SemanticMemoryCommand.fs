@@ -105,58 +105,58 @@ let run (config: IConfiguration) (args: string array) =
             printfn "Refinement complete."
             return 0
 
-        | [| "demo-perceptual" |] ->
-            AnsiConsole.MarkupLine("[bold cyan]Ingesting source code from 'src'...[/]")
-            let kg = TemporalKnowledgeGraph.TemporalGraph()
-            let srcDir = Path.Combine(Environment.CurrentDirectory, "src")
+        // | [| "demo-perceptual" |] ->
+        //     AnsiConsole.MarkupLine("[bold cyan]Ingesting source code from 'src'...[/]")
+        //     let kg = Tars.Core.LegacyKnowledgeGraph.TemporalGraph()
+        //     let srcDir = Path.Combine(Environment.CurrentDirectory, "src")
 
-            if Directory.Exists srcDir then
-                do! AstIngestor.ingestDirectory kg srcDir |> Async.StartAsTask
-                let cs = AstIngestor.extractCodeStructure kg
+        //     if Directory.Exists srcDir then
+        //         do! AstIngestor.ingestDirectory kg srcDir |> Async.StartAsTask
+        //         let cs = AstIngestor.extractCodeStructure kg
 
-                let table = Table()
-                table.AddColumn("Category") |> ignore
-                table.AddColumn("Count") |> ignore
-                table.AddRow("Modules", sprintf "%d" cs.Modules.Length) |> ignore
-                table.AddRow("Types", sprintf "%d" cs.Types.Length) |> ignore
-                table.AddRow("Functions", sprintf "%d" cs.Functions.Length) |> ignore
-                AnsiConsole.Write(table)
+        //         let table = Table()
+        //         table.AddColumn("Category") |> ignore
+        //         table.AddColumn("Count") |> ignore
+        //         table.AddRow("Modules", sprintf "%d" cs.Modules.Length) |> ignore
+        //         table.AddRow("Types", sprintf "%d" cs.Types.Length) |> ignore
+        //         table.AddRow("Functions", sprintf "%d" cs.Functions.Length) |> ignore
+        //         AnsiConsole.Write(table)
 
-                let trace: MemoryTrace =
-                    { TaskId = "perceptual-demo"
-                      Variables = Map [ "code_structure", box cs ]
-                      StepOutputs = Map.empty }
+        //         let trace: MemoryTrace =
+        //             { TaskId = "perceptual-demo"
+        //               Variables = Map [ "code_structure", box cs ]
+        //               StepOutputs = Map.empty }
 
-                AnsiConsole.MarkupLine("[bold yellow]Growing Semantic Memory...[/]")
-                let! id = kernel.SemanticMemory.Grow(trace, obj ())
-                AnsiConsole.MarkupLine(sprintf "[green]Created Memory Record: %s[/]" id)
+        //         AnsiConsole.MarkupLine("[bold yellow]Growing Semantic Memory...[/]")
+        //         let! id = kernel.SemanticMemory.Grow(trace, obj ())
+        //         AnsiConsole.MarkupLine(sprintf "[green]Created Memory Record: %s[/]" id)
 
-                // Show sample
-                let tree = Tree("Code Structure (Sample)")
-                let modNode = tree.AddNode("Modules")
+        //         // Show sample
+        //         let tree = Tree("Code Structure (Sample)")
+        //         let modNode = tree.AddNode("Modules")
 
-                cs.Modules
-                |> List.truncate 5
-                |> List.iter (fun m -> modNode.AddNode(m) |> ignore)
+        //         cs.Modules
+        //         |> List.truncate 5
+        //         |> List.iter (fun m -> modNode.AddNode(m) |> ignore)
 
-                if cs.Modules.Length > 5 then
-                    modNode.AddNode("...") |> ignore
+        //         if cs.Modules.Length > 5 then
+        //             modNode.AddNode("...") |> ignore
 
-                let typeNode = tree.AddNode("Types")
+        //         let typeNode = tree.AddNode("Types")
 
-                cs.Types
-                |> List.truncate 5
-                |> List.iter (fun t -> typeNode.AddNode(t) |> ignore)
+        //         cs.Types
+        //         |> List.truncate 5
+        //         |> List.iter (fun t -> typeNode.AddNode(t) |> ignore)
 
-                if cs.Types.Length > 5 then
-                    typeNode.AddNode("...") |> ignore
+        //         if cs.Types.Length > 5 then
+        //             typeNode.AddNode("...") |> ignore
 
-                AnsiConsole.Write(tree)
+        //         AnsiConsole.Write(tree)
 
-                return 0
-            else
-                AnsiConsole.MarkupLine("[red]Source directory not found.[/]")
-                return 1
+        //         return 0
+        //     else
+        //         AnsiConsole.MarkupLine("[red]Source directory not found.[/]")
+        //         return 1
 
         | [| "demo-chunking" |] ->
             AnsiConsole.MarkupLine("[bold cyan]Running Chunking Strategy Comparison...[/]")

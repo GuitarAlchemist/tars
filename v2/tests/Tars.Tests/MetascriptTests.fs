@@ -8,8 +8,11 @@ open Tars.Cortex
 open Tars.Core.LegacyKnowledgeGraph
 open Tars.Llm
 open Tars.Llm.LlmService
+open Tars.Metascript
+open Tars.Metascript.Config
 open Tars.Metascript.Domain
 open Tars.Metascript.Engine
+open Tars.Metascript.Templates
 open Tars.Metascript.Validation
 open Tars.Tools
 
@@ -90,6 +93,7 @@ type MetascriptTests() =
               VectorStore = None
               KnowledgeGraph = None
               SemanticMemory = None
+              MacroRegistry = None
               RagConfig = RagConfig.Default }
 
         let wf =
@@ -134,7 +138,8 @@ type MetascriptTests() =
               VectorStore = None
               KnowledgeGraph = None
               SemanticMemory = None
-              RagConfig = RagConfig.Default }
+              RagConfig = RagConfig.Default
+              MacroRegistry = None }
 
         let wf =
             { Name = "loop"
@@ -173,7 +178,8 @@ type MetascriptTests() =
               VectorStore = None
               KnowledgeGraph = None
               SemanticMemory = None
-              RagConfig = RagConfig.Default }
+              RagConfig = RagConfig.Default
+              MacroRegistry = None }
 
         let wf =
             { Name = "retrieval-test"
@@ -227,7 +233,8 @@ type MetascriptTests() =
               SemanticMemory = None
               RagConfig =
                 { RagConfig.Default with
-                    MinScore = 0.0f } }
+                    MinScore = 0.0f }
+              MacroRegistry = None }
 
         let wf =
             { Name = "retrieval-test"
@@ -256,11 +263,14 @@ type MetascriptTests() =
     [<Fact>]
     member _.``Knowledge graph enriches agent context``() =
         let llm = StubLlm("enriched response", 1) :> ILlmService
-        let kg = TemporalGraph()
+        let kg = TemporalKnowledgeGraph.TemporalGraph()
 
-        // Add some related concepts
-        kg.AddEdge(GraphNode.Concept "testing", GraphNode.Concept "unit testing", GraphEdge.RelatesTo 0.8)
-        kg.AddEdge(GraphNode.Concept "testing", GraphNode.Concept "integration", GraphEdge.RelatesTo 0.6)
+        // Add some related concepts using the new TarsFact-based API
+        let testingConcept = TarsEntity.ConceptE { Name = "testing"; Description = ""; RelatedConcepts = [] }
+        let unitTestConcept = TarsEntity.ConceptE { Name = "unit testing"; Description = ""; RelatedConcepts = [] }
+        let integrationConcept = TarsEntity.ConceptE { Name = "integration"; Description = ""; RelatedConcepts = [] }
+        kg.AddFact(TarsFact.SimilarTo(testingConcept, unitTestConcept, 0.8)) |> ignore
+        kg.AddFact(TarsFact.SimilarTo(testingConcept, integrationConcept, 0.6)) |> ignore
 
         let ctx =
             { Llm = llm
@@ -271,7 +281,8 @@ type MetascriptTests() =
               SemanticMemory = None
               RagConfig =
                 { RagConfig.Default with
-                    AutoIndex = false } }
+                    AutoIndex = false }
+              MacroRegistry = None }
 
         let wf =
             { Name = "kg-test"
@@ -337,7 +348,8 @@ type MetascriptTests() =
                     MetadataFilters =
                         [ { Field = "source"
                             Operator = "eq"
-                            Value = "sourceA" } ] } }
+                            Value = "sourceA" } ] }
+              MacroRegistry = None }
 
         let wf =
             { Name = "filter-test"
@@ -396,7 +408,8 @@ type MetascriptTests() =
                 { RagConfig.Default with
                     MinScore = 0.0f
                     EnableHybridSearch = true
-                    SemanticWeight = 0.5f } }
+                    SemanticWeight = 0.5f }
+              MacroRegistry = None }
 
         let wf =
             { Name = "hybrid-test"
@@ -433,22 +446,22 @@ type MetascriptTests() =
         Assert.Empty(config.MetadataFilters)
         Assert.True(config.EnableEmbeddingCache)
         Assert.Equal(1000, config.EmbeddingCacheSize)
-        Assert.True(config.EnableAsyncBatching)
+        Assert.False(config.EnableAsyncBatching)
         Assert.Equal(10, config.BatchSize)
         Assert.False(config.EnableRRF)
         Assert.Equal(60, config.RRFConstant)
         // Batch 2 defaults
         Assert.False(config.EnableContextualCompression)
-        Assert.Equal(500, config.CompressionMaxChars)
+        Assert.Equal(2000, config.CompressionMaxChars)
         Assert.False(config.EnableParentDocRetrieval)
-        Assert.Equal("tars_parents", config.ParentCollectionName)
+        Assert.Equal("tars_context_parents", config.ParentCollectionName)
         Assert.False(config.EnableSentenceWindow)
-        Assert.Equal(2, config.SentenceWindowSize)
+        Assert.Equal(1, config.SentenceWindowSize)
         Assert.False(config.EnableTimeDecay)
-        Assert.Equal(30.0, config.TimeDecayHalfLifeDays)
+        Assert.Equal(365.0, config.TimeDecayHalfLifeDays)
         Assert.False(config.EnableSemanticChunking)
-        Assert.Equal(200, config.SemanticChunkMinChars)
-        Assert.Equal(1000, config.SemanticChunkMaxChars)
+        Assert.Equal(100, config.SemanticChunkMinChars)
+        Assert.Equal(2000, config.SemanticChunkMaxChars)
         Assert.False(config.EnableCrossEncoder)
         Assert.Equal("fast", config.CrossEncoderModel)
         Assert.False(config.EnableQueryRouting)
@@ -456,7 +469,7 @@ type MetascriptTests() =
         Assert.False(config.EnableMetrics)
         Assert.True(config.Metrics.IsNone)
         Assert.False(config.EnableFallbackChain)
-        Assert.Equal(2, config.FallbackMinResults)
+        Assert.Equal(3, config.FallbackMinResults)
 
     [<Fact>]
     member _.``Time decay scoring reduces score for older documents``() =
@@ -495,6 +508,7 @@ type MetascriptTests() =
               VectorStore = Some vs
               KnowledgeGraph = None
               SemanticMemory = None
+              MacroRegistry = None
               RagConfig =
                 { RagConfig.Default with
                     MinScore = 0.0f
@@ -553,6 +567,7 @@ type MetascriptTests() =
               VectorStore = Some vs
               KnowledgeGraph = None
               SemanticMemory = None
+              MacroRegistry = None
               RagConfig =
                 { RagConfig.Default with
                     MinScore = 0.0f
@@ -608,6 +623,7 @@ type MetascriptTests() =
               VectorStore = Some vs
               KnowledgeGraph = None
               SemanticMemory = None
+              MacroRegistry = None
               RagConfig =
                 { RagConfig.Default with
                     MinScore = 0.0f
@@ -666,6 +682,7 @@ type MetascriptTests() =
               VectorStore = Some vs
               KnowledgeGraph = None
               SemanticMemory = None
+              MacroRegistry = None
               RagConfig =
                 { RagConfig.Default with
                     MinScore = 0.0f
@@ -726,7 +743,8 @@ type MetascriptTests() =
               VectorStore = None
               KnowledgeGraph = None
               SemanticMemory = Some memory
-              RagConfig = RagConfig.Default }
+              RagConfig = RagConfig.Default
+              MacroRegistry = None }
 
         let wf =
             { Name = "memory-test"

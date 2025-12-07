@@ -8,8 +8,8 @@ open System.Text.Json.Serialization
 open System.Threading.Tasks
 open FSharp.SystemTextJson
 
+[<Obsolete("Use Tars.Core.TemporalKnowledgeGraph instead")>]
 module LegacyKnowledgeGraph =
-
     type NodeId = string
 
     /// Get a stable ID for a GraphNode

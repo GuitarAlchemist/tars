@@ -113,6 +113,17 @@ type Tool =
         Execute: string -> Async<Result<string, string>>
     }
 
+    /// Helper to create a tool with a task-based execute function
+    static member Create
+        (name: string, description: string, execute: string -> System.Threading.Tasks.Task<Result<string, string>>)
+        =
+        { Name = name
+          Description = description
+          Version = "1.0.0"
+          ParentVersion = None
+          CreatedAt = DateTime.UtcNow
+          Execute = fun input -> execute input |> Async.AwaitTask }
+
 /// The current state of an agent in its lifecycle
 type AgentState =
     | Idle
@@ -137,8 +148,15 @@ type Agent =
       Memory: Message list } // Short-term memory/context
 
     member this.ReceiveMessage(msg: Message) =
+        // When receiving a new message while waiting for user, transition back to Idle
+        // so the agent will process the new message
+        let newState =
+            match this.State with
+            | WaitingForUser _ -> Idle
+            | other -> other
         { this with
-            Memory = this.Memory @ [ msg ] }
+            Memory = this.Memory @ [ msg ]
+            State = newState }
 
 /// The result of a kernel operation
 type KernelResult<'T> = Result<'T, string>

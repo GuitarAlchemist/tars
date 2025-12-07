@@ -24,12 +24,17 @@
     <Compile Include="SystemTools.fs" />
     <Compile Include="KnowledgeTools.fs" />
     <Compile Include="AutomationTools.fs" />
+    <Compile Include="ResilienceTools.fs" />
+    <Compile Include="MonitoringTools.fs" />
+    <Compile Include="AdvancedTools.fs" />
+    <Compile Include="MacroTools.fs" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Tars.Core\Tars.Core.fsproj" />
     <ProjectReference Include="..\Tars.Security\Tars.Security.fsproj" />
     <ProjectReference Include="..\Tars.Sandbox\Tars.Sandbox.fsproj" />
+    <ProjectReference Include="..\Tars.Metascript\Tars.Metascript.fsproj" />
   </ItemGroup>
 
 </Project>

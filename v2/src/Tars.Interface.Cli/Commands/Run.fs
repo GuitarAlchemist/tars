@@ -13,6 +13,7 @@ open Tars.Llm.LlmService
 open Tars.Metascript
 open Tars.Metascript.Domain
 open Tars.Metascript.Engine
+open Tars.Metascript.Config
 open System.Net.Http
 open Tars.Cortex
 
@@ -71,6 +72,7 @@ let execute (logger: ILogger) (scriptPath: string) =
                         | Result.Error _ -> return Array.empty<float32>
                     }
 
+
                 let kernel = KernelBootstrap.createKernel storageRoot embedder llmService
 
                 let metaCtx: MetascriptContext =
@@ -80,11 +82,13 @@ let execute (logger: ILogger) (scriptPath: string) =
                       VectorStore = None
                       KnowledgeGraph = None
                       SemanticMemory = Some kernel.SemanticMemory
-                      RagConfig = RagConfig.Default }
+                      RagConfig = RagConfig.Default
+                      MacroRegistry = None }
+
                 // Ingest Code Structure
                 let! codeStructureInput =
                     task {
-                        let kg = TemporalKnowledgeGraph.TemporalGraph()
+                        let kg = Tars.Core.LegacyKnowledgeGraph.TemporalGraph()
                         let srcDir = Path.Combine(Environment.CurrentDirectory, "src")
 
                         if Directory.Exists srcDir then

@@ -4,6 +4,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <IsPackable>false</IsPackable>
     <GenerateProgramFile>true</GenerateProgramFile>
+    <NoWarn>44;57</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -47,6 +48,7 @@
     <Compile Include="GrammarDistillationTests.fs" />
     <Compile Include="AnnVectorStoreTests.fs" />
     <Compile Include="PersistenceTests.fs" />
+    <Compile Include="TextNormalizerTests.fs" />
     <!-- <Compile Include="GraphitiTypesTests.fs" /> -->
   </ItemGroup>
 

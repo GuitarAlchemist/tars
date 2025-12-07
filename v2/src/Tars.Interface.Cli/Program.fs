@@ -113,17 +113,28 @@ let main argv =
         | [| "diag" |] -> return! Diagnostics.run logger
         | [| "diag"; "--verbose" |] -> return! Diagnostics.runWithVerbose logger true
         | [| "diag"; "--arch" |] -> return! Diagnostics.runWithArch logger
+
         | args when args.Length > 0 && args.[0] = "demo-rag" ->
             let options = parseRagOptions args
             return! RagDemo.runWithOptions logger options
+
+        | [| "macro-demo" |] -> return! Commands.MacroDemo.run logger
+
+        // Config commands
+        | args when args.Length > 0 && args.[0] = "config" ->
+            let configArgs = args |> Array.skip 1 |> Array.toList
+            return! Config.run configArgs
+
         | [| "chat" |] ->
             Tui.showSplashScreen ()
             return! Chat.run logger
+
         | args when args.Length > 0 && args.[0] = "evolve" ->
             let mutable options: Evolve.EvolveOptions =
                 { MaxIterations = 5
                   Quiet = false
                   DemoMode = false
+                  Verbose = false
                   Model = None
                   Trace = false }
 
@@ -143,6 +154,8 @@ let main argv =
                         printfn "Invalid number for --max-iterations"
                 | "--quiet" -> options <- { options with Quiet = true }
                 | "--demo" -> options <- { options with DemoMode = true }
+                | "--verbose"
+                | "-v" -> options <- { options with Verbose = true }
                 | "--trace" -> options <- { options with Trace = true }
                 | "--model" when i + 1 < args.Length ->
                     i <- i + 1
@@ -225,6 +238,10 @@ let main argv =
             printfn "       show <id>                   Show entry details"
             printfn "       add --title --content       Add new entry"
             printfn "       delete <id>                 Delete entry"
+            printfn "  tars config [command]            Manage LLM configuration"
+            printfn "       show                        Show current configuration"
+            printfn "       set <key> <value>           Set configuration value"
+            printfn "       test                        Test LLM connection"
             printfn "  tars experiment                  Run an A/B testing experiment"
             return 1
     }

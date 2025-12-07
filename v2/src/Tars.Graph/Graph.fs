@@ -443,8 +443,12 @@ module GraphRuntime =
                                     State = WaitingForUser "Error: Empty multi-tool call." }
                                 |> Success
                     | ResponseParser.TextResponse responseText ->
+                        // Record the assistant's response in memory so the conversation history is preserved
+                        let msg = createMessage (MessageEndpoint.Agent agent.Id) responseText
+                        let newMemory = agent.Memory @ [ msg ]
                         return
                             { agent with
+                                Memory = newMemory
                                 State = WaitingForUser responseText }
                             |> Success
                     | ResponseParser.SpeechAct(perf, content) ->

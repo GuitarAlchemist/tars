@@ -41,3 +41,12 @@ type IEpistemicGovernor =
 
     /// <summary>Retrieves relevant code context from the knowledge graph.</summary>
     abstract member GetRelatedCodeContext: query: string -> Task<string>
+
+/// Registry for managing tools
+type IToolRegistry =
+    /// Register a tool
+    abstract member Register: tool: Tool -> unit
+    /// Get a tool by name
+    abstract member Get: name: string -> Tool option
+    /// Get all registered tools
+    abstract member GetAll: unit -> Tool list

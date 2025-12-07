@@ -1,0 +1,10 @@
+[23:47:55 INF] Starting TARS v2 Evolution Engine...
+[23:47:55 INF] Starting TARS v2 Evolution Engine...
+Evolution failed: SuggestCurriculum timeout
+[23:48:13 ERR] Evolution Engine Failed
+System.TimeoutException: SuggestCurriculum timeout
+   at <StartupCode$Tars-Cortex>.$EpistemicGovernor.Tars-Core-IEpistemicGovernor-SuggestCurriculum@307-1.MoveNext() in C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\EpistemicGovernor.fs:line 316
+   at <StartupCode$Tars-Cortex>.$EpistemicGovernor.Tars-Core-IEpistemicGovernor-SuggestCurriculum@261.MoveNext() in C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\EpistemicGovernor.fs:line 306
+   at Tars.Evolution.Engine.generateTask@44.MoveNext() in C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Engine.fs:line 61
+   at Tars.Evolution.Engine.step@489.MoveNext() in C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Engine.fs:line 603
+   at Tars.Interface.Cli.Commands.Evolve.run@100-6.MoveNext() in C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\Evolve.fs:line 361

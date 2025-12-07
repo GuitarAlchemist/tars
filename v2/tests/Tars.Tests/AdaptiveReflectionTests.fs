@@ -82,7 +82,9 @@ module AdaptiveReflectionTests =
                   KnowledgeBase = None
                   KnowledgeGraph = None
                   MemoryBuffer = None
-                  Logger = fun _ -> () }
+                  Logger = fun _ -> ()
+                  Verbose = false
+                  ShowSemanticMessage = fun _ _ -> () }
 
             let taskDef =
                 { Id = Guid.NewGuid()
@@ -161,7 +163,9 @@ module AdaptiveReflectionTests =
                   KnowledgeBase = None
                   KnowledgeGraph = None
                   MemoryBuffer = None
-                  Logger = fun _ -> () }
+                  Logger = fun _ -> ()
+                  Verbose = false
+                  ShowSemanticMessage = fun _ _ -> () }
 
             let taskDef =
                 { Id = Guid.NewGuid()

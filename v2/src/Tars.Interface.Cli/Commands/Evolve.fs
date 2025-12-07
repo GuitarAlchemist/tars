@@ -224,7 +224,19 @@ let run (logger: ILogger) (options: EvolveOptions) =
               "format_json"
               "hash_text"
               "base64_encode"
-              "base64_decode" ]
+              "base64_decode"
+              // Phase 21: Advanced Tools
+              "retry_with_backoff"
+              "reset_retry"
+              "circuit_breaker"
+              "cache_set"
+              "cache_get"
+              "cache_clear"
+              "cache_stats"
+              "record_metric"
+              "get_metrics"
+              "health_check"
+              "report_status" ]
             |> List.choose toolRegistry.Get
 
         let executorAgent =

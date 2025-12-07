@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>57</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,6 +15,7 @@
     <Compile Include="Tracing.fs" />
     <Compile Include="TraceRecorder.fs" />
     <Compile Include="Metrics.fs" />
+    <Compile Include="Resilience.fs" />
     <Compile Include="Validation.fs" />
     <Compile Include="GrammarDistill.fs" />
     <Compile Include="OutputGuard.fs" />
@@ -28,6 +30,7 @@
     <Compile Include="PatternRecognition.fs" />
     <Compile Include="GrammarDistillation.fs" />
     <Compile Include="KnowledgeGraph.fs" />
+    <Compile Include="TextNormalizer.fs" />
     <Compile Include="SemanticSerialization.fs" />
     <Compile Include="Execution.fs" />
   </ItemGroup>
