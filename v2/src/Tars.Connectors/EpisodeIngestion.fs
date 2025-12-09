@@ -82,6 +82,27 @@ let toGraphitiEpisode (episode: Episode) : EpisodeDto =
           SourceDescription = Some $"Pattern detection at {location}"
           ReferenceTime = Some ts }
 
+/// Convert TARS Episode to Graphiti MessageDto (for /messages endpoint)
+let toGraphitiMessage (episode: Episode) : MessageDto =
+    let content, roleType, role, sourceDesc, ts =
+        match episode with
+        | Episode.AgentInteraction(agentId, input, output, ts) ->
+            $"User: {input}\n\nAgent: {output}", "assistant", agentId, Some "agent_interaction", ts
+        | Episode.CodeChange(file, _, author, ts) -> $"Code change in {file}", "system", author, Some "code_change", ts
+        | Episode.Reflection(agentId, content, ts) -> content, "assistant", agentId, Some "reflection", ts
+        | Episode.UserMessage(content, _, ts) -> content, "user", "user", Some "user_message", ts
+        | Episode.ToolCall(name, _, result, ts) -> $"Tool {name}: {result}", "system", "tool", Some "tool_call", ts
+        | Episode.BeliefUpdate(agentId, belief, _, ts) -> belief, "assistant", agentId, Some "belief_update", ts
+        | Episode.PatternDetected(patternType, location, _, ts) ->
+            $"{patternType} at {location}", "system", "pattern_detector", Some "pattern", ts
+
+    { Content = content
+      RoleType = roleType
+      Role = role
+      Timestamp = Some ts
+      SourceDescription = sourceDesc
+      Uuid = None }
+
 /// Episode ingestion service that manages sync with Graphiti
 type EpisodeIngestionService(config: IngestionConfig) =
     let client = new GraphitiClient(Uri(config.GraphitiUrl))
@@ -105,31 +126,23 @@ type EpisodeIngestionService(config: IngestionConfig) =
             if episodesToFlush.Length = 0 then
                 return Ok 0
             else
-                let mutable successCount = 0
-                let mutable errors = ResizeArray<string>()
+                // Convert episodes to messages and send in batch
+                let messages = episodesToFlush |> Array.map toGraphitiMessage
+                let! result = client.AddMessagesAsync("tars", messages)
 
-                for episode in episodesToFlush do
-                    let dto = toGraphitiEpisode episode
-                    let! result = client.AddEpisodeAsync(dto)
-
-                    match result with
-                    | Ok _ -> successCount <- successCount + 1
-                    | Error err -> errors.Add(err)
-
-                totalIngested <- totalIngested + successCount
-                lastFlush <- DateTime.UtcNow
-
-                if errors.Count > 0 then
-                    return Error(String.concat "; " errors)
-                else
-                    return Ok successCount
+                match result with
+                | Ok _ ->
+                    totalIngested <- totalIngested + messages.Length
+                    lastFlush <- DateTime.UtcNow
+                    return Ok messages.Length
+                | Error err -> return Error err
         }
 
     /// Ingest a single episode immediately
     member _.IngestAsync(episode: Episode) : Task<Result<unit, string>> =
         task {
-            let dto = toGraphitiEpisode episode
-            let! result = client.AddEpisodeAsync(dto)
+            let message = toGraphitiMessage episode
+            let! result = client.AddMessagesAsync("tars", [| message |])
 
             match result with
             | Ok _ ->

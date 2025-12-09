@@ -27,6 +27,31 @@ type EpisodeDto =
       [<JsonPropertyName("reference_time")>]
       ReferenceTime: DateTime option }
 
+/// Message for Graphiti /messages endpoint
+[<CLIMutable>]
+type MessageDto =
+    { [<JsonPropertyName("content")>]
+      Content: string
+      [<JsonPropertyName("role_type")>]
+      RoleType: string // "user", "assistant", "system"
+      [<JsonPropertyName("role")>]
+      Role: string // Custom role name
+      [<JsonPropertyName("timestamp")>]
+      Timestamp: DateTime option
+      [<JsonPropertyName("source_description")>]
+      SourceDescription: string option
+      [<JsonPropertyName("uuid")>]
+      Uuid: string option }
+
+/// Request to add messages to Graphiti
+[<CLIMutable>]
+type AddMessagesRequestDto =
+    { [<JsonPropertyName("group_id")>]
+      GroupId: string
+      [<JsonPropertyName("messages")>]
+      Messages: MessageDto array }
+
+
 /// Entity extracted from episodes
 [<CLIMutable>]
 type EntityDto =
@@ -147,6 +172,42 @@ type GraphitiClient(baseUri: Uri, ?httpClient: HttpClient) =
             with ex ->
                 return Error ex.Message
         }
+
+    /// Add messages to the knowledge graph (primary ingestion endpoint)
+    member _.AddMessagesAsync(groupId: string, messages: MessageDto array) : Task<Result<string, string>> =
+        task {
+            try
+                let uri = Uri(baseUri, "/messages")
+
+                let request =
+                    { GroupId = groupId
+                      Messages = messages }
+
+                let! response = client.PostAsJsonAsync(uri, request, jsonOptions)
+
+                if response.IsSuccessStatusCode then
+                    let! content = response.Content.ReadAsStringAsync()
+                    return Ok content
+                else
+                    let! error = response.Content.ReadAsStringAsync()
+                    return Error $"Add messages failed: {response.StatusCode} - {error}"
+            with ex ->
+                return Error ex.Message
+        }
+
+    /// Add a single message (convenience wrapper)
+    member this.AddMessageAsync
+        (groupId: string, content: string, roleType: string, role: string)
+        : Task<Result<string, string>> =
+        let message =
+            { Content = content
+              RoleType = roleType
+              Role = role
+              Timestamp = Some DateTime.UtcNow
+              SourceDescription = None
+              Uuid = None }
+
+        this.AddMessagesAsync(groupId, [| message |])
 
     /// Search the knowledge graph using hybrid search (semantic + BM25 + graph)
     member _.SearchAsync
