@@ -13,6 +13,7 @@ open Tars.Llm
 open Tars.Llm.Routing
 open Tars.Llm.LlmService
 open Tars.Security
+open Tars.Connectors.EpisodeIngestion
 
 type AuthRequest = { email: string; password: string }
 type AuthResponse = { token: string }
@@ -33,6 +34,25 @@ let run (logger: ILogger) : Task<int> =
         match CredentialVault.loadSecretsFromDisk secretsPath with
         | Result.Ok() -> logger.Information("Secrets loaded successfully")
         | Result.Error err -> logger.Warning("Could not load secrets: {Error}", err)
+
+        // Initialize Graphiti episode ingestion (captures conversations to knowledge graph)
+        let graphitiUrl =
+            match System.Environment.GetEnvironmentVariable("GRAPHITI_URL") with
+            | null
+            | "" -> "http://localhost:8001"
+            | url -> url
+
+        use episodeService = createServiceWithUrl graphitiUrl
+        let mutable ingestionEnabled = false
+
+        // Check if Graphiti is available
+        let! healthResult = episodeService.HealthCheckAsync()
+
+        match healthResult with
+        | Result.Ok status ->
+            logger.Information("Graphiti knowledge graph connected: {Status}", status)
+            ingestionEnabled <- true
+        | Result.Error _ -> logger.Debug("Graphiti not available - episode capture disabled")
 
         let agent =
             Tars.Kernel.AgentFactory.create
@@ -249,6 +269,16 @@ let run (logger: ILogger) : Task<int> =
                     | WaitingForUser prompt ->
                         AnsiConsole.MarkupLine($"[bold cyan]TARS>[/] {Markup.Escape(prompt)}")
                         AnsiConsole.WriteLine()
+
+                        // Capture episode to Graphiti knowledge graph
+                        if ingestionEnabled then
+                            let episode =
+                                Tars.Core.Episode.AgentInteraction("TARS", input, prompt, DateTime.UtcNow)
+
+                            episodeService.Queue(episode)
+                            let! _ = episodeService.FlushAsync()
+                            ()
+
                     | AgentState.Error err ->
                         AnsiConsole.MarkupLine($"[bold red]Agent Error: {Markup.Escape(err)}[/]")
                         logger.Error("Agent Error: {Error}", err)

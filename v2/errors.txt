@@ -1,23 +1,20 @@
   Determining projects to restore...
   All projects are up-to-date for restore.
-  Tars.Core -> C:\Users\spare\source\repos\tars\v2\src\Tars.Core\bin\Debug\net10.0\Tars.Core.dll
   Tars.Security -> C:\Users\spare\source\repos\tars\v2\src\Tars.Security\bin\Debug\net10.0\Tars.Security.dll
-C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\EpisodeIngestion.fs(115,23): error FS0001: This expression was expected to have type    'Result<string,string>'    but here has type    'AgentState' [C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\Tars.Connectors.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\EpisodeIngestion.fs(113,27): error FS0025: Incomplete pattern matches on this expression. [C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\Tars.Connectors.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\EpisodeIngestion.fs(121,28): error FS0001: All branches of an 'if' expression must return values implicitly convertible to the type of the first branch, which here is 'Result<int,string>'. This branch returns a value of type 'AgentState'. [C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\Tars.Connectors.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\EpisodeIngestion.fs(136,15): error FS0001: This expression was expected to have type    'Result<string,string>'    but here has type    'AgentState' [C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\Tars.Connectors.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\EpisodeIngestion.fs(136,35): error FS0001: All branches of a pattern match expression must return values implicitly convertible to the type of the first branch, which here is 'Result<unit,'a>'. This branch returns a value of type 'AgentState'. [C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\Tars.Connectors.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\EpisodeIngestion.fs(132,19): error FS0025: Incomplete pattern matches on this expression. [C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\Tars.Connectors.fsproj]
+  Tars.Core -> C:\Users\spare\source\repos\tars\v2\src\Tars.Core\bin\Debug\net10.0\Tars.Core.dll
+  Tars.Sandbox -> C:\Users\spare\source\repos\tars\v2\src\Tars.Sandbox\bin\Debug\net10.0\Tars.Sandbox.dll
+  Tars.Connectors -> C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\bin\Debug\net10.0\Tars.Connectors.dll
+  Tars.Llm -> C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\bin\Debug\net10.0\Tars.Llm.dll
+  Tars.Kernel -> C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\bin\Debug\net10.0\Tars.Kernel.dll
+  Tars.Cortex -> C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\bin\Debug\net10.0\Tars.Cortex.dll
+  Tars.Metascript -> C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\bin\Debug\net10.0\Tars.Metascript.dll
+  Tars.Tools -> C:\Users\spare\source\repos\tars\v2\src\Tars.Tools\bin\Debug\net10.0\Tars.Tools.dll
+  Tars.Graph -> C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\bin\Debug\net10.0\Tars.Graph.dll
+  Tars.Evolution -> C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\bin\Debug\net10.0\Tars.Evolution.dll
+  Tars.Interface.Cli -> C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\bin\Debug\net10.0\Tars.Interface.Cli.dll
 
-Build FAILED.
-
-C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\EpisodeIngestion.fs(115,23): error FS0001: This expression was expected to have type    'Result<string,string>'    but here has type    'AgentState' [C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\Tars.Connectors.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\EpisodeIngestion.fs(113,27): error FS0025: Incomplete pattern matches on this expression. [C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\Tars.Connectors.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\EpisodeIngestion.fs(121,28): error FS0001: All branches of an 'if' expression must return values implicitly convertible to the type of the first branch, which here is 'Result<int,string>'. This branch returns a value of type 'AgentState'. [C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\Tars.Connectors.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\EpisodeIngestion.fs(136,15): error FS0001: This expression was expected to have type    'Result<string,string>'    but here has type    'AgentState' [C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\Tars.Connectors.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\EpisodeIngestion.fs(136,35): error FS0001: All branches of a pattern match expression must return values implicitly convertible to the type of the first branch, which here is 'Result<unit,'a>'. This branch returns a value of type 'AgentState'. [C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\Tars.Connectors.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\EpisodeIngestion.fs(132,19): error FS0025: Incomplete pattern matches on this expression. [C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\Tars.Connectors.fsproj]
+Build succeeded.
     0 Warning(s)
-    6 Error(s)
+    0 Error(s)
 
-Time Elapsed 00:00:02.78
+Time Elapsed 00:00:34.14
