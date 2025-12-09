@@ -10,6 +10,7 @@ open Tars.Llm.LlmService
 open System.Text.Json
 open Tars.Kernel
 open Tars.Cortex
+open Tars.Connectors.EpisodeIngestion
 
 module Engine =
 
@@ -31,6 +32,7 @@ module Engine =
           KnowledgeBase: KnowledgeBase option
           KnowledgeGraph: obj option // Tars.Core.LegacyKnowledgeGraph.TemporalGraph option
           MemoryBuffer: BufferAgent<MemoryItem> option // Added Capacitor
+          EpisodeService: EpisodeIngestionService option // Graphiti integration
           Logger: string -> unit
           Verbose: bool
           ShowSemanticMessage: Message -> bool -> unit }
@@ -668,6 +670,22 @@ Please fix the solution based on this feedback. Output the IMPROVED solution."""
 
                     // Display task completion with generated solution
                     DemoVisualization.showTaskComplete result.Success result.Output result.Duration
+
+                    // Capture episode to Graphiti knowledge graph
+                    match ctx.EpisodeService with
+                    | Some svc ->
+                        let episode =
+                            Tars.Core.Episode.AgentInteraction(
+                                "Evolution",
+                                taskDef.Goal,
+                                (if result.Success then "SUCCESS: " else "FAILED: ") + result.Output,
+                                DateTime.UtcNow
+                            )
+
+                        svc.Queue(episode)
+                        let! _ = svc.FlushAsync()
+                        ()
+                    | None -> ()
 
                     return
                         { state with

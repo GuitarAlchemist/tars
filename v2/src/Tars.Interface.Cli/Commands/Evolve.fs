@@ -15,6 +15,7 @@ open Tars.Llm.Routing
 open Tars.Llm.LlmService
 open Tars.Cortex
 open Tars.Security
+open Tars.Connectors.EpisodeIngestion
 
 type EvolveOptions =
     { MaxIterations: int
@@ -457,6 +458,7 @@ let run (logger: ILogger) (options: EvolveOptions) =
                   KnowledgeBase = Some knowledgeBase
                   KnowledgeGraph = None // Some knowledgeGraph
                   MemoryBuffer = Some memoryBuffer
+                  EpisodeService = None // Graphiti integration - set via env if available
                   Logger = fun s -> logger.Information("{Evolution}", s)
                   Verbose = options.Verbose
                   ShowSemanticMessage = DemoVisualization.showSemanticMessage }
