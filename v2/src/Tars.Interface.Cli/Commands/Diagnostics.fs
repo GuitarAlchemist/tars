@@ -524,7 +524,7 @@ let private listDockerContainers () =
 
 /// <summary>Check for presence of key TARS infra containers.</summary>
 let private checkTarsInfraContainers (containers: (string * string) list) =
-    let required = [ "graphiti"; "chroma"; "postgres"; "redis"; "ollama" ]
+    let required = [ "graphiti"; "neo4j"; "chroma"; "postgres"; "redis"; "ollama" ]
 
     required
     |> List.map (fun name ->

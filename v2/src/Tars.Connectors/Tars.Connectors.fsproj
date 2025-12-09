@@ -10,6 +10,8 @@
     <Compile Include="Mcp\McpTransport.fs" />
     <Compile Include="Mcp\McpClient.fs" />
     <Compile Include="Mcp\McpToolAdapter.fs" />
+    <Compile Include="Graphiti.fs" />
+    <Compile Include="EpisodeIngestion.fs" />
     <Compile Include="Ollama.fs" />
     <Compile Include="OpenAiCompatible.fs" />
     <Compile Include="OpenWebUi.fs" />
