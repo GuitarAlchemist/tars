@@ -168,6 +168,7 @@ module EvolutionTests =
               KnowledgeBase = None
               KnowledgeGraph = None
               MemoryBuffer = None
+              EpisodeService = None // Graphiti integration
               Logger = fun _ -> ()
               Verbose = false
               ShowSemanticMessage = fun _ _ -> () }
