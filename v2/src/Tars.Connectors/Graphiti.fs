@@ -131,10 +131,11 @@ type GraphitiClient(baseUri: Uri, ?httpClient: HttpClient) =
         }
 
     /// Add a new episode (raw data) to the knowledge graph
-    member _.AddEpisodeAsync(episode: EpisodeDto) : Task<Result<string, string>> =
+    member _.AddEpisodeAsync(episode: EpisodeDto, ?groupId: string) : Task<Result<string, string>> =
         task {
             try
-                let uri = Uri(baseUri, "/v1/episodes")
+                let gid = defaultArg groupId "tars"
+                let uri = Uri(baseUri, $"/episodes/{gid}")
                 let! response = client.PostAsJsonAsync(uri, episode, jsonOptions)
 
                 if response.IsSuccessStatusCode then
@@ -153,7 +154,7 @@ type GraphitiClient(baseUri: Uri, ?httpClient: HttpClient) =
         : Task<Result<SearchResultDto list, string>> =
         task {
             try
-                let uri = Uri(baseUri, "/v1/search")
+                let uri = Uri(baseUri, "/search")
 
                 let request =
                     { Query = query
@@ -176,7 +177,7 @@ type GraphitiClient(baseUri: Uri, ?httpClient: HttpClient) =
     member _.GetEntitiesAsync() : Task<Result<EntityDto list, string>> =
         task {
             try
-                let uri = Uri(baseUri, "/v1/entities")
+                let uri = Uri(baseUri, "/entity-node")
                 let! response = client.GetAsync(uri)
 
                 if response.IsSuccessStatusCode then
