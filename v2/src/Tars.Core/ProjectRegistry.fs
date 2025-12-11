@@ -116,22 +116,80 @@ type ProjectRegistry() =
             Result.Error $"Failed to load projects: {ex.Message}"
 
 // ============================================================================
-// Global Registry Instance
+// Storage Location
 // ============================================================================
 
-/// Default global project registry
-let defaultRegistry = ProjectRegistry()
+/// Get the default projects home directory
+let getProjectsHome () =
+    let tarsHome =
+        match Environment.GetEnvironmentVariable("TARS_HOME") with
+        | null
+        | "" -> Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".tars")
+        | path -> path
+
+    Path.Combine(tarsHome, "projects")
+
+/// Ensure projects directory exists
+let ensureProjectsDir () =
+    let dir = getProjectsHome ()
+
+    if not (Directory.Exists dir) then
+        Directory.CreateDirectory dir |> ignore
+
+    dir
+
+// ============================================================================
+// Global Registry Instance with Auto-Persistence
+// ============================================================================
+
+/// Default global project registry with persistence
+let defaultRegistry =
+    let registry = ProjectRegistry()
+    // Auto-load on startup
+    let projectsDir = getProjectsHome ()
+
+    if Directory.Exists projectsDir then
+        registry.LoadFromDirectory(projectsDir) |> ignore
+
+    registry
+
+/// Save all projects to disk
+let saveProjects () =
+    let dir = ensureProjectsDir ()
+    defaultRegistry.SaveToDirectory(dir)
+
+/// Save a single project to disk
+let saveProject (project: Project) =
+    let dir = ensureProjectsDir ()
+    let path = Path.Combine(dir, $"{project.Id}.json")
+
+    let opts =
+        JsonSerializerOptions(WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase)
+
+    opts.Converters.Add(System.Text.Json.Serialization.JsonFSharpConverter())
+    let json = JsonSerializer.Serialize(project, opts)
+    File.WriteAllText(path, json)
+
+/// Delete project file from disk
+let deleteProjectFile (id: string) =
+    let dir = getProjectsHome ()
+    let path = Path.Combine(dir, $"{id}.json")
+
+    if File.Exists path then
+        File.Delete path
 
 // ============================================================================
 // Convenience Functions
 // ============================================================================
 
-/// Create and register a new project
+/// Create and register a new project (with auto-save)
 let createAndRegister id name rootPath template mode =
     let project = createProject id name rootPath template mode
 
     match defaultRegistry.Register project with
-    | Result.Ok() -> Result.Ok project
+    | Result.Ok() ->
+        saveProject project // Auto-save to disk
+        Result.Ok project
     | Result.Error e -> Result.Error e
 
 /// Get a project by ID
