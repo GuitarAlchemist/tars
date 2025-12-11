@@ -33,7 +33,13 @@ let run (config: Microsoft.Extensions.Configuration.IConfiguration) (prompt: str
                   DefaultOpenAIModel = "gpt-4o"
                   DefaultGoogleGeminiModel = "gemini-pro"
                   DefaultAnthropicModel = "claude-3-opus-20240229"
-                  DefaultEmbeddingModel = "nomic-embed-text" }
+                  DefaultEmbeddingModel = "nomic-embed-text"
+
+                  OllamaKey = None
+                  VllmKey = None
+                  OpenAIKey = None
+                  GoogleGeminiKey = None
+                  AnthropicKey = None }
 
             let svcCfg: LlmServiceConfig = { Routing = routingCfg }
 

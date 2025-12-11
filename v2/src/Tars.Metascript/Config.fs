@@ -165,15 +165,14 @@ module Config =
               EnableMetrics = false
               Metrics = None
               EnableFallbackChain = false
-              FallbackMinResults = 3
-        }
+              FallbackMinResults = 3 }
 
     type MetascriptContext =
         { Llm: ILlmService
           Tools: IToolRegistry
           Budget: BudgetGovernor option
           VectorStore: IVectorStore option
-          KnowledgeGraph: obj option // TemporalGraph option
+          KnowledgeGraph: Tars.Core.TemporalKnowledgeGraph.TemporalGraph option
           SemanticMemory: ISemanticMemory option
           RagConfig: RagConfig
           MacroRegistry: IMacroRegistry option }

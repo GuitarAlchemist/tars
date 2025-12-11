@@ -30,6 +30,9 @@
     <Compile Include="PatternRecognition.fs" />
     <Compile Include="GrammarDistillation.fs" />
     <Compile Include="KnowledgeGraph.fs" />
+    <Compile Include="BeliefGraph.fs" />
+    <Compile Include="Gates.fs" />
+    <Compile Include="BoundedChannel.fs" />
     <Compile Include="TextNormalizer.fs" />
     <Compile Include="SemanticSerialization.fs" />
     <Compile Include="Execution.fs" />

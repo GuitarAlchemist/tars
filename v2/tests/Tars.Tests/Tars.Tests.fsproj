@@ -20,6 +20,7 @@
     <Compile Include="EvolutionTests.fs" />
     <Compile Include="ExecutionTests.fs" />
     <Compile Include="MetascriptTests.fs" />
+    <Compile Include="FluxTests.fs" />
     <Compile Include="GraphTests.fs" />
     <Compile Include="RouterTests.fs" />
     <Compile Include="EpistemicGovernorTests.fs" />
@@ -34,6 +35,7 @@
     <Compile Include="SandboxTests.fs" />
     <Compile Include="SecurityTests.fs" />
     <Compile Include="ToolTests.fs" />
+    <Compile Include="MacroToolsTests.fs" />
     <Compile Include="VectorStoreTests.fs" />
     <Compile Include="OutputGuardTests.fs" />
     <Compile Include="OutputGuardLlmTests.fs" />
@@ -49,6 +51,9 @@
     <Compile Include="AnnVectorStoreTests.fs" />
     <Compile Include="PersistenceTests.fs" />
     <Compile Include="TextNormalizerTests.fs" />
+    <Compile Include="RoadmapTests.fs" />
+    <Compile Include="CognitivePatternTests.fs" />
+    <Compile Include="SelfReflectionTests.fs" />
     <!-- <Compile Include="GraphitiTypesTests.fs" /> -->
   </ItemGroup>
 

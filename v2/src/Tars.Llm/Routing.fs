@@ -35,7 +35,22 @@ type RoutingConfig =
         DefaultAnthropicModel: string
         /// <summary>Default embedding model.</summary>
         DefaultEmbeddingModel: string
+
+        // --- API Keys ---
+        OllamaKey: string option
+        VllmKey: string option
+        OpenAIKey: string option
+        GoogleGeminiKey: string option
+        AnthropicKey: string option
     }
+
+/// <summary>
+/// Result of a routing decision.
+/// </summary>
+type RoutedBackend =
+    { Backend: LlmBackend
+      Endpoint: Uri
+      ApiKey: string option }
 
 /// <summary>
 /// Routes an LLM request to the appropriate backend based on model hints.
@@ -56,39 +71,48 @@ let chooseBackend (cfg: RoutingConfig) (req: LlmRequest) : RoutedBackend =
         // If model is explicitly set, try to guess backend or default to Ollama
         if model.Contains("gpt", StringComparison.OrdinalIgnoreCase) then
             { Backend = OpenAI model
-              Endpoint = cfg.OpenAIBaseUri }
+              Endpoint = cfg.OpenAIBaseUri
+              ApiKey = cfg.OpenAIKey }
         elif model.Contains("claude", StringComparison.OrdinalIgnoreCase) then
             { Backend = Anthropic model
-              Endpoint = cfg.AnthropicBaseUri }
+              Endpoint = cfg.AnthropicBaseUri
+              ApiKey = cfg.AnthropicKey }
         elif model.Contains("gemini", StringComparison.OrdinalIgnoreCase) then
             { Backend = GoogleGemini model
-              Endpoint = cfg.GoogleGeminiBaseUri }
+              Endpoint = cfg.GoogleGeminiBaseUri
+              ApiKey = cfg.GoogleGeminiKey }
         else
             // Default to Ollama for local models
             { Backend = Ollama model
-              Endpoint = cfg.OllamaBaseUri }
+              Endpoint = cfg.OllamaBaseUri
+              ApiKey = cfg.OllamaKey }
     | None ->
         match req.ModelHint |> Option.defaultValue "" with
         | hint when hint.Contains("code", StringComparison.OrdinalIgnoreCase) ->
             { Backend = Ollama cfg.DefaultOllamaModel
-              Endpoint = cfg.OllamaBaseUri }
+              Endpoint = cfg.OllamaBaseUri
+              ApiKey = cfg.OllamaKey }
         | hint when hint.Contains("cheap", StringComparison.OrdinalIgnoreCase) ->
             { Backend = Ollama cfg.DefaultOllamaModel
-              Endpoint = cfg.OllamaBaseUri }
+              Endpoint = cfg.OllamaBaseUri
+              ApiKey = cfg.OllamaKey }
         | hint when
             hint.Contains("reason", StringComparison.OrdinalIgnoreCase)
             || hint.Contains("analysis", StringComparison.OrdinalIgnoreCase)
             ->
             { Backend = Vllm cfg.DefaultVllmModel
-              Endpoint = cfg.VllmBaseUri }
+              Endpoint = cfg.VllmBaseUri
+              ApiKey = cfg.VllmKey }
         | hint when
             hint.Contains("llama", StringComparison.OrdinalIgnoreCase)
             || hint.Contains("qwen", StringComparison.OrdinalIgnoreCase)
             || hint.Contains("mistral", StringComparison.OrdinalIgnoreCase)
             ->
             { Backend = Ollama cfg.DefaultOllamaModel
-              Endpoint = cfg.OllamaBaseUri }
+              Endpoint = cfg.OllamaBaseUri
+              ApiKey = cfg.OllamaKey }
         | _ ->
             // Default: send to Ollama (safest for local dev)
             { Backend = Ollama cfg.DefaultOllamaModel
-              Endpoint = cfg.OllamaBaseUri }
+              Endpoint = cfg.OllamaBaseUri
+              ApiKey = cfg.OllamaKey }

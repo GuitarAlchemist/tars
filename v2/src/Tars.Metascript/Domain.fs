@@ -10,12 +10,19 @@ module Domain =
         | Tool
         | Loop
         | Decision
+        | MapStep
+        | Switch
 
     type StepContextRef = { StepId: string; OutputName: string }
 
+    type StepDependency =
+        { StepId: string
+          Condition: string option }
+
     type WorkflowStep =
         { Id: string
-          Type: string // "agent", "tool", etc.
+          Type: string // "agent", "tool", "map", "switch", etc.
+          DependsOn: StepDependency list option
           Agent: string option
           Tool: string option
           Instruction: string option

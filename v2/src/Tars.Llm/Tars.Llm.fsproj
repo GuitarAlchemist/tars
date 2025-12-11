@@ -12,6 +12,7 @@
     <Compile Include="OllamaClient.fs" />
     <Compile Include="OllamaClientAsync.fs" />
     <Compile Include="OpenAiCompatibleClient.fs" />
+    <Compile Include="GoogleGeminiClient.fs" />
     <Compile Include="LlmService.fs" />
     <Compile Include="VllmClient.fs" />
     <Compile Include="TracingLlmService.fs" />

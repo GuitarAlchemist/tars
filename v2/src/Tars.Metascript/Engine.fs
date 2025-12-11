@@ -103,14 +103,14 @@ module Engine =
 
 
     /// Enriches context using the knowledge graph by finding related concepts
+    /// Enriches context using the knowledge graph by finding related concepts
     let private enrichWithKnowledgeGraph
-        (kg: obj option) // TemporalGraph option
+        (kg: TemporalGraph option)
         (conceptHints: string list)
         (notes: System.Collections.Generic.List<string>)
         =
         match kg with
-        | Some kgObj ->
-            let graph = kgObj :?> TemporalGraph
+        | Some graph ->
 
             let related =
                 conceptHints
@@ -448,10 +448,11 @@ module Engine =
 
     // ========== MULTI-HOP RETRIEVAL ==========
     /// Perform multi-hop retrieval using knowledge graph
+    /// Perform multi-hop retrieval using knowledge graph
     let private multiHopRetrieval
         (vectorStore: IVectorStore)
         (llm: ILlmService)
-        (kg: obj option) // TemporalGraph option
+        (kg: TemporalGraph option)
         (config: RagConfig)
         (query: string)
         (notes: System.Collections.Generic.List<string>)
@@ -459,9 +460,8 @@ module Engine =
         task {
             match kg with
             | None -> return []
-            | Some kgObj when not config.EnableMultiHop -> return []
-            | Some kgObj ->
-                let graph = kgObj :?> TemporalGraph
+            | Some _ when not config.EnableMultiHop -> return []
+            | Some graph ->
                 // Extract key concepts from query
                 let queryTerms =
                     query.ToLowerInvariant().Split([| ' '; ','; '.'; '?'; '!' |], StringSplitOptions.RemoveEmptyEntries)
@@ -1030,7 +1030,7 @@ module Engine =
     let private executeFallback
         (vectorStore: IVectorStore)
         (llm: ILlmService)
-        (kg: obj option) // TemporalGraph option
+        (kg: TemporalGraph option)
         (config: RagConfig)
         (query: string)
         (currentResults: (string * float32 * Map<string, string>) list)
@@ -1618,20 +1618,99 @@ Instruction: %s"""
         }
 
     and run (ctx: MetascriptContext) (workflow: Workflow) (inputs: Map<string, obj>) =
-        task {
-            let validated: Workflow =
-                match Tars.Metascript.Validation.validateWorkflow workflow with
-                | Result.Ok wf -> wf
-                | Result.Error errs ->
-                    let msg = String.concat "; " errs
-                    raise (ArgumentException(msg))
+        // Validation first (synchronous check)
+        let validated =
+            match Tars.Metascript.Validation.validateWorkflow workflow with
+            | Result.Ok wf -> wf
+            | Result.Error errs ->
+                let msg = String.concat "; " errs
+                raise (ArgumentException(msg))
 
+        let allSteps = validated.Steps |> List.map (fun s -> s.Id, s) |> Map.ofList
+
+        // Recursive scheduler loop defined outside the main task block
+        let rec schedulerLoop
+            (pending: string Set)
+            (running: Map<string, Task<string * Map<string, obj> * string list * DateTime * TimeSpan>>)
+            (state: WorkflowState)
+            : Task<WorkflowState> =
+            task {
+                // 1. Identify ready steps
+                let isReady (stepId: string) =
+                    let step = allSteps[stepId]
+
+                    match step.DependsOn with
+                    | None -> true
+                    | Some deps ->
+                        deps
+                        |> List.forall (fun d -> state.StepOutputs.ContainsKey d.StepId
+                        // TODO: Evaluate Condition logic here
+                        )
+
+                let newReady =
+                    pending
+                    |> Set.filter isReady
+                    |> Set.filter (fun id -> not (running.ContainsKey id))
+
+                // 2. Start ready steps
+                let mutable currentRunning = running
+                let mutable currentPending = pending
+                let mutable currentState = state // Capture for loop if needed, but we pass it down
+
+                if not (Set.isEmpty newReady) then
+                    for stepId in newReady do
+                        let step = allSteps[stepId]
+
+                        let startTask =
+                            task {
+                                let started = DateTime.UtcNow
+                                let sw = System.Diagnostics.Stopwatch.StartNew()
+                                let! outputs, notes = executeStep ctx step state
+                                sw.Stop()
+                                return (stepId, outputs, notes, started, sw.Elapsed)
+                            }
+
+                        currentRunning <- currentRunning.Add(stepId, startTask)
+                        currentPending <- currentPending.Remove stepId
+
+                // 3. Wait/Update
+                if currentRunning.Count = 0 && not (Set.isEmpty currentPending) then
+                    raise (
+                        InvalidOperationException(
+                            "Workflow deadlock: Pending steps exist but none are ready and none are running."
+                        )
+                    )
+
+                if currentRunning.Count = 0 && Set.isEmpty currentPending then
+                    return state
+                else
+                    let runningTasks = currentRunning |> Map.toList |> List.map snd
+                    let! completedTask = Task.WhenAny(runningTasks)
+                    let! result = completedTask
+                    let (stepId, outputs, notes, started, duration) = result
+
+                    let trace =
+                        { StepId = stepId
+                          StartedAt = started
+                          Duration = duration
+                          Outputs = outputs
+                          Notes = notes }
+
+                    let newState =
+                        { state with
+                            StepOutputs = state.StepOutputs.Add(stepId, outputs)
+                            ExecutionTrace = state.ExecutionTrace @ [ trace ] }
+
+                    let remainingRunning = currentRunning.Remove stepId
+                    return! schedulerLoop currentPending remainingRunning newState
+            }
+
+        task {
             // 1. Retrieve Memory
             let! memoryContext =
                 match ctx.SemanticMemory with
                 | Some mem ->
                     task {
-                        // Construct a query from the workflow description or inputs
                         let queryText =
                             inputs
                             |> Map.tryFind "goal"
@@ -1646,7 +1725,6 @@ Instruction: %s"""
 
                         let! results = mem.Retrieve query
 
-                        // Format results for context
                         if results.IsEmpty then
                             return ""
                         else
@@ -1661,33 +1739,16 @@ Instruction: %s"""
 
             let inputsWithMemory = inputs.Add("memory_context", box memoryContext)
 
-            let mutable state =
+            let initialState =
                 { Workflow = validated
                   CurrentStepIndex = 0
                   Variables = inputsWithMemory
                   StepOutputs = Map.empty
                   ExecutionTrace = [] }
 
-            for step in workflow.Steps do
-                let started = DateTime.UtcNow
-                let sw = System.Diagnostics.Stopwatch.StartNew()
-                let! outputs, notes = executeStep ctx step state
-                sw.Stop()
-
-                let trace =
-                    { StepId = step.Id
-                      StartedAt = started
-                      Duration = sw.Elapsed
-                      Outputs = outputs
-                      Notes = notes }
-
-                state <-
-                    { state with
-                        StepOutputs = state.StepOutputs.Add(step.Id, outputs) }
-
-                state <-
-                    { state with
-                        ExecutionTrace = state.ExecutionTrace @ [ trace ] }
+            // Run Scheduler
+            let initialPending = validated.Steps |> List.map (fun s -> s.Id) |> Set.ofList
+            let! finalState = schedulerLoop initialPending Map.empty initialState
 
             // 2. Grow Memory
             match ctx.SemanticMemory with
@@ -1695,15 +1756,14 @@ Instruction: %s"""
                 try
                     let memTrace =
                         { MemoryTrace.TaskId = workflow.Name
-                          Variables = state.Variables
-                          StepOutputs = state.StepOutputs }
+                          Variables = finalState.Variables
+                          StepOutputs = finalState.StepOutputs }
 
                     let! _ = mem.Grow(memTrace, obj ())
                     ()
                 with ex ->
-                    // Don't fail workflow if memory fails
                     Console.WriteLine($"[Warning] Failed to grow memory: {ex.Message}")
             | None -> ()
 
-            return state
+            return finalState
         }

@@ -18,6 +18,17 @@ type Role =
 /// <summary>A single message in a conversation.</summary>
 type LlmMessage = { Role: Role; Content: string }
 
+/// <summary>Grammar constraint for structured output.</summary>
+type Grammar =
+    | JsonSchema of schema: string
+    | Regex of pattern: string
+
+/// <summary>Format of the expected response.</summary>
+type ResponseFormat =
+    | Json
+    | Text
+    | Constrained of Grammar
+
 /// <summary>
 /// High-level request from TARS – independent of specific backend.
 /// </summary>
@@ -42,7 +53,7 @@ type LlmRequest =
         /// <summary>Tool choice (optional).</summary>
         ToolChoice: obj option
         /// <summary>Response format (e.g. json_object).</summary>
-        ResponseFormat: obj option
+        ResponseFormat: ResponseFormat option
         /// <summary>Whether to stream the response.</summary>
         Stream: bool
         /// <summary>Whether to enforce JSON mode.</summary>

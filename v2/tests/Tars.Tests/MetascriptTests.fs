@@ -66,6 +66,7 @@ type MetascriptTests() =
                     Instruction = Some "do"
                     Params = None
                     Context = None
+                    DependsOn = None
                     Outputs = Some [ "o" ]
                     Tools = None }
                   { Id = "s1"
@@ -75,6 +76,7 @@ type MetascriptTests() =
                     Instruction = Some "do"
                     Params = None
                     Context = None
+                    DependsOn = None
                     Outputs = Some [ "o" ]
                     Tools = None } ] }
 
@@ -109,6 +111,7 @@ type MetascriptTests() =
                     Instruction = None
                     Params = Some(Map [ ("condition", "flag"); ("trueOutput", "go"); ("falseOutput", "stop") ])
                     Context = None
+                    DependsOn = None
                     Outputs = Some [ "route" ]
                     Tools = None } ] }
 
@@ -154,6 +157,7 @@ type MetascriptTests() =
                     Instruction = Some "Echo {{item}}"
                     Params = Some(Map [ ("list", "items"); ("itemVar", "item") ])
                     Context = None
+                    DependsOn = None
                     Outputs = Some [ "items" ]
                     Tools = None } ] }
 
@@ -194,6 +198,7 @@ type MetascriptTests() =
                     Instruction = None
                     Params = Some(Map [ ("query", "test query") ])
                     Context = None
+                    DependsOn = None
                     Outputs = Some [ "context" ]
                     Tools = None } ] }
 
@@ -249,6 +254,7 @@ type MetascriptTests() =
                     Instruction = None
                     Params = Some(Map [ ("query", "test query") ])
                     Context = None
+                    DependsOn = None
                     Outputs = Some [ "context" ]
                     Tools = None } ] }
 
@@ -266,11 +272,28 @@ type MetascriptTests() =
         let kg = TemporalKnowledgeGraph.TemporalGraph()
 
         // Add some related concepts using the new TarsFact-based API
-        let testingConcept = TarsEntity.ConceptE { Name = "testing"; Description = ""; RelatedConcepts = [] }
-        let unitTestConcept = TarsEntity.ConceptE { Name = "unit testing"; Description = ""; RelatedConcepts = [] }
-        let integrationConcept = TarsEntity.ConceptE { Name = "integration"; Description = ""; RelatedConcepts = [] }
+        let testingConcept =
+            TarsEntity.ConceptE
+                { Name = "testing"
+                  Description = ""
+                  RelatedConcepts = [] }
+
+        let unitTestConcept =
+            TarsEntity.ConceptE
+                { Name = "unit testing"
+                  Description = ""
+                  RelatedConcepts = [] }
+
+        let integrationConcept =
+            TarsEntity.ConceptE
+                { Name = "integration"
+                  Description = ""
+                  RelatedConcepts = [] }
+
         kg.AddFact(TarsFact.SimilarTo(testingConcept, unitTestConcept, 0.8)) |> ignore
-        kg.AddFact(TarsFact.SimilarTo(testingConcept, integrationConcept, 0.6)) |> ignore
+
+        kg.AddFact(TarsFact.SimilarTo(testingConcept, integrationConcept, 0.6))
+        |> ignore
 
         let ctx =
             { Llm = llm
@@ -297,6 +320,7 @@ type MetascriptTests() =
                     Instruction = Some "Do something about testing"
                     Params = Some(Map [ ("concepts", "testing") ])
                     Context = None
+                    DependsOn = None
                     Outputs = Some [ "result" ]
                     Tools = None } ] }
 
@@ -364,6 +388,7 @@ type MetascriptTests() =
                     Instruction = None
                     Params = Some(Map [ ("query", "test query") ])
                     Context = None
+                    DependsOn = None
                     Outputs = Some [ "context" ]
                     Tools = None } ] }
 
@@ -424,6 +449,7 @@ type MetascriptTests() =
                     Instruction = None
                     Params = Some(Map [ ("query", "keyword search") ])
                     Context = None
+                    DependsOn = None
                     Outputs = Some [ "context" ]
                     Tools = None } ] }
 
@@ -528,6 +554,7 @@ type MetascriptTests() =
                     Instruction = None
                     Params = Some(Map [ ("query", "document content") ])
                     Context = None
+                    DependsOn = None
                     Outputs = Some [ "context" ]
                     Tools = None } ] }
 
@@ -586,6 +613,7 @@ type MetascriptTests() =
                     Instruction = None
                     Params = Some(Map [ ("query", "What is the purpose of this?") ])
                     Context = None
+                    DependsOn = None
                     Outputs = Some [ "context" ]
                     Tools = None } ] }
 
@@ -642,6 +670,7 @@ type MetascriptTests() =
                     Instruction = None
                     Params = Some(Map [ ("query", "attribution test") ])
                     Context = None
+                    DependsOn = None
                     Outputs = Some [ "context" ]
                     Tools = None } ] }
 
@@ -702,6 +731,7 @@ type MetascriptTests() =
                     Instruction = None
                     Params = Some(Map [ ("query", "metrics test") ])
                     Context = None
+                    DependsOn = None
                     Outputs = Some [ "context" ]
                     Tools = None } ] }
 
@@ -759,6 +789,7 @@ type MetascriptTests() =
                     Instruction = None
                     Params = Some(Map [ ("condition", "true"); ("trueOutput", "ok"); ("falseOutput", "fail") ])
                     Context = None
+                    DependsOn = None
                     Outputs = Some [ "out" ]
                     Tools = None } ] }
 

@@ -1,0 +1,12 @@
+{
+  "Servers": [
+    {
+      "Name": "dummy",
+      "Command": "python",
+      "Arguments": [
+        "c:\\Users\\spare\\source\\repos\\tars\\v2\\tests\\dummy_mcp_server.py"
+      ],
+      "Environment": {}
+    }
+  ]
+}

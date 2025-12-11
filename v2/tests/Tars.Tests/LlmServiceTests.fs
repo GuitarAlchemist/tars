@@ -33,7 +33,12 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
               DefaultOpenAIModel = "gpt-4o"
               DefaultGoogleGeminiModel = "gemini-pro"
               DefaultAnthropicModel = "claude-3-opus-20240229"
-              DefaultEmbeddingModel = "nomic-embed-text" }
+              DefaultEmbeddingModel = "nomic-embed-text"
+              OllamaKey = None
+              VllmKey = None
+              OpenAIKey = None
+              GoogleGeminiKey = None
+              AnthropicKey = None }
 
         let req =
             { ModelHint = Some "code"
@@ -69,7 +74,12 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
               DefaultOpenAIModel = "gpt-4o"
               DefaultGoogleGeminiModel = "gemini-pro"
               DefaultAnthropicModel = "claude-3-opus-20240229"
-              DefaultEmbeddingModel = "nomic-embed-text" }
+              DefaultEmbeddingModel = "nomic-embed-text"
+              OllamaKey = None
+              VllmKey = None
+              OpenAIKey = None
+              GoogleGeminiKey = None
+              AnthropicKey = None }
 
         let req =
             { ModelHint = Some "reasoning"
@@ -223,7 +233,7 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
                       JsonMode = false
                       Seed = None }
 
-                let! response = OpenAiCompatibleClient.sendChatAsync httpClient baseUri "vllm-model" req
+                let! response = OpenAiCompatibleClient.sendChatAsync httpClient baseUri "vllm-model" None req
 
                 Assert.Equal("world", response.Text)
                 Assert.Equal(Some "stop", response.FinishReason)
@@ -365,7 +375,8 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
                       Seed = None }
 
                 let! response =
-                    OpenAiCompatibleClient.sendChatStreamAsync httpClient baseUri "test" req (fun t -> tokens.Add(t))
+                    OpenAiCompatibleClient.sendChatStreamAsync httpClient baseUri "test" None req (fun t ->
+                        tokens.Add(t))
 
                 // Verify all tokens were collected
                 Assert.Equal(3, tokens.Count)

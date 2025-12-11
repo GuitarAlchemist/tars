@@ -149,18 +149,7 @@ module GitTools =
             try
                 let workDir = Directory.GetCurrentDirectory()
 
-                let path =
-                    try
-                        let doc = System.Text.Json.JsonDocument.Parse(args)
-                        let root = doc.RootElement
-                        let mutable prop = Unchecked.defaultof<System.Text.Json.JsonElement>
-
-                        if root.TryGetProperty("path", &prop) then
-                            prop.GetString()
-                        else
-                            ""
-                    with _ ->
-                        ""
+                let path = ToolHelpers.parseStringArg args "path"
 
                 let! result = runGit workDir $"diff {path}"
 

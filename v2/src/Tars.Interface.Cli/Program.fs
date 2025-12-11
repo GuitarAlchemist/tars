@@ -42,7 +42,20 @@ let main argv =
     if not (String.IsNullOrEmpty(ollamaUrl)) then
         CredentialVault.registerSecret "OLLAMA_BASE_URL" ollamaUrl
 
-    Log.Logger <- LoggerConfiguration().WriteTo.Console().CreateLogger()
+    let isMcpServer =
+        match argv with
+        | [| "mcp"; "server" |] -> true
+        | _ -> false
+
+    if isMcpServer then
+        // Redirect all logs to Stderr to keep Stdout clean for JSON-RPC
+        Log.Logger <-
+            LoggerConfiguration()
+                .WriteTo.Console(standardErrorFromLevel = Serilog.Events.LogEventLevel.Verbose)
+                .CreateLogger()
+    else
+        Log.Logger <- LoggerConfiguration().WriteTo.Console().CreateLogger()
+
     let logger = Log.Logger
 
     // Parse demo-rag options
@@ -104,7 +117,7 @@ let main argv =
         | [| "guard-output"; path; "--require-citations" |] -> return GuardOutputCommand.run config path None true false
         | [| "guard-output"; path; "--fields"; fields; "--require-citations" |] ->
             return GuardOutputCommand.run config path (Some fields) true false
-        | [| "test-grammar"; file |] -> return TestGrammar.run file
+        | [| "test-grammar" |] -> return! TestGrammarCommand.run config argv
         | [| "memory-add"; coll; id; text |] -> return! Memory.add coll id text
         | [| "memory-search"; coll; text |] -> return! Memory.search coll text
         | args when args.Length > 0 && args.[0] = "smem" ->
@@ -125,9 +138,27 @@ let main argv =
             let configArgs = args |> Array.skip 1 |> Array.toList
             return! Config.run configArgs
 
-        | [| "chat" |] ->
+        | args when args.Length > 0 && args.[0] = "chat" ->
             Tui.showSplashScreen ()
-            return! Chat.run logger
+
+            let mutable options: Chat.ChatOptions = { Streaming = false; Model = None }
+
+            let mutable i = 1
+
+            while i < args.Length do
+                match args.[i] with
+                | "--model" when i + 1 < args.Length ->
+                    i <- i + 1
+                    options <- { options with Model = Some args.[i] }
+                | "--stream" -> options <- { options with Streaming = true }
+                | _ -> ()
+
+                i <- i + 1
+
+            if options.Streaming then
+                return! Chat.runStreaming logger options
+            else
+                return! Chat.run logger options
 
         | args when args.Length > 0 && args.[0] = "evolve" ->
             let mutable options: Evolve.EvolveOptions =
@@ -169,7 +200,17 @@ let main argv =
 
             return! Evolve.run logger options
         | [| "experiment" |] -> return! Experiment.run logger
-        | [| "run"; script |] -> return! Run.execute logger script
+        | args when args.Length > 0 && args.[0] = "run" ->
+            if args.Length < 2 then
+                printfn "Usage: tars run <workflow.json> [--optimize]"
+                return 1
+            else
+                let script = args.[1]
+
+                let shouldOptimize =
+                    args |> Array.contains "--optimize" || args |> Array.contains "-o"
+
+                return! RunCommand.run logger script shouldOptimize
         | args when args.Length > 0 && args.[0] = "knowledge" ->
             let mutable options: Knowledge.KnowledgeOptions =
                 { Command = if args.Length > 1 then args.[1] else "help"
@@ -206,7 +247,13 @@ let main argv =
 
             Knowledge.run options
             return 0
-        | [| "mcp"; command; args |] -> return! McpCommand.run command args
+        | args when args.Length > 0 && args.[0] = "mcp" ->
+            if args.Length > 1 && args.[1] = "server" then
+                return! McpServerCommand.run logger
+            else
+                let cmd = if args.Length > 1 then args.[1] else "help"
+                let arg = if args.Length > 2 then args.[2] else ""
+                return! McpCommand.run cmd arg
         | _ ->
             Tui.showSplashScreen ()
             printfn "Usage:"

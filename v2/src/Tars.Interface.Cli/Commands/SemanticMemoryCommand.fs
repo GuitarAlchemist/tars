@@ -40,7 +40,13 @@ let private createLlmService (config: IConfiguration) : ILlmService * ILlmServic
           DefaultOpenAIModel = "text-embedding-3-small"
           DefaultGoogleGeminiModel = "embedding-001"
           DefaultAnthropicModel = "claude-3-opus-20240229"
-          DefaultEmbeddingModel = embeddingModel }
+          DefaultEmbeddingModel = embeddingModel
+
+          OllamaKey = None
+          VllmKey = None
+          OpenAIKey = None
+          GoogleGeminiKey = None
+          AnthropicKey = None }
 
     let svcCfg = { Routing = routingCfg }
     let httpClient = new System.Net.Http.HttpClient()

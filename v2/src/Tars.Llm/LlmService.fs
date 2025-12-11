@@ -60,7 +60,7 @@ module LlmService =
                     | Vllm model ->
                         try
                             let! res =
-                                OpenAiCompatibleClient.sendChatAsync httpClient routed.Endpoint model req
+                                OpenAiCompatibleClient.sendChatAsync httpClient routed.Endpoint model routed.ApiKey req
                                 |> Async.AwaitTask
                                 |> AsyncResult.ofAsync
 
@@ -70,17 +70,33 @@ module LlmService =
                     | OpenAI model ->
                         try
                             let! res =
-                                OpenAiCompatibleClient.sendChatAsync httpClient routed.Endpoint model req
+                                OpenAiCompatibleClient.sendChatAsync httpClient routed.Endpoint model routed.ApiKey req
                                 |> Async.AwaitTask
                                 |> AsyncResult.ofAsync
 
                             return res
                         with ex ->
                             return! AsyncResult.ofResult (rerror<LlmResponse> (LlmError.fromException ex))
-                    | GoogleGemini _ ->
-                        return! AsyncResult.ofResult (rerror<LlmResponse> (LlmError.ModelNotFound "Google Gemini not implemented"))
+                    | GoogleGemini model ->
+                        try
+                            let! res =
+                                GoogleGeminiClient.generateContentAsync
+                                    httpClient
+                                    routed.Endpoint
+                                    model
+                                    routed.ApiKey
+                                    req
+                                |> Async.AwaitTask
+                                |> AsyncResult.ofAsync
+
+                            return res
+                        with ex ->
+                            return! AsyncResult.ofResult (rerror<LlmResponse> (LlmError.fromException ex))
                     | Anthropic _ ->
-                        return! AsyncResult.ofResult (rerror<LlmResponse> (LlmError.ModelNotFound "Anthropic not implemented"))
+                        return!
+                            AsyncResult.ofResult (
+                                rerror<LlmResponse> (LlmError.ModelNotFound "Anthropic not implemented")
+                            )
                 }
 
             member _.EmbedAsync(text: string) : AsyncResult<float32[], LlmError> =
@@ -101,6 +117,7 @@ module LlmService =
                                     httpClient
                                     cfg.Routing.OpenAIBaseUri
                                     model
+                                    cfg.Routing.OpenAIKey
                                     text
                                 |> Async.AwaitTask
                                 |> AsyncResult.ofAsync
@@ -117,9 +134,13 @@ module LlmService =
 
                     match routed.Backend with
                     | Ollama model -> return! OllamaClient.sendChatAsync httpClient routed.Endpoint model req
-                    | Vllm model -> return! OpenAiCompatibleClient.sendChatAsync httpClient routed.Endpoint model req
-                    | OpenAI model -> return! OpenAiCompatibleClient.sendChatAsync httpClient routed.Endpoint model req
-                    | GoogleGemini _ -> return raise (NotImplementedException("Google Gemini not implemented"))
+                    | Vllm model ->
+                        return! OpenAiCompatibleClient.sendChatAsync httpClient routed.Endpoint model routed.ApiKey req
+                    | OpenAI model ->
+                        return! OpenAiCompatibleClient.sendChatAsync httpClient routed.Endpoint model routed.ApiKey req
+                    | GoogleGemini model ->
+                        return!
+                            GoogleGeminiClient.generateContentAsync httpClient routed.Endpoint model routed.ApiKey req
                     | Anthropic _ -> return raise (NotImplementedException("Anthropic not implemented"))
                 }
 
@@ -131,9 +152,23 @@ module LlmService =
                     | Ollama model ->
                         return! OllamaClient.sendChatStreamAsync httpClient routed.Endpoint model req onToken
                     | Vllm model ->
-                        return! OpenAiCompatibleClient.sendChatStreamAsync httpClient routed.Endpoint model req onToken
+                        return!
+                            OpenAiCompatibleClient.sendChatStreamAsync
+                                httpClient
+                                routed.Endpoint
+                                model
+                                routed.ApiKey
+                                req
+                                onToken
                     | OpenAI model ->
-                        return! OpenAiCompatibleClient.sendChatStreamAsync httpClient routed.Endpoint model req onToken
+                        return!
+                            OpenAiCompatibleClient.sendChatStreamAsync
+                                httpClient
+                                routed.Endpoint
+                                model
+                                routed.ApiKey
+                                req
+                                onToken
                     | GoogleGemini _ ->
                         return raise (NotImplementedException("Google Gemini streaming not implemented"))
                     | Anthropic _ -> return raise (NotImplementedException("Anthropic streaming not implemented"))
@@ -152,5 +187,10 @@ module LlmService =
                         return! OllamaClient.getEmbeddingsAsync httpClient cfg.Routing.OllamaBaseUri model text
                     else
                         return!
-                            OpenAiCompatibleClient.getEmbeddingsAsync httpClient cfg.Routing.OpenAIBaseUri model text
+                            OpenAiCompatibleClient.getEmbeddingsAsync
+                                httpClient
+                                cfg.Routing.OpenAIBaseUri
+                                model
+                                cfg.Routing.OpenAIKey
+                                text
                 }

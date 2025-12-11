@@ -148,15 +148,12 @@ type Agent =
       Memory: Message list } // Short-term memory/context
 
     member this.ReceiveMessage(msg: Message) =
-        // When receiving a new message while waiting for user, transition back to Idle
-        // so the agent will process the new message
-        let newState =
-            match this.State with
-            | WaitingForUser _ -> Idle
-            | other -> other
+        // Always transition to Idle when receiving a new message
+        // This ensures pending thoughts (Thinking state) are discarded in favor of new information
+        // and enables the agent to process the new message immediately.
         { this with
             Memory = this.Memory @ [ msg ]
-            State = newState }
+            State = Idle }
 
 /// The result of a kernel operation
 type KernelResult<'T> = Result<'T, string>

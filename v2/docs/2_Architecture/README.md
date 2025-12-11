@@ -18,9 +18,16 @@ This directory contains the architectural documentation for TARS v2.
 
 ### DSL & Execution
 
-- **Metascript Engine**: Custom workflow DSL execution
-- **Graph Runtime**: Agent state machine orchestration
+- **Metascript Engine**: Recursive, macro-capable workflow engine (`Tars.Metascript`)
+- **Graph Runtime**: Agent state machine orchestration (`Tars.Graph`)
 - **Budget Governor**: Resource and cost management
+- **Macro System**: Reusable workflow definitions stored in JSON
+
+### Capabilities & Tooling
+
+- **Tool Registry**: Dynamic discovery and registration of capabilities (`Tars.Tools`)
+- **Epistemic Governor**: Knowledge integrity and cognitive regulation (`Tars.Cortex`)
+- **Resilience**: Functional circuit breakers and retry policies (`Tars.Core`)
 
 ## Key Design Decisions
 

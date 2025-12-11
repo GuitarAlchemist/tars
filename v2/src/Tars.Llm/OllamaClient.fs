@@ -39,7 +39,7 @@ module OllamaClient =
         { model: string
           messages: OllamaMessageDto[]
           stream: bool
-          format: string option
+          format: obj option
           options: OllamaOptionsDto option }
 
     /// <summary>DTO for Ollama response message.</summary>
@@ -130,7 +130,14 @@ module OllamaClient =
                 { model = model
                   messages = toOllamaMessages req.SystemPrompt req.Messages
                   stream = false
-                  format = if req.JsonMode then Some "json" else None
+                  format =
+                    match req.ResponseFormat with
+                    | Some ResponseFormat.Json -> Some(box "json")
+                    | Some(ResponseFormat.Constrained(Grammar.JsonSchema schema)) ->
+                        Some(JsonSerializer.Deserialize<obj>(schema))
+                    | Some(ResponseFormat.Constrained _) -> Some(box "json") // Regex not directly supported in format, maybe in options?
+                    | Some ResponseFormat.Text -> None
+                    | None -> if req.JsonMode then Some(box "json") else None
                   options = Some options }
 
             let uri = Uri(baseUri, getApiPrefix baseUri + "chat")
@@ -241,7 +248,14 @@ module OllamaClient =
                 { model = model
                   messages = toOllamaMessages req.SystemPrompt req.Messages
                   stream = true
-                  format = if req.JsonMode then Some "json" else None
+                  format =
+                    match req.ResponseFormat with
+                    | Some ResponseFormat.Json -> Some(box "json")
+                    | Some(ResponseFormat.Constrained(Grammar.JsonSchema schema)) ->
+                        Some(JsonSerializer.Deserialize<obj>(schema))
+                    | Some(ResponseFormat.Constrained _) -> Some(box "json")
+                    | Some ResponseFormat.Text -> None
+                    | None -> if req.JsonMode then Some(box "json") else None
                   options = Some options }
 
             let uri = Uri(baseUri, getApiPrefix baseUri + "chat")

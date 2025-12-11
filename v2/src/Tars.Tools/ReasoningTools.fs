@@ -11,8 +11,9 @@ module ReasoningTools =
     /// Internal reasoning/planning tool - helps agent think step by step
     [<TarsToolAttribute("think_step_by_step",
                         "Use this tool to reason through a problem step by step before acting. Input: your thoughts/reasoning as a string.")>]
-    let thinkStepByStep (thoughts: string) =
+    let thinkStepByStep (args: string) =
         task {
+            let thoughts = ToolHelpers.parseStringArg args "thoughts"
             printfn $"💭 THINKING: {thoughts.Substring(0, Math.Min(100, thoughts.Length))}..."
             // Return the thoughts back - this helps the agent structure its reasoning
             return $"Reasoning recorded: {thoughts}\n\nNow proceed with your next action."
@@ -24,17 +25,7 @@ module ReasoningTools =
     let planTask (args: string) =
         task {
             try
-                let doc = JsonDocument.Parse(args)
-                let root = doc.RootElement
-
-                let mutable taskProp = Unchecked.defaultof<JsonElement>
-
-                let taskDesc =
-                    if root.TryGetProperty("task", &taskProp) then
-                        taskProp.GetString()
-                    else
-                        args
-
+                let taskDesc = ToolHelpers.parseStringArg args "task"
                 printfn $"📋 PLANNING: {taskDesc.Substring(0, Math.Min(80, taskDesc.Length))}..."
 
                 // Return a planning template for the agent to fill in
@@ -55,63 +46,21 @@ Now use read_code and explore_project to gather information, then execute your p
 
     /// Summary tool - helps agent summarize findings
     [<TarsToolAttribute("summarize", "Summarize your findings or results. Input: text to summarize.")>]
-    let summarize (text: string) =
+    let summarize (args: string) =
         task {
+            let text = ToolHelpers.parseStringArg args "text"
             printfn $"📊 SUMMARY: {text.Substring(0, Math.Min(100, text.Length))}..."
             return $"Summary recorded. Now provide your final answer or take the next action."
         }
 
 module ResearchTools =
 
-    let private httpClient =
-        lazy
-            (let client = new HttpClient()
-             client.Timeout <- TimeSpan.FromSeconds(10.0)
-             client)
-
-    /// Web fetch tool - fetches content from a URL
-    [<TarsToolAttribute("fetch_url", "Fetches text content from a URL. Input JSON: { \"url\": \"https://...\" }")>]
-    let fetchUrl (args: string) =
-        task {
-            try
-                let url =
-                    try
-                        let doc = JsonDocument.Parse(args)
-                        let root = doc.RootElement
-                        let mutable prop = Unchecked.defaultof<JsonElement>
-
-                        if root.TryGetProperty("url", &prop) then
-                            prop.GetString()
-                        else
-                            args
-                    with _ ->
-                        args
-
-                if String.IsNullOrWhiteSpace(url) then
-                    return "fetch_url error: missing url"
-                else
-                    printfn $"🌐 FETCHING: {url}"
-                    let! response = httpClient.Value.GetAsync(url)
-                    response.EnsureSuccessStatusCode() |> ignore
-                    let! content = response.Content.ReadAsStringAsync()
-
-                    // Truncate large responses
-                    let trimmed =
-                        if content.Length > 10000 then
-                            content.Substring(0, 10000) + "\n... [truncated]"
-                        else
-                            content
-
-                    return trimmed
-            with ex ->
-                return $"fetch_url error: {ex.Message}"
-        }
-
     /// Documentation lookup for F# and .NET
     [<TarsToolAttribute("lookup_docs",
                         "Look up F# or .NET documentation. Input: topic to look up (e.g., 'List.map', 'async workflows')")>]
-    let lookupDocs (topic: string) =
+    let lookupDocs (args: string) =
         task {
+            let topic = ToolHelpers.parseStringArg args "topic"
             printfn $"📚 DOCS: Looking up '{topic}'"
 
             // Provide inline documentation for common F# topics
@@ -130,7 +79,7 @@ module ResearchTools =
                 | t when t.Contains("pattern") || t.Contains("match") ->
                     "F# Pattern Matching:\n- match x with | pattern -> result\n- Patterns: literals, wildcards (_), tuples, records, unions, lists, active patterns"
                 | _ ->
-                    $"No local docs for '{topic}'. Use fetch_url to look up online documentation at https://fsharp.org/docs/ or https://docs.microsoft.com/dotnet/fsharp/"
+                    $"No local docs for '{topic}'. Use http_get to look up online documentation at https://fsharp.org/docs/ or https://docs.microsoft.com/dotnet/fsharp/"
 
             return docs
         }

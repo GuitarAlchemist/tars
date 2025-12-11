@@ -6,11 +6,39 @@ open System.Reflection
 open System.Threading.Tasks
 open Tars.Core
 
-type ToolRegistry() =
+type ToolRegistry(failureThreshold: int, durationOfBreak: TimeSpan) =
     let tools =
         System.Collections.Concurrent.ConcurrentDictionary<string, Tars.Core.Tool>()
 
-    member this.Register(tool: Tars.Core.Tool) = tools.TryAdd(tool.Name, tool) |> ignore
+    // Circuit breakers for each tool
+    let circuitBreakers =
+        System.Collections.Concurrent.ConcurrentDictionary<string, Resilience.CircuitBreaker>()
+
+    // Default constructor
+    new() = ToolRegistry(3, TimeSpan.FromMinutes(1.0))
+
+    member this.Register(tool: Tars.Core.Tool) =
+        let cb =
+            circuitBreakers.GetOrAdd(tool.Name, fun _ -> Resilience.CircuitBreaker(failureThreshold, durationOfBreak))
+
+        let resilientExecute (input: string) : Async<Result<string, string>> =
+            async {
+                let taskOp () = Async.StartAsTask(tool.Execute input)
+
+                try
+                    let! result = Async.AwaitTask(cb.ExecuteAsync(taskOp))
+                    return result
+                with
+                | :? InvalidOperationException as ex when ex.Message.Contains("CircuitBreaker is OPEN") ->
+                    return Result.Error "Circuit Breaker is OPEN"
+                | ex ->
+                    // Exceptions thrown by tool.Execute are caught here if they bubbled up through CB
+                    // CB has already counted them.
+                    return Result.Error ex.Message
+            }
+
+        let resilientTool = { tool with Execute = resilientExecute }
+        tools.TryAdd(resilientTool.Name, resilientTool) |> ignore
 
     member this.RegisterAssembly(assembly: Assembly) =
         let methods =
@@ -63,22 +91,25 @@ type ToolRegistry() =
                     parameters
                     |> Array.map (fun p ->
                         let mutable prop = Unchecked.defaultof<JsonElement>
+
                         if parsed.TryGetProperty(p.Name, &prop) then
                             convertValue prop p.ParameterType
                         else
                             box null)
-                else
+                else if
                     // allow positional array when names not provided
-                    if parsed.ValueKind = JsonValueKind.Array then
-                        let values = parsed.EnumerateArray() |> Seq.toArray
-                        parameters
-                        |> Array.mapi (fun i p ->
-                            if i < values.Length then
-                                convertValue values[i] p.ParameterType
-                            else
-                                box null)
-                    else
-                        [| input :> obj |]
+                    parsed.ValueKind = JsonValueKind.Array
+                then
+                    let values = parsed.EnumerateArray() |> Seq.toArray
+
+                    parameters
+                    |> Array.mapi (fun i p ->
+                        if i < values.Length then
+                            convertValue values[i] p.ParameterType
+                        else
+                            box null)
+                else
+                    [| input :> obj |]
 
         for (m, attr) in methods do
             let execute (input: string) : Async<Result<string, string>> =

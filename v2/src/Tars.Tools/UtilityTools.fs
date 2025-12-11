@@ -9,8 +9,9 @@ module DebugTools =
 
     [<TarsToolAttribute("debug_hint",
                         "Provides debugging hints for common F# errors. Input: error message or description")>]
-    let debugHint (errorMessage: string) =
+    let debugHint (args: string) =
         task {
+            let errorMessage = ToolHelpers.parseStringArg args "error"
             printfn "🔍 DEBUG HINT for: %s" (errorMessage.Substring(0, min 50 errorMessage.Length))
 
             let hints =
@@ -119,8 +120,9 @@ module DebugTools =
         }
 
     [<TarsToolAttribute("explain_error", "Explains a .NET/F# error code. Input: error code (e.g., FS0001, CS1002)")>]
-    let explainError (errorCode: string) =
+    let explainError (args: string) =
         task {
+            let errorCode = ToolHelpers.parseStringArg args "code"
             let code = errorCode.ToUpper().Trim()
             printfn "📖 EXPLAINING: %s" code
 
@@ -210,8 +212,9 @@ module DocTools =
 
     [<TarsToolAttribute("update_readme",
                         "Suggests README updates based on code changes. Input: description of changes made")>]
-    let updateReadme (changes: string) =
+    let updateReadme (args: string) =
         task {
+            let changes = ToolHelpers.parseStringArg args "changes"
             printfn "📄 SUGGESTING README UPDATES"
 
             let suggestion =
@@ -255,8 +258,9 @@ module MemoryTools =
         }
 
     [<TarsToolAttribute("recall_note", "Recalls a previously saved note. Input: note key/name")>]
-    let recallNote (key: string) =
+    let recallNote (args: string) =
         task {
+            let key = ToolHelpers.parseStringArg args "key"
             let keyTrimmed = key.Trim()
             printfn "📖 RECALLING NOTE: %s" keyTrimmed
 

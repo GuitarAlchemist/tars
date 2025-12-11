@@ -89,7 +89,7 @@
 
 **Tasks:**
 
-* [ ] **Repo Structure**: Align folders (Kernel, Cortex, Memory, Agents, Skills, Observability).
+* [~] **Repo Structure**: Align folders (deferred - functional as-is)
 * [x] **Type Safety**: Define strict F# DUs for `AgentState`, `Message`, `SkillResult`.
 * [x] **Versioning**: Add `Version` and `ParentVersion` to `Agent`, `Skill`, `TaskDefinition`.
 * [x] **Safety Gates**: Implement `SafetyGate` module in Kernel (Static Check -> Test -> Sandbox).
@@ -133,39 +133,16 @@
 
 * **Resistors** = throttling (bounded queues, rate limits)
 
-* [ ] **Bounded Message Channels**:
-  
-  ```fsharp
-  type BoundedChannel<'T> = {
-      Capacity: int
-      Current: 'T Queue
-      RejectOnFull: bool  // vs. block
-  }
-  
-  member channel.TryWrite(item: 'T) : bool
-  ```
-
-* [ ] Update `EventBus` to use bounded channels with configurable capacity
-* [ ] Add backpressure signals when channels are full
-* [ ] Implement adaptive throttling: slow down producers when consumers lag
+* [x] **Bounded Message Channels**: Implemented in `Tars.Core/BoundedChannel.fs`
+* [x] Update `EventBus` to use bounded channels with configurable capacity
+* [x] Add backpressure signals when channels are full
+* [x] Implement adaptive throttling: slow down producers when consumers lag
 
 ##### Phase 6.7.2: Capacitors (Buffering & Batching)
 
-* [ ] **Buffer Agent** for collecting and batching messages:
-  
-  ```fsharp
-  type BufferAgent<'T> = {
-      Capacity: int
-      TimeWindow: TimeSpan option
-      OnFlush: 'T list -> Async<unit>
-  }
-  
-  member agent.Accumulate(item: 'T) : Async<unit>
-  member agent.Flush() : Async<unit>
-  ```
-
-* [ ] Use TPL Dataflow `BatchBlock<T>` for automatic batching
-* [ ] Add `ContextSummaryBuffer` that compresses long message histories before forwarding
+* [x] **Buffer Agent**: Implemented in `Tars.Kernel/Capacitor.fs`
+* [x] Use MailboxProcessor for automatic batching
+* [x] `ContextCompressor` compresses message histories
 
 * [ ] Implement working memory as a capacitor:
   
@@ -182,26 +159,9 @@
 
 ##### Phase 6.7.3: Transistors (Gating & Conditional Flow)
 
-* [ ] **Task Dependency Gates** (already partially implemented, formalize):
-  
-  ```fsharp
-  type Gate = {
-      Condition: unit -> Async<bool>
-      OnOpen: unit -> Async<unit>
-      OnClose: unit -> Async<unit>
-  }
-  
-  member gate.WaitForOpen() : Async<unit>
-  ```
-
-* [ ] Use TPL Dataflow `JoinBlock<T1,T2>` for multi-input gates (wait for multiple signals)
-
-* [ ] Implement mutual exclusion gates:
-  
-  ```fsharp
-  type MutexGate(maxConcurrent: int) =
-      let semaphore = new SemaphoreSlim(maxConcurrent)
-      
+* [x] **Task Dependency Gates**: Implemented in `Tars.Kernel/Transistor.fs` and `Tars.Core/Gates.fs`
+* [x] `JoinGate` for multi-input gates (wait for multiple signals)
+* [x] **MutexGate**: Implemented with `TryAcquire`, `Release`, `WithLockAsync`
 
 **Rationale**: Regulate cognitive load and ensure reasoning quality.
 
@@ -288,9 +248,10 @@
   * Use F# Compiler Services / Roslyn to parse code.
   * Extract nodes: `Module`, `Type`, `Function`, `Value`.
   * Extract edges: `Calls`, `Inherits`, `DependsOn`.
-* [ ] **2.5.2 Belief Store**:
-  * Implement `BeliefGraph` (as defined in Epistemic Governor).
-  * Store `Principles` extracted from successful tasks.
+* [x] **2.5.2 Belief Store**:
+  * `BeliefGraph.fs` - Full graph with edges, status tracking, relations
+  * Evolution Engine stores principles via `EpistemicGovernor.ExtractPrinciple`
+  * Beliefs stored in VectorStore collection `tars-beliefs`
 * [x] **2.5.3 Hybrid Retrieval**:
   * Query: "Find all functions that call `LlmService.generate` and are not async."
   * Mechanism: Graph traversal + Vector similarity.
@@ -311,11 +272,10 @@
 
 **Deferred:**
 
-* [ ] **3.3 Tool Registry**: SkillRegistry with hardcoded tools
-  * *Status*: Basic `ToolRegistry` implemented in `Tars.Tools`
-  * *Next*: Add circuit breakers (Phase 6.5)
-* [ ] **3.4 Cost Budget**: TokenAccountant middleware
-  * *Status*: Merged into Phase 6.1 (BudgetGovernor)
+* [x] **3.3 Tool Registry**: Implemented in `Tars.Tools/Registry.fs`
+  * Circuit breakers per-tool (line 15-40)
+  * Resilient execution via `CircuitBreaker.ExecuteAsync`
+* [x] **3.4 Cost Budget**: Implemented via `BudgetGovernor` (Phase 6.1)
 
 ### Phase 4: The Soul (✅ Complete)
 
@@ -341,14 +301,14 @@
 
 **Design Patterns** (from research):
 
-1. Token Budget Governor ← **Critical**
-2. Semantic Fan-out Limiter ← **Critical**
-3. Adaptive Reflection Loop
-4. Context Compaction Pipeline ← v2.2
-5. Uncertainty-Gated Planner ← v2.2
-6. Consensus Circuit Breaker ← v2.2
-7. Tool Circuit Breaker ← v2.2
-8. Semantic Watchdog ← v2.2
+1. Token Budget Governor ← **Complete** (BudgetGovernor)
+2. Semantic Fan-out Limiter ← **Complete** (EventBus bounded channels)
+3. Adaptive Reflection Loop ← **Complete** (ReflectionAgent)
+4. Context Compaction Pipeline ← **Complete** (ContextCompressor.AutoCompress)
+5. Uncertainty-Gated Planner ← **Complete** (UncertaintyGatedPlanner.fs)
+6. Consensus Circuit Breaker ← **Complete** (ConsensusCircuitBreaker.fs)
+7. Tool Circuit Breaker ← **Complete** (Registry.fs)
+8. Semantic Watchdog ← **Complete** (SemanticWatchdog.fs)
 
 **Implementation Priority:**
 
@@ -536,20 +496,20 @@
 * **Goal**: Implement a bi-temporal knowledge graph for belief tracking and pattern recognition.
 * **Reference**: `docs/2_Analysis/Research/graphiti_integration_research.md`
 
-* [ ] **2.4.1 Core Temporal Graph**:
-  * Extend `GraphNode` with `ValidFrom`, `InvalidAt` (Event Time).
-  * Extend `GraphEdge` with `Created` (Ingestion Time).
-  * Implement `Episode` ingestion pipeline.
-* [ ] **2.4.2 Semantic Layer**:
-  * Entity resolution (deduplication via embeddings).
-  * Fact extraction (LLM-based).
-  * Contradiction detection (temporal edge invalidation).
-* [ ] **2.4.3 Pattern Recognition**:
-  * Community detection (Label Propagation).
-  * Pattern tagging (Structural, Behavioral).
-* [ ] **2.4.4 Grammar Distillation**:
-  * Extract F# grammars from community patterns.
-  * Hot-reload distilled grammars.
+* [x] **2.4.1 Core Temporal Graph**: Implemented in `TemporalKnowledgeGraph.fs`
+  * `TemporalNode` with `Validity` (ValidFrom/InvalidAt)
+  * `TemporalEdge` with temporal tracking
+  * Episode ingestion in `IngestEpisode`
+* [x] **2.4.2 Semantic Layer**: Implemented in `EntityExtractor.fs`
+  * Entity resolution via `EntityResolver.resolveEntities`
+  * Fact extraction via `FactExtractor` module
+  * Contradiction detection via `ProcessInvalidation`
+* [x] **2.4.3 Pattern Recognition**: Implemented in separate modules
+  * `CommunityDetection.fs` - Label Propagation algorithm
+  * `PatternRecognition.fs` - Structural/behavioral tagging
+* [x] **2.4.4 Grammar Distillation**: Implemented in `GrammarDistillation.fs`
+  * `GrammarDistiller` extracts rules from patterns
+  * `HotReloadManager` for hot-reload support
 
 ---
 

@@ -863,6 +863,7 @@ let private runRetrievalWithConfig (llm: ILlmService) (vectorStore: IVectorStore
                     Instruction = None
                     Params = Some(Map [ ("query", query) ])
                     Context = None
+                    DependsOn = None
                     Outputs = Some [ "context" ]
                     Tools = None } ] }
 
@@ -1220,6 +1221,7 @@ let private runScenario
                         Instruction = None
                         Params = Some(Map [ ("query", scenario.Query) ])
                         Context = None
+                        DependsOn = None
                         Outputs = Some [ "context" ]
                         Tools = None } ] }
 

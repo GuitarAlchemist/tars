@@ -4,6 +4,8 @@ open System
 open System.Net.Http
 open System.Text.Json
 open Tars.Tools
+open Tars.Core
+open Tars.Connectors.EpisodeIngestion
 
 module KnowledgeTools =
 
@@ -152,3 +154,52 @@ module KnowledgeTools =
                 return
                     sprintf "Schema type '%s' not found. Common types: Person, Organization, Place, Event, Product" name
         }
+
+    /// Create the search tool for Graphiti memory
+    let createSearchMemoryTool (ingestionService: EpisodeIngestionService) =
+        Tars.Core.Tool.Create(
+            "search_memory",
+            "Searches TARS's long-term episodic memory (Knowledge Graph). Input: natural language query.",
+            fun args ->
+                task {
+                    try
+                        let query = Tars.Tools.ToolHelpers.parseStringArg args "query"
+                        let! resultsResult = ingestionService.SearchAsync(query, 10)
+
+                        match resultsResult with
+                        | Result.Ok results ->
+                            if results.IsEmpty then
+                                return Result.Ok "No relevant memories found."
+                            else
+                                let hits =
+                                    results
+                                    |> List.map (fun r ->
+                                        let fact = r.Fact |> Option.defaultValue ""
+                                        sprintf "- %s (Score: %.2f) %s" r.Name r.Score fact)
+                                    |> String.concat "\n"
+
+                                return Result.Ok hits
+                        | Result.Error err -> return Result.Error $"Error searching memory: {err}"
+                    with ex ->
+                        return Result.Error $"Error searching memory: {ex.Message}"
+                }
+        )
+
+    /// Create the save_memory tool
+    let createSaveMemoryTool (ingestionService: EpisodeIngestionService) =
+        Tars.Core.Tool.Create(
+            "save_memory",
+            "Saves a fact or belief to TARS's long-term memory. Input: The fact to string to save.",
+            fun args ->
+                task {
+                    try
+                        let fact = Tars.Tools.ToolHelpers.parseStringArg args "fact"
+                        let ep = Tars.Core.BeliefUpdate("User", fact, 1.0, DateTime.UtcNow)
+                        ingestionService.Queue(ep)
+                        // Flush to ensure it persists
+                        let! _ = ingestionService.FlushAsync()
+                        return Result.Ok $"Memory saved: {fact}"
+                    with ex ->
+                        return Result.Error $"Error saving memory: {ex.Message}"
+                }
+        )

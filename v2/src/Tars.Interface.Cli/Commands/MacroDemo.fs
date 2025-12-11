@@ -37,6 +37,7 @@ let run (logger: ILogger) =
                     Instruction = Some "Generate a warm greeting for the user."
                     Params = None
                     Context = None
+                    DependsOn = None
                     Outputs = Some [ "greeting" ]
                     Tools = None } ] }
 
@@ -62,7 +63,8 @@ let run (logger: ILogger) =
                     Instruction = None
                     Params = None
                     Context = None
-                    Outputs = Some [ "macro_result" ]
+                    DependsOn = None
+                    Outputs = Some [ "result" ]
                     Tools = None }
 
                   { Id = "review"
@@ -75,6 +77,7 @@ let run (logger: ILogger) =
                       Some
                           [ { StepId = "call_macro"
                               OutputName = "result" } ] // Assuming macro output is under 'result'
+                    DependsOn = None
                     Outputs = Some [ "review" ]
                     Tools = None } ] }
 
@@ -84,6 +87,7 @@ let run (logger: ILogger) =
 
         // Register MacroTools for macro management
         let macroTools = Tars.Tools.MacroTools.getTools registryInterface
+
         for tool in macroTools do
             tools.Register(tool)
 
@@ -99,7 +103,13 @@ let run (logger: ILogger) =
               DefaultOpenAIModel = "gpt-3.5-turbo"
               DefaultGoogleGeminiModel = "gemini-pro"
               DefaultAnthropicModel = "claude-2"
-              DefaultEmbeddingModel = "nomic-embed-text" }
+              DefaultEmbeddingModel = "nomic-embed-text"
+
+              OllamaKey = None
+              VllmKey = None
+              OpenAIKey = None
+              GoogleGeminiKey = None
+              AnthropicKey = None }
 
         let svcCfg = { LlmServiceConfig.Routing = routingCfg }
 

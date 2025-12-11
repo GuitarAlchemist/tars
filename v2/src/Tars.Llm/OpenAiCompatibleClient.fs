@@ -35,7 +35,8 @@ module OpenAiCompatibleClient =
           messages: OpenAiMessageDto[]
           max_tokens: int option
           temperature: float option
-          stream: bool option }
+          stream: bool option
+          response_format: obj option }
 
     /// <summary>DTO for response message.</summary>
     [<CLIMutable>]
@@ -101,18 +102,52 @@ module OpenAiCompatibleClient =
     /// <param name="baseUri">The base URI of the API server.</param>
     /// <param name="model">The model name (e.g., "gpt-4", "gpt-3.5-turbo").</param>
     /// <param name="req">The LLM request containing messages and parameters.</param>
+    /// <param name="apiKey">Optional API key for authentication.</param>
     /// <returns>The LLM response with generated text and usage stats.</returns>
-    let sendChatAsync (http: HttpClient) (baseUri: Uri) (model: string) (req: LlmRequest) : Task<LlmResponse> =
+    let sendChatAsync
+        (http: HttpClient)
+        (baseUri: Uri)
+        (model: string)
+        (apiKey: string option)
+        (req: LlmRequest)
+        : Task<LlmResponse> =
         task {
             let dto: OpenAiRequestDto =
                 { model = model
                   messages = toOpenAiMessages req.Messages
                   max_tokens = req.MaxTokens
                   temperature = req.Temperature
-                  stream = Some false }
+                  stream = Some false
+                  response_format =
+                    match req.ResponseFormat with
+                    | Some ResponseFormat.Json -> Some(box {| ``type`` = "json_object" |})
+                    | Some(ResponseFormat.Constrained(Grammar.JsonSchema schema)) ->
+                        Some(
+                            box
+                                {| ``type`` = "json_schema"
+                                   json_schema =
+                                    {| name = "output"
+                                       strict = true
+                                       schema = JsonSerializer.Deserialize<JsonElement>(schema) |} |}
+                        )
+                    | Some(ResponseFormat.Constrained(Grammar.Regex _)) -> None // Verify if your provider implies some behavior for regex
+                    | Some ResponseFormat.Text -> None
+                    | None ->
+                        if req.JsonMode then
+                            Some(box {| ``type`` = "json_object" |})
+                        else
+                            None }
 
             let uri = Uri(baseUri, "/v1/chat/completions")
-            use! resp = http.PostAsJsonAsync(uri, dto, jsonOptions)
+            let content = JsonContent.Create(dto, options = jsonOptions)
+            use requestMessage = new HttpRequestMessage(HttpMethod.Post, uri, Content = content)
+
+            match apiKey with
+            | Some key when not (String.IsNullOrWhiteSpace(key)) ->
+                requestMessage.Headers.Authorization <- System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", key)
+            | _ -> ()
+
+            use! resp = http.SendAsync(requestMessage)
             resp.EnsureSuccessStatusCode() |> ignore
 
             let! raw = resp.Content.ReadAsStringAsync()
@@ -162,12 +197,27 @@ module OpenAiCompatibleClient =
     /// <param name="baseUri">The base URI of the API server.</param>
     /// <param name="model">The embedding model name (e.g., "text-embedding-ada-002").</param>
     /// <param name="text">The text to embed.</param>
+    /// <param name="apiKey">Optional API key for authentication.</param>
     /// <returns>The embedding vector as float32 array.</returns>
-    let getEmbeddingsAsync (http: HttpClient) (baseUri: Uri) (model: string) (text: string) : Task<float32[]> =
+    let getEmbeddingsAsync
+        (http: HttpClient)
+        (baseUri: Uri)
+        (model: string)
+        (apiKey: string option)
+        (text: string)
+        : Task<float32[]> =
         task {
             let dto: OpenAiEmbeddingRequestDto = { input = text; model = model }
             let uri = Uri(baseUri, "/v1/embeddings")
-            use! resp = http.PostAsJsonAsync(uri, dto, jsonOptions)
+            let content = JsonContent.Create(dto, options = jsonOptions)
+            use requestMessage = new HttpRequestMessage(HttpMethod.Post, uri, Content = content)
+
+            match apiKey with
+            | Some key when not (String.IsNullOrWhiteSpace(key)) ->
+                requestMessage.Headers.Authorization <- System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", key)
+            | _ -> ()
+
+            use! resp = http.SendAsync(requestMessage)
             resp.EnsureSuccessStatusCode() |> ignore
 
             let! raw = resp.Content.ReadAsStringAsync()
@@ -187,11 +237,16 @@ module OpenAiCompatibleClient =
 
     /// <summary>DTO for streaming choice.</summary>
     [<CLIMutable>]
-    type OpenAiStreamChoiceDto = { index: int; delta: OpenAiStreamDeltaDto; finish_reason: string }
+    type OpenAiStreamChoiceDto =
+        { index: int
+          delta: OpenAiStreamDeltaDto
+          finish_reason: string }
 
     /// <summary>DTO for streaming response chunk.</summary>
     [<CLIMutable>]
-    type OpenAiStreamResponseDto = { id: string; choices: OpenAiStreamChoiceDto[] }
+    type OpenAiStreamResponseDto =
+        { id: string
+          choices: OpenAiStreamChoiceDto[] }
 
     /// <summary>
     /// Sends a streaming chat completion request to an OpenAI-compatible API.
@@ -207,6 +262,7 @@ module OpenAiCompatibleClient =
         (http: HttpClient)
         (baseUri: Uri)
         (model: string)
+        (apiKey: string option)
         (req: LlmRequest)
         (onToken: string -> unit)
         : Task<LlmResponse> =
@@ -216,11 +272,42 @@ module OpenAiCompatibleClient =
                   messages = toOpenAiMessages req.Messages
                   max_tokens = req.MaxTokens
                   temperature = req.Temperature
-                  stream = Some true }
+                  stream = Some true
+                  response_format =
+                    match req.ResponseFormat with
+                    | Some ResponseFormat.Json -> Some(box {| ``type`` = "json_object" |})
+                    | Some(ResponseFormat.Constrained(Grammar.JsonSchema schema)) ->
+                        Some(
+                            box
+                                {| ``type`` = "json_schema"
+                                   json_schema =
+                                    {| name = "output"
+                                       strict = true
+                                       schema = JsonSerializer.Deserialize<JsonElement>(schema) |} |}
+                        )
+                    | Some(ResponseFormat.Constrained(Grammar.Regex _)) -> None
+                    | Some ResponseFormat.Text -> None
+                    | None ->
+                        if req.JsonMode then
+                            Some(box {| ``type`` = "json_object" |})
+                        else
+                            None }
 
             let uri = Uri(baseUri, "/v1/chat/completions")
-            let content = new StringContent(JsonSerializer.Serialize(dto, jsonOptions), System.Text.Encoding.UTF8, "application/json")
+
+            let content =
+                new StringContent(
+                    JsonSerializer.Serialize(dto, jsonOptions),
+                    System.Text.Encoding.UTF8,
+                    "application/json"
+                )
+
             use requestMessage = new HttpRequestMessage(HttpMethod.Post, uri, Content = content)
+
+            match apiKey with
+            | Some key when not (String.IsNullOrWhiteSpace(key)) ->
+                requestMessage.Headers.Authorization <- System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", key)
+            | _ -> ()
 
             use! resp = http.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead)
             resp.EnsureSuccessStatusCode() |> ignore
@@ -234,24 +321,39 @@ module OpenAiCompatibleClient =
 
             while not isDone && not reader.EndOfStream do
                 let! line = reader.ReadLineAsync()
+
                 if not (String.IsNullOrWhiteSpace(line)) then
                     // OpenAI streams data: prefix
-                    let dataLine = if line.StartsWith("data: ") then line.Substring(6) else line
+                    let dataLine =
+                        if line.StartsWith("data: ") then
+                            line.Substring(6)
+                        else
+                            line
+
                     if dataLine = "[DONE]" then
                         isDone <- true
                     elif not (String.IsNullOrWhiteSpace(dataLine)) then
                         try
-                            let chunk = JsonSerializer.Deserialize<OpenAiStreamResponseDto>(dataLine, jsonOptions)
-                            if not (isNull (box chunk)) && not (isNull chunk.choices) && chunk.choices.Length > 0 then
+                            let chunk =
+                                JsonSerializer.Deserialize<OpenAiStreamResponseDto>(dataLine, jsonOptions)
+
+                            if
+                                not (isNull (box chunk))
+                                && not (isNull chunk.choices)
+                                && chunk.choices.Length > 0
+                            then
                                 let choice = chunk.choices.[0]
+
                                 if not (isNull (box choice.delta)) && not (isNull choice.delta.content) then
                                     let token = choice.delta.content
                                     fullText <- fullText + token
                                     onToken token
+
                                 if not (isNull choice.finish_reason) then
                                     finishReason <- choice.finish_reason
                                     isDone <- true
-                        with _ -> ()
+                        with _ ->
+                            ()
 
             return
                 { Text = fullText

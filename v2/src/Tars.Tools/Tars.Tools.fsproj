@@ -7,6 +7,7 @@
 
   <ItemGroup>
     <Compile Include="Attributes.fs" />
+    <Compile Include="ToolHelpers.fs" />
     <Compile Include="ToolFactory.fs" />
     <Compile Include="Registry.fs" />
     <Compile Include="StandardTools.fs" />
@@ -27,6 +28,8 @@
     <Compile Include="ResilienceTools.fs" />
     <Compile Include="MonitoringTools.fs" />
     <Compile Include="AdvancedTools.fs" />
+    <Compile Include="McpManager.fs" />
+    <Compile Include="McpTools.fs" />
     <Compile Include="MacroTools.fs" />
   </ItemGroup>
 
@@ -35,6 +38,7 @@
     <ProjectReference Include="..\Tars.Security\Tars.Security.fsproj" />
     <ProjectReference Include="..\Tars.Sandbox\Tars.Sandbox.fsproj" />
     <ProjectReference Include="..\Tars.Metascript\Tars.Metascript.fsproj" />
+    <ProjectReference Include="..\Tars.Connectors\Tars.Connectors.fsproj" />
   </ItemGroup>
 
 </Project>

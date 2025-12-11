@@ -12,9 +12,9 @@ module SystemTools =
 
     [<TarsToolAttribute("get_env",
                         "Gets the value of an environment variable. Input: variable name (e.g., 'PATH', 'DOTNET_ROOT')")>]
-    let getEnv (varName: string) =
+    let getEnv (args: string) =
         task {
-            let name = varName.Trim()
+            let name = ToolHelpers.parseStringArg args "variable"
             printfn "🔧 GET ENV: %s" name
 
             let value = Environment.GetEnvironmentVariable(name)
@@ -78,17 +78,27 @@ module SystemTools =
     let runShell (args: string) =
         task {
             try
-                let doc = System.Text.Json.JsonDocument.Parse(args)
-                let root = doc.RootElement
+                // Use robust parsing for the command
+                let command = ToolHelpers.parseStringArg args "command"
 
-                let command = root.GetProperty("command").GetString()
-
-                let mutable timeoutProp = Unchecked.defaultof<System.Text.Json.JsonElement>
-
+                // Try to parse timeout safely, defaulting to 30
                 let timeout =
-                    if root.TryGetProperty("timeout", &timeoutProp) then
-                        timeoutProp.GetInt32()
-                    else
+                    try
+                        let doc = System.Text.Json.JsonDocument.Parse(args)
+
+                        if doc.RootElement.ValueKind = System.Text.Json.JsonValueKind.Object then
+                            let mutable p = Unchecked.defaultof<System.Text.Json.JsonElement>
+
+                            if
+                                doc.RootElement.TryGetProperty("timeout", &p)
+                                && p.ValueKind = System.Text.Json.JsonValueKind.Number
+                            then
+                                p.GetInt32()
+                            else
+                                30
+                        else
+                            30
+                    with _ ->
                         30
 
                 // Safety checks
@@ -139,34 +149,6 @@ module SystemTools =
                         return sprintf "Command timed out after %d seconds" timeout
             with ex ->
                 return "run_shell error: " + ex.Message
-        }
-
-    [<TarsToolAttribute("http_get", "Fetches content from a URL. Input: URL to fetch")>]
-    let httpGet (url: string) =
-        task {
-            let uri = url.Trim()
-            printfn "🌐 HTTP GET: %s" uri
-
-            try
-                if not (uri.StartsWith("http://") || uri.StartsWith("https://")) then
-                    return "URL must start with http:// or https://"
-                else
-                    let! response = httpClient.GetAsync(uri)
-
-                    if response.IsSuccessStatusCode then
-                        let! content = response.Content.ReadAsStringAsync()
-
-                        let preview =
-                            if content.Length > 2000 then
-                                content.Substring(0, 2000) + "..."
-                            else
-                                content
-
-                        return sprintf "Status: %d %s\n\n%s" (int response.StatusCode) (response.ReasonPhrase) preview
-                    else
-                        return sprintf "HTTP Error: %d %s" (int response.StatusCode) (response.ReasonPhrase)
-            with ex ->
-                return "http_get error: " + ex.Message
         }
 
     [<TarsToolAttribute("get_system_info", "Gets system and runtime information. No input required.")>]
@@ -220,9 +202,9 @@ module SystemTools =
         }
 
     [<TarsToolAttribute("set_working_dir", "Changes the current working directory. Input: new directory path")>]
-    let setWorkingDir (path: string) =
+    let setWorkingDir (args: string) =
         task {
-            let newPath = path.Trim()
+            let newPath = ToolHelpers.parseStringArg args "path"
             printfn "📂 CHANGING DIR: %s" newPath
 
             try

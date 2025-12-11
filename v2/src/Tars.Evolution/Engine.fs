@@ -30,7 +30,7 @@ module Engine =
           Budget: BudgetGovernor option
           OutputGuard: IOutputGuard option
           KnowledgeBase: KnowledgeBase option
-          KnowledgeGraph: obj option // Tars.Core.LegacyKnowledgeGraph.TemporalGraph option
+          KnowledgeGraph: TemporalKnowledgeGraph.TemporalGraph option
           MemoryBuffer: BufferAgent<MemoryItem> option // Added Capacitor
           EpisodeService: EpisodeIngestionService option // Graphiti integration
           Logger: string -> unit
@@ -633,12 +633,68 @@ Please fix the solution based on this feedback. Output the IMPROVED solution."""
                     | None -> ()
 
                     // Save to Knowledge            // Ingest trace into KG
+                    // Save to Knowledge            // Ingest trace into KG
                     match ctx.KnowledgeGraph with
-                    | Some kgObj ->
-                        let kg = kgObj :?> Tars.Core.LegacyKnowledgeGraph.TemporalGraph
-
+                    | Some kg ->
                         try
-                            kg.IngestEpisode(trace)
+                            let taskEntity =
+                                TarsEntity.ConceptE
+                                    { Name = $"Task: {taskDef.Goal}"
+                                      Description = taskDef.Goal
+                                      RelatedConcepts = [] }
+
+                            let _ = kg.AddNode(taskEntity)
+
+                            let resultEntity =
+                                if result.Success then
+                                    TarsEntity.ConceptE
+                                        { Name = "Success"
+                                          Description = "Task Success"
+                                          RelatedConcepts = [] }
+                                else
+                                    TarsEntity.ConceptE
+                                        { Name = "Failure"
+                                          Description = "Task Failure"
+                                          RelatedConcepts = [] }
+
+                            let _ = kg.AddFact(TarsFact.DerivedFrom(resultEntity, taskEntity))
+
+                            // Map code structure if available
+                            match trace.Variables |> Map.tryFind "code_structure" with
+                            | Some(:? CodeStructure as cs) ->
+                                for m in cs.Modules do
+                                    let modEntity =
+                                        TarsEntity.CodeModuleE
+                                            { Path = m
+                                              Namespace = ""
+                                              Dependencies = []
+                                              Complexity = 0.0
+                                              LineCount = 0 }
+
+                                    let _ = kg.AddFact(TarsFact.BelongsTo(taskEntity, m))
+                                    ()
+
+                                for t in cs.Types do
+                                    let typeEntity =
+                                        TarsEntity.ConceptE
+                                            { Name = t
+                                              Description = "Type"
+                                              RelatedConcepts = [] }
+
+                                    let _ = kg.AddFact(TarsFact.DerivedFrom(typeEntity, taskEntity))
+                                    ()
+
+                                for f in cs.Functions do
+                                    let funcEntity =
+                                        TarsEntity.ConceptE
+                                            { Name = f
+                                              Description = "Function"
+                                              RelatedConcepts = [] }
+
+                                    let _ = kg.AddFact(TarsFact.DerivedFrom(funcEntity, taskEntity))
+                                    ()
+                            | _ -> ()
+
                             ctx.Logger($"[KnowledgeGraph] Ingested episode for task: {taskDef.Id}")
                         with ex ->
                             ctx.Logger($"[KnowledgeGraph] Failed to ingest episode: {ex.Message}")

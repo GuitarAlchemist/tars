@@ -16,6 +16,7 @@ open Tars.Metascript.Engine
 open Tars.Metascript.Config
 open System.Net.Http
 open Tars.Cortex
+open Tars.Security
 
 let execute (logger: ILogger) (scriptPath: string) =
     task {
@@ -31,6 +32,10 @@ let execute (logger: ILogger) (scriptPath: string) =
                 let workflow = JsonSerializer.Deserialize<Workflow>(json, options)
 
                 // Initialize Kernel & LLM
+                let getSecret key =
+                    match CredentialVault.getSecret key with
+                    | Result.Ok s -> Some s
+                    | Result.Error _ -> None
 
                 let routingCfg: RoutingConfig =
                     { OllamaBaseUri = Uri("http://localhost:11434/")
@@ -43,7 +48,13 @@ let execute (logger: ILogger) (scriptPath: string) =
                       DefaultOpenAIModel = "gpt-4o"
                       DefaultGoogleGeminiModel = "gemini-pro"
                       DefaultAnthropicModel = "claude-3-opus-20240229"
-                      DefaultEmbeddingModel = "nomic-embed-text" }
+                      DefaultEmbeddingModel = "nomic-embed-text"
+
+                      OllamaKey = None
+                      VllmKey = None
+                      OpenAIKey = getSecret "OPENAI_API_KEY"
+                      GoogleGeminiKey = getSecret "GOOGLE_API_KEY"
+                      AnthropicKey = getSecret "ANTHROPIC_API_KEY" }
 
                 let svcCfg: LlmServiceConfig = { Routing = routingCfg }
                 use httpClient = new HttpClient()

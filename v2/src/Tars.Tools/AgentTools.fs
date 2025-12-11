@@ -165,8 +165,10 @@ module AgentTools =
 
     [<TarsToolAttribute("agent_status",
                         "Gets the current status of an agent. Input: agent name (Curriculum, Executor, or Reviewer)")>]
-    let agentStatus (agentName: string) =
+    let agentStatus (args: string) =
         task {
+            let agentName = ToolHelpers.parseStringArg args "agent"
+
             let name =
                 if String.IsNullOrWhiteSpace(agentName) then
                     "Executor"

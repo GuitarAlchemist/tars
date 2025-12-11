@@ -23,7 +23,9 @@ module ToolFactory =
     /// These are "meta-tools" that delegate to existing capabilities
     let private createSimpleTool (spec: ToolSpec) : Tool option =
         match spec.Name.ToLowerInvariant() with
-        | name when name.Contains("echo") || name.Contains("say") || name.Contains("inform") ->
+        | "echo"
+        | "say"
+        | "inform" ->
             Some
                 { Name = spec.Name
                   Description = spec.Description
@@ -31,7 +33,9 @@ module ToolFactory =
                   ParentVersion = None
                   CreatedAt = DateTime.UtcNow
                   Execute = fun input -> async { return Ok $"[{spec.Name}]: {input}" } }
-        | name when name.Contains("think") || name.Contains("reason") || name.Contains("analyze") ->
+        | "think"
+        | "reason"
+        | "analyze" ->
             Some
                 { Name = spec.Name
                   Description = "Internal reasoning/thinking step (returns input for self-reflection)"
@@ -39,7 +43,10 @@ module ToolFactory =
                   ParentVersion = None
                   CreatedAt = DateTime.UtcNow
                   Execute = fun input -> async { return Ok $"Reasoning: {input}" } }
-        | name when name.Contains("complete") || name.Contains("done") || name.Contains("finish") ->
+        | "complete"
+        | "done"
+        | "finish"
+        | "complete_task" ->
             Some
                 { Name = spec.Name
                   Description = "Marks the task as complete with the given solution"
@@ -47,7 +54,8 @@ module ToolFactory =
                   ParentVersion = None
                   CreatedAt = DateTime.UtcNow
                   Execute = fun input -> async { return Ok $"SOLUTION:\n{input}" } }
-        | name when name.Contains("propose") || name.Contains("suggest") ->
+        | "propose"
+        | "suggest" ->
             Some
                 { Name = spec.Name
                   Description = "Proposes a solution or approach"
@@ -55,7 +63,8 @@ module ToolFactory =
                   ParentVersion = None
                   CreatedAt = DateTime.UtcNow
                   Execute = fun input -> async { return Ok $"Proposed: {input}" } }
-        | name when name.Contains("request") || name.Contains("ask") ->
+        | "request"
+        | "ask" ->
             Some
                 { Name = spec.Name
                   Description = "Requests information or action"
@@ -63,7 +72,9 @@ module ToolFactory =
                   ParentVersion = None
                   CreatedAt = DateTime.UtcNow
                   Execute = fun input -> async { return Ok $"Request acknowledged: {input}" } }
-        | name when name.Contains("failure") || name.Contains("error") || name.Contains("fail") ->
+        | "failure"
+        | "error"
+        | "fail" ->
             Some
                 { Name = spec.Name
                   Description = "Reports a failure or error condition"
@@ -71,16 +82,23 @@ module ToolFactory =
                   ParentVersion = None
                   CreatedAt = DateTime.UtcNow
                   Execute = fun input -> async { return Ok $"Failure reported: {input}" } }
+        | "query" ->
+            Some
+                { Name = spec.Name
+                  Description = "Queries for information"
+                  Version = "1.0.0"
+                  ParentVersion = None
+                  CreatedAt = DateTime.UtcNow
+                  Execute = fun input -> async { return Ok $"Query acknowledged: {input}" } }
+        | "refuse" ->
+            Some
+                { Name = spec.Name
+                  Description = "Refuses a request"
+                  Version = "1.0.0"
+                  ParentVersion = None
+                  CreatedAt = DateTime.UtcNow
+                  Execute = fun input -> async { return Ok $"Refusal acknowledged: {input}" } }
         | _ -> None
-
-    /// Create a generic tool that just echoes back with context
-    let private createGenericTool (name: string) (input: string) : Tool =
-        { Name = name
-          Description = $"Dynamically created tool for '{name}'"
-          Version = "1.0.0-dynamic"
-          ParentVersion = None
-          CreatedAt = DateTime.UtcNow
-          Execute = fun inp -> async { return Ok $"[Dynamic {name}]: {inp}" } }
 
     /// Try to create a tool for a missing tool name
     /// This is called when an agent requests a tool that doesn't exist
@@ -100,10 +118,9 @@ module ToolFactory =
             printfn $"🔧 ToolFactory: Created dynamic tool '{toolName}'"
             Created tool
         | None ->
-            // Create a generic fallback tool
-            let tool = createGenericTool toolName toolInput
-            printfn $"🔧 ToolFactory: Created generic dynamic tool '{toolName}'"
-            Created tool
+            // Fail safely for unknown patterns to avoid aggressive tool creation
+            printfn $"⚠️ ToolFactory: Refused to create dynamic tool for unknown pattern '{toolName}'"
+            CreationFailed $"Unknown tool pattern '{toolName}'. Only recognized speech acts are supported."
 
     /// Creates tools for common speech act performatives that get misinterpreted as tool calls
     let createSpeechActTools () : Tool list =

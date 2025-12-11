@@ -299,7 +299,13 @@ let run (logger: ILogger) (options: EvolveOptions) =
               DefaultOpenAIModel = "gpt-4o"
               DefaultGoogleGeminiModel = "gemini-pro"
               DefaultAnthropicModel = "claude-3-opus-20240229"
-              DefaultEmbeddingModel = "nomic-embed-text" }
+              DefaultEmbeddingModel = "nomic-embed-text"
+
+              OllamaKey = None
+              VllmKey = None
+              OpenAIKey = CredentialVault.getSecret "OPENAI_API_KEY" |> Result.toOption
+              GoogleGeminiKey = CredentialVault.getSecret "GOOGLE_API_KEY" |> Result.toOption
+              AnthropicKey = CredentialVault.getSecret "ANTHROPIC_API_KEY" |> Result.toOption }
 
         let svcCfg: LlmServiceConfig = { Routing = routingCfg }
         use httpClient = new HttpClient()
@@ -459,7 +465,12 @@ let run (logger: ILogger) (options: EvolveOptions) =
                   KnowledgeGraph = None // Some knowledgeGraph
                   MemoryBuffer = Some memoryBuffer
                   EpisodeService = None // Graphiti integration - set via env if available
-                  Logger = fun s -> logger.Information("{Evolution}", s)
+                  Logger =
+                    fun s ->
+                        logger.Information("{Evolution}", s)
+
+                        if options.Verbose then
+                            ConsoleUI.dim $"   [LOG] {s}\n"
                   Verbose = options.Verbose
                   ShowSemanticMessage = DemoVisualization.showSemanticMessage }
 

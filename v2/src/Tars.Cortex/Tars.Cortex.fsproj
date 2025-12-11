@@ -24,6 +24,10 @@
     <Compile Include="Inference.fs" />
     <Compile Include="OutputGuardAnalyzerLlm.fs" />
     <Compile Include="EntityExtractor.fs" />
+    <Compile Include="SemanticWatchdog.fs" />
+    <Compile Include="UncertaintyGatedPlanner.fs" />
+    <Compile Include="ConsensusCircuitBreaker.fs" />
+    <Compile Include="Structure.fs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -37,6 +41,7 @@
     <PackageReference Include="FSharp.SystemTextJson" Version="1.4.36" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.5" />
     <PackageReference Include="Microsoft.SemanticKernel" Version="1.67.1" />
+    <PackageReference Update="FSharp.Core" Version="10.0.101" />
   </ItemGroup>
 
 

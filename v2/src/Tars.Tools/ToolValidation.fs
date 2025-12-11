@@ -2,6 +2,7 @@ namespace Tars.Tools.Standard
 
 open System
 open System.Collections.Generic
+open Tars.Core
 open Tars.Tools
 
 module ToolValidation =
@@ -16,78 +17,39 @@ module ToolValidation =
         if toolExecutionLog.Count > 100 then
             toolExecutionLog.RemoveAt(0)
 
-    /// Known tools database
-    let private knownTools =
-        dict
-            [ ("explore_project", ("Explore project structure", "path: string"))
-              ("read_code", ("Read code file contents", "path: string"))
-              ("patch_code", ("Patch/edit code files", "JSON: { file, search, replace }"))
-              ("write_code", ("Write new code files", "JSON: { path, content }"))
-              ("git_commit", ("Create git commit", "JSON: { message }"))
-              ("git_status", ("Check git status", "none"))
-              ("git_diff", ("Show git diff", "none"))
-              ("run_tests", ("Run project tests", "optional path"))
-              ("build_project", ("Build the project", "optional path"))
-              ("generate_test", ("Generate test code", "JSON: { file, function }"))
-              ("analyze_code", ("Analyze code quality", "path"))
-              ("think_step_by_step", ("Chain-of-thought reasoning", "problem description"))
-              ("plan_task", ("Create task plan", "task description"))
-              ("summarize", ("Summarize content", "content to summarize"))
-              ("lookup_docs", ("Search documentation", "topic"))
-              ("improve_prompt", ("Enhance prompts", "prompt text"))
-              ("reflect_on_task", ("Task reflection", "task description"))
-              ("report_progress", ("Progress report", "none"))
-              ("run_metascript", ("Execute metascript", "metascript code"))
-              ("parse_metascript", ("Parse metascript", "metascript code"))
-              ("create_metascript", ("Create metascript", "task description"))
-              ("list_files", ("List directory files", "JSON: { path, pattern }"))
-              ("search_code", ("Search in code", "JSON: { pattern, path }"))
-              ("count_lines", ("Count code lines", "JSON: { path, pattern }"))
-              ("find_todos", ("Find TODO comments", "path"))
-              ("delegate_task", ("Delegate to agent", "JSON: { agent, task }"))
-              ("request_review", ("Request code review", "JSON: { code, focus }"))
-              ("query_agent", ("Query agent info", "JSON: { agent, question }"))
-              ("list_agents", ("List all agents", "none"))
-              ("agent_status", ("Get agent status", "agent name"))
-              ("debug_hint", ("Get debug hints", "error message"))
-              ("trace_error", ("Trace error context", "JSON: { file, line }"))
-              ("explain_error", ("Explain error codes", "error code"))
-              ("generate_docs", ("Generate documentation", "JSON: { code, style }"))
-              ("update_readme", ("Suggest README updates", "changes description"))
-              ("save_note", ("Save session note", "JSON: { key, content }"))
-              ("recall_note", ("Recall saved note", "note key"))
-              ("list_notes", ("List all notes", "none"))
-              ("list_models", ("List LLM models", "none"))
-              ("switch_model", ("Switch LLM model", "model name"))
-              ("recommend_model", ("Recommend model", "task description"))
-              ("pull_model", ("Download model", "model name"))
-              ("model_info", ("Get model info", "model name"))
-              ("get_active_model", ("Current model", "none"))
-              ("validate_tool", ("Validate tool exists", "tool name"))
-              ("test_tool", ("Test tool execution", "JSON: { tool, input }"))
-              ("list_tool_errors", ("List tool errors", "optional filter"))
-              ("introspect_tool", ("Tool introspection", "tool name"))
-              ("list_all_tools", ("List all tools", "none")) ]
+    /// Dynamic list of tools (injected at runtime)
+    let mutable private dynamicTools: Tool list = []
+
+    /// Initialize the validation module with actual tools
+    let setKnownTools (tools: Tool list) = dynamicTools <- tools
+
+    /// Helper to get tool info (case-insensitive)
+    let private getToolInfo (name: string) =
+        let target = name.Trim().ToLowerInvariant()
+
+        dynamicTools
+        |> List.tryFind (fun t -> t.Name.ToLowerInvariant() = target)
+        |> Option.map (fun t -> (t.Description, "Checking implementation..."))
 
     [<TarsToolAttribute("validate_tool",
                         "Validates that a tool exists and shows its signature. Input: tool name to validate")>]
-    let validateTool (toolName: string) =
+    let validateTool (args: string) =
         task {
+            let toolName = ToolHelpers.parseStringArg args "tool_name"
             let name = toolName.Trim()
             printfn "🔍 VALIDATING TOOL: %s" name
 
-            if knownTools.ContainsKey(name) then
-                let (desc, input) = knownTools.[name]
-
+            match getToolInfo name with
+            | Some(desc, _) ->
                 return
                     sprintf
-                        "✅ Tool '%s' is valid.\n\n  Description: %s\n  Input: %s\n\nUse test_tool to run it with sample input."
+                        "✅ Tool '%s' is valid.\n\n  Description: %s\n\nUse test_tool to run it with sample input."
                         name
                         desc
-                        input
-            else
+            | None ->
                 let suggestions =
-                    knownTools.Keys
+                    dynamicTools
+                    |> Seq.map (fun t -> t.Name)
                     |> Seq.filter (fun k -> k.Contains(name) || name.Contains(k))
                     |> Seq.truncate 3
                     |> String.concat ", "
@@ -111,7 +73,8 @@ module ToolValidation =
 
                 printfn "🧪 TESTING TOOL: %s" toolName
 
-                if knownTools.ContainsKey(toolName) then
+                match getToolInfo toolName with
+                | Some _ ->
                     recordExecution toolName true (sprintf "Test input: %s" (input.Substring(0, min 30 input.Length)))
 
                     return
@@ -120,16 +83,16 @@ module ToolValidation =
                             toolName
                             toolName
                             input
-                else
-                    return sprintf "Tool '%s' not found. Use list_all_tools to see available tools." toolName
+                | None -> return sprintf "Tool '%s' not found. Use list_all_tools to see available tools." toolName
             with ex ->
                 return "test_tool error: " + ex.Message
         }
 
     [<TarsToolAttribute("list_tool_errors",
                         "Lists recent tool execution records. Input: optional filter (tool name or 'failed')")>]
-    let listToolErrors (filter: string) =
+    let listToolErrors (args: string) =
         task {
+            let filter = ToolHelpers.parseStringArg args "filter"
             printfn "📋 LISTING TOOL EXECUTION LOG"
 
             let filtered =
@@ -158,37 +121,32 @@ module ToolValidation =
         }
 
     [<TarsToolAttribute("introspect_tool", "Shows detailed information about a tool. Input: tool name")>]
-    let introspectTool (toolName: string) =
+    let introspectTool (args: string) =
         task {
+            let toolName = ToolHelpers.parseStringArg args "tool_name"
             let name = toolName.Trim()
             printfn "🔬 INTROSPECTING: %s" name
 
-            if knownTools.ContainsKey(name) then
-                let (desc, input) = knownTools.[name]
-
-                return
-                    sprintf
-                        "Tool: %s\n\nDescription: %s\nExpected Input: %s\n\nUse validate_tool to confirm availability."
-                        name
-                        desc
-                        input
-            else
+            match getToolInfo name with
+            | Some(desc, _) ->
+                printfn "   ✅ FOUND: %s" desc
+                // Make the output unmistakably clear for the agent
+                return sprintf "### TOOL DEFINITION: %s ###\n\n%s\n\n(This is the full definition)" name desc
+            | None ->
+                printfn "   ❌ NOT FOUND. Searching in %d tools..." dynamicTools.Length
                 return sprintf "Tool '%s' not found. Use list_all_tools to see available tools." name
         }
 
     [<TarsToolAttribute("list_all_tools", "Lists all registered tools with descriptions. No input required.")>]
     let listAllTools (_: string) =
         task {
-            printfn "📋 LISTING ALL %d TOOLS" knownTools.Count
+            printfn "📋 LISTING ALL %d TOOLS" dynamicTools.Length
 
             let toolList =
-                knownTools
-                |> Seq.sortBy (fun kvp -> kvp.Key)
-                |> Seq.mapi (fun i kvp ->
-                    let (desc, _) = kvp.Value
-                    sprintf "  %2d. %-22s %s" (i + 1) kvp.Key desc)
+                dynamicTools
+                |> List.sortBy (fun t -> t.Name)
+                |> List.mapi (fun i t -> sprintf "  %2d. %-22s %s" (i + 1) t.Name t.Description)
                 |> String.concat "\n"
 
-            return
-                sprintf "Registered Tools (%d total):\n%s\n\nUse introspect_tool for details." knownTools.Count toolList
+            return sprintf "Registered Tools (%d total):\n%s" dynamicTools.Length toolList
         }

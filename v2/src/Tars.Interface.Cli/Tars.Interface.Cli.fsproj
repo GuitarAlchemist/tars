@@ -10,7 +10,7 @@
   <ItemGroup>
     <Compile Include="Tui.fs" />
     <Compile Include="Commands\Ask.fs" />
-    <Compile Include="Commands\TestGrammar.fs" />
+    <Compile Include="Commands\TestGrammarCommand.fs" />
     <Compile Include="Commands\Memory.fs" />
     <Compile Include="Commands\GuardOutputCommand.fs" />
     <Compile Include="Commands\Demo.fs" />
@@ -21,11 +21,12 @@
     <Compile Include="Commands\Evolve.fs" />
     <Compile Include="Commands\Knowledge.fs" />
     <Compile Include="Commands\McpCommand.fs" />
+    <Compile Include="Commands\McpServerCommand.fs" />
     <Compile Include="Commands\SemanticMemoryCommand.fs" />
     <Compile Include="Commands\Experiment.fs" />
     <Compile Include="Commands\Config.fs" />
     <Compile Include="Commands\Secrets.fs" />
-    <Compile Include="Commands\Run.fs" />
+    <Compile Include="Commands\RunCommand.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
@@ -39,6 +40,7 @@
     <ProjectReference Include="..\Tars.Evolution\Tars.Evolution.fsproj" />
     <ProjectReference Include="..\Tars.Llm\Tars.Llm.fsproj" />
     <ProjectReference Include="..\Tars.Metascript\Tars.Metascript.fsproj" />
+    <ProjectReference Include="..\Tars.Tools\Tars.Tools.fsproj" />
   </ItemGroup>
 
   <ItemGroup>
