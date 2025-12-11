@@ -1,0 +1,72 @@
+<idea-plugin>
+    <id>com.tars.jetbrains</id>
+    <name>TARS AI Assistant</name>
+    <vendor email="support@tars.ai" url="https://github.com/GuitarAlchemist/tars">TARS</vendor>
+
+    <description><![CDATA[
+        <h2>TARS - Thinking, Acting, Reasoning System</h2>
+        <p>AI-powered coding assistant with advanced RAG, budget governance, and epistemic verification.</p>
+        <ul>
+            <li>Connect to TARS MCP server for AI assistance</li>
+            <li>Execute tools directly from the IDE</li>
+            <li>View knowledge graph and memory</li>
+        </ul>
+    ]]></description>
+
+    <change-notes><![CDATA[
+        <h3>1.0.0</h3>
+        <ul>
+            <li>Initial release</li>
+            <li>MCP client integration</li>
+            <li>Tool window with chat interface</li>
+        </ul>
+    ]]></change-notes>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Tool Window -->
+        <toolWindow id="TARS" 
+                    secondary="true" 
+                    icon="/icons/tars.svg" 
+                    anchor="right"
+                    factoryClass="com.tars.jetbrains.TarsToolWindowFactory"/>
+        
+        <!-- Settings -->
+        <applicationConfigurable 
+                parentId="tools" 
+                instance="com.tars.jetbrains.settings.TarsSettingsConfigurable"
+                id="com.tars.jetbrains.settings"
+                displayName="TARS"/>
+        
+        <applicationService 
+                serviceImplementation="com.tars.jetbrains.settings.TarsSettings"/>
+        
+        <!-- Notifications -->
+        <notificationGroup id="TARS Notifications" 
+                          displayType="BALLOON"/>
+    </extensions>
+
+    <actions>
+        <group id="TarsActions" text="TARS" popup="true">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+            
+            <action id="Tars.Connect" 
+                    class="com.tars.jetbrains.actions.ConnectAction"
+                    text="Connect to TARS" 
+                    description="Connect to TARS MCP server"/>
+            
+            <action id="Tars.AskQuestion" 
+                    class="com.tars.jetbrains.actions.AskQuestionAction"
+                    text="Ask TARS" 
+                    description="Ask TARS a question about the code">
+                <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt T"/>
+            </action>
+            
+            <action id="Tars.ExplainSelection" 
+                    class="com.tars.jetbrains.actions.ExplainSelectionAction"
+                    text="Explain Selection" 
+                    description="Ask TARS to explain selected code"/>
+        </group>
+    </actions>
+</idea-plugin>
