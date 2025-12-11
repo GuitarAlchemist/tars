@@ -58,6 +58,7 @@
     <Compile Include="TraceAnalyzerTests.fs" />
     <Compile Include="ProjectTests.fs" />
     <Compile Include="PipelineExecutorTests.fs" />
+    <Compile Include="ArtifactTests.fs" />
     <!-- <Compile Include="GraphitiTypesTests.fs" /> -->
   </ItemGroup>
 

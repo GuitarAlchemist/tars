@@ -40,6 +40,7 @@
     <Compile Include="Project.fs" />
     <Compile Include="ProjectRegistry.fs" />
     <Compile Include="PipelineExecutor.fs" />
+    <Compile Include="Artifact.fs" />
     <Compile Include="Execution.fs" />
   </ItemGroup>
 
