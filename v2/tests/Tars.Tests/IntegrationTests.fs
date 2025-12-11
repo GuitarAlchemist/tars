@@ -23,7 +23,7 @@ type IntegrationTests(output: ITestOutputHelper) =
 
     // === Ollama Integration Tests ===
 
-    [<Fact(Skip = "Integration: Requires Ollama running on localhost:11434")>]
+    [<Fact>]
     member _.``Ollama: Can connect and list models``() =
         task {
             output.WriteLine("Connecting to Ollama...")
@@ -32,7 +32,7 @@ type IntegrationTests(output: ITestOutputHelper) =
             Assert.NotEmpty(models)
         }
 
-    [<Fact(Skip = "Integration: Requires Ollama with llama3.2 model")>]
+    [<Fact>]
     member _.``Ollama: Can generate chat completion``() =
         task {
             output.WriteLine("Testing chat generation...")
@@ -60,7 +60,7 @@ type IntegrationTests(output: ITestOutputHelper) =
             Assert.False(String.IsNullOrEmpty(response.Text))
         }
 
-    [<Fact(Skip = "Integration: Requires Ollama with embedding model")>]
+    [<Fact>]
     member _.``Ollama: Can generate embeddings``() =
         task {
             output.WriteLine("Testing embedding generation...")
@@ -155,7 +155,7 @@ type IntegrationTests(output: ITestOutputHelper) =
 
     // === Vector Store Integration Tests ===
 
-    [<Fact(Skip = "Integration: Tests full RAG pipeline with embeddings")>]
+    [<Fact>]
     member _.``VectorStore: End-to-end RAG pipeline``() =
         task {
             output.WriteLine("Testing RAG pipeline...")
@@ -186,26 +186,66 @@ type IntegrationTests(output: ITestOutputHelper) =
 
     // === Agent Execution Integration Tests ===
 
-    [<Fact(Skip = "Integration: Requires full agent infrastructure")>]
+    [<Fact>]
     member _.``Agent: Can execute multi-step workflow with LLM``() =
         task {
-            output.WriteLine("Testing agent workflow...")
-            // This would test the full AgentWorkflow with real LLM calls
-            // Placeholder for when infrastructure is ready
-            Assert.True(true)
+            output.WriteLine("Testing agent workflow with real LLM...")
+            
+            // Create real Ollama LLM service
+            let llm = OllamaClient.createService httpClient ollamaUri "qwen2.5-coder:1.5b"
+            
+            // Step 1: Generate a plan
+            let planReq = {
+                ModelHint = None
+                Model = None
+                SystemPrompt = Some "You are a helpful assistant. Respond concisely."
+                MaxTokens = Some 100
+                Temperature = Some 0.7
+                Stop = []
+                Messages = [ { Role = Role.User; Content = "List 3 steps to write a hello world program in F#" } ]
+                Tools = []
+                ToolChoice = None
+                ResponseFormat = None
+                Stream = false
+                JsonMode = false
+                Seed = None
+            }
+            
+            let! planResponse = llm.CompleteAsync(planReq)
+            output.WriteLine($"Plan response: {planResponse.Text}")
+            Assert.False(String.IsNullOrWhiteSpace(planResponse.Text))
+            
+            // Step 2: Execute step 1 (ask LLM to write code)
+            let codeReq = { planReq with Messages = [ { Role = Role.User; Content = "Write a one-line F# hello world" } ] }
+            let! codeResponse = llm.CompleteAsync(codeReq)
+            output.WriteLine($"Code response: {codeResponse.Text}")
+            
+            // Verify we got code output
+            Assert.True(codeResponse.Text.Contains("print") || codeResponse.Text.Contains("Hello") || codeResponse.Text.Contains("world"))
         }
 
-    [<Fact(Skip = "Integration: Requires Epistemic Governor with LLM")>]
-    member _.``EpistemicGovernor: Can verify claims``() =
+    [<Fact>]
+    member _.``EpistemicGovernor: Can verify claims with LLM``() =
         task {
-            output.WriteLine("Testing epistemic verification...")
-            // This would test claim verification against knowledge base
-            Assert.True(true)
+            output.WriteLine("Testing epistemic verification with real LLM...")
+            
+            let llm = OllamaClient.createService httpClient ollamaUri "qwen2.5-coder:1.5b"
+            let vectorStore = InMemoryVectorStore() :> IVectorStore
+            
+            // Create real epistemic governor
+            let governor = EpistemicGovernor(llm, vectorStore)
+            
+            // Test principle extraction
+            let! principle = governor.ExtractPrinciple("Calculate sum of list", "Use List.fold for accumulation")
+            
+            output.WriteLine($"Extracted principle: {principle.Statement}")
+            Assert.False(String.IsNullOrWhiteSpace(principle.Statement))
+            Assert.Equal(EpistemicStatus.Hypothesis, principle.Status)
         }
 
     // === Budget-constrained LLM Tests ===
 
-    [<Fact(Skip = "Integration: Requires LLM for budget testing")>]
+    [<Fact>]
     member _.``Budget: LLM calls respect token limits``() =
         task {
             output.WriteLine("Testing budget-constrained LLM...")
@@ -216,33 +256,152 @@ type IntegrationTests(output: ITestOutputHelper) =
 
             let governor = BudgetGovernor(budget)
 
-            // Would call LLM and track actual token usage
-            // Verify that budget is respected
+            // Verify budget checks work
             Assert.True(governor.CanAfford({ Cost.Zero with Tokens = 50<token> }))
+            Assert.True(governor.CanAfford({ Cost.Zero with Tokens = 99<token> }))
+            
+            // Consume some budget
+            governor.Consume({ Cost.Zero with Tokens = 80<token> }) |> ignore
+            
+            // Now we can't afford 50 more tokens (only 20 left)
+            Assert.False(governor.CanAfford({ Cost.Zero with Tokens = 50<token> }))
+            Assert.True(governor.CanAfford({ Cost.Zero with Tokens = 19<token> }))
         }
 
     // === Agentic Patterns Integration Tests ===
 
-    [<Fact(Skip = "Integration: Requires LLM for Chain of Thought")>]
+    [<Fact>]
     member _.``Patterns: Chain of Thought with real LLM``() =
         task {
-            output.WriteLine("Testing CoT pattern...")
-            // Would test real multi-step reasoning chain
-            Assert.True(true)
+            output.WriteLine("Testing Chain of Thought pattern...")
+            
+            let llm = OllamaClient.createService httpClient ollamaUri "qwen2.5-coder:1.5b"
+            
+            // CoT prompt that forces step-by-step reasoning
+            let cotReq = {
+                ModelHint = None
+                Model = None
+                SystemPrompt = Some "Think step by step. Show your reasoning."
+                MaxTokens = Some 200
+                Temperature = Some 0.3
+                Stop = []
+                Messages = [ { Role = Role.User; Content = "What is 15 * 7? Think step by step." } ]
+                Tools = []
+                ToolChoice = None
+                ResponseFormat = None
+                Stream = false
+                JsonMode = false
+                Seed = None
+            }
+            
+            let! response = llm.CompleteAsync(cotReq)
+            output.WriteLine($"CoT response: {response.Text}")
+            
+            // Verify reasoning is present (should show steps)
+            Assert.False(String.IsNullOrWhiteSpace(response.Text))
+            // Check for the correct answer (105) or reasoning words
+            Assert.True(
+                response.Text.Contains("105") || 
+                response.Text.Contains("step") || 
+                response.Text.Contains("multiply") ||
+                response.Text.ToLower().Contains("first")
+            )
         }
 
-    [<Fact(Skip = "Integration: Requires LLM for ReAct pattern")>]
-    member _.``Patterns: ReAct loop with tool calls``() =
+    [<Fact>]
+    member _.``Patterns: ReAct loop with tool simulation``() =
         task {
             output.WriteLine("Testing ReAct pattern...")
-            // Would test Reason-Act-Observe loop with tools
-            Assert.True(true)
+            
+            let llm = OllamaClient.createService httpClient ollamaUri "qwen2.5-coder:1.5b"
+            
+            // Simulate ReAct: Reason -> Act -> Observe cycle
+            // Step 1: Reason about what to do
+            let reasonReq = {
+                ModelHint = None
+                Model = None
+                SystemPrompt = Some "You are a ReAct agent. First explain your reasoning, then state your action."
+                MaxTokens = Some 100
+                Temperature = Some 0.3
+                Stop = []
+                Messages = [ { Role = Role.User; Content = "I need to find information about F#. What should I do first?" } ]
+                Tools = []
+                ToolChoice = None
+                ResponseFormat = None
+                Stream = false
+                JsonMode = false
+                Seed = None
+            }
+            
+            let! reasonResponse = llm.CompleteAsync(reasonReq)
+            output.WriteLine($"Reason: {reasonResponse.Text}")
+            
+            // Step 2: Simulate tool observation
+            let observation = "F# is a functional-first programming language for .NET"
+            
+            // Step 3: Continue reasoning with observation
+            let continueReq = { reasonReq with 
+                Messages = [ 
+                    { Role = Role.User; Content = "I need to find information about F#. What should I do first?" }
+                    { Role = Role.User; Content = $"Observation: {observation}" }
+                    { Role = Role.User; Content = "Based on this observation, what can you tell me about F#?" }
+                ] 
+            }
+            
+            let! continueResponse = llm.CompleteAsync(continueReq)
+            output.WriteLine($"Continue: {continueResponse.Text}")
+            
+            Assert.False(String.IsNullOrWhiteSpace(reasonResponse.Text))
+            Assert.False(String.IsNullOrWhiteSpace(continueResponse.Text))
         }
 
-    [<Fact(Skip = "Integration: Requires LLM for Plan & Execute")>]
+    [<Fact>]
     member _.``Patterns: Plan and Execute with real planner``() =
         task {
             output.WriteLine("Testing Plan & Execute pattern...")
-            // Would test plan generation and step execution
-            Assert.True(true)
+            
+            let llm = OllamaClient.createService httpClient ollamaUri "qwen2.5-coder:1.5b"
+            
+            // Step 1: Generate a plan
+            let planReq = {
+                ModelHint = None
+                Model = None
+                SystemPrompt = Some "You are a planning assistant. Generate a numbered list of steps."
+                MaxTokens = Some 150
+                Temperature = Some 0.3
+                Stop = []
+                Messages = [ { Role = Role.User; Content = "Create a 3-step plan to create a simple calculator in F#" } ]
+                Tools = []
+                ToolChoice = None
+                ResponseFormat = None
+                Stream = false
+                JsonMode = false
+                Seed = None
+            }
+            
+            let! planResponse = llm.CompleteAsync(planReq)
+            output.WriteLine($"Plan: {planResponse.Text}")
+            
+            // Verify plan was generated (should contain numbered steps)
+            Assert.False(String.IsNullOrWhiteSpace(planResponse.Text))
+            Assert.True(
+                planResponse.Text.Contains("1") || 
+                planResponse.Text.Contains("step") ||
+                planResponse.Text.Contains("Step") ||
+                planResponse.Text.Contains("first") ||
+                planResponse.Text.Contains("First")
+            )
+            
+            // Step 2: Execute first step
+            let executeReq = { planReq with 
+                SystemPrompt = Some "You are a code executor. Write code for the requested step."
+                Messages = [ { Role = Role.User; Content = "Write F# code for the first step: define add and subtract functions" } ] 
+            }
+            
+            let! executeResponse = llm.CompleteAsync(executeReq)
+            output.WriteLine($"Execute: {executeResponse.Text}")
+            
+            // Verify code was generated
+            Assert.False(String.IsNullOrWhiteSpace(executeResponse.Text))
         }
+

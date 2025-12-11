@@ -8,7 +8,14 @@ Unlike traditional unit tests that verify code logic (e.g., "Does function X ret
 
 ## Testing Levels
 
-### Level 1: System Integration (Automated)
+### Level 1: Unit Tests (Automated)
+
+**Scope**: Verifies cognitive pattern structure and logic.
+
+* **Location**: `tests/Tars.Tests/CognitivePatternTests.fs`
+* **Coverage**: 13 tests for SemanticWatchdog, UncertaintyGatedPlanner, ConsensusCircuitBreaker
+
+### Level 2: System Integration (Automated)
 
 **Scope**: Verifies that the "brain" components are wired correctly.
 
@@ -19,24 +26,32 @@ Unlike traditional unit tests that verify code logic (e.g., "Does function X ret
   * Are the expected tools (`search_memory`, `save_memory`, `list_files`) registered?
   * Do tools accept valid arguments and return valid JSON?
 
-### Level 2: Cognitive Evaluations (Evals)
+### Level 3: Cognitive Evaluations (Evals)
 
 **Scope**: Verifies the *quality* and *correctness* of AI reasoning and memory.
 
 * **Location**: `tests/evals/`
-* **Tools**: Custom Python scripts, LLM-as-a-Judge (optional)
-* **Methodology**: "Golden Set" / "Needle in a Haystack"
-  * **Setup**: Inject a specific "Needle" (fact) into TARS's memory.
-  * **Query**: Ask a natural language question requiring that fact.
-  * **Assert**: Verify the answer matches the fact.
 
-### Level 3: Manual Verification
+| Eval | Tests |
+|------|-------|
+| `eval_memory.py` | Memory recall (needle in haystack) |
+| `eval_budget.py` | Token budget enforcement |
+| `eval_compression.py` | Context compaction >50% |
+| `eval_watchdog.py` | Loop/budget detection |
+
+### Level 4: Manual Verification
 
 **Scope**: Exploratory testing of complex flows.
 
 * **Method**: `tars chat` interactive sessions.
 
 ## Running Tests
+
+### Unit Tests
+
+```bash
+dotnet test Tars.sln --filter "CognitivePatternTests"
+```
 
 ### Integration Tests
 
@@ -48,9 +63,13 @@ python tests/integration/test_mcp_capabilities.py
 
 ```bash
 python tests/evals/eval_memory.py
+python tests/evals/eval_budget.py
+python tests/evals/eval_compression.py
+python tests/evals/eval_watchdog.py
 ```
 
 ## Future Work
 
-* Integrate into GitHub Actions.
-* Add **Reasoning Evals** (Tool Selection accuracy).
+* Integrate into GitHub Actions
+* Add **Reasoning Evals** (Tool Selection accuracy)
+* Add **Benchmark Suite** (HotpotQA, LoCoMo)
