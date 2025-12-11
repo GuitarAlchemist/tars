@@ -35,6 +35,8 @@
     <Compile Include="BoundedChannel.fs" />
     <Compile Include="TextNormalizer.fs" />
     <Compile Include="SemanticSerialization.fs" />
+    <Compile Include="Persona.fs" />
+    <Compile Include="PersonaRegistry.fs" />
     <Compile Include="Execution.fs" />
   </ItemGroup>
 

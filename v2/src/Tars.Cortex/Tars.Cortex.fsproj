@@ -28,6 +28,7 @@
     <Compile Include="UncertaintyGatedPlanner.fs" />
     <Compile Include="ConsensusCircuitBreaker.fs" />
     <Compile Include="Structure.fs" />
+    <Compile Include="TraceAnalyzer.fs" />
   </ItemGroup>
 
   <ItemGroup>
