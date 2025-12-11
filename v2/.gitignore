@@ -36,3 +36,4 @@ token.json
 *.out
 .fake
 docs.zipdata/
+data/
