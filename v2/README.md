@@ -50,6 +50,7 @@
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
 - [Ollama](https://ollama.ai/) (for LLM inference)
 
@@ -97,6 +98,7 @@ dotnet test --filter Category!=Slow
 ## ✨ Key Features
 
 ### Agent Workflow Computation Expression
+
 ```fsharp
 let myWorkflow = agent {
     let! data = fetchData ()
@@ -107,6 +109,7 @@ let myWorkflow = agent {
 ```
 
 ### Multi-Dimensional Budget Governance
+
 ```fsharp
 let budget = { Budget.Infinite with 
     MaxTokens = Some 10000<token>
@@ -115,6 +118,7 @@ let governor = BudgetGovernor(budget)
 ```
 
 ### Circuit Combinators
+
 ```fsharp
 // Transform: map over workflow results
 let doubled = transform ((*) 2) computeValue
@@ -127,6 +131,7 @@ let verified = grounded verifyFact claim
 ```
 
 ### Advanced RAG Pipeline
+
 - Query expansion, Multi-hop retrieval, Metadata filtering
 - Semantic chunking, Time decay scoring, Cross-encoder reranking
 - Answer attribution, Retrieval metrics, Fallback chains
@@ -139,9 +144,23 @@ let verified = grounded verifyFact claim
 
 ## 🧪 Test Coverage
 
-- **159+ unit tests** covering all major modules
-- **10 integration test skeletons** for LLM testing
-- Edge cases for AgentWorkflow, Budget, Graph, Patterns, VectorStores
+- **255 unit tests** covering all major modules (0 skipped)
+- **Real LLM integration tests** with Ollama (Agent, CoT, ReAct, Plan&Execute)
+- **4 cognitive evals** for behavioral testing (memory, budget, compression, watchdog)
+- **8 cognitive patterns** fully implemented and tested
+
+## 🎉 v2.0-alpha Release
+
+**Version:** v2.0-alpha | **Tests:** 255 passing | **Patterns:** 8/8 complete
+
+Key features:
+
+- Token Budget Governor with multi-dimensional governance
+- All 8 cognitive design patterns (SemanticWatchdog, UncertaintyGatedPlanner, etc.)
+- MCP Server mode for IDE integration
+- Temporal Knowledge Graph with community detection
+
+See [Release Notes](docs/RELEASE_NOTES_v2.0-alpha.md) for details.
 
 ## 📄 License
 
