@@ -254,6 +254,7 @@ let main argv =
                 let cmd = if args.Length > 1 then args.[1] else "help"
                 let arg = if args.Length > 2 then args.[2] else ""
                 return! McpCommand.run cmd arg
+        | args when args.Length > 0 && args.[0] = "pipeline" -> return PipelineCommand.run (args |> Array.skip 1)
         | _ ->
             Tui.showSplashScreen ()
             printfn "Usage:"
@@ -290,6 +291,12 @@ let main argv =
             printfn "       set <key> <value>           Set configuration value"
             printfn "       test                        Test LLM connection"
             printfn "  tars experiment                  Run an A/B testing experiment"
+            printfn "  tars pipeline [command]          Manage project pipelines"
+            printfn "       new <id> [-t template]      Create a new project"
+            printfn "       list                        List all projects"
+            printfn "       status <id>                 Show project status"
+            printfn "       run <id>                    Run project pipeline"
+            printfn "       demo <id> [-f format]       Generate demo output"
             return 1
     }
     |> Async.AwaitTask

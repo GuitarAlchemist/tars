@@ -27,6 +27,7 @@
     <Compile Include="Commands\Config.fs" />
     <Compile Include="Commands\Secrets.fs" />
     <Compile Include="Commands\RunCommand.fs" />
+    <Compile Include="Commands\PipelineCommand.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
