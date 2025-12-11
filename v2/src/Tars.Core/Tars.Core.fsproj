@@ -42,6 +42,7 @@
     <Compile Include="PipelineExecutor.fs" />
     <Compile Include="Artifact.fs" />
     <Compile Include="GitIntegration.fs" />
+    <Compile Include="DemoGenerator.fs" />
     <Compile Include="Execution.fs" />
   </ItemGroup>
 

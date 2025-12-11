@@ -60,6 +60,7 @@
     <Compile Include="PipelineExecutorTests.fs" />
     <Compile Include="ArtifactTests.fs" />
     <Compile Include="GitIntegrationTests.fs" />
+    <Compile Include="DemoGeneratorTests.fs" />
     <!-- <Compile Include="GraphitiTypesTests.fs" /> -->
   </ItemGroup>
 
