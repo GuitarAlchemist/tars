@@ -20,6 +20,7 @@ intellij {
     version.set("2024.1")
     type.set("IC") // IntelliJ IDEA Community Edition
     plugins.set(listOf())
+    instrumentCode.set(false) // Disable bytecode instrumentation to avoid JDK detection issues
 }
 
 tasks {

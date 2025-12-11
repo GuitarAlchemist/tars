@@ -225,8 +225,19 @@ type GraphitiClient(baseUri: Uri, ?httpClient: HttpClient) =
                 let! response = client.PostAsJsonAsync(uri, request, jsonOptions)
 
                 if response.IsSuccessStatusCode then
-                    let! results = response.Content.ReadFromJsonAsync<SearchResultDto[]>(jsonOptions)
-                    return Ok(results |> Array.toList)
+                    // Graphiti v0.2+ returns { "facts": [...] }
+                    let! wrapper = response.Content.ReadFromJsonAsync<JsonElement>(jsonOptions)
+                    let mutable factsProp = Unchecked.defaultof<JsonElement>
+
+                    if wrapper.TryGetProperty("facts", &factsProp) then
+                        let results =
+                            JsonSerializer.Deserialize<SearchResultDto[]>(factsProp.GetRawText(), jsonOptions)
+
+                        return Ok(results |> Array.toList)
+                    else
+                        // Fallback for older API or different format
+                        let! results = response.Content.ReadFromJsonAsync<SearchResultDto[]>(jsonOptions)
+                        return Ok(results |> Array.toList)
                 else
                     let! error = response.Content.ReadAsStringAsync()
                     return Error $"Search failed: {response.StatusCode} - {error}"

@@ -68,7 +68,7 @@ def main():
         # 4. Search Needle
         print("Searching Needle...")
         # Add slight delay for ingestion if needed (Mock is instant, Real might need index refresh)
-        time.sleep(1) 
+        time.sleep(10) 
         
         search_req = {
             "jsonrpc": "2.0", "method": "tools/call", "id": 4,
