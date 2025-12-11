@@ -39,6 +39,7 @@
     <Compile Include="PersonaRegistry.fs" />
     <Compile Include="Project.fs" />
     <Compile Include="ProjectRegistry.fs" />
+    <Compile Include="PipelineExecutor.fs" />
     <Compile Include="Execution.fs" />
   </ItemGroup>
 
