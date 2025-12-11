@@ -54,6 +54,8 @@
     <Compile Include="RoadmapTests.fs" />
     <Compile Include="CognitivePatternTests.fs" />
     <Compile Include="SelfReflectionTests.fs" />
+    <Compile Include="PersonaTests.fs" />
+    <Compile Include="TraceAnalyzerTests.fs" />
     <!-- <Compile Include="GraphitiTypesTests.fs" /> -->
   </ItemGroup>
 
