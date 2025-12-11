@@ -37,6 +37,8 @@
     <Compile Include="SemanticSerialization.fs" />
     <Compile Include="Persona.fs" />
     <Compile Include="PersonaRegistry.fs" />
+    <Compile Include="Project.fs" />
+    <Compile Include="ProjectRegistry.fs" />
     <Compile Include="Execution.fs" />
   </ItemGroup>
 
