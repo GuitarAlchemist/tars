@@ -38,7 +38,13 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
               VllmKey = None
               OpenAIKey = None
               GoogleGeminiKey = None
-              AnthropicKey = None }
+              AnthropicKey = None
+              DockerModelRunnerBaseUri = None
+              LlamaCppBaseUri = None
+              DefaultDockerModelRunnerModel = None
+              DefaultLlamaCppModel = None
+              DockerModelRunnerKey = None
+              LlamaCppKey = None }
 
         let req =
             { ModelHint = Some "code"
@@ -79,7 +85,13 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
               VllmKey = None
               OpenAIKey = None
               GoogleGeminiKey = None
-              AnthropicKey = None }
+              AnthropicKey = None
+              DockerModelRunnerBaseUri = None
+              LlamaCppBaseUri = None
+              DefaultDockerModelRunnerModel = None
+              DefaultLlamaCppModel = None
+              DockerModelRunnerKey = None
+              LlamaCppKey = None }
 
         let req =
             { ModelHint = Some "reasoning"
@@ -101,6 +113,196 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
         match routed.Backend with
         | Vllm m -> Assert.Equal("vllm-model", m)
         | _ -> Assert.Fail("Should have routed to vLLM")
+
+    [<Fact>]
+    member this.``Routes to Docker Model Runner for docker hint``() =
+        let routingCfg =
+            { OllamaBaseUri = Uri("http://localhost:11434/")
+              VllmBaseUri = Uri("http://localhost:8000/")
+              OpenAIBaseUri = Uri("https://api.openai.com/")
+              GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com/")
+              AnthropicBaseUri = Uri("https://api.anthropic.com/")
+              DefaultOllamaModel = "ollama-model"
+              DefaultVllmModel = "vllm-model"
+              DefaultOpenAIModel = "gpt-4o"
+              DefaultGoogleGeminiModel = "gemini-pro"
+              DefaultAnthropicModel = "claude-3-opus-20240229"
+              DefaultEmbeddingModel = "nomic-embed-text"
+              OllamaKey = None
+              VllmKey = None
+              OpenAIKey = None
+              GoogleGeminiKey = None
+              AnthropicKey = None
+              DockerModelRunnerBaseUri = Some(Uri("http://localhost:12434/"))
+              LlamaCppBaseUri = None
+              DefaultDockerModelRunnerModel = Some "docker-model"
+              DefaultLlamaCppModel = None
+              DockerModelRunnerKey = None
+              LlamaCppKey = None }
+
+        let req =
+            { ModelHint = Some "docker"
+              Model = None
+              SystemPrompt = None
+              MaxTokens = None
+              Temperature = None
+              Stop = []
+              Messages = []
+              Tools = []
+              ToolChoice = None
+              ResponseFormat = None
+              Stream = false
+              JsonMode = false
+              Seed = None }
+
+        let routed = chooseBackend routingCfg req
+
+        match routed.Backend with
+        | DockerModelRunner m -> Assert.Equal("docker-model", m)
+        | _ -> Assert.Fail("Should have routed to Docker Model Runner")
+
+    [<Fact>]
+    member this.``Routes to LlamaCpp for llamacpp hint``() =
+        let routingCfg =
+            { OllamaBaseUri = Uri("http://localhost:11434/")
+              VllmBaseUri = Uri("http://localhost:8000/")
+              OpenAIBaseUri = Uri("https://api.openai.com/")
+              GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com/")
+              AnthropicBaseUri = Uri("https://api.anthropic.com/")
+              DefaultOllamaModel = "ollama-model"
+              DefaultVllmModel = "vllm-model"
+              DefaultOpenAIModel = "gpt-4o"
+              DefaultGoogleGeminiModel = "gemini-pro"
+              DefaultAnthropicModel = "claude-3-opus-20240229"
+              DefaultEmbeddingModel = "nomic-embed-text"
+              OllamaKey = None
+              VllmKey = None
+              OpenAIKey = None
+              GoogleGeminiKey = None
+              AnthropicKey = None
+              DockerModelRunnerBaseUri = None
+              LlamaCppBaseUri = Some(Uri("http://localhost:8080/"))
+              DefaultDockerModelRunnerModel = None
+              DefaultLlamaCppModel = Some "llama-model.gguf"
+              DockerModelRunnerKey = None
+              LlamaCppKey = None }
+
+        let req =
+            { ModelHint = Some "llamacpp"
+              Model = None
+              SystemPrompt = None
+              MaxTokens = None
+              Temperature = None
+              Stop = []
+              Messages = []
+              Tools = []
+              ToolChoice = None
+              ResponseFormat = None
+              Stream = false
+              JsonMode = false
+              Seed = None }
+
+        let routed = chooseBackend routingCfg req
+
+        match routed.Backend with
+        | LlamaCpp(m, _) -> Assert.Equal("llama-model.gguf", m)
+        | _ -> Assert.Fail("Should have routed to LlamaCpp")
+
+    [<Fact>]
+    member this.``Falls back to Ollama when Docker Model Runner not configured``() =
+        let routingCfg =
+            { OllamaBaseUri = Uri("http://localhost:11434/")
+              VllmBaseUri = Uri("http://localhost:8000/")
+              OpenAIBaseUri = Uri("https://api.openai.com/")
+              GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com/")
+              AnthropicBaseUri = Uri("https://api.anthropic.com/")
+              DefaultOllamaModel = "ollama-fallback"
+              DefaultVllmModel = "vllm-model"
+              DefaultOpenAIModel = "gpt-4o"
+              DefaultGoogleGeminiModel = "gemini-pro"
+              DefaultAnthropicModel = "claude-3-opus-20240229"
+              DefaultEmbeddingModel = "nomic-embed-text"
+              OllamaKey = None
+              VllmKey = None
+              OpenAIKey = None
+              GoogleGeminiKey = None
+              AnthropicKey = None
+              DockerModelRunnerBaseUri = None // Not configured
+              LlamaCppBaseUri = None
+              DefaultDockerModelRunnerModel = None // Not configured
+              DefaultLlamaCppModel = None
+              DockerModelRunnerKey = None
+              LlamaCppKey = None }
+
+        let req =
+            { ModelHint = Some "docker"
+              Model = None
+              SystemPrompt = None
+              MaxTokens = None
+              Temperature = None
+              Stop = []
+              Messages = []
+              Tools = []
+              ToolChoice = None
+              ResponseFormat = None
+              Stream = false
+              JsonMode = false
+              Seed = None }
+
+        let routed = chooseBackend routingCfg req
+
+        // Should fall back to Ollama when Docker Model Runner is not configured
+        match routed.Backend with
+        | Ollama m -> Assert.Equal("ollama-fallback", m)
+        | _ -> Assert.Fail("Should have fallen back to Ollama")
+
+    [<Fact>]
+    member this.``Falls back to Ollama when LlamaCpp not configured``() =
+        let routingCfg =
+            { OllamaBaseUri = Uri("http://localhost:11434/")
+              VllmBaseUri = Uri("http://localhost:8000/")
+              OpenAIBaseUri = Uri("https://api.openai.com/")
+              GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com/")
+              AnthropicBaseUri = Uri("https://api.anthropic.com/")
+              DefaultOllamaModel = "ollama-fallback"
+              DefaultVllmModel = "vllm-model"
+              DefaultOpenAIModel = "gpt-4o"
+              DefaultGoogleGeminiModel = "gemini-pro"
+              DefaultAnthropicModel = "claude-3-opus-20240229"
+              DefaultEmbeddingModel = "nomic-embed-text"
+              OllamaKey = None
+              VllmKey = None
+              OpenAIKey = None
+              GoogleGeminiKey = None
+              AnthropicKey = None
+              DockerModelRunnerBaseUri = None
+              LlamaCppBaseUri = None // Not configured
+              DefaultDockerModelRunnerModel = None
+              DefaultLlamaCppModel = None // Not configured
+              DockerModelRunnerKey = None
+              LlamaCppKey = None }
+
+        let req =
+            { ModelHint = Some "perf" // perf hint routes to LlamaCpp
+              Model = None
+              SystemPrompt = None
+              MaxTokens = None
+              Temperature = None
+              Stop = []
+              Messages = []
+              Tools = []
+              ToolChoice = None
+              ResponseFormat = None
+              Stream = false
+              JsonMode = false
+              Seed = None }
+
+        let routed = chooseBackend routingCfg req
+
+        // Should fall back to Ollama when LlamaCpp is not configured
+        match routed.Backend with
+        | Ollama m -> Assert.Equal("ollama-fallback", m)
+        | _ -> Assert.Fail("Should have fallen back to Ollama")
 
     [<Fact>]
     member this.``Ollama Client sends correct request``() =

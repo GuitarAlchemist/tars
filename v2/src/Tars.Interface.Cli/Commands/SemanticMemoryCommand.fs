@@ -46,7 +46,13 @@ let private createLlmService (config: IConfiguration) : ILlmService * ILlmServic
           VllmKey = None
           OpenAIKey = None
           GoogleGeminiKey = None
-          AnthropicKey = None }
+          AnthropicKey = None
+          DockerModelRunnerBaseUri = None
+          LlamaCppBaseUri = None
+          DefaultDockerModelRunnerModel = None
+          DefaultLlamaCppModel = None
+          DockerModelRunnerKey = None
+          LlamaCppKey = None }
 
     let svcCfg = { Routing = routingCfg }
     let httpClient = new System.Net.Http.HttpClient()
@@ -61,10 +67,10 @@ let private createEmbedder (llmService: ILlmServiceFunctional) : Embedder =
             match result with
             | Result.Ok embedding -> return embedding
             | Result.Error err ->
-                printfn "Embedding error: %s" (LlmError.toMessage err)
+                printfn $"Embedding error: %s{LlmError.toMessage err}"
 
                 match err with
-                | UnknownError ex -> printfn "Exception: %O" ex
+                | UnknownError ex -> printfn $"Exception: {ex}"
                 | _ -> ()
 
                 return Array.empty<float32>
@@ -88,7 +94,7 @@ let run (config: IConfiguration) (args: string array) =
                   Tags = [] }
 
             let! results = kernel.SemanticMemory.Retrieve query
-            printfn "Found %d results:" results.Length
+            printfn $"Found %d{results.Length} results:"
 
             for schema: MemorySchema in results do
                 printfn
@@ -103,7 +109,7 @@ let run (config: IConfiguration) (args: string array) =
         | [| "grow" |] ->
             // Dummy grow
             let! id = kernel.SemanticMemory.Grow(obj (), obj ())
-            printfn "Created memory schema: %s" id
+            printfn $"Created memory schema: %s{id}"
             return 0
 
         | [| "refine" |] ->
@@ -440,14 +446,14 @@ type Processor() =
                     grid.AddColumn() |> ignore
                     grid.AddColumn() |> ignore
 
-                    grid.AddRow([| "Original Length"; sprintf "%d" result.OriginalLength |])
+                    grid.AddRow([| "Original Length"; $"%d{result.OriginalLength}" |])
                     |> ignore
 
-                    grid.AddRow([| "Compressed Length"; sprintf "%d" result.CompressedLength |])
+                    grid.AddRow([| "Compressed Length"; $"%d{result.CompressedLength}" |])
                     |> ignore
 
-                    grid.AddRow([| "Ratio"; sprintf "%.2f" result.CompressionRatio |]) |> ignore
-                    grid.AddRow([| "Entropy"; sprintf "%.4f" result.Entropy |]) |> ignore
+                    grid.AddRow([| "Ratio"; $"%.2f{result.CompressionRatio}" |]) |> ignore
+                    grid.AddRow([| "Entropy"; $"%.4f{result.Entropy}" |]) |> ignore
 
                     AnsiConsole.Write(grid)
                     AnsiConsole.WriteLine("--- Output ---")

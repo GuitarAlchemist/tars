@@ -39,7 +39,15 @@ let run (config: Microsoft.Extensions.Configuration.IConfiguration) (prompt: str
                   VllmKey = None
                   OpenAIKey = None
                   GoogleGeminiKey = None
-                  AnthropicKey = None }
+                  AnthropicKey = None
+
+                  // Optional backends (not configured by default)
+                  DockerModelRunnerBaseUri = None
+                  LlamaCppBaseUri = None
+                  DefaultDockerModelRunnerModel = None
+                  DefaultLlamaCppModel = None
+                  DockerModelRunnerKey = None
+                  LlamaCppKey = None }
 
             let svcCfg: LlmServiceConfig = { Routing = routingCfg }
 
@@ -68,12 +76,12 @@ let run (config: Microsoft.Extensions.Configuration.IConfiguration) (prompt: str
                 let! response = llmService.CompleteAsync(req)
 
                 if response.FinishReason = Some "parse_error" then
-                    printfn "Error parsing response: %A" response.Raw
+                    printfn $"Error parsing response: %A{response.Raw}"
                     return 1
                 else
-                    printfn "%s" response.Text
+                    printfn $"%s{response.Text}"
                     return 0
             with ex ->
-                printfn "Error: %s" ex.Message
+                printfn $"Error: %s{ex.Message}"
                 return 1
     }

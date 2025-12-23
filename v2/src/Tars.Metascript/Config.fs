@@ -4,6 +4,7 @@ open Tars.Core
 open Tars.Llm.LlmService
 open Domain
 open System.Collections.Generic
+open Tars.Connectors.EpisodeIngestion
 
 module Config =
     /// Metadata filter for retrieval
@@ -172,7 +173,9 @@ module Config =
           Tools: IToolRegistry
           Budget: BudgetGovernor option
           VectorStore: IVectorStore option
-          KnowledgeGraph: Tars.Core.TemporalKnowledgeGraph.TemporalGraph option
+          KnowledgeGraph: TemporalKnowledgeGraph.TemporalGraph option
           SemanticMemory: ISemanticMemory option
+          EpisodeService: IEpisodeIngestionService option
           RagConfig: RagConfig
-          MacroRegistry: IMacroRegistry option }
+          MacroRegistry: IMacroRegistry option
+          MetascriptRegistry: IMetascriptRegistry option }

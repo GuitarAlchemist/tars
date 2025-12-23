@@ -38,7 +38,7 @@ Check out the example metascripts in `/examples`:
 ## Next Steps
 
 - **Architecture**: Learn about the [system design](../2_Architecture/)
-- **Roadmap**: See what's being [built next](../3_Roadmap/implementation_plan.md)
+- **Roadmap**: See what's being [built next](../3_Roadmap/1_Plans/implementation_plan.md)
 - **Testing**: Run the [test suite](../5_Quality/Testing_Tips.md)
 
 ## Need Help?

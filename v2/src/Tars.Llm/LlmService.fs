@@ -1,8 +1,7 @@
-/// <summary>
-/// High-level LLM service that abstracts over multiple backends.
-/// Provides a unified interface for chat completions and embeddings.
-/// </summary>
 namespace Tars.Llm
+
+// High-level LLM service that abstracts over multiple backends.
+// Provides a unified interface for chat completions and embeddings.
 
 open System
 open System.Net.Http
@@ -97,6 +96,27 @@ module LlmService =
                             AsyncResult.ofResult (
                                 rerror<LlmResponse> (LlmError.ModelNotFound "Anthropic not implemented")
                             )
+                    | DockerModelRunner model ->
+                        // Docker Model Runner uses OpenAI-compatible API
+                        try
+                            let! res =
+                                OpenAiCompatibleClient.sendChatAsync httpClient routed.Endpoint model routed.ApiKey req
+                                |> Async.AwaitTask
+                                |> AsyncResult.ofAsync
+
+                            return res
+                        with ex ->
+                            return! AsyncResult.ofResult (rerror<LlmResponse> (LlmError.fromException ex))
+                    | LlamaCpp(model, config) ->
+                        try
+                            let! res =
+                                LlamaCppClient.sendChatAsync httpClient routed.Endpoint model config req
+                                |> Async.AwaitTask
+                                |> AsyncResult.ofAsync
+
+                            return res
+                        with ex ->
+                            return! AsyncResult.ofResult (rerror<LlmResponse> (LlmError.fromException ex))
                 }
 
             member _.EmbedAsync(text: string) : AsyncResult<float32[], LlmError> =
@@ -142,6 +162,11 @@ module LlmService =
                         return!
                             GoogleGeminiClient.generateContentAsync httpClient routed.Endpoint model routed.ApiKey req
                     | Anthropic _ -> return raise (NotImplementedException("Anthropic not implemented"))
+                    | DockerModelRunner model ->
+                        // Docker Model Runner uses OpenAI-compatible API
+                        return! OpenAiCompatibleClient.sendChatAsync httpClient routed.Endpoint model routed.ApiKey req
+                    | LlamaCpp(model, config) ->
+                        return! LlamaCppClient.sendChatAsync httpClient routed.Endpoint model config req
                 }
 
             member _.CompleteStreamAsync(req: LlmRequest, onToken: string -> unit) : Task<LlmResponse> =
@@ -172,6 +197,18 @@ module LlmService =
                     | GoogleGemini _ ->
                         return raise (NotImplementedException("Google Gemini streaming not implemented"))
                     | Anthropic _ -> return raise (NotImplementedException("Anthropic streaming not implemented"))
+                    | DockerModelRunner model ->
+                        // Docker Model Runner uses OpenAI-compatible API
+                        return!
+                            OpenAiCompatibleClient.sendChatStreamAsync
+                                httpClient
+                                routed.Endpoint
+                                model
+                                routed.ApiKey
+                                req
+                                onToken
+                    | LlamaCpp(model, config) ->
+                        return! LlamaCppClient.sendChatStreamAsync httpClient routed.Endpoint model config req onToken
                 }
 
             member _.EmbedAsync(text: string) : Task<float32[]> =

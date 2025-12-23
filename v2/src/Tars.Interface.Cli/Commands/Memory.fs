@@ -26,10 +26,10 @@ let add (coll: string) (id: string) (text: string) =
                 let! embeddings = provider.GetEmbeddingsAsync([ text ])
                 let vector = embeddings[0]
                 do! vectorStore.SaveAsync(coll, id, vector, Map [ "text", text ])
-                printfn "Stored %s in %s with id %s" text coll id
+                printfn $"Stored %s{text} in %s{coll} with id %s{id}"
                 return 0
             with ex ->
-                printfn "Error: %s" ex.Message
+                printfn $"Error: %s{ex.Message}"
                 return 1
     }
 
@@ -53,13 +53,13 @@ let search (coll: string) (text: string) =
                 let! embeddings = provider.GetEmbeddingsAsync([ text ])
                 let vector = embeddings[0]
                 let! results = vectorStore.SearchAsync(coll, vector, 5)
-                printfn "Found %d results:" results.Length
+                printfn $"Found %d{results.Length} results:"
 
                 for (id, dist, meta) in results do
-                    printfn "  [%s] (dist: %f) %A" id dist meta
+                    printfn $"  [%s{id}] (dist: %f{dist}) %A{meta}"
 
                 return 0
             with ex ->
-                printfn "Error: %s" ex.Message
+                printfn $"Error: %s{ex.Message}"
                 return 1
     }

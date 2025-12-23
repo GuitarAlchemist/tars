@@ -9,7 +9,7 @@ open Tars.Cortex
 
 let run (config: IConfiguration) (path: string) (fieldsArg: string option) (requireCitations: bool) (allowExtra: bool) =
     if not (File.Exists path) then
-        printfn "File not found: %s" path
+        printfn $"File not found: %s{path}"
         1
     else
         let text = File.ReadAllText path
@@ -46,11 +46,11 @@ let run (config: IConfiguration) (path: string) (fieldsArg: string option) (requ
 
             let result = guard.Evaluate input |> Async.RunSynchronously
 
-            printfn "Risk: %.2f" result.Risk
-            printfn "Action: %A" result.Action
+            printfn $"Risk: %.2f{result.Risk}"
+            printfn $"Action: %A{result.Action}"
             if result.Messages.Length > 0 then
                 printfn "Messages:"
-                result.Messages |> List.iter (fun m -> printfn "  - %s" m)
+                result.Messages |> List.iter (fun m -> printfn $"  - %s{m}")
 
             match result.Action with
             | GuardAction.Accept -> 0

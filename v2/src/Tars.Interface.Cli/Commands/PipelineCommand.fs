@@ -33,15 +33,15 @@ let handleNew (id: string) (name: string) (template: string) (mode: string) (pat
 
     match createAndRegister id name rootPath pipelineTemplate executionMode with
     | Result.Ok project ->
-        printfn "✅ Created project: %s" project.Name
-        printfn "   ID: %s" project.Id
-        printfn "   Template: %A" project.Template
-        printfn "   Mode: %A" project.ExecutionMode
-        printfn "   Path: %s" project.RootPath
-        printfn "   Stages: %d" (templateStages project.Template |> List.length)
+        printfn $"✅ Created project: %s{project.Name}"
+        printfn $"   ID: %s{project.Id}"
+        printfn $"   Template: %A{project.Template}"
+        printfn $"   Mode: %A{project.ExecutionMode}"
+        printfn $"   Path: %s{project.RootPath}"
+        printfn $"   Stages: %d{templateStages project.Template |> List.length}"
         0
     | Result.Error e ->
-        printfn "❌ Error: %s" e
+        printfn $"❌ Error: %s{e}"
         1
 
 /// List all projects
@@ -51,7 +51,7 @@ let handleList () =
     if projects.IsEmpty then
         printfn "No projects registered."
     else
-        printfn "📁 Projects (%d):" projects.Length
+        printfn $"📁 Projects (%d{projects.Length}):"
         printfn ""
 
         for p in projects do
@@ -60,11 +60,11 @@ let handleList () =
             let status =
                 match state with
                 | Some s when s.CompletedAt.IsSome -> "✅ Complete"
-                | Some s when s.CurrentStage.IsSome -> sprintf "🔄 %s" (stageName s.CurrentStage.Value)
+                | Some s when s.CurrentStage.IsSome -> $"🔄 %s{stageName s.CurrentStage.Value}"
                 | _ -> "⏸️ Not started"
 
-            printfn "  %s (%s)" p.Name p.Id
-            printfn "    Template: %A | Mode: %A | Status: %s" p.Template p.ExecutionMode status
+            printfn $"  %s{p.Name} (%s{p.Id})"
+            printfn $"    Template: %A{p.Template} | Mode: %A{p.ExecutionMode} | Status: %s{status}"
             printfn ""
 
     0
@@ -73,17 +73,17 @@ let handleList () =
 let handleStatus (id: string) =
     match getProject id, getProjectState id with
     | None, _ ->
-        printfn "❌ Project '%s' not found" id
+        printfn $"❌ Project '%s{id}' not found"
         1
     | Some project, None ->
-        printfn "❌ State not found for '%s'" id
+        printfn $"❌ State not found for '%s{id}'"
         1
     | Some project, Some state ->
-        printfn "📊 Project: %s (%s)" project.Name project.Id
+        printfn $"📊 Project: %s{project.Name} (%s{project.Id})"
         printfn ""
-        printfn "Template: %A" project.Template
-        printfn "Mode: %A" project.ExecutionMode
-        printfn "Path: %s" project.RootPath
+        printfn $"Template: %A{project.Template}"
+        printfn $"Mode: %A{project.ExecutionMode}"
+        printfn $"Path: %s{project.RootPath}"
         printfn ""
         printfn "Pipeline Status:"
         let stages = templateStages project.Template
@@ -97,7 +97,7 @@ let handleStatus (id: string) =
                 elif isCurrent then "🔄"
                 else "⏳"
 
-            printfn "  %s %s" icon (stageName stage)
+            printfn $"  %s{icon} %s{stageName stage}"
 
         printfn ""
         0
@@ -106,10 +106,10 @@ let handleStatus (id: string) =
 let handleRun (id: string) =
     match getProject id with
     | None ->
-        printfn "❌ Project '%s' not found" id
+        printfn $"❌ Project '%s{id}' not found"
         1
     | Some project ->
-        printfn "🚀 Running pipeline for: %s" project.Name
+        printfn $"🚀 Running pipeline for: %s{project.Name}"
         printfn ""
 
         let executor = createExecutor ()
@@ -117,18 +117,18 @@ let handleRun (id: string) =
 
         executor.SetEventHandler(fun event ->
             match event with
-            | PipelineStarted(_, stage) -> printfn "▶️ Pipeline started at: %s" (stageName stage)
-            | StageStarted(_, stage) -> printfn "  📍 Stage: %s" (stageName stage)
-            | StageCompleted(_, stage, _) -> printfn "  ✅ Completed: %s" (stageName stage)
+            | PipelineStarted(_, stage) -> printfn $"▶️ Pipeline started at: %s{stageName stage}"
+            | StageStarted(_, stage) -> printfn $"  📍 Stage: %s{stageName stage}"
+            | StageCompleted(_, stage, _) -> printfn $"  ✅ Completed: %s{stageName stage}"
             | ApprovalRequired(_, stage) ->
-                printfn "  ⏸️ Approval required for: %s" (stageName stage)
+                printfn $"  ⏸️ Approval required for: %s{stageName stage}"
                 lastEvent <- "approval"
             | PipelineCompleted _ ->
                 printfn ""
                 printfn "✅ Pipeline completed!"
             | PipelineFailed(_, error) ->
                 printfn ""
-                printfn "❌ Pipeline failed: %s" error
+                printfn $"❌ Pipeline failed: %s{error}"
             | _ -> ())
 
         let result = executor.ExecuteAsync(id) |> Async.AwaitTask |> Async.RunSynchronously
@@ -136,18 +136,18 @@ let handleRun (id: string) =
         match result with
         | Result.Ok() when lastEvent = "approval" ->
             printfn ""
-            printfn "ℹ️ Pipeline paused. Use 'tars pipeline approve %s <stage>' to continue." id
+            printfn $"ℹ️ Pipeline paused. Use 'tars pipeline approve %s{id} <stage>' to continue."
             0
         | Result.Ok() -> 0
         | Result.Error e ->
-            printfn "❌ Error: %s" e
+            printfn $"❌ Error: %s{e}"
             1
 
 /// Generate demo
 let handleDemo (id: string) (format: string) (output: string option) =
     match getProject id with
     | None ->
-        printfn "❌ Project '%s' not found" id
+        printfn $"❌ Project '%s{id}' not found"
         1
     | Some project ->
         let demoFormat =
@@ -160,16 +160,16 @@ let handleDemo (id: string) (format: string) (output: string option) =
 
         let builder = DemoBuilder()
         builder.SetProject(project.Id, project.Name)
-        builder.SetTitle(sprintf "%s - Pipeline Demo" project.Name)
-        builder.SetSubtitle(sprintf "Template: %A | Mode: %A" project.Template project.ExecutionMode)
+        builder.SetTitle $"%s{project.Name} - Pipeline Demo"
+        builder.SetSubtitle $"Template: %A{project.Template} | Mode: %A{project.ExecutionMode}"
 
         for stage in templateStages project.Template do
             let stageNameStr = stageName stage
 
             builder.AddSection(
                 stageNameStr,
-                sprintf "%s Phase" stageNameStr,
-                sprintf "Completed %s phase with automated pipeline execution." stageNameStr
+                $"%s{stageNameStr} Phase",
+                $"Completed %s{stageNameStr} phase with automated pipeline execution."
             )
 
         let demo = builder.Build(demoFormat)
@@ -178,9 +178,9 @@ let handleDemo (id: string) (format: string) (output: string option) =
         match output with
         | Some path ->
             match saveDemo demo path with
-            | Result.Ok savedPath -> printfn "✅ Demo saved to: %s" savedPath
-            | Result.Error e -> printfn "❌ Failed to save: %s" e
-        | None -> printfn "%s" content
+            | Result.Ok savedPath -> printfn $"✅ Demo saved to: %s{savedPath}"
+            | Result.Error e -> printfn $"❌ Failed to save: %s{e}"
+        | None -> printfn $"%s{content}"
 
         0
 
@@ -247,6 +247,6 @@ let run (args: string[]) =
             printfn "Usage: tars pipeline demo <id> [-f format] [-o output]"
             1
         | _ ->
-            printfn "Unknown command: %s" subCmd
+            printfn $"Unknown command: %s{subCmd}"
             printfn "Commands: new, list, status, run, demo"
             1

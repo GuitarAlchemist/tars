@@ -18,7 +18,8 @@ let private configKeys =
       ("openai-key", "OPENAI_API_KEY", "OpenAI API Key")
       ("google-key", "GOOGLE_API_KEY", "Google Gemini API Key")
       ("deepseek-key", "DEEPSEEK_API_KEY", "DeepSeek API Key (OpenAI Compatible)")
-      ("anthropic-key", "ANTHROPIC_API_KEY", "Anthropic API Key") ]
+      ("anthropic-key", "ANTHROPIC_API_KEY", "Anthropic API Key")
+      ("chroma-url", "CHROMA_URL", "ChromaDB URL (e.gyles, http://localhost:8000)") ]
 
 let private mask (v: string) =
     if String.IsNullOrEmpty v then "****"

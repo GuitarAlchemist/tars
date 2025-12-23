@@ -2,6 +2,7 @@ namespace Tars.Tools
 
 open System
 open System.Threading.Tasks
+open System.Text.Json
 open Tars.Core
 open Tars.Tools.Standard
 
@@ -56,13 +57,9 @@ module McpTools =
                     Manager.AddServer(name, command, argList, Map.empty)
 
                     return
-                        sprintf
-                            "✅ MCP Server '%s' configured successfully.\nCommand: %s %A\n\nRestart TARS or use /reload to activate."
-                            name
-                            command
-                            argList
+                        $"✅ MCP Server '%s{name}' configured successfully.\nCommand: %s{command} %A{argList}\n\nRestart TARS or use /reload to activate."
             with ex ->
-                return sprintf "Error configuring server: %s" ex.Message
+                return $"Error configuring server: %s{ex.Message}"
         }
 
     [<TarsToolAttribute("install_mcp_server",
@@ -89,33 +86,71 @@ module McpTools =
                     p.WaitForExit()
 
                     if p.ExitCode = 0 then
-                        return sprintf "✅ Successfully installed '%s' globally." pkg
+                        return $"✅ Successfully installed '%s{pkg}' globally."
                     else
                         let! err = p.StandardError.ReadToEndAsync()
-                        return sprintf "❌ Failed to install '%s'. Exit code: %d. Error: %s" pkg p.ExitCode err
+                        return $"❌ Failed to install '%s{pkg}'. Exit code: %d{p.ExitCode}. Error: %s{err}"
             with ex ->
-                return sprintf "Error installing package: %s" ex.Message
+                return $"Error installing package: %s{ex.Message}"
         }
 
-    [<TarsToolAttribute("search_mcp_servers", "Searches for available MCP servers (simulated). Input: query string.")>]
+    [<TarsToolAttribute("search_mcp_servers", "Searches for available MCP servers via NPM. Input: query string.")>]
     let searchMcpServers (args: string) : Task<string> =
         task {
-            // In a real implementation, this would query npm search or a registry.
-            // For now, return a curated list of popular ones to help the user.
-            let curated =
-                [ "filesystem (@modelcontextprotocol/server-filesystem) - Access local files"
-                  "github (@modelcontextprotocol/server-github) - Access GitHub API"
-                  "postgres (@modelcontextprotocol/server-postgres) - Database access"
-                  "memory (@modelcontextprotocol/server-memory) - Ephemeral memory graph"
-                  "brave-search (@modelcontextprotocol/server-brave-search) - Web search" ]
+            try
+                let query = (ToolHelpers.parseStringArg args "query").ToLower()
+                printfn $"🔍 SEARCHING MCP SERVERS: {query}"
 
-            let query = (ToolHelpers.parseStringArg args "query").ToLower()
-            let matches = curated |> List.filter (fun s -> s.ToLower().Contains(query))
+                // Try to search @modelcontextprotocol/server- namespace
+                let psi =
+                    System.Diagnostics.ProcessStartInfo("npm", $"search @modelcontextprotocol/server-{query} --json")
 
-            if matches.IsEmpty then
-                return "No curated servers found matching query. Try 'filesystem' or 'github'."
-            else
-                return "Found MCP Servers:\n" + (String.Join("\n", matches))
+                psi.RedirectStandardOutput <- true
+                psi.RedirectStandardError <- true
+                psi.UseShellExecute <- false
+                psi.CreateNoWindow <- true
+
+                use p = System.Diagnostics.Process.Start(psi)
+                let! stdout = p.StandardOutput.ReadToEndAsync()
+                p.WaitForExit()
+
+                if p.ExitCode = 0 && not (String.IsNullOrWhiteSpace stdout) then
+                    try
+                        let doc = JsonDocument.Parse(stdout)
+                        let results = doc.RootElement.EnumerateArray() |> Seq.toList
+
+                        if results.IsEmpty then
+                            return $"No MCP servers found for query '{query}'."
+                        else
+                            let lines =
+                                results
+                                |> List.truncate 10
+                                |> List.map (fun r ->
+                                    let name = r.GetProperty("name").GetString()
+                                    let desc = r.GetProperty("description").GetString()
+                                    $"- {name}: {desc}")
+
+                            return $"Found MCP Servers on NPM:\n" + (String.Join("\n", lines))
+                    with _ ->
+                        return $"Found MCP Servers (parsed): {stdout.Substring(0, min 200 stdout.Length)}..."
+                else
+                    // Fallback to a better curated list if npm search fails or returns nothing
+                    let curated =
+                        [ "filesystem (@modelcontextprotocol/server-filesystem) - Access local files"
+                          "github (@modelcontextprotocol/server-github) - Access GitHub API"
+                          "postgres (@modelcontextprotocol/server-postgres) - Database access"
+                          "memory (@modelcontextprotocol/server-memory) - Ephemeral memory graph"
+                          "google-maps (@modelcontextprotocol/server-google-maps) - Geolocation"
+                          "slack (@modelcontextprotocol/server-slack) - Slack integration" ]
+
+                    let matches = curated |> List.filter (fun s -> s.ToLower().Contains(query))
+
+                    if matches.IsEmpty then
+                        return "No servers found. Try 'filesystem', 'github', or 'postgres'."
+                    else
+                        return "Matched Curated MCP Servers:\n" + (String.Join("\n", matches))
+            with ex ->
+                return $"Error searching MCP servers: {ex.Message}"
         }
 
     /// Helper to get all tools defined in this module

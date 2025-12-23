@@ -139,7 +139,13 @@ module OutputGuardAnalyzerFactory =
               VllmKey = None
               OpenAIKey = None
               GoogleGeminiKey = None
-              AnthropicKey = None }
+              AnthropicKey = None
+              DockerModelRunnerBaseUri = None
+              LlamaCppBaseUri = None
+              DefaultDockerModelRunnerModel = None
+              DefaultLlamaCppModel = None
+              DockerModelRunnerKey = None
+              LlamaCppKey = None }
 
         let svcCfg: LlmServiceConfig = { Routing = routingCfg }
         let httpClient = new HttpClient(Timeout = TimeSpan.FromSeconds(30.0))

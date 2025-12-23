@@ -30,16 +30,15 @@ module Optimizer =
                         |> Option.defaultValue "Improve the workflow logic based on the feedback."
 
                     let prompt =
-                        sprintf
-                            """You are an Expert Metascript Optimizer.
+                        $"""You are an Expert Metascript Optimizer.
                             
 CURRENT WORKFLOW (JSON):
-%s
+%s{workflowJson}
 
 FEEDBACK:
-Score: %.2f
-Comment: %s
-Suggestion: %s
+Score: %.2f{feedback.Score}
+Comment: %s{feedback.Comment}
+Suggestion: %s{suggestion}
 
 TASK:
 Modify the workflow JSON to implement the suggestion and improve the workflow.
@@ -49,13 +48,9 @@ Modify the workflow JSON to implement the suggestion and improve the workflow.
 - OUTPUT ONLY THE NEW JSON.
 
 METASCRIPT SCHEMA EXAMPLES:
-{ "Type": "agent", "Id": "step1", "Instruction": "...", "Agent": "...", "Outputs": ["out1"] }
-{ "Type": "decision", "Id": "check", "Params": { "condition": "{{step1.out1}} == 'yes'", "trueOutput": "ok", "falseOutput": "retry" } }
+{{ "Type": "agent", "Id": "step1", "Instruction": "...", "Agent": "...", "Outputs": ["out1"] }}
+{{ "Type": "decision", "Id": "check", "Params": {{ "condition": "{{{{step1.out1}}}} == 'yes'", "trueOutput": "ok", "falseOutput": "retry" }} }}
 """
-                            workflowJson
-                            feedback.Score
-                            feedback.Comment
-                            suggestion
 
                     let req =
                         { ModelHint = Some "code" // Use coding model

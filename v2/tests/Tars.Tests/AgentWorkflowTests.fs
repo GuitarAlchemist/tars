@@ -31,18 +31,23 @@ module AgentWorkflowTests =
           State = Idle
           Memory = [] }
 
+    let baseContext () =
+        { Self = createTestAgent ()
+          Registry = StubRegistry()
+          Executor = StubExecutor()
+          Logger = fun _ -> ()
+          Budget = None
+          Epistemic = None
+          SemanticMemory = None
+          KnowledgeGraph = None
+          CapabilityStore = None
+          CancellationToken = CancellationToken.None }
+
     [<Fact>]
     let ``Agent workflow returns success`` () =
         let workflow = agent { return 42 }
 
-        let ctx =
-            { Self = createTestAgent ()
-              Registry = StubRegistry()
-              Executor = StubExecutor()
-              Logger = fun _ -> ()
-              Budget = None
-              Epistemic = None
-              CancellationToken = CancellationToken.None }
+        let ctx = baseContext ()
 
         let result = workflow ctx |> Async.RunSynchronously
 
@@ -59,14 +64,7 @@ module AgentWorkflowTests =
                 return a + b
             }
 
-        let ctx =
-            { Self = createTestAgent ()
-              Registry = StubRegistry()
-              Executor = StubExecutor()
-              Logger = fun _ -> ()
-              Budget = None
-              Epistemic = None
-              CancellationToken = CancellationToken.None }
+        let ctx = baseContext ()
 
         let result = workflow ctx |> Async.RunSynchronously
 
@@ -92,14 +90,7 @@ module AgentWorkflowTests =
                 return "Success"
             }
 
-        let ctx =
-            { Self = createTestAgent ()
-              Registry = StubRegistry()
-              Executor = StubExecutor()
-              Logger = fun _ -> ()
-              Budget = Some governor
-              Epistemic = None
-              CancellationToken = CancellationToken.None }
+        let ctx = { baseContext () with Budget = Some governor }
 
         let result = workflow ctx |> Async.RunSynchronously
 
@@ -122,14 +113,7 @@ module AgentWorkflowTests =
                 return 42
             }
 
-        let ctx =
-            { Self = createTestAgent ()
-              Registry = StubRegistry()
-              Executor = StubExecutor()
-              Logger = fun _ -> ()
-              Budget = None
-              Epistemic = None
-              CancellationToken = CancellationToken.None }
+        let ctx = baseContext ()
 
         let result = workflow ctx |> Async.RunSynchronously
 
@@ -153,14 +137,7 @@ module AgentWorkflowTests =
                 return a + 32
             }
 
-        let ctx =
-            { Self = createTestAgent ()
-              Registry = StubRegistry()
-              Executor = StubExecutor()
-              Logger = fun _ -> ()
-              Budget = None
-              Epistemic = None
-              CancellationToken = cts.Token }
+        let ctx = { baseContext () with CancellationToken = cts.Token }
 
         let result = workflow ctx |> Async.RunSynchronously
 
@@ -186,13 +163,7 @@ module AgentWorkflowTests =
             }
 
         let ctx =
-            { Self = createTestAgent ()
-              Registry = StubRegistry()
-              Executor = StubExecutor()
-              Logger = fun _ -> ()
-              Budget = None
-              Epistemic = None
-              CancellationToken = CancellationToken.None }
+            baseContext ()
 
         let result = workflow ctx |> Async.RunSynchronously
 
@@ -213,14 +184,7 @@ module AgentWorkflowTests =
                 return "should not reach"
             }
 
-        let ctx =
-            { Self = createTestAgent ()
-              Registry = StubRegistry()
-              Executor = StubExecutor()
-              Logger = fun _ -> ()
-              Budget = None
-              Epistemic = None
-              CancellationToken = CancellationToken.None }
+        let ctx = baseContext ()
 
         let result = workflow ctx |> Async.RunSynchronously
 
@@ -234,14 +198,7 @@ module AgentWorkflowTests =
     let ``Agent workflow succeed helper works`` () =
         let workflow = AgentWorkflow.succeed 99
 
-        let ctx =
-            { Self = createTestAgent ()
-              Registry = StubRegistry()
-              Executor = StubExecutor()
-              Logger = fun _ -> ()
-              Budget = None
-              Epistemic = None
-              CancellationToken = CancellationToken.None }
+        let ctx = baseContext ()
 
         let result = workflow ctx |> Async.RunSynchronously
 
@@ -261,14 +218,7 @@ module AgentWorkflowTests =
                 return "passed"
             }
 
-        let ctx =
-            { Self = createTestAgent ()
-              Registry = StubRegistry()
-              Executor = StubExecutor()
-              Logger = fun _ -> ()
-              Budget = None // No budget = unlimited
-              Epistemic = None
-              CancellationToken = CancellationToken.None }
+        let ctx = baseContext ()
 
         let result = workflow ctx |> Async.RunSynchronously
 
@@ -283,14 +233,7 @@ module AgentWorkflowTests =
         let workflow = AgentWorkflow.succeed 10
         let transformed = workflow |> AgentWorkflow.transform (fun x -> x * 2)
 
-        let ctx =
-            { Self = createTestAgent ()
-              Registry = StubRegistry()
-              Executor = StubExecutor()
-              Logger = fun _ -> ()
-              Budget = None
-              Epistemic = None
-              CancellationToken = CancellationToken.None }
+        let ctx = baseContext ()
 
         let result = transformed ctx |> Async.RunSynchronously
 
@@ -308,14 +251,7 @@ module AgentWorkflowTests =
 
         let transformed = workflow |> AgentWorkflow.transform (fun x -> x.ToString())
 
-        let ctx =
-            { Self = createTestAgent ()
-              Registry = StubRegistry()
-              Executor = StubExecutor()
-              Logger = fun _ -> ()
-              Budget = None
-              Epistemic = None
-              CancellationToken = CancellationToken.None }
+        let ctx = baseContext ()
 
         let result = transformed ctx |> Async.RunSynchronously
 
@@ -332,14 +268,7 @@ module AgentWorkflowTests =
 
         let transformed = workflow |> AgentWorkflow.transform (fun x -> x * 2)
 
-        let ctx =
-            { Self = createTestAgent ()
-              Registry = StubRegistry()
-              Executor = StubExecutor()
-              Logger = fun _ -> ()
-              Budget = None
-              Epistemic = None
-              CancellationToken = CancellationToken.None }
+        let ctx = baseContext ()
 
         let result = transformed ctx |> Async.RunSynchronously
 
@@ -354,16 +283,11 @@ module AgentWorkflowTests =
         let stabilized = workflow |> AgentWorkflow.stabilize 0.7
 
         let ctx =
-            { Self = createTestAgent ()
-              Registry = StubRegistry()
-              Executor = StubExecutor()
-              Logger =
-                fun msg ->
-                    if msg.Contains("Stabilizing") then
-                        logged <- true
-              Budget = None
-              Epistemic = None
-              CancellationToken = CancellationToken.None }
+            { baseContext () with
+                Logger =
+                    fun msg ->
+                        if msg.Contains("Stabilizing") then
+                            logged <- true }
 
         let result = stabilized ctx |> Async.RunSynchronously
 
@@ -380,16 +304,11 @@ module AgentWorkflowTests =
         let stabilized = workflow |> AgentWorkflow.stabilize 0.3
 
         let ctx =
-            { Self = createTestAgent ()
-              Registry = StubRegistry()
-              Executor = StubExecutor()
-              Logger =
-                fun msg ->
-                    if msg.Contains("Stabilizing") then
-                        logged <- true
-              Budget = None
-              Epistemic = None
-              CancellationToken = CancellationToken.None }
+            { baseContext () with
+                Logger =
+                    fun msg ->
+                        if msg.Contains("Stabilizing") then
+                            logged <- true }
 
         let result = stabilized ctx |> Async.RunSynchronously
 
@@ -406,16 +325,11 @@ module AgentWorkflowTests =
         let protected' = workflow |> AgentWorkflow.forwardOnly
 
         let ctx =
-            { Self = createTestAgent ()
-              Registry = StubRegistry()
-              Executor = StubExecutor()
-              Logger =
-                fun msg ->
-                    if msg.Contains("forward-only") then
-                        logged <- true
-              Budget = None
-              Epistemic = None
-              CancellationToken = CancellationToken.None }
+            { baseContext () with
+                Logger =
+                    fun msg ->
+                        if msg.Contains("forward-only") then
+                            logged <- true }
 
         let result = protected' ctx |> Async.RunSynchronously
 
@@ -433,13 +347,7 @@ module AgentWorkflowTests =
         let protected' = workflow |> AgentWorkflow.forwardOnly
 
         let ctx =
-            { Self = createTestAgent ()
-              Registry = StubRegistry()
-              Executor = StubExecutor()
-              Logger = fun _ -> ()
-              Budget = None
-              Epistemic = None
-              CancellationToken = CancellationToken.None }
+            baseContext ()
 
         let result = protected' ctx |> Async.RunSynchronously
 
@@ -455,22 +363,46 @@ module AgentWorkflowTests =
         | _ -> Assert.Fail("Should preserve Failure")
 
     [<Fact>]
+    let ``planReviewExecuteVerify accumulates warnings and returns partial success`` () =
+        let plan =
+            agent {
+                do! AgentWorkflow.warnWith () (PartialFailure.Warning "plan warn")
+                return "plan"
+            }
+
+        let review planValue = agent { return planValue + " reviewed" }
+
+        let execute reviewed =
+            agent {
+                do! AgentWorkflow.warnWith () (PartialFailure.Warning "exec warn")
+                return reviewed + " executed"
+            }
+
+        let verify executed = agent { return executed + " verified" }
+
+        let workflow =
+            AgentWorkflow.planReviewExecuteVerify plan review execute verify
+
+        let result = workflow (baseContext ()) |> Async.RunSynchronously
+
+        match result with
+        | PartialSuccess(v, warnings) ->
+            Assert.Equal("plan reviewed executed verified", v)
+            Assert.Equal(2, warnings.Length)
+        | _ -> Assert.Fail("Expected PartialSuccess with aggregated warnings")
+
+    [<Fact>]
     let ``Grounded: Logs verification for success`` () =
         let mutable logged = false
         let workflow = AgentWorkflow.succeed "verified"
         let grounded = workflow |> AgentWorkflow.grounded
 
         let ctx =
-            { Self = createTestAgent ()
-              Registry = StubRegistry()
-              Executor = StubExecutor()
-              Logger =
-                fun msg ->
-                    if msg.Contains("Grounding") then
-                        logged <- true
-              Budget = None
-              Epistemic = None
-              CancellationToken = CancellationToken.None }
+            { baseContext () with
+                Logger =
+                    fun msg ->
+                        if msg.Contains("Grounding") then
+                            logged <- true }
 
         let result = grounded ctx |> Async.RunSynchronously
 
@@ -493,16 +425,11 @@ module AgentWorkflowTests =
         let grounded = workflow |> AgentWorkflow.grounded
 
         let ctx =
-            { Self = createTestAgent ()
-              Registry = StubRegistry()
-              Executor = StubExecutor()
-              Logger =
-                fun msg ->
-                    if msg.Contains("Grounding") then
-                        logged <- true
-              Budget = None
-              Epistemic = None
-              CancellationToken = CancellationToken.None }
+            { baseContext () with
+                Logger =
+                    fun msg ->
+                        if msg.Contains("Grounding") then
+                            logged <- true }
 
         let result = grounded ctx |> Async.RunSynchronously
 
@@ -525,13 +452,8 @@ module AgentWorkflowTests =
         let mutable logs = []
 
         let ctx =
-            { Self = createTestAgent ()
-              Registry = StubRegistry()
-              Executor = StubExecutor()
-              Logger = fun msg -> logs <- msg :: logs
-              Budget = None
-              Epistemic = None
-              CancellationToken = CancellationToken.None }
+            { baseContext () with
+                Logger = fun msg -> logs <- msg :: logs }
 
         let result = composed ctx |> Async.RunSynchronously
 

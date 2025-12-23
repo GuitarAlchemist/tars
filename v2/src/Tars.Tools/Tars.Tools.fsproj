@@ -32,6 +32,12 @@
     <Compile Include="McpTools.fs" />
     <Compile Include="MacroTools.fs" />
     <Compile Include="PersonaTools.fs" />
+    <Compile Include="AugmentTools.fs" />
+    <Compile Include="AgentSkillsTools.fs" />
+    <Compile Include="WebTools.fs" />
+    <Compile Include="CodeAnalysisTools.fs" />
+    <Compile Include="ResearchTools.fs" />
+    <Compile Include="GraphTools.fs" />
   </ItemGroup>
 
   <ItemGroup>

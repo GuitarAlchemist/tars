@@ -206,24 +206,12 @@ let renderJson (demo: Demo) : string =
         let artifacts = s.Artifacts |> List.map (sprintf "\"%s\"") |> String.concat ","
         let highlights = s.Highlights |> List.map (sprintf "\"%s\"") |> String.concat ","
 
-        sprintf
-            "{\"stage\":\"%s\",\"title\":\"%s\",\"summary\":\"%s\",\"artifacts\":[%s],\"highlights\":[%s]}"
-            s.Stage
-            s.Title
-            s.Summary
-            artifacts
-            highlights
+        $"{{\"stage\":\"%s{s.Stage}\",\"title\":\"%s{s.Title}\",\"summary\":\"%s{s.Summary}\",\"artifacts\":[%s{artifacts}],\"highlights\":[%s{highlights}]}}"
 
     let sectionsJson = demo.Sections |> List.map formatSection |> String.concat ","
     let timestamp = demo.GeneratedAt.ToString("o")
 
-    sprintf
-        "{\"projectId\":\"%s\",\"projectName\":\"%s\",\"title\":\"%s\",\"generatedAt\":\"%s\",\"sections\":[%s]}"
-        demo.ProjectId
-        demo.ProjectName
-        demo.Title
-        timestamp
-        sectionsJson
+    $"{{\"projectId\":\"%s{demo.ProjectId}\",\"projectName\":\"%s{demo.ProjectName}\",\"title\":\"%s{demo.Title}\",\"generatedAt\":\"%s{timestamp}\",\"sections\":[%s{sectionsJson}]}}"
 
 /// Render demo as plain text
 let renderPlainText (demo: Demo) : string =

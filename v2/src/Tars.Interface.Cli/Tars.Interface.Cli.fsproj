@@ -8,7 +8,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="SpectreUI.fs" />
     <Compile Include="Tui.fs" />
+    <Compile Include="ConfigurationLoader.fs" />
+    <Content Include="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Compile Include="Commands\Ask.fs" />
     <Compile Include="Commands\TestGrammarCommand.fs" />
     <Compile Include="Commands\Memory.fs" />
@@ -28,6 +33,9 @@
     <Compile Include="Commands\Secrets.fs" />
     <Compile Include="Commands\RunCommand.fs" />
     <Compile Include="Commands\PipelineCommand.fs" />
+    <Compile Include="Commands\SkillCommand.fs" />
+    <Compile Include="Commands\Agent.fs" />
+    <Compile Include="HealthCommand.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
@@ -46,6 +54,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />

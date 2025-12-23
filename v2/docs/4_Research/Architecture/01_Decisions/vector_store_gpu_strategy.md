@@ -119,7 +119,7 @@ type ISimilarityStrategy =
 
 ## References
 
-- `docs/2_Analysis/V1_Insights/v1_component_reusability_analysis.md` - Component reuse assessment
-- `docs/2_Analysis/Architecture/03_Operational/BRIDGING_THE_GAPS.md` - Performance optimization roadmap
-- `docs/3_Roadmap/implementation_plan.md` - v2 phased roadmap
+- `docs/4_Research/V1_Insights/v1_component_reusability_analysis.md` - Component reuse assessment
+- `docs/4_Research/Architecture/03_Operational/BRIDGING_THE_GAPS.md` - Performance optimization roadmap
+- `docs/3_Roadmap/1_Plans/implementation_plan.md` - v2 phased roadmap
 - `src/Tars.Cortex/InMemoryVectorStore.fs` - Current implementation

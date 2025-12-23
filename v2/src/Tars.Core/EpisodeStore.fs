@@ -1,6 +1,6 @@
 namespace Tars.Core
 
-/// Episode storage for Graphiti-style non-lossy data ingestion
+// Episode storage for Graphiti-style non-lossy data ingestion
 
 open System
 open System.Collections.Generic

@@ -29,8 +29,8 @@ module StandardTools =
                 if exitCode = 0L then
                     return stdout.Trim()
                 else
-                    return sprintf "Error (Exit Code %d): %s\nStdout: %s" exitCode (stderr.Trim()) (stdout.Trim())
-            | Error e -> return sprintf "Sandbox Error: %s" e
+                    return $"Error (Exit Code %d{exitCode}): %s{stderr.Trim()}\nStdout: %s{stdout.Trim()}"
+            | Error e -> return $"Sandbox Error: %s{e}"
         }
 
     [<TarsToolAttribute("html_to_text", "Converts HTML to plain text. Input JSON: { \"html\": \"...\" }")>]

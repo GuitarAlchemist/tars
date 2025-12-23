@@ -44,7 +44,7 @@ module WorkflowTools =
                 if not (Directory.Exists fullPath) then
                     return "Directory not found: " + fullPath
                 else
-                    printfn "Listing files in: %s (pattern: %s)" fullPath pattern
+                    printfn $"Listing files in: %s{fullPath} (pattern: %s{pattern})"
 
                     let searchOption =
                         if recursive then
@@ -62,16 +62,16 @@ module WorkflowTools =
                         |> Array.map (fun f ->
                             let relativePath = Path.GetRelativePath(fullPath, f)
                             let size = FileInfo(f).Length
-                            sprintf "  %s (%d bytes)" relativePath size)
+                            $"  %s{relativePath} (%d{size} bytes)")
                         |> String.concat "\n"
 
                     let truncated =
                         if files.Length > maxFiles then
-                            sprintf "\n... and %d more files" (files.Length - maxFiles)
+                            $"\n... and %d{files.Length - maxFiles} more files"
                         else
                             ""
 
-                    return sprintf "Found %d files:\n%s%s" files.Length fileList truncated
+                    return $"Found %d{files.Length} files:\n%s{fileList}%s{truncated}"
             with ex ->
                 return "list_files error: " + ex.Message
         }
@@ -103,7 +103,7 @@ module WorkflowTools =
                         "*.fs"
 
                 let fullPath = Path.GetFullPath(path)
-                printfn "Searching for '%s' in %s files..." pattern filePattern
+                printfn $"Searching for '%s{pattern}' in %s{filePattern} files..."
 
                 let files = Directory.GetFiles(fullPath, filePattern, SearchOption.AllDirectories)
                 let results = ResizeArray<string>()
@@ -125,7 +125,7 @@ module WorkflowTools =
                                     else
                                         line
 
-                                results.Add(sprintf "  %s:%d: %s" relativePath (i + 1) linePreview)
+                                results.Add $"  %s{relativePath}:%d{i + 1}: %s{linePreview}"
 
                                 if results.Count >= 30 then
                                     ()
@@ -133,10 +133,10 @@ module WorkflowTools =
                         ()
 
                 if results.Count = 0 then
-                    return sprintf "No matches found for '%s'" pattern
+                    return $"No matches found for '%s{pattern}'"
                 else
                     let resultList = String.concat "\n" results
-                    return sprintf "Found %d matches for '%s':\n%s" results.Count pattern resultList
+                    return $"Found %d{results.Count} matches for '%s{pattern}':\n%s{resultList}"
             with ex ->
                 return "search_code error: " + ex.Message
         }
@@ -166,7 +166,7 @@ module WorkflowTools =
                         "*.fs"
 
                 let fullPath = Path.GetFullPath(path)
-                printfn "Counting lines in %s files..." pattern
+                printfn $"Counting lines in %s{pattern} files..."
 
                 let files = Directory.GetFiles(fullPath, pattern, SearchOption.AllDirectories)
                 let mutable totalLines = 0
@@ -197,16 +197,11 @@ module WorkflowTools =
                     fileStats
                     |> Seq.sortByDescending (fun (_, _, code) -> code)
                     |> Seq.take (Math.Min(10, fileStats.Count))
-                    |> Seq.map (fun (name, total, code) -> sprintf "  %s: %d lines (%d code)" name total code)
+                    |> Seq.map (fun (name, total, code) -> $"  %s{name}: %d{total} lines (%d{code} code)")
                     |> String.concat "\n"
 
                 return
-                    sprintf
-                        "Code Statistics:\n  Total files: %d\n  Total lines: %d\n  Code lines: %d\n\nTop 10 files by code lines:\n%s"
-                        totalFiles
-                        totalLines
-                        totalCodeLines
-                        topFiles
+                    $"Code Statistics:\n  Total files: %d{totalFiles}\n  Total lines: %d{totalLines}\n  Code lines: %d{totalCodeLines}\n\nTop 10 files by code lines:\n%s{topFiles}"
             with ex ->
                 return "count_lines error: " + ex.Message
         }
@@ -218,7 +213,7 @@ module WorkflowTools =
             try
                 let searchPath = if String.IsNullOrWhiteSpace(path) then "." else path
                 let fullPath = Path.GetFullPath(searchPath)
-                printfn "Finding TODOs in: %s" fullPath
+                printfn $"Finding TODOs in: %s{fullPath}"
 
                 let files = Directory.GetFiles(fullPath, "*.fs", SearchOption.AllDirectories)
                 let results = ResizeArray<string>()
@@ -243,7 +238,7 @@ module WorkflowTools =
                                         else
                                             linePreview
 
-                                    results.Add(sprintf "  [%s] %s:%d: %s" pattern relativePath (i + 1) preview)
+                                    results.Add $"  [%s{pattern}] %s{relativePath}:%d{i + 1}: %s{preview}"
                     with _ ->
                         ()
 

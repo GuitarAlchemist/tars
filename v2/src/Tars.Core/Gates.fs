@@ -1,6 +1,7 @@
-/// Gates - Transistor-like flow control primitives
-/// Phase 6.7.3 of the TARS v2 Roadmap
 namespace Tars.Core
+
+// Gates - Transistor-like flow control primitives
+// Phase 6.7.3 of the TARS v2 Roadmap
 
 open System
 open System.Threading

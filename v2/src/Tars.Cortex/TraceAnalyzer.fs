@@ -129,7 +129,7 @@ let analyzeTrace (trace: ExecutionTrace) : TraceAnalysis =
 let findPatterns (traces: ExecutionTrace list) : PatternReport =
     let successCount = traces |> List.filter (fun t -> t.Success) |> List.length
     let successRate = float successCount / float traces.Length
-    let pct = sprintf "%.1f" (successRate * 100.0)
+    let pct = $"%.1f{successRate * 100.0}"
 
     let avgDuration =
         traces
@@ -143,7 +143,7 @@ let findPatterns (traces: ExecutionTrace list) : PatternReport =
             Impact = if successRate > 0.8 then "positive" else "negative" }
           { Name = "Avg Duration"
             Frequency = traces.Length
-            Description = sprintf "Average duration: %.1fs" avgDuration
+            Description = $"Average duration: %.1f{avgDuration}s"
             Impact = if avgDuration < 10.0 then "positive" else "neutral" } ]
 
     { TotalTraces = traces.Length

@@ -83,14 +83,13 @@ module SemanticMemory =
         let summarizeEpisode (trace: MemoryTrace) (output: string) =
             task {
                 let prompt =
-                    sprintf
-                        """Analyze the following agent execution trace and generate a structured summary.
+                    $"""Analyze the following agent execution trace and generate a structured summary.
 
-Task ID: %s
-Output: %s
+Task ID: %s{trace.TaskId}
+Output: %s{output}
 
 Trace Variables:
-%A
+%A{trace.Variables |> Map.remove "trace"}
 
 Please generate a JSON object with the following fields:
 - problem_summary: A 1-sentence summary of the task goal.
@@ -98,9 +97,7 @@ Please generate a JSON object with the following fields:
 - outcome_label: "success", "failure", or "partial".
 
 JSON:"""
-                        trace.TaskId
-                        output
-                        (trace.Variables |> Map.remove "trace") // Avoid dumping huge trace
+                // Avoid dumping huge trace
 
                 let req =
                     { ModelHint = None
@@ -293,7 +290,7 @@ JSON:"""
                             if File.Exists path then
                                 File.Delete path
 
-                        printfn "Refined memory: Removed %d duplicates." toRemove.Count
+                        printfn $"Refined memory: Removed %d{toRemove.Count} duplicates."
                     else
                         printfn "Refined memory: No duplicates found."
                 }

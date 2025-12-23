@@ -42,7 +42,7 @@ module SemanticSerialization =
           [<JsonPropertyName("performative")>]
           Performative: Performative
           [<JsonPropertyName("intent")>]
-          Intent: AgentIntent option
+          Intent: AgentDomain option
           [<JsonPropertyName("constraints")>]
           Constraints: SemanticConstraints
           [<JsonPropertyName("ontology")>]

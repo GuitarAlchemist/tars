@@ -1,6 +1,7 @@
-/// UncertaintyGatedPlanner - Plans with confidence thresholds
-/// Part of v2.2 Cognitive Patterns
 namespace Tars.Cortex
+
+// UncertaintyGatedPlanner - Plans with confidence thresholds
+// Part of v2.2 Cognitive Patterns
 
 open System
 open System.Threading.Tasks

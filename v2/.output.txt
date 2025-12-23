@@ -1,0 +1,686 @@
+﻿
+    Directory: C:\Users\spare\source\repos\tars\v1\.specify\meta\tier2
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2025-12-19  12:11 PM           1502 release-notes.tars
+    Directory: C:\Users\spare\source\repos\tars\v1\.specify\meta\tier3
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2025-12-19  12:11 PM            304 critic-federation.trsx
+-a----        2025-12-19  12:11 PM            290 performance-review.trsx
+-a----        2025-12-19  12:11 PM            259 safety-review.trsx
+    Directory: C:\Users\spare\source\repos\tars\v1\.specify\meta\tier4
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2025-12-19  12:11 PM            629 recursive-loop.trsx
+-a----        2025-12-19  12:11 PM            624 release-train.trsx
+    Directory: C:\Users\spare\source\repos\tars\v1\autonomous_backups\cycle_000
+    1_20250906_151540\src\TarsEngine.FSharp.Cli\TarsEngine.FSharp.Metascript.Ru
+    nner
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2025-12-19  12:11 PM            461 simple_test_unified.trsx
+    Directory: C:\Users\spare\source\repos\tars\v1\Examples\dsl
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2025-12-19  12:11 PM            615 hello_world.tars
+-a----        2025-12-19  12:11 PM            554 hello_world_unified.trsx
+-a----        2025-12-19  12:11 PM           1823 self_improvement.tars
+-a----        2025-12-19  12:11 PM            559 self_improvement_unified.trsx
+    Directory: C:\Users\spare\source\repos\tars\v1\Examples\metascripts
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2025-12-19  12:11 PM           3610 advanced_features.tars
+-a----        2025-12-19  12:11 PM            944 advanced_features_unified.trs
+                                                  x
+-a----        2025-12-19  12:11 PM          25116 autonomous_improvement.tars
+-a----        2025-12-19  12:11 PM           1453 autonomous_improvement_unifie
+                                                  d.trsx
+-a----        2025-12-19  12:11 PM           6522 code_analysis.tars
+-a----        2025-12-19  12:11 PM           1243 code_analysis_unified.trsx
+-a----        2025-12-19  12:11 PM           5661 code_generation.tars
+-a----        2025-12-19  12:11 PM            732 code_generation_unified.trsx
+-a----        2025-12-19  12:11 PM           2344 code_transformation.tars
+-a----        2025-12-19  12:11 PM            649 code_transformation_unified.t
+                                                  rsx
+-a----        2025-12-19  12:11 PM           4437 comprehensive_demo.tars
+-a----        2025-12-19  12:11 PM            966 comprehensive_demo_unified.tr
+                                                  sx
+-a----        2025-12-19  12:11 PM          27415 data_analysis.tars
+-a----        2025-12-19  12:11 PM           2452 data_analysis_unified.trsx
+-a----        2025-12-19  12:11 PM          10746 documentation_generator.tars
+-a----        2025-12-19  12:11 PM           1676 documentation_generator_unifi
+                                                  ed.trsx
+-a----        2025-12-19  12:11 PM          35926 documentation_knowledge_extra
+                                                  ction.tars
+-a----        2025-12-19  12:11 PM           1885 documentation_knowledge_extra
+                                                  ction_unified.trsx
+-a----        2025-12-19  12:11 PM          16419 dsl_code_generator.tars
+-a----        2025-12-19  12:11 PM           1672 dsl_code_generator_unified.tr
+                                                  sx
+-a----        2025-12-19  12:11 PM          15911 dsl_debugging.tars
+-a----        2025-12-19  12:11 PM           2637 dsl_debugging_unified.trsx
+-a----        2025-12-19  12:11 PM           2478 enhanced_demo.tars
+-a----        2025-12-19  12:11 PM            799 enhanced_demo_unified.trsx
+-a----        2025-12-19  12:11 PM           2602 error_handling.tars
+-a----        2025-12-19  12:11 PM            557 error_handling_unified.trsx
+-a----        2025-12-19  12:11 PM           1328 file_operations.tars
+-a----        2025-12-19  12:11 PM            558 file_operations_unified.trsx
+-a----        2025-12-19  12:11 PM           4206 fsharp_example.tars
+-a----        2025-12-19  12:11 PM            992 fsharp_example_unified.trsx
+-a----        2025-12-19  12:11 PM            622 hello_world.tars
+-a----        2025-12-19  12:11 PM            554 hello_world_unified.trsx
+-a----        2025-12-19  12:11 PM           1670 http_requests.tars
+-a----        2025-12-19  12:11 PM            682 http_requests_unified.trsx
+-a----        2025-12-19  12:11 PM           4935 integration_demo.tars
+-a----        2025-12-19  12:11 PM            559 integration_demo_unified.trsx
+-a----        2025-12-19  12:11 PM          14964 learning_plan_generator.tars
+-a----        2025-12-19  12:11 PM           1523 learning_plan_generator_unifi
+                                                  ed.trsx
+-a----        2025-12-19  12:11 PM           4706 monadic_example.tars
+-a----        2025-12-19  12:11 PM            906 monadic_example_unified.trsx
+-a----        2025-12-19  12:11 PM          29245 multi_agent_collaboration.tar
+                                                  s
+-a----        2025-12-19  12:11 PM           3180 multi_agent_collaboration_uni
+                                                  fied.trsx
+-a----        2025-12-19  12:11 PM           2869 retroaction_loop.tars
+-a----        2025-12-19  12:11 PM            622 retroaction_loop_unified.trsx
+-a----        2025-12-19  12:11 PM          35080 self_improvement_workflow.tar
+                                                  s
+-a----        2025-12-19  12:11 PM           2542 self_improvement_workflow_uni
+                                                  fied.trsx
+-a----        2025-12-19  12:11 PM           1448 simple_demo.tars
+-a----        2025-12-19  12:11 PM            641 simple_demo_unified.trsx
+-a----        2025-12-19  12:11 PM            755 simple_fsharp.tars
+-a----        2025-12-19  12:11 PM            643 simple_fsharp_unified.trsx
+-a----        2025-12-19  12:11 PM           1764 tars_augment_collaboration.ta
+                                                  rs
+-a----        2025-12-19  12:11 PM            569 tars_augment_collaboration_un
+                                                  ified.trsx
+-a----        2025-12-19  12:11 PM          12010 tars_cli_integration.tars
+-a----        2025-12-19  12:11 PM           1400 tars_cli_integration_unified.
+                                                  trsx
+    Directory: C:\Users\spare\source\repos\tars\v1\Examples
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2025-12-19  12:11 PM           7865 agent_meta_script.tars
+-a----        2025-12-19  12:11 PM            791 agent_meta_script_unified.trs
+                                                  x
+-a----        2025-12-19  12:11 PM           6299 agent_with_inline.tars
+-a----        2025-12-19  12:11 PM            791 agent_with_inline_unified.trs
+                                                  x
+-a----        2025-12-19  12:11 PM           5124 ai_driven_ui_demo.trsx
+-a----        2025-12-19  12:11 PM           5864 autonomous_evolution_demo.trs
+                                                  x
+-a----        2025-12-19  12:11 PM          14806 autonomous_ui_generation.flux
+-a----        2025-12-19  12:11 PM           4713 fractal-team-coordination.trs
+                                                  x
+-a----        2025-12-19  12:11 PM            338 generated.tars
+-a----        2025-12-19  12:11 PM            459 generated_unified.trsx
+-a----        2025-12-19  12:11 PM          20367 pure_flux_self_modifying_ui.f
+                                                  lux
+-a----        2025-12-19  12:11 PM          11445 real_world_applications.trsx
+-a----        2025-12-19  12:11 PM            216 sample.tars
+-a----        2025-12-19  12:11 PM            456 sample_unified.trsx
+-a----        2025-12-19  12:11 PM          17572 self_modifying_ui.flux
+-a----        2025-12-19  12:11 PM           2902 semantic_understanding_demo.t
+                                                  rsx
+-a----        2025-12-19  12:11 PM           6450 tars_autonomous_ui_extension.
+                                                  trsx
+-a----        2025-12-19  12:11 PM          11422 unified-evolutionary-closure-
+                                                  demo.trsx
+    Directory: C:\Users\spare\source\repos\tars\v1\output\code_improvements
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2025-12-19  12:11 PM            739 refactoring.flux
+    Directory: C:\Users\spare\source\repos\tars\v1\output\v20250329
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2025-12-19  12:11 PM            193 architecture.tars
+-a----        2025-12-19  12:11 PM            462 architecture_unified.trsx
+-a----        2025-12-19  12:11 PM            193 capabilities.tars
+-a----        2025-12-19  12:11 PM            462 capabilities_unified.trsx
+-a----        2025-12-19  12:11 PM            193 contributing.tars
+-a----        2025-12-19  12:11 PM            462 contributing_unified.trsx
+-a----        2025-12-19  12:11 PM            190 evolution.tars
+-a----        2025-12-19  12:11 PM            459 evolution_unified.trsx
+-a----        2025-12-19  12:11 PM            192 Exploration.tars
+-a----        2025-12-19  12:11 PM            461 Exploration_unified.trsx
+-a----        2025-12-19  12:11 PM            184 faq.tars
+-a----        2025-12-19  12:11 PM            453 faq_unified.trsx
+-a----        2025-12-19  12:11 PM            196 getting-started.tars
+-a----        2025-12-19  12:11 PM            465 getting-started_unified.trsx
+-a----        2025-12-19  12:11 PM            204 HUGGINGFACE_INTEGRATION.tars
+-a----        2025-12-19  12:11 PM            473 HUGGINGFACE_INTEGRATION_unifi
+                                                  ed.trsx
+-a----        2025-12-19  12:11 PM            187 IMAGES.tars
+-a----        2025-12-19  12:11 PM            456 IMAGES_unified.trsx
+-a----        2025-12-19  12:11 PM            186 index.tars
+-a----        2025-12-19  12:11 PM            455 index_unified.trsx
+-a----        2025-12-19  12:11 PM            196 MCP_INTEGRATION.tars
+-a----        2025-12-19  12:11 PM            465 MCP_INTEGRATION_unified.trsx
+    Directory: C:\Users\spare\source\repos\tars\v1\parked_csharp\Legacy_CSharp_
+    Projects\TarsCli\Examples
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2025-12-19  12:11 PM            471 basic_transformations_unified
+                                                  .trsx
+    Directory: C:\Users\spare\source\repos\tars\v1\parked_csharp\Legacy_CSharp_
+    Projects\TarsCli\Metascripts\Core
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2025-12-19  12:11 PM          17249 chain_of_thought_generator.ta
+                                                  rs
+-a----        2025-12-19  12:11 PM           1043 chain_of_thought_generator_un
+                                                  ified.trsx
+-a----        2025-12-19  12:11 PM           9076 fsharp_tot_test.tars
+-a----        2025-12-19  12:11 PM           1080 fsharp_tot_test_unified.trsx
+-a----        2025-12-19  12:11 PM           5430 metascript_analyzer.tars
+-a----        2025-12-19  12:11 PM            739 metascript_analyzer_unified.t
+                                                  rsx
+-a----        2025-12-19  12:11 PM          13939 metascript_cot_analyzer.tars
+-a----        2025-12-19  12:11 PM           1118 metascript_cot_analyzer_unifi
+                                                  ed.trsx
+-a----        2025-12-19  12:11 PM           9749 metascript_discovery.tars
+-a----        2025-12-19  12:11 PM            743 metascript_discovery_unified.
+                                                  trsx
+-a----        2025-12-19  12:11 PM           4039 template_renderer.tars
+-a----        2025-12-19  12:11 PM            866 template_renderer_unified.trs
+                                                  x
+-a----        2025-12-19  12:11 PM          19498 tree_of_thought_generator.tar
+                                                  s
+-a----        2025-12-19  12:11 PM           1054 tree_of_thought_generator_uni
+                                                  fied.trsx
+    Directory: C:\Users\spare\source\repos\tars\v1\parked_csharp\Legacy_CSharp_
+    Projects\TarsCli\Metascripts\Generators
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2025-12-19  12:11 PM          20888 metascript_generator.tars
+-a----        2025-12-19  12:11 PM           1217 metascript_generator_unified.
+                                                  trsx
+    Directory: C:\Users\spare\source\repos\tars\v1\parked_csharp\Legacy_CSharp_
+    Projects\TarsCli\Metascripts\Improvements
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2025-12-19  12:11 PM           7015 auto_improvement_pipeline.tar
+                                                  s
+-a----        2025-12-19  12:11 PM            655 auto_improvement_pipeline_uni
+                                                  fied.trsx
+-a----        2025-12-19  12:11 PM           7347 auto_improvement_pipeline_wit
+                                                  h_paths.tars
+-a----        2025-12-19  12:11 PM            666 auto_improvement_pipeline_wit
+                                                  h_paths_unified.trsx
+-a----        2025-12-19  12:11 PM          11023 code_fix_applicator.tars
+-a----        2025-12-19  12:11 PM            949 code_fix_applicator_unified.t
+                                                  rsx
+-a----        2025-12-19  12:11 PM          14160 code_fix_generator.tars
+-a----        2025-12-19  12:11 PM           1089 code_fix_generator_unified.tr
+                                                  sx
+-a----        2025-12-19  12:11 PM          10191 code_quality_analyzer.tars
+-a----        2025-12-19  12:11 PM           1098 code_quality_analyzer_unified
+                                                  .trsx
+-a----        2025-12-19  12:11 PM          24125 intelligence_measurement.tars
+-a----        2025-12-19  12:11 PM            567 intelligence_measurement_unif
+                                                  ied.trsx
+-a----        2025-12-19  12:11 PM          19947 tot_auto_improvement_pipeline
+                                                  .tars
+-a----        2025-12-19  12:11 PM           1181 tot_auto_improvement_pipeline
+                                                  _unified.trsx
+-a----        2025-12-19  12:11 PM          18689 tot_auto_improvement_pipeline
+                                                  _v2.tars
+-a----        2025-12-19  12:11 PM            923 tot_auto_improvement_pipeline
+                                                  _v2_unified.trsx
+-a----        2025-12-19  12:11 PM          13512 tot_code_analyzer.tars
+-a----        2025-12-19  12:11 PM           1106 tot_code_analyzer_unified.trs
+                                                  x
+-a----        2025-12-19  12:11 PM          16946 tot_fix_applicator.tars
+-a----        2025-12-19  12:11 PM           1194 tot_fix_applicator_unified.tr
+                                                  sx
+-a----        2025-12-19  12:11 PM          16480 tot_fix_generator.tars
+-a----        2025-12-19  12:11 PM           1187 tot_fix_generator_unified.trs
+                                                  x
+    Directory: C:\Users\spare\source\repos\tars\v1\parked_csharp\Legacy_CSharp_
+    Projects\TarsCli\Metascripts\Templates
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2025-12-19  12:11 PM           3598 generator_template.tars
+-a----        2025-12-19  12:11 PM            735 generator_template_unified.tr
+                                                  sx
+-a----        2025-12-19  12:11 PM           2275 improvement_template.tars
+-a----        2025-12-19  12:11 PM            563 improvement_template_unified.
+                                                  trsx
+    Directory: C:\Users\spare\source\repos\tars\v1\parked_csharp\Legacy_CSharp_
+    Projects\TarsCli\Metascripts
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2025-12-19  12:11 PM           3610 advanced_features.tars
+-a----        2025-12-19  12:11 PM            944 advanced_features_unified.trs
+                                                  x
+-a----        2025-12-19  12:11 PM          17496 autonomous_improvement.tars
+-a----        2025-12-19  12:11 PM           1441 autonomous_improvement_unifie
+                                                  d.trsx
+-a----        2025-12-19  12:11 PM           6522 code_analysis.tars
+-a----        2025-12-19  12:11 PM           1243 code_analysis_unified.trsx
+-a----        2025-12-19  12:11 PM           5661 code_generation.tars
+-a----        2025-12-19  12:11 PM            732 code_generation_unified.trsx
+-a----        2025-12-19  12:11 PM          27415 data_analysis.tars
+-a----        2025-12-19  12:11 PM           2452 data_analysis_unified.trsx
+-a----        2025-12-19  12:11 PM          10746 documentation_generator.tars
+-a----        2025-12-19  12:11 PM           1676 documentation_generator_unifi
+                                                  ed.trsx
+-a----        2025-12-19  12:11 PM          16419 dsl_code_generator.tars
+-a----        2025-12-19  12:11 PM           1672 dsl_code_generator_unified.tr
+                                                  sx
+-a----        2025-12-19  12:11 PM          15911 dsl_debugging.tars
+-a----        2025-12-19  12:11 PM           2637 dsl_debugging_unified.trsx
+-a----        2025-12-19  12:11 PM           2602 error_handling.tars
+-a----        2025-12-19  12:11 PM            557 error_handling_unified.trsx
+-a----        2025-12-19  12:11 PM          21089 explorations_improvement.tars
+-a----        2025-12-19  12:11 PM           1786 explorations_improvement_unif
+                                                  ied.trsx
+-a----        2025-12-19  12:11 PM           1328 file_operations.tars
+-a----        2025-12-19  12:11 PM            558 file_operations_unified.trsx
+-a----        2025-12-19  12:11 PM           4206 fsharp_example.tars
+-a----        2025-12-19  12:11 PM            992 fsharp_example_unified.trsx
+-a----        2025-12-19  12:11 PM            622 hello_world.tars
+-a----        2025-12-19  12:11 PM            554 hello_world_unified.trsx
+-a----        2025-12-19  12:11 PM           1670 http_requests.tars
+-a----        2025-12-19  12:11 PM            682 http_requests_unified.trsx
+-a----        2025-12-19  12:11 PM          14964 learning_plan_generator.tars
+-a----        2025-12-19  12:11 PM           1523 learning_plan_generator_unifi
+                                                  ed.trsx
+-a----        2025-12-19  12:11 PM           4706 monadic_example.tars
+-a----        2025-12-19  12:11 PM            906 monadic_example_unified.trsx
+-a----        2025-12-19  12:11 PM          29245 multi_agent_collaboration.tar
+                                                  s
+-a----        2025-12-19  12:11 PM           3180 multi_agent_collaboration_uni
+                                                  fied.trsx
+-a----        2025-12-19  12:11 PM          35080 self_improvement_workflow.tar
+                                                  s
+-a----        2025-12-19  12:11 PM           2542 self_improvement_workflow_uni
+                                                  fied.trsx
+-a----        2025-12-19  12:11 PM           6983 simple_exploration_improvemen
+                                                  t.tars
+-a----        2025-12-19  12:11 PM            663 simple_exploration_improvemen
+                                                  t_unified.trsx
+-a----        2025-12-19  12:11 PM            755 simple_fsharp.tars
+-a----        2025-12-19  12:11 PM            643 simple_fsharp_unified.trsx
+-a----        2025-12-19  12:11 PM           1764 tars_augment_collaboration.ta
+                                                  rs
+-a----        2025-12-19  12:11 PM            569 tars_augment_collaboration_un
+                                                  ified.trsx
+-a----        2025-12-19  12:11 PM          12010 tars_cli_integration.tars
+-a----        2025-12-19  12:11 PM           1400 tars_cli_integration_unified.
+                                                  trsx
+    Directory: C:\Users\spare\source\repos\tars\v1\parked_csharp\Legacy_CSharp_
+    Projects\TarsCli
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2025-12-19  12:11 PM             28 spoken_trace.tars
+-a----        2025-12-19  12:11 PM            462 spoken_trace_unified.trsx
+    Directory:
+    C:\Users\spare\source\repos\tars\v1\parked_csharp\TarsSupervisor\samples
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2025-12-19  12:11 PM            566 next_steps.trsx
+    Directory: C:\Users\spare\source\repos\tars\v1\parked_csharp\TarsSupervisor
+    \src\TarsSupervisor.Cli\output\versions\20250823_165147
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2025-12-19  12:11 PM           2158 next_steps.trsx
+    Directory: C:\Users\spare\source\repos\tars\v1\parked_csharp\TarsSupervisor
+    \src\TarsSupervisor.Cli\output\versions\20250823_165310
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2025-12-19  12:11 PM           1732 next_steps.trsx
+    Directory: C:\Users\spare\source\repos\tars\v1\parked_csharp\TarsSupervisor
+    \src\TarsSupervisor.Cli\output\versions\20250823_165429
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2025-12-19  12:11 PM            709 next_steps.trsx
+    Directory: C:\Users\spare\source\repos\tars\v1\parked_csharp\TarsSupervisor
+    \src\TarsSupervisor.Cli\output\versions\20250823_165714
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2025-12-19  12:11 PM           1662 next_steps.trsx
+    Directory: C:\Users\spare\source\repos\tars\v1\parked_csharp\TarsSupervisor
+    \src\TarsSupervisor.Cli\output\versions\20250823_165912
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2025-12-19  12:11 PM            779 next_steps.trsx
+    Directory: C:\Users\spare\source\repos\tars\v1\parked_csharp\TarsSupervisor
+    \TarsSupervisor\samples
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2025-12-19  12:11 PM            566 next_steps.trsx
+    Directory: C:\Users\spare\source\repos\tars\v1\parked_legacy\applications
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2025-12-19  12:11 PM          15373 creative_content_generator.tr
+                                                  sx
+-a----        2025-12-19  12:11 PM           9366 drug_discovery_platform.trsx
+-a----        2025-12-19  12:11 PM          11970 financial_risk_optimizer.trsx
+-a----        2025-12-19  12:11 PM          13864 precision_medicine_platform.t
+                                                  rsx
+-a----        2025-12-19  12:11 PM           9254 scientific_research_assistant
+                                                  .trsx
+    Directory: C:\Users\spare\source\repos\tars\v1\parked_legacy\demo_phase1
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2025-12-19  12:11 PM            980 real_execution_demo.tars
+-a----        2025-12-19  12:11 PM            649 real_execution_demo_unified.t
+                                                  rsx
+    Directory:
+    C:\Users\spare\source\repos\tars\v1\parked_legacy\Metascripts\fragments
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2025-12-19  12:11 PM            221 critic_rules.trsx
+-a----        2025-12-19  12:11 PM            266 performance_rules.trsx
+-a----        2025-12-19  12:11 PM            213 safety_rules.trsx
+    Directory:
+    C:\Users\spare\source\repos\tars\v1\parked_legacy\Metascripts\TreeOfThought
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2025-12-19  12:11 PM          14425 ApplyImprovements.tars
+-a----        2025-12-19  12:11 PM            710 ApplyImprovements_unified.trs
+                                                  x
+-a----        2025-12-19  12:11 PM          27280 AutoImprovement.tars
+-a----        2025-12-19  12:11 PM            999 AutoImprovement_unified.trsx
+-a----        2025-12-19  12:11 PM          14752 CodeImprovement.tars
+-a----        2025-12-19  12:11 PM           1137 CodeImprovement_unified.trsx
+-a----        2025-12-19  12:11 PM           6613 GenerateImprovements.tars
+-a----        2025-12-19  12:11 PM            722 GenerateImprovements_unified.
+                                                  trsx
+    Directory: C:\Users\spare\source\repos\tars\v1\parked_legacy\Metascripts
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2025-12-19  12:11 PM            464 async_patterns_unified.trsx
+-a----        2025-12-19  12:11 PM            471 basic_transformations_unified
+                                                  .trsx
+-a----        2025-12-19  12:11 PM            468 clean_architecture_unified.tr
+                                                  sx
+-a----        2025-12-19  12:11 PM            462 code_quality_unified.trsx
+-a----        2025-12-19  12:11 PM            465 design_patterns_unified.trsx
+-a----        2025-12-19  12:11 PM           8092 flux_prime_triplet_task.flux
+-a----        2025-12-19  12:11 PM            471 microservice_patterns_unified
+                                                  .trsx
+    Directory: C:\Users\spare\source\repos\tars\v1\parked_legacy\production
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2025-12-19  12:11 PM           2206 enhanced-flux-demo.flux
+-a----        2025-12-19  12:11 PM            478 enhanced-flux.flux
+-a----        2025-12-19  12:11 PM            118 flux-pattern-async.flux
+-a----        2025-12-19  12:11 PM            206 flux-pattern-result.flux
+-a----        2025-12-19  12:11 PM            233 flux-pattern-validation.flux
+-a----        2025-12-19  12:11 PM           1233 flux-roadmap-documentation.fl
+                                                  ux
+-a----        2025-12-19  12:11 PM            951 flux-roadmap-modularization.f
+                                                  lux
+-a----        2025-12-19  12:11 PM           1087 flux-roadmap-result-handling.
+                                                  flux
+-a----        2025-12-19  12:11 PM            343 real-flux-demo.flux
+    Directory: C:\Users\spare\source\repos\tars\v1\parked_legacy\Samples
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2025-12-19  12:11 PM           3736 template.tars
+-a----        2025-12-19  12:11 PM            992 template_unified.trsx
+    Directory:
+    C:\Users\spare\source\repos\tars\v1\parked_legacy\TarsCli\Metascripts
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2025-12-19  12:11 PM           8606 context_engineering_demo.trsx
+-a----        2025-12-19  12:11 PM            522 cuda_autonomous_demo.tars
+-a----        2025-12-19  12:11 PM            563 cuda_autonomous_demo_unified.
+                                                  trsx
+-a----        2025-12-19  12:11 PM           1358 output_generator_test.trsx
+-a----        2025-12-19  12:11 PM            967 real_execution_test.trsx
+-a----        2025-12-19  12:11 PM           7911 tars_agent_os_integration.tar
+                                                  s
+-a----        2025-12-19  12:11 PM           4891 tars_autonomous_cycle_1.tars
+-a----        2025-12-19  12:11 PM            566 tars_autonomous_cycle_1_unifi
+                                                  ed.trsx
+-a----        2025-12-19  12:11 PM           1756 tars_autonomous_demo.tars
+-a----        2025-12-19  12:11 PM            563 tars_autonomous_demo_unified.
+                                                  trsx
+    Directory: C:\Users\spare\source\repos\tars\v1\parked_legacy\TarsEngine.FSh
+    arp.Cli\TarsEngine.FSharp.Metascript.Runner
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2025-12-19  12:11 PM            461 simple_test_unified.trsx
+    Directory:
+    C:\Users\spare\source\repos\tars\v1\parked_legacy\TarsEngine.FSharp.Cli
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2025-12-19  12:11 PM            562 sample_ui.trsx
+    Directory: C:\Users\spare\source\repos\tars\v1\parked_legacy\TarsEngine.FSh
+    arp.Core.MetascriptTester
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2025-12-19  12:11 PM            461 simple_test_unified.trsx
+    Directory: C:\Users\spare\source\repos\tars\v1\parked_legacy
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        2025-12-19  12:11 PM                TarsEngine.FSharp.FLUX
+    Directory: C:\Users\spare\source\repos\tars\v1\parked_legacy\TarsEngine.FSh
+    arp.FLUX.Tests
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2025-12-19  12:11 PM          16918 ai-code-generator.flux
+-a----        2025-12-19  12:11 PM           1094 ai-code-generator_unified.trs
+                                                  x
+-a----        2025-12-19  12:11 PM           6609 demo.flux
+-a----        2025-12-19  12:11 PM            994 demo_unified.trsx
+    Directory: C:\Users\spare\source\repos\tars\v1\parked_legacy\TarsEngine.FSh
+    arp.Main\Examples
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2025-12-19  12:11 PM           3426 block_nesting_example.tars
+-a----        2025-12-19  12:11 PM            951 block_nesting_example_unified
+                                                  .trsx
+-a----        2025-12-19  12:11 PM           4651 error_handling_example.tars
+-a----        2025-12-19  12:11 PM            982 error_handling_example_unifie
+                                                  d.trsx
+-a----        2025-12-19  12:11 PM           3772 example_metascript.tars
+-a----        2025-12-19  12:11 PM            822 example_metascript_unified.tr
+                                                  sx
+-a----        2025-12-19  12:11 PM          13477 tars_integration_example.tars
+-a----        2025-12-19  12:11 PM            828 tars_integration_example_unif
+                                                  ied.trsx
+-a----        2025-12-19  12:11 PM           2560 variable_interpolation_exampl
+                                                  e.tars
+-a----        2025-12-19  12:11 PM            747 variable_interpolation_exampl
+                                                  e_unified.trsx
+    Directory: C:\Users\spare\source\repos\tars\v1\parked_legacy\TarsEngine.FSh
+    arp.Metascript.Console
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2025-12-19  12:11 PM            461 simple_test_unified.trsx
+    Directory: C:\Users\spare\source\repos\tars\v1\parked_legacy\TarsEngine.FSh
+    arp.Metascript.Runner
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2025-12-19  12:11 PM            461 simple_test_unified.trsx
+    Directory: C:\Users\spare\source\repos\tars\v1\parked_legacy\TarsEngine.FSh
+    arp.Metascript.Standalone
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2025-12-19  12:11 PM            461 simple_test_unified.trsx
+    Directory: C:\Users\spare\source\repos\tars\v1\parked_legacy\TarsEngine.FSh
+    arp.Metascript.Test
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2025-12-19  12:11 PM            461 simple_test_unified.trsx
+    Directory: C:\Users\spare\source\repos\tars\v1\parked_legacy\TarsEngine.FSh
+    arp.SelfImprovement\Metascripts\AutonomousCoding
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2025-12-19  12:11 PM           2480 simple_llm_coding.tars
+-a----        2025-12-19  12:11 PM            647 simple_llm_coding_unified.trs
+                                                  x
+    Directory: C:\Users\spare\source\repos\tars\v1\parked_legacy\TarsEngine.FSh
+    arp.SelfImprovement\Metascripts\Examples
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2025-12-19  12:11 PM           5159 llm_autonomous_coding.tars
+-a----        2025-12-19  12:11 PM            738 llm_autonomous_coding_unified
+                                                  .trsx
+-a----        2025-12-19  12:11 PM           9724 working_llm_coding.tars
+-a----        2025-12-19  12:11 PM            735 working_llm_coding_unified.tr
+                                                  sx
+    Directory: C:\Users\spare\source\repos\tars\v1\parked_legacy
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2025-12-19  12:11 PM          11912 advanced_consciousness_improv
+                                                  ement.tars
+-a----        2025-12-19  12:11 PM           8326 advanced_tars_demo.tars
+-a----        2025-12-19  12:11 PM            795 ai_summary_demo.tars
+-a----        2025-12-19  12:11 PM           7353 ask-tars-about-knowledge.trsx
+-a----        2025-12-19  12:11 PM           1266 autonomous_flux_20250905_1942
+                                                  44.flux
+-a----        2025-12-19  12:11 PM          12058 autonomous_goal_setting.tars
+-a----        2025-12-19  12:11 PM          17496 autonomous_improvement.tars
+-a----        2025-12-19  12:11 PM           1441 autonomous_improvement_unifie
+                                                  d.trsx
+-a----        2025-12-19  12:11 PM          10842 auto_improvement_session.tars
+-a----        2025-12-19  12:11 PM           9778 auto_improvement_working.tars
+-a----        2025-12-19  12:11 PM           9501 chat-with-tars.trsx
+-a----        2025-12-19  12:11 PM           4592 complete_superintelligence_de
+                                                  mo.tars
+-a----        2025-12-19  12:11 PM          19778 comprehensive-tars-cleanup-re
+                                                  organization.trsx
+-a----        2025-12-19  12:11 PM          23354 comprehensive_auto_improvemen
+                                                  t_test_suite.tars
+-a----        2025-12-19  12:11 PM            165 debug_test.tars
+-a----        2025-12-19  12:11 PM            489 demo.tars
+-a----        2025-12-19  12:11 PM          14823 demonstrate-cuda-transpilatio
+                                                  n.trsx
+-a----        2025-12-19  12:11 PM           1772 demo_metascript.tars
+-a----        2025-12-19  12:11 PM            552 demo_metascript_unified.trsx
+-a----        2025-12-19  12:11 PM           6428 example-deployment-metascript
+                                                  .trsx
+-a----        2025-12-19  12:11 PM           6820 exploration_to_code.tars
+-a----        2025-12-19  12:11 PM            823 exploration_to_code_unified.t
+                                                  rsx
+-a----        2025-12-19  12:11 PM           4898 fix-chat-duplication.trsx
+-a----        2025-12-19  12:11 PM           1446 generated-tars-learning-demo.
+                                                  tars
+-a----        2025-12-19  12:11 PM           9721 live_auto_improvement.tars
+-a----        2025-12-19  12:11 PM           8034 meta_improvement_demo.tars
+-a----        2025-12-19  12:11 PM          11186 real_auto_improvement.tars
+-a----        2025-12-19  12:11 PM          11237 real_auto_improvement_fixed.t
+                                                  ars
+-a----        2025-12-19  12:11 PM          12855 real_self_improvement_session
+                                                  .tars
+-a----        2025-12-19  12:11 PM          10122 real_tars_api_session.tars
+-a----        2025-12-19  12:11 PM           9303 real_tars_flux_session.flux
+-a----        2025-12-19  12:11 PM          12512 real_tars_session.tars
+-a----        2025-12-19  12:11 PM          10223 recursive_self_improvement.ta
+                                                  rs
+-a----        2025-12-19  12:11 PM          10817 simple_autonomous_goals.tars
+-a----        2025-12-19  12:11 PM           5779 simple_recursive_improvement.
+                                                  tars
+-a----        2025-12-19  12:11 PM           2740 simple_tars_test.tars
+-a----        2025-12-19  12:11 PM            220 simple_test.tars
+-a----        2025-12-19  12:11 PM            461 simple_test_unified.trsx
+-a----        2025-12-19  12:11 PM             28 spoken_trace.tars
+-a----        2025-12-19  12:11 PM            462 spoken_trace_unified.trsx
+-a----        2025-12-19  12:11 PM           2872 strategic_adaptive_learning_e
+                                                  ngine_20250905_194727.flux
+-a----        2025-12-19  12:11 PM           2888 strategic_autonomous_error_re
+                                                  covery_20250905_194728.flux
+-a----        2025-12-19  12:11 PM           2855 strategic_intelligent_resourc
+                                                  e_manager_20250905_194726.flu
+                                                  x
+-a----        2025-12-19  12:11 PM           2802 strategic_master_orchestrator
+                                                  _20250905_194726.flux
+-a----        2025-12-19  12:11 PM           2806 strategic_multi-agent_coordin
+                                                  ator_20250905_194724.flux
+-a----        2025-12-19  12:11 PM           2802 strategic_multi-agent_coordin
+                                                  ator_20250905_194729.flux
+-a----        2025-12-19  12:11 PM           2831 strategic_performance_optimiz
+                                                  er_20250905_194725.flux
+-a----        2025-12-19  12:11 PM           2827 strategic_performance_optimiz
+                                                  er_20250905_194730.flux
+-a----        2025-12-19  12:11 PM           2818 strategic_quality_validator_2
+                                                  0250905_194725.flux
+-a----        2025-12-19  12:11 PM           2814 strategic_quality_validator_2
+                                                  0250905_194730.flux
+-a----        2025-12-19  12:11 PM           2920 strategic_real-time_performan
+                                                  ce_monitor_20250905_194727.fl
+                                                  ux
+-a----        2025-12-19  12:11 PM           2775 strategic_strategic_analyzer_
+                                                  20250905_194724.flux
+-a----        2025-12-19  12:11 PM           2771 strategic_strategic_analyzer_
+                                                  20250905_194729.flux
+-a----        2025-12-19  12:11 PM           2915 strategic_success_validation_
+                                                  framework_20250905_194728.flu
+                                                  x
+-a----        2025-12-19  12:11 PM            764 structured_output_demo.tars
+-a----        2025-12-19  12:11 PM          20123 tars-auto-improvement-system.
+                                                  trsx
+-a----        2025-12-19  12:11 PM          20622 tars-autonomous-improvement.t
+                                                  rsx
+-a----        2025-12-19  12:11 PM          19193 tars-autonomous-invention.trs
+                                                  x
+-a----        2025-12-19  12:11 PM          16692 tars-blue-green-evolution-tes
+                                                  t.tars
+-a----        2025-12-19  12:11 PM          13356 tars-blue-green-improvement.t
+                                                  rsx
+-a----        2025-12-19  12:11 PM           4465 tars-chat-simple.trsx
+-a----        2025-12-19  12:11 PM           6083 tars-interactive-chat.trsx
+-a----        2025-12-19  12:11 PM           5321 tars-knowledge-demo.trsx
+-a----        2025-12-19  12:11 PM          17117 tars-production-learning-inte
+                                                  gration.tars
+-a----        2025-12-19  12:11 PM           7757 tars_consciousness_auto_impro
+                                                  vement.tars
+-a----        2025-12-19  12:11 PM           1417 tars_integration_demo.tars
+-a----        2025-12-19  12:11 PM          10557 tars_knowledge_infrastructure
+                                                  .tars
+-a----        2025-12-19  12:11 PM           3662 tars_self_improvement_demo.ta
+                                                  rs
+-a----        2025-12-19  12:11 PM           8787 temporal-reasoning-demo.trsx
+-a----        2025-12-19  12:11 PM            459 temp_rule_unified.trsx
+-a----        2025-12-19  12:11 PM           8805 test-all-real-implementations
+                                                  .trsx
+-a----        2025-12-19  12:11 PM           1774 test-cli-commands.trsx
+-a----        2025-12-19  12:11 PM          11667 test-final-real-implementatio
+                                                  ns.trsx
+-a----        2025-12-19  12:11 PM            685 test-flux.flux
+-a----        2025-12-19  12:11 PM            897 test-flux_unified.trsx
+-a----        2025-12-19  12:11 PM          12394 test-latest-real-improvements
+                                                  .trsx
+-a----        2025-12-19  12:11 PM          11214 test-latest-simulation-fixes.
+                                                  trsx
+-a----        2025-12-19  12:11 PM           5679 test-real-ai-models.trsx
+-a----        2025-12-19  12:11 PM           6255 test-real-cuda.trsx
+-a----        2025-12-19  12:11 PM           6887 test-real-moe.trsx
+-a----        2025-12-19  12:11 PM           4106 test-real-qwen.trsx
+-a----        2025-12-19  12:11 PM           6724 test-simple-real-improvements
+                                                  .trsx
+-a----        2025-12-19  12:11 PM          10193 test-tars-programming-learnin
+                                                  g.tars
+-a----        2025-12-19  12:11 PM            286 test.tars
+-a----        2025-12-19  12:11 PM           2459 test_ai_summary.tars
+-a----        2025-12-19  12:11 PM           2211 test_crypto_proof.tars
+-a----        2025-12-19  12:11 PM            702 test_enhanced_execution.tars
+-a----        2025-12-19  12:11 PM           1452 test_fsharp_migration.tars
+-a----        2025-12-19  12:11 PM            651 test_fsharp_migration_unified
+                                                  .trsx
+-a----        2025-12-19  12:11 PM            274 test_simple.tars
+-a----        2025-12-19  12:11 PM           1067 test_tars_functionality.tars
+-a----        2025-12-19  12:11 PM            541 test_unified.trsx
+-a----        2025-12-19  12:11 PM           9724 thought_flow_evolution.tars
+-a----        2025-12-19  12:11 PM           7148 thought_flow_simple.tars
+-a----        2025-12-19  12:11 PM          10744 unified-grammar-evolution-dem
+                                                  o.trsx
+-a----        2025-12-19  12:11 PM           1497 vector-store-enhance.tars
+-a----        2025-12-19  12:11 PM           1505 working_auto_improvement.tars
+-a----        2025-12-19  12:11 PM          10589 working_real_session.tars
+-a----        2025-12-19  12:11 PM           8524 working_self_improvement.tars
+-a----        2025-12-19  12:11 PM           6811 working_tars_api_session.tars
+    Directory:
+    C:\Users\spare\source\repos\tars\v1\parked_mixed\TarsEngineFSharp
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2025-12-19  12:11 PM            467 improvement_rules_unified.trs
+                                                  x

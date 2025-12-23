@@ -10,6 +10,8 @@ open Tars.Llm
 open Tars.Llm.LlmService
 open Tars.Llm.Routing
 open Tars.Metascript
+open Tars.Metascript.V1
+open Tars.Metascript.V1Executor
 open Tars.Metascript.Domain
 open Tars.Metascript.Config
 open Tars.Metascript.Engine
@@ -18,41 +20,36 @@ open Tars.Evolution
 open Tars.Evolution.Reflection
 open Tars.Evolution.Optimizer
 
-module RunCommand =
+open Tars.Tools
 
-    // Dummy tool registry for now
-    type SimpleToolRegistry() =
-        interface IToolRegistry with
-            member _.Get(name) = None
-            member _.GetAll() = []
-            member _.Register(tool) = ()
+module RunCommand =
 
     let run (logger: ILogger) (workflowPath: string) (shouldOptimize: bool) =
         task {
             try
-                logger.Information("Loading workflow from {Path}...", workflowPath)
+                logger.Information("Loading script from {Path}...", workflowPath)
 
                 if not (File.Exists workflowPath) then
-                    logger.Error("Workflow file not found: {Path}", workflowPath)
+                    logger.Error("File not found: {Path}", workflowPath)
                     return 1
                 else
-                    let json = File.ReadAllText(workflowPath)
+                    let ext = Path.GetExtension(workflowPath).ToLowerInvariant()
 
-                    match Parser.parseJson json with
-                    | Parser.ValidationError errs ->
-                        logger.Error("Workflow validation failed:")
+                    if ext = ".tars" || ext = ".trsx" then
+                        let text = File.ReadAllText(workflowPath)
 
-                        for e in errs do
-                            logger.Error("- {Error}", e)
+                        let metascript =
+                            V1Parser.parseMetascript
+                                text
+                                (Path.GetFileNameWithoutExtension(workflowPath))
+                                (Some workflowPath)
 
-                        return 1
-                    | Parser.ParseError(l, c, msg) ->
-                        logger.Error("JSON parse error at line {Line}, col {Col}: {Message}", l, c, msg)
-                        return 1
-                    | Parser.Success workflow ->
-                        logger.Information("Workflow '{Name}' loaded successfully.", workflow.Name)
+                        logger.Information(
+                            "Metascript '{Name}' loaded with {Count} blocks.",
+                            metascript.Name,
+                            metascript.Blocks.Length
+                        )
 
-                        // Initialize Services
                         let routingConfig =
                             { OllamaBaseUri = Uri("http://localhost:11434")
                               VllmBaseUri = Uri("http://localhost:11434/v1")
@@ -60,7 +57,7 @@ module RunCommand =
                               GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com")
                               AnthropicBaseUri = Uri("https://api.anthropic.com")
                               DefaultOllamaModel = "qwen2.5-coder:1.5b"
-                              DefaultVllmModel = "qwen2.5-coder:1.5b" // Use Ollama for reasoning too
+                              DefaultVllmModel = "qwen2.5-coder:1.5b"
                               DefaultOpenAIModel = "gpt-4o"
                               DefaultGoogleGeminiModel = "gemini-1.5-pro"
                               DefaultAnthropicModel = "claude-3-5-sonnet-20240620"
@@ -69,95 +66,165 @@ module RunCommand =
                               VllmKey = None
                               OpenAIKey = None
                               GoogleGeminiKey = None
-                              AnthropicKey = None }
+                              AnthropicKey = None
+                              DockerModelRunnerBaseUri = None
+                              LlamaCppBaseUri = None
+                              DefaultDockerModelRunnerModel = None
+                              DefaultLlamaCppModel = None
+                              DockerModelRunnerKey = None
+                              LlamaCppKey = None }
 
                         let llmConfig = { Routing = routingConfig }
                         use httpClient = new HttpClient()
-                        httpClient.Timeout <- TimeSpan.FromMinutes(2.0)
+                        let llm = DefaultLlmService(httpClient, llmConfig) :> ILlmService
 
-                        let llm = DefaultLlmService(httpClient, llmConfig)
-                        let tools = SimpleToolRegistry()
+                        let handlers: IBlockHandler list =
+                            [ TextBlockHandler() :> IBlockHandler
+                              { new IBlockHandler with
+                                  member _.BlockType = MetascriptBlockType.Meta
+                                  member _.Priority = 0
+                                  member _.CanHandle _ = true
 
-                        let ctx: MetascriptContext =
-                            { Llm = llm
-                              Tools = tools
-                              Budget = None
-                              VectorStore = None
-                              KnowledgeGraph = None
-                              SemanticMemory = None
-                              RagConfig = RagConfig.Default
-                              MacroRegistry = None }
+                                  member _.ExecuteBlockAsync(block, context) =
+                                      task {
+                                          return
+                                              { Block = block
+                                                Status = MetascriptExecutionStatus.Success
+                                                Output = ""
+                                                Error = None
+                                                ReturnValue = None
+                                                Variables = context.Variables
+                                                ExecutionTimeMs = 0.0 }
+                                      } }
+                              CommandBlockHandler() :> IBlockHandler
+                              new FSharpBlockHandler() :> IBlockHandler
+                              QueryBlockHandler(llm) :> IBlockHandler ]
 
-                        logger.Information("Starting execution...")
+                        let executor = MetascriptExecutor(handlers)
+                        let! result = (executor :> IMetascriptExecutor).ExecuteAsync(metascript)
 
-                        let inputs = Map.empty
-                        let mutable executionSuccess = false
-                        let mutable execTrace = []
-                        let mutable finalOutputs = ""
+                        if result.Status = MetascriptExecutionStatus.Success then
+                            logger.Information("Final Output: {Output}", result.Output)
+                            return 0
+                        else
+                            logger.Error(
+                                "Metascript failed: {Error}",
+                                result.Error |> Option.defaultValue "Unknown error"
+                            )
 
-                        try
-                            let! resultState = Engine.run ctx workflow inputs
-                            executionSuccess <- true
-                            execTrace <- resultState.ExecutionTrace |> List.rev // Engine adds to head
+                            return 1
+                    else
+                        let json = File.ReadAllText(workflowPath)
+                        let parseResult = Parser.parseJson json
 
-                            // Capture output for reflection
-                            let outs =
-                                resultState.StepOutputs
-                                |> Map.toList
-                                |> List.map (fun (k, v) -> sprintf "%s: %A" k v)
-                                |> String.concat ", "
+                        match parseResult with
+                        | Parser.ValidationError errs ->
+                            logger.Error("Workflow validation failed:")
 
-                            finalOutputs <- outs
+                            for e in errs do
+                                logger.Error("- {Error}", e)
 
-                            logger.Information("Workflow completed.")
-                            logger.Information("Outputs: {Outputs}", outs)
+                            return 1
+                        | Parser.ParseError(l, c, msg) ->
+                            logger.Error("JSON parse error at line {Line}, col {Col}: {Message}", l, c, msg)
+                            return 1
+                        | Parser.Success workflow ->
+                            logger.Information("Workflow '{Name}' loaded successfully.", workflow.Name)
 
-                        with ex ->
-                            logger.Error(ex, "Workflow execution failed")
-                            executionSuccess <- false
-                            finalOutputs <- ex.Message
-                        // We can still try to optimize a failing workflow!
+                            let routingConfig =
+                                { OllamaBaseUri = Uri("http://localhost:11434")
+                                  VllmBaseUri = Uri("http://localhost:11434/v1")
+                                  OpenAIBaseUri = Uri("https://api.openai.com")
+                                  GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com")
+                                  AnthropicBaseUri = Uri("https://api.anthropic.com")
+                                  DefaultOllamaModel = "qwen2.5-coder:1.5b"
+                                  DefaultVllmModel = "qwen2.5-coder:1.5b"
+                                  DefaultOpenAIModel = "gpt-4o"
+                                  DefaultGoogleGeminiModel = "gemini-1.5-pro"
+                                  DefaultAnthropicModel = "claude-3-5-sonnet-20240620"
+                                  DefaultEmbeddingModel = "nomic-embed-text"
+                                  OllamaKey = None
+                                  VllmKey = None
+                                  OpenAIKey = None
+                                  GoogleGeminiKey = None
+                                  AnthropicKey = None
+                                  DockerModelRunnerBaseUri = None
+                                  LlamaCppBaseUri = None
+                                  DefaultDockerModelRunnerModel = None
+                                  DefaultLlamaCppModel = None
+                                  DockerModelRunnerKey = None
+                                  LlamaCppKey = None }
 
-                        if shouldOptimize then
-                            logger.Information("🧠 Starting Self-Evolution Loop...")
+                            let llmConfig = { Routing = routingConfig }
+                            use httpClient = new HttpClient()
+                            httpClient.Timeout <- TimeSpan.FromMinutes(2.0)
 
-                            // 1. Reflection
-                            let reflectionAgent = LlmReflectionAgent(llm) :> IReflectionAgent
+                            let llm = DefaultLlmService(httpClient, llmConfig)
+                            let tools = ToolRegistry()
 
-                            let traceItems =
-                                execTrace
-                                |> List.map (fun t ->
-                                    { Step = t.StepId
-                                      Input = "N/A"
-                                      Output = sprintf "%A" t.Outputs
-                                      DurationMs = int64 t.Duration.TotalMilliseconds })
+                            let ctx: MetascriptContext =
+                                { Llm = llm
+                                  Tools = tools
+                                  Budget = None
+                                  VectorStore = None
+                                  KnowledgeGraph = None
+                                  SemanticMemory = None
+                                  EpisodeService = None
+                                  RagConfig = RagConfig.Default
+                                  MacroRegistry = None
+                                  MetascriptRegistry = None }
 
-                            logger.Information("🤔 Reflecting on performance...")
-                            let! feedback = reflectionAgent.ReflectAsync(workflow.Description, finalOutputs, traceItems)
+                            let inputs = Map.empty
+                            let mutable executionSuccess = false
+                            let mutable execTrace = []
+                            let mutable finalOutputs = ""
 
-                            logger.Information("FEEDBACK: [{Type}] Score: {Score}", feedback.Type, feedback.Score)
-                            logger.Information("Comment: {Comment}", feedback.Comment)
+                            try
+                                let! resultState = Engine.run ctx workflow inputs
+                                executionSuccess <- true
+                                execTrace <- resultState.ExecutionTrace |> List.rev
 
-                            if feedback.Suggestion.IsSome then
-                                logger.Information("Suggestion: {Suggestion}", feedback.Suggestion.Value)
+                                let outs =
+                                    resultState.StepOutputs
+                                    |> Map.toList
+                                    |> List.map (fun (k, v) -> $"%s{k}: %A{v}")
+                                    |> String.concat ", "
 
-                                // 2. Optimization
-                                logger.Information("✨ Optimizing workflow...")
-                                let optimizer = LlmWorkflowOptimizer(llm) :> IWorkflowOptimizer
-                                let! newWorkflow = optimizer.OptimizeAsync(workflow, feedback)
+                                finalOutputs <- outs
+                                logger.Information("Workflow completed. Outputs: {Outputs}", outs)
+                            with ex ->
+                                logger.Error(ex, "Workflow execution failed")
+                                executionSuccess <- false
+                                finalOutputs <- ex.Message
 
-                                match newWorkflow with
-                                | Some nw ->
-                                    let newPath = Path.ChangeExtension(workflowPath, null) + "_optimized.json"
-                                    let jsonOpts = System.Text.Json.JsonSerializerOptions(WriteIndented = true)
-                                    let newJson = System.Text.Json.JsonSerializer.Serialize(nw, jsonOpts)
-                                    File.WriteAllText(newPath, newJson)
-                                    logger.Information("✅ Optimized workflow saved to: {Path}", newPath)
-                                | None -> logger.Error("❌ Optimization failed to generate valid workflow.")
-                            else
-                                logger.Information("No suggestion provided. Workflow is considered optimal.")
+                            if shouldOptimize then
+                                let reflectionAgent = LlmReflectionAgent(llm) :> IReflectionAgent
 
-                        return if executionSuccess then 0 else 1
+                                let traceItems =
+                                    execTrace
+                                    |> List.map (fun t ->
+                                        { Step = t.StepId
+                                          Input = "N/A"
+                                          Output = $"%A{t.Outputs}"
+                                          DurationMs = int64 t.Duration.TotalMilliseconds })
+
+                                let! feedback =
+                                    reflectionAgent.ReflectAsync(workflow.Description, finalOutputs, traceItems)
+
+                                if feedback.Suggestion.IsSome then
+                                    let optimizer = LlmWorkflowOptimizer(llm) :> IWorkflowOptimizer
+                                    let! newWorkflow = optimizer.OptimizeAsync(workflow, feedback)
+
+                                    match newWorkflow with
+                                    | Some nw ->
+                                        let newPath = Path.ChangeExtension(workflowPath, null) + "_optimized.json"
+                                        let jsonOpts = System.Text.Json.JsonSerializerOptions(WriteIndented = true)
+                                        let newJson = System.Text.Json.JsonSerializer.Serialize(nw, jsonOpts)
+                                        File.WriteAllText(newPath, newJson)
+                                        logger.Information("✅ Optimized workflow saved to: {Path}", newPath)
+                                    | None -> logger.Error("❌ Optimization failed to generate valid workflow.")
+
+                            return if executionSuccess then 0 else 1
             with ex ->
                 logger.Error(ex, "Unexpected error")
                 return 1

@@ -1,13 +1,11 @@
-/// <summary>
-/// Generic OpenAI-compatible client for various LLM providers.
-/// Works with any service that implements the OpenAI API format including
-/// OpenAI, Azure OpenAI, LocalAI, LM Studio, text-generation-inference, etc.
-/// </summary>
-/// <remarks>
-/// This is the most versatile client as many LLM services implement
-/// the OpenAI API format for compatibility.
-/// </remarks>
 namespace Tars.Llm
+
+// Generic OpenAI-compatible client for various LLM providers.
+// Works with any service that implements the OpenAI API format including
+// OpenAI, Azure OpenAI, LocalAI, LM Studio, text-generation-inference, etc.
+//
+// This is the most versatile client as many LLM services implement
+// the OpenAI API format for compatibility.
 
 open System
 open System.Net.Http

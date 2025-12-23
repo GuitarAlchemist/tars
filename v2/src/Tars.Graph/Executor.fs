@@ -39,17 +39,17 @@ type GraphExecutor
                   Logger = logger }
 
             while not finished && stepCount < maxSteps do
-                trace <- trace @ [ sprintf "Step %d: %A" stepCount currentAgent.State ]
+                trace <- trace @ [ $"Step %d{stepCount}: %A{currentAgent.State}" ]
                 let! outcome = GraphRuntime.step currentAgent graphCtx
 
                 match outcome with
                 | Success next -> currentAgent <- next
                 | PartialSuccess(next, warnings) ->
-                    trace <- trace @ (warnings |> List.map (fun w -> sprintf "Warning: %A" w))
+                    trace <- trace @ (warnings |> List.map (fun w -> $"Warning: %A{w}"))
                     currentAgent <- next
                 | Failure errs ->
-                    let errStr = String.concat "; " (errs |> List.map (fun e -> sprintf "%A" e))
-                    trace <- trace @ [ sprintf "Execution Failure: %s" errStr ]
+                    let errStr = String.concat "; " (errs |> List.map (fun e -> $"%A{e}"))
+                    trace <- trace @ [ $"Execution Failure: %s{errStr}" ]
                     finished <- true
                     success <- false
                     resultOutput <- errStr
@@ -58,12 +58,12 @@ type GraphExecutor
 
                 match currentAgent.State with
                 | WaitingForUser response ->
-                    trace <- trace @ [ sprintf "Response: %s" response ]
+                    trace <- trace @ [ $"Response: %s{response}" ]
                     resultOutput <- response
                     success <- true
                     finished <- true
                 | AgentState.Error err ->
-                    trace <- trace @ [ sprintf "Error: %s" err ]
+                    trace <- trace @ [ $"Error: %s{err}" ]
                     resultOutput <- err
                     success <- false
                     finished <- true
@@ -80,7 +80,7 @@ type GraphExecutor
                     match currentAgent.State with
                     | Idle -> "idle (never started)"
                     | Thinking _ -> "thinking (LLM call may have stalled)"
-                    | Acting(tool, _) -> sprintf "acting on tool '%s'" tool.Name
+                    | Acting(tool, _) -> $"acting on tool '%s{tool.Name}'"
                     | Observing(tool, output) ->
                         let preview =
                             if output.Length > 50 then
@@ -88,9 +88,9 @@ type GraphExecutor
                             else
                                 output
 
-                        sprintf "observing '%s' result: %s" tool.Name preview
+                        $"observing '%s{tool.Name}' result: %s{preview}"
                     | WaitingForUser _ -> "waiting for user"
-                    | AgentState.Error e -> sprintf "error: %s" e
+                    | AgentState.Error e -> $"error: %s{e}"
 
                 let lastTraceEntry =
                     if trace.Length > 0 then
@@ -99,10 +99,7 @@ type GraphExecutor
                         "no trace"
 
                 resultOutput <-
-                    sprintf
-                        "Task incomplete - agent was %s. Last trace: %s. Consider increasing iterations or simplifying the task."
-                        lastState
-                        lastTraceEntry
+                    $"Task incomplete - agent was %s{lastState}. Last trace: %s{lastTraceEntry}. Consider increasing iterations or simplifying the task."
 
                 let warnings = [ Timeout("AgentLoop", TimeSpan.Zero) ]
                 return PartialSuccess((currentAgent, resultOutput, trace), warnings)

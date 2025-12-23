@@ -1,6 +1,7 @@
-/// BeliefGraph - Graph-based storage for agent beliefs and principles
-/// Phase 2.5.2 of the TARS v2 Roadmap
 namespace Tars.Core
+
+// BeliefGraph - Graph-based storage for agent beliefs and principles
+// Phase 2.5.2 of the TARS v2 Roadmap
 
 open System
 

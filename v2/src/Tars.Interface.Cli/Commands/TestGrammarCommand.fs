@@ -39,7 +39,13 @@ let run (config: IConfiguration) (args: string array) =
               Tars.Llm.Routing.RoutingConfig.VllmKey = None
               Tars.Llm.Routing.RoutingConfig.OpenAIKey = Option.ofObj config["OPENAI_API_KEY"]
               Tars.Llm.Routing.RoutingConfig.GoogleGeminiKey = Option.ofObj config["GOOGLE_API_KEY"]
-              Tars.Llm.Routing.RoutingConfig.AnthropicKey = Option.ofObj config["ANTHROPIC_API_KEY"] }
+              Tars.Llm.Routing.RoutingConfig.AnthropicKey = Option.ofObj config["ANTHROPIC_API_KEY"]
+              Tars.Llm.Routing.RoutingConfig.DockerModelRunnerBaseUri = None
+              Tars.Llm.Routing.RoutingConfig.LlamaCppBaseUri = None
+              Tars.Llm.Routing.RoutingConfig.DefaultDockerModelRunnerModel = None
+              Tars.Llm.Routing.RoutingConfig.DefaultLlamaCppModel = None
+              Tars.Llm.Routing.RoutingConfig.DockerModelRunnerKey = None
+              Tars.Llm.Routing.RoutingConfig.LlamaCppKey = None }
 
         let svcCfg = { Routing = routingCfg }
         use httpClient = new System.Net.Http.HttpClient()

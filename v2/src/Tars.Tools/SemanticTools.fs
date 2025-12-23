@@ -11,7 +11,7 @@ module SemanticTools =
     /// Helper to format file content with line numbers
     let private formatWithLineNumbers (content: string) =
         content.Split('\n')
-        |> Array.mapi (fun i line -> sprintf "%4d | %s" (i + 1) line)
+        |> Array.mapi (fun i line -> $"%4d{i + 1} | %s{line}")
         |> String.concat "\n"
 
     let private parseExploreArgs (args: string) =
@@ -62,7 +62,7 @@ module SemanticTools =
 
                             let files =
                                 dirInfo.GetFiles()
-                                |> Array.map (fun f -> sprintf "%s (file)" f.Name)
+                                |> Array.map (fun f -> $"%s{f.Name} (file)")
                                 |> Array.toList
 
                             let subDirs =
@@ -74,12 +74,12 @@ module SemanticTools =
                                 subDirs
                                 |> List.collect (fun d ->
                                     let children = walk d.FullName (depth + 1)
-                                    (sprintf "%s/ (dir)" d.Name) :: (children |> List.map (fun c -> "  " + c)))
+                                    $"%s{d.Name}/ (dir)" :: (children |> List.map (fun c -> "  " + c)))
 
                             files @ subDirOutput
 
                     let tree = walk fullPath 0 |> String.concat "\n"
-                    Task.FromResult(sprintf "Project Structure for %s:\n%s" fullPath tree)
+                    Task.FromResult $"Project Structure for %s{fullPath}:\n%s{tree}"
             with ex ->
                 Task.FromResult($"explore_project error: {ex.Message}")
 

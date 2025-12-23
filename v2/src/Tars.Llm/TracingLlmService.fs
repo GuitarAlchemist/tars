@@ -35,11 +35,11 @@ type TracingLlmService(inner: ILlmService, recorder: ITraceRecorder) =
                         try
                             do! recorder.RecordEventAsync TraceEventType.LlmCall input output metadata
                         with ex ->
-                            printfn "DEBUG: Async trace recording failed: %s" ex.Message
+                            printfn $"DEBUG: Async trace recording failed: %s{ex.Message}"
                     }
                     Async.Start(recordOp)
                 with ex ->
-                    printfn "DEBUG: Trace recording setup failed: %s" ex.Message
+                    printfn $"DEBUG: Trace recording setup failed: %s{ex.Message}"
 
                 return response
             }
@@ -73,11 +73,11 @@ type TracingLlmService(inner: ILlmService, recorder: ITraceRecorder) =
                         try
                             do! recorder.RecordEventAsync TraceEventType.LlmCall input output metadata
                         with ex ->
-                            printfn "DEBUG: Async trace recording failed: %s" ex.Message
+                            printfn $"DEBUG: Async trace recording failed: %s{ex.Message}"
                     }
                     Async.Start(recordOp)
                 with ex ->
-                    printfn "DEBUG: Trace recording setup failed: %s" ex.Message
+                    printfn $"DEBUG: Trace recording setup failed: %s{ex.Message}"
 
                 return response
             }

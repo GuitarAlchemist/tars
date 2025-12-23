@@ -139,6 +139,9 @@ type TarsEntity =
     | CodeModuleE of CodeModuleEntity
     | AnomalyE of AnomalyEntity
     | ConceptE of ConceptEntity
+    | EpisodeE of Episode
+    | FileE of path: string
+    | FunctionE of name: string
 
 module TarsEntity =
     let getId =
@@ -149,6 +152,9 @@ module TarsEntity =
         | CodeModuleE m -> $"module:{m.Path.GetHashCode():x8}"
         | AnomalyE a -> $"anomaly:{a.Location.GetHashCode():x8}:{a.DetectedAt.Ticks}"
         | ConceptE c -> $"concept:{c.Name.ToLowerInvariant()}"
+        | EpisodeE e -> $"episode:{e.GetHashCode():x8}:{Episode.timestamp e |> fun t -> t.Ticks}"
+        | FileE p -> $"file:{p.GetHashCode():x8}"
+        | FunctionE n -> $"func:{n.ToLowerInvariant()}"
 
 /// Facts represent relationships between entities
 type TarsFact =
@@ -159,6 +165,7 @@ type TarsFact =
     | BelongsTo of entity: TarsEntity * communityId: string
     | SimilarTo of source: TarsEntity * target: TarsEntity * similarity: float
     | DerivedFrom of source: TarsEntity * target: TarsEntity
+    | Contains of source: TarsEntity * target: TarsEntity
 
 module TarsFact =
     let source =
@@ -170,6 +177,7 @@ module TarsFact =
         | BelongsTo(e, _) -> e
         | SimilarTo(s, _, _) -> s
         | DerivedFrom(s, _) -> s
+        | Contains(s, _) -> s
 
     let target =
         function
@@ -180,6 +188,7 @@ module TarsFact =
         | BelongsTo(_, _) -> None
         | SimilarTo(_, t, _) -> Some t
         | DerivedFrom(_, t) -> Some t
+        | Contains(_, t) -> Some t
 
 /// Pattern tags for classification
 type PatternTag =

@@ -1,6 +1,7 @@
-/// ConsensusCircuitBreaker - Multi-agent consensus before execution
-/// Part of v2.2 Cognitive Patterns (Pattern 6)
 namespace Tars.Cortex
+
+// ConsensusCircuitBreaker - Multi-agent consensus before execution
+// Part of v2.2 Cognitive Patterns (Pattern 6)
 
 open System
 open System.Threading.Tasks

@@ -1,12 +1,10 @@
-/// <summary>
-/// Ollama LLM client for local inference.
-/// Provides chat completions, embeddings, and model listing via the Ollama API.
-/// </summary>
-/// <remarks>
-/// Ollama runs locally and supports various open-source models like Llama, Mistral, etc.
-/// Default endpoint: http://localhost:11434
-/// </remarks>
 namespace Tars.Llm
+
+// Ollama LLM client for local inference.
+// Provides chat completions, embeddings, and model listing via the Ollama API.
+//
+// Ollama runs locally and supports various open-source models like Llama, Mistral, etc.
+// Default endpoint: http://localhost:11434
 
 open System
 open System.Net.Http
@@ -33,20 +31,61 @@ module OllamaClient =
           num_predict: int option
           temperature: float option }
 
-    /// <summary>DTO for Ollama chat request.</summary>
+    /// <summary>DTO for tool parameter property (JSON Schema).</summary>
+    [<CLIMutable>]
+    type ToolPropertyDto =
+        { ``type``: string
+          description: string }
+
+    /// <summary>DTO for tool parameters (JSON Schema).</summary>
+    [<CLIMutable>]
+    type ToolParametersDto =
+        { ``type``: string
+          properties: Map<string, ToolPropertyDto>
+          required: string[] }
+
+    /// <summary>DTO for tool function definition.</summary>
+    [<CLIMutable>]
+    type ToolFunctionDto =
+        { name: string
+          description: string
+          parameters: ToolParametersDto }
+
+    /// <summary>DTO for tool definition (OpenAI/Ollama format).</summary>
+    [<CLIMutable>]
+    type ToolDefinitionDto =
+        { ``type``: string // "function"
+          ``function``: ToolFunctionDto }
+
+    /// <summary>DTO for Ollama chat request with tools support.</summary>
     [<CLIMutable>]
     type OllamaRequestDto =
         { model: string
           messages: OllamaMessageDto[]
           stream: bool
           format: obj option
-          options: OllamaOptionsDto option }
+          options: OllamaOptionsDto option
+          tools: ToolDefinitionDto[] option }
 
-    /// <summary>DTO for Ollama response message.</summary>
+    /// <summary>DTO for tool call function response.</summary>
     [<CLIMutable>]
-    type OllamaResponseMessageDto = { role: string; content: string }
+    type ToolCallFunctionDto = { name: string; arguments: string }
 
-    /// <summary>DTO for Ollama chat response.</summary>
+    /// <summary>DTO for tool call in response.</summary>
+    [<CLIMutable>]
+    type ToolCallDto =
+        { id: string option
+          ``type``: string // "function"
+          ``function``: ToolCallFunctionDto }
+
+    /// <summary>DTO for Ollama response message with tool calls.</summary>
+    [<CLIMutable>]
+    type OllamaResponseMessageDto =
+        { role: string
+          content: string
+          tool_calls: ToolCallDto[] option }
+
+    /// <summary>DTO for Ollama chat response with tool calls support.</summary>
     [<CLIMutable>]
     type OllamaResponseDto =
         { model: string
@@ -138,7 +177,8 @@ module OllamaClient =
                     | Some(ResponseFormat.Constrained _) -> Some(box "json") // Regex not directly supported in format, maybe in options?
                     | Some ResponseFormat.Text -> None
                     | None -> if req.JsonMode then Some(box "json") else None
-                  options = Some options }
+                  options = Some options
+                  tools = None }
 
             let uri = Uri(baseUri, getApiPrefix baseUri + "chat")
             use! resp = http.PostAsJsonAsync(uri, dto, jsonOptions)
@@ -256,7 +296,8 @@ module OllamaClient =
                     | Some(ResponseFormat.Constrained _) -> Some(box "json")
                     | Some ResponseFormat.Text -> None
                     | None -> if req.JsonMode then Some(box "json") else None
-                  options = Some options }
+                  options = Some options
+                  tools = None }
 
             let uri = Uri(baseUri, getApiPrefix baseUri + "chat")
 

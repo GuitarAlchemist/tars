@@ -1,127 +1,187 @@
-namespace Tars.Tests
+﻿module Tars.Tests.SpeechActsTests
 
 open System
-open System.Threading.Tasks
 open Xunit
 open Tars.Core
-open Tars.Graph
-open Tars.Llm
-open Tars.Llm.LlmService
-open Serilog
 
-module SpeechActsTests =
+[<Fact>]
+let ``determineProtocol maps Ask to RequestResponse`` () =
+    let intent = AgentIntent.Ask "Question"
+    let protocol = SpeechActs.determineProtocol intent
+    Assert.Equal(InteractionProtocol.RequestResponse, protocol)
 
-    let createNullLogger () =
-        LoggerConfiguration().CreateLogger() :> ILogger
+[<Fact>]
+let ``determineProtocol maps Propose to ContractNet`` () =
+    let intent = AgentIntent.Propose "Plan"
+    let protocol = SpeechActs.determineProtocol intent
+    Assert.Equal(InteractionProtocol.ContractNet, protocol)
 
-    let createMockLlm (response: string) =
-        { new ILlmService with
-            member _.CompleteAsync req =
-                task {
-                    return
-                        { Text = response
-                          Usage = None
-                          FinishReason = Some "stop"
-                          Raw = None }
-                }
+[<Fact>]
+let ``validateFlow allows Ask to Tell`` () =
+    let correlationId = CorrelationId(Guid.NewGuid())
+    let agent1 = MessageEndpoint.Agent(AgentId(Guid.NewGuid()))
+    let agent2 = MessageEndpoint.Agent(AgentId(Guid.NewGuid()))
 
-            member _.CompleteStreamAsync(req, handler) = raise (NotImplementedException())
-            member _.EmbedAsync text = raise (NotImplementedException()) }
+    let original =
+        { Id = Guid.NewGuid()
+          CorrelationId = correlationId
+          From = agent1
+          To = Some agent2
+          Intent = AgentIntent.Ask "Q"
+          Domain = None
+          Content = "Content"
+          Timestamp = DateTime.UtcNow
+          Metadata = Map.empty }
 
-    let createTestAgent () =
-        { Id = AgentId(Guid.NewGuid())
-          Name = "TestAgent"
-          Version = "1.0.0"
-          ParentVersion = None
-          CreatedAt = DateTime.UtcNow
-          Model = "test-model"
-          SystemPrompt = "You are a test agent."
-          Tools = []
-          Capabilities = []
-          State = Idle
-          Memory = [] }
+    let reply =
+        { Id = Guid.NewGuid()
+          CorrelationId = correlationId
+          From = agent2
+          To = Some agent1
+          Intent = AgentIntent.Tell "A"
+          Domain = None
+          Content = "Answer"
+          Timestamp = DateTime.UtcNow
+          Metadata = Map.empty }
 
-    [<Fact>]
-    let ``Agent processes Request performative by entering Thinking state`` () =
-        task {
-            let agent = createTestAgent ()
+    let result = SpeechActs.validateFlow original reply
 
-            let msg =
-                { Id = Guid.NewGuid()
-                  CorrelationId = CorrelationId(Guid.NewGuid())
-                  Sender = MessageEndpoint.User
-                  Receiver = Some(MessageEndpoint.Agent agent.Id)
-                  Performative = Performative.Request
-                  Intent = None
-                  Constraints = SemanticConstraints.Default
-                  Ontology = None
-                  Language = "text"
-                  Content = "Do something"
-                  Timestamp = DateTime.UtcNow
-                  Metadata = Map.empty }
+    match result with
+    | Result.Ok _ -> ()
+    | Result.Error e -> Assert.Fail($"Expected Ok but got Error: {e}")
 
-            let agentWithMsg = agent.ReceiveMessage(msg)
+[<Fact>]
+let ``validateFlow allows Propose to Accept with matching ID`` () =
+    let correlationId = CorrelationId(Guid.NewGuid())
+    let agent1 = MessageEndpoint.Agent(AgentId(Guid.NewGuid()))
+    let agent2 = MessageEndpoint.Agent(AgentId(Guid.NewGuid()))
 
-            // Act: Step the graph (Idle -> ?)
-            let ctx: GraphRuntime.GraphContext =
-                { Registry = Unchecked.defaultof<IAgentRegistry>
-                  Llm = createMockLlm "OK"
-                  MaxSteps = 10
-                  BudgetGovernor = None
-                  OutputGuard = None
-                  Logger = fun _ -> () }
+    let original =
+        { Id = Guid.NewGuid()
+          CorrelationId = correlationId
+          From = agent1
+          To = Some agent2
+          Intent = AgentIntent.Propose "Plan"
+          Domain = None
+          Content = "Content"
+          Timestamp = DateTime.UtcNow
+          Metadata = Map.empty }
 
-            let! outcome = GraphRuntime.step agentWithMsg ctx
+    let acceptIntent = Accept(original.Id)
 
-            match outcome with
-            | Success nextAgent ->
-                match nextAgent.State with
-                | Thinking _ -> Assert.True(true, "Agent should be Thinking")
-                | _ -> Assert.Fail($"Expected Thinking state, got {nextAgent.State}")
-            | _ -> Assert.Fail("Step failed")
-        }
+    let reply =
+        { Id = Guid.NewGuid()
+          CorrelationId = correlationId
+          From = agent2
+          To = Some agent1
+          Intent = acceptIntent
+          Domain = None
+          Content = "OK"
+          Timestamp = DateTime.UtcNow
+          Metadata = Map.empty }
 
-    [<Fact>]
-    let ``Agent can emit a Propose speech act`` () =
-        task {
-            // Setup an agent in Thinking state
-            let agent = createTestAgent ()
-            let thinkingState = Thinking []
-            let agentThinking = { agent with State = thinkingState }
+    let result = SpeechActs.validateFlow original reply
 
-            // Mock LLM to return a PROPOSE act
-            let llmResponse = "ACT: PROPOSE: I can do this for $50"
+    match result with
+    | Result.Ok _ -> ()
+    | Result.Error e -> Assert.Fail($"Expected Ok but got Error: {e}")
 
-            let ctx: GraphRuntime.GraphContext =
-                { Registry = Unchecked.defaultof<IAgentRegistry>
-                  Llm = createMockLlm llmResponse
-                  MaxSteps = 10
-                  BudgetGovernor = None
-                  OutputGuard = None
-                  Logger = fun _ -> () }
+[<Fact>]
+let ``validateFlow rejects Propose to Accept with wrong ID`` () =
+    let correlationId = CorrelationId(Guid.NewGuid())
+    let agent1 = MessageEndpoint.Agent(AgentId(Guid.NewGuid()))
+    let agent2 = MessageEndpoint.Agent(AgentId(Guid.NewGuid()))
 
-            let! outcome = GraphRuntime.step agentThinking ctx
+    let original =
+        { Id = Guid.NewGuid()
+          CorrelationId = correlationId
+          From = agent1
+          To = Some agent2
+          Intent = AgentIntent.Propose "Plan"
+          Domain = None
+          Content = "Content"
+          Timestamp = DateTime.UtcNow
+          Metadata = Map.empty }
 
-            match outcome with
-            | Success nextAgent ->
-                // We expect the agent to have transitioned to WaitingForUser (or a new state)
-                // AND the output should reflect the speech act.
-                // Currently GraphRuntime puts text response into WaitingForUser.
-                // We want to verify that the system *recognized* it as a speech act if we implement that logic.
+    let reply =
+        { Id = Guid.NewGuid()
+          CorrelationId = correlationId
+          From = agent2
+          To = Some agent1
+          Intent = AgentIntent.Accept(Guid.NewGuid()) // Wrong ID
+          Domain = None
+          Content = "OK"
+          Timestamp = DateTime.UtcNow
+          Metadata = Map.empty }
 
-                // For this test to pass AFTER implementation, we might expect a specific state or memory update.
-                // For now, let's assume we map it to WaitingForUser but with metadata?
-                // Or maybe we introduce a new state 'Negotiating'?
+    let result = SpeechActs.validateFlow original reply
 
-                // Let's just check if it handled the text for now, we will refine this test as we implement.
-                match nextAgent.State with
-                | WaitingForUser content ->
-                    Assert.Contains("Propose", content, StringComparison.OrdinalIgnoreCase)
+    match result with
+    | Result.Error _ -> ()
+    | Result.Ok _ -> Assert.Fail("Expected Error but got Ok")
 
-                    // Verify memory
-                    let lastMsg = nextAgent.Memory |> List.last
-                    Assert.Equal(Performative.Propose, lastMsg.Performative)
-                    Assert.Equal("I can do this for $50", lastMsg.Content)
-                | _ -> Assert.Fail($"Expected WaitingForUser, got {nextAgent.State}")
-            | _ -> Assert.Fail("Step failed")
-        }
+[<Fact>]
+let ``validateFlow rejects Ask to Propose`` () =
+    let correlationId = CorrelationId(Guid.NewGuid())
+    let agent1 = MessageEndpoint.Agent(AgentId(Guid.NewGuid()))
+    let agent2 = MessageEndpoint.Agent(AgentId(Guid.NewGuid()))
+
+    let original =
+        { Id = Guid.NewGuid()
+          CorrelationId = correlationId
+          From = agent1
+          To = Some agent2
+          Intent = AgentIntent.Ask "Q"
+          Domain = None
+          Content = "Content"
+          Timestamp = DateTime.UtcNow
+          Metadata = Map.empty }
+
+    let reply =
+        { Id = Guid.NewGuid()
+          CorrelationId = correlationId
+          From = agent2
+          To = Some agent1
+          Intent = AgentIntent.Propose "P"
+          Domain = None
+          Content = "Content"
+          Timestamp = DateTime.UtcNow
+          Metadata = Map.empty }
+
+    let result = SpeechActs.validateFlow original reply
+
+    match result with
+    | Result.Error _ -> ()
+    | Result.Ok _ -> Assert.Fail("Expected Error but got Ok")
+
+[<Fact>]
+let ``validateFlow rejects CorrelationId mismatch`` () =
+    let agent1 = MessageEndpoint.Agent(AgentId(Guid.NewGuid()))
+
+    let original =
+        { Id = Guid.NewGuid()
+          CorrelationId = CorrelationId(Guid.NewGuid())
+          From = agent1
+          To = None
+          Intent = AgentIntent.Ask "Q"
+          Domain = None
+          Content = "C"
+          Timestamp = DateTime.UtcNow
+          Metadata = Map.empty }
+
+    let reply =
+        { Id = Guid.NewGuid()
+          CorrelationId = CorrelationId(Guid.NewGuid()) // Different ID
+          From = agent1
+          To = None
+          Intent = AgentIntent.Tell "A"
+          Domain = None
+          Content = "C"
+          Timestamp = DateTime.UtcNow
+          Metadata = Map.empty }
+
+    let result = SpeechActs.validateFlow original reply
+
+    match result with
+    | Result.Error _ -> ()
+    | Result.Ok _ -> Assert.Fail("Expected Error but got Ok")

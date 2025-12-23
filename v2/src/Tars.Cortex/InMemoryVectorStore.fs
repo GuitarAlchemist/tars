@@ -1,4 +1,4 @@
-﻿namespace Tars.Cortex
+namespace Tars.Cortex
 
 open System
 open System.Collections.Concurrent

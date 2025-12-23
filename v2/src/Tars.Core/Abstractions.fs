@@ -1,5 +1,6 @@
-﻿namespace Tars.Core
+namespace Tars.Core
 
+open System
 open System.Threading.Tasks
 open System.Collections.Generic
 
@@ -10,6 +11,11 @@ type IVectorStore =
 
     abstract member SearchAsync:
         collection: string * vector: float32[] * limit: int -> Task<(string * float32 * Map<string, string>) list>
+
+/// Semantic capability index for routing to agents by capability description.
+type ICapabilityStore =
+    /// Finds agents matching a natural-language capability query.
+    abstract member FindAgentsAsync: query: string * limit: int -> Task<(AgentId * Capability * float) list>
 
 /// Registry for looking up agents
 type IAgentRegistry =
@@ -34,7 +40,8 @@ type IEpistemicGovernor =
     abstract member ExtractPrinciple: taskDescription: string * solution: string -> Task<Belief>
 
     /// <summary>Suggests next learning tasks based on history.</summary>
-    abstract member SuggestCurriculum: completedTasks: string list * activeBeliefs: string list -> Task<string>
+    abstract member SuggestCurriculum:
+        completedTasks: string list * activeBeliefs: string list * isCritical: bool -> Task<string>
 
     /// <summary>Verifies a statement against established beliefs.</summary>
     abstract member Verify: statement: string -> Task<bool>
@@ -49,4 +56,13 @@ type IToolRegistry =
     /// Get a tool by name
     abstract member Get: name: string -> Tool option
     /// Get all registered tools
+    /// Get all registered tools
     abstract member GetAll: unit -> Tool list
+
+/// Represents the Knowledge Graph service
+type IGraphService =
+    abstract member AddNodeAsync: TarsEntity -> Task<string>
+    abstract member AddFactAsync: TarsFact -> Task<Guid>
+    abstract member AddEpisodeAsync: Episode -> Task<string>
+    abstract member QueryAsync: query: string -> Task<TarsFact list>
+    abstract member PersistAsync: unit -> Task<unit>

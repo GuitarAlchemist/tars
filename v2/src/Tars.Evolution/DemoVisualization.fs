@@ -33,9 +33,9 @@ module DemoVisualization =
     let private formatEndpoint (endpoint: MessageEndpoint) =
         match endpoint with
         | MessageEndpoint.System -> "System"
-        | MessageEndpoint.Agent id -> sprintf "Agent:%s" (id.ToString().Substring(0, 8))
+        | MessageEndpoint.Agent id -> $"Agent:%s{id.ToString().Substring(0, 8)}"
         | MessageEndpoint.User -> "User"
-        | MessageEndpoint.Alias name -> sprintf "%s" name
+        | MessageEndpoint.Alias name -> $"%s{name}"
 
     /// Display a semantic message in the console
     let showSemanticMessage (msg: Message) (verbose: bool) =
@@ -145,10 +145,10 @@ module DemoVisualization =
 
                 let usedBar = String.replicate usedBlocks "█"
                 let remainBar = String.replicate remainingBlocks "░"
-                sprintf "%s%s%s%s%s" barColor usedBar dim remainBar reset
-            | _ -> sprintf "%s[unlimited]%s" dim reset
+                $"%s{barColor}%s{usedBar}%s{dim}%s{remainBar}%s{reset}"
+            | _ -> $"%s{dim}[unlimited]%s{reset}"
 
-        printfn "%s💰 Budget: %s %d tokens used%s" blue bar tokensUsed reset
+        printfn $"%s{blue}💰 Budget: %s{bar} %d{tokensUsed} tokens used%s{reset}"
 
     /// Show task being worked on
     let showTaskStart (goal: string) (constraints: string list) =

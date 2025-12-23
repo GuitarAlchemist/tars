@@ -11,6 +11,8 @@
     <Compile Include="Reflection.fs" />
     <Compile Include="Optimizer.fs" />
     <Compile Include="DemoVisualization.fs" />
+    <Compile Include="TaskPrioritization.fs" />
+    <Compile Include="SpeechActBridge.fs" />
     <Compile Include="Engine.fs" />
   </ItemGroup>
 

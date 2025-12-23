@@ -1,4 +1,4 @@
-﻿namespace Tars.Tests
+namespace Tars.Tests
 
 open System
 open System.Diagnostics

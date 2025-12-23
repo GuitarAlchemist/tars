@@ -1,8 +1,7 @@
-/// <summary>
-/// Ollama client with AsyncResult for functional error handling
-/// This module provides the same functionality as OllamaClient but with type-safe error handling
-/// </summary>
 namespace Tars.Llm
+
+// Ollama client with AsyncResult for functional error handling.
+// This module provides the same functionality as OllamaClient but with type-safe error handling.
 
 open System
 open System.Net.Http
@@ -153,8 +152,8 @@ module OllamaClientAsyncExamples =
             let! result = generateAsync http baseUri "llama3.2" req
 
             match result with
-            | Result.Ok response -> printfn "Success: %s" response.Text
-            | Result.Error err -> printfn "Error: %s" (LlmError.toMessage err)
+            | Result.Ok response -> printfn $"Success: %s{response.Text}"
+            | Result.Error err -> printfn $"Error: %s{LlmError.toMessage err}"
         }
 
     /// With retries
@@ -178,8 +177,8 @@ module OllamaClientAsyncExamples =
             let! result = generateWithRetry http baseUri "llama3.2" req 3
 
             match result with
-            | Result.Ok response -> printfn "Got response after retries: %s" response.Text
-            | Result.Error err -> printfn "Failed after retries: %s" (LlmError.toMessage err)
+            | Result.Ok response -> printfn $"Got response after retries: %s{response.Text}"
+            | Result.Error err -> printfn $"Failed after retries: %s{LlmError.toMessage err}"
         }
 
     /// Chaining multiple LLM calls

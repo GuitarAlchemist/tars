@@ -57,7 +57,7 @@ module ResearchTools =
 
     /// Documentation lookup for F# and .NET
     [<TarsToolAttribute("lookup_docs",
-                        "Look up F# or .NET documentation. Input: topic to look up (e.g., 'List.map', 'async workflows')")>]
+                        "Look up F# or .NET documentation. Input: topic to look up (e.g., 'List.map', 'async')")>]
     let lookupDocs (args: string) =
         task {
             let topic = ToolHelpers.parseStringArg args "topic"
@@ -76,10 +76,18 @@ module ResearchTools =
                     "F# Result:\n- Ok value | Error err\n- Result.map, Result.bind, Result.mapError\n- For railway-oriented programming"
                 | t when t.Contains("task") ->
                     "F# Task:\n- task { } for .NET Tasks\n- let! for awaiting\n- Similar to async but interops better with C#"
+                | t when t.Contains("union") || t.Contains("discriminated") ->
+                    "Discriminated Unions (DU):\n- type Shape = | Circle of float | Rect of float * float\n- Powerful for modeling domain data\n- Always exhaustive when pattern matched"
+                | t when t.Contains("record") ->
+                    "F# Records:\n- type Person = { Name: string; Age: int }\n- Immutable by default\n- Structural equality and 'with' syntax for copy-and-update"
+                | t when t.Contains("extension") ->
+                    "Type Extensions:\n- type String with member x.IsLong = x.Length > 10\n- Add members to existing types without inheritance"
+                | t when t.Contains("computation") || t.Contains("ce") ->
+                    "Computation Expressions (CE):\n- Custom { } blocks (like async, task, seq)\n- Define Bind, Return, Yield etc. to customize behavior"
                 | t when t.Contains("pattern") || t.Contains("match") ->
                     "F# Pattern Matching:\n- match x with | pattern -> result\n- Patterns: literals, wildcards (_), tuples, records, unions, lists, active patterns"
                 | _ ->
-                    $"No local docs for '{topic}'. Use http_get to look up online documentation at https://fsharp.org/docs/ or https://docs.microsoft.com/dotnet/fsharp/"
+                    $"No local quick-reference for '{topic}'.\n\nSearch Microsoft Learn: https://learn.microsoft.com/en-us/dotnet/fsharp/\nOr use search_web tool for real-time web search."
 
             return docs
         }

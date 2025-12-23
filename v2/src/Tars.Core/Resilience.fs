@@ -1,8 +1,9 @@
-/// <summary>
-/// Functional resilience patterns for Tars operations.
-/// Includes Retry with Exponential Backoff and Circuit Breaker logic.
-/// </summary>
 namespace Tars.Core
+
+// <summary>
+// Functional resilience patterns for Tars operations.
+// Includes Retry with Exponential Backoff and Circuit Breaker logic.
+// </summary>
 
 open System
 open System.Threading.Tasks

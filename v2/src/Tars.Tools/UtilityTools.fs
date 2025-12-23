@@ -12,7 +12,7 @@ module DebugTools =
     let debugHint (args: string) =
         task {
             let errorMessage = ToolHelpers.parseStringArg args "error"
-            printfn "🔍 DEBUG HINT for: %s" (errorMessage.Substring(0, min 50 errorMessage.Length))
+            printfn $"🔍 DEBUG HINT for: %s{errorMessage.Substring(0, min 50 errorMessage.Length)}"
 
             let hints =
                 let msg = errorMessage.ToLower()
@@ -87,17 +87,17 @@ module DebugTools =
                     else
                         "unknown error"
 
-                printfn "🔎 TRACING ERROR at %s:%d" file line
+                printfn $"🔎 TRACING ERROR at %s{file}:%d{line}"
 
                 let fullPath = Path.GetFullPath(file)
 
                 if not (File.Exists fullPath) then
-                    return sprintf "File not found: %s" fullPath
+                    return $"File not found: %s{fullPath}"
                 else
                     let lines = File.ReadAllLines(fullPath)
 
                     if line < 1 || line > lines.Length then
-                        return sprintf "Line %d out of range (file has %d lines)" line lines.Length
+                        return $"Line %d{line} out of range (file has %d{lines.Length} lines)"
                     else
                         let startLine = max 0 (line - 5)
                         let endLine = min (lines.Length - 1) (line + 5)
@@ -105,16 +105,11 @@ module DebugTools =
                         let context =
                             [| for i = startLine to endLine do
                                    let marker = if i = line - 1 then ">>> " else "    "
-                                   yield sprintf "%s%d: %s" marker (i + 1) lines.[i] |]
+                                   yield $"%s{marker}%d{i + 1}: %s{lines.[i]}" |]
                             |> String.concat "\n"
 
                         return
-                            sprintf
-                                "Error context at %s:%d\n\n%s\n\nError: %s\n\nUse debug_hint with the error message for suggestions."
-                                file
-                                line
-                                context
-                                error
+                            $"Error context at %s{file}:%d{line}\n\n%s{context}\n\nError: %s{error}\n\nUse debug_hint with the error message for suggestions."
             with ex ->
                 return "trace_error error: " + ex.Message
         }
@@ -124,7 +119,7 @@ module DebugTools =
         task {
             let errorCode = ToolHelpers.parseStringArg args "code"
             let code = errorCode.ToUpper().Trim()
-            printfn "📖 EXPLAINING: %s" code
+            printfn $"📖 EXPLAINING: %s{code}"
 
             let explanation =
                 match code with
@@ -140,19 +135,13 @@ module DebugTools =
                 | "FS3373" -> "Invalid string interpolation - escape issues with curly braces"
                 | _ ->
                     if code.StartsWith("FS") then
-                        sprintf
-                            "F# error %s - check https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/compiler-messages/%s"
-                            code
-                            (code.ToLower())
+                        $"F# error %s{code} - check https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/compiler-messages/%s{code.ToLower()}"
                     elif code.StartsWith("CS") then
-                        sprintf
-                            "C# error %s - check https://docs.microsoft.com/en-us/dotnet/csharp/misc/%s"
-                            code
-                            (code.ToLower())
+                        $"C# error %s{code} - check https://docs.microsoft.com/en-us/dotnet/csharp/misc/%s{code.ToLower()}"
                     else
-                        sprintf "Unknown error code: %s. Try searching for it online." code
+                        $"Unknown error code: %s{code}. Try searching for it online."
 
-            return sprintf "Error Code: %s\n\n%s" code explanation
+            return $"Error Code: %s{code}\n\n%s{explanation}"
         }
 
 module DocTools =
@@ -175,7 +164,7 @@ module DocTools =
                     else
                         "xml"
 
-                printfn "📝 GENERATING DOCS (style: %s)" style
+                printfn $"📝 GENERATING DOCS (style: %s{style})"
 
                 // Simple function name extraction
                 let funcName =
@@ -192,20 +181,12 @@ module DocTools =
 
                 let docs =
                     if style.ToLower() = "markdown" then
-                        sprintf
-                            "## `%s`\n\n**Description**: [Add description]\n\n**Parameters**:\n- TODO: List parameters\n\n**Returns**: TODO\n\n**Example**:\n```fsharp\n%s\n```"
-                            funcName
-                            code
+                        $"## `%s{funcName}`\n\n**Description**: [Add description]\n\n**Parameters**:\n- TODO: List parameters\n\n**Returns**: TODO\n\n**Example**:\n```fsharp\n%s{code}\n```"
                     else
-                        sprintf
-                            "/// <summary>\n/// [Add description for %s]\n/// </summary>\n/// <param name=\"TODO\">Parameter description</param>\n/// <returns>Return value description</returns>"
-                            funcName
+                        $"/// <summary>\n/// [Add description for %s{funcName}]\n/// </summary>\n/// <param name=\"TODO\">Parameter description</param>\n/// <returns>Return value description</returns>"
 
                 return
-                    sprintf
-                        "Generated documentation for '%s':\n\n%s\n\nUse write_code or patch_code to add this documentation to your code."
-                        funcName
-                        docs
+                    $"Generated documentation for '%s{funcName}':\n\n%s{docs}\n\nUse write_code or patch_code to add this documentation to your code."
             with ex ->
                 return "generate_docs error: " + ex.Message
         }
@@ -249,10 +230,10 @@ module MemoryTools =
                 let key = root.GetProperty("key").GetString()
                 let content = root.GetProperty("content").GetString()
 
-                printfn "📌 SAVING NOTE: %s" key
+                printfn $"📌 SAVING NOTE: %s{key}"
                 notes.[key] <- content
 
-                return sprintf "Saved note '%s' (%d characters). Use recall_note to retrieve it." key content.Length
+                return $"Saved note '%s{key}' (%d{content.Length} characters). Use recall_note to retrieve it."
             with ex ->
                 return "save_note error: " + ex.Message
         }
@@ -262,17 +243,17 @@ module MemoryTools =
         task {
             let key = ToolHelpers.parseStringArg args "key"
             let keyTrimmed = key.Trim()
-            printfn "📖 RECALLING NOTE: %s" keyTrimmed
+            printfn $"📖 RECALLING NOTE: %s{keyTrimmed}"
 
             if notes.ContainsKey(keyTrimmed) then
-                return sprintf "Note '%s':\n\n%s" keyTrimmed notes.[keyTrimmed]
+                return $"Note '%s{keyTrimmed}':\n\n%s{notes.[keyTrimmed]}"
             else
                 let available = String.concat ", " (notes.Keys |> Seq.map (sprintf "'%s'"))
 
                 if notes.Count = 0 then
-                    return sprintf "Note '%s' not found. No notes saved yet." keyTrimmed
+                    return $"Note '%s{keyTrimmed}' not found. No notes saved yet."
                 else
-                    return sprintf "Note '%s' not found. Available notes: %s" keyTrimmed available
+                    return $"Note '%s{keyTrimmed}' not found. Available notes: %s{available}"
         }
 
     [<TarsToolAttribute("list_notes", "Lists all saved notes. No input required.")>]
@@ -292,8 +273,8 @@ module MemoryTools =
                             else
                                 kvp.Value
 
-                        sprintf "  - %s: %s" kvp.Key preview)
+                        $"  - %s{kvp.Key}: %s{preview}")
                     |> String.concat "\n"
 
-                return sprintf "Saved notes (%d total):\n%s" notes.Count noteList
+                return $"Saved notes (%d{notes.Count} total):\n%s{noteList}"
         }

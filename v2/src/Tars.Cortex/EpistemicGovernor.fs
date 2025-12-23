@@ -30,13 +30,11 @@ type EpistemicGovernor
                 // Simple verification against LLM for now
                 // In future, this would query the Belief Graph
                 let prompt =
-                    sprintf
-                        """Verify the following statement for accuracy and safety:
-"%s"
+                    $"""Verify the following statement for accuracy and safety:
+"%s{statement}"
 
 Reply with "VERIFIED" if it is accurate and safe.
 Reply with "REJECTED" if it is false or unsafe."""
-                        statement
 
                 let req =
                     { ModelHint = Some "reasoning"
@@ -62,15 +60,12 @@ Reply with "REJECTED" if it is false or unsafe."""
         member this.GenerateVariants(taskDescription, count) =
             task {
                 let prompt =
-                    sprintf
-                        """You are a QA Engineer for an AI system.
-Task: "%s"
+                    $"""You are a QA Engineer for an AI system.
+Task: "%s{taskDescription}"
 
-Generate %d distinct variations of this task to test if the solution generalizes.
+Generate %d{count} distinct variations of this task to test if the solution generalizes.
 Variations should change the data/context but keep the core logic identical.
 Return ONLY the variations as a numbered list (e.g., "1. Variation...")."""
-                        taskDescription
-                        count
 
                 let req =
                     { ModelHint = Some "reasoning"
@@ -119,29 +114,23 @@ Return ONLY the variations as a numbered list (e.g., "1. Variation...")."""
             // Static Analysis Verification
             task {
                 let variantsText =
-                    variants
-                    |> List.mapi (fun i v -> sprintf "%d. %s" (i + 1) v)
-                    |> String.concat "\n"
+                    variants |> List.mapi (fun i v -> $"%d{i + 1}. %s{v}") |> String.concat "\n"
 
                 let prompt =
-                    sprintf
-                        """You are a Senior Code Reviewer.
-Task: "%s"
+                    $"""You are a Senior Code Reviewer.
+Task: "%s{taskDescription}"
 Proposed Solution:
 ```
-%s
+%s{solution}
 ```
 
 Review this solution against these edge cases/variants:
-%s
+%s{variantsText}
 
 Does the solution handle these cases correctly?
 If yes, output "VERIFIED" on the first line.
 If no, explain why.
 """
-                        taskDescription
-                        solution
-                        variantsText
 
                 let req =
                     { ModelHint = Some "reasoning"
@@ -184,12 +173,11 @@ If no, explain why.
         member this.ExtractPrinciple(taskDescription, solution) =
             task {
                 let prompt =
-                    sprintf
-                        """You are a Principal Engineer.
-Task: "%s"
+                    $"""You are a Principal Engineer.
+Task: "%s{taskDescription}"
 Solution:
 ```
-%s
+%s{solution}
 ```
 
 Extract the underlying **Universal Principle** or **Pattern** used in this solution.
@@ -200,8 +188,6 @@ Format your response exactly as:
 Statement: <One sentence principle>
 Context: <When to apply this>
 """
-                        taskDescription
-                        solution
 
                 let req =
                     { ModelHint = Some "reasoning"
@@ -257,7 +243,7 @@ Context: <When to apply this>
                       LastVerified = DateTime.UtcNow }
             }
 
-        member this.SuggestCurriculum(completedTasks, activeBeliefs) =
+        member this.SuggestCurriculum(completedTasks, activeBeliefs, isCritical) =
             task {
                 let tasksList =
                     if completedTasks.IsEmpty then
@@ -271,28 +257,30 @@ Context: <When to apply this>
                     else
                         activeBeliefs |> String.concat "\n- "
 
+                let instruction =
+                    if isCritical then
+                        "BUDGET CRITICAL: Suggest a simple, low-cost consolidation task. Do NOT suggest complex exploration."
+                    else
+                        "Based on this, what should be the **Next Learning Focus**? Identify gaps in knowledge or areas that need reinforcement."
+
                 let prompt =
-                    sprintf
-                        """You are the Epistemic Governor (The Scientist).
-Your goal is to guide the Curriculum Agent to explore new knowledge areas.
+                    $"""You are the Epistemic Governor (The Scientist).
+Your goal is to guide the Curriculum Agent.
 
 History of Completed Tasks:
-- %s
+- %s{tasksList}
 
 Acquired Beliefs (Principles):
-- %s
+- %s{beliefsList}
 
-Based on this, what should be the **Next Learning Focus**?
-Identify gaps in knowledge or areas that need reinforcement.
+%s{instruction}
 Output a single sentence suggestion."""
-                        tasksList
-                        beliefsList
 
                 let req =
                     { ModelHint = Some "reasoning"
                       Model = None
                       SystemPrompt = None
-                      MaxTokens = Some 100
+                      MaxTokens = Some(if isCritical then 50 else 100)
                       Temperature = Some 0.7
                       Stop = []
                       Messages = [ { Role = Role.User; Content = prompt } ]

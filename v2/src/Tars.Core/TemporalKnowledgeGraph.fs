@@ -1,6 +1,9 @@
 namespace Tars.Core
 
 open System
+open System.IO
+open System.Text.Json
+open System.Text.Json.Serialization
 
 /// Temporal graph implementation for Graphiti
 module TemporalKnowledgeGraph =
@@ -187,3 +190,45 @@ module TemporalKnowledgeGraph =
 
         /// Get all current valid facts
         member this.GetCurrentFacts() = this.GetSnapshot(DateTime.UtcNow)
+
+        /// Save graph state to file
+        member this.Save(path: string) =
+            let state =
+                {| Nodes = nodes
+                   Edges = edges
+                   EdgesBySource = edgesBySource |}
+
+            let options = JsonSerializerOptions()
+            options.WriteIndented <- true
+            options.Converters.Add(JsonFSharpConverter())
+
+            let json = JsonSerializer.Serialize(state, options)
+            File.WriteAllText(path, json)
+
+        /// Load graph state from file
+        member this.Load(path: string) =
+            if File.Exists path then
+                try
+                    let json = File.ReadAllText path
+                    let options = JsonSerializerOptions()
+                    options.Converters.Add(JsonFSharpConverter())
+
+                    let state =
+                        JsonSerializer.Deserialize<
+                            {| Nodes: Map<string, TemporalNode>
+                               Edges: Map<Guid, TemporalEdge>
+                               EdgesBySource: Map<string, Guid list> |}
+                         >(
+                            json,
+                            options
+                        )
+
+                    nodes <- state.Nodes
+                    edges <- state.Edges
+                    edgesBySource <- state.EdgesBySource
+                    true
+                with ex ->
+                    printfn $"Failed to load graph: {ex.Message}"
+                    false
+            else
+                false

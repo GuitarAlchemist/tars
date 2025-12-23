@@ -1,17 +1,5 @@
-/// <summary>
-/// Agent workflow computation expression for building composable, fault-tolerant agent operations.
-/// Provides automatic cancellation checking, warning accumulation, and budget governance.
-/// </summary>
-/// <example>
-/// <code>
-/// let myWorkflow = agent {
-///     let! result = someOperation ()
-///     do! AgentWorkflow.checkBudget cost
-///     return result
-/// }
-/// </code>
-/// </example>
 namespace Tars.Core
+
 
 open System
 open System.Diagnostics
@@ -37,6 +25,12 @@ type AgentContext =
         Budget: BudgetGovernor option
         /// Optional epistemic governor for truth verification
         Epistemic: IEpistemicGovernor option
+        /// Optional semantic memory handle for recall/injection
+        SemanticMemory: ISemanticMemory option
+        /// Optional knowledge graph service for structural queries
+        KnowledgeGraph: IGraphService option
+        /// Optional capability store for semantic routing
+        CapabilityStore: ICapabilityStore option
         /// Cancellation token for cooperative cancellation
         CancellationToken: CancellationToken
     }
@@ -91,9 +85,7 @@ type AgentBuilder() =
                     }
 
                 let durationMs =
-                    float (Stopwatch.GetTimestamp() - start)
-                    * 1000.0
-                    / float Stopwatch.Frequency
+                    float (Stopwatch.GetTimestamp() - start) * 1000.0 / float Stopwatch.Frequency
 
                 let status =
                     match finalResult with
@@ -131,7 +123,19 @@ type AgentBuilder() =
 /// </summary>
 [<AutoOpen>]
 module AgentWorkflow =
-    /// <summary>The agent computation expression builder instance.</summary>
+    /// <summary>
+    /// Agent workflow computation expression for building composable, fault-tolerant agent operations.
+    /// Provides automatic cancellation checking, warning accumulation, and budget governance.
+    /// </summary>
+    /// <example>
+    /// <code>
+    /// let myWorkflow = agent {
+    ///     let! result = someOperation ()
+    ///     do! AgentWorkflow.checkBudget cost
+    ///     return result
+    /// }
+    /// </code>
+    /// </example>
     let agent = AgentBuilder()
 
     /// <summary>Lifts a value into a successful workflow.</summary>
@@ -188,9 +192,57 @@ module AgentWorkflow =
             async {
                 let! agents = ctx.Registry.FindAgents kind
 
-                match agents with
+                let scoreCapability (agent: Agent) =
+                    agent.Capabilities
+                    |> List.tryFind (fun c -> c.Kind = kind)
+                    |> Option.map (fun cap ->
+                        let confidence = cap.Confidence |> Option.defaultValue 0.5
+                        let reputation = cap.Reputation |> Option.defaultValue 0.5
+                        // Weight reputation slightly higher than self-reported confidence
+                        (reputation * 0.6) + (confidence * 0.4))
+                    |> Option.defaultValue 0.0
+
+                let! semanticRanked =
+                    async {
+                        match ctx.CapabilityStore with
+                        | None -> return []
+                        | Some store ->
+                            let query = $"{kind} :: {taskSpec}"
+                            let! hits = store.FindAgentsAsync(query, 5) |> Async.AwaitTask
+
+                            let! resolved =
+                                hits
+                                |> List.map (fun (id, cap, score) ->
+                                    async {
+                                        let! agentOpt = ctx.Registry.GetAgent id
+
+                                        return
+                                            agentOpt
+                                            |> Option.map (fun agent ->
+                                                let metaScore =
+                                                    (cap.Reputation |> Option.defaultValue 0.5) * 0.6
+                                                    + (cap.Confidence |> Option.defaultValue 0.5) * 0.4
+                                                let combinedScore = score + metaScore
+                                                (agent, combinedScore))
+                                    })
+                                |> Async.Parallel
+
+                            return resolved |> Array.choose id |> Array.toList
+                    }
+
+                let merged =
+                    let manual = agents |> List.map (fun a -> a, scoreCapability a)
+
+                    (manual @ semanticRanked)
+                    |> List.groupBy (fun (a, _) -> a.Id)
+                    |> List.map (fun (_, xs) -> xs |> List.maxBy snd)
+
+                match merged with
                 | [] -> return Failure [ PartialFailure.Error $"No agent found for capability {kind}" ]
-                | agent :: _ -> return! ctx.Executor.Execute(agent.Id, taskSpec)
+                | _ ->
+                    let bestAgent = merged |> List.sortByDescending snd |> List.head |> fst
+                    ctx.Logger $"Selected agent {bestAgent.Name} for {kind}"
+                    return! ctx.Executor.Execute(bestAgent.Id, taskSpec)
             }
 
     /// <summary>Provides a fallback workflow if the primary fails.</summary>
@@ -283,6 +335,62 @@ module AgentWorkflow =
                     return Success(List.ofSeq successes)
             }
 
+    /// <summary>
+    /// Senior workflow scaffolding: plan -> review -> execute -> verify with warning accumulation.
+    /// </summary>
+    /// <param name="plan">Step that produces a plan artifact.</param>
+    /// <param name="review">Step that reviews/refines the plan.</param>
+    /// <param name="execute">Step that executes the refined plan.</param>
+    /// <param name="verify">Step that verifies the execution result.</param>
+    let planReviewExecuteVerify
+        (plan: AgentWorkflow<'Plan>)
+        (review: 'Plan -> AgentWorkflow<'Reviewed>)
+        (execute: 'Reviewed -> AgentWorkflow<'Executed>)
+        (verify: 'Executed -> AgentWorkflow<'Verified>)
+        : AgentWorkflow<'Verified> =
+        fun ctx ->
+            async {
+                let warnings = ResizeArray<PartialFailure>()
+
+                let collect outcome =
+                    match outcome with
+                    | Success v -> Choice1Of2 v
+                    | PartialSuccess(v, w) ->
+                        warnings.AddRange w
+                        Choice1Of2 v
+                    | Failure errs -> Choice2Of2((warnings |> Seq.toList) @ errs)
+
+                let! planOutcome = plan ctx
+
+                match collect planOutcome with
+                | Choice2Of2 errs -> return Failure errs
+                | Choice1Of2 planResult ->
+                    let! reviewOutcome = review planResult ctx
+
+                    match collect reviewOutcome with
+                    | Choice2Of2 errs -> return Failure errs
+                    | Choice1Of2 reviewed ->
+                        let! execOutcome = execute reviewed ctx
+
+                        match collect execOutcome with
+                        | Choice2Of2 errs -> return Failure errs
+                        | Choice1Of2 executed ->
+                            let! verifyOutcome = verify executed ctx
+
+                            match verifyOutcome with
+                            | Success v ->
+                                let collected = warnings |> Seq.toList
+                                return
+                                    if collected.IsEmpty then
+                                        Success v
+                                    else
+                                        PartialSuccess(v, collected)
+                            | PartialSuccess(v, w) ->
+                                let collected = (warnings |> Seq.toList) @ w
+                                return PartialSuccess(v, collected)
+                            | Failure errs -> return Failure((warnings |> Seq.toList) @ errs)
+            }
+
     // ==========================================
     // Circuit Combinators (Electronics-inspired workflow patterns)
     // ==========================================
@@ -338,12 +446,7 @@ module AgentWorkflow =
                 return! workflow ctx
             }
 
-    /// <summary>
-    /// Grounding: Reference Potential.
-    /// Verifies the output against a source of truth (Epistemic Governor).
-    /// Like an electrical ground that provides a stable reference point.
-    /// </summary>
-    /// <param name="workflow">The workflow to ground.</param>
+
     /// <summary>
     /// Grounding: Reference Potential.
     /// Verifies the output against a source of truth (Epistemic Governor).

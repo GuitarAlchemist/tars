@@ -1,0 +1,44 @@
+TARS Senior SWE Proof Run 2025-12-21 17:41:44Z
+=== Status [OK] (2956 ms) ===
+[17:41:19 INF] Capability index: C:\Users\spare\.tars\capability_store\capabilities.sqlite
+[17:41:19 INF] Knowledge graph: C:\Users\spare\.tars\knowledge\temporal_graph.json
+
+=== Test Suite [OK] (13285 ms) ===
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Tars.Security -> C:\Users\spare\source\repos\tars\v2\src\Tars.Security\bin\Debug\net10.0\Tars.Security.dll
+  Tars.Core -> C:\Users\spare\source\repos\tars\v2\src\Tars.Core\bin\Debug\net10.0\Tars.Core.dll
+  Tars.Llm -> C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\bin\Debug\net10.0\Tars.Llm.dll
+  Tars.Connectors -> C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\bin\Debug\net10.0\Tars.Connectors.dll
+  Tars.Sandbox -> C:\Users\spare\source\repos\tars\v2\src\Tars.Sandbox\bin\Debug\net10.0\Tars.Sandbox.dll
+  Tars.Kernel -> C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\bin\Debug\net10.0\Tars.Kernel.dll
+  Tars.Cortex -> C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\bin\Debug\net10.0\Tars.Cortex.dll
+  Tars.Metascript -> C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\bin\Debug\net10.0\Tars.Metascript.dll
+  Tars.Tools -> C:\Users\spare\source\repos\tars\v2\src\Tars.Tools\bin\Debug\net10.0\Tars.Tools.dll
+  Tars.Graph -> C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\bin\Debug\net10.0\Tars.Graph.dll
+  Tars.Evolution -> C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\bin\Debug\net10.0\Tars.Evolution.dll
+  Tars.Tests -> C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\bin\Debug\net10.0\Tars.Tests.dll
+Test run for C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\bin\Debug\net10.0\Tars.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.1 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:   419, Skipped:     0, Total:   419, Duration: 6 s - Tars.Tests.dll (net10.0)
+
+=== Demo Ping [OK] (6585 ms) ===
+[17:41:36 INF] Starting TARS v2 Demo Ping...
+DEBUG: Program Started
+[17:41:36 INF] Subscribing agent ad28073a-c1f6-4de6-8f37-09b1cb0297fd...
+[17:41:36 INF] Subscribed.
+[17:41:36 INF] Publishing message...
+[17:41:36 INF] Published.
+DEBUG: Published (Console).
+[17:41:36 INF] EventBus: [Request] d9b10051-95b0-4220-a045-6b466e680d2e from User to ad28073a-c1f6-4de6-8f37-09b1cb0297fd
+[17:41:36 INF] DemoAgent received: PING
+[17:41:39 INF] Ping sent.
+DEBUG: Ping sent (Console).
+
+=== Diagnostics [OK] (5181 ms) ===
+[17:41:44 INF] Diagnostics: basic checks complete.
+

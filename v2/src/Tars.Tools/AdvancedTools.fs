@@ -46,7 +46,7 @@ module ResilienceTools =
 
                 if currentRetry >= maxRetries then
                     retryCounts.[operation] <- 0 // Reset for next time
-                    return sprintf "❌ Max retries (%d) reached for '%s'. Giving up." maxRetries operation
+                    return $"❌ Max retries (%d{maxRetries}) reached for '%s{operation}'. Giving up."
                 else
                     // Calculate delay with exponential backoff + jitter
                     let delay = baseDelayMs * (pown 2 currentRetry)
@@ -55,16 +55,12 @@ module ResilienceTools =
 
                     retryCounts.[operation] <- currentRetry + 1
 
-                    printfn "🔄 RETRY %d/%d for '%s' - waiting %dms" (currentRetry + 1) maxRetries operation actualDelay
+                    printfn
+                        $"🔄 RETRY %d{currentRetry + 1}/%d{maxRetries} for '%s{operation}' - waiting %d{actualDelay}ms"
                     do! Task.Delay(actualDelay)
 
                     return
-                        sprintf
-                            "✅ Retry %d/%d for '%s' ready. Waited %dms."
-                            (currentRetry + 1)
-                            maxRetries
-                            operation
-                            actualDelay
+                        $"✅ Retry %d{currentRetry + 1}/%d{maxRetries} for '%s{operation}' ready. Waited %d{actualDelay}ms."
             with ex ->
                 return "retry_with_backoff error: " + ex.Message
         }
@@ -75,8 +71,8 @@ module ResilienceTools =
             if retryCounts.ContainsKey(operation) then
                 retryCounts.[operation] <- 0
 
-            printfn "🔄 RESET: Retry counter for '%s'" operation
-            return sprintf "Retry counter reset for '%s'" operation
+            printfn $"🔄 RESET: Retry counter for '%s{operation}'"
+            return $"Retry counter reset for '%s{operation}'"
         }
 
     [<TarsToolAttribute("circuit_breaker",
@@ -113,18 +109,14 @@ module ResilienceTools =
 
                         if failCount >= threshold && elapsed < float cooldownSec then
                             return
-                                sprintf
-                                    "🔴 CIRCUIT OPEN: '%s' has %d failures. Cooldown: %.0fs remaining."
-                                    service
-                                    failCount
-                                    (float cooldownSec - elapsed)
+                                $"🔴 CIRCUIT OPEN: '%s{service}' has %d{failCount} failures. Cooldown: %.0f{float cooldownSec - elapsed}s remaining."
                         elif failCount >= threshold then
                             // Cooldown passed, allow half-open
-                            return sprintf "🟡 CIRCUIT HALF-OPEN: '%s' cooldown passed. Try one request." service
+                            return $"🟡 CIRCUIT HALF-OPEN: '%s{service}' cooldown passed. Try one request."
                         else
-                            return sprintf "🟢 CIRCUIT CLOSED: '%s' has %d/%d failures." service failCount threshold
+                            return $"🟢 CIRCUIT CLOSED: '%s{service}' has %d{failCount}/%d{threshold} failures."
                     else
-                        return sprintf "🟢 CIRCUIT CLOSED: '%s' is healthy." service
+                        return $"🟢 CIRCUIT CLOSED: '%s{service}' is healthy."
 
                 | "trip" ->
                     if circuitStates.ContainsKey(service) then
@@ -134,17 +126,17 @@ module ResilienceTools =
                         circuitStates.[service] <- (DateTime.Now, 1)
 
                     let (_, newCount) = circuitStates.[service]
-                    printfn "⚡ CIRCUIT TRIP: '%s' failure count: %d" service newCount
-                    return sprintf "Circuit '%s' tripped. Failure count: %d/%d" service newCount threshold
+                    printfn $"⚡ CIRCUIT TRIP: '%s{service}' failure count: %d{newCount}"
+                    return $"Circuit '%s{service}' tripped. Failure count: %d{newCount}/%d{threshold}"
 
                 | "reset" ->
                     if circuitStates.ContainsKey(service) then
                         circuitStates.Remove(service) |> ignore
 
-                    printfn "✅ CIRCUIT RESET: '%s'" service
-                    return sprintf "Circuit '%s' reset to healthy state." service
+                    printfn $"✅ CIRCUIT RESET: '%s{service}'"
+                    return $"Circuit '%s{service}' reset to healthy state."
 
-                | _ -> return sprintf "Unknown action: %s. Use check, trip, or reset." action
+                | _ -> return $"Unknown action: %s{action}. Use check, trip, or reset."
             with ex ->
                 return "circuit_breaker error: " + ex.Message
         }
@@ -176,8 +168,8 @@ module CacheTools =
                 let expiry = DateTime.Now.AddMinutes(float ttlMinutes)
                 cache.[key] <- (value, expiry)
 
-                printfn "📦 CACHE SET: '%s' (expires in %d min)" key ttlMinutes
-                return sprintf "Cached '%s' with TTL %d minutes." key ttlMinutes
+                printfn $"📦 CACHE SET: '%s{key}' (expires in %d{ttlMinutes} min)"
+                return $"Cached '%s{key}' with TTL %d{ttlMinutes} minutes."
             with ex ->
                 return "cache_set error: " + ex.Message
         }
@@ -191,13 +183,13 @@ module CacheTools =
                 let (value, expiry) = cache.[k]
 
                 if DateTime.Now < expiry then
-                    printfn "📦 CACHE HIT: '%s'" k
-                    return sprintf "CACHE HIT: %s" value
+                    printfn $"📦 CACHE HIT: '%s{k}'"
+                    return $"CACHE HIT: %s{value}"
                 else
                     cache.Remove(k) |> ignore
-                    return sprintf "CACHE MISS: '%s' expired." k
+                    return $"CACHE MISS: '%s{k}' expired."
             else
-                return sprintf "CACHE MISS: '%s' not found." k
+                return $"CACHE MISS: '%s{k}' not found."
         }
 
     [<TarsToolAttribute("cache_clear", "Clears cache entries. Input: optional key pattern (empty = clear all)")>]
@@ -206,8 +198,8 @@ module CacheTools =
             if String.IsNullOrWhiteSpace(pattern) then
                 let count = cache.Count
                 cache.Clear()
-                printfn "🗑️ CACHE CLEARED: All %d entries" count
-                return sprintf "Cleared all %d cache entries." count
+                printfn $"🗑️ CACHE CLEARED: All %d{count} entries"
+                return $"Cleared all %d{count} cache entries."
             else
                 let keysToRemove =
                     cache.Keys |> Seq.filter (fun k -> k.Contains(pattern)) |> Seq.toList
@@ -215,8 +207,8 @@ module CacheTools =
                 for key in keysToRemove do
                     cache.Remove(key) |> ignore
 
-                printfn "🗑️ CACHE CLEARED: %d entries matching '%s'" keysToRemove.Length pattern
-                return sprintf "Cleared %d entries matching '%s'." keysToRemove.Length pattern
+                printfn $"🗑️ CACHE CLEARED: %d{keysToRemove.Length} entries matching '%s{pattern}'"
+                return $"Cleared %d{keysToRemove.Length} entries matching '%s{pattern}'."
         }
 
     [<TarsToolAttribute("cache_stats", "Returns cache statistics. Input: ignored")>]
@@ -229,7 +221,7 @@ module CacheTools =
 
             let valid = total - expired
 
-            return sprintf "Cache Stats: %d total entries, %d valid, %d expired." total valid expired
+            return $"Cache Stats: %d{total} total entries, %d{valid} valid, %d{expired} expired."
         }
 
 module MonitoringTools =
@@ -255,8 +247,8 @@ module MonitoringTools =
                 // Keep last 100 values
                 metrics.[name] <- (value :: metrics.[name]) |> List.truncate 100
 
-                printfn "📊 METRIC: %s = %.2f" name value
-                return sprintf "Recorded metric '%s' = %.2f" name value
+                printfn $"📊 METRIC: %s{name} = %.2f{value}"
+                return $"Recorded metric '%s{name}' = %.2f{value}"
             with ex ->
                 return "record_metric error: " + ex.Message
         }
@@ -275,19 +267,19 @@ module MonitoringTools =
                         |> Seq.map (fun kvp ->
                             let values = kvp.Value
                             let avg = if values.IsEmpty then 0.0 else List.average values
-                            sprintf "  %s: avg=%.2f, count=%d" kvp.Key avg values.Length)
+                            $"  %s{kvp.Key}: avg=%.2f{avg}, count=%d{values.Length}")
                         |> String.concat "\n"
 
-                    return sprintf "All Metrics:\n%s" summary
+                    return $"All Metrics:\n%s{summary}"
             else if metrics.ContainsKey(n) then
                 let values = metrics.[n]
                 let avg = List.average values
                 let minV = List.min values
                 let maxV = List.max values
 
-                return sprintf "Metric '%s': avg=%.2f, min=%.2f, max=%.2f, count=%d" n avg minV maxV values.Length
+                return $"Metric '%s{n}': avg=%.2f{avg}, min=%.2f{minV}, max=%.2f{maxV}, count=%d{values.Length}"
             else
-                return sprintf "Metric '%s' not found." n
+                return $"Metric '%s{n}' not found."
         }
 
     [<TarsToolAttribute("health_check",
@@ -307,17 +299,17 @@ module MonitoringTools =
                     componentHealth.[compName] <- (healthy, DateTime.Now)
 
                     let status = if healthy then "🟢 HEALTHY" else "🔴 UNHEALTHY"
-                    printfn "%s: %s" status compName
-                    return sprintf "%s: %s" compName status
+                    printfn $"%s{status}: %s{compName}"
+                    return $"%s{compName}: %s{status}"
 
                 | "get" ->
                     if componentHealth.ContainsKey(compName) then
                         let (healthy, lastUpdate) = componentHealth.[compName]
                         let status = if healthy then "🟢 HEALTHY" else "🔴 UNHEALTHY"
                         let age = (DateTime.Now - lastUpdate).TotalSeconds
-                        return sprintf "%s: %s (updated %.0fs ago)" compName status age
+                        return $"%s{compName}: %s{status} (updated %.0f{age}s ago)"
                     else
-                        return sprintf "%s: ⚪ UNKNOWN" compName
+                        return $"%s{compName}: ⚪ UNKNOWN"
 
                 | "all" ->
                     if componentHealth.Count = 0 then
@@ -328,12 +320,12 @@ module MonitoringTools =
                             |> Seq.map (fun kvp ->
                                 let (healthy, _) = kvp.Value
                                 let icon = if healthy then "🟢" else "🔴"
-                                sprintf "  %s %s" icon kvp.Key)
+                                $"  %s{icon} %s{kvp.Key}")
                             |> String.concat "\n"
 
-                        return sprintf "Health Status:\n%s" summary
+                        return $"Health Status:\n%s{summary}"
 
-                | _ -> return sprintf "Unknown action: %s. Use set, get, or all." action
+                | _ -> return $"Unknown action: %s{action}. Use set, get, or all."
             with ex ->
                 return "health_check error: " + ex.Message
         }
@@ -350,8 +342,8 @@ module MonitoringTools =
             let report =
                 "System Status Report\n"
                 + "═════════════════════════════\n"
-                + sprintf "Components: %d/%d healthy\n" healthyCount totalComponents
-                + sprintf "Metrics tracked: %d\n" metricCount
+                + $"Components: %d{healthyCount}/%d{totalComponents} healthy\n"
+                + $"Metrics tracked: %d{metricCount}\n"
                 + sprintf "Generated: %s" (DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"))
 
             return report

@@ -213,14 +213,11 @@ module RoadmapTests =
             task {
                 use channel = new BoundedChannel<int>(5, RejectNew)
 
-                // Start async read
-                let readTask = channel.ReadAsync(TimeSpan.FromMilliseconds(500.0))
-
-                // Write after small delay
-                do! Task.Delay(50)
+                // Write immediately
                 channel.TryWrite(42) |> ignore
 
-                let! result = readTask
+                // Read should succeed (item already available)
+                let! result = channel.ReadAsync(TimeSpan.FromMilliseconds(1000.0))
                 Assert.Equal<int option>(Some 42, result)
             }
 

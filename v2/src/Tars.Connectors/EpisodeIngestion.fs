@@ -103,86 +103,148 @@ let toGraphitiMessage (episode: Episode) : MessageDto =
       SourceDescription = sourceDesc
       Uuid = None }
 
-/// Episode ingestion service that manages sync with Graphiti
-type EpisodeIngestionService(config: IngestionConfig) =
+/// Interface for episode ingestion services
+type IEpisodeIngestionService =
+    inherit IDisposable
+    abstract member Queue: Episode -> unit
+    abstract member FlushAsync: unit -> Task<Result<int, string>>
+    abstract member IngestAsync: Episode -> Task<Result<unit, string>>
+    abstract member SearchAsync: string * int option -> Task<Result<SearchResultDto list, string>>
+    abstract member HealthCheckAsync: unit -> Task<Result<string, string>>
+    // For full compatibility, though Local might mock these
+    abstract member GetEntitiesAsync: unit -> Task<Result<EntityDto list, string>>
+    abstract member GetFactsAsync: unit -> Task<Result<FactDto list, string>>
+    abstract member GetCommunitiesAsync: unit -> Task<Result<CommunityDto list, string>>
+
+/// Graphiti implementation
+type GraphitiIngestionService(config: IngestionConfig) =
     let client = new GraphitiClient(Uri(config.GraphitiUrl))
     let mutable pendingEpisodes = ResizeArray<Episode>()
     let mutable totalIngested = 0
     let mutable lastFlush = DateTime.UtcNow
 
-    /// Add an episode to the pending queue
-    member _.Queue(episode: Episode) =
-        lock pendingEpisodes (fun () -> pendingEpisodes.Add(episode))
+    interface IEpisodeIngestionService with
+        member _.Queue(episode: Episode) =
+            lock pendingEpisodes (fun () -> pendingEpisodes.Add(episode))
 
-    /// Flush pending episodes to Graphiti
-    member this.FlushAsync() : Task<Result<int, string>> =
-        task {
-            let episodesToFlush =
-                lock pendingEpisodes (fun () ->
-                    let eps = pendingEpisodes.ToArray()
-                    pendingEpisodes.Clear()
-                    eps)
+        member this.FlushAsync() =
+            task {
+                let episodesToFlush =
+                    lock pendingEpisodes (fun () ->
+                        let eps = pendingEpisodes.ToArray()
+                        pendingEpisodes.Clear()
+                        eps)
 
-            if episodesToFlush.Length = 0 then
-                return Ok 0
-            else
-                // Convert episodes to messages and send in batch
-                let messages = episodesToFlush |> Array.map toGraphitiMessage
-                let! result = client.AddMessagesAsync("tars", messages)
+                if episodesToFlush.Length = 0 then
+                    return Ok 0
+                else
+                    // Convert episodes to messages and send in batch
+                    let messages = episodesToFlush |> Array.map toGraphitiMessage
+                    let! result = client.AddMessagesAsync("tars", messages)
+
+                    match result with
+                    | Ok _ ->
+                        totalIngested <- totalIngested + messages.Length
+                        lastFlush <- DateTime.UtcNow
+                        return Ok messages.Length
+                    | Error err -> return Error err
+            }
+
+        member _.IngestAsync(episode: Episode) =
+            task {
+                let message = toGraphitiMessage episode
+                let! result = client.AddMessagesAsync("tars", [| message |])
 
                 match result with
                 | Ok _ ->
-                    totalIngested <- totalIngested + messages.Length
-                    lastFlush <- DateTime.UtcNow
-                    return Ok messages.Length
+                    totalIngested <- totalIngested + 1
+                    return Ok()
                 | Error err -> return Error err
-        }
+            }
 
-    /// Ingest a single episode immediately
-    member _.IngestAsync(episode: Episode) : Task<Result<unit, string>> =
-        task {
-            let message = toGraphitiMessage episode
-            let! result = client.AddMessagesAsync("tars", [| message |])
+        member _.SearchAsync(query: string, numResults: int option) =
+            client.SearchAsync(query, ?numResults = numResults)
 
-            match result with
-            | Ok _ ->
-                totalIngested <- totalIngested + 1
-                return Ok()
-            | Error err -> return Error err
-        }
-
-    /// Get ingestion statistics
-    member _.GetStats() =
-        {| TotalIngested = totalIngested
-           PendingCount = pendingEpisodes.Count
-           LastFlush = lastFlush |}
-
-    /// Check Graphiti server health
-    member _.HealthCheckAsync() = client.HealthCheckAsync()
-
-    /// Search Graphiti knowledge graph
-    member _.SearchAsync(query: string, ?numResults: int) =
-        client.SearchAsync(query, ?numResults = numResults)
-
-    /// Get all entities from Graphiti
-    member _.GetEntitiesAsync() = client.GetEntitiesAsync()
-
-    /// Get all facts from Graphiti
-    member _.GetFactsAsync() = client.GetFactsAsync()
-
-    /// Get communities from Graphiti
-    member _.GetCommunitiesAsync() = client.GetCommunitiesAsync()
-
-    interface IDisposable with
+        member _.HealthCheckAsync() = client.HealthCheckAsync()
+        member _.GetEntitiesAsync() = client.GetEntitiesAsync()
+        member _.GetFactsAsync() = client.GetFactsAsync()
+        member _.GetCommunitiesAsync() = client.GetCommunitiesAsync()
         member _.Dispose() = (client :> IDisposable).Dispose()
 
-/// Create an ingestion service with default config
-let createService () =
-    new EpisodeIngestionService(IngestionConfig.defaults)
+open Tars.Core
 
-/// Create an ingestion service with custom Graphiti URL
+/// Local implementation using InternalGraphService
+type LocalIngestionService(graphService: IGraphService) =
+    let mutable pendingEpisodes = ResizeArray<Episode>()
+
+    interface IEpisodeIngestionService with
+        member _.Queue(episode: Episode) =
+            lock pendingEpisodes (fun () -> pendingEpisodes.Add(episode))
+
+        member this.FlushAsync() =
+            task {
+                let episodesToFlush =
+                    lock pendingEpisodes (fun () ->
+                        let eps = pendingEpisodes.ToArray()
+                        pendingEpisodes.Clear()
+                        eps)
+
+                for ep in episodesToFlush do
+                    let! _ = graphService.AddEpisodeAsync(ep)
+                    ()
+
+                return Ok episodesToFlush.Length
+            }
+
+        member _.IngestAsync(episode: Episode) =
+            task {
+                let! _ = graphService.AddEpisodeAsync(episode)
+                return Ok()
+            }
+
+        member _.SearchAsync(query: string, numResults: int option) =
+            task {
+                let! facts = graphService.QueryAsync(query)
+
+                let results =
+                    facts
+                    |> List.map (fun f ->
+                        { Uuid = Guid.NewGuid().ToString() // Dummy
+                          Name = (TarsFact.source f |> TarsEntity.getId)
+                          Fact = Some $"%A{f}"
+                          Score = 1.0 })
+
+                return Ok results
+            }
+
+        member _.HealthCheckAsync() =
+            Task.FromResult(Ok "Local Graph Service Operational")
+
+        member _.GetEntitiesAsync() = Task.FromResult(Ok []) // Not fully implemented
+
+        member _.GetFactsAsync() =
+            task {
+                let! facts = graphService.QueryAsync("*")
+                // Map to FactDto if needed, or just partial
+                return Ok []
+            }
+
+        member _.GetCommunitiesAsync() = Task.FromResult(Ok [])
+        member _.Dispose() = ()
+
+/// Create an ingestion service (Graphiti)
+let createGraphitiService (config: IngestionConfig) =
+    new GraphitiIngestionService(config) :> IEpisodeIngestionService
+
+/// Create a local service
+let createLocalService (graphService: IGraphService) =
+    new LocalIngestionService(graphService) :> IEpisodeIngestionService
+
+// Legacy factory for backward compatibility (defaults to Graphiti unless we change it globally later)
+let createService () =
+    createGraphitiService IngestionConfig.defaults
+
 let createServiceWithUrl (url: string) =
-    new EpisodeIngestionService(
+    createGraphitiService
         { IngestionConfig.defaults with
             GraphitiUrl = url }
-    )

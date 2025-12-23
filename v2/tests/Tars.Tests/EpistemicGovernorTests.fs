@@ -47,7 +47,7 @@ Context: When data structure is hierarchical."""
             let mockLlm = createMockLlm (fun _ -> "  Learn Graph Algorithms  ")
             let governor = EpistemicGovernor(mockLlm, None, None) :> IEpistemicGovernor
 
-            let! suggestion = governor.SuggestCurriculum([ "Task 1" ], [ "Belief 1" ])
+            let! suggestion = governor.SuggestCurriculum([ "Task 1" ], [ "Belief 1" ], false)
 
             Assert.Equal("Learn Graph Algorithms", suggestion)
         }

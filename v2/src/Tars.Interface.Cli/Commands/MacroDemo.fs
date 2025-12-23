@@ -109,7 +109,13 @@ let run (logger: ILogger) =
               VllmKey = None
               OpenAIKey = None
               GoogleGeminiKey = None
-              AnthropicKey = None }
+              AnthropicKey = None
+              DockerModelRunnerBaseUri = None
+              LlamaCppBaseUri = None
+              DefaultDockerModelRunnerModel = None
+              DefaultLlamaCppModel = None
+              DockerModelRunnerKey = None
+              LlamaCppKey = None }
 
         let svcCfg = { LlmServiceConfig.Routing = routingCfg }
 
@@ -149,8 +155,10 @@ let run (logger: ILogger) =
               VectorStore = None
               KnowledgeGraph = None
               SemanticMemory = None
+              EpisodeService = None
               RagConfig = RagConfig.Default
-              MacroRegistry = Some registryInterface }
+              MacroRegistry = Some registryInterface
+              MetascriptRegistry = None }
 
         // 6. Execute Main Workflow
         logger.Information("Executing main workflow...")

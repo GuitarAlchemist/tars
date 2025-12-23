@@ -1,4 +1,4 @@
-﻿namespace Tars.Tests
+namespace Tars.Tests
 
 open System
 open System.Net
@@ -68,7 +68,7 @@ type OpenWebUiTests(output: Xunit.Abstractions.ITestOutputHelper) =
                 with
                 | :? ObjectDisposedException -> () // Listener stopped
                 | :? HttpListenerException -> () // Listener closed
-                | ex -> printfn "Server error: %s" ex.Message
+                | ex -> printfn $"Server error: %s{ex.Message}"
             }
 
             try

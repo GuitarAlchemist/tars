@@ -1,13 +1,11 @@
-/// <summary>
-/// vLLM client for high-performance LLM inference.
-/// vLLM uses PagedAttention for efficient memory management and supports
-/// the OpenAI-compatible API format.
-/// </summary>
-/// <remarks>
-/// vLLM is typically used for production deployments requiring high throughput.
-/// See: https://github.com/vllm-project/vllm
-/// </remarks>
 namespace Tars.Llm
+
+// vLLM client for high-performance LLM inference.
+// vLLM uses PagedAttention for efficient memory management and supports
+// the OpenAI-compatible API format.
+//
+// vLLM is typically used for production deployments requiring high throughput.
+// See: https://github.com/vllm-project/vllm
 
 open System
 open System.Net.Http

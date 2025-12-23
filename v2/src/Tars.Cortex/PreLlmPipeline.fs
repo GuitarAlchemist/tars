@@ -18,7 +18,7 @@ type PreLlmContext =
         CurrentPrompt: string
 
         /// Detected intent of the prompt
-        Intent: AgentIntent option
+        Intent: AgentDomain option
 
         /// Safety status (Allowed or Blocked)
         IsSafe: bool
@@ -94,13 +94,13 @@ type IntentClassifierStage() =
                             || input.Contains("code")
                             || input.Contains("function")
                         then
-                            Some AgentIntent.Coding
+                            Some AgentDomain.Coding
                         elif input.Contains("plan") || input.Contains("step") || input.Contains("roadmap") then
-                            Some AgentIntent.Planning
+                            Some AgentDomain.Planning
                         elif input.Contains("why") || input.Contains("what") || input.Contains("how") then
-                            Some AgentIntent.Reasoning
+                            Some AgentDomain.Reasoning
                         else
-                            Some AgentIntent.Chat
+                            Some AgentDomain.Chat
 
                     return { ctx with Intent = intent }
             }

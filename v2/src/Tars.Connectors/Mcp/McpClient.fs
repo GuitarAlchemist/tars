@@ -77,7 +77,7 @@ type McpClient(transport: IMcpTransport) =
             let! response = tcs.Task
 
             match response.Error with
-            | Some err -> return failwithf "MCP Error %d: %s" err.Code err.Message
+            | Some err -> return failwithf $"MCP Error %d{err.Code}: %s{err.Message}"
             | None ->
                 match response.Result with
                 | Some res -> return JsonSerializer.Deserialize<'T>(res)

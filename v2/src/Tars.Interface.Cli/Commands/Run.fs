@@ -93,8 +93,10 @@ let execute (logger: ILogger) (scriptPath: string) =
                       VectorStore = None
                       KnowledgeGraph = None
                       SemanticMemory = Some kernel.SemanticMemory
+                      EpisodeService = None
                       RagConfig = RagConfig.Default
-                      MacroRegistry = None }
+                      MacroRegistry = None
+                      MetascriptRegistry = None }
 
                 // Ingest Code Structure
                 let! codeStructureInput =

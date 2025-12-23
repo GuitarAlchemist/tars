@@ -32,16 +32,49 @@ module Engine =
           KnowledgeBase: KnowledgeBase option
           KnowledgeGraph: TemporalKnowledgeGraph.TemporalGraph option
           MemoryBuffer: BufferAgent<MemoryItem> option // Added Capacitor
-          EpisodeService: EpisodeIngestionService option // Graphiti integration
+          EpisodeService: IEpisodeIngestionService option // Graphiti integration
           Logger: string -> unit
           Verbose: bool
           ShowSemanticMessage: Message -> bool -> unit }
 
-    let private scoreTask (task: TaskDefinition) : float =
-        // Simple heuristic for now:
-        // Score = 1.0 + (0.1 * float task.DifficultyLevel)
-        // In future, this would compare embeddings with previous tasks to ensure novelty.
-        1.0 + (0.1 * float task.DifficultyLevel)
+    let private scoreTask
+        (ctx: EvolutionContext)
+        (taskDef: TaskDefinition)
+        (recentVectors: float32[] list)
+        : Task<float> =
+        task {
+            // Base Score: Difficulty gives a small boost
+            let baseScore = 1.0 + (0.1 * float taskDef.DifficultyLevel)
+
+            if recentVectors.IsEmpty then
+                return baseScore
+            else
+                try
+                    // Calculate embedding for the new task
+                    let! currentVector = ctx.Llm.EmbedAsync(taskDef.Goal)
+
+                    // Find maximum similarity to any recent task
+                    let maxSimilarity =
+                        recentVectors
+                        |> List.map (fun v -> MetricSpace.cosineSimilarity currentVector v)
+                        |> List.max
+
+                    // Semantic Fan-out Limiting:
+                    // If similarity is too high (> 0.85), it means we are repeating ourselves.
+                    // Penalty scales with similarity.
+                    let penalty =
+                        if maxSimilarity > 0.9f then 10.0 // Hard block (score becomes negative)
+                        elif maxSimilarity > 0.8f then 3.0 // Strong discouragement
+                        elif maxSimilarity > 0.7f then 0.5 // Minimal discouragement
+                        else 0.0 // Novel task
+
+                    let finalScore = baseScore - penalty
+                    // ctx.Logger($"[Scoring] '{taskDef.Goal}' Sim: {maxSimilarity:F2} -> Score: {finalScore:F2}")
+                    return finalScore
+                with ex ->
+                    ctx.Logger($"[Scoring] Failed for '{taskDef.Goal}': {ex.Message}")
+                    return baseScore
+        }
 
     /// Generates a new task using the Curriculum Agent
     let private generateTask (ctx: EvolutionContext) (state: EvolutionState) =
@@ -63,7 +96,7 @@ module Engine =
                                 |> List.truncate 5
                                 |> List.map (fun t -> t.Output.Substring(0, Math.Min(t.Output.Length, 100)) + "...")
 
-                            return! governor.SuggestCurriculum(recentOutputs, state.ActiveBeliefs)
+                            return! governor.SuggestCurriculum(recentOutputs, state.ActiveBeliefs, isCritical)
                         with ex ->
                             ctx.Logger($"[Epistemic] SuggestCurriculum failed: {ex.Message}")
                             return "Focus on basic coding tasks."
@@ -76,29 +109,37 @@ module Engine =
                 else
                     suggestion
 
+            let completedGoals =
+                state.CompletedTasks
+                |> List.map (fun t -> t.TaskGoal)
+                |> List.distinct
+
+            let completedList =
+                if completedGoals.IsEmpty then
+                    "None"
+                else
+                    completedGoals |> List.truncate 10 |> String.concat " | "
+
             let prompt =
-                sprintf
-                    """IMPORTANT: You are generating F# CODING TASKS. Do NOT ask questions. Output ONLY JSON.
+                $"""IMPORTANT: You are generating F# CODING TASKS. Do NOT ask questions. Output ONLY JSON.
 
-Generation: %d. Completed tasks: %d.
+Generation: %d{state.Generation}. Completed tasks: %d{state.CompletedTasks.Length}.
 
-Create 3 concrete F# programming tasks. Each task must be:
-- A specific coding problem (NOT a question)
-- Solvable with code (NOT a discussion)
-- Related to: %s
+Create 3 concrete, diverse F# programming tasks based on the following guidance.
+Guidance: %s{if String.IsNullOrWhiteSpace(guidance) then "basic algorithms" else guidance}
+
+Requirements:
+- Each task must be a specific coding problem (NOT a question) and solvable with code (NOT a discussion).
+- Do NOT repeat or closely rephrase any previous tasks: %s{completedList}
+- Vary domains and artifacts (algorithms, refactors, tests, tooling, docs, integrations).
+- Include measurable validation_criteria.
 
 RESPOND WITH THIS EXACT JSON FORMAT (no other text):
-{"tasks":[
-  {"goal":"Write an F# function that reverses a list using recursion","constraints":["Pure functional","No mutable state"],"validation_criteria":"Returns reversed list"},
-  {"goal":"Implement a binary search function in F#","constraints":["Handle empty lists","Return Option type"],"validation_criteria":"Finds element or returns None"},
-  {"goal":"Create a function to calculate Fibonacci numbers","constraints":["Use tail recursion","Handle negative inputs"],"validation_criteria":"Returns correct Fibonacci number"}
-]}"""
-                    state.Generation
-                    state.CompletedTasks.Length
-                    (if String.IsNullOrWhiteSpace(guidance) then
-                         "basic algorithms"
-                     else
-                         guidance.Substring(0, Math.Min(guidance.Length, 50)))
+{{"tasks":[
+  {{"goal":"<concise goal 1>","constraints":["<constraint 1>","<constraint 2>"],"validation_criteria":"<measurable check>"}},
+  {{"goal":"<concise goal 2>","constraints":["<constraint 1>","<constraint 2>"],"validation_criteria":"<measurable check>"}},
+  {{"goal":"<concise goal 3>","constraints":["<constraint 1>","<constraint 2>"],"validation_criteria":"<measurable check>"}}
+]}}"""
 
             // 1. Retrieve Curriculum Agent
             let! agentOpt = ctx.Registry.GetAgent(state.CurriculumAgentId)
@@ -117,7 +158,7 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                       Sender = MessageEndpoint.System
                       Receiver = Some(MessageEndpoint.Agent agent.Id)
                       Performative = Performative.Request
-                      Intent = Some AgentIntent.Planning
+                      Intent = Some AgentDomain.Planning
                       Constraints = SemanticConstraints.Default
                       Ontology = None
                       Language = "text"
@@ -132,23 +173,31 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                 // 4. Run Execution
                 let! outcome = graphExecutor.RunAgentLoop agentWithMsg 20
 
-                // Log the outcome for debugging
-                match outcome with
-                | Success(_, output, _) ->
-                    ctx.Logger(
-                        $"[Curriculum] Agent returned success: {output.Substring(0, Math.Min(output.Length, 100))}..."
-                    )
-                | PartialSuccess((_, output, _), errors) ->
-                    ctx.Logger($"[Curriculum] Agent returned partial success with {errors.Length} errors")
-                | Failure err ->
-                    let errStr = err |> List.map string |> String.concat "; "
-                    ctx.Logger(sprintf "[Curriculum] Agent returned failure: %s" errStr)
-
+                // Phase 6.2: Semantic Speech Act Validation
                 let responseText =
                     match outcome with
-                    | Success(_, output, _) -> output
-                    | PartialSuccess((_, output, _), _) -> output
-                    | Failure err -> ""
+                    | Success(_, o, _)
+                    | PartialSuccess((_, o, _), _) ->
+                        let requestMsg = SpeechActs.fromSemantic msg
+
+                        let intent, content =
+                            match SpeechActs.tryParse o with
+                            | Some(i, c) -> i, c
+                            | None -> Tell o, o
+
+                        let replyMsg = SpeechActs.createReply requestMsg intent content agent.Id
+
+                        match SpeechActs.validateFlow requestMsg replyMsg with
+                        | Result.Ok() ->
+                            ctx.Logger
+                                $"[Protocol] Verified semantic flow: %A{requestMsg.Intent} -> %A{replyMsg.Intent}"
+                        | Result.Error err -> ctx.Logger $"[Protocol] WARNING: Protocol violation: %s{err}"
+
+                        content
+                    | Failure err ->
+                        let errStr = err |> List.map string |> String.concat "; "
+                        ctx.Logger $"[Curriculum] Agent returned failure: %s{errStr}"
+                        ""
 
                 if String.IsNullOrWhiteSpace(responseText) then
                     // Return a fallback task when no response is received
@@ -165,12 +214,9 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                 else
                     try
                         let json = responseText.Trim()
-                        ctx.Logger($"[Curriculum] Raw response: {json.Substring(0, Math.Min(json.Length, 200))}...")
 
                         // Handle Speech Act prefix (ACT: <performative>: <content>)
-                        // Strip any prefix before the JSON
                         let json =
-                            // Look for the start of JSON (either { or [)
                             let jsonStart =
                                 let braceIdx = json.IndexOf('{')
                                 let bracketIdx = json.IndexOf('[')
@@ -183,22 +229,20 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
 
                             if jsonStart > 0 then json.Substring(jsonStart) else json
 
-                        // More robust backtick removal
+                        // Clean backticks
                         let json =
                             let mutable cleaned = json
-                            // Remove opening ```json or ```
+
                             if cleaned.StartsWith("```json") then
                                 cleaned <- cleaned.Substring(7)
                             elif cleaned.StartsWith("```") then
                                 cleaned <- cleaned.Substring(3)
 
-                            // Remove closing ``` (may be on its own line)
                             cleaned <- cleaned.TrimEnd()
 
                             if cleaned.EndsWith("```") then
                                 cleaned <- cleaned.Substring(0, cleaned.Length - 3)
 
-                            // Also handle case where ``` is followed by newline content
                             let lastBackticks = cleaned.LastIndexOf("\n```")
 
                             if lastBackticks > 0 then
@@ -206,13 +250,11 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
 
                             cleaned.Trim()
 
-                        ctx.Logger($"[Curriculum] Cleaned JSON: {json.Substring(0, Math.Min(json.Length, 200))}...")
                         let doc = JsonDocument.Parse(json)
                         let root = doc.RootElement
-
                         let mutable tasksElem = Unchecked.defaultof<JsonElement>
 
-                        let tasks =
+                        let tasksJson =
                             if root.ValueKind = JsonValueKind.Array then
                                 root.EnumerateArray() |> Seq.map id
                             elif
@@ -223,8 +265,13 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                             else
                                 Seq.empty
 
-                        let parsedTasks =
-                            tasks
+                        let existingGoals =
+                            state.CompletedTasks
+                            |> List.map (fun t -> t.TaskGoal.Trim().ToLowerInvariant())
+                            |> Set.ofList
+
+                        let parsedTasksRaw =
+                            tasksJson
                             |> Seq.map (fun t ->
                                 let goal = t.GetProperty("goal").GetString()
 
@@ -235,67 +282,104 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
 
                                 let criteria = t.GetProperty("validation_criteria").GetString()
 
-                                let taskDef =
-                                    { Id = Guid.NewGuid()
-                                      DifficultyLevel = state.Generation + 1
-                                      Goal = goal
-                                      Constraints = constraints
-                                      ValidationCriteria = criteria
-                                      Timeout = TimeSpan.FromMinutes(1.0)
-                                      Score = 0.0 }
-
-                                let score = scoreTask taskDef
-                                { taskDef with Score = score })
+                                { Id = Guid.NewGuid()
+                                  DifficultyLevel = state.Generation + 1
+                                  Goal = goal
+                                  Constraints = constraints
+                                  ValidationCriteria = criteria
+                                  Timeout = TimeSpan.FromMinutes(1.0)
+                                  Score = 0.0 })
                             |> Seq.toList
+                            // Drop exact repeats of completed goals
+                            |> List.filter (fun t ->
+                                let key = t.Goal.Trim().ToLowerInvariant()
+                                not (existingGoals.Contains(key)))
 
-                        // Select Top K (Fan-out Limiter)
+                        // 5. Semantic Scoring (Fan-out Limiting)
+                        // Pre-calculate embeddings for recent tasks (last 10)
+                        let recentTasks = state.CompletedTasks |> List.truncate 10
+
+                        let! recentVectors =
+                            task {
+                                if recentTasks.IsEmpty then
+                                    return []
+                                else
+                                    let! vectors =
+                                        recentTasks
+                                        |> List.map (fun t -> ctx.Llm.EmbedAsync(t.TaskGoal))
+                                        |> Task.WhenAll
+
+                                    return vectors |> Array.toList
+                            }
+
+                        // Score all candidates
+                        let! scoredTasks =
+                            parsedTasksRaw
+                            |> List.map (fun t ->
+                                task {
+                                    let! score = scoreTask ctx t recentVectors
+                                    return { t with Score = score }
+                                })
+                            |> Task.WhenAll
+
+                        // Select Top K
                         let k = 3
 
                         let topK =
-                            parsedTasks |> List.sortByDescending (fun t -> t.Score) |> List.truncate k
+                            scoredTasks
+                            |> Array.toList
+                            |> List.sortByDescending (fun t -> t.Score)
+                            |> List.truncate k
+                            // Filter out negative scores (hard blocked)
+                            |> List.filter (fun t -> t.Score > 0.0)
 
-                        if topK.IsEmpty then
+                        // Budget-aware priority report
+                        let remainingTokens =
+                            ctx.Budget
+                            |> Option.bind (fun b -> b.Remaining.MaxTokens |> Option.map (fun t -> int t))
+
+                        ctx.Logger(TaskPrioritization.priorityReport topK state.CompletedTasks remainingTokens)
+
+                        // Re-prioritize by budget efficiency
+                        let budgetPrioritized =
+                            TaskPrioritization.prioritizeQueue topK state.CompletedTasks remainingTokens
+
+                        if budgetPrioritized.IsEmpty then
+                            ctx.Logger(
+                                "[Curriculum] All generated tasks were rejected by semantic limiter. Using fallback."
+                            )
+
                             return
                                 [ { Id = Guid.NewGuid()
                                     DifficultyLevel = state.Generation + 1
-                                    Goal = "Failed to parse tasks. Write a hello world script."
+                                    Goal =
+                                      "Failed to generate novel tasks. Refactor the existing code for better readability."
                                     Constraints = []
-                                    ValidationCriteria = "Output 'Hello World'"
+                                    ValidationCriteria = "Code is cleaner"
                                     Timeout = TimeSpan.FromMinutes(1.0)
-                                    Score = 0.0 } ]
+                                    Score = 0.5 } ]
                         else
-                            return topK
+                            return budgetPrioritized
 
                     with ex ->
-                        // Use practical, useful tasks as fallback
-                        ctx.Logger($"[Curriculum] JSON parse failed: {ex.Message}")
-
+                        ctx.Logger($"[Curriculum] Task generation failed: {ex.Message}")
+                        // Fallback logic remains...
                         let practicalTasks =
-                            [| // Test Generation
-                               "Review the DemoVisualization.fs module and write 3 unit tests for the showSemanticMessage function"
-                               // Documentation
+                            [| "Review the DemoVisualization.fs module and write 3 unit tests for the showSemanticMessage function"
                                "Read the ToolFactory.fs file and add XML documentation comments to all public functions"
-                               // Code Improvement
-                               "Analyze the Engine.fs generateTask function and suggest 2 improvements for better error handling"
-                               // Bug Finding
-                               "Review the ResponseParser module in Graph.fs and identify any edge cases that might cause parsing failures"
-                               // Refactoring
-                               "Examine the showTaskComplete function in DemoVisualization.fs and refactor to reduce code duplication" |]
+                               "Analyze the Engine.fs generateTask function and suggest 2 improvements for better error handling" |]
 
                         let random = Random()
                         let selectedTask = practicalTasks[random.Next(practicalTasks.Length)]
-                        ctx.Logger($"[Curriculum] Assigned practical task: {selectedTask}")
 
                         return
                             [ { Id = Guid.NewGuid()
                                 DifficultyLevel = state.Generation + 1
                                 Goal = selectedTask
-                                Constraints =
-                                  [ "Work with the TARS v2 codebase"; "Use explore_project and read_code tools" ]
+                                Constraints = [ "Work with the TARS v2 codebase" ]
                                 ValidationCriteria = "Provide concrete, actionable output"
                                 Timeout = TimeSpan.FromMinutes(2.0)
                                 Score = 1.0 } ]
-
 
         }
 
@@ -309,12 +393,19 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
             | None ->
                 return
                     { TaskId = taskDef.Id
+                      TaskGoal = taskDef.Goal
                       ExecutorId = state.ExecutorAgentId
                       Success = false
                       Output = "Executor Agent not found in Kernel"
                       ExecutionTrace = []
                       Duration = TimeSpan.Zero }
             | Some executor ->
+                // Log: Curriculum → Request → Executor
+                let requestMsg =
+                    SpeechActBridge.requestTask state.CurriculumAgentId state.ExecutorAgentId taskDef
+
+                SpeechActBridge.logSpeechAct ctx.Logger requestMsg
+
                 // 2. Initialize Graph Executor
                 let graphExecutor =
                     GraphExecutor(ctx.Registry, ctx.Llm, ctx.Budget, ctx.OutputGuard, ctx.Logger)
@@ -355,10 +446,10 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                                     |> Option.map (fun l -> l.OutcomeLabel)
                                     |> Option.defaultValue "unknown"
 
-                                sprintf "- [%s] %s" outcome summary)
+                                $"- [%s{outcome}] %s{summary}")
                             |> String.concat "\n"
 
-                        sprintf "\nLessons Learned from Past Episodes:\n%s\n" summaries
+                        $"\nLessons Learned from Past Episodes:\n%s{summaries}\n"
 
                 if not (String.IsNullOrWhiteSpace codeContext) then
                     ctx.Logger($"[Context] Retrieved context for goal '{taskDef.Goal}':\n{codeContext}")
@@ -367,20 +458,14 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                     ctx.Logger($"[Memory] Retrieved {memories.Length} past experiences.")
 
                 let taskPrompt =
-                    sprintf
-                        """Task Goal: %s
-Constraints: %A
-Validation Criteria: %s
+                    $"""Task Goal: %s{taskDef.Goal}
+Constraints: %A{taskDef.Constraints}
+Validation Criteria: %s{taskDef.ValidationCriteria}
 
-%s
-%s
+%s{codeContext}
+%s{memoryContext}
 
 Please solve this task. Output your solution code or answer."""
-                        taskDef.Goal
-                        taskDef.Constraints
-                        taskDef.ValidationCriteria
-                        codeContext
-                        memoryContext
 
                 // Pre-LLM Pipeline Check
                 let! (finalPrompt, isSafe) =
@@ -399,6 +484,7 @@ Please solve this task. Output your solution code or answer."""
                 if not isSafe then
                     return
                         { TaskId = taskDef.Id
+                          TaskGoal = taskDef.Goal
                           ExecutorId = state.ExecutorAgentId
                           Success = false
                           Output = $"Blocked by Safety Filter: {finalPrompt}"
@@ -411,7 +497,7 @@ Please solve this task. Output your solution code or answer."""
                           Sender = MessageEndpoint.System // System assigns the task
                           Receiver = Some(MessageEndpoint.Agent executor.Id)
                           Performative = Performative.Request
-                          Intent = Some AgentIntent.Coding
+                          Intent = Some AgentDomain.Coding
                           Constraints = SemanticConstraints.Default
                           Ontology = None
                           Language = "text"
@@ -428,31 +514,52 @@ Please solve this task. Output your solution code or answer."""
                     // 5. Run Initial Execution
                     let! outcome = graphExecutor.RunAgentLoop agentWithMsg 20
 
-                    let (agentAfterExec, success, output, trace) =
+                    // Phase 6.2: Semantic Speech Act Validation
+                    let (success, output, trace) =
+                        match outcome with
+                        | Success(_, o, t) -> (true, o, t)
+                        | PartialSuccess((_, o, t), _) -> (true, o, t)
+                        | Failure err -> (false, String.concat "; " (err |> List.map (fun e -> $"%A{e}")), [])
+
+                    if success then
+                        let requestMsg = SpeechActs.fromSemantic msg
+
+                        let intent, content =
+                            match SpeechActs.tryParse output with
+                            | Some(i, c) -> i, c
+                            | None -> Tell output, output // Fallback for legacy outputs
+
+                        let replyMsg = SpeechActs.createReply requestMsg intent content executor.Id
+
+                        match SpeechActs.validateFlow requestMsg replyMsg with
+                        | Result.Ok() ->
+                            ctx.Logger
+                                $"[Protocol] Verified semantic flow: %A{requestMsg.Intent} -> %A{replyMsg.Intent}"
+                        | Result.Error err -> ctx.Logger $"[Protocol] WARNING: Protocol violation: %s{err}"
+
+                    let (agentAfterExec, _, output, trace) =
                         match outcome with
                         | Success(a, o, t) -> (a, true, o, t)
                         | PartialSuccess((a, o, t), _) -> (a, true, o, t)
                         | Failure err ->
-                            (agentWithMsg, false, String.concat "; " (err |> List.map (fun e -> sprintf "%A" e)), [])
+                            (agentWithMsg, false, String.concat "; " (err |> List.map (fun e -> $"%A{e}")), [])
 
                     if not success then
                         return
                             { TaskId = taskDef.Id
+                              TaskGoal = taskDef.Goal
                               ExecutorId = state.ExecutorAgentId
                               Success = false
                               Output = output
                               ExecutionTrace = trace
                               Duration = TimeSpan.FromSeconds(5.0) }
                     else
-                        // Handle Speech Act prefix in output
-                        let cleanOutput (text: string) =
-                            if text.StartsWith("ACT:") then
-                                let parts = text.Split(':', 3)
-                                if parts.Length = 3 then parts[2].Trim() else text
-                            else
-                                text
+                        // Handle Speech Act prefix in output using new helper
+                        let mutable currentOutput =
+                            match SpeechActs.tryParse output with
+                            | Some(_, c) -> c
+                            | None -> output
 
-                        let mutable currentOutput = cleanOutput output
                         let mutable currentTrace = trace
                         let mutable reflectionCount = 0
                         let mutable isOptimal = false
@@ -488,31 +595,25 @@ Please solve this task. Output your solution code or answer."""
                                 let reflectionPrompt =
                                     if String.IsNullOrEmpty verificationFeedback then
                                         // Standard Reflection
-                                        sprintf
-                                            """You have generated a solution.
+                                        $"""You have generated a solution.
 Current Output:
-%s
+%s{currentOutput}
 
 Please reflect on this solution.
 1. Identify any potential bugs or inefficiencies.
-2. Verify if it meets all constraints: %A
+2. Verify if it meets all constraints: %A{taskDef.Constraints}
 3. If you can improve it, output the IMPROVED solution.
 4. If it is already optimal, output "OPTIMAL"."""
-                                            currentOutput
-                                            taskDef.Constraints
                                     else
                                         // Epistemic Feedback Reflection
-                                        sprintf
-                                            """Your solution failed verification.
+                                        $"""Your solution failed verification.
 Current Output:
-%s
+%s{currentOutput}
 
 Feedback from Epistemic Governor:
-%s
+%s{verificationFeedback}
 
 Please fix the solution based on this feedback. Output the IMPROVED solution."""
-                                            currentOutput
-                                            verificationFeedback
 
                                 let reflectionMsg =
                                     { Id = Guid.NewGuid()
@@ -520,7 +621,7 @@ Please fix the solution based on this feedback. Output the IMPROVED solution."""
                                       Sender = MessageEndpoint.System
                                       Receiver = Some(MessageEndpoint.Agent executor.Id)
                                       Performative = Performative.Request
-                                      Intent = Some AgentIntent.Reasoning
+                                      Intent = Some AgentDomain.Reasoning
                                       Constraints = SemanticConstraints.Default
                                       Ontology = None
                                       Language = "text"
@@ -533,6 +634,19 @@ Please fix the solution based on this feedback. Output the IMPROVED solution."""
                                     reflectionCount
                                     maxReflections
                                     (Some verificationFeedback)
+
+                                // Phase 6.8: Epistemic Reflection Recording
+                                match ctx.EpisodeService with
+                                | Some svc ->
+                                    let episode =
+                                        Tars.Core.Episode.Reflection(
+                                            state.ExecutorAgentId.ToString(),
+                                            reflectionPrompt,
+                                            DateTime.UtcNow
+                                        )
+
+                                    svc.Queue(episode)
+                                | None -> ()
 
                                 let agentWithReflection = currentAgent.ReceiveMessage(reflectionMsg)
                                 let! reflectOutcome = graphExecutor.RunAgentLoop agentWithReflection 20
@@ -567,6 +681,7 @@ Please fix the solution based on this feedback. Output the IMPROVED solution."""
 
                         return
                             { TaskId = taskDef.Id
+                              TaskGoal = taskDef.Goal
                               ExecutorId = state.ExecutorAgentId
                               Success = true
                               Output = currentOutput
@@ -609,11 +724,25 @@ Please fix the solution based on this feedback. Output the IMPROVED solution."""
                             | None ->
                                 do! ctx.VectorStore.SaveAsync("tars-beliefs", string belief.Id, embedding, payload)
 
+                            // Phase 6.8: Record Belief Update to Knowledge Graph
+                            match ctx.EpisodeService with
+                            | Some svc ->
+                                let episode =
+                                    Tars.Core.Episode.BeliefUpdate(
+                                        "EpistemicGovernor",
+                                        belief.Statement,
+                                        belief.Confidence,
+                                        DateTime.UtcNow
+                                    )
+
+                                svc.Queue(episode)
+                            | None -> ()
+
                             // Update Active Beliefs (keep last 10)
                             newBeliefs <- (belief.Statement :: newBeliefs) |> List.truncate 10
                         with ex ->
                             // Log error but continue
-                            printfn "Epistemic extraction failed: %s" ex.Message
+                            printfn $"Epistemic extraction failed: %s{ex.Message}"
                     | None -> ()
 
                     // Construct a trace object (simplified for now)
@@ -722,10 +851,53 @@ Please fix the solution based on this feedback. Output the IMPROVED solution."""
                                     payload
                                 )
                     with ex ->
-                        printfn "Failed to save to memory: %s" ex.Message
+                        printfn $"Failed to save to memory: %s{ex.Message}"
+
+                    // Log: Executor → Inform/Failure → Curriculum
+                    let responseMsg =
+                        SpeechActBridge.informResult state.ExecutorAgentId state.CurriculumAgentId taskDef.Id result
+
+                    SpeechActBridge.logSpeechAct ctx.Logger responseMsg
+
+                    // Feature C: Epistemic Verification Checkpoint
+                    let! isVerified =
+                        match ctx.Epistemic, result.Success with
+                        | Some governor, true ->
+                            task {
+                                try
+                                    let statement =
+                                        sprintf
+                                            "Task '%s' was completed with output: %s"
+                                            (taskDef.Goal.Substring(0, min 50 taskDef.Goal.Length))
+                                            (result.Output.Substring(0, min 100 result.Output.Length))
+
+                                    let! verified = governor.Verify(statement)
+
+                                    if not verified then
+                                        ctx.Logger("[Epistemic] ⚠️ Output verification FAILED - possible quality issue")
+                                    else
+                                        ctx.Logger("[Epistemic] ✓ Output verified")
+
+                                    return verified
+                                with ex ->
+                                    ctx.Logger($"[Epistemic] Verification skipped: {ex.Message}")
+                                    return true // Skip on error, don't block
+                            }
+                        | _ -> Task.FromResult(true)
+
+                    // Adjust result based on verification (add metadata)
+                    let verifiedResult =
+                        if isVerified then
+                            result
+                        else
+                            { result with
+                                Output = result.Output + "\n[UNVERIFIED - Review Recommended]" }
 
                     // Display task completion with generated solution
-                    DemoVisualization.showTaskComplete result.Success result.Output result.Duration
+                    DemoVisualization.showTaskComplete
+                        verifiedResult.Success
+                        verifiedResult.Output
+                        verifiedResult.Duration
 
                     // Capture episode to Graphiti knowledge graph
                     match ctx.EpisodeService with

@@ -76,7 +76,7 @@ module EvolutionTests =
                       LastVerified = DateTime.UtcNow }
                 )
 
-            member _.SuggestCurriculum(_completedTasks, _activeBeliefs) =
+            member _.SuggestCurriculum(_completedTasks, _activeBeliefs, _isCritical) =
                 called <- true
                 Task.FromResult("suggestion")
 

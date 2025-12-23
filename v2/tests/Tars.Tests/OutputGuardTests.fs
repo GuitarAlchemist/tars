@@ -20,7 +20,7 @@ let ``default guard flags missing required fields`` () =
     let result = guard.Evaluate input |> Async.RunSynchronously
 
     match result.Action with
-    | RetryWithHint _ ->
+    | GuardAction.RetryWithHint _ ->
         Assert.True(result.Risk >= 0.5)
         Assert.Contains("Missing fields", result.Messages |> List.head)
     | _ -> Assert.Fail($"Expected RetryWithHint, got {result.Action}")
@@ -28,10 +28,15 @@ let ``default guard flags missing required fields`` () =
 [<Fact>]
 let ``analyzer can escalate risk and action`` () =
     let guard = OutputGuard.defaultGuard
+
     let analyzer =
         DelegateOutputGuardAnalyzer(fun _ ->
             async {
-                return Some { Risk = 0.9; Action = Reject "LLM analysis flagged cargo cult"; Messages = ["analysis"] }
+                return
+                    Some
+                        { Risk = 0.9
+                          Action = GuardAction.Reject "LLM analysis flagged cargo cult"
+                          Messages = [ "analysis" ] }
             })
         :> IOutputGuardAnalyzer
 
@@ -49,7 +54,7 @@ let ``analyzer can escalate risk and action`` () =
     let result = composed.Evaluate input |> Async.RunSynchronously
 
     match result.Action with
-    | Reject msg ->
+    | GuardAction.Reject msg ->
         Assert.True(result.Risk >= 0.9)
         Assert.Contains("analysis", result.Messages)
         Assert.Contains("cargo cult", msg)

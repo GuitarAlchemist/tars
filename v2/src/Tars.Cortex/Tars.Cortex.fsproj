@@ -10,6 +10,7 @@
     <Compile Include="VectorStore.fs" />
     <Compile Include="InMemoryVectorStore.fs" />
     <Compile Include="SqliteVectorStore.fs" />
+    <Compile Include="PostgresVectorStore.fs" />
     <Compile Include="AnnVectorStore.fs" />
     <Compile Include="Chunking.fs" />
     <Compile Include="Grammar.fs" />
@@ -29,6 +30,8 @@
     <Compile Include="ConsensusCircuitBreaker.fs" />
     <Compile Include="Structure.fs" />
     <Compile Include="TraceAnalyzer.fs" />
+    <Compile Include="Patterns.fs" />
+    <Compile Include="SelfImprovement.fs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -38,11 +41,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="FSharp.Compiler.Service" Version="43.10.100" />
+    <PackageReference Include="FSharp.Compiler.Service" Version="43.10.101" />
     <PackageReference Include="FSharp.SystemTextJson" Version="1.4.36" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.5" />
     <PackageReference Include="Microsoft.SemanticKernel" Version="1.67.1" />
     <PackageReference Update="FSharp.Core" Version="10.0.101" />
+    <PackageReference Include="Npgsql" Version="10.0.1" />
   </ItemGroup>
 
 

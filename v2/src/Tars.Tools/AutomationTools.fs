@@ -59,7 +59,7 @@ module AutomationTools =
                         sprintf "  [%s] %s: %s" (ts.ToString("HH:mm:ss")) action details)
                     |> String.concat "\n"
 
-                return sprintf "Action Log (%d entries):\n%s" filtered.Length entries
+                return $"Action Log (%d{filtered.Length} entries):\n%s{entries}"
         }
 
     [<TarsToolAttribute("measure_time",
@@ -77,7 +77,7 @@ module AutomationTools =
                 // For simplicity, we'll just return the current time
                 let now = DateTime.Now
 
-                printfn "⏱️ TIMER %s: %s" timer action
+                printfn $"⏱️ TIMER %s{timer}: %s{action}"
 
                 if action = "start" then
                     return sprintf "Timer '%s' started at %s" timer (now.ToString("HH:mm:ss.fff"))
@@ -88,7 +88,7 @@ module AutomationTools =
                             timer
                             (now.ToString("HH:mm:ss.fff"))
                 else
-                    return sprintf "Unknown action: %s. Use 'start' or 'stop'" action
+                    return $"Unknown action: %s{action}. Use 'start' or 'stop'"
             with ex ->
                 return "measure_time error: " + ex.Message
         }
@@ -100,10 +100,10 @@ module AutomationTools =
                 let ms = Int32.Parse(msInput.Trim())
                 let actualMs = Math.Min(ms, 5000) // Cap at 5 seconds
 
-                printfn "💤 SLEEPING: %d ms" actualMs
+                printfn $"💤 SLEEPING: %d{actualMs} ms"
                 do! System.Threading.Tasks.Task.Delay(actualMs)
 
-                return sprintf "Slept for %d ms" actualMs
+                return $"Slept for %d{actualMs} ms"
             with ex ->
                 return "sleep_ms error: " + ex.Message
         }
@@ -118,9 +118,9 @@ module AutomationTools =
                     prefix.Trim()
 
             let guid = Guid.NewGuid().ToString("N").Substring(0, 8)
-            let id = sprintf "%s_%s" p guid
+            let id = $"%s{p}_%s{guid}"
 
-            printfn "🔑 GENERATED ID: %s" id
+            printfn $"🔑 GENERATED ID: %s{id}"
             return id
         }
 
@@ -133,7 +133,7 @@ module AutomationTools =
                 options.WriteIndented <- true
                 let formatted = System.Text.Json.JsonSerializer.Serialize(doc.RootElement, options)
 
-                return sprintf "Formatted JSON:\n%s" formatted
+                return $"Formatted JSON:\n%s{formatted}"
             with ex ->
                 return "format_json error: " + ex.Message
         }
@@ -146,7 +146,7 @@ module AutomationTools =
             let hash = sha.ComputeHash(bytes)
             let hashString = BitConverter.ToString(hash).Replace("-", "").ToLower()
 
-            return sprintf "SHA256: %s" hashString
+            return $"SHA256: %s{hashString}"
         }
 
     [<TarsToolAttribute("base64_encode", "Encodes text to Base64. Input: text to encode")>]
@@ -155,7 +155,7 @@ module AutomationTools =
             let bytes = System.Text.Encoding.UTF8.GetBytes(text)
             let encoded = Convert.ToBase64String(bytes)
 
-            return sprintf "Base64: %s" encoded
+            return $"Base64: %s{encoded}"
         }
 
     [<TarsToolAttribute("base64_decode", "Decodes Base64 to text. Input: Base64 string")>]
@@ -165,7 +165,7 @@ module AutomationTools =
                 let bytes = Convert.FromBase64String(encoded.Trim())
                 let decoded = System.Text.Encoding.UTF8.GetString(bytes)
 
-                return sprintf "Decoded: %s" decoded
+                return $"Decoded: %s{decoded}"
             with ex ->
                 return "base64_decode error: " + ex.Message
         }

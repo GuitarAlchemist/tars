@@ -37,15 +37,12 @@ module ToolValidation =
         task {
             let toolName = ToolHelpers.parseStringArg args "tool_name"
             let name = toolName.Trim()
-            printfn "🔍 VALIDATING TOOL: %s" name
+            printfn $"🔍 VALIDATING TOOL: %s{name}"
 
             match getToolInfo name with
             | Some(desc, _) ->
                 return
-                    sprintf
-                        "✅ Tool '%s' is valid.\n\n  Description: %s\n\nUse test_tool to run it with sample input."
-                        name
-                        desc
+                    $"✅ Tool '%s{name}' is valid.\n\n  Description: %s{desc}\n\nUse test_tool to run it with sample input."
             | None ->
                 let suggestions =
                     dynamicTools
@@ -55,9 +52,9 @@ module ToolValidation =
                     |> String.concat ", "
 
                 if suggestions.Length > 0 then
-                    return sprintf "❌ Tool '%s' not found. Did you mean: %s?" name suggestions
+                    return $"❌ Tool '%s{name}' not found. Did you mean: %s{suggestions}?"
                 else
-                    return sprintf "❌ Tool '%s' not found. Use list_all_tools to see available tools." name
+                    return $"❌ Tool '%s{name}' not found. Use list_all_tools to see available tools."
         }
 
     [<TarsToolAttribute("test_tool",
@@ -71,19 +68,15 @@ module ToolValidation =
                 let toolName = root.GetProperty("tool").GetString()
                 let input = root.GetProperty("input").GetString()
 
-                printfn "🧪 TESTING TOOL: %s" toolName
+                printfn $"🧪 TESTING TOOL: %s{toolName}"
 
                 match getToolInfo toolName with
                 | Some _ ->
-                    recordExecution toolName true (sprintf "Test input: %s" (input.Substring(0, min 30 input.Length)))
+                    recordExecution toolName true $"Test input: %s{input.Substring(0, min 30 input.Length)}"
 
                     return
-                        sprintf
-                            "Test recorded for '%s'.\n\nTo execute: Call the tool directly with your input.\nExample: %s \"%s\""
-                            toolName
-                            toolName
-                            input
-                | None -> return sprintf "Tool '%s' not found. Use list_all_tools to see available tools." toolName
+                        $"Test recorded for '%s{toolName}'.\n\nTo execute: Call the tool directly with your input.\nExample: %s{toolName} \"%s{input}\""
+                | None -> return $"Tool '%s{toolName}' not found. Use list_all_tools to see available tools."
             with ex ->
                 return "test_tool error: " + ex.Message
         }
@@ -114,10 +107,10 @@ module ToolValidation =
                     filtered
                     |> List.mapi (fun i (name, success, msg) ->
                         let status = if success then "✅" else "❌"
-                        sprintf "  %d. %s %s: %s" (i + 1) status name msg)
+                        $"  %d{i + 1}. %s{status} %s{name}: %s{msg}")
                     |> String.concat "\n"
 
-                return sprintf "Tool execution log (%d entries):\n%s" filtered.Length logEntries
+                return $"Tool execution log (%d{filtered.Length} entries):\n%s{logEntries}"
         }
 
     [<TarsToolAttribute("introspect_tool", "Shows detailed information about a tool. Input: tool name")>]
@@ -125,28 +118,28 @@ module ToolValidation =
         task {
             let toolName = ToolHelpers.parseStringArg args "tool_name"
             let name = toolName.Trim()
-            printfn "🔬 INTROSPECTING: %s" name
+            printfn $"🔬 INTROSPECTING: %s{name}"
 
             match getToolInfo name with
             | Some(desc, _) ->
-                printfn "   ✅ FOUND: %s" desc
+                printfn $"   ✅ FOUND: %s{desc}"
                 // Make the output unmistakably clear for the agent
-                return sprintf "### TOOL DEFINITION: %s ###\n\n%s\n\n(This is the full definition)" name desc
+                return $"### TOOL DEFINITION: %s{name} ###\n\n%s{desc}\n\n(This is the full definition)"
             | None ->
-                printfn "   ❌ NOT FOUND. Searching in %d tools..." dynamicTools.Length
-                return sprintf "Tool '%s' not found. Use list_all_tools to see available tools." name
+                printfn $"   ❌ NOT FOUND. Searching in %d{dynamicTools.Length} tools..."
+                return $"Tool '%s{name}' not found. Use list_all_tools to see available tools."
         }
 
     [<TarsToolAttribute("list_all_tools", "Lists all registered tools with descriptions. No input required.")>]
     let listAllTools (_: string) =
         task {
-            printfn "📋 LISTING ALL %d TOOLS" dynamicTools.Length
+            printfn $"📋 LISTING ALL %d{dynamicTools.Length} TOOLS"
 
             let toolList =
                 dynamicTools
                 |> List.sortBy (fun t -> t.Name)
-                |> List.mapi (fun i t -> sprintf "  %2d. %-22s %s" (i + 1) t.Name t.Description)
+                |> List.mapi (fun i t -> $"  %2d{i + 1}. %-22s{t.Name} %s{t.Description}")
                 |> String.concat "\n"
 
-            return sprintf "Registered Tools (%d total):\n%s" dynamicTools.Length toolList
+            return $"Registered Tools (%d{dynamicTools.Length} total):\n%s{toolList}"
         }

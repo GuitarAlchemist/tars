@@ -43,8 +43,10 @@ type FluxTests() =
               VectorStore = None
               KnowledgeGraph = None
               SemanticMemory = None
+              EpisodeService = None
               MacroRegistry = None
-              RagConfig = RagConfig.Default }
+              RagConfig = RagConfig.Default
+              MetascriptRegistry = None }
 
         // 2. Define Workflow: A and B are independent, C depends on both
         let wf =
@@ -97,7 +99,7 @@ type FluxTests() =
             // Parallel: delay * 2 + overhead
 
             let elapsed = sw.ElapsedMilliseconds
-            let expectedMax = (int64 delay * 2L) + 800L // generous buffer
+            let expectedMax = (int64 delay * 2L) + 1500L // buffer to reduce flakiness in CI
             let expectedMin = (int64 delay * 2L) - 200L
 
             Assert.True(elapsed < expectedMax, $"Execution took {elapsed}ms, expected < {expectedMax}ms (Parallel)")

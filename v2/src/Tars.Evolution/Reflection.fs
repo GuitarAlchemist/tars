@@ -35,24 +35,20 @@ module Reflection =
                     let traceStr =
                         trace
                         |> List.map (fun t ->
-                            sprintf
-                                "[%s] -> %s (took %d ms)"
-                                t.Step
-                                (t.Output.Substring(0, min t.Output.Length 50))
-                                t.DurationMs)
+                            $"[%s{t.Step}] -> %s{t.Output.Substring(0, min t.Output.Length 50)} (took %d{t.DurationMs} ms)"
+                        )
                         |> String.concat "\n"
 
                     let prompt =
-                        sprintf
-                            """You are a generic optimization critic (Reflection Agent).
+                        $"""You are a generic optimization critic (Reflection Agent).
                             
-GOAL: %s
+GOAL: %s{goal}
 
 ACTUAL OUTPUT:
-%s
+%s{output}
 
 EXECUTION TRACE:
-%s
+%s{traceStr}
 
 Analyze the performance.
 1. Did it achieve the goal?
@@ -60,15 +56,12 @@ Analyze the performance.
 3. Any obvious bugs or improvemens?
 
 Output JSON only:
-{
+{{
   "type": "Success" | "Failure" | "Optimization",
   "score": 0.0 to 1.0,
   "comment": "Short analysis",
   "suggestion": "Specific instruction on how to change the workflow or prompt to improve"
-}"""
-                            goal
-                            output
-                            traceStr
+}}"""
 
                     let req =
                         { ModelHint = Some "reasoning" // Use smart model

@@ -420,17 +420,15 @@ module Chunking =
         : Task<Chunk list> =
         task {
             let prompt =
-                sprintf
-                    """Analyze the following text and split it into logical sections. 
+                $"""Analyze the following text and split it into logical sections. 
 Return the sections in the following format:
 ### SECTION: [Title]
 [Content]
 ### END SECTION
 
 Text to split:
-%s
+%s{text}
 """
-                    text
 
             let! response = completer prompt
             let chunks = ResizeArray<Chunk>()

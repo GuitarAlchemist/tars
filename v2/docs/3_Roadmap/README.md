@@ -1,0 +1,32 @@
+﻿# TARS v2 Roadmap
+
+This directory contains the implementation plans, phase details, and progress reports for TARS v2.
+
+## 📂 Structure
+
+### 🗓️ [1. Plans](./1_Plans/)
+High-level implementation strategies and long-term plans.
+- **[Main Implementation Plan](./1_Plans/implementation_plan.md)**: The primary living document for TARS v2 development.
+- **[Semantic Memory Plan](./1_Plans/semantic_memory_plan.md)**: Strategy for memory systems.
+- **[Phase 6 Integration Strategy](./1_Plans/phase6_integration_strategy.md)**: Cognitive architecture hardening.
+
+### 🏗️ [2. Phases](./2_Phases/)
+Detailed tasks and specifications for specific implementation phases.
+- **[Phase 2 Detailed Tasks](./2_Phases/phase2_detailed_tasks.md)**: Brain & Cognitive hardening.
+- **[Knowledge Graph (Phase 2.4)](./2_Phases/phase_2_4_knowledge_graph.md)**: Temporal knowledge graph details.
+- **[MCP Client (Phase 3.2)](./2_Phases/phase_3_2_mcp_client.md)**: Model Context Protocol integration.
+- **[Agentic Interfaces (Phase 6.5)](./2_Phases/phase_6_5_agentic_interfaces.md)**: Capability-driven agent interactions.
+- **[Circuit Flow Control (Phase 6.7)](./2_Phases/phase_6_7_circuit_flow_control.md)**: Resistors, Capacitors, and Transistors for AI.
+- **[Epistemic Governor (Phase 6.7)](./2_Phases/phase_6_7_epistemic_governor.md)**: Belief tracking and variant generation.
+
+### 📊 [3. Reports](./3_Reports/)
+Session summaries, completion reports, and refactoring post-mortems.
+- **[Complete Session Summary](./3_Reports/COMPLETE_SESSION_SUMMARY.md)**: History of development sessions.
+- **[Phase 1 Refactoring Report](./3_Reports/phase1_refactoring_report.md)**: Foundation hardening.
+- **[Phase 6.7 Completion Report](./3_Reports/phase_6_7_completion_report.md)**: Summary of cognitive architecture implementation.
+- **[Research Integration Summary](./3_Reports/research_integration_summary.md)**: How research feeds into the roadmap.
+
+## 🔗 Related Documentation
+- **[Functional Programming Reference](../7_Reference/Functional/)**: Core functional patterns used in TARS v2.
+- **[Architecture](../2_Architecture/)**: System-wide design decisions.
+- **[Research](../4_Research/)**: Theoretical foundations.

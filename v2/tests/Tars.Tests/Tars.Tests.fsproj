@@ -18,6 +18,8 @@
     <Compile Include="KTheoryTests.fs" />
     <Compile Include="EventBusTests.fs" />
     <Compile Include="EvolutionTests.fs" />
+    <Compile Include="EvolutionSemanticTests.fs" />
+    <Compile Include="EvolutionBenchmarkTests.fs" />
     <Compile Include="ExecutionTests.fs" />
     <Compile Include="MetascriptTests.fs" />
     <Compile Include="FluxTests.fs" />
@@ -27,6 +29,7 @@
     <Compile Include="AdaptiveReflectionTests.fs" />
     <Compile Include="GraphRuntimeTests.fs" />
     <Compile Include="CircuitTests.fs" />
+    <Compile Include="MetricSpaceTests.fs" />
     <Compile Include="SpeechActsTests.fs" />
     <Compile Include="GrammarTests.fs" />
     <Compile Include="GoldenRun.fs" />
@@ -37,6 +40,7 @@
     <Compile Include="ToolTests.fs" />
     <Compile Include="MacroToolsTests.fs" />
     <Compile Include="VectorStoreTests.fs" />
+    <Compile Include="PostgresVectorStoreTests.fs" />
     <Compile Include="OutputGuardTests.fs" />
     <Compile Include="OutputGuardLlmTests.fs" />
 
@@ -47,7 +51,6 @@
     <Compile Include="TemporalKnowledgeGraphTests.fs" />
     <Compile Include="LpaTests.fs" />
     <Compile Include="PatternRecognitionTests.fs" />
-    <Compile Include="GrammarDistillationTests.fs" />
     <Compile Include="AnnVectorStoreTests.fs" />
     <Compile Include="PersistenceTests.fs" />
     <Compile Include="TextNormalizerTests.fs" />
@@ -61,6 +64,14 @@
     <Compile Include="ArtifactTests.fs" />
     <Compile Include="GitIntegrationTests.fs" />
     <Compile Include="DemoGeneratorTests.fs" />
+    <Compile Include="V1ParserTests.fs" />
+    <Compile Include="MetascriptRegistryTests.fs" />
+    <Compile Include="PatternTests.fs" />
+    <Compile Include="SelfImprovementTests.fs" />
+    <Compile Include="WorkingMemoryTests.fs" />
+    <Compile Include="TaskPrioritizationTests.fs" />
+    <Compile Include="HealthCheckTests.fs" />
+    <Compile Include="StructuredLoggingTests.fs" />
     <!-- <Compile Include="GraphitiTypesTests.fs" /> -->
   </ItemGroup>
 

@@ -30,7 +30,10 @@ type Performative =
 /// <summary>
 /// Represents the detected intent of a user prompt or agent message.
 /// </summary>
-type AgentIntent =
+/// <summary>
+/// Represents the semantic domain or topic of a message.
+/// </summary>
+type AgentDomain =
     | Coding
     | Planning
     | Reasoning
@@ -56,7 +59,7 @@ type SemanticMessage<'T> =
       Sender: MessageEndpoint
       Receiver: MessageEndpoint option // None = Broadcast
       Performative: Performative
-      Intent: AgentIntent option
+      Intent: AgentDomain option
       Constraints: SemanticConstraints
       Ontology: string option // Domain context (e.g., "coding", "finance")
       Language: string // Content type (e.g., "json", "fsharp", "natural")
@@ -99,7 +102,11 @@ type Capability =
     { Kind: CapabilityKind
       Description: string
       InputSchema: string option
-      OutputSchema: string option }
+      OutputSchema: string option
+      /// Model-reported confidence for this capability (0.0-1.0)
+      Confidence: float option
+      /// Rolling reputation score from observed outcomes (0.0-1.0)
+      Reputation: float option }
 
 /// Represents a tool that an agent can execute
 type Tool =

@@ -20,6 +20,7 @@ type TaskDefinition =
 type TaskResult =
     {
         TaskId: Guid
+        TaskGoal: string
         ExecutorId: AgentId
         Success: bool
         Output: string

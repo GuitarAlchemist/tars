@@ -1,6 +1,7 @@
-/// SemanticWatchdog - Monitors agent behavior for anomalies
-/// Part of v2.2 Cognitive Patterns
 namespace Tars.Cortex
+
+// SemanticWatchdog - Monitors agent behavior for anomalies
+// Part of v2.2 Cognitive Patterns
 
 open System
 open System.Threading.Tasks

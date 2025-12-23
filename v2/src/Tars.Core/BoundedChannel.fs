@@ -1,6 +1,7 @@
-/// BoundedChannel - Backpressure-aware message channels
-/// Phase 6.1 of the TARS v2 Roadmap
 namespace Tars.Core
+
+// BoundedChannel - Backpressure-aware message channels
+// Phase 6.1 of the TARS v2 Roadmap
 
 open System
 open System.Collections.Concurrent
@@ -65,7 +66,7 @@ type BoundedChannel<'T>(capacity: int, fullBehavior: FullBehavior) =
           HighWaterMark = highWaterMark }
 
     /// Internal read helper (assumes notEmpty permit is already acquired/handled)
-    member private this.doRead() : 'T option =
+    member private _.doRead() : 'T option =
         lock lockObj (fun () ->
             match queue.TryDequeue() with
             | true, item ->

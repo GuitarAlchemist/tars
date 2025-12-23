@@ -7,6 +7,7 @@ open FSharp.Compiler.Text
 open FSharp.Compiler.Syntax
 open Tars.Core
 
+/// AST Ingestor for parsing F# source code and ingesting into the knowledge graph.
 module AstIngestor =
 
     let private checker = FSharpChecker.Create()
@@ -18,148 +19,167 @@ module AstIngestor =
         match synLid with
         | SynLongIdent(id, _, _) -> getLongIdentName id
 
-    let rec private walkSynModuleDecl
-        (graph: Tars.Core.LegacyKnowledgeGraph.TemporalGraph)
-        (parentNode: GraphNode)
-        (decl: SynModuleDecl)
-        =
-        match decl with
-        | SynModuleDecl.NestedModule(moduleInfo = moduleInfo; decls = decls) ->
-            match moduleInfo with
-            | SynComponentInfo(longId = id) ->
-                let name = getLongIdentName id
-                let node = ModuleNode name
-                graph.AddNode(node)
-                graph.AddEdge(parentNode, node, Contains)
+    /// Extracted entity with its parent
+    type private ExtractedEntity =
+        { Entity: TarsEntity
+          Parent: TarsEntity option }
 
-                for d in decls do
-                    walkSynModuleDecl graph node d
+    /// Recursively extracts entities from module declarations (synchronous collection)
+    let rec private collectFromModuleDecl (parentNode: TarsEntity) (decl: SynModuleDecl) : ExtractedEntity list =
+        match decl with
+        | SynModuleDecl.NestedModule(componentInfo, _, decls, _, _, _) ->
+            match componentInfo with
+            | SynComponentInfo(_, _, _, id, _, _, _, _) ->
+                let name = getLongIdentName id
+
+                let node =
+                    CodeModuleE
+                        { Path = name
+                          Namespace = name
+                          Dependencies = []
+                          Complexity = 0.0
+                          LineCount = 0 }
+
+                let current =
+                    { Entity = node
+                      Parent = Some parentNode }
+
+                let children = decls |> List.collect (collectFromModuleDecl node)
+                current :: children
 
         | SynModuleDecl.Types(typeDefns, _) ->
-            for typeDefn in typeDefns do
+            typeDefns
+            |> List.collect (fun typeDefn ->
                 match typeDefn with
-                | SynTypeDefn(typeInfo = typeInfo; typeRepr = _repr; members = members) ->
+                | SynTypeDefn(typeInfo, _, members, _, _, _) ->
                     match typeInfo with
-                    | SynComponentInfo(longId = id) ->
+                    | SynComponentInfo(_, _, _, id, _, _, _, _) ->
                         let name = getLongIdentName id
-                        let node = TypeNode name
-                        graph.AddNode(node)
-                        graph.AddEdge(parentNode, node, Contains)
 
-                        // Members
-                        for m in members do
-                            match m with
-                            | SynMemberDefn.Member(memberDefn = binding) ->
-                                match binding with
-                                | SynBinding(headPat = pat) ->
-                                    match pat with
-                                    | SynPat.LongIdent(longDotId = longDotId) ->
-                                        let funcName = getSynLongIdentName longDotId
-                                        let funcNode = FunctionNode funcName
-                                        graph.AddNode(funcNode)
-                                        graph.AddEdge(node, funcNode, Contains)
-                                    | _ -> ()
-                            | _ -> ()
+                        let node =
+                            ConceptE
+                                { Name = name
+                                  Description = "Type"
+                                  RelatedConcepts = [] }
 
-        | SynModuleDecl.Let(bindings = bindings) ->
-            for binding in bindings do
+                        let current =
+                            { Entity = node
+                              Parent = Some parentNode }
+
+                        let memberEntities =
+                            members
+                            |> List.choose (fun m ->
+                                match m with
+                                | SynMemberDefn.Member(binding, _) ->
+                                    match binding with
+                                    | SynBinding(_, _, _, _, _, _, _, pat, _, _, _, _, _) ->
+                                        match pat with
+                                        | SynPat.LongIdent(longDotId, _, _, _, _, _) ->
+                                            let funcName = getSynLongIdentName longDotId
+
+                                            Some
+                                                { Entity = FunctionE funcName
+                                                  Parent = Some node }
+                                        | _ -> None
+                                | _ -> None)
+
+                        current :: memberEntities)
+
+        | SynModuleDecl.Let(_, bindings, _) ->
+            bindings
+            |> List.choose (fun binding ->
                 match binding with
-                | SynBinding(headPat = pat) ->
+                | SynBinding(_, _, _, _, _, _, _, pat, _, _, _, _, _) ->
                     match pat with
-                    | SynPat.LongIdent(longDotId = longDotId) ->
+                    | SynPat.LongIdent(longDotId, _, _, _, _, _) ->
                         let funcName = getSynLongIdentName longDotId
-                        let funcNode = FunctionNode funcName
-                        graph.AddNode(funcNode)
-                        graph.AddEdge(parentNode, funcNode, Contains)
-                    | SynPat.Named(ident = ident) ->
-                        let (SynIdent(ident, _)) = ident
-                        let node = FunctionNode ident.idText
-                        graph.AddNode(node)
-                        graph.AddEdge(parentNode, node, Contains)
-                    | _ -> ()
 
-        | _ -> ()
+                        Some
+                            { Entity = FunctionE funcName
+                              Parent = Some parentNode }
+                    | SynPat.Named(synIdent, _, _, _) ->
+                        // SynIdent contains an Ident we can access
+                        let identName =
+                            match synIdent with
+                            | SynIdent(ident, _) -> ident.idText
 
-    let ingestFile (graph: Tars.Core.LegacyKnowledgeGraph.TemporalGraph) (filePath: string) =
+                        Some
+                            { Entity = FunctionE identName
+                              Parent = Some parentNode }
+                    | _ -> None)
+
+        | _ -> []
+
+    /// Ingests a single F# file into the knowledge graph
+    let ingestFile (graph: IGraphService) (filePath: string) =
         async {
-            try
-                let content = File.ReadAllText(filePath)
-                let sourceText = SourceText.ofString content
+            if File.Exists(filePath) then
+                try
+                    let content = File.ReadAllText(filePath)
+                    let sourceText = SourceText.ofString content
 
-                let options =
-                    { FSharpParsingOptions.Default with
-                        SourceFiles = [| filePath |] }
+                    let options =
+                        { FSharpParsingOptions.Default with
+                            SourceFiles = [| filePath |] }
 
-                let! parseRes = checker.ParseFile(filePath, sourceText, options)
+                    let! parseRes = checker.ParseFile(filePath, sourceText, options)
 
-                let tree = parseRes.ParseTree
+                    match parseRes.ParseTree with
+                    | ParsedInput.ImplFile(impl) ->
+                        let fileName = impl.FileName
+                        let modules = impl.Contents
 
-                match tree with
-                | ParsedInput.ImplFile(parsedImplFileInput) ->
-                    let fileName = Path.GetFileName(filePath)
-                    let fileNode = FileNode fileName
-                    graph.AddNode(fileNode)
+                        let shortName = Path.GetFileName(fileName: string)
+                        let fileNode = FileE shortName
+                        do! graph.AddNodeAsync(fileNode) |> Async.AwaitTask |> Async.Ignore
 
-                    for moduleOrNs in parsedImplFileInput.Contents do
-                        match moduleOrNs with
-                        | SynModuleOrNamespace(longId = id; decls = decls) ->
-                            let name = getLongIdentName id
-                            let node = ModuleNode name
-                            graph.AddNode(node)
-                            graph.AddEdge(fileNode, node, Contains)
+                        // Collect all entities first (synchronous)
+                        let allEntities =
+                            modules
+                            |> List.collect (fun moduleOrNs ->
+                                match moduleOrNs with
+                                | SynModuleOrNamespace(id, _, _, decls, _, _, _, _, _) ->
+                                    let name = getLongIdentName id
 
-                            for d in decls do
-                                walkSynModuleDecl graph node d
-                | _ -> ()
-            with ex ->
-                printfn "Failed to parse %s: %s" filePath ex.Message
+                                    let moduleNode =
+                                        CodeModuleE
+                                            { Path = name
+                                              Namespace = name
+                                              Dependencies = []
+                                              Complexity = 0.0
+                                              LineCount = 0 }
+
+                                    let current =
+                                        { Entity = moduleNode
+                                          Parent = Some fileNode }
+
+                                    let children = decls |> List.collect (collectFromModuleDecl moduleNode)
+                                    current :: children)
+
+                        // Then ingest them (async)
+                        for entity in allEntities do
+                            do! graph.AddNodeAsync(entity.Entity) |> Async.AwaitTask |> Async.Ignore
+
+                            match entity.Parent with
+                            | Some parent ->
+                                do!
+                                    graph.AddFactAsync(TarsFact.Contains(parent, entity.Entity))
+                                    |> Async.AwaitTask
+                                    |> Async.Ignore
+                            | None -> ()
+                    | _ -> ()
+                with ex ->
+                    printfn "Failed to parse %s: %s" filePath ex.Message
         }
 
-    let ingestDirectory (graph: Tars.Core.LegacyKnowledgeGraph.TemporalGraph) (rootPath: string) =
+    /// Recursively ingests all F# files in a directory
+    let ingestDirectory (graph: IGraphService) (rootPath: string) =
         async {
             if Directory.Exists(rootPath) then
-                let files = Directory.GetFiles(rootPath, "*.fs", SearchOption.AllDirectories)
+                let files =
+                    Directory.GetFiles(rootPath, "*.fs", SearchOption.AllDirectories)
+                    |> Array.filter (fun f -> not (f.Contains("obj") || f.Contains("bin")))
 
                 for file in files do
-                    if
-                        not (
-                            file.Contains(
-                                Path.DirectorySeparatorChar.ToString()
-                                + "obj"
-                                + Path.DirectorySeparatorChar.ToString()
-                            )
-                            || file.Contains(
-                                Path.DirectorySeparatorChar.ToString()
-                                + "bin"
-                                + Path.DirectorySeparatorChar.ToString()
-                            )
-                        )
-                    then
-                        do! ingestFile graph file
+                    do! ingestFile graph file
         }
-
-    let extractCodeStructure (graph: Tars.Core.LegacyKnowledgeGraph.TemporalGraph) : CodeStructure =
-        let nodes = graph.GetNodes()
-
-        let modules =
-            nodes
-            |> List.choose (function
-                | ModuleNode name -> Some name
-                | _ -> None)
-
-        let types =
-            nodes
-            |> List.choose (function
-                | TypeNode name -> Some name
-                | _ -> None)
-
-        let functions =
-            nodes
-            |> List.choose (function
-                | FunctionNode name -> Some name
-                | _ -> None)
-
-        { Modules = modules
-          Types = types
-          Functions = functions
-          Dependencies = [] }

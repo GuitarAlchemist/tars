@@ -1,8 +1,7 @@
-/// <summary>
-/// Core domain types for the TARS LLM abstraction layer.
-/// Provides backend-agnostic types for LLM requests, responses, and routing.
-/// </summary>
 namespace Tars.Llm
+
+// Core domain types for the TARS LLM abstraction layer.
+// Provides backend-agnostic types for LLM requests, responses, and routing.
 
 open System
 
@@ -86,6 +85,27 @@ type LlmResponse =
         Raw: string option
     }
 
+/// <summary>Configuration options for llama.cpp backend.</summary>
+type LlamaCppConfig =
+    {
+        /// <summary>Number of GPU layers to offload (-1 = all, 0 = CPU only).</summary>
+        GpuLayers: int option
+        /// <summary>Context size in tokens (default: 2048).</summary>
+        ContextSize: int option
+        /// <summary>Number of parallel inference slots (default: 1).</summary>
+        NumParallel: int option
+        /// <summary>Enable flash attention for faster inference.</summary>
+        FlashAttention: bool
+    }
+
+/// <summary>Default llama.cpp configuration.</summary>
+module LlamaCppConfig =
+    let Default =
+        { GpuLayers = None
+          ContextSize = None
+          NumParallel = None
+          FlashAttention = true }
+
 /// <summary>Supported LLM backends.</summary>
 type LlmBackend =
     /// <summary>Local Ollama server.</summary>
@@ -98,6 +118,10 @@ type LlmBackend =
     | GoogleGemini of model: string
     /// <summary>Anthropic Claude API.</summary>
     | Anthropic of model: string
+    /// <summary>Docker Model Runner (OpenAI-compatible, container-native).</summary>
+    | DockerModelRunner of model: string
+    /// <summary>llama.cpp server (high-performance local inference with GGUF models).</summary>
+    | LlamaCpp of model: string * config: LlamaCppConfig option
 
 /// <summary>Result of routing policy - which backend and endpoint to use.</summary>
 type RoutedBackend = { Backend: LlmBackend; Endpoint: Uri }

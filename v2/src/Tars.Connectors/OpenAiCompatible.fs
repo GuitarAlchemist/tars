@@ -1,4 +1,4 @@
-﻿namespace Tars.Connectors
+namespace Tars.Connectors
 
 open System.Net.Http
 open System.Text

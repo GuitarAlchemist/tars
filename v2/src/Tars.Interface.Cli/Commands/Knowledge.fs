@@ -40,11 +40,11 @@ let private printEntry (entry: Entry) =
         | Unknown -> "?"
 
     Console.ForegroundColor <- ConsoleColor.Cyan
-    printf "[%s] " entry.Id
+    printf $"[%s{entry.Id}] "
     Console.ForegroundColor <- ConsoleColor.White
-    printf "%s " entry.Title
+    printf $"%s{entry.Title} "
     Console.ForegroundColor <- ConsoleColor.DarkGray
-    printfn "(%s, %s)" catStr confStr
+    printfn $"(%s{catStr}, %s{confStr})"
     Console.ResetColor()
 
 let private printEntryFull (entry: Entry) =
@@ -59,7 +59,7 @@ let private printEntryFull (entry: Entry) =
 
     Console.ResetColor()
     printfn ""
-    printfn "%s" entry.Content
+    printfn $"%s{entry.Content}"
     printfn ""
 
 let private parseCategory (s: string) : Category =
@@ -85,7 +85,7 @@ let run (options: KnowledgeOptions) =
         if entries.IsEmpty then
             printfn "No knowledge entries found."
         else
-            printfn "📚 Knowledge Base (%d entries)\n" entries.Length
+            printfn $"📚 Knowledge Base (%d{entries.Length} entries)\n"
             entries |> List.iter printEntry
 
     | "search"
@@ -95,9 +95,9 @@ let run (options: KnowledgeOptions) =
             let results = kb.Search(q)
 
             if results.IsEmpty then
-                printfn "No entries matching '%s'" q
+                printfn $"No entries matching '%s{q}'"
             else
-                printfn "🔍 Search results for '%s' (%d found)\n" q results.Length
+                printfn $"🔍 Search results for '%s{q}' (%d{results.Length} found)\n"
                 results |> List.iter printEntry
         | None -> printfn "Usage: tars knowledge search <query>"
 
@@ -107,7 +107,7 @@ let run (options: KnowledgeOptions) =
         | Some id ->
             match kb.Get(id) with
             | Some entry -> printEntryFull entry
-            | None -> printfn "Entry '%s' not found" id
+            | None -> printfn $"Entry '%s{id}' not found"
         | None -> printfn "Usage: tars knowledge show <id>"
 
     | "add"
@@ -124,7 +124,7 @@ let run (options: KnowledgeOptions) =
 
             let entry = kb.Add(title, content, category, tags = tags, source = Told)
             Console.ForegroundColor <- ConsoleColor.Green
-            printfn "✓ Created entry: %s" entry.Id
+            printfn $"✓ Created entry: %s{entry.Id}"
             Console.ResetColor()
         | _ ->
             printfn
@@ -136,13 +136,13 @@ let run (options: KnowledgeOptions) =
         | Some id ->
             if kb.Delete(id) then
                 Console.ForegroundColor <- ConsoleColor.Yellow
-                printfn "✓ Deleted entry: %s" id
+                printfn $"✓ Deleted entry: %s{id}"
                 Console.ResetColor()
             else
-                printfn "Entry '%s' not found" id
+                printfn $"Entry '%s{id}' not found"
         | None -> printfn "Usage: tars knowledge delete <id>"
 
-    | "path" -> printfn "Knowledge base path: %s" kb.BasePath
+    | "path" -> printfn $"Knowledge base path: %s{kb.BasePath}"
 
     | _ ->
         printfn "TARS Knowledge Base\n"

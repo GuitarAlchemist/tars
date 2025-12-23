@@ -37,27 +37,21 @@ module LlmTools =
 
                                    if model.TryGetProperty("size", &sizeProp) then
                                        let bytes = sizeProp.GetInt64()
-                                       sprintf "%.1f GB" (float bytes / 1073741824.0)
+                                       $"%.1f{float bytes / 1073741824.0} GB"
                                    else
                                        "unknown size"
 
-                               yield sprintf "  - %s (%s)" name size |]
+                               yield $"  - %s{name} (%s{size})" |]
                         |> String.concat "\n"
 
                     return
-                        sprintf
-                            "Available Models (from Ollama):\n%s\n\nActive model: %s\n\nUse switch_model to change, or pull_model to download new models."
-                            modelList
-                            activeModel
+                        $"Available Models (from Ollama):\n%s{modelList}\n\nActive model: %s{activeModel}\n\nUse switch_model to change, or pull_model to download new models."
                 else
-                    return sprintf "Could not reach Ollama API. Active model: %s" activeModel
+                    return $"Could not reach Ollama API. Active model: %s{activeModel}"
             with ex ->
                 // Fallback if Ollama not running
                 return
-                    sprintf
-                        "Ollama API error: %s\n\nMake sure Ollama is running. Active model: %s"
-                        ex.Message
-                        activeModel
+                    $"Ollama API error: %s{ex.Message}\n\nMake sure Ollama is running. Active model: %s{activeModel}"
         }
 
     [<TarsToolAttribute("switch_model",
@@ -65,10 +59,10 @@ module LlmTools =
     let switchModel (modelName: string) =
         task {
             let model = modelName.Trim()
-            printfn "🔄 SWITCHING MODEL to: %s" model
+            printfn $"🔄 SWITCHING MODEL to: %s{model}"
 
             if String.IsNullOrWhiteSpace(model) then
-                return sprintf "Model name required. Current model: %s" activeModel
+                return $"Model name required. Current model: %s{activeModel}"
             else
                 let oldModel = activeModel
                 activeModel <- model
@@ -76,16 +70,13 @@ module LlmTools =
                 // Note: Actual model switching happens in the LLM layer
                 // This tool updates the preference and informs what to do
                 return
-                    sprintf
-                        "Model preference changed: %s -> %s\n\nNote: The actual model switch takes effect on next LLM call. Use list_models to see available models."
-                        oldModel
-                        activeModel
+                    $"Model preference changed: %s{oldModel} -> %s{activeModel}\n\nNote: The actual model switch takes effect on next LLM call. Use list_models to see available models."
         }
 
     [<TarsToolAttribute("recommend_model", "Recommends the best model for a specific task. Input: task description")>]
     let recommendModel (taskDescription: string) =
         task {
-            printfn "🤔 RECOMMENDING MODEL for: %s" (taskDescription.Substring(0, min 50 taskDescription.Length))
+            printfn $"🤔 RECOMMENDING MODEL for: %s{taskDescription.Substring(0, min 50 taskDescription.Length)}"
 
             let task = taskDescription.ToLower()
 
@@ -141,7 +132,7 @@ module LlmTools =
     let pullModel (modelName: string) =
         task {
             let model = modelName.Trim()
-            printfn "📥 PULLING MODEL: %s" model
+            printfn $"📥 PULLING MODEL: %s{model}"
 
             if String.IsNullOrWhiteSpace(model) then
                 return "Model name required. Example: pull_model 'codestral:latest'"
@@ -150,7 +141,7 @@ module LlmTools =
                     // Use Ollama CLI to pull model
                     let psi = ProcessStartInfo()
                     psi.FileName <- "ollama"
-                    psi.Arguments <- sprintf "pull %s" model
+                    psi.Arguments <- $"pull %s{model}"
                     psi.RedirectStandardOutput <- true
                     psi.RedirectStandardError <- true
                     psi.UseShellExecute <- false
@@ -167,20 +158,14 @@ module LlmTools =
 
                         if proc.ExitCode = 0 then
                             return
-                                sprintf
-                                    "Model '%s' pulled successfully!\n%s\n\nUse switch_model to activate it."
-                                    model
-                                    output
+                                $"Model '%s{model}' pulled successfully!\n%s{output}\n\nUse switch_model to activate it."
                         else
-                            return sprintf "Error pulling model '%s': %s" model error
+                            return $"Error pulling model '%s{model}': %s{error}"
                     else
                         return
-                            sprintf
-                                "Model '%s' download started. This may take several minutes for large models.\n\nRun 'ollama pull %s' in a terminal to see progress.\n\nUse list_models to check when it's available."
-                                model
-                                model
+                            $"Model '%s{model}' download started. This may take several minutes for large models.\n\nRun 'ollama pull %s{model}' in a terminal to see progress.\n\nUse list_models to check when it's available."
                 with ex ->
-                    return sprintf "pull_model error: %s\n\nMake sure Ollama is installed and running." ex.Message
+                    return $"pull_model error: %s{ex.Message}\n\nMake sure Ollama is installed and running."
         }
 
     [<TarsToolAttribute("model_info", "Gets detailed information about a specific model. Input: model name")>]
@@ -192,12 +177,12 @@ module LlmTools =
                 else
                     modelName.Trim()
 
-            printfn "ℹ️ MODEL INFO: %s" model
+            printfn $"ℹ️ MODEL INFO: %s{model}"
 
             try
                 let psi = ProcessStartInfo()
                 psi.FileName <- "ollama"
-                psi.Arguments <- sprintf "show %s" model
+                psi.Arguments <- $"show %s{model}"
                 psi.RedirectStandardOutput <- true
                 psi.RedirectStandardError <- true
                 psi.UseShellExecute <- false
@@ -208,21 +193,19 @@ module LlmTools =
 
                 if completed && proc.ExitCode = 0 then
                     let output = proc.StandardOutput.ReadToEnd()
-                    return sprintf "Model: %s\n\n%s" model output
+                    return $"Model: %s{model}\n\n%s{output}"
                 else
                     let error = proc.StandardError.ReadToEnd()
-                    return sprintf "Could not get info for '%s': %s" model error
+                    return $"Could not get info for '%s{model}': %s{error}"
             with ex ->
-                return sprintf "model_info error: %s" ex.Message
+                return $"model_info error: %s{ex.Message}"
         }
 
     [<TarsToolAttribute("get_active_model", "Returns the currently active LLM model. No input required.")>]
     let getActiveModel (_: string) =
         task {
-            printfn "🔍 ACTIVE MODEL: %s" activeModel
+            printfn $"🔍 ACTIVE MODEL: %s{activeModel}"
 
             return
-                sprintf
-                    "Current active model: %s\n\nUse switch_model to change, or list_models to see alternatives."
-                    activeModel
+                $"Current active model: %s{activeModel}\n\nUse switch_model to change, or list_models to see alternatives."
         }

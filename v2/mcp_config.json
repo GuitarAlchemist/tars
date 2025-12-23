@@ -3,9 +3,13 @@
     {
       "Name": "dummy",
       "Command": "python",
-      "Arguments": [
-        "c:\\Users\\spare\\source\\repos\\tars\\v2\\tests\\dummy_mcp_server.py"
-      ],
+      "Arguments": ["c:\Users\spare\source\repos\tars\v2\tests\dummy_mcp_server.py"],
+      "Environment": {}
+    },
+    {
+      "Name": "github",
+      "Command": "npx",
+      "Arguments": ["-y", "@modelcontextprotocol/server-github"],
       "Environment": {}
     }
   ]

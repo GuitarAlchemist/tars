@@ -11,11 +11,12 @@ open Tars.Evolution
 open System.Net.Http
 open Tars.Llm
 open Tars.Llm.Routing
-open Tars.Llm.Routing
 open Tars.Llm.LlmService
 open Tars.Cortex
 open Tars.Security
 open Tars.Connectors.EpisodeIngestion
+open Tars.Interface.Cli // For ConfigurationLoader
+open Tars.Interface.Cli.SpectreUI
 
 type EvolveOptions =
     { MaxIterations: int
@@ -23,85 +24,21 @@ type EvolveOptions =
       DemoMode: bool
       Verbose: bool
       Model: string option
-      Trace: bool }
-
-/// Console output helpers with colors
-module ConsoleUI =
-    let private writeColored (color: ConsoleColor) (text: string) =
-        let prev = Console.ForegroundColor
-        Console.ForegroundColor <- color
-        Console.Write(text)
-        Console.ForegroundColor <- prev
-
-    let success text = writeColored ConsoleColor.Green text
-    let info text = writeColored ConsoleColor.Cyan text
-    let warning text = writeColored ConsoleColor.Yellow text
-    let error text = writeColored ConsoleColor.Red text
-    let dim text = writeColored ConsoleColor.DarkGray text
-
-    let printBanner () =
-        Console.ForegroundColor <- ConsoleColor.Cyan
-        printfn ""
-        printfn "╔════════════════════════════════════════════════════════════╗"
-        printfn "║           🧠 TARS v2 Evolution Engine                      ║"
-        printfn "║           Self-Improving Agent System                      ║"
-        printfn "╚════════════════════════════════════════════════════════════╝"
-        Console.ResetColor()
-        printfn ""
-
-    let printGeneration (gen: int) (taskCount: int) =
-        info $"┌─ Generation {gen} "
-        dim $"({taskCount} tasks completed)\n"
-
-    let printTask (goal: string) =
-        Console.Write("│ 📋 Task: ")
-
-        success (
-            if goal.Length > 60 then
-                goal.Substring(0, 57) + "..."
-            else
-                goal
-        )
-
-        printfn ""
-
-    let printProgress (step: string) = dim $"│   ⏳ {step}\n"
-
-    let printSuccess (output: string) =
-        Console.Write("│ ✅ Result: ")
-
-        let preview =
-            if output.Length > 80 then
-                output.Substring(0, 77) + "..."
-            else
-                output
-
-        printfn "%s" (preview.Replace("\n", " "))
-
-    let printError (err: string) =
-        Console.Write("│ ")
-        error $"❌ Error: {err}\n"
-
-    let printDivider () =
-        dim "└────────────────────────────────────────────────────────────\n"
-
-    let printSummary (completed: int) (budget: BudgetGovernor option) =
-        printfn ""
-        info "═══ Evolution Summary ═══\n"
-        printfn "  Tasks Completed: %d" completed
-
-        match budget with
-        | Some b ->
-            let consumed = b.Consumed
-            printfn "  Tokens Used: %d" (int consumed.Tokens)
-        | None -> ()
-
-        printfn ""
+      Trace: bool
+      Budget: decimal option
+      DisableGraphiti: bool }
 
 let run (logger: ILogger) (options: EvolveOptions) =
     task {
+        // Load configuration
+        let config = ConfigurationLoader.load ()
+
         if not options.Quiet then
-            ConsoleUI.printBanner ()
+            RichOutput.printBanner ()
+            RichOutput.dim $"   [Config] Loaded settings from {ConfigurationDefaults.getTarsHome ()}"
+
+            if config.Llm.Provider <> "Ollama" then
+                RichOutput.info $"   [Config] Provider: {config.Llm.Provider}"
 
         logger.Information("Starting TARS v2 Evolution Engine...")
 
@@ -109,22 +46,28 @@ let run (logger: ILogger) (options: EvolveOptions) =
         let curriculumId = Guid.NewGuid()
         let executorId = Guid.NewGuid()
 
-        let model = options.Model |> Option.defaultValue "qwen2.5-coder:1.5b"
+        let model = options.Model |> Option.defaultValue config.Llm.Model
 
         // Log model and agent info
-        printfn $"🤖 LLM Model: {model}"
-        printfn $"📋 Curriculum Agent: {curriculumId}"
-        printfn $"⚙️  Executor Agent: {executorId}"
+        if not options.Quiet then
+            LlmDisplay.printModel model
+
+        logger.Information("Curriculum Agent: {Id}", curriculumId)
+        logger.Information("Executor Agent: {Id}", executorId)
 
         let curriculumCapabilities =
             [ { Kind = CapabilityKind.Planning
                 Description = "Can generate curriculum and plan tasks"
                 InputSchema = None
-                OutputSchema = None }
+                OutputSchema = None
+                Confidence = Some 0.78
+                Reputation = Some 0.5 }
               { Kind = CapabilityKind.Reasoning
                 Description = "Can reason about task difficulty and progression"
                 InputSchema = None
-                OutputSchema = None } ]
+                OutputSchema = None
+                Confidence = Some 0.72
+                Reputation = Some 0.5 } ]
 
         let curriculumAgent =
             AgentFactory.create
@@ -140,15 +83,21 @@ let run (logger: ILogger) (options: EvolveOptions) =
             [ { Kind = CapabilityKind.CodeGeneration
                 Description = "Can write code to solve tasks"
                 InputSchema = None
-                OutputSchema = None }
+                OutputSchema = None
+                Confidence = Some 0.88
+                Reputation = Some 0.55 }
               { Kind = CapabilityKind.TaskExecution
                 Description = "Can execute tasks using tools"
                 InputSchema = None
-                OutputSchema = None }
+                OutputSchema = None
+                Confidence = Some 0.82
+                Reputation = Some 0.55 }
               { Kind = CapabilityKind.Reasoning
                 Description = "Can reflect on solutions and improve them"
                 InputSchema = None
-                OutputSchema = None } ]
+                OutputSchema = None
+                Confidence = Some 0.74
+                Reputation = Some 0.5 } ]
 
         // Initialize Tools
         let toolRegistry = Tars.Tools.ToolRegistry()
@@ -208,6 +157,7 @@ let run (logger: ILogger) (options: EvolveOptions) =
               "list_env"
               "run_shell"
               "http_get"
+              "search_web"
               "get_system_info"
               "get_time"
               "get_working_dir"
@@ -257,11 +207,15 @@ let run (logger: ILogger) (options: EvolveOptions) =
             [ { Kind = CapabilityKind.Reasoning
                 Description = "Can analyze code for quality and correctness"
                 InputSchema = None
-                OutputSchema = None }
+                OutputSchema = None
+                Confidence = Some 0.76
+                Reputation = Some 0.45 }
               { Kind = CapabilityKind.Planning
                 Description = "Can suggest improvements and identify issues"
                 InputSchema = None
-                OutputSchema = None } ]
+                OutputSchema = None
+                Confidence = Some 0.66
+                Reputation = Some 0.45 } ]
 
         let reviewerTools =
             [ "read_code"; "git_diff"; "git_status" ] |> List.choose toolRegistry.Get
@@ -289,23 +243,48 @@ let run (logger: ILogger) (options: EvolveOptions) =
         | Microsoft.FSharp.Core.Result.Error e -> logger.Warning("Secret registration FAILED: {Error}", e)
 
         let routingCfg: RoutingConfig =
-            { OllamaBaseUri = Uri("http://localhost:11434/")
-              VllmBaseUri = Uri("http://localhost:11434/")
+            let ollamaUri =
+                config.Llm.BaseUrl |> Option.defaultValue "http://localhost:11434" |> Uri
+
+            // Helper to get API key if provider matches, else fall back to secret
+            let getKey provider secretName =
+                if config.Llm.Provider.Equals(provider, StringComparison.OrdinalIgnoreCase) then
+                    config.Llm.ApiKey
+                    |> Option.orElse (CredentialVault.getSecret secretName |> Result.toOption)
+                else
+                    CredentialVault.getSecret secretName |> Result.toOption
+
+            { OllamaBaseUri = ollamaUri
+              VllmBaseUri = ollamaUri
               OpenAIBaseUri = Uri("https://api.openai.com/")
               GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com/")
               AnthropicBaseUri = Uri("https://api.anthropic.com/")
               DefaultOllamaModel = model
               DefaultVllmModel = model
-              DefaultOpenAIModel = "gpt-4o"
-              DefaultGoogleGeminiModel = "gemini-pro"
-              DefaultAnthropicModel = "claude-3-opus-20240229"
-              DefaultEmbeddingModel = "nomic-embed-text"
+              DefaultOpenAIModel = if config.Llm.Provider = "OpenAI" then model else "gpt-4o"
+              DefaultGoogleGeminiModel =
+                if config.Llm.Provider = "Google" then
+                    model
+                else
+                    "gemini-pro"
+              DefaultAnthropicModel =
+                if config.Llm.Provider = "Anthropic" then
+                    model
+                else
+                    "claude-3-opus-20240229"
+              DefaultEmbeddingModel = config.Llm.EmbeddingModel
 
               OllamaKey = None
               VllmKey = None
-              OpenAIKey = CredentialVault.getSecret "OPENAI_API_KEY" |> Result.toOption
-              GoogleGeminiKey = CredentialVault.getSecret "GOOGLE_API_KEY" |> Result.toOption
-              AnthropicKey = CredentialVault.getSecret "ANTHROPIC_API_KEY" |> Result.toOption }
+              OpenAIKey = getKey "OpenAI" "OPENAI_API_KEY"
+              GoogleGeminiKey = getKey "Google" "GOOGLE_API_KEY"
+              AnthropicKey = getKey "Anthropic" "ANTHROPIC_API_KEY"
+              DockerModelRunnerBaseUri = None
+              LlamaCppBaseUri = None
+              DefaultDockerModelRunnerModel = None
+              DefaultLlamaCppModel = None
+              DockerModelRunnerKey = None
+              LlamaCppKey = None }
 
         let svcCfg: LlmServiceConfig = { Routing = routingCfg }
         use httpClient = new HttpClient()
@@ -318,7 +297,7 @@ let run (logger: ILogger) (options: EvolveOptions) =
         let llmService =
             if options.Trace then
                 if not options.Quiet then
-                    ConsoleUI.info "🔍 Tracing enabled\n"
+                    RichOutput.info "🔍 Tracing enabled"
 
                 TracingLlmService(baseLlmService, traceRecorder) :> ILlmService
             else
@@ -329,29 +308,56 @@ let run (logger: ILogger) (options: EvolveOptions) =
             logger.Information("Started trace {TraceId}", traceId)
 
         // Initialize Vector Store
-        let tarsDir =
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".tars")
+        let vectorStore =
+            match config.Memory.PostgresConnectionString with
+            | Some connStr ->
+                if not options.Quiet then
+                    RichOutput.info "📁 Using Postgres Vector Store"
 
-        if not (Directory.Exists(tarsDir)) then
-            Directory.CreateDirectory(tarsDir) |> ignore
+                // Align vector dimension with embedding model (defaults to 1536 for nomic-embed-text)
+                let vecDim =
+                    match config.Llm.EmbeddingModel.ToLowerInvariant() with
+                    | m when m.Contains("nomic") -> 1536
+                    | m when m.Contains("text-embedding-3-large") -> 3072
+                    | m when m.Contains("text-embedding-3-small") -> 1536
+                    | _ -> 1536
 
-        let dbPath = Path.Combine(tarsDir, "memory.db")
-        let vectorStore = Tars.Cortex.SqliteVectorStore(dbPath) :> IVectorStore
+                PostgresVectorStore(connStr, vecDim) :> IVectorStore
+            | None ->
+                let dbPath = config.Memory.VectorStorePath
+                let dbDir = Path.GetDirectoryName(dbPath)
 
-        if not options.Quiet then
-            ConsoleUI.info $"📁 Using persistent memory at {dbPath}\n"
+                if not (Directory.Exists(dbDir)) then
+                    Directory.CreateDirectory(dbDir) |> ignore
+
+                if not options.Quiet then
+                    RichOutput.info $"📁 Using persistent memory at {dbPath}"
+
+                Tars.Cortex.SqliteVectorStore(dbPath) :> IVectorStore
 
         // Initialize Capability Store and register agents
         let capabilityStore = CapabilityStore(vectorStore, llmService)
 
         if not options.Quiet then
-            ConsoleUI.info "🧠 Registering agent capabilities...\n"
+            RichOutput.info "🧠 Registering agent capabilities..."
 
         for cap in curriculumAgent.Capabilities do
+            if not options.Quiet then
+                RichOutput.dim $"   Process: {cap.Kind}..."
+
             do! capabilityStore.RegisterAsync(curriculumAgent.Id, cap)
 
         for cap in executorAgent.Capabilities do
+            if not options.Quiet then
+                RichOutput.dim $"   Process: {cap.Kind}..."
+
             do! capabilityStore.RegisterAsync(executorAgent.Id, cap)
+
+        for cap in reviewerAgent.Capabilities do
+            if not options.Quiet then
+                RichOutput.dim $"   Process: {cap.Kind}..."
+
+            do! capabilityStore.RegisterAsync(reviewerAgent.Id, cap)
 
         // Initialize Knowledge Base
         let knowledgePath =
@@ -367,7 +373,40 @@ let run (logger: ILogger) (options: EvolveOptions) =
         let knowledgeBase = KnowledgeBase(knowledgePath)
 
         if not options.Quiet then
-            ConsoleUI.info $"📚 Knowledge base: {knowledgeBase.BasePath}\n"
+            RichOutput.info $"📚 Knowledge base: {knowledgeBase.BasePath}"
+
+        // Initialize temporal knowledge graph with persistence
+        let knowledgeGraph =
+            let graphDir =
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".tars", "knowledge")
+
+            Directory.CreateDirectory(graphDir) |> ignore
+            let graphPath = Path.Combine(graphDir, "temporal_graph.json")
+            let graph = Tars.Core.TemporalKnowledgeGraph.TemporalGraph()
+
+            if File.Exists graphPath then
+                try
+                    graph.Load(graphPath) |> ignore
+                with ex ->
+                    logger.Warning("Failed to load knowledge graph: {Message}", ex.Message)
+
+            graph
+
+        let knowledgeGraphPath =
+            Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                ".tars",
+                "knowledge",
+                "temporal_graph.json"
+            )
+
+        if not options.Quiet then
+            RichOutput.info
+                $"🧠 Knowledge graph: {knowledgeGraphPath} (facts: {knowledgeGraph.GetCurrentFacts().Length})"
+
+            match config.Memory.PostgresConnectionString with
+            | Some _ -> RichOutput.info "🧠 Capability index: Postgres (agent_capabilities)"
+            | None -> RichOutput.info $"🧠 Capability index: {config.Memory.VectorStorePath} (agent_capabilities)"
 
         try
             // Session budget for evolution
@@ -375,7 +414,10 @@ let run (logger: ILogger) (options: EvolveOptions) =
                 BudgetGovernor(
                     { Budget.Infinite with
                         MaxTokens = Some 1000000<token>
-                        MaxMoney = Some 10.0m<usd> }
+                        MaxMoney =
+                            options.Budget
+                            |> Option.map (fun m -> m * 1m<usd>)
+                            |> Option.orElse (Some 10.0m<usd>) }
                 )
 
             let epistemic =
@@ -385,7 +427,6 @@ let run (logger: ILogger) (options: EvolveOptions) =
                     Some(Tars.Cortex.EpistemicGovernor(llmService, None, Some budget) :> IEpistemicGovernor)
 
             // Initialize Output Guard
-            // Use basic guard for now. In future, we can compose with LlmOutputGuardAnalyzer
             let outputGuard = OutputGuard.defaultGuard
 
             let evoState: EvolutionState =
@@ -397,19 +438,8 @@ let run (logger: ILogger) (options: EvolveOptions) =
                   TaskQueue = []
                   ActiveBeliefs = [] }
 
-            // Initialize Knowledge Graph and Ingest Codebase
-            // let knowledgeGraph = Tars.Core.LegacyKnowledgeGraph.TemporalGraph()
-
             if not options.Quiet then
-                ConsoleUI.info "🧠 Ingesting codebase into Knowledge Graph...\n"
-
-            // Ingest current directory
-            // do!
-            //     CodeGraphIngestor.ingestDirectory knowledgeGraph Environment.CurrentDirectory
-            //     |> Async.StartAsTask
-
-            // if not options.Quiet then
-            //     ConsoleUI.info $"   Loaded {knowledgeGraph.NodeCount} nodes and {knowledgeGraph.EdgeCount} edges\n"
+                RichOutput.info "🧠 Ingesting codebase into Knowledge Graph..."
 
             // Initialize Semantic Memory
             let embedder: Embedder =
@@ -428,7 +458,7 @@ let run (logger: ILogger) (options: EvolveOptions) =
             let kernel = KernelBootstrap.createKernel storageRoot embedder llmService
 
             if not options.Quiet then
-                ConsoleUI.info $"🧠 Semantic Memory initialized at {storageRoot}\n"
+                RichOutput.info $"🧠 Semantic Memory initialized at {storageRoot}"
 
             // Initialize Pre-LLM Pipeline
             let safetyStage = SafetyFilterStage() :> IPreLlmStage
@@ -462,42 +492,64 @@ let run (logger: ILogger) (options: EvolveOptions) =
                   Budget = Some budget
                   OutputGuard = Some outputGuard
                   KnowledgeBase = Some knowledgeBase
-                  KnowledgeGraph = None // Some knowledgeGraph
+                  KnowledgeGraph = Some knowledgeGraph
                   MemoryBuffer = Some memoryBuffer
-                  EpisodeService = None // Graphiti integration - set via env if available
+                  EpisodeService =
+                    match options.DisableGraphiti, config.Memory.GraphitiUrl with
+                    | true, _ -> None
+                    | _, None -> None
+                    | _, Some url ->
+                        try
+                            RichOutput.info $"Graphiti enabled at {url}"
+                            Some(createServiceWithUrl url)
+                        with ex ->
+                            logger.Warning("Graphiti ingestion unavailable: {Message}", ex.Message)
+                            None
                   Logger =
                     fun s ->
                         logger.Information("{Evolution}", s)
 
                         if options.Verbose then
-                            ConsoleUI.dim $"   [LOG] {s}\n"
+                            RichOutput.dim $"   [LOG] {s}"
                   Verbose = options.Verbose
-                  ShowSemanticMessage = DemoVisualization.showSemanticMessage }
+                  ShowSemanticMessage =
+                    match options.Quiet with
+                    | true -> (fun _ _ -> ())
+                    | false -> DemoVisualization.showSemanticMessage }
 
             let mutable currentState = evoState
 
             for i in 1 .. options.MaxIterations do
                 if not options.Quiet then
-                    ConsoleUI.printGeneration currentState.Generation currentState.CompletedTasks.Length
+                    Evolution.printGeneration
+                        currentState.Generation
+                        currentState.CompletedTasks.Length
+                        (Some options.MaxIterations)
 
                 let! nextState =
                     try
                         Engine.step evoCtx currentState
                     with
                     | :? System.Threading.Tasks.TaskCanceledException as ex ->
-                        // Timeout - log but continue with a failed task result
                         logger.Warning("Evolution step timed out: {Message}", ex.Message)
-                        printfn "⚠️ TIMEOUT: Task took too long, skipping to next task..."
 
-                        // Create a failed task result and continue
+                        if not options.Quiet then
+                            TaskDisplay.printFailure
+                                $"TIMEOUT: Task took too long, skipping to next task..."
+                                TimeSpan.Zero
+
                         let failedResult: TaskResult =
                             { TaskId =
                                 currentState.CurrentTask
                                 |> Option.map (fun t -> t.Id)
                                 |> Option.defaultValue (Guid.NewGuid())
+                              TaskGoal =
+                                currentState.CurrentTask
+                                |> Option.map (fun t -> t.Goal)
+                                |> Option.defaultValue "Unknown"
                               ExecutorId = currentState.ExecutorAgentId
                               Success = false
-                              Output = sprintf "Task timed out after 120 seconds: %s" ex.Message
+                              Output = $"Task timed out: %s{ex.Message}"
                               ExecutionTrace = [ "TIMEOUT" ]
                               Duration = TimeSpan.FromSeconds(120.0) }
 
@@ -505,39 +557,24 @@ let run (logger: ILogger) (options: EvolveOptions) =
                             { currentState with
                                 CompletedTasks = failedResult :: currentState.CompletedTasks
                                 CurrentTask = None }
-                    | :? System.Net.Http.HttpRequestException as ex ->
-                        // Network error - log but continue
-                        logger.Warning("Network error during evolution: {Message}", ex.Message)
-                        printfn "⚠️ NETWORK ERROR: %s, continuing..." ex.Message
-
-                        let failedResult: TaskResult =
-                            { TaskId =
-                                currentState.CurrentTask
-                                |> Option.map (fun t -> t.Id)
-                                |> Option.defaultValue (Guid.NewGuid())
-                              ExecutorId = currentState.ExecutorAgentId
-                              Success = false
-                              Output = sprintf "Network error: %s" ex.Message
-                              ExecutionTrace = [ "NETWORK_ERROR" ]
-                              Duration = TimeSpan.Zero }
-
-                        Task.FromResult
-                            { currentState with
-                                CompletedTasks = failedResult :: currentState.CompletedTasks
-                                CurrentTask = None }
                     | ex ->
-                        // Other errors - log and continue
                         logger.Error(ex, "Evolution Step Failed: {Message}", ex.Message)
-                        printfn "⚠️ ERROR: %s" ex.Message
+
+                        if not options.Quiet then
+                            TaskDisplay.printFailure $"ERROR: %s{ex.Message}" TimeSpan.Zero
 
                         let failedResult: TaskResult =
                             { TaskId =
                                 currentState.CurrentTask
                                 |> Option.map (fun t -> t.Id)
                                 |> Option.defaultValue (Guid.NewGuid())
+                              TaskGoal =
+                                currentState.CurrentTask
+                                |> Option.map (fun t -> t.Goal)
+                                |> Option.defaultValue "Unknown"
                               ExecutorId = currentState.ExecutorAgentId
                               Success = false
-                              Output = sprintf "Error: %s" ex.Message
+                              Output = $"Error: %s{ex.Message}"
                               ExecutionTrace = [ ex.GetType().Name ]
                               Duration = TimeSpan.Zero }
 
@@ -548,49 +585,62 @@ let run (logger: ILogger) (options: EvolveOptions) =
 
                 currentState <- nextState
 
+                try
+                    knowledgeGraph.Save(knowledgeGraphPath)
+                with ex ->
+                    logger.Warning("Failed to persist knowledge graph: {Message}", ex.Message)
+
                 match currentState.CurrentTask with
                 | Some task ->
                     if not options.Quiet then
-                        ConsoleUI.printTask task.Goal
-                        ConsoleUI.printProgress "Generating solution..."
+                        TaskDisplay.printTask task.Goal task.Constraints
+                        Evolution.printThinking "Executor"
                 | None when not currentState.CompletedTasks.IsEmpty ->
                     let lastResult = currentState.CompletedTasks.Head
 
                     if not options.Quiet then
                         if lastResult.Success then
-                            ConsoleUI.printSuccess lastResult.Output
+                            TaskDisplay.printSuccess lastResult.Output lastResult.Duration true
                         else
-                            ConsoleUI.printError lastResult.Output
+                            TaskDisplay.printFailure lastResult.Output lastResult.Duration
 
-                        ConsoleUI.printDivider ()
-
-                // Auto-saved by SqliteVectorStore
                 | None -> ()
 
                 do! Task.Delay(500)
 
             if not options.Quiet then
-                ConsoleUI.printSummary currentState.CompletedTasks.Length (Some budget)
+                let consumedTokens =
+                    match budget.Consumed with
+                    | { Tokens = t } -> int t
+
+                Summary.printEvolution
+                    currentState.Generation
+                    currentState.CompletedTasks.Length
+                    consumedTokens
+                    TimeSpan.Zero
+
+                RichOutput.info
+                    $"🧠 Knowledge graph facts: {knowledgeGraph.GetCurrentFacts().Length} (persisted to {knowledgeGraphPath})"
 
             if options.Trace then
                 let timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss")
                 let tracePath = $"trace_{timestamp}.json"
 
                 if not options.Quiet then
-                    ConsoleUI.info $"💾 Saving trace to {tracePath}...\n"
+                    RichOutput.info $"💾 Saving trace to {tracePath}..."
 
                 try
                     do! traceRecorder.SaveToFileAsync(tracePath) |> Async.StartAsTask
 
                     if not options.Quiet then
-                        ConsoleUI.info "Trace saved successfully.\n"
+                        RichOutput.info "Trace saved successfully."
                 with ex ->
-                    ConsoleUI.error $"Failed to save trace: {ex.Message}\n"
+                    RichOutput.error $"Failed to save trace: {ex.Message}"
                     logger.Error(ex, "Trace Saving Failed")
 
             return 0
         with ex ->
-            ConsoleUI.error $"Evolution failed: {ex.Message}\n"
+            RichOutput.error $"Evolution failed: {ex.Message}"
             logger.Error(ex, "Evolution Engine Failed")
             return 1
     }

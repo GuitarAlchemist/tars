@@ -1,4 +1,4 @@
-﻿module Tars.Interface.Cli.Program
+module Tars.Interface.Cli.Program
 
 open System
 open System.Text
@@ -123,6 +123,7 @@ let main argv =
         | args when args.Length > 0 && args.[0] = "smem" ->
             return! SemanticMemoryCommand.run config (args |> Array.skip 1)
         | [| "demo-ping" |] -> return! Demo.ping logger
+        | [| "status" |] -> return! Diagnostics.status logger
         | [| "diag" |] -> return! Diagnostics.run logger
         | [| "diag"; "--verbose" |] -> return! Diagnostics.runWithVerbose logger true
         | [| "diag"; "--arch" |] -> return! Diagnostics.runWithArch logger
@@ -167,7 +168,9 @@ let main argv =
                   DemoMode = false
                   Verbose = false
                   Model = None
-                  Trace = false }
+                  Trace = false
+                  Budget = None
+                  DisableGraphiti = false }
 
             let mutable i = 1
 
@@ -191,6 +194,15 @@ let main argv =
                 | "--model" when i + 1 < args.Length ->
                     i <- i + 1
                     options <- { options with Model = Some args.[i] }
+                | "--budget" when i + 1 < args.Length ->
+                    i <- i + 1
+                    let mutable parsedVal = 0.0m
+
+                    if System.Decimal.TryParse(args.[i], &parsedVal) then
+                        options <- { options with Budget = Some parsedVal }
+                    else
+                        printfn "Invalid number for --budget"
+                | "--no-graphiti" -> options <- { options with DisableGraphiti = true }
                 | _ -> ()
 
                 i <- i + 1
@@ -255,6 +267,38 @@ let main argv =
                 let arg = if args.Length > 2 then args.[2] else ""
                 return! McpCommand.run cmd arg
         | args when args.Length > 0 && args.[0] = "pipeline" -> return PipelineCommand.run (args |> Array.skip 1)
+        | args when args.Length > 0 && args.[0] = "skill" ->
+            let subCmd = if args.Length > 1 then args.[1] else "help"
+            let subArgs = if args.Length > 2 then args.[2..] |> Array.toList else []
+            return! SkillCommand.run subCmd subArgs
+
+        | args when args.Length > 0 && args.[0] = "agent" ->
+            let mutable options: Agent.AgentOptions = Agent.defaultOptions
+            let mutable subCommand = "help"
+            let mutable goalArgs: string list = []
+            let mutable i = 1
+
+            // First arg is sub-command
+            if args.Length > 1 then
+                subCommand <- args.[1]
+                i <- 2
+
+            while i < args.Length do
+                match args.[i] with
+                | "--max-steps" when i + 1 < args.Length ->
+                    i <- i + 1
+                    options <- { options with MaxSteps = int args.[i] }
+                | "--verbose"
+                | "-v" -> options <- { options with Verbose = true }
+                | "--model" when i + 1 < args.Length ->
+                    i <- i + 1
+                    options <- { options with Model = Some args.[i] }
+                | arg when not (arg.StartsWith("--")) -> goalArgs <- goalArgs @ [ arg ]
+                | _ -> ()
+
+                i <- i + 1
+
+            return! Agent.run config subCommand goalArgs options
         | _ ->
             Tui.showSplashScreen ()
             printfn "Usage:"
@@ -279,6 +323,7 @@ let main argv =
             printfn "       --diag                      Run diagnostics before demo"
             printfn "  tars evolve [options]            Run the evolution engine"
             printfn "       --max-iterations N          Set max generations (default 5)"
+            printfn "       --budget USD                Maximum monetary budget in USD"
             printfn "       --quiet                     Suppress splash screen"
             printfn "  tars knowledge <command>         Manage TARS knowledge base"
             printfn "       list [--category <cat>]     List all entries"
@@ -297,6 +342,16 @@ let main argv =
             printfn "       status <id>                 Show project status"
             printfn "       run <id>                    Run project pipeline"
             printfn "       demo <id> [-f format]       Generate demo output"
+            printfn "  tars skill [command]             Manage MCP skills"
+            printfn "       list                        List installed skills"
+            printfn "       catalog                     Show available skills"
+            printfn "       install <name>              Install a skill"
+            printfn "       remove <name>               Remove a skill"
+            printfn "  tars agent [command]             Run agentic patterns"
+            printfn "       react <goal>                Run ReAct reasoning loop"
+            printfn "       cot <input>                 Run Chain of Thought"
+            printfn "       --max-steps N               Max reasoning steps"
+            printfn "       --verbose                   Show detailed logs"
             return 1
     }
     |> Async.AwaitTask

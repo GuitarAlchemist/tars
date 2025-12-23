@@ -402,7 +402,7 @@ module Console =
             else
                 ConsoleColor.Red
 
-        let scoreStr = sprintf "%.2f" score
+        let scoreStr = $"%.2f{score}"
         write color scoreStr
 
     /// Display a result with colored score
@@ -437,9 +437,9 @@ module Console =
                 let remaining = float (total - current) * avgPerItem
 
                 if remaining < 60.0 then
-                    sprintf " ETA: %.0fs" remaining
+                    $" ETA: %.0f{remaining}s"
                 else
-                    sprintf " ETA: %.1fm" (remaining / 60.0)
+                    $" ETA: %.1f{remaining / 60.0}m"
             else
                 ""
 
@@ -847,8 +847,10 @@ let private runRetrievalWithConfig (llm: ILlmService) (vectorStore: IVectorStore
               VectorStore = Some vectorStore
               KnowledgeGraph = None
               SemanticMemory = None
+              EpisodeService = None
               RagConfig = config
-              MacroRegistry = None }
+              MacroRegistry = None
+              MetascriptRegistry = None }
 
         let workflow =
             { Name = "compare-retrieval"
@@ -1205,8 +1207,10 @@ let private runScenario
                   VectorStore = Some vectorStore
                   KnowledgeGraph = None
                   SemanticMemory = None
+                  EpisodeService = None
                   RagConfig = scenario.Config
-                  MacroRegistry = None }
+                  MacroRegistry = None
+                  MetascriptRegistry = None }
 
             let workflow =
                 { Name = $"demo-{scenarioNum}"
@@ -1333,7 +1337,7 @@ let private displayAggregateSummary (metrics: AggregateMetrics) =
             / float (metrics.TotalCacheHits + metrics.TotalCacheMisses)
             * 100.0
 
-        let hitRateStr = sprintf "%.1f" hitRate
+        let hitRateStr = $"%.1f{hitRate}"
         Console.dim $"Cache Hit Rate: {hitRateStr}%% ({metrics.TotalCacheHits} hits, {metrics.TotalCacheMisses} misses)"
 
 /// <summary>Calculate benchmark statistics from latency samples</summary>

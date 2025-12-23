@@ -1,8 +1,8 @@
+namespace Tars.Llm
+
 /// <summary>
 /// LLM error types for type-safe error handling with AsyncResult
 /// </summary>
-namespace Tars.Llm
-
 /// LLM operation errors
 type LlmError =
     | InvalidPrompt of reason: string

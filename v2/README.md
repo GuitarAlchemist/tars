@@ -3,8 +3,19 @@
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)](https://dotnet.microsoft.com/)
 [![F#](https://img.shields.io/badge/F%23-Functional-378BBA)](https://fsharp.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Tools](https://img.shields.io/badge/Tools-124+-orange)](src/Tars.Tools)
 
 > **A modular, multi-agent AI framework built in F# with advanced RAG, budget governance, and epistemic verification.**
+
+### 🧠 Vision
+
+> *LLMs as stochastic generators + Symbolic systems as memory, law, and self-control.*
+>
+> *You're not building a bigger brain. You're building a system that remembers being wrong.*
+> *That's the only kind of intelligence that scales without breaking.*
+
+**[Read the Full Architectural Vision →](docs/1_Vision/architectural_vision.md)**
+
 
 ## 🏗️ Architecture
 
@@ -49,10 +60,25 @@
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### Automated Setup (Recommended)
 
+```powershell
+# Run as Administrator - installs everything automatically
+.\scripts\setup-tars.ps1
+
+# Or run everything with one command
+.\start-all.bat
+```
+
+📚 **See [QUICKSTART.md](QUICKSTART.md) for the complete quick reference.**
+
+### Manual Setup
+
+**Prerequisites:**
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
-- [Ollama](https://ollama.ai/) (for LLM inference)
+- [Ollama](https://ollama.ai/) or [llama.cpp](https://github.com/ggml-org/llama.cpp)
+
+📚 **See [docs/SETUP.md](docs/SETUP.md) for detailed installation instructions.**
 
 ### Build & Run
 
@@ -61,13 +87,20 @@
 cd v2
 dotnet build
 
-# Run diagnostics
-dotnet run --project src/Tars.Interface.Cli -- diag
+# Start TARS UI (web interface)
+dotnet run --project src/Tars.Interface.Ui/Tars.Interface.Ui.fsproj
+# Open http://localhost:5000
 
-# Start chat (requires Ollama running)
-.\start-chat.ps1
-# Or manually:
+# Or run CLI
+dotnet run --project src/Tars.Interface.Cli -- diag
 dotnet run --project src/Tars.Interface.Cli -- chat
+```
+
+### Docker Setup
+
+```bash
+docker-compose up -d
+# With GPU: docker-compose --profile gpu up -d
 ```
 
 ### Run Tests
@@ -84,10 +117,10 @@ dotnet test --filter Category!=Slow
 |--------|-------------|
 | **Tars.Core** | Domain types, AgentWorkflow CE, Budget, Patterns (CoT, ReAct) |
 | **Tars.Cortex** | Vector stores, Knowledge graph, Chunking, Epistemic governor |
-| **Tars.Llm** | LLM clients (Ollama, vLLM, OpenAI-compatible) |
+| **Tars.Llm** | LLM clients: Ollama, vLLM, OpenAI, Google Gemini, Anthropic, Docker Model Runner, llama.cpp |
 | **Tars.Graph** | Agent execution DAG with state machine |
 | **Tars.Kernel** | Event bus, Safety gates, Governance |
-| **Tars.Metascript** | DSL parser, templates, validation |
+| **Tars.Metascript** | Rich DSL parser (.tars), templates, FSI execution, validation |
 | **Tars.Tools** | Tool registry and standard tools |
 | **Tars.Sandbox** | Docker-based code execution |
 | **Tars.Security** | Security policies and validation |

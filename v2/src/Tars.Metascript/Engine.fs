@@ -10,7 +10,8 @@ open Tars.Llm.LlmService
 open Domain
 open Config
 
-type TemporalGraph = Tars.Core.TemporalKnowledgeGraph.TemporalGraph
+type TemporalGraph = TemporalKnowledgeGraph.TemporalGraph
+open Tars.Connectors.EpisodeIngestion
 
 module Engine =
 
@@ -147,10 +148,10 @@ module Engine =
 
                 let conceptStr =
                     related
-                    |> List.map (fun (name, weight) -> sprintf "- %s (relevance: %.2f)" name weight)
+                    |> List.map (fun (name, weight) -> $"- %s{name} (relevance: %.2f{weight})")
                     |> String.concat "\n"
 
-                sprintf "\nRelated concepts from knowledge graph:\n%s\n" conceptStr
+                $"\nRelated concepts from knowledge graph:\n%s{conceptStr}\n"
             else
                 ""
         | None -> ""
@@ -229,14 +230,11 @@ module Engine =
                             else
                                 content
 
-                        sprintf "[%d] %s" (i + 1) truncated)
+                        $"[%d{i + 1}] %s{truncated}")
                     |> String.concat "\n\n"
 
                 let prompt =
-                    sprintf
-                        "Given the query: \"%s\"\n\nRank these documents by relevance (most relevant first). Return ONLY a comma-separated list of document numbers.\nExample: 3,1,4,2\n\nDocuments:\n%s\n\nRanking:"
-                        query
-                        docsText
+                    $"Given the query: \"%s{query}\"\n\nRank these documents by relevance (most relevant first). Return ONLY a comma-separated list of document numbers.\nExample: 3,1,4,2\n\nDocuments:\n%s{docsText}\n\nRanking:"
 
                 let req =
                     { ModelHint = Some "fast"
@@ -371,10 +369,7 @@ module Engine =
                 return [ query ]
             else
                 let prompt =
-                    sprintf
-                        "Generate %d alternative search queries for: \"%s\"\n\nReturn ONLY the queries, one per line, no numbering or explanations."
-                        config.QueryExpansionCount
-                        query
+                    $"Generate %d{config.QueryExpansionCount} alternative search queries for: \"%s{query}\"\n\nReturn ONLY the queries, one per line, no numbering or explanations."
 
                 let req =
                     { ModelHint = Some "fast"
@@ -710,11 +705,7 @@ module Engine =
                                 return (id, distance, payload)
                             else
                                 let prompt =
-                                    sprintf
-                                        "Extract ONLY the parts relevant to this query: \"%s\"\n\nDocument:\n%s\n\nReturn only the relevant excerpts, nothing else. Max %d characters."
-                                        query
-                                        content
-                                        config.CompressionMaxChars
+                                    $"Extract ONLY the parts relevant to this query: \"%s{query}\"\n\nDocument:\n%s{content}\n\nReturn only the relevant excerpts, nothing else. Max %d{config.CompressionMaxChars} characters."
 
                                 let req =
                                     { ModelHint = Some "fast"
@@ -966,10 +957,7 @@ module Engine =
                             let content = payload |> Map.tryFind "content" |> Option.defaultValue ""
 
                             let prompt =
-                                sprintf
-                                    "Rate relevance 0-10 of this document to query: \"%s\"\nDocument: %s\nScore (just the number):"
-                                    query
-                                    (content.Substring(0, min 500 content.Length))
+                                $"Rate relevance 0-10 of this document to query: \"%s{query}\"\nDocument: %s{content.Substring(0, min 500 content.Length)}\nScore (just the number):"
 
                             let req =
                                 { ModelHint = Some config.CrossEncoderModel
@@ -1121,7 +1109,7 @@ module Engine =
                         match state.StepOutputs.TryFind c.StepId with
                         | Some outputs ->
                             match outputs.TryFind c.OutputName with
-                            | Some value -> sprintf "Context from %s (%s):\n%s" c.StepId c.OutputName (string value)
+                            | Some value -> $"Context from %s{c.StepId} (%s{c.OutputName}):\n%s{string value}"
                             | None -> ""
                         | None -> "")
                     |> String.concat "\n\n"
@@ -1138,17 +1126,12 @@ module Engine =
                 let kgContext = enrichWithKnowledgeGraph ctx.KnowledgeGraph conceptHints notes
 
                 let prompt =
-                    sprintf
-                        """You are %s.
-Instruction: %s
+                    $"""You are %s{defaultArg step.Agent "Assistant"}.
+Instruction: %s{instruction}
 
-%s%s
+%s{contextStr}%s{kgContext}
 
 Output only the requested result."""
-                        (defaultArg step.Agent "Assistant")
-                        instruction
-                        contextStr
-                        kgContext
 
                 let req =
                     { ModelHint = Some "reasoning"
@@ -1172,6 +1155,39 @@ Output only the requested result."""
 
                 recordBudget ctx.Budget (response.Usage |> Option.map (fun u -> u.TotalTokens))
 
+                // Phase 6.2: Semantic Speech Act Parsing
+                let (intent, content) =
+                    match SpeechActs.tryParse response.Text with
+                    | Some(i, c) ->
+                        let intentName =
+                            match i with
+                            | AgentIntent.Ask _ -> "Ask"
+                            | AgentIntent.Tell _ -> "Tell"
+                            | AgentIntent.Propose _ -> "Propose"
+                            | AgentIntent.Accept _ -> "Accept"
+                            | AgentIntent.Reject _ -> "Reject"
+                            | AgentIntent.Act _ -> "Act"
+                            | AgentIntent.Event _ -> "Event"
+                            | AgentIntent.Error _ -> "Error"
+
+                        notes.Add($"Protocol: Parsed speech act %s{intentName}")
+                        (Some i, c)
+                    | None -> (None, response.Text)
+
+                // Phase 6.8: Episode Ingestion for Metascript
+                match ctx.EpisodeService with
+                | Some svc ->
+                    let interaction =
+                        Tars.Core.Episode.AgentInteraction(
+                            defaultArg step.Agent "Assistant",
+                            prompt,
+                            content,
+                            DateTime.UtcNow
+                        )
+
+                    svc.Queue(interaction)
+                | None -> ()
+
                 // Assume the first output is the main text response
                 let outputName =
                     match defaultArg step.Outputs [] with
@@ -1185,9 +1201,9 @@ Output only the requested result."""
                           "instruction", instruction.[.. min 200 (instruction.Length - 1)]
                           "source", "agent_output" ]
 
-                do! autoIndexContent ctx step.Id outputName response.Text metadata notes
+                do! autoIndexContent ctx step.Id outputName content metadata notes
 
-                return (Map [ outputName, box response.Text ], List.ofSeq notes)
+                return (Map [ outputName, box content ], List.ofSeq notes)
 
             | "tool" ->
                 match step.Tool with
@@ -1213,7 +1229,7 @@ Output only the requested result."""
                         match result with
                         | Result.Ok s -> return (Map [ "stdout", box s ], List.ofSeq notes)
                         | Result.Error e -> return (Map [ "error", box e ], List.ofSeq notes)
-                    | None -> return (Map [ "error", box (sprintf "Tool '%s' not found" toolName) ], List.ofSeq notes)
+                    | None -> return (Map [ "error", box $"Tool '%s{toolName}' not found" ], List.ofSeq notes)
                 | None -> return (Map.empty, List.ofSeq notes)
 
             | "loop" ->
@@ -1225,7 +1241,7 @@ Output only the requested result."""
                     stepParams
                     |> Map.tryFind "maxIterations"
                     |> Option.bind (fun s ->
-                        match System.Int32.TryParse s with
+                        match Int32.TryParse s with
                         | true, v -> Some v
                         | _ -> None)
                     |> Option.defaultValue 100
@@ -1265,11 +1281,8 @@ Output only the requested result."""
                         let instruction = resolveVariables (defaultArg step.Instruction "") itemState
 
                         let prompt =
-                            sprintf
-                                """You are %s.
-Instruction: %s"""
-                                (defaultArg step.Agent "Assistant")
-                                instruction
+                            $"""You are %s{defaultArg step.Agent "Assistant"}.
+Instruction: %s{instruction}"""
 
                         let req =
                             { ModelHint = Some "reasoning"
@@ -1306,7 +1319,7 @@ Instruction: %s"""
 
                 let conditionValue =
                     if condition.Contains("==") then
-                        let parts = condition.Split("==", System.StringSplitOptions.RemoveEmptyEntries)
+                        let parts = condition.Split("==", StringSplitOptions.RemoveEmptyEntries)
 
                         if parts.Length = 2 then
                             let left = resolveVariables (parts[0].Trim()) state
@@ -1620,7 +1633,7 @@ Instruction: %s"""
     and run (ctx: MetascriptContext) (workflow: Workflow) (inputs: Map<string, obj>) =
         // Validation first (synchronous check)
         let validated =
-            match Tars.Metascript.Validation.validateWorkflow workflow with
+            match Validation.validateWorkflow workflow with
             | Result.Ok wf -> wf
             | Result.Error errs ->
                 let msg = String.concat "; " errs
@@ -1733,7 +1746,7 @@ Instruction: %s"""
                                 |> List.choose (fun s -> s.Logical |> Option.map (fun l -> l.ProblemSummary))
                                 |> String.concat "\n- "
 
-                            return sprintf "\nRelevant Past Experiences:\n- %s\n" summaries
+                            return $"\nRelevant Past Experiences:\n- %s{summaries}\n"
                     }
                 | None -> Task.FromResult ""
 

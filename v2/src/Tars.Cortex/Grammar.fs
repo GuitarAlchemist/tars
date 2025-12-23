@@ -1,4 +1,4 @@
-﻿namespace Tars.Cortex.Grammar
+namespace Tars.Cortex.Grammar
 
 open System
 
@@ -34,7 +34,7 @@ module internal Ebnf =
                     | c::rem -> readStr rem (s + string c)
                     | [] -> (s, [])
                 let (s, rest2) = readStr rest ""
-                tokenize rest2 (sprintf "\"%s\"" s :: acc)
+                tokenize rest2 ( $"\"%s{s}\"" :: acc)
             | c::rest when Char.IsLetterOrDigit(c) || c = '_' ->
                 let rec readIdent cs s =
                     match cs with
@@ -152,7 +152,7 @@ module internal Interpreter =
                     match matchExpr rule.Body toks with
                     | Some (node, rest) -> Some (Node(name, [node]), rest)
                     | None -> None
-                | None -> failwithf "Unknown rule %s" name
+                | None -> failwithf $"Unknown rule %s{name}"
             | Sequence exprs ->
                 let rec matchSeq es ts acc =
                     match es with
@@ -213,5 +213,5 @@ task    ::= "task" string_literal
         | Some (_, rest) -> 
             // For robustness, if rest is just whitespace, we might be ok, but our tokenizer removes whitespace.
             // So rest contains unparsed tokens.
-            failwithf "Parsing incomplete. Remaining tokens: %A" rest
+            failwithf $"Parsing incomplete. Remaining tokens: %A{rest}"
         | None -> failwith "Parsing failed"

@@ -59,4 +59,4 @@ TARS v2 is built primarily in F#, leveraging:
 ## Further Reading
 
 - **Metascript Specification**: [`Metascript_Specification.md`](./Metascript_Specification.md)
-- **Memory Architecture**: [`../4_Research/Memory_Architecture.md`](../4_Research/Memory_Architecture.md)
+- **Memory Architecture**: [`../4_Research/Architecture/Memory_Architecture.md`](../4_Research/Architecture/Memory_Architecture.md)

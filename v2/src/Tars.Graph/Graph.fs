@@ -61,7 +61,7 @@ module PromptBuilder =
                 | MessageEndpoint.Agent _ -> "Assistant"
                 | MessageEndpoint.Alias name -> name
 
-            let performative = sprintf "[%A]" msg.Performative
+            let performative = $"[%A{msg.Performative}]"
             sb.AppendLine $"{sourceName} {performative}: {msg.Content}" |> ignore
 
         if agent.Tools.IsEmpty then

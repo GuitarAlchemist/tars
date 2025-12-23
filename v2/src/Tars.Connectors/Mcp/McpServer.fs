@@ -286,6 +286,9 @@ type McpServer(registry: IToolRegistry, ?knowledgeGraph: TemporalKnowledgeGraph.
                         | TarsEntity.CodeModuleE m -> ("module", m.Path)
                         | TarsEntity.GrammarRuleE g -> ("grammar", g.Name)
                         | TarsEntity.AnomalyE a -> ("anomaly", a.Location)
+                        | TarsEntity.EpisodeE e -> ("episode", TarsEntity.getId (TarsEntity.EpisodeE e))
+                        | TarsEntity.FileE pf -> ("file", pf)
+                        | TarsEntity.FunctionE f -> ("function", f)
 
                     {| id = entityId
                        entityType = entityType
@@ -331,6 +334,7 @@ type McpServer(registry: IToolRegistry, ?knowledgeGraph: TemporalKnowledgeGraph.
                         | TarsFact.BelongsTo _ -> "belongs_to"
                         | TarsFact.SimilarTo _ -> "similar_to"
                         | TarsFact.DerivedFrom _ -> "derived_from"
+                        | TarsFact.Contains _ -> "contains"
 
                     {| source = sourceId
                        target = targetId
@@ -360,6 +364,9 @@ type McpServer(registry: IToolRegistry, ?knowledgeGraph: TemporalKnowledgeGraph.
                         | TarsEntity.CodeModuleE m -> m.Path
                         | TarsEntity.GrammarRuleE g -> g.Name
                         | TarsEntity.AnomalyE a -> a.Location
+                        | TarsEntity.EpisodeE e -> "Episode " + TarsEntity.getId (TarsEntity.EpisodeE e)
+                        | TarsEntity.FileE pf -> pf
+                        | TarsEntity.FunctionE f -> f
 
                     if name.ToLowerInvariant().Contains(query) then
                         Some {| id = entityId; name = name |}

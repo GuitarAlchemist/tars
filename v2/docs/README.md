@@ -24,7 +24,7 @@ System architecture, design decisions, and technical specifications.
 
 Implementation plans, phase summaries, and project milestones.
 
-- **Current Plan**: [`implementation_plan.md`](./3_Roadmap/implementation_plan.md)
+- **Current Plan**: [`1_Plans/implementation_plan.md`](./3_Roadmap/1_Plans/implementation_plan.md)
 - **Phase Summaries**: Completed and in-progress phases
 - **Research Integration**: How research insights feed into the roadmap
 
@@ -68,14 +68,14 @@ API references, configuration guides, and detailed specifications.
 
 ### For Developers
 
-- **Current Work**: [`3_Roadmap/implementation_plan.md`](./3_Roadmap/implementation_plan.md)
+- **Current Work**: [`3_Roadmap/1_Plans/implementation_plan.md`](./3_Roadmap/1_Plans/implementation_plan.md)
 - **Testing**: [`5_Quality/Testing_Tips.md`](./5_Quality/Testing_Tips.md)
 - **Architecture**: [`2_Architecture/`](./2_Architecture/)
 
 ### For Researchers
 
 - **Research Insights**: [`4_Research/`](./4_Research/)
-- **Memory Analysis**: [`4_Research/memory_system_evaluation.md`](./4_Research/memory_system_evaluation.md)
+- **Memory Analysis**: [`4_Research/Research/memory_system_evaluation.md`](./4_Research/Research/memory_system_evaluation.md)
 
 ## 📝 Document Types
 

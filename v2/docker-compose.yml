@@ -1,66 +1,49 @@
-﻿# TARS v2 Infrastructure Stack
-name: tars_v2
+﻿version: '3.8'
 
 services:
-  # Vector database for embeddings
-  chroma:
-    image: chromadb/chroma:latest
-    container_name: tars_v2_chroma
+  tars:
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
-      - "8000:8000"
+      - "5000:5000"     # TARS UI
+      - "11434:11434"   # Ollama API
     volumes:
-      - tars_chroma_data:/chroma/chroma
+      - ollama-data:/root/.ollama
+      - models:/models
     environment:
-      - IS_PERSISTENT=TRUE
-    # Note: No healthcheck since chromadb image is minimal. Use http://localhost:8000/api/v2/heartbeat to verify.
-
-  # Neo4j graph database for Graphiti
-  neo4j:
-    image: neo4j:5.26.2
-    container_name: tars_v2_neo4j
-    ports:
-      - "7474:7474"  # HTTP browser
-      - "7687:7687"  # Bolt protocol
-    volumes:
-      - tars_neo4j_data:/data
-    environment:
-      - NEO4J_AUTH=neo4j/tars_password
-      - NEO4J_PLUGINS=["apoc"]
+      - ASPNETCORE_ENVIRONMENT=Production
+      - TARS_LLM_BACKEND=ollama
+    restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:7474 || exit 1"]
-      interval: 5s
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
       timeout: 10s
-      retries: 10
-      start_period: 30s
-
-  # Graphiti temporal knowledge graph server
-  graphiti:
-    image: zepai/graphiti:latest
-    container_name: tars_v2_graphiti
-    ports:
-      - "8001:8000"
-    depends_on:
-      neo4j:
-        condition: service_healthy
-    environment:
-      # Use Ollama for LLM (via OpenWebUI or direct)
-      - OPENAI_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434/v1}
-      - OPENAI_API_KEY=ollama  # Placeholder for Ollama compatibility
-      - MODEL_NAME=qwen2.5-coder:1.5b
-      - EMBEDDING_MODEL=nomic-embed-text
-      # Neo4j connection
-      - NEO4J_URI=bolt://neo4j:7687
-      - NEO4J_USER=neo4j
-      - NEO4J_PASSWORD=tars_password
-      - PORT=8000
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthcheck')"]
-      interval: 10s
-      timeout: 5s
       retries: 3
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+
+  # Optional: llama.cpp server for faster inference
+  llama-cpp:
+    image: ghcr.io/ggerganov/llama.cpp:server-cuda
+    ports:
+      - "8080:8080"
+    volumes:
+      - models:/models
+    command: >
+      -m /models/Qwen3-8B-Q4_K_M.gguf
+      --host 0.0.0.0
+      --port 8080
+      -c 4096
+      -ngl 99
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    profiles:
+      - gpu  # Only run with: docker-compose --profile gpu up
 
 volumes:
-  tars_neo4j_data:
-  tars_chroma_data:
+  ollama-data:
+  models:

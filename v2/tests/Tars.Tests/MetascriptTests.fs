@@ -95,8 +95,10 @@ type MetascriptTests() =
               VectorStore = None
               KnowledgeGraph = None
               SemanticMemory = None
+              EpisodeService = None
               MacroRegistry = None
-              RagConfig = RagConfig.Default }
+              RagConfig = RagConfig.Default
+              MetascriptRegistry = None }
 
         let wf =
             { Name = "decision"
@@ -141,8 +143,10 @@ type MetascriptTests() =
               VectorStore = None
               KnowledgeGraph = None
               SemanticMemory = None
+              EpisodeService = None
               RagConfig = RagConfig.Default
-              MacroRegistry = None }
+              MacroRegistry = None
+              MetascriptRegistry = None }
 
         let wf =
             { Name = "loop"
@@ -182,8 +186,10 @@ type MetascriptTests() =
               VectorStore = None
               KnowledgeGraph = None
               SemanticMemory = None
+              EpisodeService = None
               RagConfig = RagConfig.Default
-              MacroRegistry = None }
+              MacroRegistry = None
+              MetascriptRegistry = None }
 
         let wf =
             { Name = "retrieval-test"
@@ -236,10 +242,12 @@ type MetascriptTests() =
               VectorStore = Some vs
               KnowledgeGraph = None
               SemanticMemory = None
+              EpisodeService = None
               RagConfig =
                 { RagConfig.Default with
                     MinScore = 0.0f }
-              MacroRegistry = None }
+              MacroRegistry = None
+              MetascriptRegistry = None }
 
         let wf =
             { Name = "retrieval-test"
@@ -302,10 +310,12 @@ type MetascriptTests() =
               VectorStore = None
               KnowledgeGraph = Some kg
               SemanticMemory = None
+              EpisodeService = None
               RagConfig =
                 { RagConfig.Default with
                     AutoIndex = false }
-              MacroRegistry = None }
+              MacroRegistry = None
+              MetascriptRegistry = None }
 
         let wf =
             { Name = "kg-test"
@@ -366,6 +376,7 @@ type MetascriptTests() =
               VectorStore = Some vs
               KnowledgeGraph = None
               SemanticMemory = None
+              EpisodeService = None
               RagConfig =
                 { RagConfig.Default with
                     MinScore = 0.0f
@@ -373,7 +384,8 @@ type MetascriptTests() =
                         [ { Field = "source"
                             Operator = "eq"
                             Value = "sourceA" } ] }
-              MacroRegistry = None }
+              MacroRegistry = None
+              MetascriptRegistry = None }
 
         let wf =
             { Name = "filter-test"
@@ -429,12 +441,14 @@ type MetascriptTests() =
               VectorStore = Some vs
               KnowledgeGraph = None
               SemanticMemory = None
+              EpisodeService = None
               RagConfig =
                 { RagConfig.Default with
                     MinScore = 0.0f
                     EnableHybridSearch = true
                     SemanticWeight = 0.5f }
-              MacroRegistry = None }
+              MacroRegistry = None
+              MetascriptRegistry = None }
 
         let wf =
             { Name = "hybrid-test"
@@ -534,12 +548,14 @@ type MetascriptTests() =
               VectorStore = Some vs
               KnowledgeGraph = None
               SemanticMemory = None
+              EpisodeService = None
               MacroRegistry = None
               RagConfig =
                 { RagConfig.Default with
                     MinScore = 0.0f
                     EnableTimeDecay = true
-                    TimeDecayHalfLifeDays = 30.0 } }
+                    TimeDecayHalfLifeDays = 30.0 }
+              MetascriptRegistry = None }
 
         let wf =
             { Name = "time-decay-test"
@@ -594,11 +610,13 @@ type MetascriptTests() =
               VectorStore = Some vs
               KnowledgeGraph = None
               SemanticMemory = None
+              EpisodeService = None
               MacroRegistry = None
               RagConfig =
                 { RagConfig.Default with
                     MinScore = 0.0f
-                    EnableQueryRouting = true } }
+                    EnableQueryRouting = true }
+              MetascriptRegistry = None }
 
         let wf =
             { Name = "routing-test"
@@ -651,11 +669,13 @@ type MetascriptTests() =
               VectorStore = Some vs
               KnowledgeGraph = None
               SemanticMemory = None
+              EpisodeService = None
               MacroRegistry = None
               RagConfig =
                 { RagConfig.Default with
                     MinScore = 0.0f
-                    EnableAnswerAttribution = true } }
+                    EnableAnswerAttribution = true }
+              MetascriptRegistry = None }
 
         let wf =
             { Name = "attribution-test"
@@ -711,12 +731,14 @@ type MetascriptTests() =
               VectorStore = Some vs
               KnowledgeGraph = None
               SemanticMemory = None
+              EpisodeService = None
               MacroRegistry = None
               RagConfig =
                 { RagConfig.Default with
                     MinScore = 0.0f
                     EnableMetrics = true
-                    Metrics = Some metrics } }
+                    Metrics = Some metrics }
+              MetascriptRegistry = None }
 
         let wf =
             { Name = "metrics-test"
@@ -773,8 +795,10 @@ type MetascriptTests() =
               VectorStore = None
               KnowledgeGraph = None
               SemanticMemory = Some memory
+              EpisodeService = None
               RagConfig = RagConfig.Default
-              MacroRegistry = None }
+              MacroRegistry = None
+              MetascriptRegistry = None }
 
         let wf =
             { Name = "memory-test"

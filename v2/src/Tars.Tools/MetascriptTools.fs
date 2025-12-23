@@ -66,10 +66,10 @@ module MetascriptTools =
                                 else
                                     value
 
-                            sprintf "  %d. %s %s: %s" (i + 1) op name preview)
+                            $"  %d{i + 1}. %s{op} %s{name}: %s{preview}")
                         |> String.concat "\n"
 
-                    return sprintf "Parsed %d metascript steps:\n%s" steps.Length stepList
+                    return $"Parsed %d{steps.Length} metascript steps:\n%s{stepList}"
             with ex ->
                 return "parse_metascript error: " + ex.Message
         }
@@ -103,13 +103,13 @@ module MetascriptTools =
                                 resolved <- resolved.Replace(pattern, kvp.Value)
 
                             output.Add("PRINT: " + resolved)
-                            printfn "   %s" resolved
+                            printfn $"   %s{resolved}"
                         | "EXECUTE" -> output.Add("EXECUTE " + name)
                         | _ -> output.Add("Unknown: " + op)
 
                     let result = String.concat "\n" output
                     printfn "Metascript complete"
-                    return sprintf "Metascript execution complete (%d steps):\n%s" steps.Length result
+                    return $"Metascript execution complete (%d{steps.Length} steps):\n%s{result}"
             with ex ->
                 return "run_metascript error: " + ex.Message
         }
@@ -123,7 +123,7 @@ module MetascriptTools =
                 else
                     taskDescription
 
-            printfn "CREATING METASCRIPT for: %s..." preview
+            printfn $"CREATING METASCRIPT for: %s{preview}..."
 
             let template =
                 "// TARS Metascript Template\n"

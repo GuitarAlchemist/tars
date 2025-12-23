@@ -26,7 +26,16 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "2_Architecture", "2_Archite
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "3_Roadmap", "3_Roadmap", "{DF3CABF4-09FF-4714-88BF-CBF3C835C563}"
 	ProjectSection(SolutionItems) = preProject
-		docs\3_Roadmap\implementation_plan.md = docs\3_Roadmap\implementation_plan.md
+		docs\3_Roadmap\README.md = docs\3_Roadmap\README.md
+		docs\3_Roadmap\1_Plans\implementation_plan.md = docs\3_Roadmap\1_Plans\implementation_plan.md
+		docs\3_Roadmap\1_Plans\phase6_integration_strategy.md = docs\3_Roadmap\1_Plans\phase6_integration_strategy.md
+		docs\3_Roadmap\1_Plans\semantic_memory_plan.md = docs\3_Roadmap\1_Plans\semantic_memory_plan.md
+		docs\3_Roadmap\2_Phases\phase_6_5_agentic_interfaces.md = docs\3_Roadmap\2_Phases\phase_6_5_agentic_interfaces.md
+		docs\3_Roadmap\2_Phases\phase_6_7_circuit_flow_control.md = docs\3_Roadmap\2_Phases\phase_6_7_circuit_flow_control.md
+		docs\3_Roadmap\2_Phases\phase_6_7_epistemic_governor.md = docs\3_Roadmap\2_Phases\phase_6_7_epistemic_governor.md
+		docs\3_Roadmap\3_Reports\phase_6_7_completion_report.md = docs\3_Roadmap\3_Reports\phase_6_7_completion_report.md
+		docs\3_Roadmap\3_Reports\COMPLETE_SESSION_SUMMARY.md = docs\3_Roadmap\3_Reports\COMPLETE_SESSION_SUMMARY.md
+		task.md = task.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "assets", "assets", "{3C5FF0F0-BE14-4405-9E9D-0ED13A02BE60}"
@@ -36,23 +45,26 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "assets", "assets", "{3C5FF0
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "4_Research", "4_Research", "{024732D5-25F5-4093-8213-6D096A007A0B}"
 	ProjectSection(SolutionItems) = preProject
-		docs\4_Research\ChatGPT-AI semantic bus research.md = docs\4_Research\ChatGPT-AI semantic bus research.md
-		docs\4_Research\ChatGPT-Agentic AI Interfaces.md = docs\4_Research\ChatGPT-Agentic AI Interfaces.md
-		docs\4_Research\ChatGPT-Backpressure in AI systems.md = docs\4_Research\ChatGPT-Backpressure in AI systems.md
-		docs\4_Research\ChatGPT-Document feedback summary (1).md = docs\4_Research\ChatGPT-Document feedback summary (1).md
-		docs\4_Research\ChatGPT-K-theory and TARS query.md = docs\4_Research\ChatGPT-K-theory and TARS query.md
-		docs\4_Research\ChatGPT-Leverage Code Wiki for TARS.md = docs\4_Research\ChatGPT-Leverage Code Wiki for TARS.md
-		docs\4_Research\ChatGPT-Markov chains in stock analysis.md = docs\4_Research\ChatGPT-Markov chains in stock analysis.md
-		docs\4_Research\ChatGPT-Multi-agent system protocols.md = docs\4_Research\ChatGPT-Multi-agent system protocols.md
-		docs\4_Research\Grothendieck Groups and their Application to Artificial Intelligence.md = docs\4_Research\Grothendieck Groups and their Application to Artificial Intelligence.md
-		docs\4_Research\Links.txt = docs\4_Research\Links.txt
-		docs\4_Research\state_space_observability_for_agent_mesh.md = docs\4_Research\state_space_observability_for_agent_mesh.md
+		docs\4_Research\Conversations\ChatGPT-AI semantic bus research.md = docs\4_Research\Conversations\ChatGPT-AI semantic bus research.md
+		docs\4_Research\Conversations\ChatGPT-Agentic AI Interfaces.md = docs\4_Research\Conversations\ChatGPT-Agentic AI Interfaces.md
+		docs\4_Research\Conversations\ChatGPT-Backpressure in AI systems.md = docs\4_Research\Conversations\ChatGPT-Backpressure in AI systems.md
+		docs\4_Research\Conversations\ChatGPT-Document feedback summary (1).md = docs\4_Research\Conversations\ChatGPT-Document feedback summary (1).md
+		docs\4_Research\Conversations\ChatGPT-K-theory and TARS query.md = docs\4_Research\Conversations\ChatGPT-K-theory and TARS query.md
+		docs\4_Research\Conversations\ChatGPT-Leverage Code Wiki for TARS.md = docs\4_Research\Conversations\ChatGPT-Leverage Code Wiki for TARS.md
+		docs\4_Research\Conversations\ChatGPT-Markov chains in stock analysis.md = docs\4_Research\Conversations\ChatGPT-Markov chains in stock analysis.md
+		docs\4_Research\Conversations\ChatGPT-Multi-agent system protocols.md = docs\4_Research\Conversations\ChatGPT-Multi-agent system protocols.md
+		docs\4_Research\Research\Grothendieck Groups and their Application to Artificial Intelligence.md = docs\4_Research\Research\Grothendieck Groups and their Application to Artificial Intelligence.md
+		docs\4_Research\Research\Links.txt = docs\4_Research\Research\Links.txt
+		docs\4_Research\Architecture\state_space_observability_for_agent_mesh.md = docs\4_Research\Architecture\state_space_observability_for_agent_mesh.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "QA", "QA", "{B2C3D4E5-F6A7-8901-BCDE-F12345678901}"
 	ProjectSection(SolutionItems) = preProject
 		docs\QA\Cargo_Cult_Defense.md = docs\QA\Cargo_Cult_Defense.md
 		docs\QA\README.md = docs\QA\README.md
+		docs\QA\Phase1_Sandbox.md = docs\QA\Phase1_Sandbox.md
+		docs\QA\QA_REPORT_v2.0-alpha.md = docs\QA\QA_REPORT_v2.0-alpha.md
+		docs\QA\COGNITIVE_QA.md = docs\QA\COGNITIVE_QA.md
 		docs\QA\outcomes\001_perceptual_memory.md = docs\QA\outcomes\001_perceptual_memory.md
 		docs\QA\outcomes\002_semantic_chunking.md = docs\QA\outcomes\002_semantic_chunking.md
 		docs\QA\outcomes\002_semantic_memory_cli.md = docs\QA\outcomes\002_semantic_memory_cli.md
@@ -149,6 +161,8 @@ EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Tars.Tools", "src\Tars.Tools\Tars.Tools.fsproj", "{C93D6592-2892-49BA-9090-6111B6F51D5B}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Tars.Metascript", "src\Tars.Metascript\Tars.Metascript.fsproj", "{254B4861-DB55-4D21-83B0-6C0B6FE5DEAC}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Tars.Interface.Ui", "src\Tars.Interface.Ui\Tars.Interface.Ui.fsproj", "{60814189-ABC2-41B5-99C5-395D32403A14}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -316,6 +330,18 @@ Global
 		{254B4861-DB55-4D21-83B0-6C0B6FE5DEAC}.Release|x64.Build.0 = Release|Any CPU
 		{254B4861-DB55-4D21-83B0-6C0B6FE5DEAC}.Release|x86.ActiveCfg = Release|Any CPU
 		{254B4861-DB55-4D21-83B0-6C0B6FE5DEAC}.Release|x86.Build.0 = Release|Any CPU
+		{60814189-ABC2-41B5-99C5-395D32403A14}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{60814189-ABC2-41B5-99C5-395D32403A14}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{60814189-ABC2-41B5-99C5-395D32403A14}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{60814189-ABC2-41B5-99C5-395D32403A14}.Debug|x64.Build.0 = Debug|Any CPU
+		{60814189-ABC2-41B5-99C5-395D32403A14}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{60814189-ABC2-41B5-99C5-395D32403A14}.Debug|x86.Build.0 = Debug|Any CPU
+		{60814189-ABC2-41B5-99C5-395D32403A14}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{60814189-ABC2-41B5-99C5-395D32403A14}.Release|Any CPU.Build.0 = Release|Any CPU
+		{60814189-ABC2-41B5-99C5-395D32403A14}.Release|x64.ActiveCfg = Release|Any CPU
+		{60814189-ABC2-41B5-99C5-395D32403A14}.Release|x64.Build.0 = Release|Any CPU
+		{60814189-ABC2-41B5-99C5-395D32403A14}.Release|x86.ActiveCfg = Release|Any CPU
+		{60814189-ABC2-41B5-99C5-395D32403A14}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -347,9 +373,10 @@ Global
 		{0CDD7CB0-57F6-4018-9BDA-16D7B27E6BFF} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{D4E59029-692E-4B7A-A05D-7AAFF398271A} = {4D1F5A6F-B5FE-6DE7-0694-4351F9E4A297}
 		{4D1F5A6F-B5FE-6DE7-0694-4351F9E4A297} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
-		{D6811111-E4F2-4580-9D2D-8452B6708437} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
-		{A364AC6B-401C-45A3-9262-214E16A92588} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
-		{C93D6592-2892-49BA-9090-6111B6F51D5B} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
-		{254B4861-DB55-4D21-83B0-6C0B6FE5DEAC} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{D6811111-E4F2-4580-9D2D-8452B6708437} = {4D1F5A6F-B5FE-6DE7-0694-4351F9E4A297}
+		{A364AC6B-401C-45A3-9262-214E16A92588} = {E49751A8-4684-5464-DC78-70FEA7F05886}
+		{C93D6592-2892-49BA-9090-6111B6F51D5B} = {4D1F5A6F-B5FE-6DE7-0694-4351F9E4A297}
+		{254B4861-DB55-4D21-83B0-6C0B6FE5DEAC} = {E49751A8-4684-5464-DC78-70FEA7F05886}
+		{60814189-ABC2-41B5-99C5-395D32403A14} = {F2250A6D-D5A5-7171-D13C-E7FD50981AA9}
 	EndGlobalSection
 EndGlobal

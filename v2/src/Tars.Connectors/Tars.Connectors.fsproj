@@ -13,6 +13,7 @@
     <Compile Include="Mcp\McpProgress.fs" />
     <Compile Include="Mcp\SubagentManager.fs" />
     <Compile Include="Mcp\McpServer.fs" />
+    <Compile Include="AugmentClient.fs" />
     <Compile Include="Graphiti.fs" />
     <Compile Include="EpisodeIngestion.fs" />
     <Compile Include="Ollama.fs" />

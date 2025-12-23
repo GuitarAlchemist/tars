@@ -154,7 +154,7 @@ module ChatHelpers =
                                             content
 
                                     let score = 1.0f - dist
-                                    sprintf "Source: %s (Score: %.2f)\n%s\n" source score preview)
+                                    $"Source: %s{source} (Score: %.2f{score})\n%s{preview}\n")
                                 |> String.concat "\n---\n"
 
                             return Result.Ok hits
@@ -234,24 +234,21 @@ let run (logger: ILogger) (options: ChatOptions) : Task<int> =
         | Result.Ok() -> logger.Information("Secrets loaded successfully")
         | Result.Error err -> logger.Warning("Could not load secrets: {Error}", err)
 
-        // Initialize Graphiti episode ingestion (captures conversations to knowledge graph)
-        let graphitiUrl =
-            match System.Environment.GetEnvironmentVariable("GRAPHITI_URL") with
-            | null
-            | "" -> "http://localhost:8001"
-            | url -> url
+        // Initialize Knowledge Graph (Internal)
+        let graphPath = Path.Combine(Environment.CurrentDirectory, ".tars", "knowledge")
+        let graphService = InternalGraphService(graphPath) :> IGraphService
 
-        use episodeService = createServiceWithUrl graphitiUrl
-        let mutable ingestionEnabled = false
+        // Use Local Ingestion Service by default (Robustness)
+        // We can optionally check for GRAPHITI_URL env var if we want hybrid in future
+        let episodeService = createLocalService graphService
+        let ingestionEnabled = true
 
-        // Check if Graphiti is available
-        let! healthResult = episodeService.HealthCheckAsync()
+        logger.Information("Connected to Internal Knowledge Graph at {Path}", graphPath)
 
-        match healthResult with
-        | Result.Ok status ->
-            logger.Information("Graphiti knowledge graph connected: {Status}", status)
-            ingestionEnabled <- true
-        | Result.Error _ -> logger.Debug("Graphiti not available - episode capture disabled")
+        // Ensure graph persists on exit
+        AppDomain.CurrentDomain.ProcessExit.Add(fun _ ->
+            let task = graphService.PersistAsync()
+            task.Wait())
 
         // Initialize Tool Registry and register standard tools
         let toolRegistry = Tars.Tools.ToolRegistry()
@@ -316,7 +313,7 @@ let run (logger: ILogger) (options: ChatOptions) : Task<int> =
               OpenAIBaseUri = Uri("https://api.openai.com/")
               GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com/")
               AnthropicBaseUri = Uri("https://api.anthropic.com/")
-              DefaultOllamaModel = "llama3.1:latest"
+              DefaultOllamaModel = "qwen2.5-coder:latest"
               DefaultVllmModel = "qwen2.5-72b-instruct"
               DefaultOpenAIModel = "gpt-4o"
               DefaultGoogleGeminiModel = "gemini-pro"
@@ -327,7 +324,13 @@ let run (logger: ILogger) (options: ChatOptions) : Task<int> =
               VllmKey = None
               OpenAIKey = CredentialVault.getSecret "OPENAI_API_KEY" |> Result.toOption
               GoogleGeminiKey = CredentialVault.getSecret "GOOGLE_API_KEY" |> Result.toOption
-              AnthropicKey = CredentialVault.getSecret "ANTHROPIC_API_KEY" |> Result.toOption }
+              AnthropicKey = CredentialVault.getSecret "ANTHROPIC_API_KEY" |> Result.toOption
+              DockerModelRunnerBaseUri = None
+              LlamaCppBaseUri = None
+              DefaultDockerModelRunnerModel = None
+              DefaultLlamaCppModel = None
+              DockerModelRunnerKey = None
+              LlamaCppKey = None }
 
         let svcCfg: LlmServiceConfig = { Routing = routingCfg }
         use httpClient = new HttpClient()
@@ -416,7 +419,15 @@ let run (logger: ILogger) (options: ChatOptions) : Task<int> =
         // =========================================================================================
         // RAG / Knowledge Initialization
         // =========================================================================================
-        let vectorStore = InMemoryVectorStore() :> IVectorStore
+        let vectorStore =
+            match CredentialVault.getSecret "CHROMA_URL" with
+            | Result.Ok url ->
+                logger.Information("Using Persistent Memory (ChromaDB) at {Url}", url)
+                ChromaVectorStore(url) :> IVectorStore
+            | Result.Error _ ->
+                logger.Information("Using Ephemeral Memory (InMemoryVectorStore)")
+                InMemoryVectorStore() :> IVectorStore
+
         let searchTool = ChatHelpers.createSearchTool llmService vectorStore
         toolRegistry.Register(searchTool)
 
@@ -644,7 +655,7 @@ If asked about TARS architecture, code, or features, use 'search_docs' to find t
                           Sender = MessageEndpoint.User
                           Receiver = Some(MessageEndpoint.Agent agent.Id)
                           Performative = Performative.Request
-                          Intent = Some AgentIntent.Chat
+                          Intent = Some AgentDomain.Chat
                           Constraints = SemanticConstraints.Default
                           Ontology = None
                           Language = "text"
@@ -677,8 +688,7 @@ If asked about TARS architecture, code, or features, use 'search_docs' to find t
                                             | Success next -> sAgent <- next
                                             | PartialSuccess(next, _) -> sAgent <- next
                                             | Failure errs ->
-                                                let errStr =
-                                                    String.concat "; " (errs |> List.map (fun e -> sprintf "%A" e))
+                                                let errStr = String.concat "; " (errs |> List.map (fun e -> $"%A{e}"))
 
                                                 sAgent <-
                                                     { sAgent with
@@ -762,7 +772,13 @@ let runStreaming (logger: ILogger) (options: ChatOptions) : Task<int> =
               VllmKey = None
               OpenAIKey = getSecret "OPENAI_API_KEY"
               GoogleGeminiKey = getSecret "GOOGLE_API_KEY"
-              AnthropicKey = getSecret "ANTHROPIC_API_KEY" }
+              AnthropicKey = getSecret "ANTHROPIC_API_KEY"
+              DockerModelRunnerBaseUri = None
+              LlamaCppBaseUri = None
+              DefaultDockerModelRunnerModel = None
+              DefaultLlamaCppModel = None
+              DockerModelRunnerKey = None
+              LlamaCppKey = None }
 
         let svcCfg: LlmServiceConfig = { Routing = routingCfg }
         use httpClient = new HttpClient()

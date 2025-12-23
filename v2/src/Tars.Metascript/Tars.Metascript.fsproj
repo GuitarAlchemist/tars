@@ -8,6 +8,10 @@
 
   <ItemGroup>
     <Compile Include="Domain.fs" />
+    <Compile Include="V1.fs" />
+    <Compile Include="V1Parser.fs" />
+    <Compile Include="MetascriptRegistry.fs" />
+    <Compile Include="V1Executor.fs" />
     <Compile Include="Validation.fs" />
     <Compile Include="Parser.fs" />
     <Compile Include="Templates.fs" />
@@ -18,6 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="FSharp.Compiler.Service" Version="43.10.101" />
     <PackageReference Include="FSharp.SystemTextJson" Version="1.4.36" />
   </ItemGroup>
 
@@ -26,6 +31,7 @@
     <ProjectReference Include="..\Tars.Cortex\Tars.Cortex.fsproj" />
     <ProjectReference Include="..\Tars.Llm\Tars.Llm.fsproj" />
     <ProjectReference Include="..\Tars.Kernel\Tars.Kernel.fsproj" />
+    <ProjectReference Include="..\Tars.Connectors\Tars.Connectors.fsproj" />
   </ItemGroup>
 
 </Project>

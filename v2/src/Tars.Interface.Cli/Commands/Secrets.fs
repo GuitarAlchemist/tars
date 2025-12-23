@@ -31,5 +31,5 @@ let run () =
 
     let rows = keys |> List.map fetch
     printfn "TARS Secrets (masked):"
-    rows |> List.iter (fun r -> printfn "  %-22s %-8s %s" r.Name r.Status r.Value)
+    rows |> List.iter (fun r -> printfn $"  %-22s{r.Name} %-8s{r.Status} %s{r.Value}")
     0

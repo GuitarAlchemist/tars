@@ -85,3 +85,33 @@ Branching logic based on previous outputs.
 ## Execution Model
 
 The **Metascript Engine** reads the YAML, validates it, and executes steps sequentially (or in parallel where possible). It maintains a **Workflow Context** that stores variables and step outputs.
+
+## V1 Rich Metascript (.tars / .trsx)
+
+TARS v2 includes a full port of the capability-rich metascript system from v1. This system uses a block-based, bracketed or Markdown-style format that enables "Literate AI Programming."
+
+### Features
+- **Deterministic Logic**: Use `FSHARP { ... }` blocks powered by F# Interactive (FSI).
+- **Polyglot Execution**: Support for `PYTHON`, `COMMAND`, and `QUERY` blocks.
+- **State Persistence**: Variables and state persist across blocks in the same metascript run.
+- **Data Flow**: Output from one block can be used in subsequent blocks using `${var}` interpolation.
+- **Grammar Integration**: `QUERY` blocks support a `grammar="Name"` parameter to constrain and validate LLM output using the v2 grammar system.
+
+### Example
+```tars
+meta {
+    Name: "Verify TARS"
+}
+
+FSHARP(output="version") {
+    "2.0-rich"
+}
+
+QUERY(output="goal", grammar="Goal") {
+    Generate a simple goal for TARS v${version}.
+}
+
+COMMAND {
+    echo "Goal generated: ${goal}"
+}
+```

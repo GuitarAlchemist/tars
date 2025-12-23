@@ -1,8 +1,7 @@
-/// <summary>
-/// Graph analysis tools for agent dependency graphs.
-/// Uses K-Theory concepts to analyze cyclomatic complexity and detect cycles.
-/// </summary>
 namespace Tars.Cortex
+
+// Graph analysis tools for agent dependency graphs.
+// Uses K-Theory concepts to analyze cyclomatic complexity and detect cycles.
 
 open System
 open Tars.Core
@@ -16,10 +15,12 @@ module GraphAnalyzer =
     /// Represents a directed graph as an adjacency matrix.
     /// </summary>
     type AdjacencyMatrix =
-        { /// Maps agent IDs to matrix indices
-          NodeIndex: Map<AgentId, int>
-          /// The adjacency matrix (1.0 = edge exists)
-          Matrix: float[,] }
+        {
+            /// Maps agent IDs to matrix indices
+            NodeIndex: Map<AgentId, int>
+            /// The adjacency matrix (1.0 = edge exists)
+            Matrix: float[,]
+        }
 
     /// <summary>
     /// K-Theory analysis tools for computing graph invariants.
@@ -120,6 +121,7 @@ module GraphAnalyzer =
 
                 // Build adjacency list (treating graph as undirected for component counting)
                 let adj = Array.init n (fun _ -> ResizeArray<int>())
+
                 for (u, v) in validEdges do
                     let i = indexMap.[u]
                     let j = indexMap.[v]
@@ -136,8 +138,10 @@ module GraphAnalyzer =
                         let queue = System.Collections.Generic.Queue<int>()
                         queue.Enqueue(start)
                         visited.[start] <- true
+
                         while queue.Count > 0 do
                             let current = queue.Dequeue()
+
                             for neighbor in adj.[current] do
                                 if not visited.[neighbor] then
                                     visited.[neighbor] <- true
@@ -150,12 +154,14 @@ module GraphAnalyzer =
 
     /// <summary>Result of cycle detection analysis.</summary>
     type CycleDetectionResult =
-        { /// True if cycles were detected
-          HasCycles: bool
-          /// Number of independent cycles found
-          CycleCount: int
-          /// Human-readable analysis message
-          Message: string }
+        {
+            /// True if cycles were detected
+            HasCycles: bool
+            /// Number of independent cycles found
+            CycleCount: int
+            /// Human-readable analysis message
+            Message: string
+        }
 
     /// <summary>
     /// Analyzes an agent graph for cycles using K-Theory.

@@ -15,7 +15,7 @@ module SystemTools =
     let getEnv (args: string) =
         task {
             let name = ToolHelpers.parseStringArg args "variable"
-            printfn "🔧 GET ENV: %s" name
+            printfn $"🔧 GET ENV: %s{name}"
 
             let value = Environment.GetEnvironmentVariable(name)
 
@@ -25,7 +25,7 @@ module SystemTools =
                     |> List.filter (fun v -> Environment.GetEnvironmentVariable(v) <> null)
                     |> String.concat ", "
 
-                return sprintf "Environment variable '%s' not found.\n\nAvailable common variables: %s" name suggestions
+                return $"Environment variable '%s{name}' not found.\n\nAvailable common variables: %s{suggestions}"
             else
                 let preview =
                     if value.Length > 200 then
@@ -33,7 +33,7 @@ module SystemTools =
                     else
                         value
 
-                return sprintf "ENV[%s] = %s" name preview
+                return $"ENV[%s{name}] = %s{preview}"
         }
 
     [<TarsToolAttribute("list_env", "Lists common environment variables. No input required.")>]
@@ -67,10 +67,10 @@ module SystemTools =
                             else
                                 value
 
-                        Some(sprintf "  %s = %s" name preview))
+                        Some $"  %s{name} = %s{preview}")
                 |> String.concat "\n"
 
-            return sprintf "Common Environment Variables:\n%s\n\nUse get_env for full values." envList
+            return $"Common Environment Variables:\n%s{envList}\n\nUse get_env for full values."
         }
 
     [<TarsToolAttribute("run_shell",
@@ -106,9 +106,9 @@ module SystemTools =
                 let isDangerous = dangerous |> List.exists (fun d -> command.ToLower().Contains(d))
 
                 if isDangerous then
-                    return sprintf "⚠️ Command blocked for safety: %s" command
+                    return $"⚠️ Command blocked for safety: %s{command}"
                 else
-                    printfn "🖥️ RUNNING: %s (timeout: %ds)" command timeout
+                    printfn $"🖥️ RUNNING: %s{command} (timeout: %d{timeout}s)"
 
                     let psi = ProcessStartInfo()
 
@@ -120,9 +120,9 @@ module SystemTools =
 
                     psi.Arguments <-
                         if Environment.OSVersion.Platform = PlatformID.Win32NT then
-                            sprintf "/c %s" command
+                            $"/c %s{command}"
                         else
-                            sprintf "-c \"%s\"" command
+                            $"-c \"%s{command}\""
 
                     psi.RedirectStandardOutput <- true
                     psi.RedirectStandardError <- true
@@ -143,10 +143,10 @@ module SystemTools =
                             else
                                 output
 
-                        return sprintf "Exit code: %d\n\n%s" proc.ExitCode preview
+                        return $"Exit code: %d{proc.ExitCode}\n\n%s{preview}"
                     else
                         proc.Kill()
-                        return sprintf "Command timed out after %d seconds" timeout
+                        return $"Command timed out after %d{timeout} seconds"
             with ex ->
                 return "run_shell error: " + ex.Message
         }
@@ -158,14 +158,14 @@ module SystemTools =
 
             let info =
                 "System Information:\n"
-                + sprintf "  OS: %s\n" (Environment.OSVersion.ToString())
-                + sprintf "  Machine: %s\n" Environment.MachineName
-                + sprintf "  Processors: %d\n" Environment.ProcessorCount
-                + sprintf "  .NET Version: %s\n" (Environment.Version.ToString())
-                + sprintf "  64-bit OS: %b\n" Environment.Is64BitOperatingSystem
-                + sprintf "  64-bit Process: %b\n" Environment.Is64BitProcess
-                + sprintf "  Current Directory: %s\n" Environment.CurrentDirectory
-                + sprintf "  User: %s\n" Environment.UserName
+                + $"  OS: %s{Environment.OSVersion.ToString()}\n"
+                + $"  Machine: %s{Environment.MachineName}\n"
+                + $"  Processors: %d{Environment.ProcessorCount}\n"
+                + $"  .NET Version: %s{Environment.Version.ToString()}\n"
+                + $"  64-bit OS: %b{Environment.Is64BitOperatingSystem}\n"
+                + $"  64-bit Process: %b{Environment.Is64BitProcess}\n"
+                + $"  Current Directory: %s{Environment.CurrentDirectory}\n"
+                + $"  User: %s{Environment.UserName}\n"
 
             return info
         }
@@ -198,23 +198,23 @@ module SystemTools =
                 with _ ->
                     "unable to list"
 
-            return sprintf "Working Directory: %s\n\nRecent files: %s" cwd files
+            return $"Working Directory: %s{cwd}\n\nRecent files: %s{files}"
         }
 
     [<TarsToolAttribute("set_working_dir", "Changes the current working directory. Input: new directory path")>]
     let setWorkingDir (args: string) =
         task {
             let newPath = ToolHelpers.parseStringArg args "path"
-            printfn "📂 CHANGING DIR: %s" newPath
+            printfn $"📂 CHANGING DIR: %s{newPath}"
 
             try
                 let fullPath = Path.GetFullPath(newPath)
 
                 if Directory.Exists(fullPath) then
                     Environment.CurrentDirectory <- fullPath
-                    return sprintf "Changed directory to: %s" fullPath
+                    return $"Changed directory to: %s{fullPath}"
                 else
-                    return sprintf "Directory not found: %s" fullPath
+                    return $"Directory not found: %s{fullPath}"
             with ex ->
                 return "set_working_dir error: " + ex.Message
         }

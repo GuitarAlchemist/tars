@@ -1,4 +1,4 @@
-﻿namespace Tars.Connectors
+namespace Tars.Connectors
 
 module Llm =
     let generate (modelConfig: string) (prompt: string) =

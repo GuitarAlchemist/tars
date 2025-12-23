@@ -28,7 +28,7 @@ type McpManager(configPath: string) =
                 config <- JsonSerializer.Deserialize<McpConfig>(json)
             with ex ->
                 // Fallback or log
-                printfn "Error loading mcp_config.json: %s" ex.Message
+                printfn $"Error loading mcp_config.json: %s{ex.Message}"
                 config <- { Servers = [] }
         else
             config <- { Servers = [] }

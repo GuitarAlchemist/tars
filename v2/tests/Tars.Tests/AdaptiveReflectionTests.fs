@@ -44,7 +44,7 @@ module AdaptiveReflectionTests =
                       FailedVariants = [] }
 
             member _.ExtractPrinciple(desc, sol) = raise (NotImplementedException())
-            member _.SuggestCurriculum(completed, active) = raise (NotImplementedException())
+            member _.SuggestCurriculum(completed, active, isCritical) = raise (NotImplementedException())
             member _.Verify(stmt) = raise (NotImplementedException())
             member _.GetRelatedCodeContext(query) = Task.FromResult "" }
 

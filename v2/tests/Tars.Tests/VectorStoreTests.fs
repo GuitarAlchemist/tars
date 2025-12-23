@@ -1,4 +1,4 @@
-﻿namespace Tars.Tests
+namespace Tars.Tests
 
 open System
 open System.IO
@@ -461,7 +461,7 @@ type VectorStoreTests(output: ITestOutputHelper) =
                 Assert.Equal("similar", ids[1])
                 Assert.Equal("different", ids[2])
                 let orderStr = String.Join(", ", ids)
-                output.WriteLine(sprintf "Order: %s" orderStr)
+                output.WriteLine $"Order: %s{orderStr}"
             finally
                 deleteIfExists dbPath
         }
@@ -574,7 +574,7 @@ type VectorStoreTests(output: ITestOutputHelper) =
                 Assert.Contains("collection_a", collections)
                 Assert.Contains("collection_b", collections)
                 let collStr = String.Join(", ", collections)
-                output.WriteLine(sprintf "Collections: %s" collStr)
+                output.WriteLine $"Collections: %s{collStr}"
             finally
                 deleteIfExists dbPath
         }

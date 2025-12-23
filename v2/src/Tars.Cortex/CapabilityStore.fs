@@ -19,10 +19,20 @@ type CapabilityStore(vectorStore: IVectorStore, llm: ILlmService) =
     /// </summary>
     member this.RegisterAsync(agentId: AgentId, capability: Capability) =
         task {
-            // Create embedding for the capability description
-            let! embedding = llm.EmbedAsync capability.Description
-
             let (AgentId guid) = agentId
+
+            // Generate deterministic ID
+            let id =
+                let raw = guid.ToString() + capability.Kind.ToString() + capability.Description
+                use sha = System.Security.Cryptography.SHA256.Create()
+                let bytes = System.Text.Encoding.UTF8.GetBytes(raw)
+                sha.ComputeHash(bytes) |> Convert.ToHexString |> (fun s -> s.ToLowerInvariant())
+
+            // TODO: Check if exists to avoid re-embedding (requires IVectorStore extension)
+
+            // Create embedding for the capability description
+            // This might take time if model needs to be pulled
+            let! embedding = llm.EmbedAsync capability.Description
 
             // Serialize payload
             let payload =
@@ -31,10 +41,9 @@ type CapabilityStore(vectorStore: IVectorStore, llm: ILlmService) =
                       "kind", string capability.Kind
                       "description", capability.Description
                       "input_schema", defaultArg capability.InputSchema ""
-                      "output_schema", defaultArg capability.OutputSchema "" ]
-
-            // Generate a unique ID for this registration
-            let id = Guid.NewGuid().ToString()
+                      "output_schema", defaultArg capability.OutputSchema ""
+                      "confidence", capability.Confidence |> Option.map string |> Option.defaultValue ""
+                      "reputation", capability.Reputation |> Option.map string |> Option.defaultValue "" ]
 
             do! vectorStore.SaveAsync(collectionName, id, embedding, payload)
         }
@@ -70,6 +79,22 @@ type CapabilityStore(vectorStore: IVectorStore, llm: ILlmService) =
                     let output =
                         payload |> Map.tryFind "output_schema" |> Option.filter (fun s -> s <> "")
 
+                    let confidence =
+                        payload
+                        |> Map.tryFind "confidence"
+                        |> Option.bind (fun s ->
+                            match Double.TryParse s with
+                            | true, v -> Some(float v)
+                            | _ -> None)
+
+                    let reputation =
+                        payload
+                        |> Map.tryFind "reputation"
+                        |> Option.bind (fun s ->
+                            match Double.TryParse s with
+                            | true, v -> Some(float v)
+                            | _ -> None)
+
                     let kind =
                         match kindStr with
                         | "Summarization" -> Summarization
@@ -85,10 +110,17 @@ type CapabilityStore(vectorStore: IVectorStore, llm: ILlmService) =
                         { Kind = kind
                           Description = desc
                           InputSchema = input
-                          OutputSchema = output }
+                          OutputSchema = output
+                          Confidence = confidence
+                          Reputation = reputation }
+
+                    // Blend vector similarity with reputation/confidence to bias towards reliable agents.
+                    let repScore = reputation |> Option.defaultValue 0.5
+                    let confScore = confidence |> Option.defaultValue 0.5
+                    let adjustedScore = score + (float32 repScore * 0.1f) + (float32 confScore * 0.05f)
 
                     match agentIdOpt with
-                    | Some agentId -> Some(agentId, capability, score)
+                    | Some agentId -> Some(agentId, capability, float adjustedScore)
                     | None -> None)
         }
 
@@ -100,3 +132,6 @@ type CapabilityStore(vectorStore: IVectorStore, llm: ILlmService) =
             // TODO: Implement metrics tracking (Phase 6.5.4)
             return ()
         }
+
+    interface ICapabilityStore with
+        member this.FindAgentsAsync(query, limit) = this.FindAgentsAsync(query, limit)
