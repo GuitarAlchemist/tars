@@ -17,6 +17,7 @@ open Tars.Security
 open Tars.Connectors.EpisodeIngestion
 open Tars.Interface.Cli // For ConfigurationLoader
 open Tars.Interface.Cli.SpectreUI
+open Tars.Knowledge
 
 type EvolveOptions =
     { MaxIterations: int
@@ -280,9 +281,9 @@ let run (logger: ILogger) (options: EvolveOptions) =
               GoogleGeminiKey = getKey "Google" "GOOGLE_API_KEY"
               AnthropicKey = getKey "Anthropic" "ANTHROPIC_API_KEY"
               DockerModelRunnerBaseUri = None
-              LlamaCppBaseUri = None
+              LlamaCppBaseUri = config.Llm.LlamaCppUrl |> Option.map Uri
               DefaultDockerModelRunnerModel = None
-              DefaultLlamaCppModel = None
+              DefaultLlamaCppModel = if config.Llm.LlamaCppUrl.IsSome then Some model else None
               DockerModelRunnerKey = None
               LlamaCppKey = None }
 
@@ -314,10 +315,11 @@ let run (logger: ILogger) (options: EvolveOptions) =
                 if not options.Quiet then
                     RichOutput.info "📁 Using Postgres Vector Store"
 
-                // Align vector dimension with embedding model (defaults to 1536 for nomic-embed-text)
+                // Align vector dimension with embedding model
                 let vecDim =
                     match config.Llm.EmbeddingModel.ToLowerInvariant() with
-                    | m when m.Contains("nomic") -> 1536
+                    | m when m.Contains("nomic") -> 768
+                    | m when m.Contains("mxbai") -> 512
                     | m when m.Contains("text-embedding-3-large") -> 3072
                     | m when m.Contains("text-embedding-3-small") -> 1536
                     | _ -> 1536
@@ -409,6 +411,44 @@ let run (logger: ILogger) (options: EvolveOptions) =
             | None -> RichOutput.info $"🧠 Capability index: {config.Memory.VectorStorePath} (agent_capabilities)"
 
         try
+            let! ledgerOpt =
+                task {
+                    let init (ledger: KnowledgeLedger) =
+                        task {
+                            do! ledger.Initialize()
+                            return ledger
+                        }
+
+                    let tryInit ledger =
+                        task {
+                            try
+                                let! ready = init ledger
+                                return Some ready
+                            with ex ->
+                                logger.Warning("Knowledge ledger init failed: {Message}", ex.Message)
+                                return None
+                        }
+
+                    match config.Memory.PostgresConnectionString with
+                    | Some connStr ->
+                        let storage =
+                            PostgresLedgerStorage.createWithConnectionString connStr :> ILedgerStorage
+
+                        let! ledger = tryInit (KnowledgeLedger(storage))
+
+                        match ledger with
+                        | Some _ -> return ledger
+                        | None -> return! tryInit (KnowledgeLedger.createInMemory ())
+                    | None -> return! tryInit (KnowledgeLedger.createInMemory ())
+                }
+
+            let runId = ledgerOpt |> Option.map (fun _ -> RunId.New())
+
+            if not options.Quiet then
+                match ledgerOpt with
+                | Some _ -> RichOutput.info "📒 Knowledge ledger initialized"
+                | None -> RichOutput.dim "📒 Knowledge ledger unavailable"
+
             // Session budget for evolution
             let budget =
                 BudgetGovernor(
@@ -424,15 +464,26 @@ let run (logger: ILogger) (options: EvolveOptions) =
                 if options.DemoMode then
                     None
                 else
-                    Some(Tars.Cortex.EpistemicGovernor(llmService, None, Some budget) :> IEpistemicGovernor)
+                    // Create a legacy knowledge graph for code context retrieval
+                    // TODO: Migrate to TemporalKnowledgeGraph once EpistemicGovernor is updated
+                    let legacyGraph = LegacyKnowledgeGraph.TemporalGraph()
+                    Some(Tars.Cortex.EpistemicGovernor(llmService, Some legacyGraph, Some budget) :> IEpistemicGovernor)
 
             // Initialize Output Guard
             let outputGuard = OutputGuard.defaultGuard
 
+            let evaluator =
+                SemanticEvaluation(
+                    llmService,
+                    minConfidence = 0.6,
+                    logger = fun msg -> logger.Information("{Evaluation}", msg)
+                )
+                :> IEvaluationStrategy
+
             let evoState: EvolutionState =
                 { Generation = 0
-                  CurriculumAgentId = AgentId curriculumId
-                  ExecutorAgentId = AgentId executorId
+                  CurriculumAgentId = Tars.Core.AgentId curriculumId
+                  ExecutorAgentId = Tars.Core.AgentId executorId
                   CompletedTasks = []
                   CurrentTask = None
                   TaskQueue = []
@@ -461,13 +512,26 @@ let run (logger: ILogger) (options: EvolveOptions) =
                 RichOutput.info $"🧠 Semantic Memory initialized at {storageRoot}"
 
             // Initialize Pre-LLM Pipeline
-            let safetyStage = SafetyFilterStage() :> IPreLlmStage
-            let intentStage = IntentClassifierStage() :> IPreLlmStage
+            let policyNames =
+                config.PreLlm.DefaultPolicies
+                |> List.append [ "no_destructive_commands" ]
+                |> List.distinct
+
+            let policyStage = PolicyGateStage(policyNames) :> IPreLlmStage
+
+            let intentClassifier =
+                if config.PreLlm.UseIntentClassifier then
+                    LlmIntentClassifier(llmService) :> IIntentClassifier
+                else
+                    NoopIntentClassifier() :> IIntentClassifier
+
+            let intentStage = IntentClassifierStage(intentClassifier) :> IPreLlmStage
+
             let entropyMonitor = EntropyMonitor()
             let compressor = ContextCompressor(llmService, entropyMonitor)
             let summarizerStage = ContextSummarizerStage(compressor) :> IPreLlmStage
 
-            let preLlmPipeline = PreLlmPipeline([ safetyStage; intentStage; summarizerStage ])
+            let preLlmPipeline = PreLlmPipeline([ policyStage; intentStage; summarizerStage ])
 
             // Initialize Memory Buffer (Capacitor)
             let onFlush (items: Engine.MemoryItem list) =
@@ -505,6 +569,9 @@ let run (logger: ILogger) (options: EvolveOptions) =
                         with ex ->
                             logger.Warning("Graphiti ingestion unavailable: {Message}", ex.Message)
                             None
+                  Ledger = ledgerOpt
+                  Evaluator = Some evaluator
+                  RunId = runId
                   Logger =
                     fun s ->
                         logger.Information("{Evolution}", s)
@@ -551,7 +618,8 @@ let run (logger: ILogger) (options: EvolveOptions) =
                               Success = false
                               Output = $"Task timed out: %s{ex.Message}"
                               ExecutionTrace = [ "TIMEOUT" ]
-                              Duration = TimeSpan.FromSeconds(120.0) }
+                              Duration = TimeSpan.FromSeconds(120.0)
+                              Evaluation = None }
 
                         Task.FromResult
                             { currentState with
@@ -576,7 +644,8 @@ let run (logger: ILogger) (options: EvolveOptions) =
                               Success = false
                               Output = $"Error: %s{ex.Message}"
                               ExecutionTrace = [ ex.GetType().Name ]
-                              Duration = TimeSpan.Zero }
+                              Duration = TimeSpan.Zero
+                              Evaluation = None }
 
                         Task.FromResult
                             { currentState with
@@ -637,6 +706,15 @@ let run (logger: ILogger) (options: EvolveOptions) =
                 with ex ->
                     RichOutput.error $"Failed to save trace: {ex.Message}"
                     logger.Error(ex, "Trace Saving Failed")
+
+            // Save knowledge graph
+            try
+                knowledgeGraph.Save(knowledgeGraphPath)
+
+                if not options.Quiet then
+                    RichOutput.info $"🧠 Knowledge graph saved to {knowledgeGraphPath}"
+            with ex ->
+                logger.Warning("Failed to save knowledge graph: {Message}", ex.Message)
 
             return 0
         with ex ->

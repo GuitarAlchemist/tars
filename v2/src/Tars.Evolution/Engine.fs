@@ -1,6 +1,7 @@
 namespace Tars.Evolution
 
 open System
+open System.Threading
 open System.Threading.Tasks
 open Tars.Core
 open Tars.Core.Knowledge
@@ -11,6 +12,7 @@ open System.Text.Json
 open Tars.Kernel
 open Tars.Cortex
 open Tars.Connectors.EpisodeIngestion
+open Tars.Knowledge
 
 module Engine =
 
@@ -33,6 +35,9 @@ module Engine =
           KnowledgeGraph: TemporalKnowledgeGraph.TemporalGraph option
           MemoryBuffer: BufferAgent<MemoryItem> option // Added Capacitor
           EpisodeService: IEpisodeIngestionService option // Graphiti integration
+          Ledger: KnowledgeLedger option
+          Evaluator: IEvaluationStrategy option
+          RunId: RunId option
           Logger: string -> unit
           Verbose: bool
           ShowSemanticMessage: Message -> bool -> unit }
@@ -76,6 +81,103 @@ module Engine =
                     return baseScore
         }
 
+    let private tryGetPropertyInsensitive (name: string) (elem: JsonElement) =
+        if elem.ValueKind <> JsonValueKind.Object then
+            None
+        else
+            elem.EnumerateObject()
+            |> Seq.tryFind (fun p -> p.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+            |> Option.map (fun p -> p.Value)
+
+    let private readBoolFromJson names (elem: JsonElement) =
+        names
+        |> List.tryPick (fun name ->
+            match tryGetPropertyInsensitive name elem with
+            | Some prop ->
+                match prop.ValueKind with
+                | JsonValueKind.True -> Some true
+                | JsonValueKind.False -> Some false
+                | JsonValueKind.String ->
+                    match Boolean.TryParse(prop.GetString()) with
+                    | true, value -> Some value
+                    | _ -> None
+                | _ -> None
+            | None -> None)
+
+    let private readStringFromJson names (elem: JsonElement) =
+        names
+        |> List.tryPick (fun name ->
+            match tryGetPropertyInsensitive name elem with
+            | Some prop when prop.ValueKind = JsonValueKind.String -> Some(prop.GetString())
+            | _ -> None)
+
+    let private formatBelief (belief: Belief) =
+        let predicate =
+            match belief.Predicate with
+            | RelationType.Custom p -> p
+            | _ -> belief.Predicate.ToString()
+
+        $"- [{belief.Confidence:F2}] {belief.Subject.Value} {predicate} {belief.Object.Value}"
+
+    let private evaluateContradiction (ctx: EvolutionContext) (goal: string) (beliefs: Belief list) =
+        task {
+            if beliefs.IsEmpty then
+                return None
+            else
+                let beliefLines = beliefs |> List.map formatBelief |> String.concat "\n"
+
+                let prompt =
+                    $"""You maintain a knowledge ledger. Known beliefs:
+{beliefLines}
+
+Task: {goal}
+
+Do any of the known beliefs contradict executing this task? Respond in JSON: {{"contradicts": true|false, "reason": "..."}}."""
+
+                let request: LlmRequest =
+                    { ModelHint = Some "reasoning"
+                      Model = None
+                      SystemPrompt = Some "Check whether a new task violates the known beliefs."
+                      MaxTokens = Some 250
+                      Temperature = Some 0.0
+                      Stop = []
+                      Messages = [ { Role = Role.User; Content = prompt } ]
+                      Tools = []
+                      ToolChoice = None
+                      ResponseFormat = Some ResponseFormat.Json
+                      Stream = false
+                      JsonMode = true
+                      Seed = None }
+
+                try
+                    let! response = ctx.Llm.CompleteAsync(request)
+
+                    match JsonParsing.tryParseElement response.Text with
+                    | Result.Ok elem ->
+                        let contradicts =
+                            readBoolFromJson [ "contradicts"; "conflicts" ] elem
+                            |> Option.defaultValue false
+
+                        if contradicts then
+                            let reason =
+                                readStringFromJson [ "reason"; "details"; "explanation" ] elem
+                                |> Option.defaultValue (response.Text.Trim())
+
+                            return Some reason
+                        else
+                            return None
+                    | Result.Error _ ->
+                        let lowered = response.Text.ToLowerInvariant()
+
+                        if lowered.Contains("contradict") && lowered.Contains("yes") then
+                            return Some response.Text
+                        else
+                            return None
+                with ex ->
+                    ctx.Logger($"[Contradiction] LLM check failed: {ex.Message}")
+                    return None
+        }
+
     /// Generates a new task using the Curriculum Agent
     let private generateTask (ctx: EvolutionContext) (state: EvolutionState) =
         task {
@@ -110,9 +212,7 @@ module Engine =
                     suggestion
 
             let completedGoals =
-                state.CompletedTasks
-                |> List.map (fun t -> t.TaskGoal)
-                |> List.distinct
+                state.CompletedTasks |> List.map (fun t -> t.TaskGoal) |> List.distinct
 
             let completedList =
                 if completedGoals.IsEmpty then
@@ -126,7 +226,10 @@ module Engine =
 Generation: %d{state.Generation}. Completed tasks: %d{state.CompletedTasks.Length}.
 
 Create 3 concrete, diverse F# programming tasks based on the following guidance.
-Guidance: %s{if String.IsNullOrWhiteSpace(guidance) then "basic algorithms" else guidance}
+Guidance: %s{if String.IsNullOrWhiteSpace(guidance) then
+                 "basic algorithms"
+             else
+                 guidance}
 
 Requirements:
 - Each task must be a specific coding problem (NOT a question) and solvable with code (NOT a discussion).
@@ -151,7 +254,7 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                 let graphExecutor =
                     GraphExecutor(ctx.Registry, ctx.Llm, ctx.Budget, ctx.OutputGuard, ctx.Logger)
 
-                // 3. Create Request Message
+                // 3. Create Request Message with JSON requirement
                 let msg =
                     { Id = Guid.NewGuid()
                       CorrelationId = CorrelationId(Guid.NewGuid())
@@ -161,17 +264,17 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                       Intent = Some AgentDomain.Planning
                       Constraints = SemanticConstraints.Default
                       Ontology = None
-                      Language = "text"
+                      Language = "json" // Hint to use JSON mode
                       Content = prompt
                       Timestamp = DateTime.UtcNow
-                      Metadata = Map.empty }
+                      Metadata = Map.ofList [ ("response_format", "json"); ("json_mode", "true") ] }
 
                 // Show semantic message in demo mode
                 ctx.ShowSemanticMessage msg ctx.Verbose
                 let agentWithMsg = agent.ReceiveMessage(msg)
 
                 // 4. Run Execution
-                let! outcome = graphExecutor.RunAgentLoop agentWithMsg 20
+                let! outcome = graphExecutor.RunAgentLoop(agentWithMsg, 20)
 
                 // Phase 6.2: Semantic Speech Act Validation
                 let responseText =
@@ -213,45 +316,13 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                             Score = 1.0 } ]
                 else
                     try
-                        let json = responseText.Trim()
+                        let root =
+                            match JsonParsing.tryParseElement responseText with
+                            | Result.Ok elem -> elem
+                            | Result.Error err ->
+                                ctx.Logger($"[Curriculum] Task JSON parse failed: {err}")
+                                raise (FormatException(err))
 
-                        // Handle Speech Act prefix (ACT: <performative>: <content>)
-                        let json =
-                            let jsonStart =
-                                let braceIdx = json.IndexOf('{')
-                                let bracketIdx = json.IndexOf('[')
-
-                                match braceIdx, bracketIdx with
-                                | -1, -1 -> -1
-                                | -1, b -> b
-                                | b, -1 -> b
-                                | a, b -> Math.Min(a, b)
-
-                            if jsonStart > 0 then json.Substring(jsonStart) else json
-
-                        // Clean backticks
-                        let json =
-                            let mutable cleaned = json
-
-                            if cleaned.StartsWith("```json") then
-                                cleaned <- cleaned.Substring(7)
-                            elif cleaned.StartsWith("```") then
-                                cleaned <- cleaned.Substring(3)
-
-                            cleaned <- cleaned.TrimEnd()
-
-                            if cleaned.EndsWith("```") then
-                                cleaned <- cleaned.Substring(0, cleaned.Length - 3)
-
-                            let lastBackticks = cleaned.LastIndexOf("\n```")
-
-                            if lastBackticks > 0 then
-                                cleaned <- cleaned.Substring(0, lastBackticks)
-
-                            cleaned.Trim()
-
-                        let doc = JsonDocument.Parse(json)
-                        let root = doc.RootElement
                         let mutable tasksElem = Unchecked.defaultof<JsonElement>
 
                         let tasksJson =
@@ -398,7 +469,8 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                       Success = false
                       Output = "Executor Agent not found in Kernel"
                       ExecutionTrace = []
-                      Duration = TimeSpan.Zero }
+                      Duration = TimeSpan.Zero
+                      Evaluation = None }
             | Some executor ->
                 // Log: Curriculum → Request → Executor
                 let requestMsg =
@@ -457,236 +529,410 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                 if not memories.IsEmpty then
                     ctx.Logger($"[Memory] Retrieved {memories.Length} past experiences.")
 
-                let taskPrompt =
-                    $"""Task Goal: %s{taskDef.Goal}
-Constraints: %A{taskDef.Constraints}
-Validation Criteria: %s{taskDef.ValidationCriteria}
+                let goalLower = taskDef.Goal.ToLowerInvariant()
 
-%s{codeContext}
-%s{memoryContext}
+                let relevantBeliefs =
+                    match ctx.Ledger with
+                    | Some ledger ->
+                        ledger.Query()
+                        |> Seq.filter (fun b ->
+                            let subj = b.Subject.Value.ToLowerInvariant()
+                            let obj = b.Object.Value.ToLowerInvariant()
+                            goalLower.Contains(subj) || goalLower.Contains(obj))
+                        |> Seq.sortByDescending (fun b -> b.Confidence)
+                        |> Seq.truncate 5
+                        |> Seq.toList
+                    | None -> []
 
-Please solve this task. Output your solution code or answer."""
+                if not relevantBeliefs.IsEmpty then
+                    ctx.Logger($"[Ledger] Retrieved {relevantBeliefs.Length} relevant beliefs.")
 
-                // Pre-LLM Pipeline Check
-                let! (finalPrompt, isSafe) =
-                    match ctx.PreLlm with
-                    | Some pipeline ->
-                        task {
-                            let! pCtx = pipeline.ExecuteAsync(taskPrompt)
+                let allowContradictions =
+                    taskDef.Constraints
+                    |> List.exists (fun c -> c.Equals("allow_contradictions", StringComparison.OrdinalIgnoreCase))
 
-                            if not pCtx.IsSafe then
-                                return (pCtx.BlockReason |> Option.defaultValue "Unsafe", false)
-                            else
-                                return (pCtx.CurrentPrompt, true)
-                        }
-                    | None -> Task.FromResult(taskPrompt, true)
+                let requiresContradictionGate =
+                    taskDef.Constraints
+                    |> List.exists (fun c ->
+                        c.Equals("check_contradictions", StringComparison.OrdinalIgnoreCase)
+                        || c.Equals("ledger_gate", StringComparison.OrdinalIgnoreCase)
+                        || c.Equals("enforce_ledger", StringComparison.OrdinalIgnoreCase))
 
-                if not isSafe then
+                let shouldGate =
+                    not allowContradictions
+                    && requiresContradictionGate
+                    && not (List.isEmpty relevantBeliefs)
+
+                let! contradictionReason =
+                    if shouldGate then
+                        evaluateContradiction ctx taskDef.Goal relevantBeliefs
+                    else
+                        Task.FromResult None
+
+                match contradictionReason with
+                | Some reason ->
                     return
                         { TaskId = taskDef.Id
                           TaskGoal = taskDef.Goal
                           ExecutorId = state.ExecutorAgentId
                           Success = false
-                          Output = $"Blocked by Safety Filter: {finalPrompt}"
-                          ExecutionTrace = []
-                          Duration = TimeSpan.Zero }
-                else
-                    let msg =
-                        { Id = Guid.NewGuid()
-                          CorrelationId = CorrelationId(Guid.NewGuid())
-                          Sender = MessageEndpoint.System // System assigns the task
-                          Receiver = Some(MessageEndpoint.Agent executor.Id)
-                          Performative = Performative.Request
-                          Intent = Some AgentDomain.Coding
-                          Constraints = SemanticConstraints.Default
-                          Ontology = None
-                          Language = "text"
-                          Content = finalPrompt
-                          Timestamp = DateTime.UtcNow
-                          Metadata = Map.empty }
+                          Output = $"Blocked by ledger contradiction policy: {reason}"
+                          ExecutionTrace = [ "LEDGER_CONTRADICTION" ]
+                          Duration = TimeSpan.Zero
+                          Evaluation = None }
+                | None ->
 
-                    // 4. Send message to Executor - show semantic message
-                    ctx.ShowSemanticMessage msg ctx.Verbose
-                    DemoVisualization.showTaskStart taskDef.Goal taskDef.Constraints
+                    let ledgerContext =
+                        if relevantBeliefs.IsEmpty then
+                            ""
+                        else
+                            let lines =
+                                relevantBeliefs
+                                |> List.map (fun b ->
+                                    let predicate =
+                                        match b.Predicate with
+                                        | RelationType.Custom p -> p
+                                        | _ -> b.Predicate.ToString()
 
-                    let agentWithMsg = executor.ReceiveMessage(msg)
+                                    $"- [{b.Confidence:F2}] {b.Subject.Value} {predicate} {b.Object.Value}")
+                                |> String.concat "\n"
 
-                    // 5. Run Initial Execution
-                    let! outcome = graphExecutor.RunAgentLoop agentWithMsg 20
+                            $"\nKnown Beliefs:\n{lines}\n"
 
-                    // Phase 6.2: Semantic Speech Act Validation
-                    let (success, output, trace) =
-                        match outcome with
-                        | Success(_, o, t) -> (true, o, t)
-                        | PartialSuccess((_, o, t), _) -> (true, o, t)
-                        | Failure err -> (false, String.concat "; " (err |> List.map (fun e -> $"%A{e}")), [])
+                    let taskPrompt =
+                        $"""Task Goal: %s{taskDef.Goal}
+    Constraints: %A{taskDef.Constraints}
+    Validation Criteria: %s{taskDef.ValidationCriteria}
 
-                    if success then
-                        let requestMsg = SpeechActs.fromSemantic msg
+    %s{codeContext}
+    %s{memoryContext}
+    %s{ledgerContext}
 
-                        let intent, content =
-                            match SpeechActs.tryParse output with
-                            | Some(i, c) -> i, c
-                            | None -> Tell output, output // Fallback for legacy outputs
+    Please solve this task. Output your solution code or answer."""
 
-                        let replyMsg = SpeechActs.createReply requestMsg intent content executor.Id
+                    // Pre-LLM Pipeline Check
+                    let! (finalPrompt, isSafe) =
+                        match ctx.PreLlm with
+                        | Some pipeline ->
+                            task {
+                                let! pCtx = pipeline.ExecuteAsync(taskPrompt)
 
-                        match SpeechActs.validateFlow requestMsg replyMsg with
-                        | Result.Ok() ->
-                            ctx.Logger
-                                $"[Protocol] Verified semantic flow: %A{requestMsg.Intent} -> %A{replyMsg.Intent}"
-                        | Result.Error err -> ctx.Logger $"[Protocol] WARNING: Protocol violation: %s{err}"
+                                if not pCtx.IsSafe then
+                                    return (pCtx.BlockReason |> Option.defaultValue "Unsafe", false)
+                                else
+                                    return (pCtx.CurrentPrompt, true)
+                            }
+                        | None -> Task.FromResult(taskPrompt, true)
 
-                    let (agentAfterExec, _, output, trace) =
-                        match outcome with
-                        | Success(a, o, t) -> (a, true, o, t)
-                        | PartialSuccess((a, o, t), _) -> (a, true, o, t)
-                        | Failure err ->
-                            (agentWithMsg, false, String.concat "; " (err |> List.map (fun e -> $"%A{e}")), [])
-
-                    if not success then
+                    if not isSafe then
                         return
                             { TaskId = taskDef.Id
                               TaskGoal = taskDef.Goal
                               ExecutorId = state.ExecutorAgentId
                               Success = false
-                              Output = output
-                              ExecutionTrace = trace
-                              Duration = TimeSpan.FromSeconds(5.0) }
+                              Output = $"Blocked by Safety Filter: {finalPrompt}"
+                              ExecutionTrace = []
+                              Duration = TimeSpan.Zero
+                              Evaluation = None }
                     else
-                        // Handle Speech Act prefix in output using new helper
-                        let mutable currentOutput =
-                            match SpeechActs.tryParse output with
-                            | Some(_, c) -> c
-                            | None -> output
+                        let msg =
+                            { Id = Guid.NewGuid()
+                              CorrelationId = CorrelationId(Guid.NewGuid())
+                              Sender = MessageEndpoint.System // System assigns the task
+                              Receiver = Some(MessageEndpoint.Agent executor.Id)
+                              Performative = Performative.Request
+                              Intent = Some AgentDomain.Coding
+                              Constraints = SemanticConstraints.Default
+                              Ontology = None
+                              Language = "text"
+                              Content = finalPrompt
+                              Timestamp = DateTime.UtcNow
+                              Metadata = Map.empty }
 
-                        let mutable currentTrace = trace
-                        let mutable reflectionCount = 0
-                        let mutable isOptimal = false
-                        let mutable currentAgent = agentAfterExec
-                        let maxReflections = 3
+                        // 4. Send message to Executor - show semantic message
+                        ctx.ShowSemanticMessage msg ctx.Verbose
+                        DemoVisualization.showTaskStart taskDef.Goal taskDef.Constraints
 
-                        while reflectionCount < maxReflections && not isOptimal do
-                            reflectionCount <- reflectionCount + 1
+                        let agentWithMsg = executor.ReceiveMessage(msg)
+                        use cts = new CancellationTokenSource()
 
-                            // 6.1 Epistemic Verification (if available)
-                            let! (verificationFeedback, isVerified) =
-                                task {
-                                    match ctx.Epistemic with
-                                    | Some governor ->
-                                        try
-                                            // Generate minimal variants for quick check
-                                            let! variants = governor.GenerateVariants(taskDef.Goal, 1)
+                        if taskDef.Timeout > TimeSpan.Zero then
+                            cts.CancelAfter(taskDef.Timeout)
 
-                                            let! result =
-                                                governor.VerifyGeneralization(taskDef.Goal, currentOutput, variants)
-
-                                            return (result.Feedback, result.IsVerified)
-                                        with ex ->
-                                            return ($"Verification failed: {ex.Message}", false)
-                                    | None -> return ("", false)
-                                }
-
-                            if isVerified then
-                                isOptimal <- true
-                                currentTrace <- currentTrace @ [ $"--- VERIFIED by Epistemic Governor ---" ]
+                        let deadline =
+                            if taskDef.Timeout > TimeSpan.Zero then
+                                Some(DateTime.UtcNow + taskDef.Timeout)
                             else
-                                // 6.2 Construct Reflection Prompt
-                                let reflectionPrompt =
-                                    if String.IsNullOrEmpty verificationFeedback then
-                                        // Standard Reflection
-                                        $"""You have generated a solution.
-Current Output:
-%s{currentOutput}
+                                None
 
-Please reflect on this solution.
-1. Identify any potential bugs or inefficiencies.
-2. Verify if it meets all constraints: %A{taskDef.Constraints}
-3. If you can improve it, output the IMPROVED solution.
-4. If it is already optimal, output "OPTIMAL"."""
+                        let remaining () =
+                            deadline |> Option.map (fun endTime -> endTime - DateTime.UtcNow)
+
+                        let runWithTimeout label (work: Task<'T>) =
+                            task {
+                                match remaining () with
+                                | Some r when r <= TimeSpan.Zero ->
+                                    cts.Cancel()
+                                    return Choice2Of2($"{label} timeout expired")
+                                | Some r ->
+                                    let timeoutTask = Task.Delay(r)
+                                    let! completed = Task.WhenAny(work, timeoutTask)
+
+                                    if Object.ReferenceEquals(completed, timeoutTask) then
+                                        cts.Cancel()
+                                        return Choice2Of2($"{label} timed out after {r.TotalSeconds:F1}s")
                                     else
-                                        // Epistemic Feedback Reflection
-                                        $"""Your solution failed verification.
-Current Output:
-%s{currentOutput}
+                                        let! result = work
+                                        return Choice1Of2 result
+                                | None ->
+                                    let! result = work
+                                    return Choice1Of2 result
+                            }
 
-Feedback from Epistemic Governor:
-%s{verificationFeedback}
+                        // 5. Run Initial Execution
+                        let! outcomeResult =
+                            runWithTimeout
+                                "Execution"
+                                (graphExecutor.RunAgentLoop(agentWithMsg, 20, cancellationToken = cts.Token))
 
-Please fix the solution based on this feedback. Output the IMPROVED solution."""
+                        match outcomeResult with
+                        | Choice2Of2 reason ->
+                            return
+                                { TaskId = taskDef.Id
+                                  TaskGoal = taskDef.Goal
+                                  ExecutorId = state.ExecutorAgentId
+                                  Success = false
+                                  Output = $"Task timed out: {reason}"
+                                  ExecutionTrace = [ "TIMEOUT" ]
+                                  Duration = taskDef.Timeout
+                                  Evaluation = None }
+                        | Choice1Of2 outcome ->
 
-                                let reflectionMsg =
-                                    { Id = Guid.NewGuid()
-                                      CorrelationId = CorrelationId(Guid.NewGuid())
-                                      Sender = MessageEndpoint.System
-                                      Receiver = Some(MessageEndpoint.Agent executor.Id)
-                                      Performative = Performative.Request
-                                      Intent = Some AgentDomain.Reasoning
-                                      Constraints = SemanticConstraints.Default
-                                      Ontology = None
-                                      Language = "text"
-                                      Content = reflectionPrompt
-                                      Timestamp = DateTime.UtcNow
-                                      Metadata = Map.empty }
+                            // Phase 6.2: Semantic Speech Act Validation
+                            let (success, output, trace) =
+                                match outcome with
+                                | Success(_, o, t) -> (true, o, t)
+                                | PartialSuccess((_, o, t), _) -> (true, o, t)
+                                | Failure err -> (false, String.concat "; " (err |> List.map (fun e -> $"%A{e}")), [])
 
-                                // Show reflection visualization
-                                DemoVisualization.showReflection
-                                    reflectionCount
-                                    maxReflections
-                                    (Some verificationFeedback)
+                            if success then
+                                let requestMsg = SpeechActs.fromSemantic msg
 
-                                // Phase 6.8: Epistemic Reflection Recording
-                                match ctx.EpisodeService with
-                                | Some svc ->
-                                    let episode =
-                                        Tars.Core.Episode.Reflection(
-                                            state.ExecutorAgentId.ToString(),
-                                            reflectionPrompt,
-                                            DateTime.UtcNow
-                                        )
+                                let intent, content =
+                                    match SpeechActs.tryParse output with
+                                    | Some(i, c) -> i, c
+                                    | None -> Tell output, output // Fallback for legacy outputs
 
-                                    svc.Queue(episode)
-                                | None -> ()
+                                let replyMsg = SpeechActs.createReply requestMsg intent content executor.Id
 
-                                let agentWithReflection = currentAgent.ReceiveMessage(reflectionMsg)
-                                let! reflectOutcome = graphExecutor.RunAgentLoop agentWithReflection 20
+                                match SpeechActs.validateFlow requestMsg replyMsg with
+                                | Result.Ok() ->
+                                    ctx.Logger
+                                        $"[Protocol] Verified semantic flow: %A{requestMsg.Intent} -> %A{replyMsg.Intent}"
+                                | Result.Error err -> ctx.Logger $"[Protocol] WARNING: Protocol violation: %s{err}"
 
-                                match reflectOutcome with
-                                | Success(nextAgent, reflectOutput, reflectTrace) ->
-                                    currentAgent <- nextAgent
-
-                                    currentTrace <-
-                                        currentTrace @ [ $"--- REFLECTION {reflectionCount} ---" ] @ reflectTrace
-
-                                    if
-                                        reflectOutput.Contains("OPTIMAL") && String.IsNullOrEmpty verificationFeedback
-                                    then
-                                        isOptimal <- true
-                                    else
-                                        currentOutput <- reflectOutput
-                                | PartialSuccess((nextAgent, reflectOutput, reflectTrace), _) ->
-                                    currentAgent <- nextAgent
-
-                                    currentTrace <-
-                                        currentTrace
-                                        @ [ $"--- REFLECTION {reflectionCount} (Partial) ---" ]
-                                        @ reflectTrace
-
-                                    currentOutput <- reflectOutput
+                            let (agentAfterExec, _, output, trace) =
+                                match outcome with
+                                | Success(a, o, t) -> (a, true, o, t)
+                                | PartialSuccess((a, o, t), _) -> (a, true, o, t)
                                 | Failure err ->
-                                    // If reflection fails, stop and keep previous result
-                                    currentTrace <- currentTrace @ [ $"--- REFLECTION {reflectionCount} FAILED ---" ]
-                                    // Don't update output, just stop
-                                    reflectionCount <- maxReflections
+                                    (agentWithMsg, false, String.concat "; " (err |> List.map (fun e -> $"%A{e}")), [])
 
-                        return
-                            { TaskId = taskDef.Id
-                              TaskGoal = taskDef.Goal
-                              ExecutorId = state.ExecutorAgentId
-                              Success = true
-                              Output = currentOutput
-                              ExecutionTrace = currentTrace
-                              Duration = TimeSpan.FromSeconds(10.0 * float (reflectionCount + 1)) }
+                            if not success then
+                                return
+                                    { TaskId = taskDef.Id
+                                      TaskGoal = taskDef.Goal
+                                      ExecutorId = state.ExecutorAgentId
+                                      Success = false
+                                      Output = output
+                                      ExecutionTrace = trace
+                                      Duration = TimeSpan.FromSeconds(5.0)
+                                      Evaluation = None }
+                            else
+                                // Handle Speech Act prefix in output using new helper
+                                let mutable currentOutput =
+                                    match SpeechActs.tryParse output with
+                                    | Some(_, c) -> c
+                                    | None -> output
+
+                                let mutable currentTrace = trace
+                                let mutable reflectionCount = 0
+                                let mutable isOptimal = false
+                                let mutable currentAgent = agentAfterExec
+                                let mutable timeoutOccurred = false
+                                let maxReflections = 3
+
+                                while reflectionCount < maxReflections && not isOptimal do
+                                    reflectionCount <- reflectionCount + 1
+
+                                    match remaining () with
+                                    | Some r when r <= TimeSpan.Zero ->
+                                        timeoutOccurred <- true
+                                        currentTrace <- currentTrace @ [ "TIMEOUT before reflection" ]
+                                        reflectionCount <- maxReflections
+                                    | _ -> ()
+
+                                    if not timeoutOccurred then
+                                        // 6.1 Epistemic Verification (if available)
+                                        let! (verificationFeedback, isVerified) =
+                                            task {
+                                                match ctx.Epistemic with
+                                                | Some governor ->
+                                                    try
+                                                        // Generate minimal variants for quick check
+                                                        let! variants = governor.GenerateVariants(taskDef.Goal, 1)
+
+                                                        let! result =
+                                                            governor.VerifyGeneralization(
+                                                                taskDef.Goal,
+                                                                currentOutput,
+                                                                variants
+                                                            )
+
+                                                        return (result.Feedback, result.IsVerified)
+                                                    with ex ->
+                                                        return ($"Verification failed: {ex.Message}", false)
+                                                | None -> return ("", false)
+                                            }
+
+                                        if isVerified then
+                                            isOptimal <- true
+                                            currentTrace <- currentTrace @ [ $"--- VERIFIED by Epistemic Governor ---" ]
+                                        else
+                                            // 6.2 Construct Reflection Prompt
+                                            // Truncate output to prevent HTTP 400 errors from excessive length
+                                            let maxOutputLength = 2000
+
+                                            let truncatedOutput =
+                                                if currentOutput.Length > maxOutputLength then
+                                                    currentOutput.Substring(0, maxOutputLength)
+                                                    + "\n... [output truncated]"
+                                                else
+                                                    currentOutput
+
+                                            let reflectionPrompt =
+                                                if String.IsNullOrEmpty verificationFeedback then
+                                                    // Standard Reflection
+                                                    $"""You have generated a solution.
+    Current Output:
+    %s{truncatedOutput}
+
+    Please reflect on this solution.
+    1. Identify any potential bugs or inefficiencies.
+    2. Verify if it meets all constraints: %A{taskDef.Constraints}
+    3. If you can improve it, output the IMPROVED solution.
+    4. If it is already optimal, output "OPTIMAL"."""
+                                                else
+                                                    // Epistemic Feedback Reflection
+                                                    $"""Your solution failed verification.
+    Current Output:
+    %s{truncatedOutput}
+
+    Feedback from Epistemic Governor:
+    %s{verificationFeedback}
+
+    Please fix the solution based on this feedback. Output the IMPROVED solution."""
+
+                                            let reflectionMsg =
+                                                { Id = Guid.NewGuid()
+                                                  CorrelationId = CorrelationId(Guid.NewGuid())
+                                                  Sender = MessageEndpoint.System
+                                                  Receiver = Some(MessageEndpoint.Agent executor.Id)
+                                                  Performative = Performative.Request
+                                                  Intent = Some AgentDomain.Reasoning
+                                                  Constraints = SemanticConstraints.Default
+                                                  Ontology = None
+                                                  Language = "text"
+                                                  Content = reflectionPrompt
+                                                  Timestamp = DateTime.UtcNow
+                                                  Metadata = Map.empty }
+
+                                            // Show reflection visualization
+                                            DemoVisualization.showReflection
+                                                reflectionCount
+                                                maxReflections
+                                                (Some verificationFeedback)
+
+                                            // Phase 6.8: Epistemic Reflection Recording
+                                            match ctx.EpisodeService with
+                                            | Some svc ->
+                                                let episode =
+                                                    Tars.Core.Episode.Reflection(
+                                                        state.ExecutorAgentId.ToString(),
+                                                        reflectionPrompt,
+                                                        DateTime.UtcNow
+                                                    )
+
+                                                svc.Queue(episode)
+                                            | None -> ()
+
+                                            let agentWithReflection = currentAgent.ReceiveMessage(reflectionMsg)
+
+                                            let! reflectOutcomeResult =
+                                                runWithTimeout
+                                                    "Reflection"
+                                                    (graphExecutor.RunAgentLoop(
+                                                        agentWithReflection,
+                                                        20,
+                                                        cancellationToken = cts.Token
+                                                    ))
+
+                                            match reflectOutcomeResult with
+                                            | Choice2Of2 reason ->
+                                                timeoutOccurred <- true
+
+                                                currentTrace <-
+                                                    currentTrace @ [ $"TIMEOUT during reflection: {reason}" ]
+
+                                                reflectionCount <- maxReflections
+                                                currentOutput <- currentOutput + "\n[TIMEOUT during reflection]"
+                                            | Choice1Of2 reflectOutcome ->
+                                                match reflectOutcome with
+                                                | Success(nextAgent, reflectOutput, reflectTrace) ->
+                                                    currentAgent <- nextAgent
+
+                                                    currentTrace <-
+                                                        currentTrace
+                                                        @ [ $"--- REFLECTION {reflectionCount} ---" ]
+                                                        @ reflectTrace
+
+                                                    if
+                                                        reflectOutput.Contains("OPTIMAL")
+                                                        && String.IsNullOrEmpty verificationFeedback
+                                                    then
+                                                        isOptimal <- true
+                                                    else
+                                                        currentOutput <- reflectOutput
+                                                | PartialSuccess((nextAgent, reflectOutput, reflectTrace), _) ->
+                                                    currentAgent <- nextAgent
+
+                                                    currentTrace <-
+                                                        currentTrace
+                                                        @ [ $"--- REFLECTION {reflectionCount} (Partial) ---" ]
+                                                        @ reflectTrace
+
+                                                    currentOutput <- reflectOutput
+                                                | Failure err ->
+                                                    // If reflection fails, stop and keep previous result
+                                                    currentTrace <-
+                                                        currentTrace
+                                                        @ [ $"--- REFLECTION {reflectionCount} FAILED ---" ]
+                                                    // Don't update output, just stop
+                                                    reflectionCount <- maxReflections
+
+                                return
+                                    { TaskId = taskDef.Id
+                                      TaskGoal = taskDef.Goal
+                                      ExecutorId = state.ExecutorAgentId
+                                      Success = not timeoutOccurred
+                                      Output =
+                                        if timeoutOccurred then
+                                            currentOutput + "\n[TIMEOUT]"
+                                        else
+                                            currentOutput
+                                      ExecutionTrace = currentTrace
+                                      Duration = TimeSpan.FromSeconds(10.0 * float (reflectionCount + 1))
+                                      Evaluation = None }
         }
 
     /// The main tick of the evolutionary loop
@@ -697,15 +943,52 @@ Please fix the solution based on this feedback. Output the IMPROVED solution."""
                 // 2. Execution Phase: Attempt to solve
                 let! result = executeTask ctx state taskDef
 
-                // 3. Evaluation Phase (simplified)
-                if result.Success then
+                let! evaluation =
+                    match ctx.Evaluator with
+                    | Some evaluator ->
+                        task {
+                            try
+                                let! evaluated = evaluator.Evaluate(taskDef, result)
+                                return Some evaluated
+                            with ex ->
+                                ctx.Logger($"[Evaluation] Failed: {ex.Message}")
+                                return None
+                        }
+                    | None -> Task.FromResult None
+
+                let resultWithEvaluation = { result with Evaluation = evaluation }
+
+                let evaluationPassed =
+                    evaluation
+                    |> Option.map (fun e -> e.Passed)
+                    |> Option.defaultValue result.Success
+
+                // Update success flag based on BOTH execution and semantic evaluation
+                // A task is only truly successful if it executed AND passed semantic validation
+                let finalResult =
+                    { resultWithEvaluation with
+                        Success = result.Success && evaluationPassed }
+
+                match ctx.Ledger with
+                | Some ledger -> do! LedgerIngestion.recordTaskResult ledger ctx.RunId taskDef finalResult ctx.Logger
+                | None -> ()
+
+                let resultForDisplay =
+                    match evaluation with
+                    | Some e when not e.Passed ->
+                        { finalResult with
+                            Output = finalResult.Output + "\n[SEMANTIC EVAL FAILED] " + e.Summary }
+                    | _ -> finalResult
+
+                // 3. Evaluation Phase (semantic)
+                if result.Success && evaluationPassed then
                     let mutable newBeliefs = state.ActiveBeliefs
 
                     // Epistemic Governor: Extract Principle
                     match ctx.Epistemic with
                     | Some governor ->
                         try
-                            let! belief = governor.ExtractPrinciple(taskDef.Goal, result.Output)
+                            let! belief = governor.ExtractPrinciple(taskDef.Goal, finalResult.Output)
 
                             // Store belief in VectorStore (Buffered)
                             let! embedding = ctx.Llm.EmbedAsync belief.Statement
@@ -740,6 +1023,17 @@ Please fix the solution based on this feedback. Output the IMPROVED solution."""
 
                             // Update Active Beliefs (keep last 10)
                             newBeliefs <- (belief.Statement :: newBeliefs) |> List.truncate 10
+
+                            match ctx.Ledger with
+                            | Some ledger ->
+                                do!
+                                    LedgerIngestion.recordEpistemicBelief
+                                        ledger
+                                        ctx.RunId
+                                        belief
+                                        (Some taskDef.Id)
+                                        ctx.Logger
+                            | None -> ()
                         with ex ->
                             // Log error but continue
                             printfn $"Epistemic extraction failed: %s{ex.Message}"
@@ -748,7 +1042,10 @@ Please fix the solution based on this feedback. Output the IMPROVED solution."""
                     // Construct a trace object (simplified for now)
                     let trace: MemoryTrace =
                         { TaskId = string taskDef.Id
-                          Variables = Map [ "output", box result.Output; "trace", box result.ExecutionTrace ]
+                          Variables =
+                            Map
+                                [ "output", box resultWithEvaluation.Output
+                                  "trace", box resultWithEvaluation.ExecutionTrace ]
                           StepOutputs = Map.empty }
 
                     // Save to Semantic Memory (Grow)
@@ -775,7 +1072,7 @@ Please fix the solution based on this feedback. Output the IMPROVED solution."""
                             let _ = kg.AddNode(taskEntity)
 
                             let resultEntity =
-                                if result.Success then
+                                if resultWithEvaluation.Success then
                                     TarsEntity.ConceptE
                                         { Name = "Success"
                                           Description = "Task Success"
@@ -836,7 +1133,7 @@ Please fix the solution based on this feedback. Output the IMPROVED solution."""
                         let payload =
                             Map
                                 [ "goal", taskDef.Goal
-                                  "output", result.Output
+                                  "output", resultWithEvaluation.Output
                                   "generation", string state.Generation ]
 
                         match ctx.MemoryBuffer with
@@ -855,13 +1152,17 @@ Please fix the solution based on this feedback. Output the IMPROVED solution."""
 
                     // Log: Executor → Inform/Failure → Curriculum
                     let responseMsg =
-                        SpeechActBridge.informResult state.ExecutorAgentId state.CurriculumAgentId taskDef.Id result
+                        SpeechActBridge.informResult
+                            state.ExecutorAgentId
+                            state.CurriculumAgentId
+                            taskDef.Id
+                            resultWithEvaluation
 
                     SpeechActBridge.logSpeechAct ctx.Logger responseMsg
 
                     // Feature C: Epistemic Verification Checkpoint
                     let! isVerified =
-                        match ctx.Epistemic, result.Success with
+                        match ctx.Epistemic, resultWithEvaluation.Success with
                         | Some governor, true ->
                             task {
                                 try
@@ -869,7 +1170,10 @@ Please fix the solution based on this feedback. Output the IMPROVED solution."""
                                         sprintf
                                             "Task '%s' was completed with output: %s"
                                             (taskDef.Goal.Substring(0, min 50 taskDef.Goal.Length))
-                                            (result.Output.Substring(0, min 100 result.Output.Length))
+                                            (resultWithEvaluation.Output.Substring(
+                                                0,
+                                                min 100 resultWithEvaluation.Output.Length
+                                            ))
 
                                     let! verified = governor.Verify(statement)
 
@@ -887,11 +1191,13 @@ Please fix the solution based on this feedback. Output the IMPROVED solution."""
 
                     // Adjust result based on verification (add metadata)
                     let verifiedResult =
+                        let baseResult = resultForDisplay
+
                         if isVerified then
-                            result
+                            baseResult
                         else
-                            { result with
-                                Output = result.Output + "\n[UNVERIFIED - Review Recommended]" }
+                            { baseResult with
+                                Output = baseResult.Output + "\n[UNVERIFIED - Review Recommended]" }
 
                     // Display task completion with generated solution
                     DemoVisualization.showTaskComplete
@@ -906,7 +1212,11 @@ Please fix the solution based on this feedback. Output the IMPROVED solution."""
                             Tars.Core.Episode.AgentInteraction(
                                 "Evolution",
                                 taskDef.Goal,
-                                (if result.Success then "SUCCESS: " else "FAILED: ") + result.Output,
+                                (if resultWithEvaluation.Success then
+                                     "SUCCESS: "
+                                 else
+                                     "FAILED: ")
+                                + resultWithEvaluation.Output,
                                 DateTime.UtcNow
                             )
 
@@ -918,16 +1228,19 @@ Please fix the solution based on this feedback. Output the IMPROVED solution."""
                     return
                         { state with
                             Generation = state.Generation + 1
-                            CompletedTasks = result :: state.CompletedTasks
+                            CompletedTasks = resultWithEvaluation :: state.CompletedTasks
                             CurrentTask = None
                             ActiveBeliefs = newBeliefs }
                 else
                     // Retry or fail? For now, just log and clear
-                    DemoVisualization.showTaskComplete result.Success result.Output result.Duration
+                    DemoVisualization.showTaskComplete
+                        resultForDisplay.Success
+                        resultForDisplay.Output
+                        resultForDisplay.Duration
 
                     return
                         { state with
-                            CompletedTasks = result :: state.CompletedTasks
+                            CompletedTasks = resultWithEvaluation :: state.CompletedTasks
                             CurrentTask = None }
 
             | None ->

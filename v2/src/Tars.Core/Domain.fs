@@ -99,14 +99,16 @@ type CapabilityKind =
     | Custom of string
 
 type Capability =
-    { Kind: CapabilityKind
-      Description: string
-      InputSchema: string option
-      OutputSchema: string option
-      /// Model-reported confidence for this capability (0.0-1.0)
-      Confidence: float option
-      /// Rolling reputation score from observed outcomes (0.0-1.0)
-      Reputation: float option }
+    {
+        Kind: CapabilityKind
+        Description: string
+        InputSchema: string option
+        OutputSchema: string option
+        /// Model-reported confidence for this capability (0.0-1.0)
+        Confidence: float option
+        /// Rolling reputation score from observed outcomes (0.0-1.0)
+        Reputation: float option
+    }
 
 /// Represents a tool that an agent can execute
 type Tool =
@@ -118,6 +120,8 @@ type Tool =
         CreatedAt: DateTime
         /// Function that takes an input string and returns an async result string
         Execute: string -> Async<Result<string, string>>
+        /// Web of Things (WoT) compliant Thing Description metadata.
+        ThingDescription: Map<string, obj> option
     }
 
     /// Helper to create a tool with a task-based execute function
@@ -129,7 +133,40 @@ type Tool =
           Version = "1.0.0"
           ParentVersion = None
           CreatedAt = DateTime.UtcNow
-          Execute = fun input -> execute input |> Async.AwaitTask }
+          Execute = fun input -> execute input |> Async.AwaitTask
+          ThingDescription = None }
+
+    /// Internal helper to create a minimal tool record for migration/tests
+    static member InternalCreateMinimal(name, description, execute) =
+        { Name = name
+          Description = description
+          Version = "1.0.0"
+          ParentVersion = None
+          CreatedAt = DateTime.UtcNow
+          Execute = execute
+          ThingDescription = None }
+
+/// Represents a single unit of reasoning in a Graph of Thoughts (GoT).
+type ThoughtNode =
+    { Id: Guid
+      Content: string
+      NodeType: string // "Hypothesis", "Observation", "Action", "Synthesis"
+      Confidence: float
+      Metadata: Map<string, obj>
+      Timestamp: DateTime }
+
+/// Represents the relationship between thoughts.
+type ThoughtEdge =
+    { SourceId: Guid
+      TargetId: Guid
+      Relation: string // "Supports", "Contradicts", "Refines", "Transforms"
+      Weight: float }
+
+/// A non-linear reasoning structure (Graph of Thoughts).
+type ThoughtGraph =
+    { Nodes: Map<Guid, ThoughtNode>
+      Edges: ThoughtEdge list
+      ContextId: Guid }
 
 /// The current state of an agent in its lifecycle
 type AgentState =
@@ -155,11 +192,31 @@ type Agent =
       Memory: Message list } // Short-term memory/context
 
     member this.ReceiveMessage(msg: Message) =
+        // Truncate message content if too large to prevent HTTP 400 errors
+        let maxMessageLength = 2000
+
+        let truncatedMsg =
+            if msg.Content.Length > maxMessageLength then
+                { msg with
+                    Content = msg.Content.Substring(0, maxMessageLength) + "\n... [truncated]" }
+            else
+                msg
+
+        // Truncate old messages in memory if they're too large
+        let truncateMessage (m: Message) =
+            if m.Content.Length > maxMessageLength then
+                { m with
+                    Content = m.Content.Substring(0, maxMessageLength) + "\n... [truncated]" }
+            else
+                m
+
+        let truncatedMemory = this.Memory |> List.map truncateMessage
+
         // Always transition to Idle when receiving a new message
         // This ensures pending thoughts (Thinking state) are discarded in favor of new information
         // and enables the agent to process the new message immediately.
         { this with
-            Memory = this.Memory @ [ msg ]
+            Memory = truncatedMemory @ [ truncatedMsg ]
             State = Idle }
 
 /// The result of a kernel operation

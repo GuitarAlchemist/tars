@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <Compile Remove="FunctionalPatternsTests.fs" />
+    <Compile Include="CognitiveMaturityTests.fs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -35,6 +36,8 @@
     <Compile Include="GoldenRun.fs" />
     <Compile Include="OpenWebUiTests.fs" />
     <Compile Include="LlmServiceTests.fs" />
+    <Compile Include="JsonParsingTests.fs" />
+    <Compile Include="SemanticEvaluationTests.fs" />
     <Compile Include="SandboxTests.fs" />
     <Compile Include="SecurityTests.fs" />
     <Compile Include="ToolTests.fs" />
@@ -43,6 +46,12 @@
     <Compile Include="PostgresVectorStoreTests.fs" />
     <Compile Include="OutputGuardTests.fs" />
     <Compile Include="OutputGuardLlmTests.fs" />
+    <Compile Include="PolicyEngineTests.fs" />
+    <Compile Include="KnowledgeLedgerTests.fs" />
+    <Compile Include="EvolutionFixesTests.fs" />
+    <Compile Include="EvolveIntegrationTests.fs" />
+    <Compile Include="ReasoningDiagTests.fs" />
+    <Compile Include="PuzzleTests.fs" />
 
     <Compile Include="ChunkingTests.fs" />
     <Compile Include="SemanticSerializationTests.fs" />
@@ -73,6 +82,7 @@
     <Compile Include="HealthCheckTests.fs" />
     <Compile Include="StructuredLoggingTests.fs" />
     <!-- <Compile Include="GraphitiTypesTests.fs" /> -->
+    <Compile Include="ReasoningAuditTests.fs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -94,6 +104,8 @@
     <ProjectReference Include="..\..\src\Tars.Tools\Tars.Tools.fsproj" />
     <ProjectReference Include="..\..\src\Tars.Evolution\Tars.Evolution.fsproj" />
     <ProjectReference Include="..\..\src\Tars.Metascript\Tars.Metascript.fsproj" />
+    <ProjectReference Include="..\..\src\Tars.Knowledge\Tars.Knowledge.fsproj" />
+    <ProjectReference Include="..\..\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj" />
   </ItemGroup>
 
 </Project>

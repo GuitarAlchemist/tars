@@ -8,9 +8,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="AssemblyInfo.fs" />
     <Compile Include="SpectreUI.fs" />
     <Compile Include="Tui.fs" />
     <Compile Include="ConfigurationLoader.fs" />
+    <Compile Include="Commands\AgentHelpers.fs" />
     <Content Include="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -24,6 +26,7 @@
     <Compile Include="Commands\RagDemo.fs" />
     <Compile Include="Commands\Chat.fs" />
     <Compile Include="Commands\Evolve.fs" />
+    <Compile Include="Commands\KnowCmd.fs" />
     <Compile Include="Commands\Knowledge.fs" />
     <Compile Include="Commands\McpCommand.fs" />
     <Compile Include="Commands\McpServerCommand.fs" />
@@ -35,6 +38,9 @@
     <Compile Include="Commands\PipelineCommand.fs" />
     <Compile Include="Commands\SkillCommand.fs" />
     <Compile Include="Commands\Agent.fs" />
+    <Compile Include="Commands\ReasoningDiag.fs" />
+    <Compile Include="Commands\EscapeRoomDemo.fs" />
+    <Compile Include="Commands\PuzzleDemo.fs" />
     <Compile Include="HealthCommand.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
@@ -47,10 +53,12 @@
     <ProjectReference Include="..\Tars.Connectors\Tars.Connectors.fsproj" />
     <ProjectReference Include="..\Tars.Cortex\Tars.Cortex.fsproj" />
     <ProjectReference Include="..\Tars.Evolution\Tars.Evolution.fsproj" />
+    <ProjectReference Include="..\Tars.Knowledge\Tars.Knowledge.fsproj" />
     <ProjectReference Include="..\Tars.Llm\Tars.Llm.fsproj" />
     <ProjectReference Include="..\Tars.Metascript\Tars.Metascript.fsproj" />
     <ProjectReference Include="..\Tars.Tools\Tars.Tools.fsproj" />
   </ItemGroup>
+
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.0" />
