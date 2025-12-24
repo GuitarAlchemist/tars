@@ -23,6 +23,9 @@ Detailed tasks and specifications for specific implementation phases.
 - **[Advanced Prompting (Phase 8)](./2_Phases/phase_8_prompting_techniques.md)**: ToT, GoT, Self-Consistency, Graph Prompting.
 - **[Cognitive Grounding (Phase 11)](./2_Phases/phase_11_cognitive_grounding.md)**: External verification, ledger read-back.
 - **[Web of Things (Phase 12)](./2_Phases/phase_12_wot_integration.md)**: IoT device integration via W3C WoT.
+- **[Neuro-Symbolic Foundations (Phase 13)](./2_Phases/phase_13_neuro_symbolic_foundations.md)**: 🆕 Symbolic invariants, constraint scoring, feedback loop.
+- **[Agent Constitutions (Phase 14)](./2_Phases/phase_14_agent_constitutions.md)**: 🆕 Formal contracts, runtime enforcement.
+- **[Symbolic Reflection (Phase 15)](./2_Phases/phase_15_symbolic_reflection.md)**: 🆕 Structured belief updates, evidence chains, proofs.
 
 ### 📊 [3. Reports](./3_Reports/)
 Session summaries, completion reports, and refactoring post-mortems.

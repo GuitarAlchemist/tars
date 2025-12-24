@@ -97,6 +97,9 @@ See [`task.md`](task.md) for current progress and [`docs/3_Roadmap/1_Plans/imple
 | **10** | **3D Knowledge Graph Visualization** | 🔜 Planned |
 | 11 | Cognitive Grounding & Production Intelligence | 🔜 Planned |
 | 12 | Web of Things Integration | 🔜 Planned |
+| **13** | **Neuro-Symbolic Foundations** 🆕 | 🔜 Planned (Q1 2025) |
+| **14** | **Agent Constitutions** 🆕 | 🔜 Planned (Q2 2025) |
+| **15** | **Symbolic Reflection** 🆕 | 🔜 Planned (Q3 2025) |
 
 ### Recent Highlights (December 2025)
 
