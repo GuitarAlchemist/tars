@@ -71,10 +71,10 @@ module GraphitiKnowledgeGraph =
             // Send to Graphiti asynchronously (fire and forget for performance)
             let content = entityToContent entity
 
-            let message: MessageDto =
+            let message: Graphiti.MessageDto =
                 { Content = content
-                  Role = "system"
                   RoleType = "entity"
+                  Role = "system"
                   Timestamp = Some DateTime.UtcNow
                   SourceDescription = Some "TARS Temporal Knowledge Graph"
                   Uuid = None }
@@ -84,8 +84,8 @@ module GraphitiKnowledgeGraph =
                     let! result = client.AddMessagesAsync(gid, [| message |])
 
                     match result with
-                    | Result.Ok _ -> ()
-                    | Result.Error e -> printfn $"Warning: Failed to add node to Graphiti: {e}"
+                    | Ok _ -> ()
+                    | Error e -> printfn $"Warning: Failed to add node to Graphiti: {e}"
                 }
                 :> Task)
             |> ignore
