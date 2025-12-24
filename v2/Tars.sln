@@ -27,15 +27,48 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "3_Roadmap", "3_Roadmap", "{DF3CABF4-09FF-4714-88BF-CBF3C835C563}"
 	ProjectSection(SolutionItems) = preProject
 		docs\3_Roadmap\README.md = docs\3_Roadmap\README.md
-		docs\3_Roadmap\1_Plans\implementation_plan.md = docs\3_Roadmap\1_Plans\implementation_plan.md
-		docs\3_Roadmap\1_Plans\phase6_integration_strategy.md = docs\3_Roadmap\1_Plans\phase6_integration_strategy.md
-		docs\3_Roadmap\1_Plans\semantic_memory_plan.md = docs\3_Roadmap\1_Plans\semantic_memory_plan.md
-		docs\3_Roadmap\2_Phases\phase_6_5_agentic_interfaces.md = docs\3_Roadmap\2_Phases\phase_6_5_agentic_interfaces.md
-		docs\3_Roadmap\2_Phases\phase_6_7_circuit_flow_control.md = docs\3_Roadmap\2_Phases\phase_6_7_circuit_flow_control.md
-		docs\3_Roadmap\2_Phases\phase_6_7_epistemic_governor.md = docs\3_Roadmap\2_Phases\phase_6_7_epistemic_governor.md
-		docs\3_Roadmap\3_Reports\phase_6_7_completion_report.md = docs\3_Roadmap\3_Reports\phase_6_7_completion_report.md
-		docs\3_Roadmap\3_Reports\COMPLETE_SESSION_SUMMARY.md = docs\3_Roadmap\3_Reports\COMPLETE_SESSION_SUMMARY.md
 		task.md = task.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "1_Plans", "1_Plans", "{B7A4C63E-5C1E-4E82-9B3B-8F0A7C9D5B1E}"
+	ProjectSection(SolutionItems) = preProject
+		docs\3_Roadmap\1_Plans\implementation_plan.md = docs\3_Roadmap\1_Plans\implementation_plan.md
+		docs\3_Roadmap\1_Plans\neuro_symbolic_architecture.md = docs\3_Roadmap\1_Plans\neuro_symbolic_architecture.md
+		docs\3_Roadmap\1_Plans\phase10_3d_knowledge_graph.md = docs\3_Roadmap\1_Plans\phase10_3d_knowledge_graph.md
+		docs\3_Roadmap\1_Plans\phase6_integration_strategy.md = docs\3_Roadmap\1_Plans\phase6_integration_strategy.md
+		docs\3_Roadmap\1_Plans\phase9_symbolic_knowledge.md = docs\3_Roadmap\1_Plans\phase9_symbolic_knowledge.md
+		docs\3_Roadmap\1_Plans\semantic_memory_plan.md = docs\3_Roadmap\1_Plans\semantic_memory_plan.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "2_Phases", "2_Phases", "{C8B5D74F-6D2F-4F93-AC4C-901B8D0E6C2F}"
+	ProjectSection(SolutionItems) = preProject
+		docs\3_Roadmap\2_Phases\phase2_detailed_tasks.md = docs\3_Roadmap\2_Phases\phase2_detailed_tasks.md
+		docs\3_Roadmap\2_Phases\phase_11_cognitive_grounding.md = docs\3_Roadmap\2_Phases\phase_11_cognitive_grounding.md
+		docs\3_Roadmap\2_Phases\phase_12_wot_integration.md = docs\3_Roadmap\2_Phases\phase_12_wot_integration.md
+		docs\3_Roadmap\2_Phases\phase_13_neuro_symbolic_foundations.md = docs\3_Roadmap\2_Phases\phase_13_neuro_symbolic_foundations.md
+		docs\3_Roadmap\2_Phases\phase_14_agent_constitutions.md = docs\3_Roadmap\2_Phases\phase_14_agent_constitutions.md
+		docs\3_Roadmap\2_Phases\phase_15_symbolic_reflection.md = docs\3_Roadmap\2_Phases\phase_15_symbolic_reflection.md
+		docs\3_Roadmap\2_Phases\phase_2_4_knowledge_graph.md = docs\3_Roadmap\2_Phases\phase_2_4_knowledge_graph.md
+		docs\3_Roadmap\2_Phases\phase_3_2_mcp_client.md = docs\3_Roadmap\2_Phases\phase_3_2_mcp_client.md
+		docs\3_Roadmap\2_Phases\phase_5_metascript_full_port.md = docs\3_Roadmap\2_Phases\phase_5_metascript_full_port.md
+		docs\3_Roadmap\2_Phases\phase_6_5_agentic_interfaces.md = docs\3_Roadmap\2_Phases\phase_6_5_agentic_interfaces.md
+		docs\3_Roadmap\2_Phases\phase_6_7_1_circuit_flow_control.md = docs\3_Roadmap\2_Phases\phase_6_7_1_circuit_flow_control.md
+		docs\3_Roadmap\2_Phases\phase_6_7_2_epistemic_governor.md = docs\3_Roadmap\2_Phases\phase_6_7_2_epistemic_governor.md
+		docs\3_Roadmap\2_Phases\phase_7_production_hardening.md = docs\3_Roadmap\2_Phases\phase_7_production_hardening.md
+		docs\3_Roadmap\2_Phases\phase_8_prompting_techniques.md = docs\3_Roadmap\2_Phases\phase_8_prompting_techniques.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "3_Reports", "3_Reports", "{D9C6E850-7E30-40A4-BD5D-012C9E1F7D30}"
+	ProjectSection(SolutionItems) = preProject
+		docs\3_Roadmap\3_Reports\COMPLETE_SESSION_SUMMARY.md = docs\3_Roadmap\3_Reports\COMPLETE_SESSION_SUMMARY.md
+		docs\3_Roadmap\3_Reports\phase1_refactoring_report.md = docs\3_Roadmap\3_Reports\phase1_refactoring_report.md
+		docs\3_Roadmap\3_Reports\phase_6_7_completion_report.md = docs\3_Roadmap\3_Reports\phase_6_7_completion_report.md
+		docs\3_Roadmap\3_Reports\phase_6_7_summary.md = docs\3_Roadmap\3_Reports\phase_6_7_summary.md
+		docs\3_Roadmap\3_Reports\research_integration_summary.md = docs\3_Roadmap\3_Reports\research_integration_summary.md
+		docs\3_Roadmap\3_Reports\session_summary_2025-11-29.md = docs\3_Roadmap\3_Reports\session_summary_2025-11-29.md
+		docs\3_Roadmap\3_Reports\session_summary_2025-11-29_cargo_cult.md = docs\3_Roadmap\3_Reports\session_summary_2025-11-29_cargo_cult.md
+		docs\3_Roadmap\3_Reports\session_summary_2025-12-04.md = docs\3_Roadmap\3_Reports\session_summary_2025-12-04.md
+		docs\3_Roadmap\3_Reports\session_summary_2025-12-20_cargo_cult_cleanup.md = docs\3_Roadmap\3_Reports\session_summary_2025-12-20_cargo_cult_cleanup.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "assets", "assets", "{3C5FF0F0-BE14-4405-9E9D-0ED13A02BE60}"
@@ -165,6 +198,8 @@ EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Tars.Interface.Ui", "src\Tars.Interface.Ui\Tars.Interface.Ui.fsproj", "{60814189-ABC2-41B5-99C5-395D32403A14}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Tars.Knowledge", "src\Tars.Knowledge\Tars.Knowledge.fsproj", "{F6ACB78F-F539-433B-B3DB-CC02D31E9B3E}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Tars.Symbolic", "src\Tars.Symbolic\Tars.Symbolic.fsproj", "{4F03FBDA-FD55-4D55-80D1-9E5AD31D2C48}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -356,6 +391,18 @@ Global
 		{F6ACB78F-F539-433B-B3DB-CC02D31E9B3E}.Release|x64.Build.0 = Release|Any CPU
 		{F6ACB78F-F539-433B-B3DB-CC02D31E9B3E}.Release|x86.ActiveCfg = Release|Any CPU
 		{F6ACB78F-F539-433B-B3DB-CC02D31E9B3E}.Release|x86.Build.0 = Release|Any CPU
+		{4F03FBDA-FD55-4D55-80D1-9E5AD31D2C48}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4F03FBDA-FD55-4D55-80D1-9E5AD31D2C48}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4F03FBDA-FD55-4D55-80D1-9E5AD31D2C48}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{4F03FBDA-FD55-4D55-80D1-9E5AD31D2C48}.Debug|x64.Build.0 = Debug|Any CPU
+		{4F03FBDA-FD55-4D55-80D1-9E5AD31D2C48}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{4F03FBDA-FD55-4D55-80D1-9E5AD31D2C48}.Debug|x86.Build.0 = Debug|Any CPU
+		{4F03FBDA-FD55-4D55-80D1-9E5AD31D2C48}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4F03FBDA-FD55-4D55-80D1-9E5AD31D2C48}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4F03FBDA-FD55-4D55-80D1-9E5AD31D2C48}.Release|x64.ActiveCfg = Release|Any CPU
+		{4F03FBDA-FD55-4D55-80D1-9E5AD31D2C48}.Release|x64.Build.0 = Release|Any CPU
+		{4F03FBDA-FD55-4D55-80D1-9E5AD31D2C48}.Release|x86.ActiveCfg = Release|Any CPU
+		{4F03FBDA-FD55-4D55-80D1-9E5AD31D2C48}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -393,5 +440,6 @@ Global
 		{254B4861-DB55-4D21-83B0-6C0B6FE5DEAC} = {E49751A8-4684-5464-DC78-70FEA7F05886}
 		{60814189-ABC2-41B5-99C5-395D32403A14} = {F2250A6D-D5A5-7171-D13C-E7FD50981AA9}
 		{F6ACB78F-F539-433B-B3DB-CC02D31E9B3E} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{4F03FBDA-FD55-4D55-80D1-9E5AD31D2C48} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 	EndGlobalSection
 EndGlobal
