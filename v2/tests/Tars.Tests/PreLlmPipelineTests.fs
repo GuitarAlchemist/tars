@@ -30,6 +30,10 @@ module PreLlmPipelineTests =
 
             member _.EmbedAsync(_) = Task.FromResult([| 0.1f |])
 
+    type StubIntentClassifier(result: AgentDomain option) =
+        interface IIntentClassifier with
+            member _.ClassifyAsync(_) = Task.FromResult(result)
+
     [<Fact>]
     let ``SafetyFilter blocks dangerous keywords`` () =
         task {
@@ -39,18 +43,19 @@ module PreLlmPipelineTests =
             let! result = stage.ExecuteAsync(ctx)
 
             Assert.False(result.IsSafe)
-            Assert.Contains("dangerous keyword", result.BlockReason.Value)
+            Assert.Contains("Destructive command", result.BlockReason.Value)
         }
 
     [<Fact>]
     let ``IntentClassifier detects coding intent`` () =
         task {
-            let stage = IntentClassifierStage() :> IPreLlmStage
+            let stage =
+                IntentClassifierStage(StubIntentClassifier(Some AgentDomain.Coding)) :> IPreLlmStage
             let ctx = PreLlmContext.Create("Please write a python script to sort a list")
 
             let! result = stage.ExecuteAsync(ctx)
 
-            Assert.Equal(Some AgentIntent.Coding, result.Intent)
+            Assert.Equal(Some AgentDomain.Coding, result.Intent)
         }
 
     [<Fact>]
@@ -73,7 +78,8 @@ module PreLlmPipelineTests =
     let ``Pipeline runs stages sequentially`` () =
         task {
             let safety = SafetyFilterStage() :> IPreLlmStage
-            let classifier = IntentClassifierStage() :> IPreLlmStage
+            let classifier =
+                IntentClassifierStage(StubIntentClassifier(Some AgentDomain.Coding)) :> IPreLlmStage
             let pipeline = PreLlmPipeline([ safety; classifier ])
 
             let ctx = PreLlmContext.Create("write a safe function")

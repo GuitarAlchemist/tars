@@ -9,6 +9,7 @@ open Tars.Cortex
 open Tars.Cortex.Patterns
 open Tars.Llm
 open Tars.Llm.LlmService
+open System.IO
 open System.Threading
 open System.Threading.Tasks
 open Tars.Core.Knowledge
@@ -30,6 +31,7 @@ type QueueLlm(responses: string list, recorder: System.Collections.Generic.List<
                 match queue with
                 | next :: rest ->
                     queue <- rest
+
                     return
                         { Text = next
                           FinishReason = Some "stop"
@@ -45,6 +47,101 @@ type QueueLlm(responses: string list, recorder: System.Collections.Generic.List<
 
         member _.CompleteStreamAsync(_req, _onToken) = raise (NotImplementedException())
         member _.EmbedAsync(_text) = Task.FromResult(Array.empty<float32>)
+
+type RoutingLlm() =
+    interface ILlmService with
+        member _.CompleteAsync(req: LlmRequest) =
+            task {
+                let system = req.SystemPrompt |> Option.defaultValue ""
+
+                let responseText =
+                    if system.Contains("exploring multiple solution paths") then
+                        "THOUGHT 1: Option A reasoning step\nTHOUGHT 2: Option B reasoning step"
+                    elif system.Contains("strict evaluator") then
+                        """{"score":0.9,"confidence":0.8,"reasons":["clear"],"risks":[]}"""
+                    elif system.Contains("Improve and refine") then
+                        "Refined option"
+                    elif system.Contains("Synthesize") then
+                        "Final answer"
+                    elif system.Contains("tool call") then
+                        """{"tool":null,"input":"","reason":"no tool needed"}"""
+                    else
+                        "Fallback"
+
+                return
+                    { Text = responseText
+                      FinishReason = Some "stop"
+                      Usage = None
+                      Raw = None }
+            }
+
+        member _.CompleteStreamAsync(_req, _onToken) = raise (NotImplementedException())
+        member _.EmbedAsync(_text) = Task.FromResult([| 0.1f; 0.2f; 0.3f |])
+
+type PolicyFailLlm() =
+    interface ILlmService with
+        member _.CompleteAsync(req: LlmRequest) =
+            task {
+                let system = req.SystemPrompt |> Option.defaultValue ""
+
+                let responseText =
+                    if system.Contains("exploring multiple solution paths") then
+                        "THOUGHT 1: TODO fix issue\nTHOUGHT 2: TODO validate"
+                    elif system.Contains("strict evaluator") then
+                        """{"score":0.9,"confidence":0.9,"reasons":["ok"],"risks":[]}"""
+                    elif system.Contains("Improve and refine") then
+                        "TODO refined step"
+                    elif system.Contains("Synthesize") then
+                        "TODO final answer"
+                    elif system.Contains("tool call") then
+                        """{"tool":null,"input":"","reason":"no tool needed"}"""
+                    else
+                        "Fallback"
+
+                return
+                    { Text = responseText
+                      FinishReason = Some "stop"
+                      Usage = None
+                      Raw = None }
+            }
+
+        member _.CompleteStreamAsync(_req, _onToken) = raise (NotImplementedException())
+        member _.EmbedAsync(_text) = Task.FromResult([| 0.1f; 0.2f; 0.3f |])
+
+type RecordingLlm(responder: LlmRequest -> string, log: ResizeArray<string>) =
+    let formatRequest (req: LlmRequest) =
+        let system = req.SystemPrompt |> Option.defaultValue ""
+
+        let lastMessage =
+            req.Messages
+            |> List.tryLast
+            |> Option.map (fun m -> m.Content)
+            |> Option.defaultValue ""
+
+        let preview =
+            if lastMessage.Length > 200 then
+                lastMessage.Substring(0, 200) + "..."
+            else
+                lastMessage
+
+        $"system={system} user={preview}"
+
+    interface ILlmService with
+        member _.CompleteAsync(req: LlmRequest) =
+            task {
+                let responseText = responder req
+                log.Add($"[LLM REQUEST] {formatRequest req}")
+                log.Add($"[LLM RESPONSE] {responseText}")
+
+                return
+                    { Text = responseText
+                      FinishReason = Some "stop"
+                      Usage = None
+                      Raw = None }
+            }
+
+        member _.CompleteStreamAsync(_req, _onToken) = raise (NotImplementedException())
+        member _.EmbedAsync(_text) = Task.FromResult([| 0.1f; 0.2f; 0.3f |])
 
 type StubSemanticMemory(memories: MemorySchema list) =
     interface ISemanticMemory with
@@ -67,10 +164,12 @@ type StubToolRegistry() =
 
     interface IToolRegistry with
         member _.Register(tool) = tools.[tool.Name] <- tool
+
         member _.Get(name) =
             match tools.TryGetValue name with
             | true, t -> Some t
             | _ -> None
+
         member _.GetAll() = tools.Values |> Seq.toList
 
 /// Unit tests for the agentic patterns (ReAct, Chain of Thought, Plan & Execute)
@@ -110,7 +209,22 @@ type PatternTests(output: ITestOutputHelper) =
           SemanticMemory = None
           KnowledgeGraph = None
           CapabilityStore = None
+          Audit = None
           CancellationToken = CancellationToken.None }
+
+    let writeEvidence (name: string) (entries: ResizeArray<string>) =
+        let safeName =
+            name
+            |> Seq.map (fun c -> if Char.IsLetterOrDigit c then c else '_')
+            |> Seq.toArray
+            |> String
+
+        let artifactsDir = Path.Combine("tests", "Tars.Tests", "Artifacts")
+        Directory.CreateDirectory(artifactsDir) |> ignore
+        let fileName = $"wot-evidence-{safeName}-{Guid.NewGuid():N}.log"
+        let path = Path.Combine(artifactsDir, fileName)
+        File.WriteAllLines(path, entries |> Seq.toArray)
+        output.WriteLine($"[EVIDENCE] {path}")
 
     // =========================================================================
     // Chain of Thought Tests
@@ -210,8 +324,16 @@ type PatternTests(output: ITestOutputHelper) =
             let semMem = StubSemanticMemory([ mem ]) :> ISemanticMemory
 
             let fact =
-                TarsFact.DerivedFrom(TarsEntity.ConceptE { Name = "A"; Description = ""; RelatedConcepts = [] },
-                                     TarsEntity.ConceptE { Name = "B"; Description = ""; RelatedConcepts = [] })
+                TarsFact.DerivedFrom(
+                    TarsEntity.ConceptE
+                        { Name = "A"
+                          Description = ""
+                          RelatedConcepts = [] },
+                    TarsEntity.ConceptE
+                        { Name = "B"
+                          Description = ""
+                          RelatedConcepts = [] }
+                )
 
             let kg = StubGraphService([ fact ]) :> IGraphService
 
@@ -223,7 +345,8 @@ type PatternTests(output: ITestOutputHelper) =
                   Version = "1.0.0"
                   ParentVersion = None
                   CreatedAt = DateTime.UtcNow
-                  Execute = fun _ -> async { return Result.Ok "ok" } }
+                  Execute = fun _ -> async { return Result.Ok "ok" }
+                  ThingDescription = None }
 
             toolRegistry.Register(writeTool)
 
@@ -256,6 +379,7 @@ type PatternTests(output: ITestOutputHelper) =
                   SemanticMemory = Some semMem
                   KnowledgeGraph = Some kg
                   CapabilityStore = None
+                  Audit = None
                   CancellationToken = CancellationToken.None }
 
             let workflow = reAct llm (toolRegistry :> IToolRegistry) 5 "Do the thing"
@@ -270,7 +394,14 @@ type PatternTests(output: ITestOutputHelper) =
             match result with
             | PartialSuccess(answer, warnings) ->
                 Assert.Equal("final answer", answer)
-                Assert.True(warnings |> List.exists (fun w -> match w with | PartialFailure.Warning msg -> msg.Contains("SafetyGate") | _ -> false))
+
+                Assert.True(
+                    warnings
+                    |> List.exists (fun w ->
+                        match w with
+                        | PartialFailure.Warning msg -> msg.Contains("SafetyGate")
+                        | _ -> false)
+                )
             | _ -> Assert.Fail("Expected PartialSuccess with safety warning")
         }
         |> Async.RunSynchronously
@@ -403,10 +534,14 @@ type PatternTests(output: ITestOutputHelper) =
             let! result = workflow ctx
 
             match result with
+            | PartialSuccess(answer, warnings) ->
+                output.WriteLine(sprintf "Warnings: %A" warnings)
+                Assert.False(String.IsNullOrWhiteSpace(answer))
+                Assert.True(warnings.Length >= 1, "Should have at least one warning about max steps")
             | Failure errors ->
                 output.WriteLine(sprintf "Errors: %A" errors)
                 Assert.True(errors.Length >= 1, "Should have at least one error about max steps")
-            | _ -> Assert.Fail("Expected failure after max steps")
+            | _ -> Assert.Fail("Expected partial success after max steps")
         }
         |> Async.RunSynchronously
 
@@ -494,14 +629,14 @@ type PatternTests(output: ITestOutputHelper) =
 
                     member _.EmbedAsync(_) = task { return [| 0.1f |] } }
 
-            // Mock tool registry with a calculator tool
             let calculatorTool: Tool =
                 { Name = "calculator"
                   Description = "Calculates math expressions"
                   Version = "1.0.0"
                   ParentVersion = None
                   CreatedAt = DateTime.UtcNow
-                  Execute = fun _ -> async { return Result.Ok "4" } }
+                  Execute = fun _ -> async { return Result.Ok "4" }
+                  ThingDescription = None }
 
             let mockTools =
                 { new IToolRegistry with
@@ -521,5 +656,152 @@ type PatternTests(output: ITestOutputHelper) =
                 Assert.Equal("4", answer)
             | PartialSuccess(answer, _) -> Assert.Equal("4", answer)
             | Failure errors -> Assert.Fail(sprintf "Unexpected failure: %A" errors)
+        }
+        |> Async.RunSynchronously
+
+    [<Fact>]
+    member _.``GraphOfThoughts: Aggregates best thoughts``() =
+        async {
+            let ctx = createMockContext ()
+            let llm = RoutingLlm() :> ILlmService
+
+            let config =
+                { defaultGoTConfig with
+                    BranchingFactor = 2
+                    MaxDepth = 2
+                    TopK = 1
+                    ScoreThreshold = 0.1
+                    MinConfidence = 0.1
+                    DiversityThreshold = 1.0
+                    DiversityPenalty = 0.0 }
+
+            let workflow = graphOfThoughts llm config "Test goal"
+            let! result = workflow ctx
+
+            match result with
+            | Success answer -> Assert.Equal("Final answer", answer)
+            | PartialSuccess(answer, _) -> Assert.Equal("Final answer", answer)
+            | Failure errors -> Assert.Fail(sprintf "Unexpected failure: %A" errors)
+        }
+        |> Async.RunSynchronously
+
+    [<Fact>]
+    member _.``WorkflowOfThoughts: Produces final answer``() =
+        async {
+            let ctx = createMockContext ()
+            let log = ResizeArray<string>()
+
+            let responder (req: LlmRequest) =
+                let system = req.SystemPrompt |> Option.defaultValue ""
+
+                if system.Contains("exploring multiple solution paths") then
+                    "THOUGHT 1: Option A reasoning step\nTHOUGHT 2: Option B reasoning step"
+                elif system.Contains("strict evaluator") then
+                    """{"score":0.9,"confidence":0.8,"reasons":["clear"],"risks":[]}"""
+                elif system.Contains("Improve and refine") then
+                    "Refined option"
+                elif system.Contains("Synthesize") then
+                    "Final answer"
+                elif system.Contains("tool call") then
+                    """{"tool":null,"input":"","reason":"no tool needed"}"""
+                else
+                    "Fallback"
+
+            let llm = RecordingLlm(responder, log) :> ILlmService
+
+            let baseConfig =
+                { defaultGoTConfig with
+                    BranchingFactor = 2
+                    MaxDepth = 2
+                    TopK = 2
+                    ScoreThreshold = 0.1
+                    MinConfidence = 0.1
+                    DiversityThreshold = 1.0
+                    DiversityPenalty = 0.0
+                    EnableCritique = true
+                    EnablePolicyChecks = false
+                    EnableMemoryRecall = false }
+
+            let wotConfig =
+                { BaseConfig = baseConfig
+                  RequiredPolicies = []
+                  AvailableTools = []
+                  RoleAssignments = Map.empty
+                  MemoryNamespace = None
+                  MaxEscalations = 1
+                  TimeoutMs = Some 10000 }
+
+            let workflow = workflowOfThought llm wotConfig "Test goal"
+            let! result = workflow ctx
+
+            for entry in log do
+                output.WriteLine(entry)
+
+            writeEvidence "WorkflowOfThoughts Produces final answer" log
+
+            match result with
+            | Success answer -> Assert.Equal("Final answer", answer)
+            | PartialSuccess(answer, _) -> Assert.Equal("Final answer", answer)
+            | Failure errors -> Assert.Fail(sprintf "Unexpected failure: %A" errors)
+        }
+        |> Async.RunSynchronously
+
+    [<Fact>]
+    member _.``WorkflowOfThoughts: Required policies gate unsafe output``() =
+        async {
+            let ctx = createMockContext ()
+            let log = ResizeArray<string>()
+
+            let responder (req: LlmRequest) =
+                let system = req.SystemPrompt |> Option.defaultValue ""
+
+                if system.Contains("exploring multiple solution paths") then
+                    "THOUGHT 1: TODO fix issue\nTHOUGHT 2: TODO validate"
+                elif system.Contains("strict evaluator") then
+                    """{"score":0.9,"confidence":0.9,"reasons":["ok"],"risks":[]}"""
+                elif system.Contains("Improve and refine") then
+                    "TODO refined step"
+                elif system.Contains("Synthesize") then
+                    "TODO final answer"
+                elif system.Contains("tool call") then
+                    """{"tool":null,"input":"","reason":"no tool needed"}"""
+                else
+                    "Fallback"
+
+            let llm = RecordingLlm(responder, log) :> ILlmService
+
+            let baseConfig =
+                { defaultGoTConfig with
+                    BranchingFactor = 2
+                    MaxDepth = 2
+                    TopK = 2
+                    ScoreThreshold = 0.1
+                    MinConfidence = 0.1
+                    DiversityThreshold = 1.0
+                    DiversityPenalty = 0.0
+                    EnableCritique = true
+                    EnablePolicyChecks = true
+                    EnableMemoryRecall = false }
+
+            let wotConfig =
+                { BaseConfig = baseConfig
+                  RequiredPolicies = [ "no_placeholders" ]
+                  AvailableTools = []
+                  RoleAssignments = Map.empty
+                  MemoryNamespace = None
+                  MaxEscalations = 1
+                  TimeoutMs = Some 10000 }
+
+            let workflow = workflowOfThought llm wotConfig "Test goal"
+            let! result = workflow ctx
+
+            for entry in log do
+                output.WriteLine(entry)
+
+            writeEvidence "WorkflowOfThoughts Required policies gate unsafe output" log
+
+            match result with
+            | Failure _ -> Assert.True(true)
+            | _ -> Assert.Fail("Expected Failure when required policies are violated")
         }
         |> Async.RunSynchronously

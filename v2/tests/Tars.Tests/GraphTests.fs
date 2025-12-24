@@ -1,4 +1,4 @@
-namespace Tars.Tests
+﻿namespace Tars.Tests
 
 open System
 open Xunit
@@ -286,7 +286,8 @@ type GraphTests(output: ITestOutputHelper) =
               Version = "1.0.0"
               ParentVersion = None
               CreatedAt = DateTime.UtcNow
-              Execute = fun _ -> async { return Ok "4" } }
+              Execute = fun _ -> async { return Ok "4" }
+              ThingDescription = None }
 
         let agent: Tars.Core.Agent =
             { Id = Tars.Core.AgentId(Guid.NewGuid())

@@ -64,6 +64,7 @@ module GraphRuntimeTests =
                   MaxSteps = 10
                   BudgetGovernor = Some exhaustedBudget
                   OutputGuard = None
+                  CancellationToken = System.Threading.CancellationToken.None
                   Logger = fun _ -> () }
 
             let thinkingAgent = { agent with State = Thinking history }
@@ -91,7 +92,8 @@ module GraphRuntimeTests =
                   Version = "1.0"
                   ParentVersion = None
                   CreatedAt = DateTime.UtcNow
-                  Execute = fun _ -> async { return Result.Error "Tool crashed" } }
+                  Execute = fun _ -> async { return Result.Error "Tool crashed" }
+                  ThingDescription = None }
 
             let agent =
                 { createTestAgent () with
@@ -104,6 +106,7 @@ module GraphRuntimeTests =
                   MaxSteps = 10
                   BudgetGovernor = None
                   OutputGuard = None
+                  CancellationToken = System.Threading.CancellationToken.None
                   Logger = fun _ -> () }
 
             let! outcome = GraphRuntime.step agent ctx

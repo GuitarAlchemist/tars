@@ -102,6 +102,7 @@ type SelfReflectionTests() =
               MaxSteps = 5
               BudgetGovernor = None
               OutputGuard = None
+              CancellationToken = System.Threading.CancellationToken.None
               Logger = fun _ -> () }
 
         // 5. Run Step

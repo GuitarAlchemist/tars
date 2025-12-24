@@ -41,6 +41,7 @@ module AgentWorkflowTests =
           SemanticMemory = None
           KnowledgeGraph = None
           CapabilityStore = None
+          Audit = None
           CancellationToken = CancellationToken.None }
 
     [<Fact>]

@@ -76,10 +76,13 @@ dotnet run --project src/Tars.Interface.Cli/Tars.Interface.Cli.fsproj -- --help
 * `tars demo-rag`
 * `tars macro-demo`
 * `tars evolve --max-iterations 3`
+* `tars know status --pg` - Knowledge Ledger status
+* `tars know fetch "Topic" --pg` - Fetch from Wikipedia
+* `tars know propose "Topic" --pg` - Extract beliefs via LLM
 
 ## Development Status
 
-**Current Phase**: Phase 7 (Production Hardening) - In Progress
+**Current Phase**: Phase 9 (Symbolic Knowledge & Internet Ingestion) - In Progress
 
 See [`task.md`](task.md) for current progress and [`docs/3_Roadmap/1_Plans/implementation_plan.md`](docs/3_Roadmap/1_Plans/implementation_plan.md) for the full roadmap.
 
@@ -89,14 +92,21 @@ See [`task.md`](task.md) for current progress and [`docs/3_Roadmap/1_Plans/imple
 |-------|------|--------|
 | 1-6 | Foundation, Brain, Body, Metascript, Cognitive | ✅ Complete |
 | 7 | Production Hardening | 🚧 In Progress |
-| 8 | Advanced Prompting Techniques | 🔜 Planned |
-| **9** | **Symbolic Knowledge & Free Skills** | 🔜 Planned |
+| 8 | Advanced Prompting Techniques | 🚧 Partial (GoT implemented) |
+| **9** | **Symbolic Knowledge & Internet Ingestion** | 🚧 In Progress |
 | **10** | **3D Knowledge Graph Visualization** | 🔜 Planned |
+| 11 | Cognitive Grounding & Production Intelligence | 🔜 Planned |
+| 12 | Web of Things Integration | 🔜 Planned |
 
 ### Recent Highlights (December 2025)
 
+- ✅ **Evolution Engine Fixes** - All 7 critical issues resolved (JSON parsing, JSONB, success criteria, graph persistence, memory overflow)
+- ✅ **Phase 9 Knowledge Ledger** - Event-sourced beliefs with PostgreSQL + JSONB storage
+- ✅ **Puzzle Demo System** - 9 diverse AI reasoning benchmarks (River Crossing, Logic Grids, Math, Cryptarithmetic, etc.)
+- ✅ **Comprehensive Test Suite** - Regression protection for all evolution fixes
+- ✅ **Agent Memory Truncation** - Prevents HTTP 400 errors from oversized requests
+- ✅ **Internet Ingestion Pipeline** - Fetch Wikipedia, extract triples via LLM
 - ✅ **124 tools** - Comprehensive agent toolkit
-- ✅ **llama.cpp integration** - 75-97 tok/s local inference
-- ✅ **Phase 9 roadmap** - Symbolic Knowledge Ledger, Internet Ingestion
-- ✅ **Phase 10 roadmap** - 3D Knowledge Graph with Three.js
+- ✅ **llama.cpp integration** - 75-97 tok/s local inference with 32K context support
+- ✅ **Docker Compose** - PostgreSQL with pgvector included
 - ✅ **Architectural Vision** - Core thesis documented
