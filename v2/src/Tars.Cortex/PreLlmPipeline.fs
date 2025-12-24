@@ -113,7 +113,13 @@ type LlmIntentClassifier(llm: ILlmService) =
         member _.ClassifyAsync(input) =
             task {
                 // 1. Try fast semantic classification first (Vector Similarity)
-                let! semanticResult = semanticClassifier.ClassifyAsync(input, 0.8) |> Async.StartAsTask
+                let! semanticResult =
+                    task {
+                        try
+                            return! semanticClassifier.ClassifyAsync(input, 0.8) |> Async.StartAsTask
+                        with _ ->
+                            return None
+                    }
 
                 match semanticResult with
                 | Some(domain, score) -> return Some domain
@@ -136,7 +142,17 @@ type LlmIntentClassifier(llm: ILlmService) =
                           JsonMode = true
                           Seed = None }
 
-                    let! response = llm.CompleteAsync(request)
+                    let! response =
+                        task {
+                            try
+                                return! llm.CompleteAsync(request)
+                            with _ ->
+                                return
+                                    { Text = ""
+                                      FinishReason = Some "error"
+                                      Usage = None
+                                      Raw = None }
+                        }
 
                     match JsonParsing.tryParseElement response.Text with
                     | Result.Ok elem ->
@@ -149,8 +165,13 @@ type LlmIntentClassifier(llm: ILlmService) =
                         then
                             // Also use semantic classifier here to map the "string" from LLM to AgentDomain enum
                             let! result =
-                                semanticClassifier.ClassifyAsync(intentElem.GetString(), 0.5)
-                                |> Async.StartAsTask
+                                task {
+                                    try
+                                        return! semanticClassifier.ClassifyAsync(intentElem.GetString(), 0.5)
+                                        |> Async.StartAsTask
+                                    with _ ->
+                                        return None
+                                }
 
                             return result |> Option.map fst
                         else

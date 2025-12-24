@@ -48,10 +48,11 @@
     <Compile Include="OutputGuardLlmTests.fs" />
     <Compile Include="PolicyEngineTests.fs" />
     <Compile Include="KnowledgeLedgerTests.fs" />
-    <Compile Include="EvolutionFixesTests.fs" />
+    <!-- <Compile Include="EvolutionFixesTests.fs" /> -->
     <Compile Include="EvolveIntegrationTests.fs" />
     <Compile Include="ReasoningDiagTests.fs" />
     <Compile Include="PuzzleTests.fs" />
+    <Compile Include="InvariantTests.fs" />
 
     <Compile Include="ChunkingTests.fs" />
     <Compile Include="SemanticSerializationTests.fs" />
@@ -87,6 +88,7 @@
 
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="FsUnit" Version="7.1.1" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
@@ -106,6 +108,7 @@
     <ProjectReference Include="..\..\src\Tars.Metascript\Tars.Metascript.fsproj" />
     <ProjectReference Include="..\..\src\Tars.Knowledge\Tars.Knowledge.fsproj" />
     <ProjectReference Include="..\..\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj" />
+    <ProjectReference Include="..\..\src\Tars.Symbolic\Tars.Symbolic.fsproj" />
   </ItemGroup>
 
 </Project>

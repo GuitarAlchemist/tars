@@ -61,8 +61,8 @@ module GraphitiKnowledgeGraph =
             // Create temporal node
             let validity = TemporalValidityOps.now ()
 
-            let node =
-                { TemporalKnowledgeGraph.TemporalNode.Entity = entity
+            let node: TemporalKnowledgeGraph.TemporalNode =
+                { Entity = entity
                   Validity = validity
                   CommunityId = None }
 
@@ -71,12 +71,10 @@ module GraphitiKnowledgeGraph =
             // Send to Graphiti asynchronously (fire and forget for performance)
             let content = entityToContent entity
 
-            let message =
-                { Name = Some $"Entity: {id}"
-                  Content = content
-                  Role = Some "system"
-                  RoleType = Some "entity"
-                  Source = "tars_temporal_graph"
+            let message: MessageDto =
+                { Content = content
+                  Role = "system"
+                  RoleType = "entity"
                   Timestamp = Some DateTime.UtcNow
                   SourceDescription = Some "TARS Temporal Knowledge Graph"
                   Uuid = None }
@@ -86,8 +84,8 @@ module GraphitiKnowledgeGraph =
                     let! result = client.AddMessagesAsync(gid, [| message |])
 
                     match result with
-                    | Ok _ -> ()
-                    | Error e -> printfn $"Warning: Failed to add node to Graphiti: {e}"
+                    | Result.Ok _ -> ()
+                    | Result.Error e -> printfn $"Warning: Failed to add node to Graphiti: {e}"
                 }
                 :> Task)
             |> ignore
@@ -96,35 +94,30 @@ module GraphitiKnowledgeGraph =
 
         /// Add a fact (edge) to the graph
         member this.AddFact(fact: TarsFact) : Guid =
-            let sourceId = this.AddNode(TarsFact.source fact)
+            let _ = this.AddNode(TarsFact.source fact)
 
-            let targetId =
-                match TarsFact.target fact with
-                | Some t -> Some(this.AddNode t)
-                | None -> None
+            match TarsFact.target fact with
+            | Some t -> this.AddNode t |> ignore
+            | None -> ()
 
             let edgeId = Guid.NewGuid()
             let validity = TemporalValidityOps.now ()
 
-            let edge =
-                { TemporalKnowledgeGraph.TemporalEdge.Id = edgeId
-                  SourceId = sourceId
-                  TargetId = targetId
+            let edge: TemporalKnowledgeGraph.TemporalEdge =
+                { Id = edgeId
                   Fact = fact
                   Validity = validity
-                  Evidence = None }
+                  SupersededBy = None }
 
             edgeCache <- edgeCache |> Map.add edgeId edge
 
             // Send to Graphiti asynchronously
             let content = factToContent fact
 
-            let message =
-                { Name = Some $"Fact: {edgeId}"
-                  Content = content
-                  Role = Some "system"
-                  RoleType = Some "fact"
-                  Source = "tars_temporal_graph"
+            let message: MessageDto =
+                { Content = content
+                  Role = "system"
+                  RoleType = "fact"
                   Timestamp = Some DateTime.UtcNow
                   SourceDescription = Some "TARS Temporal Knowledge Graph - Fact"
                   Uuid = Some(edgeId.ToString()) }
@@ -134,8 +127,8 @@ module GraphitiKnowledgeGraph =
                     let! result = client.AddMessagesAsync(gid, [| message |])
 
                     match result with
-                    | Ok _ -> ()
-                    | Error e -> printfn $"Warning: Failed to add fact to Graphiti: {e}"
+                    | Result.Ok _ -> ()
+                    | Result.Error e -> printfn $"Warning: Failed to add fact to Graphiti: {e}"
                 }
                 :> Task)
             |> ignore
@@ -164,10 +157,10 @@ module GraphitiKnowledgeGraph =
                         let! result = client.SearchAsync("TARS temporal knowledge graph", numResults = 100)
 
                         match result with
-                        | Ok results ->
+                        | Result.Ok results ->
                             printfn $"[GraphitiKnowledgeGraph] Loaded {results.Length} items from Graphiti"
                             return true
-                        | Error e ->
+                        | Result.Error e ->
                             printfn $"[GraphitiKnowledgeGraph] Load failed: {e}"
                             return false
                     with ex ->

@@ -187,7 +187,7 @@ module OllamaClient =
             let! raw = resp.Content.ReadAsStringAsync()
             let parsed = JsonSerializer.Deserialize<OllamaResponseDto>(raw, jsonOptions)
 
-            if isNull (box parsed) then
+            if isNull (box parsed) || isNull (box parsed.message) || isNull (box parsed.message.content) then
                 return
                     { Text = ""
                       FinishReason = Some "parse_error"
