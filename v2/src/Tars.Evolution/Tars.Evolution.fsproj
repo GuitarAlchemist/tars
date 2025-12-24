@@ -15,6 +15,7 @@
     <Compile Include="DemoVisualization.fs" />
     <Compile Include="TaskPrioritization.fs" />
     <Compile Include="SpeechActBridge.fs" />
+    <Compile Include="NeuroSymbolicIntegration.fs" />
     <Compile Include="Engine.fs" />
   </ItemGroup>
 
@@ -26,6 +27,7 @@
     <ProjectReference Include="..\Tars.Cortex\Tars.Cortex.fsproj" />
     <ProjectReference Include="..\Tars.Metascript\Tars.Metascript.fsproj" />
     <ProjectReference Include="..\Tars.Knowledge\Tars.Knowledge.fsproj" />
+    <ProjectReference Include="..\Tars.Symbolic\Tars.Symbolic.fsproj" />
   </ItemGroup>
 
 </Project>
