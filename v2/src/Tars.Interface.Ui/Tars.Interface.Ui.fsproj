@@ -22,6 +22,7 @@
     <ProjectReference Include="..\Tars.Llm\Tars.Llm.fsproj" />
     <ProjectReference Include="..\Tars.Cortex\Tars.Cortex.fsproj" />
     <ProjectReference Include="..\Tars.Tools\Tars.Tools.fsproj" />
+    <ProjectReference Include="..\Tars.Knowledge\Tars.Knowledge.fsproj" />
   </ItemGroup>
 
 </Project>

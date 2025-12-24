@@ -112,6 +112,7 @@ module OllamaClientAsync =
                 model.StartsWith("tars-")
                 || model.StartsWith("llama")
                 || model.StartsWith("mistral")
+                || model.StartsWith("qwen")
             )
         then
             AsyncResult.ofResult (Result.Error(ModelNotFound $"Unknown model: {model}"))

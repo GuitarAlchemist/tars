@@ -23,10 +23,12 @@
     <Compile Include="Resilience.fs" />
     <Compile Include="Validation.fs" />
     <Compile Include="GrammarDistill.fs" />
+    <Compile Include="PolicyEngine.fs" />
     <Compile Include="OutputGuard.fs" />
     <Compile Include="OutputGuardAnalyzerStub.fs" />
     <Compile Include="Knowledge.fs" />
     <Compile Include="SemanticMemoryTypes.fs" />
+    <Compile Include="ReasoningAudit.fs" />
     <Compile Include="AgentWorkflow.fs" />
     <Compile Include="EpisodeStore.fs" />
     <Compile Include="TemporalKnowledgeGraph.fs" />

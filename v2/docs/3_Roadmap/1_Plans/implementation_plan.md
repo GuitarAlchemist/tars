@@ -556,7 +556,7 @@
 
 **Goal**: Implement state-of-the-art prompting strategies for enhanced reasoning.
 
-**Status**: 🔜 Planned
+**Status**: 🚧 Partial (GoT Implemented Dec 2025)
 
 **Research Basis**: [Prompting Techniques Analysis](../../4_Research/Architecture/prompting_techniques_analysis.md)
 
@@ -620,7 +620,87 @@ Leverage knowledge graph context in prompts.
 * [ ] Add graph context injection to prompts
 * [ ] Enable "reason over knowledge" queries
 
-#### 8.4 Prompt Chaining DSL
+#### 8.4 Graph-of-Thoughts (GoT) & Workflow-of-Thought (WoT)
+
+**Priority**: High  
+**Effort**: 8-12 hours  
+**References**: 
+- https://github.com/spcl/graph-of-thoughts
+- Medium: "Graph-of-Thought & Workflow-of-Thought" by Raktim Singh
+- https://www.promptingguide.ai/ (Adapt the structured reasoning templates and critique loops to keep WoT/GoT prompts explicit, step-by-step, and verifiable)
+
+Graph-structured reasoning with search over thought nodes and evaluation edges.
+Extended with Workflow-of-Thought (WoT) for production enterprise workflows.
+
+##### Core Concepts
+
+**GoT = Reasoning Shape**: Represents intermediate thoughts as nodes with typed edges
+**WoT = Operational Pattern**: Adds work nodes (tools, policies, roles, memory, verifiers)
+
+##### Type System (Implemented Dec 2025)
+
+* [x] **Edge Types** (`GoTEdgeType`):
+  - `Supports` - Evidence supporting another node
+  - `Contradicts` - Conflicts with another (triggers reconciliation)
+  - `DependsOn` - Requires another to be resolved first
+  - `Refines` - Improves/clarifies another
+  - `Merges` - Combines multiple nodes
+  - `Critiques` - Evaluates/judges another
+  - `Validates` - Confirms correctness
+  - `Escalates` - Triggers human review
+
+* [x] **Node Types** (`WoTNodeType`):
+  - `ThoughtNode` - Reasoning step, claim, sub-problem
+  - `ToolNode` - Web search, RAG, code execution, API call
+  - `PolicyNode` - PII check, legal clause, brand style, risk threshold
+  - `RoleNode` - Analyst, Reviewer, Approver, Human-in-the-loop
+  - `MemoryNode` - Past decisions, precedent cases
+  - `VerifierNode` - Schema check, grammar, unit test
+  - `CritiqueNode` - Quality evaluation
+  - `AggregationNode` - Merge/synthesis
+
+* [x] **Router Decisions** (`RouterDecision`):
+  - `Expand` - Generate children from a node
+  - `Merge` - Combine nodes
+  - `Rollback` - Backtrack to a previous node
+  - `Escalate` - Send to human with reason
+  - `Finalize` - Mark as final answer
+  - `CallTool` - Invoke external tool
+  - `ApplyPolicy` - Run policy check
+
+##### Implementation Status
+
+* [x] Basic GoT node/edge types (`ThoughtNode`, `GoTOperation`)
+* [x] Scoring and pruning strategies (score threshold, top-K selection)
+* [x] CLI command `tars agent got <task>` - **Completed Dec 2025**
+* [x] Extended WoT types (`WoTNode`, `GoTEdge`, `WoTNodeType`)
+* [x] Policy status tracking (`PolicyStatus`)
+* [x] Router decision types for controller
+* [ ] **8.4.1** Implement WoT Controller with Planner, Generator, Critic, Router, Distiller
+* [ ] **8.4.2** Policy node integration with Tars.Security
+* [ ] **8.4.3** Memory node integration with knowledge ledger
+* [ ] **8.4.4** Human-in-the-loop escalation via CLI prompts
+* [ ] **8.4.5** Verifier node integration with external validators
+* [ ] **8.4.6** Edge tracking and audit trail persistence
+* [ ] Integrate with knowledge graph context
+
+**Implementation Notes:**
+- Uses llama.cpp for high-performance local inference (route via `ModelHint = "reasoning"`)
+- Iterative expansion with configurable branching factor and depth
+- Parallel scoring for efficiency
+- Aggregation phase synthesizes best thoughts
+- Types designed for enterprise audit trails and compliance
+
+**WoT Controller Components (Future)**:
+1. **Planner** - Breaks goal into sub-goals and seeds initial nodes
+2. **Generators** - Create candidate thoughts, tool calls, summaries
+3. **Critics/Judges** - Evaluate relevance, correctness, risk, policy compliance
+4. **Verifiers** - Enforce hard constraints (schemas, grammars, constraint solvers)
+5. **Router** - Decides: expand, merge, rollback, escalate, or finalize
+6. **Distiller** - Compresses subgraph into clean prose or structured JSON
+
+
+#### 8.5 Prompt Chaining DSL
 
 **Priority**: Medium  
 **Effort**: 3-4 hours
@@ -631,7 +711,8 @@ Formalize complex task handoffs in Metascript.
 * [ ] Add intermediate validation points
 * [ ] Support branching chains
 
-#### 8.5 Zero-Shot CoT
+#### 8.6 Zero-Shot CoT
+
 
 **Priority**: Low  
 **Effort**: 1 hour
@@ -663,24 +744,24 @@ Simple "Let's think step by step" enhancement.
 
 #### 9.1 Symbolic Knowledge Ledger
 
-* [ ] **9.1.1** Create `Tars.Knowledge` project  
-* [ ] **9.1.2** Define `Belief`, `BeliefEvent`, `Provenance` types
-* [ ] **9.1.3** Implement `KnowledgeLedger` (Postgres-backed)
-* [ ] **9.1.4** Add CLI: `tars know ingest <path>`
+* [x] **9.1.1** Create `Tars.Knowledge` project ✅ (Dec 2025)
+* [x] **9.1.2** Define `Belief`, `BeliefEvent`, `Provenance` types ✅ (Types.fs)
+* [x] **9.1.3** Implement `KnowledgeLedger` (Postgres-backed) ✅ (Ledger.fs)
+* [x] **9.1.4** Add CLI: `tars know ingest <path>` ✅ (KnowCmd.fs)
 * [ ] **9.1.5** Parse `.trsx` outputs into assertions
 * [ ] **9.1.6** Emit `knowledge_snapshot.trsx` each run
 
 #### 9.2 Internet Ingestion Pipeline
 
-* [ ] **9.2.1** Create `evidence_store` table
-* [ ] **9.2.2** Implement Wikipedia/arXiv/GitHub fetchers
-* [ ] **9.2.3** Implement LLM-based assertion proposer  
+* [x] **9.2.1** Create `evidence_store` table ✅ (EvidenceStore.fs)
+* [x] **9.2.2** Implement Wikipedia/arXiv/GitHub fetchers ✅ (WebTools.fs, ResearchTools.fs)
+* [x] **9.2.3** Implement LLM-based assertion proposer ✅ (KnowCmd.fs)
 * [ ] **9.2.4** Implement Verifier Agent
 * [ ] **9.2.5** Implement contradiction detection
 
 #### 9.3 Evolving Plans
 
-* [ ] **9.3.1** Create `Plan`, `PlanEvent` types
+* [x] **9.3.1** Create `Plan`, `PlanEvent` types ✅ (Types.fs)
 * [ ] **9.3.2** Link plan assumptions to belief IDs
 * [ ] **9.3.3** Invalidate plans when beliefs retract
 * [ ] **9.3.4** Add CLI: `tars plan new "<goal>"`
@@ -759,6 +840,161 @@ Simple "Let's think step by step" enhancement.
 
 ---
 
+### Phase 11: Cognitive Grounding & Production Intelligence
+
+**Goal**: Transform TARS from "task-level cognition" (L2) to "grounded, self-verifying, ledger-guided" cognition (L3).
+
+**Status**: 🔜 Planned (January 2025)
+
+**Rationale** (from analysis):
+> TARS is at "task-level cognition with reflective scaffolding" — it can reason, reflect, and log beliefs, but it isn't grounded, self-verifying, or ledger-guided in behavior yet.
+
+#### Core Problems Addressed
+
+| Problem | Current State | Target State |
+|---------|---------------|--------------|
+| Self-referential evaluation | LLM judges LLM output | External verification (tests, static checks) |
+| Ledger is write-only | Knowledge stored but never consulted | Belief-aware prompts, contradiction gating |
+| Timeout is ceremonial | `TaskDefinition.Timeout` unused | Real CTS enforcement with cancellation |
+| Memory drift | 3+ parallel stores with no reconciliation | Unified consolidation layer |
+| Evidence proposals orphaned | Proposals stored but never promoted/invalidated | Automated verification pipeline |
+
+#### 11.1 External Verification Gateway
+
+**Priority**: Critical
+**Files**: `Tars.Evolution/Evaluation.fs`, `Tars.Evolution/Verification.fs` (new)
+
+* [ ] **11.1.1** Create `IVerifier` interface with `VerifyAsync(artifact: string) -> VerificationResult`
+* [ ] **11.1.2** Implement `TestRunner` verifier (runs `dotnet test`, captures results)
+* [ ] **11.1.3** Implement `StaticAnalyzer` verifier (runs analyzers, linters)
+* [ ] **11.1.4** Implement `ExecutionVerifier` (sandboxed execution with assertions)
+* [ ] **11.1.5** Gate evolution task success on verifier results, not just LLM judgment
+* [ ] **11.1.6** Add `tars verify <artifact>` CLI command
+
+#### 11.2 Ledger Read-Back Integration
+
+**Priority**: Critical
+**Files**: `Tars.Evolution/Engine.fs`, `Tars.Cortex/LedgerAwarePrompting.fs` (new)
+
+* [ ] **11.2.1** Query ledger for relevant beliefs before task execution
+* [ ] **11.2.2** Inject belief context into system prompts: "Known facts: [...]"
+* [ ] **11.2.3** Add contradiction gating: refuse actions that violate high-confidence beliefs
+* [ ] **11.2.4** Implement `LedgerContext.GetRelevantBeliefs(topic: string, limit: int)`
+* [ ] **11.2.5** Add belief influence to curriculum generation
+
+#### 11.3 Real Timeout Enforcement
+
+**Priority**: High
+**Files**: `Tars.Evolution/Protocol.fs`, `Tars.Evolution/Engine.fs`
+
+* [ ] **11.3.1** Wire `TaskDefinition.Timeout` to `CancellationTokenSource`
+* [ ] **11.3.2** Pass CTS through all LLM and tool calls
+* [ ] **11.3.3** Implement graceful shutdown on timeout (save partial state)
+* [ ] **11.3.4** Add timeout tracking metrics
+* [ ] **11.3.5** Remove loop-count fallbacks when timeout is specified
+
+#### 11.4 Memory Consolidation Layer
+
+**Priority**: High
+**Files**: `Tars.Knowledge/Consolidation.fs` (new)
+
+* [ ] **11.4.1** Audit: identify all parallel memory systems (VectorStore, Graph, Ledger, SemanticMemory)
+* [ ] **11.4.2** Define canonical knowledge representation
+* [ ] **11.4.3** Implement `ConsolidationService` to reconcile stores periodically
+* [ ] **11.4.4** Add decay/forgetting for low-confidence beliefs
+* [ ] **11.4.5** Add `tars memory consolidate` CLI command
+
+#### 11.5 Evidence Lifecycle Automation
+
+**Priority**: Medium
+**Files**: `Tars.Knowledge/Ledger.fs`, `Tars.Knowledge/EvidenceVerifier.fs` (new)
+
+* [ ] **11.5.1** Implement in-memory evidence storage (not just stubs)
+* [ ] **11.5.2** Create background verifier service for pending proposals
+* [ ] **11.5.3** Auto-promote verified proposals to beliefs
+* [ ] **11.5.4** Auto-invalidate contradicted proposals
+* [ ] **11.5.5** Add `tars know verify` CLI command
+
+#### 11.6 Code Cleanup
+
+**Priority**: Low
+**Files**: Various
+
+* [ ] **11.6.1** Wire reviewer agent into evolution loop OR remove registration
+* [ ] **11.6.2** Connect `KnowledgeBase` to runtime OR remove initialization
+* [ ] **11.6.3** Complete `PatternRecognition.fs` OR remove mock code
+* [ ] **11.6.4** Audit for other dead code paths
+
+**Acceptance Criteria:**
+
+1. `tars evolve` tasks pass ONLY if external verifiers pass (not just LLM approval)
+2. `tars evolve` prompts include relevant beliefs from ledger
+3. `TaskDefinition.Timeout` actually cancels after specified duration
+4. `tars memory status` shows unified view across all stores
+5. Evidence proposals auto-verify/invalidate within 1 hour
+
+---
+
+### Phase 12: Web of Things (WoT) Integration
+
+**Goal**: Enable TARS to discover, understand, and interact with IoT devices using W3C WoT Thing Descriptions.
+
+**Status**: 🔜 Planned (Q1 2025)
+
+**Reference**: https://w3c.github.io/wot-thing-description/
+
+WoT Thing Descriptions provide a standardized way to describe IoT device capabilities, 
+enabling TARS to reason about and interact with physical systems.
+
+#### 12.1 Thing Description Parser
+
+**Priority**: High
+**Files**: `Tars.Connectors/WoT/ThingDescriptionParser.fs` (new)
+
+* [ ] **12.1.1** Parse JSON-LD Thing Description format
+* [ ] **12.1.2** Extract affordances (properties, actions, events)
+* [ ] **12.1.3** Map TD security definitions to credential vault
+* [ ] **12.1.4** Support TD templates and composition
+
+#### 12.2 Thing Discovery
+
+**Priority**: Medium
+**Files**: `Tars.Connectors/WoT/ThingDiscovery.fs` (new)
+
+* [ ] **12.2.1** Implement mDNS/DNS-SD discovery
+* [ ] **12.2.2** Parse directory links from TDs
+* [ ] **12.2.3** Integrate with knowledge graph (discovered things as entities)
+* [ ] **12.2.4** CLI command `tars wot discover`
+
+#### 12.3 GoT + WoT Integration
+
+**Priority**: Medium
+**Reference**: Combine Graph-of-Thoughts with WoT for intelligent IoT orchestration
+
+* [ ] **12.3.1** Inject Thing capabilities into GoT reasoning context
+* [ ] **12.3.2** Enable GoT to plan multi-device operations
+* [ ] **12.3.3** Use WoT actions as GoT execution primitives
+* [ ] **12.3.4** Store device interaction history in knowledge ledger
+
+#### 12.4 Protocol Bindings
+
+**Priority**: Low
+**Files**: `Tars.Connectors/WoT/Bindings/` (new)
+
+* [ ] **12.4.1** HTTP/HTTPS binding (most common)
+* [ ] **12.4.2** MQTT binding for pub/sub devices
+* [ ] **12.4.3** CoAP binding for constrained devices
+* [ ] **12.4.4** WebSocket binding for real-time updates
+
+**Acceptance Criteria:**
+
+1. TARS can parse and understand Thing Descriptions
+2. `tars wot discover` finds local IoT devices
+3. GoT can reason about multi-device scenarios
+4. Device interactions are logged to knowledge ledger
+
+---
+
 ## 🚀 First Coding Session Checklist
 
 1. [x] Create `Tars.sln` and projects.
@@ -770,6 +1006,7 @@ Simple "Let's think step by step" enhancement.
 ---
 
 ## ✅ Evidence of Completion
+
 
 > **See full QA Report:** [docs/QA/Phase1_Sandbox.md](../QA/Phase1_Sandbox.md)
 

@@ -11,6 +11,7 @@ type LlmSettings =
       Model: string
       EmbeddingModel: string
       BaseUrl: string option
+      LlamaCppUrl: string option
       ApiKey: string option
       ContextWindow: int
       Temperature: float }
@@ -36,12 +37,19 @@ type EvolutionSettings =
       TraceEnabled: bool }
 
 /// <summary>
+/// Pre-LLM pipeline configuration
+/// </summary>
+type PreLlmSettings =
+    { UseIntentClassifier: bool
+      DefaultPolicies: string list }
+
 /// Root Configuration object for TARS
 /// </summary>
 type TarsConfig =
     { Llm: LlmSettings
       Memory: MemorySettings
-      Evolution: EvolutionSettings }
+      Evolution: EvolutionSettings
+      PreLlm: PreLlmSettings }
 
 /// <summary>
 /// Default configuration values
@@ -57,6 +65,7 @@ module ConfigurationDefaults =
           Model = "qwen2.5-coder:7b"
           EmbeddingModel = "nomic-embed-text"
           BaseUrl = Some "http://localhost:11434"
+          LlamaCppUrl = None
           ApiKey = None
           ContextWindow = 32768
           Temperature = 0.7 }
@@ -66,6 +75,10 @@ module ConfigurationDefaults =
           MaxIterations = 10
           AutoSave = true
           TraceEnabled = false }
+
+    let DefaultPreLlm =
+        { UseIntentClassifier = true
+          DefaultPolicies = [ "no_destructive_commands" ] }
 
     let createDefault () =
         let home = getTarsHome ()
@@ -78,4 +91,5 @@ module ConfigurationDefaults =
               EpisodeDbPath = Path.Combine(home, "episodes.db")
               GraphitiUrl = None
               PostgresConnectionString = None }
-          Evolution = DefaultEvolution }
+          Evolution = DefaultEvolution
+          PreLlm = DefaultPreLlm }

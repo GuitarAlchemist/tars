@@ -21,14 +21,18 @@ type GraphExecutor
     new(registry, llm, budget, logger) = GraphExecutor(registry, llm, budget, None, logger)
 
     /// Helper to run the agent loop until it produces a response or errors
-    member this.RunAgentLoop (agent: Agent) (maxSteps: int) : Task<ExecutionOutcome<Agent * string * string list>> =
+    member this.RunAgentLoop
+        (agent: Agent, maxSteps: int, ?cancellationToken: System.Threading.CancellationToken)
+        : Task<ExecutionOutcome<Agent * string * string list>> =
         task {
+            let token = defaultArg cancellationToken System.Threading.CancellationToken.None
             let mutable currentAgent = agent
             let mutable stepCount = 0
             let mutable finished = false
             let mutable trace = []
             let mutable resultOutput = ""
             let mutable success = false
+            let mutable cancelled = false
 
             let graphCtx: GraphRuntime.GraphContext =
                 { Registry = registry
@@ -36,45 +40,53 @@ type GraphExecutor
                   MaxSteps = maxSteps
                   BudgetGovernor = budget
                   OutputGuard = outputGuard
+                  CancellationToken = token
                   Logger = logger }
 
             while not finished && stepCount < maxSteps do
-                trace <- trace @ [ $"Step %d{stepCount}: %A{currentAgent.State}" ]
-                let! outcome = GraphRuntime.step currentAgent graphCtx
-
-                match outcome with
-                | Success next -> currentAgent <- next
-                | PartialSuccess(next, warnings) ->
-                    trace <- trace @ (warnings |> List.map (fun w -> $"Warning: %A{w}"))
-                    currentAgent <- next
-                | Failure errs ->
-                    let errStr = String.concat "; " (errs |> List.map (fun e -> $"%A{e}"))
-                    trace <- trace @ [ $"Execution Failure: %s{errStr}" ]
+                if token.IsCancellationRequested then
+                    cancelled <- true
                     finished <- true
-                    success <- false
-                    resultOutput <- errStr
+                else
+                    trace <- trace @ [ $"Step %d{stepCount}: %A{currentAgent.State}" ]
+                    let! outcome = GraphRuntime.step currentAgent graphCtx
 
-                stepCount <- stepCount + 1
+                    match outcome with
+                    | Success next -> currentAgent <- next
+                    | PartialSuccess(next, warnings) ->
+                        trace <- trace @ (warnings |> List.map (fun w -> $"Warning: %A{w}"))
+                        currentAgent <- next
+                    | Failure errs ->
+                        let errStr = String.concat "; " (errs |> List.map (fun e -> $"%A{e}"))
+                        trace <- trace @ [ $"Execution Failure: %s{errStr}" ]
+                        finished <- true
+                        success <- false
+                        resultOutput <- errStr
 
-                match currentAgent.State with
-                | WaitingForUser response ->
-                    trace <- trace @ [ $"Response: %s{response}" ]
-                    resultOutput <- response
-                    success <- true
-                    finished <- true
-                | AgentState.Error err ->
-                    trace <- trace @ [ $"Error: %s{err}" ]
-                    resultOutput <- err
-                    success <- false
-                    finished <- true
-                | _ -> ()
+                    stepCount <- stepCount + 1
+
+                    match currentAgent.State with
+                    | WaitingForUser response ->
+                        trace <- trace @ [ $"Response: %s{response}" ]
+                        resultOutput <- response
+                        success <- true
+                        finished <- true
+                    | AgentState.Error err ->
+                        trace <- trace @ [ $"Error: %s{err}" ]
+                        resultOutput <- err
+                        success <- false
+                        finished <- true
+                    | _ -> ()
 
             let isError =
                 match currentAgent.State with
                 | AgentState.Error _ -> true
                 | _ -> false
 
-            if not finished then
+            if cancelled then
+                let warnings = [ Timeout("AgentLoop", TimeSpan.Zero) ]
+                return Failure warnings
+            elif not finished then
                 // Provide more context about what happened
                 let lastState =
                     match currentAgent.State with
@@ -139,7 +151,7 @@ type GraphExecutor
                     let agentWithMsg = agent.ReceiveMessage(msg)
 
                     // 3. Run Loop
-                    let! result = this.RunAgentLoop agentWithMsg 20 |> Async.AwaitTask
+                    let! result = this.RunAgentLoop(agentWithMsg, 20) |> Async.AwaitTask
 
                     match result with
                     | Success(_, output, _) -> return Success output

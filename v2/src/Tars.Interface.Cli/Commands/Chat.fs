@@ -495,6 +495,7 @@ If asked about TARS architecture, code, or features, use 'search_docs' to find t
                     )
                 )
               OutputGuard = Some OutputGuard.defaultGuard
+              CancellationToken = System.Threading.CancellationToken.None
               Logger = (fun s -> logger.Information("{GraphLog}", s)) }
 
         // Test LLM connection before starting chat

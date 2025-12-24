@@ -250,6 +250,7 @@ type EvidenceCandidate =
       Segments: string list
       ProposedAssertions: ProposedAssertion list
       Status: EvidenceStatus
+      Metadata: Map<string, string>
       VerifiedAt: DateTime option
       VerifiedBy: AgentId option
       RejectionReason: string option }

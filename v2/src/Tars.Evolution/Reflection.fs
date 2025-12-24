@@ -80,11 +80,21 @@ Output JSON only:
 
                     let! response = llm.CompleteAsync req
 
-                    try
-                        let doc = System.Text.Json.JsonDocument.Parse(response.Text)
-                        let root = doc.RootElement
+                    let tryGetProp name (elem: System.Text.Json.JsonElement) =
+                        if elem.ValueKind = System.Text.Json.JsonValueKind.Object then
+                            elem.EnumerateObject()
+                            |> Seq.tryFind (fun p -> p.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+                            |> Option.map (fun p -> p.Value)
+                        else
+                            None
 
-                        let typeStr = root.GetProperty("type").GetString()
+                    match JsonParsing.tryParseElement response.Text with
+                    | Result.Ok root ->
+                        let typeStr =
+                            tryGetProp "type" root
+                            |> Option.filter (fun p -> p.ValueKind = System.Text.Json.JsonValueKind.String)
+                            |> Option.map (fun p -> p.GetString())
+                            |> Option.defaultValue "optimization"
 
                         let fType =
                             match typeStr.ToLower() with
@@ -92,34 +102,38 @@ Output JSON only:
                             | "failure" -> Failure
                             | _ -> Optimization
 
-                        let mutable scoreProp = Unchecked.defaultof<System.Text.Json.JsonElement>
-
                         let score =
-                            if root.TryGetProperty("score", &scoreProp) then
-                                scoreProp.GetDouble()
-                            else
-                                0.5
+                            tryGetProp "score" root
+                            |> Option.map (fun p ->
+                                match p.ValueKind with
+                                | System.Text.Json.JsonValueKind.Number -> p.GetDouble()
+                                | System.Text.Json.JsonValueKind.String ->
+                                    match Double.TryParse(p.GetString()) with
+                                    | true, v -> v
+                                    | _ -> 0.5
+                                | _ -> 0.5)
+                            |> Option.defaultValue 0.5
 
-                        let comment = root.GetProperty("comment").GetString()
-
-                        let mutable suggestionProp = Unchecked.defaultof<System.Text.Json.JsonElement>
+                        let comment =
+                            tryGetProp "comment" root
+                            |> Option.filter (fun p -> p.ValueKind = System.Text.Json.JsonValueKind.String)
+                            |> Option.map (fun p -> p.GetString())
+                            |> Option.defaultValue "No comment provided."
 
                         let suggestion =
-                            if root.TryGetProperty("suggestion", &suggestionProp) then
-                                Some(suggestionProp.GetString())
-                            else
-                                None
+                            tryGetProp "suggestion" root
+                            |> Option.filter (fun p -> p.ValueKind = System.Text.Json.JsonValueKind.String)
+                            |> Option.map (fun p -> p.GetString())
 
                         return
                             { Type = fType
                               Score = score
                               Comment = comment
                               Suggestion = suggestion }
-                    with ex ->
-                        // Fallback
+                    | Result.Error err ->
                         return
                             { Type = Failure
                               Score = 0.0
-                              Comment = $"Parsing failed: {ex.Message}"
+                              Comment = $"Parsing failed: {err}"
                               Suggestion = None }
                 }

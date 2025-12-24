@@ -65,7 +65,7 @@ module OllamaClient =
           stream: bool
           format: obj option
           options: OllamaOptionsDto option
-          tools: ToolDefinitionDto[] option }
+          tools: obj[] option }
 
     /// <summary>DTO for tool call function response.</summary>
     [<CLIMutable>]
@@ -178,7 +178,7 @@ module OllamaClient =
                     | Some ResponseFormat.Text -> None
                     | None -> if req.JsonMode then Some(box "json") else None
                   options = Some options
-                  tools = None }
+                  tools = if req.Tools.IsEmpty then None else Some(List.toArray req.Tools) }
 
             let uri = Uri(baseUri, getApiPrefix baseUri + "chat")
             use! resp = http.PostAsJsonAsync(uri, dto, jsonOptions)
@@ -297,7 +297,7 @@ module OllamaClient =
                     | Some ResponseFormat.Text -> None
                     | None -> if req.JsonMode then Some(box "json") else None
                   options = Some options
-                  tools = None }
+                  tools = if req.Tools.IsEmpty then None else Some(List.toArray req.Tools) }
 
             let uri = Uri(baseUri, getApiPrefix baseUri + "chat")
 

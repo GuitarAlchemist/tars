@@ -6,8 +6,10 @@ open Serilog
 open Tars.Security
 open System.Threading.Tasks
 open Tars.Interface.Cli.Commands
+open Tars.Interface.Cli.Commands.AgentHelpers
 open Tars.Interface.Cli
 open Microsoft.Extensions.Configuration
+open Spectre.Console
 
 [<EntryPoint>]
 let main argv =
@@ -24,9 +26,15 @@ let main argv =
     Console.OutputEncoding <- outputEncoding
     Console.InputEncoding <- new UTF8Encoding(false)
 
-    // Initialize Configuration
+    // Initialize Configuration (read appsettings.json, then env, then user secrets)
     let config =
-        ConfigurationBuilder().AddEnvironmentVariables().AddUserSecrets<Commands.Demo.DemoAgent>().Build()
+        ConfigurationBuilder()
+            .SetBasePath(AppContext.BaseDirectory)
+            .AddJsonFile("appsettings.json", optional = true, reloadOnChange = false)
+            .AddEnvironmentVariables()
+            .AddUserSecrets<Commands.Demo.DemoAgent>()
+            .Build()
+
 
     // Register secrets from configuration into CredentialVault
     let email = config["OPENWEBUI_EMAIL"]
@@ -41,6 +49,8 @@ let main argv =
 
     if not (String.IsNullOrEmpty(ollamaUrl)) then
         CredentialVault.registerSecret "OLLAMA_BASE_URL" ollamaUrl
+
+    let tarsConfig = ConfigurationLoader.load ()
 
     let isMcpServer =
         match argv with
@@ -97,7 +107,6 @@ let main argv =
                         DocsPath = Some args.[i] }
             | "--live" -> options <- { options with UseLiveLlm = true }
             | "--compare" -> options <- { options with CompareMode = true }
-            | "--diag" -> options <- { options with ShowDiagnostics = true }
             | _ -> ()
 
             i <- i + 1
@@ -126,13 +135,40 @@ let main argv =
         | [| "status" |] -> return! Diagnostics.status logger
         | [| "diag" |] -> return! Diagnostics.run logger
         | [| "diag"; "--verbose" |] -> return! Diagnostics.runWithVerbose logger true
+        | [| "diag"; "--full" |] -> return! Diagnostics.runFull logger
         | [| "diag"; "--arch" |] -> return! Diagnostics.runWithArch logger
+        | args when args.Length > 1 && args.[0] = "diag" && args.[1] = "reasoning" ->
+            let diagArgs = args |> Array.skip 2 |> Array.toList
+            return! ReasoningDiag.run logger config tarsConfig diagArgs
 
         | args when args.Length > 0 && args.[0] = "demo-rag" ->
             let options = parseRagOptions args
             return! RagDemo.runWithOptions logger options
 
         | [| "macro-demo" |] -> return! Commands.MacroDemo.run logger
+
+        // Escape Room Demo
+        | [| "demo-escape" |] -> return! EscapeRoomDemo.run logger 30 false
+        | [| "demo-escape"; "--verbose" |] -> return! EscapeRoomDemo.run logger 30 true
+        | [| "demo-escape"; "--max-turns"; n |] ->
+            match Int32.TryParse(n) with
+            | true, turns -> return! EscapeRoomDemo.run logger turns false
+            | _ ->
+                printfn "Invalid turn count: %s" n
+                return 1
+
+        // Puzzle Demo
+        | [| "demo-puzzle" |] -> return PuzzleDemo.listPuzzles ()
+        | [| "demo-puzzle"; "--all" |] -> return! PuzzleDemo.runAll logger false
+        | [| "demo-puzzle"; "--all"; "--verbose" |] -> return! PuzzleDemo.runAll logger true
+        | [| "demo-puzzle"; "--difficulty"; n |] ->
+            match Int32.TryParse(n) with
+            | true, d -> return! PuzzleDemo.runByDifficulty logger d false
+            | _ ->
+                printfn "Invalid difficulty: %s" n
+                return 1
+        | [| "demo-puzzle"; name |] -> return! PuzzleDemo.runByName logger name false
+        | [| "demo-puzzle"; name; "--verbose" |] -> return! PuzzleDemo.runByName logger name true
 
         // Config commands
         | args when args.Length > 0 && args.[0] = "config" ->
@@ -257,8 +293,17 @@ let main argv =
 
                 i <- i + 1
 
+            // Legacy knowledge command - show deprecation notice
+            AnsiConsole.MarkupLine("[yellow]⚠️ 'tars knowledge' is deprecated. Use 'tars know' instead.[/]")
             Knowledge.run options
             return 0
+
+        // TARS Know - Phase 9 Knowledge Ledger
+        | args when args.Length > 0 && args.[0] = "know" ->
+            let knowArgs = args |> Array.skip 1
+            let options = KnowCmd.parseArgs knowArgs
+            return! KnowCmd.run tarsConfig options
+
         | args when args.Length > 0 && args.[0] = "mcp" ->
             if args.Length > 1 && args.[1] = "server" then
                 return! McpServerCommand.run logger
@@ -266,6 +311,7 @@ let main argv =
                 let cmd = if args.Length > 1 then args.[1] else "help"
                 let arg = if args.Length > 2 then args.[2] else ""
                 return! McpCommand.run cmd arg
+
         | args when args.Length > 0 && args.[0] = "pipeline" -> return PipelineCommand.run (args |> Array.skip 1)
         | args when args.Length > 0 && args.[0] = "skill" ->
             let subCmd = if args.Length > 1 then args.[1] else "help"
@@ -273,7 +319,7 @@ let main argv =
             return! SkillCommand.run subCmd subArgs
 
         | args when args.Length > 0 && args.[0] = "agent" ->
-            let mutable options: Agent.AgentOptions = Agent.defaultOptions
+            let mutable options: AgentOptions = defaultOptions
             let mutable subCommand = "help"
             let mutable goalArgs: string list = []
             let mutable i = 1
@@ -293,6 +339,12 @@ let main argv =
                 | "--model" when i + 1 < args.Length ->
                     i <- i + 1
                     options <- { options with Model = Some args.[i] }
+                | "--evidence" when i + 1 < args.Length ->
+                    i <- i + 1
+
+                    options <-
+                        { options with
+                            EvidencePath = Some args.[i] }
                 | arg when not (arg.StartsWith("--")) -> goalArgs <- goalArgs @ [ arg ]
                 | _ -> ()
 
@@ -309,7 +361,11 @@ let main argv =
             printfn "  tars memory-add <coll> <id> <text> Add text to vector memory"
             printfn "  tars memory-search <coll> <text> Search vector memory"
             printfn "  tars demo-ping                   Run a demo ping agent"
-            printfn "  tars diag [--verbose]            Run system diagnostics"
+            printfn "  tars diag [--verbose|--full]     Run system diagnostics (--full for all checks)"
+
+            printfn
+                "  tars diag reasoning <wot|tot|got> <goal> [--ledger|--no-ledger] [--evidence <path>] Run reasoning diag + ledger trace"
+
             printfn "  tars demo-rag [options]          Run the RAG capabilities demo"
             printfn "       --quick                     Skip interactive prompts"
             printfn "       --verbose                   Show detailed internal state"
@@ -321,6 +377,14 @@ let main argv =
             printfn "       --live                      Use live Ollama LLM (requires Ollama)"
             printfn "       --compare                   Compare before/after with configs"
             printfn "       --diag                      Run diagnostics before demo"
+            printfn "  tars demo-escape [options]       Watch TARS solve an escape room puzzle"
+            printfn "       --max-turns N               Maximum turns allowed (default 30)"
+            printfn "       --verbose                   Show detailed reasoning"
+            printfn "  tars demo-puzzle [options]       Test TARS on classic AI reasoning puzzles"
+            printfn "       (no args)                   List available puzzles"
+            printfn "       --all                       Run all puzzles"
+            printfn "       --difficulty N              Run puzzles up to difficulty N (1-5)"
+            printfn "       <name>                      Run a specific puzzle by name"
             printfn "  tars evolve [options]            Run the evolution engine"
             printfn "       --max-iterations N          Set max generations (default 5)"
             printfn "       --budget USD                Maximum monetary budget in USD"
@@ -350,8 +414,16 @@ let main argv =
             printfn "  tars agent [command]             Run agentic patterns"
             printfn "       react <goal>                Run ReAct reasoning loop"
             printfn "       cot <input>                 Run Chain of Thought"
-            printfn "       --max-steps N               Max reasoning steps"
-            printfn "       --verbose                   Show detailed logs"
+            printfn "       got <goal>                  Run Graph of Thoughts"
+            printfn "       tot <goal>                  Run Tree of Thoughts"
+            printfn "       wot <goal>                  Run Workflow of Thoughts"
+            printfn "  tars know <command>              TARS Knowledge Ledger (Phase 9)"
+            printfn "       status [--pg]               Show ledger statistics"
+            printfn "       assert <s> <p> <o> [--pg]   Add a belief triple"
+            printfn "       query [--pg]                Search beliefs"
+            printfn "       fetch <topic> [--pg]        Fetch Wikipedia summary"
+            printfn "       propose <topic> [--pg]      Extract triples via LLM"
+            printfn ""
             return 1
     }
     |> Async.AwaitTask

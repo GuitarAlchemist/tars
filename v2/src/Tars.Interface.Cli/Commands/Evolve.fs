@@ -243,6 +243,10 @@ let run (logger: ILogger) (options: EvolveOptions) =
         | Microsoft.FSharp.Core.Result.Ok _ -> ()
         | Microsoft.FSharp.Core.Result.Error e -> logger.Warning("Secret registration FAILED: {Error}", e)
 
+        let useLlamaCpp =
+            config.Llm.Provider.Equals("LlamaCpp", StringComparison.OrdinalIgnoreCase)
+            || config.Llm.Provider.Equals("llama.cpp", StringComparison.OrdinalIgnoreCase)
+
         let routingCfg: RoutingConfig =
             let ollamaUri =
                 config.Llm.BaseUrl |> Option.defaultValue "http://localhost:11434" |> Uri
@@ -281,9 +285,17 @@ let run (logger: ILogger) (options: EvolveOptions) =
               GoogleGeminiKey = getKey "Google" "GOOGLE_API_KEY"
               AnthropicKey = getKey "Anthropic" "ANTHROPIC_API_KEY"
               DockerModelRunnerBaseUri = None
-              LlamaCppBaseUri = config.Llm.LlamaCppUrl |> Option.map Uri
+              LlamaCppBaseUri =
+                if useLlamaCpp then
+                    config.Llm.LlamaCppUrl |> Option.map Uri
+                else
+                    None
               DefaultDockerModelRunnerModel = None
-              DefaultLlamaCppModel = if config.Llm.LlamaCppUrl.IsSome then Some model else None
+              DefaultLlamaCppModel =
+                if useLlamaCpp && config.Llm.LlamaCppUrl.IsSome then
+                    Some model
+                else
+                    None
               DockerModelRunnerKey = None
               LlamaCppKey = None }
 

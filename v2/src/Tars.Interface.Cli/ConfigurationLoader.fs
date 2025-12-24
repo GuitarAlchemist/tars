@@ -47,6 +47,20 @@ module ConfigurationLoader =
                 let v = root.GetSection(key).Value
                 if String.IsNullOrWhiteSpace(v) then defOpt else Some v
 
+            let getList key (def: string list) =
+                let section = root.GetSection(key)
+
+                if not (section.Exists()) then
+                    def
+                else
+                    let values =
+                        section.GetChildren()
+                        |> Seq.map (fun child -> child.Value)
+                        |> Seq.filter (fun v -> not (String.IsNullOrWhiteSpace v))
+                        |> Seq.toList
+
+                    if List.isEmpty values then def else values
+
             // Construct LlmSettings
             let defLlm = ConfigurationDefaults.DefaultLlm
 
@@ -56,6 +70,7 @@ module ConfigurationLoader =
                     Model = get "Llm:Model" defLlm.Model
                     EmbeddingModel = get "Llm:EmbeddingModel" defLlm.EmbeddingModel
                     BaseUrl = getOpt "Llm:BaseUrl" defLlm.BaseUrl
+                    LlamaCppUrl = getOpt "Llm:LlamaCppUrl" defLlm.LlamaCppUrl
                     ApiKey = getOpt "Llm:ApiKey" defLlm.ApiKey
                     ContextWindow = getInt "Llm:ContextWindow" defLlm.ContextWindow
                     Temperature = getFloat "Llm:Temperature" defLlm.Temperature }
@@ -76,6 +91,12 @@ module ConfigurationLoader =
             // Construct EvolutionSettings
             let defEvo = ConfigurationDefaults.DefaultEvolution
 
+            let preLlmDef = ConfigurationDefaults.DefaultPreLlm
+
+            let preLlm =
+                { UseIntentClassifier = getBool "PreLlm:UseIntentClassifier" preLlmDef.UseIntentClassifier
+                  DefaultPolicies = getList "PreLlm:DefaultPolicies" preLlmDef.DefaultPolicies }
+
             let evo =
                 { defEvo with
                     DefaultBudget = getFloat "Evolution:DefaultBudget" defEvo.DefaultBudget
@@ -85,6 +106,7 @@ module ConfigurationLoader =
 
             { Llm = llm
               Memory = mem
-              Evolution = evo }
+              Evolution = evo
+              PreLlm = preLlm }
         with _ ->
             ConfigurationDefaults.createDefault ()

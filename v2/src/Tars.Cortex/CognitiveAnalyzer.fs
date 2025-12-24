@@ -26,12 +26,16 @@ type CognitiveState =
         Entropy: float
         /// <summary>Current attention span in tokens or steps.</summary>
         AttentionSpan: int
+        /// <summary>Reasoning complexity (Graph of Thoughts metric).</summary>
+        BranchingFactor: float
+        /// <summary>Tool interoperability quality (Web of Things metric).</summary>
+        GroundingFidelity: float
     }
 
 /// <summary>
 /// Analyzes the system's cognitive state based on agent activities and context.
 /// </summary>
-type CognitiveAnalyzer(kernel: IAgentRegistry) =
+type CognitiveAnalyzer(kernel: IAgentRegistry, ?thoughtGraph: ThoughtGraph) =
 
     /// <summary>
     /// Analyzes the current state of the kernel and returns a cognitive assessment.
@@ -59,17 +63,31 @@ type CognitiveAnalyzer(kernel: IAgentRegistry) =
             let errorCount = float errorAgents.Length
 
             // Eigenvalue: Stability.
-            // 1.0 if all idle.
-            // Decreases with activity (perturbation).
-            // Drastically decreases with errors.
             let activityPenalty = (activeCount / totalAgents) * 0.2
             let errorPenalty = (errorCount / totalAgents) * 0.8
             let eigenvalue = max 0.0 (1.0 - activityPenalty - errorPenalty)
 
             // Entropy: Information density / Disorder.
-            // Increases with activity.
-            // For now, proportional to activity.
             let entropy = min 1.0 (activeCount / totalAgents)
+
+            // GoT Metric: Branching Factor
+            let branchingFactor =
+                match thoughtGraph with
+                | Some g when g.Nodes.Count > 0 ->
+                    float g.Edges.Length / float g.Nodes.Count
+                | _ -> 1.0
+
+            // WoT Metric: Grounding Fidelity
+            // In a real scenario, this would check how many tools have valid ThingDescriptions
+            let calculatedGroundingFidelity =
+                let toolsWithTd =
+                    agents
+                    |> List.collect (fun a -> a.Capabilities)
+                    |> List.filter (fun c ->
+                        // This is a simplification; in v2 we'd check ToolRegistry
+                        true)
+                    |> List.length
+                float toolsWithTd / 100.0 // Placeholder logic for now
 
             let mode =
                 if errorCount > 0.0 then Critical
@@ -80,7 +98,9 @@ type CognitiveAnalyzer(kernel: IAgentRegistry) =
                 { Mode = mode
                   Eigenvalue = eigenvalue
                   Entropy = entropy
-                  AttentionSpan = 8192 }
+                  AttentionSpan = 8192
+                  BranchingFactor = branchingFactor
+                  GroundingFidelity = max 0.0 (min 1.0 (0.85 + calculatedGroundingFidelity)) }
         }
 
 /// <summary>

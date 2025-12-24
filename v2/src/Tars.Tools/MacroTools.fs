@@ -10,12 +10,10 @@ module MacroTools =
     /// Creates tools for macro management given a registry
     let getTools (registry: IMacroRegistry) : Tool list =
         let registerTool: Tool = 
-            { Name = "register_macro"
-              Description = "Register a new workflow macro from JSON definition. Input must be a valid Metascript Workflow JSON."
-              Version = "1.0.0"
-              ParentVersion = None
-              CreatedAt = DateTime.UtcNow
-              Execute = fun (input: string) ->
+            Tool.InternalCreateMinimal(
+                "register_macro",
+                "Register a new workflow macro from JSON definition. Input must be a valid Metascript Workflow JSON.",
+                fun (input: string) ->
                   async {
                       try
                           match Parser.parseJson input with
@@ -29,15 +27,14 @@ module MacroTools =
                               return Result.Error $"Validation errors: {errMsg}"
                       with ex ->
                           return Result.Error $"Error registering macro: {ex.Message}"
-                  } }
+                  }
+            )
 
         let listTool: Tool = 
-            { Name = "list_macros"
-              Description = "List all registered macros."
-              Version = "1.0.0"
-              ParentVersion = None
-              CreatedAt = DateTime.UtcNow
-              Execute = fun (_: string) ->
+            Tool.InternalCreateMinimal(
+                "list_macros",
+                "List all registered macros.",
+                fun (_: string) ->
                   async {
                       try
                           let! macros = registry.List() |> Async.AwaitTask
@@ -53,15 +50,14 @@ module MacroTools =
                               return Result.Ok $"Registered Macros:\n{summary}"
                       with ex ->
                           return Result.Error $"Error listing macros: {ex.Message}"
-                  } }
+                  }
+            )
 
         let getTool: Tool = 
-            { Name = "get_macro"
-              Description = "Get the definition of a registered macro by name."
-              Version = "1.0.0"
-              ParentVersion = None
-              CreatedAt = DateTime.UtcNow
-              Execute = fun (name: string) ->
+            Tool.InternalCreateMinimal(
+                "get_macro",
+                "Get the definition of a registered macro by name.",
+                fun (name: string) ->
                   async {
                       try
                           let! macroOpt = registry.Get(name.Trim()) |> Async.AwaitTask
@@ -74,6 +70,7 @@ module MacroTools =
                               return Result.Error $"Macro '{name}' not found."
                       with ex ->
                           return Result.Error $"Error retrieving macro: {ex.Message}"
-                  } }
+                  }
+            )
 
         [ registerTool; listTool; getTool ]

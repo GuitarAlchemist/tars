@@ -169,7 +169,8 @@ module McpTools =
                             return Result.Ok result
                         with ex ->
                             return Result.Error ex.Message
-                    } }
+                    }
+              ThingDescription = None }
 
         let t1 =
             createTool "list_mcp_servers" "Lists all configured MCP servers. No input required." listMcpServers

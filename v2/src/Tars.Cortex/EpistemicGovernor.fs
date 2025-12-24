@@ -24,6 +24,42 @@ type EpistemicGovernor
             governor.TryConsume(cost) |> ignore
         | None -> ()
 
+    let sanitizeSuggestion (text: string) =
+        let trimmed = text.Replace("\r", "").Trim()
+
+        let firstLine =
+            trimmed.Split([| '\n' |], StringSplitOptions.RemoveEmptyEntries)
+            |> Array.tryHead
+            |> Option.defaultValue trimmed
+
+        let sentenceEnd = firstLine.IndexOfAny([| '.'; '!'; '?' |])
+
+        let sentence =
+            if sentenceEnd > 0 then
+                firstLine.Substring(0, sentenceEnd)
+            else
+                firstLine
+
+        let cleaned = sentence.Trim().Trim('"')
+
+        let looksLikeQuestion =
+            firstLine.Contains("?")
+            || cleaned.StartsWith("please", StringComparison.OrdinalIgnoreCase)
+            || cleaned.StartsWith("could", StringComparison.OrdinalIgnoreCase)
+            || cleaned.StartsWith("would", StringComparison.OrdinalIgnoreCase)
+            || cleaned.StartsWith("can you", StringComparison.OrdinalIgnoreCase)
+
+        let normalized =
+            if String.IsNullOrWhiteSpace cleaned || looksLikeQuestion then
+                "Focus on foundational F# coding tasks with clear validation."
+            else
+                cleaned
+
+        if normalized.Length > 200 then
+            normalized.Substring(0, 200).TrimEnd()
+        else
+            normalized
+
     interface IEpistemicGovernor with
         member this.Verify(statement) =
             task {
@@ -304,7 +340,7 @@ Output a single sentence suggestion."""
                             return! Task.FromException<LlmResponse>(TimeoutException("SuggestCurriculum timeout"))
                     }
 
-                return response.Text.Trim()
+                return sanitizeSuggestion response.Text
             }
 
         member this.GetRelatedCodeContext(query: string) =

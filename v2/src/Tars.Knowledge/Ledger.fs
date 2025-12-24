@@ -5,13 +5,21 @@ namespace Tars.Knowledge
 open System
 open System.Collections.Generic
 open System.Threading
+open System.Threading.Tasks
 
 /// Interface for persistent ledger storage
 type ILedgerStorage =
-    abstract member Append: BeliefEventEntry -> Async<Result<unit, string>>
-    abstract member GetEvents: since: DateTime option -> Async<BeliefEventEntry list>
-    abstract member GetEventsByBelief: BeliefId -> Async<BeliefEventEntry list>
-    abstract member GetSnapshot: unit -> Async<Belief list>
+    abstract member Append: entry: BeliefEventEntry -> Task<Result<unit, string>>
+    abstract member GetEvents: since: DateTime option -> Task<BeliefEventEntry list>
+    abstract member GetEventsByBelief: beliefId: BeliefId -> Task<BeliefEventEntry list>
+    abstract member GetSnapshot: unit -> Task<Belief list>
+
+/// Interface for evidence and ingestion storage (Phase 9)
+type IEvidenceStorage =
+    abstract member SaveCandidate: candidate: EvidenceCandidate -> Task<Result<unit, string>>
+    abstract member SaveProposal: proposal: ProposedAssertion * evidenceId: Guid option -> Task<Result<unit, string>>
+    abstract member GetPendingCandidates: unit -> Task<EvidenceCandidate list>
+    abstract member GetProposalsByEvidence: evidenceId: Guid -> Task<ProposedAssertion list>
 
 /// In-memory ledger storage (for development/testing)
 /// Thread-safe with proper locking for both reads and writes
@@ -19,17 +27,22 @@ type InMemoryLedgerStorage() =
     let events = ResizeArray<BeliefEventEntry>()
     let syncLock = obj ()
 
-    /// Thread-safe append
+    // In-memory storage for evidence candidates and proposals
+    let candidates = Dictionary<Guid, EvidenceCandidate>()
+    let proposals = Dictionary<Guid, ProposedAssertion>()
+    let proposalByEvidence = Dictionary<Guid, ResizeArray<Guid>>()
+    let candidateLock = obj ()
+    let proposalLock = obj ()
+
     interface ILedgerStorage with
         member _.Append(entry) =
-            async {
+            task {
                 lock syncLock (fun () -> events.Add(entry))
                 return Ok()
             }
 
-        /// Thread-safe read with snapshot
         member _.GetEvents(since) =
-            async {
+            task {
                 let snapshot = lock syncLock (fun () -> events |> Seq.toList)
 
                 return
@@ -41,7 +54,7 @@ type InMemoryLedgerStorage() =
             }
 
         member _.GetEventsByBelief(beliefId) =
-            async {
+            task {
                 let snapshot = lock syncLock (fun () -> events |> Seq.toList)
 
                 return
@@ -58,7 +71,7 @@ type InMemoryLedgerStorage() =
             }
 
         member _.GetSnapshot() =
-            async {
+            task {
                 let snapshot = lock syncLock (fun () -> events |> Seq.toList)
 
                 // Replay events to build current state
@@ -87,20 +100,58 @@ type InMemoryLedgerStorage() =
                 return beliefs.Values |> Seq.toList
             }
 
+    interface IEvidenceStorage with
+        member _.SaveCandidate(candidate) =
+            task {
+                lock candidateLock (fun () -> candidates.[candidate.Id] <- candidate)
+                return Ok()
+            }
+
+        member _.SaveProposal(proposal, evidenceId) =
+            task {
+                lock proposalLock (fun () ->
+                    proposals.[proposal.Id] <- proposal
+                    match evidenceId with
+                    | Some id ->
+                        if not (proposalByEvidence.ContainsKey(id)) then
+                            proposalByEvidence.[id] <- ResizeArray<Guid>()
+                        proposalByEvidence.[id].Add(proposal.Id)
+                    | None -> ())
+                return Ok()
+            }
+
+        member _.GetPendingCandidates() =
+            task {
+                return
+                    lock candidateLock (fun () ->
+                        candidates.Values
+                        |> Seq.filter (fun c -> c.Status = EvidenceStatus.Pending)
+                        |> Seq.toList)
+            }
+
+        member _.GetProposalsByEvidence(evidenceId) =
+            task {
+                return
+                    lock proposalLock (fun () ->
+                        match proposalByEvidence.TryGetValue(evidenceId) with
+                        | true, ids ->
+                            ids
+                            |> Seq.choose (fun id ->
+                                match proposals.TryGetValue(id) with
+                                | true, proposal -> Some proposal
+                                | _ -> None)
+                            |> Seq.toList
+                        | _ -> [])
+            }
+
+
 /// The Knowledge Ledger - append-only event log for beliefs
 /// "Symbols are earned, not assumed"
-///
-/// ARCHITECTURE NOTE (Addressing Codex Findings):
-/// - This is the SYSTEM OF RECORD for beliefs
-/// - Neo4j/Graphiti are materialized views for traversal (sync FROM ledger TO graph)
-/// - GraphTools in-memory store is for dev/demo only
-/// - The BeliefGraph is an in-memory cache, always synced with events
 type KnowledgeLedger(storage: ILedgerStorage) =
     let graph = BeliefGraph()
     let mutable lastSync = DateTime.MinValue
     let graphLock = obj ()
 
-    /// Update the graph with a confidence change (CODEX FIX: was missing before)
     member private this.UpdateGraphConfidence(beliefId: BeliefId, newConfidence: float) =
         lock graphLock (fun () ->
             match graph.Get(beliefId) with
@@ -109,12 +160,12 @@ type KnowledgeLedger(storage: ILedgerStorage) =
                     { belief with
                         Confidence = newConfidence }
 
-                graph.Add(updated) // Re-add updates the entry
+                graph.Add(updated)
             | None -> ())
 
     /// Initialize by loading existing beliefs
     member this.Initialize() =
-        async {
+        task {
             let! beliefs = storage.GetSnapshot()
 
             lock graphLock (fun () ->
@@ -126,7 +177,7 @@ type KnowledgeLedger(storage: ILedgerStorage) =
 
     /// Assert a new belief (with full provenance)
     member this.Assert(belief: Belief, agentId: AgentId, ?runId: RunId) =
-        async {
+        task {
             let entry = BeliefEventEntry.Create(Assert belief, agentId, ?runId = runId)
             let! result = storage.Append(entry)
 
@@ -141,14 +192,14 @@ type KnowledgeLedger(storage: ILedgerStorage) =
     member this.AssertTriple
         (subject: string, predicate: RelationType, obj: string, provenance: Provenance, agentId: AgentId, ?runId: RunId)
         =
-        async {
+        task {
             let belief = Belief.create subject predicate obj provenance
             return! this.Assert(belief, agentId, ?runId = runId)
         }
 
     /// Retract a belief (mark as invalid)
     member this.Retract(beliefId: BeliefId, reason: string, agentId: AgentId, ?runId: RunId) =
-        async {
+        task {
             let entry =
                 BeliefEventEntry.Create(Retract(beliefId, reason, agentId), agentId, ?runId = runId)
 
@@ -162,9 +213,8 @@ type KnowledgeLedger(storage: ILedgerStorage) =
         }
 
     /// Weaken a belief's confidence
-    /// CODEX FIX: Now updates both ledger AND in-memory graph
     member this.Weaken(beliefId: BeliefId, newConfidence: float, reason: string, agentId: AgentId) =
-        async {
+        task {
             let entry =
                 BeliefEventEntry.Create(Weaken(beliefId, newConfidence, reason), agentId)
 
@@ -178,9 +228,8 @@ type KnowledgeLedger(storage: ILedgerStorage) =
         }
 
     /// Strengthen a belief's confidence
-    /// CODEX FIX: Now updates both ledger AND in-memory graph
     member this.Strengthen(beliefId: BeliefId, newConfidence: float, reason: string, agentId: AgentId) =
-        async {
+        task {
             let entry =
                 BeliefEventEntry.Create(Strengthen(beliefId, newConfidence, reason), agentId)
 
@@ -195,7 +244,7 @@ type KnowledgeLedger(storage: ILedgerStorage) =
 
     /// Mark two beliefs as contradicting
     member this.MarkContradiction(belief1: BeliefId, belief2: BeliefId, explanation: string, agentId: AgentId) =
-        async {
+        task {
             let entry =
                 BeliefEventEntry.Create(Contradict(belief1, belief2, explanation), agentId)
 
@@ -220,7 +269,7 @@ type KnowledgeLedger(storage: ILedgerStorage) =
                 ?predicate = predicate,
                 ?obj = (obj |> Option.map EntityId)
             )
-            |> Seq.toList) // Materialize inside lock
+            |> Seq.toList)
         :> seq<_>
 
     /// Get neighborhood around an entity
@@ -236,16 +285,18 @@ type KnowledgeLedger(storage: ILedgerStorage) =
         lock graphLock (fun () -> graph.FindPath(EntityId from, EntityId to', maxHops))
 
     /// Get full event history for a belief
-    member this.GetHistory(beliefId: BeliefId) =
-        async { return! storage.GetEventsByBelief(beliefId) }
+    member this.GetHistory(beliefId: BeliefId) = storage.GetEventsByBelief(beliefId)
+
 
     /// Get statistics
     member this.Stats() =
         lock graphLock (fun () -> graph.Stats())
 
     /// Get the in-memory graph for direct querying
-    /// WARNING: For read-only access. Mutations should go through ledger methods.
     member this.Graph = graph
+
+    /// Get the underlying storage
+    member this.Storage = storage
 
 /// Factory for creating ledgers
 module KnowledgeLedger =
@@ -255,7 +306,7 @@ module KnowledgeLedger =
 
     /// Initialize and return a ledger
     let initialize (ledger: KnowledgeLedger) =
-        async {
+        task {
             do! ledger.Initialize()
             return ledger
         }

@@ -32,20 +32,24 @@ type CapabilityStore(vectorStore: IVectorStore, llm: ILlmService) =
 
             // Create embedding for the capability description
             // This might take time if model needs to be pulled
-            let! embedding = llm.EmbedAsync capability.Description
+            try
+                let! embedding = llm.EmbedAsync capability.Description
 
-            // Serialize payload
-            let payload =
-                Map
-                    [ "agent_id", string guid
-                      "kind", string capability.Kind
-                      "description", capability.Description
-                      "input_schema", defaultArg capability.InputSchema ""
-                      "output_schema", defaultArg capability.OutputSchema ""
-                      "confidence", capability.Confidence |> Option.map string |> Option.defaultValue ""
-                      "reputation", capability.Reputation |> Option.map string |> Option.defaultValue "" ]
+                // Serialize payload
+                let payload =
+                    Map
+                        [ "agent_id", string guid
+                          "kind", string capability.Kind
+                          "description", capability.Description
+                          "input_schema", defaultArg capability.InputSchema ""
+                          "output_schema", defaultArg capability.OutputSchema ""
+                          "confidence", capability.Confidence |> Option.map string |> Option.defaultValue ""
+                          "reputation", capability.Reputation |> Option.map string |> Option.defaultValue "" ]
 
-            do! vectorStore.SaveAsync(collectionName, id, embedding, payload)
+                do! vectorStore.SaveAsync(collectionName, id, embedding, payload)
+            with _ ->
+                // Allow agents to run even if embeddings are unavailable.
+                ()
         }
 
     /// <summary>

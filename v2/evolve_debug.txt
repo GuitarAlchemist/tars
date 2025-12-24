@@ -1,0 +1,32 @@
+  _____      _      ____    ____              ____  
+ |_   _|    / \    |  _ \  / ___|    __   __ |___ \ 
+   | |     / _ \   | |_) | \___ \    \ \ / /   __) |
+   | |    / ___ \  |  _ <   ___) |    \ V /   / __/ 
+   |_|   /_/   \_\ |_| \_\ |____/      \_/   |_____|
+                                                    
+Self-Improving Agent System
+
+   [Config] Loaded settings from C:\Users\spare\.tars
+[20:22:32 INF] Starting TARS v2 Evolution Engine...
+≡ƒñû LLM Model: qwen3
+[20:22:32 INF] Curriculum Agent: da38b949-1d14-42c8-bb99-8028d15c3da4
+[20:22:32 INF] Executor Agent: 3e363e65-bb24-40bd-9144-51b7fc628098
+Γä╣ ≡ƒôü Using Postgres Vector Store
+Γä╣ ≡ƒºá Registering agent capabilities...
+   Process: Planning...
+Unhandled exception. System.AggregateException: One or more errors occurred. (Vector dimension 768 does not match configured pgvector dimension 1536)
+ ---> System.ArgumentException: Vector dimension 768 does not match configured pgvector dimension 1536
+   at <StartupCode$Tars-Cortex>.$PostgresVectorStore.Tars-Core-IVectorStore-SaveAsync@100-7.MoveNext() in C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\PostgresVectorStore.fs:line 138
+   at <StartupCode$Tars-Cortex>.$PostgresVectorStore.Tars-Core-IVectorStore-SaveAsync@100-7.MoveNext() in C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\PostgresVectorStore.fs:line 155
+   at <StartupCode$Tars-Cortex>.$PostgresVectorStore.Tars-Core-IVectorStore-SaveAsync@100-7.MoveNext() in C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\PostgresVectorStore.fs:line 155
+   at <StartupCode$Tars-Cortex>.$PostgresVectorStore.Tars-Core-IVectorStore-SaveAsync@100-7.MoveNext() in C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\PostgresVectorStore.fs:line 155
+   at <StartupCode$Tars-Cortex>.$PostgresVectorStore.Tars-Core-IVectorStore-SaveAsync@100-7.MoveNext() in C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\PostgresVectorStore.fs:line 155
+   at <StartupCode$Tars-Cortex>.$CapabilityStore.RegisterAsync@21.MoveNext() in C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\CapabilityStore.fs:line 48
+   at Tars.Interface.Cli.Commands.Evolve.run@33-19.MoveNext() in C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\Evolve.fs:line 349
+   at Tars.Interface.Cli.Program.Pipe #1 input at line 116@116.MoveNext() in C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Program.fs:line 225
+   --- End of inner exception stack trace ---
+   at Microsoft.FSharp.Control.AsyncResult`1.Commit() in D:\a\_work\1\s\src\fsharp\src\FSharp.Core\async.fs:line 453
+   at Microsoft.FSharp.Control.AsyncPrimitives.QueueAsyncAndWaitForResultSynchronously[a](CancellationToken token, FSharpAsync`1 computation, FSharpOption`1 timeout) in D:\a\_work\1\s\src\fsharp\src\FSharp.Core\async.fs:line 1138
+   at Microsoft.FSharp.Control.AsyncPrimitives.RunSynchronously[T](CancellationToken cancellationToken, FSharpAsync`1 computation, FSharpOption`1 timeout) in D:\a\_work\1\s\src\fsharp\src\FSharp.Core\async.fs:line 1165
+   at Microsoft.FSharp.Control.FSharpAsync.RunSynchronously[T](FSharpAsync`1 computation, FSharpOption`1 timeout, FSharpOption`1 cancellationToken) in D:\a\_work\1\s\src\fsharp\src\FSharp.Core\async.fs:line 1514
+   at Tars.Interface.Cli.Program.main(String[] argv) in C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Program.fs:line 398

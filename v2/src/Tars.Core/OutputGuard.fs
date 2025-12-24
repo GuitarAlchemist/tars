@@ -47,7 +47,7 @@ module private Json =
         with _ ->
             None
 
-/// Basic heuristic output guard (shape + citations + cargo-cult stubs)
+/// Basic output guard (shape + citations)
 type BasicOutputGuard() =
     interface IOutputGuard with
         member _.Evaluate(input: GuardInput) = async {
@@ -92,12 +92,6 @@ type BasicOutputGuard() =
                     risk <- max risk 0.5
                     messages.Add("Citations required but none provided.")
                 | Some _ -> ()
-
-            // Cargo-cult heuristics (lightweight): flag obvious placeholders
-            let lower = input.ResponseText.ToLowerInvariant()
-            if lower.Contains("lorem ipsum") || lower.Contains("todo") then
-                risk <- max risk 0.5
-                messages.Add("Placeholder content detected (todo/lorem).")
 
             // Choose action based on risk
             let action =

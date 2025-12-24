@@ -62,4 +62,5 @@ module McpToolAdapter =
           Version = "1.0.0"
           ParentVersion = None
           CreatedAt = DateTime.UtcNow
-          Execute = execute }
+          Execute = execute
+          ThingDescription = None }

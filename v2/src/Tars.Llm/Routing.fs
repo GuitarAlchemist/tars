@@ -57,6 +57,33 @@ type RoutingConfig =
         LlamaCppKey: string option
     }
 
+    /// <summary>
+    /// Default Configuration
+    /// </summary>
+    static member Default =
+        { OllamaBaseUri = Uri("http://localhost:11434")
+          VllmBaseUri = Uri("http://localhost:8000")
+          OpenAIBaseUri = Uri("https://api.openai.com")
+          GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com")
+          AnthropicBaseUri = Uri("https://api.anthropic.com")
+          DockerModelRunnerBaseUri = None
+          LlamaCppBaseUri = None
+          DefaultOllamaModel = "llama3"
+          DefaultVllmModel = "llama3"
+          DefaultOpenAIModel = "gpt-4"
+          DefaultGoogleGeminiModel = "gemini-1.5-flash"
+          DefaultAnthropicModel = "claude-3-5-sonnet-latest"
+          DefaultDockerModelRunnerModel = None
+          DefaultLlamaCppModel = None
+          DefaultEmbeddingModel = "nomic-embed-text"
+          OllamaKey = None
+          VllmKey = None
+          OpenAIKey = None
+          GoogleGeminiKey = None
+          AnthropicKey = None
+          DockerModelRunnerKey = None
+          LlamaCppKey = None }
+
 /// <summary>
 /// Result of a routing decision.
 /// </summary>
@@ -95,10 +122,17 @@ let chooseBackend (cfg: RoutingConfig) (req: LlmRequest) : RoutedBackend =
               Endpoint = cfg.GoogleGeminiBaseUri
               ApiKey = cfg.GoogleGeminiKey }
         else
-            // Default to Ollama for local models
-            { Backend = Ollama model
-              Endpoint = cfg.OllamaBaseUri
-              ApiKey = cfg.OllamaKey }
+            // Check if it matches configured llama.cpp model
+            match cfg.DefaultLlamaCppModel, cfg.LlamaCppBaseUri with
+            | Some llamaModel, Some llamaUri when String.Equals(model, llamaModel, StringComparison.OrdinalIgnoreCase) ->
+                { Backend = LlamaCpp(model, Some LlamaCppConfig.Default)
+                  Endpoint = llamaUri
+                  ApiKey = cfg.LlamaCppKey }
+            | _ ->
+                // Default to Ollama for local models
+                { Backend = Ollama model
+                  Endpoint = cfg.OllamaBaseUri
+                  ApiKey = cfg.OllamaKey }
     | None ->
         match req.ModelHint |> Option.defaultValue "" with
         | hint when hint.Contains("code", StringComparison.OrdinalIgnoreCase) ->
@@ -113,18 +147,36 @@ let chooseBackend (cfg: RoutingConfig) (req: LlmRequest) : RoutedBackend =
             hint.Contains("reason", StringComparison.OrdinalIgnoreCase)
             || hint.Contains("analysis", StringComparison.OrdinalIgnoreCase)
             ->
-            { Backend = Vllm cfg.DefaultVllmModel
-              Endpoint = cfg.VllmBaseUri
-              ApiKey = cfg.VllmKey }
+            // Prefer llama.cpp for reasoning (faster local inference)
+            match cfg.LlamaCppBaseUri, cfg.DefaultLlamaCppModel with
+            | Some uri, Some model ->
+                { Backend = LlamaCpp(model, Some LlamaCppConfig.Default)
+                  Endpoint = uri
+                  ApiKey = cfg.LlamaCppKey }
+            | _ ->
+                { Backend = Vllm cfg.DefaultVllmModel
+                  Endpoint = cfg.VllmBaseUri
+                  ApiKey = cfg.VllmKey }
+
         | hint when
             (hint.Contains("llama", StringComparison.OrdinalIgnoreCase)
              && not (hint.Contains("llamacpp", StringComparison.OrdinalIgnoreCase)))
             || hint.Contains("qwen", StringComparison.OrdinalIgnoreCase)
             || hint.Contains("mistral", StringComparison.OrdinalIgnoreCase)
             ->
-            { Backend = Ollama cfg.DefaultOllamaModel
-              Endpoint = cfg.OllamaBaseUri
-              ApiKey = cfg.OllamaKey }
+            // detailed check for LlamaCpp preference
+            match cfg.DefaultLlamaCppModel, cfg.LlamaCppBaseUri with
+            | Some llamaModel, Some llamaUri when
+                String.Equals(hint, llamaModel, StringComparison.OrdinalIgnoreCase)
+                || llamaModel.Contains(hint, StringComparison.OrdinalIgnoreCase)
+                ->
+                { Backend = LlamaCpp(llamaModel, Some LlamaCppConfig.Default)
+                  Endpoint = llamaUri
+                  ApiKey = cfg.LlamaCppKey }
+            | _ ->
+                { Backend = Ollama cfg.DefaultOllamaModel
+                  Endpoint = cfg.OllamaBaseUri
+                  ApiKey = cfg.OllamaKey }
         // Docker Model Runner hints
         | hint when hint.Contains("docker", StringComparison.OrdinalIgnoreCase) ->
             match cfg.DockerModelRunnerBaseUri, cfg.DefaultDockerModelRunnerModel with
@@ -153,17 +205,16 @@ let chooseBackend (cfg: RoutingConfig) (req: LlmRequest) : RoutedBackend =
                 { Backend = Ollama cfg.DefaultOllamaModel
                   Endpoint = cfg.OllamaBaseUri
                   ApiKey = cfg.OllamaKey }
-        // Smart/tool hints for function calling - use a model with good tool support
+        // Smart/tool hints for function calling - prefer configured defaults
         | hint when
             hint.Contains("smart", StringComparison.OrdinalIgnoreCase)
             || hint.Contains("tool", StringComparison.OrdinalIgnoreCase)
             || hint.Contains("function", StringComparison.OrdinalIgnoreCase)
             ->
-            // qwen3:14b has excellent function/tool calling with thinking mode
-            { Backend = Ollama "qwen3:14b"
+            { Backend = Ollama cfg.DefaultOllamaModel
               Endpoint = cfg.OllamaBaseUri
               ApiKey = cfg.OllamaKey }
-        // Thinking/reasoning hints - use best reasoning model
+        // Thinking/reasoning hints - prefer configured reasoning defaults
         | hint when
             hint.Contains("think", StringComparison.OrdinalIgnoreCase)
             || hint.Contains("reason", StringComparison.OrdinalIgnoreCase)
@@ -171,19 +222,33 @@ let chooseBackend (cfg: RoutingConfig) (req: LlmRequest) : RoutedBackend =
             || hint.Contains("complex", StringComparison.OrdinalIgnoreCase)
             || hint.Contains("step", StringComparison.OrdinalIgnoreCase)
             ->
-            // deepseek-r1:14b is best-in-class for reasoning and math
-            { Backend = Ollama "deepseek-r1:14b"
-              Endpoint = cfg.OllamaBaseUri
-              ApiKey = cfg.OllamaKey }
-        // Fast/quick hints - use efficient model
+            // Prefer llama.cpp if available, else use configured defaults
+            match cfg.LlamaCppBaseUri, cfg.DefaultLlamaCppModel with
+            | Some uri, Some model ->
+                { Backend = LlamaCpp(model, Some LlamaCppConfig.Default)
+                  Endpoint = uri
+                  ApiKey = cfg.LlamaCppKey }
+            | _ ->
+                { Backend = Vllm cfg.DefaultVllmModel
+                  Endpoint = cfg.VllmBaseUri
+                  ApiKey = cfg.VllmKey }
+
+        // Fast/quick hints - use configured defaults
         | hint when
             hint.Contains("fast", StringComparison.OrdinalIgnoreCase)
             || hint.Contains("quick", StringComparison.OrdinalIgnoreCase)
             ->
-            // magistral is optimized for speed with good reasoning
-            { Backend = Ollama "magistral"
-              Endpoint = cfg.OllamaBaseUri
-              ApiKey = cfg.OllamaKey }
+            // llama.cpp is fastest, else use configured defaults
+            match cfg.LlamaCppBaseUri, cfg.DefaultLlamaCppModel with
+            | Some uri, Some model ->
+                { Backend = LlamaCpp(model, Some LlamaCppConfig.Default)
+                  Endpoint = uri
+                  ApiKey = cfg.LlamaCppKey }
+            | _ ->
+                { Backend = Ollama cfg.DefaultOllamaModel
+                  Endpoint = cfg.OllamaBaseUri
+                  ApiKey = cfg.OllamaKey }
+
         | _ ->
             // Default: prefer llama.cpp (1.8x faster) if available, else Ollama
             match cfg.LlamaCppBaseUri, cfg.DefaultLlamaCppModel with
@@ -195,3 +260,39 @@ let chooseBackend (cfg: RoutingConfig) (req: LlmRequest) : RoutedBackend =
                 { Backend = Ollama cfg.DefaultOllamaModel
                   Endpoint = cfg.OllamaBaseUri
                   ApiKey = cfg.OllamaKey }
+
+module RoutingConfig =
+    /// <summary>
+    /// Creates a RoutingConfig from a TarsConfig.
+    /// maps standard TARS configuration to LLM routing settings.
+    /// </summary>
+    let fromTarsConfig (tarsCfg: Tars.Core.TarsConfig) : RoutingConfig =
+        let baseUri =
+            tarsCfg.Llm.BaseUrl |> Option.defaultValue "http://localhost:11434" |> Uri
+
+        let llamaCppUri = tarsCfg.Llm.LlamaCppUrl |> Option.map Uri
+
+        { OllamaBaseUri = baseUri
+          VllmBaseUri = Uri("http://localhost:8000/")
+          OpenAIBaseUri = Uri("https://api.openai.com/")
+          GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com/")
+          AnthropicBaseUri = Uri("https://api.anthropic.com/")
+          DockerModelRunnerBaseUri = None
+          LlamaCppBaseUri = llamaCppUri
+
+          DefaultOllamaModel = tarsCfg.Llm.Model
+          DefaultVllmModel = "llama3"
+          DefaultOpenAIModel = "gpt-4o"
+          DefaultGoogleGeminiModel = "gemini-1.5-flash"
+          DefaultAnthropicModel = "claude-3-5-sonnet-latest"
+          DefaultDockerModelRunnerModel = None
+          DefaultLlamaCppModel = if llamaCppUri.IsSome then Some tarsCfg.Llm.Model else None
+          DefaultEmbeddingModel = tarsCfg.Llm.EmbeddingModel
+
+          OllamaKey = tarsCfg.Llm.ApiKey
+          VllmKey = None
+          OpenAIKey = None
+          GoogleGeminiKey = None
+          AnthropicKey = None
+          DockerModelRunnerKey = None
+          LlamaCppKey = None }

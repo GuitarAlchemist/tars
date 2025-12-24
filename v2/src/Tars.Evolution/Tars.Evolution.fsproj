@@ -8,6 +8,8 @@
 
   <ItemGroup>
     <Compile Include="Protocol.fs" />
+    <Compile Include="Evaluation.fs" />
+    <Compile Include="LedgerIngestion.fs" />
     <Compile Include="Reflection.fs" />
     <Compile Include="Optimizer.fs" />
     <Compile Include="DemoVisualization.fs" />
@@ -23,6 +25,7 @@
     <ProjectReference Include="..\Tars.Kernel\Tars.Kernel.fsproj" />
     <ProjectReference Include="..\Tars.Cortex\Tars.Cortex.fsproj" />
     <ProjectReference Include="..\Tars.Metascript\Tars.Metascript.fsproj" />
+    <ProjectReference Include="..\Tars.Knowledge\Tars.Knowledge.fsproj" />
   </ItemGroup>
 
 </Project>

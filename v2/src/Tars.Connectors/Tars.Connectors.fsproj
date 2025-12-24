@@ -15,6 +15,7 @@
     <Compile Include="Mcp\McpServer.fs" />
     <Compile Include="AugmentClient.fs" />
     <Compile Include="Graphiti.fs" />
+    <Compile Include="GraphitiKnowledgeGraph.fs" />
     <Compile Include="EpisodeIngestion.fs" />
     <Compile Include="Ollama.fs" />
     <Compile Include="OpenAiCompatible.fs" />

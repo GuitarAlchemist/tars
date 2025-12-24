@@ -11,50 +11,6 @@ module KnowledgeTools =
 
     let private httpClient = new HttpClient()
 
-    [<TarsToolAttribute("search_web", "Searches the web using DuckDuckGo. Input: search query")>]
-    let webSearch (query: string) =
-        task {
-            let q = query.Trim()
-            printfn $"🔍 WEB SEARCH: %s{q}"
-
-            try
-                let url = $"https://html.duckduckgo.com/html/?q={Uri.EscapeDataString(q)}"
-                // Use common browser User-Agent
-                httpClient.DefaultRequestHeaders.UserAgent.Clear()
-
-                httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-                )
-
-                let! response = httpClient.GetAsync(url)
-
-                if response.IsSuccessStatusCode then
-                    let! content = response.Content.ReadAsStringAsync()
-                    // Simple regex to extract Result Title and URL. Pattern: <a class="result__a" href="URL">TITLE</a>
-                    let pattern = """<a class="result__a" href="([^"]+)">([^<]+)</a>"""
-                    let matches = System.Text.RegularExpressions.Regex.Matches(content, pattern)
-
-                    let results =
-                        matches
-                        |> Seq.cast<System.Text.RegularExpressions.Match>
-                        |> Seq.map (fun m ->
-                            let href = m.Groups.[1].Value
-                            let title = System.Net.WebUtility.HtmlDecode(m.Groups.[2].Value)
-                            (href, title))
-                        |> Seq.filter (fun (h, _) -> not (h.Contains("duckduckgo.com")))
-                        |> Seq.truncate 5
-                        |> Seq.map (fun (h, t) -> $"- {t}: {h}")
-                        |> String.concat "\n"
-
-                    if String.IsNullOrWhiteSpace(results) then
-                        return $"No results found for '{q}'."
-                    else
-                        return $"Web Search Results for '{q}':\n{results}\n\nUse http_get to read specific pages."
-                else
-                    return $"Web Search error: {int response.StatusCode}"
-            with ex ->
-                return "search_web error: " + ex.Message
-        }
 
     [<TarsToolAttribute("wikidata_search", "Searches Wikidata for entities. Input: search query")>]
     let wikidataSearch (query: string) =

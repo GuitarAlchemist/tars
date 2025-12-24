@@ -144,7 +144,8 @@ type ToolRegistry(failureThreshold: int, durationOfBreak: TimeSpan) =
                   Version = "1.0.0"
                   ParentVersion = None
                   CreatedAt = DateTime.UtcNow
-                  Execute = execute }
+                  Execute = execute
+                  ThingDescription = None }
 
             this.Register(tool)
 

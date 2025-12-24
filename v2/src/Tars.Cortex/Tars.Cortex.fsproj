@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <NoWarn>44;57</NoWarn>
   </PropertyGroup>
 
@@ -14,8 +15,10 @@
     <Compile Include="AnnVectorStore.fs" />
     <Compile Include="Chunking.fs" />
     <Compile Include="Grammar.fs" />
+    <Compile Include="SemanticClassifier.fs" />
     <Compile Include="GraphAnalyzer.fs" />
     <Compile Include="CognitiveAnalyzer.fs" />
+    <Compile Include="CognitiveBenchmarker.fs" />
     <Compile Include="ContextCompression.fs" />
     <Compile Include="PreLlmPipeline.fs" />
     <Compile Include="EpistemicGovernor.fs" />

@@ -139,7 +139,8 @@ module AgentSkills =
 ### Available Scripts:
 {skill.Scripts |> Map.toList |> List.map fst |> String.concat ", "}
 """
-                } }
+                }
+          ThingDescription = None }
 
 module AgentSkillsTools =
 

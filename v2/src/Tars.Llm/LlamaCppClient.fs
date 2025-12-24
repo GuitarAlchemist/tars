@@ -48,6 +48,10 @@ module LlamaCppClient =
     [<CLIMutable>]
     type LlamaCppMessageDto = { role: string; content: string }
 
+    /// <summary>DTO for response format.</summary>
+    [<CLIMutable>]
+    type LlamaCppResponseFormatDto = { ``type``: string }
+
     /// <summary>DTO for llama.cpp chat request with extended options.</summary>
     [<CLIMutable>]
     type LlamaCppRequestDto =
@@ -56,6 +60,7 @@ module LlamaCppClient =
           max_tokens: int option
           temperature: float option
           stream: bool option
+          response_format: LlamaCppResponseFormatDto option
           n_gpu_layers: int option
           n_ctx: int option
           n_parallel: int option
@@ -63,7 +68,10 @@ module LlamaCppClient =
 
     /// <summary>DTO for response message.</summary>
     [<CLIMutable>]
-    type LlamaCppChoiceMessageDto = { role: string; content: string }
+    type LlamaCppChoiceMessageDto =
+        { role: string
+          content: string
+          reasoning_content: string option }
 
     /// <summary>DTO for response choice.</summary>
     [<CLIMutable>]
@@ -112,13 +120,20 @@ module LlamaCppClient =
         | Role.User -> "user"
         | Role.Assistant -> "assistant"
 
-    let private toLlamaCppMessages (msgs: LlmMessage list) =
-        msgs
-        |> List.map (fun m ->
-            { role = toLlamaCppRole m.Role
-              content = m.Content }
-            : LlamaCppMessageDto)
-        |> List.toArray
+    let private toLlamaCppMessages (systemPrompt: string option) (msgs: LlmMessage list) =
+        let systemMsg =
+            match systemPrompt with
+            | Some p -> [ ({ role = "system"; content = p }: LlamaCppMessageDto) ]
+            | None -> []
+
+        let otherMsgs =
+            msgs
+            |> List.map (fun m ->
+                { role = toLlamaCppRole m.Role
+                  content = m.Content }
+                : LlamaCppMessageDto)
+
+        (systemMsg @ otherMsgs) |> List.toArray
 
     /// <summary>
     /// Checks if llama.cpp server is healthy and ready.
@@ -157,18 +172,33 @@ module LlamaCppClient =
 
             let dto: LlamaCppRequestDto =
                 { model = model
-                  messages = toLlamaCppMessages req.Messages
+                  messages = toLlamaCppMessages req.SystemPrompt req.Messages
                   max_tokens = req.MaxTokens
                   temperature = req.Temperature
                   stream = Some false
+                  response_format =
+                    match req.ResponseFormat with
+                    | Some ResponseFormat.Json -> Some { ``type`` = "json_object" }
+                    | _ ->
+                        if req.JsonMode then
+                            Some { ``type`` = "json_object" }
+                        else
+                            None
                   n_gpu_layers = cfg.GpuLayers
                   n_ctx = cfg.ContextSize
                   n_parallel = cfg.NumParallel
                   flash_attn = if cfg.FlashAttention then Some true else None }
 
-            let uri = Uri(baseUri, "/v1/chat/completions")
+            // Ensure baseUri has trailing slash for proper path combination
+            let normalizedBase =
+                let s = baseUri.ToString()
+                if s.EndsWith("/") then baseUri else Uri(s + "/")
+
+            let uri = Uri(normalizedBase, "v1/chat/completions")
+            // printfn "  [DEBUG LlamaCpp] Calling: %s" (uri.ToString())
             let content = JsonContent.Create(dto, options = jsonOptions)
             use requestMessage = new HttpRequestMessage(HttpMethod.Post, uri, Content = content)
+
 
             use! resp = http.SendAsync(requestMessage)
             resp.EnsureSuccessStatusCode() |> ignore
@@ -206,8 +236,14 @@ module LlamaCppClient =
                                   TotalTokens = u.total_tokens }
                         | None -> None
 
+                    let text =
+                        if not (String.IsNullOrEmpty c.message.content) then
+                            c.message.content
+                        else
+                            c.message.reasoning_content |> Option.defaultValue ""
+
                     return
-                        { Text = c.message.content
+                        { Text = text
                           FinishReason = Some c.finish_reason
                           Usage = usage
                           Raw = Some raw }
@@ -229,16 +265,30 @@ module LlamaCppClient =
 
             let dto: LlamaCppRequestDto =
                 { model = model
-                  messages = toLlamaCppMessages req.Messages
+                  messages = toLlamaCppMessages req.SystemPrompt req.Messages
                   max_tokens = req.MaxTokens
                   temperature = req.Temperature
                   stream = Some true
+                  response_format =
+                    match req.ResponseFormat with
+                    | Some ResponseFormat.Json -> Some { ``type`` = "json_object" }
+                    | _ ->
+                        if req.JsonMode then
+                            Some { ``type`` = "json_object" }
+                        else
+                            None
                   n_gpu_layers = cfg.GpuLayers
                   n_ctx = cfg.ContextSize
                   n_parallel = cfg.NumParallel
                   flash_attn = if cfg.FlashAttention then Some true else None }
 
-            let uri = Uri(baseUri, "/v1/chat/completions")
+            // Ensure baseUri has trailing slash for proper path combination
+            let normalizedBase =
+                let s = baseUri.ToString()
+                if s.EndsWith("/") then baseUri else Uri(s + "/")
+
+            let uri = Uri(normalizedBase, "v1/chat/completions")
+
 
             let content =
                 new StringContent(

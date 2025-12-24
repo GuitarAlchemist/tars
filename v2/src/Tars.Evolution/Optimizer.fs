@@ -70,7 +70,10 @@ METASCRIPT SCHEMA EXAMPLES:
                     let! response = llm.CompleteAsync req
 
                     try
-                        let json = response.Text
+                        let json =
+                            match JsonParsing.tryParseElement response.Text with
+                            | Result.Ok elem -> elem.GetRawText()
+                            | Result.Error _ -> response.Text
 
                         match Parser.parseJson json with
                         | Parser.Success newWorkflow -> return Some newWorkflow

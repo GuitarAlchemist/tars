@@ -6,6 +6,8 @@ namespace Tars.Cortex
 open System
 open System.Threading.Tasks
 open Tars.Core
+open Tars.Llm
+open Tars.Llm.LlmService
 
 /// Watchdog alert severity levels
 type AlertSeverity =
@@ -35,7 +37,7 @@ type WatchdogConfig =
         { MaxTokensPerMinute = 50000
           MaxLoopIterations = 10
           MaxSimilarResponses = 3
-          SimilarityThreshold = 0.95
+          SimilarityThreshold = 0.95 // High threshold for semantic repetition
           EnableAutoIntervention = false }
 
 /// Semantic Watchdog - Pattern 8 from research
@@ -46,7 +48,10 @@ type WatchdogConfig =
 type SemanticWatchdog(config: WatchdogConfig) =
     let alerts = System.Collections.Concurrent.ConcurrentBag<WatchdogAlert>()
     let tokenHistory = System.Collections.Concurrent.ConcurrentQueue<int * DateTime>()
-    let responseHistory = System.Collections.Concurrent.ConcurrentQueue<string>()
+    // Store both text and its embedding
+    let responseHistory =
+        System.Collections.Concurrent.ConcurrentQueue<string * float32[] option>()
+
     let mutable loopCounter = 0
 
     /// Record token usage
@@ -74,9 +79,9 @@ type SemanticWatchdog(config: WatchdogConfig) =
                 Map [ "tokens_per_minute", float recentTokens ]
             )
 
-    /// Record a response for loop detection
+    /// Record a response for loop detection (Legacy synchronous version)
     member this.RecordResponse(response: string) =
-        responseHistory.Enqueue(response)
+        responseHistory.Enqueue(response, None)
 
         // Keep only recent responses
         while responseHistory.Count > config.MaxSimilarResponses * 2 do
@@ -84,7 +89,9 @@ type SemanticWatchdog(config: WatchdogConfig) =
 
         // Check for repetitive responses (simple heuristic: exact match)
         let recentResponses = responseHistory |> Seq.toList
-        let similar = recentResponses |> List.filter (fun r -> r = response) |> List.length
+
+        let similar =
+            recentResponses |> List.filter (fun (r, _) -> r = response) |> List.length
 
         if similar >= config.MaxSimilarResponses then
             this.RaiseAlert(
@@ -94,6 +101,57 @@ type SemanticWatchdog(config: WatchdogConfig) =
                 "Agent may be stuck in a loop - consider intervention",
                 Map [ "similar_count", float similar ]
             )
+
+    /// Record and analyze response using embeddings for neural-symbolic loop detection
+    member this.RecordResponseAsync(response: string, llm: ILlmService) =
+        async {
+            // 1. Get embedding for the new response
+            let! embedding = llm.EmbedAsync response |> Async.AwaitTask
+
+            responseHistory.Enqueue(response, Some embedding)
+
+            // 2. Keep only recent responses
+            while responseHistory.Count > config.MaxSimilarResponses * 2 do
+                responseHistory.TryDequeue() |> ignore
+
+            let recent = responseHistory |> Seq.toList
+
+            // 3. Perform semantic similarity check against previous responses
+            let semanticallySimilar =
+                recent
+                |> List.choose (fun (text, emb) ->
+                    match emb with
+                    | Some e ->
+                        try
+                            let sim = MetricSpace.cosineSimilarity e embedding
+
+                            if float sim >= config.SimilarityThreshold then
+                                Some text
+                            else
+                                None
+                        with _ ->
+                            None
+                    | None -> if text = response then Some text else None)
+
+            let similarCount = semanticallySimilar.Length
+
+            if similarCount >= config.MaxSimilarResponses then
+                let severity =
+                    if similarCount > config.MaxSimilarResponses * 2 then
+                        Critical
+                    else
+                        Warning
+
+                this.RaiseAlert(
+                    severity,
+                    "Semantic loop detected",
+                    $"Agent produced {similarCount} semantically similar responses (Similarity > {config.SimilarityThreshold})",
+                    "Agent is repeating itself even if phrasing differs. Suggest resetting context or changing strategy.",
+                    Map
+                        [ "semantic_similar_count", float similarCount
+                          "similarity_threshold", config.SimilarityThreshold ]
+                )
+        }
 
     /// Record loop iteration
     member this.RecordIteration() =

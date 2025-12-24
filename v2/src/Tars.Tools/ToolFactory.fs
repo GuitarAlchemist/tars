@@ -27,77 +27,37 @@ module ToolFactory =
         | "say"
         | "inform" ->
             Some
-                { Name = spec.Name
-                  Description = spec.Description
-                  Version = "1.0.0"
-                  ParentVersion = None
-                  CreatedAt = DateTime.UtcNow
-                  Execute = fun input -> async { return Ok $"[{spec.Name}]: {input}" } }
+                (Tool.InternalCreateMinimal(spec.Name, spec.Description, (fun input -> async { return Ok $"[{spec.Name}]: {input}" })))
         | "think"
         | "reason"
         | "analyze" ->
             Some
-                { Name = spec.Name
-                  Description = "Internal reasoning/thinking step (returns input for self-reflection)"
-                  Version = "1.0.0"
-                  ParentVersion = None
-                  CreatedAt = DateTime.UtcNow
-                  Execute = fun input -> async { return Ok $"Reasoning: {input}" } }
+                (Tool.InternalCreateMinimal(spec.Name, "Internal reasoning/thinking step (returns input for self-reflection)", (fun input -> async { return Ok $"Reasoning: {input}" })))
         | "complete"
         | "done"
         | "finish"
         | "complete_task" ->
             Some
-                { Name = spec.Name
-                  Description = "Marks the task as complete with the given solution"
-                  Version = "1.0.0"
-                  ParentVersion = None
-                  CreatedAt = DateTime.UtcNow
-                  Execute = fun input -> async { return Ok $"SOLUTION:\n{input}" } }
+                (Tool.InternalCreateMinimal(spec.Name, "Marks the task as complete with the given solution", (fun input -> async { return Ok $"SOLUTION:\n{input}" })))
         | "propose"
         | "suggest" ->
             Some
-                { Name = spec.Name
-                  Description = "Proposes a solution or approach"
-                  Version = "1.0.0"
-                  ParentVersion = None
-                  CreatedAt = DateTime.UtcNow
-                  Execute = fun input -> async { return Ok $"Proposed: {input}" } }
+                (Tool.InternalCreateMinimal(spec.Name, "Proposes a solution or approach", (fun input -> async { return Ok $"Proposed: {input}" })))
         | "request"
         | "ask" ->
             Some
-                { Name = spec.Name
-                  Description = "Requests information or action"
-                  Version = "1.0.0"
-                  ParentVersion = None
-                  CreatedAt = DateTime.UtcNow
-                  Execute = fun input -> async { return Ok $"Request acknowledged: {input}" } }
+                (Tool.InternalCreateMinimal(spec.Name, "Requests information or action", (fun input -> async { return Ok $"Request acknowledged: {input}" })))
         | "failure"
         | "error"
         | "fail" ->
             Some
-                { Name = spec.Name
-                  Description = "Reports a failure or error condition"
-                  Version = "1.0.0"
-                  ParentVersion = None
-                  CreatedAt = DateTime.UtcNow
-                  Execute = fun input -> async { return Ok $"Failure reported: {input}" } }
+                (Tool.InternalCreateMinimal(spec.Name, "Reports a failure or error condition", (fun input -> async { return Ok $"Failure reported: {input}" })))
         | "query" ->
             Some
-                { Name = spec.Name
-                  Description = "Queries for information"
-                  Version = "1.0.0"
-                  ParentVersion = None
-                  CreatedAt = DateTime.UtcNow
-                  Execute = fun input -> async { return Ok $"Query acknowledged: {input}" } }
+                (Tool.InternalCreateMinimal(spec.Name, "Queries for information", (fun input -> async { return Ok $"Query acknowledged: {input}" })))
         | "refuse" ->
             Some
-                { Name = spec.Name
-                  Description = "Refuses a request"
-                  Version = "1.0.0"
-                  ParentVersion = None
-                  CreatedAt = DateTime.UtcNow
-                  Execute = fun input -> async { return Ok $"Refusal acknowledged: {input}" } }
+                (Tool.InternalCreateMinimal(spec.Name, "Refuses a request", (fun input -> async { return Ok $"Refusal acknowledged: {input}" })))
         | _ -> None
 
     /// Try to create a tool for a missing tool name
@@ -124,45 +84,10 @@ module ToolFactory =
 
     /// Creates tools for common speech act performatives that get misinterpreted as tool calls
     let createSpeechActTools () : Tool list =
-        [ { Name = "REQUEST"
-            Description = "Handles REQUEST speech act - acknowledges and processes a request"
-            Version = "1.0.0"
-            ParentVersion = None
-            CreatedAt = DateTime.UtcNow
-            Execute = fun input -> async { return Ok $"Request processed: {input}" } }
-          { Name = "INFORM"
-            Description = "Handles INFORM speech act - acknowledges information"
-            Version = "1.0.0"
-            ParentVersion = None
-            CreatedAt = DateTime.UtcNow
-            Execute = fun input -> async { return Ok $"Informed: {input}" } }
-          { Name = "PROPOSE"
-            Description = "Handles PROPOSE speech act - acknowledges a proposal"
-            Version = "1.0.0"
-            ParentVersion = None
-            CreatedAt = DateTime.UtcNow
-            Execute = fun input -> async { return Ok $"Proposal: {input}" } }
-          { Name = "FAILURE"
-            Description = "Handles FAILURE speech act - reports a failure"
-            Version = "1.0.0"
-            ParentVersion = None
-            CreatedAt = DateTime.UtcNow
-            Execute = fun input -> async { return Ok $"Failure: {input}" } }
-          { Name = "QUERY"
-            Description = "Handles QUERY speech act - processes a query"
-            Version = "1.0.0"
-            ParentVersion = None
-            CreatedAt = DateTime.UtcNow
-            Execute = fun input -> async { return Ok $"Query: {input}" } }
-          { Name = "REFUSE"
-            Description = "Handles REFUSE speech act - acknowledges refusal"
-            Version = "1.0.0"
-            ParentVersion = None
-            CreatedAt = DateTime.UtcNow
-            Execute = fun input -> async { return Ok $"Refused: {input}" } }
-          { Name = "complete_task"
-            Description = "Marks the current task as complete with the final solution"
-            Version = "1.0.0"
-            ParentVersion = None
-            CreatedAt = DateTime.UtcNow
-            Execute = fun input -> async { return Ok $"SOLUTION COMPLETE:\n{input}" } } ]
+        [ Tool.InternalCreateMinimal("REQUEST", "Handles REQUEST speech act - acknowledges and processes a request", (fun input -> async { return Ok $"Request processed: {input}" }))
+          Tool.InternalCreateMinimal("INFORM", "Handles INFORM speech act - acknowledges information", (fun input -> async { return Ok $"Informed: {input}" }))
+          Tool.InternalCreateMinimal("PROPOSE", "Handles PROPOSE speech act - acknowledges a proposal", (fun input -> async { return Ok $"Proposal: {input}" }))
+          Tool.InternalCreateMinimal("FAILURE", "Handles FAILURE speech act - reports a failure", (fun input -> async { return Ok $"Failure: {input}" }))
+          Tool.InternalCreateMinimal("QUERY", "Handles QUERY speech act - processes a query", (fun input -> async { return Ok $"Query: {input}" }))
+          Tool.InternalCreateMinimal("REFUSE", "Handles REFUSE speech act - acknowledges refusal", (fun input -> async { return Ok $"Refused: {input}" }))
+          Tool.InternalCreateMinimal("complete_task", "Marks the current task as complete with the final solution", (fun input -> async { return Ok $"SOLUTION COMPLETE:\n{input}" })) ]

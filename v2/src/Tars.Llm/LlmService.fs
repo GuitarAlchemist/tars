@@ -5,6 +5,7 @@ namespace Tars.Llm
 
 open System
 open System.Net.Http
+open System.Threading
 open System.Threading.Tasks
 
 /// <summary>
@@ -20,7 +21,10 @@ module LlmService =
     let inline private rerror<'a> (e: LlmError) : Result<'a, LlmError> = Result<'a, LlmError>.Error e
 
     /// <summary>Configuration for the LLM service.</summary>
-    type LlmServiceConfig = { Routing: RoutingConfig }
+    type LlmServiceConfig =
+        { Routing: RoutingConfig }
+
+        static member Default = { Routing = RoutingConfig.Default }
 
     /// <summary>
     /// Interface for LLM operations.
@@ -33,6 +37,15 @@ module LlmService =
         abstract member EmbedAsync: text: string -> Task<float32[]>
         /// <summary>Sends a streaming chat completion request.</summary>
         abstract member CompleteStreamAsync: LlmRequest * (string -> unit) -> Task<LlmResponse>
+
+    /// <summary>
+    /// Optional cancellable interface for LLM operations.
+    /// Implementations may short-circuit when the token is cancelled.
+    /// </summary>
+    type ICancellableLlmService =
+        abstract member CompleteAsync: LlmRequest * CancellationToken -> Task<LlmResponse>
+        abstract member EmbedAsync: text: string * CancellationToken -> Task<float32[]>
+        abstract member CompleteStreamAsync: LlmRequest * (string -> unit) * CancellationToken -> Task<LlmResponse>
 
     /// <summary>
     /// Functional interface for LLM operations using AsyncResult.
@@ -171,6 +184,7 @@ module LlmService =
 
             member _.CompleteStreamAsync(req: LlmRequest, onToken: string -> unit) : Task<LlmResponse> =
                 task {
+                    System.Console.Error.WriteLine("DEBUG: Inside LlmService.CompleteAsync")
                     let routed = chooseBackend cfg.Routing req
 
                     match routed.Backend with
@@ -231,3 +245,52 @@ module LlmService =
                                 cfg.Routing.OpenAIKey
                                 text
                 }
+
+        interface ICancellableLlmService with
+            member this.CompleteAsync(req, cancellationToken) =
+                let work = (this :> ILlmService).CompleteAsync(req)
+
+                if not cancellationToken.CanBeCanceled then
+                    work
+                else
+                    task {
+                        let delay = Task.Delay(Timeout.Infinite, cancellationToken)
+                        let! completed = Task.WhenAny(work, delay)
+
+                        if Object.ReferenceEquals(completed, work) then
+                            return! work
+                        else
+                            return raise (OperationCanceledException(cancellationToken))
+                    }
+
+            member this.EmbedAsync(text, cancellationToken) =
+                let work = (this :> ILlmService).EmbedAsync(text)
+
+                if not cancellationToken.CanBeCanceled then
+                    work
+                else
+                    task {
+                        let delay = Task.Delay(Timeout.Infinite, cancellationToken)
+                        let! completed = Task.WhenAny(work, delay)
+
+                        if Object.ReferenceEquals(completed, work) then
+                            return! work
+                        else
+                            return raise (OperationCanceledException(cancellationToken))
+                    }
+
+            member this.CompleteStreamAsync(req, onToken, cancellationToken) =
+                let work = (this :> ILlmService).CompleteStreamAsync(req, onToken)
+
+                if not cancellationToken.CanBeCanceled then
+                    work
+                else
+                    task {
+                        let delay = Task.Delay(Timeout.Infinite, cancellationToken)
+                        let! completed = Task.WhenAny(work, delay)
+
+                        if Object.ReferenceEquals(completed, work) then
+                            return! work
+                        else
+                            return raise (OperationCanceledException(cancellationToken))
+                    }

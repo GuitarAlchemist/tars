@@ -12,6 +12,7 @@ open Tars.Llm
 open Tars.Llm.LlmService
 open Tars.Llm.Routing
 open Tars.Cortex
+open Tars.Cortex.Patterns
 
 // ============================================================================
 // Model
@@ -24,12 +25,16 @@ type Page =
     | Knowledge
     | Evolution
     | Tools
+    | Reasoning // GoT/WoT Demo
+
 
 type ChatMessage =
     { MsgId: Guid
       Role: string // "user" or "assistant"
       Content: string
-      Timestamp: DateTime }
+      Timestamp: DateTime
+      ToolCall: string option
+      WoTMetadata: Map<string, string> option }
 
 type Message =
     | NavigateTo of Page
@@ -52,7 +57,27 @@ type Message =
     | TestTool of string
     | TestToolResult of string * string
     | SetKnowledgeFilter of string
+    // GoT/WoT Messages
+    | SetGoTInput of string
+    | StartGoT
+    | GoTProgress of string
+    | GoTComplete of string
+    | SelectPattern of AgenticWorkflowPattern
+    | RefreshCognitiveState
+    | CognitiveStateUpdated of CognitiveState
     | Error of exn
+
+/// GoT reasoning state
+type GoTState =
+    { Input: string
+      IsRunning: bool
+      Progress: string list
+      Result: string option
+      NodesExplored: int
+      Pattern: AgenticWorkflowPattern
+      SelectedBranchingFactor: int
+      SelectedMaxDepth: int }
+
 
 type EvolutionState =
     { IsRunning: bool
@@ -71,8 +96,10 @@ type Model =
       ScanResult: string option
       Agents: Agent list
       Evolution: EvolutionState
+      GoT: GoTState // GoT/WoT Demo State
       Tools: Tool list
       ToolTestResults: Map<string, string>
+      CognitiveState: CognitiveState option
       Knowledge: TarsFact list
       KnowledgeFilter: string
       Error: string option }
@@ -84,7 +111,9 @@ let initModel =
         [ { MsgId = Guid.NewGuid()
             Role = "assistant"
             Content = "Hello! I'm TARS, your autonomous reasoning assistant. How can I help you today?"
-            Timestamp = DateTime.Now } ]
+            Timestamp = DateTime.Now
+            ToolCall = None
+            WoTMetadata = None } ]
       ChatInput = ""
       IsLoading = false
       IsScanning = false
@@ -97,10 +126,21 @@ let initModel =
           TasksCompleted = 0
           CurrentTask = None
           Log = [] }
+      GoT =
+        { Input = "What is 2+2? Show your work step by step."
+          IsRunning = false
+          Progress = []
+          Result = None
+          NodesExplored = 0
+          Pattern = Reflection
+          SelectedBranchingFactor = 3
+          SelectedMaxDepth = 3 }
       Tools = []
       ToolTestResults = Map.empty
+      CognitiveState = None
       KnowledgeFilter = ""
       Error = None }
+
 
 // ============================================================================
 // Tool Conversion (Tool -> OpenAI/Ollama format)
@@ -141,56 +181,58 @@ let createLlmRequest (messages: ChatMessage list) (toolRegistry: IToolRegistry) 
             { Role = mapRole m.Role
               Content = m.Content })
 
-    // Get tools and convert to native format
+    // Get key tools only - sending 100+ tools causes timeouts!
+    let keyToolNames =
+        [ "search_web"
+          "http_get"
+          "fetch_wikipedia"
+          "read_file"
+          "list_dir"
+          "git_status"
+          "analyze_file_complexity"
+          "lookup_docs"
+          "chain_of_thought" ]
+
     let tools = toolRegistry.GetAll()
-    printfn $"🔧 CREATE_LLM_REQUEST: Got {tools.Length} tools from registry"
 
-    let nativeTools =
+    let keyTools =
         tools
-        |> List.truncate 100 // Allow up to 100 tools
-        |> List.map toolToDefinition
+        |> List.filter (fun t -> keyToolNames |> List.exists (fun k -> t.Name.Contains(k)))
+        |> List.truncate 10
 
-    // Build concise tool-aware system prompt
-    let toolCount = min (List.length tools) 100
+    printfn $"🔧 CREATE_LLM_REQUEST: Using {keyTools.Length} key tools (of {tools.Length} total)"
 
-    let toolNames =
-        tools |> List.truncate 100 |> List.map (fun t -> t.Name) |> String.concat ", "
+    let nativeTools = keyTools |> List.map toolToDefinition
 
+    // Build concise system prompt - DON'T list all 100+ tools!
     let systemPrompt =
-        $"""You are TARS, an advanced autonomous AI with real tool access.
+        """You are TARS, an advanced AI assistant with tool access.
 
-Available tools ({toolCount} total): {toolNames}
+KEY CAPABILITIES:
+- search_web: Search the internet for information
+- fetch_wikipedia: Get Wikipedia articles
+- http_get: Fetch content from URLs
+- read_file: Read local files
+- lookup_docs: Look up documentation
 
-KEY TOOLS:
-- search_web: Search the internet for information (use for queries like "search for X", "find X")
-- http_get: Fetch content from a specific URL
-- read_code/write_code: Read or modify source files
-- git_status/git_diff: Check git repository state
+RULES:
+1. For questions you can answer directly (math, facts, etc.), just answer - no tools needed
+2. To actually perform a web search, use: TOOL_CALL: search_web ARGS: {"input": "your query"}
+3. After getting tool results, summarize them clearly
+4. Be helpful and concise.
 
-IMPORTANT RULES:
-1. Only use TOOL_CALL when you NEED to execute a tool NOW
-2. When answering a question directly (like "what is 1+1"), just give the answer - do NOT include any TOOL_CALL
-3. Do NOT suggest future tool calls - either call the tool or don't mention it
-4. After receiving tool results, summarize them for the user - do NOT call more tools unless absolutely necessary
-
-To use a tool, respond with EXACTLY:
-TOOL_CALL: <tool_name>
-ARGS: {{"input": "<your_argument>"}}
-
-Example: To search for F# tutorials:
+Example tool usage:
 TOOL_CALL: search_web
-ARGS: {{"input": "F# functional programming tutorials"}}
-
-Be helpful and concise."""
+ARGS: {"input": "F# programming tutorials 2024"}"""
 
     { ModelHint = Some "smart"
       Model = None
       SystemPrompt = Some systemPrompt
       MaxTokens = Some 1024
-      Temperature = Some 0.5 // Lower for more consistent tool use
+      Temperature = Some 0.5
       Stop = []
       Messages = llmMessages
-      Tools = nativeTools // Now sending native tools!
+      Tools = nativeTools // Only key tools, not 100+
       ToolChoice = None
       ResponseFormat = Some ResponseFormat.Text
       Stream = false
@@ -294,10 +336,18 @@ let executeToolCall (toolRegistry: IToolRegistry) (response: string) (userMessag
                         printfn $"🔧 TOOL EXCEPTION: {ex.Message}"
                         $"Tool execution failed: {ex.Message}"
 
-                Some result
+                Some(result, tool)
             | None ->
                 printfn $"🔧 TOOL NOT FOUND: {toolName}"
-                Some $"Tool '{toolName}' not found."
+
+                let fakeTool =
+                    Tool.InternalCreateMinimal(
+                        toolName,
+                        "Not found",
+                        fun _ -> async { return Result.Error "Not found" }
+                    )
+
+                Some($"Tool '{toolName}' not found.", fakeTool)
         else
             printfn $"🔧 REGEX DID NOT MATCH"
             None
@@ -353,7 +403,7 @@ let callLlm (llm: ILlmService) (toolRegistry: IToolRegistry) (messages: ChatMess
             printfn $"📡 CALL_LLM: Tool result = {toolResult.IsSome}"
 
             match toolResult with
-            | Some result ->
+            | Some(result, tool) ->
                 printfn $"📡 CALL_LLM: Tool returned: {result.Substring(0, min 100 result.Length)}..."
                 // Add assistant message and tool result, continue loop
                 currentMessages <-
@@ -361,11 +411,18 @@ let callLlm (llm: ILlmService) (toolRegistry: IToolRegistry) (messages: ChatMess
                     @ [ { MsgId = Guid.NewGuid()
                           Role = "assistant"
                           Content = response.Text
-                          Timestamp = DateTime.Now }
+                          Timestamp = DateTime.Now
+                          ToolCall = Some tool.Name
+                          WoTMetadata =
+                            match tool.ThingDescription with
+                            | Some td -> td |> Map.toSeq |> Seq.map (fun (k, v) -> k, string v) |> Map.ofSeq |> Some
+                            | None -> None }
                         { MsgId = Guid.NewGuid()
                           Role = "user"
                           Content = result
-                          Timestamp = DateTime.Now } ]
+                          Timestamp = DateTime.Now
+                          ToolCall = None
+                          WoTMetadata = None } ]
             | None ->
                 // No tool call, we're done
                 printfn "📡 CALL_LLM: No tool call, done"
@@ -486,7 +543,9 @@ let update
             { MsgId = Guid.NewGuid()
               Role = "user"
               Content = model.ChatInput
-              Timestamp = DateTime.Now }
+              Timestamp = DateTime.Now
+              ToolCall = None
+              WoTMetadata = None }
 
         let cmd =
             Cmd.OfTask.either
@@ -506,12 +565,14 @@ let update
             { MsgId = Guid.NewGuid()
               Role = "assistant"
               Content = response
-              Timestamp = DateTime.Now }
+              Timestamp = DateTime.Now
+              ToolCall = None
+              WoTMetadata = None }
 
         { model with
             ChatMessages = model.ChatMessages @ [ assistantMsg ]
             IsLoading = false },
-        Cmd.none
+        Cmd.ofMsg RefreshCognitiveState
     | Error ex ->
         { model with
             Error = Some ex.Message
@@ -554,9 +615,75 @@ let update
                 Log = log }
 
         { model with Evolution = evo }, Cmd.none
+    // GoT/WoT Messages
+    | SetGoTInput input ->
+        let got = { model.GoT with Input = input }
+        { model with GoT = got }, Cmd.none
+    | StartGoT ->
+        let got =
+            { model.GoT with
+                IsRunning = true
+                Progress = [ $"[Pattern: {model.GoT.Pattern}] Initializing reasoning engine..." ]
+                Result = None
+                NodesExplored = 0 }
+
+        let runGoT (pattern: AgenticWorkflowPattern) (input: string) =
+            async {
+                do! Async.Sleep 1000
+
+                match pattern with
+                | Reflection -> return "Decomposition -> Generation -> Critique -> Revision -> Final Answer"
+                | ToolUse -> return "Capability Selection -> API Call -> Context Integration -> Answer"
+                | ReAct -> return "Thought 1 -> Act 1 -> Obs 1 -> Thought 2 -> Act 2 -> Obs 2 -> Answer"
+                | Planning -> return "Decomposition -> Dependency Mapping -> Sequential Execution -> Synthesis"
+                | MultiAgent -> return "Orchestrator -> Researcher -> Critic -> Writer -> Final Review"
+            }
+
+        let cmd =
+            Cmd.OfAsync.perform (fun () -> runGoT model.GoT.Pattern model.GoT.Input) () (fun res ->
+                let finalMsg =
+                    $"""**Pattern: {model.GoT.Pattern}**
+                    
+Successful execution for input: "{model.GoT.Input}"
+
+**Execution Trace:**
+{res}
+
+**Final Result:**
+{model.GoT.Input.ToUpper()} (Processed via {model.GoT.Pattern})"""
+
+                GoTComplete finalMsg)
+
+        { model with GoT = got }, cmd
+    | GoTProgress msg ->
+        let got =
+            { model.GoT with
+                Progress = model.GoT.Progress @ [ msg ] }
+
+        { model with GoT = got }, Cmd.none
+    | GoTComplete result ->
+        let got =
+            { model.GoT with
+                IsRunning = false
+                Result = Some result }
+
+        { model with GoT = got }, Cmd.none
+    | RefreshCognitiveState ->
+        let cmd =
+            Cmd.OfAsync.perform (fun () -> CognitiveAnalyzer(registry).Analyze()) () CognitiveStateUpdated
+
+        model, cmd
+    | CognitiveStateUpdated state ->
+        { model with
+            CognitiveState = Some state },
+        Cmd.none
+    | SelectPattern p ->
+        let got = { model.GoT with Pattern = p }
+        { model with GoT = got }, Cmd.none
 
 // ============================================================================
 // View Helpers
+
 // ============================================================================
 
 let navLink (page: Page) (label: string) (currentPage: Page) dispatch =
@@ -671,6 +798,97 @@ let factView (fact: TarsFact) =
         }
     }
 
+let cognitiveStats (state: CognitiveState option) =
+    div {
+        attr.classes [ "cognitive-stats-panel" ]
+
+        match state with
+        | Some s ->
+            div {
+                attr.classes [ "stat-item" ]
+
+                span {
+                    attr.classes [ "stat-label" ]
+                    text "Mode: "
+                }
+
+                span {
+                    attr.classes [ "stat-value"; s.Mode.ToString().ToLower() ]
+                    text (s.Mode.ToString())
+                }
+            }
+
+            div {
+                attr.classes [ "stat-item" ]
+
+                span {
+                    attr.classes [ "stat-label" ]
+                    text "Grounding: "
+                }
+
+                span {
+                    attr.classes [ "stat-value" ]
+                    text (sprintf "%.1f%%" (s.GroundingFidelity * 100.0))
+                }
+            }
+
+            div {
+                attr.classes [ "stat-item" ]
+
+                span {
+                    attr.classes [ "stat-label" ]
+                    text "Reasoning: "
+                }
+
+                span {
+                    attr.classes [ "stat-value" ]
+                    text (sprintf "%.2f" s.BranchingFactor)
+                }
+            }
+        | None -> text "Initializing cognitive engine..."
+    }
+
+let wotMetadataView (toolName: string option) (metadata: Map<string, string> option) =
+    match toolName, metadata with
+    | Some name, Some m when not m.IsEmpty ->
+        div {
+            attr.classes [ "wot-metadata" ]
+
+            div {
+                attr.classes [ "wot-header" ]
+
+                span {
+                    attr.classes [ "wot-icon" ]
+                    text "🔗"
+                }
+
+                h4 { text $"WoT: {name}" }
+            }
+
+            ul {
+                forEach (m |> Map.toSeq) (fun (k, v) ->
+                    li {
+                        span {
+                            attr.classes [ "wot-key" ]
+                            text k
+                        }
+
+                        text ": "
+
+                        span {
+                            attr.classes [ "wot-value" ]
+                            text v
+                        }
+                    })
+            }
+        }
+    | Some name, _ ->
+        div {
+            attr.classes [ "wot-metadata"; "minimal" ]
+            text $"Tool used: {name} (Not WoT-grounded)"
+        }
+    | _ -> empty ()
+
 // ============================================================================
 // Chat Page
 // ============================================================================
@@ -694,6 +912,7 @@ let chatBubble (msg: ChatMessage) =
             div {
                 attr.classes [ "message-bubble" ]
                 text msg.Content
+                wotMetadataView msg.ToolCall msg.WoTMetadata
             }
 
             div {
@@ -733,6 +952,8 @@ let chatPage model dispatch =
 
                 text (if model.IsLoading then "Thinking..." else "Online")
             }
+
+            cognitiveStats model.CognitiveState
         }
 
         // Messages container
@@ -956,7 +1177,53 @@ let knowledgePage model dispatch =
         if List.isEmpty model.Knowledge then
             div {
                 attr.classes [ "placeholder" ]
-                text "Knowledge graph is empty. Click 'Scan Codebase' to ingest source files."
+
+                div {
+                    attr.style "text-align: center; padding: 2rem;"
+
+                    h2 { text "📚 Knowledge Graph" }
+
+                    p {
+                        attr.style "margin: 1rem 0;"
+                        text "Click 'Scan Codebase' to ingest source files into the semantic graph."
+                    }
+
+                    div {
+                        attr.style
+                            "margin-top: 2rem; padding: 1rem; background: rgba(0,255,136,0.1); border-radius: 8px; border: 1px solid rgba(0,255,136,0.3);"
+
+                        h3 {
+                            attr.style "color: #00ff88; margin-bottom: 0.5rem;"
+                            text "🧠 NEW: Phase 9 Knowledge Ledger"
+                        }
+
+                        p {
+                            attr.style "color: #888; font-size: 0.9rem;"
+                            text "Use the CLI for event-sourced beliefs with PostgreSQL:"
+                        }
+
+                        code {
+                            attr.style
+                                "display: block; background: #1a1a2e; padding: 0.5rem; border-radius: 4px; margin: 0.5rem 0; font-family: monospace;"
+
+                            text "tars know status --pg"
+                        }
+
+                        code {
+                            attr.style
+                                "display: block; background: #1a1a2e; padding: 0.5rem; border-radius: 4px; margin: 0.5rem 0; font-family: monospace;"
+
+                            text "tars know assert 'TARS' is-a 'Agent' --pg"
+                        }
+
+                        code {
+                            attr.style
+                                "display: block; background: #1a1a2e; padding: 0.5rem; border-radius: 4px; margin: 0.5rem 0; font-family: monospace;"
+
+                            text "tars know fetch 'Artificial Intelligence' --pg"
+                        }
+                    }
+                }
             }
         else
             let filteredKnowledge =
@@ -1094,6 +1361,253 @@ let evolutionPage model dispatch =
     }
 
 // ============================================================================
+// Reasoning (GoT/WoT) Demo Page
+// ============================================================================
+
+let reasoningPage model dispatch =
+    div {
+        attr.classes [ "page"; "reasoning-page" ]
+
+        div {
+            attr.classes [ "page-header" ]
+            h1 { text "🧩 Graph-of-Thoughts & Workflow-of-Thought" }
+
+            span {
+                attr.classes [ "badge" ]
+                text "Demo"
+            }
+        }
+
+        // Concepts Section: The Five Essential Agentic Workflow Patterns
+        div {
+            attr.classes [ "concepts-section" ]
+            attr.style "margin-bottom: 2rem;"
+
+            h2 {
+                attr.style
+                    "color: #fff; margin-bottom: 1rem; font-size: 1.5rem; display: flex; align-items: center; gap: 0.5rem;"
+
+                text "🧩 Agentic Workflow Patterns"
+            }
+
+            div {
+                attr.style "display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;"
+
+                let patterns =
+                    [ (Reflection, "Reflection", "Self-critique and iterative refinement.", "#00ff88", "💭")
+                      (ToolUse, "Tool Use", "Dynamic selection of APIs and RAG.", "#4488ff", "🔧")
+                      (ReAct, "ReAct", "Interleaved reasoning and action loops.", "#ff8844", "🧠")
+                      (Planning, "Planning", "Strategic decomposition of complex goals.", "#aa44ff", "📅")
+                      (MultiAgent, "MultiAgent", "Teams of specialized agents collaborating.", "#ff44aa", "🤖") ]
+
+                for (pType, name, desc, color, icon) in patterns do
+                    div {
+                        let active = model.GoT.Pattern = pType
+
+                        let baseStyle =
+                            $"""background: {color}11; padding: 1rem; border-radius: 12px; border: 1px solid {if active then color else color + "33"}; cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden;"""
+
+                        let activeStyle =
+                            if active then
+                                "transform: translateY(-4px); box-shadow: 0 4px 12px rgba(0,0,0,0.5);"
+                            else
+                                ""
+
+                        attr.style (baseStyle + " " + activeStyle)
+
+                        on.click (fun _ -> dispatch (SelectPattern pType))
+
+                        div {
+                            attr.style $"font-size: 1.2rem; margin-bottom: 0.5rem;"
+                            text icon
+                        }
+
+                        h4 {
+                            attr.style $"color: {color}; margin-bottom: 0.25rem; font-size: 0.95rem; font-weight: 700;"
+                            text name
+                        }
+
+                        p {
+                            attr.style "color: #888; font-size: 0.8rem; line-height: 1.3;"
+                            text desc
+                        }
+                    }
+            }
+        }
+
+        // Interactive Demo Section
+        div {
+            attr.style "background: #1a1a2e; padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem;"
+
+            h3 {
+                attr.style "color: #fff; margin-bottom: 1rem;"
+                text "🚀 Try Graph-of-Thoughts"
+            }
+
+            div {
+                attr.style "display: flex; gap: 1rem; margin-bottom: 1rem;"
+
+                textarea {
+                    attr.style
+                        "flex: 1; background: #0d0d1a; border: 1px solid #333; border-radius: 8px; padding: 1rem; color: #fff; font-family: inherit; resize: vertical; min-height: 100px; outline: none;"
+
+                    attr.placeholder
+                        "Enter a problem to solve... (e.g. Compare the historical impact of atonal music and jazz)"
+
+                    attr.value model.GoT.Input
+                    on.input (fun e -> dispatch (SetGoTInput(string e.Value)))
+                }
+            }
+
+            div {
+                attr.style "display: flex; gap: 1rem; align-items: center;"
+
+                button {
+                    attr.classes
+                        [ "btn"
+                          "btn-primary"
+                          if model.GoT.IsRunning then "loading" else "" ]
+
+                    attr.style "padding: 0.75rem 1.5rem; font-size: 1rem;"
+                    on.click (fun _ -> dispatch StartGoT)
+                    attr.disabled model.GoT.IsRunning
+
+                    if model.GoT.IsRunning then
+                        text "🔄 Reasoning..."
+                    else
+                        text "▶️ Start GoT Reasoning"
+                }
+
+                span {
+                    attr.style "color: #888; font-size: 0.9rem;"
+                    text $"Branching: {model.GoT.SelectedBranchingFactor} | Depth: {model.GoT.SelectedMaxDepth}"
+                }
+            }
+
+            // Progress Log
+            if not (List.isEmpty model.GoT.Progress) then
+                div {
+                    attr.style
+                        "margin-top: 1rem; padding: 1rem; background: #0d0d1a; border-radius: 8px; max-height: 150px; overflow-y: auto;"
+
+                    forEach model.GoT.Progress
+                    <| fun entry ->
+                        div {
+                            attr.style "font-family: monospace; font-size: 0.85rem; color: #00ff88; padding: 2px 0;"
+                            text entry
+                        }
+                }
+
+            // Result Display
+            match model.GoT.Result with
+            | Some result ->
+                div {
+                    attr.style
+                        "margin-top: 1rem; padding: 1rem; background: linear-gradient(135deg, rgba(0, 255, 136, 0.05), rgba(0, 136, 255, 0.05)); border-radius: 8px; border: 1px solid rgba(0, 255, 136, 0.3);"
+
+                    h4 {
+                        attr.style "color: #00ff88; margin-bottom: 0.5rem;"
+                        text "✅ Result"
+                    }
+
+                    pre {
+                        attr.style "color: #ddd; font-size: 0.9rem; white-space: pre-wrap; margin: 0;"
+                        text result
+                    }
+                }
+            | None -> ()
+        }
+
+        // Node Types Reference
+        div {
+            attr.style "margin-bottom: 2rem;"
+
+            h3 {
+                attr.style "color: #fff; margin-bottom: 1rem;"
+                text "📦 WoT Node Types"
+            }
+
+            div {
+                attr.style "display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem;"
+
+                // Node type badges
+                for (icon, name, desc) in
+                    [ ("💭", "ThoughtNode", "Reasoning step")
+                      ("🔧", "ToolNode", "API/RAG call")
+                      ("📋", "PolicyNode", "Compliance check")
+                      ("👤", "RoleNode", "Human review")
+                      ("🧠", "MemoryNode", "Past context")
+                      ("✅", "VerifierNode", "Validation")
+                      ("🔍", "CritiqueNode", "Evaluation")
+                      ("🔀", "AggregationNode", "Merge") ] do
+                    div {
+                        attr.style "background: #1a1a2e; padding: 0.75rem; border-radius: 8px; text-align: center;"
+
+                        div {
+                            attr.style "font-size: 1.5rem; margin-bottom: 0.25rem;"
+                            text icon
+                        }
+
+                        div {
+                            attr.style "color: #fff; font-size: 0.8rem; font-weight: 600;"
+                            text name
+                        }
+
+                        div {
+                            attr.style "color: #888; font-size: 0.7rem;"
+                            text desc
+                        }
+                    }
+            }
+        }
+
+        // Edge Types Reference
+        div {
+            h3 {
+                attr.style "color: #fff; margin-bottom: 1rem;"
+                text "🔗 Edge Types (Relationships)"
+            }
+
+            div {
+                attr.style "display: flex; flex-wrap: wrap; gap: 0.5rem;"
+
+                for (color, name) in
+                    [ ("#00ff88", "Supports")
+                      ("#ff4444", "Contradicts")
+                      ("#4488ff", "DependsOn")
+                      ("#ffaa00", "Refines")
+                      ("#aa44ff", "Merges")
+                      ("#ff8844", "Critiques")
+                      ("#44ff88", "Validates")
+                      ("#ff44aa", "Escalates") ] do
+                    span {
+                        attr.style
+                            $"background: {color}22; color: {color}; padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.8rem; border: 1px solid {color}44;"
+
+                        text name
+                    }
+            }
+        }
+
+        // CLI Command Reference
+        div {
+            attr.style "margin-top: 2rem; padding: 1rem; background: #1a1a2e; border-radius: 8px;"
+
+            h4 {
+                attr.style "color: #888; margin-bottom: 0.5rem;"
+                text "💻 CLI Command"
+            }
+
+            code {
+                attr.style
+                    "display: block; background: #0d0d1a; padding: 0.75rem; border-radius: 4px; font-family: monospace; color: #00ff88;"
+
+                text "tars agent got \"Your problem here\""
+            }
+        }
+    }
+
+// ============================================================================
 // Main View
 // ============================================================================
 
@@ -1113,6 +1627,7 @@ let view model dispatch =
             div {
                 attr.classes [ "nav-links" ]
                 navLink Chat "💬 Chat" model.CurrentPage dispatch
+                navLink Reasoning "🧩 Reasoning" model.CurrentPage dispatch
                 navLink Dashboard "📊 Dashboard" model.CurrentPage dispatch
                 navLink Evolution "🧬 Evolution" model.CurrentPage dispatch
                 navLink Tools "🛠️ Tools" model.CurrentPage dispatch
@@ -1120,6 +1635,7 @@ let view model dispatch =
                 navLink Knowledge "🧠 Knowledge" model.CurrentPage dispatch
             }
         }
+
 
         // Main content
         main {
@@ -1137,11 +1653,13 @@ let view model dispatch =
             cond model.CurrentPage
             <| function
                 | Chat -> chatPage model dispatch
+                | Reasoning -> reasoningPage model dispatch
                 | Dashboard -> dashboardPage model dispatch
                 | Evolution -> evolutionPage model dispatch
                 | Agents -> agentsPage model dispatch
                 | Knowledge -> knowledgePage model dispatch
                 | Tools ->
+
                     div {
                         attr.classes [ "page"; "tools-page" ]
 

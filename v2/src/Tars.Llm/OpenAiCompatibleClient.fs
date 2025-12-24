@@ -73,13 +73,20 @@ module OpenAiCompatibleClient =
         | Role.User -> "user"
         | Role.Assistant -> "assistant"
 
-    let private toOpenAiMessages (msgs: LlmMessage list) =
-        msgs
-        |> List.map (fun m ->
-            { role = toOpenAiRole m.Role
-              content = m.Content }
-            : OpenAiMessageDto)
-        |> List.toArray
+    let private toOpenAiMessages (systemPrompt: string option) (msgs: LlmMessage list) =
+        let systemMsg =
+            match systemPrompt with
+            | Some p -> [ ({ role = "system"; content = p }: OpenAiMessageDto) ]
+            | None -> []
+
+        let otherMsgs =
+            msgs
+            |> List.map (fun m ->
+                { role = toOpenAiRole m.Role
+                  content = m.Content }
+                : OpenAiMessageDto)
+
+        (systemMsg @ otherMsgs) |> List.toArray
 
     /// <summary>DTO for embedding request.</summary>
     [<CLIMutable>]
@@ -112,7 +119,7 @@ module OpenAiCompatibleClient =
         task {
             let dto: OpenAiRequestDto =
                 { model = model
-                  messages = toOpenAiMessages req.Messages
+                  messages = toOpenAiMessages req.SystemPrompt req.Messages
                   max_tokens = req.MaxTokens
                   temperature = req.Temperature
                   stream = Some false
@@ -267,7 +274,7 @@ module OpenAiCompatibleClient =
         task {
             let dto: OpenAiRequestDto =
                 { model = model
-                  messages = toOpenAiMessages req.Messages
+                  messages = toOpenAiMessages req.SystemPrompt req.Messages
                   max_tokens = req.MaxTokens
                   temperature = req.Temperature
                   stream = Some true

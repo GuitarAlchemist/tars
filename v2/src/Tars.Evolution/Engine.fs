@@ -111,6 +111,50 @@ module Engine =
             | Some prop when prop.ValueKind = JsonValueKind.String -> Some(prop.GetString())
             | _ -> None)
 
+    let private looksLikeFollowUpRequest (text: string) =
+        if String.IsNullOrWhiteSpace text then
+            false
+        else
+            let trimmed = text.Trim()
+            let lowered = trimmed.ToLowerInvariant()
+
+            trimmed.EndsWith("?")
+            || lowered.StartsWith("please provide")
+            || lowered.StartsWith("could you")
+            || lowered.StartsWith("can you")
+            || lowered.StartsWith("would you")
+            || lowered.StartsWith("i need")
+            || lowered.StartsWith("i require")
+            || lowered.StartsWith("share the")
+            || lowered.StartsWith("send the")
+
+    let private tryExtractJsonElement (text: string) =
+        let trimmed = text.Trim()
+
+        let tryParse payload =
+            match JsonParsing.tryParseElement payload with
+            | Result.Ok elem -> Some elem
+            | Result.Error _ -> None
+
+        let tryExtract (openChar: char, closeChar: char) =
+            let startIdx = trimmed.IndexOf(openChar)
+            let endIdx = trimmed.LastIndexOf(closeChar)
+
+            if startIdx >= 0 && endIdx > startIdx then
+                trimmed.Substring(startIdx, endIdx - startIdx + 1) |> Some
+            else
+                None
+
+        match tryParse trimmed with
+        | Some elem -> Result.Ok elem
+        | None ->
+            match tryExtract ('{', '}') |> Option.bind tryParse with
+            | Some elem -> Result.Ok elem
+            | None ->
+                match tryExtract ('[', ']') |> Option.bind tryParse with
+                | Some elem -> Result.Ok elem
+                | None -> Result.Error "Response was not valid JSON."
+
     let private formatBelief (belief: Belief) =
         let predicate =
             match belief.Predicate with
@@ -235,6 +279,7 @@ Requirements:
 - Each task must be a specific coding problem (NOT a question) and solvable with code (NOT a discussion).
 - Do NOT repeat or closely rephrase any previous tasks: %s{completedList}
 - Vary domains and artifacts (algorithms, refactors, tests, tooling, docs, integrations).
+- If guidance sounds like a request for preferences, ignore it and still output tasks.
 - Include measurable validation_criteria.
 
 RESPOND WITH THIS EXACT JSON FORMAT (no other text):
@@ -277,7 +322,7 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                 let! outcome = graphExecutor.RunAgentLoop(agentWithMsg, 20)
 
                 // Phase 6.2: Semantic Speech Act Validation
-                let responseText =
+                let responseIntent, responseText =
                     match outcome with
                     | Success(_, o, _)
                     | PartialSuccess((_, o, _), _) ->
@@ -296,10 +341,18 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                                 $"[Protocol] Verified semantic flow: %A{requestMsg.Intent} -> %A{replyMsg.Intent}"
                         | Result.Error err -> ctx.Logger $"[Protocol] WARNING: Protocol violation: %s{err}"
 
-                        content
+                        intent, content
                     | Failure err ->
                         let errStr = err |> List.map string |> String.concat "; "
                         ctx.Logger $"[Curriculum] Agent returned failure: %s{errStr}"
+                        AgentIntent.Error errStr, ""
+
+                let responseText =
+                    match responseIntent with
+                    | AgentIntent.Tell _ -> responseText
+                    | AgentIntent.Event _ -> responseText
+                    | _ ->
+                        ctx.Logger("[Curriculum] Invalid response intent for task generation. Using fallback.")
                         ""
 
                 if String.IsNullOrWhiteSpace(responseText) then
@@ -315,126 +368,7 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                             Timeout = TimeSpan.FromMinutes(1.0)
                             Score = 1.0 } ]
                 else
-                    try
-                        let root =
-                            match JsonParsing.tryParseElement responseText with
-                            | Result.Ok elem -> elem
-                            | Result.Error err ->
-                                ctx.Logger($"[Curriculum] Task JSON parse failed: {err}")
-                                raise (FormatException(err))
-
-                        let mutable tasksElem = Unchecked.defaultof<JsonElement>
-
-                        let tasksJson =
-                            if root.ValueKind = JsonValueKind.Array then
-                                root.EnumerateArray() |> Seq.map id
-                            elif
-                                root.TryGetProperty("tasks", &tasksElem)
-                                && tasksElem.ValueKind = JsonValueKind.Array
-                            then
-                                tasksElem.EnumerateArray() |> Seq.map id
-                            else
-                                Seq.empty
-
-                        let existingGoals =
-                            state.CompletedTasks
-                            |> List.map (fun t -> t.TaskGoal.Trim().ToLowerInvariant())
-                            |> Set.ofList
-
-                        let parsedTasksRaw =
-                            tasksJson
-                            |> Seq.map (fun t ->
-                                let goal = t.GetProperty("goal").GetString()
-
-                                let constraints =
-                                    t.GetProperty("constraints").EnumerateArray()
-                                    |> Seq.map (fun e -> e.GetString())
-                                    |> Seq.toList
-
-                                let criteria = t.GetProperty("validation_criteria").GetString()
-
-                                { Id = Guid.NewGuid()
-                                  DifficultyLevel = state.Generation + 1
-                                  Goal = goal
-                                  Constraints = constraints
-                                  ValidationCriteria = criteria
-                                  Timeout = TimeSpan.FromMinutes(1.0)
-                                  Score = 0.0 })
-                            |> Seq.toList
-                            // Drop exact repeats of completed goals
-                            |> List.filter (fun t ->
-                                let key = t.Goal.Trim().ToLowerInvariant()
-                                not (existingGoals.Contains(key)))
-
-                        // 5. Semantic Scoring (Fan-out Limiting)
-                        // Pre-calculate embeddings for recent tasks (last 10)
-                        let recentTasks = state.CompletedTasks |> List.truncate 10
-
-                        let! recentVectors =
-                            task {
-                                if recentTasks.IsEmpty then
-                                    return []
-                                else
-                                    let! vectors =
-                                        recentTasks
-                                        |> List.map (fun t -> ctx.Llm.EmbedAsync(t.TaskGoal))
-                                        |> Task.WhenAll
-
-                                    return vectors |> Array.toList
-                            }
-
-                        // Score all candidates
-                        let! scoredTasks =
-                            parsedTasksRaw
-                            |> List.map (fun t ->
-                                task {
-                                    let! score = scoreTask ctx t recentVectors
-                                    return { t with Score = score }
-                                })
-                            |> Task.WhenAll
-
-                        // Select Top K
-                        let k = 3
-
-                        let topK =
-                            scoredTasks
-                            |> Array.toList
-                            |> List.sortByDescending (fun t -> t.Score)
-                            |> List.truncate k
-                            // Filter out negative scores (hard blocked)
-                            |> List.filter (fun t -> t.Score > 0.0)
-
-                        // Budget-aware priority report
-                        let remainingTokens =
-                            ctx.Budget
-                            |> Option.bind (fun b -> b.Remaining.MaxTokens |> Option.map (fun t -> int t))
-
-                        ctx.Logger(TaskPrioritization.priorityReport topK state.CompletedTasks remainingTokens)
-
-                        // Re-prioritize by budget efficiency
-                        let budgetPrioritized =
-                            TaskPrioritization.prioritizeQueue topK state.CompletedTasks remainingTokens
-
-                        if budgetPrioritized.IsEmpty then
-                            ctx.Logger(
-                                "[Curriculum] All generated tasks were rejected by semantic limiter. Using fallback."
-                            )
-
-                            return
-                                [ { Id = Guid.NewGuid()
-                                    DifficultyLevel = state.Generation + 1
-                                    Goal =
-                                      "Failed to generate novel tasks. Refactor the existing code for better readability."
-                                    Constraints = []
-                                    ValidationCriteria = "Code is cleaner"
-                                    Timeout = TimeSpan.FromMinutes(1.0)
-                                    Score = 0.5 } ]
-                        else
-                            return budgetPrioritized
-
-                    with ex ->
-                        ctx.Logger($"[Curriculum] Task generation failed: {ex.Message}")
-                        // Fallback logic remains...
+                    let fallbackPracticalTask () =
                         let practicalTasks =
                             [| "Review the DemoVisualization.fs module and write 3 unit tests for the showSemanticMessage function"
                                "Read the ToolFactory.fs file and add XML documentation comments to all public functions"
@@ -443,14 +377,135 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                         let random = Random()
                         let selectedTask = practicalTasks[random.Next(practicalTasks.Length)]
 
-                        return
-                            [ { Id = Guid.NewGuid()
-                                DifficultyLevel = state.Generation + 1
-                                Goal = selectedTask
-                                Constraints = [ "Work with the TARS v2 codebase" ]
-                                ValidationCriteria = "Provide concrete, actionable output"
-                                Timeout = TimeSpan.FromMinutes(2.0)
-                                Score = 1.0 } ]
+                        [ { Id = Guid.NewGuid()
+                            DifficultyLevel = state.Generation + 1
+                            Goal = selectedTask
+                            Constraints = [ "Work with the TARS v2 codebase" ]
+                            ValidationCriteria = "Provide concrete, actionable output"
+                            Timeout = TimeSpan.FromMinutes(2.0)
+                            Score = 1.0 } ]
+
+                    try
+                        let rootResult = tryExtractJsonElement responseText
+
+                        match rootResult with
+                        | Result.Error err ->
+                            ctx.Logger($"[Curriculum] Task JSON parse failed: {err}")
+                            return fallbackPracticalTask ()
+                        | Result.Ok root ->
+
+                            let mutable tasksElem = Unchecked.defaultof<JsonElement>
+
+                            let tasksJson =
+                                if root.ValueKind = JsonValueKind.Array then
+                                    root.EnumerateArray() |> Seq.map id
+                                elif
+                                    root.TryGetProperty("tasks", &tasksElem)
+                                    && tasksElem.ValueKind = JsonValueKind.Array
+                                then
+                                    tasksElem.EnumerateArray() |> Seq.map id
+                                else
+                                    Seq.empty
+
+                            let existingGoals =
+                                state.CompletedTasks
+                                |> List.map (fun t -> t.TaskGoal.Trim().ToLowerInvariant())
+                                |> Set.ofList
+
+                            let parsedTasksRaw =
+                                tasksJson
+                                |> Seq.map (fun t ->
+                                    let goal = t.GetProperty("goal").GetString()
+
+                                    let constraints =
+                                        t.GetProperty("constraints").EnumerateArray()
+                                        |> Seq.map (fun e -> e.GetString())
+                                        |> Seq.toList
+
+                                    let criteria = t.GetProperty("validation_criteria").GetString()
+
+                                    { Id = Guid.NewGuid()
+                                      DifficultyLevel = state.Generation + 1
+                                      Goal = goal
+                                      Constraints = constraints
+                                      ValidationCriteria = criteria
+                                      Timeout = TimeSpan.FromMinutes(1.0)
+                                      Score = 0.0 })
+                                |> Seq.toList
+                                // Drop exact repeats of completed goals
+                                |> List.filter (fun t ->
+                                    let key = t.Goal.Trim().ToLowerInvariant()
+                                    not (existingGoals.Contains(key)))
+
+                        // 5. Semantic Scoring (Fan-out Limiting)
+                        // Pre-calculate embeddings for recent tasks (last 10)
+                            let recentTasks = state.CompletedTasks |> List.truncate 10
+
+                            let! recentVectors =
+                                task {
+                                    if recentTasks.IsEmpty then
+                                        return []
+                                    else
+                                        let! vectors =
+                                            recentTasks
+                                            |> List.map (fun t -> ctx.Llm.EmbedAsync(t.TaskGoal))
+                                            |> Task.WhenAll
+
+                                        return vectors |> Array.toList
+                                }
+
+                        // Score all candidates
+                            let! scoredTasks =
+                                parsedTasksRaw
+                                |> List.map (fun t ->
+                                    task {
+                                        let! score = scoreTask ctx t recentVectors
+                                        return { t with Score = score }
+                                    })
+                                |> Task.WhenAll
+
+                        // Select Top K
+                            let k = 3
+
+                            let topK =
+                                scoredTasks
+                                |> Array.toList
+                                |> List.sortByDescending (fun t -> t.Score)
+                                |> List.truncate k
+                                // Filter out negative scores (hard blocked)
+                                |> List.filter (fun t -> t.Score > 0.0)
+
+                        // Budget-aware priority report
+                            let remainingTokens =
+                                ctx.Budget
+                                |> Option.bind (fun b -> b.Remaining.MaxTokens |> Option.map (fun t -> int t))
+
+                            ctx.Logger(TaskPrioritization.priorityReport topK state.CompletedTasks remainingTokens)
+
+                            // Re-prioritize by budget efficiency
+                            let budgetPrioritized =
+                                TaskPrioritization.prioritizeQueue topK state.CompletedTasks remainingTokens
+
+                            if budgetPrioritized.IsEmpty then
+                                ctx.Logger(
+                                    "[Curriculum] All generated tasks were rejected by semantic limiter. Using fallback."
+                                )
+
+                                return
+                                    [ { Id = Guid.NewGuid()
+                                        DifficultyLevel = state.Generation + 1
+                                        Goal =
+                                          "Failed to generate novel tasks. Refactor the existing code for better readability."
+                                        Constraints = []
+                                        ValidationCriteria = "Code is cleaner"
+                                        Timeout = TimeSpan.FromMinutes(1.0)
+                                        Score = 0.5 } ]
+                            else
+                                return budgetPrioritized
+
+                    with ex ->
+                        ctx.Logger($"[Curriculum] Task generation failed: {ex.Message}")
+                        return fallbackPracticalTask ()
 
         }
 
@@ -715,40 +770,77 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                                 | PartialSuccess((_, o, t), _) -> (true, o, t)
                                 | Failure err -> (false, String.concat "; " (err |> List.map (fun e -> $"%A{e}")), [])
 
-                            if success then
-                                let requestMsg = SpeechActs.fromSemantic msg
+                            let replyIssue =
+                                if success then
+                                    let requestMsg = SpeechActs.fromSemantic msg
 
-                                let intent, content =
-                                    match SpeechActs.tryParse output with
-                                    | Some(i, c) -> i, c
-                                    | None -> Tell output, output // Fallback for legacy outputs
+                                    let intent, content =
+                                        match SpeechActs.tryParse output with
+                                        | Some(i, c) -> i, c
+                                        | None -> Tell output, output // Fallback for legacy outputs
 
-                                let replyMsg = SpeechActs.createReply requestMsg intent content executor.Id
+                                    let replyMsg = SpeechActs.createReply requestMsg intent content executor.Id
 
-                                match SpeechActs.validateFlow requestMsg replyMsg with
-                                | Result.Ok() ->
-                                    ctx.Logger
-                                        $"[Protocol] Verified semantic flow: %A{requestMsg.Intent} -> %A{replyMsg.Intent}"
-                                | Result.Error err -> ctx.Logger $"[Protocol] WARNING: Protocol violation: %s{err}"
+                                    match SpeechActs.validateFlow requestMsg replyMsg with
+                                    | Result.Ok() ->
+                                        ctx.Logger
+                                            $"[Protocol] Verified semantic flow: %A{requestMsg.Intent} -> %A{replyMsg.Intent}"
+                                    | Result.Error err ->
+                                        ctx.Logger $"[Protocol] WARNING: Protocol violation: %s{err}"
 
-                            let (agentAfterExec, _, output, trace) =
-                                match outcome with
-                                | Success(a, o, t) -> (a, true, o, t)
-                                | PartialSuccess((a, o, t), _) -> (a, true, o, t)
-                                | Failure err ->
-                                    (agentWithMsg, false, String.concat "; " (err |> List.map (fun e -> $"%A{e}")), [])
+                                    let issue =
+                                        match intent with
+                                        | AgentIntent.Tell _ when looksLikeFollowUpRequest content ->
+                                            Some "Agent requested additional input instead of completing the task."
+                                        | AgentIntent.Tell _ -> None
+                                        | AgentIntent.Ask _ -> Some "Agent asked a follow-up question instead of answering."
+                                        | AgentIntent.Error _ -> Some "Agent returned an error response."
+                                        | AgentIntent.Propose _ -> Some "Agent proposed a plan instead of providing a result."
+                                        | AgentIntent.Accept _ -> Some "Agent accepted a plan instead of providing a result."
+                                        | AgentIntent.Reject _ -> Some "Agent rejected a plan instead of providing a result."
+                                        | AgentIntent.Act _ -> Some "Agent returned an action instead of a result."
+                                        | AgentIntent.Event _ -> Some "Agent returned an event instead of a result."
 
-                            if not success then
+                                    issue |> Option.map (fun msg -> (msg, content))
+                                else
+                                    None
+
+                            match replyIssue with
+                            | Some(issue, content) ->
+                                let issueOutput =
+                                    if String.IsNullOrWhiteSpace content then
+                                        issue
+                                    else
+                                        issue + "\n" + content
+
                                 return
                                     { TaskId = taskDef.Id
                                       TaskGoal = taskDef.Goal
                                       ExecutorId = state.ExecutorAgentId
                                       Success = false
-                                      Output = output
-                                      ExecutionTrace = trace
+                                      Output = issueOutput
+                                      ExecutionTrace = trace @ [ "PROTOCOL_VIOLATION" ]
                                       Duration = TimeSpan.FromSeconds(5.0)
                                       Evaluation = None }
-                            else
+                            | None ->
+                                let (agentAfterExec, _, output, trace) =
+                                    match outcome with
+                                    | Success(a, o, t) -> (a, true, o, t)
+                                    | PartialSuccess((a, o, t), _) -> (a, true, o, t)
+                                    | Failure err ->
+                                        (agentWithMsg, false, String.concat "; " (err |> List.map (fun e -> $"%A{e}")), [])
+
+                                if not success then
+                                    return
+                                        { TaskId = taskDef.Id
+                                          TaskGoal = taskDef.Goal
+                                          ExecutorId = state.ExecutorAgentId
+                                          Success = false
+                                          Output = output
+                                          ExecutionTrace = trace
+                                          Duration = TimeSpan.FromSeconds(5.0)
+                                          Evaluation = None }
+                                else
                                 // Handle Speech Act prefix in output using new helper
                                 let mutable currentOutput =
                                     match SpeechActs.tryParse output with
@@ -1212,11 +1304,11 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                             Tars.Core.Episode.AgentInteraction(
                                 "Evolution",
                                 taskDef.Goal,
-                                (if resultWithEvaluation.Success then
+                                (if finalResult.Success then
                                      "SUCCESS: "
                                  else
                                      "FAILED: ")
-                                + resultWithEvaluation.Output,
+                                + resultForDisplay.Output,
                                 DateTime.UtcNow
                             )
 
@@ -1228,7 +1320,7 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                     return
                         { state with
                             Generation = state.Generation + 1
-                            CompletedTasks = resultWithEvaluation :: state.CompletedTasks
+                            CompletedTasks = resultForDisplay :: state.CompletedTasks
                             CurrentTask = None
                             ActiveBeliefs = newBeliefs }
                 else
@@ -1240,7 +1332,7 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
 
                     return
                         { state with
-                            CompletedTasks = resultWithEvaluation :: state.CompletedTasks
+                            CompletedTasks = resultForDisplay :: state.CompletedTasks
                             CurrentTask = None }
 
             | None ->

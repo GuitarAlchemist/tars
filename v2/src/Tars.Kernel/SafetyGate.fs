@@ -1,6 +1,9 @@
 namespace Tars.Kernel
 
 open System
+open System.Diagnostics
+open System.IO
+open System.Text
 open System.Threading.Tasks
 open Tars.Core
 
@@ -27,12 +30,64 @@ type SafetyGate() =
 
         member _.CheckTests(projectPath: string) =
             async {
-                // Placeholder: In a real scenario, this would run 'dotnet test'
-                // For now, we assume if the path exists, it passes
-                if System.IO.File.Exists(projectPath) || System.IO.Directory.Exists(projectPath) then
-                    return Passed
+                let resolvedPath = Path.GetFullPath(projectPath)
+
+                if not (File.Exists(resolvedPath) || Directory.Exists(resolvedPath)) then
+                    return Failed $"Project path not found: {resolvedPath}"
                 else
-                    return Failed $"Project path not found: {projectPath}"
+                    let workingDir =
+                        if File.Exists(resolvedPath) then
+                            Path.GetDirectoryName(resolvedPath)
+                        else
+                            resolvedPath
+
+                    let args =
+                        if File.Exists(resolvedPath) then
+                            $"test \"{resolvedPath}\" --nologo --verbosity minimal"
+                        else
+                            $"test \"{resolvedPath}\" --nologo --verbosity minimal"
+
+                    let startInfo =
+                        ProcessStartInfo(
+                            FileName = "dotnet",
+                            Arguments = args,
+                            WorkingDirectory = workingDir,
+                            RedirectStandardOutput = true,
+                            RedirectStandardError = true,
+                            UseShellExecute = false,
+                            CreateNoWindow = true
+                        )
+
+                    use proc = new Process()
+                    proc.StartInfo <- startInfo
+
+                    let output = StringBuilder()
+                    proc.OutputDataReceived.Add(fun e ->
+                        if not (isNull e.Data) then
+                            output.AppendLine(e.Data) |> ignore)
+
+                    proc.ErrorDataReceived.Add(fun e ->
+                        if not (isNull e.Data) then
+                            output.AppendLine(e.Data) |> ignore)
+
+                    if not (proc.Start()) then
+                        return Failed "Failed to start dotnet test process."
+                    else
+                        proc.BeginOutputReadLine()
+                        proc.BeginErrorReadLine()
+                        do! proc.WaitForExitAsync() |> Async.AwaitTask
+
+                        if proc.ExitCode = 0 then
+                            return Passed
+                        else
+                            let details = output.ToString().Trim()
+                            let message =
+                                if String.IsNullOrWhiteSpace(details) then
+                                    $"dotnet test failed with exit code {proc.ExitCode}"
+                                else
+                                    $"dotnet test failed (exit {proc.ExitCode}): {details}"
+
+                            return Failed message
             }
 
         member _.CheckSandbox(code: string) =

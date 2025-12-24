@@ -234,7 +234,27 @@ module GraphRuntime =
           MaxSteps: int
           BudgetGovernor: BudgetGovernor option
           OutputGuard: IOutputGuard option
+          CancellationToken: System.Threading.CancellationToken
           Logger: string -> unit }
+
+    let private completeWithCancellation
+        (llm: ILlmService)
+        (req: LlmRequest)
+        (token: System.Threading.CancellationToken)
+        =
+        task {
+            try
+                match llm with
+                | :? ICancellableLlmService as cancellable ->
+                    let! response = cancellable.CompleteAsync(req, token)
+                    return Ok response
+                | _ ->
+                    let! response = llm.CompleteAsync req
+                    return Ok response
+            with
+            | :? OperationCanceledException ->
+                return Result.Error [ PartialFailure.Timeout("Thinking", TimeSpan.Zero) ]
+        }
 
     let private createMessage (source: MessageEndpoint) (content: string) =
         { Id = Guid.NewGuid()
@@ -261,169 +281,149 @@ module GraphRuntime =
 
     let private handleThinking (agent: Agent) (history: Message list) (ctx: GraphContext) =
         task {
-            // 1. Construct Prompt
-            ctx.Logger $"[Thinking] Agent {agent.Name} is thinking..."
-            let basePrompt = PromptBuilder.buildSystemPrompt agent history
-
-            let mutable currentPromptMessages =
-                [ { Role = Role.User
-                    Content = basePrompt } ]
-
-            let mutable attempts = 0
-            let maxAttempts = 3
-            let mutable finalResponseText = ""
-            let mutable guardPassed = false
-            let mutable failureReason = ""
-
-            // 1.5 Check Budget
-            let canSpend =
-                match ctx.BudgetGovernor with
-                | Some governor -> governor.CanAfford { Cost.Zero with Tokens = 100<token> }
-                | None -> true
-
-            if not canSpend then
-                return Failure [ PartialFailure.Error "Budget Exhausted" ]
+            if ctx.CancellationToken.IsCancellationRequested then
+                return Failure [ PartialFailure.Timeout("Thinking", TimeSpan.Zero) ]
             else
-                while attempts < maxAttempts && not guardPassed do
-                    attempts <- attempts + 1
+                // 1. Construct Prompt
+                ctx.Logger $"[Thinking] Agent {agent.Name} is thinking..."
+                let basePrompt = PromptBuilder.buildSystemPrompt agent history
 
-                    // 2. Call LLM
-                    let req =
-                        { ModelHint = Some agent.Model
-                          Model = None
-                          SystemPrompt = None
-                          MaxTokens = Some 1024
-                          Temperature = Some 0.7
-                          Stop = []
-                          Messages = currentPromptMessages
-                          Tools = []
-                          ToolChoice = None
-                          ResponseFormat = None
-                          Stream = false
-                          JsonMode = false
-                          Seed = None }
+                let mutable currentPromptMessages =
+                    [ { Role = Role.User
+                        Content = basePrompt } ]
 
-                    let! response = ctx.Llm.CompleteAsync req
+                let mutable attempts = 0
+                let maxAttempts = 3
+                let mutable finalResponseText = ""
+                let mutable guardPassed = false
+                let mutable failureReason = ""
+                let mutable terminalFailure: PartialFailure list option = None
 
-                    // Record Usage if BudgetGovernor is present
+                // 1.5 Check Budget
+                let canSpend =
                     match ctx.BudgetGovernor with
-                    | Some governor ->
-                        let tokens =
-                            match response.Usage with
-                            | Some u -> u.TotalTokens
-                            | None -> (basePrompt.Length + response.Text.Length) / 4 // Fallback estimation
+                    | Some governor -> governor.CanAfford { Cost.Zero with Tokens = 100<token> }
+                    | None -> true
 
-                        governor.Consume
-                            { Cost.Zero with
-                                Tokens = tokens * 1<token> }
-                        |> ignore
-                    | None -> ()
-
-                    // 2.5 Apply Output Guard
-                    match ctx.OutputGuard with
-                    | None ->
-                        finalResponseText <- response.Text
-                        guardPassed <- true
-                    | Some guard ->
-                        let guardInput =
-                            { ResponseText = response.Text
-                              Grammar = None // Could extract from agent tools if needed
-                              ExpectedJsonFields = None
-                              RequireCitations = false
-                              Citations = None
-                              AllowExtraFields = true
-                              Metadata = Map.empty }
-
-                        let! guardResult = guard.Evaluate guardInput |> Async.StartAsTask
-
-                        match guardResult.Action with
-                        | GuardAction.Accept ->
-                            finalResponseText <- response.Text
-                            guardPassed <- true
-                        | GuardAction.RetryWithHint hint ->
-                            ctx.Logger $"[Guard] Retry attempt {attempts}: {hint}"
-
-                            currentPromptMessages <-
-                                currentPromptMessages
-                                @ [ { Role = Role.Assistant
-                                      Content = response.Text }
-                                    { Role = Role.User
-                                      Content = $"Output rejected. Hint: {hint}" } ]
-                        | GuardAction.AskForEvidence hint ->
-                            ctx.Logger $"[Guard] Asking for evidence: {hint}"
-
-                            currentPromptMessages <-
-                                currentPromptMessages
-                                @ [ { Role = Role.Assistant
-                                      Content = response.Text }
-                                    { Role = Role.User
-                                      Content = $"Please provide evidence: {hint}" } ]
-                        | GuardAction.Reject reason ->
-                            ctx.Logger $"[Guard] Rejected: {reason}"
-                            failureReason <- reason
-                            attempts <- maxAttempts // Stop loop
-                        | GuardAction.Fallback text ->
-                            ctx.Logger $"[Guard] Fallback triggered"
-                            finalResponseText <- text
-                            guardPassed <- true
-
-                if not guardPassed then
-                    let reason =
-                        if String.IsNullOrEmpty failureReason then
-                            "Max retry attempts exceeded"
-                        else
-                            failureReason
-
-                    return Failure [ PartialFailure.Error reason ]
+                if not canSpend then
+                    return Failure [ PartialFailure.Error "Budget Exhausted" ]
                 else
-                    // 3. Parse Response
-                    let parsed =
-                        if agent.Tools.IsEmpty then
-                            ResponseParser.parse finalResponseText
-                        else
-                            ResponseParser.parseWithValidator finalResponseText (Some ToolGrammar.spec.Validator)
+                    while
+                        attempts < maxAttempts
+                        && not guardPassed
+                        && terminalFailure.IsNone
+                        && not ctx.CancellationToken.IsCancellationRequested
+                        do
+                        attempts <- attempts + 1
 
-                    match parsed with
-                    | ResponseParser.ToolCall(name, input) ->
-                        match agent.Tools |> List.tryFind (fun t -> t.Name = name) with
-                        | Some tool ->
-                            // Record the tool call in memory
-                            let msg = createMessage (MessageEndpoint.Agent agent.Id) finalResponseText
-                            let newMemory = agent.Memory @ [ msg ]
+                        // 2. Call LLM
+                        let req =
+                            { ModelHint = Some agent.Model
+                              Model = None
+                              SystemPrompt = None
+                              MaxTokens = Some 1024
+                              Temperature = Some 0.7
+                              Stop = []
+                              Messages = currentPromptMessages
+                              Tools = []
+                              ToolChoice = None
+                              ResponseFormat = None
+                              Stream = false
+                              JsonMode = false
+                              Seed = None }
 
-                            return
-                                { agent with
-                                    Memory = newMemory
-                                    State = Acting(tool, input) }
-                                |> Success
-                        | None ->
-                            // Tool not found - try to create it dynamically!
-                            match ToolFactory.tryCreateTool name input [] with
-                            | ToolFactory.Created tool ->
-                                // Add the new tool to the agent and use it
-                                let msg = createMessage (MessageEndpoint.Agent agent.Id) finalResponseText
-                                let newMemory = agent.Memory @ [ msg ]
+                        let! responseResult = completeWithCancellation ctx.Llm req ctx.CancellationToken
 
-                                let agentWithNewTool =
-                                    { agent with
-                                        Tools = agent.Tools @ [ tool ] }
+                        match responseResult with
+                        | Result.Error failures -> terminalFailure <- Some failures
+                        | Ok response ->
+                            // Record Usage if BudgetGovernor is present
+                            match ctx.BudgetGovernor with
+                            | Some governor ->
+                                let tokens =
+                                    match response.Usage with
+                                    | Some u -> u.TotalTokens
+                                    | None -> req.MaxTokens |> Option.defaultValue 0
 
-                                return
-                                    { agentWithNewTool with
-                                        Memory = newMemory
-                                        State = Acting(tool, input) }
-                                    |> Success
-                            | ToolFactory.CreationFailed reason ->
-                                return
-                                    { agent with
-                                        State = WaitingForUser $"Error: Could not create tool {name}: {reason}" }
-                                    |> Success
-                    | ResponseParser.MultiToolCall calls ->
-                        // For now, just take the first one. Future: support parallel tool calls.
-                        match calls with
-                        | (name, input) :: _ ->
+                                governor.Consume
+                                    { Cost.Zero with
+                                        Tokens = tokens * 1<token> }
+                                |> ignore
+                            | None -> ()
+
+                            // 2.5 Apply Output Guard
+                            match ctx.OutputGuard with
+                            | None ->
+                                finalResponseText <- response.Text
+                                guardPassed <- true
+                            | Some guard ->
+                                let guardInput =
+                                    { ResponseText = response.Text
+                                      Grammar = None // Could extract from agent tools if needed
+                                      ExpectedJsonFields = None
+                                      RequireCitations = false
+                                      Citations = None
+                                      AllowExtraFields = true
+                                      Metadata = Map.empty }
+
+                                let! guardResult = guard.Evaluate guardInput |> Async.StartAsTask
+
+                                match guardResult.Action with
+                                | GuardAction.Accept ->
+                                    finalResponseText <- response.Text
+                                    guardPassed <- true
+                                | GuardAction.RetryWithHint hint ->
+                                    ctx.Logger $"[Guard] Retry attempt {attempts}: {hint}"
+
+                                    currentPromptMessages <-
+                                        currentPromptMessages
+                                        @ [ { Role = Role.Assistant
+                                              Content = response.Text }
+                                            { Role = Role.User
+                                              Content = $"Output rejected. Hint: {hint}" } ]
+                                | GuardAction.AskForEvidence hint ->
+                                    ctx.Logger $"[Guard] Asking for evidence: {hint}"
+
+                                    currentPromptMessages <-
+                                        currentPromptMessages
+                                        @ [ { Role = Role.Assistant
+                                              Content = response.Text }
+                                            { Role = Role.User
+                                              Content = $"Please provide evidence: {hint}" } ]
+                                | GuardAction.Reject reason ->
+                                    ctx.Logger $"[Guard] Rejected: {reason}"
+                                    failureReason <- reason
+                                    attempts <- maxAttempts // Stop loop
+                                | GuardAction.Fallback text ->
+                                    ctx.Logger $"[Guard] Fallback triggered"
+                                    finalResponseText <- text
+                                    guardPassed <- true
+
+                    if ctx.CancellationToken.IsCancellationRequested then
+                        return Failure [ PartialFailure.Timeout("Thinking", TimeSpan.Zero) ]
+                    elif terminalFailure.IsSome then
+                        return Failure terminalFailure.Value
+                    elif not guardPassed then
+                        let reason =
+                            if String.IsNullOrEmpty failureReason then
+                                "Max retry attempts exceeded"
+                            else
+                                failureReason
+
+                        return Failure [ PartialFailure.Error reason ]
+                    else
+                        // 3. Parse Response
+                        let parsed =
+                            if agent.Tools.IsEmpty then
+                                ResponseParser.parse finalResponseText
+                            else
+                                ResponseParser.parseWithValidator finalResponseText (Some ToolGrammar.spec.Validator)
+
+                        match parsed with
+                        | ResponseParser.ToolCall(name, input) ->
                             match agent.Tools |> List.tryFind (fun t -> t.Name = name) with
                             | Some tool ->
+                                // Record the tool call in memory
                                 let msg = createMessage (MessageEndpoint.Agent agent.Id) finalResponseText
                                 let newMemory = agent.Memory @ [ msg ]
 
@@ -433,56 +433,107 @@ module GraphRuntime =
                                         State = Acting(tool, input) }
                                     |> Success
                             | None ->
+                                // Tool not found - try to create it dynamically!
+                                match ToolFactory.tryCreateTool name input [] with
+                                | ToolFactory.Created tool ->
+                                    // Add the new tool to the agent and use it
+                                    let msg = createMessage (MessageEndpoint.Agent agent.Id) finalResponseText
+                                    let newMemory = agent.Memory @ [ msg ]
+
+                                    let agentWithNewTool =
+                                        { agent with
+                                            Tools = agent.Tools @ [ tool ] }
+
+                                    return
+                                        { agentWithNewTool with
+                                            Memory = newMemory
+                                            State = Acting(tool, input) }
+                                        |> Success
+                                | ToolFactory.CreationFailed reason ->
+                                    return
+                                        { agent with
+                                            State = WaitingForUser $"Error: Could not create tool {name}: {reason}" }
+                                        |> Success
+                        | ResponseParser.MultiToolCall calls ->
+                            // For now, just take the first one. Future: support parallel tool calls.
+                            match calls with
+                            | (name, input) :: _ ->
+                                match agent.Tools |> List.tryFind (fun t -> t.Name = name) with
+                                | Some tool ->
+                                    let msg = createMessage (MessageEndpoint.Agent agent.Id) finalResponseText
+                                    let newMemory = agent.Memory @ [ msg ]
+
+                                    return
+                                        { agent with
+                                            Memory = newMemory
+                                            State = Acting(tool, input) }
+                                        |> Success
+                                | None ->
+                                    return
+                                        { agent with
+                                            State = WaitingForUser $"Error: Tool %s{name} not found." }
+                                        |> Success
+                            | [] ->
                                 return
                                     { agent with
-                                        State = WaitingForUser $"Error: Tool %s{name} not found." }
+                                        State = WaitingForUser "Error: Empty multi-tool call." }
                                     |> Success
-                        | [] ->
+                        | ResponseParser.TextResponse responseText ->
+                            // Record the assistant's response in memory so the conversation history is preserved
+                            let msg = createMessage (MessageEndpoint.Agent agent.Id) responseText
+                            let newMemory = agent.Memory @ [ msg ]
                             return
                                 { agent with
-                                    State = WaitingForUser "Error: Empty multi-tool call." }
+                                    Memory = newMemory
+                                    State = WaitingForUser responseText }
                                 |> Success
-                    | ResponseParser.TextResponse responseText ->
-                        // Record the assistant's response in memory so the conversation history is preserved
-                        let msg = createMessage (MessageEndpoint.Agent agent.Id) responseText
-                        let newMemory = agent.Memory @ [ msg ]
-                        return
-                            { agent with
-                                Memory = newMemory
-                                State = WaitingForUser responseText }
-                            |> Success
-                    | ResponseParser.SpeechAct(perf, content) ->
-                        let msg =
-                            { createMessage (MessageEndpoint.Agent agent.Id) content with
-                                Performative = perf }
+                        | ResponseParser.SpeechAct(perf, content) ->
+                            let msg =
+                                { createMessage (MessageEndpoint.Agent agent.Id) content with
+                                    Performative = perf }
 
-                        let newMemory = agent.Memory @ [ msg ]
+                            let newMemory = agent.Memory @ [ msg ]
 
-                        return
-                            { agent with
-                                Memory = newMemory
-                                State = WaitingForUser $"ACT: {perf}: {content}" }
-                            |> Success
+                            return
+                                { agent with
+                                    Memory = newMemory
+                                    State = WaitingForUser $"ACT: {perf}: {content}" }
+                                |> Success
         }
 
     let private handleActing (agent: Agent) (tool: Tool) (input: string) (ctx: GraphContext) =
         task {
-            ctx.Logger $"[Acting] Agent {agent.Name} is executing tool {tool.Name} with input: {input}"
-            let! (result: Result<string, string>) = tool.Execute input |> Async.StartAsTask
+            if ctx.CancellationToken.IsCancellationRequested then
+                return Failure [ PartialFailure.Timeout("Acting", TimeSpan.Zero) ]
+            else
+                ctx.Logger $"[Acting] Agent {agent.Name} is executing tool {tool.Name} with input: {input}"
+                let! resultChoice =
+                    task {
+                        try
+                            let! result =
+                                Async.StartAsTask(tool.Execute input, cancellationToken = ctx.CancellationToken)
+                            return Choice1Of2 result
+                        with :? OperationCanceledException ->
+                            return Choice2Of2 ()
+                    }
 
-            match result with
-            | Result.Ok output ->
-                return
-                    { agent with
-                        State = Observing(tool, output) }
-                    |> Success
-            | Result.Error err ->
-                // Tool execution error is treated as a PartialSuccess so the agent can recover
-                let nextAgent =
-                    { agent with
-                        State = Observing(tool, $"Error: {err}") }
+                match resultChoice with
+                | Choice2Of2 _ ->
+                    return Failure [ PartialFailure.Timeout("Acting", TimeSpan.Zero) ]
+                | Choice1Of2 result ->
+                    match result with
+                    | Result.Ok output ->
+                        return
+                            { agent with
+                                State = Observing(tool, output) }
+                            |> Success
+                    | Result.Error err ->
+                        // Tool execution error is treated as a PartialSuccess so the agent can recover
+                        let nextAgent =
+                            { agent with
+                                State = Observing(tool, $"Error: {err}") }
 
-                return PartialSuccess(nextAgent, [ PartialFailure.ToolError(tool.Name, err) ])
+                        return PartialSuccess(nextAgent, [ PartialFailure.ToolError(tool.Name, err) ])
         }
 
     let private handleObserving (agent: Agent) (tool: Tool) (output: string) (ctx: GraphContext) =
@@ -499,11 +550,14 @@ module GraphRuntime =
 
     let step (agent: Agent) (ctx: GraphContext) =
         task {
-            match agent.State with
-            | Idle -> return! handleIdle agent
-            | Thinking history -> return! handleThinking agent history ctx
-            | Acting(tool, input) -> return! handleActing agent tool input ctx
-            | Observing(tool, output) -> return! handleObserving agent tool output ctx
-            | WaitingForUser _ -> return Success agent
-            | AgentState.Error _ -> return Success agent
+            if ctx.CancellationToken.IsCancellationRequested then
+                return Failure [ PartialFailure.Timeout("AgentLoop", TimeSpan.Zero) ]
+            else
+                match agent.State with
+                | Idle -> return! handleIdle agent
+                | Thinking history -> return! handleThinking agent history ctx
+                | Acting(tool, input) -> return! handleActing agent tool input ctx
+                | Observing(tool, output) -> return! handleObserving agent tool output ctx
+                | WaitingForUser _ -> return Success agent
+                | AgentState.Error _ -> return Success agent
         }

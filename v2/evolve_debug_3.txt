@@ -1,0 +1,51 @@
+  _____      _      ____    ____              ____  
+ |_   _|    / \    |  _ \  / ___|    __   __ |___ \ 
+   | |     / _ \   | |_) | \___ \    \ \ / /   __) |
+   | |    / ___ \  |  _ <   ___) |    \ V /   / __/ 
+   |_|   /_/   \_\ |_| \_\ |____/      \_/   |_____|
+                                                    
+Self-Improving Agent System
+
+   [Config] Loaded settings from C:\Users\spare\.tars
+[20:27:46 INF] Starting TARS v2 Evolution Engine...
+≡ƒñû LLM Model: qwen3
+[20:27:46 INF] Curriculum Agent: ff3925f6-e2c2-49c5-846b-3a6ee27d0a68
+[20:27:46 INF] Executor Agent: 20c7fd2b-23ae-4738-8aef-312e849fb170
+Γä╣ ≡ƒôü Using Postgres Vector Store
+Γä╣ ≡ƒºá Registering agent capabilities...
+   Process: Planning...
+   Process: Reasoning...
+   Process: CodeGeneration...
+   Process: TaskExecution...
+   Process: Reasoning...
+   Process: Reasoning...
+   Process: Planning...
+Γä╣ ≡ƒôÜ Knowledge base: C:\Users\spare\source\repos\tars\v2\knowledge
+Γä╣ ≡ƒºá Knowledge graph: C:\Users\spare\.tars\knowledge\temporal_graph.json (facts:
+10)
+Γä╣ ≡ƒºá Capability index: Postgres (agent_capabilities)
+Γä╣ ≡ƒôÆ Knowledge ledger initialized
+Γä╣ ≡ƒºá Ingesting codebase into Knowledge Graph...
+Γä╣ ≡ƒºá Semantic Memory initialized at 
+C:\Users\spare\source\repos\tars\v2\knowledge\semantic_memory
+Γä╣ Graphiti enabled at http://localhost:8001
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ Generation 0 (0/1 tasks) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+[20:27:46 INF] [Epistemic] SuggestCurriculum failed: Response status code does not indicate success: 404 (Not Found).
+[36m≡ƒÄ» [System ΓåÆ Agent:AgentId ] [1mREQUEST[0m[36m: IMPORTANT: You are generating F# CODING TASKS. Do NOT ask questions. Output ONLY JSON.
+[0m
+[20:27:46 INF] [Thinking] Agent Curriculum is thinking...
+Γ£ù Evolution failed: Response status code does not indicate success: 404 (Not 
+Found).
+[20:27:46 ERR] Evolution Engine Failed
+System.Net.Http.HttpRequestException: Response status code does not indicate success: 404 (Not Found).
+   at System.Net.Http.HttpResponseMessage.EnsureSuccessStatusCode()
+   at Tars.Llm.OllamaClient.sendChatAsync@157.MoveNext() in C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\OllamaClient.fs:line 185
+   at Tars.Llm.LlmService.Tars-Llm-LlmService-ILlmService-CompleteAsync@162.MoveNext() in C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\LlmService.fs:line 166
+   at Tars.Graph.GraphRuntime.completeWithCancellation@245.MoveNext() in C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\Graph.fs:line 249
+   at Tars.Graph.GraphRuntime.completeWithCancellation@245.MoveNext() in C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\Graph.fs:line 256
+   at Tars.Graph.GraphRuntime.handleThinking@283.MoveNext() in C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\Graph.fs:line 335
+   at Tars.Graph.GraphRuntime.step@552.MoveNext() in C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\Graph.fs:line 558
+   at <StartupCode$Tars-Graph>.$Executor.RunAgentLoop@27.MoveNext() in C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\Executor.fs:line 52
+   at Tars.Evolution.Engine.generateTask@181.MoveNext() in C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Engine.fs:line 274
+   at Tars.Evolution.Engine.step@920.MoveNext() in C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Engine.fs:line 1230
+   at Tars.Interface.Cli.Commands.Evolve.run@33-19.MoveNext() in C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\Evolve.fs:line 647

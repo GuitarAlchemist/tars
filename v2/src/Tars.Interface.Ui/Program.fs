@@ -1,6 +1,7 @@
 module Tars.Interface.Ui.Program
 
 open System
+open System.Threading.Tasks
 open Microsoft.AspNetCore.Builder
 open Microsoft.Extensions.DependencyInjection
 open Microsoft.Extensions.Hosting
@@ -84,8 +85,13 @@ let main args =
     // Register LLM Services
     builder.Services.AddHttpClient() |> ignore
 
+    let ollamaHost =
+        Option.ofObj (Environment.GetEnvironmentVariable("TARS_OLLAMA_HOST"))
+        |> Option.defaultValue "http://localhost:11434"
+        |> Uri
+
     let routingConfig =
-        { OllamaBaseUri = Uri "http://localhost:11434"
+        { OllamaBaseUri = ollamaHost
           VllmBaseUri = Uri "http://localhost:8000"
           OpenAIBaseUri = Uri "https://api.openai.com/v1"
           GoogleGeminiBaseUri = Uri "https://generativelanguage.googleapis.com"
@@ -93,7 +99,9 @@ let main args =
           DockerModelRunnerBaseUri = Some(Uri "http://localhost:12434/v1")
           LlamaCppBaseUri = Some(Uri "http://localhost:8080")
           // Recommended thinking models: qwen3:14b, deepseek-r1:14b, magistral
-          DefaultOllamaModel = "qwen3:14b"
+          DefaultOllamaModel =
+            Option.ofObj (Environment.GetEnvironmentVariable("TARS_OLLAMA_MODEL"))
+            |> Option.defaultValue "qwen2.5-coder:latest"
           DefaultVllmModel = "facebook/opt-125m"
           DefaultOpenAIModel = "gpt-4"
           DefaultGoogleGeminiModel = "gemini-pro"
@@ -112,7 +120,10 @@ let main args =
 
     let llmConfig = { Routing = routingConfig }
     builder.Services.AddSingleton(llmConfig) |> ignore
-    builder.Services.AddHttpClient<ILlmService, DefaultLlmService>() |> ignore
+    // Configure HttpClient for LLM with longer timeout
+    builder.Services.AddHttpClient<ILlmService, DefaultLlmService>(fun client ->
+        client.Timeout <- TimeSpan.FromSeconds(120.0))
+    |> ignore
 
     // Register Agent Registry
     let registry = AgentRegistry()
@@ -148,12 +159,29 @@ let main args =
     builder.Services.AddSingleton<IAgentRegistry>(registry) |> ignore
     Tars.Tools.Standard.AgentTools.setRegistry (registry)
 
-    // Register Vector Store
+    // Register Vector Store - use PostgreSQL if available, else fallback to in-memory
     let pgConn =
-        "Host=localhost;Port=5432;Database=tars_memory;Username=postgres;Password=tars_password"
+        Option.ofObj (Environment.GetEnvironmentVariable("TARS_POSTGRES_CONNECTION"))
+        |> Option.defaultValue "Host=localhost;Port=5432;Database=tars_memory;Username=postgres;Password=tars_password"
 
-    builder.Services.AddSingleton<IVectorStore>(fun _ -> PostgresVectorStore(pgConn) :> IVectorStore)
-    |> ignore
+    // Try PostgreSQL first, fall back to in-memory if it fails
+    let vectorStore: IVectorStore =
+        try
+            let pg = PostgresVectorStore(pgConn)
+            // Test connection
+            pg.GetCollectionsAsync().GetAwaiter().GetResult() |> ignore
+            Log.Information("Connected to PostgreSQL vector store")
+            pg :> IVectorStore
+        with ex ->
+            Log.Warning($"PostgreSQL unavailable ({ex.Message}), using in-memory vector store")
+            // Simple in-memory fallback
+            { new IVectorStore with
+                member _.SaveAsync(collection, id, vector, payload) = Task.CompletedTask
+
+                member _.SearchAsync(collection, queryVector, limit) =
+                    Task.FromResult(List.empty<string * float32 * Map<string, string>>) }
+
+    builder.Services.AddSingleton<IVectorStore>(vectorStore) |> ignore
 
     // Capability store backed by the vector store for semantic routing
     builder.Services.AddSingleton<ICapabilityStore>(fun sp ->

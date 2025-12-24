@@ -34,6 +34,7 @@ type EvidenceStore() =
               Segments = segments
               ProposedAssertions = []
               Status = Pending
+              Metadata = Map.empty
               VerifiedAt = None
               VerifiedBy = None
               RejectionReason = None }

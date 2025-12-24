@@ -31,6 +31,8 @@ type AgentContext =
         KnowledgeGraph: IGraphService option
         /// Optional capability store for semantic routing
         CapabilityStore: ICapabilityStore option
+        /// Optional audit collector for reasoning decisions
+        Audit: ReasoningAudit option
         /// Cancellation token for cooperative cancellation
         CancellationToken: CancellationToken
     }

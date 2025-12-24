@@ -12,12 +12,15 @@
 | 1 | Foundation (Kernel, EventBus) | ✅ Complete |
 | 2 | Brain (LLM, Memory, Grammar) | ✅ Complete |
 | 3 | Body (Tools, Registry) | ✅ Complete |
+| 4 | Soul (Evolution Loop) | ✅ Complete |
 | 5 | Metascript Engine | ✅ Complete |
 | 6 | Cognitive Architecture | ✅ Complete |
 | 7 | Production Hardening | 🚧 In Progress |
-| 8 | Advanced Prompting Techniques | 🔜 Planned |
-| **9** | **Symbolic Knowledge & Free Skills** | 🔜 **Planned** |
-| **10** | **3D Knowledge Graph Visualization** | 🔜 **Planned** |
+| 8 | Advanced Prompting Techniques | 🚧 Partial (GoT implemented) |
+| **9** | **Symbolic Knowledge & Free Skills** | 🚧 **In Progress** |
+| **10** | **3D Knowledge Graph Visualization** | 🔜 Planned |
+| 11 | Cognitive Grounding | 🔜 Planned |
+| 12 | Web of Things Integration | 🔜 Planned |
 
 ---
 

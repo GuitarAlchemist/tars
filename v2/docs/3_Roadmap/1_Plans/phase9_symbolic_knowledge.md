@@ -1,7 +1,7 @@
 # TARS v2 - Phase 9: Symbolic Knowledge & Free Skills Roadmap
 
 **Date:** December 22, 2025  
-**Status:** Planning  
+**Status:** 🚧 In Progress  
 **Source:** [ChatGPT-Claude skills free use.md](../conversations/ChatGPT-Claude%20skills%20free%20use.md)
 
 ---
@@ -127,10 +127,10 @@ CREATE INDEX idx_ledger_time ON knowledge_ledger(created_at);
 
 ### Tasks
 
-- [ ] **9.1.1** Create `Tars.Knowledge` project
-- [ ] **9.1.2** Define `Belief`, `BeliefEvent`, `Provenance` types
-- [ ] **9.1.3** Implement `KnowledgeLedger` (Postgres-backed)
-- [ ] **9.1.4** Add CLI: `tars know ingest <path>`
+- [x] **9.1.1** Create `Tars.Knowledge` project ✅ (Dec 2025)
+- [x] **9.1.2** Define `Belief`, `BeliefEvent`, `Provenance` types ✅ (Types.fs)
+- [x] **9.1.3** Implement `KnowledgeLedger` (Postgres-backed) ✅ (Ledger.fs, PostgresLedgerStorage.fs)
+- [x] **9.1.4** Add CLI: `tars know ingest <path>` ✅ (KnowCmd.fs)
 - [ ] **9.1.5** Parse `.trsx` outputs into assertions
 - [ ] **9.1.6** Emit `knowledge_snapshot.trsx` each run
 
@@ -198,14 +198,14 @@ Only promote to `ASSERT` if:
 
 ### Tasks
 
-- [ ] **9.2.1** Create `evidence_store` table (raw content)
-- [ ] **9.2.2** Create `assertion_proposals` table
-- [ ] **9.2.3** Implement Wikipedia fetcher
+- [x] **9.2.1** Create `evidence_store` table (raw content) ✅ (EvidenceStore.fs)
+- [x] **9.2.2** Create `assertion_proposals` table ✅ (Types.fs - ProposedAssertion)
+- [x] **9.2.3** Implement Wikipedia fetcher ✅ (WebTools.fs - fetch_wikipedia)
 - [ ] **9.2.4** Implement segment extractor
-- [ ] **9.2.5** Implement LLM-based assertion proposer
+- [x] **9.2.5** Implement LLM-based assertion proposer ✅ (KnowCmd.fs - propose command)
 - [ ] **9.2.6** Implement Verifier Agent
 - [ ] **9.2.7** Implement contradiction detection
-- [ ] **9.2.8** Add CLI: `tars know fetch <url>`
+- [x] **9.2.8** Add CLI: `tars know fetch <url>` ✅ (KnowCmd.fs)
 
 ---
 
@@ -264,10 +264,10 @@ Plans touch knowledge only through explicit belief references.
 
 ### Tasks
 
-- [ ] **9.3.1** Create `Plan`, `PlanEvent` types
+- [x] **9.3.1** Create `Plan`, `PlanEvent` types ✅ (Types.fs)
 - [ ] **9.3.2** Create `plans` and `plan_events` tables
-- [ ] **9.3.3** Implement `PlanManager` service
-- [ ] **9.3.4** Link plan assumptions to belief IDs
+- [x] **9.3.3** Implement `PlanManager` service ✅ (PlanManager.fs)
+- [x] **9.3.4** Link plan assumptions to belief IDs ✅ (Types.fs)
 - [ ] **9.3.5** Invalidate plans when beliefs retract
 - [ ] **9.3.6** Add CLI: `tars plan new "<goal>"`
 - [ ] **9.3.7** Add CLI: `tars plan status`

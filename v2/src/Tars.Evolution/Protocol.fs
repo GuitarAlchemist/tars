@@ -16,6 +16,15 @@ type TaskDefinition =
         Score: float
     }
 
+/// High-level evaluation result for a task output
+type EvaluationResult =
+    { Passed: bool
+      Confidence: float
+      Summary: string
+      Issues: string list
+      SuggestedFixes: string list
+      EvaluatedAt: DateTime }
+
 /// The result of an attempted task execution
 type TaskResult =
     {
@@ -27,6 +36,7 @@ type TaskResult =
         /// The trace of steps taken (for learning)
         ExecutionTrace: string list
         Duration: TimeSpan
+        Evaluation: EvaluationResult option
     }
 
 /// Represents the state of the evolutionary loop

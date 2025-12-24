@@ -1,7 +1,10 @@
 namespace Tars.Cortex
 
 open System
+open System.Threading.Tasks
 open Tars.Core
+open Tars.Llm
+open Tars.Llm.LlmService
 
 /// Entity and fact extraction types
 module EntityExtractor =
@@ -98,7 +101,24 @@ module EntityResolver =
                     Examples = (g1.Examples @ g2.Examples) |> List.distinct }
         | _, _ -> e1 // Different types - keep first
 
-    /// Resolve/deduplicate a list of entities
+    /// Get representative text for an entity to use in semantic embedding
+    let getRepresentativeText =
+        function
+        | ConceptE c ->
+            if String.IsNullOrEmpty c.Description then
+                c.Name
+            else
+                $"{c.Name}: {c.Description}"
+        | AgentBeliefE b -> b.Statement
+        | CodePatternE p -> $"{p.Name} ({p.Category})"
+        | CodeModuleE m -> m.Path
+        | AnomalyE a -> $"{a.Location}: {a.Type}"
+        | GrammarRuleE g -> g.Name
+        | FileE p -> p
+        | FunctionE n -> n
+        | EpisodeE e -> Episode.typeTag e
+
+    /// Resolve/deduplicate a list of entities using exact string matching
     let resolveEntities (strategy: ResolutionStrategy) (entities: TarsEntity list) : TarsEntity list =
         entities
         |> List.groupBy getCanonicalId
@@ -111,6 +131,67 @@ module EntityResolver =
                 | KeepFirst -> Some first
                 | KeepLast -> Some(List.last group)
                 | MergeByConfidence -> Some(List.fold mergeEntities first rest))
+
+    /// Resolve/deduplicate a list of entities using neural-symbolic semantic clustering
+    let resolveEntitiesSemanticAsync
+        (llm: ILlmService)
+        (threshold: float)
+        (strategy: ResolutionStrategy)
+        (entities: TarsEntity list)
+        : Task<TarsEntity list> =
+        task {
+            if entities.IsEmpty then
+                return []
+            else
+                // 1. Generate embeddings for all entities
+                let! entityEmbeddings =
+                    entities
+                    |> List.map (fun e ->
+                        task {
+                            let text = getRepresentativeText e
+                            let! emb = llm.EmbedAsync text
+                            return (e, emb)
+                        })
+                    |> Task.WhenAll
+
+                // 2. Cluster entities based on semantic similarity
+                let mutable clusters: (TarsEntity * float32[]) list list = []
+
+                for (entity, emb) in entityEmbeddings do
+                    let mutable assigned = false
+
+                    let updatedClusters =
+                        clusters
+                        |> List.map (fun cluster ->
+                            let (representative, representativeEmb) = cluster.Head
+                            let sim = MetricSpace.cosineSimilarity emb representativeEmb
+
+                            if float sim >= threshold then
+                                assigned <- true
+                                (entity, emb) :: cluster
+                            else
+                                cluster)
+
+                    clusters <- updatedClusters
+
+                    if not assigned then
+                        clusters <- [ (entity, emb) ] :: clusters
+
+                // 3. Resolve each cluster into a single entity
+                return
+                    clusters
+                    |> List.choose (fun cluster ->
+                        let ents = cluster |> List.map fst
+
+                        match ents with
+                        | [] -> None
+                        | [ single ] -> Some single
+                        | first :: rest ->
+                            match strategy with
+                            | KeepFirst -> Some first
+                            | KeepLast -> Some(List.last ents)
+                            | MergeByConfidence -> Some(List.fold mergeEntities first rest))
+        }
 
     /// Update fact source entity to resolved entity
     let private updateFactSource (newSource: TarsEntity) (fact: Tars.Core.TarsFact) : Tars.Core.TarsFact =
@@ -382,18 +463,32 @@ Return valid JSON array only."""
                     return FactFailure(LlmError ex.Message)
         }
 
-    /// Extract relationships between specific entity pairs using heuristics
-    let suggestRelationships (e1: TarsEntity) (e2: TarsEntity) : Tars.Core.TarsFact option =
-        // Simple heuristic-based relationship detection without LLM
-        match e1, e2 with
-        | Tars.Core.CodePatternE p1, Tars.Core.CodePatternE p2 when p1.Category = p2.Category ->
-            Some(Tars.Core.SimilarTo(e1, e2, 0.7))
-        | Tars.Core.CodeModuleE m1, Tars.Core.CodeModuleE m2 when m1.Dependencies |> List.contains m2.Path ->
-            Some(Tars.Core.DependsOn(e1, e2, 0.9))
-        | Tars.Core.ConceptE c1, Tars.Core.ConceptE c2 when c1.RelatedConcepts |> List.contains c2.Name ->
-            Some(Tars.Core.SimilarTo(e1, e2, 0.6))
-        | Tars.Core.AgentBeliefE b1, Tars.Core.AgentBeliefE b2 when
-            b1.Statement = b2.Statement && b1.Confidence <> b2.Confidence
-            ->
-            Some(Tars.Core.EvolvedFrom(e1, e2, $"Confidence changed: {b2.Confidence} -> {b1.Confidence}"))
-        | _ -> None
+    let private canonicalId (entity: TarsEntity) = TarsEntity.getId entity
+
+    let private matchesPair (lhs: TarsEntity) (rhs: TarsEntity) (fact: TarsFact) =
+        let lhsId = canonicalId lhs
+        let rhsId = canonicalId rhs
+        let sourceId = canonicalId (TarsFact.source fact)
+
+        match TarsFact.target fact with
+        | Some target ->
+            let targetId = canonicalId target
+            (sourceId = lhsId && targetId = rhsId) || (sourceId = rhsId && targetId = lhsId)
+        | None -> false
+
+    /// Extract relationships between the provided entities using the LLM
+    let suggestRelationshipsAsync
+        (llmService: ILlmService)
+        (context: string)
+        (e1: TarsEntity)
+        (e2: TarsEntity)
+        : Task<FactExtractionResult> =
+        task {
+            let! extraction = extractFactsAsync llmService [ e1; e2 ] context
+
+            match extraction with
+            | FactSuccess facts ->
+                let filtered = facts |> List.filter (matchesPair e1 e2)
+                return FactSuccess filtered
+            | failure -> return failure
+        }
