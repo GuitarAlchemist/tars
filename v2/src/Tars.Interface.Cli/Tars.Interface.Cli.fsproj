@@ -41,6 +41,8 @@
     <Compile Include="Commands\ReasoningDiag.fs" />
     <Compile Include="Commands\EscapeRoomDemo.fs" />
     <Compile Include="Commands\PuzzleDemo.fs" />
+    <Compile Include="Commands\NeuroSymbolicBenchmark.fs" />
+    <Compile Include="Commands\Benchmark.fs" />
     <Compile Include="HealthCommand.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
