@@ -297,7 +297,10 @@ let run (logger: ILogger) (options: EvolveOptions) =
                 else
                     None
               DockerModelRunnerKey = None
-              LlamaCppKey = None }
+              LlamaCppKey = None
+              LlamaSharpModelPath = config.Llm.LlamaSharpModelPath
+              DefaultContextWindow = if config.Llm.ContextWindow > 0 then Some config.Llm.ContextWindow else None
+              DefaultTemperature = None }
 
         let svcCfg: LlmServiceConfig = { Routing = routingCfg }
         use httpClient = new HttpClient()

@@ -1,9 +1,12 @@
 module Tars.Interface.Cli.Commands.PuzzleDemo
 
 open System
+open System.IO
+open System.Text.Json
 open System.Threading.Tasks
 open Serilog
 open Tars.Core
+open Tars.Core.Puzzles // Use shared puzzles
 open Tars.Llm
 open Tars.Llm.Routing
 open Tars.Llm.LlmService
@@ -11,523 +14,610 @@ open Tars.Interface.Cli
 open Spectre.Console
 
 // ============================================================================
+// COMMAND-LINE OPTIONS
+// ============================================================================
+
+/// Output format for puzzle results
+type OutputFormat =
+    | Text
+    | Json
+
+/// Command-line options for the puzzle demo
+type PuzzleOptions =
+    {
+        /// Run all puzzles
+        All: bool
+        /// Maximum difficulty level (1-5)
+        Difficulty: int option
+        /// Specific puzzle name to run
+        PuzzleName: string option
+        /// Show verbose output
+        Verbose: bool
+        /// Output format (text or json)
+        OutputFormat: OutputFormat
+        /// Number of benchmark iterations (0 = no benchmark)
+        BenchmarkRuns: int
+        /// Path to export results (None = no export)
+        ExportPath: string option
+    }
+
+/// Default options
+let defaultOptions =
+    { All = false
+      Difficulty = None
+      PuzzleName = None
+      Verbose = false
+      OutputFormat = Text
+      BenchmarkRuns = 0
+      ExportPath = None }
+
+// ============================================================================
+// BENCHMARK AND EXPORT TYPES
+// ============================================================================
+
+/// Benchmark statistics for a puzzle
+type BenchmarkStats =
+    { Runs: int
+      MinLatencyMs: int64
+      MaxLatencyMs: int64
+      AvgLatencyMs: float
+      StdDevMs: float }
+
+/// JSON-serializable puzzle result
+type PuzzleJsonResult =
+    { PuzzleName: string
+      Difficulty: int
+      Description: string
+      Success: bool
+      LatencyMs: int64
+      Answer: string
+      BenchmarkStats: BenchmarkStats option }
+
+/// JSON-serializable demo result
+type DemoJsonResult =
+    { Timestamp: DateTime
+      TotalPuzzles: int
+      SuccessfulPuzzles: int
+      FailedPuzzles: int
+      TotalSolveTimeMs: int64
+      Results: PuzzleJsonResult list }
+
+// ============================================================================
 // PUZZLE DEMO - Complex reasoning puzzles to test TARS capabilities
 // ============================================================================
 
-/// Puzzle types available
-type PuzzleType =
-    | RiverCrossing // Classic wolf-goat-cabbage
-    | KnightsAndKnaves // Logic deduction
-    | TowerOfHanoi // Recursive planning
-    | LogicGrid // Zebra puzzle style
-    | MathWord // Multi-step math
-    | Cryptarithmetic // Letter-for-digit puzzles
-    | Probabilistic // Reasoning about probability
-    | TheoryOfMind // Reasoning about what others know
-    | TemporalReasoning // Reasoning about time and sequences
-
-/// Puzzle definition
-type Puzzle =
-    { Name: string
-      Type: PuzzleType
-      Difficulty: int // 1-5
-      Description: string
-      Prompt: string
-      ExpectedAnswer: string
-      Hints: string list
-      Validator: string -> bool }
-
-/// Create LLM service
-let private createLlmService () =
-    let config = ConfigurationLoader.load ()
-
-    let routingCfg =
-        { RoutingConfig.Default with
-            OllamaBaseUri =
-                config.Llm.BaseUrl
-                |> Option.map Uri
-                |> Option.defaultValue (Uri "http://localhost:11434")
-            DefaultOllamaModel = config.Llm.Model
-            LlamaCppBaseUri = config.Llm.LlamaCppUrl |> Option.map Uri
-            DefaultLlamaCppModel =
-                if config.Llm.LlamaCppUrl.IsSome then
-                    Some config.Llm.Model
-                else
-                    None }
-
-    let serviceConfig = { LlmServiceConfig.Routing = routingCfg }
-    let client = new System.Net.Http.HttpClient()
-    (DefaultLlmService(client, serviceConfig) :> ILlmService, config)
-
-// ============================================================================
-// PUZZLE DEFINITIONS
-// ============================================================================
-
-let riverCrossingPuzzle =
-    { Name = "River Crossing"
-      Type = RiverCrossing
-      Difficulty = 2
-      Description = "The classic wolf-goat-cabbage puzzle"
-      Prompt =
-        """A farmer needs to cross a river with a wolf, a goat, and a cabbage.
-The boat can only carry the farmer and one item at a time.
-If left alone:
-- The wolf will eat the goat
-- The goat will eat the cabbage
-
-What sequence of crossings should the farmer make?
-List each step as: "Take [item] across" or "Return alone"
-Start with Step 1."""
-      ExpectedAnswer = "goat" // First move must involve goat
-      Hints =
-        [ "Think about what can safely be left together"
-          "The goat is the troublemaker - it can't be left with wolf OR cabbage"
-          "You may need to bring something back" ]
-      Validator =
-        fun answer ->
-            let lower = answer.ToLowerInvariant()
-            // Valid solution starts with taking goat and ends with all across
-            lower.Contains("goat") && lower.Contains("wolf") && lower.Contains("cabbage") 
-            && (lower.Contains("step 7") || lower.Contains("7 steps") || lower.Contains("finally")) }
-
-let knightsAndKnavesPuzzle =
-    { Name = "Knights and Knaves"
-      Type = KnightsAndKnaves
-      Difficulty = 3
-      Description = "Logic puzzle with truth-tellers and liars"
-      Prompt =
-        """On an island, Knights always tell the truth and Knaves always lie.
-
-You meet two islanders, A and B.
-A says: "B is a Knight"
-B says: "We are different types"
-
-What are A and B? Explain your reasoning step by step.
-Answer format: "A is a [Knight/Knave], B is a [Knight/Knave]"."""
-      ExpectedAnswer = "knave" // A is Knave, B is Knight
-      Hints =
-        [ "Consider what happens if A is a Knight (truth-teller)"
-          "If A tells truth, then B is a Knight. What would B say then?"
-          "Try assuming A is a Knave and see if it's consistent" ]
-      Validator =
-        fun answer ->
-            let lower = answer.ToLowerInvariant()
-            // A is Knave, B is Knight
-            (lower.Contains("a") && lower.Contains("knave"))
-            && (lower.Contains("b") && lower.Contains("knight")) }
-
-let towerOfHanoiPuzzle =
-    { Name = "Tower of Hanoi"
-      Type = TowerOfHanoi
-      Difficulty = 2
-      Description = "Classic recursive planning puzzle"
-      Prompt =
-        """Solve the Tower of Hanoi with 3 disks.
-Rules:
-- Move one disk at a time
-- A larger disk cannot be placed on a smaller disk
-- Move all disks from peg A to peg C
-
-Disks are numbered 1 (smallest) to 3 (largest).
-Initial state: All disks on peg A (3 on bottom, 1 on top)
-
-List each move as: "Move disk X from Y to Z"
-What is the minimum number of moves, and what are they?"""
-      ExpectedAnswer = "7" // Minimum moves is 7
-      Hints =
-        [ "The pattern is: Move n-1 disks to helper peg, move largest to target, move n-1 to target"
-          "For 3 disks, you need 2^3 - 1 = 7 moves"
-          "First move: disk 1 from A to C" ]
-      Validator =
-        fun answer ->
-            let lower = answer.ToLowerInvariant()
-            lower.Contains("7") && (lower.Contains("move") || lower.Contains("step")) }
-
-let logicGridPuzzle =
-    { Name = "Logic Grid (Mini Zebra)"
-      Type = LogicGrid
-      Difficulty = 4
-      Description = "Constraint satisfaction puzzle"
-      Prompt =
-        """Three friends (Alice, Bob, Carol) each have a different pet (cat, dog, fish) 
-and drink a different beverage (tea, coffee, juice).
-
-Clues:
-1. Alice does not have the dog
-2. The person with the cat drinks coffee
-3. Bob drinks tea
-4. Carol does not have the fish
-
-Who has which pet and drinks what?
-
-Answer format:
-Alice: [pet], [drink]
-Bob: [pet], [drink]  
-Carol: [pet], [drink]"""
-      ExpectedAnswer = "alice.*fish.*juice" // Regex pattern
-      Hints =
-        [ "Start with Bob - he drinks tea (given directly)"
-          "Since Bob drinks tea and the cat owner drinks coffee, Bob doesn't have the cat"
-          "Work through the constraints one by one" ]
-      Validator =
-        fun answer ->
-            let lower = answer.ToLowerInvariant()
-            // Alice: fish, juice; Bob: cat, tea (wait, Bob drinks tea but cat owner drinks coffee)
-            // Actually: Bob drinks tea, so Bob doesn't have cat
-            // Cat owner drinks coffee
-            // Alice doesn't have dog
-            // Carol doesn't have fish
-            // So: Carol has cat (and coffee), Alice has fish, Bob has dog
-            // Alice can't drink coffee (Carol does), Bob drinks tea, so Alice drinks juice
-            lower.Contains("alice")
-            && lower.Contains("fish")
-            && lower.Contains("carol")
-            && lower.Contains("cat")
-            && lower.Contains("bob")
-            && lower.Contains("dog") }
-
-let mathWordPuzzle =
-    { Name = "Multi-Step Math"
-      Type = MathWord
-      Difficulty = 3
-      Description = "Word problem requiring multiple reasoning steps"
-      Prompt =
-        """A train leaves Station A at 9:00 AM traveling at 60 mph toward Station B.
-Another train leaves Station B at 10:00 AM traveling at 80 mph toward Station A.
-The stations are 280 miles apart.
-
-At what time do the trains meet?
-How far from Station A is the meeting point?
-
-Show your work step by step."""
-      ExpectedAnswer = "12" // They meet at 12:00 (noon)
-      Hints =
-        [ "The first train has a 1-hour head start"
-          "After 1 hour, the first train has traveled 60 miles"
-          "The remaining distance is 280 - 60 = 220 miles"
-          "Combined speed is 60 + 80 = 140 mph" ]
-      Validator =
-        fun answer ->
-            let lower = answer.ToLowerInvariant()
-            // They meet at 12:00 noon, 180 miles from A
-            (lower.Contains("12") || lower.Contains("noon")) && lower.Contains("180") }
-
-let cryptarithmeticPuzzle =
-    { Name = "Cryptarithmetic"
-      Type = Cryptarithmetic
-      Difficulty = 4
-      Description = "Letter-for-digit substitution puzzle"
-      Prompt =
-        """Solve this cryptarithmetic puzzle where each letter represents a unique digit (0-9):
-
-    S E N D
-  + M O R E
-  ---------
-  M O N E Y
-
-Find the digit for each letter.
-Hint: M must be 1 (it's a carry from adding two 4-digit numbers).
-
-Answer format: S=?, E=?, N=?, D=?, M=?, O=?, R=?, Y=?"""
-      ExpectedAnswer = "9567" // SEND = 9567
-      Hints =
-        [ "M = 1 (from the carry)"
-          "S + M produces a carry, so S = 8 or 9"
-          "O must be 0 (since S + M = 10 or more, O = 0 with carry)"
-          "Work column by column from right to left" ]
-      Validator =
-        fun answer ->
-            let lower = answer.ToLowerInvariant()
-            // SEND = 9567, MORE = 1085, MONEY = 10652
-            lower.Contains("s=9")
-            || lower.Contains("s = 9")
-            || (lower.Contains("9567") && lower.Contains("1085")) }
-
-let montyHallPuzzle =
-    { Name = "Monty Hall Problem"
-      Type = Probabilistic
-      Difficulty = 3
-      Description = "Counter-intuitive probability puzzle"
-      Prompt =
-        """Suppose you're on a game show, and you're given the choice of three doors: 
-Behind one door is a car; behind the others, goats. 
-You pick a door, say No. 1, and the host, who knows what's behind the doors, opens another door, say No. 3, which has a goat. 
-He then says to you, "Do you want to pick door No. 2?" 
-
-Is it to your advantage to switch your choice? 
-Explain the probability of winning if you stay vs. if you switch."""
-      ExpectedAnswer = "switch"
-      Hints =
-        [ "Think about the probability of your initial choice being right"
-          "What does the host's action tell you about the other doors?"
-          "There are only two possibilities now: stay or switch" ]
-      Validator =
-        fun answer ->
-            let lower = answer.ToLowerInvariant()
-            lower.Contains("switch") && (lower.Contains("2/3") || lower.Contains("66%")) }
-
-let cherylsBirthdayPuzzle =
-    { Name = "Cheryl's Birthday"
-      Type = TheoryOfMind
-      Difficulty = 5
-      Description = "Logic puzzle requiring reasoning about knowledge"
-      Prompt =
-        """Albert and Bernard just became friends with Cheryl, and they want to know when her birthday is. 
-Cheryl gave them a list of 10 possible dates:
-May 15, May 16, May 19
-June 17, June 18
-July 14, July 16
-August 14, August 15, August 17
-
-Cheryl then tells Albert and Bernard separately the month and the day of her birthday respectively.
-
-Albert: I don't know when Cheryl's birthday is, but I know that Bernard does not know too.
-Bernard: At first I don't know when Cheryl's birthday is, but I know now.
-Albert: Then I also know when Cheryl's birthday is.
-
-So when is Cheryl's birthday?"""
-      ExpectedAnswer = "July 16"
-      Hints =
-        [ "Albert only knows the month. If he knows Bernard doesn't know, it means the month can't have any unique days (18, 19)."
-          "Which months have unique days?"
-          "Once some months are eliminated, Bernard now knows. This means the day must be unique among the remaining dates." ]
-      Validator =
-        fun answer ->
-            let lower = answer.ToLowerInvariant()
-            lower.Contains("july") && lower.Contains("16") }
-
-let schedulingPuzzle =
-    { Name = "Space Station Maintenance"
-      Type = TemporalReasoning
-      Difficulty = 4
-      Description = "Resource and time constraint planning"
-      Prompt =
-        """As a station commander, you must schedule 4 critical tasks:
-A: Oxygen scrubber repair (2 hours)
-B: Solar panel alignment (3 hours)
-C: Software update (1 hour)
-D: Battery health check (2 hours)
-
-Constraints:
-1. Task A must be completed before Task D can start.
-2. Task B and Task D cannot happen at the same time because they both require the external robotic arm.
-3. Task C must happen after Task B is finished.
-4. The technician for Task A is only available after 10:00 AM.
-5. All tasks must be finished by 4:00 PM (16:00).
-6. The station has a power-down window between 12:00 and 13:00 where NO tasks can be performed.
-
-What is the earliest possible time all tasks can be finished? 
-Provide a schedule starting at 10:00 AM.
-End your response with: "Conclusion: The earliest finish time is [Time]." """
-      ExpectedAnswer = "16:00"
-      Hints =
-        [ "A and B can happen simultaneously if they don't share resources."
-          "Check if A and B share the robotic arm."
-          "Don't forget the power-down hour." ]
-      Validator =
-        fun answer ->
-            let lower = answer.ToLowerInvariant()
-            (lower.Contains("16:00") || lower.Contains("4:00 pm") || lower.Contains("4 pm"))
-            && lower.Contains("conclusion") }
-
 /// All available puzzles
-let allPuzzles =
-    [ riverCrossingPuzzle
-      knightsAndKnavesPuzzle
-      towerOfHanoiPuzzle
-      logicGridPuzzle
-      mathWordPuzzle
-      cryptarithmeticPuzzle
-      montyHallPuzzle
-      cherylsBirthdayPuzzle
-      schedulingPuzzle ]
+let allPuzzles = Puzzles.all
 
 // ============================================================================
 // PUZZLE RUNNER
 // ============================================================================
 
-/// Run a single puzzle
+/// Run a single puzzle and measure latency
 let runPuzzle (logger: ILogger) (puzzle: Puzzle) (verbose: bool) =
-    let svc, config = createLlmService ()
+    task {
+        let sw = System.Diagnostics.Stopwatch.StartNew()
+        // Log puzzle details
+        logger.Information("🧩 Solving: {Name} (Difficulty: {Difficulty})", puzzle.Name, puzzle.Difficulty)
 
-    let stars = String.replicate puzzle.Difficulty "*"
-    let puzzleType = puzzle.Type.ToString()
-    
-    // System prompt for puzzle solving
-    let baseSystemPrompt =
-        """You are a logical reasoning expert. Solve puzzles step by step.
-Show your reasoning clearly using a Chain of Thought approach. 
-Break down the problem, list constraints, and evaluate possibilities.
-Be systematic and thorough.
-After your reasoning, state your final answer clearly at the end."""
+        if verbose then
+            AnsiConsole.MarkupLine($"[grey]📝 Description: {Markup.Escape(puzzle.Description)}[/]")
+            AnsiConsole.MarkupLine($"[grey]❓ Prompt: {Markup.Escape(puzzle.Prompt)}[/]")
 
-    let rec executeAttempt attempt (currentPrompt: string) =
-        task {
-            let systemPrompt = 
-                if puzzle.Difficulty >= 4 then
-                    baseSystemPrompt + "\nUse advanced reasoning patterns: explore different branches of logic and self-correct if you find a contradiction."
-                else
-                    baseSystemPrompt
+        // 1. Setup LLM service
+        let config = ConfigurationLoader.load ()
 
-            let req =
-                { ModelHint = None
-                  Model = Some config.Llm.Model
-                  SystemPrompt = Some systemPrompt
-                  MaxTokens = Some 1500
-                  Temperature = Some (0.1 + (float attempt * 0.1))
-                  Stop = []
-                  Messages = [ { Role = Role.User; Content = currentPrompt } ]
-                  Tools = []
-                  ToolChoice = None
-                  ResponseFormat = None
-                  Stream = false
-                  JsonMode = false
-                  Seed = None }
+        if verbose then
+            AnsiConsole.MarkupLine("[bold]🔧 Configuration Loaded[/]")
+            AnsiConsole.MarkupLine($"[grey]  Provider: {config.Llm.Provider}[/]")
+            AnsiConsole.MarkupLine($"[grey]  Model: {config.Llm.Model}[/]")
 
-            if attempt > 0 then
-                AnsiConsole.MarkupLine($"[yellow]TARS is retrying (Attempt {attempt + 1})...[/]")
-            else
-                AnsiConsole.MarkupLine("[yellow]TARS is thinking...[/]")
-
-            let! response = svc.CompleteAsync(req)
-
-            AnsiConsole.WriteLine()
-            let attemptLabel = if attempt = 0 then "TARS Response" else $"TARS Response (Attempt {attempt + 1})"
-            let answerPanel = new Panel(Markup.Escape(response.Text.Trim()))
-            answerPanel.Header <- PanelHeader(attemptLabel)
-            answerPanel.Border <- BoxBorder.Double
-            AnsiConsole.Write(answerPanel)
-
-            let isCorrect = puzzle.Validator response.Text
-            AnsiConsole.WriteLine()
-
-            if isCorrect then
-                AnsiConsole.MarkupLine("[bold green]CORRECT![/] TARS solved the puzzle.")
-                return true
-            elif attempt < 2 then
-                AnsiConsole.MarkupLine("[bold yellow]Partial or incorrect answer. Providing hints for retry...[/]")
-                
-                let hint = 
-                    if attempt < puzzle.Hints.Length then
-                        puzzle.Hints.[attempt]
+        let routingCfg =
+            { RoutingConfig.Default with
+                OllamaBaseUri =
+                    config.Llm.BaseUrl
+                    |> Option.map Uri
+                    |> Option.defaultValue (Uri "http://localhost:11434")
+                DefaultOllamaModel = config.Llm.Model
+                LlamaCppBaseUri = config.Llm.LlamaCppUrl |> Option.map Uri
+                DefaultLlamaCppModel =
+                    if config.Llm.LlamaCppUrl.IsSome then
+                        Some config.Llm.Model
                     else
-                        puzzle.Hints |> String.concat "; "
+                        None
+                LlamaSharpModelPath = config.Llm.LlamaSharpModelPath
+                DefaultContextWindow = if config.Llm.ContextWindow > 0 then Some config.Llm.ContextWindow else None }
 
-                let retryPrompt = 
-                    $"{currentPrompt}\n\nNote: Your previous attempt was not quite right. \nHint: {hint}\n\nPlease try again, being very careful with the logic."
-                
-                return! executeAttempt (attempt + 1) retryPrompt
+        let serviceConfig = { LlmServiceConfig.Routing = routingCfg }
+        use client = new System.Net.Http.HttpClient()
+        client.Timeout <- TimeSpan.FromMinutes(5.0) // Increase timeout for slow local models
+        let llmService = DefaultLlmService(client, serviceConfig) :> ILlmService
+
+        // 2. Build the prompt
+        // Use a system prompt that encourages reasoning
+        let systemPrompt =
+            """You are TARS, an advanced AI reasoning engine. 
+Your goal is to solve complex logical puzzles.
+
+STRATEGY:
+1. Break down the problem into key components
+2. Identify constraints and rules
+3. Reason step-by-step (Chain of Thought)
+4. Verify your reasoning against the constraints
+5. Provide a final, clear answer
+
+If the puzzle involves logic, use deductive reasoning. 
+If it involves math, show your calculations.
+If it involves planning, list the steps clearly.
+
+Be precise and avoid guessing."""
+
+        let userPrompt =
+            $"""PUZZLE: {puzzle.Name}
+DESCRIPTION: {puzzle.Description}
+
+PROBLEM:
+{puzzle.Prompt}
+
+Please solve this puzzle step-by-step."""
+
+        let request =
+            { ModelHint = Some "reasoning"
+              Model = None
+              SystemPrompt = Some systemPrompt
+              MaxTokens = Some 1024
+              Temperature = Some 0.2
+              Stop = []
+              Messages = [ { Role = Role.User; Content = userPrompt } ]
+              Tools = []
+              ToolChoice = None
+              ResponseFormat = Some ResponseFormat.Text
+              Stream = false
+              JsonMode = false
+              Seed = None
+              ContextWindow = None }
+
+        // 3. Execute LLM call with verbose status or quiet direct call
+        // Display backend info (always show this for transparency)
+        let routed = chooseBackend routingCfg request
+        AnsiConsole.MarkupLine($"[bold blue]🔌 Provider:[/] [yellow]{routed.Backend}[/]")
+        AnsiConsole.MarkupLine($"[bold blue]📡 Endpoint:[/] [cyan]{routed.Endpoint}[/]")
+        
+        // PRE-FLIGHT: Warmup & Speed Test
+        AnsiConsole.MarkupLine("[grey]🔥 Warming up model (loading into VRAM)...[/]")
+        let warmupReq =
+            { ModelHint = Some "fast"
+              Model = None
+              SystemPrompt = None
+              MaxTokens = Some 5  // Just enough to trigger load
+              Temperature = Some 0.0
+              Stop = []
+              Messages = [ { Role = Role.User; Content = "hi" } ]
+              Tools = []
+              ToolChoice = None
+              ResponseFormat = None
+              Stream = false
+              JsonMode = false
+              Seed = None
+              ContextWindow = None }
+        
+        // 1. Warmup call (forces model load)
+        let! _ = llmService.CompleteAsync warmupReq
+
+        // 2. Actual speed test
+        AnsiConsole.MarkupLine("[grey]⏱️  Running speed test...[/]")
+        let speedTestReq =
+            { warmupReq with 
+                MaxTokens = Some 100 
+                Messages = [ { Role = Role.User; Content = "Count from 1 to 20. Output: 1, 2, 3..." } ] 
+            }
+
+        let preflightSw = System.Diagnostics.Stopwatch.StartNew()
+        let! preflightResp = llmService.CompleteAsync speedTestReq
+        preflightSw.Stop()
+
+        match preflightResp.Usage with
+        | Some u ->
+            let preflightTokPerSec = float u.CompletionTokens / preflightSw.Elapsed.TotalSeconds
+            // Adjust thresholds for the high-end GPU expectations
+            if preflightTokPerSec < 20.0 then
+                AnsiConsole.MarkupLine($"[bold red]⚠️  SLOW: {preflightTokPerSec:F1} tok/s[/] (expected 100+)")
+            elif preflightTokPerSec < 80.0 then
+                AnsiConsole.MarkupLine($"[bold yellow]⚡ {preflightTokPerSec:F1} tok/s[/] (moderate)")
             else
-                AnsiConsole.MarkupLine("[bold red]FAILED.[/] TARS could not solve the puzzle after 3 attempts.")
-
-                if verbose then
-                    AnsiConsole.MarkupLine("[dim]All Hints:[/]")
-                    for hint in puzzle.Hints do
-                        AnsiConsole.MarkupLine($"  [dim]• {hint}[/]")
-                return false
-        }
-
-    task {
-        AnsiConsole.Write(new Rule($"[bold cyan]{puzzle.Name}[/]"))
-        AnsiConsole.MarkupLine($"[dim]Difficulty: {stars} | Type: {puzzleType}[/]")
-        AnsiConsole.MarkupLine($"[dim]{puzzle.Description}[/]")
-        AnsiConsole.WriteLine()
-
-        let panel = new Panel(Markup.Escape(puzzle.Prompt))
-        panel.Header <- PanelHeader("Puzzle")
-        panel.Border <- BoxBorder.Rounded
-        AnsiConsole.Write(panel)
-        AnsiConsole.WriteLine()
-
-        return! executeAttempt 0 puzzle.Prompt
-    }
-
-/// Run all puzzles
-let runAll (logger: ILogger) (verbose: bool) =
-    task {
-        AnsiConsole.Write(new Rule("[bold magenta]TARS Puzzle Challenge[/]"))
-        AnsiConsole.MarkupLine("[dim]Testing TARS on classic AI reasoning puzzles[/]")
-        AnsiConsole.WriteLine()
-
-        let mutable correct = 0
-        let mutable total = 0
-
-        for puzzle in allPuzzles do
-            total <- total + 1
-            let! result = runPuzzle logger puzzle verbose
-
-            if result then
-                correct <- correct + 1
-
-            AnsiConsole.WriteLine()
-
-        AnsiConsole.Write(new Rule())
-        AnsiConsole.MarkupLine($"[bold]Results: {correct}/{total} puzzles solved correctly[/]")
-
-        return if correct = total then 0 else 1
-    }
-
-/// Run a specific puzzle by name
-let runByName (logger: ILogger) (name: string) (verbose: bool) =
-    task {
-        let puzzle =
-            allPuzzles
-            |> List.tryFind (fun p -> p.Name.ToLowerInvariant().Contains(name.ToLowerInvariant()))
-
-        match puzzle with
-        | Some p ->
-            let! result = runPuzzle logger p verbose
-            return if result then 0 else 1
+                AnsiConsole.MarkupLine($"[bold green]🚀 FAST: {preflightTokPerSec:F1} tok/s[/]")
         | None ->
-            AnsiConsole.MarkupLine("[red]Puzzle not found.[/]")
-            AnsiConsole.MarkupLine("[dim]Available puzzles:[/]")
+            AnsiConsole.MarkupLine($"[grey]⏱️  {preflightSw.ElapsedMilliseconds}ms (no token count)[/]")
+        AnsiConsole.WriteLine()
 
-            for p in allPuzzles do
-                AnsiConsole.MarkupLine($"  • {p.Name}")
+        let! answer =
+            if verbose then
+                task {
+                    AnsiConsole.MarkupLine($"[bold purple]🚀 EXECUTING LLM REQUEST[/]")
 
-            return 1
-    }
+                    AnsiConsole.MarkupLine("[bold]📨 Request Details:[/]")
+                    let hintStr = request.ModelHint |> Option.defaultValue "none"
+                    AnsiConsole.MarkupLine($"[grey]  Hint: {hintStr}[/]")
+                    let maxTokensStr = request.MaxTokens |> Option.map string |> Option.defaultValue "default"
+                    AnsiConsole.MarkupLine($"[grey]  MaxTokens: {maxTokensStr}[/]")
+                    AnsiConsole.WriteLine()
 
-/// Run puzzles by difficulty
-let runByDifficulty (logger: ILogger) (difficulty: int) (verbose: bool) =
-    task {
-        let puzzles = allPuzzles |> List.filter (fun p -> p.Difficulty <= difficulty)
+                    let sw = System.Diagnostics.Stopwatch.StartNew()
+                    let! response =
+                        AnsiConsole
+                            .Status()
+                            .Spinner(Spinner.Known.Dots)
+                            .SpinnerStyle(Style(foreground = Color.Cyan1))
+                            .StartAsync(
+                                "🧠 TARS is thinking...",
+                                fun ctx ->
+                                    task {
+                                        let! resp = llmService.CompleteAsync request
+                                        ctx.Status <- $"✅ Complete!"
+                                        do! Task.Delay(500)
+                                        return resp
+                                    }
+                            )
+                    sw.Stop()
+                    
+                    AnsiConsole.WriteLine()
+                    AnsiConsole.MarkupLine("[bold green]✅ LLM REQUEST COMPLETED[/]")
 
-        if puzzles.IsEmpty then
-            AnsiConsole.MarkupLine("[yellow]No puzzles at that difficulty level.[/]")
-            return 1
-        else
-            AnsiConsole.Write(new Rule($"[bold magenta]TARS Puzzle Challenge (Difficulty ≤ {difficulty})[/]"))
+                    match response.Usage with
+                    | Some u ->
+                        let tokensPerSec = float u.CompletionTokens / sw.Elapsed.TotalSeconds
+                        AnsiConsole.MarkupLine(
+                            $"[grey]  Tokens: {u.TotalTokens} (prompt: {u.PromptTokens}, completion: {u.CompletionTokens})[/]"
+                        )
+                        AnsiConsole.MarkupLine($"[bold yellow]  ⚡ Speed: {tokensPerSec:F1} tok/s[/]")
+                        AnsiConsole.MarkupLine($"[grey]  Time: {sw.Elapsed.TotalSeconds:F1}s[/]")
+                    | None ->
+                        AnsiConsole.MarkupLine($"[grey]  Time: {sw.Elapsed.TotalSeconds:F1}s[/]")
 
-            let mutable correct = 0
+                    AnsiConsole.WriteLine()
+                    AnsiConsole.MarkupLine($"[grey]  Output Length: {response.Text.Length} chars[/]")
+                    AnsiConsole.MarkupLine("[bold]Reasoning:[/]")
+                    AnsiConsole.WriteLine(response.Text)
+                    return response.Text
+                }
+            else
+                task {
+                    // Non-verbose: still show timing and token rate
+                    let sw = System.Diagnostics.Stopwatch.StartNew()
+                    let! response = llmService.CompleteAsync request
+                    sw.Stop()
+                    
+                    match response.Usage with
+                    | Some u ->
+                        let tokensPerSec = float u.CompletionTokens / sw.Elapsed.TotalSeconds
+                        AnsiConsole.MarkupLine($"[bold yellow]⚡ {tokensPerSec:F1} tok/s[/] | {u.CompletionTokens} tokens in {sw.Elapsed.TotalSeconds:F1}s")
+                    | None ->
+                        AnsiConsole.MarkupLine($"[grey]Time: {sw.Elapsed.TotalSeconds:F1}s[/]")
+                    
+                    AnsiConsole.MarkupLine("[bold]Reasoning:[/]")
+                    AnsiConsole.WriteLine(response.Text)
+                    return response.Text
+                }
 
-            for puzzle in puzzles do
-                let! result = runPuzzle logger puzzle verbose
+        let answer = answer.Trim()
 
-                if result then
-                    correct <- correct + 1
-
-                AnsiConsole.WriteLine()
-
+        if verbose then
+            AnsiConsole.Write(new Rule("[bold blue]Full Answer[/]"))
+            AnsiConsole.MarkupLine($"[grey]{Markup.Escape(answer)}[/]")
             AnsiConsole.Write(new Rule())
-            let total = puzzles.Length
-            AnsiConsole.MarkupLine($"[bold]Results: {correct}/{total} puzzles solved correctly[/]")
-            return if correct = total then 0 else 1
+
+        let isCorrect = puzzle.Validator answer
+
+        if isCorrect then
+            logger.Information("✅ {Name}: SOLVED", puzzle.Name)
+
+            if verbose then
+                AnsiConsole.MarkupLine("[green]CORRECT![/]")
+        else
+            logger.Warning("❌ {Name}: FAILED", puzzle.Name)
+
+            if verbose then
+                AnsiConsole.MarkupLine("[red]INCORRECT[/]")
+                AnsiConsole.MarkupLine($"[yellow]Expected answer to contain logic matching: {puzzle.ExpectedAnswer}[/]")
+
+        sw.Stop()
+        return (puzzle, isCorrect, answer, sw.ElapsedMilliseconds)
     }
 
-/// List available puzzles
-let listPuzzles () =
-    AnsiConsole.Write(new Rule("[bold cyan]Available Puzzles[/]"))
+/// Display logo
+let private logo () =
+    AnsiConsole.Write((new FigletText("TARS PUZZLES")).Color(Color.Blue))
 
+/// List all available puzzles
+let listPuzzles () =
+    AnsiConsole.Write(new Rule("[bold]Available Puzzles[/]"))
     let table = new Table()
     table.AddColumn("Name") |> ignore
-    table.AddColumn("Type") |> ignore
     table.AddColumn("Difficulty") |> ignore
     table.AddColumn("Description") |> ignore
 
     for p in allPuzzles do
-        let stars = String.replicate p.Difficulty "*"
-        table.AddRow(p.Name, p.Type.ToString(), stars, p.Description) |> ignore
+        table.AddRow(p.Name, p.Difficulty.ToString(), p.Description) |> ignore
 
     AnsiConsole.Write(table)
+    logo ()
     0
+
+/// Calculate benchmark statistics
+let private calculateBenchmarkStats (latencies: int64 list) =
+    if latencies.IsEmpty then
+        None
+    else
+        let min = List.min latencies
+        let max = List.max latencies
+        let avg = List.average (latencies |> List.map float)
+
+        let variance =
+            latencies
+            |> List.map float
+            |> List.map (fun x -> (x - avg) ** 2.0)
+            |> List.average
+
+        let stdDev = sqrt variance
+
+        Some
+            { Runs = latencies.Length
+              MinLatencyMs = min
+              MaxLatencyMs = max
+              AvgLatencyMs = avg
+              StdDevMs = stdDev }
+
+/// Run a single puzzle multiple times for benchmarking
+let private runPuzzleBenchmark (logger: ILogger) (puzzle: Puzzle) (verbose: bool) (runs: int) =
+    task {
+        let latencies = System.Collections.Generic.List<int64>()
+        let mutable lastResult = (puzzle, false, "", 0L)
+
+        for i in 1..runs do
+            if verbose then
+                logger.Information("  Run {Current}/{Total}...", i, runs)
+
+            let! result = runPuzzle logger puzzle false
+            let (_, _, _, latency) = result
+            latencies.Add(latency)
+            lastResult <- result
+
+        let stats = calculateBenchmarkStats (latencies |> Seq.toList)
+        return (lastResult, stats)
+    }
+
+/// Run a set of puzzles
+let private runPuzzles (logger: ILogger) (puzzles: Puzzle list) (verbose: bool) =
+    task {
+        logo ()
+        logger.Information("Found {Count} puzzles", puzzles.Length)
+
+        let mutable correctCount = 0
+        let results = System.Collections.Generic.List<string * bool * string>()
+
+        for puzzle in puzzles do
+            try
+                let! (_, correct, _, _) = runPuzzle logger puzzle verbose
+
+                if correct then
+                    correctCount <- correctCount + 1
+
+                results.Add((puzzle.Name, correct, if correct then "Pass" else "Fail"))
+            with ex ->
+                logger.Error(ex, "Error running puzzle {Name}", puzzle.Name)
+                results.Add((puzzle.Name, false, "Error"))
+
+        // Summary
+        AnsiConsole.Write(new Rule("[bold]SUMMARY[/]"))
+        let table = new Table()
+        table.AddColumn("Puzzle") |> ignore
+        table.AddColumn("Result") |> ignore
+
+        for (name, correct, status) in results do
+            let color = if correct then "green" else "red"
+            table.AddRow(name, $"[{color}]{status}[/]") |> ignore
+
+        AnsiConsole.Write(table)
+
+        if puzzles.Length > 0 then
+            let score = float correctCount / float puzzles.Length * 100.0
+
+            logger.Information(
+                "🏁 Finished. Score: {Correct}/{Total} ({Score:F1}%)",
+                correctCount,
+                puzzles.Length,
+                score
+            )
+
+        return 0
+    }
+
+/// Run puzzles with options (benchmark, export, etc.)
+let runPuzzlesWithOptions (logger: ILogger) (puzzles: Puzzle list) (options: PuzzleOptions) =
+    task {
+        if options.OutputFormat = Text then
+            logo ()
+
+        logger.Information("Found {Count} puzzles", puzzles.Length)
+
+        let mutable correctCount = 0
+        let mutable totalTimeMs = 0L
+        let jsonResults = System.Collections.Generic.List<PuzzleJsonResult>()
+
+        for puzzle in puzzles do
+            try
+                if options.BenchmarkRuns > 0 then
+                    // Benchmark mode
+                    logger.Information("🧩 Benchmarking: {Name} ({Runs} runs)", puzzle.Name, options.BenchmarkRuns)
+                    let! (result, stats) = runPuzzleBenchmark logger puzzle options.Verbose options.BenchmarkRuns
+                    let (_, correct, answer, latency) = result
+
+                    if correct then
+                        correctCount <- correctCount + 1
+
+                    totalTimeMs <- totalTimeMs + latency
+
+                    jsonResults.Add(
+                        { PuzzleName = puzzle.Name
+                          Difficulty = puzzle.Difficulty
+                          Description = puzzle.Description
+                          Success = correct
+                          LatencyMs = latency
+                          Answer = answer
+                          BenchmarkStats = stats }
+                    )
+
+                    // Show benchmark stats
+                    match stats with
+                    | Some s ->
+                        logger.Information(
+                            "  Stats: Min={Min}ms, Max={Max}ms, Avg={Avg:F1}ms, StdDev={StdDev:F1}ms",
+                            s.MinLatencyMs,
+                            s.MaxLatencyMs,
+                            s.AvgLatencyMs,
+                            s.StdDevMs
+                        )
+                    | None -> ()
+                else
+                    // Normal mode
+                    let! (_, correct, answer, latency) = runPuzzle logger puzzle options.Verbose
+
+                    if correct then
+                        correctCount <- correctCount + 1
+
+                    totalTimeMs <- totalTimeMs + latency
+
+                    jsonResults.Add(
+                        { PuzzleName = puzzle.Name
+                          Difficulty = puzzle.Difficulty
+                          Description = puzzle.Description
+                          Success = correct
+                          LatencyMs = latency
+                          Answer = answer
+                          BenchmarkStats = None }
+                    )
+            with ex ->
+                logger.Error(ex, "Error running puzzle {Name}", puzzle.Name)
+
+                jsonResults.Add(
+                    { PuzzleName = puzzle.Name
+                      Difficulty = puzzle.Difficulty
+                      Description = puzzle.Description
+                      Success = false
+                      LatencyMs = 0L
+                      Answer = $"Error: {ex.Message}"
+                      BenchmarkStats = None }
+                )
+
+        // Create final result
+        let demoResult =
+            { Timestamp = DateTime.UtcNow
+              TotalPuzzles = puzzles.Length
+              SuccessfulPuzzles = correctCount
+              FailedPuzzles = puzzles.Length - correctCount
+              TotalSolveTimeMs = totalTimeMs
+              Results = jsonResults |> Seq.toList }
+
+        // Handle output format
+        match options.OutputFormat with
+        | Json ->
+            let jsonOptions = JsonSerializerOptions(WriteIndented = true)
+            let json = JsonSerializer.Serialize(demoResult, jsonOptions)
+            printfn "%s" json
+        | Text ->
+            // Summary
+            AnsiConsole.Write(new Rule("[bold]SUMMARY[/]"))
+            let table = new Table()
+            table.AddColumn("Puzzle") |> ignore
+            table.AddColumn("Result") |> ignore
+            table.AddColumn("Latency (ms)") |> ignore
+
+            for result in jsonResults do
+                let color = if result.Success then "green" else "red"
+                let status = if result.Success then "Pass" else "Fail"
+
+                table.AddRow(result.PuzzleName, $"[{color}]{status}[/]", result.LatencyMs.ToString())
+                |> ignore
+
+            AnsiConsole.Write(table)
+
+            if puzzles.Length > 0 then
+                let score = float correctCount / float puzzles.Length * 100.0
+
+                logger.Information(
+                    "🏁 Finished. Score: {Correct}/{Total} ({Score:F1}%)",
+                    correctCount,
+                    puzzles.Length,
+                    score
+                )
+
+        // Export if requested
+        match options.ExportPath with
+        | Some path ->
+            try
+                let jsonOptions = JsonSerializerOptions(WriteIndented = true)
+                let json = JsonSerializer.Serialize(demoResult, jsonOptions)
+                File.WriteAllText(path, json)
+                logger.Information("📁 Results exported to: {Path}", path)
+            with ex ->
+                logger.Error(ex, "Failed to export results to {Path}", path)
+        | None -> ()
+
+        return if correctCount = puzzles.Length then 0 else 1
+    }
+
+/// Run all puzzles
+let runAll (logger: ILogger) (verbose: bool) = runPuzzles logger allPuzzles verbose
+
+/// Run puzzles by difficulty
+let runByDifficulty (logger: ILogger) (difficulty: int) (verbose: bool) =
+    let puzzles = allPuzzles |> List.filter (fun p -> p.Difficulty <= difficulty)
+    runPuzzles logger puzzles verbose
+
+/// Run a specific puzzle by name
+let runByName (logger: ILogger) (name: string) (verbose: bool) =
+    let puzzle =
+        allPuzzles
+        |> List.tryFind (fun p -> p.Name.Equals(name, StringComparison.InvariantCultureIgnoreCase))
+
+    match puzzle with
+    | Some p -> runPuzzles logger [ p ] verbose
+    | None ->
+        logger.Error("Puzzle '{Name}' not found.", name)
+        task { return 1 }
+
+/// Run with options (new entry point)
+let runWithOptions (logger: ILogger) (options: PuzzleOptions) =
+    let puzzles =
+        if options.All then
+            allPuzzles
+        elif options.Difficulty.IsSome then
+            allPuzzles |> List.filter (fun p -> p.Difficulty <= options.Difficulty.Value)
+        elif options.PuzzleName.IsSome then
+            match
+                allPuzzles
+                |> List.tryFind (fun p ->
+                    p.Name.Equals(options.PuzzleName.Value, StringComparison.InvariantCultureIgnoreCase))
+            with
+            | Some p -> [ p ]
+            | None ->
+                logger.Error("Puzzle '{Name}' not found.", options.PuzzleName.Value)
+                []
+        else
+            allPuzzles
+
+    if puzzles.IsEmpty then
+        task { return 1 }
+    else
+        runPuzzlesWithOptions logger puzzles options
+
+/// Run (legacy entry point, mapped to Difficulty logic)
+let run (logger: ILogger) (args: string array) =
+    let difficulty =
+        if args.Length > 0 then
+            let mutable d = 0
+            if Int32.TryParse(args.[0], &d) then d else 5
+        else
+            5
+
+    runByDifficulty logger difficulty false
