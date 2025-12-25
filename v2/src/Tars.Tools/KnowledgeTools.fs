@@ -199,7 +199,33 @@ module KnowledgeTools =
                                     |> String.concat "\n"
 
                                 return Result.Ok hits
-                        | Result.Error err -> return Result.Error $"Error searching memory: {err}"
+                        | Result.Error err ->
+                            // FALLBACK: If hybrid search fails, try a simple keyword scan on all facts
+                            let! factsResult = ingestionService.GetFactsAsync()
+
+                            match factsResult with
+                            | Result.Ok facts ->
+                                let queryLower = query.ToLowerInvariant()
+
+                                let matches =
+                                    facts
+                                    |> List.filter (fun f ->
+                                        f.Fact.ToLowerInvariant().Contains(queryLower)
+                                        || f.Name.ToLowerInvariant().Contains(queryLower))
+                                    |> List.truncate 10
+
+                                if matches.IsEmpty then
+                                    return Result.Error $"Error searching memory: {err}"
+                                else
+                                    let hitLines =
+                                        matches
+                                        |> List.map (fun f -> $"- **%s{f.Name}**: %s{f.Fact}")
+                                        |> String.concat "\n"
+
+                                    return
+                                        Result.Ok
+                                            $"[DEGRADED MODE] Search unavailable ({err}). Found keyword matches in graph store:\n\n%s{hitLines}"
+                            | Result.Error _ -> return Result.Error $"Error searching memory: {err}"
                     with ex ->
                         return Result.Error $"Error searching memory: {ex.Message}"
                 }

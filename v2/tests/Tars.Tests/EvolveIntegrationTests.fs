@@ -25,6 +25,8 @@ module EvolveIntegrationTests =
 
             member this.CompleteStreamAsync(req, _) =
                 (this :> ILlmService).CompleteAsync(req)
+ 
+            member _.RouteAsync(_) = System.Threading.Tasks.Task.FromResult({ Backend = Ollama "mock"; Endpoint = Uri "http://localhost:11434"; ApiKey = None })
 
     type private NoOpVectorStore() =
         interface IVectorStore with

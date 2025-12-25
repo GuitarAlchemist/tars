@@ -100,6 +100,7 @@ See [`task.md`](task.md) for current progress and [`docs/3_Roadmap/1_Plans/imple
 | **13** | **Neuro-Symbolic Foundations** 🆕 | ✅ **COMPLETE** (Dec 2024) |
 | **14** | **Agent Constitutions** 🆕 | 🔜 Planned (Q2 2025) |
 | **15** | **Symbolic Reflection** 🆕 | 🔜 Planned (Q3 2025) |
+| **16** | **Context Engineering & Validation** 🆕 | 🔜 Planned (Q4 2025) |
 
 ### Recent Highlights (December 2024)
 

@@ -85,7 +85,9 @@ Reply with "REJECTED" if it is false or unsafe."""
                       ResponseFormat = None
                       Stream = false
                       JsonMode = false
-                      Seed = None }
+                      Seed = None
+
+                      ContextWindow = None }
 
                 let! response = llm.CompleteAsync req
                 recordBudget (response.Usage |> Option.map (fun u -> u.TotalTokens) |> Option.defaultValue 0)
@@ -116,7 +118,9 @@ Return ONLY the variations as a numbered list (e.g., "1. Variation...")."""
                       ResponseFormat = None
                       Stream = false
                       JsonMode = false
-                      Seed = None }
+                      Seed = None
+
+                      ContextWindow = None }
 
                 let! response =
                     task {
@@ -181,7 +185,9 @@ If no, explain why.
                       ResponseFormat = None
                       Stream = false
                       JsonMode = false
-                      Seed = None }
+                      Seed = None
+
+                      ContextWindow = None }
 
                 let! response =
                     task {
@@ -238,7 +244,9 @@ Context: <When to apply this>
                       ResponseFormat = None
                       Stream = false
                       JsonMode = false
-                      Seed = None }
+                      Seed = None
+
+                      ContextWindow = None }
 
                 let! response =
                     task {
@@ -325,7 +333,9 @@ Output a single sentence suggestion."""
                       ResponseFormat = None
                       Stream = false
                       JsonMode = false
-                      Seed = None }
+                      Seed = None
+
+                      ContextWindow = None }
 
                 let! response =
                     task {

@@ -756,7 +756,7 @@ Simple "Let's think step by step" enhancement.
 * [x] **9.2.1** Create `evidence_store` table ✅ (EvidenceStore.fs)
 * [x] **9.2.2** Implement Wikipedia/arXiv/GitHub fetchers ✅ (WebTools.fs, ResearchTools.fs)
 * [x] **9.2.3** Implement LLM-based assertion proposer ✅ (KnowCmd.fs)
-* [ ] **9.2.4** Implement Verifier Agent
+* [x] **9.2.4** Implement Verifier Agent ✅
 * [ ] **9.2.5** Implement contradiction detection
 
 #### 9.3 Evolving Plans

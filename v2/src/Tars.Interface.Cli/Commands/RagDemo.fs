@@ -627,9 +627,13 @@ type DemoLlm() =
                 else
                     return makeResponse "This is a simulated LLM response for the demo."
             }
+ 
+        member _.RouteAsync(req) = 
+            task { return { Backend = Ollama "demo"; Endpoint = Uri("http://localhost:11434"); ApiKey = None } }
 
         member _.EmbedAsync(text) =
             task {
+
                 embedCallCount <- embedCallCount + 1
                 return createSemanticEmbedding text
             }
@@ -681,6 +685,9 @@ type LiveLlm(chatModel: string, embedModel: string) =
 
         member _.CompleteStreamAsync(req, onToken) =
             OllamaClient.sendChatStreamAsync http baseUri chatModel req onToken
+ 
+        member _.RouteAsync(req) = 
+            task { return { Backend = Ollama chatModel; Endpoint = baseUri; ApiKey = None } }
 
     member _.EmbedCallCount = embedCallCount
 

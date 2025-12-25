@@ -17,6 +17,10 @@ type FakeLlmService(responseText: string) =
             async {
                 return Ok [||]
             }
+        member _.RouteAsync(_req) =
+            async {
+                return Ok ({ Backend = Tars.Llm.LlmBackend.Ollama "mock"; Endpoint = System.Uri "http://localhost:11434"; ApiKey = None } : Tars.Llm.Routing.RoutedBackend)
+            }
 
 [<Fact>]
 let ``LlmOutputGuardAnalyzer parses risk/action from JSON`` () =

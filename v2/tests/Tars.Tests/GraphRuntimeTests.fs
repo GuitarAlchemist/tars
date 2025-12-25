@@ -27,7 +27,8 @@ module GraphRuntimeTests =
                 }
 
             member _.CompleteStreamAsync(req, handler) = raise (NotImplementedException())
-            member _.EmbedAsync text = Task.FromResult [| 0.1f |] }
+            member _.EmbedAsync text = Task.FromResult [| 0.1f |]
+            member _.RouteAsync _ = Task.FromResult { Backend = Ollama "mock"; Endpoint = Uri "http://localhost:11434"; ApiKey = None } }
 
     let createTestAgent () =
         { Id = AgentId(Guid.NewGuid())

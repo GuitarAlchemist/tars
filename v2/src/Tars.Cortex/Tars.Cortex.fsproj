@@ -13,6 +13,7 @@
     <Compile Include="SqliteVectorStore.fs" />
     <Compile Include="PostgresVectorStore.fs" />
     <Compile Include="AnnVectorStore.fs" />
+    <Compile Include="ChromaPlanStorage.fs" />
     <Compile Include="Chunking.fs" />
     <Compile Include="Grammar.fs" />
     <Compile Include="SemanticClassifier.fs" />
@@ -41,6 +42,7 @@
     <ProjectReference Include="..\Tars.Core\Tars.Core.fsproj" />
     <ProjectReference Include="..\Tars.Kernel\Tars.Kernel.fsproj" />
     <ProjectReference Include="..\Tars.Llm\Tars.Llm.fsproj" />
+    <ProjectReference Include="..\Tars.Knowledge\Tars.Knowledge.fsproj" />
   </ItemGroup>
 
   <ItemGroup>

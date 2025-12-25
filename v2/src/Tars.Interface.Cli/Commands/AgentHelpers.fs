@@ -77,75 +77,136 @@ let createLlmService (config: Microsoft.Extensions.Configuration.IConfiguration)
         |> Option.ofObj
         |> Option.orElse (config["OLLAMA_BASE_URL"] |> Option.ofObj)
 
+    let provider =
+        config["Llm:Provider"]
+        |> Option.ofObj
+        |> Option.map (fun s -> s.ToLowerInvariant())
+
+    let llamaSharpModelPath =
+        config["Llm:LlamaSharpModelPath"]
+        |> Option.ofObj
+
     let defaultModel =
         config["Llm:Model"]
         |> Option.ofObj
         |> Option.orElse (config["DEFAULT_OLLAMA_MODEL"] |> Option.ofObj)
-        |> Option.orElse (Some "default")
+        |> Option.orElse (Some "magistral")
 
-    // Determine which backend to use
-    match llamaCppUrl, ollamaUrl, defaultModel with
-    | Some llamaUrl, _, Some model ->
-        let routingCfg: RoutingConfig =
-            { OllamaBaseUri = Uri("http://localhost:11434/")
-              VllmBaseUri = Uri("http://localhost:8000/")
-              OpenAIBaseUri = Uri("https://api.openai.com/")
-              GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com/")
-              AnthropicBaseUri = Uri("https://api.anthropic.com/")
-              DefaultOllamaModel = model
-              DefaultVllmModel = model
-              DefaultOpenAIModel = "gpt-4o"
-              DefaultGoogleGeminiModel = "gemini-pro"
-              DefaultAnthropicModel = "claude-3-opus-20240229"
-              DefaultEmbeddingModel = "nomic-embed-text"
-              OllamaKey = None
-              VllmKey = None
-              OpenAIKey = None
-              GoogleGeminiKey = None
-              AnthropicKey = None
-              DockerModelRunnerBaseUri = None
-              LlamaCppBaseUri = Some(Uri(llamaUrl))
-              DefaultDockerModelRunnerModel = None
-              DefaultLlamaCppModel = Some model
-              DockerModelRunnerKey = None
-              LlamaCppKey = None }
+    let contextWindow =
+        config["Llm:ContextWindow"]
+        |> Option.ofObj
+        |> Option.bind (fun s ->
+            match Int32.TryParse(s) with
+            | true, v -> Some v
+            | _ -> None
+        )
 
-        let svcCfg: LlmServiceConfig = { Routing = routingCfg }
-        let httpClient = new HttpClient()
-        httpClient.Timeout <- TimeSpan.FromSeconds(300.0)
-        let llmService = DefaultLlmService(httpClient, svcCfg) :> ILlmService
-        Result.Ok(llmService, model)
-    | None, Some url, Some model ->
-        let routingCfg: RoutingConfig =
-            { OllamaBaseUri = Uri(url)
-              VllmBaseUri = Uri("http://localhost:8000/")
-              OpenAIBaseUri = Uri("https://api.openai.com/")
-              GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com/")
-              AnthropicBaseUri = Uri("https://api.anthropic.com/")
-              DefaultOllamaModel = model
-              DefaultVllmModel = model
-              DefaultOpenAIModel = "gpt-4o"
-              DefaultGoogleGeminiModel = "gemini-pro"
-              DefaultAnthropicModel = "claude-3-opus-20240229"
-              DefaultEmbeddingModel = "nomic-embed-text"
-              OllamaKey = None
-              VllmKey = None
-              OpenAIKey = None
-              GoogleGeminiKey = None
-              AnthropicKey = None
-              DockerModelRunnerBaseUri = None
-              LlamaCppBaseUri = None
-              DefaultDockerModelRunnerModel = None
-              DefaultLlamaCppModel = None
-              DockerModelRunnerKey = None
-              LlamaCppKey = None }
+    let temperature =
+        config["Llm:Temperature"]
+        |> Option.ofObj
+        |> Option.bind (fun s ->
+            match Double.TryParse(s) with
+            | true, v -> Some v
+            | _ -> None
+        )
 
-        let svcCfg: LlmServiceConfig = { Routing = routingCfg }
-        let httpClient = new HttpClient()
-        httpClient.Timeout <- TimeSpan.FromSeconds(300.0)
-        let llmService = DefaultLlmService(httpClient, svcCfg) :> ILlmService
-        Result.Ok(llmService, model)
-    | _, _, _ -> Result.Error "Missing LLM configuration. Set OLLAMA_BASE_URL or LlamaCppUrl in config/environment."
+    // Determine which backend to use based on provider if available
+    let serviceResult =
+        match provider with
+        | Some "llamasharp" when llamaSharpModelPath.IsSome ->
+            let routingCfg: RoutingConfig =
+                { RoutingConfig.Default with
+                    DefaultOllamaModel = defaultModel |> Option.defaultValue "magistral"
+                    LlamaSharpModelPath = llamaSharpModelPath
+                    DefaultContextWindow = contextWindow
+                    DefaultTemperature = temperature }
+
+            let svcCfg: LlmServiceConfig = { Routing = routingCfg }
+            let httpClient = new HttpClient()
+            httpClient.Timeout <- TimeSpan.FromSeconds(300.0)
+            let llmService = DefaultLlmService(httpClient, svcCfg) :> ILlmService
+            Result.Ok(llmService, "llama-sharp")
+
+        | Some "llamacpp" when llamaCppUrl.IsSome ->
+            let model = defaultModel |> Option.defaultValue "magistral"
+            let routingCfg: RoutingConfig =
+                { RoutingConfig.Default with
+                    DefaultOllamaModel = model
+                    DefaultLlamaCppModel = Some model
+                    LlamaCppBaseUri = Some(Uri(llamaCppUrl.Value))
+                    DefaultContextWindow = contextWindow
+                    DefaultTemperature = temperature }
+
+            let svcCfg: LlmServiceConfig = { Routing = routingCfg }
+            let httpClient = new HttpClient()
+            httpClient.Timeout <- TimeSpan.FromSeconds(300.0)
+            let llmService = DefaultLlmService(httpClient, svcCfg) :> ILlmService
+            Result.Ok(llmService, model)
+
+        | Some "ollama" when ollamaUrl.IsSome ->
+            let model = defaultModel |> Option.defaultValue "magistral"
+            let routingCfg: RoutingConfig =
+                { RoutingConfig.Default with
+                    OllamaBaseUri = Uri(ollamaUrl.Value)
+                    DefaultOllamaModel = model
+                    DefaultContextWindow = contextWindow
+                    DefaultTemperature = temperature }
+
+            let svcCfg: LlmServiceConfig = { Routing = routingCfg }
+            let httpClient = new HttpClient()
+            httpClient.Timeout <- TimeSpan.FromSeconds(300.0)
+            let llmService = DefaultLlmService(httpClient, svcCfg) :> ILlmService
+            Result.Ok(llmService, model)
+
+        | _ ->
+            // Fallback to legacy priority matching
+            match llamaSharpModelPath, llamaCppUrl, ollamaUrl, defaultModel with
+            | Some modelPath, _, _, _ ->
+                let routingCfg: RoutingConfig =
+                    { RoutingConfig.Default with
+                        DefaultOllamaModel = defaultModel |> Option.defaultValue "magistral"
+                        LlamaSharpModelPath = Some modelPath
+                        DefaultContextWindow = contextWindow
+                        DefaultTemperature = temperature }
+
+                let svcCfg: LlmServiceConfig = { Routing = routingCfg }
+                let httpClient = new HttpClient()
+                httpClient.Timeout <- TimeSpan.FromSeconds(300.0)
+                let llmService = DefaultLlmService(httpClient, svcCfg) :> ILlmService
+                Result.Ok(llmService, "llama-sharp")
+
+            | _, Some llamaUrl, _, Some model ->
+                let routingCfg: RoutingConfig =
+                    { RoutingConfig.Default with
+                        DefaultOllamaModel = model
+                        DefaultLlamaCppModel = Some model
+                        LlamaCppBaseUri = Some(Uri(llamaUrl))
+                        DefaultContextWindow = contextWindow
+                        DefaultTemperature = temperature }
+
+                let svcCfg: LlmServiceConfig = { Routing = routingCfg }
+                let httpClient = new HttpClient()
+                httpClient.Timeout <- TimeSpan.FromSeconds(300.0)
+                let llmService = DefaultLlmService(httpClient, svcCfg) :> ILlmService
+                Result.Ok(llmService, model)
+
+            | _, None, Some url, Some model ->
+                let routingCfg: RoutingConfig =
+                    { RoutingConfig.Default with
+                        OllamaBaseUri = Uri(url)
+                        DefaultOllamaModel = model
+                        DefaultContextWindow = contextWindow
+                        DefaultTemperature = temperature }
+
+                let svcCfg: LlmServiceConfig = { Routing = routingCfg }
+                let httpClient = new HttpClient()
+                httpClient.Timeout <- TimeSpan.FromSeconds(300.0)
+                let llmService = DefaultLlmService(httpClient, svcCfg) :> ILlmService
+                Result.Ok(llmService, model)
+
+            | _, _, _, _ -> Result.Error "Missing LLM configuration. Set Provider, LlamaSharpModelPath, LlamaCppUrl, or OLLAMA_BASE_URL."
+
+    serviceResult
 
 let createAgentContext (logger: string -> unit) (llm: ILlmService) (audit: ReasoningAudit option) =
     let agent: Agent =

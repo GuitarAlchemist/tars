@@ -113,6 +113,7 @@ module OllamaClientAsync =
                 || model.StartsWith("llama")
                 || model.StartsWith("mistral")
                 || model.StartsWith("qwen")
+                || model.Contains("magistral")
             )
         then
             AsyncResult.ofResult (Result.Error(ModelNotFound $"Unknown model: {model}"))
@@ -148,7 +149,8 @@ module OllamaClientAsyncExamples =
                   ResponseFormat = None
                   Stream = false
                   JsonMode = false
-                  Seed = None }
+                  Seed = None
+                  ContextWindow = None }
 
             let! result = generateAsync http baseUri "llama3.2" req
 
@@ -173,7 +175,8 @@ module OllamaClientAsyncExamples =
                   ResponseFormat = None
                   Stream = false
                   JsonMode = false
-                  Seed = None }
+                  Seed = None
+                  ContextWindow = None }
 
             let! result = generateWithRetry http baseUri "llama3.2" req 3
 
@@ -201,7 +204,8 @@ module OllamaClientAsyncExamples =
                   ResponseFormat = None
                   Stream = false
                   JsonMode = false
-                  Seed = None }
+                  Seed = None
+                  ContextWindow = None }
 
             let! result1 = generateAsync http baseUri "llama3.2" req1
 
@@ -228,7 +232,8 @@ module OllamaClientAsyncExamples =
                       ResponseFormat = None
                       Stream = false
                       JsonMode = false
-                      Seed = None }
+                      Seed = None
+                      ContextWindow = None }
 
                 let! result2 = generateAsync http baseUri "llama3.2" req2
 

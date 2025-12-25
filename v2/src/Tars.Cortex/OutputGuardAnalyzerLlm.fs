@@ -96,7 +96,9 @@ GrammarProvided: {input.Grammar.IsSome}
                           ResponseFormat = None
                           Stream = false
                           JsonMode = true
-                          Seed = None }
+                          Seed = None
+
+                          ContextWindow = None }
 
                     let! res = llm.CompleteAsync req
 
@@ -135,6 +137,10 @@ module OutputGuardAnalyzerFactory =
               DefaultAnthropicModel = "claude-3-opus-20240229"
               DefaultEmbeddingModel = "nomic-embed-text"
 
+              ReasoningModel = None
+              CodingModel = None
+              FastModel = None
+
               OllamaKey = None
               VllmKey = None
               OpenAIKey = None
@@ -145,7 +151,12 @@ module OutputGuardAnalyzerFactory =
               DefaultDockerModelRunnerModel = None
               DefaultLlamaCppModel = None
               DockerModelRunnerKey = None
-              LlamaCppKey = None }
+              LlamaCppKey = None
+              LlamaSharpModelPath = None
+
+              DefaultContextWindow = None
+
+              DefaultTemperature = None }
 
         let svcCfg: LlmServiceConfig = { Routing = routingCfg }
         let httpClient = new HttpClient(Timeout = TimeSpan.FromSeconds(30.0))

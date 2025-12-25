@@ -9,7 +9,7 @@ open Tars.Core
 module EvolutionSemanticTests =
 
     type SuccessLlm(responseText: string) =
-        interface Tars.Llm.LlmService.ILlmService with
+        interface Tars.Llm.ILlmService with
             member _.CompleteAsync(_req) =
                 task {
                     return
@@ -29,6 +29,7 @@ module EvolutionSemanticTests =
                 }
 
             member _.EmbedAsync(_text) = task { return [| 0.1f; 0.2f; 0.3f |] }
+            member _.RouteAsync _ = task { return { Backend = Tars.Llm.LlmBackend.Ollama "mock"; Endpoint = Uri "http://localhost:11434"; ApiKey = None } }
 
     type MockRegistry(agents: Agent list) =
         interface IAgentRegistry with

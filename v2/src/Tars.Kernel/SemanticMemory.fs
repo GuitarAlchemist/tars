@@ -112,7 +112,8 @@ JSON:"""
                       ResponseFormat = None
                       Stream = false
                       JsonMode = true
-                      Seed = None }
+                      Seed = None
+                      ContextWindow = None }
 
                 try
                     let! response = llm.CompleteAsync req

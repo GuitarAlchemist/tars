@@ -51,28 +51,18 @@ module RunCommand =
                         )
 
                         let routingConfig =
-                            { OllamaBaseUri = Uri("http://localhost:11434")
-                              VllmBaseUri = Uri("http://localhost:11434/v1")
-                              OpenAIBaseUri = Uri("https://api.openai.com")
-                              GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com")
-                              AnthropicBaseUri = Uri("https://api.anthropic.com")
-                              DefaultOllamaModel = "qwen2.5-coder:1.5b"
-                              DefaultVllmModel = "qwen2.5-coder:1.5b"
-                              DefaultOpenAIModel = "gpt-4o"
-                              DefaultGoogleGeminiModel = "gemini-1.5-pro"
-                              DefaultAnthropicModel = "claude-3-5-sonnet-20240620"
-                              DefaultEmbeddingModel = "nomic-embed-text"
-                              OllamaKey = None
-                              VllmKey = None
-                              OpenAIKey = None
-                              GoogleGeminiKey = None
-                              AnthropicKey = None
-                              DockerModelRunnerBaseUri = None
-                              LlamaCppBaseUri = None
-                              DefaultDockerModelRunnerModel = None
-                              DefaultLlamaCppModel = None
-                              DockerModelRunnerKey = None
-                              LlamaCppKey = None }
+                            { RoutingConfig.Default with
+                                OllamaBaseUri = Uri("http://localhost:11434")
+                                VllmBaseUri = Uri("http://localhost:11434/v1")
+                                OpenAIBaseUri = Uri("https://api.openai.com")
+                                GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com")
+                                AnthropicBaseUri = Uri("https://api.anthropic.com")
+                                DefaultOllamaModel = "qwen2.5-coder:1.5b"
+                                DefaultVllmModel = "qwen2.5-coder:1.5b"
+                                DefaultOpenAIModel = "gpt-4o"
+                                DefaultGoogleGeminiModel = "gemini-1.5-pro"
+                                DefaultAnthropicModel = "claude-3-5-sonnet-20240620"
+                                DefaultEmbeddingModel = "nomic-embed-text" }
 
                         let llmConfig = { Routing = routingConfig }
                         use httpClient = new HttpClient()
@@ -132,28 +122,18 @@ module RunCommand =
                             logger.Information("Workflow '{Name}' loaded successfully.", workflow.Name)
 
                             let routingConfig =
-                                { OllamaBaseUri = Uri("http://localhost:11434")
-                                  VllmBaseUri = Uri("http://localhost:11434/v1")
-                                  OpenAIBaseUri = Uri("https://api.openai.com")
-                                  GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com")
-                                  AnthropicBaseUri = Uri("https://api.anthropic.com")
-                                  DefaultOllamaModel = "qwen2.5-coder:1.5b"
-                                  DefaultVllmModel = "qwen2.5-coder:1.5b"
-                                  DefaultOpenAIModel = "gpt-4o"
-                                  DefaultGoogleGeminiModel = "gemini-1.5-pro"
-                                  DefaultAnthropicModel = "claude-3-5-sonnet-20240620"
-                                  DefaultEmbeddingModel = "nomic-embed-text"
-                                  OllamaKey = None
-                                  VllmKey = None
-                                  OpenAIKey = None
-                                  GoogleGeminiKey = None
-                                  AnthropicKey = None
-                                  DockerModelRunnerBaseUri = None
-                                  LlamaCppBaseUri = None
-                                  DefaultDockerModelRunnerModel = None
-                                  DefaultLlamaCppModel = None
-                                  DockerModelRunnerKey = None
-                                  LlamaCppKey = None }
+                                { RoutingConfig.Default with
+                                    OllamaBaseUri = Uri("http://localhost:11434")
+                                    VllmBaseUri = Uri("http://localhost:11434/v1")
+                                    OpenAIBaseUri = Uri("https://api.openai.com")
+                                    GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com")
+                                    AnthropicBaseUri = Uri("https://api.anthropic.com")
+                                    DefaultOllamaModel = "qwen2.5-coder:1.5b"
+                                    DefaultVllmModel = "qwen2.5-coder:1.5b"
+                                    DefaultOpenAIModel = "gpt-4o"
+                                    DefaultGoogleGeminiModel = "gemini-1.5-pro"
+                                    DefaultAnthropicModel = "claude-3-5-sonnet-20240620"
+                                    DefaultEmbeddingModel = "nomic-embed-text" }
 
                             let llmConfig = { Routing = routingConfig }
                             use httpClient = new HttpClient()

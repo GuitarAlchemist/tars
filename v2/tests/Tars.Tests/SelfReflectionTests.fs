@@ -58,7 +58,8 @@ type SelfReflectionTests() =
                               Raw = None }
                     }
 
-                member _.EmbedAsync text = task { return [| 0.1f; 0.2f |] } } // Fake embedding
+                member _.EmbedAsync text = task { return [| 0.1f; 0.2f |] }
+                member _.RouteAsync(_) = task { return { Backend = Ollama "mock"; Endpoint = Uri "http://localhost:11434"; ApiKey = None } } } // Fake embedding
 
         // 3. Create Tool
         let searchTool =

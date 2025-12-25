@@ -12,7 +12,7 @@ module EvolutionBenchmarkTests =
         let mutable callCount = 0
         member _.CallCount = callCount
 
-        interface Tars.Llm.LlmService.ILlmService with
+        interface Tars.Llm.ILlmService with
             member _.CompleteAsync(_req) =
                 callCount <- callCount + 1
 
@@ -42,6 +42,7 @@ module EvolutionBenchmarkTests =
                 }
 
             member _.EmbedAsync(_text) = task { return [| 0.1f; 0.2f; 0.3f |] }
+            member _.RouteAsync _ = task { return { Backend = Tars.Llm.LlmBackend.Ollama "mock"; Endpoint = Uri "http://localhost:11434"; ApiKey = None } }
 
     [<Fact>]
     let ``Evolution Loop - 5 Generation Stability Benchmark`` () =

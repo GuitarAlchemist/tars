@@ -341,7 +341,9 @@ let run (logger: ILogger) (maxTurns: int) (verbose: bool) =
                   ResponseFormat = None
                   Stream = false
                   JsonMode = false
-                  Seed = None }
+                  Seed = None
+
+                  ContextWindow = None }
 
             let! response = svc.CompleteAsync(req)
 

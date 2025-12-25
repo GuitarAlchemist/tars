@@ -52,6 +52,9 @@
     <Compile Include="EvolveIntegrationTests.fs" />
     <Compile Include="ReasoningDiagTests.fs" />
     <Compile Include="PuzzleTests.fs" />
+    <Compile Include="PuzzleIntegrationTests.fs" />
+    <Compile Include="VerifierAgentTests.fs" />
+    <Compile Include="MultiBackendPlanStorageTests.fs" />
     <Compile Include="InvariantTests.fs" />
 
     <Compile Include="ChunkingTests.fs" />

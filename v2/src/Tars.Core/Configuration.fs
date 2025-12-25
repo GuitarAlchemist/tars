@@ -9,12 +9,16 @@ open System.IO
 type LlmSettings =
     { Provider: string
       Model: string
+      LlamaSharpModelPath: string option
       EmbeddingModel: string
       BaseUrl: string option
       LlamaCppUrl: string option
       ApiKey: string option
       ContextWindow: int
-      Temperature: float }
+      Temperature: float
+      ReasoningModel: string option
+      CodingModel: string option
+      FastModel: string option }
 
 /// <summary>
 /// Configuration for Memory and Storage
@@ -63,12 +67,16 @@ module ConfigurationDefaults =
     let DefaultLlm =
         { Provider = "Ollama"
           Model = "qwen2.5-coder:7b"
+          LlamaSharpModelPath = None
           EmbeddingModel = "nomic-embed-text"
           BaseUrl = Some "http://localhost:11434"
           LlamaCppUrl = None
           ApiKey = None
           ContextWindow = 32768
-          Temperature = 0.7 }
+          Temperature = 0.7
+          ReasoningModel = Some "deepseek-r1:8b"
+          CodingModel = Some "qwen2.5-coder:7b"
+          FastModel = Some "mistral:7b" }
 
     let DefaultEvolution =
         { DefaultBudget = 100.0

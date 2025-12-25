@@ -34,6 +34,11 @@ type InMemoryLedgerStorage() =
     let candidateLock = obj ()
     let proposalLock = obj ()
 
+    // In-memory storage for plans
+    let plans = Dictionary<PlanId, Plan>()
+    let planEvents = ResizeArray<PlanEvent>()
+    let planLock = obj ()
+
     interface ILedgerStorage with
         member _.Append(entry) =
             task {
@@ -111,12 +116,15 @@ type InMemoryLedgerStorage() =
             task {
                 lock proposalLock (fun () ->
                     proposals.[proposal.Id] <- proposal
+
                     match evidenceId with
                     | Some id ->
                         if not (proposalByEvidence.ContainsKey(id)) then
                             proposalByEvidence.[id] <- ResizeArray<Guid>()
+
                         proposalByEvidence.[id].Add(proposal.Id)
                     | None -> ())
+
                 return Ok()
             }
 
@@ -142,6 +150,42 @@ type InMemoryLedgerStorage() =
                                 | _ -> None)
                             |> Seq.toList
                         | _ -> [])
+            }
+
+    interface IPlanStorage with
+        member _.SavePlan(plan) =
+            task {
+                lock planLock (fun () ->
+                    plans.[plan.Id] <- plan
+                    planEvents.Add(PlanCreated plan))
+
+                return Ok()
+            }
+
+        member _.UpdatePlan(plan) =
+            task {
+                lock planLock (fun () -> plans.[plan.Id] <- plan)
+                return Ok()
+            }
+
+        member _.GetPlan(planId) =
+            task {
+                return
+                    lock planLock (fun () ->
+                        match plans.TryGetValue(planId) with
+                        | true, p -> Some p
+                        | _ -> None)
+            }
+
+        member _.GetPlansByStatus(status) =
+            task {
+                return lock planLock (fun () -> plans.Values |> Seq.filter (fun p -> p.Status = status) |> Seq.toList)
+            }
+
+        member _.AppendEvent(event) =
+            task {
+                lock planLock (fun () -> planEvents.Add(event))
+                return Ok()
             }
 
 

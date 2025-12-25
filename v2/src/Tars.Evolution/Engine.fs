@@ -191,7 +191,9 @@ Do any of the known beliefs contradict executing this task? Respond in JSON: {{"
                       ResponseFormat = Some ResponseFormat.Json
                       Stream = false
                       JsonMode = true
-                      Seed = None }
+                      Seed = None
+
+                      ContextWindow = None }
 
                 try
                     let! response = ctx.Llm.CompleteAsync(request)

@@ -116,7 +116,9 @@ let private checkLlm (logger: ILogger) : Task<bool> =
                   ResponseFormat = None
                   Stream = false
                   JsonMode = false
-                  Seed = None }
+                  Seed = None
+
+                  ContextWindow = None }
 
             let! response = svc.CompleteAsync(req)
 
@@ -192,7 +194,9 @@ let private checkCoT (logger: ILogger) : Task<bool> =
                   ResponseFormat = None
                   Stream = false
                   JsonMode = false
-                  Seed = None }
+                  Seed = None
+
+                  ContextWindow = None }
 
             let! response = svc.CompleteAsync(req)
 
@@ -236,7 +240,9 @@ let private checkWoT (logger: ILogger) : Task<bool> =
                   ResponseFormat = None
                   Stream = false
                   JsonMode = false
-                  Seed = None }
+                  Seed = None
+
+                  ContextWindow = None }
 
             let! response = svc.CompleteAsync(req)
 

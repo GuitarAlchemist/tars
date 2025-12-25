@@ -89,6 +89,9 @@ type TracingLlmService(inner: ILlmService, recorder: ITraceRecorder) =
                 return embedding
             }
 
+        member _.RouteAsync(request: LlmRequest) =
+            inner.RouteAsync(request)
+
     interface ICancellableLlmService with
         member _.CompleteAsync(request, cancellationToken) =
             task {
@@ -175,3 +178,8 @@ type TracingLlmService(inner: ILlmService, recorder: ITraceRecorder) =
             match inner with
             | :? ICancellableLlmService as cancellable -> cancellable.EmbedAsync(text, cancellationToken)
             | _ -> inner.EmbedAsync(text)
+
+        member _.RouteAsync(request, cancellationToken) =
+            match inner with
+            | :? ICancellableLlmService as cancellable -> cancellable.RouteAsync(request, cancellationToken)
+            | _ -> inner.RouteAsync(request)

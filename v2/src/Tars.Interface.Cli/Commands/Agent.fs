@@ -390,7 +390,8 @@ let private runReasoningEngine
 
                     return 1
             with ex ->
-                printfn "❌ Exception occurred"
+                printfn "❌ Exception occurred: %s" ex.Message
+                if ex.InnerException <> null then printfn "   Inner: %s" ex.InnerException.Message
 
                 let errorFile =
                     Path.Combine(

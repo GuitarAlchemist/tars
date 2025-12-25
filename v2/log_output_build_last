@@ -1,0 +1,32 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Tars.Core -> C:\Users\spare\source\repos\tars\v2\src\Tars.Core\bin\Debug\net10.0\Tars.Core.dll
+  Tars.Security -> C:\Users\spare\source\repos\tars\v2\src\Tars.Security\bin\Debug\net10.0\Tars.Security.dll
+  Tars.Symbolic -> C:\Users\spare\source\repos\tars\v2\src\Tars.Symbolic\bin\Debug\net10.0\Tars.Symbolic.dll
+  Tars.Connectors -> C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\bin\Debug\net10.0\Tars.Connectors.dll
+  Tars.Knowledge -> C:\Users\spare\source\repos\tars\v2\src\Tars.Knowledge\bin\Debug\net10.0\Tars.Knowledge.dll
+  Tars.Sandbox -> C:\Users\spare\source\repos\tars\v2\src\Tars.Sandbox\bin\Debug\net10.0\Tars.Sandbox.dll
+  Tars.Llm -> C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\bin\Debug\net10.0\Tars.Llm.dll
+  Tars.Kernel -> C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\bin\Debug\net10.0\Tars.Kernel.dll
+  Tars.Cortex -> C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\bin\Debug\net10.0\Tars.Cortex.dll
+  Tars.Metascript -> C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\bin\Debug\net10.0\Tars.Metascript.dll
+  Tars.Tools -> C:\Users\spare\source\repos\tars\v2\src\Tars.Tools\bin\Debug\net10.0\Tars.Tools.dll
+  Tars.Graph -> C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\bin\Debug\net10.0\Tars.Graph.dll
+  Tars.Evolution -> C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\bin\Debug\net10.0\Tars.Evolution.dll
+C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\NeuroSymbolicBenchmark.fs(150,27): error FS3376: Invalid interpolated string. Bad format specifier: ')' [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\NeuroSymbolicBenchmark.fs(213,9): error FS3376: Invalid interpolated string. Bad format specifier: '' [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\NeuroSymbolicBenchmark.fs(223,27): error FS3376: Invalid interpolated string. Interpolated strings may not use '%' format specifiers unless each is given an expression, e.g. '%d{1+1}'. [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\Benchmark.fs(13,60): error FS3236: Cannot take the address of the value returned from the expression. Assign the returned value to a let-bound value before taking the address. [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\Benchmark.fs(13,35): error FS0041: No overloads match for method 'TryParse'.Known types of arguments: string * inref<Int32>Available overloads: - Int32.TryParse(s: ReadOnlySpan<char>, provider: IFormatProvider, result: byref<int>) : bool // Argument 'provider' doesn't match - Int32.TryParse(s: ReadOnlySpan<char>, result: byref<int>) : bool // Argument 'result' doesn't match - Int32.TryParse(s: string, provider: IFormatProvider, result: byref<int>) : bool // Argument 'provider' doesn't match - Int32.TryParse(s: string, result: byref<int>) : bool // Argument 'result' doesn't match - Int32.TryParse(utf8Text: ReadOnlySpan<byte>, provider: IFormatProvider, result: byref<int>) : bool // Argument 'utf8Text' doesn't match - Int32.TryParse(utf8Text: ReadOnlySpan<byte>, result: byref<int>) : bool // Argument 'utf8Text' doesn't match [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
+
+Build FAILED.
+
+C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\NeuroSymbolicBenchmark.fs(150,27): error FS3376: Invalid interpolated string. Bad format specifier: ')' [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\NeuroSymbolicBenchmark.fs(213,9): error FS3376: Invalid interpolated string. Bad format specifier: '' [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\NeuroSymbolicBenchmark.fs(223,27): error FS3376: Invalid interpolated string. Interpolated strings may not use '%' format specifiers unless each is given an expression, e.g. '%d{1+1}'. [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\Benchmark.fs(13,60): error FS3236: Cannot take the address of the value returned from the expression. Assign the returned value to a let-bound value before taking the address. [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\Benchmark.fs(13,35): error FS0041: No overloads match for method 'TryParse'.Known types of arguments: string * inref<Int32>Available overloads: - Int32.TryParse(s: ReadOnlySpan<char>, provider: IFormatProvider, result: byref<int>) : bool // Argument 'provider' doesn't match - Int32.TryParse(s: ReadOnlySpan<char>, result: byref<int>) : bool // Argument 'result' doesn't match - Int32.TryParse(s: string, provider: IFormatProvider, result: byref<int>) : bool // Argument 'provider' doesn't match - Int32.TryParse(s: string, result: byref<int>) : bool // Argument 'result' doesn't match - Int32.TryParse(utf8Text: ReadOnlySpan<byte>, provider: IFormatProvider, result: byref<int>) : bool // Argument 'utf8Text' doesn't match - Int32.TryParse(utf8Text: ReadOnlySpan<byte>, result: byref<int>) : bool // Argument 'utf8Text' doesn't match [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
+    0 Warning(s)
+    5 Error(s)
+
+Time Elapsed 00:00:05.47

@@ -415,7 +415,7 @@ Return valid JSON array only."""
 
     /// Extract facts from entities using LLM
     let extractFactsAsync
-        (llmService: LlmService.ILlmService)
+        (llmService: ILlmService)
         (entities: TarsEntity list)
         (context: string)
         : Task<FactExtractionResult> =
@@ -440,7 +440,9 @@ Return valid JSON array only."""
                       ResponseFormat = None
                       Stream = false
                       JsonMode = true
-                      Seed = None }
+                      Seed = None
+
+                      ContextWindow = None }
 
                 try
                     let! response = llmService.CompleteAsync(request)

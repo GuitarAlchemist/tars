@@ -13,6 +13,8 @@
     <Compile Include="Budget.fs" />
     <Compile Include="Domain.fs" />
     <Compile Include="NeuroSymbolicDefaults.fs" />
+    <Compile Include="Puzzles.fs" />
+    <Compile Include="InternetPuzzles.fs" />
     <Compile Include="Communication.fs" />
     <Compile Include="MetricSpace.fs" />
     <Compile Include="SpeechActs.fs" />
@@ -21,6 +23,7 @@
     <Compile Include="Tracing.fs" />
     <Compile Include="TraceRecorder.fs" />
     <Compile Include="Metrics.fs" />
+    <Compile Include="ToolLedger.fs" />
     <Compile Include="Resilience.fs" />
     <Compile Include="Validation.fs" />
     <Compile Include="GrammarDistill.fs" />
@@ -55,6 +58,7 @@
     <Compile Include="StructuredLogging.fs" />
     <Compile Include="HealthChecks.fs" />
     <Compile Include="ErrorHandling.fs" />
+    <Compile Include="IncidentLedger.fs" />
     <Compile Include="Configuration.fs" />
   </ItemGroup>
 

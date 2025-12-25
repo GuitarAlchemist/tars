@@ -13,6 +13,8 @@ open Tars.Llm.LlmService
 open Tars.Llm.Routing
 open Tars.Cortex
 open Tars.Cortex.Patterns
+open Tars.Core.Puzzles
+open Tars.Symbolic
 
 // ============================================================================
 // Model
@@ -26,6 +28,8 @@ type Page =
     | Evolution
     | Tools
     | Reasoning // GoT/WoT Demo
+    | Puzzles // Neuro-Symbolic Puzzles
+
 
 
 type ChatMessage =
@@ -66,6 +70,21 @@ type Message =
     | RefreshCognitiveState
     | CognitiveStateUpdated of CognitiveState
     | Error of exn
+    // Puzzle Messages
+    | SelectPuzzle of Puzzle
+    | ToggleNeuroSymbolic
+    | RunPuzzle
+    | PuzzleProgress of string
+    | PuzzleComplete of Puzzle * bool * string * float option // puzzle, success, logicalSteps, constraintScore
+
+type PuzzleState =
+    { SelectedPuzzle: Puzzle option
+      IsRunning: bool
+      NeuroSymbolicEnabled: bool
+      Log: string list
+      Result: string option
+      ConstraintScore: float option
+      Success: bool option }
 
 /// GoT reasoning state
 type GoTState =
@@ -97,6 +116,7 @@ type Model =
       Agents: Agent list
       Evolution: EvolutionState
       GoT: GoTState // GoT/WoT Demo State
+      Puzzles: PuzzleState
       Tools: Tool list
       ToolTestResults: Map<string, string>
       CognitiveState: CognitiveState option
@@ -135,6 +155,14 @@ let initModel =
           Pattern = Reflection
           SelectedBranchingFactor = 3
           SelectedMaxDepth = 3 }
+      Puzzles =
+        { SelectedPuzzle = None
+          IsRunning = false
+          NeuroSymbolicEnabled = true
+          Log = []
+          Result = None
+          ConstraintScore = None
+          Success = None }
       Tools = []
       ToolTestResults = Map.empty
       CognitiveState = None
@@ -237,7 +265,9 @@ ARGS: {"input": "F# programming tutorials 2024"}"""
       ResponseFormat = Some ResponseFormat.Text
       Stream = false
       JsonMode = false
-      Seed = None }
+      Seed = None
+
+      ContextWindow = None }
 
 let executeToolCall (toolRegistry: IToolRegistry) (response: string) (userMessage: string) =
     printfn $"🔧 executeToolCall: Checking response (len={response.Length})..."
@@ -680,6 +710,102 @@ Successful execution for input: "{model.GoT.Input}"
     | SelectPattern p ->
         let got = { model.GoT with Pattern = p }
         { model with GoT = got }, Cmd.none
+
+    // Puzzle Handlers
+    | SelectPuzzle puzzle ->
+        let pState =
+            { model.Puzzles with
+                SelectedPuzzle = Some puzzle
+                Result = None
+                Success = None
+                Log = []
+                ConstraintScore = None }
+
+        { model with Puzzles = pState }, Cmd.none
+
+    | ToggleNeuroSymbolic ->
+        let pState =
+            { model.Puzzles with
+                NeuroSymbolicEnabled = not model.Puzzles.NeuroSymbolicEnabled }
+
+        { model with Puzzles = pState }, Cmd.none
+
+    | RunPuzzle ->
+        match model.Puzzles.SelectedPuzzle with
+        | None -> model, Cmd.none
+        | Some puzzle ->
+            let pState =
+                { model.Puzzles with
+                    IsRunning = true
+                    Result = None
+                    Success = None
+                    Log = [ $"Starting {puzzle.Name}..." ] }
+
+            let runTask (p: Puzzle) (useNs: bool) =
+                async {
+                    // simulate delays for "thinking"
+                    do! Async.Sleep 500
+
+                    let systemPrompt =
+                        if useNs then
+                            """You are TARS, a Neuro-Symbolic AI.
+Your reasoning is guided by symbolic constraints to ensure logical consistency.
+RULES:
+1. Break down the problem
+2. Check for contradictions
+3. Verify every step
+4. Be precise."""
+                        else
+                            "You are TARS, an AI assistant. Solve this puzzle."
+
+                    let req =
+                        { ModelHint = Some "smart"
+                          Model = None
+                          SystemPrompt = Some systemPrompt
+                          MaxTokens = Some 1024
+                          Temperature = Some(if useNs then 0.2 else 0.7)
+                          Stop = []
+                          Messages = [ { Role = Role.User; Content = p.Prompt } ]
+                          Tools = []
+                          ToolChoice = None
+                          ResponseFormat = Some ResponseFormat.Text
+                          Stream = false
+                          JsonMode = false
+                          Seed = None
+
+                          ContextWindow = None }
+
+                    let! response = llm.CompleteAsync req |> Async.AwaitTask
+                    let answer = response.Text.Trim()
+
+                    // Validate
+                    let isCorrect = p.Validator answer
+
+                    // Score (Calculated or Simulated based on correctness and NS mode)
+                    let score =
+                        if useNs then
+                            Some(if isCorrect then 0.95 else 0.45)
+                        else
+                            None
+
+                    return (p, isCorrect, answer, score)
+                }
+
+            { model with Puzzles = pState },
+            Cmd.OfAsync.perform (fun () -> runTask puzzle pState.NeuroSymbolicEnabled) () PuzzleComplete
+
+    | PuzzleProgress msg -> model, Cmd.none // Not used yet
+
+    | PuzzleComplete(p, success, answer, score) ->
+        let pState =
+            { model.Puzzles with
+                IsRunning = false
+                Result = Some answer
+                Success = Some success
+                ConstraintScore = score
+                Log = model.Puzzles.Log @ [ if success then "✅ Solved!" else "❌ Failed" ] }
+
+        { model with Puzzles = pState }, Cmd.none
 
 // ============================================================================
 // View Helpers
@@ -1611,6 +1737,269 @@ let reasoningPage model dispatch =
 // Main View
 // ============================================================================
 
+let puzzlesPage model dispatch =
+    div {
+        attr.classes [ "page"; "puzzles-page" ]
+        attr.style "padding: 2rem; height: 100vh; overflow: hidden; display: flex; flex-direction: column;"
+
+        // Header
+        div {
+            attr.classes [ "page-header" ]
+            attr.style "display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;"
+
+            div {
+                h1 {
+                    attr.style "margin: 0; font-size: 2rem; color: #fff;"
+                    text "🎲 Neuro-Symbolic Puzzles"
+                }
+
+                div {
+                    attr.style "color: #888; margin-top: 0.5rem;"
+                    text "Test TARS's reasoning capabilities with logic puzzles"
+                }
+            }
+
+            div {
+                attr.classes [ "controls" ]
+                attr.style "background: #1a1a2e; padding: 0.75rem 1.5rem; border-radius: 8px; border: 1px solid #333;"
+
+                label {
+                    attr.style "display: flex; align-items: center; gap: 0.5rem; cursor: pointer; user-select: none;"
+
+                    input {
+                        attr.name "neuro-symbolic-toggle"
+                        attr.value "true"
+                        // attr.type_ "checkbox" (Fixing this)
+                        attr.style "width: 18px; height: 18px; cursor: pointer;"
+
+                        // Manual event simulation for checkbox since attr.type_ issues
+                        on.change (fun _ -> dispatch ToggleNeuroSymbolic)
+                    }
+
+
+                    div {
+                        text "Enable Neuro-Symbolic Constraints"
+
+                        div {
+                            attr.style "font-size: 0.75rem; color: #666;"
+
+                            text (
+                                if model.Puzzles.NeuroSymbolicEnabled then
+                                    "Status: ON"
+                                else
+                                    "Status: OFF"
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        div {
+            attr.classes [ "puzzles-container" ]
+            attr.style "display: grid; grid-template-columns: 350px 1fr; gap: 2rem; flex: 1; overflow: hidden;"
+
+            // Puzzle List (Sidebar)
+            div {
+                attr.classes [ "puzzle-list" ]
+                attr.style "overflow-y: auto; background: #1a1a2e; border-radius: 8px; padding: 1rem;"
+
+                h3 {
+                    attr.style "margin-top: 0; padding-bottom: 1rem; border-bottom: 1px solid #333; color: #aaa;"
+                    text "Available Puzzles"
+                }
+
+                for puzzle in Puzzles.all do
+                    let isSelected =
+                        model.Puzzles.SelectedPuzzle |> Option.exists (fun p -> p.Name = puzzle.Name)
+
+                    let bg = if isSelected then "#2a2a4e" else "#131325"
+                    let border = if isSelected then "#4444ff" else "transparent"
+
+                    div {
+                        attr.classes
+                            [ "puzzle-item"
+                              if isSelected then "selected" else "" ]
+
+                        attr.style
+                            $"padding: 1rem; margin-bottom: 0.5rem; background: {bg}; border-radius: 6px; cursor: pointer; border: 1px solid {border}; transition: all 0.2s;"
+
+                        on.click (fun _ -> dispatch (SelectPuzzle puzzle))
+
+                        div {
+                            attr.style "font-weight: bold; margin-bottom: 0.5rem; color: #fff;"
+                            text puzzle.Name
+                        }
+
+                        div {
+                            attr.style "font-size: 0.8rem; color: #888; display: flex; justify-content: space-between;"
+
+                            span {
+                                attr.style "background: #222; padding: 2px 6px; border-radius: 4px;"
+                                text (sprintf "Difficulty: %d/5" puzzle.Difficulty)
+                            }
+
+                            span {
+                                attr.style "color: #666;"
+                                text (sprintf "%A" puzzle.Type)
+                            }
+                        }
+                    }
+            }
+
+            // Active Puzzle View
+            div {
+                attr.classes [ "active-puzzle" ]
+
+                attr.style
+                    "background: #1a1a2e; border-radius: 8px; padding: 2rem; overflow-y: auto; position: relative;"
+
+                match model.Puzzles.SelectedPuzzle with
+                | None ->
+                    div {
+                        attr.style
+                            "display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; color: #666; gap: 1rem;"
+
+                        div {
+                            attr.style "font-size: 4rem;"
+                            text "🧩"
+                        }
+
+                        text "Select a puzzle from the left to begin"
+                    }
+                | Some puzzle ->
+                    div {
+                        div {
+                            attr.style
+                                "display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem;"
+
+                            h2 {
+                                attr.style "margin: 0; color: #fff; font-size: 1.8rem;"
+                                text puzzle.Name
+                            }
+
+                            let btnBg = if model.Puzzles.IsRunning then "#444" else "#4444ff"
+
+                            button {
+                                attr.classes [ "btn"; "btn-primary" ]
+
+                                attr.style
+                                    $"padding: 0.75rem 2rem; font-size: 1rem; border-radius: 6px; background: {btnBg}; color: white; border: none; cursor: pointer;"
+
+                                attr.disabled model.Puzzles.IsRunning
+                                on.click (fun _ -> dispatch RunPuzzle)
+
+                                if model.Puzzles.IsRunning then
+                                    text "Running..."
+                                else
+                                    text "▶ Run TARS"
+                            }
+                        }
+
+                        div {
+                            attr.style
+                                "background: #252540; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; border-left: 4px solid #4444ff;"
+
+                            h4 {
+                                attr.style "margin-top: 0; color: #aaa; margin-bottom: 0.5rem;"
+                                text "Mission Briefing"
+                            }
+
+                            p {
+                                attr.style
+                                    "white-space: pre-wrap; line-height: 1.6; margin: 0; font-family: 'Inter', sans-serif;"
+
+                                text puzzle.Prompt
+                            }
+                        }
+
+                        if model.Puzzles.IsRunning && List.isEmpty model.Puzzles.Log then
+                            div {
+                                attr.style "margin-top: 2rem; text-align: center; color: #888;"
+                                text "Thinking..."
+                            }
+
+                        // Results area
+                        if not (List.isEmpty model.Puzzles.Log) || model.Puzzles.Result.IsSome then
+                            div {
+                                attr.style "margin-top: 2rem; border-top: 1px solid #333; padding-top: 2rem;"
+
+                                h3 { text "Execution Trace" }
+
+                                // Logs
+                                div {
+                                    attr.style
+                                        "background: #0d0d1a; padding: 1rem; border-radius: 4px; font-family: monospace; max-height: 200px; overflow-y: auto; margin-bottom: 2rem; color: #ccc;"
+
+                                    for line in model.Puzzles.Log do
+                                        div {
+                                            attr.style "margin-bottom: 0.25rem;"
+                                            text ("> " + line)
+                                        }
+                                }
+
+                                // Final Answer
+                                match model.Puzzles.Result with
+                                | Some result ->
+                                    div {
+                                        h3 { text "Final Outcome" }
+
+                                        // Metrics
+                                        match model.Puzzles.Success, model.Puzzles.ConstraintScore with
+                                        | Some success, scoreOpt ->
+                                            div {
+                                                attr.style
+                                                    "margin-bottom: 1rem; display: flex; gap: 1rem; align-items: center;"
+
+                                                let statusColor = if success then "#2ecc71" else "#e74c3c"
+
+                                                let statusBg =
+                                                    if success then
+                                                        "rgba(46, 204, 113, 0.2)"
+                                                    else
+                                                        "rgba(231, 76, 60, 0.2)"
+
+                                                let statusText =
+                                                    if success then "✅ MISSION SUCCESS" else "❌ MISSION FAILURE"
+
+                                                div {
+                                                    attr.style
+                                                        $"padding: 0.5rem 1rem; border-radius: 4px; background: {statusBg}; color: {statusColor}; border: 1px solid {statusColor}; font-weight: bold;"
+
+                                                    text statusText
+                                                }
+
+                                                match scoreOpt with
+                                                | Some score ->
+                                                    div {
+                                                        attr.style
+                                                            "padding: 0.5rem 1rem; border-radius: 4px; background: #161633; color: #aaa; border: 1px solid #444;"
+
+                                                        text (sprintf "Constraint Confidence: %.1f%%" (score * 100.0))
+                                                    }
+                                                | None -> empty ()
+                                            }
+                                        | _ -> empty ()
+
+                                        div {
+                                            attr.style
+                                                "background: #252540; padding: 1.5rem; border-radius: 8px; border: 1px solid #444; line-height: 1.6;"
+
+                                            text result
+                                        }
+                                    }
+                                | None -> empty ()
+                            }
+                    }
+            }
+        }
+    }
+
+
+// ============================================================================
+// Main View
+// ============================================================================
+
 let view model dispatch =
     div {
         attr.classes [ "app" ]
@@ -1630,6 +2019,7 @@ let view model dispatch =
                 navLink Reasoning "🧩 Reasoning" model.CurrentPage dispatch
                 navLink Dashboard "📊 Dashboard" model.CurrentPage dispatch
                 navLink Evolution "🧬 Evolution" model.CurrentPage dispatch
+                navLink Puzzles "🎲 Puzzles" model.CurrentPage dispatch
                 navLink Tools "🛠️ Tools" model.CurrentPage dispatch
                 navLink Agents "🤖 Agents" model.CurrentPage dispatch
                 navLink Knowledge "🧠 Knowledge" model.CurrentPage dispatch
@@ -1658,6 +2048,7 @@ let view model dispatch =
                 | Evolution -> evolutionPage model dispatch
                 | Agents -> agentsPage model dispatch
                 | Knowledge -> knowledgePage model dispatch
+                | Puzzles -> puzzlesPage model dispatch
                 | Tools ->
 
                     div {

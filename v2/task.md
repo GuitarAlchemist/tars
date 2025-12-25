@@ -21,8 +21,21 @@
 | **10** | **3D Knowledge Graph Visualization** | 🔜 Planned |
 | 11 | Cognitive Grounding | 🔜 Planned |
 | 12 | Web of Things Integration | 🔜 Planned |
+| 13 | Neuro-Symbolic Foundations | ✅ Complete |
+| 14 | Agent Constitutions | 🔜 Planned |
+| 15 | Symbolic Reflection | 🔜 Planned |
+| 16 | Context Engineering & Validation | 🔜 Planned |
 
 ---
+
+## ✅ Today's Progress (2025-12-25)
+
+### Build Fixes (Tars.Tests) ✅
+- Implemented `RouteAsync` in all `ILlmService` mocks across 11 test files.
+- Resolved `RoutedBackend` type ambiguity in test files.
+- Fixed `Routing.fs` to prioritize vLLM for "reasoning" and "analysis" hints.
+- `dotnet build Tars.sln` is now successful.
+- `LlmServiceTests` are fully passing.
 
 ## ✅ Today's Progress (2025-12-22)
 

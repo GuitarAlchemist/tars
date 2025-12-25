@@ -91,31 +91,20 @@ let run (logger: ILogger) =
         for tool in macroTools do
             tools.Register(tool)
 
-        // Create routing config manually as Default static member missing
+        // Create routing config from default to avoid missing field errors
         let routingCfg: RoutingConfig =
-            { OllamaBaseUri = Uri("http://localhost:11434/")
-              VllmBaseUri = Uri("http://localhost:8000/")
-              OpenAIBaseUri = Uri("https://api.openai.com/")
-              GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com/")
-              AnthropicBaseUri = Uri("https://api.anthropic.com/")
-              DefaultOllamaModel = "qwen2.5-coder:1.5b"
-              DefaultVllmModel = "facebook/opt-125m"
-              DefaultOpenAIModel = "gpt-3.5-turbo"
-              DefaultGoogleGeminiModel = "gemini-pro"
-              DefaultAnthropicModel = "claude-2"
-              DefaultEmbeddingModel = "nomic-embed-text"
-
-              OllamaKey = None
-              VllmKey = None
-              OpenAIKey = None
-              GoogleGeminiKey = None
-              AnthropicKey = None
-              DockerModelRunnerBaseUri = None
-              LlamaCppBaseUri = None
-              DefaultDockerModelRunnerModel = None
-              DefaultLlamaCppModel = None
-              DockerModelRunnerKey = None
-              LlamaCppKey = None }
+            { RoutingConfig.Default with
+                OllamaBaseUri = Uri("http://localhost:11434/")
+                VllmBaseUri = Uri("http://localhost:8000/")
+                OpenAIBaseUri = Uri("https://api.openai.com/")
+                GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com/")
+                AnthropicBaseUri = Uri("https://api.anthropic.com/")
+                DefaultOllamaModel = "qwen2.5-coder:1.5b"
+                DefaultVllmModel = "facebook/opt-125m"
+                DefaultOpenAIModel = "gpt-3.5-turbo"
+                DefaultGoogleGeminiModel = "gemini-pro"
+                DefaultAnthropicModel = "claude-2"
+                DefaultEmbeddingModel = "nomic-embed-text" }
 
         let svcCfg = { LlmServiceConfig.Routing = routingCfg }
 
@@ -144,6 +133,11 @@ let run (logger: ILogger) =
                     }
 
                 member _.EmbedAsync(text) = task { return Array.zeroCreate 1536 } // Mock embedding
+ 
+                member _.RouteAsync(req) = 
+                    task { 
+                        return { Backend = Ollama "mock"; Endpoint = Uri("http://localhost:11434"); ApiKey = None } 
+                    }
 
                 member _.CompleteStreamAsync(req, onToken) =
                     task { return raise (NotImplementedException("Stream not supported in mock")) } }

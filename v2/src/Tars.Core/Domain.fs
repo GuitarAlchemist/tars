@@ -193,7 +193,8 @@ type Agent =
 
     member this.ReceiveMessage(msg: Message) =
         // Truncate message content if too large to prevent HTTP 400 errors
-        let maxMessageLength = 2000
+        // Increased to 64KB to support long reasoning outputs
+        let maxMessageLength = 65536
 
         let truncatedMsg =
             if msg.Content.Length > maxMessageLength then

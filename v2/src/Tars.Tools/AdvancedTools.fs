@@ -57,6 +57,7 @@ module ResilienceTools =
 
                     printfn
                         $"🔄 RETRY %d{currentRetry + 1}/%d{maxRetries} for '%s{operation}' - waiting %d{actualDelay}ms"
+
                     do! Task.Delay(actualDelay)
 
                     return
@@ -251,100 +252,4 @@ module MonitoringTools =
                 return $"Recorded metric '%s{name}' = %.2f{value}"
             with ex ->
                 return "record_metric error: " + ex.Message
-        }
-
-    [<TarsToolAttribute("get_metrics", "Gets metric statistics. Input: metric name (or 'all')")>]
-    let getMetrics (name: string) =
-        task {
-            let n = name.Trim()
-
-            if n = "all" || String.IsNullOrWhiteSpace(n) then
-                if metrics.Count = 0 then
-                    return "No metrics recorded yet."
-                else
-                    let summary =
-                        metrics
-                        |> Seq.map (fun kvp ->
-                            let values = kvp.Value
-                            let avg = if values.IsEmpty then 0.0 else List.average values
-                            $"  %s{kvp.Key}: avg=%.2f{avg}, count=%d{values.Length}")
-                        |> String.concat "\n"
-
-                    return $"All Metrics:\n%s{summary}"
-            else if metrics.ContainsKey(n) then
-                let values = metrics.[n]
-                let avg = List.average values
-                let minV = List.min values
-                let maxV = List.max values
-
-                return $"Metric '%s{n}': avg=%.2f{avg}, min=%.2f{minV}, max=%.2f{maxV}, count=%d{values.Length}"
-            else
-                return $"Metric '%s{n}' not found."
-        }
-
-    [<TarsToolAttribute("health_check",
-                        "Reports or queries component health. Input JSON: { \"component\": \"name\", \"action\": \"set|get\", \"healthy\": true }")>]
-    let healthCheck (args: string) =
-        task {
-            try
-                let doc = System.Text.Json.JsonDocument.Parse(args)
-                let root = doc.RootElement
-
-                let compName = root.GetProperty("component").GetString()
-                let action = root.GetProperty("action").GetString().ToLower()
-
-                match action with
-                | "set" ->
-                    let healthy = root.GetProperty("healthy").GetBoolean()
-                    componentHealth.[compName] <- (healthy, DateTime.Now)
-
-                    let status = if healthy then "🟢 HEALTHY" else "🔴 UNHEALTHY"
-                    printfn $"%s{status}: %s{compName}"
-                    return $"%s{compName}: %s{status}"
-
-                | "get" ->
-                    if componentHealth.ContainsKey(compName) then
-                        let (healthy, lastUpdate) = componentHealth.[compName]
-                        let status = if healthy then "🟢 HEALTHY" else "🔴 UNHEALTHY"
-                        let age = (DateTime.Now - lastUpdate).TotalSeconds
-                        return $"%s{compName}: %s{status} (updated %.0f{age}s ago)"
-                    else
-                        return $"%s{compName}: ⚪ UNKNOWN"
-
-                | "all" ->
-                    if componentHealth.Count = 0 then
-                        return "No health data recorded."
-                    else
-                        let summary =
-                            componentHealth
-                            |> Seq.map (fun kvp ->
-                                let (healthy, _) = kvp.Value
-                                let icon = if healthy then "🟢" else "🔴"
-                                $"  %s{icon} %s{kvp.Key}")
-                            |> String.concat "\n"
-
-                        return $"Health Status:\n%s{summary}"
-
-                | _ -> return $"Unknown action: %s{action}. Use set, get, or all."
-            with ex ->
-                return "health_check error: " + ex.Message
-        }
-
-    [<TarsToolAttribute("report_status", "Generates a full system status report. Input: ignored")>]
-    let reportStatus (_: string) =
-        task {
-            let healthyCount =
-                componentHealth.Values |> Seq.filter (fun (h, _) -> h) |> Seq.length
-
-            let totalComponents = componentHealth.Count
-            let metricCount = metrics.Count
-
-            let report =
-                "System Status Report\n"
-                + "═════════════════════════════\n"
-                + $"Components: %d{healthyCount}/%d{totalComponents} healthy\n"
-                + $"Metrics tracked: %d{metricCount}\n"
-                + sprintf "Generated: %s" (DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"))
-
-            return report
         }

@@ -52,7 +52,9 @@ type IntegrationTests(output: ITestOutputHelper) =
                   ResponseFormat = None
                   Stream = false
                   JsonMode = false
-                  Seed = None }
+                  Seed = None
+
+                  ContextWindow = None }
 
             let! response = OllamaClient.sendChatAsync httpClient ollamaUri "llama3.2" req
 
@@ -99,7 +101,9 @@ type IntegrationTests(output: ITestOutputHelper) =
                                   Raw = None }
                         }
 
-                    member _.EmbedAsync(_text) = task { return [| 0.1f; 0.2f |] } }
+                    member _.EmbedAsync(_text) = task { return [| 0.1f; 0.2f |] }
+
+                    member _.RouteAsync(_req) = task { return { Tars.Llm.Routing.RoutedBackend.Backend = Tars.Llm.LlmBackend.Ollama "mock"; Endpoint = Uri "http://localhost:11434"; ApiKey = None } } }
 
             let compressor = ContextCompressor(llm, EntropyMonitor())
 

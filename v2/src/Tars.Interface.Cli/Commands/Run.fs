@@ -48,13 +48,24 @@ let execute (logger: ILogger) (scriptPath: string) =
                       DefaultOpenAIModel = "gpt-4o"
                       DefaultGoogleGeminiModel = "gemini-pro"
                       DefaultAnthropicModel = "claude-3-opus-20240229"
+                      DefaultDockerModelRunnerModel = None
+                      DefaultLlamaCppModel = None
                       DefaultEmbeddingModel = "nomic-embed-text"
 
                       OllamaKey = None
                       VllmKey = None
                       OpenAIKey = getSecret "OPENAI_API_KEY"
                       GoogleGeminiKey = getSecret "GOOGLE_API_KEY"
-                      AnthropicKey = getSecret "ANTHROPIC_API_KEY" }
+                      AnthropicKey = getSecret "ANTHROPIC_API_KEY"
+                      DockerModelRunnerBaseUri = None
+                      LlamaCppBaseUri = None
+                      DockerModelRunnerKey = None
+                      LlamaCppKey = None
+                      LlamaSharpModelPath = None
+
+                      DefaultContextWindow = None
+
+                      DefaultTemperature = None }
 
                 let svcCfg: LlmServiceConfig = { Routing = routingCfg }
                 use httpClient = new HttpClient()

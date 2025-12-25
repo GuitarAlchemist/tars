@@ -81,7 +81,9 @@ Generate 3-5 steps."""
                   ResponseFormat = None
                   Stream = false
                   JsonMode = false
-                  Seed = None }
+                  Seed = None
+
+                  ContextWindow = None }
 
             let! response = llm.CompleteAsync(request)
             let steps = this.ParsePlanResponse(response.Text)

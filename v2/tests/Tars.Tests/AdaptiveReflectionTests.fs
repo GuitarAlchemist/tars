@@ -24,7 +24,8 @@ module AdaptiveReflectionTests =
                 }
 
             member _.CompleteStreamAsync(req, handler) = raise (NotImplementedException())
-            member _.EmbedAsync text = Task.FromResult [| 0.1f |] }
+            member _.EmbedAsync text = Task.FromResult [| 0.1f |]
+            member _.RouteAsync _ = Task.FromResult { Backend = Ollama "mock"; Endpoint = Uri "http://localhost:11434"; ApiKey = None } }
 
     let createMockRegistry (agent: Agent) =
         { new IAgentRegistry with
@@ -147,7 +148,8 @@ module AdaptiveReflectionTests =
                         }
 
                     member _.CompleteStreamAsync(req, handler) = raise (NotImplementedException())
-                    member _.EmbedAsync text = Task.FromResult [| 0.1f |] }
+                    member _.EmbedAsync text = Task.FromResult [| 0.1f |]
+                    member _.RouteAsync _ = Task.FromResult { Backend = Ollama "mock"; Endpoint = Uri "http://localhost:11434"; ApiKey = None } }
 
             // Epistemic rejects first time, accepts second time?
             // Since we can't easily change the mock state inside the loop without a mutable ref,

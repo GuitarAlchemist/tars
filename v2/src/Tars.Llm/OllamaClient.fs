@@ -29,7 +29,8 @@ module OllamaClient =
         { stop: string[] option
           seed: int option
           num_predict: int option
-          temperature: float option }
+          temperature: float option
+          num_ctx: int option }
 
     /// <summary>DTO for tool parameter property (JSON Schema).</summary>
     [<CLIMutable>]
@@ -163,7 +164,8 @@ module OllamaClient =
                         Some(List.toArray req.Stop)
                   seed = req.Seed
                   num_predict = req.MaxTokens
-                  temperature = req.Temperature }
+                  temperature = req.Temperature
+                  num_ctx = req.ContextWindow }
 
             let dto: OllamaRequestDto =
                 { model = model
@@ -178,36 +180,52 @@ module OllamaClient =
                     | Some ResponseFormat.Text -> None
                     | None -> if req.JsonMode then Some(box "json") else None
                   options = Some options
-                  tools = if req.Tools.IsEmpty then None else Some(List.toArray req.Tools) }
+                  tools =
+                    if req.Tools.IsEmpty then
+                        None
+                    else
+                        Some(List.toArray req.Tools) }
 
             let uri = Uri(baseUri, getApiPrefix baseUri + "chat")
             use! resp = http.PostAsJsonAsync(uri, dto, jsonOptions)
-            resp.EnsureSuccessStatusCode() |> ignore
 
-            let! raw = resp.Content.ReadAsStringAsync()
-            let parsed = JsonSerializer.Deserialize<OllamaResponseDto>(raw, jsonOptions)
-
-            if isNull (box parsed) || isNull (box parsed.message) || isNull (box parsed.message.content) then
+            if resp.StatusCode = System.Net.HttpStatusCode.NotFound then
                 return
                     { Text = ""
-                      FinishReason = Some "parse_error"
+                      FinishReason = Some "model_not_found"
                       Usage = None
-                      Raw = Some raw }
+                      Raw = Some "404 Not Found - Check if model exists" }
             else
-                let usage =
-                    match parsed.prompt_eval_count, parsed.eval_count with
-                    | Some p, Some c ->
-                        Some
-                            { PromptTokens = p
-                              CompletionTokens = c
-                              TotalTokens = p + c }
-                    | _ -> None
+                resp.EnsureSuccessStatusCode() |> ignore
 
-                return
-                    { Text = parsed.message.content
-                      FinishReason = Some(if parsed.isDone then "done" else "unknown")
-                      Usage = usage
-                      Raw = Some raw }
+                let! raw = resp.Content.ReadAsStringAsync()
+                let parsed = JsonSerializer.Deserialize<OllamaResponseDto>(raw, jsonOptions)
+
+                if
+                    isNull (box parsed)
+                    || isNull (box parsed.message)
+                    || isNull (box parsed.message.content)
+                then
+                    return
+                        { Text = ""
+                          FinishReason = Some "parse_error"
+                          Usage = None
+                          Raw = Some raw }
+                else
+                    let usage =
+                        match parsed.prompt_eval_count, parsed.eval_count with
+                        | Some p, Some c ->
+                            Some
+                                { PromptTokens = p
+                                  CompletionTokens = c
+                                  TotalTokens = p + c }
+                        | _ -> None
+
+                    return
+                        { Text = parsed.message.content
+                          FinishReason = Some(if parsed.isDone then "done" else "unknown")
+                          Usage = usage
+                          Raw = Some raw }
         }
 
     /// <summary>
@@ -282,7 +300,8 @@ module OllamaClient =
                         Some(List.toArray req.Stop)
                   seed = req.Seed
                   num_predict = req.MaxTokens
-                  temperature = req.Temperature }
+                  temperature = req.Temperature
+                  num_ctx = req.ContextWindow }
 
             let dto: OllamaRequestDto =
                 { model = model
@@ -297,7 +316,11 @@ module OllamaClient =
                     | Some ResponseFormat.Text -> None
                     | None -> if req.JsonMode then Some(box "json") else None
                   options = Some options
-                  tools = if req.Tools.IsEmpty then None else Some(List.toArray req.Tools) }
+                  tools =
+                    if req.Tools.IsEmpty then
+                        None
+                    else
+                        Some(List.toArray req.Tools) }
 
             let uri = Uri(baseUri, getApiPrefix baseUri + "chat")
 

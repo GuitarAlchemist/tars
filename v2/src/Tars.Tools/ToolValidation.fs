@@ -17,19 +17,22 @@ module ToolValidation =
         if toolExecutionLog.Count > 100 then
             toolExecutionLog.RemoveAt(0)
 
-    /// Dynamic list of tools (injected at runtime)
-    let mutable private dynamicTools: Tool list = []
+    /// Global registry reference for validation tools
+    let mutable private globalRegistry: IToolRegistry option = None
 
-    /// Initialize the validation module with actual tools
-    let setKnownTools (tools: Tool list) = dynamicTools <- tools
+    /// Initialize the validation module with the actual registry
+    let setRegistry (registry: IToolRegistry) = globalRegistry <- Some registry
 
     /// Helper to get tool info (case-insensitive)
     let private getToolInfo (name: string) =
         let target = name.Trim().ToLowerInvariant()
-
-        dynamicTools
-        |> List.tryFind (fun t -> t.Name.ToLowerInvariant() = target)
-        |> Option.map (fun t -> (t.Description, "Checking implementation..."))
+        
+        match globalRegistry with
+        | Some reg ->
+            reg.GetAll()
+            |> List.tryFind (fun (t: Tars.Core.Tool) -> t.Name.ToLowerInvariant() = target)
+            |> Option.map (fun t -> (t.Description, "Tool implementation verified."))
+        | None -> None
 
     [<TarsToolAttribute("validate_tool",
                         "Validates that a tool exists and shows its signature. Input: tool name to validate")>]
@@ -45,11 +48,14 @@ module ToolValidation =
                     $"✅ Tool '%s{name}' is valid.\n\n  Description: %s{desc}\n\nUse test_tool to run it with sample input."
             | None ->
                 let suggestions =
-                    dynamicTools
-                    |> Seq.map (fun t -> t.Name)
-                    |> Seq.filter (fun k -> k.Contains(name) || name.Contains(k))
-                    |> Seq.truncate 3
-                    |> String.concat ", "
+                    match globalRegistry with
+                    | Some reg ->
+                        reg.GetAll()
+                        |> Seq.map (fun t -> t.Name)
+                        |> Seq.filter (fun k -> k.ToLowerInvariant().Contains(name.ToLowerInvariant()))
+                        |> Seq.truncate 3
+                        |> String.concat ", "
+                    | None -> ""
 
                 if suggestions.Length > 0 then
                     return $"❌ Tool '%s{name}' not found. Did you mean: %s{suggestions}?"
@@ -81,38 +87,6 @@ module ToolValidation =
                 return "test_tool error: " + ex.Message
         }
 
-    [<TarsToolAttribute("list_tool_errors",
-                        "Lists recent tool execution records. Input: optional filter (tool name or 'failed')")>]
-    let listToolErrors (args: string) =
-        task {
-            let filter = ToolHelpers.parseStringArg args "filter"
-            printfn "📋 LISTING TOOL EXECUTION LOG"
-
-            let filtered =
-                if String.IsNullOrWhiteSpace(filter) then
-                    toolExecutionLog |> Seq.toList
-                elif filter.ToLower() = "failed" then
-                    toolExecutionLog
-                    |> Seq.filter (fun (_, success, _) -> not success)
-                    |> Seq.toList
-                else
-                    toolExecutionLog
-                    |> Seq.filter (fun (name, _, _) -> name.Contains(filter))
-                    |> Seq.toList
-
-            if filtered.Length = 0 then
-                return "No tool execution records yet. Records are created when tools execute."
-            else
-                let logEntries =
-                    filtered
-                    |> List.mapi (fun i (name, success, msg) ->
-                        let status = if success then "✅" else "❌"
-                        $"  %d{i + 1}. %s{status} %s{name}: %s{msg}")
-                    |> String.concat "\n"
-
-                return $"Tool execution log (%d{filtered.Length} entries):\n%s{logEntries}"
-        }
-
     [<TarsToolAttribute("introspect_tool", "Shows detailed information about a tool. Input: tool name")>]
     let introspectTool (args: string) =
         task {
@@ -126,20 +100,23 @@ module ToolValidation =
                 // Make the output unmistakably clear for the agent
                 return $"### TOOL DEFINITION: %s{name} ###\n\n%s{desc}\n\n(This is the full definition)"
             | None ->
-                printfn $"   ❌ NOT FOUND. Searching in %d{dynamicTools.Length} tools..."
                 return $"Tool '%s{name}' not found. Use list_all_tools to see available tools."
         }
 
     [<TarsToolAttribute("list_all_tools", "Lists all registered tools with descriptions. No input required.")>]
     let listAllTools (_: string) =
         task {
-            printfn $"📋 LISTING ALL %d{dynamicTools.Length} TOOLS"
+            match globalRegistry with
+            | Some reg ->
+                let tools = reg.GetAll()
+                printfn $"📋 LISTING ALL %d{tools.Length} TOOLS"
 
-            let toolList =
-                dynamicTools
-                |> List.sortBy (fun t -> t.Name)
-                |> List.mapi (fun i t -> $"  %2d{i + 1}. %-22s{t.Name} %s{t.Description}")
-                |> String.concat "\n"
+                let toolList =
+                    tools
+                    |> List.sortBy (fun t -> t.Name)
+                    |> List.mapi (fun i t -> sprintf "  %2d. %-22s %s" (i + 1) t.Name t.Description)
+                    |> String.concat "\n"
 
-            return $"Registered Tools (%d{dynamicTools.Length} total):\n%s{toolList}"
+                return sprintf "Registered Tools (%d total):\n%s" tools.Length toolList
+            | None -> return "Tool registry not initialized in Validation module."
         }

@@ -1,0 +1,114 @@
+{
+  "Timestamp": "2025-12-24T20:43:27.7451908Z",
+  "TotalPuzzles": 9,
+  "SuccessfulPuzzles": 0,
+  "FailedPuzzles": 9,
+  "TotalSolveTimeMs": 165287,
+  "Results": [
+    {
+      "PuzzleName": "River Crossing",
+      "Difficulty": 2,
+      "Description": "The classic wolf-goat-cabbage puzzle",
+      "Success": false,
+      "LatencyMs": 0,
+      "Answer": "Error: The request was canceled due to the configured HttpClient.Timeout of 100 seconds elapsing.",
+      "BenchmarkStats": null
+    },
+    {
+      "PuzzleName": "Knights and Knaves",
+      "Difficulty": 3,
+      "Description": "Logic puzzle with truth-tellers and liars",
+      "Success": false,
+      "LatencyMs": 22730,
+      "Answer": "",
+      "BenchmarkStats": {
+        "Runs": 5,
+        "MinLatencyMs": 14324,
+        "MaxLatencyMs": 22730,
+        "AvgLatencyMs": 19285.4,
+        "StdDevMs": 2932.763788647153
+      }
+    },
+    {
+      "PuzzleName": "Tower of Hanoi",
+      "Difficulty": 2,
+      "Description": "Classic recursive planning puzzle",
+      "Success": false,
+      "LatencyMs": 32602,
+      "Answer": "",
+      "BenchmarkStats": {
+        "Runs": 5,
+        "MinLatencyMs": 24667,
+        "MaxLatencyMs": 32602,
+        "AvgLatencyMs": 28579.2,
+        "StdDevMs": 3297.0997801097865
+      }
+    },
+    {
+      "PuzzleName": "Logic Grid (Mini Zebra)",
+      "Difficulty": 4,
+      "Description": "Constraint satisfaction puzzle",
+      "Success": false,
+      "LatencyMs": 74831,
+      "Answer": "",
+      "BenchmarkStats": {
+        "Runs": 5,
+        "MinLatencyMs": 74831,
+        "MaxLatencyMs": 97525,
+        "AvgLatencyMs": 84787.6,
+        "StdDevMs": 7660.249854932931
+      }
+    },
+    {
+      "PuzzleName": "Multi-Step Math",
+      "Difficulty": 3,
+      "Description": "Word problem requiring multiple reasoning steps",
+      "Success": false,
+      "LatencyMs": 0,
+      "Answer": "Error: The request was canceled due to the configured HttpClient.Timeout of 100 seconds elapsing.",
+      "BenchmarkStats": null
+    },
+    {
+      "PuzzleName": "Cryptarithmetic",
+      "Difficulty": 4,
+      "Description": "Letter-for-digit substitution puzzle",
+      "Success": false,
+      "LatencyMs": 0,
+      "Answer": "Error: The request was canceled due to the configured HttpClient.Timeout of 100 seconds elapsing.",
+      "BenchmarkStats": null
+    },
+    {
+      "PuzzleName": "Monty Hall Problem",
+      "Difficulty": 3,
+      "Description": "Counter-intuitive probability puzzle",
+      "Success": false,
+      "LatencyMs": 35124,
+      "Answer": "",
+      "BenchmarkStats": {
+        "Runs": 5,
+        "MinLatencyMs": 27610,
+        "MaxLatencyMs": 54921,
+        "AvgLatencyMs": 38352.6,
+        "StdDevMs": 10281.360952714384
+      }
+    },
+    {
+      "PuzzleName": "Cheryl\u0027s Birthday",
+      "Difficulty": 5,
+      "Description": "Logic puzzle requiring reasoning about knowledge",
+      "Success": false,
+      "LatencyMs": 0,
+      "Answer": "Error: The request was canceled due to the configured HttpClient.Timeout of 100 seconds elapsing.",
+      "BenchmarkStats": null
+    },
+    {
+      "PuzzleName": "Space Station Maintenance",
+      "Difficulty": 4,
+      "Description": "Resource and time constraint planning",
+      "Success": false,
+      "LatencyMs": 0,
+      "Answer": "Error: The request was canceled due to the configured HttpClient.Timeout of 100 seconds elapsing.",
+      "BenchmarkStats": null
+    }
+  ]
+}

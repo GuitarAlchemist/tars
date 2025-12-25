@@ -13,9 +13,11 @@
     <Compile Include="Mcp\McpProgress.fs" />
     <Compile Include="Mcp\SubagentManager.fs" />
     <Compile Include="Mcp\McpServer.fs" />
+    <Compile Include="Mcp\SseMcpServer.fs" />
     <Compile Include="AugmentClient.fs" />
     <Compile Include="Graphiti.fs" />
     <Compile Include="GraphitiKnowledgeGraph.fs" />
+    <Compile Include="GraphitiPlanStorage.fs" />
     <Compile Include="EpisodeIngestion.fs" />
     <Compile Include="Ollama.fs" />
     <Compile Include="OpenAiCompatible.fs" />
@@ -26,6 +28,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Tars.Core\Tars.Core.fsproj" />
     <ProjectReference Include="..\Tars.Security\Tars.Security.fsproj" />
+    <ProjectReference Include="..\Tars.Knowledge\Tars.Knowledge.fsproj" />
   </ItemGroup>
 
 </Project>

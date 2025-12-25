@@ -51,16 +51,16 @@ let private defaultEvidenceDir =
 
 let private defaultEvidencePath (mode: ReasoningMode) =
     Directory.CreateDirectory(defaultEvidenceDir) |> ignore
-    let fileName = $"tars-reasoning-{modeLabel mode}-{DateTime.UtcNow:yyyyMMddHHmmss}.json"
+
+    let fileName =
+        $"tars-reasoning-{modeLabel mode}-{DateTime.UtcNow:yyyyMMddHHmmss}.json"
+
     Path.Combine(defaultEvidenceDir, fileName)
 
 let private truncate (value: string) (max: int) =
-    if String.IsNullOrWhiteSpace(value) then
-        ""
-    elif value.Length <= max then
-        value
-    else
-        value.Substring(0, max) + "..."
+    if String.IsNullOrWhiteSpace(value) then ""
+    elif value.Length <= max then value
+    else value.Substring(0, max) + "..."
 
 let private splitGoalAndOptions (tokens: string list) =
     let rec loop (acc: string list) (remaining: string list) =
@@ -68,6 +68,7 @@ let private splitGoalAndOptions (tokens: string list) =
         | [] -> List.rev acc, []
         | head :: _ when head.StartsWith("--") -> List.rev acc, remaining
         | head :: tail -> loop (head :: acc) tail
+
     loop [] tokens
 
 let private parseOptions (tokens: string list) : Result<bool * string option * bool, string> =
@@ -80,6 +81,7 @@ let private parseOptions (tokens: string list) : Result<bool * string option * b
         | "--evidence" :: [] -> Result.Error "Missing path after --evidence"
         | "--auto-retry" :: rest -> loop rest (useLedger, evidencePath, true)
         | unknown :: _ -> Result.Error $"Unknown option '{unknown}'"
+
     loop tokens (true, None, false)
 
 let parseArgs (args: string list) : Result<ReasoningArgs, string> =
@@ -117,12 +119,9 @@ let private ledgerFromConfig (logger: ILogger) (config: TarsConfig) =
         try
             KnowledgeLedger(PostgresLedgerStorage.createWithConnectionString connStr)
         with ex ->
-            logger.Warning(
-                "Postgres ledger unavailable ({Message}); falling back to in-memory.",
-                [| box ex.Message |]
-            )
-            KnowledgeLedger.createInMemory()
-    | None -> KnowledgeLedger.createInMemory()
+            logger.Warning("Postgres ledger unavailable ({Message}); falling back to in-memory.", [| box ex.Message |])
+            KnowledgeLedger.createInMemory ()
+    | None -> KnowledgeLedger.createInMemory ()
 
 let private statusTagFor outcome =
     match outcome with
@@ -141,6 +140,7 @@ let recordTraceToLedger
     : Task<Result<BeliefId, string>> =
     async {
         let runId = RunId.New()
+
         let provenance =
             { Provenance.FromRun(runId, AgentId.System) with
                 Confidence =
@@ -154,16 +154,11 @@ let recordTraceToLedger
             | Success value -> $"success: {truncate value 120}"
             | PartialSuccess(value, warnings) ->
                 let warningsTxt =
-                    warnings
-                    |> List.map (fun w -> sprintf "%A" w)
-                    |> String.concat "; "
+                    warnings |> List.map (fun w -> sprintf "%A" w) |> String.concat "; "
 
                 $"partial: {truncate value 80} | warnings: {warningsTxt}"
             | Failure errors ->
-                let errorTxt =
-                    errors
-                    |> List.map (fun e -> sprintf "%A" e)
-                    |> String.concat "; "
+                let errorTxt = errors |> List.map (fun e -> sprintf "%A" e) |> String.concat "; "
 
                 $"failure: {truncate errorTxt 120}"
 
@@ -214,13 +209,17 @@ let private relaxGoTConfig (config: GoTConfig) =
 
 let private buildWorkflow mode llm goal config =
     match mode with
-    | ReasoningMode.WorkflowOfThoughts -> workflowOfThought llm { defaultWoTConfig with BaseConfig = config } goal
+    | ReasoningMode.WorkflowOfThoughts ->
+        workflowOfThought
+            llm
+            { defaultWoTConfig with
+                BaseConfig = config }
+            goal
     | ReasoningMode.TreeOfThoughts -> treeOfThoughts llm config goal
     | ReasoningMode.GraphOfThoughts -> graphOfThoughts llm config goal
 
 let private printUsage () =
-    printfn
-        "Usage: tars diag reasoning <wot|tot|got> <goal> [--ledger|--no-ledger] [--evidence <path>] [--auto-retry]"
+    printfn "Usage: tars diag reasoning <wot|tot|got> <goal> [--ledger|--no-ledger] [--evidence <path>] [--auto-retry]"
     printfn "  --ledger     (default) persist traces to the knowledge ledger"
     printfn "  --no-ledger  skip ledger writes (still emits evidence)"
     printfn "  --evidence <path>  override the trace output file"
@@ -243,6 +242,7 @@ let private retryEvidencePath (path: string) =
 let private normalizeOutcome (log: string -> unit) (outcome: ExecutionOutcome<string>) =
     let isNoSolution (value: string) =
         let trimmed = value.Trim()
+
         String.IsNullOrWhiteSpace trimmed
         || trimmed.Equals("No solution found.", StringComparison.OrdinalIgnoreCase)
         || trimmed.Equals("No solution found", StringComparison.OrdinalIgnoreCase)
@@ -279,7 +279,8 @@ let run (logger: ILogger) (config: IConfiguration) (tarsConfig: TarsConfig) (arg
                 logger.Error("LLM configuration error: {Message}", [| box msg |])
                 return 1
             | Result.Ok(llm, _) ->
-                let log msg = logger.Information("[ReasoningDiag] {Message}", [| box msg |])
+                let log msg =
+                    logger.Information("[ReasoningDiag] {Message}", [| box msg |])
 
                 let baseConfig = defaultGoTConfigFor opts.Mode
 
@@ -300,13 +301,14 @@ let run (logger: ILogger) (config: IConfiguration) (tarsConfig: TarsConfig) (arg
                                 }
                             | None -> async { return None }
 
-                        let reasoningAudit = ReasoningAudit.create()
+                        let reasoningAudit = ReasoningAudit.create ()
                         let ctx = createAgentContext log llmWithEvidence (Some reasoningAudit)
                         let workflow = buildWorkflow opts.Mode llmWithEvidence opts.Goal config
                         let! outcome = workflow ctx
                         let outcome = normalizeOutcome log outcome
 
                         let auditRecords = ReasoningAudit.snapshot reasoningAudit
+
                         let auditSummary =
                             if auditRecords.IsEmpty then
                                 None
@@ -349,23 +351,29 @@ let run (logger: ILogger) (config: IConfiguration) (tarsConfig: TarsConfig) (arg
                         match ledgerOpt, traceOpt with
                         | Some ledger, Some trace ->
                             let! result =
-                                recordTraceToLedger
-                                    ledger
-                                    trace
-                                    opts.Mode
-                                    opts.Goal
-                                    tracePathOpt
-                                    outcome
-                                    auditSummary
+                                recordTraceToLedger ledger trace opts.Mode opts.Goal tracePathOpt outcome auditSummary
                                 |> Async.AwaitTask
 
                             match result with
                             | Result.Ok beliefId -> log $"Ledger belief recorded: {beliefId}"
                             | Result.Error err ->
-                                logger.Warning(
-                                    "Failed to persist reasoning diag belief: {Message}",
-                                    [| box err |]
-                                )
+                                // Detect PostgreSQL schema mismatch (error code 42703 = undefined column)
+                                if err.Contains("42703") && err.Contains("created_by") then
+                                    logger.Warning(
+                                        "Belief persistence skipped: PostgreSQL schema mismatch detected. "
+                                        + "The 'beliefs' table is missing the 'created_by' column. "
+                                        + "Run 'dotnet run --project src/Tars.Interface.Cli -- init-db' to update schema, "
+                                        + "or execute: ALTER TABLE beliefs ADD COLUMN created_by TEXT NOT NULL DEFAULT 'system';"
+                                    )
+                                elif err.Contains("42703") then
+                                    logger.Warning(
+                                        "Belief persistence skipped: PostgreSQL column not found. "
+                                        + "Schema may be outdated. Error: {Message}. "
+                                        + "Consider running schema migrations.",
+                                        [| box err |]
+                                    )
+                                else
+                                    logger.Warning("Failed to persist reasoning diag belief: {Message}", [| box err |])
                         | _ -> ()
                     }
 

@@ -23,28 +23,14 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
     [<Fact>]
     member this.``Routes to Ollama for code hint``() =
         let routingCfg =
-            { OllamaBaseUri = Uri("http://localhost:11434/")
-              VllmBaseUri = Uri("http://localhost:8000/")
-              OpenAIBaseUri = Uri("https://api.openai.com/")
-              GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com/")
-              AnthropicBaseUri = Uri("https://api.anthropic.com/")
-              DefaultOllamaModel = "ollama-model"
-              DefaultVllmModel = "vllm-model"
-              DefaultOpenAIModel = "gpt-4o"
-              DefaultGoogleGeminiModel = "gemini-pro"
-              DefaultAnthropicModel = "claude-3-opus-20240229"
-              DefaultEmbeddingModel = "nomic-embed-text"
-              OllamaKey = None
-              VllmKey = None
-              OpenAIKey = None
-              GoogleGeminiKey = None
-              AnthropicKey = None
-              DockerModelRunnerBaseUri = None
-              LlamaCppBaseUri = None
-              DefaultDockerModelRunnerModel = None
-              DefaultLlamaCppModel = None
-              DockerModelRunnerKey = None
-              LlamaCppKey = None }
+            { RoutingConfig.Default with
+                OllamaBaseUri = Uri("http://localhost:11434/")
+                VllmBaseUri = Uri("http://localhost:8000/")
+                OpenAIBaseUri = Uri("https://api.openai.com/")
+                GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com/")
+                AnthropicBaseUri = Uri("https://api.anthropic.com/")
+                DefaultOllamaModel = "ollama-model"
+                DefaultVllmModel = "vllm-model" }
 
         let req =
             { ModelHint = Some "code"
@@ -59,7 +45,9 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
               ResponseFormat = None
               Stream = false
               JsonMode = false
-              Seed = None }
+              Seed = None
+
+              ContextWindow = None }
 
         let routed = chooseBackend routingCfg req
 
@@ -70,28 +58,14 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
     [<Fact>]
     member this.``Routes to vLLM for reasoning hint``() =
         let routingCfg =
-            { OllamaBaseUri = Uri("http://localhost:11434/")
-              VllmBaseUri = Uri("http://localhost:8000/")
-              OpenAIBaseUri = Uri("https://api.openai.com/")
-              GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com/")
-              AnthropicBaseUri = Uri("https://api.anthropic.com/")
-              DefaultOllamaModel = "ollama-model"
-              DefaultVllmModel = "vllm-model"
-              DefaultOpenAIModel = "gpt-4o"
-              DefaultGoogleGeminiModel = "gemini-pro"
-              DefaultAnthropicModel = "claude-3-opus-20240229"
-              DefaultEmbeddingModel = "nomic-embed-text"
-              OllamaKey = None
-              VllmKey = None
-              OpenAIKey = None
-              GoogleGeminiKey = None
-              AnthropicKey = None
-              DockerModelRunnerBaseUri = None
-              LlamaCppBaseUri = None
-              DefaultDockerModelRunnerModel = None
-              DefaultLlamaCppModel = None
-              DockerModelRunnerKey = None
-              LlamaCppKey = None }
+            { RoutingConfig.Default with
+                OllamaBaseUri = Uri("http://localhost:11434/")
+                VllmBaseUri = Uri("http://localhost:8000/")
+                OpenAIBaseUri = Uri("https://api.openai.com/")
+                GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com/")
+                AnthropicBaseUri = Uri("https://api.anthropic.com/")
+                DefaultOllamaModel = "ollama-model"
+                DefaultVllmModel = "vllm-model" }
 
         let req =
             { ModelHint = Some "reasoning"
@@ -106,7 +80,9 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
               ResponseFormat = None
               Stream = false
               JsonMode = false
-              Seed = None }
+              Seed = None
+
+              ContextWindow = None }
 
         let routed = chooseBackend routingCfg req
 
@@ -117,28 +93,16 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
     [<Fact>]
     member this.``Routes to Docker Model Runner for docker hint``() =
         let routingCfg =
-            { OllamaBaseUri = Uri("http://localhost:11434/")
-              VllmBaseUri = Uri("http://localhost:8000/")
-              OpenAIBaseUri = Uri("https://api.openai.com/")
-              GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com/")
-              AnthropicBaseUri = Uri("https://api.anthropic.com/")
-              DefaultOllamaModel = "ollama-model"
-              DefaultVllmModel = "vllm-model"
-              DefaultOpenAIModel = "gpt-4o"
-              DefaultGoogleGeminiModel = "gemini-pro"
-              DefaultAnthropicModel = "claude-3-opus-20240229"
-              DefaultEmbeddingModel = "nomic-embed-text"
-              OllamaKey = None
-              VllmKey = None
-              OpenAIKey = None
-              GoogleGeminiKey = None
-              AnthropicKey = None
-              DockerModelRunnerBaseUri = Some(Uri("http://localhost:12434/"))
-              LlamaCppBaseUri = None
-              DefaultDockerModelRunnerModel = Some "docker-model"
-              DefaultLlamaCppModel = None
-              DockerModelRunnerKey = None
-              LlamaCppKey = None }
+            { RoutingConfig.Default with
+                OllamaBaseUri = Uri("http://localhost:11434/")
+                VllmBaseUri = Uri("http://localhost:8000/")
+                OpenAIBaseUri = Uri("https://api.openai.com/")
+                GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com/")
+                AnthropicBaseUri = Uri("https://api.anthropic.com/")
+                DefaultOllamaModel = "ollama-model"
+                DefaultVllmModel = "vllm-model"
+                DockerModelRunnerBaseUri = Some(Uri("http://localhost:12434/"))
+                DefaultDockerModelRunnerModel = Some "docker-model" }
 
         let req =
             { ModelHint = Some "docker"
@@ -153,7 +117,9 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
               ResponseFormat = None
               Stream = false
               JsonMode = false
-              Seed = None }
+              Seed = None
+
+              ContextWindow = None }
 
         let routed = chooseBackend routingCfg req
 
@@ -164,28 +130,16 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
     [<Fact>]
     member this.``Routes to LlamaCpp for llamacpp hint``() =
         let routingCfg =
-            { OllamaBaseUri = Uri("http://localhost:11434/")
-              VllmBaseUri = Uri("http://localhost:8000/")
-              OpenAIBaseUri = Uri("https://api.openai.com/")
-              GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com/")
-              AnthropicBaseUri = Uri("https://api.anthropic.com/")
-              DefaultOllamaModel = "ollama-model"
-              DefaultVllmModel = "vllm-model"
-              DefaultOpenAIModel = "gpt-4o"
-              DefaultGoogleGeminiModel = "gemini-pro"
-              DefaultAnthropicModel = "claude-3-opus-20240229"
-              DefaultEmbeddingModel = "nomic-embed-text"
-              OllamaKey = None
-              VllmKey = None
-              OpenAIKey = None
-              GoogleGeminiKey = None
-              AnthropicKey = None
-              DockerModelRunnerBaseUri = None
-              LlamaCppBaseUri = Some(Uri("http://localhost:8080/"))
-              DefaultDockerModelRunnerModel = None
-              DefaultLlamaCppModel = Some "llama-model.gguf"
-              DockerModelRunnerKey = None
-              LlamaCppKey = None }
+            { RoutingConfig.Default with
+                OllamaBaseUri = Uri("http://localhost:11434/")
+                VllmBaseUri = Uri("http://localhost:8000/")
+                OpenAIBaseUri = Uri("https://api.openai.com/")
+                GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com/")
+                AnthropicBaseUri = Uri("https://api.anthropic.com/")
+                DefaultOllamaModel = "ollama-model"
+                DefaultVllmModel = "vllm-model"
+                LlamaCppBaseUri = Some(Uri("http://localhost:8080/"))
+                DefaultLlamaCppModel = Some "llama-model.gguf" }
 
         let req =
             { ModelHint = Some "llamacpp"
@@ -200,7 +154,9 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
               ResponseFormat = None
               Stream = false
               JsonMode = false
-              Seed = None }
+              Seed = None
+
+              ContextWindow = None }
 
         let routed = chooseBackend routingCfg req
 
@@ -211,28 +167,16 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
     [<Fact>]
     member this.``Falls back to Ollama when Docker Model Runner not configured``() =
         let routingCfg =
-            { OllamaBaseUri = Uri("http://localhost:11434/")
-              VllmBaseUri = Uri("http://localhost:8000/")
-              OpenAIBaseUri = Uri("https://api.openai.com/")
-              GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com/")
-              AnthropicBaseUri = Uri("https://api.anthropic.com/")
-              DefaultOllamaModel = "ollama-fallback"
-              DefaultVllmModel = "vllm-model"
-              DefaultOpenAIModel = "gpt-4o"
-              DefaultGoogleGeminiModel = "gemini-pro"
-              DefaultAnthropicModel = "claude-3-opus-20240229"
-              DefaultEmbeddingModel = "nomic-embed-text"
-              OllamaKey = None
-              VllmKey = None
-              OpenAIKey = None
-              GoogleGeminiKey = None
-              AnthropicKey = None
-              DockerModelRunnerBaseUri = None // Not configured
-              LlamaCppBaseUri = None
-              DefaultDockerModelRunnerModel = None // Not configured
-              DefaultLlamaCppModel = None
-              DockerModelRunnerKey = None
-              LlamaCppKey = None }
+            { RoutingConfig.Default with
+                OllamaBaseUri = Uri("http://localhost:11434/")
+                VllmBaseUri = Uri("http://localhost:8000/")
+                OpenAIBaseUri = Uri("https://api.openai.com/")
+                GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com/")
+                AnthropicBaseUri = Uri("https://api.anthropic.com/")
+                DefaultOllamaModel = "ollama-fallback"
+                DefaultVllmModel = "vllm-model"
+                DockerModelRunnerBaseUri = None // Not configured
+                DefaultDockerModelRunnerModel = None }
 
         let req =
             { ModelHint = Some "docker"
@@ -247,7 +191,9 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
               ResponseFormat = None
               Stream = false
               JsonMode = false
-              Seed = None }
+              Seed = None
+
+              ContextWindow = None }
 
         let routed = chooseBackend routingCfg req
 
@@ -259,28 +205,16 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
     [<Fact>]
     member this.``Falls back to Ollama when LlamaCpp not configured``() =
         let routingCfg =
-            { OllamaBaseUri = Uri("http://localhost:11434/")
-              VllmBaseUri = Uri("http://localhost:8000/")
-              OpenAIBaseUri = Uri("https://api.openai.com/")
-              GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com/")
-              AnthropicBaseUri = Uri("https://api.anthropic.com/")
-              DefaultOllamaModel = "ollama-fallback"
-              DefaultVllmModel = "vllm-model"
-              DefaultOpenAIModel = "gpt-4o"
-              DefaultGoogleGeminiModel = "gemini-pro"
-              DefaultAnthropicModel = "claude-3-opus-20240229"
-              DefaultEmbeddingModel = "nomic-embed-text"
-              OllamaKey = None
-              VllmKey = None
-              OpenAIKey = None
-              GoogleGeminiKey = None
-              AnthropicKey = None
-              DockerModelRunnerBaseUri = None
-              LlamaCppBaseUri = None // Not configured
-              DefaultDockerModelRunnerModel = None
-              DefaultLlamaCppModel = None // Not configured
-              DockerModelRunnerKey = None
-              LlamaCppKey = None }
+            { RoutingConfig.Default with
+                OllamaBaseUri = Uri("http://localhost:11434/")
+                VllmBaseUri = Uri("http://localhost:8000/")
+                OpenAIBaseUri = Uri("https://api.openai.com/")
+                GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com/")
+                AnthropicBaseUri = Uri("https://api.anthropic.com/")
+                DefaultOllamaModel = "ollama-fallback"
+                DefaultVllmModel = "vllm-model"
+                LlamaCppBaseUri = None // Not configured
+                DefaultLlamaCppModel = None }
 
         let req =
             { ModelHint = Some "perf" // perf hint routes to LlamaCpp
@@ -295,7 +229,9 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
               ResponseFormat = None
               Stream = false
               JsonMode = false
-              Seed = None }
+              Seed = None
+
+              ContextWindow = None }
 
         let routed = chooseBackend routingCfg req
 
@@ -360,7 +296,9 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
                       ResponseFormat = None
                       Stream = false
                       JsonMode = false
-                      Seed = None }
+                      Seed = None
+
+                      ContextWindow = None }
 
                 let! response = OllamaClient.sendChatAsync httpClient baseUri "test-model" req
 
@@ -433,7 +371,9 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
                       ResponseFormat = None
                       Stream = false
                       JsonMode = false
-                      Seed = None }
+                      Seed = None
+
+                      ContextWindow = None }
 
                 let! response = OpenAiCompatibleClient.sendChatAsync httpClient baseUri "vllm-model" None req
 
@@ -499,7 +439,9 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
                       ResponseFormat = None
                       Stream = false
                       JsonMode = false
-                      Seed = None }
+                      Seed = None
+
+                      ContextWindow = None }
 
                 let! response = OllamaClient.sendChatStreamAsync httpClient baseUri "test" req (fun t -> tokens.Add(t))
 
@@ -574,7 +516,9 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
                       ResponseFormat = None
                       Stream = false
                       JsonMode = false
-                      Seed = None }
+                      Seed = None
+
+                      ContextWindow = None }
 
                 let! response =
                     OpenAiCompatibleClient.sendChatStreamAsync httpClient baseUri "test" None req (fun t ->
@@ -612,6 +556,7 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
                         }
 
                     member _.EmbedAsync(text) = task { return [| 0.1f; 0.2f; 0.3f |] }
+                    member _.RouteAsync(_) = task { return { Backend = Ollama "mock"; Endpoint = Uri "http://localhost:11434"; ApiKey = None } }
 
                     member _.CompleteStreamAsync(req, onToken) =
                         task {
@@ -639,7 +584,9 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
                   ResponseFormat = None
                   Stream = false
                   JsonMode = false
-                  Seed = None }
+                  Seed = None
+
+                  ContextWindow = None }
 
             let! response = mockService.CompleteStreamAsync(req, fun t -> tokens.Add(t))
 

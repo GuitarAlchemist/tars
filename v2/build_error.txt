@@ -1,84 +1,17 @@
-  Determining projects to restore...
-C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\Tars.Metascript.fsproj : warning NU1608: Detected package version outside of dependency constraint: FSharp.Compiler.Service 43.10.100 requires FSharp.Core (= 10.0.100) but version FSharp.Core 10.0.101 was resolved. [C:\Users\spare\source\repos\tars\v2\Tars.sln]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\Tars.Graph.fsproj : warning NU1608: Detected package version outside of dependency constraint: FSharp.Compiler.Service 43.10.100 requires FSharp.Core (= 10.0.100) but version FSharp.Core 10.0.101 was resolved. [C:\Users\spare\source\repos\tars\v2\Tars.sln]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\Tars.Cortex.fsproj : warning NU1608: Detected package version outside of dependency constraint: FSharp.Compiler.Service 43.10.100 requires FSharp.Core (= 10.0.100) but version FSharp.Core 10.0.101 was resolved. [C:\Users\spare\source\repos\tars\v2\Tars.sln]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj : warning NU1608: Detected package version outside of dependency constraint: FSharp.Compiler.Service 43.10.100 requires FSharp.Core (= 10.0.100) but version FSharp.Core 10.0.101 was resolved. [C:\Users\spare\source\repos\tars\v2\Tars.sln]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj : warning NU1608: Detected package version outside of dependency constraint: FSharp.Compiler.Service 43.10.100 requires FSharp.Core (= 10.0.100) but version FSharp.Core 10.0.101 was resolved. [C:\Users\spare\source\repos\tars\v2\Tars.sln]
-C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\Tars.Tests.fsproj : warning NU1608: Detected package version outside of dependency constraint: FSharp.Compiler.Service 43.10.100 requires FSharp.Core (= 10.0.100) but version FSharp.Core 10.0.101 was resolved. [C:\Users\spare\source\repos\tars\v2\Tars.sln]
-  Restored C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\Tars.Tests.fsproj (in 311 ms).
-  12 of 13 projects are up-to-date for restore.
-C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj : warning NU1608: Detected package version outside of dependency constraint: FSharp.Compiler.Service 43.10.100 requires FSharp.Core (= 10.0.100) but version FSharp.Core 10.0.101 was resolved.
-C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\Tars.Graph.fsproj : warning NU1608: Detected package version outside of dependency constraint: FSharp.Compiler.Service 43.10.100 requires FSharp.Core (= 10.0.100) but version FSharp.Core 10.0.101 was resolved.
-C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\Tars.Tests.fsproj : warning NU1608: Detected package version outside of dependency constraint: FSharp.Compiler.Service 43.10.100 requires FSharp.Core (= 10.0.100) but version FSharp.Core 10.0.101 was resolved.
-C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\Tars.Metascript.fsproj : warning NU1608: Detected package version outside of dependency constraint: FSharp.Compiler.Service 43.10.100 requires FSharp.Core (= 10.0.100) but version FSharp.Core 10.0.101 was resolved.
-C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj : warning NU1608: Detected package version outside of dependency constraint: FSharp.Compiler.Service 43.10.100 requires FSharp.Core (= 10.0.100) but version FSharp.Core 10.0.101 was resolved.
-C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\Tars.Cortex.fsproj : warning NU1608: Detected package version outside of dependency constraint: FSharp.Compiler.Service 43.10.100 requires FSharp.Core (= 10.0.100) but version FSharp.Core 10.0.101 was resolved.
-  Tars.Core -> C:\Users\spare\source\repos\tars\v2\src\Tars.Core\bin\Debug\net10.0\Tars.Core.dll
   Tars.Security -> C:\Users\spare\source\repos\tars\v2\src\Tars.Security\bin\Debug\net10.0\Tars.Security.dll
-  Tars.Sandbox -> C:\Users\spare\source\repos\tars\v2\src\Tars.Sandbox\bin\Debug\net10.0\Tars.Sandbox.dll
+  Tars.Core -> C:\Users\spare\source\repos\tars\v2\src\Tars.Core\bin\Debug\net10.0\Tars.Core.dll
+  Tars.Symbolic -> C:\Users\spare\source\repos\tars\v2\src\Tars.Symbolic\bin\Debug\net10.0\Tars.Symbolic.dll
   Tars.Llm -> C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\bin\Debug\net10.0\Tars.Llm.dll
-  Tars.Connectors -> C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\bin\Debug\net10.0\Tars.Connectors.dll
+  Tars.Knowledge -> C:\Users\spare\source\repos\tars\v2\src\Tars.Knowledge\bin\Debug\net10.0\Tars.Knowledge.dll
+  Tars.Sandbox -> C:\Users\spare\source\repos\tars\v2\src\Tars.Sandbox\bin\Debug\net10.0\Tars.Sandbox.dll
   Tars.Kernel -> C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\bin\Debug\net10.0\Tars.Kernel.dll
   Tars.Cortex -> C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\bin\Debug\net10.0\Tars.Cortex.dll
-  Tars.Metascript -> C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\bin\Debug\net10.0\Tars.Metascript.dll
-  Tars.Tools -> C:\Users\spare\source\repos\tars\v2\src\Tars.Tools\bin\Debug\net10.0\Tars.Tools.dll
-  Tars.Graph -> C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\bin\Debug\net10.0\Tars.Graph.dll
-C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Reflection.fs(73,27): error FS0039: The record label 'ModelHint' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Reflection.fs(77,27): error FS0039: The record label 'Temperature' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Reflection.fs(78,27): error FS0039: The record label 'Stop' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Reflection.fs(81,27): error FS0039: The record label 'ToolChoice' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Reflection.fs(82,27): error FS0039: The record label 'ResponseFormat' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Reflection.fs(83,27): error FS0039: The record label 'Stream' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Reflection.fs(84,27): error FS0039: The record label 'JsonMode' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Reflection.fs(85,27): error FS0039: The record label 'Seed' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Reflection.fs(73,25): error FS0656: This record contains fields from inconsistent types [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Reflection.fs(102,61): error FS0039: The value or constructor 'refUnchecked' is not defined. Maybe you want one of the following:   Refuse   Unchecked [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Reflection.fs(110,66): error FS0039: The value or constructor 'refUnchecked' is not defined. Maybe you want one of the following:   Refuse   Unchecked [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Optimizer.fs(60,27): error FS0039: The record label 'ModelHint' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Optimizer.fs(64,27): error FS0039: The record label 'Temperature' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Optimizer.fs(65,27): error FS0039: The record label 'Stop' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Optimizer.fs(68,27): error FS0039: The record label 'ToolChoice' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Optimizer.fs(69,27): error FS0039: The record label 'ResponseFormat' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Optimizer.fs(70,27): error FS0039: The record label 'Stream' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Optimizer.fs(71,27): error FS0039: The record label 'JsonMode' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Optimizer.fs(72,27): error FS0039: The record label 'Seed' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Optimizer.fs(60,25): error FS0656: This record contains fields from inconsistent types [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\Mcp\SseMcpServer.fs(36,21): error FS0588: The block following this 'let' is unfinished. Every code block is an expression and must have a result. 'let' cannot be the final code element in a block. Consider giving this block an explicit result. [C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\Tars.Connectors.fsproj]
 
 Build FAILED.
 
-C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\Tars.Metascript.fsproj : warning NU1608: Detected package version outside of dependency constraint: FSharp.Compiler.Service 43.10.100 requires FSharp.Core (= 10.0.100) but version FSharp.Core 10.0.101 was resolved. [C:\Users\spare\source\repos\tars\v2\Tars.sln]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\Tars.Graph.fsproj : warning NU1608: Detected package version outside of dependency constraint: FSharp.Compiler.Service 43.10.100 requires FSharp.Core (= 10.0.100) but version FSharp.Core 10.0.101 was resolved. [C:\Users\spare\source\repos\tars\v2\Tars.sln]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\Tars.Cortex.fsproj : warning NU1608: Detected package version outside of dependency constraint: FSharp.Compiler.Service 43.10.100 requires FSharp.Core (= 10.0.100) but version FSharp.Core 10.0.101 was resolved. [C:\Users\spare\source\repos\tars\v2\Tars.sln]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj : warning NU1608: Detected package version outside of dependency constraint: FSharp.Compiler.Service 43.10.100 requires FSharp.Core (= 10.0.100) but version FSharp.Core 10.0.101 was resolved. [C:\Users\spare\source\repos\tars\v2\Tars.sln]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj : warning NU1608: Detected package version outside of dependency constraint: FSharp.Compiler.Service 43.10.100 requires FSharp.Core (= 10.0.100) but version FSharp.Core 10.0.101 was resolved. [C:\Users\spare\source\repos\tars\v2\Tars.sln]
-C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\Tars.Tests.fsproj : warning NU1608: Detected package version outside of dependency constraint: FSharp.Compiler.Service 43.10.100 requires FSharp.Core (= 10.0.100) but version FSharp.Core 10.0.101 was resolved. [C:\Users\spare\source\repos\tars\v2\Tars.sln]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj : warning NU1608: Detected package version outside of dependency constraint: FSharp.Compiler.Service 43.10.100 requires FSharp.Core (= 10.0.100) but version FSharp.Core 10.0.101 was resolved.
-C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\Tars.Graph.fsproj : warning NU1608: Detected package version outside of dependency constraint: FSharp.Compiler.Service 43.10.100 requires FSharp.Core (= 10.0.100) but version FSharp.Core 10.0.101 was resolved.
-C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\Tars.Tests.fsproj : warning NU1608: Detected package version outside of dependency constraint: FSharp.Compiler.Service 43.10.100 requires FSharp.Core (= 10.0.100) but version FSharp.Core 10.0.101 was resolved.
-C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\Tars.Metascript.fsproj : warning NU1608: Detected package version outside of dependency constraint: FSharp.Compiler.Service 43.10.100 requires FSharp.Core (= 10.0.100) but version FSharp.Core 10.0.101 was resolved.
-C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj : warning NU1608: Detected package version outside of dependency constraint: FSharp.Compiler.Service 43.10.100 requires FSharp.Core (= 10.0.100) but version FSharp.Core 10.0.101 was resolved.
-C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\Tars.Cortex.fsproj : warning NU1608: Detected package version outside of dependency constraint: FSharp.Compiler.Service 43.10.100 requires FSharp.Core (= 10.0.100) but version FSharp.Core 10.0.101 was resolved.
-C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Reflection.fs(73,27): error FS0039: The record label 'ModelHint' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Reflection.fs(77,27): error FS0039: The record label 'Temperature' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Reflection.fs(78,27): error FS0039: The record label 'Stop' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Reflection.fs(81,27): error FS0039: The record label 'ToolChoice' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Reflection.fs(82,27): error FS0039: The record label 'ResponseFormat' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Reflection.fs(83,27): error FS0039: The record label 'Stream' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Reflection.fs(84,27): error FS0039: The record label 'JsonMode' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Reflection.fs(85,27): error FS0039: The record label 'Seed' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Reflection.fs(73,25): error FS0656: This record contains fields from inconsistent types [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Reflection.fs(102,61): error FS0039: The value or constructor 'refUnchecked' is not defined. Maybe you want one of the following:   Refuse   Unchecked [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Reflection.fs(110,66): error FS0039: The value or constructor 'refUnchecked' is not defined. Maybe you want one of the following:   Refuse   Unchecked [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Optimizer.fs(60,27): error FS0039: The record label 'ModelHint' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Optimizer.fs(64,27): error FS0039: The record label 'Temperature' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Optimizer.fs(65,27): error FS0039: The record label 'Stop' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Optimizer.fs(68,27): error FS0039: The record label 'ToolChoice' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Optimizer.fs(69,27): error FS0039: The record label 'ResponseFormat' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Optimizer.fs(70,27): error FS0039: The record label 'Stream' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Optimizer.fs(71,27): error FS0039: The record label 'JsonMode' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Optimizer.fs(72,27): error FS0039: The record label 'Seed' is not defined. [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Optimizer.fs(60,25): error FS0656: This record contains fields from inconsistent types [C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\Tars.Evolution.fsproj]
-    12 Warning(s)
-    20 Error(s)
+C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\Mcp\SseMcpServer.fs(36,21): error FS0588: The block following this 'let' is unfinished. Every code block is an expression and must have a result. 'let' cannot be the final code element in a block. Consider giving this block an explicit result. [C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\Tars.Connectors.fsproj]
+    0 Warning(s)
+    1 Error(s)
 
-Time Elapsed 00:00:04.49
+Time Elapsed 00:00:01.18

@@ -111,7 +111,9 @@ type SemanticEvaluation(llm: ILlmService, ?minConfidence: float, ?logger: string
                       ResponseFormat = Some ResponseFormat.Json
                       Stream = false
                       JsonMode = true
-                      Seed = None }
+                      Seed = None
+
+                      ContextWindow = None }
 
                 try
                     let! response = llm.CompleteAsync(req)

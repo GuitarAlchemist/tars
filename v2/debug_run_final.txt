@@ -1,0 +1,63 @@
+  _____      _      ____    ____    
+ |_   _|    / \    |  _ \  / ___|   
+   | |     / _ \   | |_) | \___ \   
+   | |    / ___ \  |  _ <   ___) |  
+   |_|   /_/   \_\ |_| \_\ |____/   
+                                    
+  ____    _   _   _____  _____  _       _____   ____  
+ |  _ \  | | | | |__  / |__  / | |     | ____| / ___| 
+ | |_) | | | | |   / /    / /  | |     |  _|   \___ \ 
+ |  __/  | |_| |  / /_   / /_  | |___  | |___   ___) |
+ |_|      \___/  /____| /____| |_____| |_____| |____/ 
+                                                      
+[23:06:00 INF] Found 1 puzzles
+[23:06:01 INF] ≡ƒº⌐ Solving: River Crossing (Difficulty: 2)
+≡ƒô¥ Description: The classic wolf-goat-cabbage puzzle
+Γ¥ô Prompt: A farmer needs to cross a river with a wolf, a goat, and a cabbage.
+The boat can only carry the farmer and one item at a time.
+If left alone:
+- The wolf will eat the goat
+- The goat will eat the cabbage
+
+What sequence of crossings should the farmer make?
+List each step as: "Take [item] across" or "Return alone"
+Start with Step 1.
+≡ƒöº Configuration Loaded
+  Provider: Ollama
+  Model: magistral
+≡ƒÜÇ EXECUTING LLM REQUEST
+  Backend: LlamaSharp
+  
+"C:\Users\spare\source\repos\tars\v2\models\magistral\Magistral-Small-2507-Q4_K_
+M.gguf"
+  Endpoint: local://llamasharp/
+≡ƒô¿ Request Details:
+  Hint: Some(reasoning)
+  MaxTokens: Some(1024)
+
+≡ƒºá TARS is thinking...
+[23:06:01 ERR] Error running puzzle River Crossing
+System.InvalidOperationException: LLamaSharp GPU offload is unavailable; aborting to avoid CPU-only inference.
+   at Tars.Llm.LlamaSharpService..ctor(LlmServiceConfig _config, String modelPath) in C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\LlamaSharpService.fs:line 140
+   at Tars.Llm.LlamaSharpFactory.getService@14.Invoke(String path) in C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\LlamaSharpFactory.fs:line 15
+   at System.Collections.Concurrent.ConcurrentDictionary`2.GetOrAdd(TKey key, Func`2 valueFactory)
+   at Tars.Llm.LlamaSharpFactory.getService(LlmServiceConfig config, FSharpOption`1 apiKey, String modelPath) in C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\LlamaSharpFactory.fs:line 14
+   at Tars.Llm.LlmService.Tars-Llm-ILlmService-CompleteAsync@140-1.MoveNext() in C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\LlmService.fs:line 164
+   at Tars.Interface.Cli.Commands.PuzzleDemo.runPuzzle@202-3.MoveNext() in C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\PuzzleDemo.fs:line 204
+   at Spectre.Console.Status.<>c__DisplayClass17_0`1.<<StartAsync>b__0>d.MoveNext() in /_/src/Spectre.Console/Live/Status/Status.cs:line 120
+--- End of stack trace from previous location ---
+   at Spectre.Console.Progress.<>c__DisplayClass32_0`1.<<StartAsync>b__0>d.MoveNext() in /_/src/Spectre.Console/Live/Progress/Progress.cs:line 138
+--- End of stack trace from previous location ---
+   at Spectre.Console.Internal.DefaultExclusivityMode.RunAsync[T](Func`1 func) in /_/src/Spectre.Console/Internal/DefaultExclusivityMode.cs:line 40
+   at Spectre.Console.Progress.StartAsync[T](Func`2 action) in /_/src/Spectre.Console/Live/Progress/Progress.cs:line 121
+   at Spectre.Console.Status.StartAsync[T](String status, Func`2 func) in /_/src/Spectre.Console/Live/Status/Status.cs:line 117
+   at Tars.Interface.Cli.Commands.PuzzleDemo.runPuzzle@183-1.MoveNext() in C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\PuzzleDemo.fs:line 194
+   at Tars.Interface.Cli.Commands.PuzzleDemo.runPuzzle@98.MoveNext() in C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\PuzzleDemo.fs:line 229
+   at Tars.Interface.Cli.Commands.PuzzleDemo.runPuzzlesWithOptions@370.MoveNext() in C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\PuzzleDemo.fs:line 416
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ SUMMARY ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+ΓöîΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓö¼ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓö¼ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÉ
+Γöé Puzzle         Γöé Result Γöé Latency (ms) Γöé
+Γö£ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓö╝ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓö╝ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöñ
+Γöé River Crossing Γöé Fail   Γöé 0            Γöé
+ΓööΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓö┤ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓö┤ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÿ
+[23:06:01 INF] ≡ƒÅü Finished. Score: 0/1 (0.0%)

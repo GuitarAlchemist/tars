@@ -8,6 +8,15 @@ open Tars.Core
 
 /// Enhanced MCP Server with progress notifications, subagent support, and knowledge graph
 type McpServer(registry: IToolRegistry, ?knowledgeGraph: TemporalKnowledgeGraph.TemporalGraph) =
+    let instanceId = Guid.NewGuid().ToString().Substring(0, 8)
+    let startTime = DateTime.UtcNow
+    
+    // Attempt to get git commit hash or use a placeholder
+    let gitCommit = 
+        match Environment.GetEnvironmentVariable("GIT_COMMIT") with
+        | null -> "8bddcb89" // Updated from git rev-parse HEAD
+        | s -> s.Substring(0, 8)
+
     let serializerOptions =
         JsonSerializerOptions(WriteIndented = false, PropertyNamingPolicy = JsonNamingPolicy.CamelCase)
 
@@ -119,7 +128,13 @@ type McpServer(registry: IToolRegistry, ?knowledgeGraph: TemporalKnowledgeGraph.
                                 args.GetRawText()
                         | None -> ""
 
-                    log $"Executing tool '{nameProp}' with input: {input}"
+                    let correlationId = Guid.NewGuid().ToString().Substring(0, 8)
+                    let meta = 
+                        Map [ ("instance_id", instanceId :> obj)
+                              ("correlation_id", correlationId :> obj) ]
+                        |> Some
+
+                    log $"Executing tool '{nameProp}' [CID: {correlationId}] with input: {input}"
                     let! result = Async.StartAsTask(tool.Execute(input))
 
                     match result with
@@ -133,7 +148,8 @@ type McpServer(registry: IToolRegistry, ?knowledgeGraph: TemporalKnowledgeGraph.
 
                         let callResult =
                             { Content = content
-                              IsError = Some false }
+                              IsError = Some false
+                              Meta = meta }
 
                         return createSuccessResponse id callResult
 
@@ -147,7 +163,8 @@ type McpServer(registry: IToolRegistry, ?knowledgeGraph: TemporalKnowledgeGraph.
 
                         let callResult =
                             { Content = content
-                              IsError = Some true }
+                              IsError = Some true
+                              Meta = meta }
 
                         return createSuccessResponse id callResult
 
@@ -377,6 +394,81 @@ type McpServer(registry: IToolRegistry, ?knowledgeGraph: TemporalKnowledgeGraph.
             createSuccessResponse id {| results = entities |}
         | None -> createError id -32603 "Knowledge graph not available"
 
+    member _.InstanceId = instanceId
+    member _.StartTime = startTime
+
+    member _.GetInfo() =
+        let tools = registry.GetAll()
+        let uptime = DateTime.UtcNow - startTime
+        
+        {| instance_id = instanceId
+           git_commit = gitCommit
+           startup_time = startTime
+           uptime = uptime.ToString("d\\.hh\\:mm\\:ss")
+           tool_count = tools.Length
+           graphiti_status = if knowledgeGraph.IsSome then "connected" else "disconnected"
+           degraded_mode_enabled = true // Falback mechanism is implemented in memory search
+        |}
+
+    member this.HandleRequest(line: string) =
+        task {
+            if String.IsNullOrWhiteSpace(line) then
+                return None
+            else
+                let request = JsonSerializer.Deserialize<JsonRpcRequest>(line, serializerOptions)
+
+                match request.Id with
+                | Some id ->
+                    let! resp =
+                        task {
+                            match request.Method with
+                            | "initialize" -> return handleInitialize id
+                            | "tools/list" -> return handleListTools id
+                            | "tools/call" ->
+                                match request.Params with
+                                | Some p -> return! handleCallTool id p
+                                | None -> return createError id -32602 "Missing params"
+                            | "ping" -> return (createSuccessResponse id {| pong = true |})
+                            | "tasks/create" ->
+                                match request.Params with
+                                | Some p -> return (handleTasksCreate id p)
+                                | None -> return (createError id -32602 "Missing params")
+                            | "tasks/list" -> return (handleTasksList id)
+                            | "tasks/cancel" ->
+                                match request.Params with
+                                | Some p -> return (handleTasksCancel id p)
+                                | None -> return (createError id -32602 "Missing params")
+                            | "subagents/spawn" ->
+                                match request.Params with
+                                | Some p -> return (handleSubagentsSpawn id p)
+                                | None -> return (createError id -32602 "Missing params")
+                            | "subagents/list" -> return (handleSubagentsList id)
+                            | "subagents/cancel" ->
+                                match request.Params with
+                                | Some p -> return (handleSubagentsCancel id p)
+                                | None -> return (createError id -32602 "Missing params")
+                            | "knowledge/entities" -> return (handleKnowledgeEntities id)
+                            | "knowledge/subgraph" ->
+                                match request.Params with
+                                | Some p -> return (handleKnowledgeSubgraph id p)
+                                | None -> return (createError id -32602 "Missing params")
+                            | "knowledge/search" ->
+                                match request.Params with
+                                | Some p -> return (handleKnowledgeSearch id p)
+                                | None -> return (createError id -32602 "Missing params")
+                            | _ -> return (createError id -32601 $"Method not found: {request.Method}")
+                        }
+
+                    return Some(JsonSerializer.Serialize(resp, serializerOptions))
+
+                | None ->
+                    match request.Method with
+                    | "notifications/initialized" -> log "Client initialized."
+                    | _ -> log $"Received notification: {request.Method}"
+
+                    return None
+        }
+
     member this.RunAsync() =
         task {
             log "TARS MCP Server Interface Started (Agentic AI Mode)"
@@ -388,75 +480,14 @@ type McpServer(registry: IToolRegistry, ?knowledgeGraph: TemporalKnowledgeGraph.
 
                     if isNull line then
                         running <- false
-                    else if not (String.IsNullOrWhiteSpace(line)) then
-                        let request = JsonSerializer.Deserialize<JsonRpcRequest>(line, serializerOptions)
+                    else
+                        let! response = this.HandleRequest(line)
 
-                        match request.Id with
-                        | Some id ->
-                            match request.Method with
-                            | "initialize" ->
-                                let resp = handleInitialize id
-                                do! writeResponse resp
-
-                            | "tools/list" ->
-                                let resp = handleListTools id
-                                do! writeResponse resp
-
-                            | "tools/call" ->
-                                match request.Params with
-                                | Some p ->
-                                    let! resp = handleCallTool id p
-                                    do! writeResponse resp
-                                | None -> do! writeResponse (createError id -32602 "Missing params")
-
-                            | "ping" -> do! writeResponse (createSuccessResponse id {| pong = true |})
-
-                            // Task management
-                            | "tasks/create" ->
-                                match request.Params with
-                                | Some p -> do! writeResponse (handleTasksCreate id p)
-                                | None -> do! writeResponse (createError id -32602 "Missing params")
-
-                            | "tasks/list" -> do! writeResponse (handleTasksList id)
-
-                            | "tasks/cancel" ->
-                                match request.Params with
-                                | Some p -> do! writeResponse (handleTasksCancel id p)
-                                | None -> do! writeResponse (createError id -32602 "Missing params")
-
-                            // Subagent management
-                            | "subagents/spawn" ->
-                                match request.Params with
-                                | Some p -> do! writeResponse (handleSubagentsSpawn id p)
-                                | None -> do! writeResponse (createError id -32602 "Missing params")
-
-                            | "subagents/list" -> do! writeResponse (handleSubagentsList id)
-
-                            | "subagents/cancel" ->
-                                match request.Params with
-                                | Some p -> do! writeResponse (handleSubagentsCancel id p)
-                                | None -> do! writeResponse (createError id -32602 "Missing params")
-
-                            // Knowledge graph
-                            | "knowledge/entities" -> do! writeResponse (handleKnowledgeEntities id)
-
-                            | "knowledge/subgraph" ->
-                                match request.Params with
-                                | Some p -> do! writeResponse (handleKnowledgeSubgraph id p)
-                                | None -> do! writeResponse (createError id -32602 "Missing params")
-
-                            | "knowledge/search" ->
-                                match request.Params with
-                                | Some p -> do! writeResponse (handleKnowledgeSearch id p)
-                                | None -> do! writeResponse (createError id -32602 "Missing params")
-
-                            | _ -> do! writeResponse (createError id -32601 $"Method not found: {request.Method}")
-
-                        | None ->
-                            match request.Method with
-                            | "notifications/initialized" -> log "Client initialized."
-                            | _ -> log $"Received notification: {request.Method}"
-
+                        match response with
+                        | Some resp ->
+                            Console.Out.WriteLine(resp)
+                            do! Console.Out.FlushAsync()
+                        | None -> ()
                 with ex ->
                     log $"Error handling request: {ex.Message}"
         }

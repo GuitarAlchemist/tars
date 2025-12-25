@@ -5,6 +5,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <UserSecretsId>tars-v2-secrets-7d8e9f0a-1b2c-4d3e-5f6g-7h8i9j0k1l2m</UserSecretsId>
     <NoWarn>44</NoWarn>
+    <LangVersion>preview</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -12,6 +13,8 @@
     <Compile Include="SpectreUI.fs" />
     <Compile Include="Tui.fs" />
     <Compile Include="ConfigurationLoader.fs" />
+    <Compile Include="LlmFactory.fs" />
+    <Compile Include="ConsoleHelpers.fs" />
     <Compile Include="Commands\AgentHelpers.fs" />
     <Content Include="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -27,6 +30,7 @@
     <Compile Include="Commands\Chat.fs" />
     <Compile Include="Commands\Evolve.fs" />
     <Compile Include="Commands\KnowCmd.fs" />
+    <Compile Include="Commands\PlanCmd.fs" />
     <Compile Include="Commands\Knowledge.fs" />
     <Compile Include="Commands\McpCommand.fs" />
     <Compile Include="Commands\McpServerCommand.fs" />
@@ -41,6 +45,8 @@
     <Compile Include="Commands\ReasoningDiag.fs" />
     <Compile Include="Commands\EscapeRoomDemo.fs" />
     <Compile Include="Commands\PuzzleDemo.fs" />
+    <Compile Include="Commands\IncidentCmd.fs" />
+    <Compile Include="Commands\SmokeTest.fs" />
     <Compile Include="Commands\NeuroSymbolicBenchmark.fs" />
     <Compile Include="Commands\Benchmark.fs" />
     <Compile Include="HealthCommand.fs" />

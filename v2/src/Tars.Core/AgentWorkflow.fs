@@ -44,11 +44,8 @@ type AgentContext =
 type AgentWorkflow<'T> = AgentContext -> Async<ExecutionOutcome<'T>>
 
 /// <summary>
-/// Computation expression builder for agent workflows.
-/// Handles cancellation, warning accumulation, and outcome propagation.
-/// </summary>
 type AgentBuilder() =
-    member _.Return(value: 'T) : AgentWorkflow<'T> = fun _ -> async { return Success value }
+    member _.Return(value: 'T) : AgentWorkflow<'T> = fun _ -> async { return ExecutionOutcome.Success value }
 
     member _.ReturnFrom(workflow: AgentWorkflow<'T>) : AgentWorkflow<'T> = workflow
 
@@ -61,29 +58,29 @@ type AgentBuilder() =
                     async {
                         // 1. Check Cancellation
                         if ctx.CancellationToken.IsCancellationRequested then
-                            return Failure [ PartialFailure.Warning "Operation cancelled" ]
+                            return ExecutionOutcome.Failure [ PartialFailure.Warning "Operation cancelled" ]
                         else
                             // 2. Run the first step
                             let! result = workflow ctx
 
                             match result with
-                            | Success value ->
+                            | ExecutionOutcome.Success value ->
                                 // 3. Continue to next step
                                 return! f value ctx
 
-                            | PartialSuccess(value, warnings) ->
+                            | ExecutionOutcome.PartialSuccess(value, warnings) ->
                                 // 4. Continue, but accumulate warnings
                                 let! nextResult = f value ctx
 
                                 match nextResult with
-                                | Success nextValue -> return PartialSuccess(nextValue, warnings)
-                                | PartialSuccess(nextValue, nextWarnings) ->
-                                    return PartialSuccess(nextValue, warnings @ nextWarnings)
-                                | Failure errors -> return Failure(warnings @ errors) // Keep warnings as context for failure
+                                | ExecutionOutcome.Success nextValue -> return ExecutionOutcome.PartialSuccess(nextValue, warnings)
+                                | ExecutionOutcome.PartialSuccess(nextValue, nextWarnings) ->
+                                    return ExecutionOutcome.PartialSuccess(nextValue, warnings @ nextWarnings)
+                                | ExecutionOutcome.Failure errors -> return ExecutionOutcome.Failure(warnings @ errors) // Keep warnings as context for failure
 
-                            | Failure errors ->
+                            | ExecutionOutcome.Failure errors ->
                                 // 5. Short-circuit
-                                return Failure errors
+                                return ExecutionOutcome.Failure errors
                     }
 
                 let durationMs =
@@ -91,15 +88,28 @@ type AgentBuilder() =
 
                 let status =
                     match finalResult with
-                    | Success _ -> "success"
-                    | PartialSuccess _ -> "partial"
-                    | Failure _ -> "failure"
+                    | ExecutionOutcome.Success _ -> "success"
+                    | ExecutionOutcome.PartialSuccess _ -> "partial"
+                    | ExecutionOutcome.Failure _ -> "failure"
 
                 Metrics.record "agent.bind" status durationMs (Some ctx.Self.Id) Map.empty
                 return finalResult
             }
 
-    member _.Zero() : AgentWorkflow<unit> = fun _ -> async { return Success() }
+    member this.Bind(a: Async<'T>, f: 'T -> AgentWorkflow<'U>) : AgentWorkflow<'U> =
+        fun ctx ->
+            async {
+                let! res = a
+                return! f res ctx
+            }
+
+    member this.Bind(t: Task<'T>, f: 'T -> AgentWorkflow<'U>) : AgentWorkflow<'U> =
+        this.Bind(t |> Async.AwaitTask, f)
+
+    member this.Bind(t: Task, f: unit -> AgentWorkflow<'U>) : AgentWorkflow<'U> =
+        this.Bind(t |> Async.AwaitTask, fun () -> f ())
+
+    member _.Zero() : AgentWorkflow<unit> = fun _ -> async { return ExecutionOutcome.Success() }
 
     member _.Combine(a: AgentWorkflow<unit>, b: AgentWorkflow<'T>) : AgentWorkflow<'T> =
         fun ctx ->
@@ -107,15 +117,15 @@ type AgentBuilder() =
                 let! result = a ctx
 
                 match result with
-                | Success() -> return! b ctx
-                | PartialSuccess((), warnings) ->
+                | ExecutionOutcome.Success() -> return! b ctx
+                | ExecutionOutcome.PartialSuccess((), warnings) ->
                     let! nextResult = b ctx
 
                     match nextResult with
-                    | Success v -> return PartialSuccess(v, warnings)
-                    | PartialSuccess(v, w) -> return PartialSuccess(v, warnings @ w)
-                    | Failure e -> return Failure(warnings @ e)
-                | Failure e -> return Failure e
+                    | ExecutionOutcome.Success v -> return ExecutionOutcome.PartialSuccess(v, warnings)
+                    | ExecutionOutcome.PartialSuccess(v, w) -> return ExecutionOutcome.PartialSuccess(v, warnings @ w)
+                    | ExecutionOutcome.Failure e -> return ExecutionOutcome.Failure(warnings @ e)
+                | ExecutionOutcome.Failure e -> return ExecutionOutcome.Failure e
             }
 
     member _.Delay(f: unit -> AgentWorkflow<'T>) : AgentWorkflow<'T> = fun ctx -> f () ctx
@@ -142,27 +152,27 @@ module AgentWorkflow =
 
     /// <summary>Lifts a value into a successful workflow.</summary>
     /// <param name="value">The value to wrap in Success.</param>
-    let succeed (value: 'T) : AgentWorkflow<'T> = fun _ -> async { return Success value }
+    let succeed (value: 'T) : AgentWorkflow<'T> = fun _ -> async { return ExecutionOutcome.Success value }
 
     /// <summary>Creates a workflow that immediately fails with the given error.</summary>
     /// <param name="error">The failure reason.</param>
     let fail (error: PartialFailure) : AgentWorkflow<'T> =
-        fun _ -> async { return Failure [ error ] }
+        fun _ -> async { return ExecutionOutcome.Failure [ error ] }
 
     /// <summary>Creates a workflow that immediately fails with multiple errors.</summary>
     /// <param name="errors">The list of failure reasons.</param>
     let failMany (errors: PartialFailure list) : AgentWorkflow<'T> =
-        fun _ -> async { return Failure errors }
+        fun _ -> async { return ExecutionOutcome.Failure errors }
 
     /// <summary>Creates a partial success with a value and a warning.</summary>
     /// <param name="value">The result value.</param>
     /// <param name="warning">The warning to attach.</param>
     let warnWith (value: 'T) (warning: PartialFailure) : AgentWorkflow<'T> =
-        fun _ -> async { return PartialSuccess(value, [ warning ]) }
+        fun _ -> async { return ExecutionOutcome.PartialSuccess(value, [ warning ]) }
 
     /// <summary>Accesses the current agent context.</summary>
     let getContext: AgentWorkflow<AgentContext> =
-        fun ctx -> async { return Success ctx }
+        fun ctx -> async { return ExecutionOutcome.Success ctx }
 
     /// <summary>
     /// Checks if the specified cost can be consumed from the budget.
@@ -177,11 +187,11 @@ module AgentWorkflow =
                     match governor.TryConsume cost with
                     | Result.Ok _ ->
                         Metrics.recordSimple "budget.check" "ok" (Some ctx.Self.Id) None None
-                        return Success()
+                        return ExecutionOutcome.Success()
                     | Result.Error err ->
                         Metrics.recordSimple "budget.check" "exceeded" (Some ctx.Self.Id) None None
-                        return Failure [ PartialFailure.Warning $"Budget exceeded: {err}" ]
-                | None -> return Success()
+                        return ExecutionOutcome.Failure [ PartialFailure.Warning $"Budget exceeded: {err}" ]
+                | None -> return ExecutionOutcome.Success()
             }
 
     /// <summary>
@@ -240,7 +250,7 @@ module AgentWorkflow =
                     |> List.map (fun (_, xs) -> xs |> List.maxBy snd)
 
                 match merged with
-                | [] -> return Failure [ PartialFailure.Error $"No agent found for capability {kind}" ]
+                | [] -> return ExecutionOutcome.Failure [ PartialFailure.Error $"No agent found for capability {kind}" ]
                 | _ ->
                     let bestAgent = merged |> List.sortByDescending snd |> List.head |> fst
                     ctx.Logger $"Selected agent {bestAgent.Name} for {kind}"
@@ -254,9 +264,9 @@ module AgentWorkflow =
                 let! result = primary ctx
 
                 match result with
-                | Success v -> return Success v
-                | PartialSuccess(v, w) -> return PartialSuccess(v, w)
-                | Failure errors ->
+                | ExecutionOutcome.Success v -> return ExecutionOutcome.Success v
+                | ExecutionOutcome.PartialSuccess(v, w) -> return ExecutionOutcome.PartialSuccess(v, w)
+                | ExecutionOutcome.Failure errors ->
                     ctx.Logger $"Primary failed: {errors}. Switching to backup."
                     return! backup ctx
             }
@@ -272,9 +282,9 @@ module AgentWorkflow =
             async {
                 if confidence < minConfidence then
                     ctx.Logger $"Confidence {confidence} < {minConfidence}. Escalating."
-                    return Failure [ PartialFailure.LowConfidence(confidence, "Confidence too low") ]
+                    return ExecutionOutcome.Failure [ PartialFailure.LowConfidence(confidence, "Confidence too low") ]
                 else
-                    return Success result
+                    return ExecutionOutcome.Success result
             }
 
     /// <summary>
@@ -289,9 +299,9 @@ module AgentWorkflow =
                     let! result = workflow ctx
 
                     match result with
-                    | Success v -> return Success v
-                    | PartialSuccess(v, w) -> return PartialSuccess(v, w)
-                    | Failure errors ->
+                    | ExecutionOutcome.Success v -> return ExecutionOutcome.Success v
+                    | ExecutionOutcome.PartialSuccess(v, w) -> return ExecutionOutcome.PartialSuccess(v, w)
+                    | ExecutionOutcome.Failure errors ->
                         if retries > 0 then
                             let delay = 100 * (pown 2 (maxRetries - retries)) // Exponential backoff
 
@@ -301,7 +311,7 @@ module AgentWorkflow =
                             do! Async.Sleep delay
                             return! loop (retries - 1) ctx
                         else
-                            return Failure errors
+                            return ExecutionOutcome.Failure errors
                 }
 
         loop maxRetries
@@ -323,18 +333,18 @@ module AgentWorkflow =
 
                 for res in results do
                     match res with
-                    | Success v -> successes.Add(v)
-                    | PartialSuccess(v, w) ->
+                    | ExecutionOutcome.Success v -> successes.Add(v)
+                    | ExecutionOutcome.PartialSuccess(v, w) ->
                         successes.Add(v)
                         allWarnings.AddRange(w)
-                    | Failure e -> allErrors.AddRange(e)
+                    | ExecutionOutcome.Failure e -> allErrors.AddRange(e)
 
                 if allErrors.Count > 0 then
-                    return Failure(List.ofSeq allErrors)
+                    return ExecutionOutcome.Failure(List.ofSeq allErrors)
                 elif allWarnings.Count > 0 then
-                    return PartialSuccess(List.ofSeq successes, List.ofSeq allWarnings)
+                    return ExecutionOutcome.PartialSuccess(List.ofSeq successes, List.ofSeq allWarnings)
                 else
-                    return Success(List.ofSeq successes)
+                    return ExecutionOutcome.Success(List.ofSeq successes)
             }
 
     /// <summary>
@@ -356,41 +366,41 @@ module AgentWorkflow =
 
                 let collect outcome =
                     match outcome with
-                    | Success v -> Choice1Of2 v
-                    | PartialSuccess(v, w) ->
+                    | ExecutionOutcome.Success v -> Choice1Of2 v
+                    | ExecutionOutcome.PartialSuccess(v, w) ->
                         warnings.AddRange w
                         Choice1Of2 v
-                    | Failure errs -> Choice2Of2((warnings |> Seq.toList) @ errs)
+                    | ExecutionOutcome.Failure errs -> Choice2Of2((warnings |> Seq.toList) @ errs)
 
                 let! planOutcome = plan ctx
 
                 match collect planOutcome with
-                | Choice2Of2 errs -> return Failure errs
+                | Choice2Of2 errs -> return ExecutionOutcome.Failure errs
                 | Choice1Of2 planResult ->
                     let! reviewOutcome = review planResult ctx
 
                     match collect reviewOutcome with
-                    | Choice2Of2 errs -> return Failure errs
+                    | Choice2Of2 errs -> return ExecutionOutcome.Failure errs
                     | Choice1Of2 reviewed ->
                         let! execOutcome = execute reviewed ctx
 
                         match collect execOutcome with
-                        | Choice2Of2 errs -> return Failure errs
+                        | Choice2Of2 errs -> return ExecutionOutcome.Failure errs
                         | Choice1Of2 executed ->
                             let! verifyOutcome = verify executed ctx
 
                             match verifyOutcome with
-                            | Success v ->
+                            | ExecutionOutcome.Success v ->
                                 let collected = warnings |> Seq.toList
                                 return
                                     if collected.IsEmpty then
-                                        Success v
+                                        ExecutionOutcome.Success v
                                     else
-                                        PartialSuccess(v, collected)
-                            | PartialSuccess(v, w) ->
+                                        ExecutionOutcome.PartialSuccess(v, collected)
+                            | ExecutionOutcome.PartialSuccess(v, w) ->
                                 let collected = (warnings |> Seq.toList) @ w
-                                return PartialSuccess(v, collected)
-                            | Failure errs -> return Failure((warnings |> Seq.toList) @ errs)
+                                return ExecutionOutcome.PartialSuccess(v, collected)
+                            | ExecutionOutcome.Failure errs -> return ExecutionOutcome.Failure((warnings |> Seq.toList) @ errs)
             }
 
     // ==========================================
@@ -410,9 +420,9 @@ module AgentWorkflow =
                 let! result = workflow ctx
 
                 match result with
-                | Success v -> return Success(mapping v)
-                | PartialSuccess(v, w) -> return PartialSuccess(mapping v, w)
-                | Failure e -> return Failure e
+                | ExecutionOutcome.Success v -> return ExecutionOutcome.Success(mapping v)
+                | ExecutionOutcome.PartialSuccess(v, w) -> return ExecutionOutcome.PartialSuccess(mapping v, w)
+                | ExecutionOutcome.Failure e -> return ExecutionOutcome.Failure e
             }
 
     /// <summary>
@@ -461,33 +471,33 @@ module AgentWorkflow =
                 let! result = workflow ctx
 
                 match result with
-                | Success v ->
+                | ExecutionOutcome.Success v ->
                     match ctx.Epistemic with
                     | Some governor ->
                         let! verified = governor.Verify(v.ToString()) |> Async.AwaitTask
 
                         if verified then
                             ctx.Logger $"[Grounding] Verified result: {v}"
-                            return Success v
+                            return ExecutionOutcome.Success v
                         else
                             ctx.Logger $"[Grounding] Rejected result: {v}"
-                            return Failure [ PartialFailure.Error $"Epistemic Governor rejected result: {v}" ]
+                            return ExecutionOutcome.Failure [ PartialFailure.Error $"Epistemic Governor rejected result: {v}" ]
                     | None ->
                         ctx.Logger "[Grounding] No Epistemic Governor available. Skipping verification."
-                        return Success v
+                        return ExecutionOutcome.Success v
 
-                | PartialSuccess(v, w) ->
+                | ExecutionOutcome.PartialSuccess(v, w) ->
                     match ctx.Epistemic with
                     | Some governor ->
                         let! verified = governor.Verify(v.ToString()) |> Async.AwaitTask
 
                         if verified then
                             ctx.Logger $"[Grounding] Verified partial result: {v}"
-                            return PartialSuccess(v, w)
+                            return ExecutionOutcome.PartialSuccess(v, w)
                         else
                             ctx.Logger $"[Grounding] Rejected partial result: {v}"
-                            return Failure(w @ [ PartialFailure.Error $"Epistemic Governor rejected result: {v}" ])
-                    | None -> return PartialSuccess(v, w)
+                            return ExecutionOutcome.Failure(w @ [ PartialFailure.Error $"Epistemic Governor rejected result: {v}" ])
+                    | None -> return ExecutionOutcome.PartialSuccess(v, w)
 
-                | Failure e -> return Failure e
+                | ExecutionOutcome.Failure e -> return ExecutionOutcome.Failure e
             }

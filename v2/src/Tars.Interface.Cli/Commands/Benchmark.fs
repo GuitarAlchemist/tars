@@ -2,73 +2,96 @@
 module Tars.Interface.Cli.Commands.Benchmark
 
 open System
-open Microsoft.Extensions.Logging
+open System.Threading.Tasks
+open Serilog
+open Tars.Core
+open Tars.Core.Puzzles
 open Tars.Interface.Cli.Commands.NeuroSymbolicBenchmark
+open Tars.Interface.Cli.Commands.PuzzleDemo
 
 /// Run the benchmark
-let run (logger: ILogger) (args: string array) =
-    try
-        // Parse arguments
-        let maxAttempts =
-            if args.Length > 0 && Int32.TryParse(args.[0], &(new Int32())) then
-                Int32.Parse(args.[0])
+let run (logger: ILogger) (args: string array) : Task<int> =
+    task {
+        try
+            // Parse arguments
+            let maxAttempts =
+                let mutable d = 0
+
+                if args.Length > 0 && Int32.TryParse(args.[0], &d) then
+                    d
+                else
+                    5 // Default: 5 attempts per puzzle
+
+            let mode = if args.Length > 1 then args.[1] else "compare"
+            let filter = if args.Length > 2 then Some args.[2] else None
+
+            let puzzles =
+                match filter with
+                | Some f ->
+                    logger.Information($"Filtering puzzles by '{f}'")
+
+                    Puzzles.all
+                    |> List.filter (fun p -> p.Name.Contains(f, StringComparison.InvariantCultureIgnoreCase))
+                | None -> Puzzles.all
+
+            if puzzles.IsEmpty then
+                logger.Error("No puzzles found matching filter.")
+                return 1
             else
-                5 // Default: 5 attempts per puzzle
+                match mode.ToLowerInvariant() with
+                | "baseline" ->
+                    // Run baseline only
+                    let config =
+                        { EnableNeuroSymbolic = false
+                          MaxAttemptsPerPuzzle = maxAttempts
+                          Verbose = true
+                          LogResults = true }
 
-        let mode = if args.Length > 1 then args.[1] else "compare"
+                    let! summary = runBenchmark logger puzzles config
+                    printSummary logger summary
+                    return 0
 
-        match mode.ToLowerInvariant() with
-        | "baseline" ->
-            // Run baseline only
-            let config =
-                { EnableNeuroSymbolic = false
-                  MaxAttemptsPerPuzzle = maxAttempts
-                  Verbose = true
-                  LogResults = true }
+                | "neurosymbolic"
+                | "ns" ->
+                    // Run neuro-symbolic only
+                    let config =
+                        { EnableNeuroSymbolic = true
+                          MaxAttemptsPerPuzzle = maxAttempts
+                          Verbose = true
+                          LogResults = true }
 
-            let summary = runBenchmark logger config
-            printSummary logger summary
-            0
+                    let! summary = runBenchmark logger puzzles config
+                    printSummary logger summary
+                    return 0
 
-        | "neurosymbolic"
-        | "ns" ->
-            // Run neuro-symbolic only
-            let config =
-                { EnableNeuroSymbolic = true
-                  MaxAttemptsPerPuzzle = maxAttempts
-                  Verbose = true
-                  LogResults = true }
+                | "compare"
+                | _ ->
+                    // Run comparison (default)
+                    let! (baseline, ns) = runComparison logger maxAttempts filter
 
-            let summary = runBenchmark logger config
-            printSummary logger summary
-            0
+                    // Export results
+                    let timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss")
+                    let csvFile = $"benchmark_results_{timestamp}.csv"
+                    let jsonFile = $"benchmark_viz_{timestamp}.json"
 
-        | "compare"
-        | _ ->
-            // Run comparison (default)
-            let (baseline, ns) = runComparison logger maxAttempts
+                    exportToCsv baseline ns csvFile
+                    logger.Information($"📄 Results exported to: {csvFile}")
 
-            // Export results
-            let timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss")
-            let csvFile = $"benchmark_results_{timestamp}.csv"
-            let jsonFile = $"benchmark_viz_{timestamp}.json"
+                    let vizData = createVisualization baseline ns
+                    System.IO.File.WriteAllText(jsonFile, vizData)
+                    logger.Information($"📊 Visualization data: {jsonFile}")
 
-            exportToCsv baseline ns csvFile
-            logger.LogInformation($"📄 Results exported to: {csvFile}")
+                    return 0
 
-            let vizData = createVisualization baseline ns
-            System.IO.File.WriteAllText(jsonFile, vizData)
-            logger.LogInformation($"📊 Visualization data: {jsonFile}")
-
-            0
-
-    with ex ->
-        logger.LogError($"❌ Benchmark failed: {ex.Message}")
-        1
+        with ex ->
+            logger.Error($"❌ Benchmark failed: {ex.Message}")
+            return 1
+    }
 
 /// Show help
 let help () =
     printfn
+        "%s"
         """
 📊 TARS Neuro-Symbolic Benchmark
 

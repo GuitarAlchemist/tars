@@ -259,48 +259,41 @@ let run (logger: ILogger) (options: EvolveOptions) =
                 else
                     CredentialVault.getSecret secretName |> Result.toOption
 
-            { OllamaBaseUri = ollamaUri
-              VllmBaseUri = ollamaUri
-              OpenAIBaseUri = Uri("https://api.openai.com/")
-              GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com/")
-              AnthropicBaseUri = Uri("https://api.anthropic.com/")
-              DefaultOllamaModel = model
-              DefaultVllmModel = model
-              DefaultOpenAIModel = if config.Llm.Provider = "OpenAI" then model else "gpt-4o"
-              DefaultGoogleGeminiModel =
-                if config.Llm.Provider = "Google" then
-                    model
-                else
-                    "gemini-pro"
-              DefaultAnthropicModel =
-                if config.Llm.Provider = "Anthropic" then
-                    model
-                else
-                    "claude-3-opus-20240229"
-              DefaultEmbeddingModel = config.Llm.EmbeddingModel
-
-              OllamaKey = None
-              VllmKey = None
-              OpenAIKey = getKey "OpenAI" "OPENAI_API_KEY"
-              GoogleGeminiKey = getKey "Google" "GOOGLE_API_KEY"
-              AnthropicKey = getKey "Anthropic" "ANTHROPIC_API_KEY"
-              DockerModelRunnerBaseUri = None
-              LlamaCppBaseUri =
-                if useLlamaCpp then
-                    config.Llm.LlamaCppUrl |> Option.map Uri
-                else
-                    None
-              DefaultDockerModelRunnerModel = None
-              DefaultLlamaCppModel =
-                if useLlamaCpp && config.Llm.LlamaCppUrl.IsSome then
-                    Some model
-                else
-                    None
-              DockerModelRunnerKey = None
-              LlamaCppKey = None
-              LlamaSharpModelPath = config.Llm.LlamaSharpModelPath
-              DefaultContextWindow = if config.Llm.ContextWindow > 0 then Some config.Llm.ContextWindow else None
-              DefaultTemperature = None }
+            { RoutingConfig.Default with
+                OllamaBaseUri = ollamaUri
+                VllmBaseUri = ollamaUri
+                OpenAIBaseUri = Uri("https://api.openai.com/")
+                GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com/")
+                AnthropicBaseUri = Uri("https://api.anthropic.com/")
+                DefaultOllamaModel = model
+                DefaultVllmModel = model
+                DefaultOpenAIModel = if config.Llm.Provider = "OpenAI" then model else "gpt-4o"
+                DefaultGoogleGeminiModel =
+                    if config.Llm.Provider = "Google" then
+                        model
+                    else
+                        "gemini-pro"
+                DefaultAnthropicModel =
+                    if config.Llm.Provider = "Anthropic" then
+                        model
+                    else
+                        "claude-3-opus-20240229"
+                DefaultEmbeddingModel = config.Llm.EmbeddingModel
+                OpenAIKey = getKey "OpenAI" "OPENAI_API_KEY"
+                GoogleGeminiKey = getKey "Google" "GOOGLE_API_KEY"
+                AnthropicKey = getKey "Anthropic" "ANTHROPIC_API_KEY"
+                LlamaCppBaseUri =
+                    if useLlamaCpp then
+                        config.Llm.LlamaCppUrl |> Option.map Uri
+                    else
+                        None
+                DefaultLlamaCppModel =
+                    if useLlamaCpp && config.Llm.LlamaCppUrl.IsSome then
+                        Some model
+                    else
+                        None
+                DefaultContextWindow = if config.Llm.ContextWindow > 0 then Some config.Llm.ContextWindow else None
+                DefaultTemperature = None }
 
         let svcCfg: LlmServiceConfig = { Routing = routingCfg }
         use httpClient = new HttpClient()

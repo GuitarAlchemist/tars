@@ -19,7 +19,8 @@ type KnowOptions =
       BeliefId: string option
       Depth: int
       UsePostgres: bool
-      ShowPrompt: bool }
+      ShowPrompt: bool
+      Verify: bool }
 
 let defaultOptions =
     { Command = "status"
@@ -31,7 +32,8 @@ let defaultOptions =
       BeliefId = None
       Depth = 2
       UsePostgres = false
-      ShowPrompt = false }
+      ShowPrompt = false
+      Verify = false }
 
 let private createLedger (config: Tars.Core.TarsConfig) (usePostgres: bool) =
     if usePostgres then
@@ -368,7 +370,13 @@ let private runFetch (ledger: KnowledgeLedger) (topic: string) =
             AnsiConsole.MarkupLine($"[red]✗ Error fetching Wikipedia:[/] {ex.Message}")
     }
 
-let private runPropose (ledger: KnowledgeLedger) (config: Tars.Core.TarsConfig) (topic: string) (showPrompt: bool) =
+let private runPropose
+    (ledger: KnowledgeLedger)
+    (config: Tars.Core.TarsConfig)
+    (topic: string)
+    (showPrompt: bool)
+    (verify: bool)
+    =
     task {
         AnsiConsole.MarkupLine($"\n[blue]🧠 Extracting proposed beliefs for:[/] [white]{topic}[/]")
         use client = new System.Net.Http.HttpClient()
@@ -415,7 +423,7 @@ Return ONLY a JSON array of triples:
                         llmClient,
                         { Routing = Tars.Llm.Routing.RoutingConfig.fromTarsConfig config }
                     )
-                    :> Tars.Llm.LlmService.ILlmService
+                    :> Tars.Llm.ILlmService
 
                 let req =
                     { ModelHint = None
@@ -430,7 +438,8 @@ Return ONLY a JSON array of triples:
                       ResponseFormat = Some ResponseFormat.Json
                       Stream = false
                       JsonMode = true
-                      Seed = None }
+                      Seed = None
+                      ContextWindow = None }
 
                 let! res = llmService.CompleteAsync(req)
 
@@ -508,6 +517,9 @@ Return ONLY a JSON array of triples:
                         table.AddColumn("[cyan]Object[/]") |> ignore
                         table.AddColumn("[yellow]Conf.[/]") |> ignore
 
+                        if verify then
+                            table.AddColumn("[white]Verification[/]") |> ignore
+
                         // Get items as sequence
                         let items =
                             if isSingleObject then
@@ -528,8 +540,81 @@ Return ONLY a JSON array of triples:
                                     && not (String.IsNullOrWhiteSpace p)
                                     && not (String.IsNullOrWhiteSpace o)
                                 then
-                                    table.AddRow(Markup.Escape(s), Markup.Escape(p), Markup.Escape(o), $"{c:P0}")
-                                    |> ignore
+                                    let verificationStatus =
+                                        if verify then
+                                            let verifier = VerifierAgent(ledger)
+
+                                            let result =
+                                                // Create a temporary ProposedAssertion for verification
+                                                let pA =
+                                                    { Id = Guid.NewGuid()
+                                                      Subject = s
+                                                      Predicate = p
+                                                      Object = o
+                                                      Confidence = c
+                                                      SourceSection = extract
+                                                      ExtractorAgent = AgentId "wikipedia-extractor"
+                                                      ExtractedAt = DateTime.UtcNow }
+
+                                                verifier.Verify(pA) |> Async.RunSynchronously // We are in a task block, but Verify is async. Ideally await it properly.
+
+                                            match result with
+                                            | Accepted _ -> "[green]✓ Verified[/]"
+                                            | Denied r -> $"[red]✗ {r}[/]"
+                                            | Conflict(_, _) -> "[bold red]✗ Conflict[/]"
+                                        else
+                                            ""
+
+                                    if verify then
+                                        table.AddRow(
+                                            Markup.Escape(s),
+                                            Markup.Escape(p),
+                                            Markup.Escape(o),
+                                            $"{c:P0}",
+                                            verificationStatus
+                                        )
+                                        |> ignore
+                                    else
+                                        table.AddRow(Markup.Escape(s), Markup.Escape(p), Markup.Escape(o), $"{c:P0}")
+                                        |> ignore
+
+                                    let verificationStatus =
+                                        if verify then
+                                            let verifier = VerifierAgent(ledger)
+
+                                            let result =
+                                                // Create a temporary ProposedAssertion for verification
+                                                let pA =
+                                                    { Id = Guid.NewGuid()
+                                                      Subject = s
+                                                      Predicate = p
+                                                      Object = o
+                                                      Confidence = c
+                                                      SourceSection = extract
+                                                      ExtractorAgent = AgentId "wikipedia-extractor"
+                                                      ExtractedAt = DateTime.UtcNow }
+
+                                                verifier.Verify(pA) |> Async.RunSynchronously // We are in a task block, but Verify is async. Ideally await it properly.
+
+                                            match result with
+                                            | Accepted _ -> "[green]✓ Verified[/]"
+                                            | Denied r -> $"[red]✗ {r}[/]"
+                                            | Conflict(_, _) -> "[bold red]✗ Conflict[/]"
+                                        else
+                                            ""
+
+                                    if verify then
+                                        table.AddRow(
+                                            Markup.Escape(s),
+                                            Markup.Escape(p),
+                                            Markup.Escape(o),
+                                            $"{c:P0}",
+                                            verificationStatus
+                                        )
+                                        |> ignore
+                                    else
+                                        table.AddRow(Markup.Escape(s), Markup.Escape(p), Markup.Escape(o), $"{c:P0}")
+                                        |> ignore
 
                                     let proposal: ProposedAssertion =
                                         { Id = Guid.NewGuid()
@@ -621,7 +706,7 @@ let run (config: Tars.Core.TarsConfig) (options: KnowOptions) : Task<int> =
                 | None -> AnsiConsole.MarkupLine("[yellow]Usage: tars know fetch <topic>[/]")
             | "propose" ->
                 match options.Query with
-                | Some t -> do! runPropose ledger config t options.ShowPrompt
+                | Some t -> do! runPropose ledger config t options.ShowPrompt options.Verify
                 | None -> AnsiConsole.MarkupLine("[yellow]Usage: tars know propose <topic>[/]")
             | _ -> printHelp ()
 
@@ -682,6 +767,9 @@ let parseArgs (args: string[]) : KnowOptions =
             i <- i + 1
         | "--show-prompt" ->
             options <- { options with ShowPrompt = true }
+            i <- i + 1
+        | "--verify" ->
+            options <- { options with Verify = true }
             i <- i + 1
         | arg when not (arg.StartsWith "-") ->
             match options.Command with

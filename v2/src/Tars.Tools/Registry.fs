@@ -23,17 +23,67 @@ type ToolRegistry(failureThreshold: int, durationOfBreak: TimeSpan) =
 
         let resilientExecute (input: string) : Async<Result<string, string>> =
             async {
+                let sw = System.Diagnostics.Stopwatch.StartNew()
                 let taskOp () = Async.StartAsTask(tool.Execute input)
 
                 try
-                    let! result = Async.AwaitTask(cb.ExecuteAsync(taskOp))
+                    let! (result: Result<string, string>) = Async.AwaitTask(cb.ExecuteAsync(taskOp))
+                    sw.Stop()
+                    let duration = sw.Elapsed.TotalMilliseconds
+
+                    match result with
+                    | Result.Ok output ->
+                        Tars.Core.ToolLedger.record
+                            tool.Name
+                            input
+                            output
+                            duration
+                            true
+                            Tars.Core.ToolFailureCategory.NoFailure
+                            None
+                    | Result.Error err ->
+                        let category =
+                            if err.Contains("timeout") || err.Contains("timed out") then
+                                Tars.Core.ToolFailureCategory.Timeout
+                            elif err.Contains("connection") || err.Contains("http") || err.Contains("network") then
+                                Tars.Core.ToolFailureCategory.DependencyFailure
+                            else
+                                Tars.Core.ToolFailureCategory.Unknown
+
+                        ToolLedger.record
+                            tool.Name
+                            input
+                            err
+                            duration
+                            false
+                            category
+                            None
+
                     return result
                 with
                 | :? InvalidOperationException as ex when ex.Message.Contains("CircuitBreaker is OPEN") ->
+                    sw.Stop()
+
+                    Tars.Core.ToolLedger.record
+                        tool.Name
+                        input
+                        "Circuit Breaker is OPEN"
+                        sw.Elapsed.TotalMilliseconds
+                        false
+                        Tars.Core.ToolFailureCategory.CircuitBreakerOpen
+                        None
+
                     return Result.Error "Circuit Breaker is OPEN"
                 | ex ->
-                    // Exceptions thrown by tool.Execute are caught here if they bubbled up through CB
-                    // CB has already counted them.
+                    sw.Stop()
+
+                    let cat =
+                        if ex.Message.Contains("timeout") then
+                            Tars.Core.ToolFailureCategory.Timeout
+                        else
+                            Tars.Core.ToolFailureCategory.Unknown
+
+                    Tars.Core.ToolLedger.record tool.Name input ex.Message sw.Elapsed.TotalMilliseconds false cat None
                     return Result.Error ex.Message
             }
 

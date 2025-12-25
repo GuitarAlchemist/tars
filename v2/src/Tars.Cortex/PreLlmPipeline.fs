@@ -140,7 +140,9 @@ type LlmIntentClassifier(llm: ILlmService) =
                           ResponseFormat = Some ResponseFormat.Json
                           Stream = false
                           JsonMode = true
-                          Seed = None }
+                          Seed = None
+
+                          ContextWindow = None }
 
                     let! response =
                         task {

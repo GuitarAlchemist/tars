@@ -59,7 +59,25 @@ type LlmRequest =
         JsonMode: bool
         /// <summary>Random seed (optional).</summary>
         Seed: int option
+        /// <summary>Context window size (optional).</summary>
+        ContextWindow: int option
     }
+
+    static member Default =
+        { ModelHint = None
+          Model = None
+          SystemPrompt = None
+          MaxTokens = None
+          Temperature = None
+          Stop = []
+          Messages = []
+          Tools = []
+          ToolChoice = None
+          ResponseFormat = None
+          Stream = false
+          JsonMode = false
+          Seed = None
+          ContextWindow = None }
 
 /// <summary>Token usage statistics from an LLM response.</summary>
 type TokenUsage =
@@ -101,9 +119,9 @@ type LlamaCppConfig =
 /// <summary>Default llama.cpp configuration.</summary>
 module LlamaCppConfig =
     let Default =
-        { GpuLayers = None
+        { GpuLayers = Some -1
           ContextSize = None
-          NumParallel = None
+          NumParallel = Some 4
           FlashAttention = true }
 
 /// <summary>Supported LLM backends.</summary>
@@ -122,6 +140,8 @@ type LlmBackend =
     | DockerModelRunner of model: string
     /// <summary>llama.cpp server (high-performance local inference with GGUF models).</summary>
     | LlamaCpp of model: string * config: LlamaCppConfig option
+    /// <summary>In-process LLamaSharp with CUDA acceleration.</summary>
+    | LlamaSharp of modelPath: string
 
 /// <summary>Result of routing policy - which backend and endpoint to use.</summary>
 type RoutedBackend = { Backend: LlmBackend; Endpoint: Uri }

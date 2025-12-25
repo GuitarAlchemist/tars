@@ -5,6 +5,7 @@ open System.Threading.Tasks
 open Microsoft.Extensions.Configuration
 open Spectre.Console
 open Tars.Llm
+open Tars.Llm.Routing
 open Tars.Llm.LlmService
 open Tars.Cortex
 open System.Text.Json
@@ -23,29 +24,22 @@ let run (config: IConfiguration) (args: string array) =
             |> Option.ofObj
             |> Option.defaultValue "qwen2.5-coder:1.5b"
 
-        let routingCfg =
-            { Tars.Llm.Routing.RoutingConfig.OllamaBaseUri = Uri("http://localhost:11434")
-              Tars.Llm.Routing.RoutingConfig.VllmBaseUri = Uri("http://localhost:8000")
-              Tars.Llm.Routing.RoutingConfig.OpenAIBaseUri = Uri("https://api.openai.com")
-              Tars.Llm.Routing.RoutingConfig.GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com")
-              Tars.Llm.Routing.RoutingConfig.AnthropicBaseUri = Uri("https://api.anthropic.com")
-              Tars.Llm.Routing.RoutingConfig.DefaultOllamaModel = model
-              Tars.Llm.Routing.RoutingConfig.DefaultVllmModel = model
-              Tars.Llm.Routing.RoutingConfig.DefaultOpenAIModel = "gpt-4o-mini" // Support structured output
-              Tars.Llm.Routing.RoutingConfig.DefaultGoogleGeminiModel = "gemini-1.5-pro-latest"
-              Tars.Llm.Routing.RoutingConfig.DefaultAnthropicModel = "claude-3-opus-20240229"
-              Tars.Llm.Routing.RoutingConfig.DefaultEmbeddingModel = "nomic-embed-text"
-              Tars.Llm.Routing.RoutingConfig.OllamaKey = None
-              Tars.Llm.Routing.RoutingConfig.VllmKey = None
-              Tars.Llm.Routing.RoutingConfig.OpenAIKey = Option.ofObj config["OPENAI_API_KEY"]
-              Tars.Llm.Routing.RoutingConfig.GoogleGeminiKey = Option.ofObj config["GOOGLE_API_KEY"]
-              Tars.Llm.Routing.RoutingConfig.AnthropicKey = Option.ofObj config["ANTHROPIC_API_KEY"]
-              Tars.Llm.Routing.RoutingConfig.DockerModelRunnerBaseUri = None
-              Tars.Llm.Routing.RoutingConfig.LlamaCppBaseUri = None
-              Tars.Llm.Routing.RoutingConfig.DefaultDockerModelRunnerModel = None
-              Tars.Llm.Routing.RoutingConfig.DefaultLlamaCppModel = None
-              Tars.Llm.Routing.RoutingConfig.DockerModelRunnerKey = None
-              Tars.Llm.Routing.RoutingConfig.LlamaCppKey = None }
+        let routingCfg: RoutingConfig =
+            { RoutingConfig.Default with
+                OllamaBaseUri = Uri("http://localhost:11434")
+                VllmBaseUri = Uri("http://localhost:8000")
+                OpenAIBaseUri = Uri("https://api.openai.com")
+                GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com")
+                AnthropicBaseUri = Uri("https://api.anthropic.com")
+                DefaultOllamaModel = model
+                DefaultVllmModel = model
+                DefaultOpenAIModel = "gpt-4o-mini"
+                DefaultGoogleGeminiModel = "gemini-1.5-pro-latest"
+                DefaultAnthropicModel = "claude-3-opus-20240229"
+                DefaultEmbeddingModel = "nomic-embed-text"
+                OpenAIKey = Option.ofObj config["OPENAI_API_KEY"]
+                GoogleGeminiKey = Option.ofObj config["GOOGLE_API_KEY"]
+                AnthropicKey = Option.ofObj config["ANTHROPIC_API_KEY"] }
 
         let svcCfg = { Routing = routingCfg }
         use httpClient = new System.Net.Http.HttpClient()
@@ -63,7 +57,7 @@ let run (config: IConfiguration) (args: string array) =
         // 2. Prepare Request
         let req =
             { ModelHint = Some "code"
-              Model = None // Use default routed model
+              Model = None
               SystemPrompt = Some "You are a weather reporter. Output JSON only."
               MaxTokens = Some 500
               Temperature = Some 0.1
@@ -75,8 +69,9 @@ let run (config: IConfiguration) (args: string array) =
               ToolChoice = None
               ResponseFormat = Some(ResponseFormat.Constrained(Grammar.JsonSchema schemaJson))
               Stream = false
-              JsonMode = false // Driven by ResponseFormat
-              Seed = Some 42 }
+              JsonMode = false
+              Seed = Some 42
+              ContextWindow = None }
 
         // 3. Execute
         AnsiConsole.MarkupLine("[bold green]Sending Request...[/]")

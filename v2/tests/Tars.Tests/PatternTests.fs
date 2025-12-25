@@ -47,6 +47,7 @@ type QueueLlm(responses: string list, recorder: System.Collections.Generic.List<
 
         member _.CompleteStreamAsync(_req, _onToken) = raise (NotImplementedException())
         member _.EmbedAsync(_text) = Task.FromResult(Array.empty<float32>)
+        member _.RouteAsync(_) = task { return { Backend = Ollama "mock"; Endpoint = Uri "http://localhost:11434"; ApiKey = None } }
 
 type RoutingLlm() =
     interface ILlmService with
@@ -77,6 +78,7 @@ type RoutingLlm() =
 
         member _.CompleteStreamAsync(_req, _onToken) = raise (NotImplementedException())
         member _.EmbedAsync(_text) = Task.FromResult([| 0.1f; 0.2f; 0.3f |])
+        member _.RouteAsync(_) = task { return { Backend = Ollama "mock"; Endpoint = Uri "http://localhost:11434"; ApiKey = None } }
 
 type PolicyFailLlm() =
     interface ILlmService with
@@ -107,6 +109,7 @@ type PolicyFailLlm() =
 
         member _.CompleteStreamAsync(_req, _onToken) = raise (NotImplementedException())
         member _.EmbedAsync(_text) = Task.FromResult([| 0.1f; 0.2f; 0.3f |])
+        member _.RouteAsync(_) = task { return { Backend = Ollama "mock"; Endpoint = Uri "http://localhost:11434"; ApiKey = None } }
 
 type RecordingLlm(responder: LlmRequest -> string, log: ResizeArray<string>) =
     let formatRequest (req: LlmRequest) =
@@ -142,6 +145,7 @@ type RecordingLlm(responder: LlmRequest -> string, log: ResizeArray<string>) =
 
         member _.CompleteStreamAsync(_req, _onToken) = raise (NotImplementedException())
         member _.EmbedAsync(_text) = Task.FromResult([| 0.1f; 0.2f; 0.3f |])
+        member _.RouteAsync(_) = task { return { Backend = Ollama "mock"; Endpoint = Uri "http://localhost:11434"; ApiKey = None } }
 
 type StubSemanticMemory(memories: MemorySchema list) =
     interface ISemanticMemory with
@@ -521,7 +525,8 @@ type PatternTests(output: ITestOutputHelper) =
                                   Raw = None }
                         }
 
-                    member _.EmbedAsync(_) = task { return [| 0.1f |] } }
+                    member _.EmbedAsync(_) = task { return [| 0.1f |] }
+                    member _.RouteAsync(_) = task { return { Backend = Ollama "mock"; Endpoint = Uri "http://localhost:11434"; ApiKey = None } } }
 
             // Empty tool registry
             let mockTools =
@@ -571,7 +576,8 @@ type PatternTests(output: ITestOutputHelper) =
                                   Raw = None }
                         }
 
-                    member _.EmbedAsync(_) = task { return [| 0.1f |] } }
+                    member _.EmbedAsync(_) = task { return [| 0.1f |] }
+                    member _.RouteAsync(_) = task { return { Backend = Ollama "mock"; Endpoint = Uri "http://localhost:11434"; ApiKey = None } } }
 
             let mockTools =
                 { new IToolRegistry with
@@ -627,7 +633,8 @@ type PatternTests(output: ITestOutputHelper) =
                                   Raw = None }
                         }
 
-                    member _.EmbedAsync(_) = task { return [| 0.1f |] } }
+                    member _.EmbedAsync(_) = task { return [| 0.1f |] }
+                    member _.RouteAsync(_) = task { return { Backend = Ollama "mock"; Endpoint = Uri "http://localhost:11434"; ApiKey = None } } }
 
             let calculatorTool: Tool =
                 { Name = "calculator"

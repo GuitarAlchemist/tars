@@ -102,7 +102,9 @@ type McpCallToolResult =
     { [<JsonPropertyName("content")>]
       Content: McpContent list
       [<JsonPropertyName("isError")>]
-      IsError: bool option }
+      IsError: bool option
+      [<JsonPropertyName("_meta")>]
+      Meta: Map<string, obj> option }
 
 and McpContent =
     { [<JsonPropertyName("type")>]

@@ -10,11 +10,14 @@
     <Compile Include="Domain.fs" />
     <Compile Include="JsonParsing.fs" />
     <Compile Include="Routing.fs" />
+    <Compile Include="LlmServiceTypes.fs" />
     <Compile Include="OllamaClient.fs" />
     <Compile Include="OllamaClientAsync.fs" />
     <Compile Include="OpenAiCompatibleClient.fs" />
     <Compile Include="GoogleGeminiClient.fs" />
     <Compile Include="LlamaCppClient.fs" />
+    <Compile Include="LlamaSharpService.fs" />
+    <Compile Include="LlamaSharpFactory.fs" />
     <Compile Include="LlmService.fs" />
     <Compile Include="VllmClient.fs" />
     <Compile Include="TracingLlmService.fs" />
@@ -22,6 +25,13 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Tars.Core\Tars.Core.fsproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="LLamaSharp" Version="0.25.0" />
+    <PackageReference Include="LLamaSharp.Backend.Cuda12" Version="0.25.0" />
+    <PackageReference Include="LLamaSharp.Backend.Cuda12.Windows" Version="0.25.0" />
+    <PackageReference Include="LLamaSharp.Backend.Vulkan" Version="0.25.0" />
   </ItemGroup>
 
 </Project>

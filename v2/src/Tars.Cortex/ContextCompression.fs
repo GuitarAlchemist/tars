@@ -69,7 +69,8 @@ type ContextCompressor(llm: ILlmService, entropyMonitor: EntropyMonitor) =
                   ResponseFormat = None
                   Stream = false
                   JsonMode = false
-                  Seed = None }
+                  Seed = None
+                  ContextWindow = None }
 
             let! response = llm.CompleteAsync(request)
             let compressed = response.Text.Trim()

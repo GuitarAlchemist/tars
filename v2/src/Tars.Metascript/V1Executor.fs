@@ -207,7 +207,8 @@ module V1Executor =
                                   ResponseFormat = None
                                   Stream = false
                                   JsonMode = false
-                                  Seed = None }
+                                  Seed = None
+                                  ContextWindow = None }
                             )
 
                         sw.Stop()

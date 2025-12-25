@@ -21,33 +21,11 @@ let run (config: Microsoft.Extensions.Configuration.IConfiguration) (prompt: str
             printfn "Missing DEFAULT_OLLAMA_MODEL (set via user secrets or env)."
             return 1
         | Some ollamaUrl, Some model ->
-
-            let routingCfg: RoutingConfig =
-                { OllamaBaseUri = Uri(ollamaUrl)
-                  VllmBaseUri = Uri("http://localhost:8000/")
-                  OpenAIBaseUri = Uri("https://api.openai.com/")
-                  GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com/")
-                  AnthropicBaseUri = Uri("https://api.anthropic.com/")
-                  DefaultOllamaModel = model
-                  DefaultVllmModel = model
-                  DefaultOpenAIModel = "gpt-4o"
-                  DefaultGoogleGeminiModel = "gemini-pro"
-                  DefaultAnthropicModel = "claude-3-opus-20240229"
-                  DefaultEmbeddingModel = "nomic-embed-text"
-
-                  OllamaKey = None
-                  VllmKey = None
-                  OpenAIKey = None
-                  GoogleGeminiKey = None
-                  AnthropicKey = None
-
-                  // Optional backends (not configured by default)
-                  DockerModelRunnerBaseUri = None
-                  LlamaCppBaseUri = None
-                  DefaultDockerModelRunnerModel = None
-                  DefaultLlamaCppModel = None
-                  DockerModelRunnerKey = None
-                  LlamaCppKey = None }
+            let routingCfg =
+                { RoutingConfig.Default with
+                    OllamaBaseUri = Uri(ollamaUrl)
+                    DefaultOllamaModel = model
+                    DefaultVllmModel = model }
 
             let svcCfg: LlmServiceConfig = { Routing = routingCfg }
 
@@ -70,7 +48,8 @@ let run (config: Microsoft.Extensions.Configuration.IConfiguration) (prompt: str
                   ResponseFormat = None
                   Stream = false
                   JsonMode = false
-                  Seed = None }
+                  Seed = None
+                  ContextWindow = None }
 
             try
                 let! response = llmService.CompleteAsync(req)

@@ -68,12 +68,16 @@ module ConfigurationLoader =
                 { defLlm with
                     Provider = get "Llm:Provider" defLlm.Provider
                     Model = get "Llm:Model" defLlm.Model
+                    LlamaSharpModelPath = getOpt "Llm:LlamaSharpModelPath" defLlm.LlamaSharpModelPath
                     EmbeddingModel = get "Llm:EmbeddingModel" defLlm.EmbeddingModel
                     BaseUrl = getOpt "Llm:BaseUrl" defLlm.BaseUrl
                     LlamaCppUrl = getOpt "Llm:LlamaCppUrl" defLlm.LlamaCppUrl
                     ApiKey = getOpt "Llm:ApiKey" defLlm.ApiKey
                     ContextWindow = getInt "Llm:ContextWindow" defLlm.ContextWindow
-                    Temperature = getFloat "Llm:Temperature" defLlm.Temperature }
+                    Temperature = getFloat "Llm:Temperature" defLlm.Temperature
+                    ReasoningModel = getOpt "Llm:ReasoningModel" defLlm.ReasoningModel
+                    CodingModel = getOpt "Llm:CodingModel" defLlm.CodingModel
+                    FastModel = getOpt "Llm:FastModel" defLlm.FastModel }
 
             // Construct MemorySettings
             let defConfig = ConfigurationDefaults.createDefault ()

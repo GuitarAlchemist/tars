@@ -4,6 +4,7 @@ open Xunit
 open Tars.Cortex
 open Tars.Core
 open Tars.Llm.LlmService
+open Tars.Llm
 
 type CompressionStubLlm(responseText: string) =
     interface ILlmService with
@@ -20,6 +21,7 @@ type CompressionStubLlm(responseText: string) =
             (this :> ILlmService).CompleteAsync(req)
 
         member _.EmbedAsync(_text) = task { return [| 0.1f |] }
+        member _.RouteAsync(_) = task { return { Backend = Ollama "mock"; Endpoint = Uri "http://localhost:11434"; ApiKey = None } }
 
 type ContextCompressionTests() =
 

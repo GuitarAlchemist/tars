@@ -27,6 +27,8 @@ type DelayLlm(delayMs: int) =
 
         member _.CompleteStreamAsync(req, onToken) = raise (NotImplementedException())
         member _.EmbedAsync(text) = Task.FromResult([| 0.1f |])
+        member _.RouteAsync(_req: Tars.Llm.LlmRequest) : Task<Tars.Llm.Routing.RoutedBackend> =
+            task { return { Backend = Tars.Llm.LlmBackend.Ollama "mock"; Endpoint = Uri "http://localhost:11434"; ApiKey = None } }
 
 type FluxTests() =
 

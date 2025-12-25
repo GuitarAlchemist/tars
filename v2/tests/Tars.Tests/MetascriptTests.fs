@@ -49,6 +49,9 @@ type StubLlm(responseText: string, tokens: int) =
         member _.EmbedAsync(_text: string) : Task<float32[]> =
             task { return [| 0.1f; 0.2f; 0.3f; 0.4f |] }
 
+        member _.RouteAsync(_req: Tars.Llm.LlmRequest) : Task<Tars.Llm.Routing.RoutedBackend> =
+            task { return { Backend = Tars.Llm.LlmBackend.Ollama "mock"; Endpoint = Uri "http://localhost:11434"; ApiKey = None } }
+
 type MetascriptTests() =
 
     [<Fact>]

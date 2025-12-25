@@ -5,6 +5,7 @@ open System.Threading.Tasks
 open Xunit
 open Tars.Evolution
 open Tars.Llm.LlmService
+open Tars.Llm
 open Tars.Core
 
 module SemanticEvaluationTests =
@@ -30,6 +31,7 @@ module SemanticEvaluationTests =
                 }
 
             member _.EmbedAsync(_text) = Task.FromResult([| 0.0f |])
+            member _.RouteAsync(_) = task { return { Backend = Ollama "mock"; Endpoint = Uri "http://localhost:11434"; ApiKey = None } }
 
     let private sampleTask =
         { Id = Guid.NewGuid()

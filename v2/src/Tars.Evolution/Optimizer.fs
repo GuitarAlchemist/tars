@@ -65,7 +65,9 @@ METASCRIPT SCHEMA EXAMPLES:
                           ResponseFormat = Some ResponseFormat.Json
                           Stream = false
                           JsonMode = true
-                          Seed = None }
+                          Seed = None
+
+                          ContextWindow = None }
 
                     let! response = llm.CompleteAsync req
 

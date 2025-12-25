@@ -249,7 +249,8 @@ module Engine =
                       ResponseFormat = None
                       Stream = false
                       JsonMode = false
-                      Seed = None }
+                      Seed = None
+                      ContextWindow = None }
 
                 try
                     let! response = llm.CompleteAsync req
@@ -384,7 +385,9 @@ module Engine =
                       ResponseFormat = None
                       Stream = false
                       JsonMode = false
-                      Seed = None }
+                      Seed = None
+
+                      ContextWindow = None }
 
                 try
                     let! response = llm.CompleteAsync req
@@ -720,7 +723,8 @@ module Engine =
                                       ResponseFormat = None
                                       Stream = false
                                       JsonMode = false
-                                      Seed = None }
+                                      Seed = None
+                                      ContextWindow = None }
 
                                 try
                                     let! response = llm.CompleteAsync req
@@ -972,7 +976,8 @@ module Engine =
                                   ResponseFormat = None
                                   Stream = false
                                   JsonMode = false
-                                  Seed = None }
+                                  Seed = None
+                                  ContextWindow = None }
 
                             try
                                 let! response = llm.CompleteAsync req
@@ -1146,7 +1151,9 @@ Output only the requested result."""
                       ResponseFormat = None
                       Stream = false
                       JsonMode = false
-                      Seed = None }
+                      Seed = None
+
+                      ContextWindow = None }
 
                 let! response = ctx.Llm.CompleteAsync req
 
@@ -1297,7 +1304,8 @@ Instruction: %s{instruction}"""
                               ResponseFormat = None
                               Stream = false
                               JsonMode = false
-                              Seed = None }
+                              Seed = None
+                              ContextWindow = None }
 
                         let! response = ctx.Llm.CompleteAsync req
                         recordBudget ctx.Budget (response.Usage |> Option.map (fun u -> u.TotalTokens))

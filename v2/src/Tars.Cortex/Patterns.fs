@@ -226,7 +226,9 @@ module Patterns =
                           ResponseFormat = None
                           Stream = false
                           JsonMode = false
-                          Seed = None }
+                          Seed = None
+
+                          ContextWindow = None }
 
                     // Get LLM response
                     let! response = llm.CompleteAsync(request) |> Async.AwaitTask
@@ -424,7 +426,9 @@ module Patterns =
                           ResponseFormat = None
                           Stream = false
                           JsonMode = false
-                          Seed = None }
+                          Seed = None
+
+                          ContextWindow = None }
 
                     let! response = llm.CompleteAsync(request) |> Async.AwaitTask
                     return Success response.Text
@@ -451,7 +455,9 @@ module Patterns =
                       ResponseFormat = None
                       Stream = false
                       JsonMode = false
-                      Seed = None }
+                      Seed = None
+
+                      ContextWindow = None }
 
                 let! response = llm.CompleteAsync(request) |> Async.AwaitTask
 
@@ -992,7 +998,9 @@ Be creative and diverse in your approaches."""
                       ResponseFormat = None
                       Stream = false
                       JsonMode = false
-                      Seed = None }
+                      Seed = None
+
+                      ContextWindow = None }
 
                 let! response = llm.CompleteAsync(request) |> Async.AwaitTask
                 let initialText = response.Text.Trim()
@@ -1163,7 +1171,9 @@ Do not include markdown, code fences, or extra text."""
                       ResponseFormat = Some ResponseFormat.Json
                       Stream = false
                       JsonMode = true
-                      Seed = None }
+                      Seed = None
+
+                      ContextWindow = None }
 
                 let! response = llm.CompleteAsync(request) |> Async.AwaitTask
 
@@ -1347,7 +1357,9 @@ Output ONLY the improved thought."""
                       ResponseFormat = None
                       Stream = false
                       JsonMode = false
-                      Seed = None }
+                      Seed = None
+
+                      ContextWindow = None }
 
                 let! response = llm.CompleteAsync(request) |> Async.AwaitTask
 
@@ -1436,7 +1448,9 @@ Output ONLY the synthesized solution."""
                       ResponseFormat = None
                       Stream = false
                       JsonMode = false
-                      Seed = None }
+                      Seed = None
+
+                      ContextWindow = None }
 
                 let! response = llm.CompleteAsync(request) |> Async.AwaitTask
 
@@ -2033,7 +2047,9 @@ Output ONLY the synthesized solution."""
                                                       ResponseFormat = Some ResponseFormat.Json
                                                       Stream = false
                                                       JsonMode = true
-                                                      Seed = None }
+                                                      Seed = None
+
+                                                      ContextWindow = None }
 
                                                 let! response = llm.CompleteAsync(request) |> Async.AwaitTask
 

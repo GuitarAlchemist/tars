@@ -6,16 +6,16 @@ module Execution =
     type ExecutionBuilder() =
         member _.Bind(x: ExecutionOutcome<'T>, f: 'T -> ExecutionOutcome<'U>) =
             match x with
-            | Success v -> f v
-            | PartialSuccess(v, warnings) ->
+            | ExecutionOutcome.Success v -> f v
+            | ExecutionOutcome.PartialSuccess(v, warnings) ->
                 match f v with
-                | Success u -> PartialSuccess(u, warnings)
-                | PartialSuccess(u, newWarnings) -> PartialSuccess(u, warnings @ newWarnings)
-                | Failure err -> Failure err
-            | Failure err -> Failure err
+                | ExecutionOutcome.Success u -> ExecutionOutcome.PartialSuccess(u, warnings)
+                | ExecutionOutcome.PartialSuccess(u, newWarnings) -> ExecutionOutcome.PartialSuccess(u, warnings @ newWarnings)
+                | ExecutionOutcome.Failure err -> ExecutionOutcome.Failure err
+            | ExecutionOutcome.Failure err -> ExecutionOutcome.Failure err
 
-        member _.Return(x: 'T) = Success x
+        member _.Return(x: 'T) = ExecutionOutcome.Success x
         member _.ReturnFrom(x: ExecutionOutcome<'T>) = x
-        member _.Zero() = Success()
+        member _.Zero() = ExecutionOutcome.Success()
 
     let execution = ExecutionBuilder()

@@ -10,7 +10,7 @@ open Tars.Kernel
 type GraphExecutor
     (
         registry: IAgentRegistry,
-        llm: Tars.Llm.LlmService.ILlmService,
+        llm: Tars.Llm.ILlmService,
         budget: BudgetGovernor option,
         outputGuard: IOutputGuard option,
         logger: string -> unit

@@ -91,32 +91,29 @@ let main args =
         |> Uri
 
     let routingConfig =
-        { OllamaBaseUri = ollamaHost
-          VllmBaseUri = Uri "http://localhost:8000"
-          OpenAIBaseUri = Uri "https://api.openai.com/v1"
-          GoogleGeminiBaseUri = Uri "https://generativelanguage.googleapis.com"
-          AnthropicBaseUri = Uri "https://api.anthropic.com"
-          DockerModelRunnerBaseUri = Some(Uri "http://localhost:12434/v1")
-          LlamaCppBaseUri = Some(Uri "http://localhost:8080")
-          // Recommended thinking models: qwen3:14b, deepseek-r1:14b, magistral
-          DefaultOllamaModel =
-            Option.ofObj (Environment.GetEnvironmentVariable("TARS_OLLAMA_MODEL"))
-            |> Option.defaultValue "qwen2.5-coder:latest"
-          DefaultVllmModel = "facebook/opt-125m"
-          DefaultOpenAIModel = "gpt-4"
-          DefaultGoogleGeminiModel = "gemini-pro"
-          DefaultAnthropicModel = "claude-3-opus-20240229"
-          DefaultDockerModelRunnerModel = Some "gpt-3.5-turbo"
-          // llama.cpp running at http://localhost:8080 with Qwen3-8B
-          DefaultLlamaCppModel = Some "Qwen3-8B-Q4_K_M.gguf"
-          DefaultEmbeddingModel = "nomic-embed-text"
-          OllamaKey = None
-          VllmKey = None
-          OpenAIKey = Option.ofObj (Environment.GetEnvironmentVariable("OPENAI_API_KEY"))
-          GoogleGeminiKey = Option.ofObj (Environment.GetEnvironmentVariable("GOOGLE_API_KEY"))
-          AnthropicKey = Option.ofObj (Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY"))
-          DockerModelRunnerKey = None
-          LlamaCppKey = None }
+        { RoutingConfig.Default with
+            OllamaBaseUri = ollamaHost
+            VllmBaseUri = Uri "http://localhost:8000"
+            OpenAIBaseUri = Uri "https://api.openai.com/v1"
+            GoogleGeminiBaseUri = Uri "https://generativelanguage.googleapis.com"
+            AnthropicBaseUri = Uri "https://api.api.anthropic.com"
+            DockerModelRunnerBaseUri = Some(Uri "http://localhost:12434/v1")
+            LlamaCppBaseUri = Some(Uri "http://localhost:8080")
+            // Recommended thinking models: qwen3:14b, deepseek-r1:14b, magistral
+            DefaultOllamaModel =
+              Option.ofObj (Environment.GetEnvironmentVariable("TARS_OLLAMA_MODEL"))
+              |> Option.defaultValue "qwen2.5-coder:latest"
+            DefaultVllmModel = "facebook/opt-125m"
+            DefaultOpenAIModel = "gpt-4"
+            DefaultGoogleGeminiModel = "gemini-pro"
+            DefaultAnthropicModel = "claude-3-opus-20240229"
+            DefaultDockerModelRunnerModel = Some "gpt-3.5-turbo"
+            // llama.cpp running at http://localhost:8080 with Qwen3-8B
+            DefaultLlamaCppModel = Some "Qwen3-8B-Q4_K_M.gguf"
+            DefaultEmbeddingModel = "nomic-embed-text"
+            OpenAIKey = Option.ofObj (Environment.GetEnvironmentVariable("OPENAI_API_KEY"))
+            GoogleGeminiKey = Option.ofObj (Environment.GetEnvironmentVariable("GOOGLE_API_KEY"))
+            AnthropicKey = Option.ofObj (Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY")) }
 
     let llmConfig = { Routing = routingConfig }
     builder.Services.AddSingleton(llmConfig) |> ignore

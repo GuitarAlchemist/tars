@@ -5,11 +5,12 @@ open System.Threading.Tasks
 open Xunit
 open Tars.Evolution
 open Tars.Core
+open Tars.Llm.Routing // For Ollama case
 
 module EvolutionTests =
 
     type EvolutionStubLlm(responseText: string) =
-        interface Tars.Llm.LlmService.ILlmService with
+        interface Tars.Llm.ILlmService with
             member _.CompleteAsync(_req) =
                 task {
                     return
@@ -29,8 +30,9 @@ module EvolutionTests =
                 }
 
             member _.EmbedAsync(_text) = task { return [| 0.1f; 0.2f; 0.3f |] }
+            member _.RouteAsync _ = task { return { Backend = Tars.Llm.LlmBackend.Ollama "mock"; Endpoint = Uri "http://localhost:11434"; ApiKey = None } }
 
-        interface Tars.Llm.LlmService.ILlmServiceFunctional with
+        interface Tars.Llm.ILlmServiceFunctional with
             member _.CompleteAsync(_req) =
                 asyncResult {
                     return
@@ -42,6 +44,9 @@ module EvolutionTests =
 
             member _.EmbedAsync(_text: string) =
                 asyncResult { return [| 0.1f; 0.2f; 0.3f |] }
+
+            member _.RouteAsync(_req) =
+                asyncResult { return { Backend = Tars.Llm.LlmBackend.Ollama "mock"; Endpoint = Uri "http://localhost:11434"; ApiKey = None } }
 
     type StubVectorStore() =
         interface IVectorStore with
@@ -158,7 +163,7 @@ module EvolutionTests =
 
         let evoCtx: Engine.EvolutionContext =
             { Registry = registry
-              Llm = llm :> Tars.Llm.LlmService.ILlmService
+              Llm = llm :> Tars.Llm.ILlmService
               VectorStore = StubVectorStore() :> IVectorStore
               SemanticMemory = None
               Epistemic = Some(stubEpistemic :> IEpistemicGovernor)

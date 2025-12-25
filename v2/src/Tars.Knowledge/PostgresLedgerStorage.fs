@@ -85,14 +85,58 @@ type PostgresLedgerStorage(connectionString: string) =
                 extracted_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
 
-            -- Plans (Materialized view of symbolic goals)
+            -- Plans (Event-sourced symbolic goals and hypotheses)
             CREATE TABLE IF NOT EXISTS plans (
                 id UUID PRIMARY KEY,
-                goal_description TEXT NOT NULL,
-                status TEXT NOT NULL,
-                priority INT NOT NULL,
-                created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+                goal TEXT NOT NULL,
+                assumptions JSONB NOT NULL DEFAULT '[]',
+                steps JSONB NOT NULL DEFAULT '[]',
+                success_metrics JSONB NOT NULL DEFAULT '[]',
+                risk_factors JSONB NOT NULL DEFAULT '[]',
+                version INT NOT NULL DEFAULT 1,
+                parent_version UUID NULL,
+                status TEXT NOT NULL DEFAULT 'Draft',
+                created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                created_by TEXT NOT NULL,
+                tags JSONB NOT NULL DEFAULT '[]'
             );
+
+            -- Plan Events (Event log for plan lifecycle)
+            CREATE TABLE IF NOT EXISTS plan_events (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                plan_id UUID NOT NULL,
+                event_type TEXT NOT NULL,
+                event_data JSONB NOT NULL,
+                timestamp TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_plans_status ON plans(status);
+            CREATE INDEX IF NOT EXISTS idx_plans_created_by ON plans(created_by);
+            CREATE INDEX IF NOT EXISTS idx_plan_events_plan_id ON plan_events(plan_id);
+
+            -- Beliefs Snapshot (Materialized view of current belief state)
+            -- This table provides fast access to current beliefs without replaying all events
+            CREATE TABLE IF NOT EXISTS beliefs (
+                id UUID PRIMARY KEY,
+                subject TEXT NOT NULL,
+                predicate TEXT NOT NULL,
+                object TEXT NOT NULL,
+                confidence DOUBLE PRECISION NOT NULL,
+                provenance_source TEXT NOT NULL,
+                provenance_agent TEXT NOT NULL,
+                provenance_run_id UUID NULL,
+                provenance_confidence DOUBLE PRECISION NOT NULL,
+                provenance_timestamp TIMESTAMPTZ NOT NULL,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                created_by TEXT NOT NULL,
+                tags JSONB NOT NULL DEFAULT '[]'
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_beliefs_subject ON beliefs(subject);
+            CREATE INDEX IF NOT EXISTS idx_beliefs_predicate ON beliefs(predicate);
+            CREATE INDEX IF NOT EXISTS idx_beliefs_created_by ON beliefs(created_by);
             """
 
             return! executeNonQuery sql []
@@ -411,6 +455,196 @@ type PostgresLedgerStorage(connectionString: string) =
                     )
 
                 return results |> Seq.toList
+            }
+
+    interface IPlanStorage with
+        member _.SavePlan(plan) =
+            task {
+                let! _ = ensureSchema ()
+
+                let sql =
+                    """
+                    INSERT INTO plans (id, goal, assumptions, steps, success_metrics, risk_factors, 
+                                     version, parent_version, status, created_at, updated_at, created_by, tags)
+                    VALUES (@id, @goal, @assumptions::jsonb, @steps::jsonb, @success_metrics::jsonb, @risk_factors::jsonb,
+                            @version, @parent_version, @status, @created_at, @updated_at, @created_by, @tags::jsonb)
+                """
+
+                let parameters =
+                    [ "@id", box plan.Id.Value
+                      "@goal", box plan.Goal
+                      "@assumptions", box (JsonSerializer.Serialize(plan.Assumptions, jsonOptions))
+                      "@steps", box (JsonSerializer.Serialize(plan.Steps, jsonOptions))
+                      "@success_metrics", box (JsonSerializer.Serialize(plan.SuccessMetrics, jsonOptions))
+                      "@risk_factors", box (JsonSerializer.Serialize(plan.RiskFactors, jsonOptions))
+                      "@version", box plan.Version
+                      "@parent_version",
+                      match plan.ParentVersion with
+                      | Some pv -> box pv.Value
+                      | None -> box DBNull.Value
+                      "@status", box (plan.Status.ToString())
+                      "@created_at", box plan.CreatedAt
+                      "@updated_at", box plan.UpdatedAt
+                      "@created_by", box plan.CreatedBy.Value
+                      "@tags", box (JsonSerializer.Serialize(plan.Tags, jsonOptions)) ]
+
+                return! executeNonQuery sql parameters
+            }
+
+        member _.UpdatePlan(plan) =
+            task {
+                let! _ = ensureSchema ()
+
+                let sql =
+                    """
+                    UPDATE plans SET
+                        goal = @goal,
+                        assumptions = @assumptions::jsonb,
+                        steps = @steps::jsonb,
+                        success_metrics = @success_metrics::jsonb,
+                        risk_factors = @risk_factors::jsonb,
+                        status = @status,
+                        updated_at = @updated_at,
+                        tags = @tags::jsonb
+                    WHERE id = @id
+                """
+
+                let parameters =
+                    [ "@id", box plan.Id.Value
+                      "@goal", box plan.Goal
+                      "@assumptions", box (JsonSerializer.Serialize(plan.Assumptions, jsonOptions))
+                      "@steps", box (JsonSerializer.Serialize(plan.Steps, jsonOptions))
+                      "@success_metrics", box (JsonSerializer.Serialize(plan.SuccessMetrics, jsonOptions))
+                      "@risk_factors", box (JsonSerializer.Serialize(plan.RiskFactors, jsonOptions))
+                      "@status", box (plan.Status.ToString())
+                      "@updated_at", box plan.UpdatedAt
+                      "@tags", box (JsonSerializer.Serialize(plan.Tags, jsonOptions)) ]
+
+                return! executeNonQuery sql parameters
+            }
+
+        member _.GetPlan(planId) =
+            task {
+                let! _ = ensureSchema ()
+
+                let sql =
+                    "SELECT id, goal, assumptions, steps, success_metrics, risk_factors, version, parent_version, status, created_at, updated_at, created_by, tags FROM plans WHERE id = @id"
+
+                use conn = new NpgsqlConnection(connectionString)
+                do! conn.OpenAsync()
+                use cmd = new NpgsqlCommand(sql, conn)
+                cmd.Parameters.AddWithValue("@id", planId.Value) |> ignore
+                use! reader = cmd.ExecuteReaderAsync()
+
+                if reader.Read() then
+                    let plan =
+                        { Id = PlanId(reader.GetGuid(0))
+                          Goal = reader.GetString(1)
+                          Assumptions = JsonSerializer.Deserialize<BeliefId list>(reader.GetString(2), jsonOptions)
+                          Steps = JsonSerializer.Deserialize<PlanStep list>(reader.GetString(3), jsonOptions)
+                          SuccessMetrics = JsonSerializer.Deserialize<string list>(reader.GetString(4), jsonOptions)
+                          RiskFactors = JsonSerializer.Deserialize<string list>(reader.GetString(5), jsonOptions)
+                          Version = reader.GetInt32(6)
+                          ParentVersion =
+                            if reader.IsDBNull(7) then
+                                None
+                            else
+                                Some(PlanId(reader.GetGuid(7)))
+                          Status =
+                            match reader.GetString(8) with
+                            | "Draft" -> PlanStatus.Draft
+                            | "Active" -> PlanStatus.Active
+                            | "Paused" -> PlanStatus.Paused
+                            | "Completed" -> PlanStatus.Completed
+                            | "Failed" -> PlanStatus.Failed
+                            | "Superseded" -> PlanStatus.Superseded
+                            | _ -> PlanStatus.Draft
+                          CreatedAt = reader.GetDateTime(9)
+                          UpdatedAt = reader.GetDateTime(10)
+                          CreatedBy = AgentId(reader.GetString(11))
+                          Tags = JsonSerializer.Deserialize<string list>(reader.GetString(12), jsonOptions) }
+
+                    return Some plan
+                else
+                    return None
+            }
+
+        member _.GetPlansByStatus(status) =
+            task {
+                let! _ = ensureSchema ()
+
+                let sql =
+                    "SELECT id, goal, assumptions, steps, success_metrics, risk_factors, version, parent_version, status, created_at, updated_at, created_by, tags FROM plans WHERE status = @status"
+
+                let results = ResizeArray<Plan>()
+                use conn = new NpgsqlConnection(connectionString)
+                do! conn.OpenAsync()
+                use cmd = new NpgsqlCommand(sql, conn)
+                cmd.Parameters.AddWithValue("@status", status.ToString()) |> ignore
+                use! reader = cmd.ExecuteReaderAsync()
+
+                while reader.Read() do
+                    results.Add(
+                        { Id = PlanId(reader.GetGuid(0))
+                          Goal = reader.GetString(1)
+                          Assumptions = JsonSerializer.Deserialize<BeliefId list>(reader.GetString(2), jsonOptions)
+                          Steps = JsonSerializer.Deserialize<PlanStep list>(reader.GetString(3), jsonOptions)
+                          SuccessMetrics = JsonSerializer.Deserialize<string list>(reader.GetString(4), jsonOptions)
+                          RiskFactors = JsonSerializer.Deserialize<string list>(reader.GetString(5), jsonOptions)
+                          Version = reader.GetInt32(6)
+                          ParentVersion =
+                            if reader.IsDBNull(7) then
+                                None
+                            else
+                                Some(PlanId(reader.GetGuid(7)))
+                          Status =
+                            match reader.GetString(8) with
+                            | "Draft" -> PlanStatus.Draft
+                            | "Active" -> PlanStatus.Active
+                            | "Paused" -> PlanStatus.Paused
+                            | "Completed" -> PlanStatus.Completed
+                            | "Failed" -> PlanStatus.Failed
+                            | "Superseded" -> PlanStatus.Superseded
+                            | _ -> PlanStatus.Draft
+                          CreatedAt = reader.GetDateTime(9)
+                          UpdatedAt = reader.GetDateTime(10)
+                          CreatedBy = AgentId(reader.GetString(11))
+                          Tags = JsonSerializer.Deserialize<string list>(reader.GetString(12), jsonOptions) }
+                    )
+
+                return results |> Seq.toList
+            }
+
+        member _.AppendEvent(event) =
+            task {
+                let! _ = ensureSchema ()
+
+                let planId, eventType =
+                    match event with
+                    | PlanCreated p -> (p.Id, "PlanCreated")
+                    | StepStarted(id, _) -> (id, "StepStarted")
+                    | StepCompleted(id, _, _) -> (id, "StepCompleted")
+                    | StepFailed(id, _, _) -> (id, "StepFailed")
+                    | AssumptionInvalidated(id, _, _) -> (id, "AssumptionInvalidated")
+                    | PlanForked(id, _) -> (id, "PlanForked")
+                    | PlanCompleted id -> (id, "PlanCompleted")
+                    | PlanFailed(id, _) -> (id, "PlanFailed")
+                    | PlanSuperseded(id, _) -> (id, "PlanSuperseded")
+
+                let eventData = JsonSerializer.Serialize(event, jsonOptions)
+
+                let sql =
+                    """
+                    INSERT INTO plan_events (plan_id, event_type, event_data)
+                    VALUES (@plan_id, @event_type, @event_data::jsonb)
+                """
+
+                let parameters =
+                    [ "@plan_id", box planId.Value
+                      "@event_type", box eventType
+                      "@event_data", box eventData ]
+
+                return! executeNonQuery sql parameters
             }
 
 module PostgresLedgerStorage =

@@ -84,8 +84,8 @@ module GraphitiKnowledgeGraph =
                     let! result = client.AddMessagesAsync(gid, [| message |])
 
                     match result with
-                    | Ok _ -> ()
-                    | Error e -> printfn $"Warning: Failed to add node to Graphiti: {e}"
+                    | Result.Ok _ -> ()
+                    | Result.Error e -> printfn $"Warning: Failed to add node to Graphiti: {e}"
                 }
                 :> Task)
             |> ignore
@@ -153,8 +153,9 @@ module GraphitiKnowledgeGraph =
             let loadTask =
                 task {
                     try
-                        // Query Graphiti for existing facts
-                        let! result = client.SearchAsync("TARS temporal knowledge graph", numResults = 100)
+                        // Query Graphiti for existing facts (explicit type to avoid AgentState collision)
+                        let! (result: Result<SearchResultDto list, string>) =
+                            client.SearchAsync("TARS temporal knowledge graph", numResults = 100)
 
                         match result with
                         | Result.Ok results ->

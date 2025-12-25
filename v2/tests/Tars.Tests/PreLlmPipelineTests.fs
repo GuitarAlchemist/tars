@@ -29,6 +29,7 @@ module PreLlmPipelineTests =
                 )
 
             member _.EmbedAsync(_) = Task.FromResult([| 0.1f |])
+            member _.RouteAsync(_req) = Task.FromResult(({ Backend = Tars.Llm.LlmBackend.Ollama "mock"; Endpoint = Uri "http://localhost:11434"; ApiKey = None } : Tars.Llm.Routing.RoutedBackend))
 
     type StubIntentClassifier(result: AgentDomain option) =
         interface IIntentClassifier with

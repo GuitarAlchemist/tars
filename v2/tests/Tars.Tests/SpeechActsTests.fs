@@ -1,4 +1,4 @@
-﻿module Tars.Tests.SpeechActsTests
+module Tars.Tests.SpeechActsTests
 
 open System
 open Xunit

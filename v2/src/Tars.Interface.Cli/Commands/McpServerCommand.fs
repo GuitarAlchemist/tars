@@ -11,14 +11,30 @@ open Tars.Tools.Standard
 
 module McpServerCommand =
 
-    let run (logger: ILogger) =
+    let run (logger: ILogger) (args: string array) =
         task {
-            // Note: In MCP Server mode, all logs MUST go to Stderr to avoid corrupting the JSON-RPC stream on Stdout.
-            // The logger passed in should ideally be configured for Stderr or File.
-            // If it writes to Stdout, we might have issues.
-            logger.Information("Starting TARS in MCP Server Mode")
+            let mutable useSse = false
+            let mutable port = 8000
+
+            let mutable i = 2 // Skip 'mcp' and 'server'
+
+            while i < args.Length do
+                match args.[i] with
+                | "--sse" -> useSse <- true
+                | "--port" when i + 1 < args.Length ->
+                    i <- i + 1
+                    port <- int args.[i]
+                | _ -> ()
+
+                i <- i + 1
+
+            if useSse then
+                logger.Information("Starting TARS in MCP SSE Mode on port {Port}", port)
+            else
+                logger.Information("Starting TARS in MCP Server Mode (Stdio)")
 
             let registry = ToolRegistry()
+            // ... (rest of tool registration logic)
 
             // Initialize Graphiti service at top level to ensure it stays alive for the server run
             let graphitiUrl =
@@ -75,6 +91,10 @@ module McpServerCommand =
 
                 logger.Information("Registered MCP management tools")
 
+                // Ensure ToolValidation knows about the registry for introspection
+                Tars.Tools.Standard.ToolValidation.setRegistry (registry)
+                logger.Information("Tool registry finalized and verification layer initialized")
+
                 // --- NEW: Connect to configured MCP servers ---
                 let mcpServers = McpTools.Manager.GetServers()
 
@@ -130,8 +150,12 @@ module McpServerCommand =
 
             let server = McpServer(registry)
 
-            // The server runs until input closes
-            do! server.RunAsync()
+            if useSse then
+                let sseServer = Tars.Connectors.Mcp.SseMcpServer(server, port)
+                do! sseServer.StartAsync()
+            else
+                // The server runs until input closes
+                do! server.RunAsync()
 
             return 0
         }

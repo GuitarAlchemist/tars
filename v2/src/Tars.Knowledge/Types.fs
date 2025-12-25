@@ -365,3 +365,13 @@ module Plan =
           UpdatedAt = DateTime.UtcNow
           CreatedBy = createdBy
           Tags = [] }
+
+open System.Threading.Tasks
+
+/// Interface for plan storage (Phase 9.3)
+type IPlanStorage =
+    abstract member SavePlan: plan: Plan -> Task<Result<unit, string>>
+    abstract member UpdatePlan: plan: Plan -> Task<Result<unit, string>>
+    abstract member GetPlan: planId: PlanId -> Task<Plan option>
+    abstract member GetPlansByStatus: status: PlanStatus -> Task<Plan list>
+    abstract member AppendEvent: event: PlanEvent -> Task<Result<unit, string>>

@@ -16,14 +16,19 @@ let main argv =
     // Ensure Unicode/UTF-8 I/O for CLI output (fixes mojibake on Windows consoles)
     Encoding.RegisterProvider(CodePagesEncodingProvider.Instance)
     let isRedirected = Console.IsOutputRedirected || Console.IsErrorRedirected
-    // When redirected (e.g., piping to clip), include BOM so downstream readers detect UTF-8
-    let outputEncoding =
-        if isRedirected then
-            new UTF8Encoding(true)
-        else
-            new UTF8Encoding(false)
-
-    Console.OutputEncoding <- outputEncoding
+    
+    // When redirected (e.g., piping to clip), use ASCII-safe output
+    if isRedirected then
+        // Use Code Page 437 (OEM) which supports box-drawing characters
+        // This is compatible with Windows cmd.exe and clip.exe
+        Console.OutputEncoding <- Encoding.GetEncoding(437)
+        // Disable ANSI escape codes for Spectre.Console when output is redirected
+        AnsiConsole.Profile.Capabilities.Ansi <- false
+        AnsiConsole.Profile.Capabilities.Links <- false
+        AnsiConsole.Profile.Capabilities.Interactive <- false
+    else
+        Console.OutputEncoding <- new UTF8Encoding(false)
+    
     Console.InputEncoding <- new UTF8Encoding(false)
 
     // Initialize Configuration (read appsettings.json, then env, then user secrets)
@@ -113,6 +118,57 @@ let main argv =
 
         options
 
+    // Parse demo-puzzle options
+    let parsePuzzleOptions (args: string array) =
+        let mutable options = PuzzleDemo.defaultOptions
+        let mutable i = 1 // Skip "demo-puzzle"
+
+        while i < args.Length do
+            match args.[i] with
+            | "--all" -> options <- { options with All = true }
+            | "--verbose" -> options <- { options with Verbose = true }
+            | "--output" when i + 1 < args.Length ->
+                i <- i + 1
+
+                options <-
+                    { options with
+                        OutputFormat =
+                            if args.[i] = "json" then
+                                PuzzleDemo.Json
+                            else
+                                PuzzleDemo.Text }
+            | "--difficulty" when i + 1 < args.Length ->
+                i <- i + 1
+                let mutable d = 0
+
+                if Int32.TryParse(args.[i], &d) then
+                    options <- { options with Difficulty = Some d }
+            | "--benchmark" when i + 1 < args.Length ->
+                i <- i + 1
+
+                options <-
+                    { options with
+                        BenchmarkRuns = int args.[i] }
+            | "--export" when i + 1 < args.Length ->
+                i <- i + 1
+
+                options <-
+                    { options with
+                        ExportPath = Some args.[i] }
+            | "--internet" -> options <- { options with Internet = true }
+            | "--internet-count" when i + 1 < args.Length ->
+                i <- i + 1
+                let mutable count = 3
+                if Int32.TryParse(args.[i], &count) then
+                    options <- { options with InternetCount = count }
+            | arg when not (arg.StartsWith("--")) && options.PuzzleName.IsNone ->
+                options <- { options with PuzzleName = Some arg }
+            | _ -> ()
+
+            i <- i + 1
+
+        options
+
     task {
         match argv with
         | [| "ask"; prompt |] -> return! Ask.run config prompt
@@ -157,18 +213,24 @@ let main argv =
                 printfn "Invalid turn count: %s" n
                 return 1
 
-        // Puzzle Demo
-        | [| "demo-puzzle" |] -> return PuzzleDemo.listPuzzles ()
-        | [| "demo-puzzle"; "--all" |] -> return! PuzzleDemo.runAll logger false
-        | [| "demo-puzzle"; "--all"; "--verbose" |] -> return! PuzzleDemo.runAll logger true
-        | [| "demo-puzzle"; "--difficulty"; n |] ->
-            match Int32.TryParse(n) with
-            | true, d -> return! PuzzleDemo.runByDifficulty logger d false
-            | _ ->
-                printfn "Invalid difficulty: %s" n
-                return 1
-        | [| "demo-puzzle"; name |] -> return! PuzzleDemo.runByName logger name false
-        | [| "demo-puzzle"; name; "--verbose" |] -> return! PuzzleDemo.runByName logger name true
+        // Benchmark
+        | args when args.Length > 0 && args.[0] = "benchmark" -> return! Benchmark.run logger (args |> Array.skip 1)
+
+        // Puzzle Demo - now with benchmark/export support
+        | args when args.Length > 0 && args.[0] = "demo-puzzle" ->
+            if args.Length = 1 then
+                // No arguments - list puzzles
+                return PuzzleDemo.listPuzzles ()
+            else
+                let options = parsePuzzleOptions args
+                return! PuzzleDemo.runWithOptions logger options
+
+        // Smoke Test - verify LLM works
+        | args when args.Length > 0 && args.[0] = "smoke-test" -> return! SmokeTest.runSmokeTest logger
+
+        // Incident Management
+        | args when args.Length > 0 && args.[0] = "incident" ->
+            return! IncidentCmd.run (args |> Array.skip 1 |> Array.toList)
 
         // Config commands
         | args when args.Length > 0 && args.[0] = "config" ->
@@ -298,6 +360,12 @@ let main argv =
             Knowledge.run options
             return 0
 
+        // TARS Plan - Phase 9.3 Evolving Plans
+        | args when args.Length > 0 && args.[0] = "plan" ->
+            let planArgs = args |> Array.skip 1
+            let options = PlanCmd.parseArgs planArgs
+            return! PlanCmd.run tarsConfig options
+
         // TARS Know - Phase 9 Knowledge Ledger
         | args when args.Length > 0 && args.[0] = "know" ->
             let knowArgs = args |> Array.skip 1
@@ -306,7 +374,7 @@ let main argv =
 
         | args when args.Length > 0 && args.[0] = "mcp" ->
             if args.Length > 1 && args.[1] = "server" then
-                return! McpServerCommand.run logger
+                return! McpServerCommand.run logger args
             else
                 let cmd = if args.Length > 1 then args.[1] else "help"
                 let arg = if args.Length > 2 then args.[2] else ""
@@ -385,6 +453,10 @@ let main argv =
             printfn "       --all                       Run all puzzles"
             printfn "       --difficulty N              Run puzzles up to difficulty N (1-5)"
             printfn "       <name>                      Run a specific puzzle by name"
+            printfn "       --verbose                   Show detailed reasoning"
+            printfn "       --output json               Output results as JSON"
+            printfn "       --benchmark N               Run each puzzle N times"
+            printfn "       --export <file>             Export results to JSON file"
             printfn "  tars evolve [options]            Run the evolution engine"
             printfn "       --max-iterations N          Set max generations (default 5)"
             printfn "       --budget USD                Maximum monetary budget in USD"

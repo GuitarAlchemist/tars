@@ -330,7 +330,9 @@ module GraphRuntime =
                               ResponseFormat = None
                               Stream = false
                               JsonMode = false
-                              Seed = None }
+                              Seed = None
+
+                              ContextWindow = None }
 
                         let! responseResult = completeWithCancellation ctx.Llm req ctx.CancellationToken
 

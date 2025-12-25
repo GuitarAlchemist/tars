@@ -10,17 +10,36 @@ module ConstraintScoring =
     /// Score belief consistency based on contradiction count
     /// Returns 1.0 if no contradictions, approaches 0.0 as contradictions increase
     let scoreBeliefConsistency (belief: string) (existingBeliefs: string list) : float =
-        // TODO: Implement actual contradiction detection
-        // For now, check for explicit "NOT" patterns as a simple heuristic
+        // Simple heuristic: check for direct negations
+        let normalize (s: string) = s.ToLowerInvariant()
+        let bNorm = normalize belief
+
+        let isContradiction (s1: string) (s2: string) =
+            let pairs =
+                [ (" is ", " is not ")
+                  (" has ", " lacks ")
+                  (" can ", " cannot ")
+                  (" always ", " never ")
+                  (" valid ", " invalid ")
+                  (" true ", " false ")
+                  (" NOT ", "") ] // Catch-all for "NOT" heuristic
+
+            pairs
+            |> List.exists (fun (pos, neg) ->
+                (s1.Contains(pos)
+                 && s2.Contains(neg)
+                 && s1.Replace(pos, "").Replace(neg, "") = s2.Replace(pos, "").Replace(neg, ""))
+                || (s2.Contains(pos)
+                    && s1.Contains(neg)
+                    && s2.Replace(pos, "").Replace(neg, "") = s1.Replace(pos, "").Replace(neg, "")))
+
         let contradictions =
             existingBeliefs
-            |> List.filter (fun existing ->
-                (belief.Contains("NOT") && existing.Contains(belief.Replace("NOT ", "")))
-                || (existing.Contains("NOT") && belief.Contains(existing.Replace("NOT ", ""))))
+            |> List.filter (fun existing -> isContradiction bNorm (normalize existing))
             |> List.length
 
         // Continuous score: 1.0 (no contradictions) to 0.0 (many contradictions)
-        1.0 / (1.0 + float contradictions * 0.5)
+        1.0 / (1.0 + float contradictions * 1.0) // Steeper penalty for contradictions
 
     /// Score grammar validity based on parse success
     /// Returns 1.0 if parseable, 0.0 if not

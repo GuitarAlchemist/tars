@@ -30,29 +30,18 @@ let private createLlmService (config: IConfiguration) : ILlmService * ILlmServic
         |> Option.defaultValue "qwen2.5-coder:1.5b"
 
     let routingCfg =
-        { OllamaBaseUri = Uri(ollamaUrl)
-          VllmBaseUri = Uri("http://localhost:8000")
-          OpenAIBaseUri = Uri("https://api.openai.com")
-          GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com")
-          AnthropicBaseUri = Uri("https://api.anthropic.com")
-          DefaultOllamaModel = generationModel
-          DefaultVllmModel = generationModel
-          DefaultOpenAIModel = "text-embedding-3-small"
-          DefaultGoogleGeminiModel = "embedding-001"
-          DefaultAnthropicModel = "claude-3-opus-20240229"
-          DefaultEmbeddingModel = embeddingModel
-
-          OllamaKey = None
-          VllmKey = None
-          OpenAIKey = None
-          GoogleGeminiKey = None
-          AnthropicKey = None
-          DockerModelRunnerBaseUri = None
-          LlamaCppBaseUri = None
-          DefaultDockerModelRunnerModel = None
-          DefaultLlamaCppModel = None
-          DockerModelRunnerKey = None
-          LlamaCppKey = None }
+        { RoutingConfig.Default with
+            OllamaBaseUri = Uri(ollamaUrl)
+            VllmBaseUri = Uri("http://localhost:8000")
+            OpenAIBaseUri = Uri("https://api.openai.com")
+            GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com")
+            AnthropicBaseUri = Uri("https://api.anthropic.com")
+            DefaultOllamaModel = generationModel
+            DefaultVllmModel = generationModel
+            DefaultOpenAIModel = "text-embedding-3-small"
+            DefaultGoogleGeminiModel = "embedding-001"
+            DefaultAnthropicModel = "claude-3-opus-20240229"
+            DefaultEmbeddingModel = embeddingModel }
 
     let svcCfg = { Routing = routingCfg }
     let httpClient = new System.Net.Http.HttpClient()
@@ -268,7 +257,9 @@ let run (config: IConfiguration) (args: string array) =
                               ResponseFormat = None
                               Stream = false
                               JsonMode = false
-                              Seed = None }
+                              Seed = None
+                              ContextWindow = None }
+
 
                         let! res = llmService.CompleteAsync req
                         return res.Text

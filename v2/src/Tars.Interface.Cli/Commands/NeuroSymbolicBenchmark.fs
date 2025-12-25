@@ -303,12 +303,12 @@ let runComparison
             match puzzleFilter with
             | Some filter ->
                 let filtered =
-                    allPuzzles
+                    Puzzles.all
                     |> List.filter (fun p -> p.Name.Contains(filter, StringComparison.InvariantCultureIgnoreCase))
 
                 if filtered.IsEmpty then
                     logger.Warning("No puzzles found matching filter '{Filter}'. Using all puzzles.", filter)
-                    allPuzzles
+                    Puzzles.all
                 else
                     logger.Information(
                         "Using subset of puzzles matching '{Filter}': {Count} puzzles",
@@ -317,7 +317,7 @@ let runComparison
                     )
 
                     filtered
-            | None -> allPuzzles
+            | None -> Puzzles.all
 
         // Run baseline (no neuro-symbolic)
         let baselineConfig =
