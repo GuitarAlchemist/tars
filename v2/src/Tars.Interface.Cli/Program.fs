@@ -268,7 +268,10 @@ let main argv =
                   Model = None
                   Trace = false
                   Budget = None
-                  DisableGraphiti = false }
+                  DisableGraphiti = false
+                  PlanPath = None
+                  Focus = None
+                  ResearchEnhanced = false }
 
             let mutable i = 1
 
@@ -301,6 +304,13 @@ let main argv =
                     else
                         printfn "Invalid number for --budget"
                 | "--no-graphiti" -> options <- { options with DisableGraphiti = true }
+                | "--plan" when i + 1 < args.Length ->
+                    i <- i + 1
+                    options <- { options with PlanPath = Some args.[i] }
+                | "--focus" when i + 1 < args.Length ->
+                    i <- i + 1
+                    options <- { options with Focus = Some args.[i] }
+                | "--research" -> options <- { options with ResearchEnhanced = true }
                 | _ -> ()
 
                 i <- i + 1

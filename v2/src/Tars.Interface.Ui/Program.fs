@@ -149,7 +149,10 @@ let main args =
                 Confidence = Some 0.62
                 Reputation = Some 0.5 } ]
           State = AgentState.Idle
-          Memory = [] }
+          Memory = []
+          Fitness = 0.5
+          Drives = { Accuracy = 0.5; Speed = 0.5; Creativity = 0.5; Safety = 0.5 }
+          Constitution = AgentConstitution.Create(AgentId(Guid.NewGuid()), GeneralReasoning) }
 
     registry.Register(systemAgent)
 
@@ -194,18 +197,18 @@ let main args =
         let service = InternalGraphService(dataDir)
         // Seed initial fact to ensure not empty
         let tars =
-            ConceptE
+            TarsEntity.ConceptE
                 { Name = "TARS"
                   Description = "Autonomous Reasoning System"
                   RelatedConcepts = [] }
 
         let ai =
-            ConceptE
+            TarsEntity.ConceptE
                 { Name = "Artificial Intelligence"
                   Description = "Machine Intelligence"
                   RelatedConcepts = [] }
 
-        let fact = DerivedFrom(tars, ai)
+        let fact = TarsFact.DerivedFrom(tars, ai)
         (service :> IGraphService).AddFactAsync(fact).GetAwaiter().GetResult() |> ignore
         service :> IGraphService)
     |> ignore

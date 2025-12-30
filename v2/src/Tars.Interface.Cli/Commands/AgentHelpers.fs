@@ -232,7 +232,10 @@ let createAgentContext (logger: string -> unit) (llm: ILlmService) (audit: Reaso
                 Confidence = Some 0.6
                 Reputation = Some 0.5 } ]
           State = AgentState.Idle
-          Memory = [] }
+          Memory = []
+          Fitness = 0.5
+          Drives = { Accuracy = 0.5; Speed = 0.5; Creativity = 0.5; Safety = 0.5 }
+          Constitution = AgentConstitution.Create(AgentId(Guid.NewGuid()), GeneralReasoning) }
 
     let mockRegistry =
         { new IAgentRegistry with

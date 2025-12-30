@@ -12,6 +12,7 @@
     <Compile Include="Registry.fs" />
     <Compile Include="StandardTools.fs" />
     <Compile Include="SemanticTools.fs" />
+    <Compile Include="SelfExtensionTools.fs" />
     <Compile Include="GitTools.fs" />
     <Compile Include="ReasoningTools.fs" />
     <Compile Include="TestingTools.fs" />

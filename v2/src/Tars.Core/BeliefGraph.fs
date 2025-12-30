@@ -13,36 +13,36 @@ type BeliefRelation =
     | GeneralizedFrom
     | AppliesTo of context: string
 
-/// Edge in the belief graph
+/// Edge in the EpistemicBelief graph
 type BeliefEdge =
     { SourceId: Guid
       TargetId: Guid
       Relation: BeliefRelation
       CreatedAt: DateTime }
 
-/// The belief graph structure
+/// The EpistemicBelief graph structure
 type BeliefGraph =
-    { Beliefs: Map<Guid, Belief>
+    { Beliefs: Map<Guid, EpistemicBelief>
       Edges: BeliefEdge list
       CreatedAt: DateTime
       LastModified: DateTime }
 
 module BeliefGraph =
 
-    /// Create an empty belief graph
+    /// Create an empty EpistemicBelief graph
     let empty () =
         { Beliefs = Map.empty
           Edges = []
           CreatedAt = DateTime.UtcNow
           LastModified = DateTime.UtcNow }
 
-    /// Add a belief to the graph
-    let addBelief (belief: Belief) (graph: BeliefGraph) =
+    /// Add a EpistemicBelief to the graph
+    let addBelief (EpistemicBelief: EpistemicBelief) (graph: BeliefGraph) =
         { graph with
-            Beliefs = graph.Beliefs |> Map.add belief.Id belief
+            Beliefs = graph.Beliefs |> Map.add EpistemicBelief.Id EpistemicBelief
             LastModified = DateTime.UtcNow }
 
-    /// Remove a belief from the graph
+    /// Remove a EpistemicBelief from the graph
     let removeBelief (beliefId: Guid) (graph: BeliefGraph) =
         { graph with
             Beliefs = graph.Beliefs |> Map.remove beliefId
@@ -63,7 +63,7 @@ module BeliefGraph =
             Edges = edge :: graph.Edges
             LastModified = DateTime.UtcNow }
 
-    /// Get a belief by ID
+    /// Get a EpistemicBelief by ID
     let tryGetBelief (id: Guid) (graph: BeliefGraph) = graph.Beliefs |> Map.tryFind id
 
     /// Get all beliefs with a specific status
@@ -80,7 +80,7 @@ module BeliefGraph =
         |> Seq.filter (fun b -> b.Context.Contains(context, StringComparison.OrdinalIgnoreCase))
         |> Seq.toList
 
-    /// Get beliefs that support a given belief
+    /// Get beliefs that support a given EpistemicBelief
     let getSupportingBeliefs (beliefId: Guid) (graph: BeliefGraph) =
         graph.Edges
         |> List.filter (fun e ->
@@ -90,7 +90,7 @@ module BeliefGraph =
                | _ -> false)
         |> List.choose (fun e -> graph.Beliefs |> Map.tryFind e.SourceId)
 
-    /// Get beliefs that contradict a given belief
+    /// Get beliefs that contradict a given EpistemicBelief
     let getContradictingBeliefs (beliefId: Guid) (graph: BeliefGraph) =
         graph.Edges
         |> List.filter (fun e ->
@@ -100,7 +100,7 @@ module BeliefGraph =
                | _ -> false)
         |> List.choose (fun e -> graph.Beliefs |> Map.tryFind e.SourceId)
 
-    /// Update belief status
+    /// Update EpistemicBelief status
     let updateStatus (beliefId: Guid) (newStatus: EpistemicStatus) (graph: BeliefGraph) =
         match graph.Beliefs |> Map.tryFind beliefId with
         | Some belief ->
@@ -114,7 +114,7 @@ module BeliefGraph =
                 LastModified = DateTime.UtcNow }
         | None -> graph
 
-    /// Update belief confidence
+    /// Update EpistemicBelief confidence
     let updateConfidence (beliefId: Guid) (newConfidence: float) (graph: BeliefGraph) =
         match graph.Beliefs |> Map.tryFind beliefId with
         | Some belief ->

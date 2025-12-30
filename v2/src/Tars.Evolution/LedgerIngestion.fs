@@ -105,7 +105,7 @@ module LedgerIngestion =
     let recordEpistemicBelief
         (ledger: KnowledgeLedger)
         (runId: RunId option)
-        (belief: Tars.Core.Belief)
+        (belief: Tars.Core.EpistemicBelief)
         (taskId: Guid option)
         (logger: string -> unit)
         =

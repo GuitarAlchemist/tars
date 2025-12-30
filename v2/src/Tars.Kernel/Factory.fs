@@ -18,7 +18,10 @@ module AgentFactory =
           Tools = tools
           Capabilities = capabilities
           State = Idle
-          Memory = [] }
+          Memory = []
+          Fitness = 0.5
+          Drives = { Accuracy = 0.5; Speed = 0.5; Creativity = 0.5; Safety = 0.5 }
+          Constitution = AgentConstitution.Create(AgentId id, GeneralReasoning) }
 
 /// Factory for creating the kernel context
 module KernelBootstrap =

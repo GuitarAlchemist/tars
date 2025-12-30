@@ -37,7 +37,7 @@ type IEpistemicGovernor =
         taskDescription: string * solution: string * variants: string list -> Task<VerificationResult>
 
     /// <summary>Extracts a reusable principle from a task solution.</summary>
-    abstract member ExtractPrinciple: taskDescription: string * solution: string -> Task<Belief>
+    abstract member ExtractPrinciple: taskDescription: string * solution: string -> Task<EpistemicBelief>
 
     /// <summary>Suggests next learning tasks based on history.</summary>
     abstract member SuggestCurriculum:

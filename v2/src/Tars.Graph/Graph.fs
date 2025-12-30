@@ -353,53 +353,77 @@ module GraphRuntime =
                                 |> ignore
                             | None -> ()
 
-                            // 2.5 Apply Output Guard
-                            match ctx.OutputGuard with
-                            | None ->
-                                finalResponseText <- response.Text
-                                guardPassed <- true
-                            | Some guard ->
-                                let guardInput =
-                                    { ResponseText = response.Text
-                                      Grammar = None // Could extract from agent tools if needed
-                                      ExpectedJsonFields = None
-                                      RequireCitations = false
-                                      Citations = None
-                                      AllowExtraFields = true
-                                      Metadata = Map.empty }
+                            // 2.45 Protocol Check (Autonomous Loop Guard)
+                            let protocolHint =
+                                match SpeechActs.tryParse response.Text with
+                                | Some(Ask content, _) ->
+                                    let c = content.ToLowerInvariant()
+                                    // Allow file/project requests to pass through
+                                    if c.Contains(".fs") || c.Contains(".fsproj") || c.Contains("file") || c.Contains("folder") || c.Contains("directory") || c.Contains("structure") then
+                                        None
+                                    else
+                                        Some "You are an autonomous agent. DO NOT ask questions. Resolve unknowns using tools or provide your best answer via 'ACT: Tell'."
+                                | _ -> None
 
-                                let! guardResult = guard.Evaluate guardInput |> Async.StartAsTask
-
-                                match guardResult.Action with
-                                | GuardAction.Accept ->
+                            if protocolHint.IsSome then
+                                let hint = protocolHint.Value
+                                ctx.Logger $"[Protocol] ⚠️ Violation detected: Agent asked a question. Retrying with hint..."
+                                currentPromptMessages <-
+                                    currentPromptMessages
+                                    @ [ { Role = Role.Assistant
+                                          Content = response.Text }
+                                        { Role = Role.User
+                                          Content = hint } ]
+                                // Loop naturally retries
+                                ()
+                            else
+                                // 2.5 Apply Output Guard
+                                match ctx.OutputGuard with
+                                | None ->
                                     finalResponseText <- response.Text
                                     guardPassed <- true
-                                | GuardAction.RetryWithHint hint ->
-                                    ctx.Logger $"[Guard] Retry attempt {attempts}: {hint}"
+                                | Some guard ->
+                                    let guardInput =
+                                        { ResponseText = response.Text
+                                          Grammar = None // Could extract from agent tools if needed
+                                          ExpectedJsonFields = None
+                                          RequireCitations = false
+                                          Citations = None
+                                          AllowExtraFields = true
+                                          Metadata = Map.empty }
 
-                                    currentPromptMessages <-
-                                        currentPromptMessages
-                                        @ [ { Role = Role.Assistant
-                                              Content = response.Text }
-                                            { Role = Role.User
-                                              Content = $"Output rejected. Hint: {hint}" } ]
-                                | GuardAction.AskForEvidence hint ->
-                                    ctx.Logger $"[Guard] Asking for evidence: {hint}"
+                                    let! guardResult = guard.Evaluate guardInput |> Async.StartAsTask
 
-                                    currentPromptMessages <-
-                                        currentPromptMessages
-                                        @ [ { Role = Role.Assistant
-                                              Content = response.Text }
-                                            { Role = Role.User
-                                              Content = $"Please provide evidence: {hint}" } ]
-                                | GuardAction.Reject reason ->
-                                    ctx.Logger $"[Guard] Rejected: {reason}"
-                                    failureReason <- reason
-                                    attempts <- maxAttempts // Stop loop
-                                | GuardAction.Fallback text ->
-                                    ctx.Logger $"[Guard] Fallback triggered"
-                                    finalResponseText <- text
-                                    guardPassed <- true
+                                    match guardResult.Action with
+                                    | GuardAction.Accept ->
+                                        finalResponseText <- response.Text
+                                        guardPassed <- true
+                                    | GuardAction.RetryWithHint hint ->
+                                        ctx.Logger $"[Guard] Retry attempt {attempts}: {hint}"
+
+                                        currentPromptMessages <-
+                                            currentPromptMessages
+                                            @ [ { Role = Role.Assistant
+                                                  Content = response.Text }
+                                                { Role = Role.User
+                                                  Content = $"Output rejected. Hint: {hint}" } ]
+                                    | GuardAction.AskForEvidence hint ->
+                                        ctx.Logger $"[Guard] Asking for evidence: {hint}"
+
+                                        currentPromptMessages <-
+                                            currentPromptMessages
+                                            @ [ { Role = Role.Assistant
+                                                  Content = response.Text }
+                                                { Role = Role.User
+                                                  Content = $"Please provide evidence: {hint}" } ]
+                                    | GuardAction.Reject reason ->
+                                        ctx.Logger $"[Guard] Rejected: {reason}"
+                                        failureReason <- reason
+                                        attempts <- maxAttempts // Stop loop
+                                    | GuardAction.Fallback text ->
+                                        ctx.Logger $"[Guard] Fallback triggered"
+                                        finalResponseText <- text
+                                        guardPassed <- true
 
                     if ctx.CancellationToken.IsCancellationRequested then
                         return Failure [ PartialFailure.Timeout("Thinking", TimeSpan.Zero) ]

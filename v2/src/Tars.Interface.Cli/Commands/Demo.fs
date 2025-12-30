@@ -30,7 +30,10 @@ type DemoAgent(id: Guid, logger: ILogger) =
                       Tools = []
                       Capabilities = []
                       State = Idle
-                      Memory = [] }
+                      Memory = []
+                      Fitness = 0.5
+                      Drives = { Accuracy = 0.5; Speed = 0.5; Creativity = 0.5; Safety = 0.5 }
+                      Constitution = AgentConstitution.Create(AgentId(Guid.NewGuid()), GeneralReasoning) }
 
                 return Success dummyAgent
             }

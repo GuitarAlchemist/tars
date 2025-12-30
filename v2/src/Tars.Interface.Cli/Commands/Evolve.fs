@@ -27,7 +27,10 @@ type EvolveOptions =
       Model: string option
       Trace: bool
       Budget: decimal option
-      DisableGraphiti: bool }
+      DisableGraphiti: bool
+      PlanPath: string option
+      Focus: string option
+      ResearchEnhanced: bool }
 
 let run (logger: ILogger) (options: EvolveOptions) =
     task {
@@ -126,6 +129,10 @@ let run (logger: ILogger) (options: EvolveOptions) =
               "run_metascript"
               "parse_metascript"
               "create_metascript"
+              "create_dynamic_tool"
+              "create_grammar"
+              "create_block"
+              "list_extensions"
               "list_files"
               "search_code"
               "count_lines"
@@ -590,9 +597,54 @@ let run (logger: ILogger) (options: EvolveOptions) =
                   ShowSemanticMessage =
                     match options.Quiet with
                     | true -> (fun _ _ -> ())
-                    | false -> DemoVisualization.showSemanticMessage }
+                    | false -> DemoVisualization.showSemanticMessage
+                  Focus = options.Focus
+                  ToolRegistry = Some toolRegistry
+                  ResearchEnhanced = options.ResearchEnhanced }
 
-            let mutable currentState = evoState
+            // Load Plan if provided
+            let initialTasks =
+                let bootstrapTasks = 
+                    match options.Focus with
+                    | Some f when f.Contains("analysis tools") ->
+                        [ { Tars.Evolution.TaskDefinition.Id = Guid.NewGuid()
+                            DifficultyLevel = 1
+                            Goal = "Create a new dynamic tool named 'list_fsharp_files' that lists all .fs files in a specified directory using System.IO.Directory.GetFiles. Register it using create_dynamic_tool."
+                            Constraints = ["Use create_dynamic_tool"; "Include proper error handling"]
+                            ValidationCriteria = "Tool is successfully registered and shows up in list_extensions"
+                            Timeout = TimeSpan.FromMinutes(5.0)
+                            Score = 1.0 } ]
+                    | _ -> []
+
+                match options.PlanPath with
+                | Some path ->
+                    if File.Exists path then
+                        try
+                            let json = File.ReadAllText(path)
+                            let options = System.Text.Json.JsonSerializerOptions(PropertyNameCaseInsensitive = true)
+                            let rawTasks = System.Text.Json.JsonSerializer.Deserialize<{| Instructions: string |}[]>(json, options)
+                            let tasks = 
+                                rawTasks
+                                |> Array.map (fun t -> 
+                                     { Tars.Evolution.TaskDefinition.Id = Guid.NewGuid()
+                                       DifficultyLevel = 1
+                                       Goal = if String.IsNullOrWhiteSpace(t.Instructions) then "Unknown" else t.Instructions
+                                       Constraints = ["Use provided tools only"]
+                                       ValidationCriteria = "Task completed successfully"
+                                       Timeout = TimeSpan.FromMinutes(10.0)
+                                       Score = 1.0 })
+                                |> Array.toList
+                            bootstrapTasks @ tasks
+                        with ex ->
+                             logger.Error(ex, "Failed to load plan")
+                             bootstrapTasks
+                    else
+                         logger.Warning("Plan file not found: {Path}", path)
+                         bootstrapTasks
+                | None -> bootstrapTasks
+
+            let mutable currentState = 
+                { evoState with TaskQueue = initialTasks }
 
             for i in 1 .. options.MaxIterations do
                 if not options.Quiet then

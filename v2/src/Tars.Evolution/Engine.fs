@@ -40,7 +40,10 @@ module Engine =
           RunId: RunId option
           Logger: string -> unit
           Verbose: bool
-          ShowSemanticMessage: Message -> bool -> unit }
+          ShowSemanticMessage: Message -> bool -> unit
+          Focus: string option
+          ToolRegistry: Tars.Tools.ToolRegistry option // Added for hot reload of tools
+          ResearchEnhanced: bool } // Research-enhanced curriculum (Phase 18)
 
     let private scoreTask
         (ctx: EvolutionContext)
@@ -129,7 +132,23 @@ module Engine =
             || lowered.StartsWith("send the")
 
     let private tryExtractJsonElement (text: string) =
-        let trimmed = text.Trim()
+        // Remove conversational filler
+        let cleanText = 
+            let lowered = text.ToLowerInvariant()
+            let filler = [ "certainly", "here is", "here are", "sure", "ok", "i can help" ]
+            let mutable result = text
+            if text.StartsWith("ACT:") then 
+                let idx = text.IndexOf(":", 4)
+                if idx > 0 then result <- text.Substring(idx + 1).Trim()
+            
+            // If it still looks like it has filler before { or [
+            let firstBrace = result.IndexOfAny([| '{'; '[' |])
+            if firstBrace > 0 then
+                result <- result.Substring(firstBrace).Trim()
+            
+            result
+
+        let trimmed = cleanText.Trim()
 
         let tryParse payload =
             match JsonParsing.tryParseElement payload with
@@ -266,29 +285,52 @@ Do any of the known beliefs contradict executing this task? Respond in JSON: {{"
                 else
                     completedGoals |> List.truncate 10 |> String.concat " | "
 
+            let failedHistory =
+                state.CompletedTasks
+                |> List.filter (fun t -> not t.Success)
+                |> List.truncate 3
+                |> List.map (fun t -> 
+                    let evalIssues = 
+                        t.Evaluation 
+                        |> Option.map (fun e -> "\nEvaluation Issues: " + String.concat "; " e.Issues)
+                        |> Option.defaultValue ""
+                    $"- FAILED TASK: {t.TaskGoal}\n  Error/Output: {t.Output.Substring(0, Math.Min(t.Output.Length, 300))}...{evalIssues}")
+                |> String.concat "\n\n"
+
+            let lastFailedTask = if String.IsNullOrWhiteSpace failedHistory then "None" else failedHistory
+
             let prompt =
-                $"""IMPORTANT: You are generating F# CODING TASKS. Do NOT ask questions. Output ONLY JSON.
+                $"""IMPORTANT: You are generating F# CODING TASKS for an autonomous agent loop. 
+Do NOT ask questions. Output ONLY JSON. DO NOT generate Python.
+(Ensure all strings are valid JSON. Escape internal quotes with backslashes, e.g. \"text\")
 
 Generation: %d{state.Generation}. Completed tasks: %d{state.CompletedTasks.Length}.
 
-Create 3 concrete, diverse F# programming tasks based on the following guidance.
-Guidance: %s{if String.IsNullOrWhiteSpace(guidance) then
-                 "basic algorithms"
-             else
-                 guidance}
+[RECENT FAILURES]
+{lastFailedTask}
+
+[GUIDANCE]
+%s{if String.IsNullOrWhiteSpace(guidance) then
+                  "Focus on exploring the codebase and maintaining core invariants."
+              else
+                  guidance}
 
 Requirements:
 - Each task must be a specific coding problem (NOT a question) and solvable with code (NOT a discussion).
+- Each task goal MUST explicitly state "in F#".
 - Do NOT repeat or closely rephrase any previous tasks: %s{completedList}
+- DO NOT suggest the same task if it recently failed. PIVOT to a different area of the codebase.
 - Vary domains and artifacts (algorithms, refactors, tests, tooling, docs, integrations).
-- If guidance sounds like a request for preferences, ignore it and still output tasks.
+- SELF-EVOLUTION: If there was a recent failure, generate at least one task to FIX or REFACTOR the failing code.
+- TOOL GENERATION: If you identify a gap in capabilities (e.g. no way to analyze DLLs), generate a task to "Create a tool for [functional gap]" following the TARS dynamic tool pattern.
+- HINT: API keys and authentication are handled by the system. Assume secrets are available in environment variables. Do NOT refuse tasks due to missing keys.
 - Include measurable validation_criteria.
 
 RESPOND WITH THIS EXACT JSON FORMAT (no other text):
 {{"tasks":[
-  {{"goal":"<concise goal 1>","constraints":["<constraint 1>","<constraint 2>"],"validation_criteria":"<measurable check>"}},
-  {{"goal":"<concise goal 2>","constraints":["<constraint 1>","<constraint 2>"],"validation_criteria":"<measurable check>"}},
-  {{"goal":"<concise goal 3>","constraints":["<constraint 1>","<constraint 2>"],"validation_criteria":"<measurable check>"}}
+  {{"goal":"<concise goal 1 using F#>","constraints":["<constraint 1>","<constraint 2>"],"validation_criteria":"<measurable check>"}},
+  {{"goal":"<concise goal 2 using F#>","constraints":["<constraint 1>","<constraint 2>"],"validation_criteria":"<measurable check>"}},
+  {{"goal":"<concise goal 3 using F#>","constraints":["<constraint 1>","<constraint 2>"],"validation_criteria":"<measurable check>"}}
 ]}}"""
 
             // 1. Retrieve Curriculum Agent
@@ -335,6 +377,12 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                             | Some(i, c) -> i, c
                             | None -> Tell o, o
 
+                        // If it's an Ask but contains JSON, force it to Tell
+                        let intent, content = 
+                            match intent with
+                            | Ask c when c.Contains("{") && c.Contains("}") -> Tell c, c
+                            | _ -> intent, content
+
                         let replyMsg = SpeechActs.createReply requestMsg intent content agent.Id
 
                         match SpeechActs.validateFlow requestMsg replyMsg with
@@ -357,36 +405,30 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                         ctx.Logger("[Curriculum] Invalid response intent for task generation. Using fallback.")
                         ""
 
+                let fallbackPracticalTask () =
+                    let practicalTasks =
+                        [| "Scan the src/Tars.Tools directory and identify 2 tools that lack proper error handling in their JSON parsing logic."
+                           "Create a new dynamic tool named 'check_todo' that searches the project for 'TODO' comments and returns a formatted list."
+                           "Analyze the current Evolution Engine loop in src/Tars.Evolution/Engine.fs and suggest a way to implement better task pivoting after 3 failures."
+                           "Read src/Tars.Core/Domain.fs and write a summary of the 'AgentIntent' discriminated union."
+                           "List all files in src/Tars.Evolution and summarize the responsibility of each file." |]
+
+                    let random = Random()
+                    let selectedTask = practicalTasks[random.Next(practicalTasks.Length)]
+
+                    [ { Id = Guid.NewGuid()
+                        DifficultyLevel = state.Generation + 1
+                        Goal = selectedTask
+                        Constraints = [ "Work with the TARS v2 codebase" ]
+                        ValidationCriteria = "Provide concrete, actionable output"
+                        Timeout = TimeSpan.FromMinutes(5.0)
+                        Score = 1.0 } ]
+
                 if String.IsNullOrWhiteSpace(responseText) then
                     // Return a fallback task when no response is received
                     ctx.Logger("[Curriculum] No response received, using fallback task")
-
-                    return
-                        [ { Id = Guid.NewGuid()
-                            DifficultyLevel = state.Generation + 1
-                            Goal = "Write a simple F# function that calculates the factorial of a number"
-                            Constraints = [ "Use recursion"; "Handle edge cases for 0 and negative numbers" ]
-                            ValidationCriteria = "Function returns correct factorial values"
-                            Timeout = TimeSpan.FromMinutes(1.0)
-                            Score = 1.0 } ]
+                    return fallbackPracticalTask ()
                 else
-                    let fallbackPracticalTask () =
-                        let practicalTasks =
-                            [| "Review the DemoVisualization.fs module and write 3 unit tests for the showSemanticMessage function"
-                               "Read the ToolFactory.fs file and add XML documentation comments to all public functions"
-                               "Analyze the Engine.fs generateTask function and suggest 2 improvements for better error handling" |]
-
-                        let random = Random()
-                        let selectedTask = practicalTasks[random.Next(practicalTasks.Length)]
-
-                        [ { Id = Guid.NewGuid()
-                            DifficultyLevel = state.Generation + 1
-                            Goal = selectedTask
-                            Constraints = [ "Work with the TARS v2 codebase" ]
-                            ValidationCriteria = "Provide concrete, actionable output"
-                            Timeout = TimeSpan.FromMinutes(2.0)
-                            Score = 1.0 } ]
-
                     try
                         let rootResult = tryExtractJsonElement responseText
 
@@ -656,16 +698,54 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
 
                             $"\nKnown Beliefs:\n{lines}\n"
 
+                    let toolList = 
+                        match ctx.ToolRegistry with
+                        | Some r -> 
+                            r.GetAll() 
+                            |> List.map (fun t -> $"- {t.Name}: {t.Description}") 
+                            |> String.concat "\n"
+                        | None -> "No tools available."
+                    
+                    let codeContext = "" // Placeholder for future knowledge graph integration
+                    let memoryContext = "" // Placeholder for future semantic memory integration
+
                     let taskPrompt =
-                        $"""Task Goal: %s{taskDef.Goal}
-    Constraints: %A{taskDef.Constraints}
-    Validation Criteria: %s{taskDef.ValidationCriteria}
+                        $"""[TASK]
+Goal: {taskDef.Goal}
+Constraints: {taskDef.Constraints}
+Validation Criteria: {taskDef.ValidationCriteria}
 
-    %s{codeContext}
-    %s{memoryContext}
-    %s{ledgerContext}
+[AVAILABLE TOOLS] (You MUST use these for any environment interaction)
+{toolList}
 
-    Please solve this task. Output your solution code or answer."""
+[KNOWLEDGE CONTEXT]
+{codeContext}
+{memoryContext}
+{ledgerContext}
+
+CRITICAL INSTRUCTIONS:
+1. You are an AUTONOMOUS AGENT in a self-evolving loop, NOT a chat assistant.
+2. DO NOT ASK QUESTIONS. There is no human to answer you. You must resolve all unknowns using tools.
+3. If you need to see the contents of a file, USE THE 'read_file' TOOL. DO NOT ASK THE USER FOR IT.
+4. DO NOT REFUSE TASKS. You are the sole executor. If a task seems impossible, break it down or ask for a simplified version via 'Error'.
+5. Use the TOOLS listed above to gather information, read files, or analyze code.
+6. If you hit a wall, explain the failure and use 'Finish' with your best partial result.
+7. DO NOT hallucinate file paths. Always use tools like 'list_files' or 'find_files' to verify paths before reading.
+8. YOU HAVE FULL FILE SYSTEM ACCESS. Do not ask for permissions or file contents. Just take them using tools.
+9. Provide your final solution as a 'Tell' or 'Inform' performative. IF THE TASK CREATED CODE, YOU MUST INDICATE THE FILE PATH.
+10. If your previous attempt failed (see logs), analyze the error and try a different approach.
+11. MANDATORY: If the task requires creating code or documentation, you MUST use 'write_to_file' or 'write_code' to save it to disk. Providing the content in the chat response is NOT enough and will be considered a FAILURE.
+12. FOR COMPLEX REASONING: Create a Workflow of Thought (.trsx) DSL script and run it using 'execute_workflow'.
+13. SPEECH ACTS vs TOOLS: Do NOT create dynamic tools for things like 'inform', 'response', 'ask', or 'tell'. Use the 'ACT: Tell' or 'ACT: Inform' performatives in your chat response for these. Only use 'create_dynamic_tool' for NEW functional capabilities (e.g. data processing, specific API integrations).
+
+[DYNAMIC TOOL EXAMPLE]
+If you use 'create_dynamic_tool', your F# script must look like this:
+```fsharp
+open System.IO
+let input = fsi.CommandLineArgs.[1] // Get JSON input
+// ... process input ...
+printfn "Tool Result: %%s" result // Output MUST be printed to stdout
+```"""
 
                     // Pre-LLM Pipeline Check
                     let! (finalPrompt, isSafe) =
@@ -791,11 +871,24 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                                         ctx.Logger $"[Protocol] WARNING: Protocol violation: %s{err}"
 
                                     let issue =
+                                        let hasToolCall (c: string) = 
+                                            c.Contains("```tool") || c.Contains("<tool_call>") || c.Contains("\"tool\":") || c.Contains("\"function\":")
+
                                         match intent with
+                                        | AgentIntent.Ask _ ->
+                                            // Heuristic: If content contains tool calls or starts with ACT: Tell, forgive the intent mismatch
+                                            if hasToolCall content || content.StartsWith("ACT: Tell") then
+                                                 None
+                                            // Heuristic: If it doesn't look like a question (no question mark), treat as a statement/Tell
+                                            elif not (content.Trim().EndsWith("?")) then
+                                                 None
+                                            else
+                                                 Some "Agent asked a question instead of completing the task."
                                         | AgentIntent.Tell _ when looksLikeFollowUpRequest content ->
-                                            Some "Agent requested additional input instead of completing the task."
+                                            // Heuristic: If it looks like a follow-up but contains tool calls, maybe it's just verbose
+                                            if hasToolCall content then None
+                                            else Some "Agent requested additional input instead of completing the task."
                                         | AgentIntent.Tell _ -> None
-                                        | AgentIntent.Ask _ -> Some "Agent asked a follow-up question instead of answering."
                                         | AgentIntent.Error _ -> Some "Agent returned an error response."
                                         | AgentIntent.Propose _ -> Some "Agent proposed a plan instead of providing a result."
                                         | AgentIntent.Accept _ -> Some "Agent accepted a plan instead of providing a result."

@@ -150,7 +150,10 @@ let private createPuzzleContext (logger: ILogger) =
           Tools = []
           Capabilities = []
           State = AgentState.Idle
-          Memory = [] }
+          Memory = []
+          Fitness = 0.5
+          Drives = { Accuracy = 0.5; Speed = 0.5; Creativity = 0.5; Safety = 0.5 }
+          Constitution = AgentConstitution.Create(AgentId(Guid.NewGuid()), GeneralReasoning) }
       Registry = stubRegistry
       Executor = stubExecutor
       Logger = fun msg -> logger.Information("[Pattern] {Message}", msg)

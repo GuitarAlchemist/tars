@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -12,14 +12,20 @@
     <Compile Include="Units.fs" />
     <Compile Include="Budget.fs" />
     <Compile Include="Domain.fs" />
+    <Compile Include="SymbolicTypes.fs" />
+    <Compile Include="ContractEnforcement.fs" />
+    <Compile Include="ConstitutionLoader.fs" />
     <Compile Include="NeuroSymbolicDefaults.fs" />
     <Compile Include="Puzzles.fs" />
     <Compile Include="InternetPuzzles.fs" />
+    <Compile Include="ArcTypes.fs" />
+    <Compile Include="AdvancedPuzzles.fs" />
     <Compile Include="Communication.fs" />
     <Compile Include="MetricSpace.fs" />
     <Compile Include="SpeechActs.fs" />
     <Compile Include="GraphitiTypes.fs" />
     <Compile Include="Abstractions.fs" />
+    <Compile Include="Critique.fs" />
     <Compile Include="Tracing.fs" />
     <Compile Include="TraceRecorder.fs" />
     <Compile Include="Metrics.fs" />
@@ -33,7 +39,15 @@
     <Compile Include="Knowledge.fs" />
     <Compile Include="SemanticMemoryTypes.fs" />
     <Compile Include="ReasoningAudit.fs" />
+    <Compile Include="RunCycle.fs" />
+    <Compile Include="Diagnostics.fs" />
     <Compile Include="AgentWorkflow.fs" />
+    <Compile Include="ConstitutionWorkflow.fs" />
+    <Compile Include="ConstitutionVersioning.fs" />
+    <Compile Include="SymbolicReflection.fs" />
+    <Compile Include="BeliefRevision.fs" />
+    <Compile Include="EvidenceChain.fs" />
+    <Compile Include="ProofSystem.fs" />
     <Compile Include="EpisodeStore.fs" />
     <Compile Include="TemporalKnowledgeGraph.fs" />
     <Compile Include="GraphService.fs" />
@@ -59,7 +73,17 @@
     <Compile Include="HealthChecks.fs" />
     <Compile Include="ErrorHandling.fs" />
     <Compile Include="IncidentLedger.fs" />
+    <Compile Include="ToleranceEngineering.fs" />
     <Compile Include="Configuration.fs" />
+    <!-- Phase 17: Hybrid Brain / Cognition Compiler -->
+    <Compile Include="HybridBrain\TypedIR.fs" />
+    <Compile Include="HybridBrain\ComputationExpressions.fs" />
+    <Compile Include="HybridBrain\ActionExecutor.fs" />
+    <Compile Include="HybridBrain\CodeAnalyzer.fs" />
+    <!-- Self-Extension System -->
+    <Compile Include="SelfExtension\SelfExtensionService.fs" />
+    <!-- Phase 12: Workflow of Thought -->
+    <Compile Include="WorkflowOfThought\WotTypes.fs" />
   </ItemGroup>
 
   <ItemGroup>

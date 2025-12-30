@@ -177,9 +177,12 @@ module EvolutionTests =
               Ledger = None
               Evaluator = None
               RunId = None
-              Logger = fun _ -> ()
-              Verbose = false
-              ShowSemanticMessage = fun _ _ -> () }
+                  Logger = (fun _ -> ())
+                  Verbose = false
+                  ShowSemanticMessage = (fun _ _ -> ())
+                  Focus = None
+                  ToolRegistry = None
+                  ResearchEnhanced = false }
 
         let _nextState =
             Engine.step evoCtx state |> Async.AwaitTask |> Async.RunSynchronously

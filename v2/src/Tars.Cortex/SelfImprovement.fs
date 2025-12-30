@@ -22,7 +22,7 @@ module SelfImprovement =
     type LearningResult =
         { TaskDescription: string
           Solution: string
-          ExtractedBelief: Belief option
+          ExtractedBelief: EpistemicBelief option
           WasVerified: bool
           Curriculum: string option
           Timestamp: DateTime }
@@ -30,7 +30,7 @@ module SelfImprovement =
     /// Learning session state
     type LearningSession =
         { CompletedTasks: (string * string) list // (task, solution) pairs
-          ExtractedBeliefs: Belief list
+          ExtractedBeliefs: EpistemicBelief list
           CurriculumSuggestions: string list
           BeliefGraph: BeliefGraph
           StartedAt: DateTime }
@@ -58,7 +58,7 @@ module SelfImprovement =
           BeliefGraph = BeliefGraph.empty ()
           StartedAt = DateTime.UtcNow }
 
-    /// Create a session from an existing belief graph
+    /// Create a session from an existing EpistemicBelief graph
     let createSessionFromGraph (graph: BeliefGraph) =
         { CompletedTasks = []
           ExtractedBeliefs = graph.Beliefs |> Map.values |> Seq.toList
@@ -99,7 +99,7 @@ module SelfImprovement =
                 else
                     governor.VerifyGeneralization(taskDesc, solution, variants) |> Async.AwaitTask
 
-            // 3. Update belief status based on verification
+            // 3. Update EpistemicBelief status based on verification
             let finalBelief =
                 if
                     verification.IsVerified
@@ -117,7 +117,7 @@ module SelfImprovement =
                         Status = EpistemicStatus.Fallacy
                         Confidence = verification.Score }
 
-            // 4. Update the belief graph
+            // 4. Update the EpistemicBelief graph
             let updatedGraph = session.BeliefGraph |> BeliefGraph.addBelief finalBelief
 
             // 5. Get curriculum suggestion
@@ -187,7 +187,7 @@ module SelfImprovement =
         learnFromTasksAsync governor config tasks session |> Async.StartAsTask
 
     // =========================================================================
-    // Belief Analysis
+    // EpistemicBelief Analysis
     // =========================================================================
 
     /// Get principles that have been verified across multiple tasks
@@ -273,7 +273,7 @@ module SelfImprovement =
 
                     ctx.Logger(
                         sprintf
-                            "[SelfImprovement] Extracted belief: %s (confidence: %.2f)"
+                            "[SelfImprovement] Extracted EpistemicBelief: %s (confidence: %.2f)"
                             (learningResult.ExtractedBelief
                              |> Option.map (fun b -> b.Statement)
                              |> Option.defaultValue "none")
