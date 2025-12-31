@@ -653,6 +653,89 @@ Return ONLY a JSON array of triples:
                 return ()
     }
 
+let private runIngestRun (ledger: KnowledgeLedger) (runIdOrPath: string) =
+    task {
+        let runDir = 
+            if Directory.Exists runIdOrPath then runIdOrPath
+            else Path.Combine(".wot", "runs", runIdOrPath)
+            
+        if not (Directory.Exists runDir) then
+            AnsiConsole.MarkupLine($"[red]Run directory not found:[/] {runDir}")
+        else
+            let summaryPath = Path.Combine(runDir, "run_summary.json")
+            let planPath = Path.Combine(runDir, "plan.json")
+            
+            if not (File.Exists summaryPath) || not (File.Exists planPath) then
+                 AnsiConsole.MarkupLine("[red]Missing run_summary.json or plan.json in run directory.[/]")
+            else
+                AnsiConsole.MarkupLine($"[blue]📥 Ingesting run analysis from:[/] [white]{runDir}[/]")
+                
+                let parseJson path = JsonDocument.Parse(File.ReadAllText(path))
+                use summaryDoc = parseJson summaryPath
+                use planDoc = parseJson planPath
+                
+                let tryGetPropertyInsensitive name (elem: JsonElement) =
+                    if elem.ValueKind = JsonValueKind.Object then
+                        elem.EnumerateObject()
+                        |> Seq.tryFind (fun p -> p.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+                        |> Option.map (fun p -> p.Value)
+                    else
+                        None
+
+                let rootSum = summaryDoc.RootElement
+                let rootPlan = planDoc.RootElement
+                
+                let runId = 
+                    match tryGetPropertyInsensitive "RunId" rootSum with
+                    | Some p -> p.GetString()
+                    | None -> Path.GetFileName(runDir)
+                    
+                let goal = 
+                    match tryGetPropertyInsensitive "Goal" rootPlan with
+                    | Some p -> p.GetString()
+                    | None -> "unknown_task"
+                    
+                let model = 
+                    match tryGetPropertyInsensitive "Reasoner" rootSum with
+                    | Some r -> 
+                        match tryGetPropertyInsensitive "Model" r with
+                        | Some m -> m.GetString()
+                        | None -> "unknown_model"
+                    | None -> "unknown_model"
+                    
+                let passed = 
+                    match tryGetPropertyInsensitive "VerifyPassed" rootSum with
+                    | Some p -> if p.ValueKind = JsonValueKind.True then true else false
+                    | None -> false
+
+                let durationStr = 
+                     match tryGetPropertyInsensitive "DurationMs" rootSum with
+                     | Some p -> p.GetInt64().ToString()
+                     | None -> "0"
+                     
+                let prov = Provenance.FromExternal(Uri(Path.GetFullPath(summaryPath)), None, 1.0)
+                let agent = AgentId.User
+                
+                let mutable count = 0
+                
+                let! res1 = ledger.AssertTriple(runId, parseRelation "executed", goal, prov, agent)
+                if res1.IsOk then count <- count + 1
+                
+                let! res2 = ledger.AssertTriple(goal, Custom "execution_time_ms", durationStr, prov, agent)
+                if res2.IsOk then count <- count + 1
+                
+                if passed && model <> "unknown_model" then
+                    let! res3 = ledger.AssertTriple(model, Custom "can_solve", goal, prov, agent)
+                    if res3.IsOk then count <- count + 1
+                    let! res4 = ledger.AssertTriple(runId, Custom "status", "SUCCESS", prov, agent) 
+                    if res4.IsOk then count <- count + 1
+                else
+                    let! resFail = ledger.AssertTriple(runId, Custom "status", "FAILURE", prov, agent)
+                    if resFail.IsOk then count <- count + 1
+                    
+                AnsiConsole.MarkupLine($"[green]✓ Ingested {count} facts from run {runId}[/]")
+    }
+
 let private printHelp () =
     AnsiConsole.Write(Rule("[bold blue]TARS Knowledge Ledger[/]"))
     AnsiConsole.MarkupLine("\n[bold]Knowledge Access:[/]")
@@ -666,6 +749,7 @@ let private printHelp () =
     AnsiConsole.MarkupLine("\n[bold]Research & Discovery:[/]")
     AnsiConsole.MarkupLine("  [green]fetch[/] [grey]- get wiki summary[/]")
     AnsiConsole.MarkupLine("  [green]propose[/] [grey]- extract proposals[/]")
+    AnsiConsole.MarkupLine("  [green]ingest-run[/] [grey]- ingest .wot run artifacts[/]")
 
 let run (config: Tars.Core.TarsConfig) (options: KnowOptions) : Task<int> =
     task {
@@ -708,6 +792,13 @@ let run (config: Tars.Core.TarsConfig) (options: KnowOptions) : Task<int> =
                 match options.Query with
                 | Some t -> do! runPropose ledger config t options.ShowPrompt options.Verify
                 | None -> AnsiConsole.MarkupLine("[yellow]Usage: tars know propose <topic>[/]")
+            | "ingest-run" ->
+                match options.Path with
+                | Some p -> do! runIngestRun ledger p
+                | None -> 
+                    match options.Query with // Allow using query arg as runid if path not set
+                    | Some q -> do! runIngestRun ledger q
+                    | None -> AnsiConsole.MarkupLine("[yellow]Usage: tars know ingest-run <run-id>[/]")
             | _ -> printHelp ()
 
             return 0
@@ -780,7 +871,8 @@ let parseArgs (args: string[]) : KnowOptions =
                 if options.Path.IsNone then
                     options <- { options with Path = Some arg }
             | "fetch"
-            | "propose" ->
+            | "propose"
+            | "ingest-run" ->
                 if options.Query.IsNone then
                     options <- { options with Query = Some arg }
             | "neighborhood"
