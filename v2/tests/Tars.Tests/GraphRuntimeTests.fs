@@ -41,7 +41,10 @@ module GraphRuntimeTests =
           Tools = []
           Capabilities = []
           State = Idle
-          Memory = [] }
+          Memory = []
+          Fitness = 0.0
+          Drives = { Accuracy = 0.5; Speed = 0.5; Creativity = 0.5; Safety = 0.5 }
+          Constitution = AgentConstitution.Create(AgentId(Guid.NewGuid()), NeuralRole.GeneralReasoning) }
 
     [<Fact>]
     let ``handleThinking returns Failure when budget is exhausted`` () =

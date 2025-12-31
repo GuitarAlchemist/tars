@@ -1,0 +1,43 @@
+meta {
+  name = "math_word"
+  description = "Multi-step math word problem."
+  domain = "grounding"
+  difficulty = "medium"
+}
+
+inputs {
+  puzzle_prompt = "A train leaves Station A at 9:00 AM traveling at 60 mph toward Station B. Another train leaves Station B at 10:00 AM traveling at 80 mph toward Station A. The stations are 280 miles apart. At what time do the trains meet? How far from Station A is the meeting point? Show your work step by step."
+  puzzle_type = "math_word"
+}
+
+policy {
+  allowed_tools = ["validate_puzzle_answer"]
+  max_tool_calls = 3
+  max_tokens = 2048
+}
+
+workflow "solve_math_word" {
+  
+  node "think" kind="reason" {
+    goal = "Solve this puzzle step by step: ${puzzle_prompt}"
+    output = "solution"
+    constraints = ["show_work"]
+  }
+
+  node "validate" kind="work" {
+    tool = "validate_puzzle_answer"
+    args = { "puzzle_type": "${puzzle_type}", "answer": "${solution}" }
+    output = "validation_result"
+  }
+
+  node "verify" kind="work" {
+    input = ["validation_result"]
+    output = "final_verdict"
+    checks = [
+      { "type": "contains", "value": "${validation_result}", "needle": "PASS" }
+    ]
+  }
+
+  edge "think" -> "validate"
+  edge "validate" -> "verify"
+}

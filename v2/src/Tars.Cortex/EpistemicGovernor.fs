@@ -12,7 +12,7 @@ open Tars.Llm.LlmService
 /// Provides LLM-powered verification, generalization, and curriculum generation.
 /// </summary>
 type EpistemicGovernor
-    (llm: ILlmService, knowledgeGraph: LegacyKnowledgeGraph.TemporalGraph option, budget: BudgetGovernor option) =
+    (llm: ILlmService, knowledgeGraph: TemporalKnowledgeGraph.TemporalGraph option, budget: BudgetGovernor option) =
     let recordBudget (tokens: int) =
         match budget with
         | Some governor ->
@@ -372,11 +372,10 @@ Output a single sentence suggestion."""
                             |> List.filter (fun node ->
                                 let name =
                                     match node with
-                                    | ModuleNode n -> n
-                                    | TypeNode n -> n
-                                    | FunctionNode n -> n
-                                    | FileNode n -> n
-                                    | Concept n -> n
+                                    | TarsEntity.CodeModuleE m -> m.Namespace
+                                    | TarsEntity.ConceptE c -> c.Name
+                                    | TarsEntity.FunctionE n -> n
+                                    | TarsEntity.FileE p -> p
                                     | _ -> ""
 
                                 let nameLower = name.ToLowerInvariant()
@@ -391,19 +390,23 @@ Output a single sentence suggestion."""
 
                             for node in relevantNodes do
                                 match node with
-                                | ModuleNode name -> sb.AppendLine($"- Module: {name}") |> ignore
-                                | TypeNode name -> sb.AppendLine($"- Type: {name}") |> ignore
-                                | FunctionNode name -> sb.AppendLine($"- Function: {name}") |> ignore
-                                | FileNode name -> sb.AppendLine($"- File: {name}") |> ignore
+                                | TarsEntity.CodeModuleE m -> sb.AppendLine($"- Module: {m.Namespace}") |> ignore
+                                | TarsEntity.ConceptE c -> sb.AppendLine($"- Concept: {c.Name}") |> ignore
+                                | TarsEntity.FunctionE n -> sb.AppendLine($"- Function: {n}") |> ignore
+                                | TarsEntity.FileE p -> sb.AppendLine($"- File: {p}") |> ignore
                                 | _ -> ()
 
                                 // Add immediate neighbors (e.g. what module a function is in)
-                                let neighbors = graph.GetNeighbors(node)
+                                let outgoing = graph.GetOutgoingFacts(node)
 
-                                for (neighbor, edge) in neighbors do
-                                    match neighbor, edge with
-                                    | ModuleNode n, Contains -> sb.AppendLine($"  - In Module: {n}") |> ignore
-                                    | FileNode n, Contains -> sb.AppendLine($"  - In File: {n}") |> ignore
+                                for fact in outgoing do
+                                    match fact with
+                                    | TarsFact.Contains(_, target) -> 
+                                        match target with
+                                        | TarsEntity.CodeModuleE m -> sb.AppendLine($"  - In Module: {m.Namespace}") |> ignore
+                                        | TarsEntity.FileE p -> sb.AppendLine($"  - In File: {p}") |> ignore
+                                        | _ -> ()
+                                    | TarsFact.BelongsTo(_, community) -> sb.AppendLine($"  - Community: {community}") |> ignore
                                     | _ -> ()
 
                             return sb.ToString()

@@ -84,6 +84,11 @@
     <Compile Include="SelfExtension\SelfExtensionService.fs" />
     <!-- Phase 12: Workflow of Thought -->
     <Compile Include="WorkflowOfThought\WotTypes.fs" />
+    <Compile Include="WorkflowOfThought\WotStep.fs" />
+    <Compile Include="WorkflowOfThought\ExecutionTypes.fs" />
+    <Compile Include="WorkflowOfThought\TraceTypes.fs" />
+    <Compile Include="WorkflowOfThought\VariableResolution.fs" />
+    <Compile Include="WorkflowOfThought\WotExecutor.fs" />
   </ItemGroup>
 
   <ItemGroup>

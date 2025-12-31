@@ -1,0 +1,43 @@
+meta {
+  name = "river_crossing"
+  description = "Solve the classic Wolf, Goat, and Cabbage river crossing puzzle."
+  domain = "state-space planning"
+  difficulty = "easy"
+}
+
+inputs {
+  puzzle_prompt = "A farmer needs to cross a river with a wolf, a goat, and a cabbage. The boat can only carry the farmer and one item at a time. If left alone, the wolf will eat the goat, and the goat will eat the cabbage. What sequence of crossings should the farmer make? List each step as: 'Take [item] across' or 'Return alone'. Start with Step 1."
+  puzzle_type = "river_crossing"
+}
+
+policy {
+  allowed_tools = ["validate_puzzle_answer"]
+  max_tool_calls = 3
+  max_tokens = 2048
+}
+
+workflow "solve_river_crossing" {
+  
+  node "think" kind="reason" {
+    goal = "Solve this puzzle step by step: ${puzzle_prompt}"
+    output = "solution"
+    constraints = ["show_reasoning_before_solution"]
+  }
+
+  node "validate" kind="work" {
+    tool = "validate_puzzle_answer"
+    args = { "puzzle_type": "${puzzle_type}", "answer": "${solution}" }
+    output = "validation_result"
+  }
+
+  node "verify" kind="work" {
+    input = ["validation_result"]
+    output = "final_verdict"
+    checks = [
+      { "type": "contains", "value": "${validation_result}", "needle": "PASS" }
+    ]
+  }
+
+  edge "think" -> "validate"
+  edge "validate" -> "verify"
+}

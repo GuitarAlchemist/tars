@@ -1,0 +1,43 @@
+meta {
+  name = "tower_of_hanoi"
+  description = "Classic recursive planning puzzle with 3 disks."
+  domain = "recursive planning"
+  difficulty = "easy"
+}
+
+inputs {
+  puzzle_prompt = "Solve the Tower of Hanoi with 3 disks. Rules: Move one disk at a time. A larger disk cannot be placed on a smaller disk. Move all disks from peg A to peg C. Disks are numbered 1 (smallest) to 3 (largest). Initial state: All disks on peg A (3 on bottom, 1 on top). List each move as: 'Move disk X from Y to Z'. What is the minimum number of moves, and what are they?"
+  puzzle_type = "tower_of_hanoi"
+}
+
+policy {
+  allowed_tools = ["validate_puzzle_answer"]
+  max_tool_calls = 3
+  max_tokens = 2048
+}
+
+workflow "solve_hanoi" {
+  
+  node "think" kind="reason" {
+    goal = "Solve this puzzle step by step: ${puzzle_prompt}"
+    output = "solution"
+    constraints = ["show_reasoning", "list_steps"]
+  }
+
+  node "validate" kind="work" {
+    tool = "validate_puzzle_answer"
+    args = { "puzzle_type": "${puzzle_type}", "answer": "${solution}" }
+    output = "validation_result"
+  }
+
+  node "verify" kind="work" {
+    input = ["validation_result"]
+    output = "final_verdict"
+    checks = [
+      { "type": "contains", "value": "${validation_result}", "needle": "PASS" }
+    ]
+  }
+
+  edge "think" -> "validate"
+  edge "validate" -> "verify"
+}

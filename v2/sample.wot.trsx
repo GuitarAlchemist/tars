@@ -1,0 +1,58 @@
+meta {
+  name = "sample.wot.trsx"
+  description = "WoT Golden Path v0: deterministic analysis workflow"
+  version = "0.1.2"
+  risk = "low"
+}
+
+inputs {
+  target_file = "src/Tars.Core/Example.fs"
+}
+
+policy {
+  allowed_tools = ["analyze_file_complexity"]
+  max_tool_calls = 1
+  max_tokens = 1200
+  max_time_ms = 30000
+}
+
+workflow "wot_golden_path_v0" {
+
+  node "plan" kind="reason" {
+    goal = "Propose exactly ONE safe refactor step for the target file, without editing any files."
+    output = "draft_plan"
+    constraints = ["one_step_only", "no_file_write", "no_core_modification"]
+  }
+
+  node "critique" kind="reason" {
+    input = ["draft_plan"]
+    output = "reviewed_plan"
+    invariants = ["uses_only_allowed_tools", "budget_within_limits", "one_step_only"]
+  }
+
+  node "analyze" kind="work" {
+    tool = "analyze_file_complexity"
+    args = { "path": "${target_file}" }
+    output = "analysis_md"
+  }
+
+  node "verify" kind="work" {
+    input = ["analysis_md"]
+    output = "verification"
+    checks = [
+      { "type": "non_empty", "value": "${analysis_md}" },
+      { "type": "contains", "value": "${analysis_md}", "needle": "| Cyclomatic Complexity |" }
+    ]
+  }
+
+  node "distill" kind="reason" {
+    input = ["reviewed_plan", "analysis_md", "verification"]
+    output = "final_summary"
+    verdict = "SUCCESS_IF verification.passed ELSE NEEDS_HUMAN"
+  }
+
+  edge "plan" -> "critique"
+  edge "critique" -> "analyze"
+  edge "analyze" -> "verify"
+  edge "verify" -> "distill"
+}

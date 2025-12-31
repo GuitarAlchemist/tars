@@ -479,10 +479,7 @@ let run (logger: ILogger) (options: EvolveOptions) =
                 if options.DemoMode then
                     None
                 else
-                    // Create a legacy knowledge graph for code context retrieval
-                    // TODO: Migrate to TemporalKnowledgeGraph once EpistemicGovernor is updated
-                    let legacyGraph = LegacyKnowledgeGraph.TemporalGraph()
-                    Some(Tars.Cortex.EpistemicGovernor(llmService, Some legacyGraph, Some budget) :> IEpistemicGovernor)
+                    Some(Tars.Cortex.EpistemicGovernor(llmService, Some knowledgeGraph, Some budget) :> IEpistemicGovernor)
 
             // Initialize Output Guard
             let outputGuard = OutputGuard.defaultGuard

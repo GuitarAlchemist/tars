@@ -1,0 +1,24 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Tars.Security -> C:\Users\spare\source\repos\tars\v2\src\Tars.Security\bin\Debug\net10.0\Tars.Security.dll
+  Tars.Core -> C:\Users\spare\source\repos\tars\v2\src\Tars.Core\bin\Debug\net10.0\Tars.Core.dll
+  Tars.Llm -> C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\bin\Debug\net10.0\Tars.Llm.dll
+  Tars.Sandbox -> C:\Users\spare\source\repos\tars\v2\src\Tars.Sandbox\bin\Debug\net10.0\Tars.Sandbox.dll
+  Tars.Kernel -> C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\bin\Debug\net10.0\Tars.Kernel.dll
+  Tars.Symbolic -> C:\Users\spare\source\repos\tars\v2\src\Tars.Symbolic\bin\Debug\net10.0\Tars.Symbolic.dll
+  Tars.Knowledge -> C:\Users\spare\source\repos\tars\v2\src\Tars.Knowledge\bin\Debug\net10.0\Tars.Knowledge.dll
+  Tars.Connectors -> C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\bin\Debug\net10.0\Tars.Connectors.dll
+  Tars.Cortex -> C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\bin\Debug\net10.0\Tars.Cortex.dll
+  Tars.Metascript -> C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\bin\Debug\net10.0\Tars.Metascript.dll
+  Tars.Tools -> C:\Users\spare\source\repos\tars\v2\src\Tars.Tools\bin\Debug\net10.0\Tars.Tools.dll
+  Tars.Graph -> C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\bin\Debug\net10.0\Tars.Graph.dll
+  Tars.Evolution -> C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\bin\Debug\net10.0\Tars.Evolution.dll
+  Tars.Interface.Cli -> C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\bin\Debug\net10.0\Tars.Interface.Cli.dll
+  Tars.Tests -> C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\bin\Debug\net10.0\Tars.Tests.dll
+Test run for C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\bin\Debug\net10.0\Tars.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.1 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:     3, Skipped:     0, Total:     3, Duration: 512 ms - Tars.Tests.dll (net10.0)

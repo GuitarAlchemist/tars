@@ -1,0 +1,70 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Tars.Security -> C:\Users\spare\source\repos\tars\v2\src\Tars.Security\bin\Debug\net10.0\Tars.Security.dll
+  Tars.Core -> C:\Users\spare\source\repos\tars\v2\src\Tars.Core\bin\Debug\net10.0\Tars.Core.dll
+  Tars.Llm -> C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\bin\Debug\net10.0\Tars.Llm.dll
+  Tars.Sandbox -> C:\Users\spare\source\repos\tars\v2\src\Tars.Sandbox\bin\Debug\net10.0\Tars.Sandbox.dll
+  Tars.Kernel -> C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\bin\Debug\net10.0\Tars.Kernel.dll
+  Tars.Symbolic -> C:\Users\spare\source\repos\tars\v2\src\Tars.Symbolic\bin\Debug\net10.0\Tars.Symbolic.dll
+  Tars.Knowledge -> C:\Users\spare\source\repos\tars\v2\src\Tars.Knowledge\bin\Debug\net10.0\Tars.Knowledge.dll
+  Tars.Connectors -> C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\bin\Debug\net10.0\Tars.Connectors.dll
+  Tars.Cortex -> C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\bin\Debug\net10.0\Tars.Cortex.dll
+  Tars.Metascript -> C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\bin\Debug\net10.0\Tars.Metascript.dll
+  Tars.Tools -> C:\Users\spare\source\repos\tars\v2\src\Tars.Tools\bin\Debug\net10.0\Tars.Tools.dll
+  Tars.Graph -> C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\bin\Debug\net10.0\Tars.Graph.dll
+  Tars.Evolution -> C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\bin\Debug\net10.0\Tars.Evolution.dll
+  Tars.Interface.Cli -> C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\bin\Debug\net10.0\Tars.Interface.Cli.dll
+  Tars.Tests -> C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\bin\Debug\net10.0\Tars.Tests.dll
+Test run for C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\bin\Debug\net10.0\Tars.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.1 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:01.00]     Tars.Tests.VerifierAgentTests.Verifier rejects ambiguous belief (single contradiction) [FAIL]
+[xUnit.net 00:00:01.01]     Tars.Tests.VerifierAgentTests.Verifier rejects inconsistent belief (many contradictions) [FAIL]
+  Failed Tars.Tests.VerifierAgentTests.Verifier rejects ambiguous belief (single contradiction) [587 ms]
+  Error Message:
+   System.Exception : Expected Denied (Ambiguous), but got Accepted 1.0
+  Stack Trace:
+     at Tars.Tests.VerifierAgentTests.Pipe #1 input at line 42@66-2.Invoke(VerificationDecision _arg2) in C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\VerifierAgentTests.fs:line 68
+   at Microsoft.FSharp.Control.AsyncPrimitives.CallThenInvokeNoHijackCheck[a,b](AsyncActivation`1 ctxt, b result1, FSharpFunc`2 userCode) in D:\a\_work\1\s\src\fsharp\src\FSharp.Core\async.fs:line 527
+   at <StartupCode$Tars-Knowledge>.$VerifierAgent.Verify@45-1.Invoke(AsyncActivation`1 ctxt)
+   at Tars.Tests.VerifierAgentTests.Pipe #1 input at line 42@66-4.Invoke(AsyncActivation`1 ctxt)
+   at Microsoft.FSharp.Control.AsyncPrimitives.OnTaskCompleted[T](Task`1 completedTask, AsyncActivation`1 ctxt) in D:\a\_work\1\s\src\fsharp\src\FSharp.Core\async.fs:line 1225
+   at Tars.Tests.VerifierAgentTests.Pipe #1 input at line 42@50-5.Invoke(AsyncActivation`1 ctxt)
+   at Microsoft.FSharp.Control.Trampoline.Execute(FSharpFunc`2 firstAction) in D:\a\_work\1\s\src\fsharp\src\FSharp.Core\async.fs:line 112
+--- End of stack trace from previous location ---
+   at Microsoft.FSharp.Control.AsyncResult`1.Commit() in D:\a\_work\1\s\src\fsharp\src\FSharp.Core\async.fs:line 453
+   at Microsoft.FSharp.Control.AsyncPrimitives.QueueAsyncAndWaitForResultSynchronously[a](CancellationToken token, FSharpAsync`1 computation, FSharpOption`1 timeout) in D:\a\_work\1\s\src\fsharp\src\FSharp.Core\async.fs:line 1138
+   at Microsoft.FSharp.Control.AsyncPrimitives.RunSynchronously[T](CancellationToken cancellationToken, FSharpAsync`1 computation, FSharpOption`1 timeout) in D:\a\_work\1\s\src\fsharp\src\FSharp.Core\async.fs:line 1165
+   at Microsoft.FSharp.Control.FSharpAsync.RunSynchronously[T](FSharpAsync`1 computation, FSharpOption`1 timeout, FSharpOption`1 cancellationToken) in D:\a\_work\1\s\src\fsharp\src\FSharp.Core\async.fs:line 1514
+   at Tars.Tests.VerifierAgentTests.Verifier rejects ambiguous belief (single contradiction)() in C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\VerifierAgentTests.fs:line 70
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Tars.Tests.VerifierAgentTests.Verifier rejects inconsistent belief (many contradictions) [2 ms]
+  Error Message:
+   System.Exception : Expected Denied (Inconsistent), but got Accepted 1.0
+  Stack Trace:
+     at Tars.Tests.VerifierAgentTests.Pipe #1 input at line 74@110-5.Invoke(VerificationDecision _arg5) in C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\VerifierAgentTests.fs:line 112
+   at Microsoft.FSharp.Control.AsyncPrimitives.CallThenInvokeNoHijackCheck[a,b](AsyncActivation`1 ctxt, b result1, FSharpFunc`2 userCode) in D:\a\_work\1\s\src\fsharp\src\FSharp.Core\async.fs:line 527
+   at <StartupCode$Tars-Knowledge>.$VerifierAgent.Verify@45-1.Invoke(AsyncActivation`1 ctxt)
+   at Tars.Tests.VerifierAgentTests.Pipe #1 input at line 74@110-7.Invoke(AsyncActivation`1 ctxt)
+   at Microsoft.FSharp.Control.AsyncPrimitives.OnTaskCompleted[T](Task`1 completedTask, AsyncActivation`1 ctxt) in D:\a\_work\1\s\src\fsharp\src\FSharp.Core\async.fs:line 1225
+   at Tars.Tests.VerifierAgentTests.Pipe #1 input at line 74@94-8.Invoke(AsyncActivation`1 ctxt)
+   at Microsoft.FSharp.Control.AsyncPrimitives.OnTaskCompleted[T](Task`1 completedTask, AsyncActivation`1 ctxt) in D:\a\_work\1\s\src\fsharp\src\FSharp.Core\async.fs:line 1225
+   at Tars.Tests.VerifierAgentTests.Pipe #1 input at line 74@94-9.Invoke(AsyncActivation`1 ctxt)
+   at Microsoft.FSharp.Control.AsyncPrimitives.OnTaskCompleted[T](Task`1 completedTask, AsyncActivation`1 ctxt) in D:\a\_work\1\s\src\fsharp\src\FSharp.Core\async.fs:line 1225
+   at Tars.Tests.VerifierAgentTests.Pipe #1 input at line 74@94-10.Invoke(AsyncActivation`1 ctxt)
+   at Microsoft.FSharp.Control.AsyncPrimitives.OnTaskCompleted[T](Task`1 completedTask, AsyncActivation`1 ctxt) in D:\a\_work\1\s\src\fsharp\src\FSharp.Core\async.fs:line 1225
+   at Tars.Tests.VerifierAgentTests.Pipe #1 input at line 74@94-11.Invoke(AsyncActivation`1 ctxt)
+   at Microsoft.FSharp.Control.Trampoline.Execute(FSharpFunc`2 firstAction) in D:\a\_work\1\s\src\fsharp\src\FSharp.Core\async.fs:line 112
+--- End of stack trace from previous location ---
+   at Microsoft.FSharp.Control.AsyncResult`1.Commit() in D:\a\_work\1\s\src\fsharp\src\FSharp.Core\async.fs:line 453
+   at Microsoft.FSharp.Control.AsyncPrimitives.QueueAsyncAndWaitForResultSynchronously[a](CancellationToken token, FSharpAsync`1 computation, FSharpOption`1 timeout) in D:\a\_work\1\s\src\fsharp\src\FSharp.Core\async.fs:line 1138
+   at Microsoft.FSharp.Control.AsyncPrimitives.RunSynchronously[T](CancellationToken cancellationToken, FSharpAsync`1 computation, FSharpOption`1 timeout) in D:\a\_work\1\s\src\fsharp\src\FSharp.Core\async.fs:line 1165
+   at Microsoft.FSharp.Control.FSharpAsync.RunSynchronously[T](FSharpAsync`1 computation, FSharpOption`1 timeout, FSharpOption`1 cancellationToken) in D:\a\_work\1\s\src\fsharp\src\FSharp.Core\async.fs:line 1514
+   at Tars.Tests.VerifierAgentTests.Verifier rejects inconsistent belief (many contradictions)() in C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\VerifierAgentTests.fs:line 114
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+
+Failed!  - Failed:     2, Passed:     1, Skipped:     0, Total:     3, Duration: 612 ms - Tars.Tests.dll (net10.0)

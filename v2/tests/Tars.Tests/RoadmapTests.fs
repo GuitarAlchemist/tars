@@ -140,7 +140,7 @@ module RoadmapTests =
             let result = channel.TryWrite(1)
 
             match result with
-            | Written -> Assert.True(true)
+            | Tars.Core.WriteResult.Written -> Assert.True(true)
             | _ -> Assert.Fail("Expected Written")
 
         [<Fact>]
@@ -152,7 +152,7 @@ module RoadmapTests =
             let result = channel.TryWrite(3)
 
             match result with
-            | Rejected _ -> Assert.True(true)
+            | Tars.Core.WriteResult.Rejected _ -> Assert.True(true)
             | _ -> Assert.Fail("Expected Rejected")
 
         [<Fact>]
@@ -164,7 +164,7 @@ module RoadmapTests =
             let result = channel.TryWrite(3)
 
             match result with
-            | Dropped _ -> Assert.True(true)
+            | Tars.Core.WriteResult.Dropped _ -> Assert.True(true)
             | _ -> Assert.Fail("Expected Dropped")
 
         [<Fact>]

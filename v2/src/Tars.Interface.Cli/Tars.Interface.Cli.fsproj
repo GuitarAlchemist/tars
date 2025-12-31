@@ -13,6 +13,9 @@
     <Compile Include="SpectreUI.fs" />
     <Compile Include="Tui.fs" />
     <Compile Include="ConfigurationLoader.fs" />
+    <Compile Include="Reasoning\GpuMonitor.fs" />
+    <Compile Include="Reasoning\CliReasoner.fs" />
+    <Compile Include="Reasoning\ReplayReasoner.fs" />
     <Compile Include="LlmFactory.fs" />
     <Compile Include="ConsoleHelpers.fs" />
     <Compile Include="Commands\AgentHelpers.fs" />
@@ -22,6 +25,7 @@
     <Compile Include="Commands\Ask.fs" />
     <Compile Include="Commands\TestGrammarCommand.fs" />
     <Compile Include="Commands\Memory.fs" />
+    <Compile Include="SpectreConsoleOutputAnalyzer.fs" />
     <Compile Include="Commands\GuardOutputCommand.fs" />
     <Compile Include="Commands\Demo.fs" />
     <Compile Include="Commands\MacroDemo.fs" />
@@ -49,6 +53,7 @@
     <Compile Include="Commands\SmokeTest.fs" />
     <Compile Include="Commands\NeuroSymbolicBenchmark.fs" />
     <Compile Include="Commands\Benchmark.fs" />
+    <Compile Include="Commands\WotCommand.fs" />
     <Compile Include="HealthCommand.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
@@ -64,6 +69,7 @@
     <ProjectReference Include="..\Tars.Knowledge\Tars.Knowledge.fsproj" />
     <ProjectReference Include="..\Tars.Llm\Tars.Llm.fsproj" />
     <ProjectReference Include="..\Tars.Metascript\Tars.Metascript.fsproj" />
+    <ProjectReference Include="..\Tars.DSL\Tars.DSL.fsproj" />
     <ProjectReference Include="..\Tars.Tools\Tars.Tools.fsproj" />
   </ItemGroup>
 

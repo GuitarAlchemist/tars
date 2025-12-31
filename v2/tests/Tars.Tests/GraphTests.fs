@@ -125,7 +125,10 @@ type GraphTests(output: ITestOutputHelper) =
               Tools = []
               Capabilities = []
               Memory = []
-              State = Tars.Core.Idle }
+              State = Tars.Core.Idle
+              Fitness = 0.0
+              Drives = { Accuracy = 0.5; Speed = 0.5; Creativity = 0.5; Safety = 0.5 }
+              Constitution = Tars.Core.AgentConstitution.Create(Tars.Core.AgentId(Guid.NewGuid()), Tars.Core.NeuralRole.GeneralReasoning) }
 
         let history: Tars.Core.Message list = []
 
@@ -153,13 +156,16 @@ type GraphTests(output: ITestOutputHelper) =
               Tools = []
               Capabilities = []
               Memory = []
-              State = Tars.Core.Idle }
+              State = Tars.Core.Idle
+              Fitness = 0.0
+              Drives = { Accuracy = 0.5; Speed = 0.5; Creativity = 0.5; Safety = 0.5 }
+              Constitution = Tars.Core.AgentConstitution.Create(Tars.Core.AgentId(Guid.NewGuid()), Tars.Core.NeuralRole.GeneralReasoning) }
 
         let history: Tars.Core.Message list =
             [ { Id = Guid.NewGuid()
                 CorrelationId = Tars.Core.CorrelationId(Guid.NewGuid())
-                Sender = Tars.Core.User
-                Receiver = Some Tars.Core.System
+                Sender = Tars.Core.MessageEndpoint.User
+                Receiver = Some Tars.Core.MessageEndpoint.System
                 Performative = Tars.Core.Inform
                 Intent = None
                 Constraints = Tars.Core.SemanticConstraints.Default
@@ -170,8 +176,8 @@ type GraphTests(output: ITestOutputHelper) =
                 Metadata = Map.empty }
               { Id = Guid.NewGuid()
                 CorrelationId = Tars.Core.CorrelationId(Guid.NewGuid())
-                Sender = Tars.Core.Agent(agent.Id)
-                Receiver = Some Tars.Core.User
+                Sender = Tars.Core.MessageEndpoint.Agent(agent.Id)
+                Receiver = Some Tars.Core.MessageEndpoint.User
                 Performative = Tars.Core.Inform
                 Intent = None
                 Constraints = Tars.Core.SemanticConstraints.Default
@@ -300,7 +306,10 @@ type GraphTests(output: ITestOutputHelper) =
               Tools = [ tool ]
               Capabilities = []
               Memory = []
-              State = Tars.Core.Idle }
+              State = Tars.Core.Idle
+              Fitness = 0.0
+              Drives = { Accuracy = 0.5; Speed = 0.5; Creativity = 0.5; Safety = 0.5 }
+              Constitution = Tars.Core.AgentConstitution.Create(Tars.Core.AgentId(Guid.NewGuid()), Tars.Core.NeuralRole.GeneralReasoning) }
 
         let prompt = PromptBuilder.buildSystemPrompt agent []
 

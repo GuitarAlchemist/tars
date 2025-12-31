@@ -1,0 +1,24 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Tars.Core -> C:\Users\spare\source\repos\tars\v2\src\Tars.Core\bin\Debug\net10.0\Tars.Core.dll
+  Tars.Symbolic -> C:\Users\spare\source\repos\tars\v2\src\Tars.Symbolic\bin\Debug\net10.0\Tars.Symbolic.dll
+  Tars.Llm -> C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\bin\Debug\net10.0\Tars.Llm.dll
+C:\Users\spare\source\repos\tars\v2\src\Tars.Knowledge\WikipediaExtractor.fs(37,28): error FS0039: The type 'ILlmService' does not define the field, constructor or member 'Generate'. [C:\Users\spare\source\repos\tars\v2\src\Tars.Knowledge\Tars.Knowledge.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Knowledge\WikipediaExtractor.fs(46,17): error FS0072: Lookup on object of indeterminate type based on information prior to this program point. A type annotation may be needed prior to this program point to constrain the type of the object. This may allow the lookup to be resolved. [C:\Users\spare\source\repos\tars\v2\src\Tars.Knowledge\Tars.Knowledge.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Knowledge\WikipediaExtractor.fs(97,50): error FS0001: Type mismatch. Expecting a    'ProposedAssertion list -> 'a array'    but given a    'ProposedAssertion list -> ProposedAssertion list'    The type ''a array' does not match the type 'ProposedAssertion list' [C:\Users\spare\source\repos\tars\v2\src\Tars.Knowledge\Tars.Knowledge.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Knowledge\IngestionPipeline.fs(93,27): error FS0001: This expression was expected to have type    'Result<BeliefId,string>'    but here has type    'AgentState' [C:\Users\spare\source\repos\tars\v2\src\Tars.Knowledge\Tars.Knowledge.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Knowledge\IngestionPipeline.fs(91,31): error FS0025: Incomplete pattern matches on this expression. [C:\Users\spare\source\repos\tars\v2\src\Tars.Knowledge\Tars.Knowledge.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Knowledge\IngestionPipeline.fs(135,24): error FS0001: This expression was expected to have type    'Result<IngestionResult,string>'    but here has type    'AgentState' [C:\Users\spare\source\repos\tars\v2\src\Tars.Knowledge\Tars.Knowledge.fsproj]
+
+Build FAILED.
+
+C:\Users\spare\source\repos\tars\v2\src\Tars.Knowledge\WikipediaExtractor.fs(37,28): error FS0039: The type 'ILlmService' does not define the field, constructor or member 'Generate'. [C:\Users\spare\source\repos\tars\v2\src\Tars.Knowledge\Tars.Knowledge.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Knowledge\WikipediaExtractor.fs(46,17): error FS0072: Lookup on object of indeterminate type based on information prior to this program point. A type annotation may be needed prior to this program point to constrain the type of the object. This may allow the lookup to be resolved. [C:\Users\spare\source\repos\tars\v2\src\Tars.Knowledge\Tars.Knowledge.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Knowledge\WikipediaExtractor.fs(97,50): error FS0001: Type mismatch. Expecting a    'ProposedAssertion list -> 'a array'    but given a    'ProposedAssertion list -> ProposedAssertion list'    The type ''a array' does not match the type 'ProposedAssertion list' [C:\Users\spare\source\repos\tars\v2\src\Tars.Knowledge\Tars.Knowledge.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Knowledge\IngestionPipeline.fs(93,27): error FS0001: This expression was expected to have type    'Result<BeliefId,string>'    but here has type    'AgentState' [C:\Users\spare\source\repos\tars\v2\src\Tars.Knowledge\Tars.Knowledge.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Knowledge\IngestionPipeline.fs(91,31): error FS0025: Incomplete pattern matches on this expression. [C:\Users\spare\source\repos\tars\v2\src\Tars.Knowledge\Tars.Knowledge.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Knowledge\IngestionPipeline.fs(135,24): error FS0001: This expression was expected to have type    'Result<IngestionResult,string>'    but here has type    'AgentState' [C:\Users\spare\source\repos\tars\v2\src\Tars.Knowledge\Tars.Knowledge.fsproj]
+    0 Warning(s)
+    6 Error(s)
+
+Time Elapsed 00:00:02.76

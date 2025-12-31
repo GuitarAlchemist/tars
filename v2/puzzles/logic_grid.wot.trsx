@@ -1,0 +1,43 @@
+meta {
+  name = "logic_grid"
+  description = "Logic Grid / Mini Zebra puzzle."
+  domain = "constraint satisfaction"
+  difficulty = "medium"
+}
+
+inputs {
+  puzzle_prompt = "Three friends (Alice, Bob, Carol) each have a different pet (cat, dog, fish) and drink a different beverage (tea, coffee, juice). Clues: 1. Alice does not have the dog. 2. The person with the cat drinks coffee. 3. Bob drinks tea. 4. Carol does not have the fish. Who has which pet and drinks what? Answer format: Alice: [pet], [drink]; Bob: [pet], [drink]; Carol: [pet], [drink]"
+  puzzle_type = "logic_grid"
+}
+
+policy {
+  allowed_tools = ["validate_puzzle_answer"]
+  max_tool_calls = 3
+  max_tokens = 2048
+}
+
+workflow "solve_logic_grid" {
+  
+  node "think" kind="reason" {
+    goal = "Solve this puzzle step by step: ${puzzle_prompt}"
+    output = "solution"
+    constraints = ["show_reasoning"]
+  }
+
+  node "validate" kind="work" {
+    tool = "validate_puzzle_answer"
+    args = { "puzzle_type": "${puzzle_type}", "answer": "${solution}" }
+    output = "validation_result"
+  }
+
+  node "verify" kind="work" {
+    input = ["validation_result"]
+    output = "final_verdict"
+    checks = [
+      { "type": "contains", "value": "${validation_result}", "needle": "PASS" }
+    ]
+  }
+
+  edge "think" -> "validate"
+  edge "validate" -> "verify"
+}

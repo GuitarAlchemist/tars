@@ -113,7 +113,10 @@ module EvolveIntegrationTests =
                   RunId = None
                   Logger = fun _ -> ()
                   Verbose = false
-                  ShowSemanticMessage = fun _ _ -> () }
+                  ShowSemanticMessage = fun _ _ -> ()
+                  Focus = None
+                  ToolRegistry = None
+                  ResearchEnhanced = false }
 
             let! nextState = Engine.step context state |> Async.AwaitTask
 

@@ -1,0 +1,9 @@
+{
+  "Name": "list_fsharp_files",
+  "Description": "Lists all .fs files in a specified directory using System.IO.Directory.GetFiles.",
+  "Version": "1.0.0",
+  "InputSchema": "{\u0022type\u0022:\u0022object\u0022,\u0022properties\u0022:{\u0022directoryPath\u0022:{\u0022type\u0022:\u0022string\u0022}},\u0022required\u0022:[\u0022directoryPath\u0022]}",
+  "OutputSchema": "{\u0022type\u0022:\u0022array\u0022,\u0022items\u0022:{\u0022type\u0022:\u0022string\u0022}}",
+  "ImplementationType": "FSharpScript",
+  "ImplementationValue": "open System.IO\nlet listFSharpFiles(directoryPath: string) =\n    try\n        Directory.GetFiles(directoryPath, \u0022*.fs\u0022)\n    with\n        | ex -\u003E printfn \u0022%s\u0022 ex.Message; []"
+}

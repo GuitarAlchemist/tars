@@ -705,9 +705,6 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                             |> List.map (fun t -> $"- {t.Name}: {t.Description}") 
                             |> String.concat "\n"
                         | None -> "No tools available."
-                    
-                    let codeContext = "" // Placeholder for future knowledge graph integration
-                    let memoryContext = "" // Placeholder for future semantic memory integration
 
                     let taskPrompt =
                         $"""[TASK]

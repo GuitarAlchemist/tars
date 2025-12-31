@@ -1,0 +1,58 @@
+╔═══════════════════════════════════════════════════════════╗
+║         TARS v2 - Production Validation Suite            ║
+╚═══════════════════════════════════════════════════════════╝
+
+[15:46:19] Testing: Full Solution Build...
+  ? PASS: Full Solution Build
+True
+[15:46:20] Testing: VerifierAgent Tests (3 tests)...
+  ? PASS: VerifierAgent Tests (3 tests)
+True
+[15:46:25] Testing: Metrics.toPrometheus() Function Exists...
+  ? PASS: Metrics.toPrometheus() Function Exists
+True
+[15:46:25] Testing: MetricsSettings in Configuration...
+  ? PASS: MetricsSettings in Configuration
+True
+[15:46:25] Testing: appsettings.json Contains Metrics...
+  ? PASS: appsettings.json Contains Metrics
+True
+[15:46:25] Testing: InfrastructureServer.fs Exists...
+  ? PASS: InfrastructureServer.fs Exists
+True
+[15:46:25] Testing: docker-compose.all.yml Exists...
+  ? PASS: docker-compose.all.yml Exists
+True
+[15:46:25] Testing: docker-compose.monitoring.yml Exists...
+  ? PASS: docker-compose.monitoring.yml Exists
+True
+[15:46:25] Testing: Prometheus Config Exists...
+  ? PASS: Prometheus Config Exists
+True
+[15:46:25] Testing: ReflectionAgent.fs Exists...
+  ? PASS: ReflectionAgent.fs Exists
+True
+[15:46:25] Testing: ConstraintScoring Contradiction Detection...
+  ? PASS: ConstraintScoring Contradiction Detection
+True
+[15:46:25] Testing: Live Server Health & Metrics Endpoints...
+    Starting TARS in background...
+    √ Health endpoint: degraded
+    Stopping TARS...
+  ? FAIL: Live Server Health & Metrics Endpoints
+    Error: Metrics response missing expected format
+[15:46:39] Testing: Tars.Interface.Cli.fsproj Contains InfrastructureServer...
+  ? PASS: Tars.Interface.Cli.fsproj Contains InfrastructureServer
+True
+[15:46:39] Testing: Tars.Knowledge.fsproj Contains ReflectionAgent...
+  ? PASS: Tars.Knowledge.fsproj Contains ReflectionAgent
+True
+
+╔═══════════════════════════════════════════════════════════╗
+║                   Validation Summary                      ║
+╚═══════════════════════════════════════════════════════════╝
+
+  ? Tests Passed: 13
+  ? Tests Failed: 1
+
+??  Some validation tests failed. Please review errors above.

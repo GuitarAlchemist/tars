@@ -1,0 +1,50 @@
+{
+    "name": "General Safety",
+    "description": "Standard safety constitution for general purpose agents. Prevents core modification and network access.",
+    "role": "GeneralReasoning",
+    "contract": {
+        "prohibitions": [
+            {
+                "type": "CannotModifyCore"
+            },
+            {
+                "type": "CannotDeleteData"
+            },
+            {
+                "type": "CannotAccessNetwork"
+            }
+        ],
+        "permissions": [
+            {
+                "type": "ReadCode",
+                "pattern": "*"
+            },
+            {
+                "type": "ModifyCode",
+                "pattern": "src/Tars.Playground/*"
+            },
+            {
+                "type": "CallTool",
+                "toolName": "analyze_file_complexity"
+            },
+            {
+                "type": "CallTool",
+                "toolName": "find_code_smells"
+            }
+        ],
+        "resourceBounds": [
+            {
+                "type": "MaxTokens",
+                "value": 8192
+            },
+            {
+                "type": "MaxCost",
+                "value": 2.0
+            },
+            {
+                "type": "MaxTimeMinutes",
+                "value": 5
+            }
+        ]
+    }
+}

@@ -396,6 +396,9 @@ let main argv =
             let subArgs = if args.Length > 2 then args.[2..] |> Array.toList else []
             return! SkillCommand.run subCmd subArgs
 
+        | args when args.Length > 0 && args.[0] = "wot" ->
+            return! WotCommand.execute (args |> Array.skip 1 |> Array.toList)
+
         | args when args.Length > 0 && args.[0] = "agent" ->
             let mutable options: AgentOptions = defaultOptions
             let mutable subCommand = "help"

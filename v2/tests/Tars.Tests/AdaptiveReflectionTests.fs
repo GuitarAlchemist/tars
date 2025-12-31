@@ -60,7 +60,10 @@ module AdaptiveReflectionTests =
           Tools = []
           Capabilities = []
           State = Idle
-          Memory = [] }
+          Memory = []
+          Fitness = 0.0
+          Drives = { Accuracy = 0.5; Speed = 0.5; Creativity = 0.5; Safety = 0.5 }
+          Constitution = AgentConstitution.Create(AgentId(Guid.NewGuid()), NeuralRole.GeneralReasoning) }
 
     [<Fact>]
     let ``Reflection loop stops when Epistemic Governor verifies solution`` () =
@@ -89,7 +92,10 @@ module AdaptiveReflectionTests =
                   RunId = None
                   Logger = fun _ -> ()
                   Verbose = false
-                  ShowSemanticMessage = fun _ _ -> () }
+                  ShowSemanticMessage = fun _ _ -> ()
+                  Focus = None
+                  ToolRegistry = None
+                  ResearchEnhanced = false }
 
             let taskDef =
                 { Id = Guid.NewGuid()
@@ -175,7 +181,10 @@ module AdaptiveReflectionTests =
                   RunId = None
                   Logger = fun _ -> ()
                   Verbose = false
-                  ShowSemanticMessage = fun _ _ -> () }
+                  ShowSemanticMessage = fun _ _ -> ()
+                  Focus = None
+                  ToolRegistry = None
+                  ResearchEnhanced = false }
 
             let taskDef =
                 { Id = Guid.NewGuid()

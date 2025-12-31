@@ -1,0 +1,73 @@
+{
+  "LastUpdated": "2025-12-30T03:30:08.7051430\u002B00:00",
+  "Extensions": [
+    {
+      "Id": "93c4d26d-cc5a-46e6-9df4-f22ca3e7eb67",
+      "Name": "list_fsharp_files",
+      "Type": "DynamicTool",
+      "Description": "Lists all .fs files in a specified directory using System.IO.Directory.GetFiles.",
+      "CreatedAt": "2025-12-30T03:30:08.7006322\u002B00:00",
+      "CreatedBy": "TARS",
+      "Version": "1.0.0",
+      "FilePath": "C:\\Users\\spare\\source\\repos\\tars\\v2\\tools\\generated\\list_fsharp_files.json",
+      "Status": "Active"
+    },
+    {
+      "Id": "5cb8661b-0d23-446b-952c-14c5cea6bbc2",
+      "Name": "list_fsharp_files",
+      "Type": "DynamicTool",
+      "Description": "Lists all .fs files in a specified directory.",
+      "CreatedAt": "2025-12-30T03:20:58.2851446\u002B00:00",
+      "CreatedBy": "TARS",
+      "Version": "1.0.0",
+      "FilePath": "C:\\Users\\spare\\source\\repos\\tars\\v2\\tools\\generated\\list_fsharp_files.json",
+      "Status": "Active"
+    },
+    {
+      "Id": "37c676a5-9a66-4d03-a40d-bd061af99282",
+      "Name": "INVARIANT",
+      "Type": "Grammar",
+      "Description": "DSL Block: Block for declaring constraint invariants",
+      "CreatedAt": "2025-12-27T05:04:52.3932017\u002B00:00",
+      "CreatedBy": "TARS",
+      "Version": "1.0",
+      "FilePath": "C:\\Users\\spare\\source\\repos\\tars\\v2\\grammars\\generated\\block_invariant.ebnf",
+      "Status": "Active"
+    },
+    {
+      "Id": "20cbc2f3-a676-424e-b4c9-6cfd137fbfb5",
+      "Name": "BELIEF",
+      "Type": "Grammar",
+      "Description": "DSL Block: Block for declaring beliefs with confidence and provenance",
+      "CreatedAt": "2025-12-27T05:04:44.5488151\u002B00:00",
+      "CreatedBy": "TARS",
+      "Version": "1.0",
+      "FilePath": "C:\\Users\\spare\\source\\repos\\tars\\v2\\grammars\\generated\\block_belief.ebnf",
+      "Status": "Active"
+    },
+    {
+      "Id": "bf42ffce-e4dd-47b8-9a64-b6aa9119f1cc",
+      "Name": "refactoring_plan",
+      "Type": "Grammar",
+      "Description": "Grammar for structured refactoring suggestions",
+      "CreatedAt": "2025-12-27T04:56:29.4956149\u002B00:00",
+      "CreatedBy": "TARS",
+      "Version": "1.0",
+      "FilePath": "C:\\Users\\spare\\source\\repos\\tars\\v2\\grammars\\generated\\refactoring_plan.ebnf",
+      "Status": "Active"
+    },
+    {
+      "Id": "677ff07d-921f-4e44-9a4d-db454c1b20b1",
+      "Name": "code_quality_check",
+      "Type": "Metascript",
+      "Description": "Analyzes F# code for quality issues and suggests improvements",
+      "CreatedAt": "2025-12-27T04:56:21.4440595\u002B00:00",
+      "CreatedBy": "TARS",
+      "Version": "1.0",
+      "FilePath": "C:\\Users\\spare\\source\\repos\\tars\\v2\\metascripts\\generated\\code_quality_check.tars",
+      "Status": "Active"
+    }
+  ],
+  "TotalCreated": 6,
+  "TotalActive": 6
+}

@@ -5,6 +5,7 @@
     <IsPackable>false</IsPackable>
     <GenerateProgramFile>true</GenerateProgramFile>
     <NoWarn>44;57</NoWarn>
+    <LangVersion>preview</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -85,8 +86,12 @@
     <Compile Include="TaskPrioritizationTests.fs" />
     <Compile Include="HealthCheckTests.fs" />
     <Compile Include="StructuredLoggingTests.fs" />
-    <!-- <Compile Include="GraphitiTypesTests.fs" /> -->
+
     <Compile Include="ReasoningAuditTests.fs" />
+    <Compile Include="WorkflowOfThought\WotCompilerTests.fs" />
+    <Compile Include="WorkflowOfThought\WotParsingIntegrationTests.fs" />
+    <Compile Include="WorkflowOfThought\WotGoldenRunTests.fs" />
+    <Compile Include="WorkflowOfThought\WotDiffTests.fs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -112,6 +117,7 @@
     <ProjectReference Include="..\..\src\Tars.Knowledge\Tars.Knowledge.fsproj" />
     <ProjectReference Include="..\..\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj" />
     <ProjectReference Include="..\..\src\Tars.Symbolic\Tars.Symbolic.fsproj" />
+    <ProjectReference Include="..\..\src\Tars.DSL\Tars.DSL.fsproj" />
   </ItemGroup>
 
 </Project>

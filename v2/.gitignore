@@ -9,6 +9,7 @@
 
 # TARS Artifacts (runtime generated)
 .tars/
+.wot/
 
 # Build logs and temp files
 *.log

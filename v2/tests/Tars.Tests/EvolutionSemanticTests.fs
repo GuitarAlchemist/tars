@@ -97,7 +97,10 @@ module EvolutionSemanticTests =
                   RunId = None
                   Logger = fun msg -> printfn "LOG: %s" msg
                   Verbose = true
-                  ShowSemanticMessage = fun _ _ -> () }
+                  ShowSemanticMessage = fun _ _ -> ()
+                  Focus = None
+                  ToolRegistry = None
+                  ResearchEnhanced = false }
 
             let state: EvolutionState =
                 { Generation = 0

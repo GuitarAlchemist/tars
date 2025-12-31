@@ -26,12 +26,17 @@ module ConstraintScoring =
 
             pairs
             |> List.exists (fun (pos, neg) ->
-                (s1.Contains(pos)
-                 && s2.Contains(neg)
-                 && s1.Replace(pos, "").Replace(neg, "") = s2.Replace(pos, "").Replace(neg, ""))
-                || (s2.Contains(pos)
-                    && s1.Contains(neg)
-                    && s2.Replace(pos, "").Replace(neg, "") = s1.Replace(pos, "").Replace(neg, "")))
+                let normalizeAndRemove (s: string) =
+                    // Replace negative term first (often longer/containing positive term)
+                    // Then positive term. Then strip spaces to ensure precise match.
+                    let clean = 
+                        if neg.Length > 0 then s.Replace(neg, "") else s
+                    let clean = 
+                        if pos.Length > 0 then clean.Replace(pos, "") else clean
+                    clean.Replace(" ", "")
+
+                (s1.Contains(pos) && s2.Contains(neg) && normalizeAndRemove s1 = normalizeAndRemove s2)
+                || (s2.Contains(pos) && s1.Contains(neg) && normalizeAndRemove s2 = normalizeAndRemove s1))
 
         let contradictions =
             existingBeliefs

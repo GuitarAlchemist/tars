@@ -1,0 +1,17 @@
+meta {
+    name = "INVARIANT_handler"
+    description = "Handler for INVARIANT block type"
+    author = "TARS-self-extension"
+    version = "1.0"
+}
+
+// This metascript processes the block content
+// and compiles it to the HybridBrain IR
+
+FSHARP(output="ir") {
+    // Block compilation logic
+    // Block type: INVARIANT
+    let content = "${block_content}"
+    // Return IR representation
+    content
+}
