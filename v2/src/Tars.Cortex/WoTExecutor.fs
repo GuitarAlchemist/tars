@@ -155,7 +155,15 @@ module WoTExecutor =
                 return Result.Error ex.Message
         }
 
-    /// Execute an Act node
+    /// Serialize tool args to a JSON string for tool invocation.
+    let private serializeToolArgs (args: Map<string, obj>) : string =
+        if args.IsEmpty then
+            "{}"
+        else
+            JsonSerializer.Serialize(args)
+
+    /// Execute an Act node — invokes the real tool if registered, otherwise
+    /// falls back to asking the LLM to simulate the tool call.
     let private executeAct
         (ctx: ExecutionContext)
         (id: string)
@@ -167,29 +175,54 @@ module WoTExecutor =
 
             match ctx.Tools.Get(toolName) with
             | Some tool ->
-                let input =
-                    if args.IsEmpty then
-                        ""
+                let input = serializeToolArgs args
+
+                try
+                    let! toolResult = tool.Execute(input)
+
+                    match toolResult with
+                    | Result.Ok output ->
+                        ctx.Logger $"[WoT] Tool %s{toolName} succeeded: %d{output.Length} chars"
+                        return Result.Ok output
+                    | Result.Error err ->
+                        ctx.Logger $"[WoT] Tool %s{toolName} failed: %s{err}"
+                        return Result.Error err
+                with ex ->
+                    let err = $"Tool %s{toolName} threw exception: %s{ex.Message}"
+                    ctx.Logger $"[WoT] %s{err}"
+                    return Result.Error err
+
+            | None ->
+                // Tool not registered — fall back to LLM simulation
+                ctx.Logger $"[WoT] Tool '%s{toolName}' not found, falling back to LLM simulation"
+
+                let argsDesc =
+                    if args.IsEmpty then "no arguments"
                     else
                         args
                         |> Map.toList
-                        |> List.map (fun (k, v) -> $"\"%s{k}\": \"{v}\"")
+                        |> List.map (fun (k, v) -> $"%s{k}=%O{v}")
                         |> String.concat ", "
-                        |> sprintf "{ %s }"
 
-                let! toolResult = tool.Execute(input)
+                let prompt =
+                    $"You are simulating the tool '%s{toolName}' with arguments: %s{argsDesc}.\n\
+                      Produce a plausible output for this tool call. Be concise and factual."
 
-                match toolResult with
-                | Result.Ok output ->
-                    ctx.Logger $"[WoT] Tool %s{toolName} succeeded: %d{output.Length} chars"
-                    return Result.Ok output
-                | Result.Error err ->
-                    ctx.Logger $"[WoT] Tool %s{toolName} failed: %s{err}"
+                let request: LlmRequest =
+                    { LlmRequest.Default with
+                        SystemPrompt = Some "You are TARS, an autonomous reasoning agent simulating a tool call."
+                        Messages = [ { Role = Role.User; Content = prompt } ]
+                        MaxTokens = Some 512
+                        Temperature = Some 0.3 }
+
+                try
+                    let! response = ctx.Llm.CompleteAsync(request) |> Async.AwaitTask
+                    ctx.Logger $"[WoT] LLM fallback for '%s{toolName}': %d{response.Text.Length} chars"
+                    return Result.Ok response.Text
+                with ex ->
+                    let err = $"Tool '%s{toolName}' not found and LLM fallback failed: %s{ex.Message}"
+                    ctx.Logger $"[WoT] %s{err}"
                     return Result.Error err
-            | None ->
-                let err = $"Tool not found: %s{toolName}"
-                ctx.Logger $"[WoT] %s{err}"
-                return Result.Error err
         }
 
     /// Execute an Observe node

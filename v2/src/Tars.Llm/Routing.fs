@@ -169,6 +169,7 @@ let chooseBackend (cfg: RoutingConfig) (req: LlmRequest) : RoutedBackend =
             || h.Contains("math", StringComparison.OrdinalIgnoreCase)
             || h.Contains("complex", StringComparison.OrdinalIgnoreCase)
             || h.Contains("step", StringComparison.OrdinalIgnoreCase)
+            || h.Contains("smart", StringComparison.OrdinalIgnoreCase)
             ->
             localRoute (cfg.ReasoningModel |> Option.defaultValue cfg.DefaultOllamaModel)
 

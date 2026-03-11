@@ -1,6 +1,7 @@
 namespace Tars.Interface.Cli.Commands
 
 open System
+open System.Threading
 open System.Threading.Tasks
 open Spectre.Console
 open Serilog
@@ -12,6 +13,7 @@ open Tars.Evolution
 open Tars.Interface.Cli
 open Tars.Interface.Cli.Reasoning
 open Tars.Tools
+open Tars.Cortex.WoTTypes
 
 module WotCommand =
 
@@ -34,6 +36,185 @@ module WotCommand =
                             return Result.Error $"Tool execution failed: {ex.Message}"
                 }
 
+    // =========================================================================
+    // Bridge: DSL Plan -> Cortex WoTPlan
+    // =========================================================================
+
+    /// Convert a compiled DSL Step into a Cortex WoTNode.
+    let private stepToWoTNode (step: Step) : WoTNode =
+        let kind, payload =
+            match step.Action with
+            | StepAction.Reason op ->
+                let prompt =
+                    match op with
+                    | ReasonOperation.Plan goal -> $"Plan: {goal}"
+                    | ReasonOperation.Generate topic -> $"Generate: {topic}"
+                    | ReasonOperation.Explain topic -> $"Explain: {topic}"
+                    | ReasonOperation.Critique(NodeId target) -> $"Critique the output of step '{target}'."
+                    | ReasonOperation.Synthesize sources ->
+                        let ids = sources |> List.map (fun (NodeId s) -> s) |> String.concat ", "
+                        $"Synthesize the outputs of: {ids}"
+                    | ReasonOperation.Rewrite(NodeId target, instruction) -> $"Rewrite output of '{target}': {instruction}"
+                    | ReasonOperation.Aggregate sources ->
+                        let ids = sources |> List.map (fun (NodeId s) -> s) |> String.concat ", "
+                        $"Aggregate: {ids}"
+                    | ReasonOperation.Refine(NodeId target) -> $"Refine the output of step '{target}'."
+                    | ReasonOperation.Contradict(NodeId target) -> $"Generate a counterargument to the output of step '{target}'."
+                    | ReasonOperation.Distill(NodeId target) -> $"Distill the key points from step '{target}'."
+                    | ReasonOperation.Backtrack(NodeId target) -> $"Reconsider and revise the approach taken in step '{target}'."
+                    | ReasonOperation.Score(NodeId target) -> $"Score the quality of step '{target}' output."
+                    | ReasonOperation.VerifyConsensus _ -> "Verify consensus among outputs."
+                WoTNodeKind.Reason, ({ ReasonPayload.Prompt = prompt; Hint = None } :> obj)
+
+            | StepAction.Work workOp ->
+                match workOp with
+                | WorkOperation.ToolCall(toolName, args) ->
+                    WoTNodeKind.Tool, ({ ToolPayload.Tool = toolName; Args = args } :> obj)
+                | WorkOperation.Verify checks ->
+                    let invariants =
+                        checks |> List.mapi (fun i check ->
+                            let op =
+                                match check with
+                                | WotCheck.NonEmpty _ -> VerificationOp.CustomOp "non_empty"
+                                | WotCheck.Contains(_, needle) -> VerificationOp.Contains needle
+                                | WotCheck.RegexMatch(_, pattern) -> VerificationOp.Regex pattern
+                                | WotCheck.SchemaMatch(_, schema) -> VerificationOp.Schema schema
+                                | WotCheck.ToolResult(tool, args, _) ->
+                                    VerificationOp.ToolCheck(tool, args |> Map.map (fun _ v -> v :> obj))
+                                | WotCheck.Threshold(metric, _, value) ->
+                                    VerificationOp.CustomOp $"threshold:{metric}:{value}"
+                            { WoTInvariant.Name = $"check_{i}"; Op = op; Weight = 1.0 })
+                    WoTNodeKind.Validate, ({ ValidatePayload.Invariants = invariants } :> obj)
+                | _ ->
+                    // For other work operations (Redact, Persist, Fetch, Transform),
+                    // map to a Reason node with description
+                    WoTNodeKind.Reason, ({ ReasonPayload.Prompt = $"Execute work operation: {workOp}"; Hint = None } :> obj)
+
+        let extraMeta =
+            step.Metadata
+            |> Map.fold (fun acc k v ->
+                match v with
+                | MStr s -> acc |> Map.add k s
+                | _ -> acc) Map.empty
+
+        { WoTNode.Id = step.Id
+          Kind = kind
+          Payload = payload
+          Metadata =
+            { Label = Some step.Id
+              Tags = []
+              Extra = extraMeta } }
+
+    /// Convert DSL Plan edges (implicit from step ordering) and metadata into WoTEdges.
+    let private stepsToWoTEdges (steps: Step list) : WoTEdge list =
+        steps
+        |> List.pairwise
+        |> List.map (fun (a, b) ->
+            { WoTEdge.From = a.Id
+              To = b.Id
+              Label = None
+              Confidence = None })
+
+    /// Bridge a compiled DSL Plan to a Cortex WoTPlan.
+    let private planToCortexWoTPlan (plan: Plan<Parsed>) : WoTPlan =
+        let nodes = plan.Steps |> List.map stepToWoTNode
+        let edges = stepsToWoTEdges plan.Steps
+        let entryNode = plan.Steps |> List.tryHead |> Option.map (fun s -> s.Id) |> Option.defaultValue ""
+        { WoTPlan.Id = Guid.NewGuid()
+          Nodes = nodes
+          Edges = edges
+          EntryNode = entryNode
+          Metadata =
+            { Kind = WorkflowOfThought
+              SourceGoal = plan.Goal
+              CompiledAt = DateTime.UtcNow
+              EstimatedTokens = None
+              EstimatedSteps = Some plan.Steps.Length }
+          Policy = plan.Policy.AllowedTools |> Set.toList }
+
+    /// Execute a plan through the Cortex WoTExecutor and print results.
+    let private executeCortex
+        (plan: Plan<Parsed>)
+        (llm: Tars.Llm.ILlmService)
+        (toolRegistry: ToolRegistry)
+        : Async<int> =
+        async {
+            let wotPlan = planToCortexWoTPlan plan
+            let cortexToolRegistry = toolRegistry :> IToolRegistry
+
+            let executor =
+                Tars.Cortex.WoTExecutor.DefaultWoTExecutor(llm, cortexToolRegistry)
+                :> IWoTExecutor
+
+            let agentCtx = AgentHelpers.createAgentContext (fun msg -> AnsiConsole.MarkupLine($"[dim]{Markup.Escape(msg)}[/]")) llm None
+
+            let mutable stepCount = 0
+
+            let onProgress (step: WoTTraceStep) =
+                stepCount <- stepCount + 1
+                let statusStr =
+                    match step.Status with
+                    | Completed(_, ms) -> $"[green]OK[/] ({ms}ms)"
+                    | Failed(err, ms) -> $"[red]FAIL[/] ({ms}ms): {Markup.Escape(err)}"
+                    | Skipped reason -> $"[yellow]SKIP[/]: {Markup.Escape(reason)}"
+                    | Pending -> "[dim]pending[/]"
+                    | Running -> "[blue]running[/]"
+                let outputPreview =
+                    match step.Output with
+                    | Some o when o.Length > 120 -> Markup.Escape(o.Substring(0, 120)) + "..."
+                    | Some o -> Markup.Escape(o)
+                    | None -> "[dim]<none>[/]"
+                AnsiConsole.MarkupLine($"  [{stepCount}] [bold]{Markup.Escape(step.NodeId)}[/] ({step.NodeType}) {statusStr}")
+                AnsiConsole.MarkupLine($"      Output: {outputPreview}")
+
+            AnsiConsole.MarkupLine($"[bold blue]Cortex WoT Executor[/] - {wotPlan.Nodes.Length} nodes")
+            AnsiConsole.MarkupLine("")
+
+            let! result = executor.ExecuteWithProgress(wotPlan, agentCtx, onProgress)
+
+            AnsiConsole.MarkupLine("")
+
+            // Print summary
+            if result.Success then
+                AnsiConsole.MarkupLine("[bold green]Execution Succeeded[/]")
+            else
+                AnsiConsole.MarkupLine("[bold red]Execution Failed[/]")
+
+            AnsiConsole.MarkupLine($"  Steps: {result.Metrics.TotalSteps} total, {result.Metrics.SuccessfulSteps} succeeded, {result.Metrics.FailedSteps} failed")
+            AnsiConsole.MarkupLine($"  Duration: {result.Metrics.TotalDurationMs}ms")
+            AnsiConsole.MarkupLine($"  Tokens: {result.Metrics.TotalTokens}")
+
+            if not result.ToolsUsed.IsEmpty then
+                let toolList = String.Join(", ", result.ToolsUsed)
+                AnsiConsole.MarkupLine($"  Tools Used: {toolList}")
+
+            if not result.Warnings.IsEmpty then
+                AnsiConsole.MarkupLine("[yellow]Warnings:[/]")
+                for w in result.Warnings do
+                    AnsiConsole.MarkupLine($"  - {Markup.Escape(w)}")
+
+            if not result.Errors.IsEmpty then
+                AnsiConsole.MarkupLine("[red]Errors:[/]")
+                for e in result.Errors do
+                    AnsiConsole.MarkupLine($"  - {Markup.Escape(e)}")
+
+            match result.CognitiveStateAfter with
+            | Some state ->
+                AnsiConsole.MarkupLine($"  Cognitive State: {state.Mode} (Entropy: {state.Entropy:F2}, Eigenvalue: {state.Eigenvalue:F2})")
+            | None -> ()
+
+            // Print final output
+            if not (String.IsNullOrWhiteSpace result.Output) then
+                AnsiConsole.MarkupLine("")
+                AnsiConsole.MarkupLine("[bold]Final Output:[/]")
+                let preview =
+                    if result.Output.Length > 2000 then result.Output.Substring(0, 2000) + "..."
+                    else result.Output
+                AnsiConsole.MarkupLine(Markup.Escape(preview))
+
+            return if result.Success then 0 else 1
+        }
+
     /// Options for run command
     type RunOptions =
         { Mode: ReasonStepMode
@@ -43,7 +224,8 @@ module WotCommand =
           MaxTokens: int option
           Deterministic: bool
           Seed: int option
-          ReplayRunId: string option }
+          ReplayRunId: string option
+          UseCortex: bool }
 
         static member Default =
             { Mode = ReasonStepMode.Stub
@@ -53,7 +235,8 @@ module WotCommand =
               MaxTokens = None
               Deterministic = false
               Seed = None
-              ReplayRunId = None }
+              ReplayRunId = None
+              UseCortex = false }
 
     type WotAction =
         | RunFile of path: string * options: RunOptions
@@ -94,6 +277,7 @@ module WotCommand =
                 match Int32.TryParse(s) with
                 | true, v -> parseOptions { acc with Seed = Some v } tail
                 | _ -> parseOptions acc tail
+            | "--cortex" :: tail -> parseOptions { acc with UseCortex = true } tail
             | _ :: tail -> parseOptions acc tail
 
         match args with
@@ -288,6 +472,7 @@ module WotCommand =
                 printfn "  --max-tokens <n>          Maximum tokens to generate"
                 printfn "  --deterministic           Force temp=0, seed=42"
                 printfn "  --seed <n>                Random seed for reproducibility"
+                printfn "  --cortex                  Use Cortex WoT Executor (LLM-backed, full tracing)"
                 printfn ""
                 printfn "Other Commands:"
                 printfn "  tars wot diff <runA> <runB>"
@@ -878,9 +1063,19 @@ module WotCommand =
                             return 1
                         | Result.Ok(plan: Tars.DSL.Wot.Plan<Tars.DSL.Wot.Parsed>) ->
                             AnsiConsole.MarkupLine(
-                                $"[green]Parsed & Compiled OK.[/] Goal: [bold]{Markup.Escape(plan.Goal)}[/]"
+                                $"[green]Parsed & Compiled OK.[/] Goal: [bold]{Markup.Escape(plan.Goal)}[/] ({plan.Steps.Length} steps)"
                             )
 
+                            // Cortex execution path: parse -> compile -> execute via Cortex WoTExecutor
+                            if opts.UseCortex then
+                                let cortexTools = ToolRegistry()
+                                cortexTools.RegisterAssembly(typeof<Tars.Tools.TarsToolAttribute>.Assembly)
+                                let llm = LlmFactory.create Log.Logger
+                                AnsiConsole.MarkupLine("[bold]Executing via Cortex WoT Executor...[/]")
+                                return! executeCortex plan llm cortexTools
+                            else
+
+                            // V0 execution path (default)
                             let tools = ToolRegistry()
                             tools.RegisterAssembly(typeof<Tars.Tools.TarsToolAttribute>.Assembly)
 

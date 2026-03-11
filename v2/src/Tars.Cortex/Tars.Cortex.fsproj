@@ -12,6 +12,7 @@
     <Compile Include="WoTTypes.fs" />
     <Compile Include="Verification.fs" />
     <Compile Include="GoldenTraceStore.fs" />
+    <Compile Include="RegressionChecker.fs" />
     <Compile Include="PatternCompiler.fs" />
     <Compile Include="PatternSelector.fs" />
     <Compile Include="CognitiveStateManager.fs" />

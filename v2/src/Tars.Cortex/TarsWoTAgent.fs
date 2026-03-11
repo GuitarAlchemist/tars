@@ -178,7 +178,22 @@ type TarsWoTAgent
                 { agentContext with
                     CancellationToken = ct }
 
-            return! executor.Execute(plan, ctx)
+            let! result = executor.Execute(plan, ctx)
+
+            // 5. Record outcome so pattern selection learns from real results
+            PatternOutcomeStore.record
+                { PatternKind = patternKind
+                  Goal = goal
+                  Success = result.Success
+                  DurationMs = result.Metrics.TotalDurationMs
+                  Timestamp = DateTime.UtcNow }
+
+            match selector with
+            | :? PatternSelector.HistoryAwareSelector as hist ->
+                hist.RecordOutcome(patternKind, goal, result.Success, result.Metrics.TotalDurationMs)
+            | _ -> ()
+
+            return result
         }
 
     /// <summary>
@@ -224,7 +239,22 @@ type TarsWoTAgent
             let onProgress (step: WoTTraceStep) =
                 progressQueue.Enqueue(step)
 
-            return! executor.ExecuteWithProgress(plan, ctx, onProgress)
+            let! result = executor.ExecuteWithProgress(plan, ctx, onProgress)
+
+            // Record outcome so pattern selection learns from real results
+            PatternOutcomeStore.record
+                { PatternKind = patternKind
+                  Goal = goal
+                  Success = result.Success
+                  DurationMs = result.Metrics.TotalDurationMs
+                  Timestamp = DateTime.UtcNow }
+
+            match selector with
+            | :? PatternSelector.HistoryAwareSelector as hist ->
+                hist.RecordOutcome(patternKind, goal, result.Success, result.Metrics.TotalDurationMs)
+            | _ -> ()
+
+            return result
         }
 
     // =========================================================================
@@ -296,6 +326,31 @@ type TarsWoTAgent
             let! result =
                 this.ExecuteWoT(goal, cancellationToken)
                 |> Async.StartAsTask
+
+            // --- Golden trace regression check ---
+            let regressionWarnings =
+                match RegressionChecker.checkRegression result goal with
+                | Some report when report.IsRegression ->
+                    let msg = RegressionChecker.formatReport report
+                    agentContext.Logger (sprintf "[WoT] %s" msg)
+                    report.Warnings
+                | Some _ ->
+                    agentContext.Logger "[WoT] Golden trace regression check: PASS"
+                    []
+                | None ->
+                    // No golden trace exists — try to promote this result
+                    match RegressionChecker.maybePromoteToGolden result goal with
+                    | Some (Result.Ok path) ->
+                        agentContext.Logger (sprintf "[WoT] New golden trace saved: %s" path)
+                    | Some (Result.Error err) ->
+                        agentContext.Logger (sprintf "[WoT] Failed to save golden trace: %s" err)
+                    | None -> ()
+                    []
+
+            // Merge regression warnings into the result
+            let result =
+                if regressionWarnings.IsEmpty then result
+                else { result with Warnings = result.Warnings @ regressionWarnings }
 
             // Track the result in the session
             wotSession |> Option.iter (fun s ->
