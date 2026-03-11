@@ -30,6 +30,81 @@ module WoTExecutor =
           Reflector: Tars.Core.ISymbolicReflector option }
 
     // =========================================================================
+    // Context Engineering: Progressive Context Disclosure
+    // =========================================================================
+
+    /// Select only tools relevant to the current step based on node type and prompt keywords.
+    let private selectRelevantTools (tools: Tars.Core.IToolRegistry) (node: WoTNode) : Tars.Core.Tool list =
+        let allTools = tools.GetAll()
+        match node.Kind with
+        | Tool ->
+            // For Tool nodes, only include the specific tool being called + related tools
+            match node.Payload with
+            | :? ToolPayload as payload ->
+                allTools
+                |> List.filter (fun t ->
+                    t.Name = payload.Tool
+                    || payload.Args |> Map.exists (fun _ v ->
+                        let vs = string v
+                        vs.Contains(t.Name)))
+            | _ -> allTools |> List.truncate 10
+        | Reason ->
+            // For Reason nodes, include tools whose descriptions match prompt keywords
+            match node.Payload with
+            | :? ReasonPayload as payload ->
+                let promptLower = payload.Prompt.ToLowerInvariant()
+                let keywords =
+                    promptLower.Split([|' '; ','; '.'; '?'; '!'|], System.StringSplitOptions.RemoveEmptyEntries)
+                let relevant =
+                    allTools
+                    |> List.filter (fun t ->
+                        let descLower = t.Description.ToLowerInvariant()
+                        keywords |> Array.exists (fun kw -> kw.Length > 3 && descLower.Contains(kw)))
+                if relevant.IsEmpty then allTools |> List.truncate 5
+                else relevant |> List.truncate 15
+            | _ -> allTools |> List.truncate 10
+        | Validate -> [] // Validation nodes don't need tools
+        | Memory ->
+            allTools
+            |> List.filter (fun t ->
+                t.Name.Contains("memory")
+                || t.Name.Contains("search")
+                || t.Name.Contains("know"))
+        | Control -> [] // Control nodes don't need tools
+
+    /// Build a focused system prompt for the current step, including only relevant previous outputs.
+    let private buildStepContext
+        (node: WoTNode)
+        (edges: WoTEdge list)
+        (stepOutputs: Map<string, string>)
+        : string =
+        let contextParts = ResizeArray<string>()
+
+        // Find which node IDs feed into the current node via edges
+        let incomingIds =
+            edges
+            |> List.filter (fun e -> e.To = node.Id)
+            |> List.map (fun e -> e.From)
+            |> Set.ofList
+
+        // Select only outputs from upstream nodes (or all if no edges exist)
+        let relevantOutputs =
+            if incomingIds.IsEmpty then
+                // No explicit edges — include nothing extra (rely on sequential lastOutput)
+                Map.empty
+            else
+                stepOutputs
+                |> Map.filter (fun key _ -> incomingIds.Contains(key))
+
+        if not relevantOutputs.IsEmpty then
+            contextParts.Add("Previous results:")
+            for KeyValue(key, value) in relevantOutputs do
+                let preview = if value.Length > 500 then value.[..499] + "..." else value
+                contextParts.Add(sprintf "  [%s]: %s" key preview)
+
+        String.concat "\n" contextParts
+
+    // =========================================================================
     // Node Execution
     // =========================================================================
 
@@ -39,6 +114,7 @@ module WoTExecutor =
         (id: string)
         (prompt: string)
         (hint: ModelHint option)
+        (stepContext: string)
         : Async<Result<string, string>> =
         async {
             let promptPreview =
@@ -57,11 +133,16 @@ module WoTExecutor =
                 | Some(Specific m) -> Some m
                 | None -> None
 
+            // Progressive context: prepend relevant step context to the prompt
+            let enrichedPrompt =
+                if String.IsNullOrWhiteSpace(stepContext) then prompt
+                else sprintf "%s\n\n%s" stepContext prompt
+
             let request: LlmRequest =
                 { LlmRequest.Default with
                     ModelHint = modelHint
                     SystemPrompt = Some "You are TARS, an autonomous reasoning agent."
-                    Messages = [ { Role = Role.User; Content = prompt } ]
+                    Messages = [ { Role = Role.User; Content = enrichedPrompt } ]
                     MaxTokens = Some 1024
                     Temperature = Some 0.7 }
 
@@ -156,7 +237,7 @@ Options:
 
 Respond with ONLY the number of your choice."""
 
-            let! result = executeThink ctx id prompt (Some Fast)
+            let! result = executeThink ctx id prompt (Some Fast) ""
 
             match result with
             | Result.Ok response ->
@@ -272,6 +353,8 @@ Respond with ONLY the number of your choice."""
         (ctx: ExecutionContext)
         (node: WoTNode)
         (lastOutput: string)
+        (edges: WoTEdge list)
+        (stepOutputs: Map<string, string>)
         : Async<WoTTraceStep * string> =
         async {
             let sw = Stopwatch.StartNew()
@@ -280,11 +363,19 @@ Respond with ONLY the number of your choice."""
 
             let nodeType = node.Kind.ToString()
 
+            // Progressive context disclosure: build focused context for this step
+            let stepContext = buildStepContext node edges stepOutputs
+            let relevantTools = selectRelevantTools ctx.Tools node
+            let toolCount = relevantTools |> List.length
+            let allToolCount = ctx.Tools.GetAll() |> List.length
+            if toolCount < allToolCount then
+                ctx.Logger $"[WoT] Context: %d{toolCount}/%d{allToolCount} tools selected for %s{nodeType} node %s{id}"
+
             let! result =
                 match node.Kind with
                 | Reason ->
                     match node.Payload with
-                    | :? ReasonPayload as p -> executeThink ctx id p.Prompt p.Hint
+                    | :? ReasonPayload as p -> executeThink ctx id p.Prompt p.Hint stepContext
                     | _ -> async { return Result.Error "Invalid Reason Payload" }
 
                 | Tool ->
@@ -364,10 +455,17 @@ Respond with ONLY the number of your choice."""
                 ()
             | None -> ()
 
+            // Track per-node outputs for progressive context disclosure
+            let mutable stepOutputs: Map<string, string> = Map.empty
+
             // Simple sequential execution
             for node in plan.Nodes do
                 if not ctx.CancellationToken.IsCancellationRequested then
-                    let! (step, output) = executeNode ctx node currentOutput
+                    let! (step, output) = executeNode ctx node currentOutput plan.Edges stepOutputs
+
+                    // Record this node's output for downstream context
+                    let nodeId = PatternCompiler.nodeId node
+                    stepOutputs <- stepOutputs |> Map.add nodeId output
 
                     // Record step in KG
                     match ctx.KnowledgeGraph with

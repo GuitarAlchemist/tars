@@ -11,6 +11,7 @@
     <Compile Include="ReasoningPattern.fs" />
     <Compile Include="WoTTypes.fs" />
     <Compile Include="Verification.fs" />
+    <Compile Include="GoldenTraceStore.fs" />
     <Compile Include="PatternCompiler.fs" />
     <Compile Include="PatternSelector.fs" />
     <Compile Include="CognitiveStateManager.fs" />
@@ -19,7 +20,6 @@
     <Compile Include="TarsWoTAgent.fs" />
     <Compile Include="ToolAwareChatClient.fs" />
     <Compile Include="AgentOrchestrator.fs" />
-    <Compile Include="GoldenTraceStore.fs" />
     <Compile Include="VectorStore.fs" />
     <Compile Include="InMemoryVectorStore.fs" />
     <Compile Include="SqliteVectorStore.fs" />

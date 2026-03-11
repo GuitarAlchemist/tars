@@ -42,7 +42,8 @@ module WotCompilerTests =
                 [ "plan", "critique"
                   "critique", "analyze"
                   "analyze", "verify"
-                  "verify", "distill" ] }
+                  "verify", "distill" ]
+              ParallelGroups = [] }
 
         // Act
         let result = compileWorkflowToPlanParsed wf
@@ -98,7 +99,8 @@ module WotCompilerTests =
                 [ mkNode "A" NodeKind.Reason []
                   mkNode "B" NodeKind.Reason []
                   mkNode "C" NodeKind.Reason [] ]
-              Edges = [ "A", "B"; "B", "C" ] }
+              Edges = [ "A", "B"; "B", "C" ]
+              ParallelGroups = [] }
 
         // Correct baseline
         match compileWorkflowToPlanParsed wf with

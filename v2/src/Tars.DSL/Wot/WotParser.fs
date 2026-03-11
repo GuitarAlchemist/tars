@@ -197,7 +197,8 @@ module WotParser =
           Args: Map<string, string>
           ChecksLines: string list
           Verdict: string option
-          Agent: string option }
+          Agent: string option
+          Condition: string option }
 
     let private emptyNode id =
         { Id = id
@@ -211,7 +212,8 @@ module WotParser =
           Args = Map.empty
           ChecksLines = []
           Verdict = None
-          Agent = None }
+          Agent = None
+          Condition = None }
 
     let parseLines (lines: string list) : Result<DslWorkflow, ParseError list> =
             let errors = ResizeArray<ParseError>()
@@ -234,6 +236,7 @@ module WotParser =
 
             let nodes = ResizeArray<NodeBlock>()
             let edges = ResizeArray<string * string>()
+            let parallelGroups = ResizeArray<ParallelGroup>()
 
             // Node parsing state
             let mutable inWorkflow = false
@@ -241,6 +244,11 @@ module WotParser =
             let mutable inChecksArray = false
             let mutable checksBuffer = ResizeArray<string>()
             let mutable checksStartLine = 0
+
+            // Parallel block parsing state
+            let mutable inParallelBlock = false
+            let mutable parallelNodeIds = ResizeArray<string>()
+            let mutable parallelGroupCounter = 0
 
             let flushChecksIfNeeded (lineNo: int) =
                 match currentNode with
@@ -264,6 +272,9 @@ module WotParser =
                 match currentNode with
                 | Some nb ->
                     nodes.Add nb
+                    // Track node ID if inside a parallel block
+                    if inParallelBlock then
+                        parallelNodeIds.Add(nb.Id)
                     currentNode <- None
                     inChecksArray <- false
                     checksBuffer.Clear()
@@ -299,8 +310,16 @@ module WotParser =
                         currentNode.IsSome
                     then
                         flushNode lineNo
+                    else if inParallelBlock then
+                        // Closing a parallel block - finalize the group
+                        if parallelNodeIds.Count > 0 then
+                            parallelGroups.Add(
+                                { GroupId = $"parallel_{parallelGroupCounter}"
+                                  NodeIds = List.ofSeq parallelNodeIds })
+                        inParallelBlock <- false
+                        parallelNodeIds.Clear()
                     // If we were in Meta/Inputs/Policy, closing brace returns to none unless workflow keeps us.
-                    if section <> Section.WorkflowSection then
+                    elif section <> Section.WorkflowSection then
                         section <- Section.NoSection
                 else
                     match section with
@@ -363,8 +382,15 @@ module WotParser =
                             )
 
                     | Section.WorkflowSection ->
+                        // PARALLEL block: parallel { ... }
+                        if startsWith "parallel" line && line.EndsWith("{") then
+                            flushNode lineNo
+                            inParallelBlock <- true
+                            parallelNodeIds.Clear()
+                            parallelGroupCounter <- parallelGroupCounter + 1
+
                         // Flexible node header: node "id" kind="kind" agent="Agent" { OR node id {
-                        if startsWith "node" line && line.Contains("{") then
+                        elif startsWith "node" line && line.Contains("{") then
                             flushNode lineNo
 
                             // Try full header with agent: node "id" kind="kind" agent="agent" {
@@ -464,6 +490,7 @@ module WotParser =
                                                     Constraints = parseStringList v }
                                     | Some("tool", v) -> currentNode <- Some { nb with Tool = Some v }
                                     | Some("verdict", v) -> currentNode <- Some { nb with Verdict = Some v }
+                                    | Some("condition", v) -> currentNode <- Some { nb with Condition = Some v }
                                     | Some("args", vRaw) ->
                                         // args = { "k": "v", "k2": "v2" }
                                         try
@@ -573,6 +600,7 @@ module WotParser =
                           Invariants = nb.Invariants
                           Constraints = nb.Constraints
                           Verdict = nb.Verdict
+                          Condition = nb.Condition
                           Agent =
                             match nb.Agent with
                             | Some a -> ByRole a
@@ -600,6 +628,7 @@ module WotParser =
                           Invariants = nb.Invariants
                           Constraints = nb.Constraints
                           Verdict = nb.Verdict
+                          Condition = nb.Condition
                           Agent =
                             match nb.Agent with
                             | Some a -> ByRole a
@@ -628,7 +657,8 @@ module WotParser =
                       MaxTokens = maxTokens
                       MaxTimeMs = maxTimeMs }
                   Nodes = wfNodes
-                  Edges = wfEdges }
+                  Edges = wfEdges
+                  ParallelGroups = List.ofSeq parallelGroups }
 
             if errors.Count > 0 then
                 Error(List.ofSeq errors)

@@ -171,6 +171,10 @@ type DslNode =
       Constraints: string list
       Verdict: string option
 
+      // Conditional execution: expression like "${confidence} > 0.7"
+      // When set, the node only executes if the condition evaluates to true.
+      Condition: string option
+
       // GoT-specific
       Agent: NodeAgent
       Transformation: GoTTransformation option
@@ -180,6 +184,17 @@ type DslNode =
       RequiresEvidence: bool
       EvidenceRefs: string list
       Metadata: Meta } // Extensible metadata
+
+// -----------------------------------------------------------------------------
+// Parallel Execution Groups
+// -----------------------------------------------------------------------------
+
+/// A group of node IDs that should execute concurrently.
+/// During compilation, nodes in a parallel group get fan-out edges from
+/// the predecessor and fan-in edges to the successor.
+type ParallelGroup =
+    { GroupId: string
+      NodeIds: DslId list }
 
 // -----------------------------------------------------------------------------
 // Layer 4: Evolution / Reflection Metadata
@@ -234,6 +249,7 @@ type DslWorkflowAdvanced =
       Inputs: DslInputs
       Nodes: DslNode list
       Edges: DslEdge list // Typed edges
+      ParallelGroups: ParallelGroup list
       OutputDeliverables: string list
       Evolution: DslEvolutionMetadata // Layer 4: evolution/lineage tracking
       Metadata: Meta } // Workflow-level metadata
@@ -249,7 +265,8 @@ type DslWorkflow =
       Inputs: DslInputs
       Policy: DslPolicy
       Nodes: DslNode list
-      Edges: (DslId * DslId) list }
+      Edges: (DslId * DslId) list
+      ParallelGroups: ParallelGroup list }
 
 // -----------------------------------------------------------------------------
 // Conversion Helpers
@@ -289,6 +306,7 @@ module DslConvert =
           Invariants = []
           Constraints = []
           Verdict = None
+          Condition = None
           Agent = Default
           Transformation = None
           StructuredOutput = None

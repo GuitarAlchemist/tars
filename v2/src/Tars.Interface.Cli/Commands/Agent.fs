@@ -610,24 +610,8 @@ let runMaf
                 // Create pattern compiler
                 let compiler = PatternCompiler.DefaultPatternCompiler() :> IPatternCompiler
 
-                // Create inline pattern selector
-                let selector =
-                    { new IPatternSelector with
-                        member _.Recommend(goal, _state) =
-                            let g = goal.ToLowerInvariant()
-                            if g.Contains("step by step") || g.Contains("explain") then
-                                ChainOfThought
-                            elif g.Contains("search") || g.Contains("find") || g.Contains("look up") then
-                                ReAct
-                            elif g.Contains("compare") || g.Contains("alternatives") then
-                                GraphOfThoughts
-                            elif g.Contains("explore") || g.Contains("brainstorm") then
-                                TreeOfThoughts
-                            else
-                                ChainOfThought
-                        member _.Score(_goal) =
-                            [ ChainOfThought, 0.5; ReAct, 0.3; GraphOfThoughts, 0.2; TreeOfThoughts, 0.2 ]
-                            |> Map.ofList }
+                // Create history-aware pattern selector (boosted by golden traces)
+                let selector = PatternSelector.HistoryAwareSelector() :> IPatternSelector
 
                 // Create agent context
                 let agentCtx = createAgentContext logger llmWithEvidence None
@@ -684,6 +668,198 @@ let runMaf
                 return 1
     }
 
+/// Run a sequential multi-agent pipeline
+let runPipeline
+    (config: Microsoft.Extensions.Configuration.IConfiguration)
+    (options: AgentOptions)
+    (goal: string)
+    =
+    task {
+        printfn "🔗 TARS Agent - Pipeline Mode (Analyzer -> Coder -> Reviewer)"
+        printfn "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        printfn $"Goal: %s{goal}"
+        printfn ""
+
+        match createLlmService config with
+        | Result.Error msg ->
+            printfn $"❌ %s{msg}"
+            return 1
+        | Result.Ok(llm, _modelName) ->
+            try
+                let llmWithEvidence, evidenceHandle = attachEvidence "pipeline" llm options
+
+                let! evidence =
+                    match evidenceHandle with
+                    | Some handle ->
+                        task {
+                            let! value = handle
+                            return Some value
+                        }
+                    | None -> Task.FromResult None
+
+                let toolRegistry = ToolRegistry()
+                toolRegistry.RegisterAssembly(typeof<ToolRegistry>.Assembly)
+                let tools = toolRegistry :> IToolRegistry
+
+                let logger msg =
+                    if options.Verbose then
+                        printfn $"  [LOG] %s{msg}"
+
+                let executor = WoTExecutor.createExecutor llmWithEvidence tools
+                let compiler = PatternCompiler.DefaultPatternCompiler() :> IPatternCompiler
+
+                let cotSelector =
+                    { new IPatternSelector with
+                        member _.Recommend(_goal, _state) = ChainOfThought
+                        member _.Score(_goal) = [ ChainOfThought, 1.0 ] |> Map.ofList }
+
+                let reactSelector =
+                    { new IPatternSelector with
+                        member _.Recommend(_goal, _state) = ReAct
+                        member _.Score(_goal) = [ ReAct, 1.0 ] |> Map.ofList }
+
+                let analyzerCtx = createAgentContext logger llmWithEvidence None
+                let coderCtx = createAgentContext logger llmWithEvidence None
+                let reviewerCtx = createAgentContext logger llmWithEvidence None
+
+                let analyzer = TarsWoTAgent(executor, compiler, cotSelector, analyzerCtx, name = "Analyzer", description = "Analyzes problems and identifies patterns")
+                let coder = TarsWoTAgent(executor, compiler, reactSelector, coderCtx, name = "Coder", description = "Implements solutions using ReAct")
+                let reviewer = TarsWoTAgent(executor, compiler, cotSelector, reviewerCtx, name = "Reviewer", description = "Reviews and critiques solutions")
+
+                let orchestrator = AgentOrchestrator()
+                orchestrator.Register(analyzer, [ "analysis"; "patterns"; "understanding" ], priority = 10)
+                orchestrator.Register(coder, [ "coding"; "implementation"; "tools" ], priority = 10)
+                orchestrator.Register(reviewer, [ "review"; "critique"; "quality" ], priority = 10)
+
+                printfn "🔄 Running pipeline: Analyzer -> Coder -> Reviewer"
+                printfn ""
+
+                let! results = orchestrator.Pipeline(["Analyzer"; "Coder"; "Reviewer"], goal)
+
+                printfn ""
+                printfn "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+                match evidence with
+                | Some(recorder, path) ->
+                    do! recorder.SaveToFileAsync(path) |> Async.StartAsTask
+                    printfn $"📒 Evidence saved: %s{path}"
+                | None -> ()
+
+                for r in results do
+                    printfn $"🤖 Agent: %s{r.AgentName} | Duration: %d{r.DurationMs}ms | Success: %b{r.Success}"
+                    printfn $"   %s{r.Response.[..min 200 (r.Response.Length - 1)]}"
+                    printfn ""
+
+                let allSuccess = results |> List.forall (fun r -> r.Success)
+                if allSuccess then
+                    printfn "✅ Pipeline completed successfully!"
+                    return 0
+                else
+                    printfn "❌ Pipeline had failures"
+                    return 1
+            with ex ->
+                printfn $"❌ Exception: %s{ex.Message}"
+                if options.Verbose && ex.InnerException <> null then
+                    printfn $"   Inner: %s{ex.InnerException.Message}"
+                return 1
+    }
+
+/// Run agents in parallel (fan-out) on the same goal
+let runFanOut
+    (config: Microsoft.Extensions.Configuration.IConfiguration)
+    (options: AgentOptions)
+    (goal: string)
+    =
+    task {
+        printfn "🌀 TARS Agent - Fan-Out Mode (Analyzer | Coder | Reviewer)"
+        printfn "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        printfn $"Goal: %s{goal}"
+        printfn ""
+
+        match createLlmService config with
+        | Result.Error msg ->
+            printfn $"❌ %s{msg}"
+            return 1
+        | Result.Ok(llm, _modelName) ->
+            try
+                let llmWithEvidence, evidenceHandle = attachEvidence "fanout" llm options
+
+                let! evidence =
+                    match evidenceHandle with
+                    | Some handle ->
+                        task {
+                            let! value = handle
+                            return Some value
+                        }
+                    | None -> Task.FromResult None
+
+                let toolRegistry = ToolRegistry()
+                toolRegistry.RegisterAssembly(typeof<ToolRegistry>.Assembly)
+                let tools = toolRegistry :> IToolRegistry
+
+                let logger msg =
+                    if options.Verbose then
+                        printfn $"  [LOG] %s{msg}"
+
+                let executor = WoTExecutor.createExecutor llmWithEvidence tools
+                let compiler = PatternCompiler.DefaultPatternCompiler() :> IPatternCompiler
+
+                let cotSelector =
+                    { new IPatternSelector with
+                        member _.Recommend(_goal, _state) = ChainOfThought
+                        member _.Score(_goal) = [ ChainOfThought, 1.0 ] |> Map.ofList }
+
+                let reactSelector =
+                    { new IPatternSelector with
+                        member _.Recommend(_goal, _state) = ReAct
+                        member _.Score(_goal) = [ ReAct, 1.0 ] |> Map.ofList }
+
+                let analyzerCtx = createAgentContext logger llmWithEvidence None
+                let coderCtx = createAgentContext logger llmWithEvidence None
+                let reviewerCtx = createAgentContext logger llmWithEvidence None
+
+                let analyzer = TarsWoTAgent(executor, compiler, cotSelector, analyzerCtx, name = "Analyzer", description = "Analyzes problems and identifies patterns")
+                let coder = TarsWoTAgent(executor, compiler, reactSelector, coderCtx, name = "Coder", description = "Implements solutions using ReAct")
+                let reviewer = TarsWoTAgent(executor, compiler, cotSelector, reviewerCtx, name = "Reviewer", description = "Reviews and critiques solutions")
+
+                let orchestrator = AgentOrchestrator()
+                orchestrator.Register(analyzer, [ "analysis"; "patterns"; "understanding" ], priority = 10)
+                orchestrator.Register(coder, [ "coding"; "implementation"; "tools" ], priority = 10)
+                orchestrator.Register(reviewer, [ "review"; "critique"; "quality" ], priority = 10)
+
+                printfn "🔄 Running fan-out: Analyzer | Coder | Reviewer (parallel)"
+                printfn ""
+
+                let! results = orchestrator.FanOut(["Analyzer"; "Coder"; "Reviewer"], goal)
+
+                printfn ""
+                printfn "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+                match evidence with
+                | Some(recorder, path) ->
+                    do! recorder.SaveToFileAsync(path) |> Async.StartAsTask
+                    printfn $"📒 Evidence saved: %s{path}"
+                | None -> ()
+
+                for r in results do
+                    printfn $"🤖 Agent: %s{r.AgentName} | Duration: %d{r.DurationMs}ms | Success: %b{r.Success}"
+                    printfn $"   %s{r.Response.[..min 200 (r.Response.Length - 1)]}"
+                    printfn ""
+
+                let allSuccess = results |> List.forall (fun r -> r.Success)
+                if allSuccess then
+                    printfn "✅ Fan-out completed successfully!"
+                    return 0
+                else
+                    printfn "❌ Fan-out had failures"
+                    return 1
+            with ex ->
+                printfn $"❌ Exception: %s{ex.Message}"
+                if options.Verbose && ex.InnerException <> null then
+                    printfn $"   Inner: %s{ex.InnerException.Message}"
+                return 1
+    }
+
 /// Main entry point for agent command
 let run
     (config: Microsoft.Extensions.Configuration.IConfiguration)
@@ -710,12 +886,20 @@ let run
     | "run" when args.Length > 0 ->
         let goal = String.Join(" ", args)
         runMaf config options goal
+    | "pipeline" when args.Length > 0 ->
+        let goal = String.Join(" ", args)
+        runPipeline config options goal
+    | "fanout" when args.Length > 0 ->
+        let goal = String.Join(" ", args)
+        runFanOut config options goal
     | "help"
     | _ ->
         printfn "TARS Agent Commands"
         printfn "━━━━━━━━━━━━━━━━━━━━"
         printfn ""
         printfn "  tars agent run <goal>       Run via MAF (orchestrated WoT + tools)"
+        printfn "  tars agent pipeline <goal>  Run sequential pipeline (Analyzer -> Coder -> Reviewer)"
+        printfn "  tars agent fanout <goal>    Run parallel fan-out (Analyzer | Coder | Reviewer)"
         printfn "  tars agent react <goal>     Run ReAct (Reason-Act-Observe) loop"
         printfn "  tars agent cot <input>      Run Chain of Thought reasoning"
         printfn "  tars agent got <goal>       Run Graph of Thoughts reasoning"
@@ -730,6 +914,8 @@ let run
         printfn ""
         printfn "Examples:"
         printfn "  tars agent run \"Analyze this codebase and suggest improvements\""
+        printfn "  tars agent pipeline \"Design a caching layer for the API\""
+        printfn "  tars agent fanout \"Review this module for bugs and improvements\""
         printfn "  tars agent react \"What is 5 + 7?\""
         printfn "  tars agent cot \"Explain quantum computing\" --verbose"
         printfn "  tars agent got \"Design a REST API for a todo app\""

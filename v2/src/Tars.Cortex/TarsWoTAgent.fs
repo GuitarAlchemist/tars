@@ -110,12 +110,14 @@ type TarsWoTAgent
         executor: IWoTExecutor,
         compiler: IPatternCompiler,
         selector: IPatternSelector,
-        agentContext: AgentContext
+        agentContext: AgentContext,
+        ?name: string,
+        ?description: string
     ) =
     inherit AIAgent()
 
-    let mutable agentName = "TarsWoT"
-    let mutable agentDescription = "TARS Workflow-of-Thought reasoning agent"
+    let mutable agentName = defaultArg name "TarsWoT"
+    let mutable agentDescription = defaultArg description "TARS Workflow-of-Thought reasoning agent"
 
     /// Gets or sets the display name of the agent.
     override _.Name = agentName

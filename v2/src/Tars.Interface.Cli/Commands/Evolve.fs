@@ -18,6 +18,8 @@ open Tars.Connectors.EpisodeIngestion
 open Tars.Interface.Cli // For ConfigurationLoader
 open Tars.Interface.Cli.SpectreUI
 open Tars.Knowledge
+open Tars.Evolution.SelfImprovement
+open Tars.Evolution.RetroactionLoop
 
 type EvolveOptions =
     { MaxIterations: int
@@ -712,6 +714,24 @@ let run (logger: ILogger) (options: EvolveOptions) =
                                   Duration = TimeSpan.FromSeconds(120.0)
                                   Evaluation = None }
 
+                            if options.SelfImprovement then
+                                try
+                                    let targetFile = "sample.wot.trsx"
+                                    let trace = String.Join("; ", failedResult.ExecutionTrace)
+                                    let runId = failedResult.TaskId
+                                    let improveResult = (SelfImprovement.analyzeAndPropose llmService targetFile failedResult.Output trace runId).Result
+                                    match improveResult with
+                                    | SelfImprovement.Success(proposal, path) ->
+                                        if not options.Quiet then
+                                            RichOutput.info $"Self-improvement: applied mutation to {path}"
+                                        SelfImprovement.logImprovement proposal path true |> Async.StartAsTask |> ignore
+                                    | SelfImprovement.Failure err ->
+                                        if not options.Quiet then
+                                            RichOutput.dim $"Self-improvement: analysis failed: {err}"
+                                with siEx ->
+                                    if not options.Quiet then
+                                        RichOutput.dim $"Self-improvement: analysis failed: {siEx.Message}"
+
                             Task.FromResult
                                 { currentState with
                                     CompletedTasks = failedResult :: currentState.CompletedTasks
@@ -737,6 +757,24 @@ let run (logger: ILogger) (options: EvolveOptions) =
                                   ExecutionTrace = [ ex.GetType().Name ]
                                   Duration = TimeSpan.Zero
                                   Evaluation = None }
+
+                            if options.SelfImprovement then
+                                try
+                                    let targetFile = "sample.wot.trsx"
+                                    let trace = String.Join("; ", failedResult.ExecutionTrace)
+                                    let runId = failedResult.TaskId
+                                    let improveResult = (SelfImprovement.analyzeAndPropose llmService targetFile failedResult.Output trace runId).Result
+                                    match improveResult with
+                                    | SelfImprovement.Success(proposal, path) ->
+                                        if not options.Quiet then
+                                            RichOutput.info $"Self-improvement: applied mutation to {path}"
+                                        SelfImprovement.logImprovement proposal path true |> Async.StartAsTask |> ignore
+                                    | SelfImprovement.Failure err ->
+                                        if not options.Quiet then
+                                            RichOutput.dim $"Self-improvement: analysis failed: {err}"
+                                with siEx ->
+                                    if not options.Quiet then
+                                        RichOutput.dim $"Self-improvement: analysis failed: {siEx.Message}"
 
                             Task.FromResult
                                 { currentState with
@@ -797,6 +835,23 @@ let run (logger: ILogger) (options: EvolveOptions) =
                 with ex ->
                     RichOutput.error $"Failed to save trace: {ex.Message}"
                     logger.Error(ex, "Trace Saving Failed")
+
+            // Retroaction coherence check
+            if options.SelfImprovement then
+                if not options.Quiet then
+                    RichOutput.info "Running retroaction coherence check..."
+
+                let warnings = RetroactionLoop.coherenceCheck RetroactionLoop.defaultConfig
+
+                if warnings.IsEmpty then
+                    if not options.Quiet then
+                        RichOutput.info "Coherence check passed: no warnings."
+                else
+                    for w in warnings do
+                        if not options.Quiet then
+                            RichOutput.dim $"  [Coherence] {w}"
+
+                        logger.Warning("Retroaction coherence: {Warning}", w)
 
             // Save knowledge graph
             try
