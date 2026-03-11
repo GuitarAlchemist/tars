@@ -1,7 +1,6 @@
 namespace Tars.Tools.Augment
 
 open System
-open System.Threading.Tasks
 open System.Text.Json
 open Tars.Tools
 open Tars.Connectors

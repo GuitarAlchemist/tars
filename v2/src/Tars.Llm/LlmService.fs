@@ -38,13 +38,15 @@ module LlmService =
                     let routed = chooseBackend cfg.Routing req
 
                     match routed.Backend with
-                    | Ollama model -> return! OllamaClientAsync.generateValidated httpClient routed.Endpoint model req
+                    | Ollama model ->
+                        return! OllamaClientAsync.generateValidated httpClient routed.Endpoint model routed.ApiKey req
                     | Vllm model ->
                         try
                             let! res =
                                 OpenAiCompatibleClient.sendChatAsync httpClient routed.Endpoint model routed.ApiKey req
                                 |> Async.AwaitTask
                                 |> AsyncResult.ofAsync
+
                             return res
                         with ex ->
                             return! AsyncResult.ofResult (rerror<LlmResponse> (LlmError.fromException ex))
@@ -54,45 +56,59 @@ module LlmService =
                                 OpenAiCompatibleClient.sendChatAsync httpClient routed.Endpoint model routed.ApiKey req
                                 |> Async.AwaitTask
                                 |> AsyncResult.ofAsync
+
                             return res
                         with ex ->
                             return! AsyncResult.ofResult (rerror<LlmResponse> (LlmError.fromException ex))
                     | GoogleGemini model ->
                         try
                             let! res =
-                                GoogleGeminiClient.generateContentAsync httpClient routed.Endpoint model routed.ApiKey req
+                                GoogleGeminiClient.generateContentAsync
+                                    httpClient
+                                    routed.Endpoint
+                                    model
+                                    routed.ApiKey
+                                    req
                                 |> Async.AwaitTask
                                 |> AsyncResult.ofAsync
+
                             return res
                         with ex ->
                             return! AsyncResult.ofResult (rerror<LlmResponse> (LlmError.fromException ex))
                     | Anthropic _ ->
-                        return! AsyncResult.ofResult (rerror<LlmResponse> (LlmError.ModelNotFound "Anthropic not implemented"))
+                        return!
+                            AsyncResult.ofResult (
+                                rerror<LlmResponse> (LlmError.ModelNotFound "Anthropic not implemented")
+                            )
                     | DockerModelRunner model ->
                         try
                             let! res =
                                 OpenAiCompatibleClient.sendChatAsync httpClient routed.Endpoint model routed.ApiKey req
                                 |> Async.AwaitTask
                                 |> AsyncResult.ofAsync
+
                             return res
                         with ex ->
                             return! AsyncResult.ofResult (rerror<LlmResponse> (LlmError.fromException ex))
                     | LlamaCpp(model, config) ->
                         try
                             let! res =
-                                LlamaCppClient.sendChatAsync httpClient routed.Endpoint model config req
+                                LlamaCppClient.sendChatAsync httpClient routed.Endpoint model config routed.ApiKey req
                                 |> Async.AwaitTask
                                 |> AsyncResult.ofAsync
+
                             return res
                         with ex ->
                             return! AsyncResult.ofResult (rerror<LlmResponse> (LlmError.fromException ex))
                     | LlamaSharp modelPath ->
                         try
                             let svc = LlamaSharpFactory.getService cfg routed.ApiKey modelPath
+
                             let! res =
                                 (svc :> ILlmService).CompleteAsync(req)
                                 |> Async.AwaitTask
                                 |> AsyncResult.ofAsync
+
                             return res
                         with ex ->
                             return! AsyncResult.ofResult (rerror<LlmResponse> (LlmError.fromException ex))
@@ -101,14 +117,26 @@ module LlmService =
             member _.EmbedAsync(text: string) : AsyncResult<float32[], LlmError> =
                 asyncResult {
                     let model = cfg.Routing.DefaultEmbeddingModel
-                    if model.Contains("nomic") || model.Contains("mxbai") || model.Contains("llama") || model.Contains("qwen") then
+
+                    if
+                        model.Contains("nomic")
+                        || model.Contains("mxbai")
+                        || model.Contains("llama")
+                        || model.Contains("qwen")
+                    then
                         return! OllamaClientAsync.getEmbeddingsAsync httpClient cfg.Routing.OllamaBaseUri model text
                     else
                         try
                             let! res =
-                                OpenAiCompatibleClient.getEmbeddingsAsync httpClient cfg.Routing.OpenAIBaseUri model cfg.Routing.OpenAIKey text
+                                OpenAiCompatibleClient.getEmbeddingsAsync
+                                    httpClient
+                                    cfg.Routing.OpenAIBaseUri
+                                    model
+                                    cfg.Routing.OpenAIKey
+                                    text
                                 |> Async.AwaitTask
                                 |> AsyncResult.ofAsync
+
                             return res
                         with ex ->
                             return! AsyncResult.ofResult (rerror<float32[]> (LlmError.fromException ex))
@@ -127,18 +155,20 @@ module LlmService =
                     let routed = chooseBackend cfg.Routing req
 
                     match routed.Backend with
-                    | Ollama model -> return! OllamaClient.sendChatAsync httpClient routed.Endpoint model req
+                    | Ollama model ->
+                        return! OllamaClient.sendChatAsync httpClient routed.Endpoint model routed.ApiKey req
                     | Vllm model ->
                         return! OpenAiCompatibleClient.sendChatAsync httpClient routed.Endpoint model routed.ApiKey req
                     | OpenAI model ->
                         return! OpenAiCompatibleClient.sendChatAsync httpClient routed.Endpoint model routed.ApiKey req
                     | GoogleGemini model ->
-                        return! GoogleGeminiClient.generateContentAsync httpClient routed.Endpoint model routed.ApiKey req
+                        return!
+                            GoogleGeminiClient.generateContentAsync httpClient routed.Endpoint model routed.ApiKey req
                     | Anthropic _ -> return raise (NotImplementedException("Anthropic not implemented"))
                     | DockerModelRunner model ->
                         return! OpenAiCompatibleClient.sendChatAsync httpClient routed.Endpoint model routed.ApiKey req
                     | LlamaCpp(model, config) ->
-                        return! LlamaCppClient.sendChatAsync httpClient routed.Endpoint model config req
+                        return! LlamaCppClient.sendChatAsync httpClient routed.Endpoint model config routed.ApiKey req
                     | LlamaSharp modelPath ->
                         let svc = LlamaSharpFactory.getService cfg routed.ApiKey modelPath
                         return! (svc :> ILlmService).CompleteAsync(req)
@@ -151,18 +181,48 @@ module LlmService =
 
                     match routed.Backend with
                     | Ollama model ->
-                        return! OllamaClient.sendChatStreamAsync httpClient routed.Endpoint model req onToken
+                        return!
+                            OllamaClient.sendChatStreamAsync httpClient routed.Endpoint model routed.ApiKey req onToken
                     | Vllm model ->
-                        return! OpenAiCompatibleClient.sendChatStreamAsync httpClient routed.Endpoint model routed.ApiKey req onToken
+                        return!
+                            OpenAiCompatibleClient.sendChatStreamAsync
+                                httpClient
+                                routed.Endpoint
+                                model
+                                routed.ApiKey
+                                req
+                                onToken
                     | OpenAI model ->
-                        return! OpenAiCompatibleClient.sendChatStreamAsync httpClient routed.Endpoint model routed.ApiKey req onToken
+                        return!
+                            OpenAiCompatibleClient.sendChatStreamAsync
+                                httpClient
+                                routed.Endpoint
+                                model
+                                routed.ApiKey
+                                req
+                                onToken
                     | GoogleGemini _ ->
                         return raise (NotImplementedException("Google Gemini streaming not implemented"))
                     | Anthropic _ -> return raise (NotImplementedException("Anthropic streaming not implemented"))
                     | DockerModelRunner model ->
-                        return! OpenAiCompatibleClient.sendChatStreamAsync httpClient routed.Endpoint model routed.ApiKey req onToken
+                        return!
+                            OpenAiCompatibleClient.sendChatStreamAsync
+                                httpClient
+                                routed.Endpoint
+                                model
+                                routed.ApiKey
+                                req
+                                onToken
                     | LlamaCpp(model, config) ->
-                        return! LlamaCppClient.sendChatStreamAsync httpClient routed.Endpoint model config req onToken
+                        return!
+                            LlamaCppClient.sendChatStreamAsync
+                                httpClient
+                                routed.Endpoint
+                                model
+                                config
+                                routed.ApiKey
+                                req
+                                onToken
                     | LlamaSharp modelPath ->
                         let svc = LlamaSharpFactory.getService cfg routed.ApiKey modelPath
                         return! (svc :> ILlmService).CompleteStreamAsync(req, onToken)
@@ -171,10 +231,22 @@ module LlmService =
             member _.EmbedAsync(text: string) : Task<float32[]> =
                 task {
                     let model = cfg.Routing.DefaultEmbeddingModel
-                    if model.Contains("nomic") || model.Contains("mxbai") || model.Contains("llama") || model.Contains("qwen") then
+
+                    if
+                        model.Contains("nomic")
+                        || model.Contains("mxbai")
+                        || model.Contains("llama")
+                        || model.Contains("qwen")
+                    then
                         return! OllamaClient.getEmbeddingsAsync httpClient cfg.Routing.OllamaBaseUri model text
                     else
-                        return! OpenAiCompatibleClient.getEmbeddingsAsync httpClient cfg.Routing.OpenAIBaseUri model cfg.Routing.OpenAIKey text
+                        return!
+                            OpenAiCompatibleClient.getEmbeddingsAsync
+                                httpClient
+                                cfg.Routing.OpenAIBaseUri
+                                model
+                                cfg.Routing.OpenAIKey
+                                text
                 }
 
             member _.RouteAsync(req: LlmRequest) : Task<RoutedBackend> =
@@ -186,44 +258,64 @@ module LlmService =
         interface ICancellableLlmService with
             member this.CompleteAsync(req, cancellationToken) =
                 let work = (this :> ILlmService).CompleteAsync(req)
-                if not cancellationToken.CanBeCanceled then work
+
+                if not cancellationToken.CanBeCanceled then
+                    work
                 else
                     task {
                         let delay = Task.Delay(Timeout.Infinite, cancellationToken)
                         let! completed = Task.WhenAny(work, delay)
-                        if Object.ReferenceEquals(completed, work) then return! work
-                        else return raise (OperationCanceledException(cancellationToken))
+
+                        if Object.ReferenceEquals(completed, work) then
+                            return! work
+                        else
+                            return raise (OperationCanceledException(cancellationToken))
                     }
 
             member this.EmbedAsync(text, cancellationToken) =
                 let work = (this :> ILlmService).EmbedAsync(text)
-                if not cancellationToken.CanBeCanceled then work
+
+                if not cancellationToken.CanBeCanceled then
+                    work
                 else
                     task {
                         let delay = Task.Delay(Timeout.Infinite, cancellationToken)
                         let! completed = Task.WhenAny(work, delay)
-                        if Object.ReferenceEquals(completed, work) then return! work
-                        else return raise (OperationCanceledException(cancellationToken))
+
+                        if Object.ReferenceEquals(completed, work) then
+                            return! work
+                        else
+                            return raise (OperationCanceledException(cancellationToken))
                     }
 
             member this.CompleteStreamAsync(req, onToken, cancellationToken) =
                 let work = (this :> ILlmService).CompleteStreamAsync(req, onToken)
-                if not cancellationToken.CanBeCanceled then work
+
+                if not cancellationToken.CanBeCanceled then
+                    work
                 else
                     task {
                         let delay = Task.Delay(Timeout.Infinite, cancellationToken)
                         let! completed = Task.WhenAny(work, delay)
-                        if Object.ReferenceEquals(completed, work) then return! work
-                        else return raise (OperationCanceledException(cancellationToken))
+
+                        if Object.ReferenceEquals(completed, work) then
+                            return! work
+                        else
+                            return raise (OperationCanceledException(cancellationToken))
                     }
 
             member this.RouteAsync(req, cancellationToken) =
                 let work = (this :> ILlmService).RouteAsync(req)
-                if not cancellationToken.CanBeCanceled then work
+
+                if not cancellationToken.CanBeCanceled then
+                    work
                 else
                     task {
                         let delay = Task.Delay(Timeout.Infinite, cancellationToken)
                         let! completed = Task.WhenAny(work, delay)
-                        if Object.ReferenceEquals(completed, work) then return! work
-                        else return raise (OperationCanceledException(cancellationToken))
+
+                        if Object.ReferenceEquals(completed, work) then
+                            return! work
+                        else
+                            return raise (OperationCanceledException(cancellationToken))
                     }

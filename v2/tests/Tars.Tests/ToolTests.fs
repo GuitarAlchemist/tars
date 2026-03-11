@@ -1,7 +1,5 @@
 namespace Tars.Tests
 
-open System
-open System.Threading.Tasks
 open Xunit
 open Tars.Tools.Standard
 
@@ -10,6 +8,7 @@ type ToolTests() =
     [<Fact>]
     member _.``runCommand executes in sandbox``() =
         task {
+            if not (TestHelpers.requireTools()) then () else
             // This test requires Docker to be running and tars-sandbox image to exist
             // We assume the environment is set up correctly (checked via 'docker images' earlier)
 
@@ -21,6 +20,7 @@ type ToolTests() =
     [<Fact>]
     member _.``runCommand runs in isolated OS``() =
         task {
+            if not (TestHelpers.requireTools()) then () else
             // Check OS release info
             let! result = StandardTools.runCommand "cat /etc/os-release"
 

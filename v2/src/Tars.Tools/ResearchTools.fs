@@ -1,7 +1,6 @@
 namespace Tars.Tools.Research
 
 open System
-open System.IO
 open System.Net.Http
 open System.Text.RegularExpressions
 open System.Text.Json

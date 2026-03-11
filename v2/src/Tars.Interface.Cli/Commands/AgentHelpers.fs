@@ -4,14 +4,11 @@ open System
 open System.IO
 open System.Net.Http
 open System.Threading
-open System.Threading.Tasks
 open Tars.Core
 open Tars.Cortex
-open Tars.Cortex.Patterns
 open Tars.Llm
 open Tars.Llm.Routing
 open Tars.Llm.LlmService
-open Tars.Tools
 open Tars.Kernel
 
 /// Options for the agent command
@@ -286,6 +283,7 @@ let createAgentContext (logger: string -> unit) (llm: ILlmService) (audit: Reaso
       Epistemic = None
       SemanticMemory = Some kernel.SemanticMemory
       KnowledgeGraph = Some graph
+      SymbolicReflector = None
       CapabilityStore = Some capabilityStore
       Audit = audit
       CancellationToken = CancellationToken.None }

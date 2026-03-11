@@ -4,7 +4,6 @@ open System
 open System.Text.Json
 open Tars.Core
 open Tars.Llm
-open Tars.Llm.LlmService
 open System.Text
 
 /// <summary>
@@ -84,13 +83,7 @@ module Patterns =
                     | Some o -> "\nObservation: " + o
                     | None -> ""
 
-                sprintf
-                    "Step %d:\nThought: %s\nAction: %s\nAction Input: %s%s"
-                    (i + 1)
-                    step.Thought
-                    step.Action
-                    step.ActionInput
-                    obs)
+                $"Step %d{i + 1}:\nThought: %s{step.Thought}\nAction: %s{step.Action}\nAction Input: %s{step.ActionInput}%s{obs}")
             |> String.concat "\n\n"
 
         if steps.IsEmpty then
@@ -200,13 +193,13 @@ module Patterns =
                 let mutable finalAnswer: string option = None
                 let mutable allWarnings: PartialFailure list = []
 
-                ctx.Logger(sprintf "[ReAct] Starting with goal: %s" goal)
+                ctx.Logger $"[ReAct] Starting with goal: %s{goal}"
                 let toolNames = allTools |> List.map (fun t -> t.Name) |> String.concat ", "
-                ctx.Logger(sprintf "[ReAct] Available tools: %s" toolNames)
+                ctx.Logger $"[ReAct] Available tools: %s{toolNames}"
 
                 while stepCount < maxSteps && finalAnswer.IsNone do
                     stepCount <- stepCount + 1
-                    ctx.Logger(sprintf "[ReAct] Step %d/%d" stepCount maxSteps)
+                    ctx.Logger $"[ReAct] Step %d{stepCount}/%d{maxSteps}"
 
                     // Build the conversation
                     let userContent = contextPrelude + formatHistory steps goal
@@ -233,12 +226,12 @@ module Patterns =
                     // Get LLM response
                     let! response = llm.CompleteAsync(request) |> Async.AwaitTask
 
-                    ctx.Logger(sprintf "[ReAct] LLM Response: %s" response.Text)
+                    ctx.Logger $"[ReAct] LLM Response: %s{response.Text}"
 
                     // Parse the response
                     match parseReActResponse response.Text with
                     | Finish(thought, answer) ->
-                        ctx.Logger(sprintf "[ReAct] Finished with answer: %s" answer)
+                        ctx.Logger $"[ReAct] Finished with answer: %s{answer}"
                         finalAnswer <- Some answer
 
                         steps <-
@@ -249,7 +242,7 @@ module Patterns =
                                   Observation = None } ]
 
                     | Continue(thought, action, actionInput) ->
-                        ctx.Logger(sprintf "[ReAct] Action: %s(%s)" action actionInput)
+                        ctx.Logger $"[ReAct] Action: %s{action}(%s{actionInput})"
 
                         // Execute the tool
                         let! observation =
@@ -272,7 +265,7 @@ module Patterns =
                                                 else
                                                     actionInput
 
-                                            ctx.Logger(sprintf "[Safety] %s preview: %s" action preview)
+                                            ctx.Logger $"[Safety] %s{action} preview: %s{preview}"
 
                                             allWarnings <-
                                                 allWarnings
@@ -283,22 +276,21 @@ module Patterns =
                                         match result with
                                         | Result.Ok output ->
                                             let preview = output.Substring(0, min 200 output.Length)
-                                            ctx.Logger(sprintf "[ReAct] Tool result: %s..." preview)
+                                            ctx.Logger $"[ReAct] Tool result: %s{preview}..."
                                             return output
                                         | Result.Error err ->
                                             allWarnings <- allWarnings @ [ PartialFailure.ToolError(action, err) ]
 
-                                            return sprintf "Error: %s" err
+                                            return $"Error: %s{err}"
                                     with ex ->
                                         allWarnings <- allWarnings @ [ PartialFailure.ToolError(action, ex.Message) ]
 
-                                        return sprintf "Exception: %s" ex.Message
+                                        return $"Exception: %s{ex.Message}"
                                 | None ->
-                                    allWarnings <-
-                                        allWarnings @ [ PartialFailure.Warning(sprintf "Unknown tool: %s" action) ]
+                                    allWarnings <- allWarnings @ [ PartialFailure.Warning $"Unknown tool: %s{action}" ]
 
                                     let availableTools = allTools |> List.map (fun t -> t.Name) |> String.concat ", "
-                                    return sprintf "Unknown tool: %s. Available tools: %s" action availableTools
+                                    return $"Unknown tool: %s{action}. Available tools: %s{availableTools}"
                             }
 
                         steps <-
@@ -309,13 +301,13 @@ module Patterns =
                                   Observation = Some observation } ]
 
                     | ParseError raw ->
-                        ctx.Logger(sprintf "[ReAct] Parse error: %s" raw)
+                        ctx.Logger $"[ReAct] Parse error: %s{raw}"
 
                         let preview = raw.Substring(0, min 100 raw.Length)
 
                         allWarnings <-
                             allWarnings
-                            @ [ PartialFailure.Warning(sprintf "Failed to parse LLM response: %s" preview) ]
+                            @ [ PartialFailure.Warning $"Failed to parse LLM response: %s{preview}" ]
 
                         // Try to recover by treating the whole response as a thought
                         steps <-
@@ -341,9 +333,8 @@ module Patterns =
                         |> Option.defaultValue "No reasoning captured"
 
                     let budgetExceeded =
-                        PartialFailure.Warning(
-                            sprintf "ReAct loop reached max steps (%d). Last thought: %s" maxSteps lastThought
-                        )
+                        PartialFailure.Warning
+                            $"ReAct loop reached max steps (%d{maxSteps}). Last thought: %s{lastThought}"
 
                     return Failure(allWarnings @ [ budgetExceeded ])
             }
@@ -369,7 +360,7 @@ module Patterns =
                 | Failure errors -> return Failure errors
                 | Success steps
                 | PartialSuccess(steps, _) ->
-                    ctx.Logger(sprintf "[PlanAndExecute] Plan has %d steps" steps.Length)
+                    ctx.Logger $"[PlanAndExecute] Plan has %d{steps.Length} steps"
 
                     let planWarnings =
                         match planResult with
@@ -384,7 +375,7 @@ module Patterns =
 
                     for i, step in steps |> List.indexed do
                         if not failed then
-                            ctx.Logger(sprintf "[PlanAndExecute] Executing step %d: %s" (i + 1) step)
+                            ctx.Logger $"[PlanAndExecute] Executing step %d{i + 1}: %s{step}"
                             let! stepResult = executor step ctx
 
                             match stepResult with
@@ -448,7 +439,7 @@ module Patterns =
                       Temperature = Some 0.5
                       Stop = []
                       Messages =
-                        let content = sprintf "Create a plan to: %s" goal
+                        let content = $"Create a plan to: %s{goal}"
                         [ { Role = Role.User; Content = content } ]
                       Tools = []
                       ToolChoice = None
@@ -475,7 +466,7 @@ module Patterns =
                             trimmed)
                     |> Array.toList
 
-                ctx.Logger(sprintf "[Planner] Generated %d steps" steps.Length)
+                ctx.Logger $"[Planner] Generated %d{steps.Length} steps"
                 return Success steps
             }
 
@@ -695,17 +686,8 @@ module Patterns =
                 else
                     String.Join("; ", decision.Risks)
 
-            ctx.Logger(
-                sprintf
-                    "[ReasoningAudit] action=%s status=%s score=%s conf=%s node=\"%s\" reasons=%s risks=%s"
-                    decision.Action
-                    decision.Status
-                    scoreText
-                    confText
-                    truncatedContent
-                    reasons
-                    risks
-            )
+            ctx.Logger
+                $"[ReasoningAudit] action=%s{decision.Action} status=%s{decision.Status} score=%s{scoreText} conf=%s{confText} node=\"%s{truncatedContent}\" reasons=%s{reasons} risks=%s{risks}"
 
     let private logEvaluation (ctx: AgentContext) (node: ThoughtNode) =
         recordBranchDecision ctx node "score" "scored"
@@ -989,7 +971,7 @@ THOUGHT 1: [first approach]
 THOUGHT 2: [second approach]
 THOUGHT 3: [third approach]
 Be creative and diverse in your approaches."""
-                      MaxTokens = Some 1000
+                      MaxTokens = Some 4000
                       Temperature = Some 0.9
                       Stop = []
                       Messages = [ { Role = Role.User; Content = state } ]
@@ -1004,6 +986,12 @@ Be creative and diverse in your approaches."""
 
                 let! response = llm.CompleteAsync(request) |> Async.AwaitTask
                 let initialText = response.Text.Trim()
+
+                ctx.Logger
+                    $"[GoT] generateThoughts prompt length: {state.Length}, response length: {initialText.Length}"
+
+                if initialText.Length > 0 && initialText.Length < 100 then
+                    ctx.Logger $"[GoT] Short response: {initialText}"
 
                 let! responseText =
                     if String.IsNullOrWhiteSpace initialText then
@@ -1044,9 +1032,11 @@ Be creative and diverse in your approaches."""
                     |> List.filter (fun content -> not (String.IsNullOrWhiteSpace content))
 
                 if cleanedThoughts.IsEmpty then
-                    ctx.Logger "[GoT] No thoughts generated; LLM response empty."
+                    ctx.Logger $"[GoT] No thoughts generated; LLM response was: \"{responseText}\""
                     return []
                 else
+                    ctx.Logger $"[GoT] Successfully generated {cleanedThoughts.Length} thoughts."
+
                     let! embeddings =
                         cleanedThoughts
                         |> List.map (fun content -> maybeEmbed llm ctx config "[GoT] embed" content)
@@ -1342,7 +1332,7 @@ Do not include markdown, code fences, or extra text."""
                             $"""Improve and refine this reasoning step to better achieve the goal.
 Fix errors, add missing details, and make it more precise and actionable.
 Output ONLY the improved thought."""
-                      MaxTokens = Some 500
+                      MaxTokens = Some 2000
                       Temperature = Some 0.4
                       Stop = []
                       Messages =
@@ -1358,18 +1348,25 @@ Output ONLY the improved thought."""
                       Stream = false
                       JsonMode = false
                       Seed = None
-
                       ContextWindow = None }
 
                 let! response = llm.CompleteAsync(request) |> Async.AwaitTask
 
                 let refined =
-                    let trimmed = response.Text.Trim()
+                    let rawText = response.Text.Trim()
 
-                    if String.IsNullOrWhiteSpace trimmed then
-                        node.Content
+                    let stripped =
+                        System.Text.RegularExpressions.Regex
+                            .Replace(rawText, @"(?s)<thinking>.*?</thinking>", "")
+                            .Trim()
+
+                    if String.IsNullOrWhiteSpace stripped then
+                        if String.IsNullOrWhiteSpace rawText then
+                            node.Content
+                        else
+                            rawText
                     else
-                        trimmed
+                        stripped
 
                 let! embedding = maybeEmbed llm ctx config "[GoT] embed" refined
 
@@ -1437,7 +1434,7 @@ Output ONLY the improved thought."""
                             $"""Synthesize these approaches into a single coherent solution.
 Take the best ideas from each approach and honor the constraints.
 Output ONLY the synthesized solution."""
-                      MaxTokens = Some 800
+                      MaxTokens = Some 4000
                       Temperature = Some 0.3
                       Stop = []
                       Messages =
@@ -1455,12 +1452,20 @@ Output ONLY the synthesized solution."""
                 let! response = llm.CompleteAsync(request) |> Async.AwaitTask
 
                 let content =
-                    let trimmed = response.Text.Trim()
+                    let rawText = response.Text.Trim()
 
-                    if String.IsNullOrWhiteSpace trimmed then
-                        fallback
+                    let stripped =
+                        System.Text.RegularExpressions.Regex
+                            .Replace(rawText, @"(?s)<thinking>.*?</thinking>", "")
+                            .Trim()
+
+                    if String.IsNullOrWhiteSpace stripped then
+                        if String.IsNullOrWhiteSpace rawText then
+                            fallback
+                        else
+                            rawText
                     else
-                        trimmed
+                        stripped
 
                 let! embedding = maybeEmbed llm ctx config "[GoT] embed" content
 
@@ -1513,15 +1518,11 @@ Output ONLY the synthesized solution."""
                     nodes <- nodes.Add(thought.Id, thought)
                     frontier <- thought.Id :: frontier
 
-                    ctx.Logger(
-                        sprintf "[GoT] Generated: %s..." (thought.Content.Substring(0, min 60 thought.Content.Length))
-                    )
+                    ctx.Logger $"[GoT] Generated: %s{thought.Content.Substring(0, min 60 thought.Content.Length)}..."
 
                 // Phase 2: Iterative expansion
                 for depth in 1 .. config.MaxDepth - 1 do
-                    ctx.Logger(
-                        sprintf "[GoT] Phase 2.%d: Scoring and expanding (frontier size: %d)" depth frontier.Length
-                    )
+                    ctx.Logger $"[GoT] Phase 2.%d{depth}: Scoring and expanding (frontier size: %d{frontier.Length})"
 
                     // Score all frontier nodes
                     let! scoredNodes =
@@ -1547,12 +1548,8 @@ Output ONLY the synthesized solution."""
                         | Some node ->
                             nodes <- nodes.Add(node.Id, node)
 
-                            ctx.Logger(
-                                sprintf
-                                    "[GoT] Scored %.2f: %s..."
-                                    (node.Score |> Option.defaultValue 0.0)
-                                    (node.Content.Substring(0, min 40 node.Content.Length))
-                            )
+                            ctx.Logger
+                                $"[GoT] Scored %.2f{node.Score |> Option.defaultValue 0.0}: %s{node.Content.Substring(0, min 40 node.Content.Length)}..."
                         | None -> ()
 
                     // Select top-K thoughts above threshold
@@ -1715,13 +1712,11 @@ Output ONLY the synthesized solution."""
                     nodes <- nodes.Add(thought.Id, thought)
                     frontier <- thought.Id :: frontier
 
-                    ctx.Logger(
-                        sprintf "[ToT] Proposed: %s..." (thought.Content.Substring(0, min 60 thought.Content.Length))
-                    )
+                    ctx.Logger $"[ToT] Proposed: %s{thought.Content.Substring(0, min 60 thought.Content.Length)}..."
 
                 // Phase 2: Systematic expansion and evaluation (BFS)
                 for depth in 1 .. config.MaxDepth - 1 do
-                    ctx.Logger(sprintf "[ToT] Step %d: Evaluating and expanding best paths" (depth + 1))
+                    ctx.Logger $"[ToT] Step %d{depth + 1}: Evaluating and expanding best paths"
 
                     // Score current leaf candidates
                     let! scoredNodes =
@@ -1747,12 +1742,8 @@ Output ONLY the synthesized solution."""
                         | Some node ->
                             nodes <- nodes.Add(node.Id, node)
 
-                            ctx.Logger(
-                                sprintf
-                                    "[ToT] Valued %.2f: %s..."
-                                    (node.Score |> Option.defaultValue 0.0)
-                                    (node.Content.Substring(0, min 40 node.Content.Length))
-                            )
+                            ctx.Logger
+                                $"[ToT] Valued %.2f{node.Score |> Option.defaultValue 0.0}: %s{node.Content.Substring(0, min 40 node.Content.Length)}..."
                         | None -> ()
 
                     // Pruning: Select top-K best thoughts
@@ -1835,12 +1826,8 @@ Output ONLY the synthesized solution."""
 
                 match bestNode with
                 | Some node ->
-                    ctx.Logger(
-                        sprintf
-                            "[ToT] Selected best path (score: %.2f): %s..."
-                            (node.Score |> Option.defaultValue 0.0)
-                            (node.Content.Substring(0, min 60 node.Content.Length))
-                    )
+                    ctx.Logger
+                        $"[ToT] Selected best path (score: %.2f{node.Score |> Option.defaultValue 0.0}): %s{node.Content.Substring(0, min 60 node.Content.Length)}..."
 
                     if config.TrackEdges then
                         ctx.Logger $"[ToT] Recorded {edges.Length} edges"
@@ -1885,6 +1872,7 @@ Output ONLY the synthesized solution."""
                     ctx.Logger $"[WoT] Tools enabled: {availableTools.Length}"
 
                 let! initialThoughts = generateThoughts llm ctx policyConfig goal contextPrelude [] [] 0
+                ctx.Logger $"[WoT] Initial thoughts: {initialThoughts.Length}"
 
                 let! scoredInitial =
                     initialThoughts
@@ -1919,6 +1907,15 @@ Output ONLY the synthesized solution."""
                     |> List.filter passesThreshold
                     |> List.sortByDescending (fun n -> n.Score |> Option.defaultValue 0.0)
                     |> List.truncate policyConfig.TopK
+
+                ctx.Logger $"[WoT] Nodes after threshold: {working.Length}/{scoredInitial.Length}"
+
+                if working.IsEmpty && scoredInitial.Length > 0 then
+                    let best =
+                        scoredInitial |> Array.maxBy (fun n -> n.Score |> Option.defaultValue 0.0)
+
+                    ctx.Logger
+                        $"[WoT] Best score was {best.Score |> Option.defaultValue 0.0} (Threshold: {policyConfig.ScoreThreshold})"
 
                 return!
                     async {
@@ -2120,6 +2117,68 @@ Output ONLY the synthesized solution."""
 
                             let peers = refined |> List.filter (fun n -> n.Id <> finalNode.Id)
                             let! scoredFinal = scoreThought llm ctx policyConfig goal contextWithTool peers finalNode
+
+                            // --- Trace Ingestion ---
+                            try
+                                match ctx.KnowledgeGraph with
+                                | Some kg ->
+                                    let runId = Guid.NewGuid()
+
+                                    let runEnt =
+                                        { Id = runId
+                                          Goal = goal
+                                          Pattern = "Workflow-of-Thoughts"
+                                          Timestamp = DateTime.UtcNow }
+
+                                    let ingestTask =
+                                        task {
+                                            let! _ = kg.AddNodeAsync(TarsEntity.RunE runEnt)
+
+                                            let ingestNode (n: ThoughtNode) =
+                                                task {
+                                                    let stepEnt =
+                                                        { RunId = runId
+                                                          StepId = n.Id.ToString()
+                                                          NodeType = n.Operation.ToString()
+                                                          Content = n.Content
+                                                          Timestamp = DateTime.UtcNow }
+
+                                                    let nodeE = TarsEntity.StepE stepEnt
+                                                    let! _ = kg.AddNodeAsync(nodeE)
+
+                                                    let! _ =
+                                                        kg.AddFactAsync(
+                                                            TarsFact.Contains(TarsEntity.RunE runEnt, nodeE)
+                                                        )
+
+                                                    for pid in n.ParentIds do
+                                                        let parentProb =
+                                                            { RunId = runId
+                                                              StepId = pid.ToString()
+                                                              NodeType = "Unknown"
+                                                              Content = ""
+                                                              Timestamp = DateTime.MinValue }
+
+                                                        let parentE = TarsEntity.StepE parentProb
+                                                        let! _ = kg.AddFactAsync(TarsFact.NextStep(parentE, nodeE))
+                                                        ()
+                                                }
+
+                                            for n in scoredInitial do
+                                                do! ingestNode n
+
+                                            for n in refined do
+                                                do! ingestNode n
+
+                                            do! ingestNode finalNode
+                                        }
+
+                                    do! ingestTask |> Async.AwaitTask
+                                    ctx.Logger($"[WoT] Persisted trace run:{runId}")
+                                | None -> ()
+                            with ex ->
+                                ctx.Logger($"[WoT] Trace ingestion failed: {ex.Message}")
+                            // -----------------------
 
                             let! policyOutcomes = evaluateRequiredPolicies scoredFinal.Content
 

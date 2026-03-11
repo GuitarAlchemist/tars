@@ -1,7 +1,5 @@
 namespace Tars.Tools
 
-open System
-open System.Threading.Tasks
 open Tars.Core
 
 /// Dynamic Tool Factory - creates tools at runtime based on LLM-generated specifications

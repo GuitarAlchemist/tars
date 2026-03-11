@@ -1,11 +1,7 @@
 namespace Tars.Cortex
 
 open System
-open System.Threading.Tasks
 open Tars.Core
-open Tars.Llm
-open Tars.Llm.LlmService
-
 // Note: Using Async internally and converting to Task at boundaries
 
 /// <summary>
@@ -263,7 +259,7 @@ module SelfImprovement =
 
                 match result with
                 | Success solution when config.AutoLearnFromSuccess ->
-                    ctx.Logger(sprintf "[SelfImprovement] Learning from successful task: %s" taskDescription)
+                    ctx.Logger $"[SelfImprovement] Learning from successful task: %s{taskDescription}"
 
                     let! (learningResult, newSession) =
                         learnFromTask governor config taskDescription solution !session
@@ -310,30 +306,18 @@ module SelfImprovement =
     /// Serialize session to JSON for persistence
     let serializeSession (session: LearningSession) =
         // Simple serialization - in production, use proper JSON
-        sprintf
-            """{"tasksCompleted":%d,"beliefsExtracted":%d,"startedAt":"%s"}"""
-            session.CompletedTasks.Length
-            session.ExtractedBeliefs.Length
-            (session.StartedAt.ToString("o"))
+        $"""{{"tasksCompleted":%d{session.CompletedTasks.Length},"beliefsExtracted":%d{session.ExtractedBeliefs.Length},"startedAt":"%s{session.StartedAt.ToString("o")}"}}"""
 
     /// Get a summary of the session for display
     let getSessionSummary (session: LearningSession) =
         let stats = getSessionStats session
 
-        sprintf
-            """Learning Session Summary
+        $"""Learning Session Summary
 ========================
-Tasks Completed: %d
-Beliefs Extracted: %d
-  - Verified Principles: %d
-  - Hypotheses: %d
-  - Refuted: %d
-Curriculum Suggestions: %d
-Session Duration: %s"""
-            stats.TasksCompleted
-            stats.BeliefsExtracted
-            stats.VerifiedPrinciples
-            stats.Hypotheses
-            stats.Refuted
-            stats.CurriculumSuggestions
-            (stats.SessionDuration.ToString(@"hh\:mm\:ss"))
+Tasks Completed: %d{stats.TasksCompleted}
+Beliefs Extracted: %d{stats.BeliefsExtracted}
+  - Verified Principles: %d{stats.VerifiedPrinciples}
+  - Hypotheses: %d{stats.Hypotheses}
+  - Refuted: %d{stats.Refuted}
+Curriculum Suggestions: %d{stats.CurriculumSuggestions}
+Session Duration: %s{stats.SessionDuration.ToString(@"hh\:mm\:ss")}"""

@@ -18,7 +18,6 @@ open Tars.Llm.LlmService
 open Tars.Llm.Routing
 open Tars.Cortex
 open Tars.Tools
-open Tars.Tools.Standard
 
 /// Generate the host page with Bolero HTML functions
 let hostPage =

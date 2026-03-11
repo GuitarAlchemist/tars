@@ -1,6 +1,5 @@
 namespace Tars.Connectors.Mcp
 
-open System
 open System.Text.Json
 open System.Text.Json.Serialization
 

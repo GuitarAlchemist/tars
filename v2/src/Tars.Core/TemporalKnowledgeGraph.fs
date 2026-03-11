@@ -164,6 +164,14 @@ module TemporalKnowledgeGraph =
             |> Seq.filter (fun e -> TemporalValidityOps.isValidAt DateTime.UtcNow e.Validity)
             |> Seq.toList
 
+        /// Get all nodes (including invalidated)
+        member this.GetAllNodes() =
+            nodes.Values |> Seq.map (fun n -> n.Entity) |> Seq.toList
+
+        /// Get all edges (including superseded)
+        member this.GetAllEdges() =
+            edges.Values |> Seq.toList
+
         /// Get neighbors for an entity
         member this.GetNeighbors(entity: TarsEntity) =
             let id = getEntityId entity

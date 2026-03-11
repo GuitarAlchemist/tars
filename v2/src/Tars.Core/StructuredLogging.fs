@@ -130,18 +130,18 @@ type StructuredLogger(config: LoggingConfig, ?category: string, ?correlationId: 
 
         let category =
             if config.IncludeCategory then
-                sprintf "[%s] " entry.Category
+                $"[%s{entry.Category}] "
             else
                 ""
 
         let correlation =
             match entry.CorrelationId, config.IncludeCorrelation with
-            | Some c, true -> sprintf "(corr:%s) " (c.ToString().Substring(0, 8))
+            | Some c, true -> $"(corr:%s{c.ToString().Substring(0, 8)}) "
             | _ -> ""
 
-        let level = sprintf "[%s]" (levelToString entry.Level)
+        let level = $"[%s{levelToString entry.Level}]"
 
-        sprintf "%s%s%s%s %s" timestamp level category correlation entry.Message
+        $"%s{timestamp}%s{level}%s{category}%s{correlation} %s{entry.Message}"
 
     let writeLog (entry: LogEntry) =
         if entry.Level >= config.MinLevel then

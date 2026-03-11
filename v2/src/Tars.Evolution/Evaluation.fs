@@ -4,7 +4,6 @@ open System
 open System.Text.Json
 open System.Threading.Tasks
 open Tars.Llm
-open Tars.Llm.LlmService
 
 type IEvaluationStrategy =
     abstract member Evaluate: taskDef: TaskDefinition * result: TaskResult -> Task<EvaluationResult>

@@ -1,9 +1,6 @@
 namespace Tars.Core
 
 open System
-open System.Text.Json
-open Tars.Core.Metrics
-
 // =============================================================================
 // PHASE 14.4: CONSTITUTION VERSIONING & HISTORY
 // =============================================================================

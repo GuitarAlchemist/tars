@@ -3,8 +3,6 @@ namespace Tars.Graph
 open System
 open System.Threading.Tasks
 open Tars.Core
-open Tars.Core.AgentWorkflow
-open Tars.Kernel
 
 /// Executor that runs an agent loop until completion
 type GraphExecutor

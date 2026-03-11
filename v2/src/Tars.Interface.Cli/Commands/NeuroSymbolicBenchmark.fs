@@ -6,15 +6,12 @@ open System
 open System.Diagnostics
 open System.Threading.Tasks
 open Serilog
-open Spectre.Console
 open Tars.Core
-open Tars.Core.Puzzles
 open Tars.Llm
 open Tars.Llm.Routing
 open Tars.Llm.LlmService
 open Tars.Symbolic
 open Tars.Interface.Cli
-open Tars.Interface.Cli.Commands.PuzzleDemo
 
 /// Benchmark result for a single puzzle
 type PuzzleResult =
@@ -410,37 +407,26 @@ let exportToCsv (baseline: BenchmarkSummary) (neuroSymbolic: BenchmarkSummary) (
 /// Create visualization data
 let createVisualization (baseline: BenchmarkSummary) (neuroSymbolic: BenchmarkSummary) =
     let data =
-        sprintf
-            """
-{
-  "baseline": {
-    "successRate": %.1f,
-    "avgAttempts": %.1f,
-    "avgTimeMs": %.0f
-  },
-  "neuroSymbolic": {
-    "successRate": %.1f,
-    "avgAttempts": %.1f,
-    "avgTimeMs": %.0f,
-    "avgConstraintScore": %.2f
-  },
-  "improvement": {
-    "successRate": %.1f,
-    "attemptsReduction": %.1f,
-    "speedup": %.1f
-  }
-}"""
-            (successRate baseline)
-            baseline.AverageAttempts
-            baseline.AverageDurationMs
-            (successRate neuroSymbolic)
-            neuroSymbolic.AverageAttempts
-            neuroSymbolic.AverageDurationMs
-            (neuroSymbolic.AverageConstraintScore |> Option.defaultValue 0.0)
-            (successRate neuroSymbolic - successRate baseline)
-            (baseline.AverageAttempts - neuroSymbolic.AverageAttempts)
-            ((baseline.AverageDurationMs - neuroSymbolic.AverageDurationMs)
-             / baseline.AverageDurationMs
-             * 100.0)
+        $"""
+{{
+  "baseline": {{
+    "successRate": %.1f{successRate baseline},
+    "avgAttempts": %.1f{baseline.AverageAttempts},
+    "avgTimeMs": %.0f{baseline.AverageDurationMs}
+  }},
+  "neuroSymbolic": {{
+    "successRate": %.1f{successRate neuroSymbolic},
+    "avgAttempts": %.1f{neuroSymbolic.AverageAttempts},
+    "avgTimeMs": %.0f{neuroSymbolic.AverageDurationMs},
+    "avgConstraintScore": %.2f{neuroSymbolic.AverageConstraintScore |> Option.defaultValue 0.0}
+  }},
+  "improvement": {{
+    "successRate": %.1f{successRate neuroSymbolic - successRate baseline},
+    "attemptsReduction": %.1f{baseline.AverageAttempts - neuroSymbolic.AverageAttempts},
+    "speedup": %.1f{(baseline.AverageDurationMs - neuroSymbolic.AverageDurationMs)
+                  / baseline.AverageDurationMs
+                  * 100.0}
+  }}
+}}"""
 
     data

@@ -105,15 +105,13 @@ module TaskDisplay =
             sprintf "[green bold]╔══════════════════════════════════════════════════════════════╗[/]"
         )
 
-        AnsiConsole.MarkupLine(
-            sprintf "[green bold]║[/] [white bold]✅ TASK SUCCESS[/] [dim](%.1fs)[/] %s" duration.TotalSeconds status
-        )
+        AnsiConsole.MarkupLine $"[green bold]║[/] [white bold]✅ TASK SUCCESS[/] [dim](%.1f{duration.TotalSeconds}s)[/] %s{status}"
 
         AnsiConsole.MarkupLine(
             sprintf "[green bold]╟──────────────────────────────────────────────────────────────╢[/]"
         )
 
-        AnsiConsole.MarkupLine(sprintf "[green bold]║[/] %s" (Markup.Escape(preview)))
+        AnsiConsole.MarkupLine $"[green bold]║[/] %s{Markup.Escape(preview)}"
 
         AnsiConsole.MarkupLine(
             sprintf "[green bold]╚══════════════════════════════════════════════════════════════╝[/]"
@@ -130,9 +128,7 @@ module TaskDisplay =
         AnsiConsole.WriteLine()
         AnsiConsole.MarkupLine("[red bold]╔══════════════════════════════════════════════════════════════╗[/]")
 
-        AnsiConsole.MarkupLine(
-            sprintf "[red bold]║[/] [white bold]❌ TASK FAILED[/] [dim](%.1fs)[/]" duration.TotalSeconds
-        )
+        AnsiConsole.MarkupLine $"[red bold]║[/] [white bold]❌ TASK FAILED[/] [dim](%.1f{duration.TotalSeconds}s)[/]"
 
         AnsiConsole.MarkupLine("[red bold]╟──────────────────────────────────────────────────────────────╢[/]")
         AnsiConsole.MarkupLine("[red bold]║[/] " + Markup.Escape(preview))
@@ -163,7 +159,7 @@ module Progress =
 
     /// Print a progress step
     let step (current: int) (total: int) (message: string) =
-        AnsiConsole.MarkupLine(sprintf "[dim][[%d/%d]][/] %s" current total (Markup.Escape(message)))
+        AnsiConsole.MarkupLine $"[dim][[%d{current}/%d{total}]][/] %s{Markup.Escape(message)}"
 
 /// Generation/Evolution display
 module Evolution =
@@ -171,7 +167,7 @@ module Evolution =
     /// Print generation header
     let printGeneration (gen: int) (completed: int) (total: int option) =
         let totalStr = total |> Option.map (sprintf "/%d") |> Option.defaultValue ""
-        let rule = Rule(sprintf "Generation %d (%d%s tasks)" gen completed totalStr)
+        let rule = Rule $"Generation %d{gen} (%d{completed}%s{totalStr} tasks)"
         rule.Style <- Style.Parse("cyan bold")
         AnsiConsole.Write(rule)
 
@@ -191,7 +187,7 @@ module Evolution =
                     else
                         goal
 
-                table.AddRow(sprintf "[cyan]%.2f[/]" score, sprintf "[yellow]%s[/]" cost, Markup.Escape(goalPreview))
+                table.AddRow( $"[cyan]%.2f{score}[/]", $"[yellow]%s{cost}[/]", Markup.Escape(goalPreview))
                 |> ignore
 
             AnsiConsole.Write(table)
@@ -207,14 +203,12 @@ module Evolution =
             | "query" -> "purple"
             | _ -> "grey"
 
-        AnsiConsole.MarkupLine(
-            sprintf "[%s][%s][/] %s → %s" color performative (Markup.Escape(fromAgent)) (Markup.Escape(toAgent))
-        )
+        AnsiConsole.MarkupLine $"[%s{color}][%s{performative}][/] %s{Markup.Escape(fromAgent)} → %s{Markup.Escape(toAgent)}"
 
     /// Print reflection step
     let printReflection (step: int) (total: int) (feedback: string) =
         let bar = String.replicate step "█" + String.replicate (total - step) "░"
-        AnsiConsole.MarkupLine(sprintf "[cyan]🔄 REFLECTION[/] [%s] %d/%d" bar step total)
+        AnsiConsole.MarkupLine $"[cyan]🔄 REFLECTION[/] [%s{bar}] %d{step}/%d{total}"
 
         if not (String.IsNullOrWhiteSpace feedback) then
             let preview =
@@ -254,10 +248,10 @@ module Summary =
         AnsiConsole.MarkupLine("[cyan bold]╔══════════════════════════════════════════════════════════════╗[/]")
         AnsiConsole.MarkupLine("[cyan bold]║[/] [white bold]📊 Evolution Summary[/]")
         AnsiConsole.MarkupLine("[cyan bold]╟──────────────────────────────────────────────────────────────╢[/]")
-        AnsiConsole.MarkupLine(sprintf "[cyan bold]║[/] [bold]Generations:[/] %d" generations)
-        AnsiConsole.MarkupLine(sprintf "[cyan bold]║[/] [bold]Tasks Completed:[/] %d" completed)
+        AnsiConsole.MarkupLine $"[cyan bold]║[/] [bold]Generations:[/] %d{generations}"
+        AnsiConsole.MarkupLine $"[cyan bold]║[/] [bold]Tasks Completed:[/] %d{completed}"
         AnsiConsole.MarkupLine(sprintf "[cyan bold]║[/] [bold]Tokens Used:[/] %s" (tokensUsed.ToString("N0")))
-        AnsiConsole.MarkupLine(sprintf "[cyan bold]║[/] [bold]Duration:[/] %.1f minutes" duration.TotalMinutes)
+        AnsiConsole.MarkupLine $"[cyan bold]║[/] [bold]Duration:[/] %.1f{duration.TotalMinutes} minutes"
         AnsiConsole.MarkupLine("[cyan bold]╚══════════════════════════════════════════════════════════════╝[/]")
 
     /// Print health check summary
@@ -275,6 +269,6 @@ module Summary =
                 else
                     "[red]✗ Unhealthy[/]"
 
-            table.AddRow(Markup.Escape(name), status, sprintf "%.1fms" ms) |> ignore
+            table.AddRow(Markup.Escape(name), status, $"%.1f{ms}ms") |> ignore
 
         AnsiConsole.Write(table)

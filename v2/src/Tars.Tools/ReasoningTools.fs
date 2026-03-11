@@ -1,9 +1,6 @@
 namespace Tars.Tools.Standard
 
 open System
-open System.Net.Http
-open System.Threading.Tasks
-open System.Text.Json
 open Tars.Tools
 
 module ReasoningTools =

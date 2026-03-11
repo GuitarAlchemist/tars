@@ -91,12 +91,12 @@ module Errors =
         | Configuration msg -> $"Configuration error: {msg}"
         | Network(msg, Some endpoint) -> $"Network error ({endpoint}): {msg}"
         | Network(msg, None) -> $"Network error: {msg}"
-        | Timeout(op, duration) -> sprintf "Timeout: %s exceeded %.1fs" op duration.TotalSeconds
+        | Timeout(op, duration) -> $"Timeout: %s{op} exceeded %.1f{duration.TotalSeconds}s"
         | Resource(res, reason) -> $"Resource error ({res}): {reason}"
         | Validation(field, reason) -> $"Validation error on '{field}': {reason}"
         | Authorization reason -> $"Authorization denied: {reason}"
         | NotFound(resType, id) -> $"{resType} not found: {id}"
-        | RateLimited(svc, Some retry) -> sprintf "Rate limited by %s, retry after %.0fs" svc retry.TotalSeconds
+        | RateLimited(svc, Some retry) -> $"Rate limited by %s{svc}, retry after %.0f{retry.TotalSeconds}s"
         | RateLimited(svc, None) -> $"Rate limited by {svc}"
         | LlmError(model, msg) -> $"LLM error ({model}): {msg}"
         | ToolError(tool, msg) -> $"Tool error ({tool}): {msg}"
@@ -145,13 +145,7 @@ module Errors =
                 let pairs = error.Context |> Map.toList |> List.map (fun (k, v) -> $"{k}={v}")
                 sprintf " [%s]" (String.concat ", " pairs)
 
-        sprintf
-            "[%s] %s%s (id=%s, recoverable=%b)"
-            (code error)
-            (message error)
-            contextStr
-            (error.Id.ToString().Substring(0, 8))
-            error.Recoverable
+        $"[%s{code error}] %s{message error}%s{contextStr} (id=%s{error.Id.ToString().Substring(0, 8)}, recoverable=%b{error.Recoverable})"
 
 /// Result computation expression for TarsResult
 type TarsResultBuilder() =

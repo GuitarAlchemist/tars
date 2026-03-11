@@ -34,6 +34,7 @@
     <Compile Include="Commands\Chat.fs" />
     <Compile Include="Commands\Evolve.fs" />
     <Compile Include="Commands\KnowCmd.fs" />
+    <Compile Include="Commands\KgCmd.fs" />
     <Compile Include="Commands\PlanCmd.fs" />
     <Compile Include="Commands\Knowledge.fs" />
     <Compile Include="Commands\McpCommand.fs" />
@@ -53,6 +54,7 @@
     <Compile Include="Commands\SmokeTest.fs" />
     <Compile Include="Commands\NeuroSymbolicBenchmark.fs" />
     <Compile Include="Commands\Benchmark.fs" />
+    <Compile Include="Commands\PromoteCommand.fs" />
     <Compile Include="Commands\WotCommand.fs" />
     <Compile Include="HealthCommand.fs" />
     <Compile Include="Program.fs" />
@@ -71,14 +73,15 @@
     <ProjectReference Include="..\Tars.Metascript\Tars.Metascript.fsproj" />
     <ProjectReference Include="..\Tars.DSL\Tars.DSL.fsproj" />
     <ProjectReference Include="..\Tars.Tools\Tars.Tools.fsproj" />
+    <ProjectReference Include="..\Tars.LinkedData\Tars.LinkedData.fsproj" />
   </ItemGroup>
 
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="10.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.4" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.4" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="10.0.4" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.4" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
     <PackageReference Include="Spectre.Console" Version="0.54.0" />
   </ItemGroup>

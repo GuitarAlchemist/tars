@@ -1,6 +1,5 @@
 namespace Tars.Llm
 
-open System
 open System.Collections.Concurrent
 
 /// <summary>

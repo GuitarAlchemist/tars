@@ -93,7 +93,7 @@ type RelationType =
     override this.ToString() =
         match this with
         | Custom s -> s
-        | _ -> sprintf "%A" this |> fun s -> s.ToLowerInvariant()
+        | _ -> $"%A{this}" |> fun s -> s.ToLowerInvariant()
 
 // =============================================================================
 // PROVENANCE - "Every belief answers: Who? When? From what?"

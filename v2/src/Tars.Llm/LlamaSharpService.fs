@@ -5,7 +5,6 @@ open System.Collections.Generic
 open System.IO
 open System.Text
 open System.Threading
-open System.Threading.Tasks
 open LLama
 open LLama.Common
 open LLama.Sampling

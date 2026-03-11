@@ -1,6 +1,5 @@
 module Tars.Tests.ArtifactTests
 
-open System
 open Xunit
 open Tars.Core.Artifact
 

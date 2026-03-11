@@ -24,7 +24,6 @@ Prove value on a **narrow domain**.
 We are explicitly PAUSING development on "Visionary" features until the core loop is diamond-hard.
 - ⏸️ **Phase 10: 3D Visualization** (Not critical for execution)
 - ⏸️ **Phase 11: Cognitive Grounding** (Too abstract for now)
-- ⏸️ **Phase 12: Web of Things** (Distraction)
 - ⏸️ **Phase 14: Agent Constitutions** (Current prompt engineering is sufficient)
 
 ---

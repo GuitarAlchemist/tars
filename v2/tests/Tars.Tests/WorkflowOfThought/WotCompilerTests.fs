@@ -7,26 +7,37 @@ open Tars.Core.WorkflowOfThought
 
 module WotCompilerTests =
 
+    let private mkNode id kind outputs =
+        { DslConvert.defaultNode id kind with
+            Outputs = outputs |> List.map SimpleOutput }
+
     [<Fact>]
     let ``compileWorkflowToSteps - golden path compiles Verify + ToolCall`` () =
         // Arrange
         let wf =
             { Name = "test_wf"
+              Description = Some "Test workflow"
+              Domain = None
+              Difficulty = None
               Version = "1.0.0"
               Risk = "low"
-              Inputs = Map.ofList ["target_file", "src/Foo.fs"]
+              Inputs = Map.ofList [ "target_file", "src/Foo.fs" ]
               Policy =
                 { AllowedTools = Set.empty
                   MaxToolCalls = 0
                   MaxTokens = 0
                   MaxTimeMs = 0 }
               Nodes =
-                [ { Id = "plan"; Name = "plan"; Kind = NodeKind.Reason; Tool = None; Args = None; Outputs = ["draft_plan"]; Goal = None; Inputs = []; Verdict = None; Checks = []; Invariants=[]; Constraints=[] }
-                  { Id = "critique"; Name = "critique"; Kind = NodeKind.Reason; Tool = None; Args = None; Outputs = ["reviewed_plan"]; Goal = None; Inputs = []; Verdict = None; Checks = []; Invariants=[]; Constraints=[] }
-                  { Id = "analyze"; Name = "analyze"; Kind = NodeKind.Work; Tool = Some "analyze_file_complexity"; Args = Some (Map.ofList ["path", box "src/Foo.fs"]); Outputs = ["analysis_md"]; Goal = None; Inputs = []; Verdict = None; Checks = []; Invariants=[]; Constraints=[] }
-                  { Id = "verify"; Name = "verify"; Kind = NodeKind.Work; Tool = None; Args = None; Outputs = ["verified"]; Goal = None; Inputs = []; Verdict = None;
-                    Checks = [ WotCheck.NonEmpty "analysis_md"; WotCheck.Contains ("analysis_md", "| Cyclomatic Complexity |") ]; Invariants=[]; Constraints=[] }
-                  { Id = "distill"; Name = "distill"; Kind = NodeKind.Reason; Tool = None; Args = None; Outputs = ["final_idea"]; Goal = None; Inputs = []; Verdict = None; Checks = []; Invariants=[]; Constraints=[] } ]
+                [ mkNode "plan" NodeKind.Reason [ "draft_plan" ]
+                  mkNode "critique" NodeKind.Reason [ "reviewed_plan" ]
+                  { mkNode "analyze" NodeKind.Work [ "analysis_md" ] with
+                      Tool = Some "analyze_file_complexity"
+                      Args = Some(Map.ofList [ "path", box "src/Foo.fs" ]) }
+                  { mkNode "verify" NodeKind.Work [ "verified" ] with
+                      Checks =
+                          [ WotCheck.NonEmpty "analysis_md"
+                            WotCheck.Contains("analysis_md", "| Cyclomatic Complexity |") ] }
+                  mkNode "distill" NodeKind.Reason [ "final_idea" ] ]
               Edges =
                 [ "plan", "critique"
                   "critique", "analyze"
@@ -49,7 +60,7 @@ module WotCompilerTests =
                 plan.Steps
                 |> List.exists (fun s ->
                     match s.Action with
-                    | StepAction.Work (WorkOperation.ToolCall (tool, args)) ->
+                    | StepAction.Work(WorkOperation.ToolCall(tool, args)) ->
                         tool = "analyze_file_complexity" && args.ContainsKey("path")
                     | _ -> false)
 
@@ -60,9 +71,10 @@ module WotCompilerTests =
                 plan.Steps
                 |> List.exists (fun s ->
                     match s.Action with
-                    | StepAction.Work (WorkOperation.Verify checks) ->
+                    | StepAction.Work(WorkOperation.Verify checks) ->
                         checks |> List.contains (WotCheck.NonEmpty "analysis_md")
-                        && checks |> List.contains (WotCheck.Contains ("analysis_md", "| Cyclomatic Complexity |"))
+                        && checks
+                           |> List.contains (WotCheck.Contains("analysis_md", "| Cyclomatic Complexity |"))
                     | _ -> false)
 
             Assert.True(hasVerifyChecks, "Expected a Verify step with NonEmpty + Contains checks.")
@@ -71,6 +83,9 @@ module WotCompilerTests =
     let ``compileWorkflowToSteps - rejects non linear graphs`` () =
         let wf =
             { Name = "test_wf_bad"
+              Description = Some "Test workflow bad"
+              Domain = None
+              Difficulty = None
               Version = "1.0.0"
               Risk = "low"
               Inputs = Map.empty
@@ -80,12 +95,10 @@ module WotCompilerTests =
                   MaxTokens = 0
                   MaxTimeMs = 0 }
               Nodes =
-                [ { Id = "A"; Name = "A"; Kind = NodeKind.Reason; Tool = None; Args = None; Outputs = []; Goal = None; Inputs = []; Verdict = None; Checks = []; Invariants=[]; Constraints=[] }
-                  { Id = "B"; Name = "B"; Kind = NodeKind.Reason; Tool = None; Args = None; Outputs = []; Goal = None; Inputs = []; Verdict = None; Checks = []; Invariants=[]; Constraints=[] }
-                  { Id = "C"; Name = "C"; Kind = NodeKind.Reason; Tool = None; Args = None; Outputs = []; Goal = None; Inputs = []; Verdict = None; Checks = []; Invariants=[]; Constraints=[] } ]
-              Edges =
-                [ "A", "B"
-                  "B", "C" ] }
+                [ mkNode "A" NodeKind.Reason []
+                  mkNode "B" NodeKind.Reason []
+                  mkNode "C" NodeKind.Reason [] ]
+              Edges = [ "A", "B"; "B", "C" ] }
 
         // Correct baseline
         match compileWorkflowToPlanParsed wf with
@@ -93,10 +106,19 @@ module WotCompilerTests =
         | Error e -> failwith $"Baseline should valid, got {e}"
 
         // Introduce extra edge (A -> C) -> Not a chain
-        let wfBad = { wf with Edges = ("A", "C") :: wf.Edges }
+        let wfBad =
+            { wf with
+                Edges = ("A", "C") :: wf.Edges }
 
         match compileWorkflowToPlanParsed wfBad with
         | Ok _ -> failwith "Expected compile error for non-linear graph."
         | Error errs ->
             Assert.True(errs.Length > 0)
-            Assert.Contains(errs, (fun e -> match e with InvalidGraph _ -> true | _ -> false))
+
+            Assert.Contains(
+                errs,
+                (fun e ->
+                    match e with
+                    | InvalidGraph _ -> true
+                    | _ -> false)
+            )

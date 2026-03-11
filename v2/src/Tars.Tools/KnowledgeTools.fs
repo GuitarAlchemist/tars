@@ -4,7 +4,6 @@ open System
 open System.Net.Http
 open System.Text.Json
 open Tars.Tools
-open Tars.Core
 open Tars.Connectors.EpisodeIngestion
 
 module KnowledgeTools =

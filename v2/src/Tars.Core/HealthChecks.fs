@@ -251,20 +251,15 @@ module HealthChecks =
 
         let lines =
             [ sprintf "Health Report [%s]" (report.Timestamp.ToString("HH:mm:ss"))
-              sprintf "Overall: %s %s" (statusIcon report.Status) (statusStr report.Status)
-              sprintf "Duration: %.1fms" report.TotalDuration.TotalMilliseconds
+              $"Overall: %s{statusIcon report.Status} %s{statusStr report.Status}"
+              $"Duration: %.1f{report.TotalDuration.TotalMilliseconds}ms"
               ""
               "Checks:" ]
 
         let checkLines =
             report.Checks
             |> List.map (fun c ->
-                sprintf
-                    "  %s %s: %s (%.1fms)"
-                    (statusIcon c.Status)
-                    c.Name
-                    (statusStr c.Status)
-                    c.Duration.TotalMilliseconds)
+                $"  %s{statusIcon c.Status} %s{c.Name}: %s{statusStr c.Status} (%.1f{c.Duration.TotalMilliseconds}ms)")
 
         String.concat "\n" (lines @ checkLines)
 
@@ -279,16 +274,8 @@ module HealthChecks =
         let checksJson =
             report.Checks
             |> List.map (fun c ->
-                sprintf
-                    """{"name":"%s","status":"%s","durationMs":%d}"""
-                    c.Name
-                    (statusStr c.Status)
-                    (int c.Duration.TotalMilliseconds))
+                $"""{{"name":"%s{c.Name}","status":"%s{statusStr c.Status}","durationMs":%d{int c.Duration.TotalMilliseconds}}}"""
+            )
             |> String.concat ","
 
-        sprintf
-            """{"status":"%s","totalDurationMs":%d,"timestamp":"%s","checks":[%s]}"""
-            (statusStr report.Status)
-            (int report.TotalDuration.TotalMilliseconds)
-            (report.Timestamp.ToString("o"))
-            checksJson
+        $"""{{"status":"%s{statusStr report.Status}","totalDurationMs":%d{int report.TotalDuration.TotalMilliseconds},"timestamp":"%s{report.Timestamp.ToString("o")}","checks":[%s{checksJson}]}}"""

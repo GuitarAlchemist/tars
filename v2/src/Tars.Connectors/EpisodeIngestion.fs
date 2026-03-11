@@ -82,6 +82,13 @@ let toGraphitiEpisode (episode: Episode) : EpisodeDto =
           SourceDescription = Some $"Pattern detection at {location}"
           ReferenceTime = Some ts }
 
+    | Episode.CognitiveStateUpdate(runId, mode, entropy, stability, ts) ->
+        { Name = $"Cognitive State: {runId}"
+          Content = $"Mode: {mode}\nEntropy: {entropy}\nStability: {stability}"
+          Source = "tars_cognitive"
+          SourceDescription = Some $"Cognitive state update during run {runId}"
+          ReferenceTime = Some ts }
+
 /// Convert TARS Episode to Graphiti MessageDto (for /messages endpoint)
 let toGraphitiMessage (episode: Episode) : MessageDto =
     let content, roleType, role, sourceDesc, ts =
@@ -95,6 +102,8 @@ let toGraphitiMessage (episode: Episode) : MessageDto =
         | Episode.BeliefUpdate(agentId, belief, _, ts) -> belief, "assistant", agentId, Some "belief_update", ts
         | Episode.PatternDetected(patternType, location, _, ts) ->
             $"{patternType} at {location}", "system", "pattern_detector", Some "pattern", ts
+        | Episode.CognitiveStateUpdate(runId, mode, entropy, _, ts) ->
+            $"Cognitive State {runId}: {mode} (Entropy {entropy:F2})", "system", "cortex", Some "cognitive_state", ts
 
     { Content = content
       RoleType = roleType

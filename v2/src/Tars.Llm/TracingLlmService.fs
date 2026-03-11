@@ -1,8 +1,6 @@
 namespace Tars.Llm
 
-open System.Threading.Tasks
 open Tars.Core
-open Tars.Llm.LlmService
 
 /// Decorator for ILlmService that records all calls to a trace recorder
 type TracingLlmService(inner: ILlmService, recorder: ITraceRecorder) =

@@ -34,6 +34,7 @@ type Episode =
     | ToolCall of name: string * args: Map<string, string> * result: string * timestamp: DateTime
     | BeliefUpdate of agentId: string * belief: string * confidence: float * timestamp: DateTime
     | PatternDetected of patternType: string * location: string * details: string * timestamp: DateTime
+    | CognitiveStateUpdate of runId: Guid * mode: string * entropy: float * stability: float * timestamp: DateTime
 
 module Episode =
     let timestamp =
@@ -45,6 +46,7 @@ module Episode =
         | ToolCall(_, _, _, ts) -> ts
         | BeliefUpdate(_, _, _, ts) -> ts
         | PatternDetected(_, _, _, ts) -> ts
+        | CognitiveStateUpdate(_, _, _, _, ts) -> ts
 
     let typeTag =
         function
@@ -55,6 +57,7 @@ module Episode =
         | ToolCall _ -> "tool_call"
         | BeliefUpdate _ -> "belief_update"
         | PatternDetected _ -> "pattern_detected"
+        | CognitiveStateUpdate _ -> "cognitive_state_update"
 
 /// Pattern categories
 type PatternCategory =
@@ -125,6 +128,22 @@ type AnomalyEntity =
       DetectedAt: DateTime
       ResolvedAt: DateTime option }
 
+
+/// WoT execution run entity
+type RunEntity =
+    { Id: Guid
+      Goal: string
+      Pattern: string
+      Timestamp: DateTime }
+
+/// WoT execution step entity
+type StepEntity =
+    { RunId: Guid
+      StepId: string
+      NodeType: string
+      Content: string
+      Timestamp: DateTime }
+
 /// Concept entity
 type ConceptEntity =
     { Name: string
@@ -140,6 +159,8 @@ type TarsEntity =
     | AnomalyE of AnomalyEntity
     | ConceptE of ConceptEntity
     | EpisodeE of Episode
+    | RunE of RunEntity
+    | StepE of StepEntity
     | FileE of path: string
     | FunctionE of name: string
 
@@ -153,6 +174,8 @@ module TarsEntity =
         | AnomalyE a -> $"anomaly:{a.Location.GetHashCode():x8}:{a.DetectedAt.Ticks}"
         | ConceptE c -> $"concept:{c.Name.ToLowerInvariant()}"
         | EpisodeE e -> $"episode:{e.GetHashCode():x8}:{Episode.timestamp e |> fun t -> t.Ticks}"
+        | RunE r -> $"run:{r.Id}"
+        | StepE s -> $"step:{s.RunId}:{s.StepId}"
         | FileE p -> $"file:{p.GetHashCode():x8}"
         | FunctionE n -> $"func:{n.ToLowerInvariant()}"
 
@@ -165,7 +188,9 @@ type TarsFact =
     | BelongsTo of entity: TarsEntity * communityId: string
     | SimilarTo of source: TarsEntity * target: TarsEntity * similarity: float
     | DerivedFrom of source: TarsEntity * target: TarsEntity
+
     | Contains of source: TarsEntity * target: TarsEntity
+    | NextStep of source: TarsEntity * target: TarsEntity
 
 module TarsFact =
     let source =
@@ -178,6 +203,7 @@ module TarsFact =
         | SimilarTo(s, _, _) -> s
         | DerivedFrom(s, _) -> s
         | Contains(s, _) -> s
+        | NextStep(s, _) -> s
 
     let target =
         function
@@ -189,6 +215,7 @@ module TarsFact =
         | SimilarTo(_, t, _) -> Some t
         | DerivedFrom(_, t) -> Some t
         | Contains(_, t) -> Some t
+        | NextStep(_, t) -> Some t
 
 /// Pattern tags for classification
 type PatternTag =

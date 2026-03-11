@@ -86,7 +86,7 @@ module DocumentTools =
                     try root.GetProperty("content").GetString() with _ -> ""
                 
                 let template = parseTemplate templateStr
-                let date = DateTime.UtcNow.ToString("yyyy-MM-dd")
+                let date = DateTime.Now.ToString("yyyy-MM-dd")
                 
                 let baseContent = getTemplate template title date
                 let fullContent = 
@@ -94,9 +94,9 @@ module DocumentTools =
                     else baseContent + "\n\n" + additionalContent
                 
                 let writtenPath = writeDocument path fullContent
-                return Microsoft.FSharp.Core.Result.Ok (sprintf "Document created: %s" writtenPath)
+                return Microsoft.FSharp.Core.Result.Ok $"Document created: %s{writtenPath}"
             with ex ->
-                return Microsoft.FSharp.Core.Result.Error (sprintf "Failed to create document: %s" ex.Message)
+                return Microsoft.FSharp.Core.Result.Error $"Failed to create document: %s{ex.Message}"
         }
 
     /// Tool to list available templates

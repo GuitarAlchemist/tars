@@ -28,8 +28,6 @@ type CognitiveState =
         AttentionSpan: int
         /// <summary>Reasoning complexity (Graph of Thoughts metric).</summary>
         BranchingFactor: float
-        /// <summary>Tool interoperability quality (Web of Things metric).</summary>
-        GroundingFidelity: float
     }
 
 /// <summary>
@@ -77,18 +75,6 @@ type CognitiveAnalyzer(kernel: IAgentRegistry, ?thoughtGraph: ThoughtGraph) =
                     float g.Edges.Length / float g.Nodes.Count
                 | _ -> 1.0
 
-            // WoT Metric: Grounding Fidelity
-            // In a real scenario, this would check how many tools have valid ThingDescriptions
-            let calculatedGroundingFidelity =
-                let toolsWithTd =
-                    agents
-                    |> List.collect (fun a -> a.Capabilities)
-                    |> List.filter (fun c ->
-                        // This is a simplification; in v2 we'd check ToolRegistry
-                        true)
-                    |> List.length
-                float toolsWithTd / 100.0 // Placeholder logic for now
-
             let mode =
                 if errorCount > 0.0 then Critical
                 elif entropy > 0.6 then Exploratory
@@ -99,8 +85,7 @@ type CognitiveAnalyzer(kernel: IAgentRegistry, ?thoughtGraph: ThoughtGraph) =
                   Eigenvalue = eigenvalue
                   Entropy = entropy
                   AttentionSpan = 8192
-                  BranchingFactor = branchingFactor
-                  GroundingFidelity = max 0.0 (min 1.0 (0.85 + calculatedGroundingFidelity)) }
+                  BranchingFactor = branchingFactor }
         }
 
 /// <summary>

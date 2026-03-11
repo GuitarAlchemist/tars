@@ -1,7 +1,6 @@
 module Tars.Interface.Cli.Commands.TestGrammarCommand
 
 open System
-open System.Threading.Tasks
 open Microsoft.Extensions.Configuration
 open Spectre.Console
 open Tars.Llm

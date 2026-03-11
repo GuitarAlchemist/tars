@@ -6,9 +6,6 @@ open Xunit
 open Tars.Core
 open Tars.Evolution
 open Tars.Llm
-open Tars.Llm.LlmService
-open Tars.Graph
-open Tars.Cortex
 
 module AdaptiveReflectionTests =
 
@@ -25,7 +22,12 @@ module AdaptiveReflectionTests =
 
             member _.CompleteStreamAsync(req, handler) = raise (NotImplementedException())
             member _.EmbedAsync text = Task.FromResult [| 0.1f |]
-            member _.RouteAsync _ = Task.FromResult { Backend = Ollama "mock"; Endpoint = Uri "http://localhost:11434"; ApiKey = None } }
+
+            member _.RouteAsync _ =
+                Task.FromResult
+                    { Backend = Ollama "mock"
+                      Endpoint = Uri "http://localhost:11434"
+                      ApiKey = None } }
 
     let createMockRegistry (agent: Agent) =
         { new IAgentRegistry with
@@ -62,12 +64,17 @@ module AdaptiveReflectionTests =
           State = Idle
           Memory = []
           Fitness = 0.0
-          Drives = { Accuracy = 0.5; Speed = 0.5; Creativity = 0.5; Safety = 0.5 }
+          Drives =
+            { Accuracy = 0.5
+              Speed = 0.5
+              Creativity = 0.5
+              Safety = 0.5 }
           Constitution = AgentConstitution.Create(AgentId(Guid.NewGuid()), NeuralRole.GeneralReasoning) }
 
     [<Fact>]
     let ``Reflection loop stops when Epistemic Governor verifies solution`` () =
         task {
+            if not (TestHelpers.requireTools()) then () else
             // Setup
             let agent = createTestAgent ()
             let registry = createMockRegistry agent
@@ -95,7 +102,8 @@ module AdaptiveReflectionTests =
                   ShowSemanticMessage = fun _ _ -> ()
                   Focus = None
                   ToolRegistry = None
-                  ResearchEnhanced = false }
+                  ResearchEnhanced = false
+                  SelfImprovement = false }
 
             let taskDef =
                 { Id = Guid.NewGuid()
@@ -131,6 +139,7 @@ module AdaptiveReflectionTests =
     [<Fact>]
     let ``Reflection loop continues when Epistemic Governor rejects`` () =
         task {
+            if not (TestHelpers.requireTools()) then () else
             // Setup
             let agent = createTestAgent ()
             let registry = createMockRegistry agent
@@ -155,7 +164,12 @@ module AdaptiveReflectionTests =
 
                     member _.CompleteStreamAsync(req, handler) = raise (NotImplementedException())
                     member _.EmbedAsync text = Task.FromResult [| 0.1f |]
-                    member _.RouteAsync _ = Task.FromResult { Backend = Ollama "mock"; Endpoint = Uri "http://localhost:11434"; ApiKey = None } }
+
+                    member _.RouteAsync _ =
+                        Task.FromResult
+                            { Backend = Ollama "mock"
+                              Endpoint = Uri "http://localhost:11434"
+                              ApiKey = None } }
 
             // Epistemic rejects first time, accepts second time?
             // Since we can't easily change the mock state inside the loop without a mutable ref,
@@ -184,7 +198,8 @@ module AdaptiveReflectionTests =
                   ShowSemanticMessage = fun _ _ -> ()
                   Focus = None
                   ToolRegistry = None
-                  ResearchEnhanced = false }
+                  ResearchEnhanced = false
+                  SelfImprovement = false }
 
             let taskDef =
                 { Id = Guid.NewGuid()

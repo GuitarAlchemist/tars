@@ -54,7 +54,24 @@ services:
     volumes:
       - tars_v2_postgres_data:/var/lib/postgresql/data
 
+  # Fuseki Triple Store (Phase 14)
+  fuseki:
+    image: stain/jena-fuseki
+    container_name: tars_v2_fuseki
+    ports:
+      - "3030:3030"
+    environment:
+      - ADMIN_PASSWORD=admin
+    volumes:
+      - tars_v2_fuseki_data:/fuseki
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:3030/$/ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   tars_v2_neo4j_data:
   tars_v2_chroma_data:
   tars_v2_postgres_data:
+  tars_v2_fuseki_data:

@@ -3,7 +3,6 @@
 module Tars.Core.NeuroSymbolicDefaults
 
 open System
-open Tars.Core
 
 /// Global configuration for neuro-symbolic features
 type GlobalNeuroSymbolicConfig =
@@ -122,22 +121,14 @@ let getConfigSummary () =
     if not config.Enabled then
         "🔴 Neuro-Symbolic AI: DISABLED"
     else
-        sprintf
-            """🟢 Neuro-Symbolic AI: ENABLED
-├─ Mutation Score Threshold: %.1f
-├─ Belief Score Threshold: %.1f
-├─ Prompt Shaping: %s
-├─ Agent Biasing: %s
-├─ Mutation Filtering: %s
-├─ Performance Tracking: %s
-└─ Metrics Logging: %s"""
-            config.MinMutationScore
-            config.MinBeliefScore
-            (if config.EnablePromptShaping then "✅" else "❌")
-            (if config.EnableAgentBiasing then "✅" else "❌")
-            (if config.EnableMutationFiltering then "✅" else "❌")
-            (if config.TrackPerformance then "✅" else "❌")
-            (if config.LogMetrics then "✅" else "❌")
+        $"""🟢 Neuro-Symbolic AI: ENABLED
+├─ Mutation Score Threshold: %.1f{config.MinMutationScore}
+├─ Belief Score Threshold: %.1f{config.MinBeliefScore}
+├─ Prompt Shaping: %s{if config.EnablePromptShaping then "✅" else "❌"}
+├─ Agent Biasing: %s{if config.EnableAgentBiasing then "✅" else "❌"}
+├─ Mutation Filtering: %s{if config.EnableMutationFiltering then "✅" else "❌"}
+├─ Performance Tracking: %s{if config.TrackPerformance then "✅" else "❌"}
+└─ Metrics Logging: %s{if config.LogMetrics then "✅" else "❌"}"""
 
 /// Print current configuration to console
-let printConfig () = printfn "%s" (getConfigSummary ())
+let printConfig () = printfn $"%s{getConfigSummary ()}"

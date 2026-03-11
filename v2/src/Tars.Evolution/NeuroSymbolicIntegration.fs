@@ -102,7 +102,7 @@ let scoreAgentAction (action: string) : float =
 /// Helper to log constraint metrics
 let logConstraintMetrics (metrics: NeuralSymbolicFeedback.FeedbackMetrics) =
     let report = NeuralSymbolicFeedback.printMetrics metrics
-    printfn "%s" report
+    printfn $"%s{report}"
 
 /// Integration configuration
 type NeuroSymbolicConfig =

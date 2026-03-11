@@ -1,8 +1,6 @@
 namespace Tars.Tests
 
-open System
 open System.Threading.Tasks
-open System.Text.Json
 open Xunit
 open Tars.Connectors.Mcp
 

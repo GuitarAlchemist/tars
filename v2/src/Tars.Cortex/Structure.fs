@@ -1,12 +1,9 @@
 namespace Tars.Cortex
 
 open System
-open System.Reflection
 open System.Text.Json
 open System.Text.Json.Serialization
 open Microsoft.FSharp.Reflection
-
-open Tars.Llm
 
 /// <summary>
 /// Utilities for generating structure constraints (JSON Schemas) from F# types.

@@ -2,7 +2,6 @@ namespace Tars.Tests.WorkflowOfThought
 
 open Xunit
 open Tars.DSL.Wot
-open Tars.DSL.Wot.WotParser
 open Tars.DSL.Wot.WotCompiler
 open System.IO
 

@@ -1,9 +1,7 @@
 module Tars.Tests.MultiBackendPlanStorageTests
 
 open System
-open System.Threading.Tasks
 open Xunit
-open Tars.Core
 open Tars.Knowledge
 
 /// Test fixture for multi-backend plan storage

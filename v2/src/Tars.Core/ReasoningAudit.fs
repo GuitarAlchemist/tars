@@ -1,7 +1,6 @@
 namespace Tars.Core
 
 open System
-open System.Collections.Generic
 open System.Globalization
 
 /// Tracks decisions made during cognitive workflows (GoT/WoT) for transparency.
@@ -142,12 +141,4 @@ module ReasoningAudit =
         let scoreRange = formatRange "score" stats.ScoreMin stats.ScoreMax
         let confRange = formatRange "conf" stats.ConfidenceMin stats.ConfidenceMax
 
-        sprintf
-            "decisions=%d;kept=%d;pruned=%d;fallbacks=%d;parseFailures=%d;%s;%s"
-            stats.Total
-            stats.Kept
-            stats.Pruned
-            stats.HeuristicFallbacks
-            stats.ParseFailures
-            scoreRange
-            confRange
+        $"decisions=%d{stats.Total};kept=%d{stats.Kept};pruned=%d{stats.Pruned};fallbacks=%d{stats.HeuristicFallbacks};parseFailures=%d{stats.ParseFailures};%s{scoreRange};%s{confRange}"

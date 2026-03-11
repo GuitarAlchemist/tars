@@ -211,7 +211,7 @@ module BeliefRevision =
         (resolution: ReflectionConflictResolution)
         (store: ReflectionBeliefStore)
         : RevisionResult<ReflectionBeliefStore> =
-        let strategyName = sprintf "%A" resolution.Strategy
+        let strategyName = $"%A{resolution.Strategy}"
         let event = ContradictionResolved(resolution.ConflictId, strategyName)
         let mutable updatedStore = store |> ReflectionBeliefStore.recordEvent event
 
@@ -360,13 +360,13 @@ module BeliefRevision =
             match update with
             | RevokeBelief(beliefId, _, _) ->
                 if ReflectionBeliefStore.get beliefId store |> Option.isNone then
-                    errors.Add(sprintf "Belief %A to revoke does not exist" beliefId)
+                    errors.Add $"Belief %A{beliefId} to revoke does not exist"
             | AdjustConfidence(beliefId, _, newConf, _) ->
                 if ReflectionBeliefStore.get beliefId store |> Option.isNone then
-                    errors.Add(sprintf "Belief %A to adjust does not exist" beliefId)
+                    errors.Add $"Belief %A{beliefId} to adjust does not exist"
 
                 if newConf < 0.0 || newConf > 1.0 then
-                    errors.Add(sprintf "Invalid confidence value: %f" newConf)
+                    errors.Add $"Invalid confidence value: %f{newConf}"
             | _ -> ()
 
         for update in reflection.BeliefUpdates do

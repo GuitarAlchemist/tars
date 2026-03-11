@@ -156,7 +156,8 @@ module OutputGuardAnalyzerFactory =
 
               DefaultContextWindow = None
 
-              DefaultTemperature = None }
+              DefaultTemperature = None
+              PreferredProvider = "Ollama" }
 
         let svcCfg: LlmServiceConfig = { Routing = routingCfg }
         let httpClient = new HttpClient(Timeout = TimeSpan.FromSeconds(30.0))

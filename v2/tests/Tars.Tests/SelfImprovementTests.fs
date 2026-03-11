@@ -14,7 +14,7 @@ type SelfImprovementTests(output: ITestOutputHelper) =
     let createMockGovernor () =
         { new IEpistemicGovernor with
             member _.GenerateVariants(_, count) =
-                Task.FromResult([ for i in 1..count -> sprintf "Variant %d" i ])
+                Task.FromResult([ for i in 1..count -> $"Variant %d{i}" ])
 
             member _.VerifyGeneralization(_, _, variants) =
                 Task.FromResult(
@@ -27,7 +27,7 @@ type SelfImprovementTests(output: ITestOutputHelper) =
             member _.ExtractPrinciple(taskDesc, _) =
                 Task.FromResult(
                     { Id = Guid.NewGuid()
-                      Statement = sprintf "Principle from: %s" taskDesc
+                      Statement = $"Principle from: %s{taskDesc}"
                       Context = "test-context"
                       Status = EpistemicStatus.Hypothesis
                       Confidence = 0.5
@@ -58,7 +58,7 @@ type SelfImprovementTests(output: ITestOutputHelper) =
             member _.ExtractPrinciple(taskDesc, _) =
                 Task.FromResult(
                     { Id = Guid.NewGuid()
-                      Statement = sprintf "Failed principle: %s" taskDesc
+                      Statement = $"Failed principle: %s{taskDesc}"
                       Context = "test-context"
                       Status = EpistemicStatus.Hypothesis
                       Confidence = 0.5
@@ -124,8 +124,8 @@ type SelfImprovementTests(output: ITestOutputHelper) =
             Assert.Single(updatedSession.ExtractedBeliefs) |> ignore
             Assert.Single(updatedSession.CurriculumSuggestions) |> ignore
 
-            output.WriteLine(sprintf "Extracted belief: %s" result.ExtractedBelief.Value.Statement)
-            output.WriteLine(sprintf "Curriculum: %s" result.Curriculum.Value)
+            output.WriteLine $"Extracted belief: %s{result.ExtractedBelief.Value.Statement}"
+            output.WriteLine $"Curriculum: %s{result.Curriculum.Value}"
         }
         |> Async.RunSynchronously
 
@@ -256,6 +256,6 @@ type SelfImprovementTests(output: ITestOutputHelper) =
 
             let next = getNextCurriculumTask updated
             Assert.True(next.IsSome)
-            output.WriteLine(sprintf "Next curriculum: %s" next.Value)
+            output.WriteLine $"Next curriculum: %s{next.Value}"
         }
         |> Async.RunSynchronously

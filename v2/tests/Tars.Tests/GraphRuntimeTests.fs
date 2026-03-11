@@ -6,8 +6,6 @@ open Xunit
 open Tars.Core
 open Tars.Graph
 open Tars.Llm
-open Tars.Llm.LlmService
-open Tars.Kernel
 
 module GraphRuntimeTests =
 
@@ -49,6 +47,7 @@ module GraphRuntimeTests =
     [<Fact>]
     let ``handleThinking returns Failure when budget is exhausted`` () =
         task {
+            if not (TestHelpers.requireTools()) then () else
             let agent = createTestAgent ()
             let history = []
 
@@ -96,8 +95,7 @@ module GraphRuntimeTests =
                   Version = "1.0"
                   ParentVersion = None
                   CreatedAt = DateTime.UtcNow
-                  Execute = fun _ -> async { return Result.Error "Tool crashed" }
-                  ThingDescription = None }
+                  Execute = fun _ -> async { return Result.Error "Tool crashed" } }
 
             let agent =
                 { createTestAgent () with

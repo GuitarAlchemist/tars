@@ -51,7 +51,7 @@ let list_tool_errors (args: string) =
                     let err = f.Output |> Option.defaultValue "Unknown error"
                     sprintf "- [%s] **%s**: %s\n  Category: %A, Latency: %.1fms" (f.Timestamp.ToString("T")) f.ToolName err f.ErrorCategory f.DurationMs)
                 |> String.concat "\n"
-            return sprintf "**Last %d Tool Failures:**\n%s" failures.Length lines
+            return $"**Last %d{failures.Length} Tool Failures:**\n%s{lines}"
     }
 
 /// <summary>
@@ -68,14 +68,15 @@ let report_status () =
                 stats 
                 |> List.map (fun (name, total, errors, avgDur, lastErr) -> 
                     let healthIcon = if errors = 0 then "✅" else "⚠️"
-                    let status = if errors = 0 then "Healthy" else sprintf "Degraded (%d errors)" errors
+                    let status = if errors = 0 then "Healthy" else $"Degraded (%d{errors} errors)"
                     let lastErrPart = 
                         match lastErr with
                         | Some (e: Tars.Core.ToolExecutionRecord) -> 
                             let msg = e.Output |> Option.defaultValue "Unknown"
-                            sprintf "\n  ! Last Error: %s" msg
+                            $"\n  ! Last Error: %s{msg}"
                         | None -> ""
-                    sprintf "%s **%s**: %s\n  Calls: %d, Avg: %.1fms%s" healthIcon name status total avgDur lastErrPart)
+
+                    $"%s{healthIcon} **%s{name}**: %s{status}\n  Calls: %d{total}, Avg: %.1f{avgDur}ms%s{lastErrPart}")
                 |> String.concat "\n\n"
-            return sprintf "### TARS Tool Health Report\n\n%s" lines
+            return $"### TARS Tool Health Report\n\n%s{lines}"
     }

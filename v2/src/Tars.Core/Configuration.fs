@@ -29,7 +29,9 @@ type MemorySettings =
       KnowledgeBasePath: string
       EpisodeDbPath: string
       GraphitiUrl: string option
-      PostgresConnectionString: string option }
+      PostgresConnectionString: string option
+      FusekiUrl: string option
+      FusekiAuth: string option }
 
 /// <summary>
 /// Configuration for Evolution Engine
@@ -50,10 +52,14 @@ type PreLlmSettings =
 /// Root Configuration object for TARS
 /// </summary>
 type TarsConfig =
-    { Llm: LlmSettings
-      Memory: MemorySettings
-      Evolution: EvolutionSettings
-      PreLlm: PreLlmSettings }
+    {
+        Llm: LlmSettings
+        Memory: MemorySettings
+        Evolution: EvolutionSettings
+        PreLlm: PreLlmSettings
+        /// Overlays for file paths (Original -> Variant)
+        VariantOverlays: Map<string, string>
+    }
 
 /// <summary>
 /// Default configuration values
@@ -98,6 +104,9 @@ module ConfigurationDefaults =
               KnowledgeBasePath = Path.Combine(home, "knowledge")
               EpisodeDbPath = Path.Combine(home, "episodes.db")
               GraphitiUrl = None
-              PostgresConnectionString = None }
+              PostgresConnectionString = None
+              FusekiUrl = Some "http://localhost:3030/tars_v2"
+              FusekiAuth = None }
           Evolution = DefaultEvolution
-          PreLlm = DefaultPreLlm }
+          PreLlm = DefaultPreLlm
+          VariantOverlays = Map.empty }

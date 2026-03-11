@@ -2,9 +2,6 @@
 /// Implements budget-aware task scoring and queue prioritization
 namespace Tars.Evolution
 
-open System
-open Tars.Core
-
 /// Task prioritization helpers for budget-aware scheduling
 module TaskPrioritization =
 
@@ -126,7 +123,7 @@ module TaskPrioritization =
                 |> List.map (fun t ->
                     let score = scoreTask t completedTasks remainingBudgetTokens
                     let cost = t |> estimateCost
-                    sprintf "  %.2f | %A | %s" score cost (t.Goal.Substring(0, min 40 t.Goal.Length)))
+                    $"  %.2f{score} | %A{cost} | %s{t.Goal.Substring(0, min 40 t.Goal.Length)}")
                 |> String.concat "\n"
 
-            sprintf "[Priority] Task Queue (Score | Cost | Goal):\n%s" scored
+            $"[Priority] Task Queue (Score | Cost | Goal):\n%s{scored}"

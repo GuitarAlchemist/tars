@@ -2,11 +2,6 @@ namespace Tars.Core
 
 open System
 open System.Collections.Generic
-open System.IO
-open System.Text.Json
-open System.Text.Json.Serialization
-open System.Threading.Tasks
-open FSharp.SystemTextJson
 
 [<Obsolete("Use Tars.Core.TemporalKnowledgeGraph instead")>]
 module LegacyKnowledgeGraph =

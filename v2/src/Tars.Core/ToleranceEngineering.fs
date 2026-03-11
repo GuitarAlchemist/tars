@@ -414,13 +414,13 @@ module ToleranceEngineering =
                     | ApproachingLimit(_, msg) ->
                         metrics.Record(ApproachingLimit(confidence, msg))
                         lastResult <- Some result  // Accept but log warning
-                        printfn "⚠️ Tolerance warning: %s" msg
+                        printfn $"⚠️ Tolerance warning: %s{msg}"
                     | BelowTolerance(_, Retry remaining) ->
                         printfn "🔄 Retrying (attempt %d/%d) - confidence %.1f%% below threshold" attempts spec.MaxRetries (confidence * 100.0)
                         lastError <- sprintf "Confidence too low: %.1f%%" (confidence * 100.0)
                     | BelowTolerance(_, Degrade msg) ->
                         metrics.Record(BelowTolerance(confidence, Degrade msg))
-                        printfn "⚠️ Degraded operation: %s" msg
+                        printfn $"⚠️ Degraded operation: %s{msg}"
                         lastResult <- Some result  // Accept in degraded mode
                     | BelowTolerance(_, Abort reason) ->
                         metrics.Record(BelowTolerance(confidence, Abort reason))
@@ -432,7 +432,7 @@ module ToleranceEngineering =
                         attempts <- spec.MaxRetries
                     | RequiresHumanReview reason ->
                         metrics.Record(RequiresHumanReview reason)
-                        lastError <- sprintf "Human review required: %s" reason
+                        lastError <- $"Human review required: %s{reason}"
                         attempts <- spec.MaxRetries
                     | HighVariance(v, max) ->
                         metrics.Record(HighVariance(v, max))
@@ -440,8 +440,8 @@ module ToleranceEngineering =
                         
                 with ex ->
                     lastError <- ex.Message
-                    printfn "❌ Operation failed: %s" ex.Message
-            
+                    printfn $"❌ Operation failed: %s{ex.Message}"
+
             match lastResult with
             | Some r -> return Result<'T, string>.Ok r
             | None -> return Result<'T, string>.Error lastError

@@ -1,7 +1,5 @@
 namespace Tars.Core
 
-open System
-
 [<Measure>]
 type token
 

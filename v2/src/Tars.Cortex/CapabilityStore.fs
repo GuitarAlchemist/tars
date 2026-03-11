@@ -1,10 +1,8 @@
 namespace Tars.Cortex
 
 open System
-open System.Threading.Tasks
 open Tars.Core
 open Tars.Llm
-open Tars.Llm.LlmService
 
 /// <summary>
 /// Stores and retrieves agent capabilities using semantic search.
@@ -99,16 +97,16 @@ type CapabilityStore(vectorStore: IVectorStore, llm: ILlmService) =
                             | true, v -> Some(float v)
                             | _ -> None)
 
-                    let kind =
+                    let kind: CapabilityKind =
                         match kindStr with
-                        | "Summarization" -> Summarization
-                        | "WebSearch" -> WebSearch
-                        | "CodeGeneration" -> CodeGeneration
-                        | "DataAnalysis" -> DataAnalysis
-                        | "Planning" -> Planning
-                        | "TaskExecution" -> TaskExecution
-                        | "Reasoning" -> Reasoning
-                        | s -> Custom s
+                        | "Summarization" -> CapabilityKind.Summarization
+                        | "WebSearch" -> CapabilityKind.WebSearch
+                        | "CodeGeneration" -> CapabilityKind.CodeGeneration
+                        | "DataAnalysis" -> CapabilityKind.DataAnalysis
+                        | "Planning" -> CapabilityKind.Planning
+                        | "TaskExecution" -> CapabilityKind.TaskExecution
+                        | "Reasoning" -> CapabilityKind.Reasoning
+                        | s -> CapabilityKind.Custom s
 
                     let capability =
                         { Kind = kind

@@ -306,6 +306,8 @@ type McpServer(registry: IToolRegistry, ?knowledgeGraph: TemporalKnowledgeGraph.
                         | TarsEntity.EpisodeE e -> ("episode", TarsEntity.getId (TarsEntity.EpisodeE e))
                         | TarsEntity.FileE pf -> ("file", pf)
                         | TarsEntity.FunctionE f -> ("function", f)
+                        | TarsEntity.RunE r -> ("run", r.Goal)
+                        | TarsEntity.StepE s -> ("step", s.NodeType)
 
                     {| id = entityId
                        entityType = entityType
@@ -352,6 +354,7 @@ type McpServer(registry: IToolRegistry, ?knowledgeGraph: TemporalKnowledgeGraph.
                         | TarsFact.SimilarTo _ -> "similar_to"
                         | TarsFact.DerivedFrom _ -> "derived_from"
                         | TarsFact.Contains _ -> "contains"
+                        | TarsFact.NextStep _ -> "next_step"
 
                     {| source = sourceId
                        target = targetId
@@ -384,6 +387,8 @@ type McpServer(registry: IToolRegistry, ?knowledgeGraph: TemporalKnowledgeGraph.
                         | TarsEntity.EpisodeE e -> "Episode " + TarsEntity.getId (TarsEntity.EpisodeE e)
                         | TarsEntity.FileE pf -> pf
                         | TarsEntity.FunctionE f -> f
+                        | TarsEntity.RunE r -> r.Goal
+                        | TarsEntity.StepE s -> s.Content
 
                     if name.ToLowerInvariant().Contains(query) then
                         Some {| id = entityId; name = name |}

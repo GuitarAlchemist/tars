@@ -3,7 +3,6 @@ namespace Tars.Tools.Standard
 open System
 open System.IO
 open System.Diagnostics
-open System.Threading.Tasks
 open Tars.Tools
 
 module TestingTools =

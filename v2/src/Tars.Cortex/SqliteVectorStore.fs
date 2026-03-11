@@ -1,7 +1,6 @@
 namespace Tars.Cortex
 
 open System
-open System.Collections.Generic
 open System.IO
 open System.Text.Json
 open System.Threading.Tasks

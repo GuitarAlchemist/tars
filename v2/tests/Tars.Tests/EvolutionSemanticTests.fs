@@ -29,7 +29,14 @@ module EvolutionSemanticTests =
                 }
 
             member _.EmbedAsync(_text) = task { return [| 0.1f; 0.2f; 0.3f |] }
-            member _.RouteAsync _ = task { return { Backend = Tars.Llm.LlmBackend.Ollama "mock"; Endpoint = Uri "http://localhost:11434"; ApiKey = None } }
+
+            member _.RouteAsync _ =
+                task {
+                    return
+                        { Backend = Tars.Llm.LlmBackend.Ollama "mock"
+                          Endpoint = Uri "http://localhost:11434"
+                          ApiKey = None }
+                }
 
     type MockRegistry(agents: Agent list) =
         interface IAgentRegistry with
@@ -42,6 +49,7 @@ module EvolutionSemanticTests =
     [<Fact>]
     let ``Evolution loop validates speech acts in response`` () =
         task {
+            if not (TestHelpers.requireTools()) then () else
             let curriculumAgentId = AgentId(Guid.NewGuid())
             let executorAgentId = AgentId(Guid.NewGuid())
 
@@ -95,12 +103,13 @@ module EvolutionSemanticTests =
                   Ledger = None
                   Evaluator = None
                   RunId = None
-                  Logger = fun msg -> printfn "LOG: %s" msg
+                  Logger = fun msg -> printfn $"LOG: %s{msg}"
                   Verbose = true
                   ShowSemanticMessage = fun _ _ -> ()
                   Focus = None
                   ToolRegistry = None
-                  ResearchEnhanced = false }
+                  ResearchEnhanced = false
+                  SelfImprovement = false }
 
             let state: EvolutionState =
                 { Generation = 0

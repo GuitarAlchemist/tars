@@ -165,6 +165,7 @@ module LlamaCppClient =
         (baseUri: Uri)
         (model: string)
         (config: LlamaCppConfig option)
+        (apiKey: string option)
         (req: LlmRequest)
         : Task<LlmResponse> =
         task {
@@ -198,6 +199,11 @@ module LlamaCppClient =
             // printfn "  [DEBUG LlamaCpp] Calling: %s" (uri.ToString())
             let content = JsonContent.Create(dto, options = jsonOptions)
             use requestMessage = new HttpRequestMessage(HttpMethod.Post, uri, Content = content)
+
+            match apiKey with
+            | Some key when not (String.IsNullOrWhiteSpace(key)) ->
+                requestMessage.Headers.Authorization <- System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", key)
+            | _ -> ()
 
 
             use! resp = http.SendAsync(requestMessage)
@@ -257,6 +263,7 @@ module LlamaCppClient =
         (baseUri: Uri)
         (model: string)
         (config: LlamaCppConfig option)
+        (apiKey: string option)
         (req: LlmRequest)
         (onToken: string -> unit)
         : Task<LlmResponse> =
@@ -298,6 +305,11 @@ module LlamaCppClient =
                 )
 
             use requestMessage = new HttpRequestMessage(HttpMethod.Post, uri, Content = content)
+
+            match apiKey with
+            | Some key when not (String.IsNullOrWhiteSpace(key)) ->
+                requestMessage.Headers.Authorization <- System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", key)
+            | _ -> ()
 
             use! resp = http.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead)
             resp.EnsureSuccessStatusCode() |> ignore

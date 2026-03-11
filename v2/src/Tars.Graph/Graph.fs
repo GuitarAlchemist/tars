@@ -1,14 +1,11 @@
 namespace Tars.Graph
 
 open Tars.Core
-open Tars.Connectors
 open Tars.Tools
 open System.Threading.Tasks
 open System.Text
 open System
 open Tars.Llm
-open Tars.Llm.LlmService
-open Tars.Kernel
 
 module ToolGrammar =
     let spec =

@@ -4,7 +4,6 @@ open System
 open System.Threading.Tasks
 open Tars.Core
 open Tars.Llm
-open Tars.Llm.LlmService
 
 /// Entity and fact extraction types
 module EntityExtractor =
@@ -117,6 +116,8 @@ module EntityResolver =
         | FileE p -> p
         | FunctionE n -> n
         | EpisodeE e -> Episode.typeTag e
+        | RunE r -> $"Run {r.Id}: {r.Goal}"
+        | StepE s -> $"Step {s.StepId} ({s.NodeType}): {s.Content}"
 
     /// Resolve/deduplicate a list of entities using exact string matching
     let resolveEntities (strategy: ResolutionStrategy) (entities: TarsEntity list) : TarsEntity list =
@@ -204,6 +205,7 @@ module EntityResolver =
         | Tars.Core.SimilarTo(_, target, similarity) -> Tars.Core.SimilarTo(newSource, target, similarity)
         | Tars.Core.DerivedFrom(_, target) -> Tars.Core.DerivedFrom(newSource, target)
         | Tars.Core.Contains(_, target) -> Tars.Core.Contains(newSource, target)
+        | Tars.Core.NextStep(_, target) -> Tars.Core.NextStep(newSource, target)
 
     /// Resolve facts after entity resolution (update references)
     let resolveFacts (entityMap: Map<string, TarsEntity>) (facts: TarsFact list) : TarsFact list =
@@ -246,9 +248,7 @@ module FactExtractor =
 
     open System.Text.Json
     open System.Text.Json.Serialization
-    open System.Threading.Tasks
     open EntityExtractor
-    open Tars.Llm
 
     /// Prompt templates for fact extraction
     module Prompts =
@@ -326,6 +326,8 @@ Return valid JSON array only."""
             | Tars.Core.AnomalyE a -> $"- Anomaly: {a.Location} ({a.Severity})"
             | Tars.Core.GrammarRuleE g -> $"- Grammar: {g.Name}"
             | Tars.Core.EpisodeE e -> $"- Episode: {TarsEntity.getId (Tars.Core.EpisodeE e)}"
+            | Tars.Core.RunE r -> $"- WoT Run: {r.Goal} (Pattern: {r.Pattern})"
+            | Tars.Core.StepE s -> $"- Step {s.StepId}: {s.NodeType}"
             | Tars.Core.FileE p -> $"- File: {p}"
             | Tars.Core.FunctionE f -> $"- Function: {f}")
         |> String.concat "\n"
@@ -402,6 +404,8 @@ Return valid JSON array only."""
                 | Tars.Core.AnomalyE a -> Some a.Location
                 | Tars.Core.GrammarRuleE g -> Some g.Name
                 | Tars.Core.EpisodeE e -> Some("Episode " + TarsEntity.getId (Tars.Core.EpisodeE e))
+                | Tars.Core.RunE r -> Some($"Run {r.Id}")
+                | Tars.Core.StepE s -> Some($"Step {s.StepId}")
                 | Tars.Core.FileE p -> Some p
                 | Tars.Core.FunctionE f -> Some f
 

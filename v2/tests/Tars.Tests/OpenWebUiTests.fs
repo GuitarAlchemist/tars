@@ -3,7 +3,6 @@ namespace Tars.Tests
 open System
 open System.Net
 open System.Net.Sockets
-open System.Threading.Tasks
 open System.Text
 open Xunit
 open Tars.Connectors

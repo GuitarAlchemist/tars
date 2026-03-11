@@ -2,8 +2,6 @@ namespace Tars.Core
 
 open System
 open System.IO
-open System.IO
-open System.Threading.Tasks
 open Tars.Core.TemporalKnowledgeGraph
 
 /// Internal implementation of the Knowledge Graph Service
@@ -24,6 +22,8 @@ type InternalGraphService(storagePath: string) =
                 printfn $"[GraphService] Loaded knowledge graph from %s{graphFile}"
             else
                 printfn "[GraphService] Failed to load graph, starting fresh."
+    
+    member this.Graph = graph
 
     interface IGraphService with
         member this.AddNodeAsync(entity: TarsEntity) =
@@ -43,7 +43,7 @@ type InternalGraphService(storagePath: string) =
 
         member this.AddEpisodeAsync(episode: Episode) =
             task {
-                let id = graph.AddNode(EpisodeE episode)
+                let id = EpisodeIngestor.ingestEpisode graph episode
                 graph.Save(graphFile)
                 return id
             }

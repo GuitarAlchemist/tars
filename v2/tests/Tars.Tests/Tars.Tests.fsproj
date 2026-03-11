@@ -14,6 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="TestHelpers.fs" />
     <Compile Include="KernelTests.fs" />
     <Compile Include="GovernanceTests.fs" />
     <Compile Include="AgentWorkflowTests.fs" />
@@ -26,6 +27,7 @@
     <Compile Include="MetascriptTests.fs" />
     <Compile Include="FluxTests.fs" />
     <Compile Include="GraphTests.fs" />
+    <Compile Include="GraphitiTypesTests.fs" />
     <Compile Include="RouterTests.fs" />
     <Compile Include="EpistemicGovernorTests.fs" />
     <Compile Include="AdaptiveReflectionTests.fs" />
@@ -62,6 +64,7 @@
     <Compile Include="SemanticSerializationTests.fs" />
     <Compile Include="McpTests.fs" />
     <Compile Include="KnowledgeGraphTests.fs" />
+    <Compile Include="SymbolicReflectionTests.fs" />
     <Compile Include="TemporalKnowledgeGraphTests.fs" />
     <Compile Include="LpaTests.fs" />
     <Compile Include="PatternRecognitionTests.fs" />
@@ -81,6 +84,8 @@
     <Compile Include="V1ParserTests.fs" />
     <Compile Include="MetascriptRegistryTests.fs" />
     <Compile Include="PatternTests.fs" />
+    <Compile Include="ReasoningPatternTests.fs" />
+    <Compile Include="PatternSelectorTests.fs" />
     <Compile Include="SelfImprovementTests.fs" />
     <Compile Include="WorkingMemoryTests.fs" />
     <Compile Include="TaskPrioritizationTests.fs" />
@@ -92,6 +97,11 @@
     <Compile Include="WorkflowOfThought\WotParsingIntegrationTests.fs" />
     <Compile Include="WorkflowOfThought\WotGoldenRunTests.fs" />
     <Compile Include="WorkflowOfThought\WotDiffTests.fs" />
+    <Compile Include="WorkflowOfThought\WoTControllerTests.fs" />
+    <Compile Include="WoTGoldenTraceTests.fs" />
+    <Compile Include="WotPersistenceTests.fs" />
+    <Compile Include="WorkflowOfThought\EvidenceProvenanceTests.fs" />
+    <Compile Include="PromotionPipelineTests.fs" />
   </ItemGroup>
 
   <ItemGroup>

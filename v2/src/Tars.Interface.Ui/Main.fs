@@ -9,13 +9,9 @@ open System.Threading.Tasks
 open Tars.Core
 open Tars.Kernel
 open Tars.Llm
-open Tars.Llm.LlmService
-open Tars.Llm.Routing
 open Tars.Cortex
+open Tars.Cortex.WoTTypes
 open Tars.Cortex.Patterns
-open Tars.Core.Puzzles
-open Tars.Symbolic
-
 // ============================================================================
 // Model
 // ============================================================================
@@ -69,6 +65,7 @@ type Message =
     | SelectPattern of AgenticWorkflowPattern
     | RefreshCognitiveState
     | CognitiveStateUpdated of CognitiveState
+    | WoTStateUpdated of WoTCognitiveState
     | Error of exn
     // Puzzle Messages
     | SelectPuzzle of Puzzle
@@ -95,7 +92,8 @@ type GoTState =
       NodesExplored: int
       Pattern: AgenticWorkflowPattern
       SelectedBranchingFactor: int
-      SelectedMaxDepth: int }
+      SelectedMaxDepth: int
+      CognitiveState: WoTCognitiveState option }
 
 
 type EvolutionState =
@@ -154,7 +152,8 @@ let initModel =
           NodesExplored = 0
           Pattern = Reflection
           SelectedBranchingFactor = 3
-          SelectedMaxDepth = 3 }
+          SelectedMaxDepth = 3
+          CognitiveState = None }
       Puzzles =
         { SelectedPuzzle = None
           IsRunning = false
@@ -443,10 +442,7 @@ let callLlm (llm: ILlmService) (toolRegistry: IToolRegistry) (messages: ChatMess
                           Content = response.Text
                           Timestamp = DateTime.Now
                           ToolCall = Some tool.Name
-                          WoTMetadata =
-                            match tool.ThingDescription with
-                            | Some td -> td |> Map.toSeq |> Seq.map (fun (k, v) -> k, string v) |> Map.ofSeq |> Some
-                            | None -> None }
+                          WoTMetadata = None }
                         { MsgId = Guid.NewGuid()
                           Role = "user"
                           Content = result
@@ -707,6 +703,9 @@ Successful execution for input: "{model.GoT.Input}"
         { model with
             CognitiveState = Some state },
         Cmd.none
+    | WoTStateUpdated state ->
+        let got = { model.GoT with CognitiveState = Some state }
+        { model with GoT = got }, Cmd.none
     | SelectPattern p ->
         let got = { model.GoT with Pattern = p }
         { model with GoT = got }, Cmd.none
@@ -879,6 +878,16 @@ let entityToHtml (entity: TarsEntity) =
             attr.classes [ "entity-tag"; "episode" ]
             text (Episode.typeTag e)
         }
+    | TarsEntity.RunE r ->
+        span {
+            attr.classes [ "entity-tag"; "run" ]
+            text (sprintf "Run: %s" (r.Id.ToString().Substring(0, 8)))
+        }
+    | TarsEntity.StepE s ->
+        span {
+            attr.classes [ "entity-tag"; "step" ]
+            text (sprintf "Step: %s" s.StepId)
+        }
     | TarsEntity.FileE p ->
         span {
             attr.classes [ "entity-tag"; "file" ]
@@ -901,6 +910,7 @@ let factView (fact: TarsFact) =
         | TarsFact.SimilarTo(s, t, _) -> (s, "SimilarTo", Some t)
         | TarsFact.DerivedFrom(s, t) -> (s, "DerivedFrom", Some t)
         | TarsFact.Contains(s, t) -> (s, "Contains", Some t)
+        | TarsFact.NextStep(s, t) -> (s, "NextStep", Some t)
 
     div {
         attr.classes [ "fact-card" ]
@@ -949,26 +959,12 @@ let cognitiveStats (state: CognitiveState option) =
 
                 span {
                     attr.classes [ "stat-label" ]
-                    text "Grounding: "
-                }
-
-                span {
-                    attr.classes [ "stat-value" ]
-                    text (sprintf "%.1f%%" (s.GroundingFidelity * 100.0))
-                }
-            }
-
-            div {
-                attr.classes [ "stat-item" ]
-
-                span {
-                    attr.classes [ "stat-label" ]
                     text "Reasoning: "
                 }
 
                 span {
                     attr.classes [ "stat-value" ]
-                    text (sprintf "%.2f" s.BranchingFactor)
+                    text $"%.2f{s.BranchingFactor}"
                 }
             }
         | None -> text "Initializing cognitive engine..."
@@ -1561,6 +1557,51 @@ let reasoningPage model dispatch =
             }
         }
 
+
+
+        // Cognitive State Dashboard
+        match model.GoT.CognitiveState with
+        | Some state ->
+            div {
+                attr.style "background: #222233; padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem; border: 1px solid #444;"
+                
+                h3 { 
+                    attr.style "color: #fff; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;"
+                    text "🧠 Cognitive State Telemetry" 
+                }
+
+                div {
+                    attr.style "display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;"
+
+                    let stat (label: string) (value: string) (color: string) =
+                        div {
+                            attr.style "background: #333; padding: 1rem; border-radius: 8px;"
+                            div { attr.style "color: #888; font-size: 0.8rem; margin-bottom: 0.25rem;"; text label }
+                            div { attr.style $"color: {color}; font-size: 1.2rem; font-weight: bold;"; text value }
+                        }
+
+                    stat "Mode" (string state.Mode) "#00ff88"
+                    stat "Entropy" $"%.2f{state.Entropy}" "#ffaa00"
+                    stat "Eigenvalue" $"%.2f{state.Eigenvalue}" "#44aaff"
+                    stat "Branching" $"%.2f{state.BranchingFactor}" "#ff44aa"
+                    stat "Step" (string state.StepCount) "#ffffff"
+                    stat "Pattern" (state.ActivePattern |> Option.map string |> Option.defaultValue "-") "#aaaaaa"
+                }
+
+                // Bar visualization for Entropy
+                div {
+                    attr.style "margin-top: 1rem;"
+                    div { attr.style "color: #888; font-size: 0.8rem; margin-bottom: 0.25rem;"; text "System Entropy" }
+                    div {
+                        attr.style "background: #333; height: 8px; border-radius: 4px; overflow: hidden;"
+                        div {
+                            attr.style $"background: linear-gradient(90deg, #00ff88, #ffaa00); width: {state.Entropy * 100.0}%%; height: 100%%;"
+                        }
+                    }
+                }
+            }
+        | _ -> text ""
+
         // Interactive Demo Section
         div {
             attr.style "background: #1a1a2e; padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem;"
@@ -1836,12 +1877,12 @@ let puzzlesPage model dispatch =
 
                             span {
                                 attr.style "background: #222; padding: 2px 6px; border-radius: 4px;"
-                                text (sprintf "Difficulty: %d/5" puzzle.Difficulty)
+                                text $"Difficulty: %d{puzzle.Difficulty}/5"
                             }
 
                             span {
                                 attr.style "color: #666;"
-                                text (sprintf "%A" puzzle.Type)
+                                text $"%A{puzzle.Type}"
                             }
                         }
                     }

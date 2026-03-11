@@ -30,7 +30,14 @@ module EvolutionTests =
                 }
 
             member _.EmbedAsync(_text) = task { return [| 0.1f; 0.2f; 0.3f |] }
-            member _.RouteAsync _ = task { return { Backend = Tars.Llm.LlmBackend.Ollama "mock"; Endpoint = Uri "http://localhost:11434"; ApiKey = None } }
+
+            member _.RouteAsync _ =
+                task {
+                    return
+                        { Backend = Tars.Llm.LlmBackend.Ollama "mock"
+                          Endpoint = Uri "http://localhost:11434"
+                          ApiKey = None }
+                }
 
         interface Tars.Llm.ILlmServiceFunctional with
             member _.CompleteAsync(_req) =
@@ -46,7 +53,12 @@ module EvolutionTests =
                 asyncResult { return [| 0.1f; 0.2f; 0.3f |] }
 
             member _.RouteAsync(_req) =
-                asyncResult { return { Backend = Tars.Llm.LlmBackend.Ollama "mock"; Endpoint = Uri "http://localhost:11434"; ApiKey = None } }
+                asyncResult {
+                    return
+                        { Backend = Tars.Llm.LlmBackend.Ollama "mock"
+                          Endpoint = Uri "http://localhost:11434"
+                          ApiKey = None }
+                }
 
     type StubVectorStore() =
         interface IVectorStore with
@@ -137,6 +149,7 @@ module EvolutionTests =
 
     [<Fact>]
     let ``Evolution generation uses epistemic suggestions`` () =
+        if not (TestHelpers.requireTools()) then () else
         let stubEpistemic = StubEpistemic()
 
         let llmJson =
@@ -182,7 +195,8 @@ module EvolutionTests =
               ShowSemanticMessage = (fun _ _ -> ())
               Focus = None
               ToolRegistry = None
-              ResearchEnhanced = false }
+              ResearchEnhanced = false
+              SelfImprovement = false }
 
         let _nextState =
             Engine.step evoCtx state |> Async.AwaitTask |> Async.RunSynchronously

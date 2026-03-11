@@ -3,9 +3,7 @@ namespace Tars.Interface.Cli.Commands
 open System
 open System.IO
 open System.Text.Json
-open System.Threading.Tasks
 open Spectre.Console
-open Tars.Connectors.Mcp
 
 /// Built-in skill catalog with popular MCP servers
 module SkillCatalog =

@@ -2,16 +2,14 @@ module Tars.Interface.Cli.Commands.Agent
 
 open System
 open System.IO
-open System.Net.Http
 open System.Threading
 open System.Threading.Tasks
 open Tars.Core
 open Tars.Cortex
 open Tars.Cortex.Patterns
+open Tars.Cortex.WoTTypes
 open Tars.Llm
-open Tars.Llm.LlmService
 open Tars.Tools
-open Tars.Kernel
 open Tars.Interface.Cli.Commands.AgentHelpers
 
 
@@ -20,13 +18,13 @@ let runReact (config: Microsoft.Extensions.Configuration.IConfiguration) (option
     task {
         printfn "🤖 TARS Agent - ReAct Mode"
         printfn "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        printfn "Goal: %s" goal
-        printfn "Max Steps: %d" options.MaxSteps
+        printfn $"Goal: %s{goal}"
+        printfn $"Max Steps: %d{options.MaxSteps}"
         printfn ""
 
         match createLlmService config with
         | Result.Error msg ->
-            printfn "❌ %s" msg
+            printfn $"❌ %s{msg}"
             return 1
         | Result.Ok(llm, _model) ->
             let llmWithEvidence, evidenceHandle = attachEvidence "react" llm options
@@ -50,8 +48,7 @@ let runReact (config: Microsoft.Extensions.Configuration.IConfiguration) (option
                   Version = "1.0.0"
                   ParentVersion = None
                   CreatedAt = DateTime.UtcNow
-                  Execute = fun input -> async { return Result.Ok(sprintf "Echo: %s" input) }
-                  ThingDescription = None }
+                  Execute = fun input -> async { return Result.Ok $"Echo: %s{input}" } }
 
             let timeTool: Tool =
                 { Name = "current_time"
@@ -59,8 +56,7 @@ let runReact (config: Microsoft.Extensions.Configuration.IConfiguration) (option
                   Version = "1.0.0"
                   ParentVersion = None
                   CreatedAt = DateTime.UtcNow
-                  Execute = fun _ -> async { return Result.Ok(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")) }
-                  ThingDescription = None }
+                  Execute = fun _ -> async { return Result.Ok(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")) } }
 
             let mathTool: Tool =
                 { Name = "calculate"
@@ -90,15 +86,14 @@ let runReact (config: Microsoft.Extensions.Configuration.IConfiguration) (option
                                         | _ -> nan // Unknown operator
 
                                     if Double.IsNaN(result) then
-                                        return Result.Error(sprintf "Unknown operator: %s" op)
+                                        return Result.Error $"Unknown operator: %s{op}"
                                     else
-                                        return Result.Ok(sprintf "%g" result)
+                                        return Result.Ok $"%g{result}"
                                 else
                                     return Result.Error "Invalid expression. Use format: '5 + 3'"
                             with ex ->
                                 return Result.Error ex.Message
-                        }
-                  ThingDescription = None }
+                        } }
 
             toolRegistry.Register(echoTool)
             toolRegistry.Register(timeTool)
@@ -109,14 +104,14 @@ let runReact (config: Microsoft.Extensions.Configuration.IConfiguration) (option
             // Create agent context with logging
             let logger msg =
                 if options.Verbose then
-                    printfn "  [LOG] %s" msg
+                    printfn $"  [LOG] %s{msg}"
 
             let ctx = createAgentContext logger llmWithEvidence None
 
             printfn "📋 Available Tools:"
 
             for tool in tools.GetAll() do
-                printfn "   • %s: %s" tool.Name tool.Description
+                printfn $"   • %s{tool.Name}: %s{tool.Description}"
 
             printfn ""
             printfn "🔄 Starting ReAct loop..."
@@ -132,24 +127,24 @@ let runReact (config: Microsoft.Extensions.Configuration.IConfiguration) (option
             match evidence with
             | Some(recorder, path) ->
                 do! recorder.SaveToFileAsync(path) |> Async.StartAsTask
-                printfn "📒 Evidence saved: %s" path
+                printfn $"📒 Evidence saved: %s{path}"
             | None -> ()
 
             match result with
             | Success answer ->
                 printfn "✅ Success!"
                 printfn ""
-                printfn "Answer: %s" answer
+                printfn $"Answer: %s{answer}"
                 return 0
             | PartialSuccess(answer, warnings) ->
                 printfn "⚠️ Partial Success (with warnings)"
                 printfn ""
-                printfn "Answer: %s" answer
+                printfn $"Answer: %s{answer}"
                 printfn ""
                 printfn "Warnings:"
 
                 for w in warnings do
-                    printfn "  - %A" w
+                    printfn $"  - %A{w}"
 
                 return 0
             | Failure errors ->
@@ -158,7 +153,7 @@ let runReact (config: Microsoft.Extensions.Configuration.IConfiguration) (option
                 printfn "Errors:"
 
                 for e in errors do
-                    printfn "  - %A" e
+                    printfn $"  - %A{e}"
 
                 return 1
     }
@@ -172,12 +167,12 @@ let runChainOfThought
     task {
         printfn "🧠 TARS Agent - Chain of Thought Mode"
         printfn "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        printfn "Input: %s" input
+        printfn $"Input: %s{input}"
         printfn ""
 
         match createLlmService config with
         | Result.Error msg ->
-            printfn "❌ %s" msg
+            printfn $"❌ %s{msg}"
             return 1
         | Result.Ok(llm, _) ->
             let llmWithEvidence, evidenceHandle = attachEvidence "cot" llm options
@@ -193,7 +188,7 @@ let runChainOfThought
 
             let logger msg =
                 if options.Verbose then
-                    printfn "  [LOG] %s" msg
+                    printfn $"  [LOG] %s{msg}"
 
             let ctx = createAgentContext logger llmWithEvidence None
 
@@ -220,25 +215,25 @@ let runChainOfThought
             match evidence with
             | Some(recorder, path) ->
                 do! recorder.SaveToFileAsync(path) |> Async.StartAsTask
-                printfn "📒 Evidence saved: %s" path
+                printfn $"📒 Evidence saved: %s{path}"
             | None -> ()
 
             match result with
             | Success answer ->
                 printfn "✅ Success!"
                 printfn ""
-                printfn "%s" answer
+                printfn $"%s{answer}"
                 return 0
             | PartialSuccess(answer, _) ->
                 printfn "⚠️ Partial Success"
                 printfn ""
-                printfn "%s" answer
+                printfn $"%s{answer}"
                 return 0
             | Failure errors ->
                 printfn "❌ Failed"
 
                 for e in errors do
-                    printfn "  - %A" e
+                    printfn $"  - %A{e}"
 
                 return 1
     }
@@ -254,12 +249,12 @@ let private runReasoningEngine
     task {
         printfn $"🌐 TARS Agent - {patternName} Mode"
         printfn "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        printfn "Goal: %s" goal
+        printfn $"Goal: %s{goal}"
         printfn ""
 
         match createLlmService config with
         | Result.Error msg ->
-            printfn "❌ %s" msg
+            printfn $"❌ %s{msg}"
             return 1
         | Result.Ok(llm, _) ->
             try
@@ -276,7 +271,7 @@ let private runReasoningEngine
 
                 let logger msg =
                     if options.Verbose then
-                        printfn "  [LOG] %s" msg
+                        printfn $"  [LOG] %s{msg}"
                     else if
                         msg.Contains("[GoT] Phase")
                         || msg.Contains("[GoT] Final")
@@ -287,7 +282,7 @@ let private runReasoningEngine
                         || msg.Contains("[ToT] Proposed")
                         || msg.Contains("[ToT] Valued")
                     then
-                        printfn "  %s" msg
+                        printfn $"  %s{msg}"
 
                 // Minimal agent context for reasoning (doesn't need tools or heavy infra)
                 let agent: Agent =
@@ -325,6 +320,7 @@ let private runReasoningEngine
                       Budget = None
                       Epistemic = None
                       SemanticMemory = None
+                      SymbolicReflector = None
                       KnowledgeGraph = None
                       CapabilityStore = None
                       Audit = None
@@ -346,10 +342,10 @@ let private runReasoningEngine
 
 
                 printfn "📊 Configuration:"
-                printfn "   • Branching Factor: %d" gotConfig.BranchingFactor
-                printfn "   • Max Depth: %d" gotConfig.MaxDepth
-                printfn "   • Top-K: %d" gotConfig.TopK
-                printfn "   • Min Confidence: %.2f" gotConfig.MinConfidence
+                printfn $"   • Branching Factor: %d{gotConfig.BranchingFactor}"
+                printfn $"   • Max Depth: %d{gotConfig.MaxDepth}"
+                printfn $"   • Top-K: %d{gotConfig.TopK}"
+                printfn $"   • Min Confidence: %.2f{gotConfig.MinConfidence}"
                 printfn ""
                 printfn $"🔄 Starting {patternName} reasoning..."
                 printfn ""
@@ -363,38 +359,38 @@ let private runReasoningEngine
                 match evidence with
                 | Some(recorder, path) ->
                     do! recorder.SaveToFileAsync(path) |> Async.StartAsTask
-                    printfn "📒 Evidence saved: %s" path
+                    printfn $"📒 Evidence saved: %s{path}"
                 | None -> ()
 
                 match result with
                 | Success answer ->
                     printfn "✅ Success!"
                     printfn ""
-                    printfn "%s" answer
+                    printfn $"%s{answer}"
                     return 0
                 | PartialSuccess(answer, warnings) ->
                     printfn "⚠️ Partial Success"
                     printfn ""
-                    printfn "%s" answer
+                    printfn $"%s{answer}"
 
                     if options.Verbose then
                         printfn ""
                         printfn "Warnings:"
 
                         for w in warnings do
-                            printfn "  - %A" w
+                            printfn $"  - %A{w}"
 
                     return 0
                 | Failure errors ->
                     printfn "❌ Failed"
 
                     for e in errors do
-                        printfn "  - %A" e
+                        printfn $"  - %A{e}"
 
                     return 1
             with ex ->
-                printfn "❌ Exception occurred: %s" ex.Message
-                if ex.InnerException <> null then printfn "   Inner: %s" ex.InnerException.Message
+                printfn $"❌ Exception occurred: %s{ex.Message}"
+                if ex.InnerException <> null then printfn $"   Inner: %s{ex.InnerException.Message}"
 
                 let errorFile =
                     Path.Combine(
@@ -413,7 +409,7 @@ let private runReasoningEngine
                         (ex.StackTrace |> Option.ofObj |> Option.defaultValue "No stack")
 
                 File.WriteAllText(errorFile, errorMsg)
-                printfn "Error written to: %s" errorFile
+                printfn $"Error written to: %s{errorFile}"
                 return 1
     }
 
@@ -439,12 +435,12 @@ let runWorkflowOfThoughts
     task {
         printfn "🌐 TARS Agent - Workflow-of-Thoughts Mode"
         printfn "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        printfn "Goal: %s" goal
+        printfn $"Goal: %s{goal}"
         printfn ""
 
         match createLlmService config with
         | Result.Error msg ->
-            printfn "❌ %s" msg
+            printfn $"❌ %s{msg}"
             return 1
         | Result.Ok(llm, _) ->
             let llmWithEvidence, evidenceHandle = attachEvidence "wot" llm options
@@ -460,9 +456,9 @@ let runWorkflowOfThoughts
 
             let logger msg =
                 if options.Verbose then
-                    printfn "  [LOG] %s" msg
+                    printfn $"  [LOG] %s{msg}"
                 else if msg.Contains("[WoT]") then
-                    printfn "  %s" msg
+                    printfn $"  %s{msg}"
 
             let toolRegistry = ToolRegistry()
             toolRegistry.RegisterAssembly(typeof<ToolRegistry>.Assembly)
@@ -519,11 +515,11 @@ let runWorkflowOfThoughts
                   TimeoutMs = Some 300000 }
 
             printfn "📊 Configuration:"
-            printfn "   • Branching Factor: %d" baseConfig.BranchingFactor
-            printfn "   • Max Depth: %d" baseConfig.MaxDepth
-            printfn "   • Top-K: %d" baseConfig.TopK
-            printfn "   • Policy Checks: %b" baseConfig.EnablePolicyChecks
-            printfn "   • Tools: %d" wotTools.Length
+            printfn $"   • Branching Factor: %d{baseConfig.BranchingFactor}"
+            printfn $"   • Max Depth: %d{baseConfig.MaxDepth}"
+            printfn $"   • Top-K: %d{baseConfig.TopK}"
+            printfn $"   • Policy Checks: %b{baseConfig.EnablePolicyChecks}"
+            printfn $"   • Tools: %d{wotTools.Length}"
             printfn ""
             printfn "🔄 Starting Workflow-of-Thoughts reasoning..."
             printfn ""
@@ -537,34 +533,154 @@ let runWorkflowOfThoughts
             match evidence with
             | Some(recorder, path) ->
                 do! recorder.SaveToFileAsync(path) |> Async.StartAsTask
-                printfn "📒 Evidence saved: %s" path
+                printfn $"📒 Evidence saved: %s{path}"
             | None -> ()
 
             match result with
             | Success answer ->
                 printfn "✅ Success!"
                 printfn ""
-                printfn "%s" answer
+                printfn $"%s{answer}"
                 return 0
             | PartialSuccess(answer, warnings) ->
                 printfn "⚠️ Partial Success"
                 printfn ""
-                printfn "%s" answer
+                printfn $"%s{answer}"
 
                 if options.Verbose then
                     printfn ""
                     printfn "Warnings:"
 
                     for w in warnings do
-                        printfn "  - %A" w
+                        printfn $"  - %A{w}"
 
                 return 0
             | Failure errors ->
                 printfn "❌ Failed"
 
                 for e in errors do
-                    printfn "  - %A" e
+                    printfn $"  - %A{e}"
 
+                return 1
+    }
+
+/// Run via MAF: TarsWoTAgent + AgentOrchestrator + ToolAwareChatClient
+let runMaf
+    (config: Microsoft.Extensions.Configuration.IConfiguration)
+    (options: AgentOptions)
+    (goal: string)
+    =
+    task {
+        printfn "🤖 TARS Agent - MAF Mode (Microsoft Agent Framework)"
+        printfn "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        printfn $"Goal: %s{goal}"
+        printfn ""
+
+        match createLlmService config with
+        | Result.Error msg ->
+            printfn $"❌ %s{msg}"
+            return 1
+        | Result.Ok(llm, modelName) ->
+            try
+                let llmWithEvidence, evidenceHandle = attachEvidence "maf" llm options
+
+                let! evidence =
+                    match evidenceHandle with
+                    | Some handle ->
+                        task {
+                            let! value = handle
+                            return Some value
+                        }
+                    | None -> Task.FromResult None
+
+                // Create tool registry
+                let toolRegistry = ToolRegistry()
+                toolRegistry.RegisterAssembly(typeof<ToolRegistry>.Assembly)
+                let tools = toolRegistry :> IToolRegistry
+
+                let logger msg =
+                    if options.Verbose then
+                        printfn $"  [LOG] %s{msg}"
+                    else if msg.Contains("[WoT]") then
+                        printfn $"  %s{msg}"
+
+                // Create WoT executor
+                let executor = WoTExecutor.createExecutor llmWithEvidence tools
+
+                // Create pattern compiler
+                let compiler = PatternCompiler.DefaultPatternCompiler() :> IPatternCompiler
+
+                // Create inline pattern selector
+                let selector =
+                    { new IPatternSelector with
+                        member _.Recommend(goal, _state) =
+                            let g = goal.ToLowerInvariant()
+                            if g.Contains("step by step") || g.Contains("explain") then
+                                ChainOfThought
+                            elif g.Contains("search") || g.Contains("find") || g.Contains("look up") then
+                                ReAct
+                            elif g.Contains("compare") || g.Contains("alternatives") then
+                                GraphOfThoughts
+                            elif g.Contains("explore") || g.Contains("brainstorm") then
+                                TreeOfThoughts
+                            else
+                                ChainOfThought
+                        member _.Score(_goal) =
+                            [ ChainOfThought, 0.5; ReAct, 0.3; GraphOfThoughts, 0.2; TreeOfThoughts, 0.2 ]
+                            |> Map.ofList }
+
+                // Create agent context
+                let agentCtx = createAgentContext logger llmWithEvidence None
+
+                // Create the MAF agent
+                let agent = TarsWoTAgent(executor, compiler, selector, agentCtx)
+
+                // Create orchestrator and register
+                let orchestrator = AgentOrchestrator()
+                orchestrator.Register(
+                    agent,
+                    [ "reasoning"; "analysis"; "coding"; "planning"; "workflow" ],
+                    priority = 10)
+
+                printfn $"📋 Model: %s{modelName}"
+                printfn $"📋 Tools: %d{tools.GetAll().Length} registered"
+                printfn $"📋 Agent: %s{agent.Name} (MAF)"
+                printfn ""
+
+                // Build MAF tool-aware pipeline
+                let aiTools = MafToolAdapter.toAITools toolRegistry
+                printfn $"🔧 MAF Tools: %d{aiTools.Length} adapted"
+                printfn ""
+                printfn "🔄 Executing via MAF orchestrator..."
+                printfn ""
+
+                let! result = orchestrator.Execute(goal, CancellationToken.None)
+
+                printfn ""
+                printfn "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                printfn $"⏱️  Duration: %d{result.DurationMs}ms"
+                printfn $"🤖 Agent: %s{result.AgentName}"
+
+                match evidence with
+                | Some(recorder, path) ->
+                    do! recorder.SaveToFileAsync(path) |> Async.StartAsTask
+                    printfn $"📒 Evidence saved: %s{path}"
+                | None -> ()
+
+                if result.Success then
+                    printfn "✅ Success!"
+                    printfn ""
+                    printfn $"%s{result.Response}"
+                    return 0
+                else
+                    printfn "❌ Failed"
+                    printfn ""
+                    printfn $"%s{result.Response}"
+                    return 1
+            with ex ->
+                printfn $"❌ Exception: %s{ex.Message}"
+                if options.Verbose && ex.InnerException <> null then
+                    printfn $"   Inner: %s{ex.InnerException.Message}"
                 return 1
     }
 
@@ -591,11 +707,15 @@ let run
     | "wot" when args.Length > 0 ->
         let goal = String.Join(" ", args)
         runWorkflowOfThoughts config options goal
+    | "run" when args.Length > 0 ->
+        let goal = String.Join(" ", args)
+        runMaf config options goal
     | "help"
     | _ ->
         printfn "TARS Agent Commands"
         printfn "━━━━━━━━━━━━━━━━━━━━"
         printfn ""
+        printfn "  tars agent run <goal>       Run via MAF (orchestrated WoT + tools)"
         printfn "  tars agent react <goal>     Run ReAct (Reason-Act-Observe) loop"
         printfn "  tars agent cot <input>      Run Chain of Thought reasoning"
         printfn "  tars agent got <goal>       Run Graph of Thoughts reasoning"
@@ -609,6 +729,7 @@ let run
         printfn "  --evidence <file|dir>       Write LLM request/response trace to JSON"
         printfn ""
         printfn "Examples:"
+        printfn "  tars agent run \"Analyze this codebase and suggest improvements\""
         printfn "  tars agent react \"What is 5 + 7?\""
         printfn "  tars agent cot \"Explain quantum computing\" --verbose"
         printfn "  tars agent got \"Design a REST API for a todo app\""

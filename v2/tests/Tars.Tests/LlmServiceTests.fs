@@ -3,13 +3,10 @@ namespace Tars.Tests
 open System
 open System.Net
 open System.Net.Http
-open System.Threading.Tasks
 open System.Text
-open System.Text.Json
 open Xunit
 open Tars.Llm
 open Tars.Llm.Routing
-open Tars.Llm.LlmService
 
 type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
 
@@ -56,7 +53,7 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
         | _ -> Assert.Fail("Should have routed to Ollama")
 
     [<Fact>]
-    member this.``Routes to vLLM for reasoning hint``() =
+    member this.``Routes reasoning hint to configured reasoning model``() =
         let routingCfg =
             { RoutingConfig.Default with
                 OllamaBaseUri = Uri("http://localhost:11434/")
@@ -65,7 +62,8 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
                 GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com/")
                 AnthropicBaseUri = Uri("https://api.anthropic.com/")
                 DefaultOllamaModel = "ollama-model"
-                DefaultVllmModel = "vllm-model" }
+                DefaultVllmModel = "vllm-model"
+                ReasoningModel = Some "reasoning-model" }
 
         let req =
             { ModelHint = Some "reasoning"
@@ -86,9 +84,11 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
 
         let routed = chooseBackend routingCfg req
 
+        // With PreferredProvider = "Ollama" (default), reasoning routes through localRoute
+        // which uses the ReasoningModel on the Ollama backend
         match routed.Backend with
-        | Vllm m -> Assert.Equal("vllm-model", m)
-        | _ -> Assert.Fail("Should have routed to vLLM")
+        | Ollama m -> Assert.Equal("reasoning-model", m)
+        | _ -> Assert.Fail("Should have routed to Ollama with reasoning model")
 
     [<Fact>]
     member this.``Routes to Docker Model Runner for docker hint``() =
@@ -300,7 +300,7 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
 
                       ContextWindow = None }
 
-                let! response = OllamaClient.sendChatAsync httpClient baseUri "test-model" req
+                let! response = OllamaClient.sendChatAsync httpClient baseUri "test-model" None req
 
                 Assert.Equal("world", response.Text)
                 Assert.Equal(Some "done", response.FinishReason)
@@ -443,7 +443,8 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
 
                       ContextWindow = None }
 
-                let! response = OllamaClient.sendChatStreamAsync httpClient baseUri "test" req (fun t -> tokens.Add(t))
+                let! response =
+                    OllamaClient.sendChatStreamAsync httpClient baseUri "test" None req (fun t -> tokens.Add(t))
 
                 // Verify all tokens were collected
                 Assert.Equal(3, tokens.Count)
@@ -556,7 +557,14 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
                         }
 
                     member _.EmbedAsync(text) = task { return [| 0.1f; 0.2f; 0.3f |] }
-                    member _.RouteAsync(_) = task { return { Backend = Ollama "mock"; Endpoint = Uri "http://localhost:11434"; ApiKey = None } }
+
+                    member _.RouteAsync(_) =
+                        task {
+                            return
+                                { Backend = Ollama "mock"
+                                  Endpoint = Uri "http://localhost:11434"
+                                  ApiKey = None }
+                        }
 
                     member _.CompleteStreamAsync(req, onToken) =
                         task {

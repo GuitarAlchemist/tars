@@ -78,7 +78,7 @@ module GraphitiTypesTests =
                   Description = ""
                   RelatedConcepts = [] }
 
-        let fact = DependsOn(entity1, entity2, 0.9)
+        let fact = TarsFact.DependsOn(entity1, entity2, 0.9)
         let sourceId = TarsEntity.getId (TarsFact.source fact)
         Assert.Equal("concept:a", sourceId)
 
@@ -90,7 +90,7 @@ module GraphitiTypesTests =
                   Description = ""
                   RelatedConcepts = [] }
 
-        let fact = BelongsTo(entity, "community-1")
+        let fact = TarsFact.BelongsTo(entity, "community-1")
         Assert.True((TarsFact.target fact).IsNone)
 
 module EpisodeStoreTests =
@@ -149,3 +149,23 @@ module EpisodeStoreTests =
 
         if System.IO.Directory.Exists tempPath then
             System.IO.Directory.Delete(tempPath, true)
+
+module TraceEntityTests =
+    [<Fact>]
+    let TarsEntity_getId_works_for_traces() =
+        let runId = Guid.NewGuid()
+        let runEnt = { Tars.Core.RunEntity.Id = runId; Goal = "Test"; Pattern = "WoT"; Timestamp = DateTime.UtcNow }
+        Assert.Equal($"run:{runId}", TarsEntity.getId (RunE runEnt))
+        
+        let stepEnt = { Tars.Core.StepEntity.RunId = runId; StepId = "step1"; NodeType = "Generate"; Content = ""; Timestamp = DateTime.UtcNow }
+        Assert.Equal($"step:{runId}:step1", TarsEntity.getId (StepE stepEnt))
+
+    [<Fact>]
+    let TarsFact_NextStep_source_target() =
+        let runId = Guid.NewGuid()
+        let s = StepE { Tars.Core.StepEntity.RunId = runId; StepId = "1"; NodeType="G"; Content=""; Timestamp=DateTime.UtcNow }
+        let t = StepE { Tars.Core.StepEntity.RunId = runId; StepId = "2"; NodeType="G"; Content=""; Timestamp=DateTime.UtcNow }
+        let fact = TarsFact.NextStep(s, t)
+        
+        Assert.Equal(s, TarsFact.source fact)
+        Assert.Equal(Some t, TarsFact.target fact)

@@ -7,6 +7,8 @@ open Tars.Knowledge
 open Spectre.Console
 open System.Text.Json
 open Tars.Llm
+open Tars.DSL.Wot
+open Tars.LinkedData
 
 /// Options for the know command
 type KnowOptions =
@@ -20,7 +22,8 @@ type KnowOptions =
       Depth: int
       UsePostgres: bool
       ShowPrompt: bool
-      Verify: bool }
+      Verify: bool
+      RunId: string option }
 
 let defaultOptions =
     { Command = "status"
@@ -33,29 +36,51 @@ let defaultOptions =
       Depth = 2
       UsePostgres = false
       ShowPrompt = false
-      Verify = false }
+      Verify = false
+      RunId = None }
 
 let private createLedger (config: Tars.Core.TarsConfig) (usePostgres: bool) =
-    if usePostgres then
-        try
-            let connStr =
-                config.Memory.PostgresConnectionString
-                |> Option.defaultValue (
-                    Environment.GetEnvironmentVariable("TARS_POSTGRES_CONNECTION")
-                    |> Option.ofObj
-                    |> Option.defaultValue PostgresLedgerStorage.defaultConnectionString
+    let primaryStorage =
+        if usePostgres then
+            try
+                let connStr =
+                    config.Memory.PostgresConnectionString
+                    |> Option.defaultValue (
+                        Environment.GetEnvironmentVariable("TARS_POSTGRES_CONNECTION")
+                        |> Option.ofObj
+                        |> Option.defaultValue PostgresLedgerStorage.defaultConnectionString
+                    )
+
+                PostgresLedgerStorage.createWithConnectionString connStr :> ILedgerStorage
+            with ex ->
+                AnsiConsole.MarkupLine($"[yellow]⚠️ Postgres unavailable ({ex.Message}), using in-memory[/]")
+                InMemoryLedgerStorage() :> ILedgerStorage
+        else
+            InMemoryLedgerStorage() :> ILedgerStorage
+
+    let fusekiEndpoint =
+        Environment.GetEnvironmentVariable("TARS_FUSEKI_ENDPOINT") |> Option.ofObj
+
+    let fusekiAuth =
+        Environment.GetEnvironmentVariable("TARS_FUSEKI_AUTH") |> Option.ofObj
+
+    let storage =
+        match fusekiEndpoint with
+        | Some uriStr ->
+            try
+                let uri = Uri(uriStr)
+                let fuseki = FusekiStorage(uri, fusekiAuth) :> ILedgerStorage
+                AnsiConsole.MarkupLine($"[blue]🔗 Fuseki replication enabled:[/] {uriStr}")
+                CompositeLedgerStorage(primaryStorage, [ fuseki ]) :> ILedgerStorage
+            with ex ->
+                AnsiConsole.MarkupLine(
+                    $"[yellow]⚠️ Fuseki configuration invalid ({ex.Message}), skipping replication[/]"
                 )
 
+                primaryStorage
+        | None -> primaryStorage
 
-            let storage =
-                PostgresLedgerStorage.createWithConnectionString connStr :> ILedgerStorage
-
-            KnowledgeLedger(storage)
-        with ex ->
-            AnsiConsole.MarkupLine($"[yellow]⚠️ Postgres unavailable ({ex.Message}), using in-memory[/]")
-            KnowledgeLedger.createInMemory ()
-    else
-        KnowledgeLedger.createInMemory ()
+    KnowledgeLedger(storage)
 
 let private parseRelation (s: string) : RelationType =
     match s.ToLowerInvariant() with
@@ -655,25 +680,29 @@ Return ONLY a JSON array of triples:
 
 let private runIngestRun (ledger: KnowledgeLedger) (runIdOrPath: string) =
     task {
-        let runDir = 
-            if Directory.Exists runIdOrPath then runIdOrPath
-            else Path.Combine(".wot", "runs", runIdOrPath)
-            
+        let runDir =
+            if Directory.Exists runIdOrPath then
+                runIdOrPath
+            else
+                Path.Combine(".wot", "runs", runIdOrPath)
+
         if not (Directory.Exists runDir) then
             AnsiConsole.MarkupLine($"[red]Run directory not found:[/] {runDir}")
         else
             let summaryPath = Path.Combine(runDir, "run_summary.json")
             let planPath = Path.Combine(runDir, "plan.json")
-            
+
             if not (File.Exists summaryPath) || not (File.Exists planPath) then
-                 AnsiConsole.MarkupLine("[red]Missing run_summary.json or plan.json in run directory.[/]")
+                AnsiConsole.MarkupLine("[red]Missing run_summary.json or plan.json in run directory.[/]")
             else
                 AnsiConsole.MarkupLine($"[blue]📥 Ingesting run analysis from:[/] [white]{runDir}[/]")
-                
-                let parseJson path = JsonDocument.Parse(File.ReadAllText(path))
+
+                let parseJson path =
+                    JsonDocument.Parse(File.ReadAllText(path))
+
                 use summaryDoc = parseJson summaryPath
                 use planDoc = parseJson planPath
-                
+
                 let tryGetPropertyInsensitive name (elem: JsonElement) =
                     if elem.ValueKind = JsonValueKind.Object then
                         elem.EnumerateObject()
@@ -684,56 +713,145 @@ let private runIngestRun (ledger: KnowledgeLedger) (runIdOrPath: string) =
 
                 let rootSum = summaryDoc.RootElement
                 let rootPlan = planDoc.RootElement
-                
-                let runId = 
+
+                let runId =
                     match tryGetPropertyInsensitive "RunId" rootSum with
                     | Some p -> p.GetString()
                     | None -> Path.GetFileName(runDir)
-                    
-                let goal = 
+
+                let goal =
                     match tryGetPropertyInsensitive "Goal" rootPlan with
                     | Some p -> p.GetString()
                     | None -> "unknown_task"
-                    
-                let model = 
+
+                let model =
                     match tryGetPropertyInsensitive "Reasoner" rootSum with
-                    | Some r -> 
+                    | Some r ->
                         match tryGetPropertyInsensitive "Model" r with
                         | Some m -> m.GetString()
                         | None -> "unknown_model"
                     | None -> "unknown_model"
-                    
-                let passed = 
+
+                let passed =
                     match tryGetPropertyInsensitive "VerifyPassed" rootSum with
                     | Some p -> if p.ValueKind = JsonValueKind.True then true else false
                     | None -> false
 
-                let durationStr = 
-                     match tryGetPropertyInsensitive "DurationMs" rootSum with
-                     | Some p -> p.GetInt64().ToString()
-                     | None -> "0"
-                     
+                let durationStr =
+                    match tryGetPropertyInsensitive "DurationMs" rootSum with
+                    | Some p -> p.GetInt64().ToString()
+                    | None -> "0"
+
                 let prov = Provenance.FromExternal(Uri(Path.GetFullPath(summaryPath)), None, 1.0)
                 let agent = AgentId.User
-                
+
                 let mutable count = 0
-                
+
                 let! res1 = ledger.AssertTriple(runId, parseRelation "executed", goal, prov, agent)
-                if res1.IsOk then count <- count + 1
-                
+
+                if res1.IsOk then
+                    count <- count + 1
+
                 let! res2 = ledger.AssertTriple(goal, Custom "execution_time_ms", durationStr, prov, agent)
-                if res2.IsOk then count <- count + 1
-                
+
+                if res2.IsOk then
+                    count <- count + 1
+
                 if passed && model <> "unknown_model" then
                     let! res3 = ledger.AssertTriple(model, Custom "can_solve", goal, prov, agent)
-                    if res3.IsOk then count <- count + 1
-                    let! res4 = ledger.AssertTriple(runId, Custom "status", "SUCCESS", prov, agent) 
-                    if res4.IsOk then count <- count + 1
+
+                    if res3.IsOk then
+                        count <- count + 1
+
+                    let! res4 = ledger.AssertTriple(runId, Custom "status", "SUCCESS", prov, agent)
+
+                    if res4.IsOk then
+                        count <- count + 1
                 else
                     let! resFail = ledger.AssertTriple(runId, Custom "status", "FAILURE", prov, agent)
-                    if resFail.IsOk then count <- count + 1
-                    
+
+                    if resFail.IsOk then
+                        count <- count + 1
+
                 AnsiConsole.MarkupLine($"[green]✓ Ingested {count} facts from run {runId}[/]")
+    }
+
+let private runIngestTrsx (ledger: KnowledgeLedger) (path: string) =
+    task {
+        if not (File.Exists path) then
+            AnsiConsole.MarkupLine($"[red]File not found:[/] {path}")
+        else
+            AnsiConsole.MarkupLine($"[blue]📥 Ingesting workflow definition from:[/] [white]{path}[/]")
+
+            match Tars.DSL.Wot.WotParser.parseFile path with
+            | Result.Error errs ->
+                AnsiConsole.MarkupLine("[red]Parse Errors:[/]")
+
+                for e in errs do
+                    AnsiConsole.MarkupLine($"  Line {e.Line}: {Markup.Escape(e.Message)}")
+            | Result.Ok workflow ->
+                let prov = Provenance.FromExternal(Uri(Path.GetFullPath(path)), None, 1.0)
+                let agent = AgentId.User
+                let mutable count = 0
+
+                let assertTriple s p o =
+                    task {
+                        let! res = ledger.AssertTriple(s, p, o, prov, agent)
+
+                        if res.IsOk then
+                            count <- count + 1
+                    }
+
+                // Workflow Attributes
+                do! assertTriple workflow.Name (parseRelation "is_a") "Workflow"
+
+                match workflow.Description with
+                | Some d -> do! assertTriple workflow.Name (Custom "description") d
+                | None -> ()
+
+                match workflow.Domain with
+                | Some d -> do! assertTriple workflow.Name (Custom "domain") d
+                | None -> ()
+
+                match workflow.Difficulty with
+                | Some d -> do! assertTriple workflow.Name (Custom "difficulty") d
+                | None -> ()
+
+                // Inputs
+                for kvp in workflow.Inputs do
+                    do! assertTriple workflow.Name (parseRelation "requires_input") kvp.Key
+                    do! assertTriple kvp.Key (parseRelation "is_a") "InputParameter"
+
+                // Nodes
+                for node in workflow.Nodes do
+                    let nodeName = $"{workflow.Name}.{node.Name}"
+                    do! assertTriple nodeName (parseRelation "part_of") workflow.Name
+                    do! assertTriple nodeName (parseRelation "is_a") (node.Kind.ToString())
+
+                    match node.Goal with
+                    | Some g -> do! assertTriple nodeName (Custom "has_goal") g
+                    | None -> ()
+
+                    match node.Tool with
+                    | Some t -> do! assertTriple nodeName (Custom "uses_tool") t
+                    | None -> ()
+
+                // Edges
+                // Edge list is (Source, Target) -> Target DependsOn Source
+                for (fromId, toId) in workflow.Edges do
+                    let findName id =
+                        workflow.Nodes
+                        |> List.tryFind (fun n -> n.Id = id)
+                        |> Option.map (fun n -> n.Name)
+
+                    match findName fromId, findName toId with
+                    | Some fn, Some tn ->
+                        let fFull = $"{workflow.Name}.{fn}"
+                        let tFull = $"{workflow.Name}.{tn}"
+                        do! assertTriple tFull (parseRelation "depends_on") fFull
+                    | _ -> ()
+
+                AnsiConsole.MarkupLine($"[green]✓ Ingested {count} facts from workflow {workflow.Name}[/]")
     }
 
 let private printHelp () =
@@ -750,6 +868,8 @@ let private printHelp () =
     AnsiConsole.MarkupLine("  [green]fetch[/] [grey]- get wiki summary[/]")
     AnsiConsole.MarkupLine("  [green]propose[/] [grey]- extract proposals[/]")
     AnsiConsole.MarkupLine("  [green]ingest-run[/] [grey]- ingest .wot run artifacts[/]")
+    AnsiConsole.MarkupLine("  [green]ingest-trsx[/] [grey]- ingest .trsx workflow definition[/]")
+    AnsiConsole.MarkupLine("  [green]reflect[/] [grey]- analyze KG execution traces[/]")
 
 let run (config: Tars.Core.TarsConfig) (options: KnowOptions) : Task<int> =
     task {
@@ -795,10 +915,66 @@ let run (config: Tars.Core.TarsConfig) (options: KnowOptions) : Task<int> =
             | "ingest-run" ->
                 match options.Path with
                 | Some p -> do! runIngestRun ledger p
-                | None -> 
-                    match options.Query with // Allow using query arg as runid if path not set
-                    | Some q -> do! runIngestRun ledger q
-                    | None -> AnsiConsole.MarkupLine("[yellow]Usage: tars know ingest-run <run-id>[/]")
+                | None -> AnsiConsole.MarkupLine("[yellow]Usage: tars know ingest-run <run-dir>[/]")
+            | "ingest-trsx" ->
+                match options.Path with
+                | Some p -> do! runIngestTrsx ledger p
+                | None -> AnsiConsole.MarkupLine("[yellow]Usage: tars know ingest-trsx <file.wot.trsx>[/]")
+            | "reflect" ->
+                match options.Query with
+                | Some id ->
+                    match Guid.TryParse(id) with
+                    | true, guid ->
+                        let fusekiUrl =
+                            config.Memory.FusekiUrl
+                            |> Option.defaultValue (Environment.GetEnvironmentVariable("TARS_FUSEKI_URL"))
+
+                        if String.IsNullOrEmpty fusekiUrl then
+                            AnsiConsole.MarkupLine("[red]✗ Fuseki URL not configured (TARS_FUSEKI_URL).[/]")
+                        else
+                            let reflector = Tars.Connectors.SymbolicReflector(Uri(fusekiUrl))
+                            AnsiConsole.MarkupLine $"[blue]🔍 Reflecting on run:[/] [white]{guid}[/]"
+                            let! res = reflector.ReflectOnRunAsync(guid)
+
+                            match res with
+                            | Ok reflection ->
+                                AnsiConsole.MarkupLine $"[green]✓ Reflection Generated:[/] {reflection.ReflectionId}"
+
+                                if reflection.Observations.IsEmpty then
+                                    AnsiConsole.MarkupLine "[grey]No patterns or anomalies observed.[/]"
+                                else
+                                    let table = Table().Border(TableBorder.Rounded)
+                                    table.AddColumn("[cyan]Observation[/]") |> ignore
+                                    table.AddColumn("[white]Details[/]") |> ignore
+
+                                    for obs in reflection.Observations do
+                                        match obs with
+                                        | Tars.Core.PatternObserved(name, instances, conf) ->
+                                            table.AddRow(
+                                                "Pattern",
+                                                sprintf
+                                                    "[yellow]%s[/] (x%d) [grey]%.0f%%[/]"
+                                                    name
+                                                    instances
+                                                    (conf * 100.0)
+                                            )
+                                            |> ignore
+                                        | Tars.Core.AnomalyObserved(desc, severity) ->
+                                            let color =
+                                                match severity with
+                                                | Tars.Core.AnomalySeverity.Critical -> "red"
+                                                | Tars.Core.AnomalySeverity.High -> "orange1"
+                                                | Tars.Core.AnomalySeverity.Medium -> "yellow"
+                                                | _ -> "blue"
+
+                                            table.AddRow("Anomaly", sprintf "[%s]%s[/] [[%A]]" color desc severity)
+                                            |> ignore
+                                        | _ -> table.AddRow("Observation", obs.ToString()) |> ignore
+
+                                    AnsiConsole.Write(table)
+                            | Error err -> AnsiConsole.MarkupLine $"[red]✗ Reflection Failed:[/] {err}"
+                    | _ -> AnsiConsole.MarkupLine "[red]✗ Invalid Run ID (must be a GUID).[/]"
+                | None -> AnsiConsole.MarkupLine "[yellow]Usage: tars know reflect <run-id>[/]"
             | _ -> printHelp ()
 
             return 0
@@ -872,7 +1048,8 @@ let parseArgs (args: string[]) : KnowOptions =
                     options <- { options with Path = Some arg }
             | "fetch"
             | "propose"
-            | "ingest-run" ->
+            | "ingest-run"
+            | "reflect" ->
                 if options.Query.IsNone then
                     options <- { options with Query = Some arg }
             | "neighborhood"

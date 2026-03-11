@@ -1,7 +1,6 @@
 namespace Tars.Tests
 
 open System
-open System.Threading.Tasks
 open Xunit
 open Tars.Core
 open Tars.Core.LegacyKnowledgeGraph

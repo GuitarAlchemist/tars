@@ -3,10 +3,7 @@ namespace Tars.Tests
 open System
 open System.Threading.Tasks
 open Xunit
-open Tars.Core
 open Tars.Llm
-open Tars.Llm.LlmService
-open Tars.Metascript
 open Tars.Metascript.Domain
 open Tars.Metascript.Engine
 open Tars.Metascript.Config
@@ -34,6 +31,7 @@ type FluxTests() =
 
     [<Fact>]
     member _.``Scheduler executes independent steps in parallel``() =
+        if not (TestHelpers.requireTools()) then () else
         // 1. Setup Context with Delay LLM
         let delay = 1000
         let llm = DelayLlm(delay) :> ILlmService

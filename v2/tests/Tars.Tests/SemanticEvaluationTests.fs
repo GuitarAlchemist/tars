@@ -4,7 +4,6 @@ open System
 open System.Threading.Tasks
 open Xunit
 open Tars.Evolution
-open Tars.Llm.LlmService
 open Tars.Llm
 open Tars.Core
 

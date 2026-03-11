@@ -1,8 +1,6 @@
 namespace Tars.Cortex
 
-open System
 open System.IO
-open System.Text.RegularExpressions
 open Tars.Core
 
 module CodeGraphIngestor =

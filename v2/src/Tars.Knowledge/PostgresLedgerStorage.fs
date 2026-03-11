@@ -4,7 +4,6 @@ namespace Tars.Knowledge
 
 open System
 open System.Collections.Generic
-open System.Threading.Tasks
 open System.Text.Json
 open System.Text.Json.Serialization
 open Npgsql

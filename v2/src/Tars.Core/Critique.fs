@@ -103,8 +103,8 @@ type CritiqueService(storagePath: string) =
             let lines = 
                 active 
                 |> List.sortByDescending (fun c -> c.Severity)
-                |> List.map (fun c -> 
-                    sprintf "- [%A][%A] %s: %s" c.Severity c.Category c.Summary c.Details)
+                |> List.map (fun c ->
+                    $"- [%A{c.Severity}][%A{c.Category}] %s{c.Summary}: %s{c.Details}")
                 |> String.concat "\n"
             
             "\n\n[SELF-CRITIQUE: KNOWN SYSTEM DEFICIENCIES]\n" +

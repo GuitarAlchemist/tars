@@ -1,6 +1,5 @@
 namespace Tars.Tools.Arc
 
-open System
 open System.IO
 open System.Text.Json
 open Tars.Core

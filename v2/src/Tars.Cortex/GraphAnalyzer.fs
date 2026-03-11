@@ -3,7 +3,6 @@ namespace Tars.Cortex
 // Graph analysis tools for agent dependency graphs.
 // Uses K-Theory concepts to analyze cyclomatic complexity and detect cycles.
 
-open System
 open Tars.Core
 
 /// <summary>

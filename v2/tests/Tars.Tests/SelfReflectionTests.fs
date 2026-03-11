@@ -5,18 +5,15 @@ open Tars.Core
 open Tars.Kernel
 open Tars.Graph
 open Tars.Graph.GraphRuntime
-open Tars.Tools
 open Tars.Llm
-open Tars.Llm.LlmService
 open Tars.Cortex
-open System.Threading.Tasks
-open System.Collections.Generic
 open System
 
 type SelfReflectionTests() =
 
     [<Fact>]
     member _.``Agent uses search_docs when asked about TARS architecture``() =
+        if not (TestHelpers.requireTools()) then () else
         // 1. Setup Mock Vector Store
         let store = InMemoryVectorStore() :> IVectorStore
         // Pre-populate with a fake doc

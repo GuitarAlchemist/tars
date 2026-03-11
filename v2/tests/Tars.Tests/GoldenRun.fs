@@ -1,6 +1,5 @@
 namespace Tars.Tests
 
-open System
 open System.Diagnostics
 open System.IO
 open Xunit

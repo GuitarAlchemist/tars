@@ -1,6 +1,7 @@
 namespace Tars.Interface.Cli
 
 open System
+open System.IO
 open Microsoft.Extensions.Configuration
 open Tars.Core
 
@@ -15,12 +16,35 @@ module ConfigurationLoader =
                     .AddJsonFile("appsettings.json", true, true)
                     .AddEnvironmentVariables("TARS_")
 
+            // Load secrets into CredentialVault if possible
+            let secretsPath = Path.Combine(System.AppContext.BaseDirectory, "secrets.json")
+
+            if File.Exists(secretsPath) then
+                ignore (Tars.Security.CredentialVault.loadSecretsFromDisk (secretsPath))
+            else
+                // Check root dir too
+                let rootSecrets = "secrets.json"
+
+                if File.Exists(rootSecrets) then
+                    ignore (Tars.Security.CredentialVault.loadSecretsFromDisk (rootSecrets))
+
             let root = builder.Build()
 
             // Helper to get value with default
             let get key (def: string) =
-                let v = root.GetSection(key).Value
-                if String.IsNullOrWhiteSpace(v) then def else v
+                let mapped =
+                    match key with
+                    | "Llm:Model" -> "DEFAULT_OLLAMA_MODEL"
+                    | "Llm:BaseUrl" -> "OLLAMA_BASE_URL"
+                    | "Llm:ApiKey" -> "OPENAI_API_KEY"
+                    | "Llm:LlamaCppUrl" -> "LLAMA_CPP_URL"
+                    | _ -> key
+
+                match Tars.Security.CredentialVault.getSecret mapped with
+                | Ok res -> res
+                | _ ->
+                    let v = root.GetSection(key).Value
+                    if String.IsNullOrWhiteSpace(v) then def else v
 
             let getInt key (def: int) =
                 let v = root.GetSection(key).Value
@@ -44,8 +68,19 @@ module ConfigurationLoader =
                 | _ -> def
 
             let getOpt key (defOpt: string option) =
-                let v = root.GetSection(key).Value
-                if String.IsNullOrWhiteSpace(v) then defOpt else Some v
+                let mapped =
+                    match key with
+                    | "Llm:Model" -> "DEFAULT_OLLAMA_MODEL"
+                    | "Llm:BaseUrl" -> "OLLAMA_BASE_URL"
+                    | "Llm:ApiKey" -> "OPENAI_API_KEY"
+                    | "Llm:LlamaCppUrl" -> "LLAMA_CPP_URL"
+                    | _ -> key
+
+                match Tars.Security.CredentialVault.getSecret mapped with
+                | Ok res -> Some res
+                | _ ->
+                    let v = root.GetSection(key).Value
+                    if String.IsNullOrWhiteSpace(v) then defOpt else Some v
 
             let getList key (def: string list) =
                 let section = root.GetSection(key)
@@ -90,7 +125,9 @@ module ConfigurationLoader =
                     KnowledgeBasePath = get "Memory:KnowledgeBasePath" defMem.KnowledgeBasePath
                     EpisodeDbPath = get "Memory:EpisodeDbPath" defMem.EpisodeDbPath
                     GraphitiUrl = getOpt "Memory:GraphitiUrl" defMem.GraphitiUrl
-                    PostgresConnectionString = getOpt "Memory:PostgresConnectionString" defMem.PostgresConnectionString }
+                    PostgresConnectionString = getOpt "Memory:PostgresConnectionString" defMem.PostgresConnectionString
+                    FusekiUrl = getOpt "Memory:FusekiUrl" defMem.FusekiUrl
+                    FusekiAuth = getOpt "Memory:FusekiAuth" defMem.FusekiAuth }
 
             // Construct EvolutionSettings
             let defEvo = ConfigurationDefaults.DefaultEvolution
@@ -111,6 +148,7 @@ module ConfigurationLoader =
             { Llm = llm
               Memory = mem
               Evolution = evo
-              PreLlm = preLlm }
+              PreLlm = preLlm
+              VariantOverlays = Map.empty }
         with _ ->
             ConfigurationDefaults.createDefault ()

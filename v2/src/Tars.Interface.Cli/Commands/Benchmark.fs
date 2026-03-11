@@ -5,9 +5,7 @@ open System
 open System.Threading.Tasks
 open Serilog
 open Tars.Core
-open Tars.Core.Puzzles
 open Tars.Interface.Cli.Commands.NeuroSymbolicBenchmark
-open Tars.Interface.Cli.Commands.PuzzleDemo
 
 /// Run the benchmark
 let run (logger: ILogger) (args: string array) : Task<int> =

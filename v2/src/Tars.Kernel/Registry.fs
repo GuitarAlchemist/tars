@@ -1,6 +1,5 @@
 namespace Tars.Kernel
 
-open System
 open System.Collections.Concurrent
 open Tars.Core
 

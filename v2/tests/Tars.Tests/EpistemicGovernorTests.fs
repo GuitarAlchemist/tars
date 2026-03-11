@@ -6,7 +6,6 @@ open Xunit
 open Tars.Core
 open Tars.Cortex
 open Tars.Llm
-open Tars.Llm.LlmService
 
 module EpistemicGovernorTests =
 

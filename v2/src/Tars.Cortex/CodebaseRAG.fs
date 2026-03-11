@@ -14,7 +14,6 @@ open System.Threading.Tasks
 open System.Collections.Concurrent
 open Tars.Core
 open Tars.Llm
-open Tars.Llm.LlmService
 
 /// Codebase RAG for source code retrieval
 module CodebaseRAG =
@@ -103,8 +102,7 @@ module CodebaseRAG =
                     Id = Guid.NewGuid().ToString("N").[..8]
                     FilePath = filePath
                     ModuleName = moduleName
-                    Content = sprintf "// File: %s (%d lines, truncated due to size)\n%s" 
-                                filePath lines.Length (content.Substring(0, min 2000 content.Length))
+                    Content = $"// File: %s{filePath} (%d{lines.Length} lines, truncated due to size)\n%s{content.Substring(0, min 2000 content.Length)}"
                     StartLine = 1
                     EndLine = lines.Length
                     ChunkType = File
@@ -186,7 +184,7 @@ module CodebaseRAG =
                 
                 chunks
         with ex ->
-            printfn "Warning: Failed to chunk %s: %s" filePath ex.Message
+            printfn $"Warning: Failed to chunk %s{filePath}: %s{ex.Message}"
             []
 
     // =========================================================================
@@ -217,12 +215,12 @@ module CodebaseRAG =
                             |> Array.toList)
                         |> List.filter (fun f ->
                             not (cfg.ExcludePatterns |> List.exists (fun p -> f.Contains(p))))
-                    
-                    printfn "📁 Indexing %d files from %s..." files.Length rootPath
-                    
+
+                    printfn $"📁 Indexing %d{files.Length} files from %s{rootPath}..."
+
                     let allChunks = files |> List.collect (chunkFile cfg)
-                    printfn "🧩 Total chunks to embed: %d" allChunks.Length
-                    
+                    printfn $"🧩 Total chunks to embed: %d{allChunks.Length}"
+
                     // Process in batches of 10 to avoid overwhelming Ollama
                     let batches = allChunks |> List.chunkBySize 10
                     let mutable completed = 0
@@ -249,7 +247,7 @@ module CodebaseRAG =
                                 
                                 let metadata = Map.ofList [
                                     "file", chunk.FilePath
-                                    "lines", sprintf "%d-%d" chunk.StartLine chunk.EndLine
+                                    "lines", $"%d{chunk.StartLine}-%d{chunk.EndLine}"
                                 ]
                                 do! vectorStore.SaveAsync(collectionName, chunk.Id, embedding, metadata)
                                 totalLines <- totalLines + (chunk.EndLine - chunk.StartLine + 1)
@@ -262,20 +260,14 @@ module CodebaseRAG =
                             let remaining = allChunks.Length - completed
                             let etaSeconds = if speed > 0.0 then float remaining / speed else 0.0
                             let eta = TimeSpan.FromSeconds(etaSeconds)
-                            
-                            printfn "   [Progress] Embedded %d/%d chunks... (%.1f chunks/s, ETA: %02d:%02d:%02d)" 
-                                completed 
-                                allChunks.Length 
-                                speed 
-                                (int eta.TotalHours) 
-                                eta.Minutes 
-                                eta.Seconds
-                    
+
+                            printfn $"   [Progress] Embedded %d{completed}/%d{allChunks.Length} chunks... (%.1f{speed} chunks/s, ETA: %02d{int eta.TotalHours}:%02d{eta.Minutes}:%02d{eta.Seconds})"
+
                     filesProcessed <- files.Length
                     ingested <- true
-                    printfn "✓ Ingested %d chunks from %d files" chunks.Count filesProcessed
+                    printfn $"✓ Ingested %d{chunks.Count} chunks from %d{filesProcessed} files"
 
-                
+
                 return {
                     FilesProcessed = filesProcessed
                     ChunksCreated = chunks.Count
@@ -403,12 +395,8 @@ module CodebaseRAG =
         let mutable tokenEstimate = 0
         
         for result in results do
-            let entry = sprintf "\n[File: %s, Lines: %d-%d]\n```fsharp\n%s\n```\n" 
-                            result.Chunk.FilePath 
-                            result.Chunk.StartLine 
-                            result.Chunk.EndLine
-                            result.Chunk.Content
-            
+            let entry = $"\n[File: %s{result.Chunk.FilePath}, Lines: %d{result.Chunk.StartLine}-%d{result.Chunk.EndLine}]\n```fsharp\n%s{result.Chunk.Content}\n```\n"
+
             let entryTokens = entry.Length / 4 // Rough token estimate
             if tokenEstimate + entryTokens < maxTokens then
                 context <- context + entry
@@ -436,5 +424,5 @@ module CodebaseRAG =
                              else r.Chunk.Content.Replace("\n", " ")))
                     |> String.concat "\n"
                 
-                return Some (sprintf "\n[RELEVANT CODEBASE CONTEXT]\n%s\n" summary)
+                return Some $"\n[RELEVANT CODEBASE CONTEXT]\n%s{summary}\n"
         }

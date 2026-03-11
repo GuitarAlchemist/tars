@@ -1,7 +1,5 @@
 namespace Tars.Interface.Cli.Commands
 
-open System
-open System.Threading.Tasks
 open Spectre.Console
 open Tars.Connectors.Mcp
 

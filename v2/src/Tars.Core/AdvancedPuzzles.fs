@@ -1,7 +1,5 @@
 namespace Tars.Core
 
-open System
-open System.IO
 open System.Text.Json
 
 /// Advanced Puzzle Types for Human-Level Intelligence Testing

@@ -84,6 +84,7 @@ module OllamaClient =
     type OllamaResponseMessageDto =
         { role: string
           content: string
+          thinking: string option
           tool_calls: ToolCallDto[] option }
 
     /// <summary>DTO for Ollama chat response with tool calls support.</summary>
@@ -154,7 +155,13 @@ module OllamaClient =
     /// <param name="model">The model name (e.g., "llama3.2", "mistral").</param>
     /// <param name="req">The LLM request containing messages and parameters.</param>
     /// <returns>The LLM response with generated text and usage stats.</returns>
-    let sendChatAsync (http: HttpClient) (baseUri: Uri) (model: string) (req: LlmRequest) : Task<LlmResponse> =
+    let sendChatAsync
+        (http: HttpClient)
+        (baseUri: Uri)
+        (model: string)
+        (apiKey: string option)
+        (req: LlmRequest)
+        : Task<LlmResponse> =
         task {
             let options =
                 { stop =
@@ -187,7 +194,20 @@ module OllamaClient =
                         Some(List.toArray req.Tools) }
 
             let uri = Uri(baseUri, getApiPrefix baseUri + "chat")
-            use! resp = http.PostAsJsonAsync(uri, dto, jsonOptions)
+            let requestJson = JsonSerializer.Serialize(dto, jsonOptions)
+            printfn "[DEBUG][Ollama] Request to %O (model: %s): %s" uri model requestJson
+
+            let content =
+                new StringContent(requestJson, System.Text.Encoding.UTF8, "application/json")
+
+            use requestMessage = new HttpRequestMessage(HttpMethod.Post, uri, Content = content)
+
+            match apiKey with
+            | Some key when not (String.IsNullOrWhiteSpace(key)) ->
+                requestMessage.Headers.Authorization <- System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", key)
+            | _ -> ()
+
+            use! resp = http.SendAsync(requestMessage)
 
             if resp.StatusCode = System.Net.HttpStatusCode.NotFound then
                 return
@@ -196,9 +216,12 @@ module OllamaClient =
                       Usage = None
                       Raw = Some "404 Not Found - Check if model exists" }
             else
-                resp.EnsureSuccessStatusCode() |> ignore
+                if not resp.IsSuccessStatusCode then
+                    let! err = resp.Content.ReadAsStringAsync()
+                    failwith $"Ollama API Error ({resp.StatusCode}): {err}"
 
                 let! raw = resp.Content.ReadAsStringAsync()
+                printfn "[DEBUG][Ollama] Response (%s): %s" model raw
                 let parsed = JsonSerializer.Deserialize<OllamaResponseDto>(raw, jsonOptions)
 
                 if
@@ -221,8 +244,17 @@ module OllamaClient =
                                   TotalTokens = p + c }
                         | _ -> None
 
+                    let text =
+                        match parsed.message.thinking with
+                        | Some t when not (String.IsNullOrWhiteSpace t) ->
+                            if String.IsNullOrWhiteSpace parsed.message.content then
+                                t
+                            else
+                                $"<thinking>\n{t}\n</thinking>\n{parsed.message.content}"
+                        | _ -> parsed.message.content
+
                     return
-                        { Text = parsed.message.content
+                        { Text = text
                           FinishReason = Some(if parsed.isDone then "done" else "unknown")
                           Usage = usage
                           Raw = Some raw }
@@ -241,7 +273,10 @@ module OllamaClient =
             let dto: OllamaEmbeddingRequestDto = { model = model; prompt = text }
             let uri = Uri(baseUri, getApiPrefix baseUri + "embeddings")
             use! resp = http.PostAsJsonAsync(uri, dto, jsonOptions)
-            resp.EnsureSuccessStatusCode() |> ignore
+
+            if not resp.IsSuccessStatusCode then
+                let! err = resp.Content.ReadAsStringAsync()
+                failwith $"Ollama API Error ({resp.StatusCode}): {err}"
 
             let! raw = resp.Content.ReadAsStringAsync()
 
@@ -264,7 +299,11 @@ module OllamaClient =
         task {
             let uri = Uri(baseUri, getApiPrefix baseUri + "tags")
             let! resp = http.GetAsync(uri)
-            resp.EnsureSuccessStatusCode() |> ignore
+
+            if not resp.IsSuccessStatusCode then
+                let! err = resp.Content.ReadAsStringAsync()
+                failwith $"Ollama API Error ({resp.StatusCode}): {err}"
+
             let! raw = resp.Content.ReadAsStringAsync()
             let parsed = JsonSerializer.Deserialize<OllamaTagsResponseDto>(raw, jsonOptions)
 
@@ -288,6 +327,7 @@ module OllamaClient =
         (http: HttpClient)
         (baseUri: Uri)
         (model: string)
+        (apiKey: string option)
         (req: LlmRequest)
         (onToken: string -> unit)
         : Task<LlmResponse> =
@@ -333,8 +373,16 @@ module OllamaClient =
 
             use requestMessage = new HttpRequestMessage(HttpMethod.Post, uri, Content = content)
 
+            match apiKey with
+            | Some key when not (String.IsNullOrWhiteSpace(key)) ->
+                requestMessage.Headers.Authorization <- System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", key)
+            | _ -> ()
+
             use! resp = http.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead)
-            resp.EnsureSuccessStatusCode() |> ignore
+
+            if not resp.IsSuccessStatusCode then
+                let! err = resp.Content.ReadAsStringAsync()
+                failwith $"Ollama API Error ({resp.StatusCode}): {err}"
 
             use! stream = resp.Content.ReadAsStreamAsync()
             use reader = new System.IO.StreamReader(stream)

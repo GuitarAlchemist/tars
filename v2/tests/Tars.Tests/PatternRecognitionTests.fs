@@ -1,10 +1,6 @@
 namespace Tars.Tests
 
-open System
 open Xunit
-open Tars.Core
-open Tars.Core.TemporalKnowledgeGraph
-open Tars.Core.PatternRecognition
 
 module PatternRecognitionTests =
 

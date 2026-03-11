@@ -1,15 +1,11 @@
 module Tars.Interface.Cli.Commands.MacroDemo
 
 open System
-open System.Threading.Tasks
 open Serilog
-open Tars.Core
 open Tars.Metascript
 open Tars.Metascript.Domain
-open Tars.Metascript.Engine
 open Tars.Metascript.Config
 open Tars.Llm
-open Tars.Llm.LlmService
 open Tars.Llm.Routing
 
 let run (logger: ILogger) =

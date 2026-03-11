@@ -4,7 +4,6 @@ namespace Tars.Knowledge
 
 open System
 open System.Threading.Tasks
-open System.Collections.Generic
 
 /// The Plan Manager - manages hypothesis-driven plans
 type PlanManager(storage: IPlanStorage, ledger: KnowledgeLedger) =

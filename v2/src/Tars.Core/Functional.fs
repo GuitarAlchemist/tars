@@ -1,4 +1,4 @@
-/// Lightweight functional helpers (kept minimal for v2)
+// Lightweight functional helpers (kept minimal for v2)
 namespace Tars.Core
 
 open System

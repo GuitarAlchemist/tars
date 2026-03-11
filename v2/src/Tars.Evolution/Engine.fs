@@ -7,12 +7,12 @@ open Tars.Core
 open Tars.Core.Knowledge
 open Tars.Graph
 open Tars.Llm
-open Tars.Llm.LlmService
 open System.Text.Json
 open Tars.Kernel
 open Tars.Cortex
 open Tars.Connectors.EpisodeIngestion
 open Tars.Knowledge
+open Tars.Core.WorkflowOfThought
 
 module Engine =
 
@@ -43,7 +43,8 @@ module Engine =
           ShowSemanticMessage: Message -> bool -> unit
           Focus: string option
           ToolRegistry: Tars.Tools.ToolRegistry option // Added for hot reload of tools
-          ResearchEnhanced: bool } // Research-enhanced curriculum (Phase 18)
+          ResearchEnhanced: bool // Research-enhanced curriculum (Phase 18)
+          SelfImprovement: bool } // Neuro-Symbolic Self-Improvement (Phase 15)
 
     let private scoreTask
         (ctx: EvolutionContext)
@@ -133,19 +134,23 @@ module Engine =
 
     let private tryExtractJsonElement (text: string) =
         // Remove conversational filler
-        let cleanText = 
+        let cleanText =
             let lowered = text.ToLowerInvariant()
             let filler = [ "certainly", "here is", "here are", "sure", "ok", "i can help" ]
             let mutable result = text
-            if text.StartsWith("ACT:") then 
+
+            if text.StartsWith("ACT:") then
                 let idx = text.IndexOf(":", 4)
-                if idx > 0 then result <- text.Substring(idx + 1).Trim()
-            
+
+                if idx > 0 then
+                    result <- text.Substring(idx + 1).Trim()
+
             // If it still looks like it has filler before { or [
             let firstBrace = result.IndexOfAny([| '{'; '[' |])
+
             if firstBrace > 0 then
                 result <- result.Substring(firstBrace).Trim()
-            
+
             result
 
         let trimmed = cleanText.Trim()
@@ -289,15 +294,20 @@ Do any of the known beliefs contradict executing this task? Respond in JSON: {{"
                 state.CompletedTasks
                 |> List.filter (fun t -> not t.Success)
                 |> List.truncate 3
-                |> List.map (fun t -> 
-                    let evalIssues = 
-                        t.Evaluation 
+                |> List.map (fun t ->
+                    let evalIssues =
+                        t.Evaluation
                         |> Option.map (fun e -> "\nEvaluation Issues: " + String.concat "; " e.Issues)
                         |> Option.defaultValue ""
+
                     $"- FAILED TASK: {t.TaskGoal}\n  Error/Output: {t.Output.Substring(0, Math.Min(t.Output.Length, 300))}...{evalIssues}")
                 |> String.concat "\n\n"
 
-            let lastFailedTask = if String.IsNullOrWhiteSpace failedHistory then "None" else failedHistory
+            let lastFailedTask =
+                if String.IsNullOrWhiteSpace failedHistory then
+                    "None"
+                else
+                    failedHistory
 
             let prompt =
                 $"""IMPORTANT: You are generating F# CODING TASKS for an autonomous agent loop. 
@@ -311,9 +321,9 @@ Generation: %d{state.Generation}. Completed tasks: %d{state.CompletedTasks.Lengt
 
 [GUIDANCE]
 %s{if String.IsNullOrWhiteSpace(guidance) then
-                  "Focus on exploring the codebase and maintaining core invariants."
-              else
-                  guidance}
+       "Focus on exploring the codebase and maintaining core invariants."
+   else
+       guidance}
 
 Requirements:
 - Each task must be a specific coding problem (NOT a question) and solvable with code (NOT a discussion).
@@ -378,7 +388,7 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                             | None -> Tell o, o
 
                         // If it's an Ask but contains JSON, force it to Tell
-                        let intent, content = 
+                        let intent, content =
                             match intent with
                             | Ask c when c.Contains("{") && c.Contains("}") -> Tell c, c
                             | _ -> intent, content
@@ -481,8 +491,8 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                                     let key = t.Goal.Trim().ToLowerInvariant()
                                     not (existingGoals.Contains(key)))
 
-                        // 5. Semantic Scoring (Fan-out Limiting)
-                        // Pre-calculate embeddings for recent tasks (last 10)
+                            // 5. Semantic Scoring (Fan-out Limiting)
+                            // Pre-calculate embeddings for recent tasks (last 10)
                             let recentTasks = state.CompletedTasks |> List.truncate 10
 
                             let! recentVectors =
@@ -498,7 +508,7 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                                         return vectors |> Array.toList
                                 }
 
-                        // Score all candidates
+                            // Score all candidates
                             let! scoredTasks =
                                 parsedTasksRaw
                                 |> List.map (fun t ->
@@ -508,7 +518,7 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                                     })
                                 |> Task.WhenAll
 
-                        // Select Top K
+                            // Select Top K
                             let k = 3
 
                             let topK =
@@ -519,7 +529,7 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                                 // Filter out negative scores (hard blocked)
                                 |> List.filter (fun t -> t.Score > 0.0)
 
-                        // Budget-aware priority report
+                            // Budget-aware priority report
                             let remainingTokens =
                                 ctx.Budget
                                 |> Option.bind (fun b -> b.Remaining.MaxTokens |> Option.map (fun t -> int t))
@@ -698,11 +708,11 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
 
                             $"\nKnown Beliefs:\n{lines}\n"
 
-                    let toolList = 
+                    let toolList =
                         match ctx.ToolRegistry with
-                        | Some r -> 
-                            r.GetAll() 
-                            |> List.map (fun t -> $"- {t.Name}: {t.Description}") 
+                        | Some r ->
+                            r.GetAll()
+                            |> List.map (fun t -> $"- {t.Name}: {t.Description}")
                             |> String.concat "\n"
                         | None -> "No tools available."
 
@@ -864,32 +874,39 @@ printfn "Tool Result: %%s" result // Output MUST be printed to stdout
                                     | Result.Ok() ->
                                         ctx.Logger
                                             $"[Protocol] Verified semantic flow: %A{requestMsg.Intent} -> %A{replyMsg.Intent}"
-                                    | Result.Error err ->
-                                        ctx.Logger $"[Protocol] WARNING: Protocol violation: %s{err}"
+                                    | Result.Error err -> ctx.Logger $"[Protocol] WARNING: Protocol violation: %s{err}"
 
                                     let issue =
-                                        let hasToolCall (c: string) = 
-                                            c.Contains("```tool") || c.Contains("<tool_call>") || c.Contains("\"tool\":") || c.Contains("\"function\":")
+                                        let hasToolCall (c: string) =
+                                            c.Contains("```tool")
+                                            || c.Contains("<tool_call>")
+                                            || c.Contains("\"tool\":")
+                                            || c.Contains("\"function\":")
 
                                         match intent with
                                         | AgentIntent.Ask _ ->
                                             // Heuristic: If content contains tool calls or starts with ACT: Tell, forgive the intent mismatch
                                             if hasToolCall content || content.StartsWith("ACT: Tell") then
-                                                 None
+                                                None
                                             // Heuristic: If it doesn't look like a question (no question mark), treat as a statement/Tell
                                             elif not (content.Trim().EndsWith("?")) then
-                                                 None
+                                                None
                                             else
-                                                 Some "Agent asked a question instead of completing the task."
+                                                Some "Agent asked a question instead of completing the task."
                                         | AgentIntent.Tell _ when looksLikeFollowUpRequest content ->
                                             // Heuristic: If it looks like a follow-up but contains tool calls, maybe it's just verbose
-                                            if hasToolCall content then None
-                                            else Some "Agent requested additional input instead of completing the task."
+                                            if hasToolCall content then
+                                                None
+                                            else
+                                                Some "Agent requested additional input instead of completing the task."
                                         | AgentIntent.Tell _ -> None
                                         | AgentIntent.Error _ -> Some "Agent returned an error response."
-                                        | AgentIntent.Propose _ -> Some "Agent proposed a plan instead of providing a result."
-                                        | AgentIntent.Accept _ -> Some "Agent accepted a plan instead of providing a result."
-                                        | AgentIntent.Reject _ -> Some "Agent rejected a plan instead of providing a result."
+                                        | AgentIntent.Propose _ ->
+                                            Some "Agent proposed a plan instead of providing a result."
+                                        | AgentIntent.Accept _ ->
+                                            Some "Agent accepted a plan instead of providing a result."
+                                        | AgentIntent.Reject _ ->
+                                            Some "Agent rejected a plan instead of providing a result."
                                         | AgentIntent.Act _ -> Some "Agent returned an action instead of a result."
                                         | AgentIntent.Event _ -> Some "Agent returned an event instead of a result."
 
@@ -920,7 +937,10 @@ printfn "Tool Result: %%s" result // Output MUST be printed to stdout
                                     | Success(a, o, t) -> (a, true, o, t)
                                     | PartialSuccess((a, o, t), _) -> (a, true, o, t)
                                     | Failure err ->
-                                        (agentWithMsg, false, String.concat "; " (err |> List.map (fun e -> $"%A{e}")), [])
+                                        (agentWithMsg,
+                                         false,
+                                         String.concat "; " (err |> List.map (fun e -> $"%A{e}")),
+                                         [])
 
                                 if not success then
                                     return
@@ -933,71 +953,73 @@ printfn "Tool Result: %%s" result // Output MUST be printed to stdout
                                           Duration = TimeSpan.FromSeconds(5.0)
                                           Evaluation = None }
                                 else
-                                // Handle Speech Act prefix in output using new helper
-                                let mutable currentOutput =
-                                    match SpeechActs.tryParse output with
-                                    | Some(_, c) -> c
-                                    | None -> output
+                                    // Handle Speech Act prefix in output using new helper
+                                    let mutable currentOutput =
+                                        match SpeechActs.tryParse output with
+                                        | Some(_, c) -> c
+                                        | None -> output
 
-                                let mutable currentTrace = trace
-                                let mutable reflectionCount = 0
-                                let mutable isOptimal = false
-                                let mutable currentAgent = agentAfterExec
-                                let mutable timeoutOccurred = false
-                                let maxReflections = 3
+                                    let mutable currentTrace = trace
+                                    let mutable reflectionCount = 0
+                                    let mutable isOptimal = false
+                                    let mutable currentAgent = agentAfterExec
+                                    let mutable timeoutOccurred = false
+                                    let maxReflections = 3
 
-                                while reflectionCount < maxReflections && not isOptimal do
-                                    reflectionCount <- reflectionCount + 1
+                                    while reflectionCount < maxReflections && not isOptimal do
+                                        reflectionCount <- reflectionCount + 1
 
-                                    match remaining () with
-                                    | Some r when r <= TimeSpan.Zero ->
-                                        timeoutOccurred <- true
-                                        currentTrace <- currentTrace @ [ "TIMEOUT before reflection" ]
-                                        reflectionCount <- maxReflections
-                                    | _ -> ()
+                                        match remaining () with
+                                        | Some r when r <= TimeSpan.Zero ->
+                                            timeoutOccurred <- true
+                                            currentTrace <- currentTrace @ [ "TIMEOUT before reflection" ]
+                                            reflectionCount <- maxReflections
+                                        | _ -> ()
 
-                                    if not timeoutOccurred then
-                                        // 6.1 Epistemic Verification (if available)
-                                        let! (verificationFeedback, isVerified) =
-                                            task {
-                                                match ctx.Epistemic with
-                                                | Some governor ->
-                                                    try
-                                                        // Generate minimal variants for quick check
-                                                        let! variants = governor.GenerateVariants(taskDef.Goal, 1)
+                                        if not timeoutOccurred then
+                                            // 6.1 Epistemic Verification (if available)
+                                            let! (verificationFeedback, isVerified) =
+                                                task {
+                                                    match ctx.Epistemic with
+                                                    | Some governor ->
+                                                        try
+                                                            // Generate minimal variants for quick check
+                                                            let! variants = governor.GenerateVariants(taskDef.Goal, 1)
 
-                                                        let! result =
-                                                            governor.VerifyGeneralization(
-                                                                taskDef.Goal,
-                                                                currentOutput,
-                                                                variants
-                                                            )
+                                                            let! result =
+                                                                governor.VerifyGeneralization(
+                                                                    taskDef.Goal,
+                                                                    currentOutput,
+                                                                    variants
+                                                                )
 
-                                                        return (result.Feedback, result.IsVerified)
-                                                    with ex ->
-                                                        return ($"Verification failed: {ex.Message}", false)
-                                                | None -> return ("", false)
-                                            }
+                                                            return (result.Feedback, result.IsVerified)
+                                                        with ex ->
+                                                            return ($"Verification failed: {ex.Message}", false)
+                                                    | None -> return ("", false)
+                                                }
 
-                                        if isVerified then
-                                            isOptimal <- true
-                                            currentTrace <- currentTrace @ [ $"--- VERIFIED by Epistemic Governor ---" ]
-                                        else
-                                            // 6.2 Construct Reflection Prompt
-                                            // Truncate output to prevent HTTP 400 errors from excessive length
-                                            let maxOutputLength = 2000
+                                            if isVerified then
+                                                isOptimal <- true
 
-                                            let truncatedOutput =
-                                                if currentOutput.Length > maxOutputLength then
-                                                    currentOutput.Substring(0, maxOutputLength)
-                                                    + "\n... [output truncated]"
-                                                else
-                                                    currentOutput
+                                                currentTrace <-
+                                                    currentTrace @ [ $"--- VERIFIED by Epistemic Governor ---" ]
+                                            else
+                                                // 6.2 Construct Reflection Prompt
+                                                // Truncate output to prevent HTTP 400 errors from excessive length
+                                                let maxOutputLength = 2000
 
-                                            let reflectionPrompt =
-                                                if String.IsNullOrEmpty verificationFeedback then
-                                                    // Standard Reflection
-                                                    $"""You have generated a solution.
+                                                let truncatedOutput =
+                                                    if currentOutput.Length > maxOutputLength then
+                                                        currentOutput.Substring(0, maxOutputLength)
+                                                        + "\n... [output truncated]"
+                                                    else
+                                                        currentOutput
+
+                                                let reflectionPrompt =
+                                                    if String.IsNullOrEmpty verificationFeedback then
+                                                        // Standard Reflection
+                                                        $"""You have generated a solution.
     Current Output:
     %s{truncatedOutput}
 
@@ -1006,9 +1028,9 @@ printfn "Tool Result: %%s" result // Output MUST be printed to stdout
     2. Verify if it meets all constraints: %A{taskDef.Constraints}
     3. If you can improve it, output the IMPROVED solution.
     4. If it is already optimal, output "OPTIMAL"."""
-                                                else
-                                                    // Epistemic Feedback Reflection
-                                                    $"""Your solution failed verification.
+                                                    else
+                                                        // Epistemic Feedback Reflection
+                                                        $"""Your solution failed verification.
     Current Output:
     %s{truncatedOutput}
 
@@ -1017,106 +1039,167 @@ printfn "Tool Result: %%s" result // Output MUST be printed to stdout
 
     Please fix the solution based on this feedback. Output the IMPROVED solution."""
 
-                                            let reflectionMsg =
-                                                { Id = Guid.NewGuid()
-                                                  CorrelationId = CorrelationId(Guid.NewGuid())
-                                                  Sender = MessageEndpoint.System
-                                                  Receiver = Some(MessageEndpoint.Agent executor.Id)
-                                                  Performative = Performative.Request
-                                                  Intent = Some AgentDomain.Reasoning
-                                                  Constraints = SemanticConstraints.Default
-                                                  Ontology = None
-                                                  Language = "text"
-                                                  Content = reflectionPrompt
-                                                  Timestamp = DateTime.UtcNow
-                                                  Metadata = Map.empty }
+                                                let reflectionMsg =
+                                                    { Id = Guid.NewGuid()
+                                                      CorrelationId = CorrelationId(Guid.NewGuid())
+                                                      Sender = MessageEndpoint.System
+                                                      Receiver = Some(MessageEndpoint.Agent executor.Id)
+                                                      Performative = Performative.Request
+                                                      Intent = Some AgentDomain.Reasoning
+                                                      Constraints = SemanticConstraints.Default
+                                                      Ontology = None
+                                                      Language = "text"
+                                                      Content = reflectionPrompt
+                                                      Timestamp = DateTime.UtcNow
+                                                      Metadata = Map.empty }
 
-                                            // Show reflection visualization
-                                            DemoVisualization.showReflection
-                                                reflectionCount
-                                                maxReflections
-                                                (Some verificationFeedback)
+                                                // Show reflection visualization
+                                                DemoVisualization.showReflection
+                                                    reflectionCount
+                                                    maxReflections
+                                                    (Some verificationFeedback)
 
-                                            // Phase 6.8: Epistemic Reflection Recording
-                                            match ctx.EpisodeService with
-                                            | Some svc ->
-                                                let episode =
-                                                    Tars.Core.Episode.Reflection(
-                                                        state.ExecutorAgentId.ToString(),
-                                                        reflectionPrompt,
-                                                        DateTime.UtcNow
-                                                    )
+                                                // Phase 6.8: Epistemic Reflection Recording
+                                                match ctx.EpisodeService with
+                                                | Some svc ->
+                                                    let episode =
+                                                        Tars.Core.Episode.Reflection(
+                                                            state.ExecutorAgentId.ToString(),
+                                                            reflectionPrompt,
+                                                            DateTime.UtcNow
+                                                        )
 
-                                                svc.Queue(episode)
-                                            | None -> ()
+                                                    svc.Queue(episode)
+                                                | None -> ()
 
-                                            let agentWithReflection = currentAgent.ReceiveMessage(reflectionMsg)
+                                                let agentWithReflection = currentAgent.ReceiveMessage(reflectionMsg)
 
-                                            let! reflectOutcomeResult =
-                                                runWithTimeout
-                                                    "Reflection"
-                                                    (graphExecutor.RunAgentLoop(
-                                                        agentWithReflection,
-                                                        20,
-                                                        cancellationToken = cts.Token
-                                                    ))
+                                                let! reflectOutcomeResult =
+                                                    runWithTimeout
+                                                        "Reflection"
+                                                        (graphExecutor.RunAgentLoop(
+                                                            agentWithReflection,
+                                                            20,
+                                                            cancellationToken = cts.Token
+                                                        ))
 
-                                            match reflectOutcomeResult with
-                                            | Choice2Of2 reason ->
-                                                timeoutOccurred <- true
-
-                                                currentTrace <-
-                                                    currentTrace @ [ $"TIMEOUT during reflection: {reason}" ]
-
-                                                reflectionCount <- maxReflections
-                                                currentOutput <- currentOutput + "\n[TIMEOUT during reflection]"
-                                            | Choice1Of2 reflectOutcome ->
-                                                match reflectOutcome with
-                                                | Success(nextAgent, reflectOutput, reflectTrace) ->
-                                                    currentAgent <- nextAgent
+                                                match reflectOutcomeResult with
+                                                | Choice2Of2 reason ->
+                                                    timeoutOccurred <- true
 
                                                     currentTrace <-
-                                                        currentTrace
-                                                        @ [ $"--- REFLECTION {reflectionCount} ---" ]
-                                                        @ reflectTrace
+                                                        currentTrace @ [ $"TIMEOUT during reflection: {reason}" ]
 
-                                                    if
-                                                        reflectOutput.Contains("OPTIMAL")
-                                                        && String.IsNullOrEmpty verificationFeedback
-                                                    then
-                                                        isOptimal <- true
-                                                    else
-                                                        currentOutput <- reflectOutput
-                                                | PartialSuccess((nextAgent, reflectOutput, reflectTrace), _) ->
-                                                    currentAgent <- nextAgent
-
-                                                    currentTrace <-
-                                                        currentTrace
-                                                        @ [ $"--- REFLECTION {reflectionCount} (Partial) ---" ]
-                                                        @ reflectTrace
-
-                                                    currentOutput <- reflectOutput
-                                                | Failure err ->
-                                                    // If reflection fails, stop and keep previous result
-                                                    currentTrace <-
-                                                        currentTrace
-                                                        @ [ $"--- REFLECTION {reflectionCount} FAILED ---" ]
-                                                    // Don't update output, just stop
                                                     reflectionCount <- maxReflections
+                                                    currentOutput <- currentOutput + "\n[TIMEOUT during reflection]"
+                                                | Choice1Of2 reflectOutcome ->
+                                                    match reflectOutcome with
+                                                    | Success(nextAgent, reflectOutput, reflectTrace) ->
+                                                        currentAgent <- nextAgent
 
-                                return
-                                    { TaskId = taskDef.Id
-                                      TaskGoal = taskDef.Goal
-                                      ExecutorId = state.ExecutorAgentId
-                                      Success = not timeoutOccurred
-                                      Output =
-                                        if timeoutOccurred then
-                                            currentOutput + "\n[TIMEOUT]"
-                                        else
-                                            currentOutput
-                                      ExecutionTrace = currentTrace
-                                      Duration = TimeSpan.FromSeconds(10.0 * float (reflectionCount + 1))
-                                      Evaluation = None }
+                                                        currentTrace <-
+                                                            currentTrace
+                                                            @ [ $"--- REFLECTION {reflectionCount} ---" ]
+                                                            @ reflectTrace
+
+                                                        if
+                                                            reflectOutput.Contains("OPTIMAL")
+                                                            && String.IsNullOrEmpty verificationFeedback
+                                                        then
+                                                            isOptimal <- true
+                                                        else
+                                                            currentOutput <- reflectOutput
+                                                    | PartialSuccess((nextAgent, reflectOutput, reflectTrace), _) ->
+                                                        currentAgent <- nextAgent
+
+                                                        currentTrace <-
+                                                            currentTrace
+                                                            @ [ $"--- REFLECTION {reflectionCount} (Partial) ---" ]
+                                                            @ reflectTrace
+
+                                                        currentOutput <- reflectOutput
+                                                    | Failure err ->
+                                                        // If reflection fails, stop and keep previous result
+                                                        currentTrace <-
+                                                            currentTrace
+                                                            @ [ $"--- REFLECTION {reflectionCount} FAILED ---" ]
+                                                        // Don't update output, just stop
+                                                        reflectionCount <- maxReflections
+
+                                    return
+                                        { TaskId = taskDef.Id
+                                          TaskGoal = taskDef.Goal
+                                          ExecutorId = state.ExecutorAgentId
+                                          Success = not timeoutOccurred
+                                          Output =
+                                            if timeoutOccurred then
+                                                currentOutput + "\n[TIMEOUT]"
+                                            else
+                                                currentOutput
+                                          ExecutionTrace = currentTrace
+                                          Duration = TimeSpan.FromSeconds(10.0 * float (reflectionCount + 1))
+                                          Evaluation = None }
+        }
+
+    /// Runs a Darwin-lite mutation loop on a failed workflow (Phase 15.4)
+    let private runDarwinLoop
+        (ctx: EvolutionContext)
+        (state: EvolutionState)
+        (taskDef: TaskDefinition)
+        (failedResult: TaskResult)
+        =
+        task {
+            // 1. Log failure to Symbolic Memory
+            let metadata =
+                Map.ofList
+                    [ "goal", taskDef.Goal
+                      "executor", string failedResult.ExecutorId
+                      "reason", "task_failure" ]
+
+            do!
+                SymbolicMemory.logFailure
+                    (ctx.RunId
+                     |> Option.map (fun (RunId.RunId r) -> r)
+                     |> Option.defaultValue (Guid.NewGuid()))
+                    None
+                    failedResult.Output
+                    metadata
+                |> Async.StartAsTask
+
+            // 2. Identify target file for mutation
+            // We look at ctx.Focus or try to find a .trsx file mentioned in the trace
+            let targetFile =
+                match ctx.Focus with
+                | Some f when f.EndsWith(".trsx") -> Some f
+                | _ ->
+                    // Fallback: look for any .trsx in the current working directory if it's a small project
+                    None
+
+            match targetFile with
+            | Some path ->
+                ctx.Logger($"[Darwin] Workflow failure detected in {path}. Attempting self-improvement...")
+
+                let! proposalResult =
+                    SelfImprovement.analyzeAndPropose
+                        ctx.Llm
+                        path
+                        failedResult.Output
+                        (String.concat "\n" failedResult.ExecutionTrace)
+                        (ctx.RunId
+                         |> Option.map (fun (RunId.RunId r) -> r)
+                         |> Option.defaultValue (Guid.NewGuid()))
+
+                match proposalResult with
+                | SelfImprovement.Success(p, variantPath) ->
+                    ctx.Logger($"[Darwin] Mutation proposed: {p.Rationale}")
+                    ctx.Logger($"[Darwin] Applied to variant: {variantPath}")
+
+                    do! SelfImprovement.logImprovement p variantPath true |> Async.StartAsTask
+                    return Some p
+                | SelfImprovement.Failure err ->
+                    ctx.Logger($"[Darwin] Self-improvement failed: {err}")
+                    return None
+            | None -> return None
         }
 
     /// The main tick of the evolutionary loop
@@ -1396,10 +1479,7 @@ printfn "Tool Result: %%s" result // Output MUST be printed to stdout
                             Tars.Core.Episode.AgentInteraction(
                                 "Evolution",
                                 taskDef.Goal,
-                                (if finalResult.Success then
-                                     "SUCCESS: "
-                                 else
-                                     "FAILED: ")
+                                (if finalResult.Success then "SUCCESS: " else "FAILED: ")
                                 + resultForDisplay.Output,
                                 DateTime.UtcNow
                             )
@@ -1416,6 +1496,13 @@ printfn "Tool Result: %%s" result // Output MUST be printed to stdout
                             CurrentTask = None
                             ActiveBeliefs = newBeliefs }
                 else
+                    // Retail Darwin logic (Phase 15)
+                    let! mutation =
+                        if ctx.SelfImprovement then
+                            runDarwinLoop ctx state taskDef resultForDisplay
+                        else
+                            Task.FromResult None
+
                     // Retry or fail? For now, just log and clear
                     DemoVisualization.showTaskComplete
                         resultForDisplay.Success

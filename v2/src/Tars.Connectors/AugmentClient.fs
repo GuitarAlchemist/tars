@@ -1,7 +1,6 @@
 namespace Tars.Connectors
 
 open System
-open System.Threading.Tasks
 open Tars.Connectors.Mcp
 
 /// Client for Augment Context Engine MCP server.

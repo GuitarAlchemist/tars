@@ -1,6 +1,5 @@
 namespace Tars.Tests
 
-open System
 open Xunit
 open Tars.Core
 open Tars.Cortex

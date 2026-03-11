@@ -3,9 +3,7 @@ namespace Tars.Cortex
 open System
 open System.Threading.Tasks
 open Tars.Core
-open Tars.Core.Units
 open Tars.Llm
-open Tars.Llm.LlmService
 
 /// <summary>
 /// Epistemic governance for managing agent knowledge and beliefs.

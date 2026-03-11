@@ -11,6 +11,8 @@
     <Compile Include="Functional.fs" />
     <Compile Include="Units.fs" />
     <Compile Include="Budget.fs" />
+    <Compile Include="Primitives.fs" />
+    <Compile Include="AgentConstitution.fs" />
     <Compile Include="Domain.fs" />
     <Compile Include="SymbolicTypes.fs" />
     <Compile Include="ContractEnforcement.fs" />
@@ -24,6 +26,11 @@
     <Compile Include="MetricSpace.fs" />
     <Compile Include="SpeechActs.fs" />
     <Compile Include="GraphitiTypes.fs" />
+    <Compile Include="SymbolicReflection.fs" />
+    <!-- Moved here for dependency reasons -->
+    <Compile Include="WorkflowOfThought\ExecutionTypes.fs" />
+    <Compile Include="WorkflowOfThought\AgentRegistry.fs" />
+    <Compile Include="WorkflowOfThought\TraceTypes.fs" />
     <Compile Include="Abstractions.fs" />
     <Compile Include="Critique.fs" />
     <Compile Include="Tracing.fs" />
@@ -44,12 +51,14 @@
     <Compile Include="AgentWorkflow.fs" />
     <Compile Include="ConstitutionWorkflow.fs" />
     <Compile Include="ConstitutionVersioning.fs" />
-    <Compile Include="SymbolicReflection.fs" />
+
     <Compile Include="BeliefRevision.fs" />
     <Compile Include="EvidenceChain.fs" />
     <Compile Include="ProofSystem.fs" />
     <Compile Include="EpisodeStore.fs" />
     <Compile Include="TemporalKnowledgeGraph.fs" />
+    <Compile Include="TemporalReasoning.fs" />
+    <Compile Include="EpisodeIngestor.fs" />
     <Compile Include="GraphService.fs" />
     <Compile Include="CommunityDetection.fs" />
     <Compile Include="PatternRecognition.fs" />
@@ -84,11 +93,14 @@
     <Compile Include="SelfExtension\SelfExtensionService.fs" />
     <!-- Phase 12: Workflow of Thought -->
     <Compile Include="WorkflowOfThought\WotTypes.fs" />
+    <Compile Include="WorkflowOfThought\SymbolicMemory.fs" />
     <Compile Include="WorkflowOfThought\WotStep.fs" />
-    <Compile Include="WorkflowOfThought\ExecutionTypes.fs" />
-    <Compile Include="WorkflowOfThought\TraceTypes.fs" />
     <Compile Include="WorkflowOfThought\VariableResolution.fs" />
+    <Compile Include="WorkflowOfThought\FeedbackLoop.fs" />
+    <Compile Include="WorkflowOfThought\WotController.fs" />
     <Compile Include="WorkflowOfThought\WotExecutor.fs" />
+    <Compile Include="WorkflowOfThought\Mutation.fs" />
+    <Compile Include="WorkflowOfThought\Selection.fs" />
   </ItemGroup>
 
   <ItemGroup>

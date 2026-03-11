@@ -1,6 +1,5 @@
 module Tars.Tests.WorkingMemoryTests
 
-open System
 open Xunit
 open Tars.Core
 

@@ -156,7 +156,7 @@ module EvidenceChains =
                 brokenLinks.Add(
                     { FromBeliefId = chain.Belief.Id
                       ToEvidenceId = Some evidence.Id
-                      Reason = sprintf "Invalid confidence: %f" evidence.Confidence }
+                      Reason = $"Invalid confidence: %f{evidence.Confidence}" }
                 )
 
         if brokenLinks.Count = 0 then
@@ -190,10 +190,10 @@ module EvidenceChains =
     let visualize (chain: EvidenceChain) : string =
         let sb = System.Text.StringBuilder()
 
-        sb.AppendLine(sprintf "Belief: \"%s\"" (truncateStr 60 chain.Belief.Statement))
+        sb.AppendLine $"Belief: \"%s{truncateStr 60 chain.Belief.Statement}\""
         |> ignore
 
-        sb.AppendLine(sprintf "├─ Confidence: %.2f" chain.OverallConfidence) |> ignore
+        sb.AppendLine $"├─ Confidence: %.2f{chain.OverallConfidence}" |> ignore
         sb.AppendLine("├─ Direct Evidence:") |> ignore
 
         for i, evidence in chain.DirectEvidence |> List.indexed do
@@ -203,7 +203,7 @@ module EvidenceChains =
                 else
                     "│  ├─"
 
-            sb.AppendLine(sprintf "%s [%.2f] %s" prefix evidence.Confidence (truncateStr 40 evidence.Content))
+            sb.AppendLine $"%s{prefix} [%.2f{evidence.Confidence}] %s{truncateStr 40 evidence.Content}"
             |> ignore
 
         sb.AppendLine("├─ Source Traces:") |> ignore
@@ -217,18 +217,18 @@ module EvidenceChains =
 
             let traceStr =
                 match trace with
-                | OriginatesFrom(url, _) -> sprintf "URL: %s" url
-                | ExtractedBy(_, method) -> sprintf "Extracted via: %s" method
-                | InferredFromBeliefs ids -> sprintf "Inferred from %d beliefs" ids.Length
+                | OriginatesFrom(url, _) -> $"URL: %s{url}"
+                | ExtractedBy(_, method) -> $"Extracted via: %s{method}"
+                | InferredFromBeliefs ids -> $"Inferred from %d{ids.Length} beliefs"
                 | ValidatedBy(_, test, passed) -> sprintf "Test: %s (%s)" test (if passed then "✓" else "✗")
                 | UserProvided(userId, _) -> sprintf "User: %s" (userId |> Option.defaultValue "anonymous")
-                | SystemGenerated comp -> sprintf "System: %s" comp
+                | SystemGenerated comp -> $"System: %s{comp}"
 
-            sb.AppendLine(sprintf "%s %s" prefix traceStr) |> ignore
+            sb.AppendLine $"%s{prefix} %s{traceStr}" |> ignore
 
         match chain.WeakestLink with
         | Some(evidence, conf) ->
-            sb.AppendLine(sprintf "└─ Weakest Link: [%.2f] %s" conf (truncateStr 40 evidence.Content))
+            sb.AppendLine $"└─ Weakest Link: [%.2f{conf}] %s{truncateStr 40 evidence.Content}"
             |> ignore
         | None -> sb.AppendLine("└─ No weak links detected") |> ignore
 

@@ -1,7 +1,6 @@
 module Tars.Interface.Cli.Commands.IncidentCmd
 
 open System
-open System.Threading.Tasks
 open Tars.Core
 open Tars.Core.Errors
 open Spectre.Console
@@ -24,8 +23,8 @@ let listIncidents (status: string option) (limit: int option) =
                 | "inprogress" -> Some IncidentStatus.InProgress
                 | "resolved" -> Some IncidentStatus.Resolved
                 | "closed" -> Some IncidentStatus.Closed
-                | _ -> 
-                    printfn "⚠ Unknown status '%s', ignoring filter." s
+                | _ ->
+                    printfn $"⚠ Unknown status '%s{s}', ignoring filter."
                     None
             | None -> None
             

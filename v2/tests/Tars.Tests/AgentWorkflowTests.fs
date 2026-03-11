@@ -43,6 +43,7 @@ module AgentWorkflowTests =
           Epistemic = None
           SemanticMemory = None
           KnowledgeGraph = None
+          SymbolicReflector = None
           CapabilityStore = None
           Audit = None
           CancellationToken = CancellationToken.None }

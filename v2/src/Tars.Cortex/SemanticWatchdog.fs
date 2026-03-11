@@ -4,10 +4,8 @@ namespace Tars.Cortex
 // Part of v2.2 Cognitive Patterns
 
 open System
-open System.Threading.Tasks
 open Tars.Core
 open Tars.Llm
-open Tars.Llm.LlmService
 
 /// Watchdog alert severity levels
 type AlertSeverity =

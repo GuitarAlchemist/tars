@@ -1,6 +1,5 @@
 module Tars.Tests.PipelineExecutorTests
 
-open System
 open Xunit
 open Tars.Core.Project
 open Tars.Core.ProjectRegistry

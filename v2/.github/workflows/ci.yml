@@ -2,7 +2,9 @@ name: ci
 
 on:
   push:
+    branches: [main, v2]
   pull_request:
+    branches: [main, v2]
 
 jobs:
   build-and-test:
@@ -16,7 +18,118 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Run fast tests and offline eval
+      - name: Restore dependencies
+        run: dotnet restore Tars.sln
+
+      - name: Build
+        run: dotnet build Tars.sln --no-restore --configuration Release
+
+      - name: Run unit tests
+        run: |
+          dotnet test tests/Tars.Tests/Tars.Tests.fsproj --no-build --configuration Release --logger "console;verbosity=minimal"
+
+  wot-golden-regression:
+    runs-on: windows-latest
+    needs: build-and-test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore Tars.sln
+
+      - name: Build CLI
+        run: dotnet build src/Tars.Interface.Cli/Tars.Interface.Cli.fsproj --no-restore --configuration Release
+
+      - name: Check for golden baselines
+        id: check_goldens
         shell: pwsh
         run: |
-          ./test-evolution.ps1
+          $goldenDir = ".wot/goldens"
+          if (Test-Path $goldenDir) {
+            $goldenCount = (Get-ChildItem -Path $goldenDir -Filter "*.golden.json" | Measure-Object).Count
+            Write-Host "Found $goldenCount golden baselines"
+            if ($goldenCount -gt 0) {
+              echo "has_goldens=true" >> $env:GITHUB_OUTPUT
+            } else {
+              echo "has_goldens=false" >> $env:GITHUB_OUTPUT
+            }
+          } else {
+            Write-Host "No goldens directory found - skipping regression tests"
+            echo "has_goldens=false" >> $env:GITHUB_OUTPUT
+          }
+
+      - name: Run golden regression tests
+        if: steps.check_goldens.outputs.has_goldens == 'true'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $failed = 0
+          $passed = 0
+          
+          Get-ChildItem -Path ".wot/goldens" -Filter "*.golden.json" | ForEach-Object {
+            $goldenName = $_.BaseName -replace "\.golden$", ""
+            $workflowPath = "puzzles/$goldenName.wot.trsx"
+            
+            if (Test-Path $workflowPath) {
+              Write-Host "Testing golden: $goldenName against $workflowPath"
+              
+              $result = dotnet run --project src/Tars.Interface.Cli/Tars.Interface.Cli.fsproj --configuration Release -- wot ci-check $workflowPath $_.FullName
+              
+              if ($LASTEXITCODE -eq 0) {
+                Write-Host "✓ $goldenName PASSED" -ForegroundColor Green
+                $passed++
+              } else {
+                Write-Host "✗ $goldenName FAILED" -ForegroundColor Red
+                $failed++
+              }
+            } else {
+              Write-Host "⚠ Workflow not found for golden $goldenName (expected: $workflowPath)" -ForegroundColor Yellow
+            }
+          }
+          
+          Write-Host ""
+          Write-Host "================================="
+          Write-Host "Golden Regression Summary"
+          Write-Host "================================="
+          Write-Host "Passed: $passed"
+          Write-Host "Failed: $failed"
+          
+          if ($failed -gt 0) {
+            throw "Golden regression tests failed: $failed test(s) did not match baseline"
+          }
+
+      - name: Skip message (no goldens)
+        if: steps.check_goldens.outputs.has_goldens == 'false'
+        run: |
+          Write-Host "No golden baselines found - skipping regression tests"
+          Write-Host "To add golden baselines:"
+          Write-Host "  1. Run a workflow: tars wot run <workflow.wot.trsx> --reason stub"
+          Write-Host "  2. Save as baseline: tars wot trace save <name> .wot/runs/<run-id>/golden.json"
+          Write-Host "  3. Commit the .wot/goldens/<name>.golden.json file"
+
+  wot-tests:
+    runs-on: windows-latest
+    needs: build-and-test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore and build
+        run: |
+          dotnet restore Tars.sln
+          dotnet build tests/Tars.Tests/Tars.Tests.fsproj --no-restore
+
+      - name: Run WoT-specific tests
+        run: |
+          dotnet test tests/Tars.Tests/Tars.Tests.fsproj --no-build --filter "FullyQualifiedName~WoT" --logger "console;verbosity=minimal"

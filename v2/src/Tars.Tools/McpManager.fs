@@ -5,7 +5,6 @@ open System.IO
 open System.Text.Json
 open System.Collections.Concurrent
 open Tars.Connectors.Mcp
-open Tars.Tools.Standard
 
 // Configuration types
 type McpServerConfig =

@@ -1,6 +1,5 @@
 namespace Tars.Knowledge
 
-open System
 open Tars.Symbolic
 
 /// Result of verification

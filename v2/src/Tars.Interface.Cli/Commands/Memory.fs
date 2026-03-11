@@ -1,7 +1,6 @@
 module Tars.Interface.Cli.Commands.Memory
 
 open System
-open System.Threading.Tasks
 open Tars.Core
 open Tars.Kernel
 open Tars.Cortex
@@ -18,7 +17,7 @@ let add (coll: string) (id: string) (text: string) =
             let embeddingId = "text-embedding-3-small"
 
             let provider =
-                new SemanticKernelProvider(apiKey, modelId, embeddingId) :> ICognitiveProvider
+                new OpenAIProvider(apiKey, modelId, embeddingId) :> ICognitiveProvider
 
             let vectorStore = new ChromaVectorStore("http://localhost:8000") :> IVectorStore
 
@@ -45,7 +44,7 @@ let search (coll: string) (text: string) =
             let embeddingId = "text-embedding-3-small"
 
             let provider =
-                new SemanticKernelProvider(apiKey, modelId, embeddingId) :> ICognitiveProvider
+                new OpenAIProvider(apiKey, modelId, embeddingId) :> ICognitiveProvider
 
             let vectorStore = new ChromaVectorStore("http://localhost:8000") :> IVectorStore
 

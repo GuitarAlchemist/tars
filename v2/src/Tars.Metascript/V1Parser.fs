@@ -1,7 +1,6 @@
 namespace Tars.Metascript
 
 open System
-open System.IO
 open System.Collections.Generic
 open Tars.Metascript.V1
 

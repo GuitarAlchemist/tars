@@ -4,7 +4,6 @@ open System
 open System.Threading.Tasks
 open System.Text.Json
 open Tars.Core
-open Tars.Tools.Standard
 
 module McpTools =
 
@@ -169,8 +168,7 @@ module McpTools =
                             return Result.Ok result
                         with ex ->
                             return Result.Error ex.Message
-                    }
-              ThingDescription = None }
+                    } }
 
         let t1 =
             createTool "list_mcp_servers" "Lists all configured MCP servers. No input required." listMcpServers

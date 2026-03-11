@@ -176,7 +176,6 @@ module internal Interpreter =
 
 module Parser =
     open Interpreter
-    open Ebnf
 
     // Matches cortex.ebnf
     let private DefaultGrammar = """

@@ -317,7 +317,7 @@ module ActionExecutor =
                             match ContractEnforcement.validateAction c agentAction with
                             | FSharp.Core.Ok() -> FSharp.Core.Ok()
                             | FSharp.Core.Error violation ->
-                                FSharp.Core.Error(sprintf "Constitution violation: %A" violation)
+                                FSharp.Core.Error $"Constitution violation: %A{violation}"
 
                     match validationResult with
                     | FSharp.Core.Error msg -> return FSharp.Core.Error msg
@@ -361,7 +361,7 @@ module ActionExecutor =
                         return result
 
                 with ex ->
-                    return FSharp.Core.Error(sprintf "Execution failed: %s" ex.Message)
+                    return FSharp.Core.Error $"Execution failed: %s{ex.Message}"
             }
 
     /// Create a dry-run executor that just logs what would happen

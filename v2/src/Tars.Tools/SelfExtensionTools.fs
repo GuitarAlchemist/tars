@@ -1,7 +1,6 @@
 namespace Tars.Tools.Standard
 
 open System
-open System.IO
 open Tars.Tools
 open Tars.Core.SelfExtension
 

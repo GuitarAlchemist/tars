@@ -1,11 +1,9 @@
 namespace Tars.Core
 
 
-open System
 open System.Diagnostics
 open System.Threading
 open System.Threading.Tasks
-open Tars.Core.Metrics
 
 /// <summary>
 /// Context passed to agent workflow operations.
@@ -29,6 +27,8 @@ type AgentContext =
         SemanticMemory: ISemanticMemory option
         /// Optional knowledge graph service for structural queries
         KnowledgeGraph: IGraphService option
+        /// Optional symbolic reflector for analyzing execution traces
+        SymbolicReflector: ISymbolicReflector option
         /// Optional capability store for semantic routing
         CapabilityStore: ICapabilityStore option
         /// Optional audit collector for reasoning decisions

@@ -4,8 +4,6 @@ open System
 open System.IO
 open Microsoft.Extensions.Configuration
 open Tars.Core
-open Tars.Core.OutputGuard
-open Tars.Cortex
 
 let run (config: IConfiguration) (path: string) (fieldsArg: string option) (requireCitations: bool) (allowExtra: bool) =
     if not (File.Exists path) then

@@ -2,7 +2,6 @@ namespace Tars.Tools.Standard
 
 open System
 open System.Text.Json
-open System.Threading.Tasks
 open Tars.Tools
 
 module PromptTools =

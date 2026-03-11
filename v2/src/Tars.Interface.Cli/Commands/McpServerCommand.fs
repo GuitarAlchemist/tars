@@ -1,7 +1,5 @@
 namespace Tars.Interface.Cli.Commands
 
-open System
-open System.Threading.Tasks
 open Serilog
 open Tars.Tools
 open Tars.Connectors.Mcp

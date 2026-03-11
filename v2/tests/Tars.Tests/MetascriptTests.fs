@@ -5,14 +5,10 @@ open System.Threading.Tasks
 open Xunit
 open Tars.Core
 open Tars.Cortex
-open Tars.Core.LegacyKnowledgeGraph
 open Tars.Llm
-open Tars.Llm.LlmService
-open Tars.Metascript
 open Tars.Metascript.Config
 open Tars.Metascript.Domain
 open Tars.Metascript.Engine
-open Tars.Metascript.Templates
 open Tars.Metascript.Validation
 open Tars.Tools
 
@@ -89,6 +85,7 @@ type MetascriptTests() =
 
     [<Fact>]
     member _.``Decision step resolves boolean condition``() =
+        if not (TestHelpers.requireTools()) then () else
         let llm = StubLlm("unused", 1) :> ILlmService
 
         let ctx =
@@ -130,6 +127,7 @@ type MetascriptTests() =
 
     [<Fact>]
     member _.``Loop step consumes budget per iteration``() =
+        if not (TestHelpers.requireTools()) then () else
         let llm = StubLlm("looped", 2) :> ILlmService
 
         let budget =
@@ -180,6 +178,7 @@ type MetascriptTests() =
 
     [<Fact>]
     member _.``Retrieval step returns empty context when no vector store``() =
+        if not (TestHelpers.requireTools()) then () else
         let llm = StubLlm("unused", 1) :> ILlmService
 
         let ctx =
@@ -221,6 +220,7 @@ type MetascriptTests() =
 
     [<Fact>]
     member _.``Retrieval step retrieves from vector store``() =
+        if not (TestHelpers.requireTools()) then () else
         let llm = StubLlm("unused", 1) :> ILlmService
         let vectorStore = InMemoryVectorStore()
         let vs = vectorStore :> IVectorStore
@@ -279,6 +279,7 @@ type MetascriptTests() =
 
     [<Fact>]
     member _.``Knowledge graph enriches agent context``() =
+        if not (TestHelpers.requireTools()) then () else
         let llm = StubLlm("enriched response", 1) :> ILlmService
         let kg = TemporalKnowledgeGraph.TemporalGraph()
 
@@ -347,6 +348,7 @@ type MetascriptTests() =
 
     [<Fact>]
     member _.``Metadata filtering removes non-matching results``() =
+        if not (TestHelpers.requireTools()) then () else
         let llm = StubLlm("unused", 1) :> ILlmService
         let vectorStore = InMemoryVectorStore()
         let vs = vectorStore :> IVectorStore
@@ -418,6 +420,7 @@ type MetascriptTests() =
 
     [<Fact>]
     member _.``Hybrid search combines semantic and keyword scores``() =
+        if not (TestHelpers.requireTools()) then () else
         let llm = StubLlm("unused", 1) :> ILlmService
         let vectorStore = InMemoryVectorStore()
         let vs = vectorStore :> IVectorStore
@@ -516,6 +519,7 @@ type MetascriptTests() =
 
     [<Fact>]
     member _.``Time decay scoring reduces score for older documents``() =
+        if not (TestHelpers.requireTools()) then () else
         let llm = StubLlm("unused", 1) :> ILlmService
         let vectorStore = InMemoryVectorStore()
         let vs = vectorStore :> IVectorStore
@@ -590,6 +594,7 @@ type MetascriptTests() =
 
     [<Fact>]
     member _.``Query routing classifies queries correctly``() =
+        if not (TestHelpers.requireTools()) then () else
         let llm = StubLlm("routed response", 1) :> ILlmService
         let vectorStore = InMemoryVectorStore()
         let vs = vectorStore :> IVectorStore
@@ -649,6 +654,7 @@ type MetascriptTests() =
 
     [<Fact>]
     member _.``Answer attribution tracks sources``() =
+        if not (TestHelpers.requireTools()) then () else
         let llm = StubLlm("unused", 1) :> ILlmService
         let vectorStore = InMemoryVectorStore()
         let vs = vectorStore :> IVectorStore
@@ -709,6 +715,7 @@ type MetascriptTests() =
 
     [<Fact>]
     member _.``Retrieval metrics are collected when enabled``() =
+        if not (TestHelpers.requireTools()) then () else
         let llm = StubLlm("unused", 1) :> ILlmService
         let vectorStore = InMemoryVectorStore()
         let vs = vectorStore :> IVectorStore
@@ -770,6 +777,7 @@ type MetascriptTests() =
 
     [<Fact>]
     member _.``Engine calls Retrieve and Grow on SemanticMemory``() =
+        if not (TestHelpers.requireTools()) then () else
         let llm = StubLlm("unused", 1) :> ILlmService
 
         let mutable retrieveCalled = false

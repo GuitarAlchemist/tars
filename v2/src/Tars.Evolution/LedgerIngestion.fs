@@ -1,7 +1,6 @@
 namespace Tars.Evolution
 
 open System
-open System.Threading.Tasks
 open Tars.Core
 open Tars.Knowledge
 

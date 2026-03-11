@@ -4,14 +4,11 @@ open System
 open System.Threading.Tasks
 open System.Text.RegularExpressions
 open Tars.Core
-open Tars.Cortex
 open Tars.Llm
-open Tars.Llm.LlmService
 open Domain
 open Config
 
 type TemporalGraph = TemporalKnowledgeGraph.TemporalGraph
-open Tars.Connectors.EpisodeIngestion
 
 module Engine =
 

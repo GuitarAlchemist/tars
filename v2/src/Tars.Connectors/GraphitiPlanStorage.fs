@@ -3,9 +3,7 @@
 namespace Tars.Connectors
 
 open System
-open System.Threading.Tasks
 open System.Text.Json
-open Tars.Core
 open Tars.Knowledge
 open Tars.Connectors.Graphiti
 

@@ -1,7 +1,6 @@
 namespace Tars.Cortex
 
 open Tars.Llm
-open Tars.Llm.LlmService
 
 /// <summary>
 /// Strategies for compressing context.

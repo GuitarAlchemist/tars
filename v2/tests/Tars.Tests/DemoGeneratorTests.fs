@@ -1,6 +1,5 @@
 module Tars.Tests.DemoGeneratorTests
 
-open System
 open Xunit
 open Tars.Core.DemoGenerator
 

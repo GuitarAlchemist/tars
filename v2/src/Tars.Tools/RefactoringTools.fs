@@ -1,11 +1,7 @@
 namespace Tars.Tools.Standard
 
-open System
 open System.IO
 open System.Text.Json
-open System.Text.RegularExpressions
-open System.Threading.Tasks
-open Tars.Core
 open Tars.Core.HybridBrain
 open Tars.Tools
 

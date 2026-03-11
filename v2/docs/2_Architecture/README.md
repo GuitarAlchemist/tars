@@ -18,10 +18,11 @@ This directory contains the architectural documentation for TARS v2.
 
 ### DSL & Execution
 
-- **Metascript Engine**: Recursive, macro-capable workflow engine (`Tars.Metascript`)
+- **Workflow-of-Thought (WoT) DSL**: Primary workflow language with typed AST, compiler, traces, and promotion pipeline (`Tars.DSL.Wot` + `Tars.Core.WorkflowOfThought`)
+- **Metascript Engine**: Lightweight scripting mode for ad-hoc workflows (`Tars.Metascript`). See [DSL Strategy](./DSL_Strategy.md) for the relationship between Metascripts and WoT.
 - **Graph Runtime**: Agent state machine orchestration (`Tars.Graph`)
 - **Budget Governor**: Resource and cost management
-- **Macro System**: Reusable workflow definitions stored in JSON
+- **Promotion Pipeline**: Compound Engineering 7-step loop for evolving patterns into DSL constructs (`Tars.Evolution`)
 
 ### Capabilities & Tooling
 
@@ -58,5 +59,6 @@ TARS v2 is built primarily in F#, leveraging:
 
 ## Further Reading
 
+- **DSL Strategy**: [`DSL_Strategy.md`](./DSL_Strategy.md) -- Metascripts vs WoT, promotion pipeline, migration path
 - **Metascript Specification**: [`Metascript_Specification.md`](./Metascript_Specification.md)
 - **Memory Architecture**: [`../4_Research/Architecture/Memory_Architecture.md`](../4_Research/Architecture/Memory_Architecture.md)

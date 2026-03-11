@@ -4,7 +4,6 @@ open System
 open System.Text
 open Serilog
 open Tars.Security
-open System.Threading.Tasks
 open Tars.Interface.Cli.Commands
 open Tars.Interface.Cli.Commands.AgentHelpers
 open Tars.Interface.Cli
@@ -16,7 +15,7 @@ let main argv =
     // Ensure Unicode/UTF-8 I/O for CLI output (fixes mojibake on Windows consoles)
     Encoding.RegisterProvider(CodePagesEncodingProvider.Instance)
     let isRedirected = Console.IsOutputRedirected || Console.IsErrorRedirected
-    
+
     // When redirected (e.g., piping to clip), use ASCII-safe output
     if isRedirected then
         // Use Code Page 437 (OEM) which supports box-drawing characters
@@ -28,7 +27,7 @@ let main argv =
         AnsiConsole.Profile.Capabilities.Interactive <- false
     else
         Console.OutputEncoding <- new UTF8Encoding(false)
-    
+
     Console.InputEncoding <- new UTF8Encoding(false)
 
     // Initialize Configuration (read appsettings.json, then env, then user secrets)
@@ -159,8 +158,51 @@ let main argv =
             | "--internet-count" when i + 1 < args.Length ->
                 i <- i + 1
                 let mutable count = 3
+
                 if Int32.TryParse(args.[i], &count) then
                     options <- { options with InternetCount = count }
+            | "--strategy" when i + 1 < args.Length ->
+                i <- i + 1
+
+                match args.[i].ToLowerInvariant() with
+                | "standard" ->
+                    options <-
+                        { options with
+                            Strategy = PuzzleDemo.Standard }
+                | "cot"
+                | "chainofthought" ->
+                    options <-
+                        { options with
+                            Strategy = PuzzleDemo.ChainOfThought }
+                | "tot"
+                | "treeofthoughts" ->
+                    options <-
+                        { options with
+                            Strategy = PuzzleDemo.TreeOfThoughts }
+                | "got"
+                | "graphofthoughts" ->
+                    options <-
+                        { options with
+                            Strategy = PuzzleDemo.GraphOfThoughts }
+                | "wot"
+                | "workflowofthoughts" ->
+                    options <-
+                        { options with
+                            Strategy = PuzzleDemo.WorkflowOfThoughts }
+                | _ -> printfn $"Unknown strategy: {args.[i]}"
+            | "--model" when i + 1 < args.Length ->
+                i <- i + 1
+                // PuzzleOptions doesn't have a Model field in PuzzleDemo, I might need to add it or set it globally?
+                // Wait, PuzzleDemo.fs uses LlmFactory.create(logger).
+                // LlmFactory reads from config.
+                // I should check if PuzzleOptions lets me override.
+                // Re-reading PuzzleOptions in PuzzleDemo.fs...
+                // type PuzzleOptions = { ... } -- NO Model field.
+
+                // So I can't just parse it into options unless I update PuzzleOptions first.
+                // Let's stick to config set for now.
+                i <- i // No-op for now to avoid breaking replace, but I realized I can't do this without editing PuzzleDemo.fs first.
+                printfn "Use 'tars config set model <name>' to change model"
             | arg when not (arg.StartsWith("--")) && options.PuzzleName.IsNone ->
                 options <- { options with PuzzleName = Some arg }
             | _ -> ()
@@ -210,7 +252,7 @@ let main argv =
             match Int32.TryParse(n) with
             | true, turns -> return! EscapeRoomDemo.run logger turns false
             | _ ->
-                printfn "Invalid turn count: %s" n
+                printfn $"Invalid turn count: %s{n}"
                 return 1
 
         // Benchmark
@@ -262,6 +304,7 @@ let main argv =
         | args when args.Length > 0 && args.[0] = "evolve" ->
             let mutable options: Evolve.EvolveOptions =
                 { MaxIterations = 5
+                  LoopCount = 1
                   Quiet = false
                   DemoMode = false
                   Verbose = false
@@ -271,7 +314,8 @@ let main argv =
                   DisableGraphiti = false
                   PlanPath = None
                   Focus = None
-                  ResearchEnhanced = false }
+                  ResearchEnhanced = false
+                  SelfImprovement = false }
 
             let mutable i = 1
 
@@ -306,11 +350,25 @@ let main argv =
                 | "--no-graphiti" -> options <- { options with DisableGraphiti = true }
                 | "--plan" when i + 1 < args.Length ->
                     i <- i + 1
-                    options <- { options with PlanPath = Some args.[i] }
+
+                    options <-
+                        { options with
+                            PlanPath = Some args.[i] }
                 | "--focus" when i + 1 < args.Length ->
                     i <- i + 1
                     options <- { options with Focus = Some args.[i] }
                 | "--research" -> options <- { options with ResearchEnhanced = true }
+                | "--self-improve" -> options <- { options with SelfImprovement = true }
+                | "--loop" when i + 1 < args.Length ->
+                    i <- i + 1
+                    let mutable parsedVal = 0
+
+                    if System.Int32.TryParse(args.[i], &parsedVal) then
+                        options <-
+                            { options with
+                                LoopCount = parsedVal }
+                    else
+                        printfn "Invalid number for --loop"
                 | _ -> ()
 
                 i <- i + 1
@@ -382,6 +440,12 @@ let main argv =
             let options = KnowCmd.parseArgs knowArgs
             return! KnowCmd.run tarsConfig options
 
+        // TARS KG - Phase 13 Temporal Knowledge Graph Traces
+        | args when args.Length > 0 && args.[0] = "kg" ->
+            let kgArgs = args |> Array.skip 1 |> Array.toList
+            let options = KgCmd.parseArgs kgArgs
+            return! KgCmd.run tarsConfig options
+
         | args when args.Length > 0 && args.[0] = "mcp" ->
             if args.Length > 1 && args.[1] = "server" then
                 return! McpServerCommand.run logger args
@@ -395,6 +459,11 @@ let main argv =
             let subCmd = if args.Length > 1 then args.[1] else "help"
             let subArgs = if args.Length > 2 then args.[2..] |> Array.toList else []
             return! SkillCommand.run subCmd subArgs
+
+        // TARS Promote - Compound Engineering Promotion Pipeline
+        | args when args.Length > 0 && args.[0] = "promote" ->
+            let subArgs = args |> Array.skip 1 |> Array.toList
+            return PromoteCommand.run subArgs
 
         | args when args.Length > 0 && args.[0] = "wot" ->
             return! WotCommand.execute (args |> Array.skip 1 |> Array.toList)
@@ -432,6 +501,28 @@ let main argv =
                 i <- i + 1
 
             return! Agent.run config subCommand goalArgs options
+
+        // TARS Constitution - Phase 14
+        | args when args.Length > 0 && args.[0] = "constitution" ->
+            if args.Length > 1 && args.[1] = "init" then
+                let path = if args.Length > 2 then args.[2] else "constitution.json"
+                let targetId = if args.Length > 3 then args.[3] else "agent-001"
+
+                let defaultCon = Tars.Core.ConstitutionLoader.createDefault targetId
+
+                match Tars.Core.ConstitutionLoader.save path defaultCon with
+                | Result.Ok() ->
+                    AnsiConsole.MarkupLine(
+                        $"[green]Successfully created default constitution at '{path}' for agent '{targetId}'.[/]"
+                    )
+
+                    return 0
+                | Result.Error err ->
+                    AnsiConsole.MarkupLine($"[red]Failed to create constitution: {err}[/]")
+                    return 1
+            else
+                AnsiConsole.MarkupLine("Usage: tars constitution init [path] [agentId]")
+                return 1
         | _ ->
             Tui.showSplashScreen ()
             printfn "Usage:"
@@ -472,6 +563,7 @@ let main argv =
             printfn "       --export <file>             Export results to JSON file"
             printfn "  tars evolve [options]            Run the evolution engine"
             printfn "       --max-iterations N          Set max generations (default 5)"
+            printfn "       --loop N                    Run N full evolution cycles back-to-back (default 1)"
             printfn "       --budget USD                Maximum monetary budget in USD"
             printfn "       --quiet                     Suppress splash screen"
             printfn "  tars knowledge <command>         Manage TARS knowledge base"
@@ -497,17 +589,24 @@ let main argv =
             printfn "       install <name>              Install a skill"
             printfn "       remove <name>               Remove a skill"
             printfn "  tars agent [command]             Run agentic patterns"
+            printfn "       run <goal>                  Run via MAF (orchestrated WoT + tools)"
             printfn "       react <goal>                Run ReAct reasoning loop"
             printfn "       cot <input>                 Run Chain of Thought"
             printfn "       got <goal>                  Run Graph of Thoughts"
             printfn "       tot <goal>                  Run Tree of Thoughts"
             printfn "       wot <goal>                  Run Workflow of Thoughts"
+            printfn "  tars promote [command]           Compound Engineering promotion pipeline"
+            printfn "       status                      Show recurrence records and levels"
+            printfn "       lineage                     Show promotion history"
+            printfn "       run [--min N]               Run pipeline on test data"
+            printfn "       report                      Generate JSON audit report"
             printfn "  tars know <command>              TARS Knowledge Ledger (Phase 9)"
             printfn "       status [--pg]               Show ledger statistics"
             printfn "       assert <s> <p> <o> [--pg]   Add a belief triple"
             printfn "       query [--pg]                Search beliefs"
             printfn "       fetch <topic> [--pg]        Fetch Wikipedia summary"
             printfn "       propose <topic> [--pg]      Extract triples via LLM"
+            printfn "  tars kg trace [run_id]           Trace WoT execution from Graph"
             printfn ""
             return 1
     }

@@ -4,7 +4,6 @@ open System
 open System.IO
 open System.Net.Http
 open System.Text.RegularExpressions
-open System.Threading.Tasks
 open System.Text.Json
 open Tars.Tools
 

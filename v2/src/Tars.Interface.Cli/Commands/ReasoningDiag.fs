@@ -154,11 +154,11 @@ let recordTraceToLedger
             | Success value -> $"success: {truncate value 120}"
             | PartialSuccess(value, warnings) ->
                 let warningsTxt =
-                    warnings |> List.map (fun w -> sprintf "%A" w) |> String.concat "; "
+                    warnings |> List.map (fun w -> $"%A{w}") |> String.concat "; "
 
                 $"partial: {truncate value 80} | warnings: {warningsTxt}"
             | Failure errors ->
-                let errorTxt = errors |> List.map (fun e -> sprintf "%A" e) |> String.concat "; "
+                let errorTxt = errors |> List.map (fun e -> $"%A{e}") |> String.concat "; "
 
                 $"failure: {truncate errorTxt 120}"
 
@@ -260,7 +260,7 @@ let run (logger: ILogger) (config: IConfiguration) (tarsConfig: TarsConfig) (arg
     async {
         match parseArgs args with
         | Result.Error err ->
-            printfn "Error: %s" err
+            printfn $"Error: %s{err}"
             printUsage ()
             return 1
         | Result.Ok opts ->
@@ -387,14 +387,14 @@ let run (logger: ILogger) (config: IConfiguration) (tarsConfig: TarsConfig) (arg
 
                         if not (List.isEmpty warnings) then
                             for warn in warnings do
-                                printfn "[ReasoningDiag Warning] %A" warn
+                                printfn $"[ReasoningDiag Warning] %A{warn}"
 
                         0
                     | Failure errors ->
                         log "Reasoning failed."
 
                         for err in errors do
-                            printfn "[ReasoningDiag Error] %A" err
+                            printfn $"[ReasoningDiag Error] %A{err}"
 
                         1
 

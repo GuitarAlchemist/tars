@@ -1,7 +1,5 @@
 namespace Tars.Tests
 
-open System
-open System.Threading.Tasks
 open Xunit
 open Tars.Sandbox
 

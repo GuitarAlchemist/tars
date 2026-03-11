@@ -1,9 +1,7 @@
 namespace Tars.Tools.Semantic
 
-open System
 open System.IO
 open System.Threading.Tasks
-open System.Text.RegularExpressions
 open Tars.Tools
 
 module SemanticTools =

@@ -10,6 +10,7 @@
     <Compile Include="Mcp\McpTransport.fs" />
     <Compile Include="Mcp\McpClient.fs" />
     <Compile Include="Mcp\McpToolAdapter.fs" />
+    <Compile Include="Mcp\OfficialMcpBridge.fs" />
     <Compile Include="Mcp\McpProgress.fs" />
     <Compile Include="Mcp\SubagentManager.fs" />
     <Compile Include="Mcp\McpServer.fs" />
@@ -23,10 +24,18 @@
     <Compile Include="OpenAiCompatible.fs" />
     <Compile Include="OpenWebUi.fs" />
     <Compile Include="Llm.fs" />
+    <Compile Include="FusekiGraphService.fs" />
+    <Compile Include="SymbolicReflector.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ModelContextProtocol" Version="1.1.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.4" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Tars.Core\Tars.Core.fsproj" />
+    <ProjectReference Include="..\Tars.LinkedData\Tars.LinkedData.fsproj" />
     <ProjectReference Include="..\Tars.Security\Tars.Security.fsproj" />
     <ProjectReference Include="..\Tars.Knowledge\Tars.Knowledge.fsproj" />
   </ItemGroup>

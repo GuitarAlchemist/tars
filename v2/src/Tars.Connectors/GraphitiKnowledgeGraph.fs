@@ -24,6 +24,8 @@ module GraphitiKnowledgeGraph =
             $"Concept: {c.Name}\nDescription: {c.Description}\nRelated: {related}"
         | TarsEntity.EpisodeE e -> $"Episode: {Episode.typeTag e} at {Episode.timestamp e}"
         | TarsEntity.FileE path -> $"File: {path}"
+        | TarsEntity.RunE r -> $"Run: {r.Id}\nGoal: {r.Goal}\nPattern: {r.Pattern}"
+        | TarsEntity.StepE s -> $"Step: {s.StepId}\nRunId: {s.RunId}\nType: {s.NodeType}\nContent: {s.Content}"
         | TarsEntity.FunctionE name -> $"Function: {name}"
 
     /// Convert TarsFact to Graphiti message content
@@ -44,6 +46,7 @@ module GraphitiKnowledgeGraph =
             $"SIMILAR_TO (similarity: {similarity:F2}): {TarsEntity.getId s} ~ {TarsEntity.getId t}"
         | TarsFact.DerivedFrom(s, t) -> $"DERIVED_FROM: {TarsEntity.getId s} -> {TarsEntity.getId t}"
         | TarsFact.Contains(s, t) -> $"CONTAINS: {TarsEntity.getId s} contains {TarsEntity.getId t}"
+        | TarsFact.NextStep(s, t) -> $"NEXT_STEP: {TarsEntity.getId s} -> {TarsEntity.getId t}"
 
     /// Graphiti-backed temporal graph
     type GraphitiTemporalGraph(graphitiUrl: string, ?groupId: string) =

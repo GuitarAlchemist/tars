@@ -4,7 +4,6 @@ namespace Tars.Knowledge
 
 open System
 open System.Collections.Generic
-open System.Threading
 open System.Threading.Tasks
 
 /// Interface for persistent ledger storage
@@ -187,6 +186,79 @@ type InMemoryLedgerStorage() =
                 lock planLock (fun () -> planEvents.Add(event))
                 return Ok()
             }
+
+
+/// Composite storage that writes to multiple backends (e.g., Postgres + Fuseki)
+/// Reads are always served from the primary storage.
+type CompositeLedgerStorage(primary: ILedgerStorage, secondaries: ILedgerStorage list) =
+    interface ILedgerStorage with
+        member _.Append(entry) =
+            task {
+                // Write to primary first
+                let! primResult = primary.Append(entry)
+
+                match primResult with
+                | Ok() ->
+                    // Best-effort write to secondaries
+                    // We don't fail the operation if secondaries fail, but we could log errors
+                    for sec in secondaries do
+                        let! _ = sec.Append(entry)
+                        ()
+
+                    return Ok()
+                | Error e -> return Error e
+            }
+
+        member _.GetEvents(since) = primary.GetEvents(since)
+        member _.GetEventsByBelief(beliefId) = primary.GetEventsByBelief(beliefId)
+        member _.GetSnapshot() = primary.GetSnapshot()
+
+    interface IEvidenceStorage with
+        member _.SaveCandidate(c) =
+            match primary with
+            | :? IEvidenceStorage as es -> es.SaveCandidate(c)
+            | _ -> Task.FromResult(Error "Primary storage does not support IEvidenceStorage")
+
+        member _.SaveProposal(p, e) =
+            match primary with
+            | :? IEvidenceStorage as es -> es.SaveProposal(p, e)
+            | _ -> Task.FromResult(Error "Primary storage does not support IEvidenceStorage")
+
+        member _.GetPendingCandidates() =
+            match primary with
+            | :? IEvidenceStorage as es -> es.GetPendingCandidates()
+            | _ -> Task.FromResult([])
+
+        member _.GetProposalsByEvidence(e) =
+            match primary with
+            | :? IEvidenceStorage as es -> es.GetProposalsByEvidence(e)
+            | _ -> Task.FromResult([])
+
+    interface IPlanStorage with
+        member _.SavePlan(p) =
+            match primary with
+            | :? IPlanStorage as ps -> ps.SavePlan(p)
+            | _ -> Task.FromResult(Error "Primary storage does not support IPlanStorage")
+
+        member _.UpdatePlan(p) =
+            match primary with
+            | :? IPlanStorage as ps -> ps.UpdatePlan(p)
+            | _ -> Task.FromResult(Error "Primary storage does not support IPlanStorage")
+
+        member _.GetPlan(id) =
+            match primary with
+            | :? IPlanStorage as ps -> ps.GetPlan(id)
+            | _ -> Task.FromResult(None)
+
+        member _.GetPlansByStatus(s) =
+            match primary with
+            | :? IPlanStorage as ps -> ps.GetPlansByStatus(s)
+            | _ -> Task.FromResult([])
+
+        member _.AppendEvent(e) =
+            match primary with
+            | :? IPlanStorage as ps -> ps.AppendEvent(e)
+            | _ -> Task.FromResult(Error "Primary storage does not support IPlanStorage")
 
 
 /// The Knowledge Ledger - append-only event log for beliefs

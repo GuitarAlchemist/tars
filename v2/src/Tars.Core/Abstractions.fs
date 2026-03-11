@@ -2,7 +2,6 @@ namespace Tars.Core
 
 open System
 open System.Threading.Tasks
-open System.Collections.Generic
 
 /// Represents a vector database for long-term memory
 type IVectorStore =
@@ -66,3 +65,10 @@ type IGraphService =
     abstract member AddEpisodeAsync: Episode -> Task<string>
     abstract member QueryAsync: query: string -> Task<TarsFact list>
     abstract member PersistAsync: unit -> Task<unit>
+
+open Tars.Core.WorkflowOfThought
+
+/// Interface for symbolic reflection over execution traces
+type ISymbolicReflector =
+    abstract member ReflectOnRunAsync:
+        runId: Guid * traces: CanonicalTraceEvent list -> Task<Result<SymbolicReflection, string>>

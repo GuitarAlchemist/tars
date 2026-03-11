@@ -2,14 +2,10 @@ namespace Tars.Metascript
 
 open System
 open System.IO
-open System.Collections.Generic
-open System.Threading.Tasks
 open System.Diagnostics
 open System.Text
 open Tars.Metascript.V1
 open Tars.Llm
-open Tars.Llm.LlmService
-open Tars.Kernel
 open FSharp.Compiler.Interactive.Shell
 
 module V1Executor =
@@ -18,7 +14,7 @@ module V1Executor =
         let mutable result = text
 
         for kvp in variables do
-            let placeholder = sprintf "${%s}" kvp.Key
+            let placeholder = $"${{%s{kvp.Key}}}"
             result <- result.Replace(placeholder, string kvp.Value.Value)
 
         result
@@ -298,9 +294,9 @@ module V1Executor =
                     for kvp in context.Variables do
                         // This is a bit simplified, but we can try to inject simple types
                         if kvp.Value.Type = typeof<string> then
-                            fsiSession.EvalInteraction(sprintf "let %s = \"%s\"" kvp.Key (string kvp.Value.Value))
+                            fsiSession.EvalInteraction $"let %s{kvp.Key} = \"%s{string kvp.Value.Value}\""
                         elif kvp.Value.Type = typeof<int> || kvp.Value.Type = typeof<float> then
-                            fsiSession.EvalInteraction(sprintf "let %s = %s" kvp.Key (string kvp.Value.Value))
+                            fsiSession.EvalInteraction $"let %s{kvp.Key} = %s{string kvp.Value.Value}"
 
                     try
                         let result, warnings = fsiSession.EvalInteractionNonThrowing(block.Content)

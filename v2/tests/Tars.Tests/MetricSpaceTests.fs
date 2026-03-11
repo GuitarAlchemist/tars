@@ -1,6 +1,5 @@
 module Tars.Tests.MetricSpaceTests
 
-open System
 open Xunit
 open Tars.Core
 

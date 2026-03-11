@@ -2,7 +2,6 @@ namespace Tars.Tests
 
 open System
 open System.IO
-open System.Threading.Tasks
 open Xunit
 open Xunit.Abstractions
 open Tars.Knowledge
@@ -14,7 +13,7 @@ type KnowledgeLedgerTests(output: ITestOutputHelper) =
     [<Fact>]
     member _.``KnowledgeLedger: Weaken and strengthen update confidence``() =
         task {
-            let ledger = KnowledgeLedger.createInMemory()
+            let ledger = KnowledgeLedger.createInMemory ()
             do! ledger.Initialize()
 
             let belief = Belief.fromTriple "TARS" Supports "Knowledge"
@@ -24,6 +23,7 @@ type KnowledgeLedgerTests(output: ITestOutputHelper) =
             | Error e -> Assert.True(false, e)
             | Ok beliefId ->
                 let! weakenResult = ledger.Weaken(beliefId, 0.25, "test", AgentId.System)
+
                 match weakenResult with
                 | Error e -> Assert.True(false, e)
                 | Ok() -> ()
@@ -33,6 +33,7 @@ type KnowledgeLedgerTests(output: ITestOutputHelper) =
                 | None -> Assert.True(false, "Belief not found after weaken")
 
                 let! strengthenResult = ledger.Strengthen(beliefId, 0.9, "test", AgentId.System)
+
                 match strengthenResult with
                 | Error e -> Assert.True(false, e)
                 | Ok() -> ()
@@ -65,7 +66,7 @@ type KnowledgeLedgerTests(output: ITestOutputHelper) =
     [<Fact>]
     member _.``KnowCmd: tryParseBeliefId resolves short and full ids``() =
         task {
-            let ledger = KnowledgeLedger.createInMemory()
+            let ledger = KnowledgeLedger.createInMemory ()
             do! ledger.Initialize()
 
             let belief = Belief.fromTriple "Alpha" Supports "Beta"
@@ -75,11 +76,13 @@ type KnowledgeLedgerTests(output: ITestOutputHelper) =
             | Error e -> Assert.True(false, e)
             | Ok _ ->
                 let shortId = belief.Id.ToString()
+
                 match KnowCmd.tryParseBeliefId ledger shortId with
                 | Ok id -> Assert.Equal(belief.Id, id)
                 | Error e -> Assert.True(false, e)
 
                 let fullId = belief.Id.Value.ToString()
+
                 match KnowCmd.tryParseBeliefId ledger fullId with
                 | Ok id -> Assert.Equal(belief.Id, id)
                 | Error e -> Assert.True(false, e)
@@ -88,17 +91,13 @@ type KnowledgeLedgerTests(output: ITestOutputHelper) =
     [<Fact>]
     member _.``KnowCmd: runIngest loads CSV entries``() =
         task {
-            let ledger = KnowledgeLedger.createInMemory()
+            let ledger = KnowledgeLedger.createInMemory ()
             do! ledger.Initialize()
 
             let tempPath = Path.GetTempFileName()
+
             try
-                File.WriteAllLines(
-                    tempPath,
-                    [| "# comment"
-                       "Alpha,supports,Beta,0.8"
-                       "Gamma,contradicts,Delta" |]
-                )
+                File.WriteAllLines(tempPath, [| "# comment"; "Alpha,supports,Beta,0.8"; "Gamma,contradicts,Delta" |])
 
                 do! KnowCmd.runIngest ledger tempPath
 
@@ -112,7 +111,7 @@ type KnowledgeLedgerTests(output: ITestOutputHelper) =
     [<Fact>]
     member _.``KnowledgeLedger: Retract invalidates belief``() =
         task {
-            let ledger = KnowledgeLedger.createInMemory()
+            let ledger = KnowledgeLedger.createInMemory ()
             do! ledger.Initialize()
 
             let belief = Belief.fromTriple "A" Supports "B"
@@ -122,6 +121,7 @@ type KnowledgeLedgerTests(output: ITestOutputHelper) =
             | Error e -> Assert.True(false, e)
             | Ok _ ->
                 let! retractResult = ledger.Retract(belief.Id, "test", AgentId.System)
+
                 match retractResult with
                 | Error e -> Assert.True(false, e)
                 | Ok() -> ()
@@ -137,7 +137,7 @@ type KnowledgeLedgerTests(output: ITestOutputHelper) =
     [<Fact>]
     member _.``KnowledgeLedger: Contradictions are tracked``() =
         task {
-            let ledger = KnowledgeLedger.createInMemory()
+            let ledger = KnowledgeLedger.createInMemory ()
             do! ledger.Initialize()
 
             let b1 = Belief.fromTriple "A" Supports "B"
@@ -149,6 +149,7 @@ type KnowledgeLedgerTests(output: ITestOutputHelper) =
             match r1, r2 with
             | Ok id1, Ok id2 ->
                 let! markResult = ledger.MarkContradiction(id1, id2, "test", AgentId.System)
+
                 match markResult with
                 | Error e -> Assert.True(false, e)
                 | Ok() -> ()
@@ -162,7 +163,7 @@ type KnowledgeLedgerTests(output: ITestOutputHelper) =
     [<Fact>]
     member _.``LedgerIngestion: records task belief when evaluation passes``() =
         task {
-            let ledger = KnowledgeLedger.createInMemory()
+            let ledger = KnowledgeLedger.createInMemory ()
             do! ledger.Initialize()
 
             let taskDef =
@@ -201,7 +202,7 @@ type KnowledgeLedgerTests(output: ITestOutputHelper) =
                 ledger.Query(?subject = Some subject)
                 |> Seq.filter (fun b ->
                     match b.Predicate with
-                    | Custom p -> p = "satisfies"
+                    | RelationType.Custom p -> p = "satisfies"
                     | _ -> false)
                 |> Seq.toList
 
@@ -211,7 +212,7 @@ type KnowledgeLedgerTests(output: ITestOutputHelper) =
     [<Fact>]
     member _.``LedgerIngestion: skips task belief when evaluation fails``() =
         task {
-            let ledger = KnowledgeLedger.createInMemory()
+            let ledger = KnowledgeLedger.createInMemory ()
             do! ledger.Initialize()
 
             let taskDef =
@@ -251,7 +252,7 @@ type KnowledgeLedgerTests(output: ITestOutputHelper) =
     [<Fact>]
     member _.``InMemoryEvidenceStorage: proposals are filtered by evidence id``() =
         task {
-            let ledger = KnowledgeLedger.createInMemory()
+            let ledger = KnowledgeLedger.createInMemory ()
             do! ledger.Initialize()
 
             let storage =
@@ -283,11 +284,13 @@ type KnowledgeLedgerTests(output: ITestOutputHelper) =
                   ExtractedAt = DateTime.UtcNow }
 
             let! saveA = storage.SaveProposal(proposalA, Some evidenceA)
+
             match saveA with
             | Error e -> Assert.True(false, e)
             | Ok() -> ()
 
             let! saveB = storage.SaveProposal(proposalB, Some evidenceB)
+
             match saveB with
             | Error e -> Assert.True(false, e)
             | Ok() -> ()
@@ -333,6 +336,7 @@ type PostgresLedgerStorageTests(output: ITestOutputHelper) =
                 Assert.NotEmpty(history)
 
                 let evidenceStore = storage :> IEvidenceStorage
+
                 let candidate =
                     { Id = Guid.NewGuid()
                       SourceUrl = Uri("https://example.com")
@@ -348,6 +352,7 @@ type PostgresLedgerStorageTests(output: ITestOutputHelper) =
                       RejectionReason = None }
 
                 let! candidateResult = evidenceStore.SaveCandidate(candidate)
+
                 match candidateResult with
                 | Error e -> Assert.True(false, e)
                 | Ok() -> ()
@@ -366,6 +371,7 @@ type PostgresLedgerStorageTests(output: ITestOutputHelper) =
                       ExtractedAt = DateTime.UtcNow }
 
                 let! proposalResult = evidenceStore.SaveProposal(proposal, Some candidate.Id)
+
                 match proposalResult with
                 | Error e -> Assert.True(false, e)
                 | Ok() -> ()

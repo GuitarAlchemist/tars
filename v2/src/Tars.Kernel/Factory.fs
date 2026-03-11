@@ -25,9 +25,7 @@ module AgentFactory =
 
 /// Factory for creating the kernel context
 module KernelBootstrap =
-    open Tars.Core
     open Tars.Llm
-    open Tars.Llm.LlmService
     open SemanticMemory
 
     type KernelContext = { SemanticMemory: ISemanticMemory }

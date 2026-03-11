@@ -4,7 +4,6 @@
 module Tars.Tools.ResilienceTools
 
 open System.Threading.Tasks
-open Tars.Core
 open Tars.Core.Resilience
 
 open Tars.Tools

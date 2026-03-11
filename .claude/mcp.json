@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "tars": {
+      "type": "stdio",
+      "command": "dotnet",
+      "args": [
+        "run",
+        "--project",
+        "v2/src/Tars.Interface.Cli/Tars.Interface.Cli.fsproj",
+        "--",
+        "mcp",
+        "server"
+      ],
+      "cwd": "C:\\Users\\spare\\source\\repos\\tars"
+    }
+  }
+}

@@ -1,7 +1,6 @@
 namespace Tars.Connectors
 
 open System.Net.Http
-open System.Threading.Tasks
 
 module Ollama =
     open System.Text

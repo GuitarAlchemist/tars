@@ -5,7 +5,6 @@ open System.Threading.Tasks
 open Xunit
 open Tars.Kernel
 open Tars.Core
-open Serilog
 
 module CircuitTests =
 

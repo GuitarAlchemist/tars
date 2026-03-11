@@ -8,6 +8,18 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="ReasoningPattern.fs" />
+    <Compile Include="WoTTypes.fs" />
+    <Compile Include="Verification.fs" />
+    <Compile Include="PatternCompiler.fs" />
+    <Compile Include="PatternSelector.fs" />
+    <Compile Include="CognitiveStateManager.fs" />
+    <Compile Include="WoTExecutor.fs" />
+    <Compile Include="WoTController.fs" />
+    <Compile Include="TarsWoTAgent.fs" />
+    <Compile Include="ToolAwareChatClient.fs" />
+    <Compile Include="AgentOrchestrator.fs" />
+    <Compile Include="GoldenTraceStore.fs" />
     <Compile Include="VectorStore.fs" />
     <Compile Include="InMemoryVectorStore.fs" />
     <Compile Include="SqliteVectorStore.fs" />
@@ -34,8 +46,10 @@
     <Compile Include="ConsensusCircuitBreaker.fs" />
     <Compile Include="Structure.fs" />
     <Compile Include="TraceAnalyzer.fs" />
+    <Compile Include="PlannerPrompts.fs" />
     <Compile Include="Patterns.fs" />
     <Compile Include="SelfImprovement.fs" />
+    <Compile Include="CodebaseRAG.fs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -49,8 +63,9 @@
     <PackageReference Include="FSharp.Compiler.Service" Version="43.10.101" />
     <PackageReference Include="FSharp.SystemTextJson" Version="1.4.36" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.5" />
-    <PackageReference Include="Microsoft.SemanticKernel" Version="1.67.1" />
-    <PackageReference Update="FSharp.Core" Version="10.0.101" />
+    <PackageReference Include="Microsoft.Agents.AI.Abstractions" Version="1.0.0-rc3" />
+    <PackageReference Include="Microsoft.Extensions.AI" Version="10.3.0" />
+    <PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="10.3.0" />
     <PackageReference Include="Npgsql" Version="10.0.1" />
   </ItemGroup>
 

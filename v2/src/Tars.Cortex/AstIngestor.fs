@@ -169,7 +169,7 @@ module AstIngestor =
                             | None -> ()
                     | _ -> ()
                 with ex ->
-                    printfn "Failed to parse %s: %s" filePath ex.Message
+                    printfn $"Failed to parse %s{filePath}: %s{ex.Message}"
         }
 
     /// Recursively ingests all F# files in a directory

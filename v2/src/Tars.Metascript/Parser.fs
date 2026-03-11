@@ -1,6 +1,5 @@
 namespace Tars.Metascript
 
-open System
 open System.Text.Json
 open System.Text.Json.Serialization
 open Domain

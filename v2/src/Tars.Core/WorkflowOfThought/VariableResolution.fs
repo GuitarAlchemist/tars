@@ -1,6 +1,5 @@
 namespace Tars.Core.WorkflowOfThought
 
-open System
 open System.Text.RegularExpressions
 
 module VariableResolution =

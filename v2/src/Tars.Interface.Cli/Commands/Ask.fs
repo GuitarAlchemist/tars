@@ -2,7 +2,6 @@ module Tars.Interface.Cli.Commands.Ask
 
 open System
 open System.Net.Http
-open System.Threading.Tasks
 open Tars.Llm
 open Tars.Llm.Routing
 open Tars.Llm.LlmService

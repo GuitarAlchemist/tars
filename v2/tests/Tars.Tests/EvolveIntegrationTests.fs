@@ -7,7 +7,6 @@ open Tars.Evolution
 open Tars.Kernel
 open Tars.Knowledge
 open Tars.Llm
-open Tars.Llm.LlmService
 
 module EvolveIntegrationTests =
 
@@ -36,6 +35,7 @@ module EvolveIntegrationTests =
     [<Fact>]
     let ``Evolution blocks when ledger contradictions violate policy`` () =
         (async {
+            if not (TestHelpers.requireTools()) then () else
             let ledger = KnowledgeLedger.createInMemory()
             do! ledger.Initialize() |> Async.AwaitTask
 
@@ -116,7 +116,8 @@ module EvolveIntegrationTests =
                   ShowSemanticMessage = fun _ _ -> ()
                   Focus = None
                   ToolRegistry = None
-                  ResearchEnhanced = false }
+                  ResearchEnhanced = false
+                  SelfImprovement = false }
 
             let! nextState = Engine.step context state |> Async.AwaitTask
 

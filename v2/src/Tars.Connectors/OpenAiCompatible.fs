@@ -4,7 +4,6 @@ open System.Net.Http
 open System.Text
 open System.Text.Json
 open System.Text.Json.Serialization
-open System.Threading.Tasks
 
 module OpenAiCompatible =
     let private client = new HttpClient()

@@ -2,7 +2,6 @@ namespace Tars.Kernel
 
 open System
 open System.Collections.Concurrent
-open Tars.Core
 
 /// Tracks the health of agents. If an agent fails repeatedly, it is "tripped" to prevent cascading failures.
 /// Implements the "Jidoka" (Stop the Line) philosophy.

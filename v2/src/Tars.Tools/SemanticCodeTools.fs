@@ -1,6 +1,5 @@
 namespace Tars.Tools.Standard
 
-open System
 open System.Text.Json
 open Tars.Tools
 open Tars.Cortex
@@ -40,10 +39,10 @@ module SemanticCodeTools =
                 match codebaseIndex with
                 | None ->
                     return "⚠️ Codebase index not initialized. Use 'tars evolve' or 'tars ingest-code' first."
-                | Some index ->
+                | Some (index: CodebaseRAG.CodebaseIndex) ->
                     printfn $"🔍 Searching codebase for: {query}"
                     
-                    let! results = index.SearchAsync(query, topK)
+                    let! (results: CodebaseRAG.SearchResult list) = index.SearchAsync(query, topK)
                     
                     if results.IsEmpty then
                         return $"No relevant code found for: {query}"
@@ -55,16 +54,12 @@ module SemanticCodeTools =
                                     if result.Chunk.Content.Length > 300 
                                     then result.Chunk.Content.Substring(0, 300) + "..."
                                     else result.Chunk.Content
-                                sprintf "\n[%d] %s (lines %d-%d) [Score: %.2f]\n```fsharp\n%s\n```"
-                                    (i + 1)
-                                    result.Chunk.FilePath
-                                    result.Chunk.StartLine
-                                    result.Chunk.EndLine
-                                    result.Score
-                                    preview)
+
+                                $"\n[%d{i + 1}] %s{result.Chunk.FilePath} (lines %d{result.Chunk.StartLine}-%d{result.Chunk.EndLine}) [Score: %.2f{result.Score}]\n```fsharp\n%s{preview}\n```"
+                            )
                             |> String.concat "\n"
                         
-                        return sprintf "Found %d relevant code sections:\n%s" results.Length resultText
+                        return $"Found %d{results.Length} relevant code sections:\n%s{resultText}"
             with ex ->
                 return $"search_codebase error: {ex.Message}"
         }
@@ -82,10 +77,10 @@ module SemanticCodeTools =
                 match codebaseIndex with
                 | None ->
                     return "⚠️ Codebase index not initialized."
-                | Some index ->
+                | Some (index: CodebaseRAG.CodebaseIndex) ->
                     printfn $"🔍 Finding similar code..."
                     
-                    let! results = index.SearchAsync(code, 3)
+                    let! (results: CodebaseRAG.SearchResult list) = index.SearchAsync(code, 3)
                     
                     if results.IsEmpty then
                         return "No similar code found."
@@ -103,7 +98,7 @@ module SemanticCodeTools =
                                      else result.Chunk.Content))
                             |> String.concat "\n"
                         
-                        return sprintf "Found %d similar code sections:\n%s" results.Length resultText
+                        return $"Found %d{results.Length} similar code sections:\n%s{resultText}"
             with ex ->
                 return $"find_similar_code error: {ex.Message}"
         }
@@ -136,8 +131,7 @@ module SemanticCodeTools =
                     return "⚠️ Codebase index not initialized."
                 | Some index ->
                     let stats = index.GetStats()
-                    return sprintf "Codebase Index Statistics:\n  Total Chunks: %d\n  With Embeddings: %d\n  Files Indexed: %d" 
-                        stats.TotalChunks stats.WithEmbeddings stats.Files
+                    return $"Codebase Index Statistics:\n  Total Chunks: %d{stats.TotalChunks}\n  With Embeddings: %d{stats.WithEmbeddings}\n  Files Indexed: %d{stats.Files}"
             with ex ->
                 return $"codebase_stats error: {ex.Message}"
         }

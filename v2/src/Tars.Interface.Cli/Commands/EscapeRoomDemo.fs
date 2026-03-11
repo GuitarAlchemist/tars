@@ -1,7 +1,6 @@
 module Tars.Interface.Cli.Commands.EscapeRoomDemo
 
 open System
-open System.Threading.Tasks
 open Serilog
 open Tars.Core
 open Tars.Llm

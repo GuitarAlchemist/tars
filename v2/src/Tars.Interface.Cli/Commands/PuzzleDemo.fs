@@ -3,19 +3,19 @@ module Tars.Interface.Cli.Commands.PuzzleDemo
 open System
 open System.IO
 open System.Text.Json
-open System.Threading.Tasks
 open Serilog
 open Tars.Core
-open Tars.Core.Puzzles // Use shared puzzles
-open Tars.Core.InternetPuzzles
+
+// Use shared puzzles
 open Tars.Llm
 open Tars.Llm.Routing
-open Tars.Llm.LlmService
 open Tars.Interface.Cli
 open Tars.Interface.Cli.ConsoleHelpers
 open Spectre.Console
 open Tars.Cortex
 open Tars.Cortex.Patterns
+open Tars.DSL.Wot
+open Tars.Tools.Puzzles
 
 /// Expose all puzzles for testing and external access
 let allPuzzles = Puzzles.all
@@ -128,18 +128,19 @@ type DemoJsonResult =
 // PATTERN INFRASTRUCTURE (STUBS FOR DEMO)
 // ============================================================================
 
-let private stubRegistry = 
+let private stubRegistry =
     { new IAgentRegistry with
         member _.GetAgent _ = async { return None }
         member _.FindAgents _ = async { return [] }
-        member _.GetAllAgents () = async { return [] } }
+        member _.GetAllAgents() = async { return [] } }
 
 let private stubExecutor =
     { new IAgentExecutor with
-        member _.Execute(_, _) = async { return Failure [ PartialFailure.Error "Executor not available in demo" ] } }
+        member _.Execute(_, _) =
+            async { return Failure [ PartialFailure.Error "Executor not available in demo" ] } }
 
 let private createPuzzleContext (logger: ILogger) =
-    { Self = 
+    { Self =
         { Id = AgentId(Guid.NewGuid())
           Name = "PuzzleSolver"
           Version = "2.0.0"
@@ -152,7 +153,11 @@ let private createPuzzleContext (logger: ILogger) =
           State = AgentState.Idle
           Memory = []
           Fitness = 0.5
-          Drives = { Accuracy = 0.5; Speed = 0.5; Creativity = 0.5; Safety = 0.5 }
+          Drives =
+            { Accuracy = 0.5
+              Speed = 0.5
+              Creativity = 0.5
+              Safety = 0.5 }
           Constitution = AgentConstitution.Create(AgentId(Guid.NewGuid()), GeneralReasoning) }
       Registry = stubRegistry
       Executor = stubExecutor
@@ -161,6 +166,7 @@ let private createPuzzleContext (logger: ILogger) =
       Epistemic = None
       SemanticMemory = None
       KnowledgeGraph = None
+      SymbolicReflector = None
       CapabilityStore = None
       Audit = None
       CancellationToken = System.Threading.CancellationToken.None }
@@ -176,8 +182,12 @@ let runPuzzle (logger: ILogger) (puzzle: Puzzle) (options: PuzzleOptions) =
         let verbose = options.Verbose
 
         // Log puzzle details
-        logger.Information("🧩 Solving: {Name} (Difficulty: {Difficulty}) - Strategy: {Strategy}", 
-            puzzle.Name, puzzle.Difficulty, options.Strategy)
+        logger.Information(
+            "🧩 Solving: {Name} (Difficulty: {Difficulty}) - Strategy: {Strategy}",
+            puzzle.Name,
+            puzzle.Difficulty,
+            options.Strategy
+        )
 
         if verbose then
             AnsiConsole.MarkupLine($"[grey]📝 Description: {Markup.Escape(puzzle.Description)}[/]")
@@ -185,14 +195,14 @@ let runPuzzle (logger: ILogger) (puzzle: Puzzle) (options: PuzzleOptions) =
 
         // Initialize LLM Service
         let llmService = LlmFactory.create (logger)
-        
+
         // 1. Map Puzzle Type to Model Hint
         let modelHint =
             match puzzle.Type with
             | PuzzleType.MathWord -> Some "math"
             | PuzzleType.TheoryOfMind when puzzle.Difficulty >= 4 -> Some "complex reasoning"
             | _ -> Some "reasoning"
-        
+
         let! result =
             match options.Strategy with
             | Standard ->
@@ -233,12 +243,14 @@ Please solve this puzzle step-by-step."""
                             ModelHint = modelHint
                             SystemPrompt = Some systemPrompt
                             Temperature = Some 0.2
-                            Messages = [ { Role = Role.User; Content = userPrompt } ]
+                            Messages =
+                                [ { Role = Role.User
+                                    Content = userPrompt } ]
                             Stream = options.Verbose }
 
                     // 2. Routing
                     let! routed = llmService.RouteAsync request
-                    let modelName = sprintf "%A" routed.Backend
+                    let modelName = $"%A{routed.Backend}"
 
                     if verbose then
                         AnsiConsole.MarkupLine($"[bold blue]🔌 Provider:[/] [yellow]{routed.Backend}[/]")
@@ -249,10 +261,16 @@ Please solve this puzzle step-by-step."""
                     // 3. Optional Warmup (only in verbose)
                     if verbose then
                         AnsiConsole.MarkupLine("[grey]� Warming up model...[/]")
-                        let warmupReq = { request with MaxTokens = Some 5; Messages = [{ Role = Role.User; Content = "hi" }] }
+
+                        let warmupReq =
+                            { request with
+                                MaxTokens = Some 5
+                                Messages = [ { Role = Role.User; Content = "hi" } ] }
+
                         let! _ = llmService.CompleteAsync warmupReq
                         AnsiConsole.MarkupLine("[grey]⏱️  Running speed test...[/]")
                         let! preflightResp = llmService.CompleteAsync request
+
                         match preflightResp.Usage with
                         | Some u ->
                             let rate = float u.CompletionTokens / sw.Elapsed.TotalSeconds
@@ -266,11 +284,16 @@ Please solve this puzzle step-by-step."""
                                 AnsiConsole.MarkupLine($"[bold purple]🚀 EXECUTING LLM REQUEST[/]")
                                 let fullTextBuilder = System.Text.StringBuilder()
                                 let tokenCountRef = ref 0
-                                let! _ = llmService.CompleteStreamAsync(request, 
-                                    fun token -> 
-                                        tokenCountRef := !tokenCountRef + 1
-                                        fullTextBuilder.Append(token) |> ignore
-                                        Console.Write(token))
+
+                                let! _ =
+                                    llmService.CompleteStreamAsync(
+                                        request,
+                                        fun token ->
+                                            tokenCountRef := !tokenCountRef + 1
+                                            fullTextBuilder.Append(token) |> ignore
+                                            Console.Write(token)
+                                    )
+
                                 AnsiConsole.WriteLine()
                                 return fullTextBuilder.ToString()
                             }
@@ -287,11 +310,13 @@ Please solve this puzzle step-by-step."""
                         logger.Information("✅ {Name}: SOLVED", puzzle.Name)
                     else
                         logger.Warning("❌ {Name}: FAILED", puzzle.Name)
+                        logger.Warning("   Answer/Reason: {Answer}", answer)
 
                     sw.Stop()
-                    let metrics = 
+
+                    let metrics =
                         { LatencyMs = sw.ElapsedMilliseconds
-                          TokenCount = 0 
+                          TokenCount = 0
                           ModelName = modelName
                           CostEstimate = 0.0 }
 
@@ -304,103 +329,185 @@ Please solve this puzzle step-by-step."""
             | ChainOfThought ->
                 task {
                     let ctx = createPuzzleContext logger
-                    
+
                     // Multi-step reasoning: Decompose -> Solve -> Verify
-                    let steps = [
-                        // Step 1: Analyze and Decompose
-                        (fun (input: string) -> agent {
-                            let req = { ModelHint = Some "reasoning"; Model = None; SystemPrompt = Some "Decompose the following puzzle into its logical constraints."; Messages = [{ Role = Role.User; Content = input }]; MaxTokens = Some 1000; Temperature = Some 0.1; Stop = []; Tools = []; ToolChoice = None; ResponseFormat = None; Stream = false; JsonMode = false; Seed = None; ContextWindow = None }
-                            let! resp = llmService.CompleteAsync req |> Async.AwaitTask
-                            return resp.Text
-                        })
-                        // Step 2: Solve step-by-step
-                        (fun (analysis: string) -> agent {
-                            let prompt = $"Puzzle: {puzzle.Description}\n\nAnalysis of constraints:\n{analysis}\n\nPlease solve it."
-                            let req = { ModelHint = Some "reasoning"; Model = None; SystemPrompt = Some "Solve the puzzle based on the provided analysis."; Messages = [{ Role = Role.User; Content = prompt }]; MaxTokens = Some 2000; Temperature = Some 0.1; Stop = []; Tools = []; ToolChoice = None; ResponseFormat = None; Stream = false; JsonMode = false; Seed = None; ContextWindow = None }
-                            let! resp = llmService.CompleteAsync req |> Async.AwaitTask
-                            return resp.Text
-                        })
-                    ]
-                    
+                    let steps =
+                        [
+                          // Step 1: Analyze and Decompose
+                          (fun (input: string) ->
+                              agent {
+                                  let req =
+                                      { ModelHint = Some "reasoning"
+                                        Model = None
+                                        SystemPrompt =
+                                          Some "Decompose the following puzzle into its logical constraints."
+                                        Messages = [ { Role = Role.User; Content = input } ]
+                                        MaxTokens = Some 1000
+                                        Temperature = Some 0.1
+                                        Stop = []
+                                        Tools = []
+                                        ToolChoice = None
+                                        ResponseFormat = None
+                                        Stream = false
+                                        JsonMode = false
+                                        Seed = None
+                                        ContextWindow = None }
+
+                                  let! resp = llmService.CompleteAsync req |> Async.AwaitTask
+                                  return resp.Text
+                              })
+                          // Step 2: Solve step-by-step
+                          (fun (analysis: string) ->
+                              agent {
+                                  let prompt =
+                                      $"Puzzle: {puzzle.Description}\n\nAnalysis of constraints:\n{analysis}\n\nPlease solve it."
+
+                                  let req =
+                                      { ModelHint = Some "reasoning"
+                                        Model = None
+                                        SystemPrompt = Some "Solve the puzzle based on the provided analysis."
+                                        Messages = [ { Role = Role.User; Content = prompt } ]
+                                        MaxTokens = Some 2000
+                                        Temperature = Some 0.1
+                                        Stop = []
+                                        Tools = []
+                                        ToolChoice = None
+                                        ResponseFormat = None
+                                        Stream = false
+                                        JsonMode = false
+                                        Seed = None
+                                        ContextWindow = None }
+
+                                  let! resp = llmService.CompleteAsync req |> Async.AwaitTask
+                                  return resp.Text
+                              }) ]
+
                     let workflow = Patterns.chainOfThought steps puzzle.Description
                     let! outcome = workflow ctx |> Async.StartAsTask
-                    
-                    let answer = 
+
+                    let answer =
                         match outcome with
                         | ExecutionOutcome.Success a -> a
                         | ExecutionOutcome.PartialSuccess(a, _) -> a
-                        | ExecutionOutcome.Failure e -> sprintf "Pattern failure: %A" e
+                        | ExecutionOutcome.Failure e -> $"Pattern failure: %A{e}"
 
                     sw.Stop()
-                    let metrics = { LatencyMs = sw.ElapsedMilliseconds; TokenCount = 0; ModelName = "ChainOfThought"; CostEstimate = 0.0 }
+
+                    let metrics =
+                        { LatencyMs = sw.ElapsedMilliseconds
+                          TokenCount = 0
+                          ModelName = "ChainOfThought"
+                          CostEstimate = 0.0 }
+
                     let isCorrect = puzzle.Validator answer
-                    
-                    if isCorrect then return PuzzleRunResult.Success(puzzle, answer, metrics)
-                    else return PuzzleRunResult.Failure(puzzle, answer, metrics, "Chain of Thought failed")
+
+                    if isCorrect then
+                        return PuzzleRunResult.Success(puzzle, answer, metrics)
+                    else
+                        return PuzzleRunResult.Failure(puzzle, answer, metrics, "Chain of Thought failed")
                 }
 
             | TreeOfThoughts ->
                 task {
                     let ctx = createPuzzleContext logger
-                    let config = { defaultGoTConfig with 
-                                    BranchingFactor = options.BranchingFactor |> Option.defaultValue 2
-                                    MaxDepth = options.MaxDepth |> Option.defaultValue 2 }
+
+                    let config =
+                        { defaultGoTConfig with
+                            BranchingFactor = options.BranchingFactor |> Option.defaultValue 2
+                            MaxDepth = options.MaxDepth |> Option.defaultValue 2 }
+
                     let workflow = Patterns.treeOfThoughts llmService config puzzle.Description
                     let! outcome = workflow ctx |> Async.StartAsTask
-                    
-                    let answer = 
+
+                    let answer =
                         match outcome with
                         | ExecutionOutcome.Success a -> a
                         | ExecutionOutcome.PartialSuccess(a, _) -> a
-                        | ExecutionOutcome.Failure e -> sprintf "Pattern failure: %A" e
+                        | ExecutionOutcome.Failure e -> $"Pattern failure: %A{e}"
 
                     sw.Stop()
-                    let metrics = { LatencyMs = sw.ElapsedMilliseconds; TokenCount = 0; ModelName = "TreeOfThoughts"; CostEstimate = 0.0 }
-                    if puzzle.Validator answer then return PuzzleRunResult.Success(puzzle, answer, metrics)
-                    else return PuzzleRunResult.Failure(puzzle, answer, metrics, "Tree of Thoughts failed")
+
+                    let metrics =
+                        { LatencyMs = sw.ElapsedMilliseconds
+                          TokenCount = 0
+                          ModelName = "TreeOfThoughts"
+                          CostEstimate = 0.0 }
+
+                    if puzzle.Validator answer then
+                        return PuzzleRunResult.Success(puzzle, answer, metrics)
+                    else
+                        return PuzzleRunResult.Failure(puzzle, answer, metrics, "Tree of Thoughts failed")
                 }
 
             | GraphOfThoughts ->
                 task {
                     let ctx = createPuzzleContext logger
-                    let config = { defaultGoTConfig with 
-                                    BranchingFactor = options.BranchingFactor |> Option.defaultValue 2
-                                    MaxDepth = options.MaxDepth |> Option.defaultValue 2 }
+
+                    let config =
+                        { defaultGoTConfig with
+                            BranchingFactor = options.BranchingFactor |> Option.defaultValue 2
+                            MaxDepth = options.MaxDepth |> Option.defaultValue 2 }
+
                     let workflow = Patterns.graphOfThoughts llmService config puzzle.Description
                     let! outcome = workflow ctx |> Async.StartAsTask
-                    
-                    let answer = 
+
+                    let answer =
                         match outcome with
                         | ExecutionOutcome.Success a -> a
                         | ExecutionOutcome.PartialSuccess(a, _) -> a
-                        | ExecutionOutcome.Failure e -> sprintf "Pattern failure: %A" e
+                        | ExecutionOutcome.Failure e -> $"Pattern failure: %A{e}"
 
                     sw.Stop()
-                    let metrics = { LatencyMs = sw.ElapsedMilliseconds; TokenCount = 0; ModelName = "GraphOfThoughts"; CostEstimate = 0.0 }
-                    if puzzle.Validator answer then return PuzzleRunResult.Success(puzzle, answer, metrics)
-                    else return PuzzleRunResult.Failure(puzzle, answer, metrics, "Graph of Thoughts failed")
+
+                    let metrics =
+                        { LatencyMs = sw.ElapsedMilliseconds
+                          TokenCount = 0
+                          ModelName = "GraphOfThoughts"
+                          CostEstimate = 0.0 }
+
+                    if puzzle.Validator answer then
+                        return PuzzleRunResult.Success(puzzle, answer, metrics)
+                    else
+                        return PuzzleRunResult.Failure(puzzle, answer, metrics, "Graph of Thoughts failed")
                 }
 
             | WorkflowOfThoughts ->
                 task {
                     let ctx = createPuzzleContext logger
-                    let config = { defaultWoTConfig with 
-                                    BaseConfig = { defaultGoTConfig with BranchingFactor = 2; MaxDepth = 2 } }
+
+                    let config =
+                        { defaultWoTConfig with
+                            BaseConfig =
+                                { defaultGoTConfig with
+                                    BranchingFactor = 2
+                                    MaxDepth = 2 } }
+
                     let workflow = Patterns.workflowOfThought llmService config puzzle.Description
                     let! outcome = workflow ctx |> Async.StartAsTask
-                    
-                    let answer = 
+
+                    let answer =
                         match outcome with
                         | ExecutionOutcome.Success a -> a
                         | ExecutionOutcome.PartialSuccess(a, _) -> a
-                        | ExecutionOutcome.Failure e -> sprintf "Pattern failure: %A" e
+                        | ExecutionOutcome.Failure e -> $"Pattern failure: %A{e}"
 
                     sw.Stop()
-                    let metrics = { LatencyMs = sw.ElapsedMilliseconds; TokenCount = 0; ModelName = "WorkflowOfThoughts"; CostEstimate = 0.0 }
-                    if puzzle.Validator answer then return PuzzleRunResult.Success(puzzle, answer, metrics)
-                    else return PuzzleRunResult.Failure(puzzle, answer, metrics, "Workflow of Thoughts failed")
+
+                    let metrics =
+                        { LatencyMs = sw.ElapsedMilliseconds
+                          TokenCount = 0
+                          ModelName = "WorkflowOfThoughts"
+                          CostEstimate = 0.0 }
+
+                    if verbose then
+                        AnsiConsole.MarkupLine($"[grey]🤖 Answer: {Markup.Escape(answer)}[/]")
+
+                    if puzzle.Validator answer then
+                        return PuzzleRunResult.Success(puzzle, answer, metrics)
+                    else
+                        return PuzzleRunResult.Failure(puzzle, answer, metrics, "Workflow of Thoughts failed")
                 }
-                
+
         return result
     }
 
@@ -451,19 +558,29 @@ let private calculateBenchmarkStats (latencies: int64 list) =
 let private runPuzzleBenchmark (logger: ILogger) (puzzle: Puzzle) (verbose: bool) (runs: int) =
     task {
         let latencies = System.Collections.Generic.List<int64>()
-        let mutable lastResult = 
-            PuzzleRunResult.Failure(puzzle, "", { LatencyMs = 0L; TokenCount = 0; ModelName = "init"; CostEstimate = 0.0 }, "Initial state")
+
+        let mutable lastResult =
+            PuzzleRunResult.Failure(
+                puzzle,
+                "",
+                { LatencyMs = 0L
+                  TokenCount = 0
+                  ModelName = "init"
+                  CostEstimate = 0.0 },
+                "Initial state"
+            )
 
         for i in 1..runs do
             if verbose then
                 logger.Information("  Run {Current}/{Total}...", i, runs)
 
             let! result = runPuzzle logger puzzle { defaultOptions with Verbose = false }
-            let latency = 
+
+            let latency =
                 match result with
                 | PuzzleRunResult.Success(_, _, m) -> m.LatencyMs
                 | PuzzleRunResult.Failure(_, _, m, _) -> m.LatencyMs
-            
+
             latencies.Add(latency)
             lastResult <- result
 
@@ -482,13 +599,22 @@ let private runPuzzles (logger: ILogger) (puzzles: Puzzle list) (verbose: bool) 
 
         for puzzle in puzzles do
             try
-                let! result = runPuzzle logger puzzle { defaultOptions with Verbose = verbose }
-                let (correct, status) = 
+                let! result =
+                    runPuzzle
+                        logger
+                        puzzle
+                        { defaultOptions with
+                            Verbose = verbose }
+
+                let (correct, status) =
                     match result with
-                    | PuzzleRunResult.Success _ -> 
+                    | PuzzleRunResult.Success _ ->
                         correctCount <- correctCount + 1
                         (true, "Pass")
-                    | PuzzleRunResult.Failure _ -> (false, "Fail")
+                    | PuzzleRunResult.Failure(_, answer, _, reason) ->
+                        logger.Warning("  Reasons: {Reason}", reason)
+                        logger.Warning("  Output: {Answer}", answer)
+                        (false, "Fail")
 
                 results.Add((puzzle.Name, correct, status))
             with ex ->
@@ -538,8 +664,8 @@ let runPuzzlesWithOptions (logger: ILogger) (puzzles: Puzzle list) (options: Puz
                     // Benchmark mode
                     logger.Information("🧩 Benchmarking: {Name} ({Runs} runs)", puzzle.Name, options.BenchmarkRuns)
                     let! (result, stats) = runPuzzleBenchmark logger puzzle options.Verbose options.BenchmarkRuns
-                    
-                    let (correct, answer, latency) = 
+
+                    let (correct, answer, latency) =
                         match result with
                         | PuzzleRunResult.Success(_, a, m) -> (true, a, m.LatencyMs)
                         | PuzzleRunResult.Failure(_, a, m, _) -> (false, a, m.LatencyMs)
@@ -573,8 +699,8 @@ let runPuzzlesWithOptions (logger: ILogger) (puzzles: Puzzle list) (options: Puz
                 else
                     // Normal mode
                     let! result = runPuzzle logger puzzle options
-                    
-                    let (correct, answer, latency) = 
+
+                    let (correct, answer, latency) =
                         match result with
                         | PuzzleRunResult.Success(_, a, m) -> (true, a, m.LatencyMs)
                         | PuzzleRunResult.Failure(_, a, m, _) -> (false, a, m.LatencyMs)
@@ -620,7 +746,7 @@ let runPuzzlesWithOptions (logger: ILogger) (puzzles: Puzzle list) (options: Puz
         | Json ->
             let jsonOptions = JsonSerializerOptions(WriteIndented = true)
             let json = JsonSerializer.Serialize(demoResult, jsonOptions)
-            printfn "%s" json
+            printfn $"%s{json}"
         | Text ->
             // Summary
             AnsiConsole.Write(new Rule("[bold]SUMMARY[/]"))
@@ -637,6 +763,14 @@ let runPuzzlesWithOptions (logger: ILogger) (puzzles: Puzzle list) (options: Puz
                 |> ignore
 
             AnsiConsole.Write(table)
+
+            for result in jsonResults do
+                if not result.Success then
+                    logger.Warning("❌ Puzzle '{Name}' failed!", result.PuzzleName)
+                    logger.Warning("   Answer given: {Answer}", result.Answer)
+
+                    if options.Verbose then
+                        logger.Warning("   Description: {Desc}", result.Description)
 
             if puzzles.Length > 0 then
                 let score = float correctCount / float puzzles.Length * 100.0
@@ -683,6 +817,86 @@ let runByName (logger: ILogger) (name: string) (verbose: bool) =
         logger.Error("Puzzle '{Name}' not found.", name)
         task { return 1 }
 
+/// Load puzzles from .trsx files
+let private loadTrsxPuzzles (logger: ILogger) : Puzzle list =
+    try
+        let puzzlesDir = Path.Combine(AppContext.BaseDirectory, "puzzles")
+        // Also check if running from src root
+        let puzzlesDir =
+            if Directory.Exists(puzzlesDir) then
+                puzzlesDir
+            else
+                let rootDir = Path.Combine(Environment.CurrentDirectory, "puzzles")
+                if Directory.Exists(rootDir) then rootDir else puzzlesDir
+
+        if not (Directory.Exists(puzzlesDir)) then
+            logger.Warning("Puzzles directory not found: {Path}", puzzlesDir)
+            []
+        else
+            let files = Directory.GetFiles(puzzlesDir, "*.wot.trsx")
+            logger.Information("Found {Count} .trsx puzzle files in {Path}", files.Length, puzzlesDir)
+
+            files
+            |> Array.toList
+            |> List.choose (fun file ->
+                match WotParser.parseFile file with
+                | Result.Error errs ->
+                    logger.Warning("Failed to parse puzzle {File}: {Errors}", file, errs)
+                    None
+                | Result.Ok graph ->
+                    let diff =
+                        match
+                            graph.Difficulty
+                            |> Option.defaultValue "medium"
+                            |> fun s -> s.ToLowerInvariant()
+                        with
+                        | "easy" -> 2
+                        | "medium" -> 3
+                        | "hard" -> 4
+                        | "expert"
+                        | "master" -> 5
+                        | _ -> 3
+
+                    let domainKey =
+                        graph.Domain
+                        |> Option.defaultValue (graph.Name.ToLowerInvariant().Replace(" ", "_"))
+                        |> fun s -> s.ToLowerInvariant().Replace(" ", "_")
+
+                    let validator =
+                        match PuzzleValidationTools.validators.TryFind domainKey with
+                        | Some v -> v
+                        | None ->
+                            // fallback to name matching
+                            match
+                                PuzzleValidationTools.validators.TryFind(
+                                    graph.Name.ToLowerInvariant().Replace(" ", "_")
+                                )
+                            with
+                            | Some v -> v
+                            | None -> (fun _ -> true)
+
+                    let prompt =
+                        graph.Inputs.TryFind "puzzle_prompt"
+                        |> Option.defaultValue (
+                            // Fallback: look for goal in first node
+                            graph.Nodes
+                            |> List.tryPick (fun n -> n.Goal)
+                            |> Option.defaultValue "Solve the puzzle."
+                        )
+
+                    Some
+                        { Name = graph.Name
+                          Type = PuzzleType.Custom domainKey
+                          Difficulty = diff
+                          Description = graph.Description |> Option.defaultValue graph.Name
+                          Prompt = prompt
+                          ExpectedAnswer = "Validated by logic"
+                          Hints = []
+                          Validator = validator })
+    with ex ->
+        logger.Error(ex, "Failed to load TRSX puzzles")
+        []
+
 /// Run with options (new entry point)
 let runWithOptions (logger: ILogger) (options: PuzzleOptions) =
     task {
@@ -691,30 +905,50 @@ let runWithOptions (logger: ILogger) (options: PuzzleOptions) =
             logger.Information($"{Symbols.globe} Fetching puzzles from internet sources...")
             use http = new System.Net.Http.HttpClient()
             http.Timeout <- TimeSpan.FromSeconds(30.0)
-            
-            let sources = [
-                InternetPuzzles.GSM8K          // Multi-step math word problems
-                InternetPuzzles.HuggingFaceARC // Science reasoning
-            ]
-            
+
+            let sources =
+                [ InternetPuzzles.GSM8K // Multi-step math word problems
+                  InternetPuzzles.HuggingFaceARC ] // Science reasoning
+
             let! internetPuzzles = InternetPuzzles.fetchPuzzles http sources options.InternetCount
-            
+
             if internetPuzzles.IsEmpty then
                 logger.Error("Failed to fetch any internet puzzles. Check your internet connection.")
                 return 1
             else
-                logger.Information($"{Symbols.checkmark} Fetched {{Count}} puzzles from internet sources", internetPuzzles.Length)
+                logger.Information(
+                    $"{Symbols.checkmark} Fetched {{Count}} puzzles from internet sources",
+                    internetPuzzles.Length
+                )
+
                 return! runPuzzlesWithOptions logger internetPuzzles options
         else
+            // Load TRSX puzzles to augment/replace hardcoded
+            let trsxPuzzles = loadTrsxPuzzles logger
+
+            // Allow hybrid for now: TRSX + Hardcoded, or just TRSX if available
+            // Note: Currently hardcoded list has duplicate logic/names as TRSX, so we might want to prioritize TRSX
+            // Logic: If TRSX available, use them. If name conflict, TRSX wins.
+
+            // Map hardcoded by name
+            let hardcodedMap = Puzzles.all |> List.map (fun p -> p.Name, p) |> Map.ofList
+
+            // Override with TRSX
+            let mergedMap =
+                trsxPuzzles |> List.fold (fun acc p -> Map.add p.Name p acc) hardcodedMap
+
+            let allPuzzles =
+                mergedMap |> Map.values |> Seq.toList |> List.sortBy (fun p -> p.Difficulty)
+
             // Standard local puzzles
             let puzzles =
                 if options.All then
-                    Puzzles.all
+                    allPuzzles
                 elif options.Difficulty.IsSome then
-                    Puzzles.all |> List.filter (fun p -> p.Difficulty <= options.Difficulty.Value)
+                    allPuzzles |> List.filter (fun p -> p.Difficulty <= options.Difficulty.Value)
                 elif options.PuzzleName.IsSome then
                     match
-                        Puzzles.all
+                        allPuzzles
                         |> List.tryFind (fun p ->
                             p.Name.Equals(options.PuzzleName.Value, StringComparison.InvariantCultureIgnoreCase))
                     with
@@ -723,7 +957,7 @@ let runWithOptions (logger: ILogger) (options: PuzzleOptions) =
                         logger.Error("Puzzle '{Name}' not found.", options.PuzzleName.Value)
                         []
                 else
-                    Puzzles.all
+                    allPuzzles
 
             if puzzles.IsEmpty then
                 return 1

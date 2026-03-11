@@ -1,11 +1,8 @@
 namespace Tars.Cortex
 
-open System
-open System.Threading
 open System.Threading.Tasks
 open Tars.Core
 open Tars.Llm
-open Tars.Llm.LlmService
 
 /// <summary>
 /// Represents the context flowing through the Pre-LLM pipeline.

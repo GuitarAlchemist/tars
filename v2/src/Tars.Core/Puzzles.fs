@@ -1,6 +1,5 @@
 namespace Tars.Core
 
-open System
 open System.Text.RegularExpressions
 
 /// Puzzle types available
@@ -14,6 +13,7 @@ type PuzzleType =
     | Probabilistic // Reasoning about probability
     | TheoryOfMind // Reasoning about what others know
     | TemporalReasoning // Reasoning about time and sequences
+    | Custom of string
 
 /// Puzzle definition
 type Puzzle =
@@ -183,8 +183,9 @@ Show your work step by step."""
             fun answer ->
                 let lower = answer.ToLowerInvariant()
                 // They meet at ~11:34 AM, ~154 miles from A
-                (lower.Contains("11:34") || lower.Contains("11:35") || 
-                 (lower.Contains("11") && (lower.Contains("34") || lower.Contains("35"))))
+                (lower.Contains("11:34")
+                 || lower.Contains("11:35")
+                 || (lower.Contains("11") && (lower.Contains("34") || lower.Contains("35"))))
                 && (lower.Contains("154") || lower.Contains("155") || lower.Contains("94")) }
 
     let cryptarithmeticPuzzle =
@@ -307,7 +308,9 @@ End your response with: "Conclusion: The earliest finish time is [Time]." """
                 && lower.Contains("conclusion") }
 
     /// All available puzzles
-    let all =
+    /// NOTE: Hardcoded list is deprecated. Use .trsx loading in CLI.
+    /// These are kept for unit tests.
+    let all: Puzzle list =
         [ riverCrossingPuzzle
           knightsAndKnavesPuzzle
           towerOfHanoiPuzzle
@@ -333,4 +336,3 @@ type PuzzleMetrics =
 type PuzzleRunResult =
     | Success of Puzzle * answer: string * PuzzleMetrics
     | Failure of Puzzle * answer: string * PuzzleMetrics * reason: string
-

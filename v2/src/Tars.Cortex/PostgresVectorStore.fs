@@ -1,7 +1,6 @@
 namespace Tars.Cortex
 
 open System
-open System.Collections.Generic
 open System.Text.Json
 open System.Threading.Tasks
 open Npgsql
@@ -21,21 +20,24 @@ type PostgresVectorStore(connectionString: string, ?dimension: int) =
         conn.Open()
         use cmd = conn.CreateCommand()
 
+        // DDL statements can't use SQL parameters for type definitions,
+        // so we interpolate the dimension directly into the SQL string.
+        // This is safe because vecDim is always an int from our code.
         cmd.CommandText <-
-            """
+            $"""
             CREATE EXTENSION IF NOT EXISTS vector;
-            
+
             CREATE TABLE IF NOT EXISTS collections (
                 name TEXT PRIMARY KEY
             );
-            
+
             -- Drop and recreate to ensure correct dimension (dev only)
             DROP TABLE IF EXISTS vectors;
-            
+
             CREATE TABLE vectors (
                 id TEXT NOT NULL,
                 collection TEXT NOT NULL,
-                vector vector(@dim), -- embedding dimensions
+                vector vector({vecDim}),
                 metadata JSONB NOT NULL,
                 checksum TEXT NOT NULL,
                 version INTEGER DEFAULT 1,
@@ -44,32 +46,11 @@ type PostgresVectorStore(connectionString: string, ?dimension: int) =
                 PRIMARY KEY (collection, id),
                 FOREIGN KEY (collection) REFERENCES collections(name) ON DELETE CASCADE
             );
-            
+
             CREATE INDEX IF NOT EXISTS idx_vectors_collection ON vectors(collection);
-            -- IVFFlat index could be added here for performance if needed
         """
 
-        let dimParam = cmd.CreateParameter()
-        dimParam.ParameterName <- "@dim"
-        dimParam.Value <- vecDim
-        cmd.Parameters.Add(dimParam) |> ignore
-
         cmd.ExecuteNonQuery() |> ignore
-
-        // Validate dimension on existing table to avoid silent mismatch
-        use dimCheck = conn.CreateCommand()
-        dimCheck.CommandText <- "SELECT typmod - 4 FROM pg_type WHERE typname = 'vector' LIMIT 1"
-        let dbDimObj = dimCheck.ExecuteScalar()
-
-        match dbDimObj with
-        | null -> ()
-        | :? int as dbDim when dbDim = vecDim -> ()
-        | :? int as dbDim ->
-            failwithf
-                "Postgres vector dimension mismatch: database=%d expected=%d. Drop or migrate the vectors table or pass the correct dimension."
-                dbDim
-                vecDim
-        | _ -> ()
 
     let computeChecksum (vector: float32[]) (payload: Map<string, string>) =
         use sha = System.Security.Cryptography.SHA256.Create()

@@ -278,3 +278,24 @@ module MemoryTools =
 
                 return $"Saved notes (%d{notes.Count} total):\n%s{noteList}"
         }
+
+module MathTools =
+
+    [<TarsToolAttribute("math_eval",
+                        "Evaluates a mathematical expression. Input: expression string (e.g. '(123 * 456) + 789')")>]
+    let mathEval (args: string) =
+        task {
+            try
+                let expr = ToolHelpers.parseStringArg args "expression"
+
+                if String.IsNullOrWhiteSpace expr then
+                    return "math_eval error: missing expression"
+                else
+                    printfn $"🧮 EVALUATING: %s{expr}"
+                    // Use DataTable for simple evaluation
+                    use dt = new System.Data.DataTable()
+                    let result = dt.Compute(expr, "")
+                    return result.ToString()
+            with ex ->
+                return $"math_eval error: {ex.Message}"
+        }

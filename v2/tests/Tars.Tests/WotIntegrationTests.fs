@@ -50,8 +50,7 @@ type WotIntegrationTests(output: Xunit.Abstractions.ITestOutputHelper) =
           KnowledgeGraph = None
           CapabilityStore = None
           Audit = None
-          Critique = None
-          Cycle = None
+          SymbolicReflector = None
           CancellationToken = System.Threading.CancellationToken.None }
 
     [<Fact>]

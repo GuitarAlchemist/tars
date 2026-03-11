@@ -4,8 +4,6 @@ open System
 open System.Net.Http
 open System.Text
 open System.Text.Json
-open System.Text.Json.Serialization
-open System.Threading.Tasks
 open Tars.Core
 
 type ChromaCollection = { id: string; name: string }

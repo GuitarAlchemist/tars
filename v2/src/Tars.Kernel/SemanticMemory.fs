@@ -3,10 +3,8 @@ namespace Tars.Kernel
 open System
 open System.IO
 open System.Text.Json
-open System.Threading.Tasks
 open Tars.Core
 open Tars.Llm
-open Tars.Llm.LlmService
 
 module SemanticMemory =
 

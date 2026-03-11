@@ -1,7 +1,5 @@
 namespace Tars.Tools.Graph
 
-open System
-open System.IO
 open System.Text.Json
 open Tars.Tools
 

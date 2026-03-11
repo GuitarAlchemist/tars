@@ -5,8 +5,6 @@ namespace Tars.Llm
 
 open System
 open System.Net.Http
-open System.Net.Http.Json
-open System.Text.Json
 open Tars.Core
 
 module OllamaClientAsync =
@@ -19,6 +17,7 @@ module OllamaClientAsync =
         (http: HttpClient)
         (baseUri: Uri)
         (model: string)
+        (apiKey: string option)
         (req: LlmRequest)
         : AsyncResult<LlmResponse, LlmError> =
 
@@ -29,7 +28,7 @@ module OllamaClientAsync =
         else
             async {
                 try
-                    let! response = sendChatAsync http baseUri model req |> Async.AwaitTask
+                    let! response = sendChatAsync http baseUri model apiKey req |> Async.AwaitTask
                     return Result.Ok response
                 with ex ->
                     return Result.Error(LlmError.fromException ex)
@@ -75,13 +74,14 @@ module OllamaClientAsync =
         (http: HttpClient)
         (baseUri: Uri)
         (model: string)
+        (apiKey: string option)
         (req: LlmRequest)
         (maxRetries: int)
         : AsyncResult<LlmResponse, LlmError> =
 
         let rec retry attempt =
             async {
-                let! result = generateAsync http baseUri model req
+                let! result = generateAsync http baseUri model apiKey req
 
                 match result with
                 | Result.Ok response -> return Result.Ok response
@@ -103,6 +103,7 @@ module OllamaClientAsync =
         (http: HttpClient)
         (baseUri: Uri)
         (model: string)
+        (apiKey: string option)
         (req: LlmRequest)
         : AsyncResult<LlmResponse, LlmError> =
 
@@ -125,7 +126,7 @@ module OllamaClientAsync =
             AsyncResult.ofResult (Result.Error(InvalidPrompt "Temperature out of range [0,2]"))
         else
             // Generate
-            generateAsync http baseUri model req
+            generateAsync http baseUri model apiKey req
 
 /// <summary>
 /// Example usage patterns for the AsyncResult-based client
@@ -152,7 +153,7 @@ module OllamaClientAsyncExamples =
                   Seed = None
                   ContextWindow = None }
 
-            let! result = generateAsync http baseUri "llama3.2" req
+            let! result = generateAsync http baseUri "llama3.2" None req
 
             match result with
             | Result.Ok response -> printfn $"Success: %s{response.Text}"
@@ -178,7 +179,7 @@ module OllamaClientAsyncExamples =
                   Seed = None
                   ContextWindow = None }
 
-            let! result = generateWithRetry http baseUri "llama3.2" req 3
+            let! result = generateWithRetry http baseUri "llama3.2" None req 3
 
             match result with
             | Result.Ok response -> printfn $"Got response after retries: %s{response.Text}"
@@ -207,7 +208,7 @@ module OllamaClientAsyncExamples =
                   Seed = None
                   ContextWindow = None }
 
-            let! result1 = generateAsync http baseUri "llama3.2" req1
+            let! result1 = generateAsync http baseUri "llama3.2" None req1
 
             match result1 with
             | Result.Error err -> return Result.Error err
@@ -235,7 +236,7 @@ module OllamaClientAsyncExamples =
                       Seed = None
                       ContextWindow = None }
 
-                let! result2 = generateAsync http baseUri "llama3.2" req2
+                let! result2 = generateAsync http baseUri "llama3.2" None req2
 
                 match result2 with
                 | Result.Error err -> return Result.Error err

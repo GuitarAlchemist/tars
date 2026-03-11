@@ -7,10 +7,15 @@
 
   <ItemGroup>
     <Compile Include="SparqlClient.fs" />
+    <Compile Include="SparqlUpdateClient.fs" />
+    <Compile Include="SparqlQueryClient.fs" />
     <Compile Include="QueryTemplates.fs" />
     <Compile Include="DatasetCatalog.fs" />
     <Compile Include="MultiSourceReasoning.fs" />
     <Compile Include="RdfParser.fs" />
+    <Compile Include="RdfMapper.fs" />
+    <Compile Include="RdfReconstructor.fs" />
+    <Compile Include="FusekiStorage.fs" />
   </ItemGroup>
 
   <ItemGroup>

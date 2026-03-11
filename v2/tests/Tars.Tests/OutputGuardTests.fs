@@ -2,7 +2,6 @@ module Tars.Tests.OutputGuardTests
 
 open Xunit
 open Tars.Core
-open Tars.Core.OutputGuard
 
 [<Fact>]
 let ``default guard flags missing required fields`` () =

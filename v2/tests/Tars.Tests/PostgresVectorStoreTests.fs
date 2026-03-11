@@ -1,7 +1,6 @@
 module Tars.Tests.PostgresVectorStoreTests
 
 open System
-open System.Threading.Tasks
 open Xunit
 open Tars.Core
 open Tars.Cortex

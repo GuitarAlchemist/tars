@@ -1,14 +1,13 @@
-/// <summary>
-/// Multi-dimensional budget and cost management for TARS agents.
-/// Provides thread-safe resource tracking, consumption, and allocation.
-/// </summary>
-/// <remarks>
-/// The Cost type forms a Commutative Monoid under addition, enabling
-/// composable cost tracking across complex agent workflows.
-/// </remarks>
 namespace Tars.Core
 
-open System
+// <summary>
+// Multi-dimensional budget and cost management for TARS agents.
+// Provides thread-safe resource tracking, consumption, and allocation.
+// </summary>
+// <remarks>
+// The Cost type forms a Commutative Monoid under addition, enabling
+// composable cost tracking across complex agent workflows.
+// </remarks>
 
 /// <summary>
 /// Represents the multi-dimensional cost of an operation.

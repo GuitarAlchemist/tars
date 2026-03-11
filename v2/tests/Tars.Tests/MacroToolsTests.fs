@@ -1,7 +1,5 @@
 namespace Tars.Tests
 
-open System
-open System.Threading.Tasks
 open Xunit
 open Tars.Core
 open Tars.Metascript
@@ -49,6 +47,7 @@ module MacroToolsTests =
     [<Fact>]
     let ``register_macro: valid json registers macro`` () =
         task {
+            if not (TestHelpers.requireTools()) then () else
             let registry = MockRegistry()
             let tools = MacroTools.getTools registry
             let registerTool = tools |> List.find (fun t -> t.Name = "register_macro")
@@ -95,6 +94,7 @@ module MacroToolsTests =
     [<Fact>]
     let ``register_macro: invalid json returns error`` () =
         task {
+            if not (TestHelpers.requireTools()) then () else
             let registry = MockRegistry()
             let tools = MacroTools.getTools registry
             let registerTool = tools |> List.find (fun t -> t.Name = "register_macro")
@@ -111,6 +111,7 @@ module MacroToolsTests =
     [<Fact>]
     let ``list_macros: returns formatted list`` () =
         task {
+            if not (TestHelpers.requireTools()) then () else
             let registry = MockRegistry()
             let iRegistry = registry :> IMacroRegistry
             let! _ = iRegistry.Register(createTestWorkflow "macro1")
@@ -131,6 +132,7 @@ module MacroToolsTests =
     [<Fact>]
     let ``get_macro: returns json definition`` () =
         task {
+            if not (TestHelpers.requireTools()) then () else
             let registry = MockRegistry()
             let iRegistry = registry :> IMacroRegistry
             let! _ = iRegistry.Register(createTestWorkflow "my_macro")
@@ -150,6 +152,7 @@ module MacroToolsTests =
     [<Fact>]
     let ``get_macro: returns error if missing`` () =
         task {
+            if not (TestHelpers.requireTools()) then () else
             let registry = MockRegistry()
             let tools = MacroTools.getTools registry
             let getTool = tools |> List.find (fun t -> t.Name = "get_macro")

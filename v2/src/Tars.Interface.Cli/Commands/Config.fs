@@ -6,8 +6,6 @@ open System.Net.Http
 open System.Threading.Tasks
 open Spectre.Console
 open Tars.Security
-open Tars.Llm.Routing
-open Tars.Llm.LlmService
 
 /// Configuration keys supported by the CLI
 let private configKeys =

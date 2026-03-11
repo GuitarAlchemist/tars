@@ -9,7 +9,6 @@ open Tars.Core
 open Tars.Llm
 open Tars.Llm.Routing
 open Tars.Llm.LlmService
-open Tars.Knowledge
 open Tars.Interface.Cli
 open Spectre.Console
 

@@ -253,10 +253,4 @@ module SymbolicReflectionHelpers =
 
     /// Get a summary of the reflection
     let summarize (reflection: SymbolicReflection) =
-        sprintf
-            "Reflection %A: %d observations, %d updates, confidence=%.2f, impact=%.2f"
-            reflection.ReflectionId
-            reflection.Observations.Length
-            reflection.BeliefUpdates.Length
-            reflection.Confidence
-            reflection.ImpactScore
+        $"Reflection %A{reflection.ReflectionId}: %d{reflection.Observations.Length} observations, %d{reflection.BeliefUpdates.Length} updates, confidence=%.2f{reflection.Confidence}, impact=%.2f{reflection.ImpactScore}"

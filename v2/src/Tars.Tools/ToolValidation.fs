@@ -1,7 +1,5 @@
 namespace Tars.Tools.Standard
 
-open System
-open System.Collections.Generic
 open Tars.Core
 open Tars.Tools
 
@@ -114,9 +112,9 @@ module ToolValidation =
                 let toolList =
                     tools
                     |> List.sortBy (fun t -> t.Name)
-                    |> List.mapi (fun i t -> sprintf "  %2d. %-22s %s" (i + 1) t.Name t.Description)
+                    |> List.mapi (fun i t -> $"  %2d{i + 1}. %-22s{t.Name} %s{t.Description}")
                     |> String.concat "\n"
 
-                return sprintf "Registered Tools (%d total):\n%s" tools.Length toolList
+                return $"Registered Tools (%d{tools.Length} total):\n%s{toolList}"
             | None -> return "Tool registry not initialized in Validation module."
         }

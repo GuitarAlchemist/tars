@@ -2,9 +2,7 @@ namespace Tars.Evolution
 
 open System
 open System.Threading.Tasks
-open Tars.Core
 open Tars.Llm
-open Tars.Llm.LlmService
 open Reflection
 open Tars.Metascript.Domain
 open Tars.Metascript

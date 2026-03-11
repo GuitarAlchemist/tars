@@ -2,7 +2,6 @@ module Tars.Interface.Cli.Commands.SemanticMemoryCommand
 
 open System
 open System.IO
-open System.Threading.Tasks
 open Tars.Core
 open Tars.Kernel
 open Tars.Llm

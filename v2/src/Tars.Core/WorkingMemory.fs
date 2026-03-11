@@ -141,9 +141,5 @@ type WorkingMemory<'T>(capacity: int) =
                 let oldestAge =
                     items |> Seq.map (fun e -> (now - e.CreatedAt).TotalHours) |> Seq.max
 
-                sprintf
-                    "[Memory] Count: %d/%d | Avg Importance: %.2f | Oldest: %.1fh"
-                    items.Count
-                    capacity
-                    avgImportance
-                    oldestAge)
+                $"[Memory] Count: %d{items.Count}/%d{capacity} | Avg Importance: %.2f{avgImportance} | Oldest: %.1f{oldestAge}h"
+        )

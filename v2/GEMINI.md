@@ -96,14 +96,24 @@ See [`task.md`](task.md) for current progress and [`docs/3_Roadmap/1_Plans/imple
 | **9** | **Symbolic Knowledge & Internet Ingestion** | 🚧 In Progress |
 | **10** | **3D Knowledge Graph Visualization** | 🔜 Planned |
 | 11 | Cognitive Grounding & Production Intelligence | 🔜 Planned |
-| 12 | Web of Things Integration | 🔜 Planned |
 | **13** | **Neuro-Symbolic Foundations** 🆕 | ✅ **COMPLETE** (Dec 2024) |
 | **14** | **Agent Constitutions** 🆕 | 🔜 Planned (Q2 2025) |
 | **15** | **Symbolic Reflection** 🆕 | 🔜 Planned (Q3 2025) |
-| **16** | **Context Engineering & Validation** 🆕 | 🔜 Planned (Q4 2025) |
+| **16** | **Context Engineering & Validation** 🆕 | ✅ **COMPLETE** (Jan 2026) |
+| **17** | **Advanced GoT Features** 🆕 | 🚧 **In Progress** |
 
-### Recent Highlights (December 2024)
+### Recent Highlights (January 2026)
 
+- ✅ **Phase 16 Complete: Context Engineering & Validation**
+  - Pattern Retrieval (LLM-powered pattern matching)
+  - Context Hydration (variable injection)
+  - Validation Loop (pattern execution + result validation)
+- 🚧 **Phase 17: Advanced GoT Features**
+  - Extended DSL: Multi-agent routing, typed edges, policies, structured outputs
+  - GoT Transformations: Generate, Aggregate, Refine, Contradict, Distill, Backtrack
+  - New types: `DslAgent`, `NodeAgent`, `EdgeRelation`, `GoTTransformation`
+  - Parser support for `agent="AgentName"` in node headers
+  - Example workflow: `examples/incident_analysis.wot.trsx`
 - ✅ **Phase 13 Complete: Neuro-Symbolic Foundations** - 950+ lines of production code!
   - Symbolic Invariants System (6 types, continuous scoring)
   - Constraint Scoring Engine (Logic Tensor Network-style)
@@ -120,3 +130,4 @@ See [`task.md`](task.md) for current progress and [`docs/3_Roadmap/1_Plans/imple
 - ✅ **llama.cpp integration** - 75-97 tok/s local inference with 32K context support
 - ✅ **Docker Compose** - PostgreSQL with pgvector included
 - ✅ **Architectural Vision** - Core thesis documented
+

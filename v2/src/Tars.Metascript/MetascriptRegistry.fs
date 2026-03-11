@@ -1,6 +1,5 @@
 namespace Tars.Metascript
 
-open System
 open System.IO
 open System.Threading.Tasks
 open Tars.Metascript.V1

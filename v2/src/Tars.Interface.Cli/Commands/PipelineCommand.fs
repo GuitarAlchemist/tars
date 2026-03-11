@@ -1,7 +1,6 @@
 /// Pipeline Command - CLI for managing project pipelines
 module Tars.Interface.Cli.Commands.PipelineCommand
 
-open System
 open System.IO
 open Tars.Core.Project
 open Tars.Core.ProjectRegistry

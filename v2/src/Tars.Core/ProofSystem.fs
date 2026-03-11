@@ -45,8 +45,8 @@ module ProofSystem =
         match proof with
         | Tautology _ -> 1.0 // Tautologies are maximally strong
         | ProofContradiction _ -> 0.0 // Contradictions have no strength
-        | ValidationSuccess(_, _) -> 0.95 // Passing tests are very strong
-        | ValidationFailure(_, _) -> 0.1 // Failing tests provide weak negative evidence
+        | ReflectionProof.ValidationSuccess(_, _) -> 0.95 // Passing tests are very strong
+        | ReflectionProof.ValidationFailure(_, _) -> 0.1 // Failing tests provide weak negative evidence
         | LogicalInference(premises, _, rule) ->
             // Strength depends on the rule and number of premises
             let ruleWeight =
@@ -138,11 +138,11 @@ module ProofSystem =
         match proof with
         | Tautology statement -> belief.Statement.ToLowerInvariant().Contains(statement.ToLowerInvariant())
         | ProofContradiction _ -> false // Contradictions never support
-        | ValidationSuccess(testName, _) ->
+        | ReflectionProof.ValidationSuccess(testName, _) ->
             belief.Statement.ToLowerInvariant().Contains(testName.ToLowerInvariant())
             || belief.Tags
                |> List.exists (fun t -> t.ToLowerInvariant() = testName.ToLowerInvariant())
-        | ValidationFailure _ -> false // Failures don't support
+        | ReflectionProof.ValidationFailure _ -> false // Failures don't support
         | LogicalInference(_, conclusion, _) ->
             belief.Statement.ToLowerInvariant().Contains(conclusion.ToLowerInvariant())
         | StatisticalEvidence _ -> true // Generic statistical support
@@ -173,17 +173,17 @@ module ProofSystem =
     /// Create a validation proof from test result
     let createFromTest (testName: string) (passed: bool) (details: string) : ReflectionProof =
         if passed then
-            ValidationSuccess(testName, details)
+            ReflectionProof.ValidationSuccess(testName, details)
         else
-            ValidationFailure(testName, details)
+            ReflectionProof.ValidationFailure(testName, details)
 
     /// Render proof as human-readable string
     let describe (proof: ReflectionProof) : string =
         match proof with
-        | Tautology statement -> sprintf "Tautology: \"%s\" is self-evidently true" statement
-        | ProofContradiction statement -> sprintf "Contradiction: \"%s\" leads to contradiction" statement
-        | ValidationSuccess(test, details) -> sprintf "Test Passed: %s - %s" test details
-        | ValidationFailure(test, error) -> sprintf "Test Failed: %s - %s" test error
+        | Tautology statement -> $"Tautology: \"%s{statement}\" is self-evidently true"
+        | ProofContradiction statement -> $"Contradiction: \"%s{statement}\" leads to contradiction"
+        | ReflectionProof.ValidationSuccess(test, details) -> $"Test Passed: %s{test} - %s{details}"
+        | ReflectionProof.ValidationFailure(test, error) -> $"Test Failed: %s{test} - %s{error}"
         | LogicalInference(premises, conclusion, rule) ->
             let ruleStr =
                 match rule with

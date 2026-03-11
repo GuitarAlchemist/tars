@@ -2,9 +2,7 @@ namespace Tars.Core.SelfExtension
 
 open System
 open System.IO
-open System.Threading.Tasks
 open System.Text.Json
-open System.Text.Json.Serialization
 
 /// A generated extension (metascript, tool, or grammar)
 type Extension =
@@ -104,8 +102,6 @@ type SerializableTool =
       ImplementationValue: string } // The actual code/name/command
 
 module ToolSerialization =
-    open System.Text.Json
-
     /// Convert DynamicToolDefinition to serializable format
     let toSerializable (tool: DynamicToolDefinition) : SerializableTool =
         let implType, implValue =

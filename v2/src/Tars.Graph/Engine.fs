@@ -5,7 +5,6 @@ open Tars.Core
 open System.Collections.Concurrent
 open System.IO
 open System.Text.Json
-open System.Threading.Tasks
 open System.Collections.Generic
 
 type GraphData =

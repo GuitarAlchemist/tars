@@ -2,8 +2,6 @@ namespace Tars.Metascript
 
 open Tars.Core
 open Tars.Llm
-open Domain
-open System.Collections.Generic
 open Tars.Connectors.EpisodeIngestion
 
 module Config =

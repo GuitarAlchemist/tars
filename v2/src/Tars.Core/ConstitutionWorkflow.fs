@@ -1,8 +1,6 @@
 namespace Tars.Core
 
 open System
-open Tars.Core.Metrics
-
 // =============================================================================
 // PHASE 14.3: CONSTITUTION-AWARE WORKFLOW INTEGRATION
 // =============================================================================
@@ -110,7 +108,7 @@ module ConstitutionWorkflow =
                     return ExecutionOutcome.Success()
                 | FSharp.Core.Error violation ->
                     Metrics.recordSimple "constitution.validate" "violation" (Some ctx.Self.Id) None None
-                    let msg = sprintf "Constitutional violation: %A" violation
+                    let msg = $"Constitutional violation: %A{violation}"
                     ctx.Logger msg
                     return ExecutionOutcome.Failure [ PartialFailure.Error msg ]
             }
@@ -123,7 +121,7 @@ module ConstitutionWorkflow =
 
                 match ContractEnforcement.validateAction ctx.Self.Constitution action with
                 | FSharp.Core.Error violation ->
-                    return ExecutionOutcome.Failure [ PartialFailure.Error(sprintf "Write blocked: %A" violation) ]
+                    return ExecutionOutcome.Failure [ PartialFailure.Error $"Write blocked: %A{violation}" ]
                 | FSharp.Core.Ok() ->
                     let! result = write ()
 
@@ -144,7 +142,7 @@ module ConstitutionWorkflow =
 
                 match ContractEnforcement.validateAction ctx.Self.Constitution action with
                 | FSharp.Core.Error violation ->
-                    return ExecutionOutcome.Failure [ PartialFailure.Error(sprintf "Tool call blocked: %A" violation) ]
+                    return ExecutionOutcome.Failure [ PartialFailure.Error $"Tool call blocked: %A{violation}" ]
                 | FSharp.Core.Ok() ->
                     let! result = execute ()
 
@@ -171,7 +169,7 @@ module ConstitutionWorkflow =
                 match ContractEnforcement.checkDependencies ctx.Self.Constitution activeAgents with
                 | FSharp.Core.Ok() -> return ExecutionOutcome.Success()
                 | FSharp.Core.Error violation ->
-                    return ExecutionOutcome.Failure [ PartialFailure.Error(sprintf "Dependency missing: %A" violation) ]
+                    return ExecutionOutcome.Failure [ PartialFailure.Error $"Dependency missing: %A{violation}" ]
             }
 
     // =========================================================================
@@ -190,8 +188,8 @@ module ConstitutionWorkflow =
 
             match ContractEnforcement.checkDependencies c activeIds with
             | FSharp.Core.Error(DependencyMissing(AgentId id)) ->
-                return Result.Error(sprintf "Cannot spawn: dependency agent %A not active" id)
-            | FSharp.Core.Error v -> return Result.Error(sprintf "Cannot spawn: %A" v)
+                return Result.Error $"Cannot spawn: dependency agent %A{id} not active"
+            | FSharp.Core.Error v -> return Result.Error $"Cannot spawn: %A{v}"
             | FSharp.Core.Ok() ->
 
                 // 2. Check for conflicting agents
@@ -200,7 +198,7 @@ module ConstitutionWorkflow =
                     |> List.filter (fun id -> List.contains id activeIds)
 
                 if not conflicts.IsEmpty then
-                    return Result.Error(sprintf "Cannot spawn: conflicts with active agents %A" conflicts)
+                    return Result.Error $"Cannot spawn: conflicts with active agents %A{conflicts}"
                 else
                     return Result.Ok()
         }
@@ -261,7 +259,7 @@ module ConstitutionWorkflow =
                 | FSharp.Core.Error violation ->
                     return
                         ExecutionOutcome.Failure
-                            [ PartialFailure.Error(sprintf "Blocked by constitution: %A" violation) ]
+                            [ PartialFailure.Error $"Blocked by constitution: %A{violation}" ]
                 | FSharp.Core.Ok() -> return! workflow ctx
             }
 
@@ -280,13 +278,13 @@ module ConstitutionWorkflow =
                         return
                             ExecutionOutcome.PartialSuccess(
                                 v,
-                                [ PartialFailure.Warning(sprintf "Resource limit exceeded: %A" violation) ]
+                                [ PartialFailure.Warning $"Resource limit exceeded: %A{violation}" ]
                             )
                     | ExecutionOutcome.PartialSuccess(v, w) ->
                         return
                             ExecutionOutcome.PartialSuccess(
                                 v,
-                                w @ [ PartialFailure.Warning(sprintf "Resource limit: %A" violation) ]
+                                w @ [ PartialFailure.Warning $"Resource limit: %A{violation}" ]
                             )
                     | ExecutionOutcome.Failure e -> return ExecutionOutcome.Failure e
                 | FSharp.Core.Ok() -> return result

@@ -3,9 +3,7 @@ namespace Tars.Interface.Cli.Commands
 open System
 open System.IO
 open System.Net.Http
-open System.Threading.Tasks
 open Serilog
-open Tars.Core
 open Tars.Llm
 open Tars.Llm.LlmService
 open Tars.Llm.Routing
@@ -14,9 +12,6 @@ open Tars.Metascript.V1
 open Tars.Metascript.V1Executor
 open Tars.Metascript.Domain
 open Tars.Metascript.Config
-open Tars.Metascript.Engine
-
-open Tars.Evolution
 open Tars.Evolution.Reflection
 open Tars.Evolution.Optimizer
 

@@ -1,7 +1,5 @@
 namespace Tars.Tools.Puzzles
 
-open System
-open Tars.Core
 open Tars.Tools
 
 open System.Text.RegularExpressions
@@ -10,7 +8,7 @@ open System.Text.RegularExpressions
 module PuzzleValidationTools =
     
     /// Validator functions for each puzzle type
-    let private validators : Map<string, string -> bool> =
+    let validators : Map<string, string -> bool> =
         Map.ofList [
             ("river_crossing", fun answer ->
                 let lower = answer.ToLowerInvariant()

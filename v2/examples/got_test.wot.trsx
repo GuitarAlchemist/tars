@@ -1,0 +1,66 @@
+// ============================================================================
+// TRSX: GoT Feature Test - Phase 17.4 (Fixed)
+// Demonstrates: Evidence Provenance, transformations, and feedback loops
+// ============================================================================
+
+meta {
+  name = "got-feature-test"
+  description = "Test for GoT transformations and evidence tracking"
+}
+
+inputs {
+  topic = "Is a tomato a fruit or a vegetable?"
+}
+
+policy {
+  allowed_tools = []
+  max_tool_calls = 0
+  max_tokens = 4096
+}
+
+workflow "test_got" {
+
+  // Node 1: Initial Thought
+  node "initial" kind="reason" agent="Planner" {
+    goal = "Propose an initial scientific answer to: ${topic}"
+    output = "initial_answer"
+  }
+
+  // Node 2: Scoring the Initial Thought (Score)
+  // Input "initial" tells the Score transformation which node's hypothesis to score
+  node "score_the_answer" kind="reason" agent="Verifier" {
+    input = ["initial"]
+    goal = "Evaluate the scientific accuracy of the thought in node 'initial'."
+    output = "score_md"
+    transformation = "score" 
+  }
+
+  // Node 3: Refining the Thought (Refine)
+  node "refine_the_answer" kind="reason" agent="QAEngineer" {
+    input = ["initial", "score_md"]
+    goal = "Based on the score critique (${score_md}), improve the answer from 'initial'."
+    output = "refined_answer"
+    transformation = "refine"
+  }
+  
+  // Node 4: Finding flaws (Contradict)
+  node "challenge" kind="reason" agent="Skeptic" {
+    input = ["initial"]
+    goal = "Provide a counter-perspective from a culinary view for node 'initial'."
+    output = "challenge_md"
+    transformation = "contradict"
+  }
+
+  // Node 5: Final Synthesis
+  node "synthesis" kind="reason" agent="Planner" {
+    input = ["refined_answer", "challenge_md"]
+    goal = "Synthesize the botanical and culinary views into a definitive statement."
+    output = "final_output"
+  }
+
+  // Edge definitions
+  edge "initial" -> "score_the_answer"
+  edge "score_the_answer" -> "refine_the_answer"
+  edge "refine_the_answer" -> "challenge"
+  edge "challenge" -> "synthesis"
+}

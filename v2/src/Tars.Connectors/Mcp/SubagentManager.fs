@@ -4,7 +4,6 @@ open System
 open System.Collections.Concurrent
 open System.Threading
 open System.Threading.Tasks
-open Tars.Core
 
 /// Request to spawn a new subagent
 type SubagentRequest =

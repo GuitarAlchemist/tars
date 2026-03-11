@@ -1,0 +1,81 @@
+// ============================================================================
+// TRSX: Advanced GoT Workflow Example - Phase 17
+// Demonstrates: Multi-agent routing, typed edges, policies
+// ============================================================================
+
+meta {
+  name = "incident-analysis-demo"
+  description = "Multi-agent analysis workflow with hypothesis scoring"
+  domain = "quality_engineering"
+  difficulty = "advanced"
+}
+
+inputs {
+  incident_description = "Production system experiencing intermittent 500 errors after recent deployment. Rollback temporarily resolved the issue."
+  severity = "high"
+  affected_systems = "api-gateway, user-service, database"
+}
+
+policy {
+  allowed_tools = ["search_web", "analyze_logs", "fetch_metrics", "validate_puzzle_answer"]
+  max_tool_calls = 15
+  max_tokens = 8192
+}
+
+workflow "analyze_incident" {
+
+  // Phase 1: Planning (Planner Agent)
+  node "plan" kind="reason" agent="Planner" {
+    goal = "Create a structured investigation plan for the incident: ${incident_description}. Generate hypotheses and identify required evidence."
+    output = "investigation_plan"
+    constraints = ["generate_hypotheses", "identify_evidence"]
+  }
+
+  // Phase 2: Evidence Gathering (Work Node)
+  node "gather_logs" kind="work" {
+    tool = "analyze_logs"
+    args = { "systems": "${affected_systems}", "timeframe": "24h" }
+    output = "log_analysis"
+  }
+
+  // Phase 3: Analysis (QA Engineer Agent)
+  node "analyze_patterns" kind="reason" agent="QAEngineer" {
+    input = ["log_analysis"]
+    goal = "Analyze the log data and identify patterns: ${log_analysis}"
+    output = "pattern_insights"
+    constraints = ["find_correlations", "identify_anomalies"]
+  }
+
+  // Phase 4: Critique (Skeptic Agent)
+  node "critique" kind="reason" agent="Skeptic" {
+    input = ["pattern_insights", "investigation_plan"]
+    goal = "Challenge the analysis. What could make our conclusions wrong? Insights: ${pattern_insights}"
+    output = "critique_results"
+    constraints = ["find_contradictions"]
+  }
+
+  // Phase 5: Final Recommendation (Planner Agent)
+  node "recommend" kind="reason" agent="Planner" {
+    input = ["pattern_insights", "critique_results"]
+    goal = "Synthesize all findings into an actionable recommendation with confidence score"
+    output = "recommendation"
+    constraints = ["provide_confidence_score"]
+  }
+
+  // Phase 6: Verification
+  node "verify" kind="work" {
+    input = ["recommendation"]
+    output = "final_verdict"
+    checks = [
+      { "type": "non_empty", "value": "${recommendation}" },
+      { "type": "contains", "value": "${recommendation}", "needle": "confidence" }
+    ]
+  }
+
+  // Edge definitions
+  edge "plan" -> "gather_logs"
+  edge "gather_logs" -> "analyze_patterns"
+  edge "analyze_patterns" -> "critique"
+  edge "critique" -> "recommend"
+  edge "recommend" -> "verify"
+}

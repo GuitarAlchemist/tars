@@ -1,7 +1,6 @@
 namespace Tars.Metascript
 
 open System
-open System.Collections.Generic
 
 module Domain =
 

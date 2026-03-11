@@ -3,9 +3,7 @@ module Tars.Tests.VerifierAgentTests
 open System
 open Xunit
 open FsUnit
-open Tars.Core
 open Tars.Knowledge
-open Tars.Symbolic
 
 // Explicitly use in-memory ledger for tests
 let createLedger () = KnowledgeLedger.createInMemory ()

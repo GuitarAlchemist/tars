@@ -30,18 +30,7 @@ module CognitiveMaturityTests =
         Assert.Equal(0.95, metrics.SynthesisQuality, 2)
 
     [<Fact>]
-    let ``CognitiveBenchmarker: Evaluates Web of Things grounding correctly`` () =
-        let tool1 = Tool.InternalCreateMinimal("T1", "D1", fun _ -> async { return Ok "" })
-        let tool2 = { Tool.InternalCreateMinimal("T2", "D2", fun _ -> async { return Ok "" }) with ThingDescription = Some (Map.ofList [("type", "Sensor" :> obj)]) }
-        
-        let benchmarker = CognitiveBenchmarker()
-        let metrics = benchmarker.EvaluateGrounding([tool1; tool2])
-        
-        Assert.Equal(0.5, metrics.DescriptionFidelity, 2)
-        Assert.Equal(0.45, metrics.GroundingAccuracy, 2)
-
-    [<Fact>]
-    let ``CognitiveAnalyzer: Reports GoT and WoT metrics`` () =
+    let ``CognitiveAnalyzer: Reports GoT metrics`` () =
         let kernel = { new IAgentRegistry with 
             member _.GetAllAgents() = async { return [] }
             member _.GetAgent _ = async { return None }
@@ -52,4 +41,3 @@ module CognitiveMaturityTests =
         let state = analyzer.Analyze() |> Async.RunSynchronously
         
         Assert.True(state.BranchingFactor >= 1.0)
-        Assert.Equal(0.85, state.GroundingFidelity, 2)

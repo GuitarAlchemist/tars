@@ -1,169 +1,119 @@
-module Tars.Interface.Cli.Commands.PlanCmd
+namespace Tars.Interface.Cli.Commands
 
 open System
+open System.IO
 open System.Threading.Tasks
 open Spectre.Console
 open Tars.Core
-open Tars.Knowledge
+open Tars.Llm
+open Tars.Cortex
+open Tars.DSL.Wot
 open Tars.Interface.Cli
 
-type PlanOptions =
-    { Command: string
-      Goal: string option
-      PlanId: string option
-      UsePostgres: bool }
+module PlanCmd =
 
-let defaultOptions =
-    { Command = "help"
-      Goal = None
-      PlanId = None
-      UsePostgres = false }
+    type PlanOptions = { Goal: string; Model: string option }
 
-let parseArgs (args: string array) =
-    let mutable options = defaultOptions
-    let mutable i = 0
+    let parseArgs (args: string[]) : PlanOptions =
+        let mutable goal = ""
+        let mutable model = None
+        let mutable i = 0
 
-    if args.Length > 0 then
-        options <- { options with Command = args.[0] }
-        i <- 1
+        while i < args.Length do
+            match args.[i] with
+            | "--model" when i + 1 < args.Length ->
+                model <- Some args.[i + 1]
+                i <- i + 2
+            | arg when not (arg.StartsWith("-")) ->
+                goal <- if goal = "" then arg else goal + " " + arg
+                i <- i + 1
+            | _ -> i <- i + 1
 
-    while i < args.Length do
-        match args.[i] with
-        | "--pg"
-        | "--postgres" ->
-            options <- { options with UsePostgres = true }
-            i <- i + 1
-        | arg when not (arg.StartsWith "-") ->
-            match options.Command with
-            | "new" ->
-                if options.Goal.IsNone then
-                    options <- { options with Goal = Some arg }
-            | "list" -> ()
-            | "show" ->
-                if options.PlanId.IsNone then
-                    options <- { options with PlanId = Some arg }
-            | _ -> ()
+        if goal = "" then
+            { Goal = "Task for TARS"
+              Model = model }
+        else
+            { Goal = goal; Model = model }
 
-            i <- i + 1
-        | _ -> i <- i + 1
+    let private extractTrsx (text: string) =
+        // Regex to extract ```hcl ... ``` or ```trsx ... ``` or just ``` ... ```
+        let pattern = @"```(?:hcl|trsx)?\s*([\s\S]*?)```"
+        let m = System.Text.RegularExpressions.Regex.Match(text, pattern)
+        if m.Success then m.Groups.[1].Value.Trim() else text.Trim()
 
-    options
+    let run (config: TarsConfig) (options: PlanOptions) : Task<int> =
+        task {
+            AnsiConsole.MarkupLine($"[blue]🧠 Planning workflow for goal:[/] [white]{Markup.Escape(options.Goal)}[/]")
 
-let runNew (manager: PlanManager) (goal: string) =
-    task {
-        // Create a simple plan for now. In reality, we might ask LLM to decompose goal.
-        let steps =
-            [ { Order = 1
-                Description = "Analyze goal"
-                EstimatedEffort = None
-                Dependencies = []
-                Status = StepStatus.NotStarted
-                CompletedAt = None
-                Notes = [] } ]
+            let log = Serilog.Log.Logger
+            let llm = LlmFactory.create log
 
-        // Find assumptions? For now empty.
-        let assumptions = []
+            let basePrompt =
+                PlannerPrompts.generatePlanPrompt options.Goal (Some config.VariantOverlays)
 
-        let! result = manager.CreatePlan(goal, steps, assumptions, AgentId.User)
+            let fullPrompt = "You are a TARS Workflow Architect.\n\n" + basePrompt
 
-        match result with
-        | Result.Ok plan -> AnsiConsole.MarkupLine($"[green]✓ Plan created:[/] {plan.Id} - {plan.Goal}")
-        | Result.Error e -> AnsiConsole.MarkupLine($"[red]✗ Failed to create plan:[/] {e}")
-    }
+            let settings: LlmRequest =
+                { Model = options.Model
+                  ModelHint = Some "planning"
+                  SystemPrompt = None
+                  MaxTokens = Some 4096
+                  Temperature = Some 0.2
+                  Stop = []
+                  Messages =
+                    [ { Role = Role.User
+                        Content = fullPrompt } ]
+                  Tools = []
+                  ToolChoice = None
+                  ResponseFormat = None
+                  Stream = false
+                  JsonMode = false
+                  Seed = None
+                  ContextWindow = None }
 
-let runList (manager: PlanManager) =
-    task {
-        let! plans = manager.GetActive()
+            try
+                AnsiConsole.MarkupLine("[dim]Thinking...[/]")
 
-        let table = Table()
-        table.AddColumn("ID") |> ignore
-        table.AddColumn("Goal") |> ignore
-        table.AddColumn("Status") |> ignore
-        table.AddColumn("Step") |> ignore
+                let! response = llm.CompleteAsync(settings)
 
-        for plan in plans do
-            let currentStep =
-                plan.Steps
-                |> List.tryFind (fun s ->
-                    match s.Status with
-                    | StepStatus.InProgress -> true
-                    | _ -> false)
-                |> Option.map (fun s -> s.Description)
-                |> Option.defaultValue "-"
+                let trsxContent = extractTrsx response.Text
 
-            table.AddRow(
-                plan.Id.ToString(),
-                Markup.Escape(plan.Goal),
-                plan.Status.ToString(),
-                Markup.Escape(currentStep)
-            )
-            |> ignore
+                let timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss")
 
-        AnsiConsole.Write(table)
-    }
+                let safeGoal =
+                    options.Goal.ToLowerInvariant()
+                    |> Seq.filter (fun c -> Char.IsLetterOrDigit(c) || c = '_')
+                    |> Seq.truncate 30
+                    |> Seq.map string
+                    |> String.concat ""
 
-let runShow (manager: PlanManager) (planIdStr: string) =
-    task {
-        // Parse ID (handling "p:" prefix or GUID)
-        let idStr =
-            if planIdStr.StartsWith("p:") then
-                planIdStr.Substring(2)
-            else
-                planIdStr
+                let filename = $"plan_{timestamp}_{safeGoal}.wot.trsx"
+                let dir = Path.Combine(".wot", "plans")
 
-        match Guid.TryParse(idStr) with
-        | true, g ->
-            let planId = PlanId(g)
+                if not (Directory.Exists(dir)) then
+                    Directory.CreateDirectory(dir) |> ignore
 
-            match! manager.Get(planId) with
-            | Some plan ->
-                AnsiConsole.MarkupLine($"[bold blue]Plan:[/] {plan.Id}")
-                AnsiConsole.MarkupLine($"[bold]Goal:[/] {Markup.Escape(plan.Goal)}")
-                AnsiConsole.MarkupLine($"[bold]Status:[/] {plan.Status}")
-                AnsiConsole.MarkupLine("\n[bold]Steps:[/]")
+                let path = Path.Combine(dir, filename)
 
-                let table = Table()
-                table.AddColumn("Order") |> ignore
-                table.AddColumn("Description") |> ignore
-                table.AddColumn("Status") |> ignore
+                File.WriteAllText(path, trsxContent)
+                AnsiConsole.MarkupLine($"[green]✓ Plan generated:[/] [white]{path}[/]")
 
-                for step in plan.Steps do
-                    let color =
-                        match step.Status with
-                        | StepStatus.Completed -> "green"
-                        | StepStatus.InProgress -> "yellow"
-                        | StepStatus.Failed _ -> "red"
-                        | _ -> "grey"
+                match WotParser.parseFile path with
+                | Result.Ok _ ->
+                    AnsiConsole.MarkupLine("[green]✓ Syntax Valid[/]")
+                    AnsiConsole.WriteLine()
+                    AnsiConsole.MarkupLine("Run this plan with:")
+                    AnsiConsole.MarkupLine($"[cyan]tars wot run {path} --reason llm[/]")
+                    return 0
+                | Result.Error errs ->
+                    AnsiConsole.MarkupLine("[red]⚠ Generated plan has syntax errors:[/]")
 
-                    table.AddRow(step.Order.ToString(), Markup.Escape(step.Description), $"[{color}]{step.Status}[/]")
-                    |> ignore
+                    for e in errs do
+                        AnsiConsole.MarkupLine($"  Line {e.Line}: {Markup.Escape(e.Message)}")
 
-                AnsiConsole.Write(table)
-
-            | None -> AnsiConsole.MarkupLine($"[red]Plan {planId} not found[/]")
-        | _ -> AnsiConsole.MarkupLine($"[red]Invalid Plan ID format[/]")
-    }
-
-let run (config: TarsConfig) (options: PlanOptions) =
-    task {
-        let ledger = KnowledgeLedger.createInMemory () // TODO: Support Postgres via options.UsePostgres
-        // Initialize ledger (load from DB if needed)
-        do! ledger.Initialize()
-
-        // Create manager
-        let manager = PlanManager.createInMemory (ledger)
-
-        match options.Command.ToLowerInvariant() with
-        | "new" ->
-            match options.Goal with
-            | Some g -> do! runNew manager g
-            | None -> AnsiConsole.MarkupLine("[yellow]Usage: tars plan new <goal>[/]")
-        | "list" -> do! runList manager
-        | "show" ->
-            match options.PlanId with
-            | Some id -> do! runShow manager id
-            | None -> AnsiConsole.MarkupLine("[yellow]Usage: tars plan show <id>[/]")
-        | _ -> AnsiConsole.MarkupLine("[yellow]Unknown plan command. Use: new, list, show[/]")
-
-        return 0
-    }
+                    AnsiConsole.MarkupLine("\nPlease check and fix the file manually.")
+                    return 1
+            with ex ->
+                AnsiConsole.MarkupLine($"[red]Plan Generation Failed:[/] {Markup.Escape(ex.Message)}")
+                return 1
+        }

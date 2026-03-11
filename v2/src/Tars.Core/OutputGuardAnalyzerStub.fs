@@ -1,7 +1,5 @@
 namespace Tars.Core
 
-open System.Threading.Tasks
-
 /// Stub analyzer that can be swapped with a real LLM-based cargo-cult analysis.
 /// Returns None by default (non-blocking).
 type NoopOutputGuardAnalyzer() =

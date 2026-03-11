@@ -58,7 +58,24 @@ services:
       timeout: 5s
       retries: 5
 
+  # Fuseki Triple Store (Phase 14)
+  fuseki:
+    image: stain/jena-fuseki
+    container_name: tars_v2_fuseki
+    ports:
+      - "3030:3030"
+    environment:
+      - ADMIN_PASSWORD=admin
+    volumes:
+      - tars_fuseki_data:/fuseki
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:3030/$/ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   ollama-data:
   models:
   tars_postgres_data:
+  tars_fuseki_data:

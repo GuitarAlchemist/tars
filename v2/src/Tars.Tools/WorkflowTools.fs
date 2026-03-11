@@ -2,7 +2,6 @@ namespace Tars.Tools.Standard
 
 open System
 open System.IO
-open System.Text.RegularExpressions
 open Tars.Tools
 
 module WorkflowTools =

@@ -4,7 +4,6 @@ open Xunit
 open Tars.Core
 open Tars.Cortex
 open Tars.Llm
-open Tars.Llm.LlmService
 
 // Fake LLM service for testing analyzer behavior
 type FakeLlmService(responseText: string) =

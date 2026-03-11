@@ -1,7 +1,6 @@
 namespace Tars.Sandbox
 
 open System
-open System.Threading.Tasks
 open Docker.DotNet
 open Docker.DotNet.Models
 

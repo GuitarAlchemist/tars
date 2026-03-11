@@ -77,20 +77,20 @@ module SpeechActBridge =
             match msg.Sender with
             | MessageEndpoint.System -> "System"
             | MessageEndpoint.User -> "User"
-            | MessageEndpoint.Agent aid -> sprintf "Agent:%O" aid
-            | MessageEndpoint.Alias name -> sprintf "Alias:%s" name
+            | MessageEndpoint.Agent aid -> $"Agent:{aid}"
+            | MessageEndpoint.Alias name -> $"Alias:%s{name}"
 
         let receiverStr =
             match msg.Receiver with
-            | Some(MessageEndpoint.Agent aid) -> sprintf "Agent:%O" aid
-            | Some(MessageEndpoint.Alias name) -> sprintf "Alias:%s" name
+            | Some(MessageEndpoint.Agent aid) -> $"Agent:{aid}"
+            | Some(MessageEndpoint.Alias name) -> $"Alias:%s{name}"
             | Some MessageEndpoint.User -> "User"
             | Some MessageEndpoint.System -> "System"
             | None -> "Broadcast"
 
-        sprintf "[%A] %s -> %s" msg.Performative senderStr receiverStr
+        $"[%A{msg.Performative}] %s{senderStr} -> %s{receiverStr}"
 
     /// Log a speech act message
     let logSpeechAct (logger: string -> unit) (msg: SemanticMessage<'T>) =
         let formatted = formatForLog msg
-        logger (sprintf "[SpeechAct] %s" formatted)
+        logger $"[SpeechAct] %s{formatted}"

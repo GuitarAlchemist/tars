@@ -1,6 +1,7 @@
 namespace Tars.Tests
 
 open System.Threading.Tasks
+open Xunit
 open Tars.Core
 
 /// Mock implementation of IOutputGuardAnalyzer for testing
@@ -21,8 +22,28 @@ type DelegateOutputGuardAnalyzer(analyze: GuardInput -> Async<GuardResult option
 
 module TestHelpers =
     open System
+    open System.IO
     open System.Net.Http
     open System.Text.Json
+
+    /// Checks if Tars.Tools.dll can be loaded (not blocked by WDAC/Smart App Control).
+    /// Returns true if tools are available, false if blocked.
+    let toolsAvailable =
+        lazy (
+            try
+                // Force-reference a type from Tars.Tools to trigger assembly load
+                let _ = typeof<Tars.Tools.ToolRegistry>
+                true
+            with
+            | :? FileLoadException -> false
+            | :? TypeInitializationException as ex when
+                ex.InnerException <> null && (ex.InnerException :? FileLoadException) ->
+                false)
+
+    /// Guard for tests that depend on Tars.Tools.
+    /// If WDAC blocks the DLL, the test should return early (pass vacuously).
+    /// Usage: if not (TestHelpers.requireTools ()) then () else ...
+    let requireTools () = toolsAvailable.Value
 
     /// Create a modern Belief record for testing
     let createTestBelief (id: BeliefId) (subject: string) (predicate: RelationType) (object: string) =

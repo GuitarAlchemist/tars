@@ -1,0 +1,46 @@
+meta {
+  name = "PE-001"
+  description = "Find the sum of all multiples of 3 or 5 below 1000"
+  domain = "mathematics"
+  difficulty = "beginner"
+}
+
+inputs {
+  problem_statement = "Find the sum of all the multiples of 3 or 5 below 1000."
+  expected_answer = "233168"
+}
+
+policy {
+  allowed_tools = ["math_eval", "validate_puzzle_answer"]
+  max_tool_calls = 5
+  max_tokens = 2048
+}
+
+workflow "solve_pe001" {
+  
+  node "analyze" kind="reason" {
+    goal = "Analyze this problem and develop a solution strategy: ${problem_statement}"
+    output = "strategy"
+    constraints = ["show_mathematical_reasoning"]
+  }
+
+  node "solve" kind="reason" {
+    input = ["strategy"]
+    goal = "Using the strategy, compute the answer to: ${problem_statement}"
+    output = "computed_answer"
+    constraints = ["show_calculation_steps", "provide_final_numeric_answer"]
+  }
+
+  node "verify" kind="work" {
+    input = ["computed_answer"]
+    output = "final_result"
+    checks = [
+      { "type": "contains", "value": "${computed_answer}", "needle": "${expected_answer}" },
+      { "type": "regex", "value": "${computed_answer}", "pattern": "\d{6}" },
+      { "type": "tool_result", "tool": "math_eval", "args": { "expression": "${computed_answer} - ${expected_answer}" }, "check": "0" }
+    ]
+  }
+
+  edge "analyze" -> "solve"
+  edge "solve" -> "verify"
+}

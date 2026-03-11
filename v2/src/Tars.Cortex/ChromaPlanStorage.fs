@@ -8,7 +8,6 @@ open System.Net.Http.Json
 open System.Text.Json
 open System.Text.Json.Serialization
 open System.Threading.Tasks
-open Tars.Core
 open Tars.Knowledge
 
 // ============================================================================

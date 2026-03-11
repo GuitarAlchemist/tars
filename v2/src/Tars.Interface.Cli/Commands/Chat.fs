@@ -4,11 +4,9 @@ open System
 open System.Threading.Tasks
 open Serilog
 open Tars.Core
-open Tars.Kernel
 open Tars.Graph
 open Spectre.Console
 open System.Net.Http
-open System.Net.Http.Json
 open Tars.Llm
 open Tars.Llm.Routing
 open Tars.Llm.LlmService

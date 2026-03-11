@@ -33,7 +33,7 @@ let main args =
                         part)
                 |> String.concat ";"
 
-            printfn "Connection: %s" masked
+            printfn $"Connection: %s{masked}"
             printfn ""
             cs
 
@@ -54,10 +54,10 @@ let main args =
         printfn "   No migrations to apply."
         0
     else
-        printfn "📋 Found %d migration(s) to apply:" scriptsToExecute.Count
+        printfn $"📋 Found %d{scriptsToExecute.Count} migration(s) to apply:"
 
         for script in scriptsToExecute do
-            printfn "   - %s" script.Name
+            printfn $"   - %s{script.Name}"
 
         printfn ""
 
@@ -73,9 +73,9 @@ let main args =
             0
         else
             printfn "❌ Migration failed!"
-            printfn "Error: %s" result.Error.Message
+            printfn $"Error: %s{result.Error.Message}"
             printfn ""
             printfn "Stack trace:"
-            printfn "%s" (result.Error.ToString())
+            printfn $"%s{result.Error.ToString()}"
             printfn "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             1

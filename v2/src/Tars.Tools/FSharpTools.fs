@@ -33,11 +33,11 @@ module FSharpTools =
                 let fullPath = Path.GetFullPath(path)
                 
                 if not (File.Exists(fullPath)) && not (Directory.Exists(Path.GetDirectoryName(fullPath))) then
-                    return Result.Error (sprintf "Path not found: %s" fullPath)
+                    return Result.Error $"Path not found: %s{fullPath}"
                 else
                     let psi = ProcessStartInfo()
                     psi.FileName <- "dotnet"
-                    psi.Arguments <- sprintf "build \"%s\" --no-restore" fullPath
+                    psi.Arguments <- $"build \"%s{fullPath}\" --no-restore"
                     psi.UseShellExecute <- false
                     psi.RedirectStandardOutput <- true
                     psi.RedirectStandardError <- true
@@ -62,7 +62,7 @@ module FSharpTools =
                             let severity = m.Groups.[4].Value
                             let code = m.Groups.[5].Value
                             let msg = m.Groups.[6].Value
-                            let entry = sprintf "[%s] %s:%s:%s - %s" code file lineNum col msg
+                            let entry = $"[%s{code}] %s{file}:%s{lineNum}:%s{col} - %s{msg}"
                             if severity = "error" then errors.Add(entry)
                             else warnings.Add(entry)
                     
@@ -79,7 +79,7 @@ module FSharpTools =
                                         warnings.Count (String.concat "\n" warnings)
                         return Result.Ok result
             with ex ->
-                return Result.Error (sprintf "Compilation failed: %s" ex.Message)
+                return Result.Error $"Compilation failed: %s{ex.Message}"
         }
 
     /// Runs F# Interactive (fsi) on a script file or expression
@@ -103,13 +103,13 @@ module FSharpTools =
                     match tempFile with
                     | Some p -> Path.GetFullPath(p)
                     | None ->
-                        let temp = Path.Combine(Path.GetTempPath(), sprintf "tars_eval_%d.fsx" (DateTime.Now.Ticks))
+                        let temp = Path.Combine(Path.GetTempPath(), $"tars_eval_%d{DateTime.Now.Ticks}.fsx")
                         File.WriteAllText(temp, code.Value)
                         temp
                 
                 let psi = ProcessStartInfo()
                 psi.FileName <- "dotnet"
-                psi.Arguments <- sprintf "fsi \"%s\"" scriptPath
+                psi.Arguments <- $"fsi \"%s{scriptPath}\""
                 psi.UseShellExecute <- false
                 psi.RedirectStandardOutput <- true
                 psi.RedirectStandardError <- true
@@ -125,11 +125,11 @@ module FSharpTools =
                     try File.Delete(scriptPath) with _ -> ()
                 
                 if proc.ExitCode = 0 then
-                    return Result.Ok (sprintf "✅ EVAL SUCCEEDED\n\nOutput:\n%s" stdout)
+                    return Result.Ok $"✅ EVAL SUCCEEDED\n\nOutput:\n%s{stdout}"
                 else
-                    return Result.Ok (sprintf "❌ EVAL FAILED\n\nError:\n%s\n\nOutput:\n%s" stderr stdout)
+                    return Result.Ok $"❌ EVAL FAILED\n\nError:\n%s{stderr}\n\nOutput:\n%s{stdout}"
             with ex ->
-                return Result.Error (sprintf "F# evaluation failed: %s" ex.Message)
+                return Result.Error $"F# evaluation failed: %s{ex.Message}"
         }
 
     // ============================================================================
@@ -237,9 +237,9 @@ module FSharpTools =
                     "2. Use sprintf instead:\n" +
                     "   `sprintf \"Result: %s\" (complex |> expression)`"
 
-                | _ -> 
-                    sprintf "**%s: Unknown Error Code**\n\nSearch for this error at:\n- https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/compiler-messages/%s\n- https://fsharp.org" code (code.ToLowerInvariant())
-            
+                | _ ->
+                    $"**%s{code}: Unknown Error Code**\n\nSearch for this error at:\n- https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/compiler-messages/%s{code.ToLowerInvariant()}\n- https://fsharp.org"
+
             return Result.Ok explanation
         }
 
@@ -290,12 +290,12 @@ module FSharpTools =
                         "3. Use consistent 4-space indentation"
                     
                     | _ ->
-                        sprintf "**Error %s**\n\nReview the error message and check F# documentation." errorCode
-                
-                let result = sprintf "**Error:** %s\n\n%s\n\n**Original Code:**\n```fsharp\n%s\n```" errorMsg suggestion code
+                        $"**Error %s{errorCode}**\n\nReview the error message and check F# documentation."
+
+                let result = $"**Error:** %s{errorMsg}\n\n%s{suggestion}\n\n**Original Code:**\n```fsharp\n%s{code}\n```"
                 return Result.Ok result
             with ex ->
-                return Result.Error (sprintf "Fix suggestion failed: %s" ex.Message)
+                return Result.Error $"Fix suggestion failed: %s{ex.Message}"
         }
 
     // ============================================================================
@@ -313,7 +313,7 @@ module FSharpTools =
                 let fullPath = Path.GetFullPath(path)
                 
                 if not (File.Exists(fullPath)) then
-                    return Result.Error (sprintf "File not found: %s" fullPath)
+                    return Result.Error $"File not found: %s{fullPath}"
                 else
                     let lines = File.ReadAllLines(fullPath)
                     
@@ -335,19 +335,19 @@ module FSharpTools =
                         let mOpen = openPattern.Match(line)
                         
                         if mModule.Success then
-                            modules.Add(sprintf "line %d: module %s" (i+1) mModule.Groups.[2].Value)
+                            modules.Add $"line %d{i+1}: module %s{mModule.Groups.[2].Value}"
                         elif mType.Success then
-                            types.Add(sprintf "line %d: type %s" (i+1) mType.Groups.[1].Value)
+                            types.Add $"line %d{i+1}: type %s{mType.Groups.[1].Value}"
                         elif mLet.Success && not (line.TrimStart().StartsWith("//")) then
                             // Only top-level lets (no leading spaces beyond module indentation)
                             if line.Length - line.TrimStart().Length <= 4 then
-                                functions.Add(sprintf "line %d: let %s" (i+1) mLet.Groups.[1].Value)
+                                functions.Add $"line %d{i+1}: let %s{mLet.Groups.[1].Value}"
                         elif mOpen.Success then
                             opens.Add(mOpen.Groups.[1].Value)
                     
-                    let result = 
-                        sprintf "## File Structure: %s\n\n" (Path.GetFileName(fullPath)) +
-                        sprintf "**Total Lines:** %d\n\n" lines.Length +
+                    let result =
+                        $"## File Structure: %s{Path.GetFileName(fullPath)}\n\n" +
+                        $"**Total Lines:** %d{lines.Length}\n\n" +
                         sprintf "**Imports (%d):**\n%s\n\n" opens.Count (opens |> Seq.map (sprintf "- %s") |> String.concat "\n") +
                         sprintf "**Modules (%d):**\n%s\n\n" modules.Count (String.concat "\n" modules) +
                         sprintf "**Types (%d):**\n%s\n\n" types.Count (String.concat "\n" types) +
@@ -355,7 +355,7 @@ module FSharpTools =
                     
                     return Result.Ok result
             with ex ->
-                return Result.Error (sprintf "Structure analysis failed: %s" ex.Message)
+                return Result.Error $"Structure analysis failed: %s{ex.Message}"
         }
 
     /// Checks if an F# project file has correct file ordering
@@ -369,7 +369,7 @@ module FSharpTools =
                 let fullPath = Path.GetFullPath(path)
                 
                 if not (File.Exists(fullPath)) then
-                    return Result.Error (sprintf "Project file not found: %s" fullPath)
+                    return Result.Error $"Project file not found: %s{fullPath}"
                 else
                     let projContent = File.ReadAllText(fullPath)
                     let projDir = Path.GetDirectoryName(fullPath)
@@ -414,21 +414,21 @@ module FSharpTools =
                             for (laterIdx, laterFile, laterModule, _) in fileRefs do
                                 if laterIdx > idx && laterModule.IsSome then
                                     if openRef.StartsWith(laterModule.Value) || laterModule.Value.EndsWith(openRef) then
-                                        issues.Add(sprintf "⚠️ %s (line %d) opens '%s', but '%s' (line %d) defines it - move '%s' earlier" 
-                                            file (idx+1) openRef laterFile (laterIdx+1) laterFile)
-                    
+                                        issues.Add $"⚠️ %s{file} (line %d{idx+1}) opens '%s{openRef}', but '%s{laterFile}' (line %d{laterIdx+1}) defines it - move '%s{laterFile}' earlier"
+
                     let result = 
                         if issues.Count = 0 then
-                            sprintf "✅ File order looks correct\n\n**Files (%d):**\n%s" files.Length (files |> List.mapi (fun i f -> sprintf "%d. %s" (i+1) f) |> String.concat "\n")
+                            sprintf "✅ File order looks correct\n\n**Files (%d):**\n%s" files.Length (files |> List.mapi (fun i f ->
+                                $"%d{i+1}. %s{f}") |> String.concat "\n")
                         else
                             sprintf "⚠️ Potential ordering issues:\n\n%s\n\n**Files (%d):**\n%s" 
                                 (String.concat "\n" issues) 
                                 files.Length 
-                                (files |> List.mapi (fun i f -> sprintf "%d. %s" (i+1) f) |> String.concat "\n")
+                                (files |> List.mapi (fun i f -> $"%d{i+1}. %s{f}") |> String.concat "\n")
                     
                     return Result.Ok result
             with ex ->
-                return Result.Error (sprintf "File order check failed: %s" ex.Message)
+                return Result.Error $"File order check failed: %s{ex.Message}"
         }
 
     // ============================================================================
@@ -451,7 +451,7 @@ module FSharpTools =
                     with _ -> Set.ofList ["bind"; "return"]
                 
                 let sb = StringBuilder()
-                sb.AppendLine(sprintf "type %sBuilder() =" name) |> ignore
+                sb.AppendLine $"type %s{name}Builder() =" |> ignore
                 
                 if operations.Contains("bind") then
                     sb.AppendLine("    member _.Bind(x, f) = ") |> ignore
@@ -514,17 +514,17 @@ module FSharpTools =
                     sb.AppendLine() |> ignore
                 
                 sb.AppendLine() |> ignore
-                sb.AppendLine(sprintf "let %s = %sBuilder()" (name.ToLowerInvariant()) name) |> ignore
+                sb.AppendLine $"let %s{name.ToLowerInvariant()} = %s{name}Builder()" |> ignore
                 sb.AppendLine() |> ignore
                 sb.AppendLine("// Usage:") |> ignore
-                sb.AppendLine(sprintf "// %s {" (name.ToLowerInvariant())) |> ignore
+                sb.AppendLine $"// %s{name.ToLowerInvariant()} {{" |> ignore
                 sb.AppendLine("//     let! x = someValue") |> ignore
                 sb.AppendLine("//     return x + 1") |> ignore
                 sb.AppendLine("// }") |> ignore
                 
                 return Result.Ok (sb.ToString())
             with ex ->
-                return Result.Error (sprintf "CE template generation failed: %s" ex.Message)
+                return Result.Error $"CE template generation failed: %s{ex.Message}"
         }
 
     /// Validates F# syntax without full compilation
@@ -543,18 +543,18 @@ module FSharpTools =
                 let openParens = code |> Seq.filter ((=) '(') |> Seq.length
                 let closeParens = code |> Seq.filter ((=) ')') |> Seq.length
                 if openParens <> closeParens then
-                    issues.Add(sprintf "Unbalanced parentheses: %d '(' vs %d ')'" openParens closeParens)
-                
+                    issues.Add $"Unbalanced parentheses: %d{openParens} '(' vs %d{closeParens} ')'"
+
                 let openBrackets = code |> Seq.filter ((=) '[') |> Seq.length
                 let closeBrackets = code |> Seq.filter ((=) ']') |> Seq.length
                 if openBrackets <> closeBrackets then
-                    issues.Add(sprintf "Unbalanced brackets: %d '[' vs %d ']'" openBrackets closeBrackets)
-                
+                    issues.Add $"Unbalanced brackets: %d{openBrackets} '[' vs %d{closeBrackets} ']'"
+
                 let openBraces = code |> Seq.filter ((=) '{') |> Seq.length
                 let closeBraces = code |> Seq.filter ((=) '}') |> Seq.length
                 if openBraces <> closeBraces then
-                    issues.Add(sprintf "Unbalanced braces: %d '{' vs %d '}'" openBraces closeBraces)
-                
+                    issues.Add $"Unbalanced braces: %d{openBraces} '{{' vs %d{closeBraces} '}}'"
+
                 // Check for common F# syntax issues
                 if code.Contains("\t") then
                     issues.Add("Warning: Code contains tabs - F# prefers spaces for indentation")
@@ -570,5 +570,5 @@ module FSharpTools =
                 else
                     return Result.Ok (sprintf "⚠️ Syntax issues found:\n%s" (issues |> Seq.map (sprintf "- %s") |> String.concat "\n"))
             with ex ->
-                return Result.Error (sprintf "Syntax check failed: %s" ex.Message)
+                return Result.Error $"Syntax check failed: %s{ex.Message}"
         }

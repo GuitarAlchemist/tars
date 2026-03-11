@@ -21,6 +21,7 @@ open Tars.Knowledge
 
 type EvolveOptions =
     { MaxIterations: int
+      LoopCount: int
       Quiet: bool
       DemoMode: bool
       Verbose: bool
@@ -30,7 +31,8 @@ type EvolveOptions =
       DisableGraphiti: bool
       PlanPath: string option
       Focus: string option
-      ResearchEnhanced: bool }
+      ResearchEnhanced: bool
+      SelfImprovement: bool }
 
 let run (logger: ILogger) (options: EvolveOptions) =
     task {
@@ -299,7 +301,11 @@ let run (logger: ILogger) (options: EvolveOptions) =
                         Some model
                     else
                         None
-                DefaultContextWindow = if config.Llm.ContextWindow > 0 then Some config.Llm.ContextWindow else None
+                DefaultContextWindow =
+                    if config.Llm.ContextWindow > 0 then
+                        Some config.Llm.ContextWindow
+                    else
+                        None
                 DefaultTemperature = None }
 
         let svcCfg: LlmServiceConfig = { Routing = routingCfg }
@@ -479,7 +485,10 @@ let run (logger: ILogger) (options: EvolveOptions) =
                 if options.DemoMode then
                     None
                 else
-                    Some(Tars.Cortex.EpistemicGovernor(llmService, Some knowledgeGraph, Some budget) :> IEpistemicGovernor)
+                    Some(
+                        Tars.Cortex.EpistemicGovernor(llmService, Some knowledgeGraph, Some budget)
+                        :> IEpistemicGovernor
+                    )
 
             // Initialize Output Guard
             let outputGuard = OutputGuard.defaultGuard
@@ -597,17 +606,19 @@ let run (logger: ILogger) (options: EvolveOptions) =
                     | false -> DemoVisualization.showSemanticMessage
                   Focus = options.Focus
                   ToolRegistry = Some toolRegistry
-                  ResearchEnhanced = options.ResearchEnhanced }
+                  ResearchEnhanced = options.ResearchEnhanced
+                  SelfImprovement = options.SelfImprovement }
 
             // Load Plan if provided
             let initialTasks =
-                let bootstrapTasks = 
+                let bootstrapTasks =
                     match options.Focus with
                     | Some f when f.Contains("analysis tools") ->
                         [ { Tars.Evolution.TaskDefinition.Id = Guid.NewGuid()
                             DifficultyLevel = 1
-                            Goal = "Create a new dynamic tool named 'list_fsharp_files' that lists all .fs files in a specified directory using System.IO.Directory.GetFiles. Register it using create_dynamic_tool."
-                            Constraints = ["Use create_dynamic_tool"; "Include proper error handling"]
+                            Goal =
+                              "Create a new dynamic tool named 'list_fsharp_files' that lists all .fs files in a specified directory using System.IO.Directory.GetFiles. Register it using create_dynamic_tool."
+                            Constraints = [ "Use create_dynamic_tool"; "Include proper error handling" ]
                             ValidationCriteria = "Tool is successfully registered and shows up in list_extensions"
                             Timeout = TimeSpan.FromMinutes(5.0)
                             Score = 1.0 } ]
@@ -618,121 +629,144 @@ let run (logger: ILogger) (options: EvolveOptions) =
                     if File.Exists path then
                         try
                             let json = File.ReadAllText(path)
-                            let options = System.Text.Json.JsonSerializerOptions(PropertyNameCaseInsensitive = true)
-                            let rawTasks = System.Text.Json.JsonSerializer.Deserialize<{| Instructions: string |}[]>(json, options)
-                            let tasks = 
+
+                            let options =
+                                System.Text.Json.JsonSerializerOptions(PropertyNameCaseInsensitive = true)
+
+                            let rawTasks =
+                                System.Text.Json.JsonSerializer.Deserialize<{| Instructions: string |}[]>(json, options)
+
+                            let tasks =
                                 rawTasks
-                                |> Array.map (fun t -> 
-                                     { Tars.Evolution.TaskDefinition.Id = Guid.NewGuid()
-                                       DifficultyLevel = 1
-                                       Goal = if String.IsNullOrWhiteSpace(t.Instructions) then "Unknown" else t.Instructions
-                                       Constraints = ["Use provided tools only"]
-                                       ValidationCriteria = "Task completed successfully"
-                                       Timeout = TimeSpan.FromMinutes(10.0)
-                                       Score = 1.0 })
+                                |> Array.map (fun t ->
+                                    { Tars.Evolution.TaskDefinition.Id = Guid.NewGuid()
+                                      DifficultyLevel = 1
+                                      Goal =
+                                        if String.IsNullOrWhiteSpace(t.Instructions) then
+                                            "Unknown"
+                                        else
+                                            t.Instructions
+                                      Constraints = [ "Use provided tools only" ]
+                                      ValidationCriteria = "Task completed successfully"
+                                      Timeout = TimeSpan.FromMinutes(10.0)
+                                      Score = 1.0 })
                                 |> Array.toList
+
                             bootstrapTasks @ tasks
                         with ex ->
-                             logger.Error(ex, "Failed to load plan")
-                             bootstrapTasks
+                            logger.Error(ex, "Failed to load plan")
+                            bootstrapTasks
                     else
-                         logger.Warning("Plan file not found: {Path}", path)
-                         bootstrapTasks
+                        logger.Warning("Plan file not found: {Path}", path)
+                        bootstrapTasks
                 | None -> bootstrapTasks
 
-            let mutable currentState = 
-                { evoState with TaskQueue = initialTasks }
+            let mutable currentState =
+                { evoState with
+                    TaskQueue = initialTasks }
 
-            for i in 1 .. options.MaxIterations do
-                if not options.Quiet then
-                    Evolution.printGeneration
-                        currentState.Generation
-                        currentState.CompletedTasks.Length
-                        (Some options.MaxIterations)
+            for cycle in 1 .. options.LoopCount do
+                if options.LoopCount > 1 && not options.Quiet then
+                    RichOutput.info $"=== Evolution Cycle {cycle}/{options.LoopCount} ==="
 
-                let! nextState =
+                if cycle > 1 then
+                    // Reset generation but carry forward CompletedTasks
+                    currentState <-
+                        { currentState with
+                            Generation = 0
+                            CurrentTask = None
+                            TaskQueue = initialTasks }
+
+                for i in 1 .. options.MaxIterations do
+                    if not options.Quiet then
+                        Evolution.printGeneration
+                            currentState.Generation
+                            currentState.CompletedTasks.Length
+                            (Some options.MaxIterations)
+
+                    let! nextState =
+                        try
+                            Engine.step evoCtx currentState
+                        with
+                        | :? System.Threading.Tasks.TaskCanceledException as ex ->
+                            logger.Warning("Evolution step timed out: {Message}", ex.Message)
+
+                            if not options.Quiet then
+                                TaskDisplay.printFailure
+                                    $"TIMEOUT: Task took too long, skipping to next task..."
+                                    TimeSpan.Zero
+
+                            let failedResult: TaskResult =
+                                { TaskId =
+                                    currentState.CurrentTask
+                                    |> Option.map (fun t -> t.Id)
+                                    |> Option.defaultValue (Guid.NewGuid())
+                                  TaskGoal =
+                                    currentState.CurrentTask
+                                    |> Option.map (fun t -> t.Goal)
+                                    |> Option.defaultValue "Unknown"
+                                  ExecutorId = currentState.ExecutorAgentId
+                                  Success = false
+                                  Output = $"Task timed out: %s{ex.Message}"
+                                  ExecutionTrace = [ "TIMEOUT" ]
+                                  Duration = TimeSpan.FromSeconds(120.0)
+                                  Evaluation = None }
+
+                            Task.FromResult
+                                { currentState with
+                                    CompletedTasks = failedResult :: currentState.CompletedTasks
+                                    CurrentTask = None }
+                        | ex ->
+                            logger.Error(ex, "Evolution Step Failed: {Message}", ex.Message)
+
+                            if not options.Quiet then
+                                TaskDisplay.printFailure $"ERROR: %s{ex.Message}" TimeSpan.Zero
+
+                            let failedResult: TaskResult =
+                                { TaskId =
+                                    currentState.CurrentTask
+                                    |> Option.map (fun t -> t.Id)
+                                    |> Option.defaultValue (Guid.NewGuid())
+                                  TaskGoal =
+                                    currentState.CurrentTask
+                                    |> Option.map (fun t -> t.Goal)
+                                    |> Option.defaultValue "Unknown"
+                                  ExecutorId = currentState.ExecutorAgentId
+                                  Success = false
+                                  Output = $"Error: %s{ex.Message}"
+                                  ExecutionTrace = [ ex.GetType().Name ]
+                                  Duration = TimeSpan.Zero
+                                  Evaluation = None }
+
+                            Task.FromResult
+                                { currentState with
+                                    CompletedTasks = failedResult :: currentState.CompletedTasks
+                                    CurrentTask = None }
+
+                    currentState <- nextState
+
                     try
-                        Engine.step evoCtx currentState
-                    with
-                    | :? System.Threading.Tasks.TaskCanceledException as ex ->
-                        logger.Warning("Evolution step timed out: {Message}", ex.Message)
+                        knowledgeGraph.Save(knowledgeGraphPath)
+                    with ex ->
+                        logger.Warning("Failed to persist knowledge graph: {Message}", ex.Message)
+
+                    match currentState.CurrentTask with
+                    | Some task ->
+                        if not options.Quiet then
+                            TaskDisplay.printTask task.Goal task.Constraints
+                            Evolution.printThinking "Executor"
+                    | None when not currentState.CompletedTasks.IsEmpty ->
+                        let lastResult = currentState.CompletedTasks.Head
 
                         if not options.Quiet then
-                            TaskDisplay.printFailure
-                                $"TIMEOUT: Task took too long, skipping to next task..."
-                                TimeSpan.Zero
+                            if lastResult.Success then
+                                TaskDisplay.printSuccess lastResult.Output lastResult.Duration true
+                            else
+                                TaskDisplay.printFailure lastResult.Output lastResult.Duration
 
-                        let failedResult: TaskResult =
-                            { TaskId =
-                                currentState.CurrentTask
-                                |> Option.map (fun t -> t.Id)
-                                |> Option.defaultValue (Guid.NewGuid())
-                              TaskGoal =
-                                currentState.CurrentTask
-                                |> Option.map (fun t -> t.Goal)
-                                |> Option.defaultValue "Unknown"
-                              ExecutorId = currentState.ExecutorAgentId
-                              Success = false
-                              Output = $"Task timed out: %s{ex.Message}"
-                              ExecutionTrace = [ "TIMEOUT" ]
-                              Duration = TimeSpan.FromSeconds(120.0)
-                              Evaluation = None }
+                    | None -> ()
 
-                        Task.FromResult
-                            { currentState with
-                                CompletedTasks = failedResult :: currentState.CompletedTasks
-                                CurrentTask = None }
-                    | ex ->
-                        logger.Error(ex, "Evolution Step Failed: {Message}", ex.Message)
-
-                        if not options.Quiet then
-                            TaskDisplay.printFailure $"ERROR: %s{ex.Message}" TimeSpan.Zero
-
-                        let failedResult: TaskResult =
-                            { TaskId =
-                                currentState.CurrentTask
-                                |> Option.map (fun t -> t.Id)
-                                |> Option.defaultValue (Guid.NewGuid())
-                              TaskGoal =
-                                currentState.CurrentTask
-                                |> Option.map (fun t -> t.Goal)
-                                |> Option.defaultValue "Unknown"
-                              ExecutorId = currentState.ExecutorAgentId
-                              Success = false
-                              Output = $"Error: %s{ex.Message}"
-                              ExecutionTrace = [ ex.GetType().Name ]
-                              Duration = TimeSpan.Zero
-                              Evaluation = None }
-
-                        Task.FromResult
-                            { currentState with
-                                CompletedTasks = failedResult :: currentState.CompletedTasks
-                                CurrentTask = None }
-
-                currentState <- nextState
-
-                try
-                    knowledgeGraph.Save(knowledgeGraphPath)
-                with ex ->
-                    logger.Warning("Failed to persist knowledge graph: {Message}", ex.Message)
-
-                match currentState.CurrentTask with
-                | Some task ->
-                    if not options.Quiet then
-                        TaskDisplay.printTask task.Goal task.Constraints
-                        Evolution.printThinking "Executor"
-                | None when not currentState.CompletedTasks.IsEmpty ->
-                    let lastResult = currentState.CompletedTasks.Head
-
-                    if not options.Quiet then
-                        if lastResult.Success then
-                            TaskDisplay.printSuccess lastResult.Output lastResult.Duration true
-                        else
-                            TaskDisplay.printFailure lastResult.Output lastResult.Duration
-
-                | None -> ()
-
-                do! Task.Delay(500)
+                    do! Task.Delay(500)
 
             if not options.Quiet then
                 let consumedTokens =

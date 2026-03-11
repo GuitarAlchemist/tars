@@ -8,6 +8,15 @@
 
   <ItemGroup>
     <Compile Include="Protocol.fs" />
+    <Compile Include="CurriculumTypes.fs" />
+    <Compile Include="PromotionTypes.fs" />
+    <Compile Include="GrammarGovernor.fs" />
+    <Compile Include="RoundtripValidation.fs" />
+    <Compile Include="PromotionPipeline.fs" />
+    <Compile Include="StructuredOutput.fs" />
+    <Compile Include="ProblemIngestor.fs" />
+    <Compile Include="ResearchEnhancedCurriculum.fs" />
+    <Compile Include="CurriculumManager.fs" />
     <Compile Include="Evaluation.fs" />
     <Compile Include="LedgerIngestion.fs" />
     <Compile Include="Reflection.fs" />
@@ -15,7 +24,12 @@
     <Compile Include="DemoVisualization.fs" />
     <Compile Include="TaskPrioritization.fs" />
     <Compile Include="SpeechActBridge.fs" />
-    <Compile Include="NeuroSymbolicIntegration.fs" />
+    <Compile Include="SymbolicReflector.fs" />
+    <Compile Include="PatternCompiler.fs" />
+    <Compile Include="PatternLibrary.fs" />
+    <Compile Include="SelfImprovement.fs" />
+    <Compile Include="RetroactionLoop.fs" />
+    <Compile Include="McpPatternResources.fs" />
     <Compile Include="Engine.fs" />
   </ItemGroup>
 
@@ -28,6 +42,7 @@
     <ProjectReference Include="..\Tars.Metascript\Tars.Metascript.fsproj" />
     <ProjectReference Include="..\Tars.Knowledge\Tars.Knowledge.fsproj" />
     <ProjectReference Include="..\Tars.Symbolic\Tars.Symbolic.fsproj" />
+    <ProjectReference Include="..\Tars.Tools\Tars.Tools.fsproj" />
   </ItemGroup>
 
 </Project>

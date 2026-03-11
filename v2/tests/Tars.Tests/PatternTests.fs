@@ -5,14 +5,10 @@ open System.Threading
 open Xunit
 open Xunit.Abstractions
 open Tars.Core
-open Tars.Cortex
 open Tars.Cortex.Patterns
 open Tars.Llm
-open Tars.Llm.LlmService
 open System.IO
-open System.Threading
 open System.Threading.Tasks
-open Tars.Core.Knowledge
 
 type QueueLlm(responses: string list, recorder: System.Collections.Generic.List<string>) =
     let mutable queue = responses
@@ -215,6 +211,7 @@ type PatternTests(output: ITestOutputHelper) =
           Epistemic = None
           SemanticMemory = None
           KnowledgeGraph = None
+          SymbolicReflector = None
           CapabilityStore = None
           Audit = None
           CancellationToken = CancellationToken.None }
@@ -257,10 +254,10 @@ type PatternTests(output: ITestOutputHelper) =
 
             match result with
             | Success value ->
-                output.WriteLine(sprintf "Output: %s" value)
+                output.WriteLine $"Output: %s{value}"
                 Assert.Equal("start -> step1 -> step2 -> step3", value)
             | PartialSuccess(value, _) -> Assert.Equal("start -> step1 -> step2 -> step3", value)
-            | Failure errors -> Assert.Fail(sprintf "Unexpected failure: %A" errors)
+            | Failure errors -> Assert.Fail $"Unexpected failure: %A{errors}"
         }
         |> Async.RunSynchronously
 
@@ -352,8 +349,7 @@ type PatternTests(output: ITestOutputHelper) =
                   Version = "1.0.0"
                   ParentVersion = None
                   CreatedAt = DateTime.UtcNow
-                  Execute = fun _ -> async { return Result.Ok "ok" }
-                  ThingDescription = None }
+                  Execute = fun _ -> async { return Result.Ok "ok" } }
 
             toolRegistry.Register(writeTool)
 
@@ -388,6 +384,7 @@ type PatternTests(output: ITestOutputHelper) =
                   Epistemic = None
                   SemanticMemory = Some semMem
                   KnowledgeGraph = Some kg
+                  SymbolicReflector = None
                   CapabilityStore = None
                   Audit = None
                   CancellationToken = CancellationToken.None }
@@ -459,7 +456,7 @@ type PatternTests(output: ITestOutputHelper) =
 
             // Executor echoes the step
             let executor step : AgentWorkflow<string> =
-                fun _ -> async { return Success(sprintf "Executed: %s" step) }
+                fun _ -> async { return Success $"Executed: %s{step}" }
 
             let workflow = planAndExecute planner executor
             let! result = workflow ctx
@@ -471,7 +468,7 @@ type PatternTests(output: ITestOutputHelper) =
                 Assert.Equal("Executed: Step 2", results.[1])
                 Assert.Equal("Executed: Step 3", results.[2])
             | PartialSuccess(results, _) -> Assert.Equal(3, results.Length)
-            | Failure errors -> Assert.Fail(sprintf "Unexpected failure: %A" errors)
+            | Failure errors -> Assert.Fail $"Unexpected failure: %A{errors}"
         }
         |> Async.RunSynchronously
 
@@ -489,7 +486,7 @@ type PatternTests(output: ITestOutputHelper) =
                         if step = "Step 2" then
                             return Failure [ PartialFailure.Error "Step 2 failed" ]
                         else
-                            return Success(sprintf "Executed: %s" step)
+                            return Success $"Executed: %s{step}"
                     }
 
             let workflow = planAndExecute planner executor
@@ -546,11 +543,11 @@ type PatternTests(output: ITestOutputHelper) =
 
             match result with
             | PartialSuccess(answer, warnings) ->
-                output.WriteLine(sprintf "Warnings: %A" warnings)
+                output.WriteLine $"Warnings: %A{warnings}"
                 Assert.False(String.IsNullOrWhiteSpace(answer))
                 Assert.True(warnings.Length >= 1, "Should have at least one warning about max steps")
             | Failure errors ->
-                output.WriteLine(sprintf "Errors: %A" errors)
+                output.WriteLine $"Errors: %A{errors}"
                 Assert.True(errors.Length >= 1, "Should have at least one error about max steps")
             | _ -> Assert.Fail("Expected partial success after max steps")
         }
@@ -596,10 +593,10 @@ type PatternTests(output: ITestOutputHelper) =
 
             match result with
             | Success answer ->
-                output.WriteLine(sprintf "Answer: %s" answer)
+                output.WriteLine $"Answer: %s{answer}"
                 Assert.Equal("The answer is 4", answer)
             | PartialSuccess(answer, _) -> Assert.Equal("The answer is 4", answer)
-            | Failure errors -> Assert.Fail(sprintf "Unexpected failure: %A" errors)
+            | Failure errors -> Assert.Fail $"Unexpected failure: %A{errors}"
         }
         |> Async.RunSynchronously
 
@@ -648,8 +645,7 @@ type PatternTests(output: ITestOutputHelper) =
                   Version = "1.0.0"
                   ParentVersion = None
                   CreatedAt = DateTime.UtcNow
-                  Execute = fun _ -> async { return Result.Ok "4" }
-                  ThingDescription = None }
+                  Execute = fun _ -> async { return Result.Ok "4" } }
 
             let mockTools =
                 { new IToolRegistry with
@@ -665,10 +661,10 @@ type PatternTests(output: ITestOutputHelper) =
 
             match result with
             | Success answer ->
-                output.WriteLine(sprintf "Answer: %s" answer)
+                output.WriteLine $"Answer: %s{answer}"
                 Assert.Equal("4", answer)
             | PartialSuccess(answer, _) -> Assert.Equal("4", answer)
-            | Failure errors -> Assert.Fail(sprintf "Unexpected failure: %A" errors)
+            | Failure errors -> Assert.Fail $"Unexpected failure: %A{errors}"
         }
         |> Async.RunSynchronously
 
@@ -694,7 +690,7 @@ type PatternTests(output: ITestOutputHelper) =
             match result with
             | Success answer -> Assert.Equal("Final answer", answer)
             | PartialSuccess(answer, _) -> Assert.Equal("Final answer", answer)
-            | Failure errors -> Assert.Fail(sprintf "Unexpected failure: %A" errors)
+            | Failure errors -> Assert.Fail $"Unexpected failure: %A{errors}"
         }
         |> Async.RunSynchronously
 
@@ -755,7 +751,7 @@ type PatternTests(output: ITestOutputHelper) =
             match result with
             | Success answer -> Assert.Equal("Final answer", answer)
             | PartialSuccess(answer, _) -> Assert.Equal("Final answer", answer)
-            | Failure errors -> Assert.Fail(sprintf "Unexpected failure: %A" errors)
+            | Failure errors -> Assert.Fail $"Unexpected failure: %A{errors}"
         }
         |> Async.RunSynchronously
 

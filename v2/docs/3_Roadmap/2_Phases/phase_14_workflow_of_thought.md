@@ -81,13 +81,20 @@ TARS should adopt **Workflow-of-Thought as the execution spine**, backed by a **
 
 **What it is**: An operational pattern that models reasoning as a directed graph of typed nodes.
 
-**Node Types**:
+**Node Types (Minimalist)**:
 ```fsharp
+type WoTNodeKind =
+    | Reason    // Think / LLM
+    | Tool      // Act / Side-effect
+    | Validate  // Symbolic check
+    | Memory    // Store / Retrieve
+    | Control   // Loop / Branch
+
 type WoTNode =
-    | ThoughtNode of reasoning: string * confidence: float
-    | KnowledgeNode of query: SparqlQuery
-    | PolicyNode of constraint: Constraint * justification: string
-    | ToolNode of tool: ITool * args: Map<string, obj>
+    { Id: Guid
+      Kind: WoTNodeKind
+      Payload: JsonElement // Flexible content
+      Metadata: NodeMetadata }
 ```
 
 **Each node produces**:
@@ -148,11 +155,11 @@ failed_due_to]→ (policy_alignment)
 
 **Deliverables**:
 1. ✅ WoT DSL (`.wot.trsx` files)
-2. ✅ WoT Engine (execute workflows)
-3. ✅ Apache Jena Fuseki (Docker triple store)
-4. ✅ SPARQL client (F# wrapper)
-5. ✅ Memory deltas (triples per run)
-6. ✅ Audit trails (JSON traces)
+2. 🔄 **Pattern Compiler** (CoT -> WoT Graph)
+3. ✅ WoT Engine (execute workflows)
+4. ✅ Apache Jena Fuseki (Docker triple store) used as **Append-Only Log** (Phase C.1)
+5. ✅ Audit trails (JSON Traces)
+6. ✅ Canonical Golden Traces (for diffing)
 
 **Commands**:
 ```bash
@@ -291,7 +298,6 @@ Where:
 | **Phase 9: Multi-Backend Storage** | Triple store becomes 5th backend for semantic facts |
 | **Phase 10: 3D Viz** | Visualize KG + WoT execution traces |
 | **Phase 11: Grounding** | KG provides grounding facts for ToG |
-| **Phase 12: Web of Things** | WoT coordinates IoT agent workflows |
 | **Phase 13: Neuro-Symbolic** | Symbolic invariants → KG constraints |
 
 ---

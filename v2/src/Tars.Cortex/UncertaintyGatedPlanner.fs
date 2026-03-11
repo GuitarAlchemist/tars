@@ -6,7 +6,6 @@ namespace Tars.Cortex
 open System
 open System.Threading.Tasks
 open Tars.Llm
-open Tars.Llm.LlmService
 
 /// Confidence level for a plan step
 type ConfidenceLevel =

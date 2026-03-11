@@ -21,6 +21,7 @@
 | Contradictions | Learn (pain signals) |
 
 **Reference:** [Architectural Vision](../../1_Vision/architectural_vision.md)
+**Strategic Validation:** [Review & feedback (Dec 2025)](strategic_validation_dec2025.md)
 
 ---
 
@@ -676,7 +677,7 @@ Extended with Workflow-of-Thought (WoT) for production enterprise workflows.
 * [x] Extended WoT types (`WoTNode`, `GoTEdge`, `WoTNodeType`)
 * [x] Policy status tracking (`PolicyStatus`)
 * [x] Router decision types for controller
-* [ ] **8.4.1** Implement WoT Controller with Planner, Generator, Critic, Router, Distiller
+* [x] **8.4.1** Implement WoT Controller with Planner, Generator, Critic, Router, Distiller
 * [ ] **8.4.2** Policy node integration with Tars.Security
 * [ ] **8.4.3** Memory node integration with knowledge ledger
 * [ ] **8.4.4** Human-in-the-loop escalation via CLI prompts
@@ -935,64 +936,6 @@ Simple "Let's think step by step" enhancement.
 
 ---
 
-### Phase 12: Web of Things (WoT) Integration
-
-**Goal**: Enable TARS to discover, understand, and interact with IoT devices using W3C WoT Thing Descriptions.
-
-**Status**: 🔜 Planned (Q1 2025)
-
-**Reference**: https://w3c.github.io/wot-thing-description/
-
-WoT Thing Descriptions provide a standardized way to describe IoT device capabilities, 
-enabling TARS to reason about and interact with physical systems.
-
-#### 12.1 Thing Description Parser
-
-**Priority**: High
-**Files**: `Tars.Connectors/WoT/ThingDescriptionParser.fs` (new)
-
-* [ ] **12.1.1** Parse JSON-LD Thing Description format
-* [ ] **12.1.2** Extract affordances (properties, actions, events)
-* [ ] **12.1.3** Map TD security definitions to credential vault
-* [ ] **12.1.4** Support TD templates and composition
-
-#### 12.2 Thing Discovery
-
-**Priority**: Medium
-**Files**: `Tars.Connectors/WoT/ThingDiscovery.fs` (new)
-
-* [ ] **12.2.1** Implement mDNS/DNS-SD discovery
-* [ ] **12.2.2** Parse directory links from TDs
-* [ ] **12.2.3** Integrate with knowledge graph (discovered things as entities)
-* [ ] **12.2.4** CLI command `tars wot discover`
-
-#### 12.3 GoT + WoT Integration
-
-**Priority**: Medium
-**Reference**: Combine Graph-of-Thoughts with WoT for intelligent IoT orchestration
-
-* [ ] **12.3.1** Inject Thing capabilities into GoT reasoning context
-* [ ] **12.3.2** Enable GoT to plan multi-device operations
-* [ ] **12.3.3** Use WoT actions as GoT execution primitives
-* [ ] **12.3.4** Store device interaction history in knowledge ledger
-
-#### 12.4 Protocol Bindings
-
-**Priority**: Low
-**Files**: `Tars.Connectors/WoT/Bindings/` (new)
-
-* [ ] **12.4.1** HTTP/HTTPS binding (most common)
-* [ ] **12.4.2** MQTT binding for pub/sub devices
-* [ ] **12.4.3** CoAP binding for constrained devices
-* [ ] **12.4.4** WebSocket binding for real-time updates
-
-**Acceptance Criteria:**
-
-1. TARS can parse and understand Thing Descriptions
-2. `tars wot discover` finds local IoT devices
-3. GoT can reason about multi-device scenarios
-4. Device interactions are logged to knowledge ledger
-
 ---
 
 ## 🚀 First Coding Session Checklist
@@ -1042,6 +985,36 @@ Test summary: total: 30, failed: 0, succeeded: 30, skipped: 0
 
 ---
 
+---
+
+### Phase 14: Agent Constitutions
+
+**Goal**: Transform agents into governed cognitive modules with formal contracts.
+
+**Status**: 🔜 Planned (Q2 2025)
+
+**Reference**: [Phase 14 Agent Constitutions](../2_Phases/phase_14_agent_constitutions.md)
+
+#### 14.1 Formal Agent Contracts
+
+* [x] **14.1.1** Define `AgentConstitution` types ✅ (AgentConstitution.fs)
+* [ ] **14.1.2** Create JSON schema for constitutions
+* [ ] **14.1.3** Implement constitution parser and loader
+
+#### 14.2 Runtime Enforcement
+
+* [x] **14.2.1** Implement `ContractEnforcement` module ✅ (ContractEnforcement.fs)
+* [ ] **14.2.2** Wire enforcement into `AgentExecutor`
+* [ ] **14.2.3** Add dependency checking before spawn
+
+#### 14.3 Templates & Tooling
+
+* [ ] **14.3.1** Create standard templates (Safety, Coder, etc.)
+* [ ] **14.3.2** Add CLI: `tars constitution create`
+* [ ] **14.3.3** Add CLI: `tars violations list`
+
+---
+
 ## 🔄 TARS V1 Reuse Strategy
 
 To accelerate v2 development, high-value assets and logic from v1 are being ported and adapted.
@@ -1062,3 +1035,61 @@ To accelerate v2 development, high-value assets and logic from v1 are being port
 ### Phase 3: Evolution Loop (Epic 6 & 8)
 
 * [ ] **Self-Improvement**: Extract logic from `tars-self-improvement-cycle.trsx` into `Tars.Evolution.Engine`.
+
+### Phase 15: Neuro-Symbolic Self-Improvement Cycle
+
+**Goal**: Transform TARS into a self-improving machine using a "Darwin-lite" mutation loop on prompt templates, routing rules, and patterns, governed by a rigorous Verification++ engine.
+
+**Status**: 🔜 Planned (Immediate Priority)
+
+**Key Concepts**:
+*   **Verifier++**: Structured checks (`contains`, `regex`, `schema`) + `toolResult` (compilation, static analysis).
+*   **Symbolic Memory Kernel**: Append-only log of `facts.ndjson`, `failures.ndjson`, `strategies.ndjson`.
+*   **Darwin-lite Loop**: Propose Mutation -> Verify -> Golden Compare -> Accept/Rollback.
+*   **Pattern Compiler**: Compile abstract patterns (CoT, ReAct) into executable `WoT` graphs.
+*   **Proof Trace**: Explicit trace of evidence refs, runId, stepId for every accepted fact.
+
+**Implementation Plan (Sequenced)**:
+
+1.  [x] **15.1 Verifier++ Engine**: Implement `Verifier` node in `WoTController` with tool-based validation.
+2.  [x] **15.2 Symbolic Memory Kernel**: Implement append-only file storage (`.tars/memory/*.ndjson`) for facts and failures.
+3.  [x] **15.3 Fitness Scoring**: Enhance `run_summary.json` with rigorous metrics (Pass Rate, Diff == 0, Cost).
+4.  [x] **15.4 Mutation Engine v0**: Controlled mutations of `prompts/*.md`, `routing/config.json`, `patterns/*.trsx`.
+5.  [x] **15.5 Selection Logic**: Automate rollback if fitness decreases or golden diff fails.
+6.  [x] **15.6 Pattern Compiler**: Compiler to transform high-level pattern definitions into `WoT` graphs.
+    *   **Goal**: Enable TARS to rewrite its own reasoning patterns.
+    *   **Sub-tasks**:
+        *   [x] Define `ReasoningPattern` Domain Type (Declarative definition of strategy) ✅
+        *   [x] Implement `PatternCompiler.compile : ReasoningPattern -> Workflow` ✅ (See `PatternCompiler.fs`)
+        *   [x] Create standard library of patterns: `LinearCoT`, `ParallelReAct`, `CriticRefinement` ✅
+        *   [x] Implement `PatternSelector` (Rule-based selection of pattern based on task) ✅
+
+### Philosophy: The Cognitive FPGA
+*   **Analogy**: TARS is like a "Virgin FPGA" (Field-Programmable Gate Array) that is "wired" by the reasoning patterns. We improve it not by changing the hardware (LLM weights), but by optimizing the circuit configuration (Reasoning Patterns) through reinforcement.
+*   **Substrate**: The unit of evolution is the **Workflow of Thought (WoT) + RDF Triples**. This is the correct granularity—symbolic manipulation of flow and knowledge, rather than opaque weight updates.
+*   **Method**: **Symbolic Evolution** over Genetic Algorithms (GA). We don't just randomly mutate; we use the LLM to propose semantic structural changes to the graph (e.g., "Insert a critique node before output"), which are then verified.
+
+### Phase 15.7: Curriculum & Ingestion (New)
+**Goal**: Feed the evolution engine with a "Gym" of diverse, graded problems to force pattern generalization.
+
+*   [x] **15.7.1 Problem Ingestor**: Tools to fetch and normalize problems from:
+    *   **Project Euler**: Algorithmic/Math reasoning. (Starter pack implemented)
+    *   **Logic Grid Puzzles**: Constraint satisfaction. (Starter pack implemented)
+    *   **Cryptarithmetic**: Symbolic manipulation.
+    *   **ARC (Abstraction and Reasoning Corpus)**: The holy grail of general pattern recognition.
+*   [x] **15.7.2 Curriculum Manager**: Logic to serve problems in increasing difficulty order.
+    *   Implemented `CurriculumManager` with difficulty promotion logic.
+    *   Added CLI: `tars wot curriculum next`
+    *   Verified Knowledge Ledger integration with Fuseki (auth & dataset config fixed).
+
+### Phase 15.8: Emergence & Generalization (New)
+**Goal**: Monitor and validate that TARS is "learning to learn" (generalizing), not just memorizing.
+
+*   [ ] **15.8.1 Emergence Metrics**:
+    *   **Pattern Reuse**: Is TARS applying the "Critic" pattern to new domains spontaneously?
+    *   **Tool Composition**: Are distinct tools being chained in novel, successful ways?
+*   [ ] **15.8.2 Domain-Independent Convergence Check**: Run the same evolved pattern set against a holdout domain (e.g., Biology reasoning) to verify transfer learning.
+
+## Phase 16: Context Engineering & Validation (Q4 2025)
+
+(Planned)

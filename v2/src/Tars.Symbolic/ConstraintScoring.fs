@@ -1,7 +1,6 @@
 namespace Tars.Symbolic
 
 open System
-open Tars.Core
 
 /// Constraint scoring functions (Logic Tensor Network-style, without tensors)
 /// Provides continuous (0.0-1.0) scores instead of binary pass/fail

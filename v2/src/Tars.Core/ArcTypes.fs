@@ -1,6 +1,5 @@
 namespace Tars.Core
 
-open System
 open System.IO
 open System.Text.Json
 

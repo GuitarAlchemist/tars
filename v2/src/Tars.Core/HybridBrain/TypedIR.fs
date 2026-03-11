@@ -330,7 +330,7 @@ module StateTransitions =
                         | _ -> false)
 
                 if isForbidden then
-                    errors.Add(ForbiddenTool(sprintf "%A" tool))
+                    errors.Add(ForbiddenTool $"%A{tool}")
             | _ -> ()
 
         // Check for circular dependencies (simplified - just check for duplicate IDs)

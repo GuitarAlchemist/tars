@@ -2,7 +2,6 @@
 /// Enables structured role-based prompting using RTFD pattern
 module Tars.Core.Persona
 
-open System
 open System.Text.Json.Serialization
 
 // ============================================================================

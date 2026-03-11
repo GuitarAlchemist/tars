@@ -1,7 +1,5 @@
 namespace Tars.Core
 
-open System
-
 /// Operations in high-dimensional semantic vector space
 module MetricSpace =
 

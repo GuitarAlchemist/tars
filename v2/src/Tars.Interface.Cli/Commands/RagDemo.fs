@@ -23,10 +23,7 @@ open System.Threading.Tasks
 open Serilog
 open Tars.Core
 open Tars.Llm
-open Tars.Llm.LlmService
-open Tars.Llm.OllamaClient
 open Tars.Metascript.Domain
-open Tars.Metascript.Engine
 open Tars.Metascript.Config
 open Tars.Cortex
 open Tars.Tools
@@ -627,9 +624,14 @@ type DemoLlm() =
                 else
                     return makeResponse "This is a simulated LLM response for the demo."
             }
- 
-        member _.RouteAsync(req) = 
-            task { return { Backend = Ollama "demo"; Endpoint = Uri("http://localhost:11434"); ApiKey = None } }
+
+        member _.RouteAsync(req) =
+            task {
+                return
+                    { Backend = Ollama "demo"
+                      Endpoint = Uri("http://localhost:11434")
+                      ApiKey = None }
+            }
 
         member _.EmbedAsync(text) =
             task {
@@ -663,7 +665,7 @@ type LiveLlm(chatModel: string, embedModel: string) =
 
     interface ILlmService with
         member _.CompleteAsync(req) =
-            OllamaClient.sendChatAsync http baseUri chatModel req
+            OllamaClient.sendChatAsync http baseUri chatModel None req
 
         member _.EmbedAsync(text) =
             task {
@@ -684,10 +686,15 @@ type LiveLlm(chatModel: string, embedModel: string) =
             }
 
         member _.CompleteStreamAsync(req, onToken) =
-            OllamaClient.sendChatStreamAsync http baseUri chatModel req onToken
- 
-        member _.RouteAsync(req) = 
-            task { return { Backend = Ollama chatModel; Endpoint = baseUri; ApiKey = None } }
+            OllamaClient.sendChatStreamAsync http baseUri chatModel None req onToken
+
+        member _.RouteAsync(req) =
+            task {
+                return
+                    { Backend = Ollama chatModel
+                      Endpoint = baseUri
+                      ApiKey = None }
+            }
 
     member _.EmbedCallCount = embedCallCount
 

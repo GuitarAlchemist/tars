@@ -1,40 +1,44 @@
 namespace Tars.Cortex
 
 // Inference providers for TARS cognitive operations.
-// Wraps Semantic Kernel for LLM and embedding operations.
+// Uses Microsoft.Extensions.AI abstractions (IChatClient, IEmbeddingGenerator).
 
-open System.Threading.Tasks
-open Microsoft.SemanticKernel
 open Microsoft.Extensions.AI
 open Tars.Kernel
 
 /// <summary>
-/// Semantic Kernel-based cognitive provider.
-/// Implements ICognitiveProvider using Microsoft Semantic Kernel for LLM operations.
+/// Microsoft.Extensions.AI-based cognitive provider.
+/// Implements ICognitiveProvider using IChatClient and IEmbeddingGenerator.
 /// </summary>
-/// <param name="apiKey">OpenAI API key.</param>
-/// <param name="modelId">Chat model ID (e.g., "gpt-4").</param>
-/// <param name="embeddingModelId">Embedding model ID (e.g., "text-embedding-ada-002").</param>
-type SemanticKernelProvider(apiKey: string, modelId: string, embeddingModelId: string) =
-    let kernel =
-        Kernel
-            .CreateBuilder()
-            .AddOpenAIChatCompletion(modelId, apiKey)
-            .AddOpenAIEmbeddingGenerator(embeddingModelId, apiKey)
-            .Build()
-
-    let embeddingService =
-        kernel.GetRequiredService<IEmbeddingGenerator<string, Embedding<float32>>>()
+/// <param name="chatClient">An IChatClient implementation (e.g., OpenAI, Ollama).</param>
+/// <param name="embeddingGenerator">An IEmbeddingGenerator implementation.</param>
+type ExtensionsAIProvider(chatClient: IChatClient, embeddingGenerator: IEmbeddingGenerator<string, Embedding<float32>>) =
 
     interface ICognitiveProvider with
         member this.AskAsync(prompt: string) =
             task {
-                let! result = kernel.InvokePromptAsync(prompt)
-                return result.ToString()
+                let! response = chatClient.GetResponseAsync(prompt)
+                return response.Text
             }
 
         member this.GetEmbeddingsAsync(texts: string list) =
             task {
-                let! embeddings = embeddingService.GenerateAsync(texts)
+                let! embeddings = embeddingGenerator.GenerateAsync(texts)
                 return embeddings |> Seq.map (fun x -> x.Vector.ToArray()) |> Seq.toArray
             }
+
+/// <summary>
+/// Convenience constructor for OpenAI-backed provider.
+/// </summary>
+type OpenAIProvider(apiKey: string, modelId: string, embeddingModelId: string) =
+    let chatClient =
+        OpenAI.Chat.ChatClient(modelId, apiKey).AsIChatClient()
+
+    let embeddingGenerator =
+        OpenAI.Embeddings.EmbeddingClient(embeddingModelId, apiKey).AsIEmbeddingGenerator()
+
+    let inner = ExtensionsAIProvider(chatClient, embeddingGenerator)
+
+    interface ICognitiveProvider with
+        member this.AskAsync(prompt) = (inner :> ICognitiveProvider).AskAsync(prompt)
+        member this.GetEmbeddingsAsync(texts) = (inner :> ICognitiveProvider).GetEmbeddingsAsync(texts)
