@@ -1,9 +1,89 @@
 namespace Tars.Cortex
 
 open System
+open System.IO
+open System.Text.Json
 open Tars.Core
 open ReasoningPattern
 open Tars.Cortex.WoTTypes
+
+/// <summary>
+/// Persistent store for pattern selection outcomes.
+/// Records which patterns were selected for which goals and whether they succeeded.
+/// </summary>
+module PatternOutcomeStore =
+
+    /// A recorded outcome of a pattern selection and execution.
+    type PatternOutcome =
+        { PatternKind: PatternKind
+          Goal: string
+          Success: bool
+          DurationMs: int64
+          Timestamp: DateTime }
+
+    /// JSON-friendly DTO for serialization (PatternKind is a DU, so we store it as a string).
+    type PatternOutcomeDto =
+        { PatternKind: string
+          Goal: string
+          Success: bool
+          DurationMs: int64
+          Timestamp: DateTime }
+
+    let private toDto (o: PatternOutcome) : PatternOutcomeDto =
+        { PatternKind = sprintf "%A" o.PatternKind
+          Goal = o.Goal
+          Success = o.Success
+          DurationMs = o.DurationMs
+          Timestamp = o.Timestamp }
+
+    let private parseKind (s: string) : PatternKind =
+        match s.ToLowerInvariant() with
+        | s when s.Contains("chainofthought") || s.Contains("chain") -> ChainOfThought
+        | s when s.Contains("react") -> ReAct
+        | s when s.Contains("planandexecute") -> PlanAndExecute
+        | s when s.Contains("graphofthoughts") || s.Contains("graph") -> GraphOfThoughts
+        | s when s.Contains("treeofthoughts") || s.Contains("tree") -> TreeOfThoughts
+        | s when s.Contains("workflowofthought") || s.Contains("workflow") -> WorkflowOfThought
+        | other -> Custom other
+
+    let private fromDto (d: PatternOutcomeDto) : PatternOutcome =
+        { PatternKind = parseKind d.PatternKind
+          Goal = d.Goal
+          Success = d.Success
+          DurationMs = d.DurationMs
+          Timestamp = d.Timestamp }
+
+    let private jsonOptions =
+        JsonSerializerOptions(
+            WriteIndented = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase)
+
+    let private outcomePath () =
+        let dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".tars")
+        if not (Directory.Exists dir) then
+            Directory.CreateDirectory dir |> ignore
+        Path.Combine(dir, "pattern_outcomes.json")
+
+    /// Load all recorded outcomes from disk.
+    let loadAll () : PatternOutcome list =
+        try
+            let path = outcomePath ()
+            if File.Exists path then
+                let json = File.ReadAllText path
+                let dtos = JsonSerializer.Deserialize<PatternOutcomeDto list>(json, jsonOptions)
+                dtos |> List.map fromDto
+            else
+                []
+        with _ -> []
+
+    /// Record a new outcome, appending it to the on-disk store.
+    let record (outcome: PatternOutcome) : unit =
+        try
+            let existing = loadAll () |> List.map toDto
+            let updated = existing @ [ toDto outcome ]
+            let json = JsonSerializer.Serialize(updated, jsonOptions)
+            File.WriteAllText(outcomePath (), json)
+        with _ -> () // Best-effort — don't crash if disk write fails
 
 /// <summary>
 /// Selects the best reasoning pattern for a given goal.
@@ -69,8 +149,9 @@ module PatternSelector =
         member _.GetByName(name: string) = patterns |> Map.tryFind name
 
     /// <summary>
-    /// A pattern selector that uses golden trace history to boost patterns
-    /// that have succeeded in the past, combined with goal-based heuristics.
+    /// A pattern selector that uses golden trace history and recorded pattern
+    /// outcomes to boost patterns that have succeeded in the past, combined
+    /// with goal-based heuristics.
     /// </summary>
     type HistoryAwareSelector() =
         let goldenHistory = lazy (
@@ -83,6 +164,7 @@ module PatternSelector =
             with _ -> [])
 
         let parsePatternKind (s: string) =
+            if isNull s then None else
             match s.ToLowerInvariant() with
             | s when s.Contains("chain") -> Some ChainOfThought
             | s when s.Contains("react") -> Some ReAct
@@ -91,11 +173,24 @@ module PatternSelector =
             | s when s.Contains("workflow") -> Some WorkflowOfThought
             | _ -> None
 
-        let historyScores () =
+        let goldenScores () =
             goldenHistory.Value
             |> List.choose (fun g -> parsePatternKind g.PatternKind)
             |> List.countBy id
             |> List.map (fun (kind, count) -> kind, float count)
+            |> Map.ofList
+
+        /// Compute a net score from recorded outcomes per PatternKind.
+        /// Each success adds +1, each failure subtracts -0.5.
+        let outcomeScores () =
+            let outcomes = PatternOutcomeStore.loadAll ()
+            outcomes
+            |> List.groupBy (fun o -> o.PatternKind)
+            |> List.map (fun (kind, entries) ->
+                let score =
+                    entries
+                    |> List.sumBy (fun e -> if e.Success then 1.0 else -0.5)
+                kind, score)
             |> Map.ofList
 
         let heuristicScore (goal: string) =
@@ -107,23 +202,32 @@ module PatternSelector =
               WorkflowOfThought, (if g.Contains("workflow") || g.Contains("pipeline") then 0.8 else 0.3) ]
             |> Map.ofList
 
+        let combineScores (goal: string) =
+            let heuristic = heuristicScore goal
+            let golden = goldenScores ()
+            let maxGolden = golden |> Map.values |> Seq.append [1.0] |> Seq.max
+            let outcomes = outcomeScores ()
+            let maxOutcome = outcomes |> Map.values |> Seq.map abs |> Seq.append [1.0] |> Seq.max
+            heuristic
+            |> Map.map (fun kind score ->
+                let goldenBoost = golden |> Map.tryFind kind |> Option.defaultValue 0.0
+                let outcomeBoost = outcomes |> Map.tryFind kind |> Option.defaultValue 0.0
+                score
+                + 0.3 * (goldenBoost / maxGolden)
+                + 0.2 * (outcomeBoost / maxOutcome))
+
+        /// Record the outcome of a pattern execution so future selections can learn from it.
+        member _.RecordOutcome(patternKind: PatternKind, goal: string, success: bool, durationMs: int64) =
+            PatternOutcomeStore.record
+                { PatternKind = patternKind
+                  Goal = goal
+                  Success = success
+                  DurationMs = durationMs
+                  Timestamp = DateTime.UtcNow }
+
         interface IPatternSelector with
             member _.Recommend(goal, _state) =
-                let heuristic = heuristicScore goal
-                let history = historyScores ()
-                let maxHistory = history |> Map.values |> Seq.append [1.0] |> Seq.max
-                let combined =
-                    heuristic
-                    |> Map.map (fun kind score ->
-                        let histBoost = history |> Map.tryFind kind |> Option.defaultValue 0.0
-                        score + 0.3 * (histBoost / maxHistory))
-                combined |> Map.toList |> List.maxBy snd |> fst
+                combineScores goal |> Map.toList |> List.maxBy snd |> fst
 
             member _.Score(goal) =
-                let heuristic = heuristicScore goal
-                let history = historyScores ()
-                let maxHistory = history |> Map.values |> Seq.append [1.0] |> Seq.max
-                heuristic
-                |> Map.map (fun kind score ->
-                    let histBoost = history |> Map.tryFind kind |> Option.defaultValue 0.0
-                    score + 0.3 * (histBoost / maxHistory))
+                combineScores goal

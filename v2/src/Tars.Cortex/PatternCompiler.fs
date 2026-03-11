@@ -21,7 +21,7 @@ module PatternCompiler =
     let private genId prefix =
         sprintf "%s_%s" prefix (Guid.NewGuid().ToString("N").Substring(0, 8))
 
-    let private emptyMeta = { Label = None; Tags = [] }
+    let private emptyMeta = { Label = None; Tags = []; Extra = Map.empty }
 
     /// Create a Think node
     let think prompt hint =

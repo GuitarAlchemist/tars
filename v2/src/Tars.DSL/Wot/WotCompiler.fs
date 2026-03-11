@@ -140,10 +140,13 @@ module WotCompiler =
     /// so this does a best-effort substitution. Variables not found in inputs
     /// are left as-is for runtime resolution by the executor.
     let private resolveGoalVariables (inputs: DslInputs) (goal: string) : string =
-        let ctx : ExecContext = { Inputs = inputs; Vars = Map.empty }
-        match VariableResolution.resolveString ctx goal with
-        | Ok resolved -> resolved
-        | Error _ -> goal // Leave unresolved for runtime
+        // Best-effort: resolve known variables, leave unknown ones for runtime
+        let varRx = System.Text.RegularExpressions.Regex(@"\$\{([^}]+)\}")
+        varRx.Replace(goal, fun (m: System.Text.RegularExpressions.Match) ->
+            let key = m.Groups.[1].Value.Trim()
+            match inputs.TryFind key with
+            | Some v -> v
+            | None -> m.Value)
 
     let private compileWorkNodeToStep (parallelGroups: ParallelGroup list) (node: DslNode) : Result<Step, CompileError> =
         match node.Tool, node.Checks with
@@ -250,50 +253,45 @@ module WotCompiler =
                 // Remove intra-group edges
                 expandedEdges <- expandedEdges |> List.filter (fun e -> not (List.contains e intraGroupEdges))
 
-                // If no incoming/outgoing edges exist yet (group was declared
-                // via PARALLEL block without explicit edges), build fan-out/fan-in
-                // from predecessor/successor.
-                if incomingEdges.IsEmpty && outgoingEdges.IsEmpty then
-                    // Find the node that should precede the group and follow it
-                    // by looking at the overall node order (index-based).
-                    let nodeIds = nodes |> List.map (fun n -> n.Id)
-                    let firstGroupIdx =
-                        group.NodeIds
-                        |> List.choose (fun gid -> nodeIds |> List.tryFindIndex (fun nid -> nid = gid))
-                        |> (fun idxs -> if idxs.IsEmpty then -1 else List.min idxs)
-                    let lastGroupIdx =
-                        group.NodeIds
-                        |> List.choose (fun gid -> nodeIds |> List.tryFindIndex (fun nid -> nid = gid))
-                        |> (fun idxs -> if idxs.IsEmpty then -1 else List.max idxs)
+                // Determine predecessors and successors for the group.
+                // If explicit edges exist, use their sources/destinations.
+                // Otherwise, infer from node order.
+                let predecessors =
+                    if not incomingEdges.IsEmpty then
+                        incomingEdges |> List.map fst |> List.distinct
+                    else
+                        let nodeIds = nodes |> List.map (fun n -> n.Id)
+                        let firstGroupIdx =
+                            group.NodeIds
+                            |> List.choose (fun gid -> nodeIds |> List.tryFindIndex (fun nid -> nid = gid))
+                            |> (fun idxs -> if idxs.IsEmpty then [] else [ List.min idxs ])
+                        firstGroupIdx |> List.choose (fun i -> if i > 0 then Some nodeIds.[i - 1] else None)
 
-                    let predecessorId =
-                        if firstGroupIdx > 0 then Some nodeIds.[firstGroupIdx - 1] else None
-                    let successorId =
-                        if lastGroupIdx >= 0 && lastGroupIdx < nodeIds.Length - 1 then
-                            Some nodeIds.[lastGroupIdx + 1]
-                        else None
+                let successors =
+                    if not outgoingEdges.IsEmpty then
+                        outgoingEdges |> List.map snd |> List.distinct
+                    else
+                        let nodeIds = nodes |> List.map (fun n -> n.Id)
+                        let lastGroupIdx =
+                            group.NodeIds
+                            |> List.choose (fun gid -> nodeIds |> List.tryFindIndex (fun nid -> nid = gid))
+                            |> (fun idxs -> if idxs.IsEmpty then [] else [ List.max idxs ])
+                        lastGroupIdx |> List.choose (fun i -> if i < nodeIds.Length - 1 then Some nodeIds.[i + 1] else None)
 
-                    // Remove any existing direct edge from predecessor -> successor
-                    match predecessorId, successorId with
-                    | Some pred, Some succ ->
-                        expandedEdges <- expandedEdges |> List.filter (fun (s, d) -> not (s = pred && d = succ))
-                    | _ -> ()
+                // Remove existing incoming/outgoing edges (will be replaced by fan-out/fan-in)
+                expandedEdges <- expandedEdges |> List.filter (fun e -> not (List.contains e incomingEdges) && not (List.contains e outgoingEdges))
 
-                    // Add fan-out edges: predecessor -> each parallel node
-                    match predecessorId with
-                    | Some pred ->
-                        for nodeId in group.NodeIds do
-                            if not (expandedEdges |> List.exists (fun (s, d) -> s = pred && d = nodeId)) then
-                                expandedEdges <- expandedEdges @ [ (pred, nodeId) ]
-                    | None -> ()
+                // Add fan-out edges: each predecessor -> each parallel node
+                for pred in predecessors do
+                    for nodeId in group.NodeIds do
+                        if not (expandedEdges |> List.exists (fun (s, d) -> s = pred && d = nodeId)) then
+                            expandedEdges <- expandedEdges @ [ (pred, nodeId) ]
 
-                    // Add fan-in edges: each parallel node -> successor
-                    match successorId with
-                    | Some succ ->
-                        for nodeId in group.NodeIds do
-                            if not (expandedEdges |> List.exists (fun (s, d) -> s = nodeId && d = succ)) then
-                                expandedEdges <- expandedEdges @ [ (nodeId, succ) ]
-                    | None -> ()
+                // Add fan-in edges: each parallel node -> each successor
+                for succ in successors do
+                    for nodeId in group.NodeIds do
+                        if not (expandedEdges |> List.exists (fun (s, d) -> s = nodeId && d = succ)) then
+                            expandedEdges <- expandedEdges @ [ (nodeId, succ) ]
 
             expandedEdges
 

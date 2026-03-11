@@ -345,6 +345,112 @@ Respond with ONLY the number of your choice."""
         }
 
     // =========================================================================
+    // Condition Evaluation
+    // =========================================================================
+
+    /// Resolve ${variable} references in a string using step outputs as context.
+    let private resolveVariables (stepOutputs: Map<string, string>) (text: string) : string =
+        let varRx = System.Text.RegularExpressions.Regex(@"\$\{([^}]+)\}")
+        varRx.Replace(text, fun (m: System.Text.RegularExpressions.Match) ->
+            let key = m.Groups.[1].Value.Trim()
+            match stepOutputs.TryFind key with
+            | Some v -> v
+            | None -> m.Value)
+
+    /// Try to parse a string as a float, returning None on failure.
+    let private tryParseFloat (s: string) =
+        match Double.TryParse(s.Trim(), Globalization.NumberStyles.Any, Globalization.CultureInfo.InvariantCulture) with
+        | true, v -> Some v
+        | false, _ -> None
+
+    /// Evaluate a simple condition expression after variable resolution.
+    /// Supports: comparisons (>, <, >=, <=, ==, !=) with numeric or string values,
+    /// and boolean literals (true/false).
+    let private evaluateConditionExpr (expr: string) : bool =
+        let trimmed = expr.Trim()
+        // Boolean literals
+        match trimmed.ToLowerInvariant() with
+        | "true" -> true
+        | "false" -> false
+        | _ ->
+            // Try comparison operators (ordered longest-first to match >= before >)
+            let ops = [ ">="; "<="; "!="; "=="; ">"; "<" ]
+            let found =
+                ops |> List.tryPick (fun op ->
+                    let idx = trimmed.IndexOf(op)
+                    if idx >= 0 then
+                        let lhs = trimmed.Substring(0, idx).Trim().Trim('"')
+                        let rhs = trimmed.Substring(idx + op.Length).Trim().Trim('"')
+                        Some (lhs, op, rhs)
+                    else None)
+            match found with
+            | Some (lhs, op, rhs) ->
+                // Try numeric comparison first
+                match tryParseFloat lhs, tryParseFloat rhs with
+                | Some l, Some r ->
+                    match op with
+                    | ">"  -> l > r
+                    | "<"  -> l < r
+                    | ">=" -> l >= r
+                    | "<=" -> l <= r
+                    | "==" -> abs (l - r) < 1e-9
+                    | "!=" -> abs (l - r) >= 1e-9
+                    | _    -> false
+                | _ ->
+                    // Fall back to string comparison
+                    match op with
+                    | "==" -> lhs = rhs
+                    | "!=" -> lhs <> rhs
+                    | _    -> false // String ordering comparisons not supported
+            | None ->
+                // No operator found; treat non-empty as true
+                not (String.IsNullOrWhiteSpace trimmed)
+
+    /// Check if a node's condition (from metadata Extra) is satisfied.
+    /// Returns true if no condition exists (unconditional execution).
+    let private evaluateCondition
+        (ctx: ExecutionContext)
+        (node: WoTNode)
+        (stepOutputs: Map<string, string>)
+        : bool =
+        match node.Metadata.Extra.TryFind "condition" with
+        | None -> true // No condition = always execute
+        | Some condExpr ->
+            let resolved = resolveVariables stepOutputs condExpr
+            let result = evaluateConditionExpr resolved
+            if not result then
+                ctx.Logger $"[WoT] Condition not met for %s{node.Id}: %s{condExpr} (resolved: %s{resolved})"
+            result
+
+    // =========================================================================
+    // Parallel Grouping
+    // =========================================================================
+
+    /// A segment of the execution: either a single node or a parallel group.
+    type private ExecutionSegment =
+        | Single of WoTNode
+        | ParallelGroup of group: string * nodes: WoTNode list
+
+    /// Group a list of nodes into execution segments, merging consecutive nodes
+    /// that share the same parallel_group metadata.
+    let private groupIntoSegments (nodes: WoTNode list) : ExecutionSegment list =
+        let folder (acc: ExecutionSegment list) (node: WoTNode) =
+            match node.Metadata.Extra.TryFind "parallel_group" with
+            | None -> acc @ [ Single node ]
+            | Some groupId ->
+                match acc with
+                | [] -> [ ParallelGroup(groupId, [ node ]) ]
+                | _ ->
+                    let last = List.last acc
+                    let init = acc |> List.take (acc.Length - 1)
+                    match last with
+                    | ParallelGroup(gid, members) when gid = groupId ->
+                        init @ [ ParallelGroup(gid, members @ [ node ]) ]
+                    | _ ->
+                        acc @ [ ParallelGroup(groupId, [ node ]) ]
+        nodes |> List.fold folder []
+
+    // =========================================================================
     // Main Executor
     // =========================================================================
 
@@ -458,12 +564,9 @@ Respond with ONLY the number of your choice."""
             // Track per-node outputs for progressive context disclosure
             let mutable stepOutputs: Map<string, string> = Map.empty
 
-            // Simple sequential execution
-            for node in plan.Nodes do
-                if not ctx.CancellationToken.IsCancellationRequested then
-                    let! (step, output) = executeNode ctx node currentOutput plan.Edges stepOutputs
-
-                    // Record this node's output for downstream context
+            // Helper: process a single executed node result (KG recording, tracking)
+            let recordNodeResult (node: WoTNode) (step: WoTTraceStep) (output: string) =
+                async {
                     let nodeId = PatternCompiler.nodeId node
                     stepOutputs <- stepOutputs |> Map.add nodeId output
 
@@ -480,7 +583,6 @@ Respond with ONLY the number of your choice."""
 
                         let! _ = kg.AddNodeAsync(stepE) |> Async.AwaitTask
 
-                        // Link to run
                         let runESkeleton =
                             RunE
                                 { Id = runId
@@ -490,7 +592,6 @@ Respond with ONLY the number of your choice."""
 
                         let! _ = kg.AddFactAsync(TarsFact.Contains(runESkeleton, stepE)) |> Async.AwaitTask
 
-                        // Link to previous step
                         if not steps.IsEmpty then
                             let prev = steps |> List.last
 
@@ -524,6 +625,75 @@ Respond with ONLY the number of your choice."""
                     | Pending -> ()
                     | Running -> ()
                     | Skipped _ -> ()
+                }
+
+            // Group nodes into sequential and parallel segments
+            let segments = groupIntoSegments plan.Nodes
+
+            for segment in segments do
+                if not ctx.CancellationToken.IsCancellationRequested then
+                    match segment with
+                    | Single node ->
+                        // Check condition before executing
+                        if evaluateCondition ctx node stepOutputs then
+                            let! (step, output) = executeNode ctx node currentOutput plan.Edges stepOutputs
+                            do! recordNodeResult node step output
+                        else
+                            // Skip node: record a Skipped trace step
+                            let skipStep =
+                                { NodeId = node.Id
+                                  NodeType = node.Kind.ToString()
+                                  StartedAt = DateTime.UtcNow
+                                  Status = Skipped "Condition not met"
+                                  Input = Some currentOutput
+                                  Output = None
+                                  Confidence = None
+                                  TokensUsed = None }
+                            ctx.OnProgress(skipStep)
+                            steps <- steps @ [ skipStep ]
+
+                    | ParallelGroup(groupId, nodes) ->
+                        ctx.Logger $"[WoT] Executing parallel group '%s{groupId}' with %d{nodes.Length} nodes"
+
+                        // Filter nodes by condition, skip those that don't pass
+                        let executableNodes =
+                            nodes |> List.filter (fun n -> evaluateCondition ctx n stepOutputs)
+                        let skippedNodes =
+                            nodes |> List.filter (fun n -> not (evaluateCondition ctx n stepOutputs))
+
+                        // Record skipped nodes
+                        for skipped in skippedNodes do
+                            let skipStep =
+                                { NodeId = skipped.Id
+                                  NodeType = skipped.Kind.ToString()
+                                  StartedAt = DateTime.UtcNow
+                                  Status = Skipped "Condition not met"
+                                  Input = Some currentOutput
+                                  Output = None
+                                  Confidence = None
+                                  TokensUsed = None }
+                            ctx.OnProgress(skipStep)
+                            steps <- steps @ [ skipStep ]
+
+                        // Execute all eligible nodes in parallel
+                        if not executableNodes.IsEmpty then
+                            let! parallelResults =
+                                executableNodes
+                                |> List.map (fun node ->
+                                    executeNode ctx node currentOutput plan.Edges stepOutputs)
+                                |> Async.Parallel
+
+                            // Record results from all parallel nodes
+                            for (node, (step, output)) in List.zip executableNodes (Array.toList parallelResults) do
+                                do! recordNodeResult node step output
+
+                            // Set currentOutput to the combined output of the last parallel node
+                            let lastOutput =
+                                parallelResults
+                                |> Array.toList
+                                |> List.map snd
+                                |> List.last
+                            currentOutput <- lastOutput
 
             if ctx.CancellationToken.IsCancellationRequested then
                 warnings <- "Execution cancelled" :: warnings

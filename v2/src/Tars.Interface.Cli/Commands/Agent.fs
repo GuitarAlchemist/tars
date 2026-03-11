@@ -860,6 +860,153 @@ let runFanOut
                 return 1
     }
 
+/// Interactive multi-turn chat with WoT reasoning
+let runChat
+    (config: Microsoft.Extensions.Configuration.IConfiguration)
+    (options: AgentOptions)
+    =
+    task {
+        printfn "🤖 TARS Agent - Interactive Chat Mode (WoT Reasoning)"
+        printfn "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        printfn "Type your message and press Enter. Special commands:"
+        printfn "  /quit or /exit  - Exit chat"
+        printfn "  /clear          - Reset conversation context"
+        printfn "  /trace          - Show last WoT execution trace"
+        printfn ""
+
+        match createLlmService config with
+        | Result.Error msg ->
+            printfn $"❌ %s{msg}"
+            return 1
+        | Result.Ok(llm, modelName) ->
+            try
+                let llmWithEvidence, evidenceHandle = attachEvidence "chat" llm options
+
+                let! evidence =
+                    match evidenceHandle with
+                    | Some handle ->
+                        task {
+                            let! value = handle
+                            return Some value
+                        }
+                    | None -> Task.FromResult None
+
+                // Create tool registry
+                let toolRegistry = ToolRegistry()
+                toolRegistry.RegisterAssembly(typeof<ToolRegistry>.Assembly)
+                let tools = toolRegistry :> IToolRegistry
+
+                let logger msg =
+                    if options.Verbose then
+                        printfn $"  [LOG] %s{msg}"
+
+                // Create WoT executor, compiler, selector
+                let executor = WoTExecutor.createExecutor llmWithEvidence tools
+                let compiler = PatternCompiler.DefaultPatternCompiler() :> IPatternCompiler
+                let selector = PatternSelector.HistoryAwareSelector() :> IPatternSelector
+                let agentCtx = createAgentContext logger llmWithEvidence None
+
+                // Create the MAF agent
+                let agent = TarsWoTAgent(executor, compiler, selector, agentCtx)
+
+                printfn $"📋 Model: %s{modelName}"
+                printfn $"📋 Tools: %d{tools.GetAll().Length} registered"
+                printfn $"📋 Agent: %s{agent.Name}"
+                printfn ""
+
+                // Conversation state
+                let mutable conversationHistory: string list = []
+                let mutable lastTrace: string option = None
+                let mutable running = true
+
+                while running do
+                    printf "tars> "
+                    let input = Console.ReadLine()
+
+                    if isNull input then
+                        // EOF (e.g., piped input ended)
+                        running <- false
+                    else
+                        let trimmed = input.Trim()
+
+                        if String.IsNullOrWhiteSpace(trimmed) then
+                            () // Skip empty lines
+                        else
+                            match trimmed.ToLowerInvariant() with
+                            | "/quit" | "/exit" ->
+                                printfn "Goodbye!"
+                                running <- false
+                            | "/clear" ->
+                                conversationHistory <- []
+                                lastTrace <- None
+                                printfn "Context cleared."
+                            | "/trace" ->
+                                match lastTrace with
+                                | Some trace ->
+                                    printfn "━━━━ Last WoT Trace ━━━━"
+                                    printfn $"%s{trace}"
+                                    printfn "━━━━━━━━━━━━━━━━━━━━━━━━"
+                                | None ->
+                                    printfn "No trace available yet."
+                            | _ ->
+                                // Build goal with conversation context
+                                let goal =
+                                    if conversationHistory.IsEmpty then
+                                        trimmed
+                                    else
+                                        let contextSummary =
+                                            conversationHistory
+                                            |> List.rev
+                                            |> List.truncate 6 // Keep last 6 exchanges
+                                            |> List.rev
+                                            |> String.concat "\n"
+                                        $"Previous conversation:\n{contextSummary}\n\nCurrent question: {trimmed}"
+
+                                try
+                                    // Create orchestrator and run
+                                    let orchestrator = AgentOrchestrator()
+                                    orchestrator.Register(
+                                        agent,
+                                        [ "reasoning"; "analysis"; "coding"; "planning"; "workflow" ],
+                                        priority = 10)
+
+                                    let! result = orchestrator.Execute(goal, CancellationToken.None)
+
+                                    // Store conversation context
+                                    conversationHistory <- conversationHistory @ [$"User: {trimmed}"; $"TARS: {result.Response}"]
+
+                                    // Store trace info
+                                    lastTrace <- Some $"Agent: {result.AgentName}\nDuration: {result.DurationMs}ms\nSuccess: {result.Success}\nResponse length: {result.Response.Length} chars"
+
+                                    // Print response
+                                    printfn ""
+                                    printfn $"%s{result.Response}"
+                                    printfn ""
+
+                                    if options.Verbose then
+                                        printfn $"  [⏱️ {result.DurationMs}ms | Agent: {result.AgentName}]"
+                                        printfn ""
+                                with ex ->
+                                    printfn $"❌ Error: %s{ex.Message}"
+                                    if options.Verbose && ex.InnerException <> null then
+                                        printfn $"   Inner: %s{ex.InnerException.Message}"
+                                    printfn ""
+
+                // Save evidence on exit
+                match evidence with
+                | Some(recorder, path) ->
+                    do! recorder.SaveToFileAsync(path) |> Async.StartAsTask
+                    printfn $"📒 Evidence saved: %s{path}"
+                | None -> ()
+
+                return 0
+            with ex ->
+                printfn $"❌ Exception: %s{ex.Message}"
+                if options.Verbose && ex.InnerException <> null then
+                    printfn $"   Inner: %s{ex.InnerException.Message}"
+                return 1
+    }
+
 /// Main entry point for agent command
 let run
     (config: Microsoft.Extensions.Configuration.IConfiguration)
@@ -883,6 +1030,8 @@ let run
     | "wot" when args.Length > 0 ->
         let goal = String.Join(" ", args)
         runWorkflowOfThoughts config options goal
+    | "chat" ->
+        runChat config options
     | "run" when args.Length > 0 ->
         let goal = String.Join(" ", args)
         runMaf config options goal
@@ -898,6 +1047,7 @@ let run
         printfn "━━━━━━━━━━━━━━━━━━━━"
         printfn ""
         printfn "  tars agent run <goal>       Run via MAF (orchestrated WoT + tools)"
+        printfn "  tars agent chat             Interactive multi-turn chat with WoT reasoning"
         printfn "  tars agent pipeline <goal>  Run sequential pipeline (Analyzer -> Coder -> Reviewer)"
         printfn "  tars agent fanout <goal>    Run parallel fan-out (Analyzer | Coder | Reviewer)"
         printfn "  tars agent react <goal>     Run ReAct (Reason-Act-Observe) loop"

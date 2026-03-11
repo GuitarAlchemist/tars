@@ -379,7 +379,8 @@ module WoTController =
                         :> obj
                       Metadata =
                         { Label = Some sg.Description
-                          Tags = [ "planner"; "subgoal" ] } })
+                          Tags = [ "planner"; "subgoal" ]
+                          Extra = Map.empty } })
 
             let edges =
                 subGoals
@@ -457,7 +458,8 @@ module WoTController =
                         :> obj
                       Metadata =
                         { Label = Some variation
-                          Tags = [ "generated"; "thought" ] } }
+                          Tags = [ "generated"; "thought" ]
+                          Extra = Map.empty } }
                   Score = 1.0 - (float i * 0.1) // Decreasing scores
                   Rationale = sprintf "Approach: %s" variation
                   GeneratedAt = DateTime.UtcNow })
@@ -480,7 +482,8 @@ module WoTController =
                       Payload = { Tool = tool; Args = Map.empty } :> obj
                       Metadata =
                         { Label = Some labelText
-                          Tags = [ "generated"; "tool" ] } }
+                          Tags = [ "generated"; "tool" ]
+                          Extra = Map.empty } }
                   Score = 0.5
                   Rationale = sprintf "Tool '%s' may help with: %s" tool context
                   GeneratedAt = DateTime.UtcNow })
@@ -504,7 +507,8 @@ module WoTController =
                       :> obj
                     Metadata =
                       { Label = Some "Synthesis"
-                        Tags = [ "synthesis" ] } }
+                        Tags = [ "synthesis" ]
+                        Extra = Map.empty } }
                 Score = 0.9
                 Rationale = "Combine multiple perspectives into coherent output"
                 GeneratedAt = DateTime.UtcNow } ]

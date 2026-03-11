@@ -286,17 +286,21 @@ type TarsWoTAgent
         task {
             let goal = TarsWoTAgent.ExtractGoal(messages)
 
-            // Track the user message in the session
-            let wotSession = session :?> TarsWoTAgentSession
-            wotSession.AddUserMessage(goal)
+            // Track the user message in the session (safe cast)
+            let wotSession =
+                match session with
+                | :? TarsWoTAgentSession as s -> Some s
+                | _ -> None
+            wotSession |> Option.iter (fun s -> s.AddUserMessage(goal))
 
             let! result =
                 this.ExecuteWoT(goal, cancellationToken)
                 |> Async.StartAsTask
 
             // Track the result in the session
-            wotSession.AddAssistantMessage(result.Output)
-            wotSession.AddTrace(result)
+            wotSession |> Option.iter (fun s ->
+                s.AddAssistantMessage(result.Output)
+                s.AddTrace(result))
 
             // Build the response message
             let responseMsg = ChatMessage(ChatRole.Assistant, result.Output)

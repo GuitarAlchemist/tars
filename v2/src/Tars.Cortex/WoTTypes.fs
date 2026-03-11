@@ -69,7 +69,9 @@ module WoTTypes =
     /// </summary>
     type NodeMetadata =
         { Label: string option
-          Tags: string list }
+          Tags: string list
+          /// Extensible key-value metadata (e.g. "condition", "parallel_group")
+          Extra: Map<string, string> }
 
     /// <summary>
     /// Payload for Reason nodes.

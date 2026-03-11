@@ -590,6 +590,7 @@ let main argv =
             printfn "       remove <name>               Remove a skill"
             printfn "  tars agent [command]             Run agentic patterns"
             printfn "       run <goal>                  Run via MAF (orchestrated WoT + tools)"
+            printfn "       chat                        Interactive multi-turn chat with WoT reasoning"
             printfn "       react <goal>                Run ReAct reasoning loop"
             printfn "       cot <input>                 Run Chain of Thought"
             printfn "       got <goal>                  Run Graph of Thoughts"
