@@ -1,0 +1,20 @@
+(* Intent Plan IR grammar — constrains LLM to produce valid TARS plans *)
+(* Maps to ConstrainedDecoding.intentPlanSchema *)
+
+plan       ::= "{" intent strategy confidence steps fallback? "}"
+
+intent     ::= '"intent"' ":" string_literal ","
+strategy   ::= '"strategy"' ":" strategy_value ","
+strategy_value ::= '"chain_of_thought"' | '"react"' | '"tree_of_thoughts"' | '"graph_of_thoughts"'
+
+confidence ::= '"confidence"' ":" number ","
+steps      ::= '"steps"' ":" "[" step ("," step)* "]"
+fallback   ::= "," '"fallback"' ":" string_literal
+
+step       ::= "{" action tool? expected_output? "}"
+action     ::= '"action"' ":" string_literal
+tool       ::= "," '"tool"' ":" string_literal
+expected_output ::= "," '"expected_output"' ":" string_literal
+
+string_literal ::= '"' [^"]* '"'
+number         ::= "0" | "0." [0-9]+ | "1" | "1.0"

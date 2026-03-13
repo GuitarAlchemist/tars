@@ -167,6 +167,21 @@ let classify (minOccurrences: int) (record: RecurrenceRecord) : PromotionCandida
                 RollbackExpansion = None
             }
 
+/// Classify with probabilistic ranking: candidates are sorted by weighted
+/// probability so higher-weight patterns are promoted first.
+let classifyWeighted
+    (minOccurrences: int)
+    (weights: WeightedGrammar.WeightedRule list)
+    (records: RecurrenceRecord list)
+    : PromotionCandidate list =
+    records
+    |> List.choose (classify minOccurrences)
+    |> List.sortByDescending (fun c ->
+        weights
+        |> List.tryFind (fun w -> w.PatternId = c.Record.PatternId)
+        |> Option.map (fun w -> w.Weight)
+        |> Option.defaultValue 0.0)
+
 // ─────────────────────────────────────────────────────────────────────
 // Step 4: PROPOSE — Set the proposed level and template
 // ─────────────────────────────────────────────────────────────────────
@@ -271,17 +286,20 @@ type PipelineResult = {
     RoundtripValidation: RoundtripValidation.RoundtripResult option
 }
 
-/// Run the full 7-step promotion pipeline on a batch of trace artifacts
+/// Run the full 7-step promotion pipeline on a batch of trace artifacts.
+/// Uses probabilistic weights to rank candidates and updates weights from outcomes.
 let run (minOccurrences: int) (artifacts: TraceArtifact list) : PipelineResult list =
     ensureLoaded ()
     let existing = recurrenceStore.Values |> Seq.toList
+
+    // Load probabilistic weights (empty list on first run)
+    let mutable weights = WeightedGrammar.load ()
 
     // Steps 1-2: Inspect and Extract
     let inspected = artifacts |> inspect
     let records = inspected |> extract
 
     // Build a lookup of rollback expansions by pattern name
-    // (take the first non-None rollback for each pattern)
     let rollbackByPattern =
         inspected
         |> List.choose (fun a ->
@@ -289,21 +307,34 @@ let run (minOccurrences: int) (artifacts: TraceArtifact list) : PipelineResult l
         |> List.distinctBy fst
         |> Map.ofList
 
-    // Steps 3-7: For each record, classify → propose → validate → govern → persist
-    records
-    |> List.choose (fun record ->
-        classify minOccurrences record
-        |> Option.map (fun candidate ->
-            let rollback = rollbackByPattern |> Map.tryFind record.PatternName
+    // Ensure all records have weight entries
+    let missingRecords =
+        records
+        |> List.filter (fun r ->
+            not (weights |> List.exists (fun w -> w.PatternId = r.PatternId)))
+    if not missingRecords.IsEmpty then
+        let newWeights =
+            missingRecords
+            |> List.map (fun r -> (r, GrammarGovernor.score (PromotionCriteria.empty)))
+            |> WeightedGrammar.fromRecurrenceRecords WeightedGrammar.defaultConfig
+        weights <- weights @ newWeights
+
+    // Step 3: Classify with weighted ranking (higher-weight candidates first)
+    let candidates = classifyWeighted minOccurrences weights records
+
+    // Steps 4-7: propose → validate → govern → persist for each candidate
+    let results =
+        candidates
+        |> List.map (fun candidate ->
+            let rollback = rollbackByPattern |> Map.tryFind candidate.Record.PatternName
             let candidate =
                 candidate
-                |> propose record.PatternName rollback
+                |> propose candidate.Record.PatternName rollback
                 |> validate existing None
 
             let rawDecision = govern existing candidate
 
-            // Round-trip validation: if approved, verify the abstraction
-            // can expand and re-abstract without semantic loss
+            // Round-trip validation for approved promotions
             let roundtripResult, decision =
                 match rawDecision with
                 | Approve _ ->
@@ -319,6 +350,14 @@ let run (minOccurrences: int) (artifacts: TraceArtifact list) : PipelineResult l
                 | _ ->
                     None, rawDecision
 
+            // Update weight from governance outcome (Bayesian update)
+            let success = match decision with Approve _ -> true | _ -> false
+            weights <-
+                weights |> List.map (fun w ->
+                    if w.PatternId = candidate.Record.PatternId then
+                        WeightedGrammar.updateWeight WeightedGrammar.defaultConfig w success
+                    else w)
+
             let lineage = persist candidate decision
             let report =
                 let govReport = GrammarGovernor.auditReport candidate decision
@@ -330,7 +369,12 @@ let run (minOccurrences: int) (artifacts: TraceArtifact list) : PipelineResult l
               Decision = decision
               Lineage = lineage
               AuditReport = report
-              RoundtripValidation = roundtripResult }))
+              RoundtripValidation = roundtripResult })
+
+    // Persist updated weights
+    WeightedGrammar.save weights
+
+    results
 
 /// Get all recurrence records (for inspection/debugging)
 let getRecurrenceRecords () : RecurrenceRecord list =

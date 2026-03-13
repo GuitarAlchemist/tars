@@ -112,6 +112,7 @@
     <Compile Include="ProbabilisticGrammarTests.fs" />
     <Compile Include="ReplicatorDynamicsTests.fs" />
     <Compile Include="ConstrainedDecodingTests.fs" />
+    <Compile Include="ProbabilisticGrammarIntegrationTests.fs" />
   </ItemGroup>
 
   <ItemGroup>

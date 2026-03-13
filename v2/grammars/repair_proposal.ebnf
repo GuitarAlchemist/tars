@@ -1,0 +1,19 @@
+(* Repair Proposal IR grammar — constrains LLM to produce valid repair plans *)
+(* Maps to ConstrainedDecoding.repairProposalSchema *)
+
+proposal      ::= "{" error_type diagnosis repair_action modified_params? confidence rationale? "}"
+
+error_type    ::= '"error_type"' ":" string_literal ","
+diagnosis     ::= '"diagnosis"' ":" string_literal ","
+repair_action ::= '"repair_action"' ":" action_value ","
+action_value  ::= '"retry"' | '"fallback"' | '"escalate"' | '"skip"' | '"modify_params"'
+
+modified_params ::= '"modified_params"' ":" "{" (param ("," param)*)? "}" ","
+param           ::= string_literal ":" json_value
+
+confidence    ::= '"confidence"' ":" number
+rationale     ::= "," '"rationale"' ":" string_literal
+
+json_value     ::= string_literal | number | "true" | "false" | "null"
+string_literal ::= '"' [^"]* '"'
+number         ::= "0" | "0." [0-9]+ | "1" | "1.0"
