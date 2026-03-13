@@ -60,6 +60,7 @@
     <Compile Include="Commands\MetaCommand.fs" />
     <Compile Include="Commands\RalphCommand.fs" />
     <Compile Include="Commands\BreedCommand.fs" />
+    <Compile Include="Commands\GrammarCommand.fs" />
     <Compile Include="HealthCommand.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>

@@ -11,6 +11,7 @@
     <Compile Include="CurriculumTypes.fs" />
     <Compile Include="PromotionTypes.fs" />
     <Compile Include="GrammarGovernor.fs" />
+    <Compile Include="WeightedGrammar.fs" />
     <Compile Include="RoundtripValidation.fs" />
     <Compile Include="PromotionPipeline.fs" />
     <Compile Include="StructuredOutput.fs" />
@@ -37,12 +38,19 @@
     <!-- MachinDeOuf bridge: Rust-based GA/optimization for pattern evolution -->
     <Compile Include="MachinBridge.fs" />
     <Compile Include="EvolutionaryPatternBreeder.fs" />
+    <!-- MCTS: Monte Carlo Tree Search for grammar derivation -->
+    <Compile Include="MctsTypes.fs" />
+    <Compile Include="MctsSolver.fs" />
+    <Compile Include="WotMctsState.fs" />
+    <Compile Include="MctsBridge.fs" />
+    <Compile Include="ReplicatorDynamics.fs" />
     <Compile Include="McpPatternResources.fs" />
     <Compile Include="Engine.fs" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Tars.Core\Tars.Core.fsproj" />
+    <ProjectReference Include="..\Tars.DSL\Tars.DSL.fsproj" />
     <ProjectReference Include="..\Tars.Graph\Tars.Graph.fsproj" />
     <ProjectReference Include="..\Tars.Llm\Tars.Llm.fsproj" />
     <ProjectReference Include="..\Tars.Kernel\Tars.Kernel.fsproj" />

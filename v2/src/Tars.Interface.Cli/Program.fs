@@ -488,6 +488,11 @@ let main argv =
             let subArgs = args |> Array.skip 1 |> Array.toList
             return BreedCommand.run subArgs
 
+        // TARS Grammar - Probabilistic grammar weights + MCTS derivation search
+        | args when args.Length > 0 && args.[0] = "grammar" ->
+            let subArgs = args |> Array.skip 1 |> Array.toList
+            return GrammarCommand.run subArgs
+
         | args when args.Length > 0 && args.[0] = "agent" ->
             let mutable options: AgentOptions = defaultOptions
             let mutable subCommand = "help"
@@ -653,6 +658,10 @@ let main argv =
             printfn "       --generations N               GA generations (default 50)"
             printfn "       --show-genome                 Display evolved genome details"
             printfn "       status                        Check MachinDeOuf availability"
+            printfn "  tars grammar [command]             Probabilistic grammar weights + MCTS search"
+            printfn "       weights                       Show current weighted grammar rules"
+            printfn "       evolve [--steps N]            Run replicator dynamics on rule ecosystem"
+            printfn "       search [--nodes N]            MCTS search for optimal WoT derivation"
             printfn ""
             return 1
     }
