@@ -20,6 +20,7 @@ open Tars.Interface.Cli.SpectreUI
 open Tars.Knowledge
 open Tars.Evolution.SelfImprovement
 open Tars.Evolution.RetroactionLoop
+open Tars.Core.MetaCognition
 
 type EvolveOptions =
     { MaxIterations: int
@@ -852,6 +853,26 @@ let run (logger: ILogger) (options: EvolveOptions) =
                             RichOutput.dim $"  [Coherence] {w}"
 
                         logger.Warning("Retroaction coherence: {Warning}", w)
+
+            // Meta-cognitive analysis: detect gaps from execution history
+            try
+                let outcomes = PatternOutcomeStore.loadAll ()
+                if not outcomes.IsEmpty && not options.Quiet then
+                    RichOutput.info "Running meta-cognitive gap analysis..."
+                    let metaConfig =
+                        { Tars.Core.MetaCognition.MetaCognitionConfig.defaults with
+                            GapDetectionThreshold = 0.5 }
+                    let! metaResult =
+                        MetaCognitionOrchestrator.runCycle None metaConfig outcomes [] []
+                    if not metaResult.DetectedGaps.IsEmpty then
+                        RichOutput.dim $"  [Meta] {metaResult.DetectedGaps.Length} capability gaps detected"
+                        for g in metaResult.DetectedGaps |> List.truncate 3 do
+                            RichOutput.dim $"    - {g.Domain}: {g.FailureRate * 100.0:F0}%% failure rate"
+                    if not metaResult.Recommendations.IsEmpty then
+                        for r in metaResult.Recommendations |> List.truncate 3 do
+                            RichOutput.dim $"  [Meta] {r}"
+            with ex ->
+                logger.Warning("Meta-cognitive analysis skipped: {Message}", ex.Message)
 
             // Save knowledge graph
             try

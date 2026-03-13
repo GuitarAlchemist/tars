@@ -101,6 +101,11 @@
     <Compile Include="WorkflowOfThought\WotExecutor.fs" />
     <Compile Include="WorkflowOfThought\Mutation.fs" />
     <Compile Include="WorkflowOfThought\Selection.fs" />
+    <!-- Meta-Cognition: self-aware gap detection and adaptive execution -->
+    <Compile Include="MetaCognition\MetaCognitionTypes.fs" />
+    <Compile Include="MetaCognition\FailureClustering.fs" />
+    <Compile Include="MetaCognition\GapDetection.fs" />
+    <Compile Include="MetaCognition\AdaptiveSignals.fs" />
   </ItemGroup>
 
   <ItemGroup>

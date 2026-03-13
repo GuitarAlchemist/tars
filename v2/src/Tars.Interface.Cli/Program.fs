@@ -468,6 +468,26 @@ let main argv =
         | args when args.Length > 0 && args.[0] = "wot" ->
             return! WotCommand.execute (args |> Array.skip 1 |> Array.toList)
 
+        // TARS Swarm - Massively parallel TARS instances via Redis/Sider
+        | args when args.Length > 0 && args.[0] = "swarm" ->
+            let subArgs = args |> Array.skip 1 |> Array.toList
+            return SwarmCommand.run subArgs
+
+        // TARS Meta-Cognition - Self-aware gap detection and learning
+        | args when args.Length > 0 && args.[0] = "meta" ->
+            let subArgs = args |> Array.skip 1 |> Array.toList
+            return MetaCommand.run subArgs
+
+        // TARS Ralph Loop - Iterative self-improvement via Ralph loops
+        | args when args.Length > 0 && args.[0] = "ralph" ->
+            let subArgs = args |> Array.skip 1 |> Array.toList
+            return RalphCommand.run subArgs
+
+        // TARS Breed - Evolutionary pattern optimization via GA
+        | args when args.Length > 0 && args.[0] = "breed" ->
+            let subArgs = args |> Array.skip 1 |> Array.toList
+            return BreedCommand.run subArgs
+
         | args when args.Length > 0 && args.[0] = "agent" ->
             let mutable options: AgentOptions = defaultOptions
             let mutable subCommand = "help"
@@ -608,6 +628,31 @@ let main argv =
             printfn "       fetch <topic> [--pg]        Fetch Wikipedia summary"
             printfn "       propose <topic> [--pg]      Extract triples via LLM"
             printfn "  tars kg trace [run_id]           Trace WoT execution from Graph"
+            printfn "  tars swarm [command]             Massively parallel TARS instances"
+            printfn "       start [N]                   Start N worker instances (default 3)"
+            printfn "       status                      Show active workers and queue"
+            printfn "       submit <goal>               Submit a job to the swarm"
+            printfn "       fan-out <goal>              Run goal with all patterns in parallel"
+            printfn "       shutdown                    Gracefully stop all workers"
+            printfn "       flush                       Clear all swarm state"
+            printfn "  tars meta [command]               Meta-cognitive self-analysis"
+            printfn "       analyze                      Run full meta-cognitive cycle"
+            printfn "       gaps                         Detect capability gaps"
+            printfn "       clusters                     Show failure clusters"
+            printfn "       curriculum                   Generate targeted learning tasks"
+            printfn "       stats                        Show execution history statistics"
+            printfn "       --use-claude                 Use Claude Code for LLM-enhanced analysis"
+            printfn "       --threshold <0.0-1.0>        Gap detection threshold (default 0.5)"
+            printfn "  tars ralph [command]              Ralph Loop iterative self-improvement"
+            printfn "       status                       Check if a Ralph loop is active"
+            printfn "       start [--focus <area>]        Start a gap-driven Ralph loop"
+            printfn "       start --goal <goal>           Start a task-specific Ralph loop"
+            printfn "       stop                          Stop the active Ralph loop"
+            printfn "       prompt                        Preview the generated Ralph prompt"
+            printfn "  tars breed [options]               Evolutionary pattern optimization via GA"
+            printfn "       --generations N               GA generations (default 50)"
+            printfn "       --show-genome                 Display evolved genome details"
+            printfn "       status                        Check MachinDeOuf availability"
             printfn ""
             return 1
     }

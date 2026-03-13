@@ -103,6 +103,12 @@
     <Compile Include="WotPersistenceTests.fs" />
     <Compile Include="WorkflowOfThought\EvidenceProvenanceTests.fs" />
     <Compile Include="PromotionPipelineTests.fs" />
+    <Compile Include="ClaudeCodeBridgeTests.fs" />
+    <Compile Include="SwarmTests.fs" />
+    <Compile Include="MetaCognitionTests.fs" />
+    <Compile Include="ClaudeCodeServiceTests.fs" />
+    <Compile Include="RalphBridgeTests.fs" />
+    <Compile Include="EvolutionaryBreederTests.fs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -25,16 +25,20 @@
     <Compile Include="OpenWebUi.fs" />
     <Compile Include="Llm.fs" />
     <Compile Include="FusekiGraphService.fs" />
+    <Compile Include="Redis\SwarmBus.fs" />
+    <Compile Include="Redis\SwarmWorker.fs" />
     <Compile Include="SymbolicReflector.fs" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="ModelContextProtocol" Version="1.1.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.4" />
+    <PackageReference Include="StackExchange.Redis" Version="2.11.8" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Tars.Core\Tars.Core.fsproj" />
+    <ProjectReference Include="..\Tars.Cortex\Tars.Cortex.fsproj" />
     <ProjectReference Include="..\Tars.LinkedData\Tars.LinkedData.fsproj" />
     <ProjectReference Include="..\Tars.Security\Tars.Security.fsproj" />
     <ProjectReference Include="..\Tars.Knowledge\Tars.Knowledge.fsproj" />

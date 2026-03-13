@@ -45,6 +45,30 @@ module TestHelpers =
     /// Usage: if not (TestHelpers.requireTools ()) then () else ...
     let requireTools () = toolsAvailable.Value
 
+    /// Checks if Postgres is reachable on localhost:5432.
+    let postgresAvailable =
+        lazy (
+            try
+                use client = new System.Net.Sockets.TcpClient()
+                client.Connect("127.0.0.1", 5432)
+                true
+            with _ -> false)
+
+    /// Guard for tests that depend on Postgres.
+    let requirePostgres () = postgresAvailable.Value
+
+    /// Checks if Redis/Sider is reachable on localhost:6379.
+    let redisAvailable =
+        lazy (
+            try
+                use client = new System.Net.Sockets.TcpClient()
+                client.Connect("127.0.0.1", 6379)
+                true
+            with _ -> false)
+
+    /// Guard for tests that depend on Redis/Sider.
+    let requireRedis () = redisAvailable.Value
+
     /// Create a modern Belief record for testing
     let createTestBelief (id: BeliefId) (subject: string) (predicate: RelationType) (object: string) =
         { Id = id

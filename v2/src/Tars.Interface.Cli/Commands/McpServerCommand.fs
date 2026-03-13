@@ -1,11 +1,16 @@
 namespace Tars.Interface.Cli.Commands
 
+open System
 open Serilog
+open Tars.Core
 open Tars.Tools
 open Tars.Connectors.Mcp
 open Tars.Metascript
 open Tars.Connectors.EpisodeIngestion
 open Tars.Tools.Standard
+open Tars.Cortex.WoTTypes
+open Tars.Cortex
+open Tars.Knowledge
 
 module McpServerCommand =
 
@@ -141,6 +146,51 @@ module McpServerCommand =
                         | None -> logger.Error("Failed to connect to MCP Server: {Name}", serverConfig.Name)
                     with ex ->
                         logger.Error("Error integrating MCP Server {Name}: {Error}", serverConfig.Name, ex.Message)
+
+                // --- Register Claude Code bridge tools ---
+                let compiler = PatternCompiler.DefaultPatternCompiler() :> IPatternCompiler
+                let selector = PatternSelector.HistoryAwareSelector() :> IPatternSelector
+                let toolRegistry = registry :> IToolRegistry
+                let ledger = KnowledgeLedger.createInMemory ()
+                ledger.Initialize() |> Async.AwaitTask |> Async.RunSynchronously
+
+                let bridgeTools : Tool list = [
+                    { Name = "tars_compile_plan"
+                      Description = "Compile a goal into a WoT execution plan. Input: {\"goal\": \"...\", \"max_steps\": 5}. Returns execution manifest with DAG of typed nodes."
+                      Version = "1.0.0"
+                      ParentVersion = None
+                      CreatedAt = DateTime.UtcNow
+                      Execute = fun input -> async { return ClaudeCodeBridge.compilePlan compiler selector toolRegistry input } }
+                    { Name = "tars_execute_step"
+                      Description = "Execute a Tool/Validate node in an active plan. Input: {\"plan_id\": \"...\", \"node_id\": \"...\", \"input\": \"...\"}. Returns step result with next nodes."
+                      Version = "1.0.0"
+                      ParentVersion = None
+                      CreatedAt = DateTime.UtcNow
+                      Execute = fun input -> ClaudeCodeBridge.executeStep toolRegistry input }
+                    { Name = "tars_validate_step"
+                      Description = "Validate content against a Validate node's invariants. Input: {\"plan_id\": \"...\", \"node_id\": \"...\", \"content\": \"...\"}. Returns pass/fail."
+                      Version = "1.0.0"
+                      ParentVersion = None
+                      CreatedAt = DateTime.UtcNow
+                      Execute = fun input -> async { return ClaudeCodeBridge.validateStep input } }
+                    { Name = "tars_memory_op"
+                      Description = "Knowledge graph operations. Search: {\"operation\": \"search\", \"query\": \"...\"}. Assert: {\"operation\": \"assert\", \"subject\": \"...\", \"predicate\": \"...\", \"object\": \"...\"}. Stats: {\"operation\": \"stats\"}."
+                      Version = "1.0.0"
+                      ParentVersion = None
+                      CreatedAt = DateTime.UtcNow
+                      Execute = fun input -> ClaudeCodeBridge.memoryOp ledger input }
+                    { Name = "tars_complete_plan"
+                      Description = "Complete an active plan. Records outcome for learning, checks golden trace regression. Input: {\"plan_id\": \"...\", \"final_output\": \"...\"}."
+                      Version = "1.0.0"
+                      ParentVersion = None
+                      CreatedAt = DateTime.UtcNow
+                      Execute = fun input -> async { return ClaudeCodeBridge.completePlan input } }
+                ]
+
+                for tool in bridgeTools do
+                    registry.Register(tool)
+
+                logger.Information("Registered {Count} Claude Code bridge tools", bridgeTools.Length)
 
             with ex ->
                 logger.Error("Failed to register tools: {Error}", ex.Message)

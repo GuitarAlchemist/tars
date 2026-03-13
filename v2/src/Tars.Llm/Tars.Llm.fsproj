@@ -21,6 +21,7 @@
     <Compile Include="LlmService.fs" />
     <Compile Include="ChatClientAdapter.fs" />
     <Compile Include="VllmClient.fs" />
+    <Compile Include="ClaudeCodeService.fs" />
     <Compile Include="TracingLlmService.fs" />
   </ItemGroup>
 

@@ -29,6 +29,14 @@
     <Compile Include="PatternLibrary.fs" />
     <Compile Include="SelfImprovement.fs" />
     <Compile Include="RetroactionLoop.fs" />
+    <!-- Meta-Cognition: LLM-enhanced gap detection and curriculum planning -->
+    <Compile Include="FailureAnalyzer.fs" />
+    <Compile Include="CurriculumPlanner.fs" />
+    <Compile Include="ReflectionEngine.fs" />
+    <Compile Include="MetaCognitionOrchestrator.fs" />
+    <!-- MachinDeOuf bridge: Rust-based GA/optimization for pattern evolution -->
+    <Compile Include="MachinBridge.fs" />
+    <Compile Include="EvolutionaryPatternBreeder.fs" />
     <Compile Include="McpPatternResources.fs" />
     <Compile Include="Engine.fs" />
   </ItemGroup>
