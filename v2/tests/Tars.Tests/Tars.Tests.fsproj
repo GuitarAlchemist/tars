@@ -111,6 +111,7 @@
     <Compile Include="EvolutionaryBreederTests.fs" />
     <Compile Include="ProbabilisticGrammarTests.fs" />
     <Compile Include="ReplicatorDynamicsTests.fs" />
+    <Compile Include="ConstrainedDecodingTests.fs" />
   </ItemGroup>
 
   <ItemGroup>
