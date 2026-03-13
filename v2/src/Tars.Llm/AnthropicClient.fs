@@ -74,6 +74,7 @@ module AnthropicClient =
             | Some ResponseFormat.Json -> Some "Respond with valid JSON only."
             | Some(ResponseFormat.Constrained(Grammar.JsonSchema _)) -> Some "Respond with valid JSON only."
             | Some(ResponseFormat.Constrained(Grammar.Regex pattern)) -> Some $"Respond matching regex: {pattern}"
+            | Some(ResponseFormat.Constrained(Grammar.Ebnf _)) -> Some "Respond following the provided grammar constraints."
             | Some ResponseFormat.Text -> None
             | None -> if req.JsonMode then Some "Respond with valid JSON only." else None
 

@@ -14,6 +14,8 @@
     <Compile Include="OllamaClient.fs" />
     <Compile Include="OllamaClientAsync.fs" />
     <Compile Include="OpenAiCompatibleClient.fs" />
+    <Compile Include="AnthropicClient.fs" />
+    <Compile Include="ConstrainedDecoding.fs" />
     <Compile Include="GoogleGeminiClient.fs" />
     <Compile Include="LlamaCppClient.fs" />
     <Compile Include="LlamaSharpService.fs" />

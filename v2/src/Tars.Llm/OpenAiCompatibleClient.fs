@@ -34,7 +34,9 @@ module OpenAiCompatibleClient =
           max_tokens: int option
           temperature: float option
           stream: bool option
-          response_format: obj option }
+          response_format: obj option
+          /// vLLM extra_body for guided decoding (EBNF grammar, regex, JSON schema)
+          extra_body: obj option }
 
     /// <summary>DTO for response message.</summary>
     [<CLIMutable>]
@@ -117,12 +119,22 @@ module OpenAiCompatibleClient =
         (req: LlmRequest)
         : Task<LlmResponse> =
         task {
+            // Build guided_decoding extra_body for vLLM when EBNF or Regex grammar is specified
+            let extraBody =
+                match req.ResponseFormat with
+                | Some(ResponseFormat.Constrained(Grammar.Ebnf grammar)) ->
+                    Some(box {| guided_decoding = {| backend = "xgrammar"; grammar = grammar |} |})
+                | Some(ResponseFormat.Constrained(Grammar.Regex pattern)) ->
+                    Some(box {| guided_decoding = {| backend = "outlines"; regex = pattern |} |})
+                | _ -> None
+
             let dto: OpenAiRequestDto =
                 { model = model
                   messages = toOpenAiMessages req.SystemPrompt req.Messages
                   max_tokens = req.MaxTokens
                   temperature = req.Temperature
                   stream = Some false
+                  extra_body = extraBody
                   response_format =
                     match req.ResponseFormat with
                     | Some ResponseFormat.Json -> Some(box {| ``type`` = "json_object" |})
@@ -135,7 +147,8 @@ module OpenAiCompatibleClient =
                                        strict = true
                                        schema = JsonSerializer.Deserialize<JsonElement>(schema) |} |}
                         )
-                    | Some(ResponseFormat.Constrained(Grammar.Regex _)) -> None // Verify if your provider implies some behavior for regex
+                    | Some(ResponseFormat.Constrained(Grammar.Ebnf _)) -> None // Handled via extra_body guided_decoding
+                    | Some(ResponseFormat.Constrained(Grammar.Regex _)) -> None // Handled via extra_body guided_decoding
                     | Some ResponseFormat.Text -> None
                     | None ->
                         if req.JsonMode then
@@ -272,12 +285,22 @@ module OpenAiCompatibleClient =
         (onToken: string -> unit)
         : Task<LlmResponse> =
         task {
+            // Build guided_decoding extra_body for vLLM when EBNF or Regex grammar is specified
+            let streamExtraBody =
+                match req.ResponseFormat with
+                | Some(ResponseFormat.Constrained(Grammar.Ebnf grammar)) ->
+                    Some(box {| guided_decoding = {| backend = "xgrammar"; grammar = grammar |} |})
+                | Some(ResponseFormat.Constrained(Grammar.Regex pattern)) ->
+                    Some(box {| guided_decoding = {| backend = "outlines"; regex = pattern |} |})
+                | _ -> None
+
             let dto: OpenAiRequestDto =
                 { model = model
                   messages = toOpenAiMessages req.SystemPrompt req.Messages
                   max_tokens = req.MaxTokens
                   temperature = req.Temperature
                   stream = Some true
+                  extra_body = streamExtraBody
                   response_format =
                     match req.ResponseFormat with
                     | Some ResponseFormat.Json -> Some(box {| ``type`` = "json_object" |})
@@ -290,7 +313,8 @@ module OpenAiCompatibleClient =
                                        strict = true
                                        schema = JsonSerializer.Deserialize<JsonElement>(schema) |} |}
                         )
-                    | Some(ResponseFormat.Constrained(Grammar.Regex _)) -> None
+                    | Some(ResponseFormat.Constrained(Grammar.Ebnf _)) -> None // Handled via extra_body
+                    | Some(ResponseFormat.Constrained(Grammar.Regex _)) -> None // Handled via extra_body
                     | Some ResponseFormat.Text -> None
                     | None ->
                         if req.JsonMode then

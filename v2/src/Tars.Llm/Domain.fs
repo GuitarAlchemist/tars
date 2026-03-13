@@ -21,6 +21,8 @@ type LlmMessage = { Role: Role; Content: string }
 type Grammar =
     | JsonSchema of schema: string
     | Regex of pattern: string
+    /// <summary>EBNF/CFG grammar for constrained decoding (vLLM guided_decoding, xgrammar, Outlines).</summary>
+    | Ebnf of grammar: string
 
 /// <summary>Format of the expected response.</summary>
 type ResponseFormat =
