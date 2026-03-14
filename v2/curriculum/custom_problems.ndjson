@@ -1,0 +1,4 @@
+{"Id": "CUST-001", "Source": "ProjectEuler", "Title": "Sum of Digits", "Description": "Find sum of digits of 2^100", "Difficulty": "Beginner", "Tags": ["math"], "ValidationCriteria": "30", "ReferenceSolution": null}
+{"Id": "CUST-002", "Source": "ProjectEuler", "Title": "Factorial Length", "Description": "Find number of digits in 100!", "Difficulty": "Intermediate", "Tags": ["math"], "ValidationCriteria": "158", "ReferenceSolution": null}
+{"Id": "MATH-001", "Source": "ProjectEuler", "Title": "Basic Arithmetic", "Description": "Calculate (123 * 456) + (789 / 3)", "Difficulty": "Beginner", "Tags": ["math"], "ValidationCriteria": "56351", "ReferenceSolution": null}
+{"Id": "TEST-002", "Source": "Custom", "Title": "Log Analysis", "Description": "Analyze server logs to determine the root cause of the crash.", "Difficulty": "Beginner", "Tags": ["test"], "ValidationCriteria": "analysis", "ReferenceSolution": "analysis"}

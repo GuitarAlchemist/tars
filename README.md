@@ -1,3 +1,8 @@
+<<<<<<< HEAD
+# TARS - The Automated Reasoning System
+
+> **🚀 TARS v2 is currently in active development!**
+=======
 ﻿# DISCLAIMER: TARS is Vibe Coded and AI tools tend to exaggerate
 # Metrics/descriptions probably do not reflect the reality
 
@@ -218,13 +223,22 @@ To get started with the A2A protocol, see [A2A Protocol Documentation](https://g
   <img src="docs/images/tars_mcp_integration.svg" alt="TARS MCP Integration" width="600"/>
   <p><i>For more information about these images, see <a href="docs/IMAGES.md">IMAGES.md</a></i></p>
 </div>
+>>>>>>> origin/main
 
-## Overview
+## What is TARS?
 
+<<<<<<< HEAD
+TARS (The Automated Reasoning System & AI Inference Engine) is a high-performance, F#-based AI system designed for autonomous reasoning, self-improvement, and multi-agent collaboration.
+=======
 This repository contains the TARS (Transformative automated Reasoning System) project, a powerful AI-driven development and automation system.
+>>>>>>> origin/main
 
-## Project Structure
+![Task Decomposition](./v2/docs/assets/task_decomposition.jpg)
+*TARS breaks down complex tasks into manageable steps through autonomous reasoning and multi-agent collaboration.*
 
+<<<<<<< HEAD
+---
+=======
 ### Modern F# Architecture (Current)
 - **TarsEngine.FSharp.Cli** - Main F# CLI with enhanced capabilities and QA agent integration
 - **TarsEngine.FSharp.Core** - Core F# functional programming engine with metascript execution
@@ -243,9 +257,20 @@ This repository contains the TARS (Transformative automated Reasoning System) pr
 ### Legacy C# Components (Archived)
 - **Legacy_CSharp_Projects/** - Archived C# implementations for reference
 - **[TODOs](TODOs/README.md)** - Task lists for various aspects of the project
+>>>>>>> origin/main
 
-## Features
+## Repository Structure
 
+<<<<<<< HEAD
+This repository contains two major versions:
+
+### 📁 **[v1/](./v1/)** - TARS v1 (Legacy)
+
+- Production-ready AI inference engine (Ollama-compatible)
+- CUDA-accelerated vector operations
+- Multi-agent research system
+- Grammar distillation and FLUX metascripts
+=======
 ### 🔬 Enhanced Reverse Engineering (NEW!)
 
 TARS now features sophisticated reverse engineering capabilities with real metascript execution:
@@ -305,39 +330,64 @@ TARS implements Anthropic's Model Context Protocol (MCP), enabling powerful coll
 - **Structured Communication**: Standardized JSON format for tool requests and responses
 - **Auto-Coding**: Automatic code generation and implementation through Docker containers and swarm architecture
 - **Docker Swarm**: Run a swarm of specialized Docker containers for auto-coding
+>>>>>>> origin/main
 
-[View Model Context Protocol documentation](docs/features/model-context-protocol.md)
+**Status:** Feature-complete, in maintenance mode.  
+**Documentation:** See [v1/README.md](./v1/README.md)
 
-### Learning and Education Features
+---
 
-TARS includes comprehensive learning and education features to help users master new skills:
+### 📁 **[v2/](./v2/)** - TARS v2 (Active Development) ⭐
 
+<<<<<<< HEAD
+**Current Focus:** Comprehensive architecture and operational design phase.
+=======
 - **Learning Plans**: Generate personalized learning plans with customizable goals, skill levels, and preferences
 - **Course Generation**: Create structured courses with lessons, exercises, quizzes, and assessments
 - **Tutorial Organization**: Manage and categorize tutorials with different difficulty levels and prerequisites
 - **Demo Mode**: Showcase most TARS capabilities through interactive demonstrations
+>>>>>>> origin/main
 
-### Hugging Face Integration
+TARS v2 represents a complete reimagining of the system with:
 
-TARS can now browse, download, and install the best coding LLMs from Hugging Face:
+- **Micro-Kernel Architecture** (F# core)
+- **Model Context Protocol (MCP)** for tool integration
+- **AutoGen + Semantic Kernel** for multi-agent orchestration
+- **Local-first** approach (Docker, Chroma, self-hosted tools)
+- **Enterprise-grade security** (sandboxing, vault, HITL)
+- **Advanced testing** (Golden Runs for agent behavior)
+- **Cost management** (token accounting, budget enforcement)
 
+<<<<<<< HEAD
+**Status:** Analysis phase complete, implementation planning in progress.  
+👉 **[Start here: v2/GEMINI.md](./v2/GEMINI.md)**
+=======
 - **Model Discovery**: Search and find the best coding models on Hugging Face
 - **Automatic Installation**: Download and convert models to work with Ollama
 - **Seamless Integration**: Use Hugging Face models with most TARS commands
 - **Model Management**: List and manage your installed models
 - **GPU Acceleration**: Automatically detect and utilize compatible GPUs for faster inference
+>>>>>>> origin/main
 
-[View Hugging Face integration documentation](docs/HUGGINGFACE_INTEGRATION.md)
+#### Key Documentation (v2)
 
-### Deep Thinking and Exploration
+- [Vision & Goals](./v2/docs/0_Vision/goals_and_vision.md)
+- [Architecture Overview](./v2/docs/2_Analysis/Architecture/00_Overview/tars_v2_architecture.md)
+- [Security Model](./v2/docs/2_Analysis/Architecture/03_Operational/security_model.md)
+- [Testing Strategy](./v2/docs/2_Analysis/Architecture/03_Operational/testing_strategy.md)
 
-TARS can generate in-depth explorations on complex topics:
+---
 
-- **Topic Exploration**: Generate detailed analyses on any topic
-- **Related Topics**: Discover and explore related concepts
-- **Version Evolution**: Build on previous explorations to deepen understanding
-- **Consolidated Organization**: Explorations are organized by topic for easy reference
+## Quick Start
 
+<<<<<<< HEAD
+### For v1 (Production)
+
+```bash
+cd v1
+docker build -f Dockerfile.ai -t tars-ai:latest .
+docker run -d -p 11434:11434 --gpus all tars-ai:latest
+=======
 ### Docker Integration
 
 TARS now supports running LLMs and auto-coding in Docker containers:
@@ -466,11 +516,17 @@ dotnet build
 
 # Run the enhanced F# CLI
 dotnet run --project TarsEngine.FSharp.Cli
+>>>>>>> origin/main
 ```
 
-### Basic Usage
+### For v2 (Development)
 
 ```bash
+<<<<<<< HEAD
+cd v2
+# Documentation only at this stage
+# See v2/GEMINI.md for development roadmap
+=======
 # Start the interactive chatbot with enhanced reverse engineering
 dotnet run --project TarsEngine.FSharp.Cli -- chatbot
 
@@ -528,28 +584,25 @@ dotnet run --project TarsCli/TarsCli.csproj -- auto-improve-workflow --report
 
 # Stop the automated improvement workflow
 dotnet run --project TarsCli/TarsCli.csproj -- auto-improve-workflow --stop
+>>>>>>> origin/main
 ```
 
-### Model Context Protocol (MCP) Commands
+---
 
-```bash
-# Execute a terminal command through MCP
-dotnet run --project TarsCli/TarsCli.csproj -- mcp execute "echo Hello, World!"
+## Contributing
 
-# Generate code with triple-quoted syntax
-dotnet run --project TarsCli/TarsCli.csproj -- mcp code path/to/file.cs -triple-quoted """using System;
+TARS v2 is actively seeking contributions! Areas of focus:
 
-public class Program
-{
-    public static void Main()
-    {
-        Console.WriteLine(\"Hello, World!\");
-    }
-}"""
+- F# Micro-Kernel implementation
+- MCP server integrations
+- AutoGen agent definitions
+- Testing infrastructure
 
-# Start the MCP service for Augment Code integration
-dotnet run --project TarsCli/TarsCli.csproj -- mcp start --port 8999
+See [v2/docs/2_Analysis/Architecture/03_Operational/BRIDGING_THE_GAPS.md](./v2/docs/2_Analysis/Architecture/03_Operational/BRIDGING_THE_GAPS.md) for implementation priorities.
 
+<<<<<<< HEAD
+---
+=======
 # Configure MCP tool permissions
 dotnet run --project TarsCli/TarsCli.csproj -- mcp config --auto-execute true --tools terminal,code,status
 
@@ -574,14 +627,27 @@ dotnet run --project TarsCli/TarsCli.csproj -- mcp collaborate start
 # Run the Augment VS Code demo
 dotnet run --project TarsCli/TarsCli.csproj -- demo augment-vscode-demo --task "Analyze the codebase and suggest improvements"
 ```
+>>>>>>> origin/main
 
-### Multi-Agent Workflows
+## License
 
-```bash
-# Run a multi-agent workflow for a task
-dotnet run --project TarsCli/TarsCli.csproj -- workflow --task "Create a simple web API in C#"
-```
+See [LICENSE](./LICENSE) for details.
 
+<<<<<<< HEAD
+---
+
+## Project Status
+
+| Component | v1 | v2 |
+|:----------|:---|:---|
+| **Status** | ✅ Production | 🚧 Planning |
+| **Architecture** | Monolithic | Micro-Kernel |
+| **Agent Runtime** | Custom F# | AutoGen + SK |
+| **Tool Integration** | Hardcoded | MCP Protocol |
+| **Deployment** | Docker | Docker Compose |
+
+For the latest updates, see the [v2 branch](https://github.com/GuitarAlchemist/tars/tree/pre_v2/v2).
+=======
 ### F# to Rust Transpilation
 
 ```bash
@@ -715,3 +781,4 @@ SOFTWARE.
 
 
 **Note: This includes experimental features that are under active development.**
+>>>>>>> origin/main

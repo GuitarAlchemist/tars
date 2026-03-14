@@ -1,0 +1,78 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <NoWarn>44;57</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="ReasoningPattern.fs" />
+    <Compile Include="WoTTypes.fs" />
+    <Compile Include="Verification.fs" />
+    <Compile Include="GoldenTraceStore.fs" />
+    <Compile Include="RegressionChecker.fs" />
+    <Compile Include="PatternCompiler.fs" />
+    <Compile Include="PatternSelector.fs" />
+    <Compile Include="RalphBridge.fs" />
+    <Compile Include="ClaudeCodeBridge.fs" />
+    <Compile Include="CognitiveStateManager.fs" />
+    <Compile Include="WoTExecutor.fs" />
+    <Compile Include="AdaptiveExecutor.fs" />
+    <Compile Include="WoTController.fs" />
+    <Compile Include="TarsWoTAgent.fs" />
+    <Compile Include="ToolAwareChatClient.fs" />
+    <Compile Include="AgentOrchestrator.fs" />
+    <Compile Include="VectorStore.fs" />
+    <Compile Include="InMemoryVectorStore.fs" />
+    <Compile Include="SqliteVectorStore.fs" />
+    <Compile Include="PostgresVectorStore.fs" />
+    <Compile Include="AnnVectorStore.fs" />
+    <Compile Include="ChromaPlanStorage.fs" />
+    <Compile Include="Chunking.fs" />
+    <Compile Include="Grammar.fs" />
+    <Compile Include="SemanticClassifier.fs" />
+    <Compile Include="GraphAnalyzer.fs" />
+    <Compile Include="CognitiveAnalyzer.fs" />
+    <Compile Include="CognitiveBenchmarker.fs" />
+    <Compile Include="ContextCompression.fs" />
+    <Compile Include="PreLlmPipeline.fs" />
+    <Compile Include="EpistemicGovernor.fs" />
+    <Compile Include="CapabilityStore.fs" />
+    <Compile Include="AstIngestor.fs" />
+    <Compile Include="CodeGraphIngestor.fs" />
+    <Compile Include="Inference.fs" />
+    <Compile Include="OutputGuardAnalyzerLlm.fs" />
+    <Compile Include="EntityExtractor.fs" />
+    <Compile Include="SemanticWatchdog.fs" />
+    <Compile Include="UncertaintyGatedPlanner.fs" />
+    <Compile Include="ConsensusCircuitBreaker.fs" />
+    <Compile Include="Structure.fs" />
+    <Compile Include="TraceAnalyzer.fs" />
+    <Compile Include="PlannerPrompts.fs" />
+    <Compile Include="Patterns.fs" />
+    <Compile Include="SelfImprovement.fs" />
+    <Compile Include="CodebaseRAG.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Tars.Core\Tars.Core.fsproj" />
+    <ProjectReference Include="..\Tars.Kernel\Tars.Kernel.fsproj" />
+    <ProjectReference Include="..\Tars.Llm\Tars.Llm.fsproj" />
+    <ProjectReference Include="..\Tars.Knowledge\Tars.Knowledge.fsproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FSharp.Compiler.Service" Version="43.10.101" />
+    <PackageReference Include="FSharp.SystemTextJson" Version="1.4.36" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.5" />
+    <PackageReference Include="Microsoft.Agents.AI.Abstractions" Version="1.0.0-rc3" />
+    <PackageReference Include="Microsoft.Extensions.AI" Version="10.3.0" />
+    <PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="10.3.0" />
+    <PackageReference Include="Npgsql" Version="10.0.1" />
+  </ItemGroup>
+
+
+
+</Project>

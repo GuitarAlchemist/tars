@@ -1,0 +1,94 @@
+DEBUG: parseArgs input=[|"propose"; "F Sharp"; "--pg"|]
+DEBUG: KnowCmd.run options={ Command = "propose"
+  Subject = None
+  Predicate = None
+  Object = None
+  Path = None
+  Query = Some "F Sharp"
+  BeliefId = None
+  Depth = 2
+  UsePostgres = true
+  ShowPrompt = false }
+DEBUG: ENTERING runPropose
+
+🧠 Extracting proposed beliefs for: F Sharp
+Consulting LLM...
+DEBUG: LLM Response Len: 950
+DEBUG: LLM Response: {
+  "triples": [
+    {
+      "subject": "F♯",
+      "predicate": "is a",
+      "object": "minor musical scale"
+    },
+    {
+      "subject": "F♯",
+      "predicate": "is a",
+      "object": "major musical scale"
+    },
+    {
+      "subject": "F Sharp",
+      "predicate": "is a",
+      "object": ".NET programming language"
+    },
+    {
+      "subject": "\"F Sharp\"",
+      "predicate": "is a",
+      "object": "song by Tim Minchin"
+    },
+    {
+      "subject": "\"F♯ \"",
+      "predicate": "is a",
+      "object": "song by Nuclear Assault"
+    },
+    {
+      "subject": "F♯ A♯ ∞",
+      "predicate": "is an",
+      "object": "album by Godspeed You! Black Emperor"
+    },
+    {
+      "subject": "Rot Lop Fan",
+      "predicate": "is also known as",
+      "object": "the F-Sharp Bell"
+    },
+    {
+      "subject": "F Sharp (Yellowjackets)",
+      "predicate": "is an",
+      "object": "episode of the American TV series Yellowjackets"
+    }
+  ]
+}
+
+LLM returned: {
+  "triples": [
+    {
+      "subject": "F♯",
+      "predicate": "is a",
+      "object": "minor musical scale"
+    },
+    {
+      "subject": "F♯",
+      "predicate": "is a",
+      "object": "major mus...
+╭────────────────────┬──────────────────┬────────────────────┬───────╮
+│ Subject            │ Predicate        │ Object             │ Conf. │
+├────────────────────┼──────────────────┼────────────────────┼───────┤
+│ F♯                 │ is a             │ minor musical      │ 50%   │
+│                    │                  │ scale              │       │
+│ F♯                 │ is a             │ major musical      │ 50%   │
+│                    │                  │ scale              │       │
+│ F Sharp            │ is a             │ .NET programming   │ 50%   │
+│                    │                  │ language           │       │
+│ "F Sharp"          │ is a             │ song by Tim        │ 50%   │
+│                    │                  │ Minchin            │       │
+│ "F♯ "              │ is a             │ song by Nuclear    │ 50%   │
+│                    │                  │ Assault            │       │
+│ F♯ A♯ ∞            │ is an            │ album by Godspeed  │ 50%   │
+│                    │                  │ You! Black Emperor │       │
+│ Rot Lop Fan        │ is also known as │ the F-Sharp Bell   │ 50%   │
+│ F Sharp            │ is an            │ episode of the     │ 50%   │
+│ (Yellowjackets)    │                  │ American TV series │       │
+│                    │                  │ Yellowjackets      │       │
+╰────────────────────┴──────────────────┴────────────────────┴───────╯
+
+These are PROPOSALS. Use 'tars know assert' to add them to the ledger.

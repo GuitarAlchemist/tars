@@ -1,0 +1,63 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Tars.Sandbox -> C:\Users\spare\source\repos\tars\v2\src\Tars.Sandbox\bin\Debug\net10.0\Tars.Sandbox.dll
+  Tars.Core -> C:\Users\spare\source\repos\tars\v2\src\Tars.Core\bin\Debug\net10.0\Tars.Core.dll
+  Tars.Security -> C:\Users\spare\source\repos\tars\v2\src\Tars.Security\bin\Debug\net10.0\Tars.Security.dll
+  Tars.Tools -> C:\Users\spare\source\repos\tars\v2\src\Tars.Tools\bin\Debug\net10.0\Tars.Tools.dll
+  Tars.Llm -> C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\bin\Debug\net10.0\Tars.Llm.dll
+  Tars.Connectors -> C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\bin\Debug\net10.0\Tars.Connectors.dll
+  Tars.Kernel -> C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\bin\Debug\net10.0\Tars.Kernel.dll
+  Tars.Cortex -> C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\bin\Debug\net10.0\Tars.Cortex.dll
+  Tars.Graph -> C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\bin\Debug\net10.0\Tars.Graph.dll
+  Tars.Evolution -> C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\bin\Debug\net10.0\Tars.Evolution.dll
+  Tars.Metascript -> C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\bin\Debug\net10.0\Tars.Metascript.dll
+  Tars.Tests -> C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\bin\Debug\net10.0\Tars.Tests.dll
+Test run for C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\bin\Debug\net10.0\Tars.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.1 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.25]     Tars.Tests.IntegrationTests.EpistemicGovernor: Can verify claims [SKIP]
+[xUnit.net 00:00:00.27]     Tars.Tests.GoldenRun.Golden Run: Demo Ping [SKIP]
+  Skipped Tars.Tests.IntegrationTests.EpistemicGovernor: Can verify claims [1 ms]
+  Skipped Tars.Tests.GoldenRun.Golden Run: Demo Ping [1 ms]
+[xUnit.net 00:00:00.34]     Tars.Tests.IntegrationTests.Ollama: Can connect and list models [SKIP]
+[xUnit.net 00:00:00.34]     Tars.Tests.IntegrationTests.VectorStore: End-to-end RAG pipeline [SKIP]
+[xUnit.net 00:00:00.37]     Tars.Tests.IntegrationTests.Patterns: ReAct loop with tool calls [SKIP]
+  Skipped Tars.Tests.IntegrationTests.Ollama: Can connect and list models [1 ms]
+  Skipped Tars.Tests.IntegrationTests.VectorStore: End-to-end RAG pipeline [1 ms]
+  Skipped Tars.Tests.IntegrationTests.Patterns: ReAct loop with tool calls [1 ms]
+[xUnit.net 00:00:00.37]     Tars.Tests.IntegrationTests.Patterns: Plan and Execute with real planner [SKIP]
+[xUnit.net 00:00:00.37]     Tars.Tests.IntegrationTests.Ollama: Can generate chat completion [SKIP]
+[xUnit.net 00:00:00.37]     Tars.Tests.IntegrationTests.Agent: Can execute multi-step workflow with LLM [SKIP]
+[xUnit.net 00:00:00.37]     Tars.Tests.IntegrationTests.Patterns: Chain of Thought with real LLM [SKIP]
+[xUnit.net 00:00:00.37]     Tars.Tests.IntegrationTests.Budget: LLM calls respect token limits [SKIP]
+[xUnit.net 00:00:00.37]     Tars.Tests.IntegrationTests.Ollama: Can generate embeddings [SKIP]
+  Skipped Tars.Tests.IntegrationTests.Patterns: Plan and Execute with real planner [1 ms]
+  Skipped Tars.Tests.IntegrationTests.Ollama: Can generate chat completion [1 ms]
+  Skipped Tars.Tests.IntegrationTests.Agent: Can execute multi-step workflow with LLM [1 ms]
+  Skipped Tars.Tests.IntegrationTests.Patterns: Chain of Thought with real LLM [1 ms]
+  Skipped Tars.Tests.IntegrationTests.Budget: LLM calls respect token limits [1 ms]
+  Skipped Tars.Tests.IntegrationTests.Ollama: Can generate embeddings [1 ms]
+  Failed Tars.Tests.EvolutionTests.Evolution generation uses epistemic suggestions [40 ms]
+  Error Message:
+   A task should be queued from curriculum generation
+  Stack Trace:
+     at Tars.Tests.EvolutionTests.Evolution generation uses epistemic suggestions() in C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\EvolutionTests.fs:line 157
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Tars.Tests.GraphTests.PromptBuilder: Includes message history [91 ms]
+  Error Message:
+   Assert.Contains() Failure: Sub-string not found
+String:    "You are a helpful assistant.\r\n\n## Convers"···
+Not found: "User: Hello there!"
+  Stack Trace:
+     at Tars.Tests.GraphTests.PromptBuilder: Includes message history() in C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\GraphTests.fs:line 186
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Standard Output Messages:
+ Starting test: Includes message history
+
+
+
+Failed!  - Failed:     2, Passed:   236, Skipped:    11, Total:   249, Duration: 1 s - Tars.Tests.dll (net10.0)

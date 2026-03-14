@@ -1,0 +1,7 @@
+<Project>
+  <PropertyGroup>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <NoWarn>$(NoWarn);57;NU1608</NoWarn>
+    <WarningsNotAsErrors>NU1608</WarningsNotAsErrors>
+  </PropertyGroup>
+</Project>

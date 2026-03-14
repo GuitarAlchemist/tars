@@ -1,0 +1,21 @@
+{
+  "explorationDirectories": [
+    "C:/Users/spare/source/repos/tars/docs/Explorations/v1/Chats",
+    "C:/Users/spare/source/repos/tars/docs/Explorations/Reflections"
+  ],
+  "targetDirectories": [
+    "C:/Users/spare/source/repos/tars/TarsCli/Services",
+    "C:/Users/spare/source/repos/tars/TarsCli/Commands",
+    "C:/Users/spare/source/repos/tars/TarsCli/Models"
+  ],
+  "improvementCycleDurationMinutes": 60,
+  "model": "llama3",
+  "autoAcceptImprovements": true,
+  "filePatterns": {
+    "documentation": "*.md",
+    "code": "*.cs"
+  },
+  "knowledgeExtractionPrompt": "You are an expert at extracting structured knowledge from documentation...",
+  "knowledgeApplicationPrompt": "You are an expert at improving code and documentation by applying knowledge from a knowledge base...",
+  "reportGenerationPrompt": "You are an expert at analyzing software development processes and knowledge flow..."
+}

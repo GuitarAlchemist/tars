@@ -1,0 +1,19 @@
+{
+    "mcpServers": {
+        "tars": {
+            "command": "dotnet",
+            "args": [
+                "run",
+                "--project",
+                "C:\\Users\\spare\\source\\repos\\tars\\v2\\src\\Tars.Interface.Cli\\Tars.Interface.Cli.fsproj",
+                "--",
+                "mcp",
+                "server"
+            ],
+            "env": {
+                "GRAPHITI_URL": "http://localhost:8001",
+                "OLLAMA_BASE_URL": "http://localhost:11434"
+            }
+        }
+    }
+}

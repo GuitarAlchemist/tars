@@ -1,0 +1,123 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Tars.Engine.VectorStore -> C:\Users\spare\source\repos\tars\Tars.Engine.VectorStore\bin\Release\net9.0\Tars.Engine.VectorStore.dll
+  TarsEngine.FSharp.Metascript -> C:\Users\spare\source\repos\tars\TarsEngine.FSharp.Metascript\bin\Release\net9.0\TarsEngine.FSharp.Metascript.dll
+  TarsEngine.DSL -> C:\Users\spare\source\repos\tars\TarsEngine.DSL\bin\Release\net9.0\TarsEngine.DSL.dll
+  Tars.Engine.Grammar -> C:\Users\spare\source\repos\tars\Tars.Engine.Grammar\bin\Release\net9.0\Tars.Engine.Grammar.dll
+  TarsEngine.FSharp.Core -> C:\Users\spare\source\repos\tars\TarsEngine.FSharp.Core\bin\Release\net9.0\TarsEngine.FSharp.Core.dll
+  TarsEngine.FSharp.Metascript.Standalone -> C:\Users\spare\source\repos\tars\TarsEngine.FSharp.Metascript.Standalone\bin\Release\net9.0\TarsEngine.FSharp.Metascript.Standalone.dll
+  TarsEngine.FSharp.SelfBuildingUI -> C:\Users\spare\source\repos\tars\TarsEngine.FSharp.SelfBuildingUI\bin\Release\net9.0\TarsEngine.FSharp.SelfBuildingUI.dll
+  TarsEngine.FSharp.Metascripts -> C:\Users\spare\source\repos\tars\TarsEngine.FSharp.Metascripts\bin\Release\net9.0\TarsEngine.FSharp.Metascripts.dll
+  TarsEngine.FSharp.SelfImprovement -> C:\Users\spare\source\repos\tars\TarsEngine.FSharp.SelfImprovement\bin\Release\net9.0\TarsEngine.FSharp.SelfImprovement.dll
+  TarsEngine.FSharp.ML -> C:\Users\spare\source\repos\tars\TarsEngine.FSharp.ML\bin\Release\net9.0\TarsEngine.FSharp.ML.dll
+  TarsEngine.FSharp.Metascript.Console -> C:\Users\spare\source\repos\tars\TarsEngine.FSharp.Metascript.Console\bin\Release\net9.0\TarsEngine.FSharp.Metascript.Console.dll
+  Tars.Engine.VectorStore.Tests -> C:\Users\spare\source\repos\tars\Tars.Engine.VectorStore.Tests\bin\Release\net9.0\Tars.Engine.VectorStore.Tests.dll
+  Tars.Engine.Grammar.Tests -> C:\Users\spare\source\repos\tars\Tars.Engine.Grammar.Tests\bin\Release\net9.0\Tars.Engine.Grammar.Tests.dll
+Test run for C:\Users\spare\source\repos\tars\Tars.Engine.VectorStore.Tests\bin\Release\net9.0\Tars.Engine.VectorStore.Tests.dll (.NETCoreApp,Version=v9.0)
+  TarsEngine.DSL.Tests -> C:\Users\spare\source\repos\tars\TarsEngine.DSL.Tests\bin\Release\net9.0\TarsEngine.DSL.Tests.dll
+  TarsEngine.FSharp.Metascript.Runner -> C:\Users\spare\source\repos\tars\TarsEngine.FSharp.Metascript.Runner\bin\Release\net9.0\TarsEngine.FSharp.Metascript.Runner.dll
+Test run for C:\Users\spare\source\repos\tars\Tars.Engine.Grammar.Tests\bin\Release\net9.0\Tars.Engine.Grammar.Tests.dll (.NETCoreApp,Version=v9.0)
+  TarsEngine.FSharp.Metascripts.Tests -> C:\Users\spare\source\repos\tars\TarsEngine.FSharp.Metascripts.Tests\bin\Release\net9.0\TarsEngine.FSharp.Metascripts.Tests.dll
+Test run for C:\Users\spare\source\repos\tars\TarsEngine.DSL.Tests\bin\Release\net9.0\TarsEngine.DSL.Tests.dll (.NETCoreApp,Version=v9.0)
+Test run for C:\Users\spare\source\repos\tars\TarsEngine.FSharp.Metascripts.Tests\bin\Release\net9.0\TarsEngine.FSharp.Metascripts.Tests.dll (.NETCoreApp,Version=v9.0)
+  TarsEngine.FSharp.Metascript.Tests -> C:\Users\spare\source\repos\tars\TarsEngine.FSharp.Metascript.Tests\bin\Release\net9.0\TarsEngine.FSharp.Metascript.Tests.dll
+Test run for C:\Users\spare\source\repos\tars\TarsEngine.FSharp.Metascript.Tests\bin\Release\net9.0\TarsEngine.FSharp.Metascript.Tests.dll (.NETCoreApp,Version=v9.0)
+  TarsEngine.FSharp.SelfBuildingUI.Tests -> C:\Users\spare\source\repos\tars\TarsEngine.FSharp.SelfBuildingUI.Tests\bin\Release\net9.0\TarsEngine.FSharp.SelfBuildingUI.Tests.dll
+VSTest version 18.0.0-preview-25451-107 (x64)
+Test run for C:\Users\spare\source\repos\tars\TarsEngine.FSharp.SelfBuildingUI.Tests\bin\Release\net9.0\TarsEngine.FSharp.SelfBuildingUI.Tests.dll (.NETCoreApp,Version=v9.0)
+
+  TarsEngine.FSharp.ML.Tests -> C:\Users\spare\source\repos\tars\TarsEngine.FSharp.ML.Tests\bin\Release\net9.0\TarsEngine.FSharp.ML.Tests.dll
+VSTest version 18.0.0-preview-25451-107 (x64)
+
+Test run for C:\Users\spare\source\repos\tars\TarsEngine.FSharp.ML.Tests\bin\Release\net9.0\TarsEngine.FSharp.ML.Tests.dll (.NETCoreApp,Version=v9.0)
+VSTest version 18.0.0-preview-25451-107 (x64)
+
+VSTest version 18.0.0-preview-25451-107 (x64)
+
+VSTest version 18.0.0-preview-25451-107 (x64)
+
+VSTest version 18.0.0-preview-25451-107 (x64)
+
+  TarsEngine.SelfImprovement -> C:\Users\spare\source\repos\tars\TarsEngine.SelfImprovement\bin\Release\net9.0\TarsEngine.SelfImprovement.dll
+VSTest version 18.0.0-preview-25451-107 (x64)
+
+Starting test execution, please wait...
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+Starting test execution, please wait...
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+A total of 1 test files matched the specified pattern.
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+  TarsEngine.FSharp.Metascript.Console.Tests -> C:\Users\spare\source\repos\tars\TarsEngine.FSharp.Metascript.Console.Tests\bin\Release\net9.0\TarsEngine.FSharp.Metascript.Console.Tests.dll
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+Test run for C:\Users\spare\source\repos\tars\TarsEngine.FSharp.Metascript.Console.Tests\bin\Release\net9.0\TarsEngine.FSharp.Metascript.Console.Tests.dll (.NETCoreApp,Version=v9.0)
+A total of 1 test files matched the specified pattern.
+  TarsEngine.FSharp.Metascript.Runner.Tests -> C:\Users\spare\source\repos\tars\TarsEngine.FSharp.Metascript.Runner.Tests\bin\Release\net9.0\TarsEngine.FSharp.Metascript.Runner.Tests.dll
+VSTest version 18.0.0-preview-25451-107 (x64)
+
+Test run for C:\Users\spare\source\repos\tars\TarsEngine.FSharp.Metascript.Runner.Tests\bin\Release\net9.0\TarsEngine.FSharp.Metascript.Runner.Tests.dll (.NETCoreApp,Version=v9.0)
+Starting test execution, please wait...
+VSTest version 18.0.0-preview-25451-107 (x64)
+
+A total of 1 test files matched the specified pattern.
+Starting test execution, please wait...
+  TarsEngine.SelfImprovement.Tests -> C:\Users\spare\source\repos\tars\TarsEngine.SelfImprovement.Tests\bin\Release\net9.0\TarsEngine.SelfImprovement.Tests.dll
+A total of 1 test files matched the specified pattern.
+Test run for C:\Users\spare\source\repos\tars\TarsEngine.SelfImprovement.Tests\bin\Release\net9.0\TarsEngine.SelfImprovement.Tests.dll (.NETCoreApp,Version=v9.0)
+VSTest version 18.0.0-preview-25451-107 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:     4, Skipped:     0, Total:     4, Duration: 57 ms - TarsEngine.FSharp.SelfBuildingUI.Tests.dll (net9.0)
+
+Passed!  - Failed:     0, Passed:    19, Skipped:     0, Total:    19, Duration: 82 ms - Tars.Engine.Grammar.Tests.dll (net9.0)
+
+Passed!  - Failed:     0, Passed:    32, Skipped:     0, Total:    32, Duration: 496 ms - TarsEngine.DSL.Tests.dll (net9.0)
+
+Passed!  - Failed:     0, Passed:    10, Skipped:     0, Total:    10, Duration: 159 ms - Tars.Engine.VectorStore.Tests.dll (net9.0)
+
+Passed!  - Failed:     0, Passed:     2, Skipped:     0, Total:     2, Duration: 168 ms - TarsEngine.FSharp.Metascripts.Tests.dll (net9.0)
+  TarsEngine.FSharp.Metascript.Standalone.Tests -> C:\Users\spare\source\repos\tars\TarsEngine.FSharp.Metascript.Standalone.Tests\bin\Release\net9.0\TarsEngine.FSharp.Metascript.Standalone.Tests.dll
+  Failed TarsEngine.FSharp.ML.Tests.MLFrameworkTests+MLFrameworkTests.MLFramework can get model metadata [190 ms]
+  Error Message:
+   Assert.Equal() Failure: Strings differ
+           ↓ (pos 0)
+Expected: "TestPrediction"
+Actual:   "Object"
+           ↑ (pos 0)
+  Stack Trace:
+     at TarsEngine.FSharp.ML.Tests.MLFrameworkTests.MLFrameworkTests.MLFramework can get model metadata() in C:\Users\spare\source\repos\tars\TarsEngine.FSharp.ML.Tests\MLFrameworkTests.fs:line 202
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed TarsEngine.FSharp.ML.Tests.MLFrameworkTests+MLFrameworkTests.MLFramework can make predictions [10 ms]
+  Error Message:
+   Assert.True() Failure
+Expected: True
+Actual:   False
+  Stack Trace:
+     at TarsEngine.FSharp.ML.Tests.MLFrameworkTests.MLFrameworkTests.MLFramework can make predictions() in C:\Users\spare\source\repos\tars\TarsEngine.FSharp.ML.Tests\MLFrameworkTests.fs:line 166
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+
+Failed!  - Failed:     2, Passed:     7, Skipped:     0, Total:     9, Duration: 249 ms - TarsEngine.FSharp.ML.Tests.dll (net9.0)
+Test run for C:\Users\spare\source\repos\tars\TarsEngine.FSharp.Metascript.Standalone.Tests\bin\Release\net9.0\TarsEngine.FSharp.Metascript.Standalone.Tests.dll (.NETCoreApp,Version=v9.0)
+
+Passed!  - Failed:     0, Passed:     2, Skipped:     0, Total:     2, Duration: 124 ms - TarsEngine.FSharp.Metascript.Runner.Tests.dll (net9.0)
+VSTest version 18.0.0-preview-25451-107 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:    20, Skipped:     0, Total:    20, Duration: 254 ms - TarsEngine.SelfImprovement.Tests.dll (net9.0)
+
+Passed!  - Failed:     0, Passed:     2, Skipped:     0, Total:     2, Duration: 172 ms - TarsEngine.FSharp.Metascript.Standalone.Tests.dll (net9.0)
+
+Passed!  - Failed:     0, Passed:     2, Skipped:     0, Total:     2, Duration: 1 s - TarsEngine.FSharp.Metascript.Tests.dll (net9.0)
+
+Passed!  - Failed:     0, Passed:     2, Skipped:     0, Total:     2, Duration: 1 s - TarsEngine.FSharp.Metascript.Console.Tests.dll (net9.0)

@@ -1,0 +1,144 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <GenerateProgramFile>true</GenerateProgramFile>
+    <NoWarn>44;57</NoWarn>
+    <LangVersion>preview</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="FunctionalPatternsTests.fs" />
+    <Compile Include="CognitiveMaturityTests.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="TestHelpers.fs" />
+    <Compile Include="KernelTests.fs" />
+    <Compile Include="GovernanceTests.fs" />
+    <Compile Include="AgentWorkflowTests.fs" />
+    <Compile Include="KTheoryTests.fs" />
+    <Compile Include="EventBusTests.fs" />
+    <Compile Include="EvolutionTests.fs" />
+    <Compile Include="EvolutionSemanticTests.fs" />
+    <Compile Include="EvolutionBenchmarkTests.fs" />
+    <Compile Include="ExecutionTests.fs" />
+    <Compile Include="MetascriptTests.fs" />
+    <Compile Include="FluxTests.fs" />
+    <Compile Include="GraphTests.fs" />
+    <Compile Include="GraphitiTypesTests.fs" />
+    <Compile Include="RouterTests.fs" />
+    <Compile Include="EpistemicGovernorTests.fs" />
+    <Compile Include="AdaptiveReflectionTests.fs" />
+    <Compile Include="GraphRuntimeTests.fs" />
+    <Compile Include="CircuitTests.fs" />
+    <Compile Include="MetricSpaceTests.fs" />
+    <Compile Include="SpeechActsTests.fs" />
+    <Compile Include="GrammarTests.fs" />
+    <Compile Include="GoldenRun.fs" />
+    <Compile Include="OpenWebUiTests.fs" />
+    <Compile Include="LlmServiceTests.fs" />
+    <Compile Include="JsonParsingTests.fs" />
+    <Compile Include="SemanticEvaluationTests.fs" />
+    <Compile Include="SandboxTests.fs" />
+    <Compile Include="SecurityTests.fs" />
+    <Compile Include="ToolTests.fs" />
+    <Compile Include="MacroToolsTests.fs" />
+    <Compile Include="VectorStoreTests.fs" />
+    <Compile Include="PostgresVectorStoreTests.fs" />
+    <Compile Include="OutputGuardTests.fs" />
+    <Compile Include="OutputGuardLlmTests.fs" />
+    <Compile Include="PolicyEngineTests.fs" />
+    <Compile Include="KnowledgeLedgerTests.fs" />
+    <!-- <Compile Include="EvolutionFixesTests.fs" /> -->
+    <Compile Include="EvolveIntegrationTests.fs" />
+    <Compile Include="ReasoningDiagTests.fs" />
+    <Compile Include="PuzzleTests.fs" />
+    <Compile Include="PuzzleIntegrationTests.fs" />
+    <Compile Include="VerifierAgentTests.fs" />
+    <Compile Include="MultiBackendPlanStorageTests.fs" />
+    <Compile Include="InvariantTests.fs" />
+
+    <Compile Include="ChunkingTests.fs" />
+    <Compile Include="SemanticSerializationTests.fs" />
+    <Compile Include="McpTests.fs" />
+    <Compile Include="KnowledgeGraphTests.fs" />
+    <Compile Include="SymbolicReflectionTests.fs" />
+    <Compile Include="TemporalKnowledgeGraphTests.fs" />
+    <Compile Include="LpaTests.fs" />
+    <Compile Include="PatternRecognitionTests.fs" />
+    <Compile Include="AnnVectorStoreTests.fs" />
+    <Compile Include="PersistenceTests.fs" />
+    <Compile Include="TextNormalizerTests.fs" />
+    <Compile Include="RoadmapTests.fs" />
+    <Compile Include="CognitivePatternTests.fs" />
+    <Compile Include="SelfReflectionTests.fs" />
+    <Compile Include="PersonaTests.fs" />
+    <Compile Include="TraceAnalyzerTests.fs" />
+    <Compile Include="ProjectTests.fs" />
+    <Compile Include="PipelineExecutorTests.fs" />
+    <Compile Include="ArtifactTests.fs" />
+    <Compile Include="GitIntegrationTests.fs" />
+    <Compile Include="DemoGeneratorTests.fs" />
+    <Compile Include="V1ParserTests.fs" />
+    <Compile Include="MetascriptRegistryTests.fs" />
+    <Compile Include="PatternTests.fs" />
+    <Compile Include="ReasoningPatternTests.fs" />
+    <Compile Include="PatternSelectorTests.fs" />
+    <Compile Include="OrchestratorTests.fs" />
+    <Compile Include="SelfImprovementTests.fs" />
+    <Compile Include="WorkingMemoryTests.fs" />
+    <Compile Include="TaskPrioritizationTests.fs" />
+    <Compile Include="HealthCheckTests.fs" />
+    <Compile Include="StructuredLoggingTests.fs" />
+
+    <Compile Include="ReasoningAuditTests.fs" />
+    <Compile Include="WorkflowOfThought\WotCompilerTests.fs" />
+    <Compile Include="WorkflowOfThought\WotParsingIntegrationTests.fs" />
+    <Compile Include="WorkflowOfThought\WotGoldenRunTests.fs" />
+    <Compile Include="WorkflowOfThought\WotDiffTests.fs" />
+    <Compile Include="WorkflowOfThought\WoTControllerTests.fs" />
+    <Compile Include="WoTGoldenTraceTests.fs" />
+    <Compile Include="WotPersistenceTests.fs" />
+    <Compile Include="WorkflowOfThought\EvidenceProvenanceTests.fs" />
+    <Compile Include="PromotionPipelineTests.fs" />
+    <Compile Include="ClaudeCodeBridgeTests.fs" />
+    <Compile Include="SwarmTests.fs" />
+    <Compile Include="MetaCognitionTests.fs" />
+    <Compile Include="ClaudeCodeServiceTests.fs" />
+    <Compile Include="RalphBridgeTests.fs" />
+    <Compile Include="EvolutionaryBreederTests.fs" />
+    <Compile Include="ProbabilisticGrammarTests.fs" />
+    <Compile Include="ReplicatorDynamicsTests.fs" />
+    <Compile Include="ConstrainedDecodingTests.fs" />
+    <Compile Include="ProbabilisticGrammarIntegrationTests.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="FsUnit" Version="7.1.1" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Tars.Core\Tars.Core.fsproj" />
+    <ProjectReference Include="..\..\src\Tars.Kernel\Tars.Kernel.fsproj" />
+    <ProjectReference Include="..\..\src\Tars.Cortex\Tars.Cortex.fsproj" />
+    <ProjectReference Include="..\..\src\Tars.Metascript\Tars.Metascript.fsproj" />
+    <ProjectReference Include="..\..\src\Tars.Connectors\Tars.Connectors.fsproj" />
+    <ProjectReference Include="..\..\src\Tars.Security\Tars.Security.fsproj" />
+    <ProjectReference Include="..\..\src\Tars.Llm\Tars.Llm.fsproj" />
+    <ProjectReference Include="..\..\src\Tars.Sandbox\Tars.Sandbox.fsproj" />
+    <ProjectReference Include="..\..\src\Tars.Tools\Tars.Tools.fsproj" />
+    <ProjectReference Include="..\..\src\Tars.Evolution\Tars.Evolution.fsproj" />
+    <ProjectReference Include="..\..\src\Tars.Metascript\Tars.Metascript.fsproj" />
+    <ProjectReference Include="..\..\src\Tars.Knowledge\Tars.Knowledge.fsproj" />
+    <ProjectReference Include="..\..\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj" />
+    <ProjectReference Include="..\..\src\Tars.Symbolic\Tars.Symbolic.fsproj" />
+    <ProjectReference Include="..\..\src\Tars.DSL\Tars.DSL.fsproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,531 @@
+/* REAL SUPERINTELLIGENCE UI STYLES - NO FAKE ANIMATIONS */
+/* Modern, clean interface for genuine autonomous capabilities */
+
+:root {
+  --primary-color: #00ff88;
+  --secondary-color: #0066cc;
+  --accent-color: #ff6b6b;
+  --background-dark: #0a0a0a;
+  --background-medium: #1a1a1a;
+  --background-light: #2a2a2a;
+  --text-primary: #ffffff;
+  --text-secondary: #cccccc;
+  --text-muted: #888888;
+  --border-color: #333333;
+  --success-color: #28a745;
+  --warning-color: #ffc107;
+  --error-color: #dc3545;
+  --processing-color: #17a2b8;
+}
+
+/* ============================================================================
+   GLOBAL STYLES
+   ============================================================================ */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: var(--background-dark);
+  color: var(--text-primary);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+.superintelligence-app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============================================================================
+   HEADER STYLES
+   ============================================================================ */
+
+.superintelligence-header {
+  background: linear-gradient(135deg, var(--background-medium), var(--background-light));
+  padding: 1.5rem 2rem;
+  border-bottom: 2px solid var(--primary-color);
+  box-shadow: 0 4px 20px rgba(0, 255, 136, 0.1);
+}
+
+.superintelligence-header .title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  text-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.superintelligence-header .icon {
+  font-size: 3rem;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.status-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+.status-indicator {
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.status-message {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* ============================================================================
+   LAYOUT STYLES
+   ============================================================================ */
+
+.main-content {
+  display: flex;
+  flex: 1;
+  min-height: calc(100vh - 120px);
+}
+
+.sidebar {
+  width: 250px;
+  background: var(--background-medium);
+  border-right: 1px solid var(--border-color);
+  padding: 2rem 0;
+}
+
+.nav-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0 1rem;
+}
+
+.nav-item {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  padding: 1rem 1.5rem;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.nav-item:hover {
+  background: var(--background-light);
+  color: var(--text-primary);
+  transform: translateX(5px);
+}
+
+.nav-item.active {
+  background: var(--primary-color);
+  color: var(--background-dark);
+  font-weight: 600;
+}
+
+.content-area {
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
+}
+
+/* ============================================================================
+   PANEL STYLES
+   ============================================================================ */
+
+.capabilities-panel,
+.problem-solver-panel,
+.code-analysis-panel,
+.learning-panel {
+  background: var(--background-medium);
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.capabilities-panel h3,
+.problem-solver-panel h3,
+.code-analysis-panel h3,
+.learning-panel h3 {
+  color: var(--primary-color);
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* ============================================================================
+   CAPABILITIES GRID
+   ============================================================================ */
+
+.capabilities-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.capability-card {
+  background: var(--background-light);
+  border-radius: 8px;
+  padding: 1.5rem;
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.capability-card:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 4px 15px rgba(0, 255, 136, 0.2);
+  transform: translateY(-2px);
+}
+
+.capability-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.capability-header h4 {
+  color: var(--text-primary);
+  font-size: 1.2rem;
+}
+
+.capability-status {
+  background: var(--success-color);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.capability-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.capability-description {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+/* ============================================================================
+   PROBLEM SOLVER STYLES
+   ============================================================================ */
+
+.problem-input {
+  margin-bottom: 2rem;
+}
+
+.problem-textarea {
+  width: 100%;
+  min-height: 120px;
+  background: var(--background-light);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1rem;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 1rem;
+  resize: vertical;
+  margin-bottom: 1rem;
+}
+
+.problem-textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 10px rgba(0, 255, 136, 0.2);
+}
+
+.solve-button,
+.analyze-button,
+.clean-button {
+  background: var(--primary-color);
+  color: var(--background-dark);
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-right: 1rem;
+}
+
+.solve-button:hover,
+.analyze-button:hover,
+.clean-button:hover {
+  background: #00cc6a;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 255, 136, 0.3);
+}
+
+.solve-button:disabled,
+.analyze-button:disabled,
+.clean-button:disabled {
+  background: var(--text-muted);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ============================================================================
+   SESSION CARDS
+   ============================================================================ */
+
+.active-sessions,
+.completed-sessions {
+  margin-top: 2rem;
+}
+
+.active-sessions h4,
+.completed-sessions h4 {
+  color: var(--secondary-color);
+  margin-bottom: 1rem;
+}
+
+.session-card {
+  background: var(--background-light);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  border-left: 4px solid var(--processing-color);
+}
+
+.session-card.completed {
+  border-left-color: var(--success-color);
+}
+
+.session-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.session-id {
+  font-family: 'Courier New', monospace;
+  background: var(--background-dark);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.session-status,
+.session-success {
+  background: var(--processing-color);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.session-success {
+  background: var(--success-color);
+}
+
+.session-problem {
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+  font-style: italic;
+}
+
+.session-solutions {
+  margin-top: 1rem;
+}
+
+.solution-item {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+/* ============================================================================
+   CODE ANALYSIS STYLES
+   ============================================================================ */
+
+.analysis-controls {
+  margin-bottom: 2rem;
+}
+
+.results-table {
+  background: var(--background-light);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.result-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.result-row:last-child {
+  border-bottom: none;
+}
+
+.filename {
+  font-family: 'Courier New', monospace;
+  color: var(--text-primary);
+}
+
+.issue-count {
+  background: var(--warning-color);
+  color: var(--background-dark);
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+/* ============================================================================
+   LEARNING INSIGHTS STYLES
+   ============================================================================ */
+
+.insights-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.insight-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  background: var(--background-light);
+  padding: 1rem;
+  border-radius: 8px;
+  border-left: 4px solid var(--accent-color);
+}
+
+.insight-icon {
+  font-size: 1.2rem;
+  margin-top: 0.1rem;
+}
+
+.insight-text {
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.no-insights {
+  color: var(--text-muted);
+  font-style: italic;
+  text-align: center;
+  padding: 2rem;
+}
+
+/* ============================================================================
+   ERROR PANEL STYLES
+   ============================================================================ */
+
+.error-panel {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: var(--error-color);
+  color: white;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(220, 53, 69, 0.3);
+  z-index: 1000;
+  max-width: 400px;
+}
+
+.error-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.error-icon {
+  font-size: 1.2rem;
+}
+
+.error-message {
+  flex: 1;
+}
+
+.error-dismiss {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+}
+
+.error-dismiss:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ============================================================================
+   OVERVIEW GRID
+   ============================================================================ */
+
+.overview-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 2rem;
+}
+
+/* ============================================================================
+   RESPONSIVE DESIGN
+   ============================================================================ */
+
+@media (max-width: 768px) {
+  .main-content {
+    flex-direction: column;
+  }
+  
+  .sidebar {
+    width: 100%;
+    order: 2;
+  }
+  
+  .content-area {
+    order: 1;
+  }
+  
+  .overview-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .capabilities-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .superintelligence-header .title {
+    font-size: 2rem;
+  }
+}

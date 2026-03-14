@@ -1,0 +1,19 @@
+
+{
+  "baseline": {
+    "successRate": 88.9,
+    "avgAttempts": 1.0,
+    "avgTimeMs": 0
+  },
+  "neuroSymbolic": {
+    "successRate": 66.7,
+    "avgAttempts": 1.0,
+    "avgTimeMs": 0,
+    "avgConstraintScore": 0.75
+  },
+  "improvement": {
+    "successRate": -22.2,
+    "attemptsReduction": 0.0,
+    "speedup": -50.4
+  }
+}

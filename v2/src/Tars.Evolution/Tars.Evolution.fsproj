@@ -1,0 +1,65 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>44;57</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Protocol.fs" />
+    <Compile Include="CurriculumTypes.fs" />
+    <Compile Include="PromotionTypes.fs" />
+    <Compile Include="GrammarGovernor.fs" />
+    <Compile Include="WeightedGrammar.fs" />
+    <Compile Include="RoundtripValidation.fs" />
+    <Compile Include="PromotionPipeline.fs" />
+    <Compile Include="StructuredOutput.fs" />
+    <Compile Include="ProblemIngestor.fs" />
+    <Compile Include="ResearchEnhancedCurriculum.fs" />
+    <Compile Include="CurriculumManager.fs" />
+    <Compile Include="Evaluation.fs" />
+    <Compile Include="LedgerIngestion.fs" />
+    <Compile Include="Reflection.fs" />
+    <Compile Include="Optimizer.fs" />
+    <Compile Include="DemoVisualization.fs" />
+    <Compile Include="TaskPrioritization.fs" />
+    <Compile Include="SpeechActBridge.fs" />
+    <Compile Include="SymbolicReflector.fs" />
+    <Compile Include="PatternCompiler.fs" />
+    <Compile Include="PatternLibrary.fs" />
+    <Compile Include="SelfImprovement.fs" />
+    <Compile Include="RetroactionLoop.fs" />
+    <!-- Meta-Cognition: LLM-enhanced gap detection and curriculum planning -->
+    <Compile Include="FailureAnalyzer.fs" />
+    <Compile Include="CurriculumPlanner.fs" />
+    <Compile Include="ReflectionEngine.fs" />
+    <Compile Include="MetaCognitionOrchestrator.fs" />
+    <!-- MachinDeOuf bridge: Rust-based GA/optimization for pattern evolution -->
+    <Compile Include="MachinBridge.fs" />
+    <Compile Include="EvolutionaryPatternBreeder.fs" />
+    <!-- MCTS: Monte Carlo Tree Search for grammar derivation -->
+    <Compile Include="MctsTypes.fs" />
+    <Compile Include="MctsSolver.fs" />
+    <Compile Include="WotMctsState.fs" />
+    <Compile Include="MctsBridge.fs" />
+    <Compile Include="ReplicatorDynamics.fs" />
+    <Compile Include="McpPatternResources.fs" />
+    <Compile Include="McpGrammarTools.fs" />
+    <Compile Include="Engine.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Tars.Core\Tars.Core.fsproj" />
+    <ProjectReference Include="..\Tars.DSL\Tars.DSL.fsproj" />
+    <ProjectReference Include="..\Tars.Graph\Tars.Graph.fsproj" />
+    <ProjectReference Include="..\Tars.Llm\Tars.Llm.fsproj" />
+    <ProjectReference Include="..\Tars.Kernel\Tars.Kernel.fsproj" />
+    <ProjectReference Include="..\Tars.Cortex\Tars.Cortex.fsproj" />
+    <ProjectReference Include="..\Tars.Metascript\Tars.Metascript.fsproj" />
+    <ProjectReference Include="..\Tars.Knowledge\Tars.Knowledge.fsproj" />
+    <ProjectReference Include="..\Tars.Symbolic\Tars.Symbolic.fsproj" />
+    <ProjectReference Include="..\Tars.Tools\Tars.Tools.fsproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,14 @@
+meta name "SimpleTest"
+
+node reason_1 "Explain F# in 10 words" {
+    kind reason
+}
+
+node verify_1 "Check if mention F#" {
+    kind verify
+    verify {
+        op contains "F#"
+    }
+}
+
+edge reason_1 -> verify_1

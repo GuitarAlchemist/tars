@@ -1,0 +1,5 @@
+```command
+echo "Hello from the metascript standalone command block!"
+```
+
+This trailing text block verifies that non-executable content is preserved.

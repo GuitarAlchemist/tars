@@ -1,0 +1,18 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Tars.Core -> C:\Users\spare\source\repos\tars\v2\src\Tars.Core\bin\Debug\net10.0\Tars.Core.dll
+  Tars.Security -> C:\Users\spare\source\repos\tars\v2\src\Tars.Security\bin\Debug\net10.0\Tars.Security.dll
+  Tars.Llm -> C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\bin\Debug\net10.0\Tars.Llm.dll
+  Tars.Sandbox -> C:\Users\spare\source\repos\tars\v2\src\Tars.Sandbox\bin\Debug\net10.0\Tars.Sandbox.dll
+  Tars.Kernel -> C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\bin\Debug\net10.0\Tars.Kernel.dll
+  Tars.Cortex -> C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\bin\Debug\net10.0\Tars.Cortex.dll
+  Tars.Metascript -> C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\bin\Debug\net10.0\Tars.Metascript.dll
+C:\Users\spare\source\repos\tars\v2\src\Tars.Tools\Registry.fs(13,5): error FS0960: 'let' and 'do' bindings must come before member and interface definitions in type definitions [C:\Users\spare\source\repos\tars\v2\src\Tars.Tools\Tars.Tools.fsproj]
+
+Build FAILED.
+
+C:\Users\spare\source\repos\tars\v2\src\Tars.Tools\Registry.fs(13,5): error FS0960: 'let' and 'do' bindings must come before member and interface definitions in type definitions [C:\Users\spare\source\repos\tars\v2\src\Tars.Tools\Tars.Tools.fsproj]
+    0 Warning(s)
+    1 Error(s)
+
+Time Elapsed 00:00:04.23

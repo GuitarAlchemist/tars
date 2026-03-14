@@ -1,0 +1,32 @@
+{
+  "name": "Loop and Decision Demo",
+  "description": "Demonstrates decision + loop metascript execution.",
+  "version": "1.0",
+  "inputs": [],
+  "steps": [
+    {
+      "id": "gate",
+      "type": "decision",
+      "params": {
+        "condition": "true",
+        "trueOutput": "proceed",
+        "falseOutput": "stop"
+      },
+      "outputs": [ "route" ]
+    },
+    {
+      "id": "loop",
+      "type": "loop",
+      "agent": "Looper",
+      "instruction": "Summarize {{item}} in one sentence.",
+      "params": {
+        "list": "[\"refactor the parser\",\"tighten safety gate\"]",
+        "itemVar": "item"
+      },
+      "outputs": [ "summaries" ],
+      "context": [
+        { "step": "gate", "output": "route" }
+      ]
+    }
+  ]
+}

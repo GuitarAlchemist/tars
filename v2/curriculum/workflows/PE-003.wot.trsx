@@ -1,0 +1,45 @@
+meta {
+  name = "PE-003"
+  description = "Find the largest prime factor of 600851475143"
+  domain = "mathematics"
+  difficulty = "intermediate"
+}
+
+inputs {
+  problem_statement = "What is the largest prime factor of the number 600851475143?"
+  expected_answer = "6857"
+  target_number = "600851475143"
+}
+
+policy {
+  allowed_tools = ["math_eval", "validate_puzzle_answer"]
+  max_tool_calls = 5
+  max_tokens = 2048
+}
+
+workflow "solve_pe003" {
+  
+  node "analyze" kind="reason" {
+    goal = "Analyze this prime factorization problem: ${problem_statement}. Develop an efficient factorization strategy for the large number ${target_number}."
+    output = "strategy"
+    constraints = ["use_prime_factorization", "optimize_for_large_numbers"]
+  }
+
+  node "solve" kind="reason" {
+    input = ["strategy"]
+    goal = "Using the strategy, find the largest prime factor of ${target_number}. Show the factorization process step by step."
+    output = "computed_answer"
+    constraints = ["show_factorization_steps", "verify_primality", "provide_largest_factor"]
+  }
+
+  node "verify" kind="work" {
+    input = ["computed_answer"]
+    output = "final_result"
+    checks = [
+      { "type": "contains", "value": "${computed_answer}", "needle": "${expected_answer}" }
+    ]
+  }
+
+  edge "analyze" -> "solve"
+  edge "solve" -> "verify"
+}

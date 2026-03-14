@@ -1,0 +1,31 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Tars.Sandbox -> C:\Users\spare\source\repos\tars\v2\src\Tars.Sandbox\bin\Debug\net10.0\Tars.Sandbox.dll
+  Tars.Core -> C:\Users\spare\source\repos\tars\v2\src\Tars.Core\bin\Debug\net10.0\Tars.Core.dll
+  Tars.Security -> C:\Users\spare\source\repos\tars\v2\src\Tars.Security\bin\Debug\net10.0\Tars.Security.dll
+  Tars.Llm -> C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\bin\Debug\net10.0\Tars.Llm.dll
+  Tars.Tools -> C:\Users\spare\source\repos\tars\v2\src\Tars.Tools\bin\Debug\net10.0\Tars.Tools.dll
+  Tars.Connectors -> C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\bin\Debug\net10.0\Tars.Connectors.dll
+  Tars.Kernel -> C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\bin\Debug\net10.0\Tars.Kernel.dll
+  Tars.Graph -> C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\bin\Debug\net10.0\Tars.Graph.dll
+C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\ContextCompression.fs(48,17): error FS0764: No assignment given for field 'Model' of type 'Tars.Llm.LlmRequest' [C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\Tars.Cortex.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\EpistemicGovernor.fs(41,21): error FS0764: No assignment given for field 'Model' of type 'Tars.Llm.LlmRequest' [C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\Tars.Cortex.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\EpistemicGovernor.fs(66,21): error FS0764: No assignment given for field 'Model' of type 'Tars.Llm.LlmRequest' [C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\Tars.Cortex.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\EpistemicGovernor.fs(128,21): error FS0764: No assignment given for field 'Model' of type 'Tars.Llm.LlmRequest' [C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\Tars.Cortex.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\EpistemicGovernor.fs(179,21): error FS0764: No assignment given for field 'Model' of type 'Tars.Llm.LlmRequest' [C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\Tars.Cortex.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\EpistemicGovernor.fs(255,21): error FS0764: No assignment given for field 'Model' of type 'Tars.Llm.LlmRequest' [C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\Tars.Cortex.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\OutputGuardAnalyzerLlm.fs(76,25): error FS0764: No assignment given for field 'Model' of type 'Tars.Llm.LlmRequest' [C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\Tars.Cortex.fsproj]
+
+Build FAILED.
+
+C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\ContextCompression.fs(48,17): error FS0764: No assignment given for field 'Model' of type 'Tars.Llm.LlmRequest' [C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\Tars.Cortex.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\EpistemicGovernor.fs(41,21): error FS0764: No assignment given for field 'Model' of type 'Tars.Llm.LlmRequest' [C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\Tars.Cortex.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\EpistemicGovernor.fs(66,21): error FS0764: No assignment given for field 'Model' of type 'Tars.Llm.LlmRequest' [C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\Tars.Cortex.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\EpistemicGovernor.fs(128,21): error FS0764: No assignment given for field 'Model' of type 'Tars.Llm.LlmRequest' [C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\Tars.Cortex.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\EpistemicGovernor.fs(179,21): error FS0764: No assignment given for field 'Model' of type 'Tars.Llm.LlmRequest' [C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\Tars.Cortex.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\EpistemicGovernor.fs(255,21): error FS0764: No assignment given for field 'Model' of type 'Tars.Llm.LlmRequest' [C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\Tars.Cortex.fsproj]
+C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\OutputGuardAnalyzerLlm.fs(76,25): error FS0764: No assignment given for field 'Model' of type 'Tars.Llm.LlmRequest' [C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\Tars.Cortex.fsproj]
+    0 Warning(s)
+    7 Error(s)
+
+Time Elapsed 00:00:03.82

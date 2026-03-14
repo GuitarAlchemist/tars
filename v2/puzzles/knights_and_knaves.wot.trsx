@@ -1,0 +1,43 @@
+meta {
+  name = "knights_and_knaves"
+  description = "Logic puzzle with truth-tellers (Knights) and liars (Knaves)."
+  domain = "propositional logic"
+  difficulty = "medium"
+}
+
+inputs {
+  puzzle_prompt = "On an island, Knights always tell the truth and Knaves always lie. You meet two islanders, A and B. A says: 'B is a Knight'. B says: 'We are different types'. What are A and B? Explain your reasoning step by step. Answer format: 'A is a [Knight/Knave], B is a [Knight/Knave]'."
+  puzzle_type = "knights_and_knaves"
+}
+
+policy {
+  allowed_tools = ["validate_puzzle_answer"]
+  max_tool_calls = 3
+  max_tokens = 2048
+}
+
+workflow "solve_knights_knaves" {
+  
+  node "think" kind="reason" {
+    goal = "Solve this puzzle step by step: ${puzzle_prompt}"
+    output = "solution"
+    constraints = ["show_reasoning", "follow_answer_format"]
+  }
+
+  node "validate" kind="work" {
+    tool = "validate_puzzle_answer"
+    args = { "puzzle_type": "${puzzle_type}", "answer": "${solution}" }
+    output = "validation_result"
+  }
+
+  node "verify" kind="work" {
+    input = ["validation_result"]
+    output = "final_verdict"
+    checks = [
+      { "type": "contains", "value": "${validation_result}", "needle": "PASS" }
+    ]
+  }
+
+  edge "think" -> "validate"
+  edge "validate" -> "verify"
+}

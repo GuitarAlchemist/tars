@@ -1,0 +1,361 @@
+@using TarsEngine.Models
+@using TarsApp.Services.Interfaces
+@inject IExecutionPlannerService ExecutionPlannerService
+@inject IImprovementPrioritizerService ImprovementPrioritizerService
+@inject ILogger<ExecutionDashboard> Logger
+
+<MudGrid>
+    <MudItem xs="12">
+        <MudText Typo="Typo.h5" Class="mb-4">Execution Summary</MudText>
+        <MudGrid>
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Elevation="2" Class="pa-4 d-flex flex-column" Style="height: 120px;">
+                    <MudText Typo="Typo.subtitle2" Color="Color.Primary">Total Executions</MudText>
+                    <MudText Typo="Typo.h3" Class="mt-2">@totalExecutions</MudText>
+                    <MudText Typo="Typo.caption" Color="@(totalExecutionsChange >= 0 ? Color.Success : Color.Error)" Class="mt-auto">
+                        @(totalExecutionsChange >= 0 ? "+" : "")@totalExecutionsChange today
+                    </MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Elevation="2" Class="pa-4 d-flex flex-column" Style="height: 120px;">
+                    <MudText Typo="Typo.subtitle2" Color="Color.Primary">Success Rate</MudText>
+                    <MudText Typo="Typo.h3" Class="mt-2">@successRate%</MudText>
+                    <MudText Typo="Typo.caption" Color="@(successRateChange >= 0 ? Color.Success : Color.Error)" Class="mt-auto">
+                        @(successRateChange >= 0 ? "+" : "")@successRateChange% this week
+                    </MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Elevation="2" Class="pa-4 d-flex flex-column" Style="height: 120px;">
+                    <MudText Typo="Typo.subtitle2" Color="Color.Primary">Pending Reviews</MudText>
+                    <MudText Typo="Typo.h3" Class="mt-2">@pendingReviews</MudText>
+                    <MudText Typo="Typo.caption" Color="@(pendingReviewsChange <= 0 ? Color.Success : Color.Error)" Class="mt-auto">
+                        @(pendingReviewsChange >= 0 ? "+" : "")@pendingReviewsChange since yesterday
+                    </MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Elevation="2" Class="pa-4 d-flex flex-column" Style="height: 120px;">
+                    <MudText Typo="Typo.subtitle2" Color="Color.Primary">Rollbacks</MudText>
+                    <MudText Typo="Typo.h3" Class="mt-2">@rollbacks</MudText>
+                    <MudText Typo="Typo.caption" Color="@(rollbacksChange <= 0 ? Color.Success : Color.Error)" Class="mt-auto">
+                        @(rollbacksChange == 0 ? "No change" : (rollbacksChange > 0 ? "+" + rollbacksChange : rollbacksChange.ToString()) + " this week")
+                    </MudText>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudPaper Elevation="2" Class="pa-4">
+            <MudText Typo="Typo.h5" Class="mb-4">Recent Executions</MudText>
+            <MudTable Items="@recentExecutions" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@isLoading" LoadingProgressColor="Color.Primary">
+                <HeaderContent>
+                    <MudTh>ID</MudTh>
+                    <MudTh>Improvement</MudTh>
+                    <MudTh>Status</MudTh>
+                    <MudTh>Started</MudTh>
+                    <MudTh>Actions</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="ID">@context.Id</MudTd>
+                    <MudTd DataLabel="Improvement">@context.Improvement</MudTd>
+                    <MudTd DataLabel="Status">
+                        <MudChip T="string" Color="@GetStatusColor(context.Status)" Size="Size.Small">@context.Status</MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Started">@context.Started</MudTd>
+                    <MudTd>
+                        <MudButtonGroup Size="Size.Small" Variant="Variant.Outlined">
+                            <MudButton OnClick="@(() => ViewExecution(context.Id))">View</MudButton>
+                            @if (context.Status == "In Progress")
+                            {
+                                <MudButton OnClick="@(() => MonitorExecution(context.Id))">Monitor</MudButton>
+                            }
+                            @if (context.Status == "Failed")
+                            {
+                                <MudButton Color="Color.Error" OnClick="@(() => RollbackExecution(context.Id))">Rollback</MudButton>
+                            }
+                            @if (context.Status == "Awaiting Review")
+                            {
+                                <MudButton Color="Color.Success" OnClick="@(() => ApproveExecution(context.Id))">Approve</MudButton>
+                                <MudButton Color="Color.Error" OnClick="@(() => RejectExecution(context.Id))">Reject</MudButton>
+                            }
+                        </MudButtonGroup>
+                    </MudTd>
+                </RowTemplate>
+                <PagerContent>
+                    <MudTablePager PageSizeOptions="new int[] { 5, 10, 25, 50 }" />
+                </PagerContent>
+            </MudTable>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudPaper Elevation="2" Class="pa-4">
+            <MudText Typo="Typo.h5" Class="mb-4">Execution Performance</MudText>
+            <MudChart ChartType="ChartType.Line" ChartSeries="@chartSeries" XAxisLabels="@chartLabels" Width="100%" Height="300px"></MudChart>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudPaper Elevation="2" Class="pa-4">
+            <MudText Typo="Typo.h5" Class="mb-4">Pending Improvements</MudText>
+            <MudTable Items="@pendingImprovements" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@isLoading" LoadingProgressColor="Color.Primary">
+                <HeaderContent>
+                    <MudTh>ID</MudTh>
+                    <MudTh>Name</MudTh>
+                    <MudTh>Category</MudTh>
+                    <MudTh>Priority</MudTh>
+                    <MudTh>Impact</MudTh>
+                    <MudTh>Effort</MudTh>
+                    <MudTh>Risk</MudTh>
+                    <MudTh>Actions</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="ID">@context.Id</MudTd>
+                    <MudTd DataLabel="Name">@context.Name</MudTd>
+                    <MudTd DataLabel="Category">@context.Category</MudTd>
+                    <MudTd DataLabel="Priority">
+                        <MudChip T="string" Color="@GetPriorityColor(context.PriorityRank)" Size="Size.Small">@GetPriorityText(context.PriorityRank)</MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Impact">@context.Impact</MudTd>
+                    <MudTd DataLabel="Effort">@context.Effort</MudTd>
+                    <MudTd DataLabel="Risk">@context.Risk</MudTd>
+                    <MudTd>
+                        <MudButtonGroup Size="Size.Small" Variant="Variant.Outlined">
+                            <MudButton Color="Color.Primary" OnClick="@(() => ExecuteImprovement(context))">Execute</MudButton>
+                            <MudButton OnClick="@(() => ViewImprovement(context.Id))">View</MudButton>
+                        </MudButtonGroup>
+                    </MudTd>
+                </RowTemplate>
+                <PagerContent>
+                    <MudTablePager PageSizeOptions="new int[] { 5, 10, 25, 50 }" />
+                </PagerContent>
+            </MudTable>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    [Parameter]
+    public EventCallback<string> OnViewExecution { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnMonitorExecution { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnRollbackExecution { get; set; }
+
+    [Parameter]
+    public EventCallback<PrioritizedImprovement> OnExecuteImprovement { get; set; }
+
+    private bool isLoading = true;
+
+    // Dashboard metrics
+    private int totalExecutions = 24;
+    private int totalExecutionsChange = 3;
+    private int successRate = 87;
+    private int successRateChange = 2;
+    private int pendingReviews = 5;
+    private int pendingReviewsChange = 2;
+    private int rollbacks = 3;
+    private int rollbacksChange = 0;
+
+    // Recent executions
+    private List<RecentExecution> recentExecutions = [];
+
+    // Pending improvements
+    private List<PrioritizedImprovement> pendingImprovements = [];
+
+    // Chart data
+    private List<ChartSeries> chartSeries = [];
+    private string[] chartLabels = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        // Load data
+        await LoadDataAsync();
+
+        // Initialize chart
+        InitializeChart();
+    }
+
+    private async Task LoadDataAsync()
+    {
+            await Task.Delay(1); // Added to satisfy compiler warning CS1998
+        try
+        {
+            isLoading = true;
+
+            // In a real implementation, this would load data from the services
+            // For now, use mock data
+
+            // Load recent executions
+            recentExecutions =
+            [
+                new RecentExecution { Id = "CTX-123", Improvement = "Refactor Authentication Service", Status = "Completed", Started = "2 hours ago" },
+                new RecentExecution { Id = "CTX-122", Improvement = "Optimize Database Queries", Status = "In Progress", Started = "3 hours ago" },
+                new RecentExecution { Id = "CTX-121", Improvement = "Fix Memory Leak in Cache Service", Status = "Failed", Started = "5 hours ago" },
+                new RecentExecution { Id = "CTX-120", Improvement = "Add Logging to API Endpoints", Status = "Awaiting Review", Started = "1 day ago" }
+            ];
+
+            // Load pending improvements
+            pendingImprovements =
+            [
+                new PrioritizedImprovement
+                {
+                    Id = "IMP-456",
+                    Name = "Implement Caching for API Responses",
+                    Category = ImprovementCategory.Performance,
+                    PriorityRank = 1,
+                    Impact = ImprovementImpact.High,
+                    Effort = ImprovementEffort.Medium,
+                    Risk = ImprovementRisk.Low
+                },
+
+                new PrioritizedImprovement
+                {
+                    Id = "IMP-455",
+                    Name = "Refactor Error Handling",
+                    Category = ImprovementCategory.Maintainability,
+                    PriorityRank = 2,
+                    Impact = ImprovementImpact.Medium,
+                    Effort = ImprovementEffort.Medium,
+                    Risk = ImprovementRisk.Medium
+                },
+
+                new PrioritizedImprovement
+                {
+                    Id = "IMP-454",
+                    Name = "Add Unit Tests for User Service",
+                    Category = ImprovementCategory.Testing,
+                    PriorityRank = 3,
+                    Impact = ImprovementImpact.Medium,
+                    Effort = ImprovementEffort.High,
+                    Risk = ImprovementRisk.Low
+                },
+
+                new PrioritizedImprovement
+                {
+                    Id = "IMP-453",
+                    Name = "Update Documentation for API Endpoints",
+                    Category = ImprovementCategory.Documentation,
+                    PriorityRank = 4,
+                    Impact = ImprovementImpact.Low,
+                    Effort = ImprovementEffort.Low,
+                    Risk = ImprovementRisk.Low
+                }
+            ];
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void InitializeChart()
+    {
+        chartLabels = ["Week 1", "Week 2", "Week 3", "Week 4", "Week 5", "Week 6"];
+
+        chartSeries =
+        [
+            new ChartSeries
+            {
+                Name = "Success Rate",
+                Data = [75, 78, 80, 79, 85, 87]
+            },
+
+            new ChartSeries
+            {
+                Name = "Execution Count",
+                Data = [12, 15, 18, 20, 22, 24]
+            }
+        ];
+    }
+
+    private Color GetStatusColor(string status)
+    {
+        return status switch
+        {
+            "Completed" => Color.Success,
+            "In Progress" => Color.Info,
+            "Failed" => Color.Error,
+            "Awaiting Review" => Color.Warning,
+            _ => Color.Default
+        };
+    }
+
+    private Color GetPriorityColor(int priorityRank)
+    {
+        return priorityRank switch
+        {
+            1 => Color.Error,
+            2 => Color.Warning,
+            3 => Color.Info,
+            _ => Color.Default
+        };
+    }
+
+    private string GetPriorityText(int priorityRank)
+    {
+        return priorityRank switch
+        {
+            1 => "High",
+            2 => "Medium",
+            3 => "Low",
+            _ => "Unknown"
+        };
+    }
+
+    private async Task ViewExecution(string contextId)
+    {
+        await OnViewExecution.InvokeAsync(contextId);
+    }
+
+    private async Task MonitorExecution(string contextId)
+    {
+        await OnMonitorExecution.InvokeAsync(contextId);
+    }
+
+    private async Task RollbackExecution(string contextId)
+    {
+        await OnRollbackExecution.InvokeAsync(contextId);
+    }
+
+    private async Task ExecuteImprovement(PrioritizedImprovement improvement)
+    {
+        await OnExecuteImprovement.InvokeAsync(improvement);
+    }
+
+    private void ViewImprovement(string improvementId)
+    {
+        // In a real implementation, this would navigate to the improvement details page
+        Logger.LogInformation("Viewing improvement: {ImprovementId}", improvementId);
+    }
+
+    private void ApproveExecution(string contextId)
+    {
+        // In a real implementation, this would approve the execution
+        Logger.LogInformation("Approving execution: {ContextId}", contextId);
+    }
+
+    private void RejectExecution(string contextId)
+    {
+        // In a real implementation, this would reject the execution
+        Logger.LogInformation("Rejecting execution: {ContextId}", contextId);
+    }
+
+    public class RecentExecution
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Improvement { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public string Started { get; set; } = string.Empty;
+    }
+}
+
+
+

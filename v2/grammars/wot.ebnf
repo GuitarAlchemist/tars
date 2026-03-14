@@ -1,0 +1,29 @@
+(* Workflow of Thought DSL grammar for constrained LLM generation *)
+(* Used with vLLM guided_decoding to ensure valid WoT programs *)
+
+workflow    ::= meta? node+ edge*
+meta        ::= "META" "{" meta_field* "}"
+meta_field  ::= identifier ":" string_literal
+
+node        ::= node_kind identifier title? "{" node_body "}"
+node_kind   ::= "REASON" | "WORK"
+title       ::= "title" ":" string_literal
+
+node_body   ::= (input_decl | output_decl | tool_decl | transform_decl)*
+input_decl  ::= "input" ":" identifier ("," identifier)*
+output_decl ::= "output" ":" identifier ("," identifier)*
+tool_decl   ::= "tool" ":" identifier
+transform_decl ::= "transform" ":" transformation
+
+transformation ::= "Refine" | "Aggregate" | "Generate" | "Score" | "Critique" | "Merge"
+
+edge        ::= "EDGE" identifier "->" identifier condition?
+condition   ::= "when" expression
+
+expression  ::= identifier comparator value
+comparator  ::= "==" | "!=" | ">" | "<" | ">=" | "<="
+value       ::= string_literal | number | "true" | "false"
+
+identifier     ::= [a-zA-Z_] [a-zA-Z0-9_]*
+string_literal ::= '"' [^"]* '"'
+number         ::= [0-9]+ ("." [0-9]+)?

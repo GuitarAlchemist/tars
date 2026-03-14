@@ -1,0 +1,201 @@
+{
+  "name": "TARS Manager",
+  "id": "tars-manager",
+  "version": "1.0.0",
+  "description": "Intelligent TARS infrastructure management and analysis tool",
+  "icon": "🚀",
+  "category": "Infrastructure",
+  "author": "TARS Team",
+  "tags": ["tars", "infrastructure", "ai", "automation", "docker"],
+  
+  "capabilities": {
+    "infrastructure_analysis": true,
+    "container_management": true,
+    "health_monitoring": true,
+    "consolidation_automation": true,
+    "metascript_execution": true,
+    "agent_coordination": true,
+    "performance_optimization": true,
+    "real_time_diagnostics": true
+  },
+  
+  "commands": [
+    {
+      "name": "analyze",
+      "description": "Analyze TARS infrastructure health and performance",
+      "usage": "tars analyze [--type=health|performance|security|consolidation]",
+      "examples": [
+        "tars analyze --type=health",
+        "tars analyze --type=consolidation"
+      ]
+    },
+    {
+      "name": "consolidate",
+      "description": "Execute Gordon-assisted infrastructure consolidation",
+      "usage": "tars consolidate [--stage=database|application|web|all] [--dry-run] [--force]",
+      "examples": [
+        "tars consolidate --dry-run",
+        "tars consolidate --stage=database",
+        "tars consolidate --force"
+      ]
+    },
+    {
+      "name": "monitor",
+      "description": "Real-time TARS infrastructure monitoring",
+      "usage": "tars monitor [--services=all|specific] [--interval=30s]",
+      "examples": [
+        "tars monitor --services=all",
+        "tars monitor --services=chromadb,mongodb --interval=10s"
+      ]
+    },
+    {
+      "name": "optimize",
+      "description": "AI-powered performance optimization recommendations",
+      "usage": "tars optimize [--target=performance|resources|security]",
+      "examples": [
+        "tars optimize --target=performance",
+        "tars optimize --target=resources"
+      ]
+    },
+    {
+      "name": "execute",
+      "description": "Execute TARS metascripts with Gordon analysis",
+      "usage": "tars execute <script-path> [--analyze] [--optimize]",
+      "examples": [
+        "tars execute ./scripts/deploy.tars --analyze",
+        "tars execute ./scripts/backup.tars --optimize"
+      ]
+    },
+    {
+      "name": "agents",
+      "description": "Manage TARS autonomous agents",
+      "usage": "tars agents [list|start|stop|status] [--agent-id=<id>]",
+      "examples": [
+        "tars agents list",
+        "tars agents start --agent-id=consolidation-agent",
+        "tars agents status"
+      ]
+    },
+    {
+      "name": "diagnose",
+      "description": "Comprehensive TARS system diagnostics",
+      "usage": "tars diagnose [--deep] [--export=json|yaml|report]",
+      "examples": [
+        "tars diagnose --deep",
+        "tars diagnose --export=report"
+      ]
+    }
+  ],
+  
+  "api_endpoints": [
+    {
+      "path": "/api/v1/tars/health",
+      "method": "GET",
+      "description": "Get comprehensive TARS health status"
+    },
+    {
+      "path": "/api/v1/tars/analyze",
+      "method": "POST",
+      "description": "Trigger Gordon-powered infrastructure analysis"
+    },
+    {
+      "path": "/api/v1/tars/consolidate",
+      "method": "POST",
+      "description": "Execute consolidation with Gordon assistance"
+    },
+    {
+      "path": "/api/v1/tars/optimize",
+      "method": "POST",
+      "description": "Get AI optimization recommendations"
+    },
+    {
+      "path": "/api/v1/tars/agents",
+      "method": "GET",
+      "description": "List and manage TARS agents"
+    },
+    {
+      "path": "/api/v1/tars/metrics",
+      "method": "GET",
+      "description": "Real-time TARS performance metrics"
+    }
+  ],
+  
+  "integration": {
+    "gordon_api": "http://localhost:8997",
+    "tars_api": "http://localhost:8080",
+    "docker_socket": "/var/run/docker.sock",
+    "compose_files": [
+      "docker-compose.unified.yml",
+      "docker-compose.ai.yml"
+    ]
+  },
+  
+  "configuration": {
+    "default_analysis_interval": "30s",
+    "health_check_timeout": "10s",
+    "consolidation_safety_checks": true,
+    "auto_optimization": false,
+    "log_level": "INFO",
+    "metrics_retention": "7d"
+  },
+  
+  "dependencies": {
+    "docker": ">=20.0.0",
+    "docker-compose": ">=2.0.0",
+    "tars-cli": ">=1.0.0",
+    "gordon-api": ">=1.0.0"
+  },
+  
+  "installation": {
+    "type": "docker",
+    "image": "tars/gordon-manager:latest",
+    "ports": ["8998:8080"],
+    "volumes": [
+      "/var/run/docker.sock:/var/run/docker.sock",
+      "./config:/app/config",
+      "./data:/app/data"
+    ],
+    "environment": {
+      "GORDON_API_URL": "http://gordon:8997",
+      "TARS_API_URL": "http://tars-main:8080",
+      "LOG_LEVEL": "INFO"
+    }
+  },
+  
+  "ui_components": [
+    {
+      "type": "dashboard",
+      "name": "TARS Infrastructure Overview",
+      "description": "Real-time TARS infrastructure status and metrics"
+    },
+    {
+      "type": "analysis_panel",
+      "name": "Gordon Analysis Results",
+      "description": "AI-powered infrastructure analysis and recommendations"
+    },
+    {
+      "type": "consolidation_wizard",
+      "name": "Smart Consolidation",
+      "description": "Step-by-step Gordon-assisted consolidation process"
+    },
+    {
+      "type": "agent_manager",
+      "name": "TARS Agents",
+      "description": "Autonomous agent monitoring and control"
+    }
+  ],
+  
+  "security": {
+    "authentication": "api_key",
+    "authorization": "rbac",
+    "encryption": "tls_1_3",
+    "audit_logging": true
+  },
+  
+  "monitoring": {
+    "health_checks": true,
+    "performance_metrics": true,
+    "error_tracking": true,
+    "alerting": true
+  }
+}

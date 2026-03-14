@@ -1,0 +1,44 @@
+meta {
+  name = "PE-002"
+  description = "Find the sum of even Fibonacci numbers not exceeding 4 million"
+  domain = "mathematics"
+  difficulty = "beginner"
+}
+
+inputs {
+  problem_statement = "By considering the terms in the Fibonacci sequence whose values do not exceed four million, find the sum of the even-valued terms."
+  expected_answer = "4613732"
+}
+
+policy {
+  allowed_tools = ["math_eval", "validate_puzzle_answer"]
+  max_tool_calls = 5
+  max_tokens = 2048
+}
+
+workflow "solve_pe002" {
+  
+  node "analyze" kind="reason" {
+    goal = "Analyze this Fibonacci-related problem and develop a solution strategy: ${problem_statement}"
+    output = "strategy"
+    constraints = ["identify_fibonacci_pattern", "filter_even_numbers"]
+  }
+
+  node "solve" kind="reason" {
+    input = ["strategy"]
+    goal = "Using the strategy, compute the answer to: ${problem_statement}. Generate Fibonacci numbers, filter even ones, sum them until exceeding 4 million."
+    output = "computed_answer"
+    constraints = ["show_fibonacci_sequence", "show_even_values", "provide_final_sum"]
+  }
+
+  node "verify" kind="work" {
+    input = ["computed_answer"]
+    output = "final_result"
+    checks = [
+      { "type": "contains", "value": "${computed_answer}", "needle": "${expected_answer}" }
+    ]
+  }
+
+  edge "analyze" -> "solve"
+  edge "solve" -> "verify"
+}

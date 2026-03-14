@@ -1,0 +1,16 @@
+meta {
+  name = "sample.wot.trsx"
+}
+
+workflow "main" {
+  node "S1" kind="reason" { goal = "P1" }
+  node "S2" kind="reason" { goal = "P2" }
+  node "S3" kind="reason" { goal = "P3" }
+  node "S4" kind="reason" { goal = "P4" }
+  node "S5" kind="reason" { goal = "P5" }
+
+  edge "S1" -> "S2"
+  edge "S2" -> "S3"
+  edge "S3" -> "S4"
+  edge "S4" -> "S5"
+}

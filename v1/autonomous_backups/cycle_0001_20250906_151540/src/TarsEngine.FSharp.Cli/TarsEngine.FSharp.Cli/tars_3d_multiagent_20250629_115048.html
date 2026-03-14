@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>TARS Multi-Agent Reasoning System - Autonomous Vehicle Navigation</title>
+    <style>
+        body { margin: 0; background: #222; color: #fff; font-family: monospace; }
+        #info { position: absolute; top: 10px; left: 10px; z-index: 100; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 5px; max-height: 400px; overflow-y: auto; }
+        #controls { position: absolute; bottom: 10px; left: 10px; z-index: 100; }
+        #stats { position: absolute; top: 10px; right: 10px; z-index: 100; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 5px; }
+        #problem { position: absolute; bottom: 10px; right: 10px; z-index: 100; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 5px; max-width: 300px; }
+        button { background: #4a9eff; color: white; border: none; padding: 10px 15px; margin: 5px; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #357abd; }
+        .department { margin: 5px 0; padding: 5px; background: rgba(74,158,255,0.2); border-radius: 3px; }
+        .research { background: rgba(255,107,107,0.3); }
+        .analysis { background: rgba(72,52,212,0.3); }
+        .communication { background: rgba(0,210,211,0.3); }
+        .visualization { background: rgba(255,159,243,0.3); }
+        .coordination { background: rgba(254,202,87,0.3); }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h3>🧠🤖 TARS Multi-Agent Reasoning System</h3>
+        <div class="department research">🔴 Research Department: <span id="research-count">0</span> agents</div>
+        <div class="department analysis">🔵 Analysis Department: <span id="analysis-count">0</span> agents</div>
+        <div class="department communication">🟢 Communication Department: <span id="comm-count">0</span> agents</div>
+        <div class="department visualization">🟣 3D Visualization Department: <span id="viz-count">0</span> agents</div>
+        <div class="department coordination">🟡 Coordination Department: <span id="coord-count">0</span> agents</div>
+        <hr>
+        <div><strong>Total Agents:</strong> <span id="total-count">0</span></div>
+        <div><strong>Active Communications:</strong> <span id="connection-count">0</span></div>
+        <div><strong>Problem Complexity:</strong> <span style="color:#ff6b6b">Complex (8 sub-problems)</span></div>
+    </div>
+
+    <div id="stats">
+        <h4>📊 System Metrics</h4>
+        <div>Solution Progress: <span style="color:#00ff88" id="progress">0%</span></div>
+        <div>Coordination Level: <span style="color:#00ff88" id="coordination">0%</span></div>
+        <div>Game Theory Equilibrium: <span style="color:#00ff88" id="equilibrium">Converging</span></div>
+        <div>FPS: <span style="color:#00ff88" id="fps">60</span></div>
+        <div>Agents in View: <span style="color:#00ff88" id="visible">0</span></div>
+    </div>
+
+    <div id="problem">
+        <h4>🎯 Current Problem</h4>
+        <p><strong>Autonomous Vehicle Navigation System</strong></p>
+        <p>Real-time obstacle avoidance with sensor fusion, path planning, and vehicle-to-vehicle communication.</p>
+        <div style="font-size: 12px; color: #aaa;">
+            Confidence: 92.5%<br>
+            Est. Time: 45.2 min<br>
+            Difficulty: 7/10
+        </div>
+    </div>
+
+    <div id="controls">
+        <button onclick="addDepartmentAgents()">➕ Add Department Agents</button>
+        <button onclick="removeDepartmentAgents()">➖ Remove Agents</button>
+        <button onclick="zoomIn()">🔍 Zoom In</button>
+        <button onclick="zoomOut()">🔍 Zoom Out</button>
+        <button onclick="toggleConnections()">🔗 Toggle Communications</button>
+        <button onclick="resetView()">🎯 Reset View</button>
+        <button onclick="startCollaboration()">🤝 Start Collaboration</button>
+        <button onclick="solveProblem()">🚀 Solve Problem</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        let scene, camera, renderer;
+        let agents = [];
+        let connections = [];
+        let showConnections = true;
+        let collaborationMode = false;
+        let solutionProgress = 0;
+        let departmentCounts = { research: 0, analysis: 0, communication: 0, visualization: 0, coordination: 0 };
+
+        const departmentTypes = [
+            { name: "Research", color: 0xff6b6b, key: "research", position: [-8, 0, 0] },
+            { name: "Analysis", color: 0x4834d4, key: "analysis", position: [8, 0, 0] },
+            { name: "Communication", color: 0x00d2d3, key: "communication", position: [0, 0, 8] },
+            { name: "Visualization", color: 0xff9ff3, key: "visualization", position: [0, 0, -8] },
+            { name: "Coordination", color: 0xfeca57, key: "coordination", position: [0, 12, 0] }
+        ];
+
+        function init() {
+            console.log("🚀 Starting TARS Multi-Agent Reasoning System...");
+
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x111111);
+            scene.fog = new THREE.Fog(0x111111, 10, 80);
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 5, 25);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const directionalLight1 = new THREE.DirectionalLight(0xffffff, 1.0);
+            directionalLight1.position.set(10, 10, 10);
+            scene.add(directionalLight1);
+
+            const directionalLight2 = new THREE.DirectionalLight(0x4a9eff, 0.3);
+            directionalLight2.position.set(-10, -10, 10);
+            scene.add(directionalLight2);
+
+            // Create department markers
+            createDepartmentMarkers();
+
+            // Create initial agents for autonomous vehicle problem
+            createInitialDepartmentAgents();
+
+            animate();
+            updateUI();
+
+            console.log("✅ Multi-agent reasoning system initialized for autonomous vehicle navigation");
+        }
+
+        function createDepartmentMarkers() {
+            departmentTypes.forEach(dept => {
+                const geometry = new THREE.BoxGeometry(2, 2, 2);
+                const material = new THREE.MeshLambertMaterial({
+                    color: dept.color,
+                    transparent: true,
+                    opacity: 0.3
+                });
+                const marker = new THREE.Mesh(geometry, material);
+                marker.position.set(...dept.position);
+                scene.add(marker);
+            });
+        }
+
+        function createInitialDepartmentAgents() {
+            // Research Department - 3 agents
+            for (let i = 0; i < 3; i++) createDepartmentAgent("research");
+
+            // Analysis Department - 4 agents
+            for (let i = 0; i < 4; i++) createDepartmentAgent("analysis");
+
+            // Communication Department - 2 agents
+            for (let i = 0; i < 2; i++) createDepartmentAgent("communication");
+
+            // Visualization Department - 3 agents
+            for (let i = 0; i < 3; i++) createDepartmentAgent("visualization");
+
+            // Coordination Department - 2 agents
+            for (let i = 0; i < 2; i++) createDepartmentAgent("coordination");
+
+            createDepartmentConnections();
+        }
+
+        function createDepartmentAgent(deptKey) {
+            const dept = departmentTypes.find(d => d.key === deptKey);
+            const size = 0.15 + Math.random() * 0.1;
+
+            const geometry = new THREE.SphereGeometry(size, 16, 16);
+            const material = new THREE.MeshLambertMaterial({
+                color: dept.color,
+                emissive: dept.color,
+                emissiveIntensity: 0.4
+            });
+
+            const agent = new THREE.Mesh(geometry, material);
+
+            // Position near department marker with some spread
+            const spread = 3;
+            agent.position.x = dept.position[0] + (Math.random() - 0.5) * spread;
+            agent.position.y = dept.position[1] + (Math.random() - 0.5) * spread;
+            agent.position.z = dept.position[2] + (Math.random() - 0.5) * spread;
+
+            agent.userData = {
+                department: deptKey,
+                performance: 0.6 + Math.random() * 0.4,
+                speed: 0.005 + Math.random() * 0.01,
+                phase: Math.random() * Math.PI * 2,
+                targetPosition: agent.position.clone(),
+                originalSize: size,
+                communicationRange: 5 + Math.random() * 3
+            };
+
+            scene.add(agent);
+            agents.push(agent);
+            departmentCounts[deptKey]++;
+
+            return agent;
+        }
+
+        function createDepartmentConnections() {
+            // Clear existing connections
+            connections.forEach(conn => scene.remove(conn));
+            connections = [];
+
+            // Create connections between agents in different departments
+            for (let i = 0; i < agents.length; i++) {
+                for (let j = i + 1; j < agents.length; j++) {
+                    const agentA = agents[i];
+                    const agentB = agents[j];
+
+                    // Connect agents from different departments that are within communication range
+                    if (agentA.userData.department !== agentB.userData.department) {
+                        const distance = agentA.position.distanceTo(agentB.position);
+                        if (distance < Math.max(agentA.userData.communicationRange, agentB.userData.communicationRange)) {
+                            const geometry = new THREE.BufferGeometry().setFromPoints([agentA.position, agentB.position]);
+                            const material = new THREE.LineBasicMaterial({
+                                color: 0x4a9eff,
+                                transparent: true,
+                                opacity: 0.2
+                            });
+                            const line = new THREE.Line(geometry, material);
+                            line.userData = { agentA: i, agentB: j };
+                            scene.add(line);
+                            connections.push(line);
+                        }
+                    }
+                }
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const time = Date.now() * 0.001;
+
+            // Update agents
+            agents.forEach((agent, index) => {
+                // Gentle orbital movement around department center
+                const dept = departmentTypes.find(d => d.key === agent.userData.department);
+                const centerX = dept.position[0];
+                const centerY = dept.position[1];
+                const centerZ = dept.position[2];
+
+                const radius = 2 + Math.sin(time + agent.userData.phase) * 0.5;
+                const angle = time * agent.userData.speed + agent.userData.phase;
+
+                agent.position.x = centerX + Math.cos(angle) * radius;
+                agent.position.z = centerZ + Math.sin(angle) * radius;
+                agent.position.y = centerY + Math.sin(time * 0.5 + agent.userData.phase) * 0.5;
+
+                // Pulsing effect for active agents
+                const scale = 1 + Math.sin(time * 3 + agent.userData.phase) * 0.1;
+                agent.scale.setScalar(scale);
+
+                // Collaboration mode - move towards problem center
+                if (collaborationMode) {
+                    const centerForce = new THREE.Vector3(0, 0, 0).sub(agent.position).multiplyScalar(0.002);
+                    agent.position.add(centerForce);
+                }
+            });
+
+            // Update connections
+            connections.forEach(conn => {
+                if (showConnections) {
+                    const agentA = agents[conn.userData.agentA];
+                    const agentB = agents[conn.userData.agentB];
+                    if (agentA && agentB) {
+                        const points = [agentA.position, agentB.position];
+                        conn.geometry.setFromPoints(points);
+                        conn.material.opacity = 0.1 + 0.1 * Math.sin(time * 2);
+                    }
+                }
+                conn.visible = showConnections;
+            });
+
+            // Update solution progress
+            if (collaborationMode) {
+                solutionProgress = Math.min(100, solutionProgress + 0.2);
+            }
+
+            renderer.render(scene, camera);
+            updateUI();
+        }
+
+        function addDepartmentAgents() {
+            const deptKeys = Object.keys(departmentCounts);
+            const randomDept = deptKeys[Math.floor(Math.random() * deptKeys.length)];
+
+            for (let i = 0; i < 3; i++) {
+                createDepartmentAgent(randomDept);
+            }
+            createDepartmentConnections();
+            console.log(`➕ Added 3 agents to ${randomDept} department`);
+        }
+
+        function removeDepartmentAgents() {
+            if (agents.length > 5) {
+                for (let i = 0; i < 3; i++) {
+                    const agent = agents.pop();
+                    if (agent) {
+                        departmentCounts[agent.userData.department]--;
+                        scene.remove(agent);
+                    }
+                }
+                createDepartmentConnections();
+                console.log("➖ Removed 3 agents");
+            }
+        }
+
+        function zoomIn() {
+            camera.position.multiplyScalar(0.8);
+            console.log("🔍 Zoomed in");
+        }
+
+        function zoomOut() {
+            camera.position.multiplyScalar(1.25);
+            console.log("🔍 Zoomed out");
+        }
+
+        function toggleConnections() {
+            showConnections = !showConnections;
+            console.log("🔗 Communications:", showConnections ? "ON" : "OFF");
+        }
+
+        function resetView() {
+            camera.position.set(0, 5, 25);
+            console.log("🎯 View reset");
+        }
+
+        function startCollaboration() {
+            collaborationMode = !collaborationMode;
+            console.log("🤝 Collaboration mode:", collaborationMode ? "ON" : "OFF");
+        }
+
+        function solveProblem() {
+            collaborationMode = true;
+            solutionProgress = 0;
+            console.log("🚀 Starting autonomous vehicle navigation problem solving...");
+
+            // Simulate problem-solving phases
+            setTimeout(() => {
+                console.log("📡 Phase 1: Sensor fusion analysis complete");
+                solutionProgress = 25;
+            }, 2000);
+
+            setTimeout(() => {
+                console.log("🛣️ Phase 2: Path planning optimization complete");
+                solutionProgress = 50;
+            }, 4000);
+
+            setTimeout(() => {
+                console.log("🚗 Phase 3: Vehicle-to-vehicle protocols established");
+                solutionProgress = 75;
+            }, 6000);
+
+            setTimeout(() => {
+                console.log("✅ Phase 4: Real-time obstacle avoidance system operational");
+                solutionProgress = 100;
+            }, 8000);
+        }
+
+        function updateUI() {
+            document.getElementById("research-count").textContent = departmentCounts.research;
+            document.getElementById("analysis-count").textContent = departmentCounts.analysis;
+            document.getElementById("comm-count").textContent = departmentCounts.communication;
+            document.getElementById("viz-count").textContent = departmentCounts.visualization;
+            document.getElementById("coord-count").textContent = departmentCounts.coordination;
+            document.getElementById("total-count").textContent = agents.length;
+            document.getElementById("connection-count").textContent = connections.length;
+
+            // Calculate average coordination
+            const avgCoord = agents.reduce((sum, agent) => sum + agent.userData.performance, 0) / agents.length;
+            document.getElementById("coordination").textContent = Math.round(avgCoord * 100) + "%";
+
+            // Update solution progress
+            document.getElementById("progress").textContent = Math.round(solutionProgress) + "%";
+
+            // Count visible agents
+            const visible = agents.filter(agent => {
+                const distance = camera.position.distanceTo(agent.position);
+                return distance < 50;
+            }).length;
+            document.getElementById("visible").textContent = visible;
+
+            // Update equilibrium status
+            const equilibrium = solutionProgress > 80 ? "Achieved" : solutionProgress > 40 ? "Converging" : "Initializing";
+            document.getElementById("equilibrium").textContent = equilibrium;
+        }
+
+        // Initialize on load
+        window.addEventListener('load', init);
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+# TARS Fresh Auto-Improvement Core - Docker Deployment
+# Focused deployment of working auto-improvement modules
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
+WORKDIR /app
+EXPOSE 9000
+
+# Build stage
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+WORKDIR /src
+
+# Copy project files
+COPY ["TarsEngine.FSharp.Core/TarsEngine.FSharp.Core.fsproj", "TarsEngine.FSharp.Core/"]
+COPY ["TarsAutoImprovementRunner/TarsAutoImprovementRunner.csproj", "TarsAutoImprovementRunner/"]
+
+# Restore dependencies
+RUN dotnet restore "TarsEngine.FSharp.Core/TarsEngine.FSharp.Core.fsproj"
+RUN dotnet restore "TarsAutoImprovementRunner/TarsAutoImprovementRunner.csproj"
+
+# Copy source code
+COPY TarsEngine.FSharp.Core/ TarsEngine.FSharp.Core/
+COPY TarsAutoImprovementRunner/ TarsAutoImprovementRunner/
+
+# Build the core with auto-improvement modules
+WORKDIR "/src/TarsEngine.FSharp.Core"
+RUN dotnet build "TarsEngine.FSharp.Core.fsproj" -c Release -o /app/build
+
+# Build the runner
+WORKDIR "/src/TarsAutoImprovementRunner"
+RUN dotnet build "TarsAutoImprovementRunner.csproj" -c Release -o /app/build
+
+# Publish stage
+FROM build AS publish
+WORKDIR "/src/TarsAutoImprovementRunner"
+RUN dotnet publish "TarsAutoImprovementRunner.csproj" -c Release -o /app/publish /p:UseAppHost=false
+
+# Final stage
+FROM base AS final
+WORKDIR /app
+
+# Install essential tools
+RUN apt-get update && apt-get install -y \
+    curl \
+    wget \
+    htop \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy published application
+COPY --from=publish /app/publish .
+
+# Create TARS directories
+RUN mkdir -p /app/data/evolution \
+    && mkdir -p /app/data/logs \
+    && mkdir -p /app/data/config
+
+# Environment variables for auto-improvement
+ENV TARS_ENVIRONMENT=Docker
+ENV TARS_MODE=AutoImprovement
+ENV TARS_EVOLUTION_ENABLED=true
+ENV TARS_DATA_PATH=/app/data
+ENV DOTNET_ENVIRONMENT=Production
+ENV DOTNET_RUNNING_IN_CONTAINER=true
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:9000/health || exit 1
+
+# Default command - run auto-improvement runner
+CMD ["dotnet", "TarsAutoImprovementRunner.dll"]

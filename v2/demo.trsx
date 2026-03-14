@@ -1,0 +1,11 @@
+# TARS Workflow of Thought Demo
+GOAL "Refactor Domain.fs"
+
+NODE "Plan" REASON Plan "Refactor Domain.fs to improve maintainability"
+NODE "Review" REASON Critique "Plan"
+NODE "Build" WORK ToolCall "dotnet_build"
+NODE "Distill" REASON Synthesize ["Plan", "Build"]
+
+EDGE "Plan" -> "Review"
+EDGE "Review" -> "Build"
+EDGE "Build" -> "Distill"

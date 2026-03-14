@@ -1,0 +1,20 @@
+{
+  "Id": "2ca2acbc637a47cea0502c796e2a3354",
+  "Logical": {
+    "ProblemSummary": "Auto-generated memory from run",
+    "StrategySummary": "Executed agent loop",
+    "ErrorKinds": [],
+    "ErrorTags": [],
+    "OutcomeLabel": "unknown",
+    "Score": null,
+    "CostTokens": null,
+    "Embedding": [],
+    "Tags": [
+      "auto-generated"
+    ]
+  },
+  "Perceptual": null,
+  "CreatedAt": "2025-12-01T14:48:31.6241649Z",
+  "LastUsedAt": null,
+  "UsageCount": 0
+}

@@ -1,0 +1,43 @@
+meta {
+  name = "monty_hall"
+  description = "Monty Hall probability puzzle."
+  domain = "probabilistic reasoning"
+  difficulty = "medium"
+}
+
+inputs {
+  puzzle_prompt = "Suppose you're on a game show, and you're given the choice of three doors: Behind one door is a car; behind the others, goats. You pick a door, say No. 1, and the host, who knows what's behind the doors, opens another door, say No. 3, which has a goat. He then says to you, 'Do you want to pick door No. 2?' Is it to your advantage to switch your choice? Explain the probability of winning if you stay vs. if you switch."
+  puzzle_type = "monty_hall"
+}
+
+policy {
+  allowed_tools = ["validate_puzzle_answer"]
+  max_tool_calls = 3
+  max_tokens = 2048
+}
+
+workflow "solve_monty_hall" {
+  
+  node "think" kind="reason" {
+    goal = "Solve this puzzle step by step: ${puzzle_prompt}"
+    output = "solution"
+    constraints = ["show_probability_reasoning"]
+  }
+
+  node "validate" kind="work" {
+    tool = "validate_puzzle_answer"
+    args = { "puzzle_type": "${puzzle_type}", "answer": "${solution}" }
+    output = "validation_result"
+  }
+
+  node "verify" kind="work" {
+    input = ["validation_result"]
+    output = "final_verdict"
+    checks = [
+      { "type": "contains", "value": "${validation_result}", "needle": "PASS" }
+    ]
+  }
+
+  edge "think" -> "validate"
+  edge "validate" -> "verify"
+}

@@ -1,0 +1,47 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Mcp\McpTypes.fs" />
+    <Compile Include="Mcp\McpTransport.fs" />
+    <Compile Include="Mcp\McpClient.fs" />
+    <Compile Include="Mcp\McpToolAdapter.fs" />
+    <Compile Include="Mcp\OfficialMcpBridge.fs" />
+    <Compile Include="Mcp\McpProgress.fs" />
+    <Compile Include="Mcp\SubagentManager.fs" />
+    <Compile Include="Mcp\McpServer.fs" />
+    <Compile Include="Mcp\SseMcpServer.fs" />
+    <Compile Include="AugmentClient.fs" />
+    <Compile Include="Graphiti.fs" />
+    <Compile Include="GraphitiKnowledgeGraph.fs" />
+    <Compile Include="GraphitiPlanStorage.fs" />
+    <Compile Include="EpisodeIngestion.fs" />
+    <Compile Include="Ollama.fs" />
+    <Compile Include="OpenAiCompatible.fs" />
+    <Compile Include="OpenWebUi.fs" />
+    <Compile Include="Llm.fs" />
+    <Compile Include="FusekiGraphService.fs" />
+    <Compile Include="Redis\SwarmBus.fs" />
+    <Compile Include="Redis\SwarmWorker.fs" />
+    <Compile Include="SymbolicReflector.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ModelContextProtocol" Version="1.1.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.4" />
+    <PackageReference Include="StackExchange.Redis" Version="2.11.8" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Tars.Core\Tars.Core.fsproj" />
+    <ProjectReference Include="..\Tars.Cortex\Tars.Cortex.fsproj" />
+    <ProjectReference Include="..\Tars.LinkedData\Tars.LinkedData.fsproj" />
+    <ProjectReference Include="..\Tars.Security\Tars.Security.fsproj" />
+    <ProjectReference Include="..\Tars.Knowledge\Tars.Knowledge.fsproj" />
+  </ItemGroup>
+
+</Project>

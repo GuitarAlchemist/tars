@@ -1,0 +1,48 @@
+# Build outputs
+**/bin/
+**/obj/
+
+# IDE
+.idea/
+*.DotSettings.user
+.vs/
+
+# TARS Artifacts (runtime generated)
+.tars/
+.wot/
+
+# Build logs and temp files
+*.log
+*.tmp
+build_*.txt
+*_build_*.txt
+*_errors*.txt
+*_output*.txt
+cli_*.txt
+cortex_*.txt
+graph_*.log
+msbuild.log
+test_*.txt
+debug_*.json
+
+# Demo outputs
+demo_*.txt
+chunking_demo_output.txt
+
+# Secrets (never commit)
+secrets.json
+token.json
+
+# Other
+*.out
+.fake
+docs.zipdata/
+data/
+docs.zip
+
+# LLM Models & Binaries
+*.gguf
+*.bin
+*.model
+models/
+llm/

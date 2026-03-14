@@ -1,0 +1,243 @@
+# TARS Optimal Storage Architecture
+# Complete database infrastructure for production AI knowledge management
+
+version: '3.8'
+
+services:
+  # ===== PRIMARY STORAGE TIER =====
+  
+  # MongoDB - Primary document storage for structured knowledge
+  mongodb:
+    image: mongo:7.0
+    container_name: tars-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=tars_admin
+      - MONGO_INITDB_ROOT_PASSWORD=tars_secure_2024
+      - MONGO_INITDB_DATABASE=tars_knowledge
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+      - ./scripts/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - tars-network
+
+  # ChromaDB - Primary vector/semantic storage
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: tars-chromadb
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - CHROMA_SERVER_HOST=0.0.0.0
+      - CHROMA_SERVER_HTTP_PORT=8000
+      - CHROMA_SERVER_CORS_ALLOW_ORIGINS=["*"]
+      - PERSIST_DIRECTORY=/chroma/chroma
+      - CHROMA_SERVER_AUTH_CREDENTIALS_PROVIDER=chromadb.auth.token.TokenAuthCredentialsProvider
+      - CHROMA_SERVER_AUTH_TOKEN_TRANSPORT_HEADER=X-Chroma-Token
+      - CHROMA_AUTH_TOKEN_SECRET=tars_chroma_secret_2024
+    volumes:
+      - chromadb_data:/chroma/chroma
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - tars-network
+
+  # Apache Jena Fuseki - Primary RDF triple store
+  fuseki:
+    image: stain/jena-fuseki:latest
+    container_name: tars-fuseki
+    restart: unless-stopped
+    ports:
+      - "3030:3030"
+    environment:
+      - ADMIN_PASSWORD=tars_fuseki_2024
+      - JVM_ARGS=-Xmx2g
+    volumes:
+      - fuseki_data:/fuseki
+      - fuseki_config:/fuseki/configuration
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3030/$/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - tars-network
+
+  # ===== CACHING TIER =====
+  
+  # Redis - Fast caching and session storage
+  redis:
+    image: redis:7-alpine
+    container_name: tars-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass tars_redis_2024 --maxmemory 1gb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "tars_redis_2024", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - tars-network
+
+  # ===== SEARCH & ANALYTICS TIER =====
+  
+  # Elasticsearch - Full-text search and analytics
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: tars-elasticsearch
+    restart: unless-stopped
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+      - bootstrap.memory_lock=true
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - tars-network
+
+  # ===== BACKUP & MONITORING =====
+  
+  # PostgreSQL - Backup and audit logs
+  postgres:
+    image: postgres:16-alpine
+    container_name: tars-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=tars_audit
+      - POSTGRES_USER=tars_audit
+      - POSTGRES_PASSWORD=tars_postgres_2024
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/postgres-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tars_audit -d tars_audit"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - tars-network
+
+  # ===== MANAGEMENT TOOLS =====
+  
+  # MongoDB Express - MongoDB management UI
+  mongo-express:
+    image: mongo-express:latest
+    container_name: tars-mongo-express
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=tars_admin
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=tars_secure_2024
+      - ME_CONFIG_MONGODB_URL=mongodb://tars_admin:tars_secure_2024@mongodb:27017/
+      - ME_CONFIG_BASICAUTH_USERNAME=tars
+      - ME_CONFIG_BASICAUTH_PASSWORD=tars_ui_2024
+    depends_on:
+      - mongodb
+    networks:
+      - tars-network
+
+  # Redis Commander - Redis management UI
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: tars-redis-commander
+    restart: unless-stopped
+    ports:
+      - "8082:8081"
+    environment:
+      - REDIS_HOSTS=local:redis:6379:0:tars_redis_2024
+      - HTTP_USER=tars
+      - HTTP_PASSWORD=tars_ui_2024
+    depends_on:
+      - redis
+    networks:
+      - tars-network
+
+  # pgAdmin - PostgreSQL management UI
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: tars-pgadmin
+    restart: unless-stopped
+    ports:
+      - "8083:80"
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@tars.local
+      - PGADMIN_DEFAULT_PASSWORD=tars_pgadmin_2024
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - tars-network
+
+volumes:
+  # Primary storage
+  mongodb_data:
+    driver: local
+  mongodb_config:
+    driver: local
+  chromadb_data:
+    driver: local
+  fuseki_data:
+    driver: local
+  fuseki_config:
+    driver: local
+  
+  # Caching
+  redis_data:
+    driver: local
+  
+  # Search & Analytics
+  elasticsearch_data:
+    driver: local
+  
+  # Backup & Audit
+  postgres_data:
+    driver: local
+  
+  # Management UIs
+  pgadmin_data:
+    driver: local
+
+networks:
+  tars-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

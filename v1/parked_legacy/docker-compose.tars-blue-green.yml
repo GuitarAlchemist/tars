@@ -1,0 +1,342 @@
+# TARS Unified Stack with Blue-Green Deployment
+# Consolidates all TARS infrastructure including blue-green deployment
+
+services:
+  # ===== DATABASE TIER =====
+  
+  # MongoDB - Primary Knowledge Storage
+  mongodb:
+    image: mongo:7.0
+    container_name: tars-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=tars_admin
+      - MONGO_INITDB_ROOT_PASSWORD=tars_secure_2024
+      - MONGO_INITDB_DATABASE=tars_knowledge
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - tars-network
+
+  # ChromaDB - Vector Storage
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: tars-chromadb
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - CHROMA_SERVER_HOST=0.0.0.0
+      - CHROMA_SERVER_HTTP_PORT=8000
+      - CHROMA_DB_IMPL=duckdb+parquet
+      - PERSIST_DIRECTORY=/chroma/chroma
+      - CHROMA_SERVER_CORS_ALLOW_ORIGINS=["*"]
+      - CHROMA_LOG_LEVEL=INFO
+    volumes:
+      - chromadb_data:/chroma/chroma
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - tars-network
+
+  # Redis - Caching Layer & Blue-Green State
+  redis:
+    image: redis:7-alpine
+    container_name: tars-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass tars_redis_2024 --maxmemory 1gb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "tars_redis_2024", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - tars-network
+
+  # Fuseki - Primary RDF Store
+  fuseki:
+    image: stain/jena-fuseki:latest
+    container_name: tars-fuseki
+    restart: unless-stopped
+    ports:
+      - "3030:3030"
+    environment:
+      - ADMIN_PASSWORD=tars_fuseki_2024
+      - JVM_ARGS=-Xmx2g
+    volumes:
+      - fuseki_data:/fuseki
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3030/$/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - tars-network
+
+  # Virtuoso - Secondary RDF Store
+  virtuoso:
+    image: openlink/virtuoso-opensource-7
+    container_name: tars-virtuoso
+    restart: unless-stopped
+    ports:
+      - "8890:8890"
+      - "1111:1111"
+    environment:
+      - DBA_PASSWORD=tars_virtuoso_2024
+    volumes:
+      - virtuoso_data:/database
+    networks:
+      - tars-network
+
+  # ===== BLUE-GREEN DEPLOYMENT TIER =====
+
+  # TARS Blue (Current Production)
+  tars-blue:
+    image: tars-auto-improvement:latest
+    container_name: tars-blue-production
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    environment:
+      - TARS_ENVIRONMENT=Docker
+      - TARS_MODE=Production
+      - TARS_EVOLUTION_ENABLED=true
+      - TARS_BLUE_GREEN_ENABLED=true
+      - TARS_INSTANCE=blue
+      - TARS_DATA_PATH=/app/data
+      - DOTNET_ENVIRONMENT=Production
+      - MONGODB_CONNECTION=mongodb://tars_admin:tars_secure_2024@mongodb:27017/tars_knowledge
+      - CHROMADB_URL=http://chromadb:8000
+      - REDIS_CONNECTION=redis:6379
+      - FUSEKI_URL=http://fuseki:3030
+      - VIRTUOSO_URL=http://virtuoso:8890
+    volumes:
+      - tars_blue_data:/app/data
+      - tars_blue_logs:/app/data/logs
+      - tars_blue_evolution:/app/data/evolution
+    networks:
+      - tars-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    depends_on:
+      - mongodb
+      - chromadb
+      - redis
+      - fuseki
+
+  # TARS Green (Evolution Testing)
+  tars-green:
+    image: tars-auto-improvement:latest
+    container_name: tars-green-evolution
+    restart: unless-stopped
+    ports:
+      - "9001:9000"
+    environment:
+      - TARS_ENVIRONMENT=Docker
+      - TARS_MODE=Evolution
+      - TARS_EVOLUTION_ENABLED=true
+      - TARS_BLUE_GREEN_ENABLED=true
+      - TARS_INSTANCE=green
+      - TARS_DATA_PATH=/app/data
+      - DOTNET_ENVIRONMENT=Development
+      - MONGODB_CONNECTION=mongodb://tars_admin:tars_secure_2024@mongodb:27017/tars_knowledge
+      - CHROMADB_URL=http://chromadb:8000
+      - REDIS_CONNECTION=redis:6379
+      - FUSEKI_URL=http://fuseki:3030
+      - VIRTUOSO_URL=http://virtuoso:8890
+    volumes:
+      - tars_green_data:/app/data
+      - tars_green_logs:/app/data/logs
+      - tars_green_evolution:/app/data/evolution
+    networks:
+      - tars-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    depends_on:
+      - mongodb
+      - chromadb
+      - redis
+      - fuseki
+
+  # TARS Green Stable (Baseline)
+  tars-green-stable:
+    image: tars-autonomous:latest
+    container_name: tars-green-stable
+    restart: unless-stopped
+    ports:
+      - "8088:8080"
+      - "8089:8081"
+    environment:
+      - TARS_ENVIRONMENT=green
+      - TARS_ROLE=baseline
+      - TARS_NAMESPACE=tars
+      - TARS_MONITORING_ENABLED=true
+      - TARS_INSTANCE_ID=green-baseline
+      - MONGODB_CONNECTION=mongodb://tars_admin:tars_secure_2024@mongodb:27017/tars_knowledge
+      - CHROMADB_URL=http://chromadb:8000
+      - REDIS_CONNECTION=redis:6379
+    volumes:
+      - tars_green_stable_data:/app/.tars/green
+      - tars_shared_data:/app/.tars/shared:ro
+    networks:
+      - tars-network
+    depends_on:
+      - mongodb
+      - chromadb
+      - redis
+    labels:
+      - "tars.environment=green"
+      - "tars.role=baseline"
+      - "tars.namespace=tars"
+
+  # TARS Evolution Monitor
+  tars-monitor:
+    image: nginx:alpine
+    container_name: tars-evolution-monitor
+    restart: unless-stopped
+    ports:
+      - "8090:80"
+    volumes:
+      - ./monitoring/evolution-dashboard.html:/usr/share/nginx/html/index.html:ro
+    depends_on:
+      - tars-blue
+      - tars-green
+    networks:
+      - tars-network
+
+  # ===== MANAGEMENT TIER =====
+
+  # TARS Manager - Gordon Integration Tool
+  tars-manager:
+    build:
+      context: ./gordon-tools/tars-manager
+      dockerfile: Dockerfile
+    container_name: tars-gordon-manager
+    restart: unless-stopped
+    ports:
+      - "8998:8998"
+    environment:
+      - GORDON_API_URL=http://gordon:8997
+      - TARS_API_URL=http://tars-blue:9000
+      - DOCKER_SOCKET=/var/run/docker.sock
+      - LOG_LEVEL=INFO
+      - ANALYSIS_INTERVAL=30
+      - BLUE_GREEN_ENABLED=true
+      - BLUE_URL=http://tars-blue:9000
+      - GREEN_URL=http://tars-green:9000
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./gordon-tools/tars-manager/config:/app/config
+      - ./gordon-tools/tars-manager/data:/app/data
+      - ./docker-compose.tars-blue-green.yml:/app/docker-compose.yml:ro
+    networks:
+      - tars-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8998/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      - tars-blue
+      - tars-green
+
+  # ===== WEB MANAGEMENT TIER =====
+
+  # MongoDB Express
+  mongo-express:
+    image: mongo-express:latest
+    container_name: tars-mongo-express
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=tars_admin
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=tars_secure_2024
+      - ME_CONFIG_MONGODB_URL=mongodb://tars_admin:tars_secure_2024@mongodb:27017/
+      - ME_CONFIG_BASICAUTH_USERNAME=tars
+      - ME_CONFIG_BASICAUTH_PASSWORD=tars_ui_2024
+    depends_on:
+      - mongodb
+    networks:
+      - tars-network
+
+  # Redis Commander
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: tars-redis-commander
+    restart: unless-stopped
+    ports:
+      - "8082:8081"
+    environment:
+      - REDIS_HOSTS=local:redis:6379:0:tars_redis_2024
+      - HTTP_USER=tars
+      - HTTP_PASSWORD=tars_ui_2024
+    depends_on:
+      - redis
+    networks:
+      - tars-network
+
+volumes:
+  # Database storage
+  mongodb_data:
+    driver: local
+  mongodb_config:
+    driver: local
+  chromadb_data:
+    driver: local
+  redis_data:
+    driver: local
+  fuseki_data:
+    driver: local
+  virtuoso_data:
+    driver: local
+  
+  # Blue instance volumes
+  tars_blue_data:
+    driver: local
+  tars_blue_logs:
+    driver: local
+  tars_blue_evolution:
+    driver: local
+
+  # Green instance volumes
+  tars_green_data:
+    driver: local
+  tars_green_logs:
+    driver: local
+  tars_green_evolution:
+    driver: local
+  tars_green_stable_data:
+    driver: local
+  
+  # Shared volumes
+  tars_shared_data:
+    driver: local
+
+networks:
+  tars-network:
+    external: true

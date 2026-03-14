@@ -1,0 +1,13 @@
+{
+  "Servers": [
+    {
+      "Name": "augment-context-engine",
+      "Command": "npx",
+      "Arguments": [
+        "-y",
+        "@anthropic/augment-context-engine"
+      ],
+      "Environment": {}
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="cbf1e590-d471-4ba8-9ba6-99e878eba1d5" name="spareilleux@XPS-STEF 2025-12-06 20:58:10" runUser="XPS-STEF\spareilleux" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2025-12-06T20:58:10.4560227-05:00" queuing="2025-12-06T20:58:10.4560232-05:00" start="2025-12-06T20:58:09.8648671-05:00" finish="2025-12-06T20:58:10.4659309-05:00" />
+  <TestSettings name="default" id="84452159-8c63-4b08-8e67-5803f864db26">
+    <Deployment runDeploymentRoot="spareilleux_XPS-STEF_2025-12-06_20_58_10" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="a1b9bd82-3862-4468-b1b4-849458f86cdf" testId="3428b16b-371b-44a9-1a05-6bdad21ab4bd" testName="Tars.Tests.MetascriptTests.RagConfig has all new fields with sensible defaults" computerName="XPS-STEF" duration="00:00:00.0102067" startTime="2025-12-06T20:58:10.3462134-05:00" endTime="2025-12-06T20:58:10.3674414-05:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a1b9bd82-3862-4468-b1b4-849458f86cdf">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Values differ&#xD;
+Expected: 2&#xD;
+Actual:   3</Message>
+          <StackTrace>   at Tars.Tests.MetascriptTests.RagConfig has all new fields with sensible defaults() in C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\MetascriptTests.fs:line 472&#xD;
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)&#xD;
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Tars.Tests.MetascriptTests.RagConfig has all new fields with sensible defaults" storage="c:\users\spare\source\repos\tars\v2\tests\tars.tests\bin\debug\net10.0\tars.tests.dll" id="3428b16b-371b-44a9-1a05-6bdad21ab4bd">
+      <Execution id="a1b9bd82-3862-4468-b1b4-849458f86cdf" />
+      <TestMethod codeBase="C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\bin\Debug\net10.0\Tars.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Tars.Tests.MetascriptTests" name="RagConfig has all new fields with sensible defaults" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="3428b16b-371b-44a9-1a05-6bdad21ab4bd" executionId="a1b9bd82-3862-4468-b1b4-849458f86cdf" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="1" executed="1" passed="0" failed="1" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.0)&#xD;
+[xUnit.net 00:00:00.07]   Discovering: Tars.Tests&#xD;
+[xUnit.net 00:00:00.10]   Discovered:  Tars.Tests&#xD;
+[xUnit.net 00:00:00.12]   Starting:    Tars.Tests&#xD;
+[xUnit.net 00:00:00.16]       Assert.Equal() Failure: Values differ&#xD;
+[xUnit.net 00:00:00.16]       Expected: 2&#xD;
+[xUnit.net 00:00:00.16]       Actual:   3&#xD;
+[xUnit.net 00:00:00.16]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.16]         C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\MetascriptTests.fs(472,0): at Tars.Tests.MetascriptTests.RagConfig has all new fields with sensible defaults()&#xD;
+[xUnit.net 00:00:00.16]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)&#xD;
+[xUnit.net 00:00:00.16]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)&#xD;
+[xUnit.net 00:00:00.17]   Finished:    Tars.Tests&#xD;
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="XPS-STEF" outcome="Error" timestamp="2025-12-06T20:58:10.3694901-05:00">
+        <Text>[xUnit.net 00:00:00.16]     Tars.Tests.MetascriptTests.RagConfig has all new fields with sensible defaults [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

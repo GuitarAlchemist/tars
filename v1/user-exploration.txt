@@ -1,0 +1,12 @@
+Create a smart inventory management system with real-time tracking, AI-powered demand forecasting, and automated reordering capabilities. The system should include:
+
+1. Real-time inventory tracking with barcode/RFID integration
+2. AI-powered demand forecasting using historical data
+3. Automated reordering when stock levels reach thresholds
+4. Dashboard for inventory managers
+5. Mobile app for warehouse staff
+6. Integration with suppliers for automated ordering
+7. Analytics and reporting features
+8. Multi-location support
+9. User authentication and role-based access
+10. REST API for third-party integrations

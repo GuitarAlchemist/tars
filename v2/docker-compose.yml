@@ -1,0 +1,81 @@
+﻿version: '3.8'
+
+services:
+  tars:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000" # TARS UI
+      - "11434:11434" # Ollama API
+    volumes:
+      - ollama-data:/root/.ollama
+      - models:/models
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - TARS_LLM_BACKEND=ollama
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:5000/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Optional: llama.cpp server for faster inference
+  llama-cpp:
+    image: ghcr.io/ggerganov/llama.cpp:server-cuda
+    ports:
+      - "8080:8080"
+    volumes:
+      - models:/models
+    command: >
+      -m /models/Qwen3-8B-Q4_K_M.gguf --host 0.0.0.0 --port 8080 -c 4096 -ngl 99
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
+    profiles:
+      - gpu # Only run with: docker-compose --profile gpu up
+
+  # PostgreSQL for Knowledge Ledger (Phase 9)
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: tars_v2_postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - tars_postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=tars_password
+      - POSTGRES_DB=tars_memory
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Fuseki Triple Store (Phase 14)
+  fuseki:
+    image: stain/jena-fuseki
+    container_name: tars_v2_fuseki
+    ports:
+      - "3030:3030"
+    environment:
+      - ADMIN_PASSWORD=admin
+    volumes:
+      - tars_fuseki_data:/fuseki
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:3030/$/ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  ollama-data:
+  models:
+  tars_postgres_data:
+  tars_fuseki_data:

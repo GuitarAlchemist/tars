@@ -1,0 +1,34 @@
+// Design patterns metascript
+
+rule ConvertToSingleton {
+    match: "public class $className\n{\n    $body\n}"
+    replace: "public class $className\n{\n    private static readonly $className _instance = new $className();\n    \n    private $className()\n    {\n    }\n    \n    public static $className Instance => _instance;\n    \n    $body\n}"
+    description: "Convert class to Singleton pattern"
+    language: "csharp"
+    confidence: 0.7
+}
+
+rule ImplementFactoryMethod {
+    match: "public class $className\n{\n    $body\n}"
+    replace: "public abstract class $className\n{\n    public abstract $className Create();\n    \n    $body\n}\n\npublic class Concrete$className : $className\n{\n    public override $className Create()\n    {\n        return new Concrete$className();\n    }\n}"
+    description: "Implement Factory Method pattern"
+    language: "csharp"
+    confidence: 0.6
+}
+
+rule ImplementObserverPattern {
+    match: "public class $className\n{\n    $body\n}"
+    replace: "public interface IObserver\n{\n    void Update($className subject);\n}\n\npublic class $className\n{\n    private readonly List<IObserver> _observers = new List<IObserver>();\n    \n    public void Attach(IObserver observer)\n    {\n        _observers.Add(observer);\n    }\n    \n    public void Detach(IObserver observer)\n    {\n        _observers.Remove(observer);\n    }\n    \n    protected void Notify()\n    {\n        foreach (var observer in _observers)\n        {\n            observer.Update(this);\n        }\n    }\n    \n    $body\n}"
+    requires: "System.Collections.Generic"
+    description: "Implement Observer pattern"
+    language: "csharp"
+    confidence: 0.6
+}
+
+rule ImplementStrategyPattern {
+    match: "public class $className\n{\n    public void $methodName($params)\n    {\n        $body\n    }\n}"
+    replace: "public interface I$className\Strategy\n{\n    void Execute($params);\n}\n\npublic class $className\n{\n    private I$className\Strategy _strategy;\n    \n    public $className(I$className\Strategy strategy)\n    {\n        _strategy = strategy;\n    }\n    \n    public void SetStrategy(I$className\Strategy strategy)\n    {\n        _strategy = strategy;\n    }\n    \n    public void $methodName($params)\n    {\n        _strategy.Execute($params);\n    }\n}"
+    description: "Implement Strategy pattern"
+    language: "csharp"
+    confidence: 0.7
+}

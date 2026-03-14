@@ -1,0 +1,26 @@
+teams:
+  - name: Tier3CrossValidation
+    description: Multi-agent validation squad responsible for safety/performance dual checks.
+    participants:
+      - id: safety-analyst
+        role: SafetyGovernor
+        metascript: metascripts/tier3/safety-review.trsx
+        description: Performs safety reasoning and logs mitigation steps.
+      - id: perf-analyst
+        role: PerformanceBenchmarker
+        metascript: metascripts/tier3/performance-review.trsx
+        description: Executes performance validation and collects metrics.
+      - id: critic-orchestrator
+        role: ReasoningCritic
+        metascript: metascripts/tier3/critic-federation.trsx
+        description: Aggregates reasoning traces and adjusts thresholds.
+    assignments:
+      - tags: ["tier3", "cross-validation", "safety"]
+        itemTypes: ["story", "spike"]
+        participants: ["safety-analyst"]
+      - tags: ["tier3", "cross-validation", "performance"]
+        itemTypes: ["story", "spike"]
+        participants: ["perf-analyst"]
+      - tags: ["tier3", "critic"]
+        itemTypes: ["story", "spike"]
+        participants: ["critic-orchestrator"]

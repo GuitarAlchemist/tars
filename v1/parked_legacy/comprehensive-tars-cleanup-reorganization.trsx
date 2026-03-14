@@ -1,0 +1,549 @@
+#!/usr/bin/env trsx
+# COMPREHENSIVE TARS CLEANUP & REORGANIZATION SYSTEM
+# Autonomous system to clean up and reorganize the entire TARS codebase
+
+meta {
+  name: "TARS Comprehensive Cleanup & Reorganization"
+  version: "1.0"
+  description: "Autonomous cleanup and reorganization of TARS codebase and .tars directory"
+  author: "TARS Autonomous Organization System"
+  created: "2025-01-27"
+  priority: "CRITICAL"
+  tags: ["cleanup", "reorganization", "automation", "system-maintenance"]
+  estimated_duration: "10 days"
+}
+
+reasoning {
+  The TARS system has grown organically and now suffers from severe organizational chaos:
+  
+  **CRITICAL ISSUES:**
+  - 200+ scattered files in root directory
+  - 500+ disorganized files in .tars directory
+  - Multiple duplicate files (.flux/.trsx pairs)
+  - University teams scattered across locations
+  - Agent configurations inconsistently placed
+  - Projects without clear ownership
+  - Documentation chaos
+  
+  **IMPACT:**
+  - Team coordination failures
+  - Evolution system confusion
+  - Development inefficiency
+  - Maintenance nightmares
+  - Scalability blocked
+  
+  **SOLUTION:**
+  Implement a comprehensive, autonomous reorganization system that:
+  1. Analyzes current chaos systematically
+  2. Creates clean, logical organization structure
+  3. Migrates content intelligently
+  4. Validates functionality preservation
+  5. Establishes ongoing maintenance procedures
+  
+  This is CRITICAL for system evolution and team effectiveness.
+}
+
+# ============================================================================
+# PHASE 1: SYSTEM ANALYSIS AND PREPARATION
+# ============================================================================
+
+FSHARP {
+  open System
+  open System.IO
+  open System.Collections.Generic
+  
+  let startTime = DateTime.UtcNow
+  let backupPath = $".tars/archive/backup_{startTime:yyyyMMdd_HHmmss}"
+  let migrationLogPath = $".tars/system/logs/migration_{startTime:yyyyMMdd_HHmmss}.log"
+  
+  printfn "🚨 TARS COMPREHENSIVE CLEANUP & REORGANIZATION STARTING"
+  printfn "📅 Start Time: %s" (startTime.ToString("yyyy-MM-dd HH:mm:ss"))
+  printfn "💾 Backup Path: %s" backupPath
+  printfn "📝 Migration Log: %s" migrationLogPath
+  
+  // Create backup directory
+  Directory.CreateDirectory(backupPath) |> ignore
+  Directory.CreateDirectory(Path.GetDirectoryName(migrationLogPath)) |> ignore
+  
+  let logMessage message =
+    let timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss")
+    let logEntry = $"[{timestamp}] {message}"
+    printfn "%s" logEntry
+    File.AppendAllText(migrationLogPath, logEntry + "\n")
+  
+  logMessage "🔍 Starting system analysis..."
+}
+
+# Analyze current directory structure
+ANALYZE_CURRENT_STRUCTURE() {
+  FSHARP {
+    let analyzeDirectory path =
+      let files = Directory.GetFiles(path, "*", SearchOption.AllDirectories)
+      let directories = Directory.GetDirectories(path, "*", SearchOption.AllDirectories)
+      
+      let filesByExtension = 
+        files 
+        |> Array.groupBy (fun f -> Path.GetExtension(f).ToLowerInvariant())
+        |> Array.map (fun (ext, files) -> ext, files.Length)
+        |> Array.sortByDescending snd
+      
+      logMessage $"📊 Directory Analysis for {path}:"
+      logMessage $"   Files: {files.Length}"
+      logMessage $"   Directories: {directories.Length}"
+      logMessage $"   File Types:"
+      
+      filesByExtension |> Array.iter (fun (ext, count) ->
+        logMessage $"     {ext}: {count} files")
+      
+      (files, directories, filesByExtension)
+    
+    // Analyze root directory
+    let (rootFiles, rootDirs, rootFileTypes) = analyzeDirectory "."
+    
+    // Analyze .tars directory
+    let (tarsFiles, tarsDirs, tarsFileTypes) = 
+      if Directory.Exists(".tars") then analyzeDirectory ".tars"
+      else ([||], [||], [||])
+    
+    logMessage $"🎯 CHAOS METRICS:"
+    logMessage $"   Root files: {rootFiles.Length} (should be <20)"
+    logMessage $"   .tars files: {tarsFiles.Length} (needs organization)"
+    logMessage $"   Total directories: {rootDirs.Length + tarsDirs.Length}"
+    
+    // Identify problematic patterns
+    let problemFiles = ResizeArray<string>()
+    
+    // Find scattered demo files
+    let demoFiles = rootFiles |> Array.filter (fun f -> 
+      let name = Path.GetFileName(f).ToLowerInvariant()
+      name.Contains("demo") || name.Contains("test") || name.Contains("example"))
+    
+    if demoFiles.Length > 0 then
+      logMessage $"⚠️  Found {demoFiles.Length} scattered demo/test files in root"
+      problemFiles.AddRange(demoFiles)
+    
+    // Find duplicate files
+    let duplicateGroups = 
+      (Array.append rootFiles tarsFiles)
+      |> Array.groupBy (fun f -> Path.GetFileNameWithoutExtension(f))
+      |> Array.filter (fun (_, files) -> files.Length > 1)
+    
+    if duplicateGroups.Length > 0 then
+      logMessage $"⚠️  Found {duplicateGroups.Length} groups of duplicate files"
+      duplicateGroups |> Array.iter (fun (name, files) ->
+        logMessage $"     {name}: {files.Length} copies")
+    
+    logMessage "✅ System analysis complete"
+  }
+}
+
+# Create comprehensive backup
+CREATE_COMPREHENSIVE_BACKUP() {
+  FSHARP {
+    logMessage "💾 Creating comprehensive backup..."
+    
+    let copyDirectory source destination =
+      if Directory.Exists(source) then
+        Directory.CreateDirectory(destination) |> ignore
+        
+        // Copy all files
+        let files = Directory.GetFiles(source, "*", SearchOption.AllDirectories)
+        files |> Array.iter (fun file ->
+          let relativePath = Path.GetRelativePath(source, file)
+          let destFile = Path.Combine(destination, relativePath)
+          let destDir = Path.GetDirectoryName(destFile)
+          Directory.CreateDirectory(destDir) |> ignore
+          File.Copy(file, destFile, true))
+        
+        logMessage $"   Backed up {files.Length} files from {source}"
+    
+    // Backup critical directories
+    copyDirectory "src" (Path.Combine(backupPath, "src"))
+    copyDirectory ".tars" (Path.Combine(backupPath, ".tars"))
+    copyDirectory "docs" (Path.Combine(backupPath, "docs"))
+    copyDirectory "tests" (Path.Combine(backupPath, "tests"))
+    
+    // Backup root configuration files
+    let rootConfigs = Directory.GetFiles(".", "*.json") 
+                     |> Array.append (Directory.GetFiles(".", "*.yaml"))
+                     |> Array.append (Directory.GetFiles(".", "*.yml"))
+                     |> Array.append (Directory.GetFiles(".", "*.config"))
+                     |> Array.append (Directory.GetFiles(".", "*.sln"))
+    
+    let configBackupPath = Path.Combine(backupPath, "root-configs")
+    Directory.CreateDirectory(configBackupPath) |> ignore
+    
+    rootConfigs |> Array.iter (fun config ->
+      let fileName = Path.GetFileName(config)
+      File.Copy(config, Path.Combine(configBackupPath, fileName), true))
+    
+    logMessage $"   Backed up {rootConfigs.Length} configuration files"
+    logMessage "✅ Comprehensive backup complete"
+  }
+}
+
+# ============================================================================
+# PHASE 2: CREATE NEW ORGANIZATIONAL STRUCTURE
+# ============================================================================
+
+CREATE_NEW_STRUCTURE() {
+  FSHARP {
+    logMessage "🏗️  Creating new organizational structure..."
+    
+    let newStructure = [
+      // Core source organization
+      "src/TarsEngine.FSharp.Core"
+      "src/TarsEngine.FSharp.Cli"
+      "src/TarsEngine.FSharp.Web"
+      "src/TarsEngine.FSharp.Tests"
+      
+      // Department organization
+      ".tars/departments/research/teams/university"
+      ".tars/departments/research/teams/innovation"
+      ".tars/departments/research/teams/analysis"
+      ".tars/departments/research/agents"
+      ".tars/departments/research/projects"
+      ".tars/departments/research/reports"
+      
+      ".tars/departments/infrastructure/teams"
+      ".tars/departments/infrastructure/agents"
+      ".tars/departments/infrastructure/deployment"
+      ".tars/departments/infrastructure/monitoring"
+      
+      ".tars/departments/qa/teams"
+      ".tars/departments/qa/agents"
+      ".tars/departments/qa/tests"
+      ".tars/departments/qa/reports"
+      
+      ".tars/departments/ui/teams"
+      ".tars/departments/ui/agents"
+      ".tars/departments/ui/interfaces"
+      ".tars/departments/ui/demos"
+      
+      ".tars/departments/operations/teams"
+      ".tars/departments/operations/agents"
+      ".tars/departments/operations/workflows"
+      ".tars/departments/operations/automation"
+      
+      // Evolution system organization
+      ".tars/evolution/grammars/base"
+      ".tars/evolution/grammars/evolved"
+      ".tars/evolution/grammars/templates"
+      ".tars/evolution/sessions/active"
+      ".tars/evolution/sessions/completed"
+      ".tars/evolution/sessions/archived"
+      ".tars/evolution/teams"
+      ".tars/evolution/results"
+      ".tars/evolution/monitoring"
+      
+      // University system organization
+      ".tars/university/teams/research-team"
+      ".tars/university/teams/cs-researchers"
+      ".tars/university/teams/data-scientists"
+      ".tars/university/teams/academic-writers"
+      ".tars/university/agents/individual"
+      ".tars/university/agents/specialized"
+      ".tars/university/agents/collaborative"
+      ".tars/university/collaborations"
+      ".tars/university/research"
+      ".tars/university/publications"
+      
+      // Metascript organization
+      ".tars/metascripts/core/initialization"
+      ".tars/metascripts/core/maintenance"
+      ".tars/metascripts/core/diagnostics"
+      ".tars/metascripts/departments/research"
+      ".tars/metascripts/departments/infrastructure"
+      ".tars/metascripts/departments/qa"
+      ".tars/metascripts/departments/ui"
+      ".tars/metascripts/evolution/grammar-gen"
+      ".tars/metascripts/evolution/team-coord"
+      ".tars/metascripts/evolution/monitoring"
+      ".tars/metascripts/demos"
+      ".tars/metascripts/tests"
+      ".tars/metascripts/templates"
+      
+      // Closure factory organization
+      ".tars/closures/evolutionary"
+      ".tars/closures/traditional"
+      ".tars/closures/templates"
+      ".tars/closures/registry"
+      
+      // System configuration
+      ".tars/system/config/departments"
+      ".tars/system/config/teams"
+      ".tars/system/config/agents"
+      ".tars/system/config/evolution"
+      ".tars/system/logs/departments"
+      ".tars/system/logs/evolution"
+      ".tars/system/logs/system"
+      ".tars/system/monitoring/performance"
+      ".tars/system/monitoring/health"
+      ".tars/system/monitoring/evolution"
+      ".tars/system/security"
+      
+      // Knowledge management
+      ".tars/knowledge/base"
+      ".tars/knowledge/generated"
+      ".tars/knowledge/research"
+      ".tars/knowledge/documentation"
+      
+      // Active workspace
+      ".tars/workspace/current"
+      ".tars/workspace/experiments"
+      ".tars/workspace/collaborations"
+      ".tars/workspace/staging"
+      
+      // Centralized documentation
+      "docs/architecture"
+      "docs/departments"
+      "docs/teams"
+      "docs/agents"
+      "docs/evolution"
+      "docs/api"
+      "docs/tutorials"
+      
+      // Comprehensive test suite
+      "tests/unit"
+      "tests/integration"
+      "tests/evolution"
+      "tests/departments"
+      "tests/performance"
+      
+      // Organized demos
+      "demos/evolution"
+      "demos/departments"
+      "demos/teams"
+      "demos/agents"
+      "demos/comprehensive"
+      
+      // Development tools
+      "tools/migration"
+      "tools/organization"
+      "tools/monitoring"
+      "tools/maintenance"
+      
+      // Archive
+      "archive/legacy-csharp"
+      "archive/old-demos"
+      "archive/obsolete-tests"
+      "archive/backup-configs"
+      "archive/historical"
+    ]
+    
+    newStructure |> List.iter (fun dir ->
+      Directory.CreateDirectory(dir) |> ignore)
+    
+    logMessage $"✅ Created {newStructure.Length} new directories"
+    logMessage "🏗️  New organizational structure complete"
+  }
+}
+
+# ============================================================================
+# PHASE 3: INTELLIGENT FILE MIGRATION
+# ============================================================================
+
+MIGRATE_CORE_SYSTEM() {
+  FSHARP {
+    logMessage "🔄 Migrating core system components..."
+    
+    let migrateFile source destination =
+      try
+        let destDir = Path.GetDirectoryName(destination)
+        Directory.CreateDirectory(destDir) |> ignore
+        File.Move(source, destination)
+        logMessage $"   Moved: {source} -> {destination}"
+        true
+      with
+      | ex ->
+        logMessage $"   ERROR moving {source}: {ex.Message}"
+        false
+    
+    let migrateDirectory source destination =
+      if Directory.Exists(source) then
+        let files = Directory.GetFiles(source, "*", SearchOption.AllDirectories)
+        let mutable successCount = 0
+        
+        files |> Array.iter (fun file ->
+          let relativePath = Path.GetRelativePath(source, file)
+          let destFile = Path.Combine(destination, relativePath)
+          if migrateFile file destFile then
+            successCount <- successCount + 1)
+        
+        logMessage $"   Migrated {successCount}/{files.Length} files from {source}"
+        
+        // Remove empty source directory
+        try
+          Directory.Delete(source, true)
+          logMessage $"   Removed empty source directory: {source}"
+        with
+        | _ -> logMessage $"   Could not remove source directory: {source}"
+    
+    // Migrate F# projects to src/
+    if Directory.Exists("TarsEngine.FSharp.Core") then
+      migrateDirectory "TarsEngine.FSharp.Core" "src/TarsEngine.FSharp.Core"
+    
+    if Directory.Exists("TarsEngine.FSharp.Cli") then
+      migrateDirectory "TarsEngine.FSharp.Cli" "src/TarsEngine.FSharp.Cli"
+    
+    if Directory.Exists("TarsEngine.FSharp.Web") then
+      migrateDirectory "TarsEngine.FSharp.Web" "src/TarsEngine.FSharp.Web"
+    
+    logMessage "✅ Core system migration complete"
+  }
+}
+
+MIGRATE_UNIVERSITY_TEAMS() {
+  FSHARP {
+    logMessage "🎓 Migrating university teams and agents..."
+    
+    // Migrate university team configuration
+    if File.Exists(".tars/university/team-config.json") then
+      migrateFile ".tars/university/team-config.json" ".tars/university/teams/research-team/team-config.json"
+    
+    // Migrate agent configurations
+    if Directory.Exists(".tars/agents") then
+      migrateDirectory ".tars/agents" ".tars/university/agents/individual"
+    
+    // Migrate university projects
+    if Directory.Exists(".tars/university/projects") then
+      migrateDirectory ".tars/university/projects" ".tars/departments/research/projects"
+    
+    logMessage "✅ University teams migration complete"
+  }
+}
+
+MIGRATE_EVOLUTION_SYSTEM() {
+  FSHARP {
+    logMessage "🧬 Migrating evolution system..."
+    
+    // Migrate grammars
+    if Directory.Exists(".tars/grammars") then
+      let grammarFiles = Directory.GetFiles(".tars/grammars", "*")
+      grammarFiles |> Array.iter (fun file ->
+        let fileName = Path.GetFileName(file)
+        let destination = Path.Combine(".tars/evolution/grammars/base", fileName)
+        migrateFile file destination |> ignore)
+    
+    // Migrate evolution sessions
+    if Directory.Exists(".tars/evolution") then
+      let sessionFiles = Directory.GetFiles(".tars/evolution", "*.json")
+      sessionFiles |> Array.iter (fun file ->
+        let fileName = Path.GetFileName(file)
+        let destination = Path.Combine(".tars/evolution/sessions/active", fileName)
+        migrateFile file destination |> ignore)
+    
+    logMessage "✅ Evolution system migration complete"
+  }
+}
+
+# ============================================================================
+# PHASE 4: CLEANUP AND VALIDATION
+# ============================================================================
+
+CLEANUP_DUPLICATES_AND_OBSOLETE() {
+  FSHARP {
+    logMessage "🧹 Cleaning up duplicates and obsolete files..."
+    
+    let obsoletePatterns = [
+      "*.backup"
+      "*.old"
+      "*.tmp"
+      "*~"
+      "*.bak"
+      "Thumbs.db"
+      ".DS_Store"
+    ]
+    
+    let findObsoleteFiles directory =
+      obsoletePatterns
+      |> List.collect (fun pattern ->
+        try
+          Directory.GetFiles(directory, pattern, SearchOption.AllDirectories) |> Array.toList
+        with
+        | _ -> [])
+    
+    let obsoleteFiles = findObsoleteFiles "."
+    
+    obsoleteFiles |> List.iter (fun file ->
+      try
+        File.Delete(file)
+        logMessage $"   Deleted obsolete file: {file}"
+      with
+      | ex -> logMessage $"   Could not delete {file}: {ex.Message}")
+    
+    logMessage $"✅ Cleaned up {obsoleteFiles.Length} obsolete files"
+  }
+}
+
+VALIDATE_MIGRATION() {
+  FSHARP {
+    logMessage "✅ Validating migration results..."
+    
+    let validateDirectory path expectedMinFiles =
+      if Directory.Exists(path) then
+        let fileCount = Directory.GetFiles(path, "*", SearchOption.AllDirectories).Length
+        let isValid = fileCount >= expectedMinFiles
+        logMessage $"   {path}: {fileCount} files (expected >= {expectedMinFiles}) - {if isValid then "✅" else "❌"}"
+        isValid
+      else
+        logMessage $"   {path}: Directory not found - ❌"
+        false
+    
+    let validationResults = [
+      validateDirectory "src" 10
+      validateDirectory ".tars/departments" 5
+      validateDirectory ".tars/evolution" 3
+      validateDirectory ".tars/university" 3
+      validateDirectory ".tars/metascripts" 10
+      validateDirectory ".tars/system" 3
+    ]
+    
+    let successCount = validationResults |> List.filter id |> List.length
+    let totalCount = validationResults.Length
+    
+    logMessage $"📊 Migration Validation: {successCount}/{totalCount} components validated successfully"
+    
+    if successCount = totalCount then
+      logMessage "🎉 MIGRATION COMPLETED SUCCESSFULLY!"
+    else
+      logMessage "⚠️  Migration completed with some issues - review logs"
+  }
+}
+
+# ============================================================================
+# MAIN EXECUTION FLOW
+# ============================================================================
+
+FSHARP {
+  logMessage "🚀 Starting comprehensive TARS cleanup and reorganization..."
+}
+
+# Execute all phases
+ANALYZE_CURRENT_STRUCTURE()
+CREATE_COMPREHENSIVE_BACKUP()
+CREATE_NEW_STRUCTURE()
+MIGRATE_CORE_SYSTEM()
+MIGRATE_UNIVERSITY_TEAMS()
+MIGRATE_EVOLUTION_SYSTEM()
+CLEANUP_DUPLICATES_AND_OBSOLETE()
+VALIDATE_MIGRATION()
+
+FSHARP {
+  let endTime = DateTime.UtcNow
+  let duration = endTime - startTime
+  
+  logMessage "🎉 TARS COMPREHENSIVE CLEANUP & REORGANIZATION COMPLETE!"
+  logMessage $"⏱️  Total Duration: {duration.ToString(@"hh\:mm\:ss")}"
+  logMessage $"📊 Migration Log: {migrationLogPath}"
+  logMessage $"💾 Backup Location: {backupPath}"
+  logMessage ""
+  logMessage "📋 NEXT STEPS:"
+  logMessage "1. Review migration log for any issues"
+  logMessage "2. Test core system functionality"
+  logMessage "3. Validate team and agent configurations"
+  logMessage "4. Update any remaining references"
+  logMessage "5. Establish ongoing maintenance procedures"
+  logMessage ""
+  logMessage "🎯 The TARS system is now properly organized for scalable evolution!"
+}

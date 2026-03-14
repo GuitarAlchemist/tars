@@ -1,0 +1,36 @@
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+WORKDIR /src
+
+# Copy csproj files and restore dependencies
+COPY ["TarsCli/TarsCli.csproj", "TarsCli/"]
+COPY ["TarsEngine/TarsEngine.csproj", "TarsEngine/"]
+COPY ["TarsEngine.Interfaces/TarsEngine.Interfaces.csproj", "TarsEngine.Interfaces/"]
+COPY ["TarsEngine.DSL/TarsEngine.DSL.fsproj", "TarsEngine.DSL/"]
+COPY ["TarsEngineFSharp/TarsEngineFSharp.fsproj", "TarsEngineFSharp/"]
+COPY ["TarsEngine.SelfImprovement/TarsEngine.SelfImprovement.fsproj", "TarsEngine.SelfImprovement/"]
+RUN dotnet restore "TarsCli/TarsCli.csproj"
+
+# Copy the rest of the source code
+COPY . .
+
+# Build the project
+RUN dotnet build "TarsCli/TarsCli.csproj" -c Release -o /app/build
+
+# Publish the project
+FROM build AS publish
+RUN dotnet publish "TarsCli/TarsCli.csproj" -c Release -o /app/publish
+
+# Create the final image
+FROM mcr.microsoft.com/dotnet/runtime:9.0 AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
+
+# Set environment variables
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
+ENV ASPNETCORE_URLS=http://+:8999
+
+# Expose the MCP port
+EXPOSE 8999
+
+# Set the entry point
+ENTRYPOINT ["dotnet", "TarsCli.dll", "mcp", "--server", "--auto-execute"]

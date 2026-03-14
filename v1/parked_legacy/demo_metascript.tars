@@ -1,0 +1,57 @@
+﻿CONFIG {
+    name: "TARS F# System Demo"
+    version: "2.0"
+    author: "TARS Development Team"
+    description: "Comprehensive demo of TARS F# capabilities"
+}
+
+FSHARP {
+    // Demonstrate F# functional programming
+    let fibonacci n =
+        let rec fib a b count =
+            if count = 0 then a
+            else fib b (a + b) (count - 1)
+        fib 0 1 n
+    
+    let numbers = [1..10]
+    let fibNumbers = numbers |> List.map fibonacci
+    
+    printfn "TARS F# System Demo"
+    printfn "==================="
+    printfn "Fibonacci sequence for 1-10:"
+    List.zip numbers fibNumbers
+    |> List.iter (fun (n, fib) -> printfn "F(%d) = %d" n fib)
+    
+    // Demonstrate pattern matching
+    let analyzeNumber n =
+        match n with
+        | x when x < 0 -> "Negative"
+        | 0 -> "Zero"
+        | x when x % 2 = 0 -> "Even"
+        | _ -> "Odd"
+    
+    printfn "\nNumber analysis:"
+    [-1; 0; 1; 2; 3; 4; 5]
+    |> List.iter (fun n -> printfn "%d is %s" n (analyzeNumber n))
+}
+
+COMMAND {
+    echo "Executing system command from metascript"
+}
+
+This metascript demonstrates the power of the TARS F# system:
+
+1. **Configuration Management**: Structured configuration parsing
+2. **F# Code Execution**: Real F# functional programming capabilities
+3. **Command Integration**: System command execution
+4. **Text Processing**: Rich text content handling
+
+The TARS F# system successfully parses and processes all these different
+block types, showcasing its versatility and power for automation tasks.
+
+Key Features Demonstrated:
+- Functional programming with F#
+- Pattern matching and recursion
+- List processing and transformations
+- System integration capabilities
+- Structured configuration management

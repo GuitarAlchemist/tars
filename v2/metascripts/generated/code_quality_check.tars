@@ -1,0 +1,21 @@
+meta {
+    name = "code_quality_check"
+    description = "Analyzes F# code for quality issues and suggests improvements"
+    author = "TARS-self-extension"
+    version = "1.0"
+    created = "2025-12-27T04:56:21.4419935+00:00"
+}
+
+
+// Template metascript - customize the blocks below
+
+FSHARP(output="result") {
+    // Add F# logic here
+    "Hello from TARS self-extension!"
+}
+
+QUERY(output="analysis") {
+    Based on the result: ${result}
+    
+    Provide your analysis.
+}

@@ -1,0 +1,428 @@
+@using TarsEngine.Services.Interfaces
+@inject IExecutionPlannerService ExecutionPlannerService
+@inject ILogger<ReportsPanel> Logger
+
+<MudGrid>
+    <MudItem xs="12" md="4">
+        <MudPaper Class="pa-4" Elevation="0">
+            <MudText Typo="Typo.h6" Class="mb-4">Report Types</MudText>
+            <MudList Clickable="true" SelectedValue="@selectedReportType" SelectedValueChanged="@(EventCallback.Factory.Create<string>(this, value => OnReportTypeChanged(value ?? string.Empty)))">
+                <MudListItem Value="@("summary")" Icon="@Icons.Material.Filled.Summarize">
+                    Execution Summary
+                </MudListItem>
+                <MudListItem Value="@("validation")" Icon="@Icons.Material.Filled.CheckCircle">
+                    Validation Report
+                </MudListItem>
+                <MudListItem Value="@("rollback")" Icon="@Icons.Material.Filled.Undo">
+                    Rollback Report
+                </MudListItem>
+                <MudListItem Value="@("file-changes")" Icon="@Icons.Material.Filled.InsertDriveFile">
+                    File Change Report
+                </MudListItem>
+                <MudListItem Value="@("performance")" Icon="@Icons.Material.Filled.Speed">
+                    Performance Report
+                </MudListItem>
+                <MudListItem Value="@("custom")" Icon="@Icons.Material.Filled.Build">
+                    Custom Report
+                </MudListItem>
+            </MudList>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="8">
+        <MudPaper Class="pa-4" Elevation="0">
+            <MudText Typo="Typo.h6" Class="mb-4">@GetReportTitle(selectedReportType)</MudText>
+
+            <MudForm @ref="form" Model="@reportOptions">
+                <MudGrid>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="reportOptions.ContextId" Label="Execution Context ID" Required="true" RequiredError="Context ID is required" />
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudSelect @bind-Value="reportOptions.Format" Label="Report Format" Required="true">
+                            <MudSelectItem Value="@("html")">HTML</MudSelectItem>
+                            <MudSelectItem Value="@("pdf")">PDF</MudSelectItem>
+                            <MudSelectItem Value="@("json")">JSON</MudSelectItem>
+                            <MudSelectItem Value="@("csv")">CSV</MudSelectItem>
+                            <MudSelectItem Value="@("markdown")">Markdown</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudSwitch T="bool" @bind-Checked="reportOptions.IncludeDetails" Label="Include Details" Color="Color.Primary" />
+                    </MudItem>
+
+                    @if (selectedReportType == "custom")
+                    {
+                        <MudItem xs="12">
+                            <MudSelect T="string" SelectedValues="reportOptions.Metrics" SelectedValuesChanged="MetricsSelectedValuesChanged" Label="Metrics" MultiSelection="true" Required="true">
+                                @foreach (var metric in availableMetrics)
+                                {
+                                    <MudSelectItem Value="@metric">@metric</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+                    }
+
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="reportOptions.OutputPath" Label="Output Path" Placeholder="Leave empty to display in browser" />
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" OnClick="GenerateReport">
+                            Generate Report
+                        </MudButton>
+                    </MudItem>
+                </MudGrid>
+            </MudForm>
+        </MudPaper>
+    </MudItem>
+
+    @if (isReportGenerated)
+    {
+        <MudItem xs="12">
+            <MudPaper Class="pa-4" Elevation="0">
+                <MudText Typo="Typo.h6" Class="mb-4">Report Preview</MudText>
+
+                @if (reportOptions.Format == "html")
+                {
+                    <MudAlert Severity="Severity.Success" Class="mb-4">
+                        Report generated successfully. You can view it in the browser or download it.
+                    </MudAlert>
+
+                    <div class="d-flex justify-center mb-4">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ViewReport">
+                            View Report
+                        </MudButton>
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="ml-2" OnClick="DownloadReport">
+                            Download Report
+                        </MudButton>
+                    </div>
+
+                    <MudPaper Class="pa-4" Style="max-height: 400px; overflow-y: auto;">
+                        @((MarkupString)reportPreview)
+                    </MudPaper>
+                }
+                else
+                {
+                    <MudAlert Severity="Severity.Success" Class="mb-4">
+                        Report generated successfully. You can download it.
+                    </MudAlert>
+
+                    <div class="d-flex justify-center mb-4">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="DownloadReport">
+                            Download Report
+                        </MudButton>
+                    </div>
+
+                    @if (reportOptions.Format == "markdown")
+                    {
+                        <MudPaper Class="pa-4" Style="max-height: 400px; overflow-y: auto;">
+                            <pre>@reportPreview</pre>
+                        </MudPaper>
+                    }
+                    else if (reportOptions.Format == "json")
+                    {
+                        <MudPaper Class="pa-4" Style="max-height: 400px; overflow-y: auto; background-color: #1e1e1e;">
+                            <pre style="color: #f8f8f8;">@reportPreview</pre>
+                        </MudPaper>
+                    }
+                    else
+                    {
+                        <MudAlert Severity="Severity.Info">
+                            Preview not available for @reportOptions.Format format. Please download the report.
+                        </MudAlert>
+                    }
+                }
+            </MudPaper>
+        </MudItem>
+    }
+</MudGrid>
+
+@code {
+    private MudForm form = null!;
+    private string selectedReportType = "summary";
+    private ReportOptions reportOptions = new();
+
+    private EventCallback<IEnumerable<string>> MetricsSelectedValuesChanged => EventCallback.Factory.Create<IEnumerable<string>>(this, values => reportOptions.Metrics = values.ToHashSet());
+    private bool isReportGenerated = false;
+    private string reportPreview = string.Empty;
+
+    private string[] availableMetrics =
+    [
+        "Duration",
+        "StepCount",
+        "CompletedStepCount",
+        "FailedStepCount",
+        "SkippedStepCount",
+        "Progress",
+        "SuccessRate",
+        "ValidationDuration",
+        "SyntaxErrorCount",
+        "SemanticErrorCount",
+        "TestCount",
+        "TestPassCount",
+        "TestFailCount",
+        "TestSkipCount",
+        "TestCoverage",
+        "RollbackDuration",
+        "BackupCount",
+        "RestoreCount",
+        "TransactionCount",
+        "CommittedTransactionCount",
+        "RolledBackTransactionCount",
+        "ModifiedFileCount",
+        "CreatedFileCount",
+        "DeletedFileCount",
+        "TotalFileCount",
+        "TotalLineCount",
+        "AddedLineCount",
+        "ModifiedLineCount",
+        "DeletedLineCount"
+    ];
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
+        // Initialize report options
+        reportOptions = new ReportOptions
+        {
+            Format = "html",
+            IncludeDetails = true,
+            Metrics = []
+        };
+    }
+
+    private void OnReportTypeChanged(string value)
+    {
+        selectedReportType = value;
+        isReportGenerated = false;
+    }
+
+    private string GetReportTitle(string reportType)
+    {
+        return reportType switch
+        {
+            "summary" => "Execution Summary Report",
+            "validation" => "Validation Report",
+            "rollback" => "Rollback Report",
+            "file-changes" => "File Change Report",
+            "performance" => "Performance Report",
+            "custom" => "Custom Report",
+            _ => "Report"
+        };
+    }
+
+    private async Task GenerateReport()
+    {
+            await Task.Delay(1); // Added to satisfy compiler warning CS1998
+        await form.Validate();
+
+        if (form.IsValid)
+        {
+            try
+            {
+                // In a real implementation, this would generate the report
+                // For now, simulate report generation
+
+                // Set report type
+                reportOptions.Type = selectedReportType;
+
+                // Generate report preview
+                reportPreview = await GenerateReportPreviewAsync(reportOptions);
+
+                // Set flag
+                isReportGenerated = true;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error generating report");
+                // Show error notification
+            }
+        }
+    }
+
+    private async Task<string> GenerateReportPreviewAsync(ReportOptions options)
+    {
+        // In a real implementation, this would generate the report
+        // For now, return a mock report
+        await Task.Delay(1); // Added to satisfy compiler warning CS1998
+
+        if (options.Format == "html")
+        {
+            return $@"
+                <div style='font-family: Arial, sans-serif;'>
+                    <h1>{GetReportTitle(options.Type)}</h1>
+                    <p>Generated on {DateTime.Now}</p>
+
+                    <h2>Execution Details</h2>
+                    <table style='width: 100%; border-collapse: collapse;'>
+                        <tr>
+                            <th style='text-align: left; padding: 8px; border: 1px solid #ddd;'>Context ID</th>
+                            <td style='padding: 8px; border: 1px solid #ddd;'>{options.ContextId}</td>
+                        </tr>
+                        <tr>
+                            <th style='text-align: left; padding: 8px; border: 1px solid #ddd;'>Improvement</th>
+                            <td style='padding: 8px; border: 1px solid #ddd;'>Implement Caching for API Responses</td>
+                        </tr>
+                        <tr>
+                            <th style='text-align: left; padding: 8px; border: 1px solid #ddd;'>Status</th>
+                            <td style='padding: 8px; border: 1px solid #ddd;'>Completed</td>
+                        </tr>
+                        <tr>
+                            <th style='text-align: left; padding: 8px; border: 1px solid #ddd;'>Started</th>
+                            <td style='padding: 8px; border: 1px solid #ddd;'>{DateTime.Now.AddHours(-2)}</td>
+                        </tr>
+                        <tr>
+                            <th style='text-align: left; padding: 8px; border: 1px solid #ddd;'>Completed</th>
+                            <td style='padding: 8px; border: 1px solid #ddd;'>{DateTime.Now.AddHours(-1)}</td>
+                        </tr>
+                        <tr>
+                            <th style='text-align: left; padding: 8px; border: 1px solid #ddd;'>Duration</th>
+                            <td style='padding: 8px; border: 1px solid #ddd;'>60m</td>
+                        </tr>
+                    </table>
+
+                    <h2>Metrics</h2>
+                    <table style='width: 100%; border-collapse: collapse;'>
+                        <tr>
+                            <th style='text-align: left; padding: 8px; border: 1px solid #ddd;'>Metric</th>
+                            <th style='text-align: left; padding: 8px; border: 1px solid #ddd;'>Value</th>
+                        </tr>
+                        <tr>
+                            <td style='padding: 8px; border: 1px solid #ddd;'>Progress</td>
+                            <td style='padding: 8px; border: 1px solid #ddd;'>100%</td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 8px; border: 1px solid #ddd;'>Success Rate</td>
+                            <td style='padding: 8px; border: 1px solid #ddd;'>100%</td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 8px; border: 1px solid #ddd;'>Test Coverage</td>
+                            <td style='padding: 8px; border: 1px solid #ddd;'>85%</td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 8px; border: 1px solid #ddd;'>Code Quality</td>
+                            <td style='padding: 8px; border: 1px solid #ddd;'>90%</td>
+                        </tr>
+                    </table>
+
+                    <h2>Changed Files</h2>
+                    <table style='width: 100%; border-collapse: collapse;'>
+                        <tr>
+                            <th style='text-align: left; padding: 8px; border: 1px solid #ddd;'>File</th>
+                            <th style='text-align: left; padding: 8px; border: 1px solid #ddd;'>Change Type</th>
+                        </tr>
+                        <tr>
+                            <td style='padding: 8px; border: 1px solid #ddd;'>src/Services/AuthService.cs</td>
+                            <td style='padding: 8px; border: 1px solid #ddd;'>Modified</td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 8px; border: 1px solid #ddd;'>src/Controllers/AuthController.cs</td>
+                            <td style='padding: 8px; border: 1px solid #ddd;'>Modified</td>
+                        </tr>
+                    </table>
+                </div>
+            ";
+        }
+        else if (options.Format == "markdown")
+        {
+            return $@"# {GetReportTitle(options.Type)}
+
+Generated on {DateTime.Now}
+
+## Execution Details
+
+| Property | Value |
+|----------|-------|
+| Context ID | {options.ContextId} |
+| Improvement | Implement Caching for API Responses |
+| Status | Completed |
+| Started | {DateTime.Now.AddHours(-2)} |
+| Completed | {DateTime.Now.AddHours(-1)} |
+| Duration | 60m |
+
+## Metrics
+
+| Metric | Value |
+|--------|-------|
+| Progress | 100% |
+| Success Rate | 100% |
+| Test Coverage | 85% |
+| Code Quality | 90% |
+
+## Changed Files
+
+| File | Change Type |
+|------|------------|
+| src/Services/AuthService.cs | Modified |
+| src/Controllers/AuthController.cs | Modified |
+";
+        }
+        else if (options.Format == "json")
+        {
+            return @"{
+  ""report"": {
+    ""type"": ""summary"",
+    ""contextId"": ""CTX-123"",
+    ""generatedAt"": ""2023-06-15T10:30:00Z"",
+    ""execution"": {
+      ""improvementId"": ""IMP-456"",
+      ""improvementName"": ""Implement Caching for API Responses"",
+      ""status"": ""Completed"",
+      ""startedAt"": ""2023-06-15T08:30:00Z"",
+      ""completedAt"": ""2023-06-15T09:30:00Z"",
+      ""duration"": 60
+    },
+    ""metrics"": {
+      ""progress"": 1.0,
+      ""successRate"": 1.0,
+      ""testCoverage"": 0.85,
+      ""codeQuality"": 0.9
+    },
+    ""changedFiles"": [
+      {
+        ""path"": ""src/Services/AuthService.cs"",
+        ""changeType"": ""Modified""
+      },
+      {
+        ""path"": ""src/Controllers/AuthController.cs"",
+        ""changeType"": ""Modified""
+      }
+    ]
+  }
+}";
+        }
+        else
+        {
+            return "Report preview not available for this format.";
+        }
+    }
+
+    private void ViewReport()
+    {
+        // In a real implementation, this would open the report in a new tab
+        Logger.LogInformation("Viewing report");
+    }
+
+    private void DownloadReport()
+    {
+        // In a real implementation, this would download the report
+        Logger.LogInformation("Downloading report");
+    }
+
+    private class ReportOptions
+    {
+        public string Type { get; set; } = "summary";
+        public string ContextId { get; set; } = string.Empty;
+        public string Format { get; set; } = "html";
+        public bool IncludeDetails { get; set; } = true;
+        public HashSet<string> Metrics { get; set; } = [];
+        public string? OutputPath { get; set; }
+    }
+}
+
+
+

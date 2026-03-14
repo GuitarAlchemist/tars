@@ -1,0 +1,32 @@
+graph TD
+    GE[Grammar Evolution Engine v2.1.0]:::operational
+    AI[Autonomous Improvement Engine v1.8.0]:::operational
+    FI[FLUX Integration Engine v3.0.0]:::operational
+    VE[3D Visualization Engine v1.5.0]:::operational
+    PD[Production Deployment Engine v2.3.0]:::operational
+    SR[Scientific Research Engine v1.2.0]:::operational
+    AD[Advanced Diagnostics Engine v1.0.0]:::operational
+    AS[Autonomous Agent Swarm Engine v1.0.0]:::operational
+    
+    GE --> AI
+    AI --> FI
+    FI --> VE
+    VE --> PD
+    FI --> SR
+    AD --> GE
+    AD --> AI
+    AD --> FI
+    AD --> VE
+    AD --> PD
+    AD --> SR
+    AS --> GE
+    AS --> AI
+    AS --> FI
+    AS --> VE
+    AS --> PD
+    AS --> SR
+    AS --> AD
+    
+    classDef operational fill:#2ecc71,stroke:#27ae60,stroke-width:3px
+    classDef warning fill:#f39c12,stroke:#e67e22,stroke-width:2px
+    classDef error fill:#e74c3c,stroke:#c0392b,stroke-width:2px

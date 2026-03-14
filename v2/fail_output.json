@@ -1,0 +1,1 @@
+{"jsonrpc":"2.0","result":{"content":[{"type":"text","text":"http_get error: No such host is known. (this.should.fail.invalid:80)","data":null,"mimeType":null,"resource":null}],"isError":false},"error":null,"id":4}

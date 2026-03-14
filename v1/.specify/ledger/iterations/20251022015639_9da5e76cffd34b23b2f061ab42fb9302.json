@@ -1,0 +1,321 @@
+{
+  "agentFeedback": [
+    {
+      "agentId": "agent:reasoner",
+      "role": "Reasoner",
+      "verdict": "approve",
+      "detail": null,
+      "confidence": 0.85,
+      "notes": "Metascript closure analysis",
+      "suggestedActions": [],
+      "recordedAt": "2025-10-22T01:56:39.9302913Z"
+    },
+    {
+      "agentId": "agent:reviewer",
+      "role": "Reviewer",
+      "verdict": "reject",
+      "detail": "Validation failure detected.",
+      "confidence": 0.3,
+      "notes": "Harness validation review",
+      "suggestedActions": [
+        "Initiate rollback",
+        "Schedule manual review"
+      ],
+      "recordedAt": "2025-10-22T01:56:39.9303562Z"
+    },
+    {
+      "agentId": "agent:performance",
+      "role": "PerformanceBenchmarker",
+      "verdict": "reject",
+      "detail": "Validation failure detected.",
+      "confidence": 0.3,
+      "notes": "Harness failures block performance confidence.",
+      "suggestedActions": [
+        "Initiate rollback",
+        "Schedule manual review"
+      ],
+      "recordedAt": "2025-10-22T01:56:39.9303565Z"
+    },
+    {
+      "agentId": "agent:safety-governor",
+      "role": "SafetyGovernor",
+      "verdict": "reject",
+      "detail": "Validation failure detected.",
+      "confidence": 0.2,
+      "notes": "Harness failures detected.",
+      "suggestedActions": [
+        "Initiate rollback",
+        "Schedule manual review"
+      ],
+      "recordedAt": "2025-10-22T01:56:39.9303567Z"
+    },
+    {
+      "agentId": "agent:spec-guardian",
+      "role": "SpecGuardian",
+      "verdict": "approve",
+      "detail": null,
+      "confidence": 0.78,
+      "notes": "Candidate patches generated for spec review.",
+      "suggestedActions": [],
+      "recordedAt": "2025-10-22T01:56:39.9303568Z"
+    }
+  ],
+  "appendPath": "C:\\Users\\spare\\source\\repos\\tars\\output\\adaptive_memory_spec-kit.jsonl",
+  "artifacts": [
+    "dynamic metascript spec (rules=7 source=C:\\Users\\spare\\source\\repos\\tars\\.specify\\specs\\tier2-bootstrap\\spec.md)",
+    "Dynamic metascript summary recorded (2 spawn, 2 connections)"
+  ],
+  "commands": [
+    {
+      "name": "update-release-notes",
+      "stage": "pre-validation",
+      "exitCode": 1,
+      "durationSeconds": 0.4183575,
+      "startedAt": "2025-10-22T01:56:39.487599Z",
+      "completedAt": "2025-10-22T01:56:39.9059565Z"
+    }
+  ],
+  "consensus": {
+    "status": "failed",
+    "message": "Consensus missing required roles: SafetyGovernor, PerformanceBenchmarker.",
+    "agents": [
+      {
+        "agentId": "agent:reasoner",
+        "role": "Reasoner",
+        "outcome": "pass",
+        "confidence": 0.85,
+        "notes": "Metascript closure analysis",
+        "producedAt": "2025-10-22T01:56:39.9169171Z"
+      },
+      {
+        "agentId": "agent:reviewer",
+        "role": "Reviewer",
+        "outcome": "fail",
+        "confidence": 0.3,
+        "notes": "Harness validation review",
+        "producedAt": "2025-10-22T01:56:39.9170324Z"
+      },
+      {
+        "agentId": "agent:performance",
+        "role": "PerformanceBenchmarker",
+        "outcome": "fail",
+        "confidence": 0.3,
+        "notes": "Harness failures block performance confidence.",
+        "producedAt": "2025-10-22T01:56:39.9170355Z"
+      },
+      {
+        "agentId": "agent:safety-governor",
+        "role": "SafetyGovernor",
+        "outcome": "fail",
+        "confidence": 0.2,
+        "notes": "Harness failures detected.",
+        "producedAt": "2025-10-22T01:56:39.9170381Z"
+      },
+      {
+        "agentId": "agent:spec-guardian",
+        "role": "SpecGuardian",
+        "outcome": "pass",
+        "confidence": 0.78,
+        "notes": "Candidate patches generated for spec review.",
+        "producedAt": "2025-10-22T01:56:39.9170391Z"
+      }
+    ]
+  },
+  "critic": {
+    "status": "accept",
+    "message": null
+  },
+  "description": "\u0060tier2/bootstrap-release-notes\u0060",
+  "harness": {
+    "status": "failed",
+    "failureReason": "Command \u0027update-release-notes\u0027 failed with exit code 1",
+    "failedCommandCount": 1
+  },
+  "metrics": {
+    "capability.avg_duration_seconds": 0.4183575,
+    "capability.benchmark_duration_seconds": 0,
+    "capability.command_count": 1,
+    "capability.failure_count": 1,
+    "capability.max_duration_seconds": 0.4183575,
+    "capability.pass_ratio": 0,
+    "capability.prevalidation_duration_seconds": 0.4183575,
+    "capability.success_count": 0,
+    "capability.total_duration_seconds": 0.4183575,
+    "capability.validation_duration_seconds": 0,
+    "dsl.metascript.connection_count": 2,
+    "dsl.metascript.max_depth": 3,
+    "dsl.metascript.repeated_patterns": "[release-cycle]",
+    "dsl.metascript.rule_count": 7,
+    "dsl.metascript.source": "C:\\Users\\spare\\source\\repos\\tars\\.specify\\specs\\tier2-bootstrap\\spec.md",
+    "dsl.metascript.spawn_count": 2,
+    "dsl.metric.adaptation": 0.8,
+    "dsl.metric.documentation": 0.92,
+    "feedback.approve": 2,
+    "feedback.avg_confidence": 0.48599999999999993,
+    "feedback.escalate": 0,
+    "feedback.needs_work": 0,
+    "feedback.reject": 3,
+    "feedback.total": 5,
+    "safety.consensus_agents": 5,
+    "safety.consensus_avg_confidence": 0.48599999999999993,
+    "safety.consensus_failures": 3,
+    "safety.consensus_needs_review": 0,
+    "safety.consensus_reason": "Consensus missing required roles: SafetyGovernor, PerformanceBenchmarker.",
+    "safety.consensus_status": "failed",
+    "safety.critic_status": "accept",
+    "validators.comments": 3,
+    "validators.disagreement_ratio": 1,
+    "validators.disagreements": 1,
+    "validators.findings_fail": 3,
+    "validators.findings_needs_review": 0,
+    "validators.findings_pass": 2,
+    "validators.findings_total": 5,
+    "validators.targets": 1
+  },
+  "nextSteps": [
+    "Promote validated dynamic closure to registry if production-ready.",
+    "Validate dynamic closure grammar against production constraints.",
+    "Run rehearsal execution in sandboxed environment.",
+    "Publish documentation for newly generated closure behaviour."
+  ],
+  "policyAfter": {
+    "requireConsensus": true,
+    "requireCritic": true,
+    "stopOnFailure": true,
+    "captureLogs": true,
+    "patchCommands": 1,
+    "validationCommands": 1,
+    "benchmarkCommands": 0,
+    "hasAgentProvider": false,
+    "hasTraceProvider": true,
+    "hasFeedbackSink": false,
+    "hasReasoningCritic": true,
+    "consensusRule": {
+      "minimumPassCount": 3,
+      "requiredRoles": [
+        "SafetyGovernor",
+        "PerformanceBenchmarker",
+        "SpecGuardian"
+      ],
+      "allowNeedsReview": false,
+      "minimumConfidence": 0.7,
+      "maxFailureCount": 0
+    }
+  },
+  "policyBefore": {
+    "requireConsensus": true,
+    "requireCritic": true,
+    "stopOnFailure": true,
+    "captureLogs": true,
+    "patchCommands": 1,
+    "validationCommands": 1,
+    "benchmarkCommands": 0,
+    "hasAgentProvider": false,
+    "hasTraceProvider": true,
+    "hasFeedbackSink": false,
+    "hasReasoningCritic": true,
+    "consensusRule": {
+      "minimumPassCount": 3,
+      "requiredRoles": [
+        "SafetyGovernor",
+        "PerformanceBenchmarker",
+        "SpecGuardian"
+      ],
+      "allowNeedsReview": false,
+      "minimumConfidence": 0.7,
+      "maxFailureCount": 0
+    }
+  },
+  "policyChanges": [],
+  "runId": "9da5e76c-ffd3-4b23-b2f0-61ab42fb9302",
+  "specId": "tier2-bootstrap",
+  "specPath": "C:\\Users\\spare\\source\\repos\\tars\\.specify\\specs\\tier2-bootstrap\\spec.md",
+  "status": "failed:Command \u0027update-release-notes\u0027 failed with exit code 1",
+  "timestamp": "2025-10-22T01:56:39.9309774Z",
+  "validatorDisagreements": [
+    {
+      "specId": "tier2-bootstrap",
+      "iterationId": "9da5e76c-ffd3-4b23-b2f0-61ab42fb9302",
+      "topic": "spec-kit",
+      "roles": [
+        "SpecGuardian",
+        "SafetyGovernor",
+        "PerformanceBenchmarker",
+        "Reviewer",
+        "Reasoner"
+      ],
+      "outcomes": [
+        "SpecGuardian=pass",
+        "SafetyGovernor=fail",
+        "PerformanceBenchmarker=fail",
+        "Reviewer=fail",
+        "Reasoner=pass"
+      ],
+      "trigger": "conflicting_pass_fail",
+      "confidenceSpread": 0.6499999999999999,
+      "loggedAt": "2025-10-22T01:56:39.9299827Z"
+    }
+  ],
+  "validatorFindings": [
+    {
+      "findingId": "cf655df4-1c8a-4e74-b174-76ec86b1c901",
+      "agentId": "agent:spec-guardian",
+      "role": "SpecGuardian",
+      "outcome": "pass",
+      "confidence": 0.78,
+      "notes": "Candidate patches generated for spec review.",
+      "specId": "tier2-bootstrap",
+      "iterationId": "9da5e76c-ffd3-4b23-b2f0-61ab42fb9302",
+      "topic": "spec-kit",
+      "recordedAt": "2025-10-22T01:56:39.9170391Z"
+    },
+    {
+      "findingId": "a39bf6e1-a3fb-416e-9809-b703e03ca5bb",
+      "agentId": "agent:safety-governor",
+      "role": "SafetyGovernor",
+      "outcome": "fail",
+      "confidence": 0.2,
+      "notes": "Harness failures detected.",
+      "specId": "tier2-bootstrap",
+      "iterationId": "9da5e76c-ffd3-4b23-b2f0-61ab42fb9302",
+      "topic": "spec-kit",
+      "recordedAt": "2025-10-22T01:56:39.9170381Z"
+    },
+    {
+      "findingId": "7b86869f-dce4-407f-9738-c8446fb72f51",
+      "agentId": "agent:performance",
+      "role": "PerformanceBenchmarker",
+      "outcome": "fail",
+      "confidence": 0.3,
+      "notes": "Harness failures block performance confidence.",
+      "specId": "tier2-bootstrap",
+      "iterationId": "9da5e76c-ffd3-4b23-b2f0-61ab42fb9302",
+      "topic": "spec-kit",
+      "recordedAt": "2025-10-22T01:56:39.9170355Z"
+    },
+    {
+      "findingId": "6c4ad4b0-72a0-47e2-845e-f3ac937d75a3",
+      "agentId": "agent:reviewer",
+      "role": "Reviewer",
+      "outcome": "fail",
+      "confidence": 0.3,
+      "notes": "Harness validation review",
+      "specId": "tier2-bootstrap",
+      "iterationId": "9da5e76c-ffd3-4b23-b2f0-61ab42fb9302",
+      "topic": "spec-kit",
+      "recordedAt": "2025-10-22T01:56:39.9170324Z"
+    },
+    {
+      "findingId": "136a559f-e854-4362-a1a1-44bc9f01b61f",
+      "agentId": "agent:reasoner",
+      "role": "Reasoner",
+      "outcome": "pass",
+      "confidence": 0.85,
+      "notes": "Metascript closure analysis",
+      "specId": "tier2-bootstrap",
+      "iterationId": "9da5e76c-ffd3-4b23-b2f0-61ab42fb9302",
+      "topic": "spec-kit",
+      "recordedAt": "2025-10-22T01:56:39.9169171Z"
+    }
+  ]
+}

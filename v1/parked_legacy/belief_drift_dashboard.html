@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>TARS Belief Drift Visualization</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; margin: 20px; background: #0a0a0a; color: #e0e0e0; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .metric-card { background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 20px; margin: 10px; display: inline-block; min-width: 200px; }
+        .metric-title { font-size: 14px; color: #888; margin-bottom: 5px; }
+        .metric-value { font-size: 24px; font-weight: bold; color: #4CAF50; }
+        .chart-container { background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 20px; margin: 20px 0; }
+        .timeline-item { background: #2a2a2a; border-left: 4px solid #4CAF50; padding: 15px; margin: 10px 0; }
+        .drift-positive { border-left-color: #4CAF50; }
+        .drift-negative { border-left-color: #f44336; }
+        .drift-neutral { border-left-color: #ff9800; }
+    </style>
+</head>
+<body>
+    <div class='header'>
+        <h1>🧠 TARS Belief Drift Visualization</h1>
+        <p>Timeline: 2025-06-17 16:13 - 2025-06-17 16:13</p>
+    </div>
+    <div class='metrics'>
+        <div class='metric-card'>
+            <div class='metric-title'>Total States</div>
+            <div class='metric-value'>5</div>
+        </div>
+        <div class='metric-card'>
+            <div class='metric-title'>Total Drift</div>
+            <div class='metric-value'>0.782</div>
+        </div>
+        <div class='metric-card'>
+            <div class='metric-title'>Overall Direction</div>
+            <div class='metric-value'>divergence</div>
+        </div>
+        <div class='metric-card'>
+            <div class='metric-title'>Inflection Points</div>
+            <div class='metric-value'>0</div>
+        </div>
+    </div>
+    <div class='chart-container'>
+        <h3>📈 Belief Evolution Timeline</h3>
+        <div class='timeline-item drift-neutral'>
+            <strong>16:13:48</strong> - divergence
+            <br>Magnitude: 0.146, Significance Δ: -0.188
+            <br>New Insights: 1, Resolved Contradictions: 0
+        </div>
+        <div class='timeline-item drift-negative'>
+            <strong>16:13:48</strong> - divergence
+            <br>Magnitude: 0.289, Significance Δ: -0.668
+            <br>New Insights: 1, Resolved Contradictions: 0
+        </div>
+        <div class='timeline-item drift-negative'>
+            <strong>16:13:48</strong> - oscillation
+            <br>Magnitude: 0.287, Significance Δ: 0.694
+            <br>New Insights: 1, Resolved Contradictions: 1
+        </div>
+        <div class='timeline-item drift-neutral'>
+            <strong>16:13:48</strong> - oscillation
+            <br>Magnitude: 0.060, Significance Δ: 0.037
+            <br>New Insights: 1, Resolved Contradictions: 0
+        </div>
+    </div>
+</body>
+</html>

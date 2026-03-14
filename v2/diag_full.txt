@@ -1,0 +1,25 @@
+───────────────────────── TARS Full System Diagnostics ─────────────────────────
+Running comprehensive capability verification...
+
+Core Infrastructure
+Checking TARS Home... OK (C:\Users\spare\.tars)
+Checking Knowledge Graph... OK (15613 bytes)
+Checking Configuration... OK (Model: qwen3)
+Checking LLM Connectivity... OK (Response: Okay, the user just sent "Ping". I need to respond appropriately. 
+Since this is)
+Checking Model Availability... OK (llama.cpp model loaded)
+Checking Knowledge Ledger (Postgres)... OK (Connected + vector extension found)
+
+Reasoning Capabilities
+Checking Chain of Thought (CoT)... INFO: Got response but no '8': Okay, the user is asking what 5 plus 3 is. Let me
+...
+Checking Workflow of Thought (WoT)... OK (Multi-step reasoning works)
+
+Knowledge & Retrieval
+Checking Knowledge Ledger Status... INFO: Beliefs table not created yet
+Checking RAG Components... OK (Embeddings work (768 dimensions))
+
+Tooling
+Checking Tool Registry... OK (119 tools registered)
+────────────────────────────────────────────────────────────────────────────────
+SUCCESS: All 10 checks passed!

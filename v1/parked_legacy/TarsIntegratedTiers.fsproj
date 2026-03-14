@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AssemblyTitle>TARS Integrated Intelligence Tiers</AssemblyTitle>
+    <AssemblyDescription>Complete integration of Tier 6 &amp; Tier 7 with existing TARS engine</AssemblyDescription>
+    <AssemblyVersion>2.0.0.0</AssemblyVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />
+    <PackageReference Include="System.Text.Json" Version="9.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="TarsEngineIntegration.fs" />
+    <Compile Include="TarsVectorStoreIntegration.fs" />
+    <Compile Include="TarsClosureFactoryIntegration.fs" />
+    <Compile Include="TarsIntegratedDemonstration.fs" />
+  </ItemGroup>
+
+</Project>
+
+
+

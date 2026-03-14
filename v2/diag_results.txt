@@ -1,0 +1,28 @@
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ TARS Full System Diagnostics ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+Running comprehensive capability verification...
+
+Core Infrastructure
+Checking TARS Home... OK (C:\Users\spare\.tars)
+Checking Knowledge Graph... OK (15613 bytes)
+Checking Configuration... OK (Model: qwen3)
+Checking LLM Connectivity... FAIL (No connection could be made because the target machine actively refused 
+it. (localhost:8080))
+Checking Model Availability... FAIL (Model check failed: No connection could be made because the target machine
+actively refused it. (localhost:8080))
+Checking Knowledge Ledger (Postgres)... OK (Connected + vector extension found)
+
+Reasoning Capabilities
+Checking Chain of Thought (CoT)... FAIL (No connection could be made because the target machine actively refused 
+it. (localhost:8080))
+Checking Workflow of Thought (WoT)... FAIL (No connection could be made because the target machine actively refused 
+it. (localhost:8080))
+
+Knowledge & Retrieval
+Checking Knowledge Ledger Status... INFO: Beliefs table not created yet
+Checking RAG Components... FAIL (Embedding failed: Response status code does not indicate success: 404 (Not
+Found).)
+
+Tooling
+Checking Tool Registry... OK (119 tools registered)
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+WARNING: 5/10 checks passed

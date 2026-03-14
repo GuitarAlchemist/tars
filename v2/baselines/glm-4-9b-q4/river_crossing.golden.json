@@ -1,0 +1,64 @@
+{
+  "SchemaVersion": "wot.golden.v1",
+  "Steps": [
+    {
+      "StepId": "think",
+      "Kind": "reason",
+      "ToolName": null,
+      "ResolvedArgs": null,
+      "Outputs": [
+        "solution"
+      ],
+      "Status": {
+        "Case": "Ok"
+      },
+      "Error": null
+    },
+    {
+      "StepId": "validate",
+      "Kind": "tool",
+      "ToolName": "validate_puzzle_answer",
+      "ResolvedArgs": [
+        [
+          "answer",
+          "\nTo solve the river crossing puzzle, we need to ensure that at no point are the wolf and goat left together without the farmer, nor are the goat and cabbage left together without the farmer. Here\u0027s a step-by-step solution:\n\n1. Take the goat across.\n2. Return alone.\n3. Take the wolf across.\n4. Return with the goat.\n5. Take the cabbage across.\n6. Return alone.\n7. Take the goat across.\n\nThis sequence ensures that all items are safely transported across the river without any being eaten."
+        ],
+        [
+          "puzzle_type",
+          "river_crossing"
+        ]
+      ],
+      "Outputs": [
+        "validation_result"
+      ],
+      "Status": {
+        "Case": "Ok"
+      },
+      "Error": null
+    },
+    {
+      "StepId": "verify",
+      "Kind": "verify",
+      "ToolName": null,
+      "ResolvedArgs": null,
+      "Outputs": [
+        "final_verdict"
+      ],
+      "Status": {
+        "Case": "Ok"
+      },
+      "Error": null
+    }
+  ],
+  "Summary": {
+    "FirstError": null,
+    "Mode": "Llm",
+    "OutputKeys": [
+      "final_verdict",
+      "solution",
+      "validation_result"
+    ],
+    "ToolCalls": 1,
+    "VerifyPassed": true
+  }
+}

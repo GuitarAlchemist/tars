@@ -1,0 +1,76 @@
+{
+  "name": "tars-analytics-dashboard",
+  "version": "1.0.0",
+  "description": "TARS Autonomous Analytics Dashboard - Complex Application Demonstration",
+  "private": true,
+  "scripts": {
+    "dev": "webpack serve --mode development",
+    "build": "webpack --mode production",
+    "start": "serve -s dist",
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "lint": "eslint src --ext .ts,.tsx",
+    "type-check": "tsc --noEmit",
+    "autonomous-qa": "node autonomous-systems/autonomous-qa.js",
+    "autonomous-fix": "node autonomous-systems/autonomous-fixer.js",
+    "autonomous-cycle": "node autonomous-systems/autonomous-cycle.js"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.15.0",
+    "react-hook-form": "^7.45.4",
+    "react-query": "^3.39.3",
+    "chart.js": "^4.4.0",
+    "react-chartjs-2": "^5.2.0",
+    "axios": "^1.5.0",
+    "zod": "^3.22.2",
+    "clsx": "^2.0.0",
+    "lucide-react": "^0.279.0",
+    "framer-motion": "^10.16.4",
+    "socket.io-client": "^4.7.2",
+    "jwt-decode": "^3.1.2",
+    "date-fns": "^2.30.0",
+    "recharts": "^2.8.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.21",
+    "@types/react-dom": "^18.2.7",
+    "@types/node": "^20.5.9",
+    "@typescript-eslint/eslint-plugin": "^6.5.0",
+    "@typescript-eslint/parser": "^6.5.0",
+    "typescript": "^5.2.2",
+    "webpack": "^5.88.2",
+    "webpack-cli": "^5.1.4",
+    "webpack-dev-server": "^4.15.1",
+    "html-webpack-plugin": "^5.5.3",
+    "css-loader": "^6.8.1",
+    "style-loader": "^3.3.3",
+    "ts-loader": "^9.4.4",
+    "tailwindcss": "^3.3.3",
+    "autoprefixer": "^10.4.15",
+    "postcss": "^8.4.29",
+    "postcss-loader": "^7.3.3",
+    "eslint": "^8.48.0",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "@playwright/test": "^1.37.1",
+    "axe-playwright": "^1.2.3",
+    "serve": "^14.2.1",
+    "chalk": "^4.1.2",
+    "fs-extra": "^11.1.1"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}

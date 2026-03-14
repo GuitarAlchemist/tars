@@ -1,0 +1,370 @@
+@using TarsEngine.Models
+@using TarsEngine.Services
+@inject RollbackManager RollbackManager
+@inject ILogger<SettingsPanel> Logger
+
+<MudGrid>
+    <MudItem xs="12" md="4">
+        <MudPaper Class="pa-4" Elevation="0">
+            <MudText Typo="Typo.h6" Class="mb-4">Setting Categories</MudText>
+            <MudList Clickable="true" SelectedValue="@selectedCategory" SelectedValueChanged="@(EventCallback.Factory.Create<string>(this, value => OnCategoryChanged(value ?? string.Empty)))">
+                <MudListItem Value="@("general")" Icon="@Icons.Material.Filled.Settings">
+                    General Settings
+                </MudListItem>
+                <MudListItem Value="@("execution")" Icon="@Icons.Material.Filled.PlayArrow">
+                    Execution Settings
+                </MudListItem>
+                <MudListItem Value="@("validation")" Icon="@Icons.Material.Filled.CheckCircle">
+                    Validation Settings
+                </MudListItem>
+                <MudListItem Value="@("rollback")" Icon="@Icons.Material.Filled.Undo">
+                    Rollback Settings
+                </MudListItem>
+                <MudListItem Value="@("security")" Icon="@Icons.Material.Filled.Security">
+                    Security Settings
+                </MudListItem>
+                <MudListItem Value="@("notification")" Icon="@Icons.Material.Filled.Notifications">
+                    Notification Settings
+                </MudListItem>
+            </MudList>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="8">
+        <MudPaper Class="pa-4" Elevation="0">
+            <MudText Typo="Typo.h6" Class="mb-4">@GetCategoryTitle(selectedCategory)</MudText>
+
+            <MudForm @ref="form" Model="@settings">
+                <MudGrid>
+                    @if (selectedCategory == "general")
+                    {
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="settings.WorkingDirectory" Label="Working Directory" />
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="settings.BackupDirectory" Label="Backup Directory" />
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="settings.OutputDirectory" Label="Output Directory" />
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudSelect @bind-Value="settings.DefaultExecutionMode" Label="Default Execution Mode">
+                                <MudSelectItem Value="@(ExecutionMode.DryRun)">Dry Run</MudSelectItem>
+                                <MudSelectItem Value="@(ExecutionMode.Real)">Real</MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudSelect @bind-Value="settings.DefaultEnvironment" Label="Default Environment">
+                                <MudSelectItem Value="@(ExecutionEnvironment.Development)">Development</MudSelectItem>
+                                <MudSelectItem Value="@(ExecutionEnvironment.Testing)">Testing</MudSelectItem>
+                                <MudSelectItem Value="@(ExecutionEnvironment.Staging)">Staging</MudSelectItem>
+                                <MudSelectItem Value="@(ExecutionEnvironment.Production)">Production</MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudSelect @bind-Value="settings.LogLevel" Label="Log Level">
+                                <MudSelectItem Value="@(LogLevel.Debug)">Debug</MudSelectItem>
+                                <MudSelectItem Value="@(LogLevel.Information)">Information</MudSelectItem>
+                                <MudSelectItem Value="@(LogLevel.Warning)">Warning</MudSelectItem>
+                                <MudSelectItem Value="@(LogLevel.Error)">Error</MudSelectItem>
+                                <MudSelectItem Value="@(LogLevel.Critical)">Critical</MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+                    }
+                    else if (selectedCategory == "execution")
+                    {
+                        <MudItem xs="12">
+                            <MudSwitch T="bool" @bind-Checked="settings.AutoBackup" Label="Auto Backup" Color="Color.Primary" />
+                            <MudText Typo="Typo.caption">Automatically backup files before modification</MudText>
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudSwitch T="bool" @bind-Checked="settings.AutoValidate" Label="Auto Validate" Color="Color.Primary" />
+                            <MudText Typo="Typo.caption">Automatically validate changes before applying them</MudText>
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudSwitch T="bool" @bind-Checked="settings.AutoRollback" Label="Auto Rollback" Color="Color.Primary" />
+                            <MudText Typo="Typo.caption">Automatically roll back on failure</MudText>
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudSwitch T="bool" @bind-Checked="settings.RequireApproval" Label="Require Approval" Color="Color.Primary" />
+                            <MudText Typo="Typo.caption">Require approval before committing changes</MudText>
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="settings.MaxConcurrentExecutions" Label="Max Concurrent Executions" Type="InputType.Number" />
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="settings.ExecutionTimeout" Label="Execution Timeout (minutes)" Type="InputType.Number" />
+                        </MudItem>
+                    }
+                    else if (selectedCategory == "validation")
+                    {
+                        <MudItem xs="12">
+                            <MudSwitch T="bool" @bind-Checked="settings.ValidateSyntax" Label="Validate Syntax" Color="Color.Primary" />
+                            <MudText Typo="Typo.caption">Validate syntax of code changes</MudText>
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudSwitch T="bool" @bind-Checked="settings.ValidateSemantics" Label="Validate Semantics" Color="Color.Primary" />
+                            <MudText Typo="Typo.caption">Validate semantic correctness of code changes</MudText>
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudSwitch T="bool" @bind-Checked="settings.RunTests" Label="Run Tests" Color="Color.Primary" />
+                            <MudText Typo="Typo.caption">Run tests to validate changes</MudText>
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="settings.TestFilter" Label="Test Filter" />
+                            <MudText Typo="Typo.caption">Filter for tests to run (e.g., Category=UnitTest)</MudText>
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="settings.ValidationTimeout" Label="Validation Timeout (seconds)" Type="InputType.Number" />
+                        </MudItem>
+                    }
+                    else if (selectedCategory == "rollback")
+                    {
+                        <MudItem xs="12">
+                            <MudSwitch T="bool" @bind-Checked="settings.DeleteBackupFiles" Label="Delete Backup Files" Color="Color.Primary" />
+                            <MudText Typo="Typo.caption">Delete backup files when removing a context</MudText>
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="settings.BackupRetentionDays" Label="Backup Retention (days)" Type="InputType.Number" />
+                            <MudText Typo="Typo.caption">Number of days to keep backups</MudText>
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudSwitch T="bool" @bind-Checked="settings.EnableFileAudit" Label="Enable File Audit" Color="Color.Primary" />
+                            <MudText Typo="Typo.caption">Write audit entries to files</MudText>
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudSwitch T="bool" @bind-Checked="settings.EnableDetailedAudit" Label="Enable Detailed Audit" Color="Color.Primary" />
+                            <MudText Typo="Typo.caption">Record detailed audit information</MudText>
+                        </MudItem>
+                    }
+                    else if (selectedCategory == "security")
+                    {
+                        <MudItem xs="12">
+                            <MudSelect @bind-Value="settings.SecurityLevel" Label="Security Level">
+                                <MudSelectItem Value="@("low")">Low</MudSelectItem>
+                                <MudSelectItem Value="@("medium")">Medium</MudSelectItem>
+                                <MudSelectItem Value="@("high")">High</MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudSwitch T="bool" @bind-Checked="settings.RequireAuthentication" Label="Require Authentication" Color="Color.Primary" />
+                            <MudText Typo="Typo.caption">Require authentication for all operations</MudText>
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudSwitch T="bool" @bind-Checked="settings.RequireAuthorization" Label="Require Authorization" Color="Color.Primary" />
+                            <MudText Typo="Typo.caption">Require authorization for sensitive operations</MudText>
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="settings.AllowedUsers" Label="Allowed Users" />
+                            <MudText Typo="Typo.caption">Comma-separated list of users allowed to execute improvements</MudText>
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="settings.AllowedRoles" Label="Allowed Roles" />
+                            <MudText Typo="Typo.caption">Comma-separated list of roles allowed to execute improvements</MudText>
+                        </MudItem>
+                    }
+                    else if (selectedCategory == "notification")
+                    {
+                        <MudItem xs="12">
+                            <MudSwitch T="bool" @bind-Checked="settings.EnableNotifications" Label="Enable Notifications" Color="Color.Primary" />
+                            <MudText Typo="Typo.caption">Enable notifications for execution events</MudText>
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudSwitch T="bool" @bind-Checked="settings.NotifyOnStart" Label="Notify on Start" Color="Color.Primary" />
+                            <MudText Typo="Typo.caption">Send notification when execution starts</MudText>
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudSwitch T="bool" @bind-Checked="settings.NotifyOnComplete" Label="Notify on Complete" Color="Color.Primary" />
+                            <MudText Typo="Typo.caption">Send notification when execution completes</MudText>
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudSwitch T="bool" @bind-Checked="settings.NotifyOnError" Label="Notify on Error" Color="Color.Primary" />
+                            <MudText Typo="Typo.caption">Send notification when execution fails</MudText>
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="settings.NotificationEmail" Label="Notification Email" />
+                            <MudText Typo="Typo.caption">Email address for notifications</MudText>
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="settings.SlackWebhook" Label="Slack Webhook" />
+                            <MudText Typo="Typo.caption">Slack webhook URL for notifications</MudText>
+                        </MudItem>
+                    }
+
+                    <MudItem xs="12">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" OnClick="SaveSettings">
+                            Save Settings
+                        </MudButton>
+                    </MudItem>
+                </MudGrid>
+            </MudForm>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private MudForm form = null!;
+    private string selectedCategory = "general";
+    private Settings settings = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        // Load settings
+        await LoadSettingsAsync();
+    }
+
+    private void OnCategoryChanged(string value)
+    {
+        selectedCategory = value;
+    }
+
+    private string GetCategoryTitle(string category)
+    {
+        return category switch
+        {
+            "general" => "General Settings",
+            "execution" => "Execution Settings",
+            "validation" => "Validation Settings",
+            "rollback" => "Rollback Settings",
+            "security" => "Security Settings",
+            "notification" => "Notification Settings",
+            _ => "Settings"
+        };
+    }
+
+    private async Task LoadSettingsAsync()
+    {
+            await Task.Delay(1); // Added to satisfy compiler warning CS1998
+        try
+        {
+            // In a real implementation, this would load settings from a service
+            // For now, use default settings
+
+            settings = new Settings
+            {
+                // General settings
+                WorkingDirectory = @"C:\Projects\TARS",
+                BackupDirectory = @"C:\Projects\TARS\Backup",
+                OutputDirectory = @"C:\Projects\TARS\Output",
+                DefaultExecutionMode = ExecutionMode.Real,
+                DefaultEnvironment = ExecutionEnvironment.Development,
+                LogLevel = LogLevel.Information,
+
+                // Execution settings
+                AutoBackup = true,
+                AutoValidate = true,
+                AutoRollback = true,
+                RequireApproval = true,
+                MaxConcurrentExecutions = 5,
+                ExecutionTimeout = 60,
+
+                // Validation settings
+                ValidateSyntax = true,
+                ValidateSemantics = true,
+                RunTests = true,
+                TestFilter = "Category=UnitTest",
+                ValidationTimeout = 300,
+
+                // Rollback settings
+                DeleteBackupFiles = false,
+                BackupRetentionDays = 30,
+                EnableFileAudit = true,
+                EnableDetailedAudit = true,
+
+                // Security settings
+                SecurityLevel = "medium",
+                RequireAuthentication = true,
+                RequireAuthorization = true,
+                AllowedUsers = "admin,developer",
+                AllowedRoles = "Administrator,Developer",
+
+                // Notification settings
+                EnableNotifications = true,
+                NotifyOnStart = false,
+                NotifyOnComplete = true,
+                NotifyOnError = true,
+                NotificationEmail = "admin@example.com",
+                SlackWebhook = "https://hooks.slack.com/services/..."
+            };
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading settings");
+        }
+    }
+
+    private async Task SaveSettings()
+    {
+            await Task.Delay(1); // Added to satisfy compiler warning CS1998
+        await form.Validate();
+
+        if (form.IsValid)
+        {
+            try
+            {
+                // In a real implementation, this would save settings to a service
+                Logger.LogInformation("Saving settings");
+
+                // Show success notification
+                // In a real implementation, this would show a toast notification
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error saving settings");
+                // Show error notification
+            }
+        }
+    }
+
+    private class Settings
+    {
+        // General settings
+        public string WorkingDirectory { get; set; } = string.Empty;
+        public string BackupDirectory { get; set; } = string.Empty;
+        public string OutputDirectory { get; set; } = string.Empty;
+        public ExecutionMode DefaultExecutionMode { get; set; } = ExecutionMode.DryRun;
+        public ExecutionEnvironment DefaultEnvironment { get; set; } = ExecutionEnvironment.Development;
+        public LogLevel LogLevel { get; set; } = LogLevel.Information;
+
+        // Execution settings
+        public bool AutoBackup { get; set; } = true;
+        public bool AutoValidate { get; set; } = true;
+        public bool AutoRollback { get; set; } = true;
+        public bool RequireApproval { get; set; } = true;
+        public int MaxConcurrentExecutions { get; set; } = 5;
+        public int ExecutionTimeout { get; set; } = 60;
+
+        // Validation settings
+        public bool ValidateSyntax { get; set; } = true;
+        public bool ValidateSemantics { get; set; } = true;
+        public bool RunTests { get; set; } = true;
+        public string TestFilter { get; set; } = string.Empty;
+        public int ValidationTimeout { get; set; } = 300;
+
+        // Rollback settings
+        public bool DeleteBackupFiles { get; set; } = false;
+        public int BackupRetentionDays { get; set; } = 30;
+        public bool EnableFileAudit { get; set; } = true;
+        public bool EnableDetailedAudit { get; set; } = true;
+
+        // Security settings
+        public string SecurityLevel { get; set; } = "medium";
+        public bool RequireAuthentication { get; set; } = true;
+        public bool RequireAuthorization { get; set; } = true;
+        public string AllowedUsers { get; set; } = string.Empty;
+        public string AllowedRoles { get; set; } = string.Empty;
+
+        // Notification settings
+        public bool EnableNotifications { get; set; } = true;
+        public bool NotifyOnStart { get; set; } = false;
+        public bool NotifyOnComplete { get; set; } = true;
+        public bool NotifyOnError { get; set; } = true;
+        public string NotificationEmail { get; set; } = string.Empty;
+        public string SlackWebhook { get; set; } = string.Empty;
+    }
+}
+
+
+

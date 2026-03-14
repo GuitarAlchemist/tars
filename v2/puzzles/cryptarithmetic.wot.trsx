@@ -1,0 +1,43 @@
+meta {
+  name = "cryptarithmetic"
+  description = "Cryptarithmetic puzzle SEND + MORE = MONEY."
+  domain = "symbolic search"
+  difficulty = "hard"
+}
+
+inputs {
+  puzzle_prompt = "Solve this cryptarithmetic puzzle where each letter represents a unique digit (0-9):   S E N D + M O R E = M O N E Y. Find the digit for each letter. Hint: M must be 1. Answer format: S=?, E=?, N=?, D=?, M=?, O=?, R=?, Y=?"
+  puzzle_type = "cryptarithmetic"
+}
+
+policy {
+  allowed_tools = ["validate_puzzle_answer"]
+  max_tool_calls = 3
+  max_tokens = 2048
+}
+
+workflow "solve_cryptarithmetic" {
+  
+  node "think" kind="reason" {
+    goal = "Solve this puzzle step by step: ${puzzle_prompt}"
+    output = "solution"
+    constraints = ["show_reasoning"]
+  }
+
+  node "validate" kind="work" {
+    tool = "validate_puzzle_answer"
+    args = { "puzzle_type": "${puzzle_type}", "answer": "${solution}" }
+    output = "validation_result"
+  }
+
+  node "verify" kind="work" {
+    input = ["validation_result"]
+    output = "final_verdict"
+    checks = [
+      { "type": "contains", "value": "${validation_result}", "needle": "PASS" }
+    ]
+  }
+
+  edge "think" -> "validate"
+  edge "validate" -> "verify"
+}

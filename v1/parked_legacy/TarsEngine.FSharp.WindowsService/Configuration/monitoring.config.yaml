@@ -1,0 +1,337 @@
+# TARS Monitoring and Diagnostics Configuration
+# Comprehensive System Health and Performance Monitoring
+
+# Global monitoring settings
+global:
+  enabled: true
+  intervalSeconds: 60
+  retentionDays: 30
+  alerting: true
+  
+  # Data collection
+  dataCollection:
+    performance: true
+    health: true
+    diagnostics: true
+    events: true
+    metrics: true
+
+# Health monitoring
+health:
+  enabled: true
+  checkIntervalSeconds: 30
+  timeoutSeconds: 10
+  failureThreshold: 3
+  
+  # Health check types
+  checks:
+    service:
+      enabled: true
+      checkServiceStatus: true
+      checkMemoryUsage: true
+      checkCpuUsage: true
+      
+    agents:
+      enabled: true
+      checkAgentHealth: true
+      checkAgentResponsiveness: true
+      checkAgentWorkload: true
+      
+    tasks:
+      enabled: true
+      checkTaskQueue: true
+      checkTaskExecution: true
+      checkTaskFailures: true
+      
+    system:
+      enabled: true
+      checkDiskSpace: true
+      checkNetworkConnectivity: true
+      checkSystemResources: true
+
+# Performance monitoring
+performance:
+  enabled: true
+  collectionIntervalSeconds: 60
+  detailedMetrics: true
+  
+  # System metrics
+  system:
+    cpu:
+      enabled: true
+      thresholdPercent: 80
+      alertOnHigh: true
+      
+    memory:
+      enabled: true
+      thresholdMB: 2048
+      alertOnHigh: true
+      
+    disk:
+      enabled: true
+      thresholdPercent: 85
+      alertOnHigh: true
+      
+    network:
+      enabled: true
+      monitorBandwidth: true
+      monitorLatency: true
+      
+  # Application metrics
+  application:
+    taskThroughput:
+      enabled: true
+      measurePerMinute: true
+      thresholdTasksPerMinute: 10
+      
+    responseTime:
+      enabled: true
+      thresholdMilliseconds: 5000
+      alertOnSlow: true
+      
+    errorRate:
+      enabled: true
+      thresholdPercent: 5
+      alertOnHigh: true
+      
+    agentUtilization:
+      enabled: true
+      thresholdPercent: 90
+      alertOnHigh: true
+
+# Diagnostics collection
+diagnostics:
+  enabled: true
+  verboseLogging: false
+  includeStackTraces: true
+  
+  # Log levels
+  logLevels:
+    minimum: "Information"
+    console: "Information"
+    file: "Debug"
+    eventLog: "Warning"
+    
+  # Diagnostic categories
+  categories:
+    system: true
+    agents: true
+    tasks: true
+    semantic: true
+    performance: true
+    errors: true
+    
+  # Data retention
+  retention:
+    logFiles: 30 # days
+    metrics: 90 # days
+    events: 60 # days
+
+# Alerting system
+alerting:
+  enabled: true
+  channels:
+    console: true
+    eventLog: true
+    file: true
+    email: false
+    
+  # Alert levels
+  levels:
+    critical:
+      enabled: true
+      immediateNotification: true
+      
+    warning:
+      enabled: true
+      batchNotification: true
+      batchIntervalMinutes: 15
+      
+    information:
+      enabled: true
+      logOnly: true
+      
+  # Alert rules
+  rules:
+    highCpuUsage:
+      enabled: true
+      threshold: 80
+      duration: 300 # seconds
+      level: "warning"
+      
+    highMemoryUsage:
+      enabled: true
+      threshold: 2048 # MB
+      duration: 300
+      level: "warning"
+      
+    serviceDown:
+      enabled: true
+      level: "critical"
+      immediateAlert: true
+      
+    agentFailure:
+      enabled: true
+      level: "warning"
+      threshold: 3 # failures
+      
+    taskQueueBacklog:
+      enabled: true
+      threshold: 500 # tasks
+      level: "warning"
+
+# Event monitoring
+events:
+  enabled: true
+  captureSystemEvents: true
+  captureApplicationEvents: true
+  
+  # Event types
+  types:
+    serviceEvents:
+      enabled: true
+      startup: true
+      shutdown: true
+      errors: true
+      
+    agentEvents:
+      enabled: true
+      agentStarted: true
+      agentStopped: true
+      agentFailed: true
+      taskCompleted: true
+      
+    systemEvents:
+      enabled: true
+      resourceAlerts: true
+      performanceIssues: true
+      securityEvents: false
+      
+  # Event processing
+  processing:
+    realTime: true
+    batching: false
+    filtering: true
+    aggregation: true
+
+# Metrics collection
+metrics:
+  enabled: true
+  collectionIntervalSeconds: 60
+  exportFormat: "json"
+  
+  # Metric categories
+  categories:
+    counters:
+      enabled: true
+      tasksCompleted: true
+      tasksStarted: true
+      tasksFailed: true
+      agentsActive: true
+      
+    gauges:
+      enabled: true
+      cpuUsage: true
+      memoryUsage: true
+      diskUsage: true
+      queueSize: true
+      
+    histograms:
+      enabled: true
+      taskDuration: true
+      responseTime: true
+      agentUtilization: true
+      
+    timers:
+      enabled: true
+      operationDuration: true
+      healthCheckTime: true
+      
+  # Metric aggregation
+  aggregation:
+    enabled: true
+    intervalMinutes: 5
+    functions:
+      - "average"
+      - "minimum"
+      - "maximum"
+      - "count"
+      - "sum"
+
+# Reporting
+reporting:
+  enabled: true
+  generateReports: true
+  reportIntervalHours: 24
+  
+  # Report types
+  reports:
+    daily:
+      enabled: true
+      includePerformance: true
+      includeHealth: true
+      includeEvents: true
+      
+    weekly:
+      enabled: true
+      includeTrends: true
+      includeAnalysis: true
+      
+    monthly:
+      enabled: true
+      includeStatistics: true
+      includeSummary: true
+      
+  # Report formats
+  formats:
+    - "markdown"
+    - "json"
+    - "yaml"
+    
+  # Report storage
+  storage:
+    path: "reports"
+    retention: 90 # days
+    compression: true
+
+# Dashboard (for future web interface)
+dashboard:
+  enabled: false
+  port: 8080
+  realTimeUpdates: true
+  
+  # Dashboard sections
+  sections:
+    overview: true
+    performance: true
+    agents: true
+    tasks: true
+    health: true
+    alerts: true
+
+# Integration with external monitoring
+external:
+  enabled: false
+  
+  # Prometheus (example)
+  prometheus:
+    enabled: false
+    endpoint: "/metrics"
+    port: 9090
+    
+  # Application Insights (example)
+  applicationInsights:
+    enabled: false
+    instrumentationKey: ""
+    
+  # Custom webhooks
+  webhooks:
+    enabled: false
+    endpoints: []
+
+# Development and testing
+development:
+  mockData: false
+  simulateAlerts: false
+  verboseOutput: false
+  testMode: false

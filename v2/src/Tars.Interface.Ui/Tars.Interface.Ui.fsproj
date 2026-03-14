@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>44;57</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Main.fs" />
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Bolero.Server" Version="0.24.36" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Tars.Core\Tars.Core.fsproj" />
+    <ProjectReference Include="..\Tars.Kernel\Tars.Kernel.fsproj" />
+    <ProjectReference Include="..\Tars.Llm\Tars.Llm.fsproj" />
+    <ProjectReference Include="..\Tars.Cortex\Tars.Cortex.fsproj" />
+    <ProjectReference Include="..\Tars.Tools\Tars.Tools.fsproj" />
+    <ProjectReference Include="..\Tars.Knowledge\Tars.Knowledge.fsproj" />
+    <ProjectReference Include="..\Tars.Symbolic\Tars.Symbolic.fsproj" />
+  </ItemGroup>
+
+</Project>

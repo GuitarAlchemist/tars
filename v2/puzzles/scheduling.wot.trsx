@@ -1,0 +1,43 @@
+meta {
+  name = "scheduling"
+  description = "Space Station Maintenance scheduling puzzle."
+  domain = "optimization"
+  difficulty = "hard"
+}
+
+inputs {
+  puzzle_prompt = "As a station commander, you must schedule 4 critical tasks: A: Oxygen scrubber repair (2h), B: Solar panel alignment (3h), C: Software update (1h), D: Battery health check (2h). Constraints: 1. Task A must be completed before Task D can start. 2. Task B and Task D cannot happen at the same time (robotic arm conflict). 3. Task C must happen after Task B is finished. 4. Task A starts after 10:00 AM. 5. All tasks must be finished by 4:00 PM (16:00). 6. Power-down window 12:00-13:00 (NO tasks). What is the earliest possible time all tasks can be finished? Provide a schedule starting at 10:00 AM. End response with: 'Conclusion: The earliest finish time is [Time].'"
+  puzzle_type = "scheduling"
+}
+
+policy {
+  allowed_tools = ["validate_puzzle_answer"]
+  max_tool_calls = 3
+  max_tokens = 2048
+}
+
+workflow "solve_scheduling" {
+  
+  node "think" kind="reason" {
+    goal = "Solve this puzzle step by step: ${puzzle_prompt}"
+    output = "solution"
+    constraints = ["show_schedule"]
+  }
+
+  node "validate" kind="work" {
+    tool = "validate_puzzle_answer"
+    args = { "puzzle_type": "${puzzle_type}", "answer": "${solution}" }
+    output = "validation_result"
+  }
+
+  node "verify" kind="work" {
+    input = ["validation_result"]
+    output = "final_verdict"
+    checks = [
+      { "type": "contains", "value": "${validation_result}", "needle": "PASS" }
+    ]
+  }
+
+  edge "think" -> "validate"
+  edge "validate" -> "verify"
+}

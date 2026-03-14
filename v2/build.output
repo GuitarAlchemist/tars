@@ -1,0 +1,15 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Tars.Core -> C:\Users\spare\source\repos\tars\v2\src\Tars.Core\bin\Debug\net10.0\Tars.Core.dll
+  Tars.Security -> C:\Users\spare\source\repos\tars\v2\src\Tars.Security\bin\Debug\net10.0\Tars.Security.dll
+  Tars.Symbolic -> C:\Users\spare\source\repos\tars\v2\src\Tars.Symbolic\bin\Debug\net10.0\Tars.Symbolic.dll
+  Tars.Knowledge -> C:\Users\spare\source\repos\tars\v2\src\Tars.Knowledge\bin\Debug\net10.0\Tars.Knowledge.dll
+C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\Mcp\SseMcpServer.fs(31,21): error FS0588: The block following this 'let' is unfinished. Every code block is an expression and must have a result. 'let' cannot be the final code element in a block. Consider giving this block an explicit result. [C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\Tars.Connectors.fsproj]
+
+Build FAILED.
+
+C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\Mcp\SseMcpServer.fs(31,21): error FS0588: The block following this 'let' is unfinished. Every code block is an expression and must have a result. 'let' cannot be the final code element in a block. Consider giving this block an explicit result. [C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\Tars.Connectors.fsproj]
+    0 Warning(s)
+    1 Error(s)
+
+Time Elapsed 00:00:01.41

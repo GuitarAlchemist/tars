@@ -1,0 +1,70 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Attributes.fs" />
+    <Compile Include="ToolHelpers.fs" />
+    <Compile Include="ToolFactory.fs" />
+    <Compile Include="Registry.fs" />
+    <Compile Include="MafToolAdapter.fs" />
+    <Compile Include="StandardTools.fs" />
+    <Compile Include="SemanticTools.fs" />
+    <Compile Include="SelfExtensionTools.fs" />
+    <Compile Include="GitTools.fs" />
+    <Compile Include="ReasoningTools.fs" />
+    <Compile Include="TestingTools.fs" />
+    <Compile Include="PromptTools.fs" />
+    <Compile Include="MetascriptTools.fs" />
+    <Compile Include="WorkflowTools.fs" />
+    <Compile Include="AgentTools.fs" />
+    <Compile Include="UtilityTools.fs" />
+    <Compile Include="LlmTools.fs" />
+    <Compile Include="ToolValidation.fs" />
+    <Compile Include="SystemTools.fs" />
+    <Compile Include="KnowledgeTools.fs" />
+    <Compile Include="AutomationTools.fs" />
+    <Compile Include="ResilienceTools.fs" />
+    <Compile Include="MonitoringTools.fs" />
+    <Compile Include="AdvancedTools.fs" />
+    <Compile Include="AdvancedPuzzleTools.fs" />
+    <Compile Include="ArcTools.fs" />
+    <Compile Include="DocumentTools.fs" />
+    <Compile Include="FSharpTools.fs" />
+    <Compile Include="RefactoringTools.fs" />
+    <Compile Include="SemanticCodeTools.fs" />
+    <Compile Include="SymbolicTools.fs" />
+    <Compile Include="TemporalTools.fs" />
+    <Compile Include="McpManager.fs" />
+    <Compile Include="McpTools.fs" />
+    <Compile Include="MacroTools.fs" />
+    <Compile Include="PersonaTools.fs" />
+    <Compile Include="AugmentTools.fs" />
+    <Compile Include="AgentSkillsTools.fs" />
+    <Compile Include="WebTools.fs" />
+    <Compile Include="CodeAnalysisTools.fs" />
+    <Compile Include="ResearchTools.fs" />
+    <Compile Include="GraphTools.fs" />
+    <Compile Include="PuzzleValidationTools.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.AI" Version="10.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Tars.Core\Tars.Core.fsproj" />
+    <ProjectReference Include="..\Tars.Security\Tars.Security.fsproj" />
+    <ProjectReference Include="..\Tars.Sandbox\Tars.Sandbox.fsproj" />
+    <ProjectReference Include="..\Tars.Metascript\Tars.Metascript.fsproj" />
+    <ProjectReference Include="..\Tars.Connectors\Tars.Connectors.fsproj" />
+    <ProjectReference Include="..\Tars.LinkedData\Tars.LinkedData.fsproj" />
+    <ProjectReference Include="..\Tars.Llm\Tars.Llm.fsproj" />
+    <ProjectReference Include="..\Tars.Cortex\Tars.Cortex.fsproj" />
+    <ProjectReference Include="..\Tars.Knowledge\Tars.Knowledge.fsproj" />
+  </ItemGroup>
+
+</Project>

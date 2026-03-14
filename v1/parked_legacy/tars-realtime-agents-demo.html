@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>TARS Real-Time Agent Teams with Fractal Metascripts</title>
+    <style>
+        body { margin: 0; background: #111; color: #fff; font-family: monospace; }
+        #container { width: 100vw; height: 100vh; position: relative; }
+        
+        .panel { position: absolute; background: rgba(0,0,0,0.9); padding: 15px; border-radius: 8px; border: 2px solid #4a9eff; z-index: 100; }
+        
+        #agent-panel { top: 10px; left: 10px; width: 300px; max-height: 400px; overflow-y: auto; }
+        #team-panel { top: 10px; right: 10px; width: 280px; max-height: 300px; overflow-y: auto; }
+        #metascript-panel { bottom: 10px; left: 10px; width: 400px; height: 200px; }
+        #controls-panel { bottom: 10px; right: 10px; width: 300px; }
+        
+        .agent-item { margin: 5px 0; padding: 8px; background: rgba(74,158,255,0.2); border-radius: 4px; border-left: 3px solid; }
+        .team-item { margin: 5px 0; padding: 8px; background: rgba(0,255,136,0.2); border-radius: 4px; }
+        
+        button { background: linear-gradient(135deg, #4a9eff, #357abd); color: white; border: none; padding: 8px 12px; margin: 3px; border-radius: 5px; cursor: pointer; font-size: 11px; }
+        button:hover { background: linear-gradient(135deg, #357abd, #2a5f8f); }
+        
+        textarea { width: 100%; height: 120px; background: #222; color: #fff; border: 1px solid #4a9eff; border-radius: 4px; padding: 8px; font-family: monospace; font-size: 11px; }
+        
+        .metric { display: flex; justify-content: space-between; margin: 3px 0; }
+        .metric-value { color: #00ff88; font-weight: bold; }
+        
+        .log-entry { margin: 2px 0; padding: 4px; background: rgba(255,255,255,0.1); border-radius: 3px; font-size: 10px; }
+        .log-spawn { border-left: 3px solid #00ff88; }
+        .log-team { border-left: 3px solid #ffaa00; }
+        .log-metascript { border-left: 3px solid #ff6b6b; }
+        
+        #execution-log { max-height: 150px; overflow-y: auto; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <!-- Agent Status Panel -->
+        <div id="agent-panel" class="panel">
+            <h4>🤖 Active Agents</h4>
+            <div class="metric">Total: <span class="metric-value" id="agent-count">0</span></div>
+            <div class="metric">Avg Performance: <span class="metric-value" id="avg-performance">0%</span></div>
+            <div id="agent-list"></div>
+        </div>
+        
+        <!-- Team Status Panel -->
+        <div id="team-panel" class="panel">
+            <h4>🤝 Agent Teams</h4>
+            <div class="metric">Active Teams: <span class="metric-value" id="team-count">0</span></div>
+            <div class="metric">Coordination: <span class="metric-value" id="coordination-level">0%</span></div>
+            <div id="team-list"></div>
+        </div>
+        
+        <!-- Metascript Execution Panel -->
+        <div id="metascript-panel" class="panel">
+            <h4>🌀 Fractal Metascript Executor</h4>
+            <textarea id="metascript-input" placeholder="Enter fractal metascript commands...
+Example:
+SPAWN_TEAM QRE(1.2) COUNT(3) STRATEGY(Swarm)
+SPAWN_TEAM CH(4) COUNT(2) STRATEGY(Hierarchical)
+RECURSIVE team_optimization DEPTH(2)"></textarea>
+            <button onclick="executeMetascript()">🚀 Execute Metascript</button>
+            <button onclick="loadTemplate(\"team_formation\")">📋 Team Formation</button>
+            <button onclick="loadTemplate(\"fractal_spawn\")">🌀 Fractal Spawn</button>
+            <button onclick="clearLog()">🗑️ Clear Log</button>
+        </div>
+        
+        <!-- Controls Panel -->
+        <div id="controls-panel" class="panel">
+            <h4>🎮 Agent Controls</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
+                <button onclick="spawnAgent(\"QRE\")">➕ QRE Agent</button>
+                <button onclick="spawnAgent(\"CH\")">➕ CH Agent</button>
+                <button onclick="spawnAgent(\"NoRegret\")">➕ Learning Agent</button>
+                <button onclick="spawnAgent(\"EGT\")">➕ Evolution Agent</button>
+                <button onclick="spawnAgent(\"CE\")">➕ Correlated Agent</button>
+                <button onclick="spawnAgent(\"ML\")">➕ ML Agent</button>
+                <button onclick="formRandomTeam()">�� Form Team</button>
+                <button onclick="mergeTeams()">🔗 Merge Teams</button>
+                <button onclick="optimizePositions()">🎯 Optimize</button>
+                <button onclick="startSwarmMode()">🌪️ Swarm Mode</button>
+                <button onclick="resetScene()">🔄 Reset All</button>
+                <button onclick="exportState()">💾 Export State</button>
+            </div>
+            
+            <div id="execution-log">
+                <div class="log-entry log-spawn">🚀 System initialized</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // 3D Scene Setup
+        let scene, camera, renderer, controls;
+        let agents = new Map();
+        let teams = new Map();
+        let connections = [];
+        
+        // Agent and team state
+        let agentCounter = 0;
+        let teamCounter = 0;
+        let systemMetrics = {
+            totalAgents: 0,
+            avgPerformance: 0,
+            coordinationLevel: 0,
+            activeTeams: 0
+        };
+        
+        // Agent type configurations
+        const agentTypes = {
+            QRE: { color: 0x4a9eff, name: "Quantal Response", param: 1.2 },
+            CH: { color: 0x00ff88, name: "Cognitive Hierarchy", param: 4 },
+            NoRegret: { color: 0xffaa00, name: "No-Regret Learning", param: 0.95 },
+            EGT: { color: 0x9b59b6, name: "Evolutionary Game", param: 0.05 },
+            CE: { color: 0xff6b6b, name: "Correlated Equilibrium", param: null },
+            ML: { color: 0xffffff, name: "Machine Learning", param: "neural_net" }
+        };
+        
+        function init() {
+            console.log("🚀 Initializing TARS Real-Time Agent System");
+            
+            // Scene setup
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x111111);
+            scene.fog = new THREE.Fog(0x111111, 10, 50);
+            
+            // Camera
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 0, 15);
+            
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.getElementById("container").appendChild(renderer.domElement);
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
+            directionalLight.position.set(5, 5, 5);
+            scene.add(directionalLight);
+            
+            // Mouse controls
+            setupMouseControls();
+            
+            // Start animation loop
+            animate();
+            
+            // Initialize with some agents
+            spawnInitialAgents();
+            
+            // Update UI periodically
+            setInterval(updateUI, 1000);
+            
+            addLogEntry("🌟 TARS Real-Time Agent System Ready", "spawn");
+        }
+        
+        function spawnInitialAgents() {
+            // Spawn initial diverse agent team
+            spawnAgent("QRE");
+            spawnAgent("CH");
+            spawnAgent("NoRegret");
+            spawnAgent("EGT");
+            spawnAgent("CE");
+            
+            setTimeout(() => {
+                formRandomTeam();
+            }, 2000);
+        }
+        
+        function spawnAgent(type) {
+            const agentId = `agent_${++agentCounter}`;
+            const config = agentTypes[type];
+            const performance = 0.5 + Math.random() * 0.5;
+            
+            // Create 3D object
+            const geometry = new THREE.SphereGeometry(0.3 + performance * 0.2, 16, 16);
+            const material = new THREE.MeshLambertMaterial({
+                color: config.color,
+                emissive: config.color,
+                emissiveIntensity: 0.3
+            });
+            
+            const sphere = new THREE.Mesh(geometry, material);
+            
+            // Random position
+            sphere.position.set(
+                (Math.random() - 0.5) * 16,
+                (Math.random() - 0.5) * 16,
+                (Math.random() - 0.5) * 16
+            );
+            
+            scene.add(sphere);
+            
+            // Store agent data
+            const agentData = {
+                id: agentId,
+                type: type,
+                name: config.name,
+                mesh: sphere,
+                performance: performance,
+                isActive: true,
+                teamId: null,
+                lastActivity: Date.now(),
+                messageCount: 0,
+                processingLoad: Math.random() * 0.5
+            };
+            
+            agents.set(agentId, agentData);
+            
+            addLogEntry(`🚀 Spawned ${config.name} agent (${agentId}) - Performance: ${(performance * 100).toFixed(1)}%`, "spawn");
+            
+            return agentId;
+        }
+        
+        function formRandomTeam() {
+            const availableAgents = Array.from(agents.values()).filter(a => !a.teamId);
+            if (availableAgents.length < 2) {
+                addLogEntry("⚠️ Need at least 2 unassigned agents to form team", "team");
+                return;
+            }
+            
+            const teamSize = Math.min(Math.floor(Math.random() * 4) + 2, availableAgents.length);
+            const teamMembers = availableAgents.slice(0, teamSize);
+            const teamId = `team_${++teamCounter}`;
+            
+            // Calculate team center
+            const centerPos = teamMembers.reduce((acc, agent) => {
+                acc.x += agent.mesh.position.x;
+                acc.y += agent.mesh.position.y;
+                acc.z += agent.mesh.position.z;
+                return acc;
+            }, { x: 0, y: 0, z: 0 });
+            
+            centerPos.x /= teamMembers.length;
+            centerPos.y /= teamMembers.length;
+            centerPos.z /= teamMembers.length;
+            
+            // Create team
+            const teamData = {
+                id: teamId,
+                name: `Team ${teamCounter}`,
+                members: teamMembers.map(a => a.id),
+                centerPosition: centerPos,
+                coordinationLevel: 0.6 + Math.random() * 0.4,
+                strategy: ["Hierarchical", "Democratic", "Specialized", "Swarm"][Math.floor(Math.random() * 4)],
+                isActive: true,
+                tasksInProgress: Math.floor(Math.random() * 3)
+            };
+            
+            teams.set(teamId, teamData);
+            
+            // Update agent team assignments
+            teamMembers.forEach(agent => {
+                agent.teamId = teamId;
+                // Move agents closer to team center
+                agent.mesh.position.lerp(new THREE.Vector3(centerPos.x, centerPos.y, centerPos.z), 0.3);
+            });
+            
+            // Create connections between team members
+            createTeamConnections(teamMembers);
+            
+            addLogEntry(`🤝 Formed ${teamData.name} with ${teamMembers.length} members (${teamData.strategy} strategy)`, "team");
+            
+            return teamId;
+        }
+        
+        function createTeamConnections(teamMembers) {
+            for (let i = 0; i < teamMembers.length; i++) {
+                for (let j = i + 1; j < teamMembers.length; j++) {
+                    const points = [teamMembers[i].mesh.position, teamMembers[j].mesh.position];
+                    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+                    const material = new THREE.LineBasicMaterial({
+                        color: 0x4a9eff,
+                        transparent: true,
+                        opacity: 0.4
+                    });
+                    
+                    const line = new THREE.Line(geometry, material);
+                    scene.add(line);
+                    connections.push(line);
+                }
+            }
+        }
+        
+        function executeMetascript() {
+            const metascriptContent = document.getElementById("metascript-input").value.trim();
+            if (!metascriptContent) {
+                addLogEntry("⚠️ No metascript content to execute", "metascript");
+                return;
+            }
+            
+            addLogEntry("🌀 Executing fractal metascript...", "metascript");
+            
+            // Parse and execute metascript commands
+            const lines = metascriptContent.split("\\n").filter(line => line.trim());
+            
+            lines.forEach((line, index) => {
+                setTimeout(() => {
+                    executeMetascriptLine(line.trim());
+                }, index * 500); // Stagger execution
+            });
+        }
+        
+        function executeMetascriptLine(line) {
+            if (line.startsWith("SPAWN_TEAM")) {
+                // SPAWN_TEAM QRE(1.2) COUNT(3) STRATEGY(Swarm)
+                const typeMatch = line.match(/SPAWN_TEAM\\s+(\\w+)/);
+                const countMatch = line.match(/COUNT\\((\\d+)\\)/);
+                
+                if (typeMatch && countMatch) {
+                    const agentType = typeMatch[1];
+                    const count = parseInt(countMatch[1]);
+                    
+                    const spawnedAgents = [];
+                    for (let i = 0; i < count; i++) {
+                        if (agentTypes[agentType]) {
+                            spawnedAgents.push(spawnAgent(agentType));
+                        }
+                    }
+                    
+                    if (spawnedAgents.length > 1) {
+                        setTimeout(() => {
+                            formTeamFromAgents(spawnedAgents);
+                        }, 1000);
+                    }
+                    
+                    addLogEntry(`🌀 Metascript: Spawned ${count} ${agentType} agents`, "metascript");
+                }
+            } else if (line.startsWith("RECURSIVE")) {
+                // RECURSIVE team_optimization DEPTH(2)
+                const depthMatch = line.match(/DEPTH\\((\\d+)\\)/);
+                const depth = depthMatch ? parseInt(depthMatch[1]) : 1;
+                
+                addLogEntry(`🔄 Metascript: Recursive execution (depth ${depth})`, "metascript");
+                
+                // Simulate recursive optimization
+                setTimeout(() => {
+                    optimizePositions();
+                }, 1000);
+            } else if (line.startsWith("IF")) {
+                // IF systemLoad > 0.8 THEN
+                addLogEntry("🔍 Metascript: Evaluating conditional", "metascript");
+                
+                // Simulate condition evaluation
+                const systemLoad = agents.size / 20; // Simple load metric
+                if (systemLoad > 0.8) {
+                    addLogEntry("✅ Condition met: spawning load balancer agents", "metascript");
+                    spawnAgent("ML");
+                    spawnAgent("ML");
+                }
+            }
+        }
+        
+        function formTeamFromAgents(agentIds) {
+            const teamAgents = agentIds.map(id => agents.get(id)).filter(a => a);
+            if (teamAgents.length < 2) return;
+            
+            const teamId = `team_${++teamCounter}`;
+            
+            // Calculate center position
+            const centerPos = teamAgents.reduce((acc, agent) => {
+                acc.x += agent.mesh.position.x;
+                acc.y += agent.mesh.position.y;
+                acc.z += agent.mesh.position.z;
+                return acc;
+            }, { x: 0, y: 0, z: 0 });
+            
+            centerPos.x /= teamAgents.length;
+            centerPos.y /= teamAgents.length;
+            centerPos.z /= teamAgents.length;
+            
+            const teamData = {
+                id: teamId,
+                name: `Metascript Team ${teamCounter}`,
+                members: agentIds,
+                centerPosition: centerPos,
+                coordinationLevel: 0.8,
+                strategy: "Fractal",
+                isActive: true,
+                tasksInProgress: 1
+            };
+            
+            teams.set(teamId, teamData);
+            
+            teamAgents.forEach(agent => {
+                agent.teamId = teamId;
+            });
+            
+            createTeamConnections(teamAgents);
+            
+            addLogEntry(`🤝 Metascript formed ${teamData.name} with ${teamAgents.length} agents`, "metascript");
+        }
+        
+        function loadTemplate(templateName) {
+            const templates = {
+                team_formation: `SPAWN_TEAM QRE(1.2) COUNT(2) STRATEGY(Hierarchical)
+SPAWN_TEAM CH(4) COUNT(2) STRATEGY(Democratic)
+SPAWN_TEAM NoRegret(0.95) COUNT(1) STRATEGY(Specialized)
+IF team_count > 2 THEN
+  MERGE_TEAMS team1 team2
+END`,
+                
+                fractal_spawn: `SPAWN_TEAM ML("coordinator") COUNT(1) STRATEGY(Hierarchical)
+RECURSIVE fractal_expansion DEPTH(3)
+IF agent_count < 10 THEN
+  SPAWN_TEAM QRE(2.0) COUNT(2) STRATEGY(Swarm)
+  SPAWN_TEAM EGT(0.1) COUNT(1) STRATEGY(Specialized)
+END
+VECTOR_QUERY "optimization patterns" THEN
+  APPLY_BEST_PRACTICES
+END`
+            };
+            
+            document.getElementById("metascript-input").value = templates[templateName] || "";
+            addLogEntry(`📋 Loaded ${templateName} template`, "metascript");
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const time = Date.now() * 0.001;
+            
+            // Update agent animations
+            agents.forEach(agent => {
+                if (agent.isActive) {
+                    // Gentle floating motion
+                    agent.mesh.position.y += Math.sin(time * 2 + agent.id.charCodeAt(0)) * 0.01;
+                    
+                    // Rotation based on processing load
+                    agent.mesh.rotation.y += agent.processingLoad * 0.02;
+                    
+                    // Pulsing based on performance
+                    const pulse = 1 + 0.1 * Math.sin(time * 3 + agent.id.charCodeAt(0)) * agent.performance;
+                    agent.mesh.scale.setScalar(pulse);
+                }
+            });
+            
+            // Update connections
+            connections.forEach(connection => {
+                connection.material.opacity = 0.2 + 0.2 * Math.sin(time * 2);
+            });
+            
+            renderer.render(scene, camera);
+        }
+        
+        function updateUI() {
+            // Update metrics
+            systemMetrics.totalAgents = agents.size;
+            systemMetrics.activeTeams = teams.size;
+            systemMetrics.avgPerformance = Array.from(agents.values())
+                .reduce((sum, agent) => sum + agent.performance, 0) / agents.size || 0;
+            systemMetrics.coordinationLevel = Array.from(teams.values())
+                .reduce((sum, team) => sum + team.coordinationLevel, 0) / teams.size || 0;
+            
+            // Update UI elements
+            document.getElementById("agent-count").textContent = systemMetrics.totalAgents;
+            document.getElementById("avg-performance").textContent = (systemMetrics.avgPerformance * 100).toFixed(1) + "%";
+            document.getElementById("team-count").textContent = systemMetrics.activeTeams;
+            document.getElementById("coordination-level").textContent = (systemMetrics.coordinationLevel * 100).toFixed(1) + "%";
+            
+            // Update agent list
+            updateAgentList();
+            updateTeamList();
+        }
+        
+        function updateAgentList() {
+            const agentList = document.getElementById("agent-list");
+            agentList.innerHTML = "";
+            
+            agents.forEach(agent => {
+                const div = document.createElement("div");
+                div.className = "agent-item";
+                div.style.borderLeftColor = `#${agent.mesh.material.color.getHexString()}`;
+                div.innerHTML = `
+                    <strong>${agent.name}</strong> (${agent.id})<br>
+                    Performance: ${(agent.performance * 100).toFixed(1)}%
+                    ${agent.teamId ? ` | Team: ${agent.teamId}` : " | Solo"}
+                `;
+                agentList.appendChild(div);
+            });
+        }
+        
+        function updateTeamList() {
+            const teamList = document.getElementById("team-list");
+            teamList.innerHTML = "";
+            
+            teams.forEach(team => {
+                const div = document.createElement("div");
+                div.className = "team-item";
+                div.innerHTML = `
+                    <strong>${team.name}</strong><br>
+                    Members: ${team.members.length} | Strategy: ${team.strategy}<br>
+                    Coordination: ${(team.coordinationLevel * 100).toFixed(1)}%
+                `;
+                teamList.appendChild(div);
+            });
+        }
+        
+        function addLogEntry(message, type = "info") {
+            const log = document.getElementById("execution-log");
+            const entry = document.createElement("div");
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
+            log.appendChild(entry);
+            
+            // Keep only last 20 entries
+            while (log.children.length > 20) {
+                log.removeChild(log.firstChild);
+            }
+            
+            log.scrollTop = log.scrollHeight;
+        }
+        
+        function setupMouseControls() {
+            let mouseDown = false;
+            let mouseX = 0, mouseY = 0;
+            
+            document.addEventListener("mousedown", (e) => {
+                mouseDown = true;
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+            });
+            
+            document.addEventListener("mouseup", () => {
+                mouseDown = false;
+            });
+            
+            document.addEventListener("mousemove", (e) => {
+                if (mouseDown) {
+                    const deltaX = e.clientX - mouseX;
+                    const deltaY = e.clientY - mouseY;
+                    
+                    const spherical = new THREE.Spherical();
+                    spherical.setFromVector3(camera.position);
+                    spherical.theta -= deltaX * 0.01;
+                    spherical.phi += deltaY * 0.01;
+                    spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi));
+                    
+                    camera.position.setFromSpherical(spherical);
+                    camera.lookAt(0, 0, 0);
+                    
+                    mouseX = e.clientX;
+                    mouseY = e.clientY;
+                }
+            });
+            
+            document.addEventListener("wheel", (e) => {
+                const scale = e.deltaY > 0 ? 1.1 : 0.9;
+                camera.position.multiplyScalar(scale);
+            });
+        }
+        
+        // Additional control functions
+        function mergeTeams() {
+            const teamArray = Array.from(teams.values());
+            if (teamArray.length < 2) {
+                addLogEntry("⚠️ Need at least 2 teams to merge", "team");
+                return;
+            }
+            
+            const team1 = teamArray[0];
+            const team2 = teamArray[1];
+            
+            // Merge teams
+            const mergedMembers = [...team1.members, ...team2.members];
+            const newTeamId = `team_${++teamCounter}`;
+            
+            const newTeam = {
+                id: newTeamId,
+                name: `Merged ${team1.name}-${team2.name}`,
+                members: mergedMembers,
+                centerPosition: team1.centerPosition,
+                coordinationLevel: (team1.coordinationLevel + team2.coordinationLevel) / 2,
+                strategy: "Hybrid",
+                isActive: true,
+                tasksInProgress: team1.tasksInProgress + team2.tasksInProgress
+            };
+            
+            teams.set(newTeamId, newTeam);
+            teams.delete(team1.id);
+            teams.delete(team2.id);
+            
+            // Update agent assignments
+            mergedMembers.forEach(memberId => {
+                const agent = agents.get(memberId);
+                if (agent) agent.teamId = newTeamId;
+            });
+            
+            addLogEntry(`🔗 Merged ${team1.name} and ${team2.name} into ${newTeam.name}`, "team");
+        }
+        
+        function optimizePositions() {
+            addLogEntry("🎯 Optimizing agent positions...", "spawn");
+            
+            // Move agents in teams closer together
+            teams.forEach(team => {
+                const teamAgents = team.members.map(id => agents.get(id)).filter(a => a);
+                const center = team.centerPosition;
+                
+                teamAgents.forEach(agent => {
+                    const targetPos = new THREE.Vector3(
+                        center.x + (Math.random() - 0.5) * 2,
+                        center.y + (Math.random() - 0.5) * 2,
+                        center.z + (Math.random() - 0.5) * 2
+                    );
+                    agent.mesh.position.lerp(targetPos, 0.3);
+                });
+            });
+        }
+        
+        function startSwarmMode() {
+            addLogEntry("🌪️ Activating swarm mode...", "spawn");
+            
+            // Make all agents move toward center with some randomness
+            agents.forEach(agent => {
+                const swarmInterval = setInterval(() => {
+                    const centerForce = agent.mesh.position.clone().multiplyScalar(-0.01);
+                    const randomForce = new THREE.Vector3(
+                        (Math.random() - 0.5) * 0.1,
+                        (Math.random() - 0.5) * 0.1,
+                        (Math.random() - 0.5) * 0.1
+                    );
+                    agent.mesh.position.add(centerForce).add(randomForce);
+                }, 100);
+                
+                setTimeout(() => clearInterval(swarmInterval), 5000);
+            });
+        }
+        
+        function resetScene() {
+            // Clear all agents and teams
+            agents.forEach(agent => scene.remove(agent.mesh));
+            connections.forEach(conn => scene.remove(conn));
+            
+            agents.clear();
+            teams.clear();
+            connections = [];
+            agentCounter = 0;
+            teamCounter = 0;
+            
+            addLogEntry("🔄 Scene reset - all agents and teams cleared", "spawn");
+            
+            // Respawn initial agents
+            setTimeout(spawnInitialAgents, 1000);
+        }
+        
+        function exportState() {
+            const state = {
+                agents: Array.from(agents.entries()),
+                teams: Array.from(teams.entries()),
+                metrics: systemMetrics,
+                timestamp: new Date().toISOString()
+            };
+            
+            const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `tars_agent_state_${Date.now()}.json`;
+            a.click();
+            
+            addLogEntry("💾 Agent state exported to file", "spawn");
+        }
+        
+        function clearLog() {
+            document.getElementById("execution-log").innerHTML = "";
+            addLogEntry("🗑️ Log cleared", "spawn");
+        }
+        
+        // Initialize the system
+        init();
+        
+        console.log("🌟 TARS Real-Time Agent System with Fractal Metascripts Ready!");
+    </script>
+</body>
+</html>

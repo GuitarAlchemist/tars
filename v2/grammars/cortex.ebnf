@@ -1,0 +1,3 @@
+﻿program ::= goal*
+goal    ::= "goal" string_literal "{" task* "}"
+task    ::= "task" string_literal

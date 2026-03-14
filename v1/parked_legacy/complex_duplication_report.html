@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Duplication Analysis Report</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1, h2, h3, h4 { color: #333; }
+    .low { color: green; }
+    .moderate { color: orange; }
+    .high { color: red; }
+    .veryhigh { color: darkred; }
+    .exact { color: #ff6b6b; font-weight: bold; }
+    .semantic { color: #feca57; font-weight: bold; }
+    .block { margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .metrics { display: flex; flex-wrap: wrap; }
+    .metric { flex: 1; min-width: 200px; margin: 10px; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+    .progress-container { width: 100%; background-color: #e0e0e0; border-radius: 5px; margin: 5px 0; }
+    .progress-bar { height: 20px; border-radius: 5px; text-align: center; color: white; font-weight: bold; }
+    .progress-low { background-color: #1dd1a1; }
+    .progress-moderate { background-color: #feca57; }
+    .progress-high { background-color: #ff6b6b; }
+    .recommendation { background-color: #e3f2fd; padding: 10px; border-radius: 5px; margin: 10px 0; }
+    .code { background-color: #f1f1f1; padding: 10px; border-radius: 5px; font-family: monospace; white-space: pre; overflow-x: auto; margin: 10px 0; }
+  </style>
+</head>
+<body>
+  <h1>Duplication Analysis Report for SemanticDuplicationDemo.cs</h1>
+  <div class="metrics">
+    <div class="metric">
+      <h3>Total Lines</h3>
+      <p>154</p>
+    </div>
+    <div class="metric">
+      <h3>Duplicated Lines</h3>
+      <p>9</p>
+    </div>
+    <div class="metric">
+      <h3>Duplication Percentage</h3>
+      <p>5.84%</p>
+      <div class="progress-container">
+        <div class="progress-bar progress-low" style="width: 5.844155844155844%">5.84%</div>
+      </div>
+    </div>
+    <div class="metric">
+      <h3>Duplication Level</h3>
+      <p class="moderate">Moderate</p>
+    </div>
+  </div>
+  <h2>Duplicated Blocks</h2>
+  <div class="block low">
+    <h3>GetUsers and GetProducts</h3>
+    <p>Source: Lines 27-38</p>
+    <p>Target: Lines 44-55</p>
+    <p>Line Count: 4</p>
+    <p>Similarity: <span class="semantic">Semantic</span> (96.97%)</p>
+    <div class="progress-container">
+      <div class="progress-bar progress-moderate" style="width: 96.96531791907515%">96.97%</div>
+    </div>
+    <div class="recommendation">
+      <h4>Refactoring Recommendation:</h4>
+      <p>Extract duplicated code from GetUsers and GetProducts into a shared helper method.</p>
+    </div>
+    <h4>Code Snippet:</h4>
+    <div class="code">
+      Console.WriteLine(&quot;Getting users...&quot;);
+      var data = new List&lt;User&gt;
+                  {
+                      new User { Id = 1, Name = &quot;John Doe&quot;, Email = &quot;john@example.com&quot; },
+                      new User { Id = 2, Name = &quot;Jane Smith&quot;, Email = &quot;jane@example.com&quot; },
+      ...
+    </div>
+  </div>
+  <div class="block moderate">
+    <h3>ProcessUsers and ProcessProducts</h3>
+    <p>Source: Lines 61-95</p>
+    <p>Target: Lines 101-135</p>
+    <p>Line Count: 5</p>
+    <p>Similarity: <span class="semantic">Semantic</span> (97.11%)</p>
+    <div class="progress-container">
+      <div class="progress-bar progress-moderate" style="width: 97.11470985155195%">97.11%</div>
+    </div>
+    <div class="recommendation">
+      <h4>Refactoring Recommendation:</h4>
+      <p>Extract validation logic from ProcessUsers and ProcessProducts into a shared validation method.</p>
+    </div>
+    <h4>Code Snippet:</h4>
+    <div class="code">
+      Console.WriteLine(&quot;Processing users...&quot;);
+      if (users == null)
+                  {
+                      throw new ArgumentNullException(nameof(users));
+                  }
+      ...
+    </div>
+  </div>
+</body>
+</html>

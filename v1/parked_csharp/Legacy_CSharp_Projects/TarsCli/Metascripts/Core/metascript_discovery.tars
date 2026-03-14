@@ -1,0 +1,294 @@
+﻿DESCRIBE {
+    name: "Metascript Discovery System"
+    version: "1.0"
+    author: "TARS Auto-Improvement"
+    description: "Discovers metascripts in the project and updates the registry"
+    tags: ["core", "discovery", "registry"]
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.1
+    max_tokens: 2000
+    backup_before_changes: true
+}
+
+// Load configuration
+ACTION {
+    type: "file_read"
+    path: "TarsCli/Metascripts/config.json"
+    result_variable: "config_json"
+}
+
+VARIABLE config {
+    value: "${JSON.parse(config_json)}"
+}
+
+// Load registry
+ACTION {
+    type: "file_read"
+    path: "TarsCli/Metascripts/registry.json"
+    result_variable: "registry_json"
+}
+
+VARIABLE registry {
+    value: "${JSON.parse(registry_json)}"
+}
+
+// Log the start of the discovery process
+ACTION {
+    type: "log"
+    message: "Starting metascript discovery process"
+}
+
+// Get the metascript directories from config
+VARIABLE metascript_dirs {
+    value: "${Object.values(config.metascript_directories)}"
+}
+
+// Initialize the discovered metascripts array
+VARIABLE discovered_metascripts {
+    value: []
+}
+
+// Discover metascripts in each directory
+FOREACH {
+    items: "${metascript_dirs}"
+    item_variable: "dir"
+    
+    ACTION {
+        type: "log"
+        message: "Scanning directory: ${dir}"
+    }
+    
+    // Get the list of metascript files in the directory
+    ACTION {
+        type: "directory_list"
+        path: "${dir}"
+        pattern: "${config.discovery.patterns.join(',')}"
+        exclude_pattern: "${config.discovery.exclude_patterns.join(',')}"
+        recursive: "${config.discovery.recursive}"
+        result_variable: "dir_metascripts"
+    }
+    
+    // Add the discovered metascripts to the array
+    FSHARP {
+        // Get the current discovered metascripts
+        let currentMetascripts = discovered_metascripts
+        
+        // Get the metascripts in the current directory
+        let dirMetascripts = dir_metascripts
+        
+        // Add the directory metascripts to the current metascripts
+        let updatedMetascripts = currentMetascripts.Concat(dirMetascripts).ToArray()
+        
+        // Return the updated metascripts
+        updatedMetascripts
+        
+        output_variable: "updated_metascripts"
+    }
+    
+    VARIABLE discovered_metascripts {
+        value: "${updated_metascripts}"
+    }
+}
+
+ACTION {
+    type: "log"
+    message: "Discovered ${discovered_metascripts.length} metascripts"
+}
+
+// Process each discovered metascript
+FOREACH {
+    items: "${discovered_metascripts}"
+    item_variable: "metascript_path"
+    
+    ACTION {
+        type: "log"
+        message: "Processing metascript: ${metascript_path}"
+    }
+    
+    // Read the metascript content
+    ACTION {
+        type: "file_read"
+        path: "${metascript_path}"
+        result_variable: "metascript_content"
+    }
+    
+    // Extract metascript information
+    PROMPT {
+        model: "${config.analysis.model}"
+        temperature: "${config.analysis.temperature}"
+        max_tokens: "${config.analysis.max_tokens}"
+        prompt: """
+        You are an expert metascript analyzer for the TARS project. Your task is to extract information from the following metascript.
+        
+        Metascript path: ${metascript_path}
+        
+        Metascript content:
+        ${metascript_content}
+        
+        Please extract the following information:
+        1. The name of the metascript (from the DESCRIBE block)
+        2. The description of the metascript (from the DESCRIBE block)
+        3. The tags of the metascript (from the DESCRIBE block)
+        4. The type of the metascript (generator, improvement, test, documentation, core)
+        5. The dependencies of the metascript (any other metascripts it depends on)
+        6. The metascripts it generates (if it's a generator)
+        
+        Format your response as a JSON object:
+        
+        {
+          "id": "unique_id_based_on_name",
+          "name": "Metascript name",
+          "description": "Metascript description",
+          "tags": ["tag1", "tag2"],
+          "type": "generator/improvement/test/documentation/core",
+          "dependencies": ["dependency1", "dependency2"],
+          "generates": ["generated1", "generated2"]
+        }
+        
+        If any information is not available, use null or an empty array as appropriate.
+        """
+        result_variable: "metascript_info_json"
+    }
+    
+    // Parse the metascript information
+    FSHARP {
+        // Parse the JSON result
+        let metascriptInfo = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonDocument>(metascript_info_json).RootElement
+        
+        // Return the parsed information
+        metascriptInfo
+        
+        output_variable: "metascript_info"
+    }
+    
+    // Check if the metascript is already in the registry
+    FSHARP {
+        // Get the registry
+        let registry = registry
+        
+        // Get the metascript ID
+        let metascriptId = metascript_info.GetProperty("id").GetString()
+        
+        // Check if the metascript is already in the registry
+        let existingMetascript = registry.metascripts.FirstOrDefault(m => m.id == metascriptId)
+        
+        // Return whether the metascript exists
+        existingMetascript != null
+        
+        output_variable: "metascript_exists"
+    }
+    
+    // If the metascript doesn't exist, add it to the registry
+    IF {
+        condition: "${!metascript_exists}"
+        then: {
+            ACTION {
+                type: "log"
+                message: "Adding new metascript to registry: ${metascript_info.id}"
+            }
+            
+            // Add the metascript to the registry
+            FSHARP {
+                // Get the registry
+                let registry = registry
+                
+                // Get the metascript info
+                let metascriptInfo = metascript_info
+                
+                // Create a new metascript entry
+                let newMetascript = {|
+                    id = metascriptInfo.GetProperty("id").GetString()
+                    path = metascript_path
+                    type = metascriptInfo.GetProperty("type").GetString()
+                    status = "active"
+                    created_at = System.DateTime.UtcNow.ToString("o")
+                    last_executed = null
+                    generated_by = null
+                    dependencies = metascriptInfo.GetProperty("dependencies").EnumerateArray().Select(d => d.GetString()).ToArray()
+                    generates = metascriptInfo.GetProperty("generates").EnumerateArray().Select(g => g.GetString()).ToArray()
+                |}
+                
+                // Add the new metascript to the registry
+                let updatedRegistry = {|
+                    registry with
+                        metascripts = registry.metascripts.Append(newMetascript).ToArray()
+                |}
+                
+                // Return the updated registry
+                updatedRegistry
+                
+                output_variable: "updated_registry"
+            }
+            
+            VARIABLE registry {
+                value: "${updated_registry}"
+            }
+        }
+        else: {
+            ACTION {
+                type: "log"
+                message: "Metascript already in registry: ${metascript_info.id}"
+            }
+            
+            // Update the existing metascript in the registry
+            FSHARP {
+                // Get the registry
+                let registry = registry
+                
+                // Get the metascript info
+                let metascriptInfo = metascript_info
+                
+                // Get the metascript ID
+                let metascriptId = metascriptInfo.GetProperty("id").GetString()
+                
+                // Find the existing metascript
+                let existingIndex = registry.metascripts.FindIndex(m => m.id == metascriptId)
+                
+                // Update the existing metascript
+                let updatedMetascripts = registry.metascripts.ToArray()
+                updatedMetascripts[existingIndex] = {|
+                    updatedMetascripts[existingIndex] with
+                        type = metascriptInfo.GetProperty("type").GetString()
+                        dependencies = metascriptInfo.GetProperty("dependencies").EnumerateArray().Select(d => d.GetString()).ToArray()
+                        generates = metascriptInfo.GetProperty("generates").EnumerateArray().Select(g => g.GetString()).ToArray()
+                |}
+                
+                // Update the registry
+                let updatedRegistry = {|
+                    registry with
+                        metascripts = updatedMetascripts
+                |}
+                
+                // Return the updated registry
+                updatedRegistry
+                
+                output_variable: "updated_registry"
+            }
+            
+            VARIABLE registry {
+                value: "${updated_registry}"
+            }
+        }
+    }
+}
+
+// Update the registry file
+ACTION {
+    type: "file_write"
+    path: "TarsCli/Metascripts/registry.json"
+    content: "${JSON.stringify(registry, null, 2)}"
+}
+
+// Log the completion of the discovery process
+ACTION {
+    type: "log"
+    message: "Metascript discovery process completed"
+}
+
+ACTION {
+    type: "log"
+    message: "Registry updated with ${registry.metascripts.length} metascripts"
+}

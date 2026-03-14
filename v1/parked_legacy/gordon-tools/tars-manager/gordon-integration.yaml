@@ -1,0 +1,192 @@
+# Gordon Toolbox Integration for TARS Manager
+# This file configures how TARS Manager appears in Gordon's toolbox
+
+tool:
+  name: "TARS Manager"
+  id: "tars-manager"
+  icon: "🚀"
+  description: "Intelligent TARS infrastructure management and analysis"
+  category: "Infrastructure"
+  version: "1.0.0"
+  
+  # Tool appearance in Gordon's interface
+  ui:
+    color: "#00D4FF"  # TARS blue
+    background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+    icon_style: "animated"
+    
+  # Quick actions for Gordon's interface
+  quick_actions:
+    - name: "Health Check"
+      command: "tars analyze --type=health"
+      icon: "🏥"
+      description: "Quick TARS infrastructure health check"
+      
+    - name: "Consolidate"
+      command: "tars consolidate --dry-run"
+      icon: "🔄"
+      description: "Preview infrastructure consolidation"
+      
+    - name: "Monitor"
+      command: "tars monitor --services=all"
+      icon: "📊"
+      description: "Real-time infrastructure monitoring"
+      
+    - name: "Optimize"
+      command: "tars optimize --target=performance"
+      icon: "⚡"
+      description: "Get performance optimization recommendations"
+
+  # Command templates for Gordon
+  commands:
+    analyze:
+      template: "tars analyze --type={type}"
+      parameters:
+        type:
+          type: "select"
+          options: ["health", "performance", "security", "consolidation"]
+          default: "health"
+          description: "Type of analysis to perform"
+      examples:
+        - "Analyze TARS infrastructure health"
+        - "Check performance metrics"
+        - "Security assessment"
+        
+    consolidate:
+      template: "tars consolidate --stage={stage} {flags}"
+      parameters:
+        stage:
+          type: "select"
+          options: ["database", "application", "web", "all"]
+          default: "all"
+          description: "Consolidation stage"
+        flags:
+          type: "multiselect"
+          options: ["--dry-run", "--force", "--verbose"]
+          default: ["--dry-run"]
+          description: "Consolidation options"
+      examples:
+        - "Preview full consolidation"
+        - "Consolidate database tier only"
+        - "Force consolidation with verbose output"
+        
+    monitor:
+      template: "tars monitor --services={services} --interval={interval}"
+      parameters:
+        services:
+          type: "text"
+          default: "all"
+          description: "Services to monitor (comma-separated or 'all')"
+        interval:
+          type: "select"
+          options: ["10s", "30s", "1m", "5m"]
+          default: "30s"
+          description: "Monitoring interval"
+      examples:
+        - "Monitor all services every 30 seconds"
+        - "Monitor specific services with custom interval"
+        
+    optimize:
+      template: "tars optimize --target={target}"
+      parameters:
+        target:
+          type: "select"
+          options: ["performance", "resources", "security", "all"]
+          default: "performance"
+          description: "Optimization target"
+      examples:
+        - "Get performance optimization recommendations"
+        - "Optimize resource usage"
+        - "Security optimization suggestions"
+
+  # Integration with Gordon's AI capabilities
+  ai_integration:
+    context_aware: true
+    learning_enabled: true
+    auto_suggestions: true
+    
+    # Prompts for Gordon to understand TARS context
+    context_prompts:
+      - "TARS is an advanced AI infrastructure system with multiple components"
+      - "TARS uses Docker containers for microservices architecture"
+      - "TARS includes databases (MongoDB, ChromaDB), AI services, and web interfaces"
+      - "TARS supports autonomous agents and metascript execution"
+      
+    # Gordon's understanding of TARS operations
+    operation_context:
+      analyze: "Perform comprehensive analysis of TARS infrastructure health and performance"
+      consolidate: "Intelligently merge and optimize TARS container deployments"
+      monitor: "Continuously observe TARS system metrics and status"
+      optimize: "Provide AI-powered recommendations for TARS improvements"
+      
+  # Security and permissions
+  security:
+    requires_confirmation: ["consolidate --force", "execute", "agents stop"]
+    safe_commands: ["analyze", "monitor", "diagnose --export"]
+    restricted_commands: ["consolidate --force", "agents start"]
+    
+  # Monitoring and logging
+  monitoring:
+    log_commands: true
+    track_performance: true
+    alert_on_errors: true
+    
+  # Integration endpoints
+  endpoints:
+    health: "http://tars-manager:8998/api/v1/health"
+    status: "http://tars-manager:8998/api/v1/tars/status"
+    analyze: "http://tars-manager:8998/api/v1/tars/analyze"
+    consolidate: "http://tars-manager:8998/api/v1/tars/consolidate"
+    optimize: "http://tars-manager:8998/api/v1/tars/optimize"
+    
+  # Docker configuration for Gordon
+  docker:
+    image: "tars/gordon-manager:latest"
+    container_name: "tars-gordon-manager"
+    ports:
+      - "8998:8998"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "./config:/app/config"
+      - "./data:/app/data"
+    environment:
+      GORDON_API_URL: "http://gordon:8997"
+      TARS_API_URL: "http://tars-main:8080"
+      LOG_LEVEL: "INFO"
+    networks:
+      - "tars-network"
+    depends_on:
+      - "gordon"
+      - "tars-main"
+      
+  # Help and documentation
+  help:
+    description: |
+      TARS Manager provides intelligent infrastructure management through Gordon AI integration.
+      
+      Key Features:
+      • AI-powered infrastructure analysis
+      • Automated consolidation with safety checks
+      • Real-time monitoring and alerting
+      • Performance optimization recommendations
+      • Autonomous agent coordination
+      
+      Common Usage:
+      1. Health Check: `tars analyze --type=health`
+      2. Preview Consolidation: `tars consolidate --dry-run`
+      3. Monitor Services: `tars monitor --services=all`
+      4. Get Recommendations: `tars optimize --target=performance`
+      
+    examples:
+      basic:
+        - "tars analyze"
+        - "tars monitor"
+        - "tars consolidate --dry-run"
+      advanced:
+        - "tars analyze --type=security --deep"
+        - "tars consolidate --stage=database --force"
+        - "tars optimize --target=all --export=report"
+      troubleshooting:
+        - "tars diagnose --deep"
+        - "tars agents status"
+        - "tars analyze --type=consolidation"

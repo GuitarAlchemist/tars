@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="LearningDatabase.fs" />
+    <Compile Include="ImprovementTypes.fs" />
+    <Compile Include="PatternRecognition.fs" />
+    <Compile Include="ImprovementSuggestions.fs" />
+    <Compile Include="RetroactionLoop.fs" />
+    <Compile Include="WorkflowState.fs" />
+    <Compile Include="WorkflowScheduler.fs" />
+    <Compile Include="WorkflowEngine.fs" />
+    <Compile Include="KnowledgeExtractionModels.fs" />
+    <Compile Include="OllamaModels.fs" />
+    <Compile Include="ExplorationFileProcessor.fs" />
+    <Compile Include="KnowledgeExtractor.fs" />
+    <Compile Include="OllamaKnowledgeExtractor.fs" />
+    <Compile Include="KnowledgeExtractionStep.fs" />
+    <Compile Include="CodeAnalysisStep.fs" />
+    <Compile Include="OllamaCodeAnalyzer.fs" />
+    <Compile Include="ExecutionValidationStep.fs" />
+    <Compile Include="ImprovementApplicationStep.fs" />
+    <Compile Include="OllamaImprovementApplier.fs" />
+    <Compile Include="FeedbackCollectionStep.fs" />
+    <Compile Include="ReportingStep.fs" />
+    <Compile Include="AutonomousImprovementService.fs" />
+    <Compile Include="Library.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FSharp.Data" Version="6.6.0" />
+    <PackageReference Include="FSharp.SystemTextJson" Version="1.2.42" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TarsEngine.FSharp.SelfImprovement\TarsEngine.FSharp.SelfImprovement.fsproj" />
+  </ItemGroup>
+
+</Project>
+
+
+

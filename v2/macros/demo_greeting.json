@@ -1,0 +1,22 @@
+{
+  "Name": "demo_greeting",
+  "Description": "A specific greeting macro",
+  "Version": "1.0",
+  "Inputs": [],
+  "Steps": [
+    {
+      "Id": "step1",
+      "Type": "agent",
+      "DependsOn": null,
+      "Agent": "Greeter",
+      "Tool": null,
+      "Instruction": "Generate a warm greeting for the user.",
+      "Params": null,
+      "Context": null,
+      "Outputs": [
+        "greeting"
+      ],
+      "Tools": null
+    }
+  ]
+}

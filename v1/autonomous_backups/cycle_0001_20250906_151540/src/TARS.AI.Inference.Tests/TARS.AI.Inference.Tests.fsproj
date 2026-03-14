@@ -1,0 +1,54 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Unit/CudaInteropTests.fs" />
+    <Compile Include="Integration/OllamaCompatibilityTests.fs" />
+    <Compile Include="Integration/PerformanceBenchmarks.fs" />
+    <Compile Include="TestRunner.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+    <PackageReference Include="xunit" Version="2.6.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.3" />
+    <PackageReference Include="FsUnit.xUnit" Version="5.6.1" />
+    <PackageReference Include="NBomber" Version="5.0.11" />
+    <PackageReference Include="BenchmarkDotNet" Version="0.13.12" />
+    <PackageReference Include="FluentAssertions" Version="6.12.0" />
+    <PackageReference Include="Moq" Version="4.20.69" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../TARS.AI.Inference/TARS.AI.Inference.fsproj" />
+    <ProjectReference Include="../../TarsEngine.FSharp.Core/TarsEngine.FSharp.Core.fsproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="TestData/sample_models/*.bin" />
+    <Content Include="TestData/test_prompts.json" />
+    <Content Include="TestData/expected_outputs.json" />
+    <Content Include="TestData/performance_baselines.json" />
+  </ItemGroup>
+
+</Project>
+
+

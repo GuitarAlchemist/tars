@@ -1,0 +1,9 @@
+{
+    "jsonrpc": "2.0",
+    "id": 3,
+    "method": "tools/call",
+    "params": {
+        "name": "introspect_tool",
+        "arguments": "{\"tool_name\": \"search_memory\"}"
+    }
+}

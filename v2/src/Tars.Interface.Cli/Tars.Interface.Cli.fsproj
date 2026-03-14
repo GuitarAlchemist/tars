@@ -1,0 +1,94 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <UserSecretsId>tars-v2-secrets-7d8e9f0a-1b2c-4d3e-5f6g-7h8i9j0k1l2m</UserSecretsId>
+    <NoWarn>44</NoWarn>
+    <LangVersion>preview</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="SpectreUI.fs" />
+    <Compile Include="Tui.fs" />
+    <Compile Include="ConfigurationLoader.fs" />
+    <Compile Include="Reasoning\GpuMonitor.fs" />
+    <Compile Include="Reasoning\CliReasoner.fs" />
+    <Compile Include="Reasoning\ReplayReasoner.fs" />
+    <Compile Include="LlmFactory.fs" />
+    <Compile Include="ConsoleHelpers.fs" />
+    <Compile Include="Commands\AgentHelpers.fs" />
+    <Content Include="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Compile Include="Commands\Ask.fs" />
+    <Compile Include="Commands\TestGrammarCommand.fs" />
+    <Compile Include="Commands\Memory.fs" />
+    <Compile Include="SpectreConsoleOutputAnalyzer.fs" />
+    <Compile Include="Commands\GuardOutputCommand.fs" />
+    <Compile Include="Commands\Demo.fs" />
+    <Compile Include="Commands\MacroDemo.fs" />
+    <Compile Include="Commands\Diagnostics.fs" />
+    <Compile Include="Commands\RagDemo.fs" />
+    <Compile Include="Commands\Chat.fs" />
+    <Compile Include="Commands\Evolve.fs" />
+    <Compile Include="Commands\KnowCmd.fs" />
+    <Compile Include="Commands\KgCmd.fs" />
+    <Compile Include="Commands\PlanCmd.fs" />
+    <Compile Include="Commands\Knowledge.fs" />
+    <Compile Include="Commands\McpCommand.fs" />
+    <Compile Include="Commands\McpServerCommand.fs" />
+    <Compile Include="Commands\SemanticMemoryCommand.fs" />
+    <Compile Include="Commands\Experiment.fs" />
+    <Compile Include="Commands\Config.fs" />
+    <Compile Include="Commands\Secrets.fs" />
+    <Compile Include="Commands\RunCommand.fs" />
+    <Compile Include="Commands\PipelineCommand.fs" />
+    <Compile Include="Commands\SkillCommand.fs" />
+    <Compile Include="Commands\Agent.fs" />
+    <Compile Include="Commands\ReasoningDiag.fs" />
+    <Compile Include="Commands\EscapeRoomDemo.fs" />
+    <Compile Include="Commands\PuzzleDemo.fs" />
+    <Compile Include="Commands\IncidentCmd.fs" />
+    <Compile Include="Commands\SmokeTest.fs" />
+    <Compile Include="Commands\NeuroSymbolicBenchmark.fs" />
+    <Compile Include="Commands\Benchmark.fs" />
+    <Compile Include="Commands\PromoteCommand.fs" />
+    <Compile Include="Commands\WotCommand.fs" />
+    <Compile Include="Commands\SwarmCommand.fs" />
+    <Compile Include="Commands\MetaCommand.fs" />
+    <Compile Include="Commands\RalphCommand.fs" />
+    <Compile Include="Commands\BreedCommand.fs" />
+    <Compile Include="Commands\GrammarCommand.fs" />
+    <Compile Include="HealthCommand.fs" />
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Tars.Core\Tars.Core.fsproj" />
+    <ProjectReference Include="..\Tars.Security\Tars.Security.fsproj" />
+    <ProjectReference Include="..\Tars.Kernel\Tars.Kernel.fsproj" />
+    <ProjectReference Include="..\Tars.Graph\Tars.Graph.fsproj" />
+    <ProjectReference Include="..\Tars.Connectors\Tars.Connectors.fsproj" />
+    <ProjectReference Include="..\Tars.Cortex\Tars.Cortex.fsproj" />
+    <ProjectReference Include="..\Tars.Evolution\Tars.Evolution.fsproj" />
+    <ProjectReference Include="..\Tars.Knowledge\Tars.Knowledge.fsproj" />
+    <ProjectReference Include="..\Tars.Llm\Tars.Llm.fsproj" />
+    <ProjectReference Include="..\Tars.Metascript\Tars.Metascript.fsproj" />
+    <ProjectReference Include="..\Tars.DSL\Tars.DSL.fsproj" />
+    <ProjectReference Include="..\Tars.Tools\Tars.Tools.fsproj" />
+    <ProjectReference Include="..\Tars.LinkedData\Tars.LinkedData.fsproj" />
+  </ItemGroup>
+
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.4" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.4" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="10.0.4" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.4" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
+    <PackageReference Include="Spectre.Console" Version="0.54.0" />
+  </ItemGroup>
+
+</Project>

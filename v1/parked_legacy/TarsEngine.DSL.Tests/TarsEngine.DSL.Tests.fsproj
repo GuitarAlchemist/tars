@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
+    <TargetFramework>net9.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <GenerateProgramFile>false</GenerateProgramFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Tests.fs" />
+    <Compile Include="SimpleDslUnitTests.fs" />
+    <Compile Include="AdvancedDslUnitTests.fs" />
+    <Compile Include="AdvancedFeaturesIntegrationTests.fs" />
+    <Compile Include="MonadicDslTests.fs" />
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.2" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TarsEngine.DSL\TarsEngine.DSL.fsproj" />
+  </ItemGroup>
+
+</Project>
+
+<<<<<<< HEAD:v1/parked_legacy/TarsEngine.DSL.Tests/TarsEngine.DSL.Tests.fsproj
+
+
+=======
+>>>>>>> origin/main:TarsEngine.DSL.Tests/TarsEngine.DSL.Tests.fsproj

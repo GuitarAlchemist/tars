@@ -1,0 +1,261 @@
+# TARS Security Configuration
+# JWT Authentication and Authorization Settings
+
+TarsSecurity:
+  # Authentication settings
+  EnableAuthentication: true
+  EnableAuthorization: true
+  DefaultAuthType: "JWT"
+  RequireHttps: false  # Set to true in production
+  AllowAnonymous: false
+  
+  # JWT Configuration
+  JwtSecret: "CHANGE_THIS_IN_PRODUCTION_TO_A_SECURE_SECRET_KEY_AT_LEAST_256_BITS_LONG_FOR_SECURITY"
+  JwtIssuer: "TARS"
+  JwtAudience: "TARS-API"
+  JwtExpirationMinutes: 60
+  JwtRefreshExpirationDays: 7
+  
+  # API Key Configuration
+  ApiKeyHeader: "X-API-Key"
+  ApiKeyPrefix: "tars_"
+  
+  # Rate Limiting
+  EnableRateLimiting: true
+  RateLimitPerMinute: 100
+  RateLimitBurstSize: 20
+  
+  # CORS Configuration
+  EnableCors: true
+  AllowedOrigins:
+    - "http://localhost:3000"
+    - "http://localhost:8080"
+    - "http://localhost:5000"
+    - "https://localhost:5001"
+  AllowedMethods:
+    - "GET"
+    - "POST"
+    - "PUT"
+    - "DELETE"
+    - "PATCH"
+    - "OPTIONS"
+  AllowedHeaders:
+    - "Content-Type"
+    - "Authorization"
+    - "X-API-Key"
+    - "X-Requested-With"
+
+# Development Environment Override
+Development:
+  TarsSecurity:
+    RequireHttps: false
+    AllowAnonymous: true
+    EnableRateLimiting: false
+    AllowedOrigins:
+      - "*"
+
+# Production Environment Override
+Production:
+  TarsSecurity:
+    RequireHttps: true
+    AllowAnonymous: false
+    EnableRateLimiting: true
+    JwtSecret: "${JWT_SECRET}"  # Use environment variable
+    AllowedOrigins: []  # Must be explicitly configured
+
+# Security Policies
+SecurityPolicies:
+  # Default user permissions
+  DefaultUserPermissions:
+    - "service:read"
+    - "agents:read"
+    - "tasks:read"
+    - "roadmaps:read"
+  
+  # Agent permissions
+  AgentPermissions:
+    - "service:read"
+    - "service:write"
+    - "agents:read"
+    - "agents:write"
+    - "tasks:read"
+    - "tasks:write"
+    - "roadmaps:read"
+    - "roadmaps:write"
+  
+  # Administrator permissions
+  AdminPermissions:
+    - "service:read"
+    - "service:write"
+    - "service:manage"
+    - "agents:read"
+    - "agents:write"
+    - "agents:manage"
+    - "tasks:read"
+    - "tasks:write"
+    - "tasks:manage"
+    - "roadmaps:read"
+    - "roadmaps:write"
+    - "roadmaps:manage"
+  
+  # System permissions (full access)
+  SystemPermissions:
+    - "system:admin"
+
+# API Endpoints Security
+EndpointSecurity:
+  # Public endpoints (no authentication required)
+  PublicEndpoints:
+    - "/health"
+    - "/health/ready"
+    - "/health/live"
+    - "/swagger"
+    - "/swagger/ui"
+    - "/docs"
+    - "/favicon.ico"
+    - "/api/auth/login"
+  
+  # Protected endpoints requiring authentication
+  ProtectedEndpoints:
+    - "/api/service/*"
+    - "/api/agents/*"
+    - "/api/tasks/*"
+    - "/api/roadmaps/*"
+    - "/api/admin/*"
+  
+  # Admin-only endpoints
+  AdminEndpoints:
+    - "/api/admin/*"
+    - "/api/service/config"
+    - "/api/service/restart"
+    - "/api/agents/manage"
+    - "/api/system/*"
+
+# Token Configuration
+TokenConfiguration:
+  # Default token lifetimes
+  UserTokenLifetime: "1h"
+  AgentTokenLifetime: "8h"
+  ServiceTokenLifetime: "24h"
+  RefreshTokenLifetime: "7d"
+  
+  # Token refresh settings
+  AllowTokenRefresh: true
+  RefreshTokenRotation: true
+  RefreshTokenGracePeriod: "5m"
+  
+  # Token validation
+  ValidateTokenSignature: true
+  ValidateTokenExpiration: true
+  ValidateTokenIssuer: true
+  ValidateTokenAudience: true
+  ClockSkewTolerance: "5m"
+
+# Audit and Logging
+SecurityAudit:
+  # Enable security event logging
+  EnableAuditLogging: true
+  
+  # Events to log
+  LogEvents:
+    - "AuthenticationSuccess"
+    - "AuthenticationFailure"
+    - "AuthorizationFailure"
+    - "TokenExpired"
+    - "InvalidToken"
+    - "RateLimitExceeded"
+    - "SuspiciousActivity"
+  
+  # Audit log settings
+  AuditLogPath: "logs/security-audit.log"
+  AuditLogMaxSize: "100MB"
+  AuditLogRetention: "90d"
+  
+  # Alert thresholds
+  AlertThresholds:
+    FailedAuthAttemptsPerMinute: 10
+    InvalidTokenAttemptsPerMinute: 20
+    RateLimitExceededPerMinute: 50
+
+# Security Headers
+SecurityHeaders:
+  # Enable security headers
+  EnableSecurityHeaders: true
+
+  # Headers to add
+  Headers:
+    X-Content-Type-Options: "nosniff"
+    X-Frame-Options: "DENY"
+    X-XSS-Protection: "1; mode=block"
+    Referrer-Policy: "strict-origin-when-cross-origin"
+    Content-Security-Policy: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
+    Strict-Transport-Security: "max-age=31536000; includeSubDomains"
+
+# DevSecOps Agent Configuration
+DevSecOpsAgent:
+  # Enable DevSecOps agent
+  EnableAgent: true
+
+  # Automated response settings
+  AutoResponseEnabled: true
+  AutoMitigationEnabled: true
+  ResponseTimeoutMinutes: 5
+
+  # Escalation thresholds (number of incidents before escalation)
+  EscalationThresholds:
+    Low: 20
+    Medium: 10
+    High: 3
+    Critical: 1
+
+  # Notification channels
+  NotificationChannels:
+    - "console"
+    - "eventlog"
+    - "email"
+
+  # Incident retention
+  IncidentRetentionDays: 30
+
+  # Agent endpoint for external notifications
+  AgentEndpoint: "http://localhost:8080/api/devsecops/incident"
+
+  # Security escalation settings
+  SecurityEscalation:
+    EnableEscalation: true
+    AutoEscalationThresholds:
+      Low: 10
+      Medium: 5
+      High: 2
+      Critical: 1
+    EscalationTimeouts:
+      Low: "4h"
+      Medium: "1h"
+      High: "15m"
+      Critical: "5m"
+
+# Development Tools
+DevelopmentTools:
+  # Enable development endpoints
+  EnableDevelopmentEndpoints: false
+  
+  # Development endpoints
+  DevelopmentEndpoints:
+    - "/dev/generate-token"
+    - "/dev/validate-token"
+    - "/dev/security-info"
+  
+  # Test users (development only)
+  TestUsers:
+    - UserId: "test-user"
+      Username: "TestUser"
+      Role: "User"
+      Password: "test123"
+    - UserId: "test-admin"
+      Username: "TestAdmin"
+      Role: "Administrator"
+      Password: "admin123"
+    - UserId: "test-agent"
+      Username: "TestAgent"
+      Role: "Agent"
+      Password: "agent123"

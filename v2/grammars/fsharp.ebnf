@@ -1,0 +1,59 @@
+(* Simplified F# Grammar for TARS Agents *)
+(* Focuses on idiomatic constructs used in the codebase *)
+
+implementation = { module_decl | namespace_decl }, { open_stmt }, { declaration };
+
+(* Organization *)
+namespace_decl = "namespace", identifier_path;
+module_decl    = "module", identifier_path, [ "=", identifier_path ];
+open_stmt      = "open", identifier_path;
+
+(* Top Level Declarations *)
+declaration = type_decl
+            | let_binding
+            | module_abbrev
+            | exception_decl;
+
+(* Types *)
+type_decl = "type", identifier, [ generic_params ], "=", type_def;
+
+type_def = record_def
+         | union_def
+         | class_def
+         | interface_def
+         | alias_def;
+
+record_def = "{", field_decl, { ";", field_decl }, "}";
+field_decl = identifier, ":", type_signature;
+
+union_def  = union_case, { "|", union_case };
+union_case = "|", identifier, [ "of", type_signature, { "*", type_signature } ];
+
+alias_def  = type_signature;
+
+(* Functions & Values *)
+let_binding = [ attributes ], "let", [ "rec" ], function_name, [ parameters ], [ ":", return_type ], "=", body_expr;
+
+attributes = "[<", attribute, { ";", attribute }, ">]";
+attribute  = identifier, [ "(", arguments, ")" ];
+
+(* Expressions *)
+body_expr  = expression
+           | computation_expression;
+
+computation_expression = builder_name, "{", { comp_expr_stmt }, "}";
+
+comp_expr_stmt = "let!", pattern, "=", expression
+               | "do!", expression
+               | "return", expression
+               | "return!", expression
+               | "match", expression, "with", { match_case }
+               | expression;
+
+match_case = "|", pattern, "->", expression;
+
+(* Basic Tokens *)
+identifier_path = identifier, { ".", identifier };
+identifier      = ? valid F# identifier ?;
+type_signature  = identifier_path, [ generic_args ]
+                | type_signature, "->", type_signature;

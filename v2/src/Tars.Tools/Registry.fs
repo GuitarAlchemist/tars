@@ -1,0 +1,211 @@
+namespace Tars.Tools
+
+open System
+open System.Text.Json
+open System.Reflection
+open System.Threading.Tasks
+open Tars.Core
+
+type ToolRegistry(failureThreshold: int, durationOfBreak: TimeSpan) =
+    let tools =
+        System.Collections.Concurrent.ConcurrentDictionary<string, Tars.Core.Tool>()
+
+    // Circuit breakers for each tool
+    let circuitBreakers =
+        System.Collections.Concurrent.ConcurrentDictionary<string, Resilience.CircuitBreaker>()
+
+    // Default constructor
+    new() = ToolRegistry(3, TimeSpan.FromMinutes(1.0))
+
+    member this.Register(tool: Tars.Core.Tool) =
+        let cb =
+            circuitBreakers.GetOrAdd(tool.Name, fun _ -> Resilience.CircuitBreaker(failureThreshold, durationOfBreak))
+
+        let resilientExecute (input: string) : Async<Result<string, string>> =
+            async {
+                let sw = System.Diagnostics.Stopwatch.StartNew()
+                let taskOp () = Async.StartAsTask(tool.Execute input)
+
+                try
+                    let! (result: Result<string, string>) = Async.AwaitTask(cb.ExecuteAsync(taskOp))
+                    sw.Stop()
+                    let duration = sw.Elapsed.TotalMilliseconds
+
+                    match result with
+                    | Result.Ok output ->
+                        Tars.Core.ToolLedger.record
+                            tool.Name
+                            input
+                            output
+                            duration
+                            true
+                            Tars.Core.ToolFailureCategory.NoFailure
+                            None
+                    | Result.Error err ->
+                        let category =
+                            if err.Contains("timeout") || err.Contains("timed out") then
+                                Tars.Core.ToolFailureCategory.Timeout
+                            elif err.Contains("connection") || err.Contains("http") || err.Contains("network") then
+                                Tars.Core.ToolFailureCategory.DependencyFailure
+                            else
+                                Tars.Core.ToolFailureCategory.Unknown
+
+                        ToolLedger.record
+                            tool.Name
+                            input
+                            err
+                            duration
+                            false
+                            category
+                            None
+
+                    return result
+                with
+                | :? InvalidOperationException as ex when ex.Message.Contains("CircuitBreaker is OPEN") ->
+                    sw.Stop()
+
+                    Tars.Core.ToolLedger.record
+                        tool.Name
+                        input
+                        "Circuit Breaker is OPEN"
+                        sw.Elapsed.TotalMilliseconds
+                        false
+                        Tars.Core.ToolFailureCategory.CircuitBreakerOpen
+                        None
+
+                    return Result.Error "Circuit Breaker is OPEN"
+                | ex ->
+                    sw.Stop()
+
+                    let cat =
+                        if ex.Message.Contains("timeout") then
+                            Tars.Core.ToolFailureCategory.Timeout
+                        else
+                            Tars.Core.ToolFailureCategory.Unknown
+
+                    Tars.Core.ToolLedger.record tool.Name input ex.Message sw.Elapsed.TotalMilliseconds false cat None
+                    return Result.Error ex.Message
+            }
+
+        let resilientTool = { tool with Execute = resilientExecute }
+        tools.TryAdd(resilientTool.Name, resilientTool) |> ignore
+
+    member this.RegisterAssembly(assembly: Assembly) =
+        let methods =
+            assembly.GetTypes()
+            |> Array.collect (fun t ->
+                t.GetMethods(BindingFlags.Public ||| BindingFlags.Static ||| BindingFlags.Instance))
+            |> Array.choose (fun m ->
+                let attrs = m.GetCustomAttributes<TarsToolAttribute>()
+                if Seq.isEmpty attrs then None else Some(m, Seq.head attrs))
+
+        let convertValue (element: JsonElement) (t: Type) =
+            try
+                if t = typeof<string> then
+                    box (element.GetString())
+                elif t = typeof<int> then
+                    box (element.GetInt32())
+                elif t = typeof<int64> then
+                    box (element.GetInt64())
+                elif t = typeof<bool> then
+                    box (element.GetBoolean())
+                elif t = typeof<float> then
+                    box (element.GetDouble() |> float)
+                elif t = typeof<double> then
+                    box (element.GetDouble())
+                elif t = typeof<Guid> then
+                    box (Guid.Parse(element.GetString()))
+                else
+                    // fallback to raw text
+                    box (element.GetRawText())
+            with _ ->
+                // final fallback: try change type
+                try
+                    element.GetString() |> box
+                with _ ->
+                    box null
+
+        let buildArgs (input: string) (parameters: ParameterInfo[]) =
+            if parameters.Length = 0 then
+                [||]
+            elif parameters.Length = 1 && parameters[0].ParameterType = typeof<string> then
+                [| input :> obj |]
+            else
+                let parsed =
+                    try
+                        JsonDocument.Parse(input).RootElement
+                    with _ ->
+                        JsonDocument.Parse("{}").RootElement
+
+                if parsed.ValueKind = JsonValueKind.Object then
+                    parameters
+                    |> Array.map (fun p ->
+                        let mutable prop = Unchecked.defaultof<JsonElement>
+
+                        if parsed.TryGetProperty(p.Name, &prop) then
+                            convertValue prop p.ParameterType
+                        else
+                            box null)
+                else if
+                    // allow positional array when names not provided
+                    parsed.ValueKind = JsonValueKind.Array
+                then
+                    let values = parsed.EnumerateArray() |> Seq.toArray
+
+                    parameters
+                    |> Array.mapi (fun i p ->
+                        if i < values.Length then
+                            convertValue values[i] p.ParameterType
+                        else
+                            box null)
+                else
+                    [| input :> obj |]
+
+        for (m, attr) in methods do
+            let execute (input: string) : Async<Result<string, string>> =
+                async {
+                    try
+                        let parameters = m.GetParameters()
+
+                        let args = buildArgs input parameters
+
+                        let instance =
+                            if m.IsStatic then
+                                null
+                            else
+                                Activator.CreateInstance(m.DeclaringType)
+
+                        let result = m.Invoke(instance, args)
+
+                        match result with
+                        | :? Task<string> as t ->
+                            let! r = Async.AwaitTask t
+                            return Result.Ok r
+                        | :? string as s -> return Result.Ok s
+                        | null -> return Result.Ok "null"
+                        | _ -> return Result.Ok(result.ToString())
+                    with ex ->
+                        return Result.Error ex.Message
+                }
+
+            let tool: Tars.Core.Tool =
+                { Name = attr.Name
+                  Description = attr.Description
+                  Version = "1.0.0"
+                  ParentVersion = None
+                  CreatedAt = DateTime.UtcNow
+                  Execute = execute }
+
+            this.Register(tool)
+
+    member this.Get(name: string) =
+        match tools.TryGetValue(name) with
+        | true, tool -> Some tool
+        | _ -> None
+
+    member this.GetAll() = tools.Values |> Seq.toList
+
+    interface IToolRegistry with
+        member this.Register(tool: Tool) = this.Register(tool)
+        member this.Get(name: string) = this.Get(name)
+        member this.GetAll() = this.GetAll()

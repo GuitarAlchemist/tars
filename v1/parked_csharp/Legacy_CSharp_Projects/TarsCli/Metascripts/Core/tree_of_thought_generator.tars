@@ -1,0 +1,583 @@
+﻿DESCRIBE {
+    name: "Tree-of-Thought Metascript Generator"
+    version: "1.0"
+    author: "TARS Auto-Improvement"
+    description: "Generates metascripts using Tree-of-Thought reasoning based on exploration documents"
+    tags: ["generator", "tree-of-thought", "reasoning", "meta-improvement", "advanced"]
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.2
+    max_tokens: 8000
+    backup_before_changes: true
+}
+
+// Define the paths to the exploration documents
+VARIABLE exploration_docs {
+    value: [
+        "docs/Explorations/v1/Chats/ChatGPT-AI Prompt Chaining Techniques.md",
+        "docs/Explorations/v1/Chats/ChatGPT-TARS Auto Meta-Coding.md",
+        "docs/Explorations/v1/Chats/ChatGPT-Building AI Team for TARS.md"
+    ]
+}
+
+// Define the output directory for generated metascripts
+VARIABLE output_dir {
+    value: "TarsCli/Metascripts/Generated/ToT"
+}
+
+// Define the thought tree parameters
+VARIABLE tot_params {
+    value: {
+        branching_factor: 3,
+        max_depth: 3,
+        beam_width: 2,
+        evaluation_metrics: ["relevance", "feasibility", "impact", "novelty"],
+        pruning_strategy: "beam_search"
+    }
+}
+
+// Initialize the results
+VARIABLE generation_results {
+    value: {
+        generation_start_time: "${new Date().toISOString()}",
+        generation_end_time: null,
+        docs_processed: 0,
+        concepts_extracted: 0,
+        metascripts_generated: 0,
+        thought_trees: [],
+        metascripts: [],
+        reasoning_traces: []
+    }
+}
+
+// Log the start of the generation
+ACTION {
+    type: "log"
+    message: "Starting Tree-of-Thought metascript generation"
+}
+
+ACTION {
+    type: "log"
+    message: "Exploration documents: ${exploration_docs.join(', ')}"
+}
+
+ACTION {
+    type: "log"
+    message: "ToT parameters: Branching factor=${tot_params.branching_factor}, Max depth=${tot_params.max_depth}, Beam width=${tot_params.beam_width}, Pruning strategy=${tot_params.pruning_strategy}"
+}
+
+// Create the output directory if it doesn't exist
+ACTION {
+    type: "directory_create"
+    path: "${output_dir}"
+}
+
+// Function to extract concepts from an exploration document
+FUNCTION extract_concepts {
+    parameters: ["doc_path"]
+    
+    // Log the document being processed
+    ACTION {
+        type: "log"
+        message: "Extracting concepts from: ${doc_path}"
+    }
+    
+    // Read the document content
+    ACTION {
+        type: "file_read"
+        path: "${doc_path}"
+        result_variable: "doc_content"
+    }
+    
+    // Extract concepts using Tree-of-Thought reasoning
+    PROMPT {
+        model: "llama3"
+        temperature: 0.3
+        max_tokens: 6000
+        prompt: """
+        You are an expert concept extractor for the TARS project. Your task is to extract key concepts from the following exploration document using Tree-of-Thought reasoning.
+        
+        Document path: ${doc_path}
+        
+        Document content:
+        ${doc_content}
+        
+        Please extract key concepts that could be implemented as metascripts. Use Tree-of-Thought reasoning to:
+        1. Identify multiple potential themes and ideas in the document (branching)
+        2. For each theme, explore different concepts that could be extracted (further branching)
+        3. Evaluate each concept branch based on relevance, feasibility, impact, and novelty
+        4. Prune less promising branches and expand more promising ones
+        5. Select the most promising concepts for implementation
+        
+        For each concept you identify, provide:
+        1. A name for the concept
+        2. A detailed description of the concept
+        3. How it could be implemented as a metascript
+        4. The potential impact of implementing this concept (High, Medium, Low)
+        5. The difficulty of implementing this concept (High, Medium, Low)
+        
+        Format your response as a JSON object with the following structure:
+        {
+          "thought_tree": {
+            "root": {
+              "thought": "Initial analysis of the document",
+              "children": [
+                {
+                  "thought": "Theme 1: [Theme name]",
+                  "children": [
+                    {
+                      "thought": "Concept 1A: [Concept name]",
+                      "evaluation": {
+                        "relevance": 0.8,
+                        "feasibility": 0.7,
+                        "impact": 0.9,
+                        "novelty": 0.6,
+                        "overall": 0.75
+                      },
+                      "pruned": false,
+                      "children": []
+                    },
+                    {
+                      "thought": "Concept 1B: [Concept name]",
+                      "evaluation": {
+                        "relevance": 0.5,
+                        "feasibility": 0.4,
+                        "impact": 0.3,
+                        "novelty": 0.2,
+                        "overall": 0.35
+                      },
+                      "pruned": true,
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "selected_concepts": [
+            {
+              "name": "Concept name",
+              "description": "Detailed description",
+              "implementation": "Implementation approach",
+              "impact": "High/Medium/Low",
+              "difficulty": "High/Medium/Low"
+            }
+          ]
+        }
+        
+        Focus on concepts that are concrete enough to be implemented as metascripts.
+        """
+        result_variable: "concepts_result"
+    }
+    
+    // Parse the concepts result
+    FSHARP {
+        // Parse the JSON result
+        let conceptsJson = concepts_result
+        
+        // Return the parsed JSON
+        conceptsJson
+        
+        output_variable: "parsed_concepts"
+    }
+    
+    // Return the concepts
+    RETURN {
+        value: "${parsed_concepts}"
+    }
+}
+
+// Function to generate a metascript from a concept using Tree-of-Thought reasoning
+FUNCTION generate_metascript_tot {
+    parameters: ["concept", "doc_path"]
+    
+    // Log the concept being processed
+    ACTION {
+        type: "log"
+        message: "Generating metascript for concept: ${concept.name} using Tree-of-Thought reasoning"
+    }
+    
+    // Generate a metascript using Tree-of-Thought reasoning
+    PROMPT {
+        model: "llama3"
+        temperature: 0.3
+        max_tokens: 8000
+        prompt: """
+        You are an expert metascript generator for the TARS project. Your task is to generate a metascript that implements the following concept using Tree-of-Thought reasoning.
+        
+        Concept name: ${concept.name}
+        Concept description: ${concept.description}
+        Implementation approach: ${concept.implementation}
+        Source document: ${doc_path}
+        
+        Please generate a complete metascript that implements this concept. Use Tree-of-Thought reasoning to:
+        1. Generate multiple potential implementation approaches (branching)
+        2. For each approach, explore different implementation details (further branching)
+        3. Evaluate each implementation branch based on effectiveness, efficiency, maintainability, and elegance
+        4. Prune less promising branches and expand more promising ones
+        5. Select the most promising implementation for the final metascript
+        
+        The metascript should follow this structure:
+        
+        ```
+        DESCRIBE {
+            name: "[Concept Name] Implementation"
+            version: "1.0"
+            author: "TARS Auto-Improvement"
+            description: "[Detailed description of what the metascript does]"
+            tags: ["[relevant tags]"]
+        }
+        
+        CONFIG {
+            model: "llama3"
+            temperature: 0.2
+            max_tokens: 4000
+            backup_before_changes: true
+        }
+        
+        // Define variables, functions, and actions here
+        
+        // Main workflow
+        // Implementation of the concept
+        ```
+        
+        Format your response as a JSON object with the following structure:
+        {
+          "thought_tree": {
+            "root": {
+              "thought": "Initial implementation planning",
+              "children": [
+                {
+                  "thought": "Approach 1: [Approach name]",
+                  "children": [
+                    {
+                      "thought": "Implementation detail 1A: [Detail description]",
+                      "evaluation": {
+                        "effectiveness": 0.8,
+                        "efficiency": 0.7,
+                        "maintainability": 0.9,
+                        "elegance": 0.6,
+                        "overall": 0.75
+                      },
+                      "pruned": false,
+                      "children": []
+                    },
+                    {
+                      "thought": "Implementation detail 1B: [Detail description]",
+                      "evaluation": {
+                        "effectiveness": 0.5,
+                        "efficiency": 0.4,
+                        "maintainability": 0.3,
+                        "elegance": 0.2,
+                        "overall": 0.35
+                      },
+                      "pruned": true,
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "selected_implementation": "The complete metascript as a string"
+        }
+        
+        Make sure the metascript is complete, well-structured, and ready to be executed.
+        """
+        result_variable: "metascript_result"
+    }
+    
+    // Parse the metascript result
+    FSHARP {
+        // Parse the JSON result
+        let metascriptJson = metascript_result
+        
+        // Return the parsed JSON
+        metascriptJson
+        
+        output_variable: "parsed_metascript"
+    }
+    
+    // Return the metascript
+    RETURN {
+        value: "${parsed_metascript}"
+    }
+}
+
+// Process each exploration document
+FOREACH {
+    items: "${exploration_docs}"
+    item_variable: "doc_path"
+    
+    // Extract concepts from the document
+    CALL {
+        function: "extract_concepts"
+        arguments: ["${doc_path}"]
+        result_variable: "doc_concepts"
+    }
+    
+    // Parse the concepts
+    FSHARP {
+        // Parse the concepts
+        let concepts = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonDocument>(doc_concepts).RootElement
+        
+        // Get the thought tree
+        let thoughtTree = concepts.GetProperty("thought_tree")
+        
+        // Get the selected concepts
+        let selectedConcepts = concepts.GetProperty("selected_concepts").EnumerateArray().ToArray()
+        
+        // Create a thought tree object
+        let treeObj = {|
+            doc_path = doc_path
+            thought_tree = thoughtTree
+            phase = "concept_extraction"
+        |}
+        
+        // Return the concepts and tree
+        (selectedConcepts, treeObj)
+        
+        output_variable: "parsed_doc_concepts"
+    }
+    
+    // Update the generation results with the thought tree
+    FSHARP {
+        // Get the current generation results
+        let results = generation_results
+        
+        // Get the thought tree
+        let (selectedConcepts, treeObj) = parsed_doc_concepts
+        
+        // Update the thought trees and concepts extracted count
+        let updatedTrees = results.thought_trees.Append(treeObj).ToArray()
+        
+        // Return the updated results
+        {|
+            results with
+                docs_processed = results.docs_processed + 1
+                concepts_extracted = results.concepts_extracted + selectedConcepts.Length
+                thought_trees = updatedTrees
+        |}
+        
+        output_variable: "updated_results"
+    }
+    
+    VARIABLE generation_results {
+        value: "${updated_results}"
+    }
+    
+    // Generate a metascript for each selected concept
+    FSHARP {
+        // Get the selected concepts
+        let (selectedConcepts, _) = parsed_doc_concepts
+        
+        // Return the concepts
+        selectedConcepts
+        
+        output_variable: "concepts_to_process"
+    }
+    
+    FOREACH {
+        items: "${concepts_to_process}"
+        item_variable: "concept"
+        
+        // Generate a metascript for the concept using Tree-of-Thought reasoning
+        CALL {
+            function: "generate_metascript_tot"
+            arguments: ["${concept}", "${doc_path}"]
+            result_variable: "concept_metascript"
+        }
+        
+        // Parse the metascript
+        FSHARP {
+            // Parse the metascript
+            let metascript = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonDocument>(concept_metascript).RootElement
+            
+            // Get the metascript content
+            let metascriptContent = metascript.GetProperty("selected_implementation").GetString()
+            
+            // Get the thought tree
+            let thoughtTree = metascript.GetProperty("thought_tree")
+            
+            // Create a thought tree object
+            let treeObj = {|
+                doc_path = doc_path
+                concept_name = concept.GetProperty("name").GetString()
+                thought_tree = thoughtTree
+                phase = "metascript_generation"
+            |}
+            
+            // Generate a filename for the metascript
+            let conceptName = concept.GetProperty("name").GetString()
+            let sanitizedName = conceptName.ToLower().Replace(" ", "_").Replace("-", "_")
+            let filename = $"tot_{sanitizedName}.tars"
+            let filePath = System.IO.Path.Combine(output_dir, filename)
+            
+            // Return the metascript content, tree, and file path
+            (metascriptContent, treeObj, filePath)
+            
+            output_variable: "parsed_concept_metascript"
+        }
+        
+        // Save the metascript to a file
+        FSHARP {
+            // Get the metascript content and file path
+            let (metascriptContent, _, filePath) = parsed_concept_metascript
+            
+            // Return the file path
+            filePath
+            
+            output_variable: "metascript_file_path"
+        }
+        
+        ACTION {
+            type: "file_write"
+            path: "${metascript_file_path}"
+            content: "${parsed_concept_metascript[0]}"
+        }
+        
+        // Update the generation results
+        FSHARP {
+            // Get the current generation results
+            let results = generation_results
+            
+            // Get the thought tree and file path
+            let (_, treeObj, filePath) = parsed_concept_metascript
+            
+            // Get the concept
+            let conceptName = concept.GetProperty("name").GetString()
+            let conceptDescription = concept.GetProperty("description").GetString()
+            let conceptImpact = concept.GetProperty("impact").GetString()
+            let conceptDifficulty = concept.GetProperty("difficulty").GetString()
+            
+            // Create a metascript object
+            let metascriptObj = {|
+                name = conceptName
+                description = conceptDescription
+                file_path = filePath
+                source_doc = doc_path
+                impact = conceptImpact
+                difficulty = conceptDifficulty
+            |}
+            
+            // Update the metascripts and thought trees
+            let updatedMetascripts = results.metascripts.Append(metascriptObj).ToArray()
+            let updatedTrees = results.thought_trees.Append(treeObj).ToArray()
+            
+            // Return the updated results
+            {|
+                results with
+                    metascripts_generated = results.metascripts_generated + 1
+                    metascripts = updatedMetascripts
+                    thought_trees = updatedTrees
+            |}
+            
+            output_variable: "updated_results"
+        }
+        
+        VARIABLE generation_results {
+            value: "${updated_results}"
+        }
+        
+        ACTION {
+            type: "log"
+            message: "Generated metascript: ${metascript_file_path}"
+        }
+    }
+}
+
+// Update the generation end time
+VARIABLE generation_results {
+    value: {
+        ...generation_results,
+        generation_end_time: "${new Date().toISOString()}"
+    }
+}
+
+// Log the generation results
+ACTION {
+    type: "log"
+    message: "Tree-of-Thought metascript generation completed"
+}
+
+ACTION {
+    type: "log"
+    message: "Documents processed: ${generation_results.docs_processed}"
+}
+
+ACTION {
+    type: "log"
+    message: "Concepts extracted: ${generation_results.concepts_extracted}"
+}
+
+ACTION {
+    type: "log"
+    message: "Metascripts generated: ${generation_results.metascripts_generated}"
+}
+
+// Generate a detailed report
+VARIABLE report {
+    value: """# Tree-of-Thought Metascript Generation Report
+
+## Summary
+- **Generation Start Time**: ${generation_results.generation_start_time}
+- **Generation End Time**: ${generation_results.generation_end_time}
+- **Documents Processed**: ${generation_results.docs_processed}
+- **Concepts Extracted**: ${generation_results.concepts_extracted}
+- **Metascripts Generated**: ${generation_results.metascripts_generated}
+
+## ToT Parameters
+- **Branching Factor**: ${tot_params.branching_factor}
+- **Max Depth**: ${tot_params.max_depth}
+- **Beam Width**: ${tot_params.beam_width}
+- **Evaluation Metrics**: ${tot_params.evaluation_metrics.join(', ')}
+- **Pruning Strategy**: ${tot_params.pruning_strategy}
+
+## Generated Metascripts
+
+${generation_results.metascripts.map(metascript => `### ${metascript.name} (Impact: ${metascript.impact}, Difficulty: ${metascript.difficulty})
+- **Description**: ${metascript.description}
+- **File Path**: ${metascript.file_path}
+- **Source Document**: ${metascript.source_doc}
+`).join('\n')}
+
+## Thought Trees
+
+${generation_results.thought_trees.map(tree => `### ${tree.phase === "concept_extraction" ? `Document: ${tree.doc_path}` : `Concept: ${tree.concept_name} (from ${tree.doc_path})`}
+\`\`\`json
+${JSON.stringify(tree.thought_tree, null, 2)}
+\`\`\`
+`).join('\n')}
+"""
+}
+
+// Save the report
+ACTION {
+    type: "file_write"
+    path: "tree_of_thought_generation_report.md"
+    content: "${report}"
+}
+
+ACTION {
+    type: "log"
+    message: "Generation report saved to tree_of_thought_generation_report.md"
+}
+
+// Save the generation results as JSON for further processing
+ACTION {
+    type: "file_write"
+    path: "tree_of_thought_generation_results.json"
+    content: "${JSON.stringify(generation_results, null, 2)}"
+}
+
+ACTION {
+    type: "log"
+    message: "Generation results saved to tree_of_thought_generation_results.json"
+}
+
+// Return the generation results
+RETURN {
+    value: "${generation_results}"
+}

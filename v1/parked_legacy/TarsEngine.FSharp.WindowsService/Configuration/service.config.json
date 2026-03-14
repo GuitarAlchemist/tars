@@ -1,0 +1,225 @@
+{
+  "Service": {
+    "ServiceName": "TarsService",
+    "DisplayName": "TARS Autonomous Service",
+    "Description": "TARS Autonomous Development and Requirements Management Service",
+    "StartType": "Automatic",
+    "LogLevel": "Information",
+    "WorkingDirectory": "C:\\TARS",
+    "MaxConcurrentTasks": 20,
+    "HealthCheckInterval": "00:05:00",
+    "TaskTimeout": "00:30:00",
+    "EnableAutoRecovery": true,
+    "RecoveryAttempts": 3,
+    "RecoveryDelay": "00:01:00"
+  },
+  "Tasks": {
+    "MaxConcurrentTasks": 20,
+    "DefaultTimeout": "00:30:00",
+    "RetryAttempts": 3,
+    "RetryDelay": "00:00:30",
+    "PriorityLevels": 5,
+    "QueueCapacity": 1000
+  },
+  "Monitoring": {
+    "EnableHealthChecks": true,
+    "HealthCheckInterval": "00:05:00",
+    "EnablePerformanceCounters": true,
+    "PerformanceInterval": "00:01:00",
+    "EnableDiagnostics": true,
+    "DiagnosticsInterval": "00:10:00",
+    "AlertThresholds": {
+      "CpuUsage": 80.0,
+      "MemoryUsage": 85.0,
+      "DiskUsage": 90.0,
+      "TaskQueueSize": 500.0,
+      "AgentFailureRate": 10.0,
+      "ResponseTime": 5000.0
+    },
+    "LogRetentionDays": 30
+  },
+  "Agents": [
+    {
+      "Name": "RequirementsAgent",
+      "Type": "Requirements",
+      "Enabled": true,
+      "MaxInstances": 1,
+      "StartupDelay": "00:00:10",
+      "HealthCheckInterval": "00:05:00",
+      "RestartOnFailure": true,
+      "Configuration": {
+        "DatabasePath": "requirements.db",
+        "ValidationInterval": "00:15:00",
+        "AutoGenerateTests": true,
+        "EnableTraceability": true
+      }
+    },
+    {
+      "Name": "AnalyticsAgent",
+      "Type": "Analytics",
+      "Enabled": true,
+      "MaxInstances": 1,
+      "StartupDelay": "00:00:15",
+      "HealthCheckInterval": "00:05:00",
+      "RestartOnFailure": true,
+      "Configuration": {
+        "MetricsInterval": "00:01:00",
+        "ReportingInterval": "00:15:00",
+        "EnablePredictiveAnalytics": true,
+        "RetentionDays": 90
+      }
+    },
+    {
+      "Name": "ClosureFactoryAgent",
+      "Type": "ClosureFactory",
+      "Enabled": true,
+      "MaxInstances": 2,
+      "StartupDelay": "00:00:20",
+      "HealthCheckInterval": "00:05:00",
+      "RestartOnFailure": true,
+      "Configuration": {
+        "ClosureDirectory": ".tars/closures",
+        "EnableDynamicLoading": true,
+        "MaxConcurrentExecutions": 5,
+        "ExecutionTimeout": "00:10:00"
+      }
+    },
+    {
+      "Name": "MCPServerAgent",
+      "Type": "MCPServer",
+      "Enabled": true,
+      "MaxInstances": 1,
+      "StartupDelay": "00:00:25",
+      "HealthCheckInterval": "00:05:00",
+      "RestartOnFailure": true,
+      "Configuration": {
+        "Port": 8080,
+        "EnableAuthentication": true,
+        "MaxConnections": 100,
+        "RequestTimeout": "00:00:30"
+      }
+    },
+    {
+      "Name": "AutoEvolutionAgent",
+      "Type": "AutoEvolution",
+      "Enabled": false,
+      "MaxInstances": 1,
+      "StartupDelay": "00:01:00",
+      "HealthCheckInterval": "00:10:00",
+      "RestartOnFailure": true,
+      "Configuration": {
+        "EvolutionInterval": "01:00:00",
+        "EnableSelfModification": false,
+        "SafetyChecks": true,
+        "BackupBeforeChanges": true
+      }
+    }
+  ],
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft": "Warning",
+      "Microsoft.Hosting.Lifetime": "Information",
+      "TarsEngine": "Debug"
+    },
+    "Console": {
+      "IncludeScopes": true,
+      "TimestampFormat": "yyyy-MM-dd HH:mm:ss "
+    },
+    "File": {
+      "Path": "logs/tars-service.log",
+      "MaxFileSize": "10MB",
+      "MaxFiles": 10,
+      "IncludeScopes": true
+    },
+    "EventLog": {
+      "SourceName": "TARS Service",
+      "LogName": "Application",
+      "IncludeScopes": false
+    }
+  },
+  "Security": {
+    "EnableAuthentication": true,
+    "AuthenticationScheme": "Windows",
+    "EnableAuthorization": true,
+    "RequiredRoles": ["TARS_Users", "TARS_Administrators"],
+    "EnableAuditLogging": true,
+    "AuditLogPath": "logs/audit.log",
+    "EncryptionKey": "CHANGE_THIS_IN_PRODUCTION",
+    "EnableTLS": true,
+    "CertificatePath": "",
+    "CertificatePassword": ""
+  },
+  "Performance": {
+    "EnablePerformanceCounters": true,
+    "CounterCategories": [
+      "TARS Service",
+      "TARS Agents",
+      "TARS Tasks",
+      "TARS Queue"
+    ],
+    "MetricsRetentionDays": 7,
+    "EnableMemoryProfiling": false,
+    "GCSettings": {
+      "ServerGC": true,
+      "ConcurrentGC": true,
+      "RetainVM": false
+    }
+  },
+  "Integration": {
+    "EnableMCPServer": true,
+    "MCPServerPort": 8080,
+    "EnableWebAPI": true,
+    "WebAPIPort": 8081,
+    "EnableSignalR": true,
+    "SignalRPort": 8082,
+    "ExternalServices": {
+      "AugmentCode": {
+        "Enabled": true,
+        "BaseUrl": "https://api.augmentcode.com",
+        "ApiKey": "",
+        "Timeout": "00:00:30"
+      },
+      "OpenAI": {
+        "Enabled": false,
+        "ApiKey": "",
+        "Model": "gpt-4",
+        "Timeout": "00:01:00"
+      },
+      "Ollama": {
+        "Enabled": true,
+        "BaseUrl": "http://localhost:11434",
+        "Model": "codestral",
+        "Timeout": "00:02:00"
+      }
+    }
+  },
+  "Backup": {
+    "EnableAutoBackup": true,
+    "BackupInterval": "24:00:00",
+    "BackupPath": "backups",
+    "RetentionDays": 30,
+    "CompressBackups": true,
+    "BackupComponents": [
+      "Configuration",
+      "Database",
+      "Logs",
+      "Metascripts"
+    ]
+  },
+  "Maintenance": {
+    "EnableAutoMaintenance": true,
+    "MaintenanceInterval": "24:00:00",
+    "MaintenanceWindow": {
+      "StartTime": "02:00:00",
+      "Duration": "01:00:00"
+    },
+    "Tasks": [
+      "CleanupLogs",
+      "OptimizeDatabase",
+      "UpdateStatistics",
+      "CheckDiskSpace",
+      "ValidateConfiguration"
+    ]
+  }
+}

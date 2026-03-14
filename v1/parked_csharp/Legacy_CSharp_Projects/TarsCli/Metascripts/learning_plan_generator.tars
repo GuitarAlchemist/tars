@@ -1,0 +1,437 @@
+DESCRIBE {
+    name: "TARS Learning Plan Generator Metascript"
+    version: "1.0"
+    author: "TARS"
+    description: "A metascript for generating personalized learning plans"
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.7
+    max_tokens: 4000
+}
+
+// Define variables for configuration
+VARIABLE config {
+    value: {
+        subject: "F# Programming",
+        difficulty: "intermediate",
+        duration_weeks: 8,
+        learning_style: "project-based",
+        prerequisites: ["Basic programming knowledge", "C# experience"],
+        goals: ["Master F# functional programming", "Build a real-world F# application"]
+    }
+}
+
+// Define the curriculum designer agent
+AGENT curriculum_designer {
+    description: "An agent that designs learning curricula based on subject and goals"
+    capabilities: ["curriculum_design", "learning_path_creation", "resource_curation"]
+    
+    TASK design_curriculum {
+        description: "Design a curriculum for a subject"
+        
+        FUNCTION create_learning_path {
+            parameters: ["subject", "difficulty", "duration_weeks", "goals"]
+            
+            ACTION {
+                type: "design_curriculum"
+                subject: "${subject}"
+                difficulty: "${difficulty}"
+                duration_weeks: "${duration_weeks}"
+                goals: "${goals}"
+            }
+            
+            RETURN {
+                value: {
+                    modules: [
+                        {
+                            title: "Introduction to F# and Functional Programming",
+                            duration_days: 7,
+                            topics: ["F# syntax", "Functional programming concepts", "F# development environment"]
+                        },
+                        {
+                            title: "F# Types and Pattern Matching",
+                            duration_days: 7,
+                            topics: ["F# type system", "Pattern matching", "Discriminated unions", "Records"]
+                        },
+                        {
+                            title: "Collections and Higher-Order Functions",
+                            duration_days: 7,
+                            topics: ["Lists, arrays, and sequences", "Map, filter, and fold", "Composition"]
+                        },
+                        {
+                            title: "Asynchronous and Parallel Programming",
+                            duration_days: 7,
+                            topics: ["Async workflows", "Parallel processing", "Task-based programming"]
+                        },
+                        {
+                            title: "Domain Modeling with F#",
+                            duration_days: 7,
+                            topics: ["Domain-driven design", "Modeling with types", "Railway-oriented programming"]
+                        },
+                        {
+                            title: "Web Development with F#",
+                            duration_days: 7,
+                            topics: ["Giraffe", "Fable", "SAFE Stack"]
+                        },
+                        {
+                            title: "Testing and Quality Assurance",
+                            duration_days: 7,
+                            topics: ["Unit testing", "Property-based testing", "Integration testing"]
+                        },
+                        {
+                            title: "Capstone Project",
+                            duration_days: 7,
+                            topics: ["Project planning", "Implementation", "Deployment"]
+                        }
+                    ]
+                }
+            }
+        }
+        
+        FUNCTION curate_resources {
+            parameters: ["modules"]
+            
+            ACTION {
+                type: "curate_resources"
+                modules: "${modules}"
+            }
+            
+            RETURN {
+                value: {
+                    resources: [
+                        {
+                            module: "Introduction to F# and Functional Programming",
+                            books: ["Get Programming with F#", "F# for Fun and Profit"],
+                            online_courses: ["F# From the Ground Up", "Functional Programming Principles"],
+                            tutorials: ["F# for Beginners", "Setting up F# Development Environment"]
+                        },
+                        // Additional resources for other modules would be included here
+                    ]
+                }
+            }
+        }
+    }
+}
+
+// Define the content creator agent
+AGENT content_creator {
+    description: "An agent that creates learning content based on curriculum"
+    capabilities: ["content_creation", "exercise_generation", "project_design"]
+    
+    TASK create_module_content {
+        description: "Create content for a learning module"
+        
+        FUNCTION create_lessons {
+            parameters: ["module"]
+            
+            ACTION {
+                type: "create_lessons"
+                module: "${module}"
+            }
+            
+            RETURN {
+                value: {
+                    lessons: [
+                        {
+                            title: "Understanding F# Syntax",
+                            content: "This lesson introduces the basic syntax of F#...",
+                            exercises: ["Write a simple F# function", "Convert a C# class to F#"]
+                        },
+                        // Additional lessons would be included here
+                    ]
+                }
+            }
+        }
+        
+        FUNCTION create_projects {
+            parameters: ["module"]
+            
+            ACTION {
+                type: "create_projects"
+                module: "${module}"
+            }
+            
+            RETURN {
+                value: {
+                    projects: [
+                        {
+                            title: "Build a Command-Line Todo App",
+                            description: "Create a simple todo application using F# that runs in the command line...",
+                            requirements: ["Store todos in memory", "Add, remove, and list todos", "Mark todos as complete"],
+                            starter_code: "// Starter code would be provided here"
+                        },
+                        // Additional projects would be included here
+                    ]
+                }
+            }
+        }
+    }
+}
+
+// Define the assessment creator agent
+AGENT assessment_creator {
+    description: "An agent that creates assessments for learning modules"
+    capabilities: ["quiz_generation", "project_evaluation", "feedback_generation"]
+    
+    TASK create_assessments {
+        description: "Create assessments for a learning module"
+        
+        FUNCTION create_quizzes {
+            parameters: ["module"]
+            
+            ACTION {
+                type: "create_quizzes"
+                module: "${module}"
+            }
+            
+            RETURN {
+                value: {
+                    quizzes: [
+                        {
+                            title: "F# Syntax Quiz",
+                            questions: [
+                                {
+                                    question: "What symbol is used for function composition in F#?",
+                                    options: [">>", "<<", ">>", "->"],
+                                    answer: 1
+                                },
+                                // Additional questions would be included here
+                            ]
+                        },
+                        // Additional quizzes would be included here
+                    ]
+                }
+            }
+        }
+        
+        FUNCTION create_project_rubrics {
+            parameters: ["module"]
+            
+            ACTION {
+                type: "create_project_rubrics"
+                module: "${module}"
+            }
+            
+            RETURN {
+                value: {
+                    rubrics: [
+                        {
+                            project_title: "Build a Command-Line Todo App",
+                            criteria: [
+                                {
+                                    name: "Functionality",
+                                    description: "All required features are implemented and working correctly",
+                                    points: 40
+                                },
+                                {
+                                    name: "Code Quality",
+                                    description: "Code is well-organized, follows F# best practices, and uses functional programming concepts",
+                                    points: 30
+                                },
+                                {
+                                    name: "Error Handling",
+                                    description: "Application handles errors gracefully and provides helpful error messages",
+                                    points: 20
+                                },
+                                {
+                                    name: "Documentation",
+                                    description: "Code is well-documented with comments and includes a README file",
+                                    points: 10
+                                }
+                            ]
+                        },
+                        // Additional rubrics would be included here
+                    ]
+                }
+            }
+        }
+    }
+}
+
+// Main workflow
+TARS {
+    // Initialize the workflow
+    ACTION {
+        type: "log"
+        message: "Starting learning plan generation workflow"
+    }
+    
+    // Design the curriculum
+    ACTION {
+        type: "log"
+        message: "Designing curriculum for ${config.value.subject}"
+    }
+    
+    VARIABLE curriculum {
+        value: {}
+    }
+    
+    ACTION {
+        type: "execute"
+        agent: "curriculum_designer"
+        task: "design_curriculum"
+        function: "create_learning_path"
+        parameters: {
+            subject: "${config.value.subject}",
+            difficulty: "${config.value.difficulty}",
+            duration_weeks: "${config.value.duration_weeks}",
+            goals: "${config.value.goals}"
+        }
+        output_variable: "curriculum"
+    }
+    
+    // Curate resources for the curriculum
+    ACTION {
+        type: "log"
+        message: "Curating resources for the curriculum"
+    }
+    
+    VARIABLE resources {
+        value: {}
+    }
+    
+    ACTION {
+        type: "execute"
+        agent: "curriculum_designer"
+        task: "design_curriculum"
+        function: "curate_resources"
+        parameters: {
+            modules: "${curriculum.value.modules}"
+        }
+        output_variable: "resources"
+    }
+    
+    // Create content for each module
+    VARIABLE all_module_content {
+        value: {
+            modules: []
+        }
+    }
+    
+    FOR {
+        variable: "module"
+        range: "${curriculum.value.modules}"
+        
+        ACTION {
+            type: "log"
+            message: "Creating content for module: ${module.title}"
+        }
+        
+        VARIABLE module_lessons {
+            value: {}
+        }
+        
+        ACTION {
+            type: "execute"
+            agent: "content_creator"
+            task: "create_module_content"
+            function: "create_lessons"
+            parameters: {
+                module: "${module}"
+            }
+            output_variable: "module_lessons"
+        }
+        
+        VARIABLE module_projects {
+            value: {}
+        }
+        
+        ACTION {
+            type: "execute"
+            agent: "content_creator"
+            task: "create_module_content"
+            function: "create_projects"
+            parameters: {
+                module: "${module}"
+            }
+            output_variable: "module_projects"
+        }
+        
+        // Create assessments for the module
+        VARIABLE module_quizzes {
+            value: {}
+        }
+        
+        ACTION {
+            type: "execute"
+            agent: "assessment_creator"
+            task: "create_assessments"
+            function: "create_quizzes"
+            parameters: {
+                module: "${module}"
+            }
+            output_variable: "module_quizzes"
+        }
+        
+        VARIABLE module_rubrics {
+            value: {}
+        }
+        
+        ACTION {
+            type: "execute"
+            agent: "assessment_creator"
+            task: "create_assessments"
+            function: "create_project_rubrics"
+            parameters: {
+                module: "${module}"
+            }
+            output_variable: "module_rubrics"
+        }
+        
+        // Combine all module content
+        VARIABLE module_content {
+            value: {
+                module: "${module}",
+                lessons: "${module_lessons.value.lessons}",
+                projects: "${module_projects.value.projects}",
+                quizzes: "${module_quizzes.value.quizzes}",
+                rubrics: "${module_rubrics.value.rubrics}"
+            }
+        }
+        
+        ACTION {
+            type: "append"
+            target: "all_module_content.value.modules"
+            value: "${module_content.value}"
+        }
+    }
+    
+    // Generate the complete learning plan
+    VARIABLE learning_plan {
+        value: {
+            title: "Learning Plan: ${config.value.subject}",
+            difficulty: "${config.value.difficulty}",
+            duration_weeks: "${config.value.duration_weeks}",
+            prerequisites: "${config.value.prerequisites}",
+            goals: "${config.value.goals}",
+            curriculum: "${curriculum.value}",
+            resources: "${resources.value}",
+            modules: "${all_module_content.value.modules}"
+        }
+    }
+    
+    // Generate the learning plan document
+    ACTION {
+        type: "generate_markdown"
+        data: "${learning_plan.value}"
+        template: "learning_plan_template"
+        output: "learning_plan.md"
+    }
+    
+    // Generate a schedule
+    ACTION {
+        type: "generate_schedule"
+        learning_plan: "${learning_plan.value}"
+        start_date: "2025-04-01"
+        output: "learning_schedule.md"
+    }
+    
+    // Notify about completion
+    ACTION {
+        type: "notify"
+        message: "Learning plan generation workflow completed"
+        channels: ["slack", "email"]
+    }
+}

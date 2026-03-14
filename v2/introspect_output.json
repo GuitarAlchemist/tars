@@ -1,0 +1,1 @@
+{"jsonrpc":"2.0","result":{"content":[{"type":"text","text":"### TOOL DEFINITION: search_memory ###\n\nSearches TARS\u0027s long-term episodic memory (Knowledge Graph). Input: natural language query.\n\n(This is the full definition)","data":null,"mimeType":null,"resource":null}],"isError":false},"error":null,"id":3}

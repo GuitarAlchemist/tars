@@ -1,0 +1,35 @@
+meta {
+  name = "MATH-001"
+  description = "Calculate (123 * 456) + (789 / 3)"
+  domain = "mathematics"
+  difficulty = "beginner"
+}
+
+inputs {
+  problem_statement = "Calculate the value of (123 * 456) + (789 / 3)"
+  expected_answer = "56351"
+}
+
+policy {
+  allowed_tools = ["math_eval"]
+  max_tool_calls = 3
+  max_tokens = 1024
+}
+
+workflow "solve_math001" {
+  
+  node "calc" kind="reason" {
+    goal = "Calculate the result of the expression in the problem: ${problem_statement}. Use the math_eval tool if needed."
+    output = "final_answer"
+  }
+
+  node "verify" kind="work" {
+    input = ["final_answer"]
+    output = "result"
+    checks = [
+      { "type": "contains", "value": "${final_answer}", "needle": "${expected_answer}" }
+    ]
+  }
+
+  edge "calc" -> "verify"
+}

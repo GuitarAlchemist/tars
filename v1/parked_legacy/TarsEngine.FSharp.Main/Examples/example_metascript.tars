@@ -1,0 +1,160 @@
+﻿DESCRIBE {
+    name: "F# Integration Example"
+    version: "1.0"
+    description: "A demonstration of F# code integration in TARS DSL"
+    author: "TARS Team"
+    date: "2023-07-15"
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.7
+    max_tokens: 1000
+}
+
+// Define variables
+VARIABLE x {
+    value: 10
+}
+
+VARIABLE y {
+    value: 20
+}
+
+// Execute F# code
+ACTION {
+    type: "log"
+    message: "Executing F# code..."
+}
+
+FSHARP {
+    // Access variables from the DSL environment
+    let sum = x + y
+    let product = x * y
+    
+    // Define a function
+    let factorial n =
+        let rec loop i acc =
+            if i <= 1 then acc
+            else loop (i - 1) (acc * i)
+        loop n 1
+    
+    // Calculate factorial of x
+    let factX = factorial x
+    
+    // Use F# list operations
+    let numbers = [1..10]
+    let squares = numbers |> List.map (fun n -> n * n)
+    let sumOfSquares = squares |> List.sum
+    
+    // Return a result
+    sprintf "Sum: %d, Product: %d, Factorial of %d: %d, Sum of squares 1-10: %d" 
+        sum product x factX sumOfSquares
+}
+
+// Store the result in a variable
+VARIABLE result {
+    value: "${_last_result}"
+}
+
+// Display the result
+ACTION {
+    type: "log"
+    message: "Result: ${result}"
+}
+
+// Use the result in another F# block
+FSHARP {
+    // Parse the result string to extract values
+    let resultStr = result.ToString()
+    
+    // Simple string manipulation
+    let parts = resultStr.Split([|','|])
+    let values = 
+        parts 
+        |> Array.map (fun p -> 
+            let kvp = p.Split([|':'|])
+            if kvp.Length = 2 then
+                (kvp.[0].Trim(), kvp.[1].Trim())
+            else
+                ("", ""))
+        |> Array.filter (fun (k, _) -> k <> "")
+        |> Map.ofArray
+    
+    // Create a new calculation
+    let sumValue = 
+        match values.TryFind "Sum" with
+        | Some v -> 
+            match System.Int32.TryParse(v) with
+            | true, n -> n
+            | _ -> 0
+        | None -> 0
+    
+    let productValue = 
+        match values.TryFind "Product" with
+        | Some v -> 
+            match System.Int32.TryParse(v) with
+            | true, n -> n
+            | _ -> 0
+        | None -> 0
+    
+    // Calculate a new value
+    let newValue = sumValue + productValue
+    
+    // Return the new value
+    sprintf "New calculation: %d + %d = %d" sumValue productValue newValue
+}
+
+// Store the new result
+VARIABLE newResult {
+    value: "${_last_result}"
+}
+
+// Display the new result
+ACTION {
+    type: "log"
+    message: "New result: ${newResult}"
+}
+
+// Demonstrate more advanced F# features
+FSHARP {
+    // Define a discriminated union
+    type Shape =
+        | Circle of radius: float
+        | Rectangle of width: float * height: float
+        | Triangle of base': float * height: float
+    
+    // Define a function to calculate area
+    let calculateArea shape =
+        match shape with
+        | Circle radius -> Math.PI * radius * radius
+        | Rectangle (width, height) -> width * height
+        | Triangle (base', height) -> base' * height / 2.0
+    
+    // Create some shapes
+    let shapes = [
+        Circle 5.0
+        Rectangle (4.0, 6.0)
+        Triangle (3.0, 4.0)
+    ]
+    
+    // Calculate and sum the areas
+    let totalArea = 
+        shapes
+        |> List.map calculateArea
+        |> List.sum
+    
+    // Return the result
+    sprintf "Total area of all shapes: %.2f square units" totalArea
+}
+
+// Store the final result
+VARIABLE finalResult {
+    value: "${_last_result}"
+}
+
+// Display the final result
+ACTION {
+    type: "log"
+    message: "Final result: ${finalResult}"
+}

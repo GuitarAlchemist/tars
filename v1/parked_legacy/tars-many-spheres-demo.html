@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>TARS Multi-Agent Game Theory - Many Spheres</title>
+    <style>
+        body { margin: 0; background: #222; color: #fff; font-family: monospace; }
+        #info { position: absolute; top: 10px; left: 10px; z-index: 100; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 5px; max-height: 300px; overflow-y: auto; }
+        #controls { position: absolute; bottom: 10px; left: 10px; z-index: 100; }
+        #stats { position: absolute; top: 10px; right: 10px; z-index: 100; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 5px; }
+        button { background: #4a9eff; color: white; border: none; padding: 10px 15px; margin: 5px; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #357abd; }
+        .agent-type { margin: 5px 0; padding: 5px; background: rgba(74,158,255,0.2); border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h3>🎯 TARS Multi-Agent System</h3>
+        <div class="agent-type">🔵 Strategic Agents (QRE): <span id="qre-count">0</span></div>
+        <div class="agent-type">🟢 Cognitive Agents (CH): <span id="ch-count">0</span></div>
+        <div class="agent-type">🟡 Learning Agents (NoRegret): <span id="lr-count">0</span></div>
+        <div class="agent-type">🟣 Evolution Agents (EGT): <span id="egt-count">0</span></div>
+        <div class="agent-type">🔴 Correlated Agents (CE): <span id="ce-count">0</span></div>
+        <div class="agent-type">⚪ Adaptive Agents (ML): <span id="ml-count">0</span></div>
+        <hr>
+        <div><strong>Total Agents:</strong> <span id="total-count">0</span></div>
+        <div><strong>Active Connections:</strong> <span id="connection-count">0</span></div>
+    </div>
+    
+    <div id="stats">
+        <h4>📊 System Metrics</h4>
+        <div>Avg Coordination: <span style="color:#00ff88" id="coordination">0%</span></div>
+        <div>Equilibrium: <span style="color:#00ff88" id="equilibrium">Converging</span></div>
+        <div>FPS: <span style="color:#00ff88" id="fps">60</span></div>
+        <div>Agents in View: <span style="color:#00ff88" id="visible">0</span></div>
+    </div>
+    
+    <div id="controls">
+        <button onclick="addMoreAgents()">➕ Add 10 Agents</button>
+        <button onclick="removeAgents()">➖ Remove 10 Agents</button>
+        <button onclick="zoomIn()">🔍 Zoom In</button>
+        <button onclick="zoomOut()">🔍 Zoom Out</button>
+        <button onclick="toggleConnections()">🔗 Toggle Lines</button>
+        <button onclick="resetView()">🎯 Reset View</button>
+        <button onclick="startSwarm()">🌪️ Swarm Mode</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        let scene, camera, renderer;
+        let agents = [];
+        let connections = [];
+        let showConnections = true;
+        let swarmMode = false;
+        let agentCounts = { qre: 0, ch: 0, lr: 0, egt: 0, ce: 0, ml: 0 };
+        
+        const agentTypes = [
+            { name: "QRE", color: 0x4a9eff, key: "qre" },
+            { name: "CH", color: 0x00ff88, key: "ch" },
+            { name: "NoRegret", color: 0xffaa00, key: "lr" },
+            { name: "EGT", color: 0x9b59b6, key: "egt" },
+            { name: "CE", color: 0xff6b6b, key: "ce" },
+            { name: "ML", color: 0xffffff, key: "ml" }
+        ];
+        
+        function init() {
+            console.log("🚀 Starting TARS Multi-Agent System...");
+            
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x111111);
+            scene.fog = new THREE.Fog(0x111111, 10, 50);
+            
+            // Camera
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 0, 15);
+            
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+            scene.add(ambientLight);
+            
+            const directionalLight1 = new THREE.DirectionalLight(0xffffff, 1.0);
+            directionalLight1.position.set(5, 5, 5);
+            scene.add(directionalLight1);
+            
+            const directionalLight2 = new THREE.DirectionalLight(0x4a9eff, 0.5);
+            directionalLight2.position.set(-5, -5, 5);
+            scene.add(directionalLight2);
+            
+            // Create initial agents
+            createInitialAgents(30); // Start with 30 agents
+            
+            animate();
+            updateUI();
+            
+            console.log("✅ Multi-agent system initialized");
+        }
+        
+        function createInitialAgents(count) {
+            for (let i = 0; i < count; i++) {
+                createRandomAgent();
+            }
+            createConnections();
+        }
+        
+        function createRandomAgent() {
+            const type = agentTypes[Math.floor(Math.random() * agentTypes.length)];
+            const size = 0.1 + Math.random() * 0.15; // Small spheres: 0.1 to 0.25
+            
+            const geometry = new THREE.SphereGeometry(size, 16, 16); // Lower poly for performance
+            const material = new THREE.MeshLambertMaterial({
+                color: type.color,
+                emissive: type.color,
+                emissiveIntensity: 0.3
+            });
+            
+            const agent = new THREE.Mesh(geometry, material);
+            
+            // Random position in a sphere
+            const radius = 8 + Math.random() * 5;
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.random() * Math.PI;
+            
+            agent.position.x = radius * Math.sin(phi) * Math.cos(theta);
+            agent.position.y = radius * Math.sin(phi) * Math.sin(theta);
+            agent.position.z = radius * Math.cos(phi);
+            
+            agent.userData = {
+                type: type.name,
+                typeKey: type.key,
+                performance: 0.5 + Math.random() * 0.5,
+                speed: 0.01 + Math.random() * 0.02,
+                phase: Math.random() * Math.PI * 2,
+                targetPosition: agent.position.clone(),
+                originalSize: size
+            };
+            
+            scene.add(agent);
+            agents.push(agent);
+            agentCounts[type.key]++;
+            
+            return agent;
+        }
+        
+        function createConnections() {
+            // Clear existing connections
+            connections.forEach(conn => scene.remove(conn));
+            connections = [];
+            
+            // Create connections between nearby agents (not all pairs for performance)
+            for (let i = 0; i < agents.length; i++) {
+                let connectionCount = 0;
+                for (let j = i + 1; j < agents.length && connectionCount < 3; j++) {
+                    const distance = agents[i].position.distanceTo(agents[j].position);
+                    if (distance < 8) { // Only connect nearby agents
+                        const points = [agents[i].position, agents[j].position];
+                        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+                        const material = new THREE.LineBasicMaterial({
+                            color: 0x4a9eff,
+                            transparent: true,
+                            opacity: 0.2
+                        });
+                        
+                        const line = new THREE.Line(geometry, material);
+                        line.userData = { agentA: i, agentB: j };
+                        scene.add(line);
+                        connections.push(line);
+                        connectionCount++;
+                    }
+                }
+            }
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const time = Date.now() * 0.001;
+            
+            // Update agents
+            agents.forEach((agent, i) => {
+                // Gentle floating motion
+                const float = Math.sin(time * agent.userData.speed + agent.userData.phase) * 0.3;
+                agent.position.y += float * 0.01;
+                
+                // Gentle rotation
+                agent.rotation.x += agent.userData.speed * 0.5;
+                agent.rotation.y += agent.userData.speed * 0.3;
+                
+                // Pulsing size based on performance
+                const pulse = 1 + 0.2 * Math.sin(time * 2 + agent.userData.phase) * agent.userData.performance;
+                agent.scale.setScalar(pulse);
+                
+                // Swarm behavior
+                if (swarmMode) {
+                    // Move towards center with some randomness
+                    const centerForce = agent.position.clone().multiplyScalar(-0.001);
+                    const randomForce = new THREE.Vector3(
+                        (Math.random() - 0.5) * 0.02,
+                        (Math.random() - 0.5) * 0.02,
+                        (Math.random() - 0.5) * 0.02
+                    );
+                    agent.position.add(centerForce).add(randomForce);
+                }
+            });
+            
+            // Update connections
+            connections.forEach(conn => {
+                if (showConnections) {
+                    const agentA = agents[conn.userData.agentA];
+                    const agentB = agents[conn.userData.agentB];
+                    if (agentA && agentB) {
+                        const points = [agentA.position, agentB.position];
+                        conn.geometry.setFromPoints(points);
+                        conn.material.opacity = 0.1 + 0.1 * Math.sin(time * 2);
+                    }
+                }
+                conn.visible = showConnections;
+            });
+            
+            renderer.render(scene, camera);
+        }
+        
+        function addMoreAgents() {
+            for (let i = 0; i < 10; i++) {
+                createRandomAgent();
+            }
+            createConnections();
+            updateUI();
+            console.log(`➕ Added 10 agents. Total: ${agents.length}`);
+        }
+        
+        function removeAgents() {
+            if (agents.length > 10) {
+                for (let i = 0; i < 10; i++) {
+                    const agent = agents.pop();
+                    if (agent) {
+                        agentCounts[agent.userData.typeKey]--;
+                        scene.remove(agent);
+                    }
+                }
+                createConnections();
+                updateUI();
+                console.log(`➖ Removed 10 agents. Total: ${agents.length}`);
+            }
+        }
+        
+        function zoomIn() {
+            camera.position.multiplyScalar(0.8);
+            console.log("🔍 Zoomed in");
+        }
+        
+        function zoomOut() {
+            camera.position.multiplyScalar(1.25);
+            console.log("🔍 Zoomed out");
+        }
+        
+        function toggleConnections() {
+            showConnections = !showConnections;
+            console.log("🔗 Connections:", showConnections ? "ON" : "OFF");
+        }
+        
+        function resetView() {
+            camera.position.set(0, 0, 15);
+            console.log("🎯 View reset");
+        }
+        
+        function startSwarm() {
+            swarmMode = !swarmMode;
+            console.log("🌪️ Swarm mode:", swarmMode ? "ON" : "OFF");
+        }
+        
+        function updateUI() {
+            document.getElementById("qre-count").textContent = agentCounts.qre;
+            document.getElementById("ch-count").textContent = agentCounts.ch;
+            document.getElementById("lr-count").textContent = agentCounts.lr;
+            document.getElementById("egt-count").textContent = agentCounts.egt;
+            document.getElementById("ce-count").textContent = agentCounts.ce;
+            document.getElementById("ml-count").textContent = agentCounts.ml;
+            document.getElementById("total-count").textContent = agents.length;
+            document.getElementById("connection-count").textContent = connections.length;
+            
+            // Calculate average coordination
+            const avgCoord = agents.reduce((sum, agent) => sum + agent.userData.performance, 0) / agents.length;
+            document.getElementById("coordination").textContent = Math.round(avgCoord * 100) + "%";
+            
+            // Count visible agents (rough estimate)
+            const visible = agents.filter(agent => {
+                const distance = camera.position.distanceTo(agent.position);
+                return distance < 30;
+            }).length;
+            document.getElementById("visible").textContent = visible;
+        }
+        
+        // FPS counter
+        let frameCount = 0;
+        let lastTime = performance.now();
+        
+        function updateFPS() {
+            frameCount++;
+            const currentTime = performance.now();
+            
+            if (currentTime - lastTime >= 1000) {
+                const fps = Math.round((frameCount * 1000) / (currentTime - lastTime));
+                document.getElementById("fps").textContent = fps;
+                frameCount = 0;
+                lastTime = currentTime;
+            }
+            
+            requestAnimationFrame(updateFPS);
+        }
+        
+        window.addEventListener("resize", () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        // Mouse controls for camera
+        let mouseDown = false;
+        let mouseX = 0;
+        let mouseY = 0;
+        
+        document.addEventListener("mousedown", (e) => {
+            mouseDown = true;
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+        
+        document.addEventListener("mouseup", () => {
+            mouseDown = false;
+        });
+        
+        document.addEventListener("mousemove", (e) => {
+            if (mouseDown) {
+                const deltaX = e.clientX - mouseX;
+                const deltaY = e.clientY - mouseY;
+                
+                // Rotate camera around origin
+                const spherical = new THREE.Spherical();
+                spherical.setFromVector3(camera.position);
+                spherical.theta -= deltaX * 0.01;
+                spherical.phi += deltaY * 0.01;
+                spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi));
+                
+                camera.position.setFromSpherical(spherical);
+                camera.lookAt(0, 0, 0);
+                
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+            }
+        });
+        
+        // Scroll zoom
+        document.addEventListener("wheel", (e) => {
+            const scale = e.deltaY > 0 ? 1.1 : 0.9;
+            camera.position.multiplyScalar(scale);
+        });
+        
+        // Start everything
+        init();
+        updateFPS();
+        
+        // Update UI periodically
+        setInterval(updateUI, 1000);
+        
+        console.log("🎯 TARS Multi-Agent System Ready!");
+        console.log("Use mouse to rotate, scroll to zoom, buttons to control");
+    </script>
+</body>
+</html>

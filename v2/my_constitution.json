@@ -1,0 +1,60 @@
+{
+  "AgentId": "2d9c598f-5da8-4912-9463-100f75ee39af",
+  "NeuralRole": {
+    "Case": "GeneralReasoning"
+  },
+  "SymbolicContract": {
+    "MustPreserve": [],
+    "MustAchieve": [],
+    "ResourceBounds": [],
+    "Dependencies": [],
+    "ConflictsWith": [],
+    "TimeConstraints": []
+  },
+  "Invariants": [
+    {
+      "Case": "TestPassing"
+    }
+  ],
+  "Permissions": [
+    {
+      "Case": "ReadCode",
+      "Fields": [
+        "*"
+      ]
+    },
+    {
+      "Case": "CallTool",
+      "Fields": [
+        "read_file"
+      ]
+    },
+    {
+      "Case": "CallTool",
+      "Fields": [
+        "search_web"
+      ]
+    }
+  ],
+  "Prohibitions": [
+    {
+      "Case": "CannotModifyCore"
+    },
+    {
+      "Case": "CannotDeleteData"
+    },
+    {
+      "Case": "CannotAccessPath",
+      "Fields": [
+        "/etc/passwd"
+      ]
+    },
+    {
+      "Case": "CannotAccessPath",
+      "Fields": [
+        "C:/Windows"
+      ]
+    }
+  ],
+  "HardResourceBounds": []
+}

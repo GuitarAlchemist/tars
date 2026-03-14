@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+# Lightweight shim so repository-local tooling can invoke the system dotnet SDK
+# even when a placeholder file named `dotnet` exists in the repo checkout.
+
+set -euo pipefail
+
+if command -v dotnet >/dev/null 2>&1; then
+  exec dotnet "$@"
+else
+  echo "dotnet CLI not found on PATH" >&2
+  exit 127
+fi

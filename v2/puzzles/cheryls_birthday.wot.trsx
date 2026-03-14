@@ -1,0 +1,43 @@
+meta {
+  name = "cheryls_birthday"
+  description = "Cheryl's Birthday logic puzzle."
+  domain = "epistemic logic"
+  difficulty = "hard"
+}
+
+inputs {
+  puzzle_prompt = "Albert and Bernard just became friends with Cheryl, and they want to know when her birthday is. Cheryl gave them a list of 10 possible dates: May 15, 16, 19; June 17, 18; July 14, 16; August 14, 15, 17. Cheryl then tells Albert and Bernard separately the month and the day of her birthday respectively. Albert: I don't know when Cheryl's birthday is, but I know that Bernard does not know too. Bernard: At first I don't know when Cheryl's birthday is, but I know now. Albert: Then I also know when Cheryl's birthday is. So when is Cheryl's birthday?"
+  puzzle_type = "cheryls_birthday"
+}
+
+policy {
+  allowed_tools = ["validate_puzzle_answer"]
+  max_tool_calls = 3
+  max_tokens = 2048
+}
+
+workflow "solve_cheryls_birthday" {
+  
+  node "think" kind="reason" {
+    goal = "Solve this puzzle step by step: ${puzzle_prompt}"
+    output = "solution"
+    constraints = ["show_reasoning"]
+  }
+
+  node "validate" kind="work" {
+    tool = "validate_puzzle_answer"
+    args = { "puzzle_type": "${puzzle_type}", "answer": "${solution}" }
+    output = "validation_result"
+  }
+
+  node "verify" kind="work" {
+    input = ["validation_result"]
+    output = "final_verdict"
+    checks = [
+      { "type": "contains", "value": "${validation_result}", "needle": "PASS" }
+    ]
+  }
+
+  edge "think" -> "validate"
+  edge "validate" -> "verify"
+}

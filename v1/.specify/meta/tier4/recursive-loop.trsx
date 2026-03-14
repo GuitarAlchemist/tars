@@ -1,0 +1,20 @@
+# Tier4 Recursive Loop Coordinator
+
+CLOSURE_CREATE FRACTAL_METASCRIPT "Tier4RecursiveLoop"
+  grammar="@metascripts/fragments/critic_rules.trsx"
+  context.squad="RecursiveLoop"
+  context.role="MetaArchitect"
+  context.stage="Tier4"
+
+NOTE "Assess prior critic deltas, propose policy experiments, and record next-iteration hypotheses."
+
+METRIC policy_stability 0.78
+METRIC critic_delta_guard 0.03
+
+
+SPAWN ReasoningAgent 1 HIERARCHICAL
+SPAWN PolicyTuner 1 FRACTAL
+SPAWN EvidenceScribe 1 DEMOCRATIC
+CONNECT ReasoningAgent PolicyTuner hypothesis
+CONNECT PolicyTuner EvidenceScribe log
+REPEAT recursive-adjustment 4

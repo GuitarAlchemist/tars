@@ -1,0 +1,8 @@
+# Critic Federation Metascript
+
+CLOSURE_CREATE FRACTAL_METASCRIPT "Tier3CriticFederation"
+  grammar="@metascripts/fragments/critic_rules.trsx"
+  context.role="ReasoningCritic"
+  context.pipeline="Tier3"
+
+NOTE "Aggregate reasoning traces from safety and performance agents and adjust thresholds."

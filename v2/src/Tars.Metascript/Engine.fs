@@ -1,0 +1,1787 @@
+namespace Tars.Metascript
+
+open System
+open System.Threading.Tasks
+open System.Text.RegularExpressions
+open Tars.Core
+open Tars.Llm
+open Domain
+open Config
+
+type TemporalGraph = TemporalKnowledgeGraph.TemporalGraph
+
+module Engine =
+
+    let private resolveVariables (text: string) (state: WorkflowState) =
+        let pattern = "\{\{([^}]+)\}\}"
+
+        Regex.Replace(
+            text,
+            pattern,
+            fun m ->
+                let key = m.Groups.[1].Value.Trim()
+
+                if key.Contains(".") then
+                    let parts = key.Split('.')
+                    let stepId = parts.[0]
+                    let outputName = parts.[1]
+
+                    match state.StepOutputs.TryFind stepId with
+                    | Some outputs ->
+                        match outputs.TryFind outputName with
+                        | Some value -> string value
+                        | None -> m.Value
+                    | None -> m.Value
+                else
+                    match state.Variables.TryFind key with
+                    | Some value -> string value
+                    | None -> m.Value
+        )
+
+    let private tryGetValue (path: string) (state: WorkflowState) =
+        if path.Contains "." then
+            let parts = path.Split('.')
+            let stepId = parts.[0]
+            let outputName = parts.[1]
+
+            state.StepOutputs
+            |> Map.tryFind stepId
+            |> Option.bind (fun outputs -> outputs |> Map.tryFind outputName)
+        else
+            state.Variables |> Map.tryFind path
+
+    let private recordBudget (budget: BudgetGovernor option) (tokens: int option) =
+        match budget with
+        | Some governor ->
+            let tokenCost = tokens |> Option.filter (fun t -> t > 0) |> Option.defaultValue 0
+
+            match
+                governor.TryConsume
+                    { Cost.Zero with
+                        Tokens = tokenCost * 1<token>
+                        CallCount = 1<requests> }
+            with
+            | Result.Ok _ -> ()
+            | Result.Error e -> raise (InvalidOperationException($"Budget exceeded: {e}"))
+        | None -> ()
+
+    /// Auto-indexes content into the vector store for future retrieval
+    let private chunkContent (text: string) (maxChunkChars: int) (maxChunks: int) =
+        let paragraphs =
+            text.Split([| "\n\n"; "\r\n\r\n" |], StringSplitOptions.RemoveEmptyEntries)
+
+        let mutable current = System.Text.StringBuilder()
+        let chunks = System.Collections.Generic.List<string>()
+
+        for p in paragraphs do
+            if current.Length + p.Length + 2 > maxChunkChars then
+                if current.Length > 0 then
+                    chunks.Add(current.ToString())
+                    current <- System.Text.StringBuilder()
+
+            if p.Length > maxChunkChars then
+                // hard split long paragraph
+                let mutable idx = 0
+
+                while idx < p.Length && chunks.Count < maxChunks do
+                    let len = min maxChunkChars (p.Length - idx)
+                    chunks.Add(p.Substring(idx, len))
+                    idx <- idx + len
+            else if chunks.Count < maxChunks then
+                if current.Length > 0 then
+                    current.AppendLine() |> ignore
+
+                current.Append(p) |> ignore
+
+        if current.Length > 0 && chunks.Count < maxChunks then
+            chunks.Add(current.ToString())
+
+        chunks |> Seq.take maxChunks |> Seq.toList
+
+
+
+    /// Enriches context using the knowledge graph by finding related concepts
+    /// Enriches context using the knowledge graph by finding related concepts
+    let private enrichWithKnowledgeGraph
+        (kg: TemporalGraph option)
+        (conceptHints: string list)
+        (notes: System.Collections.Generic.List<string>)
+        =
+        match kg with
+        | Some graph ->
+
+            let related =
+                conceptHints
+                |> List.collect (fun hint ->
+                    let node =
+                        TarsEntity.ConceptE
+                            { Name = hint
+                              Description = ""
+                              RelatedConcepts = [] }
+
+                    let facts = graph.GetOutgoingFacts(node)
+
+                    facts
+                    |> List.choose (fun fact ->
+                        match TarsFact.target fact with
+                        | Some(TarsEntity.ConceptE c) ->
+                            let weight =
+                                match fact with
+                                | TarsFact.SimilarTo(_, _, w) -> w
+                                | TarsFact.DependsOn(_, _, w) -> w
+                                | TarsFact.Implements(_, _, w) -> w
+                                | TarsFact.BelongsTo _ -> 0.8 // High relevance for community membership
+                                | _ -> 0.5
+
+                            Some(c.Name, weight)
+                        | _ -> None)
+                    |> List.filter (fun (_, w) -> w > 0.3))
+                |> List.distinctBy fst
+                |> List.sortByDescending snd
+                |> List.truncate 10
+
+            if not (List.isEmpty related) then
+                notes.Add($"Knowledge graph: found {List.length related} related concepts")
+
+                let conceptStr =
+                    related
+                    |> List.map (fun (name, weight) -> $"- %s{name} (relevance: %.2f{weight})")
+                    |> String.concat "\n"
+
+                $"\nRelated concepts from knowledge graph:\n%s{conceptStr}\n"
+            else
+                ""
+        | None -> ""
+
+    /// Simple BM25-like keyword scoring for hybrid search
+    let private computeKeywordScore (query: string) (content: string) =
+        if String.IsNullOrWhiteSpace query || String.IsNullOrWhiteSpace content then
+            0.0f
+        else
+            let queryTerms =
+                query
+                    .ToLowerInvariant()
+                    .Split([| ' '; ','; '.'; '!'; '?'; ';'; ':' |], StringSplitOptions.RemoveEmptyEntries)
+                |> Array.distinct
+
+            let contentLower = content.ToLowerInvariant()
+            let contentLen = float32 content.Length
+            let avgDocLen = 500.0f // assumed average document length
+            let k1 = 1.2f
+            let b = 0.75f
+
+            let mutable score = 0.0f
+
+            for term in queryTerms do
+                // Count term frequency
+                let mutable tf = 0
+                let mutable idx = 0
+
+                while idx >= 0 do
+                    idx <- contentLower.IndexOf(term, idx)
+
+                    if idx >= 0 then
+                        tf <- tf + 1
+                        idx <- idx + 1
+
+                if tf > 0 then
+                    // Simplified BM25 scoring (without IDF since we don't have corpus stats)
+                    let tfNorm =
+                        (float32 tf * (k1 + 1.0f))
+                        / (float32 tf + k1 * (1.0f - b + b * contentLen / avgDocLen))
+
+                    score <- score + tfNorm
+
+            // Normalize by number of query terms
+            if queryTerms.Length > 0 then
+                score / float32 queryTerms.Length
+            else
+                0.0f
+
+    /// Combine semantic and keyword scores for hybrid ranking
+    let private hybridScore (semanticScore: float32) (keywordScore: float32) (semanticWeight: float32) =
+        // Normalize keyword score to 0-1 range (cap at reasonable max)
+        let normalizedKeyword = min 1.0f (keywordScore / 2.0f)
+        semanticWeight * semanticScore + (1.0f - semanticWeight) * normalizedKeyword
+
+    /// Rerank results using LLM for better relevance (optional, slower)
+    let private rerankWithLlm
+        (llm: ILlmService)
+        (query: string)
+        (results: (string * float32 * Map<string, string>) list)
+        (notes: System.Collections.Generic.List<string>)
+        =
+        task {
+            if List.isEmpty results then
+                return results
+            else
+                // Build a prompt asking LLM to rank the documents
+                let docsText =
+                    results
+                    |> List.mapi (fun i (id, _, payload) ->
+                        let content = payload |> Map.tryFind "content" |> Option.defaultValue ""
+
+                        let truncated =
+                            if content.Length > 300 then
+                                content.[..297] + "..."
+                            else
+                                content
+
+                        $"[%d{i + 1}] %s{truncated}")
+                    |> String.concat "\n\n"
+
+                let prompt =
+                    $"Given the query: \"%s{query}\"\n\nRank these documents by relevance (most relevant first). Return ONLY a comma-separated list of document numbers.\nExample: 3,1,4,2\n\nDocuments:\n%s{docsText}\n\nRanking:"
+
+                let req =
+                    { ModelHint = Some "fast"
+                      Model = None
+                      SystemPrompt = None
+                      MaxTokens = Some 50
+                      Temperature = Some 0.0
+                      Stop = []
+                      Messages = [ { Role = Role.User; Content = prompt } ]
+                      Tools = []
+                      ToolChoice = None
+                      ResponseFormat = None
+                      Stream = false
+                      JsonMode = false
+                      Seed = None
+                      ContextWindow = None }
+
+                try
+                    let! response = llm.CompleteAsync req
+                    let rankStr = response.Text.Trim()
+
+                    // Parse ranking like "3,1,4,2"
+                    let indices =
+                        rankStr.Split(',')
+                        |> Array.choose (fun s ->
+                            match Int32.TryParse(s.Trim()) with
+                            | true, v when v >= 1 && v <= results.Length -> Some(v - 1)
+                            | _ -> None)
+                        |> Array.distinct
+                        |> Array.toList
+
+                    notes.Add($"Reranked {results.Length} results via LLM")
+
+                    // Reorder results based on LLM ranking, append any not mentioned
+                    let reranked = indices |> List.choose (fun i -> results |> List.tryItem i)
+
+                    let remaining =
+                        results
+                        |> List.indexed
+                        |> List.filter (fun (i, _) -> not (List.contains i indices))
+                        |> List.map snd
+
+                    return reranked @ remaining
+                with ex ->
+                    notes.Add($"Reranking failed: {ex.Message}")
+                    return results
+        }
+
+    // ========== EMBEDDING CACHE ==========
+    /// Thread-safe LRU cache for embeddings
+    module private EmbeddingCache =
+        open System.Collections.Concurrent
+
+        let private cache = ConcurrentDictionary<string, float32[]>()
+        let private accessOrder = ConcurrentDictionary<string, int64>()
+        let mutable private accessCounter = 0L
+
+        let tryGet (key: string) =
+            match cache.TryGetValue(key) with
+            | true, embedding ->
+                accessOrder.[key] <- System.Threading.Interlocked.Increment(&accessCounter)
+                Some embedding
+            | false, _ -> None
+
+        let set (key: string) (embedding: float32[]) (maxSize: int) =
+            // Evict oldest if at capacity
+            if cache.Count >= maxSize then
+                let oldest = accessOrder |> Seq.sortBy (fun kv -> kv.Value) |> Seq.tryHead
+
+                match oldest with
+                | Some kv ->
+                    cache.TryRemove(kv.Key) |> ignore
+                    accessOrder.TryRemove(kv.Key) |> ignore
+                | None -> ()
+
+            cache.[key] <- embedding
+            accessOrder.[key] <- System.Threading.Interlocked.Increment(&accessCounter)
+
+        let clear () =
+            cache.Clear()
+            accessOrder.Clear()
+
+    /// Get embedding with caching
+    let private getEmbeddingCached (llm: ILlmService) (config: RagConfig) (text: string) =
+        task {
+            if config.EnableEmbeddingCache then
+                let cacheKey = text.GetHashCode().ToString()
+
+                match EmbeddingCache.tryGet cacheKey with
+                | Some cached -> return cached
+                | None ->
+                    let! embedding = llm.EmbedAsync(text)
+                    EmbeddingCache.set cacheKey embedding config.EmbeddingCacheSize
+                    return embedding
+            else
+                return! llm.EmbedAsync(text)
+        }
+
+    // ========== ASYNC BATCHING ==========
+    /// Embed multiple texts in parallel batches
+    let private embedBatch (llm: ILlmService) (config: RagConfig) (texts: string list) =
+        task {
+            if config.EnableAsyncBatching && texts.Length > 1 then
+                let batches = texts |> List.chunkBySize config.BatchSize
+
+                let! results =
+                    batches
+                    |> List.map (fun batch ->
+                        task {
+                            let! embeddings =
+                                batch |> List.map (fun t -> getEmbeddingCached llm config t) |> Task.WhenAll
+
+                            return embeddings |> Array.toList
+                        })
+                    |> Task.WhenAll
+
+                return results |> Array.toList |> List.concat
+            else
+                let! embeddings = texts |> List.map (fun t -> getEmbeddingCached llm config t) |> Task.WhenAll
+                return embeddings |> Array.toList
+        }
+
+    // ========== QUERY EXPANSION ==========
+    /// Use LLM to generate expanded/related queries
+    let private expandQuery
+        (llm: ILlmService)
+        (config: RagConfig)
+        (query: string)
+        (notes: System.Collections.Generic.List<string>)
+        =
+        task {
+            if not config.EnableQueryExpansion then
+                return [ query ]
+            else
+                let prompt =
+                    $"Generate %d{config.QueryExpansionCount} alternative search queries for: \"%s{query}\"\n\nReturn ONLY the queries, one per line, no numbering or explanations."
+
+                let req =
+                    { ModelHint = Some "fast"
+                      Model = None
+                      SystemPrompt = None
+                      MaxTokens = Some 150
+                      Temperature = Some 0.7
+                      Stop = []
+                      Messages = [ { Role = Role.User; Content = prompt } ]
+                      Tools = []
+                      ToolChoice = None
+                      ResponseFormat = None
+                      Stream = false
+                      JsonMode = false
+                      Seed = None
+
+                      ContextWindow = None }
+
+                try
+                    let! response = llm.CompleteAsync req
+
+                    let expanded =
+                        response.Text.Split([| '\n'; '\r' |], StringSplitOptions.RemoveEmptyEntries)
+                        |> Array.map (fun s -> s.Trim().TrimStart([| '-'; '*'; '1'; '2'; '3'; '4'; '5'; '.'; ' ' |]))
+                        |> Array.filter (fun s -> not (String.IsNullOrWhiteSpace s))
+                        |> Array.truncate config.QueryExpansionCount
+                        |> Array.toList
+
+                    notes.Add($"Query expanded to {expanded.Length + 1} variants")
+                    return query :: expanded
+                with ex ->
+                    notes.Add($"Query expansion failed: {ex.Message}")
+                    return [ query ]
+        }
+
+    // ========== METADATA FILTERING ==========
+    /// Apply metadata filters to results
+    let private applyMetadataFilters
+        (filters: MetadataFilter list)
+        (results: (string * float32 * Map<string, string>) list)
+        =
+        if List.isEmpty filters then
+            results
+        else
+            results
+            |> List.filter (fun (_, _, payload) ->
+                filters
+                |> List.forall (fun filter ->
+                    match payload |> Map.tryFind filter.Field with
+                    | None -> filter.Operator = "ne" // missing field passes "not equal" check
+                    | Some value ->
+                        match filter.Operator.ToLower() with
+                        | "eq" -> value = filter.Value
+                        | "ne" -> value <> filter.Value
+                        | "contains" -> value.ToLower().Contains(filter.Value.ToLower())
+                        | "gt" ->
+                            match Double.TryParse value, Double.TryParse filter.Value with
+                            | (true, v1), (true, v2) -> v1 > v2
+                            | _ -> value > filter.Value
+                        | "lt" ->
+                            match Double.TryParse value, Double.TryParse filter.Value with
+                            | (true, v1), (true, v2) -> v1 < v2
+                            | _ -> value < filter.Value
+                        | "gte" ->
+                            match Double.TryParse value, Double.TryParse filter.Value with
+                            | (true, v1), (true, v2) -> v1 >= v2
+                            | _ -> value >= filter.Value
+                        | "lte" ->
+                            match Double.TryParse value, Double.TryParse filter.Value with
+                            | (true, v1), (true, v2) -> v1 <= v2
+                            | _ -> value <= filter.Value
+                        | _ -> true))
+
+    // ========== MULTI-HOP RETRIEVAL ==========
+    /// Perform multi-hop retrieval using knowledge graph
+    /// Perform multi-hop retrieval using knowledge graph
+    let private multiHopRetrieval
+        (vectorStore: IVectorStore)
+        (llm: ILlmService)
+        (kg: TemporalGraph option)
+        (config: RagConfig)
+        (query: string)
+        (notes: System.Collections.Generic.List<string>)
+        =
+        task {
+            match kg with
+            | None -> return []
+            | Some _ when not config.EnableMultiHop -> return []
+            | Some graph ->
+                // Extract key concepts from query
+                let queryTerms =
+                    query.ToLowerInvariant().Split([| ' '; ','; '.'; '?'; '!' |], StringSplitOptions.RemoveEmptyEntries)
+                    |> Array.filter (fun t -> t.Length > 3) // Skip short words
+                    |> Array.map (fun t ->
+                        TarsEntity.ConceptE
+                            { Name = t
+                              Description = ""
+                              RelatedConcepts = [] })
+                    |> Array.toList
+
+                let mutable relatedConcepts = []
+
+                // Helper to extract name from TarsEntity for deduplication
+                let nodeKey (node: TarsEntity) = TarsEntity.getId node
+
+                // Find related concepts via BFS up to MaxHops
+                let mutable visited = Set.empty<string>
+                let mutable frontier = queryTerms |> List.map nodeKey |> Set.ofList
+                let mutable frontierNodes = queryTerms
+
+                for hop in 1 .. config.MaxHops do
+                    let mutable nextFrontier = Set.empty<string>
+                    let mutable nextFrontierNodes = []
+
+                    for concept in frontierNodes do
+                        let key = nodeKey concept
+
+                        if not (visited.Contains key) then
+                            visited <- visited.Add key
+                            let neighbors = graph.GetOutgoingFacts(concept)
+
+                            for fact in neighbors do
+                                match TarsFact.target fact with
+                                | Some neighbor ->
+                                    let neighborKey = nodeKey neighbor
+
+                                    let weight =
+                                        match fact with
+                                        | TarsFact.SimilarTo(_, _, w) -> w
+                                        | TarsFact.DependsOn(_, _, w) -> w
+                                        | TarsFact.Implements(_, _, w) -> w
+                                        | TarsFact.BelongsTo _ -> 0.8
+                                        | TarsFact.DerivedFrom _ -> 0.7
+                                        | _ -> 0.0
+
+                                    if weight > 0.3 && not (visited.Contains neighborKey) then
+                                        relatedConcepts <- (neighbor, weight, hop) :: relatedConcepts
+
+                                        if not (nextFrontier.Contains neighborKey) then
+                                            nextFrontier <- nextFrontier.Add neighborKey
+                                            nextFrontierNodes <- neighbor :: nextFrontierNodes
+                                | None -> ()
+
+                    frontierNodes <- nextFrontierNodes
+
+                // Retrieve documents for top related concepts
+                let topConcepts =
+                    relatedConcepts
+                    |> List.sortByDescending (fun (_, w, _) -> w)
+                    |> List.truncate 5
+                    |> List.map (fun (c, _, _) -> nodeKey c)
+
+                if List.isEmpty topConcepts then
+                    return []
+                else
+                    notes.Add($"Multi-hop: exploring {topConcepts.Length} related concepts")
+
+                    // Embed and search for each concept
+                    let! allResults =
+                        topConcepts
+                        |> List.map (fun concept ->
+                            task {
+                                let! embedding = getEmbeddingCached llm config concept
+
+                                let! results =
+                                    vectorStore.SearchAsync(config.CollectionName, embedding, config.TopK / 2)
+
+                                return results |> List.map (fun (id, d, p) -> (id, d, p, concept))
+                            })
+                        |> Task.WhenAll
+
+                    // Flatten and dedupe by id
+                    let hopResults =
+                        allResults
+                        |> Array.toList
+                        |> List.concat
+                        |> List.distinctBy (fun (id, _, _, _) -> id)
+                        |> List.map (fun (id, d, p, _) -> (id, d, p))
+
+                    notes.Add($"Multi-hop: found {hopResults.Length} additional results")
+                    return hopResults
+        }
+
+    // ========== RECIPROCAL RANK FUSION ==========
+    /// Combine multiple result lists using RRF
+    let private reciprocalRankFusion (resultLists: (string * float32 * Map<string, string>) list list) (k: int) =
+        // RRF score = sum(1 / (k + rank)) for each list
+        let scores = System.Collections.Generic.Dictionary<string, float32>()
+        let payloads = System.Collections.Generic.Dictionary<string, Map<string, string>>()
+
+        for results in resultLists do
+            results
+            |> List.iteri (fun rank (id, _, payload) ->
+                let rrfScore = 1.0f / (float32 k + float32 (rank + 1))
+
+                match scores.TryGetValue(id) with
+                | true, existing -> scores.[id] <- existing + rrfScore
+                | false, _ -> scores.[id] <- rrfScore
+
+                payloads.[id] <- payload)
+
+        // Sort by combined score descending
+        scores
+        |> Seq.map (fun kv -> (kv.Key, 1.0f - kv.Value, payloads.[kv.Key])) // Convert to distance format
+        |> Seq.sortBy (fun (_, dist, _) -> dist)
+        |> Seq.toList
+
+    // ========== QUERY ROUTING ==========
+    /// Classify query type for routing to appropriate retrieval strategy
+    let private classifyQuery (query: string) : QueryType =
+        let q = query.ToLowerInvariant()
+
+        let words =
+            q.Split([| ' '; ','; '.'; '?'; '!' |], StringSplitOptions.RemoveEmptyEntries)
+
+        // Keyword-heavy: mostly nouns/proper nouns, no question words
+        let questionWords =
+            [| "what"
+               "why"
+               "how"
+               "when"
+               "where"
+               "who"
+               "which"
+               "explain"
+               "describe" |]
+
+        let hasQuestionWord = questionWords |> Array.exists (fun w -> q.Contains(w))
+
+        // Analytical: contains reasoning indicators
+        let analyticalWords =
+            [| "analyze"
+               "compare"
+               "evaluate"
+               "explain why"
+               "reason"
+               "implications"
+               "impact" |]
+
+        let isAnalytical = analyticalWords |> Array.exists (fun w -> q.Contains(w))
+
+        // Conversational: short, pronouns, follow-up indicators
+        let conversationalWords =
+            [| "it"; "this"; "that"; "those"; "more"; "also"; "another" |]
+
+        let isConversational =
+            words.Length < 5
+            && conversationalWords |> Array.exists (fun w -> words |> Array.contains w)
+
+        if isConversational then
+            QueryType.Conversational
+        elif isAnalytical then
+            QueryType.Analytical
+        elif hasQuestionWord then
+            QueryType.Factual
+        elif words.Length >= 3 && not hasQuestionWord then
+            QueryType.Keyword
+        else
+            QueryType.Unknown
+
+    /// Get retrieval strategy based on query type
+    let private getStrategyForQueryType (queryType: QueryType) (config: RagConfig) =
+        match queryType with
+        | QueryType.Factual ->
+            // Factual: prioritize semantic search, lower TopK for precision
+            { config with
+                SemanticWeight = 0.8f
+                TopK = min config.TopK 5 }
+        | QueryType.Analytical ->
+            // Analytical: broader search, enable multi-hop if available
+            { config with
+                TopK = config.TopK + 3
+                EnableMultiHop = true }
+        | QueryType.Conversational ->
+            // Conversational: smaller context, faster
+            { config with
+                TopK = min config.TopK 3
+                EnableReranking = false }
+        | QueryType.Keyword ->
+            // Keyword: boost keyword weight in hybrid search
+            { config with
+                SemanticWeight = 0.4f
+                EnableHybridSearch = true }
+        | QueryType.Unknown -> config
+
+    // ========== TIME DECAY SCORING ==========
+    /// Apply time decay to score based on document age
+    let private applyTimeDecay (config: RagConfig) (results: (string * float32 * Map<string, string>) list) =
+        if not config.EnableTimeDecay then
+            results
+        else
+            let now = DateTime.UtcNow
+            let halfLifeMs = config.TimeDecayHalfLifeDays * 24.0 * 60.0 * 60.0 * 1000.0
+
+            results
+            |> List.map (fun (id, distance, payload) ->
+                let ageMs =
+                    payload
+                    |> Map.tryFind "timestamp"
+                    |> Option.bind (fun ts ->
+                        match DateTime.TryParse(ts) with
+                        | true, dt -> Some (now - dt).TotalMilliseconds
+                        | _ -> None)
+                    |> Option.defaultValue 0.0
+
+                // Exponential decay: score * 0.5^(age/halfLife)
+                let decayFactor = Math.Pow(0.5, ageMs / halfLifeMs) |> float32
+                let similarity = 1.0f - distance
+                let decayedSimilarity = similarity * (0.5f + 0.5f * decayFactor) // Blend to avoid too harsh decay
+                (id, 1.0f - decayedSimilarity, payload))
+            |> List.sortBy (fun (_, dist, _) -> dist)
+
+    // ========== CONTEXTUAL COMPRESSION ==========
+    /// Use LLM to extract only relevant portions from retrieved content
+    let private compressContext
+        (llm: ILlmService)
+        (config: RagConfig)
+        (query: string)
+        (results: (string * float32 * Map<string, string>) list)
+        (notes: System.Collections.Generic.List<string>)
+        =
+        task {
+            if not config.EnableContextualCompression || List.isEmpty results then
+                return results
+            else
+                notes.Add($"Compression: processing {results.Length} results")
+
+                let! compressed =
+                    results
+                    |> List.map (fun (id, distance, payload) ->
+                        task {
+                            let content = payload |> Map.tryFind "content" |> Option.defaultValue ""
+
+                            if content.Length <= config.CompressionMaxChars then
+                                return (id, distance, payload)
+                            else
+                                let prompt =
+                                    $"Extract ONLY the parts relevant to this query: \"%s{query}\"\n\nDocument:\n%s{content}\n\nReturn only the relevant excerpts, nothing else. Max %d{config.CompressionMaxChars} characters."
+
+                                let req =
+                                    { ModelHint = Some "fast"
+                                      Model = None
+                                      SystemPrompt = None
+                                      MaxTokens = Some(config.CompressionMaxChars / 3)
+                                      Temperature = Some 0.0
+                                      Stop = []
+                                      Messages = [ { Role = Role.User; Content = prompt } ]
+                                      Tools = []
+                                      ToolChoice = None
+                                      ResponseFormat = None
+                                      Stream = false
+                                      JsonMode = false
+                                      Seed = None
+                                      ContextWindow = None }
+
+                                try
+                                    let! response = llm.CompleteAsync req
+                                    let compressed = response.Text.Trim()
+
+                                    let newPayload =
+                                        payload |> Map.add "content" compressed |> Map.add "compressed" "true"
+
+                                    return (id, distance, newPayload)
+                                with _ ->
+                                    return (id, distance, payload)
+                        })
+                    |> Task.WhenAll
+
+                notes.Add($"Compression: completed")
+                return compressed |> Array.toList
+        }
+
+    // ========== SEMANTIC CHUNKING ==========
+    /// Split text into semantic chunks based on paragraph/section boundaries
+    let private semanticChunk (config: RagConfig) (text: string) : string list =
+        if not config.EnableSemanticChunking then
+            // Fall back to fixed-size chunking
+            let rec chunk (s: string) acc =
+                if s.Length <= config.MaxChunkChars then
+                    List.rev (s :: acc)
+                else
+                    let breakPoint =
+                        // Try to break at sentence boundary
+                        let sentenceEnd =
+                            s.LastIndexOfAny([| '.'; '!'; '?' |], min (config.MaxChunkChars - 1) (s.Length - 1))
+
+                        if sentenceEnd > config.MaxChunkChars / 2 then
+                            sentenceEnd + 1
+                        else
+                            config.MaxChunkChars
+
+                    chunk (s.Substring(breakPoint).TrimStart()) (s.Substring(0, breakPoint) :: acc)
+
+            chunk text []
+        else
+            // Split by double newlines (paragraphs) first
+            let paragraphs =
+                text.Split([| "\n\n"; "\r\n\r\n" |], StringSplitOptions.RemoveEmptyEntries)
+                |> Array.map (fun s -> s.Trim())
+                |> Array.filter (fun s -> s.Length > 0)
+
+            // Merge small paragraphs, split large ones
+            let mutable chunks = []
+            let mutable current = ""
+
+            for para in paragraphs do
+                if current.Length + para.Length + 2 <= config.SemanticChunkMaxChars then
+                    current <- if current.Length = 0 then para else current + "\n\n" + para
+                else
+                    if current.Length >= config.SemanticChunkMinChars then
+                        chunks <- current :: chunks
+
+                    current <- para
+
+                // Split if paragraph itself is too large
+                while current.Length > config.SemanticChunkMaxChars do
+                    let breakPoint = current.LastIndexOf('.', config.SemanticChunkMaxChars - 1)
+
+                    let bp =
+                        if breakPoint > config.SemanticChunkMinChars then
+                            breakPoint + 1
+                        else
+                            config.SemanticChunkMaxChars
+
+                    chunks <- current.Substring(0, bp) :: chunks
+                    current <- current.Substring(bp).TrimStart()
+
+            if current.Length > 0 then
+                chunks <- current :: chunks
+
+            chunks |> List.rev
+
+    let private autoIndexContent
+        (ctx: MetascriptContext)
+        (stepId: string)
+        (outputName: string)
+        (content: string)
+        (metadata: Map<string, string>)
+        (notes: System.Collections.Generic.List<string>)
+        =
+        task {
+            if ctx.RagConfig.AutoIndex && not (String.IsNullOrWhiteSpace content) then
+                match ctx.VectorStore with
+                | Some vectorStore ->
+                    try
+                        let chunks =
+                            if ctx.RagConfig.EnableSemanticChunking then
+                                semanticChunk ctx.RagConfig content
+                            else
+                                chunkContent content ctx.RagConfig.MaxChunkChars ctx.RagConfig.MaxChunks
+
+                        for idx, chunk in chunks |> List.indexed do
+                            let! embedding = ctx.Llm.EmbedAsync(chunk)
+
+                            let id =
+                                sprintf "%s_%s_%s_%d" stepId outputName (Guid.NewGuid().ToString("N").[..6]) idx
+
+                            let payload =
+                                metadata
+                                |> Map.add "content" chunk
+                                |> Map.add "stepId" stepId
+                                |> Map.add "outputName" outputName
+                                |> Map.add "chunkIndex" (string idx)
+                                |> Map.add "chunkTotal" (string chunks.Length)
+                                |> Map.add "timestamp" (DateTime.UtcNow.ToString("o"))
+
+                            do! vectorStore.SaveAsync(ctx.RagConfig.CollectionName, id, embedding, payload)
+
+                        notes.Add($"Auto-indexed {chunks.Length} chunk(s) from {stepId}/{outputName}")
+                    with ex ->
+                        notes.Add($"Auto-index failed: {ex.Message}")
+                | None -> ()
+        }
+
+    // ========== SENTENCE WINDOW RETRIEVAL ==========
+    /// Expand retrieved content to include surrounding sentences
+    let private expandSentenceWindow
+        (config: RagConfig)
+        (results: (string * float32 * Map<string, string>) list)
+        (notes: System.Collections.Generic.List<string>)
+        =
+        if not config.EnableSentenceWindow then
+            results
+        else
+            results
+            |> List.map (fun (id, distance, payload) ->
+                let content = payload |> Map.tryFind "content" |> Option.defaultValue ""
+                let fullText = payload |> Map.tryFind "fullText" |> Option.defaultValue content
+
+                if fullText = content || String.IsNullOrEmpty fullText then
+                    (id, distance, payload)
+                else
+                    // Find content position in fullText and expand
+                    let idx = fullText.IndexOf(content)
+
+                    if idx < 0 then
+                        (id, distance, payload)
+                    else
+                        // Find sentence boundaries
+                        let sentences =
+                            fullText.Split([| '.'; '!'; '?' |], StringSplitOptions.RemoveEmptyEntries)
+                            |> Array.map (fun s -> s.Trim() + ".")
+
+                        // Find which sentence contains our content
+                        let mutable pos = 0
+                        let mutable sentenceIdx = 0
+
+                        for i, s in sentences |> Array.indexed do
+                            if pos <= idx && idx < pos + s.Length then
+                                sentenceIdx <- i
+
+                            pos <- pos + s.Length
+
+                        // Expand window
+                        let startIdx = max 0 (sentenceIdx - config.SentenceWindowSize)
+                        let endIdx = min (sentences.Length - 1) (sentenceIdx + config.SentenceWindowSize)
+                        let expanded = sentences.[startIdx..endIdx] |> String.concat " "
+
+                        notes.Add($"SentenceWindow: expanded from {content.Length} to {expanded.Length} chars")
+
+                        let newPayload =
+                            payload |> Map.add "content" expanded |> Map.add "windowExpanded" "true"
+
+                        (id, distance, newPayload))
+
+    // ========== PARENT DOCUMENT RETRIEVAL ==========
+    /// Retrieve parent documents for small chunks
+    let private retrieveParentDocs
+        (vectorStore: IVectorStore)
+        (config: RagConfig)
+        (results: (string * float32 * Map<string, string>) list)
+        (notes: System.Collections.Generic.List<string>)
+        =
+        task {
+            if not config.EnableParentDocRetrieval || List.isEmpty results then
+                return results
+            else
+                let! enriched =
+                    results
+                    |> List.map (fun (id, distance, payload) ->
+                        task {
+                            match payload |> Map.tryFind "parentId" with
+                            | Some parentId ->
+                                // Search for parent in parent collection
+                                let! parentResults =
+                                    vectorStore.SearchAsync(config.ParentCollectionName, [| 0.0f |], 1)
+                                // Note: This is a simplified lookup - in practice you'd want a direct ID lookup
+                                let parent = parentResults |> List.tryFind (fun (pid, _, _) -> pid = parentId)
+
+                                match parent with
+                                | Some(_, _, parentPayload) ->
+                                    let parentContent =
+                                        parentPayload |> Map.tryFind "content" |> Option.defaultValue ""
+
+                                    notes.Add($"ParentDoc: enriched {id} with parent {parentId}")
+
+                                    let newPayload =
+                                        payload |> Map.add "content" parentContent |> Map.add "parentRetrieved" "true"
+
+                                    return (id, distance, newPayload)
+                                | None -> return (id, distance, payload)
+                            | None -> return (id, distance, payload)
+                        })
+                    |> Task.WhenAll
+
+                return enriched |> Array.toList
+        }
+
+    // ========== CROSS-ENCODER RERANKING ==========
+    /// Rerank using cross-encoder (lighter than full LLM reranking)
+    let private crossEncoderRerank
+        (llm: ILlmService)
+        (config: RagConfig)
+        (query: string)
+        (results: (string * float32 * Map<string, string>) list)
+        (notes: System.Collections.Generic.List<string>)
+        =
+        task {
+            if not config.EnableCrossEncoder || List.isEmpty results then
+                return results
+            else
+                notes.Add($"CrossEncoder: reranking {results.Length} results")
+                // Use a simpler prompt for cross-encoder-style scoring
+                let! scored =
+                    results
+                    |> List.map (fun (id, distance, payload) ->
+                        task {
+                            let content = payload |> Map.tryFind "content" |> Option.defaultValue ""
+
+                            let prompt =
+                                $"Rate relevance 0-10 of this document to query: \"%s{query}\"\nDocument: %s{content.Substring(0, min 500 content.Length)}\nScore (just the number):"
+
+                            let req =
+                                { ModelHint = Some config.CrossEncoderModel
+                                  Model = None
+                                  SystemPrompt = None
+                                  MaxTokens = Some 5
+                                  Temperature = Some 0.0
+                                  Stop = []
+                                  Messages = [ { Role = Role.User; Content = prompt } ]
+                                  Tools = []
+                                  ToolChoice = None
+                                  ResponseFormat = None
+                                  Stream = false
+                                  JsonMode = false
+                                  Seed = None
+                                  ContextWindow = None }
+
+                            try
+                                let! response = llm.CompleteAsync req
+                                let scoreText = response.Text.Trim()
+
+                                match Double.TryParse(scoreText.Replace(",", ".")) with
+                                | true, score -> return (id, 1.0f - (float32 score / 10.0f), payload)
+                                | _ -> return (id, distance, payload)
+                            with _ ->
+                                return (id, distance, payload)
+                        })
+                    |> Task.WhenAll
+
+                let reranked = scored |> Array.sortBy (fun (_, dist, _) -> dist) |> Array.toList
+                notes.Add($"CrossEncoder: completed")
+                return reranked
+        }
+
+    // ========== ANSWER ATTRIBUTION ==========
+    /// Track which chunks were used in the answer
+    let private attributeSources
+        (results: (string * float32 * Map<string, string>) list)
+        (notes: System.Collections.Generic.List<string>)
+        : Map<string, obj> =
+        let attributions =
+            results
+            |> List.mapi (fun i (id, distance, payload) ->
+                let source = payload |> Map.tryFind "source" |> Option.defaultValue id
+                let chunk = payload |> Map.tryFind "chunkIndex" |> Option.defaultValue ""
+
+                {| Index = i + 1
+                   Id = id
+                   Source = source
+                   ChunkIndex = chunk
+                   Score = 1.0f - distance |}
+                :> obj)
+
+        notes.Add($"Attribution: tracking {attributions.Length} sources")
+        Map [ "attributions", box attributions ]
+
+    // ========== FALLBACK CHAIN ==========
+    /// Execute fallback retrieval when primary results are insufficient
+    let private executeFallback
+        (vectorStore: IVectorStore)
+        (llm: ILlmService)
+        (kg: TemporalGraph option)
+        (config: RagConfig)
+        (query: string)
+        (currentResults: (string * float32 * Map<string, string>) list)
+        (notes: System.Collections.Generic.List<string>)
+        =
+        task {
+            if
+                not config.EnableFallbackChain
+                || currentResults.Length >= config.FallbackMinResults
+            then
+                return currentResults
+            else
+                notes.Add($"Fallback: triggered (only {currentResults.Length} results)")
+
+                // Fallback 1: Try with lower min score
+                let! fallback1 =
+                    task {
+                        let! embedding = llm.EmbedAsync(query)
+                        let! results = vectorStore.SearchAsync(config.CollectionName, embedding, config.TopK * 2)
+                        return results |> List.filter (fun (_, d, _) -> (1.0f - d) >= config.MinScore * 0.5f)
+                    }
+
+                if fallback1.Length >= config.FallbackMinResults then
+                    notes.Add($"Fallback: lower threshold yielded {fallback1.Length} results")
+                    return fallback1
+                else
+                    // Fallback 2: Try knowledge graph exploration
+                    let! kgResults =
+                        multiHopRetrieval
+                            vectorStore
+                            llm
+                            kg
+                            { config with
+                                EnableMultiHop = true
+                                MaxHops = 3 }
+                            query
+                            notes
+
+                    let combined =
+                        (currentResults @ fallback1 @ kgResults)
+                        |> List.distinctBy (fun (id, _, _) -> id)
+                        |> List.sortBy (fun (_, d, _) -> d)
+
+                    notes.Add($"Fallback: final combined count = {combined.Length}")
+
+                    config.Metrics
+                    |> Option.iter (fun m -> System.Threading.Interlocked.Increment(&m.FallbackTriggered) |> ignore)
+
+                    return combined
+        }
+
+    // ========== METRICS COLLECTION ==========
+    /// Record retrieval metrics
+    let private recordMetrics (config: RagConfig) (startTime: DateTime) (resultCount: int) (cacheHit: bool) =
+        config.Metrics
+        |> Option.iter (fun m ->
+            System.Threading.Interlocked.Increment(&m.TotalQueries) |> ignore
+            let elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds |> int64
+            System.Threading.Interlocked.Add(&m.TotalLatencyMs, elapsed) |> ignore
+
+            if cacheHit then
+                System.Threading.Interlocked.Increment(&m.CacheHits) |> ignore
+            else
+                System.Threading.Interlocked.Increment(&m.CacheMisses) |> ignore
+            // Update average (approximate)
+            let total = m.TotalQueries
+
+            if total > 0L then
+                m.AvgResultCount <- (m.AvgResultCount * float (total - 1L) + float resultCount) / float total)
+
+    let rec executeStep
+        (ctx: MetascriptContext)
+        (step: WorkflowStep)
+        (state: WorkflowState)
+        : Task<Map<string, obj> * string list> =
+        task {
+            let notes = System.Collections.Generic.List<string>()
+
+            match step.Type.ToLower() with
+            | "agent" ->
+                let instruction = resolveVariables (defaultArg step.Instruction "") state
+                notes.Add($"Instruction resolved length={instruction.Length}")
+
+                // Gather context from previous steps
+                let contextStr =
+                    defaultArg step.Context []
+                    |> List.map (fun c ->
+                        match state.StepOutputs.TryFind c.StepId with
+                        | Some outputs ->
+                            match outputs.TryFind c.OutputName with
+                            | Some value -> $"Context from %s{c.StepId} (%s{c.OutputName}):\n%s{string value}"
+                            | None -> ""
+                        | None -> "")
+                    |> String.concat "\n\n"
+
+                // Extract concept hints from params for knowledge graph lookup
+                let conceptHints =
+                    step.Params
+                    |> Option.defaultValue Map.empty
+                    |> Map.tryFind "concepts"
+                    |> Option.map (fun s -> s.Split(',') |> Array.map (fun c -> c.Trim()) |> Array.toList)
+                    |> Option.defaultValue []
+
+                // Enrich with knowledge graph if concepts are specified
+                let kgContext = enrichWithKnowledgeGraph ctx.KnowledgeGraph conceptHints notes
+
+                let prompt =
+                    $"""You are %s{defaultArg step.Agent "Assistant"}.
+Instruction: %s{instruction}
+
+%s{contextStr}%s{kgContext}
+
+Output only the requested result."""
+
+                let req =
+                    { ModelHint = Some "reasoning"
+                      Model = None
+                      SystemPrompt = None
+                      MaxTokens = None
+                      Temperature = None
+                      Stop = []
+                      Messages = [ { Role = Role.User; Content = prompt } ]
+                      Tools = []
+                      ToolChoice = None
+                      ResponseFormat = None
+                      Stream = false
+                      JsonMode = false
+                      Seed = None
+
+                      ContextWindow = None }
+
+                let! response = ctx.Llm.CompleteAsync req
+
+                response.Usage
+                |> Option.iter (fun u -> notes.Add($"Tokens prompt={u.PromptTokens} completion={u.CompletionTokens}"))
+
+                recordBudget ctx.Budget (response.Usage |> Option.map (fun u -> u.TotalTokens))
+
+                // Phase 6.2: Semantic Speech Act Parsing
+                let (intent, content) =
+                    match SpeechActs.tryParse response.Text with
+                    | Some(i, c) ->
+                        let intentName =
+                            match i with
+                            | AgentIntent.Ask _ -> "Ask"
+                            | AgentIntent.Tell _ -> "Tell"
+                            | AgentIntent.Propose _ -> "Propose"
+                            | AgentIntent.Accept _ -> "Accept"
+                            | AgentIntent.Reject _ -> "Reject"
+                            | AgentIntent.Act _ -> "Act"
+                            | AgentIntent.Event _ -> "Event"
+                            | AgentIntent.Error _ -> "Error"
+
+                        notes.Add($"Protocol: Parsed speech act %s{intentName}")
+                        (Some i, c)
+                    | None -> (None, response.Text)
+
+                // Phase 6.8: Episode Ingestion for Metascript
+                match ctx.EpisodeService with
+                | Some svc ->
+                    let interaction =
+                        Tars.Core.Episode.AgentInteraction(
+                            defaultArg step.Agent "Assistant",
+                            prompt,
+                            content,
+                            DateTime.UtcNow
+                        )
+
+                    svc.Queue(interaction)
+                | None -> ()
+
+                // Assume the first output is the main text response
+                let outputName =
+                    match defaultArg step.Outputs [] with
+                    | head :: _ -> head
+                    | [] -> "output"
+
+                // Auto-index the output for future retrieval
+                let metadata =
+                    Map
+                        [ "agent", defaultArg step.Agent "Assistant"
+                          "instruction", instruction.[.. min 200 (instruction.Length - 1)]
+                          "source", "agent_output" ]
+
+                do! autoIndexContent ctx step.Id outputName content metadata notes
+
+                return (Map [ outputName, box content ], List.ofSeq notes)
+
+            | "tool" ->
+                match step.Tool with
+                | Some toolName ->
+                    match ctx.Tools.Get(toolName) with
+                    | Some tool ->
+                        let args =
+                            step.Params
+                            |> Option.defaultValue Map.empty
+                            |> Map.map (fun _ v -> resolveVariables v state)
+
+                        let input =
+                            if args.ContainsKey("input") then
+                                args["input"]
+                            elif args.ContainsKey("command") then
+                                args["command"]
+                            else
+                                // Fallback: Serialize to JSON
+                                System.Text.Json.JsonSerializer.Serialize(args)
+
+                        let! result = tool.Execute(input)
+
+                        match result with
+                        | Result.Ok s -> return (Map [ "stdout", box s ], List.ofSeq notes)
+                        | Result.Error e -> return (Map [ "error", box e ], List.ofSeq notes)
+                    | None -> return (Map [ "error", box $"Tool '%s{toolName}' not found" ], List.ofSeq notes)
+                | None -> return (Map.empty, List.ofSeq notes)
+
+            | "loop" ->
+                let stepParams = step.Params |> Option.defaultValue Map.empty
+                let listKey = stepParams |> Map.tryFind "list" |> Option.defaultValue ""
+                let itemVar = stepParams |> Map.tryFind "itemVar" |> Option.defaultValue "item"
+
+                let maxIterations =
+                    stepParams
+                    |> Map.tryFind "maxIterations"
+                    |> Option.bind (fun s ->
+                        match Int32.TryParse s with
+                        | true, v -> Some v
+                        | _ -> None)
+                    |> Option.defaultValue 100
+
+                let collection =
+                    if listKey <> "" then
+                        match tryGetValue listKey state with
+                        | Some(:? System.Collections.IEnumerable as e) -> e |> Seq.cast<obj> |> Seq.toList
+                        | Some value -> [ value ]
+                        | None ->
+                            try
+                                let doc = System.Text.Json.JsonDocument.Parse(listKey)
+
+                                if doc.RootElement.ValueKind = System.Text.Json.JsonValueKind.Array then
+                                    doc.RootElement.EnumerateArray()
+                                    |> Seq.map (fun el -> el.ToString() :> obj)
+                                    |> Seq.toList
+                                else
+                                    []
+                            with _ ->
+                                if listKey.Contains(",") then
+                                    listKey.Split(',') |> Array.map (fun s -> s.Trim() :> obj) |> Array.toList
+                                else
+                                    []
+                    else
+                        []
+
+                let mutable outputs = []
+                let mutable idx = 0
+
+                for item in collection do
+                    if idx < maxIterations then
+                        let mutable itemState =
+                            { state with
+                                Variables = state.Variables.Add(itemVar, item) }
+
+                        let instruction = resolveVariables (defaultArg step.Instruction "") itemState
+
+                        let prompt =
+                            $"""You are %s{defaultArg step.Agent "Assistant"}.
+Instruction: %s{instruction}"""
+
+                        let req =
+                            { ModelHint = Some "reasoning"
+                              Model = None
+                              SystemPrompt = None
+                              MaxTokens = None
+                              Temperature = None
+                              Stop = []
+                              Messages = [ { Role = Role.User; Content = prompt } ]
+                              Tools = []
+                              ToolChoice = None
+                              ResponseFormat = None
+                              Stream = false
+                              JsonMode = false
+                              Seed = None
+                              ContextWindow = None }
+
+                        let! response = ctx.Llm.CompleteAsync req
+                        recordBudget ctx.Budget (response.Usage |> Option.map (fun u -> u.TotalTokens))
+                        outputs <- outputs @ [ response.Text :> obj ]
+                        idx <- idx + 1
+                    else
+                        notes.Add($"Loop truncated at {maxIterations} iterations")
+
+                let outputName =
+                    match defaultArg step.Outputs [] with
+                    | head :: _ -> head
+                    | [] -> "items"
+
+                return (Map [ outputName, box outputs ], List.ofSeq notes)
+
+            | "decision" ->
+                let stepParams = step.Params |> Option.defaultValue Map.empty
+                let condition = stepParams |> Map.tryFind "condition" |> Option.defaultValue ""
+
+                let conditionValue =
+                    if condition.Contains("==") then
+                        let parts = condition.Split("==", StringSplitOptions.RemoveEmptyEntries)
+
+                        if parts.Length = 2 then
+                            let left = resolveVariables (parts[0].Trim()) state
+                            let right = resolveVariables (parts[1].Trim()) state
+                            left.Trim().Equals(right.Trim(), StringComparison.OrdinalIgnoreCase)
+                        else
+                            false
+                    else
+                        let value = resolveVariables condition state
+
+                        match Boolean.TryParse value with
+                        | true, v -> v
+                        | _ -> not (String.IsNullOrWhiteSpace value)
+
+                let outputName =
+                    match defaultArg step.Outputs [] with
+                    | head :: _ -> head
+                    | [] -> "decision"
+
+                let trueOut = stepParams |> Map.tryFind "trueOutput" |> Option.defaultValue "true"
+
+                let falseOut =
+                    stepParams |> Map.tryFind "falseOutput" |> Option.defaultValue "false"
+
+                return (Map [ outputName, if conditionValue then box trueOut else box falseOut ], List.ofSeq notes)
+
+            | "retrieval" ->
+                // RAG step: Advanced retrieval with all features
+                match ctx.VectorStore with
+                | Some vectorStore ->
+                    let startTime = DateTime.UtcNow
+                    let stepParams = step.Params |> Option.defaultValue Map.empty
+                    let query = stepParams |> Map.tryFind "query" |> Option.defaultValue ""
+                    let resolvedQuery = resolveVariables query state
+
+                    if String.IsNullOrWhiteSpace resolvedQuery then
+                        notes.Add("Retrieval: empty query, skipping")
+                        return (Map [ "context", box ""; "results", box []; "attributions", box [] ], List.ofSeq notes)
+                    else
+                        notes.Add($"Retrieval: query length={resolvedQuery.Length}")
+
+                        // Step 0: Query routing (adjust config based on query type)
+                        let effectiveConfig =
+                            if ctx.RagConfig.EnableQueryRouting then
+                                let queryType = classifyQuery resolvedQuery
+                                notes.Add($"Routing: classified as {queryType}")
+                                getStrategyForQueryType queryType ctx.RagConfig
+                            else
+                                ctx.RagConfig
+
+                        // Step 1: Query expansion (generate related queries)
+                        let! expandedQueries = expandQuery ctx.Llm effectiveConfig resolvedQuery notes
+
+                        // Step 2: Embed all queries (with caching and batching)
+                        let! queryEmbeddings = embedBatch ctx.Llm effectiveConfig expandedQueries
+
+                        let topK =
+                            stepParams
+                            |> Map.tryFind "topK"
+                            |> Option.bind (fun s ->
+                                match Int32.TryParse s with
+                                | true, v -> Some v
+                                | _ -> None)
+                            |> Option.defaultValue effectiveConfig.TopK
+
+                        let fetchK =
+                            if effectiveConfig.EnableHybridSearch || effectiveConfig.EnableRRF then
+                                topK * 3
+                            else
+                                topK * 2
+
+                        let collectionName =
+                            stepParams
+                            |> Map.tryFind "collection"
+                            |> Option.defaultValue effectiveConfig.CollectionName
+
+                        // Step 3: Search with each query embedding
+                        let! allSearchResults =
+                            queryEmbeddings
+                            |> List.map (fun emb -> vectorStore.SearchAsync(collectionName, emb, fetchK))
+                            |> Task.WhenAll
+
+                        // Step 4: Multi-hop retrieval (explore knowledge graph)
+                        let! multiHopResults =
+                            multiHopRetrieval vectorStore ctx.Llm ctx.KnowledgeGraph effectiveConfig resolvedQuery notes
+
+                        // Step 5: Combine results using RRF or simple merge
+                        let allResultLists =
+                            (allSearchResults |> Array.toList) @ [ multiHopResults ]
+                            |> List.filter (not << List.isEmpty)
+
+                        let combinedResults =
+                            if effectiveConfig.EnableRRF && allResultLists.Length > 1 then
+                                notes.Add($"Retrieval: applying RRF across {allResultLists.Length} result sets")
+                                reciprocalRankFusion allResultLists effectiveConfig.RRFConstant
+                            else
+                                allResultLists
+                                |> List.concat
+                                |> List.distinctBy (fun (id, _, _) -> id)
+                                |> List.sortBy (fun (_, dist, _) -> dist)
+
+                        // Step 6: Apply metadata filters
+                        let filteredByMeta =
+                            applyMetadataFilters effectiveConfig.MetadataFilters combinedResults
+
+                        // Step 7: Apply time decay scoring
+                        let timeDecayed = applyTimeDecay effectiveConfig filteredByMeta
+
+                        // Step 8: Apply hybrid scoring (semantic + keyword)
+                        let scoredResults =
+                            if effectiveConfig.EnableHybridSearch then
+                                notes.Add("Retrieval: applying hybrid search (semantic + keyword)")
+
+                                timeDecayed
+                                |> List.map (fun (id, distance, payload) ->
+                                    let semanticScore = 1.0f - distance
+                                    let content = payload |> Map.tryFind "content" |> Option.defaultValue ""
+                                    let keywordScore = computeKeywordScore resolvedQuery content
+
+                                    let combined =
+                                        hybridScore semanticScore keywordScore effectiveConfig.SemanticWeight
+
+                                    (id, 1.0f - combined, payload))
+                                |> List.sortBy (fun (_, distance, _) -> distance)
+                            else
+                                timeDecayed
+
+                        // Step 9: Filter by minimum score
+                        let minScore =
+                            stepParams
+                            |> Map.tryFind "minScore"
+                            |> Option.bind (fun s ->
+                                match Single.TryParse s with
+                                | true, v -> Some v
+                                | _ -> None)
+                            |> Option.defaultValue effectiveConfig.MinScore
+
+                        let filteredResults =
+                            scoredResults
+                            |> List.filter (fun (_, distance, _) -> (1.0f - distance) >= minScore)
+                            |> List.truncate (topK * 2) // Keep extra for reranking
+
+                        // Step 10: Fallback chain if insufficient results
+                        let! afterFallback =
+                            executeFallback
+                                vectorStore
+                                ctx.Llm
+                                ctx.KnowledgeGraph
+                                effectiveConfig
+                                resolvedQuery
+                                filteredResults
+                                notes
+
+                        // Step 11: Parent document retrieval
+                        let! withParents = retrieveParentDocs vectorStore effectiveConfig afterFallback notes
+
+                        // Step 12: Sentence window expansion
+                        let withSentenceWindow = expandSentenceWindow effectiveConfig withParents notes
+
+                        // Step 13: Cross-encoder reranking (lighter option)
+                        let! crossEncoderReranked =
+                            if effectiveConfig.EnableCrossEncoder && not effectiveConfig.EnableReranking then
+                                crossEncoderRerank ctx.Llm effectiveConfig resolvedQuery withSentenceWindow notes
+                            else
+                                Task.FromResult withSentenceWindow
+
+                        // Step 14: Optional full LLM reranking
+                        let! rerankedResults =
+                            if effectiveConfig.EnableReranking && not (List.isEmpty crossEncoderReranked) then
+                                rerankWithLlm ctx.Llm resolvedQuery crossEncoderReranked notes
+                            else
+                                Task.FromResult crossEncoderReranked
+
+                        // Step 15: Contextual compression
+                        let! compressedResults =
+                            compressContext
+                                ctx.Llm
+                                effectiveConfig
+                                resolvedQuery
+                                (rerankedResults |> List.truncate topK)
+                                notes
+
+                        // Step 16: Knowledge graph enrichment for explicit concepts
+                        let conceptHints =
+                            stepParams
+                            |> Map.tryFind "concepts"
+                            |> Option.map (fun s -> s.Split(',') |> Array.map (fun c -> c.Trim()) |> Array.toList)
+                            |> Option.defaultValue []
+
+                        let kgContext = enrichWithKnowledgeGraph ctx.KnowledgeGraph conceptHints notes
+
+                        // Step 17: Record metrics
+                        if effectiveConfig.EnableMetrics then
+                            recordMetrics effectiveConfig startTime compressedResults.Length false
+
+                        notes.Add($"Retrieval: final result count = {List.length compressedResults}")
+
+                        // Step 18: Answer attribution
+                        let attributionMap =
+                            if effectiveConfig.EnableAnswerAttribution then
+                                attributeSources compressedResults notes
+                            else
+                                Map.empty
+
+                        // Format results as context string with provenance
+                        let contextParts =
+                            compressedResults
+                            |> List.mapi (fun i (id, distance, payload) ->
+                                let similarity = 1.0f - distance
+                                let content = payload |> Map.tryFind "content" |> Option.defaultValue ""
+                                let source = payload |> Map.tryFind "source" |> Option.defaultValue id
+                                let chunk = payload |> Map.tryFind "chunkIndex" |> Option.defaultValue ""
+
+                                let compressed =
+                                    if payload |> Map.containsKey "compressed" then
+                                        " [compressed]"
+                                    else
+                                        ""
+
+                                let windowed =
+                                    if payload |> Map.containsKey "windowExpanded" then
+                                        " [expanded]"
+                                    else
+                                        ""
+
+                                sprintf
+                                    "[%d] (score: %.2f, source: %s%s%s%s)\n%s"
+                                    (i + 1)
+                                    similarity
+                                    source
+                                    (if chunk <> "" then $" chunk={chunk}" else "")
+                                    compressed
+                                    windowed
+                                    content)
+                            |> String.concat "\n\n"
+
+                        let combinedContext = contextParts + kgContext
+
+                        let boundedContext =
+                            if combinedContext.Length > effectiveConfig.MaxContextChars then
+                                notes.Add(
+                                    $"Retrieval: context truncated from {combinedContext.Length} to {effectiveConfig.MaxContextChars} chars (includes KG)"
+                                )
+
+                                combinedContext.Substring(0, effectiveConfig.MaxContextChars)
+                            else
+                                combinedContext
+
+                        let outputName =
+                            match defaultArg step.Outputs [] with
+                            | head :: _ -> head
+                            | [] -> "context"
+
+                        // Structured results for programmatic access
+                        let structuredResults =
+                            compressedResults
+                            |> List.map (fun (id, distance, payload) ->
+                                {| Id = id
+                                   Score = 1.0f - distance
+                                   Payload = payload |}
+                                :> obj)
+
+                        let baseOutputs =
+                            Map [ outputName, box boundedContext; "results", box structuredResults ]
+
+                        let finalOutputs =
+                            attributionMap |> Map.fold (fun acc k v -> Map.add k v acc) baseOutputs
+
+                        return (finalOutputs, List.ofSeq notes)
+
+                | None ->
+                    notes.Add("Retrieval: no vector store configured, skipping")
+                    return (Map [ "context", box ""; "results", box []; "attributions", box [] ], List.ofSeq notes)
+
+            | unknownType ->
+                match ctx.MacroRegistry with
+                | Some registry ->
+                    let! macroOpt = registry.Get unknownType
+
+                    match macroOpt with
+                    | Some macroWorkflow ->
+                        notes.Add($"Executing macro '{unknownType}' as sub-workflow")
+
+                        // Resolve inputs for the macro
+                        let macroInputs =
+                            step.Params
+                            |> Option.defaultValue Map.empty
+                            |> Map.map (fun _ v -> resolveVariables v state |> box)
+
+                        // Recursively run the macro workflow
+                        try
+                            let! subState = run ctx macroWorkflow macroInputs
+
+                            // Return the variables from the sub-workflow as outputs
+                            let outputs = subState.Variables |> Map.map (fun k v -> v)
+
+                            notes.Add($"Macro '{unknownType}' completed with {outputs.Count} outputs")
+                            return (outputs, List.ofSeq notes)
+                        with ex ->
+                            notes.Add($"Macro '{unknownType}' failed: {ex.Message}")
+                            return! Task.FromException<Map<string, obj> * string list>(ex)
+
+                    | None ->
+                        notes.Add($"Unknown step type or missing macro: {unknownType}")
+                        return (Map.empty, List.ofSeq notes)
+                | None ->
+                    notes.Add($"Unknown step type '{unknownType}' and no MacroRegistry available")
+                    return (Map.empty, List.ofSeq notes)
+        }
+
+    and run (ctx: MetascriptContext) (workflow: Workflow) (inputs: Map<string, obj>) =
+        // Validation first (synchronous check)
+        let validated =
+            match Validation.validateWorkflow workflow with
+            | Result.Ok wf -> wf
+            | Result.Error errs ->
+                let msg = String.concat "; " errs
+                raise (ArgumentException(msg))
+
+        let allSteps = validated.Steps |> List.map (fun s -> s.Id, s) |> Map.ofList
+
+        // Recursive scheduler loop defined outside the main task block
+        let rec schedulerLoop
+            (pending: string Set)
+            (running: Map<string, Task<string * Map<string, obj> * string list * DateTime * TimeSpan>>)
+            (state: WorkflowState)
+            : Task<WorkflowState> =
+            task {
+                // 1. Identify ready steps
+                let isReady (stepId: string) =
+                    let step = allSteps[stepId]
+
+                    match step.DependsOn with
+                    | None -> true
+                    | Some deps ->
+                        deps
+                        |> List.forall (fun d -> state.StepOutputs.ContainsKey d.StepId
+                        // TODO: Evaluate Condition logic here
+                        )
+
+                let newReady =
+                    pending
+                    |> Set.filter isReady
+                    |> Set.filter (fun id -> not (running.ContainsKey id))
+
+                // 2. Start ready steps
+                let mutable currentRunning = running
+                let mutable currentPending = pending
+                let mutable currentState = state // Capture for loop if needed, but we pass it down
+
+                if not (Set.isEmpty newReady) then
+                    for stepId in newReady do
+                        let step = allSteps[stepId]
+
+                        let startTask =
+                            task {
+                                let started = DateTime.UtcNow
+                                let sw = System.Diagnostics.Stopwatch.StartNew()
+                                let! outputs, notes = executeStep ctx step state
+                                sw.Stop()
+                                return (stepId, outputs, notes, started, sw.Elapsed)
+                            }
+
+                        currentRunning <- currentRunning.Add(stepId, startTask)
+                        currentPending <- currentPending.Remove stepId
+
+                // 3. Wait/Update
+                if currentRunning.Count = 0 && not (Set.isEmpty currentPending) then
+                    raise (
+                        InvalidOperationException(
+                            "Workflow deadlock: Pending steps exist but none are ready and none are running."
+                        )
+                    )
+
+                if currentRunning.Count = 0 && Set.isEmpty currentPending then
+                    return state
+                else
+                    let runningTasks = currentRunning |> Map.toList |> List.map snd
+                    let! completedTask = Task.WhenAny(runningTasks)
+                    let! result = completedTask
+                    let (stepId, outputs, notes, started, duration) = result
+
+                    let trace =
+                        { StepId = stepId
+                          StartedAt = started
+                          Duration = duration
+                          Outputs = outputs
+                          Notes = notes }
+
+                    let newState =
+                        { state with
+                            StepOutputs = state.StepOutputs.Add(stepId, outputs)
+                            ExecutionTrace = state.ExecutionTrace @ [ trace ] }
+
+                    let remainingRunning = currentRunning.Remove stepId
+                    return! schedulerLoop currentPending remainingRunning newState
+            }
+
+        task {
+            // 1. Retrieve Memory
+            let! memoryContext =
+                match ctx.SemanticMemory with
+                | Some mem ->
+                    task {
+                        let queryText =
+                            inputs
+                            |> Map.tryFind "goal"
+                            |> Option.map string
+                            |> Option.defaultValue workflow.Description
+
+                        let query =
+                            { TaskId = workflow.Name
+                              TaskKind = "metascript"
+                              TextContext = queryText
+                              Tags = [] }
+
+                        let! results = mem.Retrieve query
+
+                        if results.IsEmpty then
+                            return ""
+                        else
+                            let summaries =
+                                results
+                                |> List.choose (fun s -> s.Logical |> Option.map (fun l -> l.ProblemSummary))
+                                |> String.concat "\n- "
+
+                            return $"\nRelevant Past Experiences:\n- %s{summaries}\n"
+                    }
+                | None -> Task.FromResult ""
+
+            let inputsWithMemory = inputs.Add("memory_context", box memoryContext)
+
+            let initialState =
+                { Workflow = validated
+                  CurrentStepIndex = 0
+                  Variables = inputsWithMemory
+                  StepOutputs = Map.empty
+                  ExecutionTrace = [] }
+
+            // Run Scheduler
+            let initialPending = validated.Steps |> List.map (fun s -> s.Id) |> Set.ofList
+            let! finalState = schedulerLoop initialPending Map.empty initialState
+
+            // 2. Grow Memory
+            match ctx.SemanticMemory with
+            | Some mem ->
+                try
+                    let memTrace =
+                        { MemoryTrace.TaskId = workflow.Name
+                          Variables = finalState.Variables
+                          StepOutputs = finalState.StepOutputs }
+
+                    let! _ = mem.Grow(memTrace, obj ())
+                    ()
+                with ex ->
+                    Console.WriteLine($"[Warning] Failed to grow memory: {ex.Message}")
+            | None -> ()
+
+            return finalState
+        }

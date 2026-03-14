@@ -1,0 +1,18 @@
+(* Belief Update IR grammar — constrains LLM to produce valid belief updates *)
+(* Maps to ConstrainedDecoding.beliefUpdateSchema *)
+
+update       ::= "{" belief_id? operation subject predicate confidence evidence? source? "}"
+
+belief_id    ::= '"belief_id"' ":" string_literal ","
+operation    ::= '"operation"' ":" op_value ","
+op_value     ::= '"assert"' | '"retract"' | '"revise"' | '"strengthen"' | '"weaken"'
+
+subject      ::= '"subject"' ":" string_literal ","
+predicate    ::= '"predicate"' ":" string_literal ","
+confidence   ::= '"confidence"' ":" number
+
+evidence     ::= "," '"evidence"' ":" "[" (string_literal ("," string_literal)*)? "]"
+source       ::= "," '"source"' ":" string_literal
+
+string_literal ::= '"' [^"]* '"'
+number         ::= "0" | "0." [0-9]+ | "1" | "1.0"

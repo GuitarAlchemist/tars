@@ -1,0 +1,291 @@
+version "2025.08.29"
+
+// TARS Context Engineering Configuration
+// This demonstrates the new context engineering capabilities
+
+context_policy {
+    step_token_budget = 12000
+    
+    compression {
+        enabled = true
+        strategy = "extractive-v1"
+        targets = ["low_salience_notes", "long_logs", "verbose_traces"]
+        max_ratio = 0.55
+        quality_threshold = 0.85
+    }
+    
+    retrieval {
+        router = "intent_router_v1"
+        profiles = [
+            {
+                intent = "plan"
+                retrievers = ["bm25+vec", "recent_boost", "belief_graph"]
+                chunk = "semantic-para"
+                max_spans = 20
+                salience_threshold = 0.3
+            }
+            {
+                intent = "codegen"
+                retrievers = ["code_ast+vec", "symbol_xref", "pattern_match"]
+                chunk = "code-window"
+                max_spans = 15
+                salience_threshold = 0.4
+            }
+            {
+                intent = "eval"
+                retrievers = ["trace-index", "test_results", "performance_metrics"]
+                chunk = "short-spans"
+                max_spans = 10
+                salience_threshold = 0.5
+            }
+            {
+                intent = "reasoning"
+                retrievers = ["belief_graph", "contradiction_index", "inference_chains"]
+                chunk = "reasoning-blocks"
+                max_spans = 25
+                salience_threshold = 0.2
+            }
+            {
+                intent = "metascript_execution"
+                retrievers = ["metascript_patterns", "execution_history", "variable_context"]
+                chunk = "metascript-segments"
+                max_spans = 18
+                salience_threshold = 0.35
+            }
+            {
+                intent = "autonomous_improvement"
+                retrievers = ["self_analysis", "improvement_history", "performance_trends"]
+                chunk = "improvement-blocks"
+                max_spans = 22
+                salience_threshold = 0.25
+            }
+        ]
+    }
+    
+    fewshot {
+        max_examples = 6
+        policy = "salience-topk"
+        intent_specific = true
+        auto_retire_stale = true
+        performance_weighted = true
+    }
+    
+    memory {
+        ephemeral_max_spans = 100
+        working_set_max_spans = 500
+        consolidation_frequency = "daily"
+        salience_decay_rate = 0.95
+        promotion_threshold = 0.6
+    }
+    
+    security {
+        sanitization_enabled = true
+        injection_detection = true
+        tool_allowlist = ["fs.read", "git.diff", "run.tests", "cuda.benchmark", "metascript.execute"]
+        content_filtering = ["system_prompts", "credentials", "private_keys"]
+    }
+}
+
+// Example compression log from a TARS execution
+compression_log {
+    timestamp = "2025-08-29T10:30:00Z"
+    ratio = 0.47
+    quality_estimate = 0.92
+    tokens_saved = 3200
+    spans_compressed = 8
+    notes = "Kept test failures and CUDA performance metrics; compressed verbose logging and intermediate reasoning steps"
+    strategy_used = "extractive-v1"
+    targets_hit = ["long_logs", "verbose_traces"]
+}
+
+// Example retrieval rationale for transparency
+retrieval_rationale {
+    step_name = "GenerateAutonomousImprovement"
+    intent = "autonomous_improvement"
+    query_features = ["self_modification", "performance_optimization", "CUDA_acceleration"]
+    chosen_retrievers = ["self_analysis", "improvement_history"]
+    spans_retrieved = 22
+    salience_range = [0.25, 0.89]
+    retrieval_time_ms = 45
+    notes = "Focused on CUDA performance improvements based on recent autonomous analysis"
+}
+
+// Example belief update with provenance tracking
+belief_update {
+    timestamp = "2025-08-29T10:35:00Z"
+    provenance = [
+        {
+            file = "src/TarsEngine.FSharp.Core/CUDA/VectorOperations.fs"
+            line = 118
+            hash = "9c1d4c7"
+            confidence = 0.95
+        }
+        {
+            file = "runs/2025-08-29/autonomous_improvement_trace.jsonl"
+            idx = 213
+            confidence = 0.87
+        }
+        {
+            file = "TarsCli/Metascripts/cuda_optimization.tars"
+            line = 45
+            hash = "a7f3e2b"
+            confidence = 0.92
+        }
+    ]
+    summary = "CUDA vector operations achieve 184M+ searches/second with optimized memory coalescing patterns"
+    contradictions_checked = true
+    salience = 0.89
+    intent_context = "autonomous_improvement"
+    validation_status = "confirmed"
+    impact_assessment = "high_performance_gain"
+}
+
+// Context assembly metrics for monitoring
+context_metrics {
+    timestamp = "2025-08-29T10:40:00Z"
+    step_name = "AutonomousCodeGeneration"
+    
+    token_usage {
+        budget = 12000
+        used = 9847
+        efficiency = 0.82
+        compression_savings = 3200
+    }
+    
+    retrieval_performance {
+        intent_classification_confidence = 0.94
+        spans_retrieved = 18
+        spans_after_budgeting = 15
+        spans_after_compression = 12
+        retrieval_time_ms = 67
+        cache_hit_rate = 0.73
+    }
+    
+    memory_utilization {
+        ephemeral_spans = 23
+        working_set_spans = 156
+        long_term_spans = 1247
+        promotion_candidates = 5
+        consolidation_pending = false
+    }
+    
+    quality_indicators {
+        salience_distribution = [0.15, 0.35, 0.55, 0.75, 0.95]
+        compression_quality = 0.92
+        intent_routing_accuracy = 0.94
+        security_violations = 0
+        schema_validation_pass_rate = 1.0
+    }
+}
+
+// Few-shot example metadata
+fewshot_library {
+    intent = "autonomous_improvement"
+    examples = [
+        {
+            id = "auto-improve-2025-08-28-001"
+            salience = 0.87
+            performance_score = 0.93
+            usage_count = 12
+            last_used = "2025-08-29T09:15:00Z"
+            metrics = {
+                success_rate = 0.95
+                latency_ms = 450
+                quality_score = 0.91
+            }
+        }
+        {
+            id = "cuda-opt-2025-08-27-003"
+            salience = 0.82
+            performance_score = 0.89
+            usage_count = 8
+            last_used = "2025-08-29T08:30:00Z"
+            metrics = {
+                success_rate = 0.88
+                latency_ms = 380
+                quality_score = 0.86
+            }
+        }
+    ]
+    auto_retirement_threshold = 0.6
+    performance_weight = 0.7
+    recency_weight = 0.3
+}
+
+// Security audit log
+security_audit {
+    timestamp = "2025-08-29T10:45:00Z"
+    
+    sanitization_events = [
+        {
+            type = "prompt_injection_detected"
+            content_hash = "a1b2c3d4"
+            action = "sanitized"
+            severity = "medium"
+        }
+    ]
+    
+    tool_call_approvals = [
+        {
+            tool = "cuda.benchmark"
+            args_hash = "e5f6g7h8"
+            approved = true
+            reason = "allowlisted_tool"
+        }
+        {
+            tool = "system.shutdown"
+            args_hash = "i9j0k1l2"
+            approved = false
+            reason = "not_in_allowlist"
+        }
+    ]
+    
+    content_filtering = [
+        {
+            type = "credential_detection"
+            matches = 0
+            scanned_spans = 15
+        }
+        {
+            type = "system_prompt_leakage"
+            matches = 0
+            scanned_spans = 15
+        }
+    ]
+}
+
+// Intent classification history for learning
+intent_classification_log {
+    timestamp = "2025-08-29T10:50:00Z"
+    
+    classifications = [
+        {
+            step_name = "OptimizeCUDAKernels"
+            input_hash = "m3n4o5p6"
+            predicted_intent = "autonomous_improvement"
+            confidence = 0.94
+            actual_intent = "autonomous_improvement"
+            correct = true
+        }
+        {
+            step_name = "GenerateTestCases"
+            input_hash = "q7r8s9t0"
+            predicted_intent = "codegen"
+            confidence = 0.87
+            actual_intent = "eval"
+            correct = false
+        }
+    ]
+    
+    accuracy_metrics = {
+        overall_accuracy = 0.94
+        intent_specific_accuracy = {
+            plan = 0.96
+            codegen = 0.92
+            eval = 0.89
+            reasoning = 0.97
+            metascript_execution = 0.91
+            autonomous_improvement = 0.95
+        }
+    }
+}

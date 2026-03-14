@@ -1,0 +1,77 @@
+namespace TarsEngineFSharp
+
+open System
+open System.Threading.Tasks
+
+module RivaService =
+    type Intent = {
+        Name: string
+        Confidence: float
+    }
+
+    type Entity = {
+        Type: string
+        Value: string
+        Position: int * int
+    }
+
+    type ProcessingResult = {
+        Intent: Intent option
+        Entities: Entity list
+        OriginalText: string
+    }
+
+    type AudioResponse = {
+        AudioData: byte array
+        SampleRate: int
+        Channels: int
+    }
+
+    type RivaConfig = {
+        Language: string
+        VoiceId: string
+    }
+
+    type RivaClient(config: RivaConfig) =
+        let defaultIntent = {
+            Name = "query"
+            Confidence = 0.85
+        }
+
+        let mockEntities = [
+            { Type = "DATE"; Value = "today"; Position = (0, 5) }
+            { Type = "LOCATION"; Value = "New York"; Position = (10, 18) }
+        ]
+
+        member _.ProcessQuery(audioData: byte array) = async {
+            // TODO: Implement real functionality
+            // REAL: Implement actual async logic 100
+            
+            return {
+                Intent = Some defaultIntent
+                Entities = mockEntities
+                OriginalText = "Simulated transcription from audio data"
+            }
+        }
+
+        member _.GenerateResponse(text: string) = async {
+            // TODO: Implement real functionality
+            // REAL: Implement actual async logic 200
+            
+            return {
+                AudioData = Array.zeroCreate 1024 // TODO: Implement real functionality
+                SampleRate = 16000
+                Channels = 1
+            }
+        }
+
+        interface IDisposable with
+            member _.Dispose() = ()
+
+    // Initialize Riva client with default configuration
+    let createDefaultClient() =
+        let config = {
+            Language = "en-US"
+            VoiceId = "female-1"
+        }
+        new RivaClient(config)

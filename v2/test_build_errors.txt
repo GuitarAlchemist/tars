@@ -1,0 +1,44 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Tars.Security -> C:\Users\spare\source\repos\tars\v2\src\Tars.Security\bin\Debug\net10.0\Tars.Security.dll
+  Tars.Sandbox -> C:\Users\spare\source\repos\tars\v2\src\Tars.Sandbox\bin\Debug\net10.0\Tars.Sandbox.dll
+  Tars.Core -> C:\Users\spare\source\repos\tars\v2\src\Tars.Core\bin\Debug\net10.0\Tars.Core.dll
+  Tars.Tools -> C:\Users\spare\source\repos\tars\v2\src\Tars.Tools\bin\Debug\net10.0\Tars.Tools.dll
+  Tars.Connectors -> C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\bin\Debug\net10.0\Tars.Connectors.dll
+  Tars.Llm -> C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\bin\Debug\net10.0\Tars.Llm.dll
+  Tars.Kernel -> C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\bin\Debug\net10.0\Tars.Kernel.dll
+  Tars.Graph -> C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\bin\Debug\net10.0\Tars.Graph.dll
+  Tars.Cortex -> C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\bin\Debug\net10.0\Tars.Cortex.dll
+  Tars.Metascript -> C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\bin\Debug\net10.0\Tars.Metascript.dll
+  Tars.Evolution -> C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\bin\Debug\net10.0\Tars.Evolution.dll
+C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\EvolutionTests.fs(160,13): error FS0764: No assignment given for field 'SemanticMemory' of type 'Tars.Evolution.Engine.EvolutionContext' [C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\Tars.Tests.fsproj]
+C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\LlmServiceTests.fs(39,13): error FS0764: No assignment given for field 'Model' of type 'Tars.Llm.LlmRequest' [C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\Tars.Tests.fsproj]
+C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\LlmServiceTests.fs(66,13): error FS0764: No assignment given for field 'Model' of type 'Tars.Llm.LlmRequest' [C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\Tars.Tests.fsproj]
+C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\LlmServiceTests.fs(121,21): error FS0764: No assignment given for field 'Model' of type 'Tars.Llm.LlmRequest' [C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\Tars.Tests.fsproj]
+C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\LlmServiceTests.fs(185,21): error FS0764: No assignment given for field 'Model' of type 'Tars.Llm.LlmRequest' [C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\Tars.Tests.fsproj]
+C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\LlmServiceTests.fs(242,21): error FS0764: No assignment given for field 'Model' of type 'Tars.Llm.LlmRequest' [C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\Tars.Tests.fsproj]
+C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\LlmServiceTests.fs(308,21): error FS0764: No assignment given for field 'Model' of type 'Tars.Llm.LlmRequest' [C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\Tars.Tests.fsproj]
+C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\LlmServiceTests.fs(350,17): error FS0764: No assignment given for field 'Model' of type 'Tars.Llm.LlmRequest' [C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\Tars.Tests.fsproj]
+C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\ContextCompressionTests.fs(44,37): error FS0001: This expression was expected to have type    'string'    but here has type    'string * float' [C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\Tars.Tests.fsproj]
+C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\ContextCompressionTests.fs(50,37): error FS0001: This expression was expected to have type    'string'    but here has type    'string * float' [C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\Tars.Tests.fsproj]
+C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\IntegrationTests.fs(41,17): error FS0764: No assignment given for field 'Model' of type 'Tars.Llm.LlmRequest' [C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\Tars.Tests.fsproj]
+C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\IntegrationTests.fs(98,41): error FS0001: This expression was expected to have type    'string'    but here has type    'string * float' [C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\Tars.Tests.fsproj]
+
+Build FAILED.
+
+C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\EvolutionTests.fs(160,13): error FS0764: No assignment given for field 'SemanticMemory' of type 'Tars.Evolution.Engine.EvolutionContext' [C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\Tars.Tests.fsproj]
+C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\LlmServiceTests.fs(39,13): error FS0764: No assignment given for field 'Model' of type 'Tars.Llm.LlmRequest' [C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\Tars.Tests.fsproj]
+C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\LlmServiceTests.fs(66,13): error FS0764: No assignment given for field 'Model' of type 'Tars.Llm.LlmRequest' [C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\Tars.Tests.fsproj]
+C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\LlmServiceTests.fs(121,21): error FS0764: No assignment given for field 'Model' of type 'Tars.Llm.LlmRequest' [C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\Tars.Tests.fsproj]
+C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\LlmServiceTests.fs(185,21): error FS0764: No assignment given for field 'Model' of type 'Tars.Llm.LlmRequest' [C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\Tars.Tests.fsproj]
+C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\LlmServiceTests.fs(242,21): error FS0764: No assignment given for field 'Model' of type 'Tars.Llm.LlmRequest' [C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\Tars.Tests.fsproj]
+C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\LlmServiceTests.fs(308,21): error FS0764: No assignment given for field 'Model' of type 'Tars.Llm.LlmRequest' [C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\Tars.Tests.fsproj]
+C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\LlmServiceTests.fs(350,17): error FS0764: No assignment given for field 'Model' of type 'Tars.Llm.LlmRequest' [C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\Tars.Tests.fsproj]
+C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\ContextCompressionTests.fs(44,37): error FS0001: This expression was expected to have type    'string'    but here has type    'string * float' [C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\Tars.Tests.fsproj]
+C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\ContextCompressionTests.fs(50,37): error FS0001: This expression was expected to have type    'string'    but here has type    'string * float' [C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\Tars.Tests.fsproj]
+C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\IntegrationTests.fs(41,17): error FS0764: No assignment given for field 'Model' of type 'Tars.Llm.LlmRequest' [C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\Tars.Tests.fsproj]
+C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\IntegrationTests.fs(98,41): error FS0001: This expression was expected to have type    'string'    but here has type    'string * float' [C:\Users\spare\source\repos\tars\v2\tests\Tars.Tests\Tars.Tests.fsproj]
+    0 Warning(s)
+    12 Error(s)
+
+Time Elapsed 00:00:06.97
