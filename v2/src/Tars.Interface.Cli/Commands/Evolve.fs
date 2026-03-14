@@ -78,12 +78,16 @@ let run (logger: ILogger) (options: EvolveOptions) =
                 Confidence = Some 0.72
                 Reputation = Some 0.5 } ]
 
+        let reasoningModel =
+            config.Llm.ReasoningModel
+            |> Option.defaultValue model
+
         let curriculumAgent =
             AgentFactory.create
                 curriculumId
                 "Curriculum"
                 "0.1.0"
-                model
+                reasoningModel
                 "You are a curriculum agent that generates progressively harder coding tasks."
                 []
                 curriculumCapabilities
