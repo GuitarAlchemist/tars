@@ -1,0 +1,53 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningsAsErrors />
+    <WarningsNotAsErrors>FS0988</WarningsNotAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Core Types -->
+    <Compile Include="RevolutionaryTypes.fs" />
+    
+    <!-- Modern Game Theory Modules -->
+    <Compile Include="ModernGameTheory.fs" />
+    <Compile Include="FeedbackTracker.fs" />
+    <Compile Include="GameTheoryFeedbackCLI.fs" />
+
+    <!-- Elmish UI Integration -->
+    <Compile Include="GameTheoryElmishModels.fs" />
+    <Compile Include="GameTheoryElmishViews.fs" />
+    <Compile Include="GameTheoryElmishServices.fs" />
+    <Compile Include="GameTheoryElmishApp.fs" />
+
+    <!-- Three.js + WebGPU 3D Integration -->
+    <Compile Include="GameTheoryThreeJsIntegration.fs" />
+    <Compile Include="GameTheoryWebGPUShaders.fs" />
+    <Compile Include="GameTheoryInterstellarEffects.fs" />
+    <Compile Include="GameTheory3DIntegrationService.fs" />
+    
+    <!-- Working Core Modules -->
+    <Compile Include="AutonomousEvolution.fs" />
+    <Compile Include="BSPReasoningEngine.fs" />
+    <Compile Include="ComprehensiveTypes.fs" />
+    <Compile Include="TempTypeFixes.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.0" />
+    <PackageReference Include="System.Text.Json" Version="9.0.0" />
+  </ItemGroup>
+
+  <!-- Project references removed to eliminate warnings -->
+  <!-- <ItemGroup>
+    <ProjectReference Include="../Tars.Engine.VectorStore/Tars.Engine.VectorStore.csproj" />
+    <ProjectReference Include="../Tars.Engine.Grammar/Tars.Engine.Grammar.csproj" />
+    <ProjectReference Include="../Tars.Engine.Integration/Tars.Engine.Integration.csproj" />
+    <ProjectReference Include="../TarsEngine.CustomTransformers/TarsEngine.CustomTransformers.csproj" />
+  </ItemGroup> -->
+
+</Project>

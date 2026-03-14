@@ -1,0 +1,37 @@
+{
+  "timestamp": "2025-05-31T22:09:54.504991",
+  "media_type": "audio",
+  "confidence": 0.85,
+  "insights": [
+    "Meeting contains actionable items requiring follow-up",
+    "Multiple speakers identified - collaboration detected",
+    "Project status update with specific completion percentage",
+    "Clear next steps defined for team execution"
+  ],
+  "action_items": [
+    "Schedule QA testing for next week",
+    "Prepare deployment scripts",
+    "Create tickets for tasks"
+  ],
+  "tars_actions": [
+    "create_task_list",
+    "schedule_reminders",
+    "generate_follow_up_metascript"
+  ],
+  "intelligible_data": {
+    "structured_content": "SIMULATED AUDIO TRANSCRIPTION:\nSpeaker 1: Welcome everyone to today's project meeting. Let's review our progress.\nSpeaker 2: The development phase is 80% complete. We need to focus on testing.\nSpeaker 1: Great! What are the next action items?\nSpeaker 2: We should schedule QA testing for next week and prepare deployment scripts.\nSpeaker 1: Perfect. I'll create tickets for those tasks.\n\nACTION ITEMS DETECTED:\n- Schedule QA testing for next week\n- Prepare deployment scripts\n- Create tickets for tas...",
+    "key_concepts": [
+      "deployment",
+      "testing",
+      "meeting",
+      "action",
+      "schedule",
+      "create"
+    ],
+    "actionable_elements": [
+      "Schedule QA testing for next week",
+      "Prepare deployment scripts",
+      "Create tickets for tasks"
+    ]
+  }
+}

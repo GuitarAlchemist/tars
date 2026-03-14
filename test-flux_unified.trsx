@@ -1,0 +1,39 @@
+#!/usr/bin/env trsx
+# Unified TRSX Format - Migrated from FLUX
+# Generated: 2025-06-09T22:10:55Z
+
+# METADATA
+title: "Migrated test-flux"
+version: "2.0"
+tier: 1
+
+program {
+    META {
+        id: "META_1"
+        purpose: "Migrated META block"
+    }
+    REASONING {
+        id: "REASONING_2"
+        purpose: "Migrated REASONING block"
+    }
+    LANG {
+        id: "LANG_3"
+        purpose: "Migrated LANG block"
+    }
+    LANG {
+        id: "LANG_4"
+        purpose: "Migrated LANG block"
+    }
+    DIAGNOSTIC {
+        id: "DIAGNOSTIC_5"
+        purpose: "Migrated DIAGNOSTIC block"
+    }
+}
+
+reflection {
+    average_entropy: 0.650
+    overall_similarity: 0.750
+    insight: "Successfully migrated from legacy FLUX format"
+    insight: "Unified format reduces file management complexity"
+    insight: "Integrated reflection enables better agent reasoning"
+}

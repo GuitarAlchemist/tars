@@ -1,0 +1,35 @@
+---
+name: "TARS Functionality Test"
+version: "1.0"
+description: "Test basic TARS functionality including execution, variables, and cryptographic proof"
+variables:
+  test_input: "Hello TARS!"
+  test_number: 42
+  test_result: ""
+  execution_time: ""
+---
+
+// Test basic F# execution
+let startTime = System.DateTime.UtcNow
+printfn "🧪 Testing TARS functionality..."
+printfn "Input: %s" Variables.test_input
+printfn "Number: %d" Variables.test_number
+
+// Test mathematical operations
+let doubled = Variables.test_number * 2
+printfn "Doubled: %d" doubled
+
+// Test string operations
+let greeting = sprintf "TARS says: %s" Variables.test_input
+printfn "%s" greeting
+
+// Test cryptographic proof generation
+let proofGuid = System.Guid.NewGuid().ToString()
+printfn "🔐 Cryptographic proof GUID: %s" proofGuid
+
+// Update variables
+Variables.test_result <- greeting
+Variables.execution_time <- (System.DateTime.UtcNow - startTime).ToString()
+
+printfn "✅ Test completed successfully!"
+printfn "Execution time: %s" Variables.execution_time

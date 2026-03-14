@@ -11,12 +11,20 @@ module MonadicDsl =
     type DslResult<'T> = Result<'T, string>
 
     /// Environment type for DSL execution
+<<<<<<< HEAD:v1/parked_legacy/TarsEngine.DSL/MonadicDsl.fs
     type DslEnvironment = Dictionary<string, PropertyValue>
+=======
+    type DslEnvironment = Dictionary<string, SimpleDsl.PropertyValue>
+>>>>>>> origin/main:TarsEngine.DSL/MonadicDsl.fs
 
     /// State type for DSL execution
     type DslState = {
         Environment: DslEnvironment
+<<<<<<< HEAD:v1/parked_legacy/TarsEngine.DSL/MonadicDsl.fs
         LastResult: PropertyValue
+=======
+        LastResult: SimpleDsl.PropertyValue
+>>>>>>> origin/main:TarsEngine.DSL/MonadicDsl.fs
     }
 
     /// Computation type for DSL execution
@@ -57,19 +65,28 @@ module MonadicDsl =
             State (fun s -> (Ok (), { s with Environment = env }))
 
         /// Get a variable from the environment
+<<<<<<< HEAD:v1/parked_legacy/TarsEngine.DSL/MonadicDsl.fs
         let getVariable (name: string) : DslComputation<PropertyValue> =
+=======
+        let getVariable (name: string) : DslComputation<SimpleDsl.PropertyValue> =
+>>>>>>> origin/main:TarsEngine.DSL/MonadicDsl.fs
             State (fun s ->
                 match s.Environment.TryGetValue(name) with
                 | true, value -> (Ok value, s)
                 | false, _ -> (Error $"Variable '{name}' not found", s))
 
         /// Set a variable in the environment
+<<<<<<< HEAD:v1/parked_legacy/TarsEngine.DSL/MonadicDsl.fs
         let setVariable (name: string) (value: PropertyValue) : DslComputation<unit> =
+=======
+        let setVariable (name: string) (value: SimpleDsl.PropertyValue) : DslComputation<unit> =
+>>>>>>> origin/main:TarsEngine.DSL/MonadicDsl.fs
             State (fun s ->
                 s.Environment.[name] <- value
                 (Ok (), s))
 
         /// Get the last result
+<<<<<<< HEAD:v1/parked_legacy/TarsEngine.DSL/MonadicDsl.fs
         let getLastResult : DslComputation<PropertyValue> =
             State (fun s -> (Ok s.LastResult, s))
 
@@ -89,11 +106,36 @@ module MonadicDsl =
             State (fun s ->
                 match executeProgram program with
                 | Success value -> (Ok value, { s with LastResult = value })
+=======
+        let getLastResult : DslComputation<SimpleDsl.PropertyValue> =
+            State (fun s -> (Ok s.LastResult, s))
+
+        /// Set the last result
+        let setLastResult (value: SimpleDsl.PropertyValue) : DslComputation<unit> =
+            State (fun s -> (Ok (), { s with LastResult = value }))
+
+        /// Execute a block in the DSL monad
+        let executeBlock (block: SimpleDsl.Block) : DslComputation<SimpleDsl.PropertyValue> =
+            State (fun s ->
+                match SimpleDsl.executeBlock block s.Environment with
+                | SimpleDsl.Success value -> (Ok value, { s with LastResult = value })
+                | SimpleDsl.Error msg -> (Error msg, s))
+
+        /// Execute a program in the DSL monad
+        let executeProgram (program: SimpleDsl.Program) : DslComputation<SimpleDsl.PropertyValue> =
+            State (fun s ->
+                match SimpleDsl.executeProgram program with
+                | SimpleDsl.Success value -> (Ok value, { s with LastResult = value })
+>>>>>>> origin/main:TarsEngine.DSL/MonadicDsl.fs
                 | SimpleDsl.Error msg -> (Error msg, s))
 
         /// Run a DSL computation with an initial environment
         let run (comp: DslComputation<'T>) (env: DslEnvironment) =
+<<<<<<< HEAD:v1/parked_legacy/TarsEngine.DSL/MonadicDsl.fs
             let initialState = { Environment = env; LastResult = StringValue("") }
+=======
+            let initialState = { Environment = env; LastResult = SimpleDsl.StringValue("") }
+>>>>>>> origin/main:TarsEngine.DSL/MonadicDsl.fs
             State.run comp initialState
 
     /// Computation expression builder for DSL monad
@@ -134,7 +176,11 @@ module MonadicDsl =
                 | Ok value -> (Ok value, s')
                 | Error msg ->
                     // Set the error message in the environment
+<<<<<<< HEAD:v1/parked_legacy/TarsEngine.DSL/MonadicDsl.fs
                     s'.Environment.["error"] <- StringValue(msg)
+=======
+                    s'.Environment.["error"] <- SimpleDsl.StringValue(msg)
+>>>>>>> origin/main:TarsEngine.DSL/MonadicDsl.fs
                     // Run the handler
                     State.run (handler (Exception(msg))) s')
 
@@ -168,19 +214,32 @@ module MonadicDsl =
             let! env = Dsl.getEnvironment
 
             // Set a variable
+<<<<<<< HEAD:v1/parked_legacy/TarsEngine.DSL/MonadicDsl.fs
             do! Dsl.setVariable "x" (NumberValue 42.0)
+=======
+            do! Dsl.setVariable "x" (SimpleDsl.NumberValue 42.0)
+>>>>>>> origin/main:TarsEngine.DSL/MonadicDsl.fs
 
             // Get a variable
             let! x = Dsl.getVariable "x"
 
             // Execute a block
             let block = {
+<<<<<<< HEAD:v1/parked_legacy/TarsEngine.DSL/MonadicDsl.fs
                 Type = BlockType.Action
                 Name = Option.None
                 Content = ""
                 Properties = Map.ofList [
                     "type", StringValue "log"
                     "message", StringValue "Hello, World!"
+=======
+                Type = SimpleDsl.BlockType.Action
+                Name = Option.None
+                Content = ""
+                Properties = Map.ofList [
+                    "type", SimpleDsl.StringValue "log"
+                    "message", SimpleDsl.StringValue "Hello, World!"
+>>>>>>> origin/main:TarsEngine.DSL/MonadicDsl.fs
                 ]
                 NestedBlocks = []
             }

@@ -1,0 +1,148 @@
+# Auto-Generated TARS Data Source Metascript
+# Source: CSV Data File
+# Type: CSV File
+# Generated: 2025-05-31 22:14:54
+# Confidence: 90%
+
+## Metascript Metadata
+```yaml
+name: "CSVDataFile_closure"
+version: "1.0.0"
+type: "data-source-connector"
+auto_generated: true
+source_type: "CSV File"
+confidence: 0.9
+adaptive: true
+```
+
+## Data Source Information
+```yaml
+source_name: "CSV Data File"
+source_url: "/data/users.csv"
+description: "User data in CSV format"
+detected_pattern: "csv_file"
+```
+
+## Generated Closure
+
+# File Closure Template
+let CSVDataFile = fun filePath ->
+    async {{
+        if File.Exists(filePath) then
+            let! content = File.ReadAllTextAsync(filePath)
+            let data = content.Split("\n")
+            
+            return {{
+                Source = "CSV Data File"
+                Data = data
+                Timestamp = DateTime.UtcNow
+                FileInfo = {{
+                    Path = filePath
+                    Size = (new FileInfo(filePath)).Length
+                    LastModified = (new FileInfo(filePath)).LastWriteTime
+                }}
+                TarsActions = ["process_file_data", "validate_format", "archive_file"]
+            }}
+        else
+            return {{
+                Source = "CSV Data File"
+                Error = $"File not found: {{filePath}}"
+                Timestamp = DateTime.UtcNow
+                TarsActions = ["handle_file_error", "check_file_location", "alert_missing_file"]
+            }}
+    }}
+
+
+## Adaptive Processing
+let adaptiveProcessor = fun sourceData ->
+    async {
+        // Analyze data patterns
+        let patterns = analyzeDataPatterns sourceData.Data
+        
+        // Infer business logic
+        let businessLogic = inferBusinessLogic patterns
+        
+        // Generate TARS actions
+        let tarsActions = generateTarsActions businessLogic patterns
+        
+        return {
+            ProcessedData = sourceData
+            InferredPatterns = patterns
+            BusinessLogic = businessLogic
+            TarsActions = tarsActions
+            AdaptationTimestamp = DateTime.UtcNow
+        }
+    }
+
+## TARS Integration
+let integrateWithTars = fun adaptedData ->
+    async {
+        // Create TARS-compatible data structure
+        let tarsData = {
+            SourceType = "CSV File"
+            SourceName = "CSV Data File"
+            ProcessedData = adaptedData.ProcessedData
+            InferredActions = adaptedData.TarsActions
+            Metadata = adaptedData
+        }
+        
+        // Execute autonomous actions
+        let! executionResults = executeAutonomousActions adaptedData.TarsActions tarsData
+        
+        // Log successful integration
+        logDataSourceIntegration {
+            SourceType = "CSV File"
+            Success = true
+            Timestamp = DateTime.UtcNow
+            Confidence = 0.9
+        }
+        
+        return {
+            TarsData = tarsData
+            ExecutionResults = executionResults
+            IntegrationSuccess = true
+        }
+    }
+
+## Auto-Execution Pipeline
+let autoExecute = fun () ->
+    async {
+        // Execute data source closure
+        let! sourceData = CSVDataFile_closure defaultConfig
+        
+        // Apply adaptive processing
+        let! adaptedData = adaptiveProcessor sourceData
+        
+        // Integrate with TARS
+        let! tarsIntegration = integrateWithTars adaptedData
+        
+        return tarsIntegration
+    }
+
+## Autonomous Learning
+let learnFromExecution = fun executionResult ->
+    async {
+        if executionResult.IntegrationSuccess then
+            // Learn successful patterns
+            let patterns = extractSuccessPatterns executionResult
+            let! improvedClosure = optimizeClosure patterns
+            let! updatedMetascript = updateMetascript improvedClosure
+            
+            return {
+                LearningSuccess = true
+                ImprovedClosure = improvedClosure
+                UpdatedMetascript = updatedMetascript
+                LearningTimestamp = DateTime.UtcNow
+            }
+        else
+            // Learn from failures
+            let! diagnostics = diagnoseFailed executionResult
+            let! fixedClosure = applyfixes diagnostics
+            
+            return {
+                LearningSuccess = false
+                Diagnostics = diagnostics
+                FixedClosure = fixedClosure
+                LearningTimestamp = DateTime.UtcNow
+            }
+    }

@@ -1,0 +1,377 @@
+// TARS Metascript: CUDA Transpilation Demonstration
+// Shows F# to CUDA transpilation capabilities within metascripts
+
+DESCRIBE {
+    name: "CUDA Transpilation Demo"
+    version: "1.0"
+    author: "TARS CUDA Transpilation System"
+    description: "Demonstrates seamless F# to CUDA transpilation within metascripts"
+    capabilities: [
+        "F# to CUDA code transpilation"
+        "Multiple compilation backends (WSL, Docker, Managed CUDA)"
+        "Automatic kernel generation and compilation"
+        "Performance monitoring and debugging"
+        "Inline CUDA operations in metascripts"
+    ]
+}
+
+CONFIG {
+    model: "qwen2.5-coder:32b"
+    temperature: 0.1
+    cuda_backend: "wsl"
+    output_directory: "./cuda_output"
+    optimization_level: 2
+    architecture: "sm_75"
+}
+
+// ============================================================================
+// BASIC F# TO CUDA TRANSPILATION
+// ============================================================================
+
+CUDA_TRANSPILATION {
+    transpilation_type: "basic_f_sharp_to_cuda"
+    
+    F# {
+        // Load CUDA transpilation extensions
+        #load "src/TarsEngine.FSharp.Core/CudaTranspilation/CudaTranspiler.fs"
+        #load "src/TarsEngine.FSharp.Core/MetascriptExtensions/CudaMetascriptExtensions.fs"
+        
+        open TarsEngine.FSharp.Core.CudaTranspilation.CudaTranspiler
+        open TarsEngine.FSharp.Core.MetascriptExtensions.CudaMetascriptExtensions
+        
+        printfn "🚀 CUDA TRANSPILATION DEMONSTRATION"
+        printfn "==================================="
+        printfn ""
+        
+        // Example 1: Simple vector addition
+        let vectorAddCode = """
+let vectorAdd (a: float32 array) (b: float32 array) (result: float32 array) (n: int) =
+    for i in 0 .. n-1 do
+        result.[i] <- a.[i] + b.[i]
+"""
+        
+        printfn "📝 F# Vector Addition Code:"
+        printfn "%s" vectorAddCode
+        
+        // Transpile to CUDA
+        let cudaVectorAdd = transpileToCuda vectorAddCode "vector_add_kernel" "wsl"
+        printfn "🔧 Generated CUDA Code:"
+        printfn "%s" cudaVectorAdd
+        printfn ""
+        
+        // Example 2: Matrix multiplication
+        let matrixMulCode = """
+let matrixMultiply (a: float32 array) (b: float32 array) (result: float32 array) (rows: int) (cols: int) =
+    for i in 0 .. rows-1 do
+        for j in 0 .. cols-1 do
+            let mutable sum = 0.0f
+            for k in 0 .. cols-1 do
+                sum <- sum + a.[i * cols + k] * b.[k * cols + j]
+            result.[i * cols + j] <- sum
+"""
+        
+        printfn "📝 F# Matrix Multiplication Code:"
+        printfn "%s" matrixMulCode
+        
+        let cudaMatrixMul = transpileToCuda matrixMulCode "matrix_multiply_kernel" "wsl"
+        printfn "🔧 Generated CUDA Code:"
+        printfn "%s" cudaMatrixMul
+        printfn ""
+        
+        // Example 3: Sedenion operations
+        let sedenionCode = """
+let sedenionAdd (a: float32 array) (b: float32 array) (result: float32 array) (count: int) =
+    for i in 0 .. count-1 do
+        for j in 0 .. 15 do  // 16 components per sedenion
+            let idx = i * 16 + j
+            result.[idx] <- a.[idx] + b.[idx]
+"""
+        
+        printfn "📝 F# Sedenion Addition Code:"
+        printfn "%s" sedenionCode
+        
+        let cudaSedenion = transpileToCuda sedenionCode "sedenion_add_kernel" "wsl"
+        printfn "🔧 Generated CUDA Code:"
+        printfn "%s" cudaSedenion
+        printfn ""
+    }
+}
+
+// ============================================================================
+// ADVANCED CUDA COMPILATION WITH MULTIPLE BACKENDS
+// ============================================================================
+
+CUDA_COMPILATION {
+    compilation_type: "multi_backend_compilation"
+    
+    F# {
+        printfn "⚙️ MULTI-BACKEND CUDA COMPILATION"
+        printfn "=================================="
+        
+        // Create CUDA execution context
+        let cudaContext = createCudaContext "./cuda_output"
+        
+        // Test different backends
+        let backends = ["wsl"; "docker"; "managed"; "native"]
+        let testCode = """
+let simpleKernel (input: float32 array) (output: float32 array) (n: int) =
+    for i in 0 .. n-1 do
+        output.[i] <- input.[i] * 2.0f + 1.0f
+"""
+        
+        printfn "🧪 Testing compilation with different backends:"
+        printfn ""
+        
+        let mutable results = []
+        
+        for backend in backends do
+            try
+                printfn "🔧 Testing %s backend..." backend
+                let result = compileToExecutable testCode "simple_kernel" backend "./cuda_output"
+                
+                printfn "   Success: %b" result.Success
+                printfn "   Compilation Time: %.2f ms" result.CompilationTime.TotalMilliseconds
+                printfn "   Output Path: %s" (result.OutputPath |> Option.defaultValue "N/A")
+                printfn "   Executable: %s" (result.ExecutablePath |> Option.defaultValue "N/A")
+                
+                if not result.Success then
+                    printfn "   Errors: %s" (String.concat "; " result.Errors)
+                
+                results <- (backend, result) :: results
+                printfn ""
+            with
+            | ex -> 
+                printfn "   ❌ Backend %s failed: %s" backend ex.Message
+                printfn ""
+        
+        // Performance comparison
+        let successfulResults = results |> List.filter (fun (_, r) -> r.Success)
+        
+        if not successfulResults.IsEmpty then
+            printfn "📊 BACKEND PERFORMANCE COMPARISON:"
+            printfn "=================================="
+            
+            for (backend, result) in successfulResults do
+                let size = result.BinarySize |> Option.map (fun s -> sprintf "%.1f KB" (float s / 1024.0)) |> Option.defaultValue "N/A"
+                printfn "🏆 %s: %.2f ms compilation, %s binary size" 
+                    backend result.CompilationTime.TotalMilliseconds size
+            
+            let fastest = successfulResults |> List.minBy (fun (_, r) -> r.CompilationTime.TotalMilliseconds)
+            printfn ""
+            printfn "🥇 Fastest backend: %s (%.2f ms)" (fst fastest) (snd fastest).CompilationTime.TotalMilliseconds
+        else
+            printfn "❌ No backends compiled successfully"
+        
+        printfn ""
+    }
+}
+
+// ============================================================================
+// CUDA COMPUTATIONAL EXPRESSIONS IN METASCRIPTS
+// ============================================================================
+
+CUDA_EXPRESSIONS {
+    expression_type: "computational_expressions"
+    
+    F# {
+        printfn "🎨 CUDA COMPUTATIONAL EXPRESSIONS"
+        printfn "================================="
+        
+        // Create CUDA context
+        let context = createCudaContext "./cuda_output"
+        
+        // Use CUDA computational expressions
+        let cudaResult = cuda context {
+            let! vectorAddResult = quickCudaKernel "vector_add" vectorAddCode context
+            let! matrixMulResult = quickCudaKernel "matrix_mul" matrixMulCode context
+            let! sedenionResult = quickCudaKernel "sedenion_add" sedenionCode context
+            
+            return (vectorAddResult, matrixMulResult, sedenionResult)
+        }
+        
+        let (vecResult, matResult, sedResult) = cudaResult
+        
+        printfn "🔬 CUDA Compilation Results:"
+        printfn "Vector Add: %s (%.2f ms)" (if vecResult.Success then "✅ SUCCESS" else "❌ FAILED") vecResult.CompilationTime.TotalMilliseconds
+        printfn "Matrix Multiply: %s (%.2f ms)" (if matResult.Success then "✅ SUCCESS" else "❌ FAILED") matResult.CompilationTime.TotalMilliseconds
+        printfn "Sedenion Add: %s (%.2f ms)" (if sedResult.Success then "✅ SUCCESS" else "❌ FAILED") sedResult.CompilationTime.TotalMilliseconds
+        
+        // Show execution log
+        printfn ""
+        printfn "📋 Execution Log:"
+        for logEntry in context.ExecutionLog |> List.rev do
+            printfn "   %s" logEntry
+        
+        printfn ""
+        printfn "📊 Compiled Kernels: %d" context.CompiledKernels.Count
+        
+        // Performance metrics
+        let metrics = [
+            collectPerformanceMetrics vecResult "vector_add" "wsl"
+            collectPerformanceMetrics matResult "matrix_mul" "wsl"
+            collectPerformanceMetrics sedResult "sedenion_add" "wsl"
+        ]
+        
+        let performanceReport = generatePerformanceReport metrics
+        printfn ""
+        printfn "%s" performanceReport
+    }
+}
+
+// ============================================================================
+// INLINE CUDA OPERATIONS
+// ============================================================================
+
+INLINE_CUDA {
+    operation_type: "inline_cuda_syntax"
+    
+    F# {
+        printfn "⚡ INLINE CUDA OPERATIONS"
+        printfn "========================"
+        
+        // Inline CUDA transpilation syntax
+        let quickMathKernel = """
+let mathKernel (input: float32 array) (output: float32 array) (n: int) =
+    for i in 0 .. n-1 do
+        output.[i] <- sqrt(input.[i] * input.[i] + 1.0f)
+""" |>TRANSPILE "math_kernel"
+        
+        printfn "🔧 Inline transpiled CUDA kernel:"
+        printfn "%s" quickMathKernel
+        printfn ""
+        
+        // Inline compilation and execution
+        let inlineResult = quickMathKernel |CUDA "math_kernel" "wsl"
+        
+        printfn "📊 Inline compilation result:"
+        printfn "Success: %b" inlineResult.Success
+        printfn "Time: %.2f ms" inlineResult.CompilationTime.TotalMilliseconds
+        
+        if inlineResult.Success then
+            let output = inlineResult |>CUDA ""
+            printfn "Execution output: %s" output
+        
+        printfn ""
+        
+        // Quick vector operations
+        let addKernel = vectorOpToCuda "+" "vector_add_op"
+        let mulKernel = vectorOpToCuda "*" "vector_mul_op"
+        let subKernel = vectorOpToCuda "-" "vector_sub_op"
+        
+        printfn "🧮 Generated vector operation kernels:"
+        printfn "Addition kernel: %d characters" addKernel.Length
+        printfn "Multiplication kernel: %d characters" mulKernel.Length
+        printfn "Subtraction kernel: %d characters" subKernel.Length
+        
+        // Quick matrix operations
+        let matAddKernel = matrixOpToCuda "+" "matrix_add_op"
+        let matMulKernel = matrixOpToCuda "*" "matrix_mul_op"
+        
+        printfn "Matrix addition kernel: %d characters" matAddKernel.Length
+        printfn "Matrix multiplication kernel: %d characters" matMulKernel.Length
+        
+        printfn ""
+    }
+}
+
+// ============================================================================
+// CUDA DEBUGGING AND VALIDATION
+// ============================================================================
+
+CUDA_DEBUGGING {
+    debugging_type: "validation_and_debugging"
+    
+    F# {
+        printfn "🐛 CUDA DEBUGGING AND VALIDATION"
+        printfn "==============================="
+        
+        // Test CUDA code validation
+        let validCode = """
+__global__ void test_kernel(float* input, float* output, int n) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < n) {
+        output[idx] = input[idx] * 2.0f;
+    }
+}
+"""
+        
+        let invalidCode = """
+void bad_kernel(float* input, float* output, int n) {
+    // Missing __global__, no thread indexing
+    for (int i = 0; i < n; i++) {
+        output[i] = input[i] * 2.0f;
+    }
+"""
+        
+        printfn "🔍 Validating CUDA code:"
+        
+        let validErrors = validateCudaCode validCode
+        let invalidErrors = validateCudaCode invalidCode
+        
+        printfn "Valid code errors: %d" validErrors.Length
+        if not validErrors.IsEmpty then
+            for error in validErrors do
+                printfn "   - %s" error
+        
+        printfn "Invalid code errors: %d" invalidErrors.Length
+        for error in invalidErrors do
+            printfn "   - %s" error
+        
+        // Add debug information
+        let debugKernel = addDebugInfo validCode "test_kernel"
+        printfn ""
+        printfn "🔧 Debug-enhanced kernel:"
+        printfn "%s" debugKernel
+        
+        printfn ""
+    }
+}
+
+// Reflection on CUDA transpilation capabilities
+REFLECT {
+    cuda_transpilation_achievements: [
+        "Successfully implemented F# to CUDA transpilation within metascripts",
+        "Created multiple compilation backends (WSL, Docker, Managed CUDA, Native)",
+        "Developed computational expressions for seamless CUDA integration",
+        "Implemented inline CUDA operations with custom syntax",
+        "Added performance monitoring and debugging capabilities",
+        "Generated vector and matrix operation kernels automatically",
+        "Validated CUDA code syntax and structure",
+        "Demonstrated real-time compilation and execution"
+    ]
+    
+    backend_capabilities: [
+        "WSL compilation using nvcc in Windows Subsystem for Linux",
+        "Docker containerized compilation for isolated environments",
+        "Managed CUDA integration for .NET applications",
+        "Native CUDA compilation for direct GPU execution",
+        "Automatic backend selection and fallback mechanisms"
+    ]
+    
+    metascript_integration: [
+        "CUDA blocks within metascript syntax",
+        "Computational expressions for CUDA operations",
+        "Inline transpilation and compilation syntax",
+        "Performance metrics collection and reporting",
+        "Debug information injection and validation",
+        "Automatic kernel generation from mathematical expressions"
+    ]
+    
+    performance_benefits: [
+        "Real-time F# to CUDA transpilation",
+        "Multiple compilation backend support",
+        "Automatic optimization and architecture targeting",
+        "Performance monitoring and comparison",
+        "Seamless integration with existing TARS workflows",
+        "Type-safe CUDA kernel generation"
+    ]
+    
+    future_enhancements: [
+        "GPU memory management integration",
+        "Automatic kernel optimization based on hardware",
+        "Real-time performance profiling and tuning",
+        "Integration with TARS vector stores and sedenion operations",
+        "Advanced debugging and visualization tools",
+        "Multi-GPU compilation and execution support"
+    ]
+}

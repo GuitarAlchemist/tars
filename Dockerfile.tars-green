@@ -1,0 +1,35 @@
+# TARS Green Baseline Container 
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base 
+WORKDIR /app 
+EXPOSE 8080 
+EXPOSE 8081 
+ 
+# Build stage 
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build 
+WORKDIR /src 
+COPY ["TarsEngine.FSharp.Cli/TarsEngine.FSharp.Cli.fsproj", "TarsEngine.FSharp.Cli/"] 
+RUN dotnet restore "TarsEngine.FSharp.Cli/TarsEngine.FSharp.Cli.fsproj" 
+COPY . . 
+WORKDIR "/src/TarsEngine.FSharp.Cli" 
+RUN dotnet publish "TarsEngine.FSharp.Cli.fsproj" -c Release -o /app/publish 
+ 
+# Runtime stage 
+FROM base AS final 
+WORKDIR /app 
+COPY --from=build /app/publish . 
+ 
+# Create TARS directories 
+RUN mkdir -p /app/.tars/green /app/.tars/shared /app/.tars/logs 
+ 
+# Environment variables 
+ENV TARS_ENVIRONMENT=green 
+ENV TARS_ROLE=baseline 
+ENV TARS_NAMESPACE=tars 
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 
+ENV ASPNETCORE_URLS=http://+:8080 
+ 
+# Health check 
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 CMD curl -f http://localhost:8080/health || exit 1 
+ 
+# Entry point 
+ENTRYPOINT ["dotnet", "TarsEngine.FSharp.Cli.dll", "serve", "--port", "8080"] 

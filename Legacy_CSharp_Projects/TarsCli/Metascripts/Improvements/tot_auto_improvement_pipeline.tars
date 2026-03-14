@@ -1,0 +1,603 @@
+﻿DESCRIBE {
+    name: "Tree-of-Thought Auto-Improvement Pipeline"
+    version: "1.0"
+    author: "TARS Auto-Improvement"
+    description: "Runs a complete auto-improvement pipeline using Tree-of-Thought reasoning to analyze, generate fixes, and apply improvements"
+    tags: ["pipeline", "auto-improvement", "tree-of-thought", "reasoning", "advanced"]
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.2
+    max_tokens: 8000
+    backup_before_changes: true
+}
+
+// Define the paths to the metascripts
+VARIABLE metascript_paths {
+    value: {
+        tot_analyzer: "TarsCli/Metascripts/Core/tree_of_thought_generator.tars",
+        code_analyzer: "TarsCli/Metascripts/Improvements/code_quality_analyzer.tars",
+        fix_generator: "TarsCli/Metascripts/Improvements/code_fix_generator.tars",
+        fix_applicator: "TarsCli/Metascripts/Improvements/code_fix_applicator.tars"
+    }
+}
+
+// Define the output paths
+VARIABLE output_paths {
+    value: {
+        tot_results: "tot_generation_results.json",
+        tot_report: "tot_generation_report.md",
+        analysis_results: "code_quality_analysis_results.json",
+        analysis_report: "code_quality_analysis_report.md",
+        fixes_results: "code_quality_fixes.json",
+        fixes_report: "code_fix_generation_report.md",
+        application_results: "code_fix_application_results.json",
+        application_report: "code_fix_application_report.md",
+        summary_report: "tot_auto_improvement_summary_report.md"
+    }
+}
+
+// Define the Tree-of-Thought parameters
+VARIABLE tot_params {
+    value: {
+        branching_factor: 3,
+        max_depth: 3,
+        beam_width: 2,
+        evaluation_metrics: ["relevance", "feasibility", "impact", "novelty"],
+        pruning_strategy: "beam_search"
+    }
+}
+
+// Get the current working directory
+ACTION {
+    type: "execute"
+    code: "process.cwd()"
+    result_variable: "current_dir"
+}
+
+// Initialize the pipeline results
+VARIABLE pipeline_results {
+    value: {
+        pipeline_start_time: "${new Date().toISOString()}",
+        pipeline_end_time: null,
+        tot_results: null,
+        analysis_results: null,
+        fixes_results: null,
+        application_results: null,
+        current_dir: "${current_dir}",
+        thought_trees: []
+    }
+}
+
+// Log the start of the pipeline
+ACTION {
+    type: "log"
+    message: "Starting Tree-of-Thought auto-improvement pipeline"
+}
+
+// Step 1: Run the Tree-of-Thought generator
+ACTION {
+    type: "log"
+    message: "Step 1: Running Tree-of-Thought generator"
+}
+
+ACTION {
+    type: "file_read"
+    path: "${metascript_paths.tot_analyzer}"
+    result_variable: "tot_analyzer_content"
+}
+
+EVAL {
+    code: "${tot_analyzer_content}"
+    result_variable: "tot_results"
+}
+
+// Update the pipeline results with the ToT results
+VARIABLE pipeline_results {
+    value: {
+        ...pipeline_results,
+        tot_results: "${tot_results}"
+    }
+}
+
+ACTION {
+    type: "log"
+    message: "Tree-of-Thought generation completed. Generated ${tot_results.metascripts_generated} metascripts from ${tot_results.concepts_extracted} concepts."
+}
+
+// Step 2: Run the code quality analyzer with Tree-of-Thought reasoning
+ACTION {
+    type: "log"
+    message: "Step 2: Running code quality analyzer with Tree-of-Thought reasoning"
+}
+
+// Generate a Tree-of-Thought for code analysis
+PROMPT {
+    model: "llama3"
+    temperature: 0.3
+    max_tokens: 6000
+    prompt: """
+    You are an expert code analyzer for the TARS project. Your task is to create a Tree-of-Thought reasoning process for analyzing code quality.
+    
+    Please create a thought tree that explores different approaches to code quality analysis. Use Tree-of-Thought reasoning to:
+    1. Generate multiple potential analysis approaches (branching)
+    2. For each approach, explore different analysis techniques (further branching)
+    3. Evaluate each analysis branch based on thoroughness, precision, efficiency, and applicability
+    4. Prune less promising branches and expand more promising ones
+    5. Select the most promising analysis approach
+    
+    Format your response as a JSON object with the following structure:
+    {
+      "thought_tree": {
+        "root": {
+          "thought": "Initial planning for code quality analysis",
+          "children": [
+            {
+              "thought": "Approach 1: [Approach name]",
+              "children": [
+                {
+                  "thought": "Analysis technique 1A: [Technique description]",
+                  "evaluation": {
+                    "thoroughness": 0.8,
+                    "precision": 0.7,
+                    "efficiency": 0.9,
+                    "applicability": 0.6,
+                    "overall": 0.75
+                  },
+                  "pruned": false,
+                  "children": []
+                },
+                {
+                  "thought": "Analysis technique 1B: [Technique description]",
+                  "evaluation": {
+                    "thoroughness": 0.5,
+                    "precision": 0.4,
+                    "efficiency": 0.3,
+                    "applicability": 0.2,
+                    "overall": 0.35
+                  },
+                  "pruned": true,
+                  "children": []
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "selected_approach": "Detailed description of the selected analysis approach"
+    }
+    """
+    result_variable: "analysis_thought_tree_json"
+}
+
+// Parse the analysis thought tree
+FSHARP {
+    // Parse the JSON result
+    let thoughtTreeJson = analysis_thought_tree_json
+    
+    // Return the parsed JSON
+    thoughtTreeJson
+    
+    output_variable: "analysis_thought_tree"
+}
+
+// Add the analysis thought tree to the pipeline results
+FSHARP {
+    // Get the current pipeline results
+    let results = pipeline_results
+    
+    // Parse the thought tree
+    let thoughtTree = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonDocument>(analysis_thought_tree).RootElement
+    
+    // Create a thought tree object
+    let treeObj = {|
+        phase = "code_analysis"
+        thought_tree = thoughtTree.GetProperty("thought_tree")
+        selected_approach = thoughtTree.GetProperty("selected_approach").GetString()
+    |}
+    
+    // Update the thought trees
+    let updatedTrees = results.thought_trees.Append(treeObj).ToArray()
+    
+    // Return the updated results
+    {|
+        results with
+            thought_trees = updatedTrees
+    |}
+    
+    output_variable: "updated_results"
+}
+
+VARIABLE pipeline_results {
+    value: "${updated_results}"
+}
+
+// Run the code quality analyzer
+ACTION {
+    type: "file_read"
+    path: "${metascript_paths.code_analyzer}"
+    result_variable: "code_analyzer_content"
+}
+
+EVAL {
+    code: "${code_analyzer_content}"
+    result_variable: "analysis_results"
+}
+
+// Update the pipeline results with the analysis results
+VARIABLE pipeline_results {
+    value: {
+        ...pipeline_results,
+        analysis_results: "${analysis_results}"
+    }
+}
+
+ACTION {
+    type: "log"
+    message: "Code quality analysis completed. Found ${analysis_results.issues_found} issues in ${analysis_results.files_scanned} files."
+}
+
+// Step 3: Run the fix generator with Tree-of-Thought reasoning
+ACTION {
+    type: "log"
+    message: "Step 3: Running fix generator with Tree-of-Thought reasoning"
+}
+
+// Generate a Tree-of-Thought for fix generation
+PROMPT {
+    model: "llama3"
+    temperature: 0.3
+    max_tokens: 6000
+    prompt: """
+    You are an expert code fix generator for the TARS project. Your task is to create a Tree-of-Thought reasoning process for generating fixes for code quality issues.
+    
+    Please create a thought tree that explores different approaches to fix generation. Use Tree-of-Thought reasoning to:
+    1. Generate multiple potential fix generation approaches (branching)
+    2. For each approach, explore different fix generation techniques (further branching)
+    3. Evaluate each fix generation branch based on correctness, robustness, elegance, and maintainability
+    4. Prune less promising branches and expand more promising ones
+    5. Select the most promising fix generation approach
+    
+    Format your response as a JSON object with the following structure:
+    {
+      "thought_tree": {
+        "root": {
+          "thought": "Initial planning for fix generation",
+          "children": [
+            {
+              "thought": "Approach 1: [Approach name]",
+              "children": [
+                {
+                  "thought": "Fix generation technique 1A: [Technique description]",
+                  "evaluation": {
+                    "correctness": 0.8,
+                    "robustness": 0.7,
+                    "elegance": 0.9,
+                    "maintainability": 0.6,
+                    "overall": 0.75
+                  },
+                  "pruned": false,
+                  "children": []
+                },
+                {
+                  "thought": "Fix generation technique 1B: [Technique description]",
+                  "evaluation": {
+                    "correctness": 0.5,
+                    "robustness": 0.4,
+                    "elegance": 0.3,
+                    "maintainability": 0.2,
+                    "overall": 0.35
+                  },
+                  "pruned": true,
+                  "children": []
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "selected_approach": "Detailed description of the selected fix generation approach"
+    }
+    """
+    result_variable: "fix_thought_tree_json"
+}
+
+// Parse the fix thought tree
+FSHARP {
+    // Parse the JSON result
+    let thoughtTreeJson = fix_thought_tree_json
+    
+    // Return the parsed JSON
+    thoughtTreeJson
+    
+    output_variable: "fix_thought_tree"
+}
+
+// Add the fix thought tree to the pipeline results
+FSHARP {
+    // Get the current pipeline results
+    let results = pipeline_results
+    
+    // Parse the thought tree
+    let thoughtTree = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonDocument>(fix_thought_tree).RootElement
+    
+    // Create a thought tree object
+    let treeObj = {|
+        phase = "fix_generation"
+        thought_tree = thoughtTree.GetProperty("thought_tree")
+        selected_approach = thoughtTree.GetProperty("selected_approach").GetString()
+    |}
+    
+    // Update the thought trees
+    let updatedTrees = results.thought_trees.Append(treeObj).ToArray()
+    
+    // Return the updated results
+    {|
+        results with
+            thought_trees = updatedTrees
+    |}
+    
+    output_variable: "updated_results"
+}
+
+VARIABLE pipeline_results {
+    value: "${updated_results}"
+}
+
+// Run the fix generator
+ACTION {
+    type: "file_read"
+    path: "${metascript_paths.fix_generator}"
+    result_variable: "fix_generator_content"
+}
+
+EVAL {
+    code: "${fix_generator_content}"
+    result_variable: "fixes_results"
+}
+
+// Update the pipeline results with the fixes results
+VARIABLE pipeline_results {
+    value: {
+        ...pipeline_results,
+        fixes_results: "${fixes_results}"
+    }
+}
+
+ACTION {
+    type: "log"
+    message: "Fix generation completed. Generated ${fixes_results.fixes_generated} fixes for ${fixes_results.issues_processed} issues."
+}
+
+// Step 4: Run the fix applicator with Tree-of-Thought reasoning
+ACTION {
+    type: "log"
+    message: "Step 4: Running fix applicator with Tree-of-Thought reasoning"
+}
+
+// Generate a Tree-of-Thought for fix application
+PROMPT {
+    model: "llama3"
+    temperature: 0.3
+    max_tokens: 6000
+    prompt: """
+    You are an expert code fix applicator for the TARS project. Your task is to create a Tree-of-Thought reasoning process for applying fixes to code quality issues.
+    
+    Please create a thought tree that explores different approaches to fix application. Use Tree-of-Thought reasoning to:
+    1. Generate multiple potential fix application approaches (branching)
+    2. For each approach, explore different fix application techniques (further branching)
+    3. Evaluate each fix application branch based on safety, reliability, traceability, and reversibility
+    4. Prune less promising branches and expand more promising ones
+    5. Select the most promising fix application approach
+    
+    Format your response as a JSON object with the following structure:
+    {
+      "thought_tree": {
+        "root": {
+          "thought": "Initial planning for fix application",
+          "children": [
+            {
+              "thought": "Approach 1: [Approach name]",
+              "children": [
+                {
+                  "thought": "Fix application technique 1A: [Technique description]",
+                  "evaluation": {
+                    "safety": 0.8,
+                    "reliability": 0.7,
+                    "traceability": 0.9,
+                    "reversibility": 0.6,
+                    "overall": 0.75
+                  },
+                  "pruned": false,
+                  "children": []
+                },
+                {
+                  "thought": "Fix application technique 1B: [Technique description]",
+                  "evaluation": {
+                    "safety": 0.5,
+                    "reliability": 0.4,
+                    "traceability": 0.3,
+                    "reversibility": 0.2,
+                    "overall": 0.35
+                  },
+                  "pruned": true,
+                  "children": []
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "selected_approach": "Detailed description of the selected fix application approach"
+    }
+    """
+    result_variable: "application_thought_tree_json"
+}
+
+// Parse the application thought tree
+FSHARP {
+    // Parse the JSON result
+    let thoughtTreeJson = application_thought_tree_json
+    
+    // Return the parsed JSON
+    thoughtTreeJson
+    
+    output_variable: "application_thought_tree"
+}
+
+// Add the application thought tree to the pipeline results
+FSHARP {
+    // Get the current pipeline results
+    let results = pipeline_results
+    
+    // Parse the thought tree
+    let thoughtTree = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonDocument>(application_thought_tree).RootElement
+    
+    // Create a thought tree object
+    let treeObj = {|
+        phase = "fix_application"
+        thought_tree = thoughtTree.GetProperty("thought_tree")
+        selected_approach = thoughtTree.GetProperty("selected_approach").GetString()
+    |}
+    
+    // Update the thought trees
+    let updatedTrees = results.thought_trees.Append(treeObj).ToArray()
+    
+    // Return the updated results
+    {|
+        results with
+            thought_trees = updatedTrees
+    |}
+    
+    output_variable: "updated_results"
+}
+
+VARIABLE pipeline_results {
+    value: "${updated_results}"
+}
+
+// Run the fix applicator
+ACTION {
+    type: "file_read"
+    path: "${metascript_paths.fix_applicator}"
+    result_variable: "fix_applicator_content"
+}
+
+EVAL {
+    code: "${fix_applicator_content}"
+    result_variable: "application_results"
+}
+
+// Update the pipeline results with the application results
+VARIABLE pipeline_results {
+    value: {
+        ...pipeline_results,
+        application_results: "${application_results}",
+        pipeline_end_time: "${new Date().toISOString()}"
+    }
+}
+
+ACTION {
+    type: "log"
+    message: "Fix application completed. Applied ${application_results.fixes_applied} fixes out of ${application_results.fixes_processed} processed."
+}
+
+// Generate a summary report with full paths
+VARIABLE summary_report {
+    value: """# Tree-of-Thought Auto-Improvement Summary Report
+
+## Overview
+- **Pipeline Start Time**: ${pipeline_results.pipeline_start_time}
+- **Pipeline End Time**: ${pipeline_results.pipeline_end_time}
+- **Total Duration**: ${((new Date(pipeline_results.pipeline_end_time) - new Date(pipeline_results.pipeline_start_time)) / 1000 / 60).toFixed(2)} minutes
+
+## Tree-of-Thought Generation Phase
+- **Documents Processed**: ${pipeline_results.tot_results.docs_processed}
+- **Concepts Extracted**: ${pipeline_results.tot_results.concepts_extracted}
+- **Metascripts Generated**: ${pipeline_results.tot_results.metascripts_generated}
+
+## Analysis Phase
+- **Files Scanned**: ${pipeline_results.analysis_results.files_scanned}
+- **Issues Found**: ${pipeline_results.analysis_results.issues_found}
+- **Issues by Category**:
+${Object.entries(pipeline_results.analysis_results.issues_by_category).map(([category, count]) => `  - ${category}: ${count}`).join('\n')}
+
+## Fix Generation Phase
+- **Issues Processed**: ${pipeline_results.fixes_results.issues_processed}
+- **Fixes Generated**: ${pipeline_results.fixes_results.fixes_generated}
+- **Success Rate**: ${(pipeline_results.fixes_results.fixes_generated / pipeline_results.fixes_results.issues_processed * 100).toFixed(2)}%
+- **Fixes by Category**:
+${Object.entries(pipeline_results.fixes_results.fixes_by_category).map(([category, count]) => `  - ${category}: ${count}`).join('\n')}
+
+## Fix Application Phase
+- **Fixes Processed**: ${pipeline_results.application_results.fixes_processed}
+- **Fixes Applied**: ${pipeline_results.application_results.fixes_applied}
+- **Success Rate**: ${(pipeline_results.application_results.fixes_applied / pipeline_results.application_results.fixes_processed * 100).toFixed(2)}%
+- **Fixes by Category**:
+${Object.entries(pipeline_results.application_results.fixes_by_category).map(([category, count]) => `  - ${category}: ${count}`).join('\n')}
+
+## End-to-End Metrics
+- **Issues Found**: ${pipeline_results.analysis_results.issues_found}
+- **Issues Fixed**: ${pipeline_results.application_results.fixes_applied}
+- **Overall Success Rate**: ${(pipeline_results.application_results.fixes_applied / pipeline_results.analysis_results.issues_found * 100).toFixed(2)}%
+
+## Tree-of-Thought Reasoning
+${pipeline_results.thought_trees.map(tree => `### ${tree.phase.charAt(0).toUpperCase() + tree.phase.slice(1)} Phase
+**Selected Approach**: ${tree.selected_approach}
+
+\`\`\`json
+${JSON.stringify(tree.thought_tree, null, 2)}
+\`\`\`
+`).join('\n')}
+
+## Detailed Reports
+- [ToT Generation Report](${pipeline_results.current_dir}/${output_paths.tot_report})
+- [Analysis Report](${pipeline_results.current_dir}/${output_paths.analysis_report})
+- [Fix Generation Report](${pipeline_results.current_dir}/${output_paths.fixes_report})
+- [Fix Application Report](${pipeline_results.current_dir}/${output_paths.application_report})
+"""
+}
+
+// Save the summary report
+ACTION {
+    type: "file_write"
+    path: "${output_paths.summary_report}"
+    content: "${summary_report}"
+}
+
+ACTION {
+    type: "log"
+    message: "Summary report saved to ${output_paths.summary_report}"
+}
+
+// Log the completion of the pipeline
+ACTION {
+    type: "log"
+    message: "Tree-of-Thought auto-improvement pipeline completed successfully"
+}
+
+ACTION {
+    type: "log"
+    message: "End-to-End Metrics:"
+}
+
+ACTION {
+    type: "log"
+    message: "- Issues Found: ${pipeline_results.analysis_results.issues_found}"
+}
+
+ACTION {
+    type: "log"
+    message: "- Issues Fixed: ${pipeline_results.application_results.fixes_applied}"
+}
+
+ACTION {
+    type: "log"
+    message: "- Overall Success Rate: ${(pipeline_results.application_results.fixes_applied / pipeline_results.analysis_results.issues_found * 100).toFixed(2)}%"
+}
+
+// Return the pipeline results
+RETURN {
+    value: "${pipeline_results}"
+}

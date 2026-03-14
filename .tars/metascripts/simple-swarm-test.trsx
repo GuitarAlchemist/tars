@@ -1,0 +1,99 @@
+# Simple TARS Swarm Test
+# Basic test for Docker swarm coordination
+# TARS_METASCRIPT_SIGNATURE: SIMPLE_SWARM_TEST_V1
+
+## Simple Configuration
+```yaml
+test_config:
+  name: "SimpleSwarmTest"
+  version: "1.0.0"
+  description: "Basic swarm test without file operations"
+```
+
+## Simple F# Test
+```fsharp
+// Simple TARS Swarm Test - No file operations
+
+open System
+
+Console.WriteLine("")
+Console.WriteLine("🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖")
+Console.WriteLine("🤖                    SIMPLE TARS SWARM TEST                           🤖")
+Console.WriteLine("🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖")
+Console.WriteLine("")
+
+let startTime = DateTime.Now
+
+// Detect environment
+let instanceId = Environment.GetEnvironmentVariable("TARS_INSTANCE_ID") ?? "LOCAL"
+let agentRole = Environment.GetEnvironmentVariable("TARS_ROLE") ?? "Standalone"
+let isDockerEnvironment = Environment.GetEnvironmentVariable("TARS_ENVIRONMENT") = "Docker"
+
+Console.WriteLine("🔍 Agent Identity:")
+Console.WriteLine($"   🤖 Instance ID: {instanceId}")
+Console.WriteLine($"   🎭 Agent Role: {agentRole}")
+Console.WriteLine($"   🐳 Docker Environment: {isDockerEnvironment}")
+Console.WriteLine($"   ⏰ Start Time: {startTime:yyyy-MM-dd HH:mm:ss}")
+Console.WriteLine("")
+
+// Simple task simulation
+Console.WriteLine("⚡ Executing Simple Tasks:")
+for i in 1..3 do
+    Console.WriteLine($"   ✅ Task {i}: Agent {instanceId} processing...")
+    System.Threading.Thread.Sleep(100)
+
+Console.WriteLine("")
+
+// Agent capabilities based on role
+let capabilities = match agentRole with
+| "Primary" -> ["coordination", "task_distribution", "consensus_building"]
+| "Secondary" -> ["task_execution", "load_balancing"]
+| "Experimental" -> ["heavy_computation", "pattern_discovery"]
+| "QualityAssurance" -> ["testing", "validation", "quality_metrics"]
+| _ -> ["basic_execution"]
+
+Console.WriteLine("🎯 Agent Capabilities:")
+for capability in capabilities do
+    Console.WriteLine($"   🔧 {capability}")
+
+Console.WriteLine("")
+
+// Simple coordination simulation
+Console.WriteLine("📡 Swarm Coordination Simulation:")
+Console.WriteLine($"   📤 Agent {instanceId} broadcasting status...")
+Console.WriteLine($"   📥 Listening for other agents...")
+Console.WriteLine($"   🤝 Coordination protocol: ACTIVE")
+
+Console.WriteLine("")
+
+let endTime = DateTime.Now
+let duration = endTime - startTime
+
+Console.WriteLine("📊 Test Results:")
+Console.WriteLine($"   🤖 Agent: {instanceId} ({agentRole})")
+Console.WriteLine($"   ⏱️ Duration: {duration.TotalSeconds:F2} seconds")
+Console.WriteLine($"   ✅ Status: SUCCESS")
+Console.WriteLine($"   🐳 Docker: {isDockerEnvironment}")
+
+Console.WriteLine("")
+Console.WriteLine("🎉 SIMPLE SWARM TEST COMPLETE!")
+Console.WriteLine("🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖")
+Console.WriteLine("")
+
+// Keep running for demonstration
+Console.WriteLine("🔄 Agent staying active for swarm coordination...")
+Console.WriteLine("   Press Ctrl+C to stop this agent")
+
+// Keep the container running with periodic heartbeats
+let mutable counter = 0
+while true do
+    System.Threading.Thread.Sleep(10000) // Wait 10 seconds
+    counter <- counter + 1
+    Console.WriteLine($"🤖 Agent {instanceId} heartbeat #{counter} - {DateTime.Now:HH:mm:ss}")
+```
+
+---
+
+**Simple TARS Swarm Test v1.0**  
+**Basic coordination test without file operations**  
+**TARS_SIMPLE_SWARM_TEST_READY: COORDINATION_DEMO**

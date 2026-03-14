@@ -1,0 +1,690 @@
+DESCRIBE {
+    name: "TARS Explorations Self-Improvement"
+    version: "1.0"
+    author: "TARS Team"
+    description: "A metascript for autonomous improvement of TARS documentation in the Explorations directories"
+    tags: ["documentation", "self-improvement", "explorations", "markdown"]
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.3
+    max_tokens: 4000
+}
+
+// Define paths to important directories
+VARIABLE docs_dir {
+    value: "docs"
+}
+
+VARIABLE explorations_dir {
+    value: "${docs_dir}/Explorations"
+}
+
+VARIABLE chats_dir {
+    value: "${explorations_dir}/v1/Chats"
+}
+
+VARIABLE reflections_dir {
+    value: "${explorations_dir}/Reflections"
+}
+
+VARIABLE improvement_state_file {
+    value: "explorations_improvement_state.json"
+}
+
+// Get runtime parameters from environment variables or use defaults
+VARIABLE max_runtime_minutes {
+    value: "${parseInt(process.env.TARS_AUTO_IMPROVE_TIME_LIMIT || '60')}"
+}
+
+VARIABLE model {
+    value: "${process.env.TARS_AUTO_IMPROVE_MODEL || 'llama3'}"
+}
+
+// Define the state structure to track progress
+VARIABLE state {
+    value: {
+        start_time: "${new Date().toISOString()}",
+        end_time: null,
+        files_processed: 0,
+        files_improved: 0,
+        improvements_made: 0,
+        improved_files: [],
+        current_file: null,
+        status: "running"
+    }
+}
+
+// Load existing state if available
+FUNCTION load_state {
+    ACTION {
+        type: "file_exists"
+        path: "${improvement_state_file}"
+        output_variable: "state_exists"
+    }
+
+    IF {
+        condition: "${state_exists}"
+        then: {
+            ACTION {
+                type: "file_read"
+                path: "${improvement_state_file}"
+                output_variable: "state_json"
+            }
+
+            VARIABLE loaded_state {
+                value: "${JSON.parse(state_json)}"
+            }
+
+            // Update the state with the loaded state
+            VARIABLE state {
+                value: "${loaded_state}"
+            }
+        }
+    }
+}
+
+// Save the current state
+FUNCTION save_state {
+    // Update the state with the current time
+    VARIABLE state {
+        value: "${Object.assign({}, state, { end_time: new Date().toISOString() })}"
+    }
+
+    ACTION {
+        type: "file_write"
+        path: "${improvement_state_file}"
+        content: "${JSON.stringify(state, null, 2)}"
+    }
+}
+
+// Check if we should stop based on time limit or stop signal
+FUNCTION should_stop {
+    // Check if a stop file exists
+    ACTION {
+        type: "file_exists"
+        path: "autonomous_improvement_stop"
+        output_variable: "stop_file_exists"
+    }
+
+    // Check if we've exceeded the time limit
+    VARIABLE elapsed_minutes {
+        value: "${(new Date() - new Date(state.start_time)) / (1000 * 60)}"
+    }
+
+    VARIABLE should_stop_value {
+        value: "${stop_file_exists || elapsed_minutes >= max_runtime_minutes}"
+    }
+
+    RETURN {
+        value: "${should_stop_value}"
+    }
+}
+
+// Get all markdown files in a directory
+FUNCTION get_markdown_files {
+    parameters: ["directory"]
+
+    ACTION {
+        type: "get_files"
+        directory: "${directory}"
+        pattern: "*.md"
+        output_variable: "files"
+    }
+
+    RETURN {
+        value: "${files}"
+    }
+}
+
+// Determine the type of exploration file based on its path
+FUNCTION get_exploration_type {
+    parameters: ["file_path"]
+
+    VARIABLE type {
+        value: "${file_path.includes('/Chats/') ? 'chat' :
+                (file_path.includes('/Reflections/') ? 'reflection' : 'unknown')}"
+    }
+
+    RETURN {
+        value: "${type}"
+    }
+}
+
+// Analyze a markdown file for potential improvements
+FUNCTION analyze_markdown_file {
+    parameters: ["file_path"]
+
+    ACTION {
+        type: "log"
+        message: "Analyzing file: ${file_path}"
+    }
+
+    // Read the file content
+    ACTION {
+        type: "file_read"
+        path: "${file_path}"
+        output_variable: "file_content"
+    }
+
+    // Get the exploration type
+    ACTION {
+        type: "call_function"
+        function: "get_exploration_type"
+        parameters: {
+            file_path: "${file_path}"
+        }
+        output_variable: "exploration_type"
+    }
+
+    // Create a prompt based on the exploration type
+    VARIABLE prompt_text {
+        value: ""
+    }
+
+    IF {
+        condition: "${exploration_type === 'chat'}"
+        then: {
+            VARIABLE prompt_text {
+                value: "You are an expert at improving documentation and organizing knowledge from chat transcripts.
+
+I'll provide you with the content of a chat exploration file from the TARS project. Please analyze it and suggest improvements to make it more structured, readable, and valuable as a knowledge resource.
+
+Focus on:
+1. Adding or improving headings and structure
+2. Organizing information into logical sections
+3. Highlighting key insights, code examples, and important concepts
+4. Adding summaries or conclusions where appropriate
+5. Improving formatting for better readability
+6. Extracting actionable knowledge that could be applied elsewhere in the project
+
+Here's the chat content:
+
+${file_content}
+
+Please provide your suggested improvements in the following JSON format:
+{
+  \"analysis\": {
+    \"structure_score\": 0-10,
+    \"content_quality_score\": 0-10,
+    \"key_insights\": [\"insight 1\", \"insight 2\", ...],
+    \"missing_elements\": [\"element 1\", \"element 2\", ...]
+  },
+  \"improvements\": [
+    {
+      \"type\": \"structure\",
+      \"description\": \"Add section headings\",
+      \"original_text\": \"text to replace\",
+      \"improved_text\": \"improved text with headings\"
+    },
+    {
+      \"type\": \"content\",
+      \"description\": \"Add summary section\",
+      \"original_text\": \"\",
+      \"improved_text\": \"# Summary\\n\\nKey points from this exploration include...\"
+    }
+  ],
+  \"overall_assessment\": \"An overall assessment of the file and the improvements suggested\"
+}
+
+Focus on making meaningful improvements that enhance the value of this exploration as a knowledge resource."
+            }
+        }
+    }
+
+    IF {
+        condition: "${exploration_type === 'reflection'}"
+        then: {
+            VARIABLE prompt_text {
+                value: "You are an expert at improving documentation and organizing knowledge from reflection documents.
+
+I'll provide you with the content of a reflection document from the TARS project. Please analyze it and suggest improvements to make it more structured, readable, and valuable as a knowledge resource.
+
+Focus on:
+1. Enhancing the structure with clear headings and sections
+2. Improving the clarity of insights and conclusions
+3. Adding cross-references to related concepts or explorations
+4. Highlighting actionable knowledge that could be applied to the project
+5. Adding summaries or executive overviews where appropriate
+6. Improving formatting for better readability
+
+Here's the reflection content:
+
+${file_content}
+
+Please provide your suggested improvements in the following JSON format:
+{
+  \"analysis\": {
+    \"structure_score\": 0-10,
+    \"content_quality_score\": 0-10,
+    \"key_insights\": [\"insight 1\", \"insight 2\", ...],
+    \"missing_elements\": [\"element 1\", \"element 2\", ...]
+  },
+  \"improvements\": [
+    {
+      \"type\": \"structure\",
+      \"description\": \"Reorganize sections for better flow\",
+      \"original_text\": \"text to replace\",
+      \"improved_text\": \"improved text with better organization\"
+    },
+    {
+      \"type\": \"content\",
+      \"description\": \"Add executive summary\",
+      \"original_text\": \"\",
+      \"improved_text\": \"# Executive Summary\\n\\nThis reflection explores...\"
+    }
+  ],
+  \"overall_assessment\": \"An overall assessment of the file and the improvements suggested\"
+}
+
+Focus on making meaningful improvements that enhance the value of this reflection as a knowledge resource."
+            }
+        }
+    }
+
+    // If the exploration type is unknown, use a generic prompt
+    IF {
+        condition: "${exploration_type === 'unknown'}"
+        then: {
+            VARIABLE prompt_text {
+                value: "You are an expert at improving documentation and organizing knowledge.
+
+I'll provide you with the content of a markdown file from the TARS project. Please analyze it and suggest improvements to make it more structured, readable, and valuable as a knowledge resource.
+
+Focus on:
+1. Improving structure and organization
+2. Enhancing clarity and readability
+3. Adding valuable context or explanations
+4. Highlighting key insights and concepts
+5. Improving formatting for better readability
+
+Here's the content:
+
+${file_content}
+
+Please provide your suggested improvements in the following JSON format:
+{
+  \"analysis\": {
+    \"structure_score\": 0-10,
+    \"content_quality_score\": 0-10,
+    \"key_insights\": [\"insight 1\", \"insight 2\", ...],
+    \"missing_elements\": [\"element 1\", \"element 2\", ...]
+  },
+  \"improvements\": [
+    {
+      \"type\": \"structure\",
+      \"description\": \"Improve organization\",
+      \"original_text\": \"text to replace\",
+      \"improved_text\": \"improved text with better organization\"
+    },
+    {
+      \"type\": \"content\",
+      \"description\": \"Add context\",
+      \"original_text\": \"text to replace\",
+      \"improved_text\": \"improved text with added context\"
+    }
+  ],
+  \"overall_assessment\": \"An overall assessment of the file and the improvements suggested\"
+}
+
+Focus on making meaningful improvements that enhance the value of this document as a knowledge resource."
+            }
+        }
+    }
+
+    // Get improvement suggestions from the LLM
+    PROMPT {
+        text: "${prompt_text}"
+        model: "${model}"
+        temperature: 0.3
+        max_tokens: 4000
+        output_variable: "analysis_result_text"
+    }
+
+    // Parse the analysis result
+    VARIABLE analysis_result {
+        value: "${JSON.parse(analysis_result_text)}"
+    }
+
+    RETURN {
+        value: "${analysis_result}"
+    }
+}
+
+// Apply improvements to a markdown file
+FUNCTION apply_improvements {
+    parameters: ["file_path", "analysis_result"]
+
+    ACTION {
+        type: "log"
+        message: "Applying improvements to: ${file_path}"
+    }
+
+    // Read the file content
+    ACTION {
+        type: "file_read"
+        path: "${file_path}"
+        output_variable: "file_content"
+    }
+
+    // Create a backup of the original file
+    VARIABLE backup_path {
+        value: "${file_path}.bak"
+    }
+
+    ACTION {
+        type: "file_write"
+        path: "${backup_path}"
+        content: "${file_content}"
+    }
+
+    // Apply each improvement
+    VARIABLE improved_content {
+        value: "${file_content}"
+    }
+
+    FOREACH {
+        items: "${analysis_result.improvements}"
+        item_variable: "improvement"
+
+        // Apply the improvement if it has both original and improved text
+        IF {
+            condition: "${improvement.original_text !== undefined && improvement.improved_text !== undefined}"
+            then: {
+                // If original text is empty, it means we're adding new content at the end
+                IF {
+                    condition: "${improvement.original_text === ''}"
+                    then: {
+                        VARIABLE improved_content {
+                            value: "${improved_content + '\\n\\n' + improvement.improved_text}"
+                        }
+                    }
+                    else: {
+                        VARIABLE improved_content {
+                            value: "${improved_content.replace(improvement.original_text, improvement.improved_text)}"
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Write the improved content back to the file
+    ACTION {
+        type: "file_write"
+        path: "${file_path}"
+        content: "${improved_content}"
+    }
+
+    // Return the number of improvements applied
+    RETURN {
+        value: "${analysis_result.improvements.length}"
+    }
+}
+
+// Process a single file
+FUNCTION process_file {
+    parameters: ["file_path"]
+
+    // Update the state with the current file
+    VARIABLE state {
+        value: "${Object.assign({}, state, { current_file: file_path })}"
+    }
+
+    // Save the state
+    ACTION {
+        type: "call_function"
+        function: "save_state"
+    }
+
+    // Analyze the file
+    ACTION {
+        type: "call_function"
+        function: "analyze_markdown_file"
+        parameters: {
+            file_path: "${file_path}"
+        }
+        output_variable: "analysis_result"
+    }
+
+    // Check if there are improvements to apply
+    IF {
+        condition: "${analysis_result.improvements && analysis_result.improvements.length > 0}"
+        then: {
+            // Apply the improvements
+            ACTION {
+                type: "call_function"
+                function: "apply_improvements"
+                parameters: {
+                    file_path: "${file_path}",
+                    analysis_result: "${analysis_result}"
+                }
+                output_variable: "improvements_applied"
+            }
+
+            // Update the state
+            VARIABLE state {
+                value: "${Object.assign({}, state, {
+                    files_improved: state.files_improved + 1,
+                    improvements_made: state.improvements_made + improvements_applied,
+                    improved_files: [...state.improved_files, file_path]
+                })}"
+            }
+
+            ACTION {
+                type: "log"
+                message: "Applied ${improvements_applied} improvements to ${file_path}"
+            }
+        }
+        else: {
+            ACTION {
+                type: "log"
+                message: "No improvements needed for ${file_path}"
+            }
+        }
+    }
+
+    // Update the state with the processed file
+    VARIABLE state {
+        value: "${Object.assign({}, state, {
+            files_processed: state.files_processed + 1,
+            current_file: null
+        })}"
+    }
+
+    // Save the state
+    ACTION {
+        type: "execute"
+        function: "save_state"
+    }
+}
+
+// Main workflow
+TARS {
+    // Initialize the workflow
+    ACTION {
+        type: "log"
+        message: "Starting TARS Explorations Self-Improvement"
+    }
+
+    // Load the existing state if available
+    ACTION {
+        type: "call_function"
+        function: "load_state"
+    }
+
+    // Check if we're targeting a specific file
+    VARIABLE specific_file {
+        value: "${process.env.TARS_IMPROVE_SPECIFIC_FILE || ''}"
+    }
+
+    // Check if we're only improving certain directories
+    VARIABLE chats_only {
+        value: "${process.env.TARS_IMPROVE_CHATS_ONLY === 'true'}"
+    }
+
+    VARIABLE reflections_only {
+        value: "${process.env.TARS_IMPROVE_REFLECTIONS_ONLY === 'true'}"
+    }
+
+    VARIABLE all_files {
+        value: []
+    }
+
+    // If a specific file is specified, only process that file
+    IF {
+        condition: "${specific_file !== ''}"
+        then: {
+            ACTION {
+                type: "log"
+                message: "Processing specific file: ${specific_file}"
+            }
+
+            VARIABLE all_files {
+                value: "${[specific_file]}"
+            }
+        }
+        else: {
+            // Otherwise, get files based on directory options
+            IF {
+                condition: "${!reflections_only}"
+                then: {
+                    // Get all markdown files in the Chats directory
+                    ACTION {
+                        type: "call_function"
+                        function: "get_markdown_files"
+                        parameters: {
+                            directory: "${chats_dir}"
+                        }
+                        output_variable: "chats_files"
+                    }
+
+                    VARIABLE all_files {
+                        value: "${chats_files}"
+                    }
+                }
+            }
+
+            IF {
+                condition: "${!chats_only}"
+                then: {
+                    // Get all markdown files in the Reflections directory
+                    ACTION {
+                        type: "call_function"
+                        function: "get_markdown_files"
+                        parameters: {
+                            directory: "${reflections_dir}"
+                        }
+                        output_variable: "reflections_files"
+                    }
+
+                    VARIABLE all_files {
+                        value: "${chats_only ? all_files : [...all_files, ...reflections_files]}"
+                    }
+                }
+            }
+        }
+    }
+
+    ACTION {
+        type: "log"
+        message: "Found ${all_files.length} markdown files to process"
+    }
+
+    // Process each file until we should stop
+    FOREACH {
+        items: "${all_files}"
+        item_variable: "file"
+
+        // Check if we should stop
+        ACTION {
+            type: "call_function"
+            function: "should_stop"
+            output_variable: "stop_now"
+        }
+
+        IF {
+            condition: "${stop_now}"
+            then: {
+                ACTION {
+                    type: "log"
+                    message: "Stopping improvement process due to time limit or stop signal"
+                }
+                BREAK {}
+            }
+            else: {
+                // Process the file
+                ACTION {
+                    type: "call_function"
+                    function: "process_file"
+                    parameters: {
+                        file_path: "${file}"
+                    }
+                }
+            }
+        }
+    }
+
+    // Update the state to completed
+    VARIABLE state {
+        value: "${Object.assign({}, state, {
+            status: 'completed',
+            end_time: new Date().toISOString()
+        })}"
+    }
+
+    // Save the final state
+    ACTION {
+        type: "call_function"
+        function: "save_state"
+    }
+
+    // Generate a summary report
+    VARIABLE summary {
+        value: "# TARS Explorations Self-Improvement Report\n\n" +
+               "## Summary\n\n" +
+               "- **Start Time:** ${new Date(state.start_time).toLocaleString()}\n" +
+               "- **End Time:** ${new Date(state.end_time).toLocaleString()}\n" +
+               "- **Files Processed:** ${state.files_processed}\n" +
+               "- **Files Improved:** ${state.files_improved}\n" +
+               "- **Improvements Made:** ${state.improvements_made}\n\n" +
+               "## Improved Files\n\n" +
+               "${state.improved_files.map(file => `- ${file}`).join('\\n')}\n\n" +
+               "## Knowledge Extraction\n\n" +
+               "To extract knowledge from the improved files, run:\n\n" +
+               "```\n" +
+               "${state.improved_files.map(file => `tarscli knowledge-apply --extract \"${file}\"`).join('\\n')}" +
+               "\n```\n\n" +
+               "## Knowledge Application\n\n" +
+               "To apply the extracted knowledge to improve code files, run:\n\n" +
+               "```\n" +
+               "tarscli knowledge-apply --directory TarsCli/Services --pattern *.cs --recursive\n" +
+               "```\n\n" +
+               "## Knowledge Integration\n\n" +
+               "To run a complete knowledge improvement cycle, run:\n\n" +
+               "```\n" +
+               "tarscli knowledge-integrate --cycle --exploration docs/Explorations/v1/Chats --target TarsCli/Services\n" +
+               "```\n\n" +
+               "To generate a retroaction report, run:\n\n" +
+               "```\n" +
+               "tarscli knowledge-integrate --retroaction --exploration docs/Explorations/v1/Chats --target TarsCli/Services\n" +
+               "```\n\n" +
+               "## Next Steps\n\n" +
+               "1. Review the improved files to ensure the changes are appropriate\n" +
+               "2. Extract knowledge from the improved files using the commands above\n" +
+               "3. Apply the extracted knowledge to improve code files\n" +
+               "4. Run the improvement process again to continue improving more files\n"
+    }
+
+    ACTION {
+        type: "file_write"
+        path: "explorations_improvement_report.md"
+        content: "${summary}"
+    }
+
+    ACTION {
+        type: "log"
+        message: "TARS Explorations Self-Improvement completed. Report generated: explorations_improvement_report.md"
+    }
+}

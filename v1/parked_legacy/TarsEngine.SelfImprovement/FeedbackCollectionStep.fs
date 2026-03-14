@@ -67,6 +67,7 @@ module FeedbackCollectionStep =
         }
 
     /// <summary>
+<<<<<<< HEAD:v1/parked_legacy/TarsEngine.SelfImprovement/FeedbackCollectionStep.fs
     /// Finds the nearest .csproj or .fsproj file
     /// </summary>
     let rec private findProjectFile (dir: string) =
@@ -85,6 +86,8 @@ module FeedbackCollectionStep =
                 findProjectFile (Path.GetDirectoryName(dir))
 
     /// <summary>
+=======
+>>>>>>> origin/main:TarsEngine.SelfImprovement/FeedbackCollectionStep.fs
     /// Validates an improvement by building the project
     /// </summary>
     let validateImprovement (logger: ILogger) (improvement: AppliedImprovement) =
@@ -93,6 +96,25 @@ module FeedbackCollectionStep =
                 // Get the project directory
                 let projectDir = Path.GetDirectoryName(improvement.FilePath)
 
+<<<<<<< HEAD:v1/parked_legacy/TarsEngine.SelfImprovement/FeedbackCollectionStep.fs
+=======
+                // Find the nearest .csproj or .fsproj file
+                let rec findProjectFile (dir: string) =
+                    if String.IsNullOrEmpty(dir) || not (Directory.Exists(dir)) then
+                        None
+                    else
+                        let projectFiles =
+                            Directory.GetFiles(dir, "*.?sproj")
+                            |> Array.filter (fun f ->
+                                f.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase) ||
+                                f.EndsWith(".fsproj", StringComparison.OrdinalIgnoreCase))
+
+                        if projectFiles.Length > 0 then
+                            Some projectFiles.[0]
+                        else
+                            findProjectFile (Path.GetDirectoryName(dir))
+
+>>>>>>> origin/main:TarsEngine.SelfImprovement/FeedbackCollectionStep.fs
                 match findProjectFile projectDir with
                 | Some projectFile ->
                     logger.LogInformation("Building project: {ProjectFile}", projectFile)

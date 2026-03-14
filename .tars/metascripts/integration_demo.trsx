@@ -1,0 +1,142 @@
+DESCRIBE {
+    name: "TARS Integration Demo"
+    version: "1.0"
+    description: "A demonstration of integration with other TARS components"
+    author: "TARS Team"
+    date: "2025-04-02"
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.7
+    max_tokens: 1000
+}
+
+// Define a sample C# code to analyze
+VARIABLE sample_code {
+    value: "
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+public class Program
+{
+    public static void Main(string[] args)
+    {
+        // Example of a potential null reference
+        string name = GetName();
+        Console.WriteLine(name.ToUpper());
+
+        // Example of an ineffective loop
+        var numbers = new List<int> { 1, 2, 3, 4, 5 };
+        int sum = 0;
+        for (int i = 0; i < numbers.Count; i++)
+        {
+            sum += numbers[i];
+        }
+        Console.WriteLine($\"Sum: {sum}\");
+    }
+
+    public static string GetName()
+    {
+        // This could return null
+        return DateTime.Now.Second % 2 == 0 ? \"John\" : null;
+    }
+
+    public static int Divide(int a, int b)
+    {
+        return a / b;
+    }
+}
+"
+}
+
+// Save the sample code to a file
+ACTION {
+    type: "file_write"
+    path: "sample_code.cs"
+    content: "${sample_code}"
+}
+
+// Log the start of the analysis
+ACTION {
+    type: "log"
+    message: "Starting code analysis..."
+}
+
+// Use a simulated analysis for null references
+VARIABLE null_analysis_result {
+    value: "Null Reference Analysis Results:\n- Potential null reference at line 10: The variable 'name' could be null when calling ToUpper()"
+}
+
+
+
+// Log the null reference analysis result
+ACTION {
+    type: "log"
+    message: "${null_analysis_result}"
+}
+
+// Use a simulated analysis for ineffective loops
+VARIABLE loop_analysis_result {
+    value: "Ineffective Loop Analysis Results:\n- Ineffective loop at lines 15-18: This loop could be replaced with LINQ Sum() method"
+}
+
+
+
+// Log the ineffective loop analysis result
+ACTION {
+    type: "log"
+    message: "${loop_analysis_result}"
+}
+
+// Use a simulated transformation for null checks
+VARIABLE transformed_code_null_check {
+    value: "using System;\nusing System.Collections.Generic;\nusing System.Linq;\n\npublic class Program\n{\n    public static void Main(string[] args)\n    {\n        // Example of a potential null reference\n        string name = GetName();\n        if (name == null) throw new ArgumentNullException(nameof(name));\n        Console.WriteLine(name.ToUpper());\n        \n        // Example of an ineffective loop\n        var numbers = new List<int> { 1, 2, 3, 4, 5 };\n        int sum = 0;\n        for (int i = 0; i < numbers.Count; i++)\n        {\n            sum += numbers[i];\n        }\n        Console.WriteLine($\"Sum: {sum}\");\n    }\n    \n    public static string GetName()\n    {\n        // This could return null\n        return DateTime.Now.Second % 2 == 0 ? \"John\" : null;\n    }\n    \n    public static int Divide(int a, int b)\n    {\n        if (b == 0) throw new DivideByZeroException(\"Cannot divide by zero\");\n        return a / b;\n    }\n}"
+}
+
+
+
+// Log the transformed code
+ACTION {
+    type: "log"
+    message: "Code after null check transformation:\n${transformed_code_null_check}"
+}
+
+// Use a simulated transformation for LINQ
+VARIABLE transformed_code_linq {
+    value: "using System;\nusing System.Collections.Generic;\nusing System.Linq;\n\npublic class Program\n{\n    public static void Main(string[] args)\n    {\n        // Example of a potential null reference\n        string name = GetName();\n        if (name == null) throw new ArgumentNullException(nameof(name));\n        Console.WriteLine(name.ToUpper());\n        \n        // Example of an ineffective loop\n        var numbers = new List<int> { 1, 2, 3, 4, 5 };\n        int sum = numbers.Sum();\n        Console.WriteLine($\"Sum: {sum}\");\n    }\n    \n    public static string GetName()\n    {\n        // This could return null\n        return DateTime.Now.Second % 2 == 0 ? \"John\" : null;\n    }\n    \n    public static int Divide(int a, int b)\n    {\n        if (b == 0) throw new DivideByZeroException(\"Cannot divide by zero\");\n        return a / b;\n    }\n}"
+}
+
+
+
+// Log the transformed code
+ACTION {
+    type: "log"
+    message: "Code after LINQ transformation:\n${transformed_code_linq}"
+}
+
+// Save the final transformed code to a file
+ACTION {
+    type: "file_write"
+    path: "transformed_code.cs"
+    content: "${transformed_code_linq}"
+}
+
+// Log the completion message
+ACTION {
+    type: "log"
+    message: "Code analysis and transformation completed successfully!"
+}
+
+// Clean up the temporary files
+ACTION {
+    type: "file_delete"
+    path: "sample_code.cs"
+}
+
+// Final message
+ACTION {
+    type: "log"
+    message: "TARS Integration demonstration completed successfully!"
+}

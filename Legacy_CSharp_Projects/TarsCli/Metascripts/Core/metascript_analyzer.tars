@@ -1,0 +1,191 @@
+﻿DESCRIBE {
+    name: "Metascript Analyzer"
+    version: "1.0"
+    author: "TARS Auto-Improvement"
+    description: "Analyzes metascripts to identify improvement opportunities and dependencies"
+    tags: ["core", "analysis", "improvement"]
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.2
+    max_tokens: 4000
+    backup_before_changes: true
+}
+
+// Load configuration
+ACTION {
+    type: "file_read"
+    path: "TarsCli/Metascripts/config.json"
+    result_variable: "config_json"
+}
+
+VARIABLE config {
+    value: "${JSON.parse(config_json)}"
+}
+
+// Load registry
+ACTION {
+    type: "file_read"
+    path: "TarsCli/Metascripts/registry.json"
+    result_variable: "registry_json"
+}
+
+VARIABLE registry {
+    value: "${JSON.parse(registry_json)}"
+}
+
+// Log the start of the analysis process
+ACTION {
+    type: "log"
+    message: "Starting metascript analysis process"
+}
+
+// Initialize the analysis results
+VARIABLE analysis_results {
+    value: []
+}
+
+// Analyze each metascript in the registry
+FOREACH {
+    items: "${registry.metascripts}"
+    item_variable: "metascript"
+    
+    ACTION {
+        type: "log"
+        message: "Analyzing metascript: ${metascript.id}"
+    }
+    
+    // Read the metascript content
+    ACTION {
+        type: "file_read"
+        path: "${metascript.path}"
+        result_variable: "metascript_content"
+    }
+    
+    // Analyze the metascript
+    PROMPT {
+        model: "${config.analysis.model}"
+        temperature: "${config.analysis.temperature}"
+        max_tokens: "${config.analysis.max_tokens}"
+        prompt: """
+        You are an expert metascript analyzer for the TARS project. Your task is to analyze the following metascript and identify improvement opportunities.
+        
+        Metascript ID: ${metascript.id}
+        Metascript Path: ${metascript.path}
+        Metascript Type: ${metascript.type}
+        
+        Metascript content:
+        ${metascript_content}
+        
+        Please analyze the metascript for:
+        1. Code quality issues
+        2. Potential improvements
+        3. Missing functionality
+        4. Dependency issues
+        5. Best practice violations
+        
+        For each issue or improvement opportunity, provide:
+        1. A short name for the improvement
+        2. A detailed description of what should be changed
+        3. The category of the improvement (e.g., quality, functionality, dependency, best_practice)
+        4. An impact score from 1-10 (how much this improvement will benefit the metascript)
+        5. A difficulty score from 1-10 (how hard this improvement is to implement)
+        
+        Format your response as a JSON array of improvement objects:
+        
+        [
+          {
+            "name": "Improvement name",
+            "description": "Detailed description",
+            "category": "Category",
+            "impact_score": 7,
+            "difficulty_score": 3,
+            "metascript_id": "${metascript.id}",
+            "metascript_path": "${metascript.path}"
+          }
+        ]
+        
+        If no improvements are needed, return an empty array.
+        """
+        result_variable: "metascript_analysis_json"
+    }
+    
+    // Parse the analysis result
+    FSHARP {
+        // Parse the JSON result
+        let analysisJson = metascript_analysis_json
+        
+        // Return the parsed JSON
+        analysisJson
+        
+        output_variable: "metascript_analysis"
+    }
+    
+    // Add the analysis result to the analysis results
+    FSHARP {
+        // Get the current analysis results
+        let currentResults = analysis_results
+        
+        // Get the metascript analysis
+        let metascriptAnalysis = System.Text.Json.JsonSerializer.Deserialize<System.Collections.Generic.List<System.Text.Json.JsonElement>>(metascript_analysis)
+        
+        // Add the metascript analysis to the current results
+        let updatedResults = currentResults.Concat(metascriptAnalysis).ToArray()
+        
+        // Return the updated results
+        updatedResults
+        
+        output_variable: "updated_results"
+    }
+    
+    VARIABLE analysis_results {
+        value: "${updated_results}"
+    }
+}
+
+ACTION {
+    type: "log"
+    message: "Found ${analysis_results.length} improvement opportunities"
+}
+
+// Generate a report
+VARIABLE report {
+    value: """# Metascript Analysis Report
+
+## Summary
+- Analyzed ${registry.metascripts.length} metascripts
+- Found ${analysis_results.length} improvement opportunities
+
+## Improvement Opportunities
+${analysis_results.map(imp => `### ${imp.name} (${imp.category})
+- **Metascript**: ${imp.metascript_id}
+- **Impact**: ${imp.impact_score}/10
+- **Difficulty**: ${imp.difficulty_score}/10
+- **Description**: ${imp.description}
+`).join('\n')}
+
+## Next Steps
+1. Review the identified improvement opportunities
+2. Generate metascripts to implement the improvements
+3. Execute the improvement metascripts
+4. Re-analyze the metascripts to verify the improvements
+"""
+}
+
+// Save the report
+ACTION {
+    type: "file_write"
+    path: "metascript_analysis_report.md"
+    content: "${report}"
+}
+
+ACTION {
+    type: "log"
+    message: "Analysis report saved to metascript_analysis_report.md"
+}
+
+// Return the analysis results
+RETURN {
+    value: "${analysis_results}"
+}

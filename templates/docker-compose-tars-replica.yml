@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  {{CONTAINER_NAME}}:
+    build:
+      context: {{PROJECT_ROOT}}
+      dockerfile: templates/Dockerfile-{{REPLICA_ROLE}}-replica
+    image: tars-{{REPLICA_ROLE}}:latest
+    container_name: {{CONTAINER_NAME}}
+    ports:
+      - "{{REPLICA_PORT}}:8999"
+    volumes:
+      - "{{PROJECT_ROOT}}:/app/project"
+      - tars-config:/app/config
+      - tars-data:/app/data
+      - tars-logs:/app/logs
+      - tars-codebase:/app/codebase
+    environment:
+      - TARS_REPLICA_ID={{REPLICA_ID}}
+      - TARS_REPLICA_NAME={{REPLICA_NAME}}
+      - TARS_REPLICA_ROLE={{REPLICA_ROLE}}
+      - TARS_REPLICA_PORT={{REPLICA_PORT}}
+      - TARS_MCP_PORT=8999
+      - TARS_COORDINATOR_URL=http://host.docker.internal:9000/
+      - TARS_MODEL={{MODEL}}
+      - TARS_CAPABILITIES={{CAPABILITIES}}
+      - ModelProvider__Default=DockerModelRunner
+      - DockerModelRunner__BaseUrl=http://model-runner:8080
+      - DockerModelRunner__DefaultModel={{MODEL}}
+    networks:
+      - tars-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8999/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+networks:
+  tars-network:
+    external: true
+
+volumes:
+  tars-config:
+    external: true
+  tars-data:
+    external: true
+  tars-logs:
+    external: true
+  tars-codebase:
+    external: true

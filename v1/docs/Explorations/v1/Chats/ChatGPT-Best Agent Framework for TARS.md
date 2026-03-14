@@ -370,7 +370,11 @@ manager.run()
 Make sure you install AutoGen:
 
 ```bash
+<<<<<<< HEAD:v1/docs/Explorations/v1/Chats/ChatGPT-Best Agent Framework for TARS.md
 pip install pyautogen
+=======
+pip install ag2
+>>>>>>> origin/main:docs/Explorations/v1/Chats/ChatGPT-Best Agent Framework for TARS.md
 ```
 
 * * *

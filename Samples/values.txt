@@ -1,0 +1,2 @@
+﻿default_target_file=Samples/SampleCode.cs
+default_improvement_type=performance

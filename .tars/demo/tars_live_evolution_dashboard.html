@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TARS Live UI Evolution Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { 
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            font-family: 'Inter', sans-serif;
+        }
+        .tars-glow { box-shadow: 0 0 20px rgba(0, 188, 212, 0.3); }
+        .evolution-pulse { animation: evolutionPulse 2s ease-in-out infinite; }
+        @keyframes evolutionPulse { 
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.05); }
+        }
+        .live-indicator { animation: liveBlink 1s ease-in-out infinite; }
+        @keyframes liveBlink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        .improvement-flash { animation: improvementFlash 1s ease-out; }
+        @keyframes improvementFlash {
+            0% { background-color: rgba(0, 188, 212, 0.3); }
+            100% { background-color: transparent; }
+        }
+        .countdown-ring {
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-white">
+    <div class="container mx-auto p-6">
+        <!-- Header with Live Status -->
+        <div class="flex items-center justify-between mb-8">
+            <div class="flex items-center space-x-4">
+                <i class="fas fa-eye text-4xl text-cyan-400 evolution-pulse"></i>
+                <div>
+                    <h1 class="text-3xl font-bold">TARS Live UI Evolution</h1>
+                    <p class="text-gray-400">10-Minute Autonomous Improvement Session</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-2">
+                    <div class="w-3 h-3 bg-red-500 rounded-full live-indicator"></div>
+                    <span class="text-red-400 font-semibold">LIVE</span>
+                </div>
+                <div class="text-right">
+                    <div class="text-2xl font-bold text-cyan-400" id="session-timer">10:00</div>
+                    <div class="text-sm text-gray-400">Remaining</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Session Progress -->
+        <div class="bg-slate-800 rounded-lg p-6 mb-6 border border-cyan-500">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-white">Evolution Session Progress</h3>
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm text-gray-400">Iteration:</span>
+                    <span class="text-xl font-bold text-cyan-400" id="iteration-count">1</span>
+                    <span class="text-sm text-gray-400">of ~20</span>
+                </div>
+            </div>
+            
+            <!-- Progress Bar -->
+            <div class="w-full bg-gray-700 rounded-full h-3 mb-4">
+                <div class="bg-gradient-to-r from-cyan-500 to-blue-500 h-3 rounded-full transition-all duration-1000" 
+                     id="progress-bar" style="width: 5%"></div>
+            </div>
+            
+            <!-- Next Iteration Countdown -->
+            <div class="flex items-center justify-between">
+                <span class="text-gray-300">Next iteration in:</span>
+                <div class="flex items-center space-x-2">
+                    <svg class="w-8 h-8" viewBox="0 0 36 36">
+                        <path class="text-gray-600" stroke="currentColor" stroke-width="3" fill="none"
+                              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                        <path class="text-cyan-400 countdown-ring" stroke="currentColor" stroke-width="3" fill="none"
+                              stroke-dasharray="100, 100" stroke-dashoffset="0"
+                              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                              id="countdown-circle"/>
+                    </svg>
+                    <span class="text-cyan-400 font-semibold" id="next-iteration">30s</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Real-time Metrics -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            
+            <!-- Design Score Chart -->
+            <div class="bg-slate-800 rounded-lg p-6 border border-green-500">
+                <h3 class="text-lg font-bold text-white mb-4 flex items-center">
+                    <i class="fas fa-chart-line text-green-400 mr-3"></i>
+                    Design Score Evolution
+                </h3>
+                <div class="relative h-64">
+                    <canvas id="scoreChart"></canvas>
+                </div>
+                <div class="flex items-center justify-between mt-4">
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-green-400" id="current-score">8.2</div>
+                        <div class="text-sm text-gray-400">Current Score</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-cyan-400" id="score-improvement">+0.0</div>
+                        <div class="text-sm text-gray-400">Improvement</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-yellow-400">9.5</div>
+                        <div class="text-sm text-gray-400">Target</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Current Focus Area -->
+            <div class="bg-slate-800 rounded-lg p-6 border border-purple-500">
+                <h3 class="text-lg font-bold text-white mb-4 flex items-center">
+                    <i class="fas fa-crosshairs text-purple-400 mr-3"></i>
+                    Current Focus Area
+                </h3>
+                <div class="text-center mb-4">
+                    <div class="text-3xl font-bold text-purple-400 mb-2" id="focus-area">Accessibility</div>
+                    <div class="text-gray-400" id="focus-description">Improving WCAG compliance and keyboard navigation</div>
+                </div>
+                <div class="space-y-3" id="current-improvements">
+                    <div class="flex items-center p-2 bg-slate-900 rounded improvement-flash">
+                        <i class="fas fa-check text-green-400 mr-3"></i>
+                        <span class="text-white">Enhanced ARIA labels</span>
+                    </div>
+                    <div class="flex items-center p-2 bg-slate-900 rounded">
+                        <i class="fas fa-cog fa-spin text-yellow-400 mr-3"></i>
+                        <span class="text-white">Improving color contrast</span>
+                    </div>
+                    <div class="flex items-center p-2 bg-slate-900 rounded">
+                        <i class="fas fa-clock text-gray-400 mr-3"></i>
+                        <span class="text-gray-400">Keyboard navigation pending</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Agent Activity Monitor -->
+        <div class="bg-slate-800 rounded-lg p-6 mb-6 border border-blue-500">
+            <h3 class="text-lg font-bold text-white mb-4 flex items-center">
+                <i class="fas fa-users text-blue-400 mr-3"></i>
+                Agent Team Activity
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-slate-900 rounded-lg p-4" id="screenshot-agent">
+                    <div class="flex items-center justify-between mb-2">
+                        <i class="fas fa-camera text-purple-400"></i>
+                        <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                    </div>
+                    <div class="text-white font-semibold text-sm">UIScreenshotAgent</div>
+                    <div class="text-xs text-gray-400 mt-1">Capturing UI state...</div>
+                </div>
+                <div class="bg-slate-900 rounded-lg p-4" id="critic-agent">
+                    <div class="flex items-center justify-between mb-2">
+                        <i class="fas fa-eye text-cyan-400"></i>
+                        <div class="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
+                    </div>
+                    <div class="text-white font-semibold text-sm">UIDesignCriticAgent</div>
+                    <div class="text-xs text-gray-400 mt-1">Analyzing design quality...</div>
+                </div>
+                <div class="bg-slate-900 rounded-lg p-4" id="research-agent">
+                    <div class="flex items-center justify-between mb-2">
+                        <i class="fas fa-search text-green-400"></i>
+                        <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                    </div>
+                    <div class="text-white font-semibold text-sm">WebDesignResearchAgent</div>
+                    <div class="text-xs text-gray-400 mt-1">Researching trends...</div>
+                </div>
+                <div class="bg-slate-900 rounded-lg p-4" id="improvement-agent">
+                    <div class="flex items-center justify-between mb-2">
+                        <i class="fas fa-magic text-blue-400"></i>
+                        <div class="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                    </div>
+                    <div class="text-white font-semibold text-sm">UIImprovementAgent</div>
+                    <div class="text-xs text-gray-400 mt-1">Implementing changes...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Activity Log -->
+        <div class="bg-slate-800 rounded-lg p-6 border border-yellow-500">
+            <h3 class="text-lg font-bold text-white mb-4 flex items-center">
+                <i class="fas fa-terminal text-yellow-400 mr-3"></i>
+                Live Activity Log
+            </h3>
+            <div class="bg-black rounded-lg p-4 h-64 overflow-y-auto font-mono text-sm" id="activity-log">
+                <div class="text-green-400">[10:00:00] 🚀 TARS UI Evolution Session Started</div>
+                <div class="text-cyan-400">[09:59:30] 📸 Capturing initial UI screenshot...</div>
+                <div class="text-yellow-400">[09:59:28] 👁️ Analyzing visual design quality...</div>
+                <div class="text-purple-400">[09:59:25] 🔍 Researching accessibility trends...</div>
+                <div class="text-blue-400">[09:59:20] 🔧 Implementing ARIA improvements...</div>
+                <div class="text-green-400">[09:59:15] ✅ Iteration 1 complete - Score: 8.3/10</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Session state
+        let sessionStartTime = Date.now();
+        let sessionDuration = 10 * 60 * 1000; // 10 minutes
+        let iterationInterval = 30 * 1000; // 30 seconds
+        let currentIteration = 1;
+        let currentScore = 8.2;
+        let scoreHistory = [8.2];
+        
+        // Focus areas rotation
+        const focusAreas = [
+            { name: "Accessibility", description: "Improving WCAG compliance and keyboard navigation", color: "purple" },
+            { name: "Visual Effects", description: "Adding glassmorphism and micro-interactions", color: "cyan" },
+            { name: "Layout", description: "Optimizing grid systems and responsive design", color: "green" },
+            { name: "Performance", description: "Enhancing loading speeds and Core Web Vitals", color: "yellow" },
+            { name: "Modern Features", description: "Implementing latest design trends", color: "blue" }
+        ];
+        
+        let currentFocusIndex = 0;
+        
+        // Initialize chart
+        const ctx = document.getElementById('scoreChart').getContext('2d');
+        const scoreChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Start'],
+                datasets: [{
+                    label: 'Design Score',
+                    data: [8.2],
+                    borderColor: '#00bcd4',
+                    backgroundColor: 'rgba(0, 188, 212, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        min: 7.5,
+                        max: 10,
+                        grid: { color: '#374151' },
+                        ticks: { color: '#9ca3af' }
+                    },
+                    x: {
+                        grid: { color: '#374151' },
+                        ticks: { color: '#9ca3af' }
+                    }
+                }
+            }
+        });
+        
+        // Update session timer
+        function updateTimer() {
+            const elapsed = Date.now() - sessionStartTime;
+            const remaining = Math.max(0, sessionDuration - elapsed);
+            const minutes = Math.floor(remaining / 60000);
+            const seconds = Math.floor((remaining % 60000) / 1000);
+            
+            document.getElementById('session-timer').textContent = 
+                `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            
+            // Update progress bar
+            const progress = (elapsed / sessionDuration) * 100;
+            document.getElementById('progress-bar').style.width = `${Math.min(100, progress)}%`;
+            
+            if (remaining <= 0) {
+                endSession();
+            }
+        }
+        
+        // Update next iteration countdown
+        function updateCountdown() {
+            const elapsed = Date.now() - sessionStartTime;
+            const timeSinceLastIteration = elapsed % iterationInterval;
+            const timeToNext = iterationInterval - timeSinceLastIteration;
+            const seconds = Math.ceil(timeToNext / 1000);
+            
+            document.getElementById('next-iteration').textContent = `${seconds}s`;
+            
+            // Update countdown circle
+            const progress = (timeSinceLastIteration / iterationInterval) * 100;
+            const circle = document.getElementById('countdown-circle');
+            circle.style.strokeDashoffset = 100 - progress;
+            
+            // Trigger new iteration
+            if (seconds === 30) {
+                runIteration();
+            }
+        }
+        
+        // Run evolution iteration
+        function runIteration() {
+            currentIteration++;
+            document.getElementById('iteration-count').textContent = currentIteration;
+            
+            // Update focus area
+            currentFocusIndex = (currentFocusIndex + 1) % focusAreas.length;
+            const focus = focusAreas[currentFocusIndex];
+            document.getElementById('focus-area').textContent = focus.name;
+            document.getElementById('focus-description').textContent = focus.description;
+            
+            // Simulate score improvement
+            const improvement = (Math.random() * 0.15) + 0.05; // 0.05 to 0.2 improvement
+            currentScore = Math.min(9.8, currentScore + improvement);
+            scoreHistory.push(currentScore);
+            
+            // Update score display
+            document.getElementById('current-score').textContent = currentScore.toFixed(1);
+            document.getElementById('score-improvement').textContent = `+${(currentScore - 8.2).toFixed(1)}`;
+            
+            // Update chart
+            scoreChart.data.labels.push(`Iter ${currentIteration}`);
+            scoreChart.data.datasets[0].data.push(currentScore);
+            scoreChart.update();
+            
+            // Add to activity log
+            addLogEntry(`[${getCurrentTime()}] 🔄 Iteration ${currentIteration} - Focus: ${focus.name}`);
+            addLogEntry(`[${getCurrentTime()}] 📊 New design score: ${currentScore.toFixed(1)}/10`);
+            
+            // Simulate agent activities
+            simulateAgentActivity();
+        }
+        
+        // Simulate agent activity
+        function simulateAgentActivity() {
+            const activities = [
+                "📸 Capturing UI screenshot...",
+                "👁️ Analyzing visual design quality...",
+                "🔍 Researching current design trends...",
+                "🔧 Implementing improvements...",
+                "✅ Deploying UI updates..."
+            ];
+            
+            activities.forEach((activity, index) => {
+                setTimeout(() => {
+                    addLogEntry(`[${getCurrentTime()}] ${activity}`);
+                }, index * 2000);
+            });
+        }
+        
+        // Add log entry
+        function addLogEntry(message) {
+            const log = document.getElementById('activity-log');
+            const entry = document.createElement('div');
+            entry.className = 'text-gray-300';
+            entry.textContent = message;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+        }
+        
+        // Get current time string
+        function getCurrentTime() {
+            const elapsed = Date.now() - sessionStartTime;
+            const remaining = Math.max(0, sessionDuration - elapsed);
+            const minutes = Math.floor(remaining / 60000);
+            const seconds = Math.floor((remaining % 60000) / 1000);
+            return `${(10 - minutes).toString().padStart(2, '0')}:${(60 - seconds).toString().padStart(2, '0')}`;
+        }
+        
+        // End session
+        function endSession() {
+            addLogEntry(`[${getCurrentTime()}] 🎉 10-minute evolution session completed!`);
+            addLogEntry(`[${getCurrentTime()}] 📈 Final score: ${currentScore.toFixed(1)}/10`);
+            addLogEntry(`[${getCurrentTime()}] 🚀 Total improvement: +${(currentScore - 8.2).toFixed(1)} points`);
+            
+            // Show completion message
+            setTimeout(() => {
+                alert(`🎉 TARS UI Evolution Complete!\n\nFinal Score: ${currentScore.toFixed(1)}/10\nTotal Improvement: +${(currentScore - 8.2).toFixed(1)} points\nIterations: ${currentIteration}`);
+            }, 2000);
+        }
+        
+        // Start the session
+        setInterval(updateTimer, 1000);
+        setInterval(updateCountdown, 1000);
+        
+        // Initial log entries
+        addLogEntry("[10:00:00] 🚀 TARS 10-minute UI evolution session started");
+        addLogEntry("[10:00:00] 🎯 Target: Continuous autonomous improvement");
+        addLogEntry("[10:00:00] 👁️ Visual self-awareness system: ACTIVE");
+        
+        console.log("👁️ TARS Live UI Evolution Dashboard Ready!");
+        console.log("🎯 Watch TARS autonomously improve its UI for 10 minutes!");
+    </script>
+</body>
+</html>

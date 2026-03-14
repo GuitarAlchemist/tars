@@ -1,3 +1,4 @@
+<<<<<<< HEAD:v1/parked_legacy/TarsEngine.DSL/SimpleDsl.fs
 namespace TarsEngine.DSL
 
 open System
@@ -10,6 +11,13 @@ open System.Diagnostics
 open System.Threading
 open System.Text.Json
 open System.Security.Cryptography
+=======
+﻿namespace TarsEngine.DSL
+
+open System
+open System.Text.RegularExpressions
+open System.Collections.Generic
+>>>>>>> origin/main:TarsEngine.DSL/SimpleDsl.fs
 open Microsoft.FSharp.Core
 
 /// Module containing a simplified implementation of the TARS DSL
@@ -75,6 +83,7 @@ module SimpleDsl =
         | Success of PropertyValue
         | Error of string
 
+<<<<<<< HEAD:v1/parked_legacy/TarsEngine.DSL/SimpleDsl.fs
     let private invariantCulture = CultureInfo.InvariantCulture
 
     let private workspaceRoot = Directory.GetCurrentDirectory()
@@ -199,6 +208,8 @@ module SimpleDsl =
         dict
 
 
+=======
+>>>>>>> origin/main:TarsEngine.DSL/SimpleDsl.fs
     /// Parse a string into a block type
     let parseBlockType (blockType: string) =
         match blockType.ToUpper() with
@@ -377,6 +388,7 @@ module SimpleDsl =
         let variableRegex = Regex(@"\$\{([^}]+)\}")
 
         variableRegex.Replace(text, fun m ->
+<<<<<<< HEAD:v1/parked_legacy/TarsEngine.DSL/SimpleDsl.fs
             let variableName = m.Groups.[1].Value.Trim()
 
             match tryResolveVariable variableName environment with
@@ -384,6 +396,17 @@ module SimpleDsl =
             | None when environment.ContainsKey(variableName) ->
                 propertyValueToString environment.[variableName]
             | None ->
+=======
+            let variableName = m.Groups.[1].Value
+
+            if environment.ContainsKey(variableName) then
+                match environment.[variableName] with
+                | StringValue s -> s
+                | NumberValue n -> n.ToString()
+                | BoolValue b -> b.ToString()
+                | _ -> m.Value // Keep the original for complex types
+            else
+>>>>>>> origin/main:TarsEngine.DSL/SimpleDsl.fs
                 m.Value // Keep the original if variable not found
         )
 
@@ -445,6 +468,7 @@ module SimpleDsl =
             // Default to false for unknown conditions
             false
 
+<<<<<<< HEAD:v1/parked_legacy/TarsEngine.DSL/SimpleDsl.fs
     and private getStringProperty (block: Block) key (environment: Dictionary<string, PropertyValue>) =
         match Map.tryFind key block.Properties with
         | Some (StringValue value) -> Some (substituteVariables value environment)
@@ -1043,6 +1067,8 @@ module SimpleDsl =
             | other ->
                 Error($"Unknown action type: '{other}'")
 
+=======
+>>>>>>> origin/main:TarsEngine.DSL/SimpleDsl.fs
     /// Execute a block
     and executeBlock (block: Block) (environment: Dictionary<string, PropertyValue>) =
         match block.Type with
@@ -1100,7 +1126,423 @@ module SimpleDsl =
                 Error("Prompt block has no text property")
 
         | BlockType.Action ->
+<<<<<<< HEAD:v1/parked_legacy/TarsEngine.DSL/SimpleDsl.fs
             executeActionBlock block environment
+=======
+            // Get the action type
+            match block.Properties.TryFind("type") with
+            | Some (StringValue actionType) ->
+                // Debug output
+                printfn "Action type: '%s'" actionType
+
+                // Remove quotes if present
+                let cleanActionType =
+                    if actionType.StartsWith('"') && actionType.EndsWith('"') && actionType.Length >= 2 then
+                        actionType.Substring(1, actionType.Length - 2)
+                    else
+                        actionType
+
+                printfn "Clean action type: '%s'" cleanActionType
+
+                match cleanActionType.ToLower().Trim() with
+                | "log" ->
+                    // Get the message
+                    match block.Properties.TryFind("message") with
+                    | Some (StringValue message) ->
+                        // Substitute variables
+                        let substitutedMessage = substituteVariables message environment
+
+                        // Log the message
+                        printfn "%s" substitutedMessage
+
+                        Success(StringValue(substitutedMessage))
+                    | _ ->
+                        Error("Log action has no message property")
+
+                | "mcp_send" ->
+                    // Get the required parameters
+                    let targetOpt = block.Properties.TryFind("target")
+                    let actionOpt = block.Properties.TryFind("action")
+                    let parametersOpt = block.Properties.TryFind("parameters")
+                    let resultVarOpt = block.Properties.TryFind("result_variable")
+
+                    match targetOpt, actionOpt with
+                    | Some (StringValue target), Some (StringValue action) ->
+                        // Substitute variables in target and action
+                        let substitutedTarget = substituteVariables target environment
+                        let substitutedAction = substituteVariables action environment
+
+                        // Get parameters as object if available
+                        let parameters =
+                            match parametersOpt with
+                            | Some (ObjectValue paramMap) -> paramMap
+                            | _ -> Map.empty
+
+                        // Substitute variables in parameters
+                        let substitutedParams =
+                            parameters |> Map.map (fun _ value ->
+                                match value with
+                                | StringValue s -> StringValue(substituteVariables s environment)
+                                | _ -> value
+                            )
+
+                        // In a real implementation, this would send an MCP request
+                        // For now, just return a mock response
+                        let mockResponse = $"MCP request to {substitutedTarget}, action: {substitutedAction}, parameters: {substitutedParams.Count} parameters"
+                        printfn "[MCP] %s" mockResponse
+
+                        // Store the result in the specified variable if provided
+                        match resultVarOpt with
+                        | Some (StringValue resultVar) ->
+                            environment.[resultVar] <- StringValue(mockResponse)
+                        | _ -> ()
+
+                        Success(StringValue(mockResponse))
+                    | _ ->
+                        Error("MCP action requires 'target' and 'action' properties")
+
+                | "mcp_receive" ->
+                    // Get the timeout parameter
+                    let timeoutOpt = block.Properties.TryFind("timeout")
+                    let resultVarOpt = block.Properties.TryFind("result_variable")
+
+                    // Get timeout value or use default
+                    let timeout =
+                        match timeoutOpt with
+                        | Some (NumberValue t) -> t
+                        | _ -> 30.0 // Default timeout in seconds
+
+                    // In a real implementation, this would wait for an MCP request
+                    // For now, just return a mock response
+                    let mockResponse = $"Received MCP request (timeout: {timeout}s)"
+                    printfn "[MCP] %s" mockResponse
+
+                    // Store the result in the specified variable if provided
+                    match resultVarOpt with
+                    | Some (StringValue resultVar) ->
+                        environment.[resultVar] <- StringValue(mockResponse)
+                    | _ -> ()
+
+                    Success(StringValue(mockResponse))
+
+                | "file_read" ->
+                    // Get the required parameters
+                    let pathOpt = block.Properties.TryFind("path")
+                    let resultVarOpt = block.Properties.TryFind("result_variable")
+
+                    match pathOpt, resultVarOpt with
+                    | Some (StringValue path), Some (StringValue resultVar) ->
+                        // Substitute variables in path
+                        let substitutedPath = substituteVariables path environment
+
+                        try
+                            // Read the file
+                            let content = System.IO.File.ReadAllText(substitutedPath)
+
+                            // Store the result in the result variable
+                            environment.[resultVar] <- StringValue(content)
+
+                            Success(StringValue($"File read successfully: {substitutedPath}"))
+                        with
+                        | ex -> Error($"Error reading file {substitutedPath}: {ex.Message}")
+                    | _ ->
+                        Error("File read action requires 'path' and 'result_variable' properties")
+
+                | "file_write" ->
+                    // Get the required parameters
+                    let pathOpt = block.Properties.TryFind("path")
+                    let contentOpt = block.Properties.TryFind("content")
+
+                    match pathOpt, contentOpt with
+                    | Some (StringValue path), Some (StringValue content) ->
+                        // Substitute variables in path and content
+                        let substitutedPath = substituteVariables path environment
+                        let substitutedContent = substituteVariables content environment
+
+                        try
+                            // Write the file
+                            System.IO.File.WriteAllText(substitutedPath, substitutedContent)
+
+                            Success(StringValue($"File written successfully: {substitutedPath}"))
+                        with
+                        | ex -> Error($"Error writing file {substitutedPath}: {ex.Message}")
+                    | _ ->
+                        Error("File write action requires 'path' and 'content' properties")
+
+                | "file_delete" ->
+                    // Get the required parameters
+                    let pathOpt = block.Properties.TryFind("path")
+
+                    match pathOpt with
+                    | Some (StringValue path) ->
+                        // Substitute variables in path
+                        let substitutedPath = substituteVariables path environment
+
+                        try
+                            // Check if file exists
+                            if System.IO.File.Exists(substitutedPath) then
+                                // Delete the file
+                                System.IO.File.Delete(substitutedPath)
+                                Success(StringValue($"File deleted successfully: {substitutedPath}"))
+                            else
+                                Error($"File not found: {substitutedPath}")
+                        with
+                        | ex -> Error($"Error deleting file {substitutedPath}: {ex.Message}")
+                    | _ ->
+                        Error("File delete action requires 'path' property")
+
+                | "http_request" ->
+                    // Get the required parameters
+                    let urlOpt = block.Properties.TryFind("url")
+                    let methodOpt = block.Properties.TryFind("method")
+                    let headersOpt = block.Properties.TryFind("headers")
+                    let bodyOpt = block.Properties.TryFind("body")
+                    let resultVarOpt = block.Properties.TryFind("result_variable")
+
+                    match urlOpt, resultVarOpt with
+                    | Some (StringValue url), Some (StringValue resultVar) ->
+                        // Substitute variables in url
+                        let substitutedUrl = substituteVariables url environment
+
+                        // Get method (default to GET)
+                        let method =
+                            match methodOpt with
+                            | Some (StringValue m) -> substituteVariables m environment
+                            | _ -> "GET"
+
+                        // Get headers
+                        let headers =
+                            match headersOpt with
+                            | Some (ObjectValue headerMap) ->
+                                headerMap |> Map.map (fun _ value ->
+                                    match value with
+                                    | StringValue s -> substituteVariables s environment
+                                    | _ -> "")
+                            | _ -> Map.empty
+
+                        // Get body
+                        let body =
+                            match bodyOpt with
+                            | Some (StringValue b) -> substituteVariables b environment
+                            | _ -> ""
+
+                        try
+                            // Use HttpClient for HTTP requests
+                            use client = new System.Net.Http.HttpClient()
+
+                            // Add headers
+                            for KeyValue(key, value) in headers do
+                                client.DefaultRequestHeaders.Add(key, value)
+
+                            // Create the request message
+                            let requestMessage = new System.Net.Http.HttpRequestMessage()
+                            requestMessage.RequestUri <- new System.Uri(substitutedUrl)
+
+                            // Set the method
+                            match method with
+                            | "GET" -> requestMessage.Method <- System.Net.Http.HttpMethod.Get
+                            | "POST" -> requestMessage.Method <- System.Net.Http.HttpMethod.Post
+                            | "PUT" -> requestMessage.Method <- System.Net.Http.HttpMethod.Put
+                            | "DELETE" -> requestMessage.Method <- System.Net.Http.HttpMethod.Delete
+                            | "PATCH" -> requestMessage.Method <- System.Net.Http.HttpMethod.Patch
+                            | "HEAD" -> requestMessage.Method <- System.Net.Http.HttpMethod.Head
+                            | "OPTIONS" -> requestMessage.Method <- System.Net.Http.HttpMethod.Options
+                            | _ -> requestMessage.Method <- new System.Net.Http.HttpMethod(method)
+
+                            // Add body for POST, PUT, etc.
+                            if method <> "GET" && method <> "HEAD" && body <> "" then
+                                requestMessage.Content <- new System.Net.Http.StringContent(body, System.Text.Encoding.UTF8, "application/json")
+
+                            // Get the response
+                            let response = client.SendAsync(requestMessage).Result
+                            let responseText = response.Content.ReadAsStringAsync().Result
+
+                            // Store the result in the result variable
+                            environment.[resultVar] <- StringValue(responseText)
+
+                            Success(StringValue(sprintf "HTTP request successful: %s" substitutedUrl))
+                        with
+                        | ex -> Error(sprintf "Error making HTTP request to %s: %s" substitutedUrl ex.Message)
+                    | _ ->
+                        Error("HTTP request action requires 'url' and 'result_variable' properties")
+
+                | "shell_execute" ->
+                    // Get the required parameters
+                    let commandOpt = block.Properties.TryFind("command")
+                    let resultVarOpt = block.Properties.TryFind("result_variable")
+
+                    match commandOpt with
+                    | Some (StringValue command) ->
+                        // Substitute variables in command
+                        let substitutedCommand = substituteVariables command environment
+
+                        try
+                            // Create the process
+                            let processInfo = new System.Diagnostics.ProcessStartInfo()
+                            processInfo.FileName <- "cmd.exe"
+                            processInfo.Arguments <- $"/c {substitutedCommand}"
+                            processInfo.RedirectStandardOutput <- true
+                            processInfo.RedirectStandardError <- true
+                            processInfo.UseShellExecute <- false
+                            processInfo.CreateNoWindow <- true
+
+                            // Start the process
+                            use proc = System.Diagnostics.Process.Start(processInfo)
+                            let output = proc.StandardOutput.ReadToEnd()
+                            let error = proc.StandardError.ReadToEnd()
+                            proc.WaitForExit()
+
+                            // Store the result in the result variable if provided
+                            match resultVarOpt with
+                            | Some (StringValue resultVar) ->
+                                environment.[resultVar] <- StringValue(output)
+                            | _ -> ()
+
+                            // Check if the process exited successfully
+                            if proc.ExitCode = 0 then
+                                Success(StringValue(sprintf "Command executed successfully: %s" substitutedCommand))
+                            else
+                                Error(sprintf "Command failed with exit code %d: %s" proc.ExitCode error)
+                        with
+                        | ex -> Error(sprintf "Error executing command %s: %s" substitutedCommand ex.Message)
+                    | _ ->
+                        Error("Shell execute action requires 'command' property")
+
+                | "mcp_send" ->
+                    // Get the required parameters
+                    let targetOpt = block.Properties.TryFind("target")
+                    let actionOpt = block.Properties.TryFind("action")
+                    let parametersOpt = block.Properties.TryFind("parameters")
+                    let resultVarOpt = block.Properties.TryFind("result_variable")
+
+                    match targetOpt, actionOpt with
+                    | Some (StringValue target), Some (StringValue action) ->
+                        // Substitute variables
+                        let substitutedTarget = substituteVariables target environment
+                        let substitutedAction = substituteVariables action environment
+
+                        // Get parameters as a map
+                        let parameters =
+                            match parametersOpt with
+                            | Some (ObjectValue paramsMap) ->
+                                // Substitute variables in parameter values
+                                paramsMap |> Map.map (fun _ value ->
+                                    match value with
+                                    | StringValue s -> StringValue(substituteVariables s environment)
+                                    | _ -> value)
+                            | _ -> Map.empty
+
+                        // In a real implementation, this would send a message to the MCP target
+                        // REAL IMPLEMENTATION NEEDED
+                        let response =
+                            match substitutedTarget, substitutedAction with
+                            | "augment", "code_generation" ->
+                                "// Generated code\nfunction helloWorld() {\n  console.log('Hello from Augment!');\n}"
+                            | "augment", "code_enhancement" ->
+                                "// Enhanced code\nfunction helloWorld() {\n  console.log('Hello from Augment with optimizations!');\n}"
+                            | _ ->
+                                $"Response from {substitutedTarget} for action {substitutedAction}"
+
+                        // Store the result in the result variable if provided
+                        match resultVarOpt with
+                        | Some (StringValue resultVar) ->
+                            environment.[resultVar] <- StringValue(response)
+                        | _ -> ()
+
+                        Success(StringValue($"MCP message sent to {substitutedTarget}"))
+                    | _ ->
+                        Error("MCP send action requires 'target' and 'action' properties")
+
+                | "mcp_receive" ->
+                    // Get the required parameters
+                    let sourceOpt = block.Properties.TryFind("source")
+                    let timeoutOpt = block.Properties.TryFind("timeout")
+                    let resultVarOpt = block.Properties.TryFind("result_variable")
+
+                    match sourceOpt, resultVarOpt with
+                    | Some (StringValue source), Some (StringValue resultVar) ->
+                        // Substitute variables
+                        let substitutedSource = substituteVariables source environment
+
+                        // Get timeout
+                        let timeout =
+                            match timeoutOpt with
+                            | Some (NumberValue t) -> int t
+                            | _ -> 30 // Default timeout in seconds
+
+                        // In a real implementation, this would wait for a message from the MCP source
+                        // REAL IMPLEMENTATION NEEDED
+                        let response = $"Response from {substitutedSource}"
+
+                        // Store the result in the result variable
+                        environment.[resultVar] <- StringValue(response)
+
+                        Success(StringValue($"MCP message received from {substitutedSource}"))
+                    | _ ->
+                        Error("MCP receive action requires 'source' and 'result_variable' properties")
+
+                | "read_file" ->
+                    // Get the required parameters
+                    let pathOpt = block.Properties.TryFind("path")
+                    let resultVarOpt = block.Properties.TryFind("result_variable")
+
+                    match pathOpt, resultVarOpt with
+                    | Some (StringValue path), Some (StringValue resultVar) ->
+                        // Substitute variables
+                        let substitutedPath = substituteVariables path environment
+
+                        try
+                            // Read the file
+                            let content = System.IO.File.ReadAllText(substitutedPath)
+
+                            // Store the result in the result variable
+                            environment.[resultVar] <- StringValue(content)
+
+                            Success(StringValue($"File read successfully: {substitutedPath}"))
+                        with
+                        | ex -> Error($"Error reading file {substitutedPath}: {ex.Message}")
+                    | _ ->
+                        Error("Read file action requires 'path' and 'result_variable' properties")
+
+                | "write_file" ->
+                    // Get the required parameters
+                    let pathOpt = block.Properties.TryFind("path")
+                    let contentOpt = block.Properties.TryFind("content")
+
+                    match pathOpt, contentOpt with
+                    | Some (StringValue path), Some (StringValue content) ->
+                        // Substitute variables
+                        let substitutedPath = substituteVariables path environment
+                        let substitutedContent = substituteVariables content environment
+
+                        try
+                            // Write the file
+                            System.IO.File.WriteAllText(substitutedPath, substitutedContent)
+
+                            Success(StringValue($"File written successfully: {substitutedPath}"))
+                        with
+                        | ex -> Error($"Error writing file {substitutedPath}: {ex.Message}")
+                    | _ ->
+                        Error("Write file action requires 'path' and 'content' properties")
+
+                | "analyze" | "pattern_recognition" | "refactor" | "test" | "get_files" | "generate_report" | "notify" ->
+                    // These are placeholder implementations for the more complex actions
+                    // In a real implementation, these would perform actual analysis, refactoring, etc.
+                    printfn "Executing action: %s (placeholder implementation)" actionType
+                    Success(StringValue($"Action {actionType} executed (placeholder implementation)"))
+
+                | _ ->
+                    Error($"Unknown action type: '{actionType}'")
+
+
+            | Some other ->
+                // Debug output for non-string values
+                printfn "Action type is not a string: %A" other
+                Error("Action type must be a string")
+
+            | _ ->
+                Error("Action block has no type property")
+>>>>>>> origin/main:TarsEngine.DSL/SimpleDsl.fs
 
         | BlockType.If ->
             // Get the condition
@@ -1728,7 +2170,11 @@ module SimpleDsl =
                         Body = block.NestedBlocks
                     }
                     functionRegistry <- functionRegistry.Add(name, functionDef)
+<<<<<<< HEAD:v1/parked_legacy/TarsEngine.DSL/SimpleDsl.fs
                     printfn $"Registered function: %s{name} with %d{parameters.Length} parameters"
+=======
+                    printfn "Registered function: %s with %d parameters" name parameters.Length
+>>>>>>> origin/main:TarsEngine.DSL/SimpleDsl.fs
                 | None ->
                     printfn "Warning: Function block without a name will be ignored"
 
@@ -1748,4 +2194,7 @@ module SimpleDsl =
 
         result
 
+<<<<<<< HEAD:v1/parked_legacy/TarsEngine.DSL/SimpleDsl.fs
 
+=======
+>>>>>>> origin/main:TarsEngine.DSL/SimpleDsl.fs

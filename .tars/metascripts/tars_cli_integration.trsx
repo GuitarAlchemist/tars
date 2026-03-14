@@ -1,0 +1,444 @@
+DESCRIBE {
+    name: "TARS CLI Integration Metascript"
+    version: "1.0"
+    author: "TARS"
+    description: "A metascript for integrating with TARS CLI commands and services"
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.3
+    max_tokens: 4000
+}
+
+// Define variables for configuration
+VARIABLE config {
+    value: {
+        cli_commands: ["diagnostics", "self-analyze", "learning", "chat", "think"],
+        output_directory: "output/cli_integration",
+        log_file: "tars_cli_integration.log"
+    }
+}
+
+// Define the CLI integration agent
+AGENT cli_integrator {
+    description: "An agent that integrates with TARS CLI commands and services"
+    capabilities: ["command_execution", "service_integration", "result_parsing"]
+    
+    TASK execute_command {
+        description: "Execute a TARS CLI command"
+        
+        FUNCTION run_command {
+            parameters: ["command", "args"]
+            
+            ACTION {
+                type: "execute_cli"
+                command: "${command}"
+                arguments: "${args}"
+            }
+            
+            RETURN {
+                value: {
+                    success: true,
+                    output: "Command output would go here",
+                    exit_code: 0
+                }
+            }
+        }
+        
+        FUNCTION parse_result {
+            parameters: ["output"]
+            
+            ACTION {
+                type: "parse_output"
+                output: "${output}"
+            }
+            
+            RETURN {
+                value: {
+                    parsed: {
+                        status: "success",
+                        data: {}
+                    }
+                }
+            }
+        }
+    }
+    
+    TASK integrate_service {
+        description: "Integrate with a TARS CLI service"
+        
+        FUNCTION call_service {
+            parameters: ["service_name", "method_name", "args"]
+            
+            ACTION {
+                type: "call_service"
+                service: "${service_name}"
+                method: "${method_name}"
+                arguments: "${args}"
+            }
+            
+            RETURN {
+                value: {
+                    success: true,
+                    result: "Service result would go here"
+                }
+            }
+        }
+    }
+}
+
+// Define the result processor agent
+AGENT result_processor {
+    description: "An agent that processes results from TARS CLI commands and services"
+    capabilities: ["data_processing", "report_generation", "visualization"]
+    
+    TASK process_results {
+        description: "Process results from TARS CLI commands and services"
+        
+        FUNCTION generate_report {
+            parameters: ["results", "format"]
+            
+            ACTION {
+                type: "generate_report"
+                results: "${results}"
+                format: "${format}"
+            }
+            
+            RETURN {
+                value: {
+                    report: "Report content would go here",
+                    file_path: "report.md"
+                }
+            }
+        }
+        
+        FUNCTION visualize_results {
+            parameters: ["results", "chart_type"]
+            
+            ACTION {
+                type: "visualize"
+                results: "${results}"
+                chart_type: "${chart_type}"
+            }
+            
+            RETURN {
+                value: {
+                    chart: "Chart data would go here",
+                    file_path: "chart.png"
+                }
+            }
+        }
+    }
+}
+
+// Main workflow
+TARS {
+    // Initialize the workflow
+    ACTION {
+        type: "log"
+        message: "Starting TARS CLI integration workflow"
+    }
+    
+    // Create output directory if it doesn't exist
+    ACTION {
+        type: "ensure_directory"
+        path: "${config.value.output_directory}"
+    }
+    
+    // Initialize results storage
+    VARIABLE all_results {
+        value: {
+            commands: {},
+            services: {}
+        }
+    }
+    
+    // Execute each CLI command
+    FOR {
+        variable: "command"
+        range: "${config.value.cli_commands}"
+        
+        ACTION {
+            type: "log"
+            message: "Executing CLI command: ${command}"
+        }
+        
+        // Determine command arguments based on the command
+        VARIABLE command_args {
+            value: ""
+        }
+        
+        IF {
+            condition: "${command == 'diagnostics'}"
+            
+            ACTION {
+                type: "assign"
+                target: "command_args.value"
+                value: "--verbose"
+            }
+        }
+        ELSE IF {
+            condition: "${command == 'self-analyze'}"
+            
+            ACTION {
+                type: "assign"
+                target: "command_args.value"
+                value: "--file examples/metascripts/tars_cli_integration.tars"
+            }
+        }
+        ELSE IF {
+            condition: "${command == 'learning'}"
+            
+            ACTION {
+                type: "assign"
+                target: "command_args.value"
+                value: "plan list"
+            }
+        }
+        ELSE IF {
+            condition: "${command == 'chat'}"
+            
+            ACTION {
+                type: "assign"
+                target: "command_args.value"
+                value: "examples"
+            }
+        }
+        ELSE IF {
+            condition: "${command == 'think'}"
+            
+            ACTION {
+                type: "assign"
+                target: "command_args.value"
+                value: "generate --topic 'TARS DSL Integration'"
+            }
+        }
+        
+        // Execute the command
+        VARIABLE command_result {
+            value: {}
+        }
+        
+        ACTION {
+            type: "execute"
+            agent: "cli_integrator"
+            task: "execute_command"
+            function: "run_command"
+            parameters: {
+                command: "${command}",
+                args: "${command_args.value}"
+            }
+            output_variable: "command_result"
+        }
+        
+        // Parse the result
+        VARIABLE parsed_result {
+            value: {}
+        }
+        
+        ACTION {
+            type: "execute"
+            agent: "cli_integrator"
+            task: "execute_command"
+            function: "parse_result"
+            parameters: {
+                output: "${command_result.value.output}"
+            }
+            output_variable: "parsed_result"
+        }
+        
+        // Store the result
+        ACTION {
+            type: "assign"
+            target: "all_results.value.commands.${command}"
+            value: {
+                raw: "${command_result.value}",
+                parsed: "${parsed_result.value.parsed}"
+            }
+        }
+    }
+    
+    // Integrate with services
+    VARIABLE services {
+        value: ["DslService", "ChatBotService", "LearningPlanService", "DeepThinkingService"]
+    }
+    
+    FOR {
+        variable: "service"
+        range: "${services}"
+        
+        ACTION {
+            type: "log"
+            message: "Integrating with service: ${service}"
+        }
+        
+        // Determine service method and arguments based on the service
+        VARIABLE service_method {
+            value: ""
+        }
+        
+        VARIABLE service_args {
+            value: {}
+        }
+        
+        IF {
+            condition: "${service == 'DslService'}"
+            
+            ACTION {
+                type: "assign"
+                target: "service_method.value"
+                value: "ValidateAsync"
+            }
+            
+            ACTION {
+                type: "assign"
+                target: "service_args.value"
+                value: {
+                    filePath: "examples/metascripts/tars_cli_integration.tars",
+                    verbose: true
+                }
+            }
+        }
+        ELSE IF {
+            condition: "${service == 'ChatBotService'}"
+            
+            ACTION {
+                type: "assign"
+                target: "service_method.value"
+                value: "SendMessageAsync"
+            }
+            
+            ACTION {
+                type: "assign"
+                target: "service_args.value"
+                value: {
+                    message: "Tell me about TARS DSL"
+                }
+            }
+        }
+        ELSE IF {
+            condition: "${service == 'LearningPlanService'}"
+            
+            ACTION {
+                type: "assign"
+                target: "service_method.value"
+                value: "GenerateLearningPlanAsync"
+            }
+            
+            ACTION {
+                type: "assign"
+                target: "service_args.value"
+                value: {
+                    subject: "TARS DSL",
+                    difficulty: "Intermediate",
+                    durationWeeks: 4
+                }
+            }
+        }
+        ELSE IF {
+            condition: "${service == 'DeepThinkingService'}"
+            
+            ACTION {
+                type: "assign"
+                target: "service_method.value"
+                value: "GenerateExplorationAsync"
+            }
+            
+            ACTION {
+                type: "assign"
+                target: "service_args.value"
+                value: {
+                    topic: "TARS DSL Integration",
+                    model: "llama3"
+                }
+            }
+        }
+        
+        // Call the service
+        VARIABLE service_result {
+            value: {}
+        }
+        
+        ACTION {
+            type: "execute"
+            agent: "cli_integrator"
+            task: "integrate_service"
+            function: "call_service"
+            parameters: {
+                service_name: "${service}",
+                method_name: "${service_method.value}",
+                args: "${service_args.value}"
+            }
+            output_variable: "service_result"
+        }
+        
+        // Store the result
+        ACTION {
+            type: "assign"
+            target: "all_results.value.services.${service}"
+            value: "${service_result.value}"
+        }
+    }
+    
+    // Process all results
+    ACTION {
+        type: "log"
+        message: "Processing all results"
+    }
+    
+    // Generate a report
+    VARIABLE report {
+        value: {}
+    }
+    
+    ACTION {
+        type: "execute"
+        agent: "result_processor"
+        task: "process_results"
+        function: "generate_report"
+        parameters: {
+            results: "${all_results.value}",
+            format: "markdown"
+        }
+        output_variable: "report"
+    }
+    
+    // Save the report
+    ACTION {
+        type: "write_file"
+        path: "${config.value.output_directory}/report.md"
+        content: "${report.value.report}"
+    }
+    
+    // Visualize the results
+    VARIABLE chart {
+        value: {}
+    }
+    
+    ACTION {
+        type: "execute"
+        agent: "result_processor"
+        task: "process_results"
+        function: "visualize_results"
+        parameters: {
+            results: "${all_results.value}",
+            chart_type: "bar"
+        }
+        output_variable: "chart"
+    }
+    
+    // Save the chart
+    ACTION {
+        type: "write_file"
+        path: "${config.value.output_directory}/chart.png"
+        content: "${chart.value.chart}"
+    }
+    
+    // Log completion
+    ACTION {
+        type: "log"
+        message: "TARS CLI integration workflow completed"
+        file: "${config.value.log_file}"
+    }
+}

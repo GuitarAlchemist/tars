@@ -1,0 +1,59 @@
+DESCRIBE {
+    name: "F# Migration Test"
+    version: "1.0"
+    description: "Test the restored F# migration functionality"
+    author: "TARS Autonomous System"
+    date: "2025-01-15"
+}
+
+CONFIG {
+    test_mode: true
+    output_path: ".tars/test_output"
+}
+
+VARIABLE test_project {
+    value: "simple_test_app"
+}
+
+// Test F# block functionality
+FSHARP {
+    // Test basic F# functionality
+    let testMessage = "F# Migration Test Successful!"
+    let numbers = [1; 2; 3; 4; 5]
+    let doubled = numbers |> List.map (fun x -> x * 2)
+    
+    printfn "%s" testMessage
+    printfn "Original numbers: %A" numbers
+    printfn "Doubled numbers: %A" doubled
+    
+    // Return test result
+    sprintf "F# block executed successfully. Doubled: %A" doubled
+    
+    output_variable: "fsharp_result"
+}
+
+// Test TARS block functionality
+TARS {
+    generate_project: console_app
+    analyze_code: "test_code.fs"
+    autonomous_coding: "Create a simple calculator"
+}
+
+// Test YAML status functionality
+YAML {
+    phase: "testing"
+    status: "in_progress"
+    progress: 50.0
+    current_task: "Testing F# migration functionality"
+    exploration_mode: false
+    comments:
+      - "F# block executed successfully"
+      - "TARS block functionality tested"
+      - "YAML status management working"
+}
+
+// Final test action
+ACTION {
+    type: "log"
+    message: "F# Migration test completed: ${fsharp_result}"
+}

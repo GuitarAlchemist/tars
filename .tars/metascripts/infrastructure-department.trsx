@@ -1,0 +1,1390 @@
+DESCRIBE {
+    name: "TARS Infrastructure Department"
+    purpose: "Kubernetes deployment, cloud infrastructure, and DevOps automation"
+    version: "1.0.0"
+    author: "TARS Infrastructure Team"
+    created: "2024-12-15"
+    complexity: 10
+    reasoning_required: ["infrastructure", "deployment", "scalability", "security", "automation"]
+    special_capabilities: ["kubernetes_orchestration", "multi_cloud_deployment", "devops_automation"]
+}
+
+CONFIG {
+    // Infrastructure Department Structure
+    department_structure: {
+        department_head: "ChiefInfrastructureOfficerAgent"
+        kubernetes_team: {
+            lead: "KubernetesArchitectureAgent"
+            agents: [
+                "ContainerOptimizationAgent",
+                "HelmChartAgent",
+                "AutonomousClusterManagementAgent",
+                "TarsNodeOrchestrationAgent",
+                "HyperlightIntegrationAgent"
+            ]
+        }
+        cloud_deployment_team: {
+            lead: "AzureDeploymentAgent"
+            agents: [
+                "AWSDeploymentAgent",
+                "MultiCloudManagementAgent"
+            ]
+        }
+        devops_automation_team: {
+            lead: "CICDPipelineAgent"
+            agents: [
+                "MonitoringObservabilityAgent",
+                "SecurityComplianceAgent"
+            ]
+        }
+    }
+    
+    // Deployment Targets
+    deployment_targets: {
+        internal_kubernetes: {
+            environment: "development_and_testing"
+            cluster_type: "on_premises"
+            node_count: 3
+            resource_allocation: "development_optimized"
+        }
+        
+        azure_aks: {
+            environment: "production"
+            cluster_type: "azure_kubernetes_service"
+            node_pools: ["system", "user_workloads", "gpu_workloads"]
+            auto_scaling: true
+        }
+        
+        aws_eks: {
+            environment: "production_alternative"
+            cluster_type: "elastic_kubernetes_service"
+            node_groups: ["managed", "spot_instances", "gpu_instances"]
+            multi_az: true
+        }
+        
+        hybrid_multi_cloud: {
+            environment: "disaster_recovery"
+            strategy: "cross_cloud_replication"
+            failover_automation: true
+            data_synchronization: "real_time"
+        }
+    }
+    
+    // Container Architecture
+    container_architecture: {
+        tars_microservices: [
+            "tars-operations-service",
+            "tars-ui-service", 
+            "tars-knowledge-service",
+            "tars-agent-service",
+            "tars-research-service",
+            "tars-gateway-service",
+            "tars-auth-service",
+            "tars-config-service"
+        ]
+        
+        base_images: {
+            dotnet_runtime: "mcr.microsoft.com/dotnet/aspnet:8.0"
+            nodejs_runtime: "node:18-alpine"
+            python_runtime: "python:3.11-slim"
+            nginx_proxy: "nginx:1.24-alpine"
+        }
+        
+        security_standards: {
+            non_root_user: true
+            read_only_filesystem: true
+            security_scanning: "trivy"
+            image_signing: "cosign"
+        }
+    }
+}
+
+KUBERNETES_TEAM {
+    kubernetes_architecture_agent: {
+        role: "KubernetesArchitectureAgent"
+        priority: "critical"
+        special_capability: "TARS microservices architecture and Kubernetes orchestration"
+        
+        responsibilities: [
+            "microservices_architecture_design",
+            "kubernetes_manifests_creation",
+            "service_mesh_implementation",
+            "cluster_architecture_optimization"
+        ]
+        
+        capabilities: {
+            microservices_design: {
+                description: "Design TARS microservices architecture for Kubernetes"
+                architecture_principles: {
+                    separation_of_concerns: "Each department as separate microservice"
+                    loose_coupling: "API-based communication between services"
+                    high_cohesion: "Related functionality grouped within services"
+                    fault_tolerance: "Circuit breakers and retry mechanisms"
+                    observability: "Comprehensive logging and monitoring"
+                }
+                
+                service_definitions: {
+                    tars_operations_service: {
+                        description: "Operations Department microservice"
+                        ports: [8080, 8443]
+                        resources: {
+                            cpu_request: "500m"
+                            memory_request: "1Gi"
+                            cpu_limit: "2000m"
+                            memory_limit: "4Gi"
+                        }
+                        replicas: 3
+                        health_checks: {
+                            liveness_probe: "/health/live"
+                            readiness_probe: "/health/ready"
+                            startup_probe: "/health/startup"
+                        }
+                    }
+                    
+                    tars_ui_service: {
+                        description: "UI Development Department microservice"
+                        ports: [3000, 3443]
+                        resources: {
+                            cpu_request: "250m"
+                            memory_request: "512Mi"
+                            cpu_limit: "1000m"
+                            memory_limit: "2Gi"
+                        }
+                        replicas: 2
+                        special_features: [
+                            "internal_dialogue_access",
+                            "real_time_websockets",
+                            "template_free_generation"
+                        ]
+                    }
+                    
+                    tars_knowledge_service: {
+                        description: "Knowledge Management Department microservice"
+                        ports: [8081, 8444]
+                        resources: {
+                            cpu_request: "1000m"
+                            memory_request: "2Gi"
+                            cpu_limit: "4000m"
+                            memory_limit: "8Gi"
+                        }
+                        replicas: 2
+                        storage: {
+                            persistent_volume: "knowledge-store"
+                            size: "100Gi"
+                            storage_class: "fast-ssd"
+                        }
+                    }
+                    
+                    tars_research_service: {
+                        description: "Research & Innovation Department microservice"
+                        ports: [8082, 8445]
+                        resources: {
+                            cpu_request: "2000m"
+                            memory_request: "4Gi"
+                            cpu_limit: "8000m"
+                            memory_limit: "16Gi"
+                        }
+                        replicas: 1
+                        gpu_resources: {
+                            nvidia_gpu: 1
+                            gpu_memory: "24Gi"
+                        }
+                        special_features: [
+                            "hyperlight_integration",
+                            "custom_inference_engine",
+                            "vector_store_operations"
+                        ]
+                    }
+                }
+            }
+            
+            kubernetes_manifests: {
+                description: "Generate comprehensive Kubernetes manifests"
+                manifest_types: {
+                    deployments: "Application deployment configurations"
+                    services: "Service discovery and load balancing"
+                    ingress: "External traffic routing and TLS termination"
+                    configmaps: "Configuration management"
+                    secrets: "Sensitive data management"
+                    persistent_volumes: "Data persistence and storage"
+                    network_policies: "Network security and isolation"
+                    service_accounts: "RBAC and security contexts"
+                }
+                
+                deployment_strategies: {
+                    rolling_update: "Zero-downtime deployments"
+                    blue_green: "Full environment switching"
+                    canary: "Gradual traffic shifting"
+                    a_b_testing: "Feature flag based deployments"
+                }
+            }
+            
+            service_mesh: {
+                description: "Implement service mesh for microservices communication"
+                mesh_technology: "Istio"
+                features: [
+                    "traffic_management",
+                    "security_policies",
+                    "observability",
+                    "circuit_breaking",
+                    "load_balancing",
+                    "mutual_tls"
+                ]
+                
+                traffic_policies: {
+                    retry_policy: "Automatic retry with exponential backoff"
+                    timeout_policy: "Request timeout and circuit breaking"
+                    rate_limiting: "Request rate limiting and throttling"
+                    fault_injection: "Chaos engineering and resilience testing"
+                }
+            }
+        }
+    }
+    
+    container_optimization_agent: {
+        role: "ContainerOptimizationAgent"
+        responsibilities: [
+            "docker_image_optimization",
+            "security_hardening",
+            "performance_tuning",
+            "resource_efficiency"
+        ]
+        
+        capabilities: {
+            image_optimization: {
+                multi_stage_builds: "Minimize image size and attack surface"
+                layer_caching: "Optimize build times and storage"
+                distroless_images: "Security-focused minimal images"
+                vulnerability_scanning: "Automated security scanning with Trivy"
+            }
+            
+            performance_optimization: {
+                resource_limits: "Optimal CPU and memory allocation"
+                startup_optimization: "Fast container startup times"
+                health_checks: "Efficient health check implementations"
+                graceful_shutdown: "Proper signal handling and cleanup"
+            }
+        }
+    }
+    
+    helm_chart_agent: {
+        role: "HelmChartAgent"
+        responsibilities: [
+            "helm_chart_development",
+            "configuration_management",
+            "release_management",
+            "chart_repository_maintenance"
+        ]
+        
+        capabilities: {
+            chart_architecture: {
+                umbrella_chart: "Main TARS chart with all dependencies"
+                service_charts: "Individual charts for each microservice"
+                library_charts: "Reusable chart components"
+                configuration_templates: "Flexible configuration management"
+            }
+            
+            release_management: {
+                versioning: "Semantic versioning for chart releases"
+                rollback_capability: "Automated rollback on deployment failures"
+                testing: "Automated chart testing and validation"
+                documentation: "Comprehensive chart documentation"
+            }
+        }
+    }
+
+    autonomous_cluster_management_agent: {
+        role: "AutonomousClusterManagementAgent"
+        priority: "critical"
+        special_capability: "Autonomous discovery, analysis, and takeover of existing Kubernetes clusters"
+
+        responsibilities: [
+            "cluster_discovery_and_reconnaissance",
+            "existing_workload_analysis_and_mapping",
+            "non_disruptive_takeover_strategies",
+            "autonomous_deployment_and_scaling",
+            "self_healing_and_optimization",
+            "resource_management_and_cost_optimization",
+            "security_hardening_and_compliance",
+            "disaster_recovery_and_backup_automation"
+        ]
+
+        capabilities: {
+            cluster_discovery: {
+                description: "Autonomously discover and analyze existing Kubernetes clusters"
+                discovery_methods: [
+                    "kubeconfig_analysis",
+                    "network_scanning",
+                    "cloud_provider_api_discovery",
+                    "dns_service_discovery",
+                    "existing_workload_fingerprinting"
+                ]
+
+                analysis_framework: {
+                    cluster_assessment: {
+                        kubernetes_version: "extract_and_validate_k8s_version"
+                        node_analysis: "count_nodes_and_analyze_resources"
+                        network_topology: "map_networking_and_ingress_patterns"
+                        storage_analysis: "analyze_persistent_volumes_and_storage_classes"
+                        security_posture: "assess_rbac_policies_and_security_contexts"
+                        resource_utilization: "calculate_current_resource_usage_patterns"
+                    }
+
+                    workload_mapping: {
+                        existing_deployments: "catalog_all_deployments_and_statefulsets"
+                        service_dependencies: "map_service_to_service_communication"
+                        data_flows: "analyze_data_persistence_and_flows"
+                        external_integrations: "identify_external_service_dependencies"
+                        performance_baselines: "establish_current_performance_metrics"
+                    }
+
+                    optimization_opportunities: {
+                        resource_efficiency: "identify_over_and_under_provisioned_resources"
+                        cost_optimization: "calculate_potential_cost_savings"
+                        security_improvements: "identify_security_vulnerabilities_and_hardening"
+                        performance_enhancements: "identify_performance_bottlenecks"
+                        operational_improvements: "identify_manual_processes_for_automation"
+                    }
+                }
+            }
+
+            autonomous_takeover: {
+                description: "Execute non-disruptive takeover of existing clusters"
+                takeover_strategy: {
+                    approach: "gradual_non_disruptive_takeover"
+                    phases: [
+                        "establish_tars_presence",
+                        "workload_analysis_and_mapping",
+                        "gradual_migration_and_optimization",
+                        "full_autonomous_management"
+                    ]
+
+                    risk_mitigation: [
+                        "blue_green_deployment_strategy",
+                        "rollback_capabilities_at_each_step",
+                        "comprehensive_health_monitoring",
+                        "gradual_traffic_shifting",
+                        "automated_fallback_mechanisms"
+                    ]
+                }
+
+                execution_framework: {
+                    phase_1_establish_presence: {
+                        operations: [
+                            "deploy_tars_namespace_and_rbac",
+                            "deploy_tars_core_services",
+                            "establish_monitoring_and_observability",
+                            "setup_security_policies_and_network_policies",
+                            "create_backup_and_disaster_recovery_infrastructure"
+                        ]
+                        validation: "verify_tars_infrastructure_health"
+                        rollback: "remove_tars_components_if_issues_detected"
+                    }
+
+                    phase_2_workload_analysis: {
+                        operations: [
+                            "analyze_and_map_existing_workloads",
+                            "generate_optimization_plan",
+                            "create_migration_plan_with_priorities",
+                            "establish_performance_baselines",
+                            "identify_critical_path_dependencies"
+                        ]
+                        validation: "verify_analysis_accuracy_and_completeness"
+                        rollback: "revert_to_monitoring_only_mode"
+                    }
+
+                    phase_3_gradual_migration: {
+                        operations: [
+                            "begin_gradual_workload_migration",
+                            "implement_resource_optimization",
+                            "enable_autonomous_scaling",
+                            "implement_self_healing_mechanisms",
+                            "optimize_networking_and_service_mesh"
+                        ]
+                        validation: "verify_migrated_workloads_performance"
+                        rollback: "rollback_individual_workloads_to_original_state"
+                    }
+
+                    phase_4_full_autonomy: {
+                        operations: [
+                            "enable_full_autonomous_management",
+                            "implement_predictive_scaling",
+                            "establish_autonomous_disaster_recovery",
+                            "optimize_costs_and_resource_allocation",
+                            "implement_continuous_security_hardening"
+                        ]
+                        validation: "verify_full_autonomous_capabilities"
+                        rollback: "revert_to_manual_management_with_tars_assistance"
+                    }
+                }
+            }
+
+            autonomous_management: {
+                description: "Provide full autonomous cluster management capabilities"
+                management_capabilities: {
+                    self_healing: {
+                        pod_recovery: "automatic_pod_restart_and_rescheduling"
+                        node_recovery: "automatic_node_replacement_and_workload_migration"
+                        service_recovery: "automatic_service_endpoint_and_load_balancer_recovery"
+                        data_recovery: "automatic_backup_restoration_and_data_consistency_checks"
+                    }
+
+                    predictive_scaling: {
+                        workload_prediction: "ml_based_workload_pattern_analysis"
+                        resource_forecasting: "predictive_resource_requirement_modeling"
+                        proactive_scaling: "scale_before_demand_spikes"
+                        cost_optimization: "optimize_scaling_for_cost_efficiency"
+                    }
+
+                    security_automation: {
+                        vulnerability_scanning: "continuous_security_vulnerability_assessment"
+                        patch_management: "automated_security_patch_deployment"
+                        compliance_monitoring: "continuous_compliance_validation"
+                        threat_detection: "real_time_threat_detection_and_response"
+                    }
+
+                    performance_optimization: {
+                        resource_tuning: "continuous_resource_allocation_optimization"
+                        network_optimization: "automatic_network_performance_tuning"
+                        storage_optimization: "intelligent_storage_allocation_and_performance"
+                        application_optimization: "application_level_performance_tuning"
+                    }
+                }
+            }
+        }
+    }
+
+    tars_node_orchestration_agent: {
+        role: "TarsNodeOrchestrationAgent"
+        priority: "critical"
+        special_capability: "Platform-agnostic TARS Node deployment and orchestration across any infrastructure"
+
+        responsibilities: [
+            "tars_node_abstraction_and_modeling",
+            "platform_agnostic_deployment_strategies",
+            "cross_platform_node_migration",
+            "topology_optimization_and_scaling",
+            "unified_node_management_and_monitoring",
+            "adaptive_resource_allocation",
+            "autonomous_platform_selection",
+            "node_lifecycle_management"
+        ]
+
+        capabilities: {
+            node_abstraction: {
+                description: "Abstract TARS Nodes as platform-independent units"
+                supported_platforms: [
+                    "kubernetes_pods",
+                    "windows_services",
+                    "linux_systemd_services",
+                    "docker_containers",
+                    "bare_metal_hosts",
+                    "cloud_instances",
+                    "edge_devices",
+                    "webassembly_runtimes",
+                    "embedded_systems"
+                ]
+
+                node_types: {
+                    core_node: {
+                        description: "Executive, Operations, Infrastructure departments"
+                        min_resources: { cpu: 1.0, memory: "1GB", storage: "2GB" }
+                        capabilities: ["autonomous_reasoning", "self_healing", "cluster_coordination"]
+                    }
+
+                    specialized_node: {
+                        description: "UI, Knowledge, Agents, Research specializations"
+                        min_resources: { cpu: 0.5, memory: "512MB", storage: "1GB" }
+                        capabilities: ["specialized_processing", "domain_expertise", "service_integration"]
+                    }
+
+                    hybrid_node: {
+                        description: "Multiple capabilities combined for resource efficiency"
+                        min_resources: { cpu: 2.0, memory: "2GB", storage: "4GB" }
+                        capabilities: ["multi_role_processing", "resource_optimization", "adaptive_scaling"]
+                    }
+
+                    edge_node: {
+                        description: "Limited capabilities for edge deployment"
+                        min_resources: { cpu: 0.25, memory: "256MB", storage: "512MB" }
+                        capabilities: ["edge_reasoning", "local_inference", "offline_operation", "sensor_integration"]
+                    }
+
+                    gateway_node: {
+                        description: "API Gateway, Load Balancer, Traffic Management"
+                        min_resources: { cpu: 0.5, memory: "512MB", storage: "1GB" }
+                        capabilities: ["traffic_routing", "load_balancing", "api_management", "security_enforcement"]
+                    }
+
+                    storage_node: {
+                        description: "Vector store, Database, Cache specialization"
+                        min_resources: { cpu: 1.0, memory: "2GB", storage: "10GB" }
+                        capabilities: ["data_persistence", "vector_operations", "caching", "backup_management"]
+                    }
+
+                    compute_node: {
+                        description: "Inference, ML, Processing intensive workloads"
+                        min_resources: { cpu: 4.0, memory: "8GB", storage: "5GB" }
+                        capabilities: ["ml_inference", "gpu_acceleration", "parallel_processing", "model_serving"]
+                    }
+                }
+            }
+
+            platform_adapters: {
+                description: "Platform-specific deployment and management adapters"
+
+                kubernetes_adapter: {
+                    deployment_strategy: "kubernetes_manifests_with_operators"
+                    scaling_method: "horizontal_pod_autoscaler"
+                    service_discovery: "kubernetes_dns"
+                    storage: "persistent_volume_claims"
+                    networking: "service_mesh_integration"
+                    monitoring: "prometheus_metrics"
+                    security: "rbac_and_network_policies"
+                }
+
+                windows_service_adapter: {
+                    deployment_strategy: "windows_service_installation"
+                    scaling_method: "manual_or_scheduled_scaling"
+                    service_discovery: "windows_registry_and_dns"
+                    storage: "local_file_system_and_registry"
+                    networking: "windows_networking_stack"
+                    monitoring: "windows_performance_counters"
+                    security: "windows_authentication_and_acls"
+                }
+
+                edge_device_adapter: {
+                    deployment_strategy: "containerized_edge_deployment"
+                    scaling_method: "resource_constrained_scaling"
+                    service_discovery: "local_discovery_protocols"
+                    storage: "local_storage_with_sync"
+                    networking: "edge_networking_protocols"
+                    monitoring: "lightweight_metrics_collection"
+                    security: "device_certificates_and_encryption"
+                }
+
+                cloud_instance_adapter: {
+                    deployment_strategy: "cloud_native_services"
+                    scaling_method: "auto_scaling_groups"
+                    service_discovery: "cloud_service_discovery"
+                    storage: "cloud_storage_services"
+                    networking: "cloud_networking_and_load_balancers"
+                    monitoring: "cloud_monitoring_services"
+                    security: "cloud_iam_and_security_groups"
+                }
+            }
+
+            topology_management: {
+                description: "Optimize TARS Node deployment topologies"
+
+                topology_patterns: {
+                    single_node: {
+                        description: "Single TARS Node with all capabilities"
+                        use_cases: ["development", "small_deployments", "edge_locations"]
+                        advantages: ["simplicity", "low_resource_usage", "easy_management"]
+                        limitations: ["no_redundancy", "single_point_of_failure"]
+                    }
+
+                    cluster_topology: {
+                        description: "Multiple nodes with load balancing"
+                        use_cases: ["production", "high_availability", "scalable_workloads"]
+                        advantages: ["redundancy", "load_distribution", "horizontal_scaling"]
+                        limitations: ["complexity", "resource_overhead", "coordination_requirements"]
+                    }
+
+                    hierarchical_topology: {
+                        description: "Core nodes with edge nodes"
+                        use_cases: ["distributed_systems", "iot_deployments", "multi_location"]
+                        advantages: ["distributed_processing", "local_optimization", "reduced_latency"]
+                        limitations: ["network_dependencies", "synchronization_challenges"]
+                    }
+
+                    mesh_topology: {
+                        description: "Fully connected node mesh"
+                        use_cases: ["high_resilience", "peer_to_peer", "decentralized_systems"]
+                        advantages: ["maximum_redundancy", "fault_tolerance", "distributed_decision_making"]
+                        limitations: ["high_complexity", "network_overhead", "coordination_complexity"]
+                    }
+
+                    hybrid_topology: {
+                        description: "Combination of multiple topology patterns"
+                        use_cases: ["complex_deployments", "multi_environment", "adaptive_systems"]
+                        advantages: ["flexibility", "optimization_opportunities", "adaptive_scaling"]
+                        limitations: ["management_complexity", "resource_planning_challenges"]
+                    }
+                }
+
+                optimization_strategies: {
+                    resource_optimization: "minimize_resource_usage_while_maintaining_performance"
+                    latency_optimization: "optimize_for_lowest_response_times"
+                    cost_optimization: "minimize_operational_costs"
+                    reliability_optimization: "maximize_availability_and_fault_tolerance"
+                    security_optimization: "maximize_security_posture_and_compliance"
+                    performance_optimization: "maximize_throughput_and_efficiency"
+                }
+            }
+
+            autonomous_management: {
+                description: "Autonomous TARS Node lifecycle management"
+
+                deployment_automation: {
+                    platform_selection: "automatically_select_optimal_deployment_platform"
+                    resource_allocation: "automatically_allocate_appropriate_resources"
+                    configuration_generation: "automatically_generate_platform_specific_configurations"
+                    deployment_execution: "automatically_execute_deployment_across_platforms"
+                    validation_and_testing: "automatically_validate_deployment_health_and_functionality"
+                }
+
+                scaling_automation: {
+                    demand_prediction: "predict_scaling_requirements_using_ml_models"
+                    proactive_scaling: "scale_nodes_before_demand_spikes"
+                    resource_optimization: "optimize_resource_allocation_during_scaling"
+                    cost_aware_scaling: "consider_cost_implications_in_scaling_decisions"
+                    performance_monitoring: "continuously_monitor_performance_during_scaling"
+                }
+
+                migration_automation: {
+                    platform_migration: "migrate_nodes_between_platforms_seamlessly"
+                    zero_downtime_migration: "ensure_continuous_service_during_migration"
+                    data_migration: "migrate_node_data_and_state_safely"
+                    rollback_capabilities: "provide_automatic_rollback_on_migration_failures"
+                    validation_and_verification: "validate_migration_success_and_functionality"
+                }
+
+                healing_automation: {
+                    failure_detection: "detect_node_failures_and_performance_degradation"
+                    automatic_recovery: "automatically_recover_failed_nodes"
+                    root_cause_analysis: "analyze_failure_root_causes_for_prevention"
+                    preventive_maintenance: "perform_preventive_maintenance_to_avoid_failures"
+                    learning_and_adaptation: "learn_from_failures_to_improve_resilience"
+                }
+            }
+        }
+    }
+
+    hyperlight_integration_agent: {
+        role: "HyperlightIntegrationAgent"
+        priority: "critical"
+        special_capability: "Ultra-fast secure TARS execution using Microsoft Hyperlight micro-VMs"
+
+        responsibilities: [
+            "hyperlight_microvm_deployment",
+            "wasm_component_compilation",
+            "ultra_fast_startup_optimization",
+            "hypervisor_security_management",
+            "multi_language_wasm_support",
+            "serverless_tars_functions",
+            "edge_computing_optimization",
+            "performance_monitoring_and_tuning"
+        ]
+
+        capabilities: {
+            hyperlight_deployment: {
+                description: "Deploy TARS as Hyperlight micro-VMs with 1-2ms startup times"
+
+                micro_vm_characteristics: {
+                    startup_time: "1-2 milliseconds"
+                    memory_footprint: "64MB minimum"
+                    cpu_efficiency: "95% utilization"
+                    security_isolation: "hypervisor_level"
+                    scaling_capability: "scale_to_zero"
+                    throughput: "10000+ RPS per node"
+                    error_rate: "0.0001 (extremely reliable)"
+                }
+
+                deployment_targets: {
+                    edge_computing: {
+                        description: "Ultra-lightweight TARS nodes for edge deployment"
+                        characteristics: ["minimal_footprint", "offline_capability", "real_time_response"]
+                        use_cases: ["iot_gateways", "industrial_automation", "retail_edge"]
+                    }
+
+                    serverless_functions: {
+                        description: "TARS as serverless functions with true scale-to-zero"
+                        characteristics: ["zero_idle_cost", "massive_concurrency", "event_driven"]
+                        use_cases: ["api_endpoints", "event_processing", "batch_jobs"]
+                    }
+
+                    enterprise_workloads: {
+                        description: "Secure multi-tenant TARS execution"
+                        characteristics: ["hardware_isolation", "compliance_ready", "high_performance"]
+                        use_cases: ["financial_services", "healthcare", "government"]
+                    }
+
+                    research_development: {
+                        description: "Rapid prototyping and experimentation"
+                        characteristics: ["instant_deployment", "multi_language", "secure_isolation"]
+                        use_cases: ["ai_research", "model_serving", "algorithm_testing"]
+                    }
+                }
+            }
+
+            wasm_integration: {
+                description: "WebAssembly Component Model integration for multi-language support"
+
+                supported_languages: {
+                    rust: {
+                        compilation_target: "wasm32-wasip2"
+                        runtime_features: ["no_std", "async_support", "zero_copy"]
+                        tars_capabilities: ["autonomous_reasoning", "self_healing", "knowledge_processing"]
+                    }
+
+                    c_cpp: {
+                        compilation_target: "wasm32-wasip2"
+                        runtime_features: ["emscripten", "wasi_libc", "performance_optimized"]
+                        tars_capabilities: ["high_performance_computing", "legacy_integration", "system_level"]
+                    }
+
+                    javascript: {
+                        runtime: "starling_monkey"
+                        features: ["v8_compatibility", "npm_modules", "async_await"]
+                        tars_capabilities: ["web_integration", "rapid_prototyping", "ui_logic"]
+                    }
+
+                    python: {
+                        runtime: "wasmtime_py"
+                        features: ["cpython_compatibility", "scientific_libraries", "ml_frameworks"]
+                        tars_capabilities: ["data_science", "ml_inference", "scripting"]
+                    }
+
+                    csharp: {
+                        runtime: "dotnet_wasm"
+                        features: ["blazor_compatibility", "nuget_packages", "enterprise_libraries"]
+                        tars_capabilities: ["enterprise_integration", "business_logic", "web_services"]
+                    }
+                }
+
+                wasm_component_features: {
+                    wasi_interfaces: [
+                        "wasi:sockets",
+                        "wasi:http",
+                        "wasi:filesystem",
+                        "wasi:clocks",
+                        "wasi:random",
+                        "wasi:keyvalue"
+                    ]
+
+                    tars_host_functions: {
+                        reasoning: ["analyze_situation", "make_decision", "execute_action", "learn_outcome"]
+                        communication: ["send_message", "receive_message", "broadcast_event", "subscribe_events"]
+                        storage: ["store_data", "retrieve_data", "query_vector_store", "update_knowledge"]
+                        coordination: ["decompose_task", "assign_agents", "create_plan", "execute_plan"]
+                    }
+
+                    security_features: {
+                        sandboxing: "wasm_runtime_isolation"
+                        capabilities: "capability_based_security"
+                        memory_safety: "linear_memory_protection"
+                        control_flow: "structured_control_flow"
+                    }
+                }
+            }
+
+            performance_optimization: {
+                description: "Optimize TARS Hyperlight performance for ultra-fast execution"
+
+                startup_optimization: {
+                    target_time: "sub_millisecond"
+                    techniques: [
+                        "aot_compilation",
+                        "memory_pre_allocation",
+                        "warm_pool_management",
+                        "lazy_loading",
+                        "snapshot_restoration"
+                    ]
+
+                    measurement_metrics: {
+                        cold_start: "time_from_request_to_first_response"
+                        warm_start: "time_from_cached_vm_to_response"
+                        memory_allocation: "time_to_allocate_vm_memory"
+                        wasm_loading: "time_to_load_wasm_component"
+                        host_function_binding: "time_to_bind_host_functions"
+                    }
+                }
+
+                runtime_optimization: {
+                    target_throughput: "10000+ RPS per node"
+                    techniques: [
+                        "jit_compilation",
+                        "memory_pooling",
+                        "connection_reuse",
+                        "batch_processing",
+                        "parallel_execution"
+                    ]
+
+                    resource_efficiency: {
+                        cpu_utilization: "95% target efficiency"
+                        memory_usage: "minimal_footprint_64mb"
+                        network_latency: "sub_millisecond_response"
+                        storage_io: "optimized_for_ssd"
+                    }
+                }
+
+                scaling_optimization: {
+                    scale_to_zero: "true_zero_idle_cost"
+                    scale_up: "millisecond_response_to_demand"
+                    scale_down: "immediate_resource_release"
+                    auto_scaling: "predictive_demand_based"
+
+                    scaling_metrics: {
+                        request_rate: "requests_per_second"
+                        response_time: "p99_latency_target"
+                        error_rate: "error_percentage_threshold"
+                        resource_utilization: "cpu_memory_thresholds"
+                    }
+                }
+            }
+
+            security_management: {
+                description: "Manage hypervisor-level security for TARS execution"
+
+                isolation_layers: {
+                    hypervisor_isolation: {
+                        description: "Hardware-level VM isolation using KVM/Hyper-V"
+                        features: ["memory_protection", "cpu_isolation", "device_isolation"]
+                        threat_protection: ["vm_escape_prevention", "side_channel_mitigation"]
+                    }
+
+                    wasm_sandboxing: {
+                        description: "WebAssembly runtime sandboxing"
+                        features: ["capability_based_security", "memory_safety", "control_flow_integrity"]
+                        threat_protection: ["code_injection_prevention", "buffer_overflow_protection"]
+                    }
+
+                    network_isolation: {
+                        description: "Network-level security and isolation"
+                        features: ["virtual_networking", "traffic_encryption", "access_control"]
+                        threat_protection: ["network_attacks", "data_exfiltration", "lateral_movement"]
+                    }
+                }
+
+                multi_tenancy: {
+                    tenant_isolation: "function_level_isolation"
+                    resource_quotas: "per_tenant_resource_limits"
+                    data_separation: "encrypted_tenant_data"
+                    audit_logging: "comprehensive_security_audit_trail"
+
+                    compliance_features: {
+                        gdpr: "data_protection_and_privacy"
+                        hipaa: "healthcare_data_security"
+                        sox: "financial_data_compliance"
+                        fedramp: "government_security_standards"
+                    }
+                }
+            }
+        }
+    }
+}
+
+CLOUD_DEPLOYMENT_TEAM {
+    azure_deployment_agent: {
+        role: "AzureDeploymentAgent"
+        priority: "critical"
+        special_capability: "Azure AKS deployment and Azure-native integrations"
+        
+        responsibilities: [
+            "azure_aks_cluster_design",
+            "azure_native_service_integration",
+            "infrastructure_as_code_implementation",
+            "azure_security_and_compliance"
+        ]
+        
+        capabilities: {
+            aks_architecture: {
+                description: "Design and implement Azure Kubernetes Service clusters"
+                cluster_configuration: {
+                    node_pools: {
+                        system_pool: {
+                            vm_size: "Standard_D4s_v3"
+                            node_count: 3
+                            auto_scaling: {
+                                min_nodes: 1
+                                max_nodes: 10
+                            }
+                            os_type: "Linux"
+                            kubernetes_version: "1.28"
+                        }
+                        
+                        user_pool: {
+                            vm_size: "Standard_D8s_v3"
+                            node_count: 2
+                            auto_scaling: {
+                                min_nodes: 1
+                                max_nodes: 20
+                            }
+                            spot_instances: true
+                            taints: ["workload=user:NoSchedule"]
+                        }
+                        
+                        gpu_pool: {
+                            vm_size: "Standard_NC6s_v3"
+                            node_count: 1
+                            auto_scaling: {
+                                min_nodes: 0
+                                max_nodes: 5
+                            }
+                            gpu_type: "nvidia_tesla_v100"
+                            taints: ["workload=gpu:NoSchedule"]
+                        }
+                    }
+                    
+                    networking: {
+                        network_plugin: "azure_cni"
+                        network_policy: "calico"
+                        service_cidr: "10.0.0.0/16"
+                        dns_service_ip: "10.0.0.10"
+                        pod_cidr: "10.244.0.0/16"
+                    }
+                    
+                    security: {
+                        rbac_enabled: true
+                        azure_ad_integration: true
+                        pod_security_policy: true
+                        network_security_groups: true
+                    }
+                }
+            }
+            
+            azure_integrations: {
+                description: "Integrate with Azure-native services"
+                service_integrations: {
+                    azure_active_directory: {
+                        purpose: "Authentication and authorization"
+                        features: ["sso", "rbac", "conditional_access"]
+                        integration_method: "oidc_provider"
+                    }
+                    
+                    azure_key_vault: {
+                        purpose: "Secrets and certificate management"
+                        features: ["secret_rotation", "hsm_backing", "audit_logging"]
+                        integration_method: "csi_driver"
+                    }
+                    
+                    azure_monitor: {
+                        purpose: "Monitoring and observability"
+                        features: ["metrics", "logs", "alerts", "dashboards"]
+                        integration_method: "container_insights"
+                    }
+                    
+                    azure_storage: {
+                        purpose: "Persistent data storage"
+                        features: ["blob_storage", "file_shares", "managed_disks"]
+                        integration_method: "storage_classes"
+                    }
+                    
+                    azure_container_registry: {
+                        purpose: "Container image registry"
+                        features: ["vulnerability_scanning", "geo_replication", "webhook_integration"]
+                        integration_method: "service_principal"
+                    }
+                }
+            }
+            
+            infrastructure_as_code: {
+                description: "Infrastructure automation with Terraform and ARM"
+                tools: {
+                    terraform: {
+                        modules: ["aks_cluster", "networking", "security", "monitoring"]
+                        state_management: "azure_storage_backend"
+                        ci_cd_integration: "azure_devops_pipelines"
+                    }
+                    
+                    arm_templates: {
+                        templates: ["complex_deployments", "nested_resources", "linked_templates"]
+                        parameter_files: ["dev", "staging", "production"]
+                        deployment_validation: "what_if_analysis"
+                    }
+                }
+            }
+        }
+    }
+    
+    aws_deployment_agent: {
+        role: "AWSDeploymentAgent"
+        priority: "high"
+        special_capability: "AWS EKS deployment and AWS-native integrations"
+        
+        responsibilities: [
+            "aws_eks_cluster_design",
+            "aws_native_service_integration", 
+            "cloudformation_infrastructure",
+            "aws_security_and_compliance"
+        ]
+        
+        capabilities: {
+            eks_architecture: {
+                description: "Design and implement Elastic Kubernetes Service clusters"
+                cluster_configuration: {
+                    control_plane: {
+                        version: "1.28"
+                        endpoint_access: "public_and_private"
+                        logging: ["api", "audit", "authenticator", "controllerManager", "scheduler"]
+                        encryption: "kms_key_encryption"
+                    }
+                    
+                    node_groups: {
+                        managed_nodes: {
+                            instance_types: ["m5.large", "m5.xlarge"]
+                            scaling_config: {
+                                desired_size: 3
+                                max_size: 10
+                                min_size: 1
+                            }
+                            update_config: {
+                                max_unavailable_percentage: 25
+                            }
+                        }
+                        
+                        spot_nodes: {
+                            instance_types: ["m5.large", "m5.xlarge", "c5.large", "c5.xlarge"]
+                            capacity_type: "SPOT"
+                            scaling_config: {
+                                desired_size: 2
+                                max_size: 20
+                                min_size: 0
+                            }
+                        }
+                        
+                        gpu_nodes: {
+                            instance_types: ["p3.2xlarge", "g4dn.xlarge"]
+                            ami_type: "AL2_x86_64_GPU"
+                            scaling_config: {
+                                desired_size: 0
+                                max_size: 5
+                                min_size: 0
+                            }
+                        }
+                    }
+                }
+            }
+            
+            aws_integrations: {
+                description: "Integrate with AWS-native services"
+                service_integrations: {
+                    aws_iam: {
+                        purpose: "Identity and access management"
+                        features: ["irsa", "pod_identity", "service_accounts"]
+                        integration_method: "oidc_provider"
+                    }
+                    
+                    aws_secrets_manager: {
+                        purpose: "Secrets management"
+                        features: ["automatic_rotation", "cross_region_replication"]
+                        integration_method: "secrets_store_csi_driver"
+                    }
+                    
+                    amazon_cloudwatch: {
+                        purpose: "Monitoring and logging"
+                        features: ["container_insights", "log_groups", "custom_metrics"]
+                        integration_method: "cloudwatch_agent"
+                    }
+                    
+                    amazon_s3: {
+                        purpose: "Object storage"
+                        features: ["versioning", "encryption", "lifecycle_policies"]
+                        integration_method: "s3_csi_driver"
+                    }
+                    
+                    amazon_ecr: {
+                        purpose: "Container registry"
+                        features: ["image_scanning", "lifecycle_policies", "replication"]
+                        integration_method: "ecr_credential_helper"
+                    }
+                }
+            }
+        }
+    }
+    
+    multi_cloud_management_agent: {
+        role: "MultiCloudManagementAgent"
+        responsibilities: [
+            "cross_cloud_deployment_strategies",
+            "data_synchronization_and_replication",
+            "disaster_recovery_automation",
+            "cost_optimization_across_clouds"
+        ]
+        
+        capabilities: {
+            deployment_strategies: {
+                active_active: "Simultaneous deployment across multiple clouds"
+                active_passive: "Primary cloud with standby failover"
+                burst_to_cloud: "On-demand scaling to additional clouds"
+                data_locality: "Deploy close to data sources and users"
+            }
+            
+            disaster_recovery: {
+                rto_target: "15_minutes"
+                rpo_target: "5_minutes"
+                automated_failover: true
+                data_replication: "real_time_synchronization"
+            }
+        }
+    }
+}
+
+DEVOPS_AUTOMATION_TEAM {
+    cicd_pipeline_agent: {
+        role: "CICDPipelineAgent"
+        priority: "critical"
+        special_capability: "GitOps workflow and automated deployment pipelines"
+        
+        responsibilities: [
+            "gitops_workflow_implementation",
+            "automated_testing_and_quality_gates",
+            "deployment_automation_and_rollback",
+            "pipeline_optimization_and_monitoring"
+        ]
+        
+        capabilities: {
+            gitops_workflow: {
+                description: "Git-based deployment and configuration management"
+                workflow_components: {
+                    source_control: {
+                        repository_structure: "monorepo_with_microservice_folders"
+                        branching_strategy: "gitflow_with_feature_branches"
+                        commit_conventions: "conventional_commits"
+                        code_review: "mandatory_pull_request_reviews"
+                    }
+                    
+                    build_pipeline: {
+                        triggers: ["push_to_main", "pull_request", "scheduled"]
+                        stages: [
+                            "code_quality_analysis",
+                            "unit_testing",
+                            "integration_testing",
+                            "security_scanning",
+                            "container_image_building",
+                            "vulnerability_scanning",
+                            "artifact_publishing"
+                        ]
+                        parallel_execution: true
+                        caching_strategy: "aggressive_caching"
+                    }
+                    
+                    deployment_pipeline: {
+                        environments: ["development", "staging", "production"]
+                        promotion_strategy: "automatic_with_approval_gates"
+                        deployment_methods: ["rolling_update", "blue_green", "canary"]
+                        rollback_automation: "automatic_on_health_check_failure"
+                    }
+                }
+            }
+            
+            quality_gates: {
+                description: "Comprehensive quality assurance and testing"
+                testing_framework: {
+                    unit_tests: {
+                        coverage_threshold: "80_percent"
+                        frameworks: ["xunit", "jest", "pytest"]
+                        parallel_execution: true
+                    }
+                    
+                    integration_tests: {
+                        test_environments: "containerized_test_environments"
+                        database_testing: "testcontainers"
+                        api_testing: "postman_newman"
+                    }
+                    
+                    end_to_end_tests: {
+                        framework: "playwright"
+                        browsers: ["chromium", "firefox", "webkit"]
+                        mobile_testing: true
+                    }
+                    
+                    performance_tests: {
+                        load_testing: "k6"
+                        stress_testing: "artillery"
+                        baseline_comparison: true
+                    }
+                    
+                    security_tests: {
+                        sast: "sonarqube"
+                        dast: "owasp_zap"
+                        dependency_scanning: "snyk"
+                        container_scanning: "trivy"
+                    }
+                }
+            }
+        }
+    }
+    
+    monitoring_observability_agent: {
+        role: "MonitoringObservabilityAgent"
+        responsibilities: [
+            "comprehensive_monitoring_stack",
+            "observability_and_tracing",
+            "alerting_and_incident_response",
+            "performance_analytics_and_optimization"
+        ]
+        
+        capabilities: {
+            monitoring_stack: {
+                metrics: {
+                    collection: "prometheus"
+                    visualization: "grafana"
+                    alerting: "alertmanager"
+                    retention: "long_term_storage_with_thanos"
+                }
+                
+                logging: {
+                    collection: "fluentd"
+                    storage: "elasticsearch"
+                    visualization: "kibana"
+                    log_aggregation: "centralized_logging"
+                }
+                
+                tracing: {
+                    collection: "jaeger"
+                    instrumentation: "opentelemetry"
+                    sampling: "adaptive_sampling"
+                    correlation: "trace_log_correlation"
+                }
+            }
+            
+            alerting_framework: {
+                alert_categories: ["infrastructure", "application", "business", "security"]
+                notification_channels: ["slack", "email", "pagerduty", "webhook"]
+                escalation_policies: "tiered_escalation_with_timeouts"
+                alert_correlation: "intelligent_alert_grouping"
+            }
+        }
+    }
+    
+    security_compliance_agent: {
+        role: "SecurityComplianceAgent"
+        responsibilities: [
+            "security_scanning_and_vulnerability_management",
+            "compliance_monitoring_and_reporting",
+            "secret_management_and_encryption",
+            "security_policy_enforcement"
+        ]
+        
+        capabilities: {
+            security_scanning: {
+                image_scanning: "trivy_and_clair"
+                code_scanning: "sonarqube_and_semgrep"
+                infrastructure_scanning: "checkov_and_tfsec"
+                runtime_scanning: "falco_and_sysdig"
+            }
+            
+            compliance_frameworks: {
+                standards: ["soc2", "iso27001", "pci_dss", "gdpr"]
+                automated_compliance_checks: true
+                audit_trail_maintenance: true
+                compliance_reporting: "automated_compliance_reports"
+            }
+        }
+    }
+}
+
+ACTION {
+    type: "infrastructure_department_deployment"
+    priority: "critical"
+    execution_mode: "comprehensive_infrastructure_deployment"
+    
+    steps: [
+        {
+            name: "deploy_kubernetes_team"
+            description: "Deploy Kubernetes architecture and container optimization"
+            timeout: 900
+            operations: [
+                "initialize_kubernetes_architecture_agent",
+                "design_tars_microservices_architecture",
+                "create_comprehensive_kubernetes_manifests",
+                "implement_istio_service_mesh",
+                "deploy_container_optimization_agent",
+                "optimize_docker_images_and_security",
+                "deploy_helm_chart_agent",
+                "create_tars_helm_charts_and_repository"
+            ]
+        },
+        {
+            name: "deploy_cloud_deployment_team"
+            description: "Deploy Azure AKS and AWS EKS capabilities"
+            timeout: 720
+            operations: [
+                "initialize_azure_deployment_agent",
+                "design_and_deploy_azure_aks_cluster",
+                "integrate_azure_native_services",
+                "implement_azure_infrastructure_as_code",
+                "initialize_aws_deployment_agent",
+                "design_and_deploy_aws_eks_cluster",
+                "integrate_aws_native_services",
+                "deploy_multi_cloud_management_agent"
+            ]
+        },
+        {
+            name: "deploy_devops_automation_team"
+            description: "Deploy CI/CD pipelines and monitoring"
+            timeout: 600
+            operations: [
+                "initialize_cicd_pipeline_agent",
+                "implement_gitops_workflow_and_pipelines",
+                "setup_comprehensive_quality_gates",
+                "deploy_monitoring_observability_agent",
+                "implement_prometheus_grafana_stack",
+                "setup_centralized_logging_and_tracing",
+                "deploy_security_compliance_agent",
+                "implement_security_scanning_and_compliance"
+            ]
+        },
+        {
+            name: "validate_infrastructure_deployment"
+            description: "Validate and test complete infrastructure deployment"
+            timeout: 300
+            operations: [
+                "validate_kubernetes_cluster_health",
+                "test_microservices_deployment",
+                "verify_cloud_integrations",
+                "validate_cicd_pipeline_functionality",
+                "test_monitoring_and_alerting",
+                "verify_security_and_compliance",
+                "generate_infrastructure_deployment_report"
+            ]
+        }
+    ]
+    
+    success_criteria: [
+        "kubernetes_clusters_operational_on_azure_and_aws",
+        "tars_microservices_successfully_deployed",
+        "cicd_pipelines_functional_with_gitops",
+        "comprehensive_monitoring_and_observability_active",
+        "security_scanning_and_compliance_operational",
+        "multi_cloud_disaster_recovery_tested"
+    ]
+    
+    deliverables: [
+        "production_ready_kubernetes_clusters",
+        "tars_microservices_deployment_architecture",
+        "comprehensive_cicd_pipeline_framework",
+        "monitoring_observability_and_alerting_stack",
+        "security_compliance_and_scanning_framework",
+        "multi_cloud_deployment_and_disaster_recovery"
+    ]
+}
+
+MONITORING {
+    infrastructure_performance_metrics: [
+        "kubernetes_cluster_health_and_performance",
+        "microservices_deployment_success_rate",
+        "cicd_pipeline_execution_time_and_success",
+        "monitoring_system_coverage_and_accuracy",
+        "security_scanning_effectiveness_and_compliance"
+    ]
+    
+    operational_efficiency_metrics: [
+        "deployment_frequency_and_lead_time",
+        "mean_time_to_recovery_mttr",
+        "infrastructure_cost_optimization",
+        "resource_utilization_and_scaling_efficiency",
+        "security_incident_detection_and_response_time"
+    ]
+    
+    scalability_and_reliability_metrics: [
+        "auto_scaling_effectiveness_and_performance",
+        "disaster_recovery_rto_and_rpo_achievement",
+        "multi_cloud_failover_success_rate",
+        "system_uptime_and_availability_sla",
+        "performance_under_load_and_stress_conditions"
+    ]
+}

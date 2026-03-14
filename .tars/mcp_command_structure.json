@@ -1,0 +1,226 @@
+{
+  "mcp": {
+    "description": "Model Context Protocol integration",
+    "subcommands": {
+      "server": {
+        "description": "MCP server operations",
+        "subcommands": {
+          "start": {
+            "description": "Start TARS as MCP server",
+            "options": [
+              "--transport [stdio|sse]",
+              "--port <port>",
+              "--host <host>",
+              "--config <config_file>"
+            ],
+            "examples": [
+              "tars mcp server start --transport stdio",
+              "tars mcp server start --transport sse --port 3000",
+              "tars mcp server start --config mcp-server.json"
+            ]
+          },
+          "stop": {
+            "description": "Stop TARS MCP server",
+            "options": [
+              "--force"
+            ],
+            "examples": [
+              "tars mcp server stop"
+            ]
+          },
+          "status": {
+            "description": "Show MCP server status",
+            "options": [
+              "--detailed"
+            ],
+            "examples": [
+              "tars mcp server status --detailed"
+            ]
+          },
+          "info": {
+            "description": "Show server capabilities",
+            "options": [
+              "--format [json|yaml|table]"
+            ],
+            "examples": [
+              "tars mcp server info --format json"
+            ]
+          }
+        }
+      },
+      "client": {
+        "description": "MCP client operations",
+        "subcommands": {
+          "register": {
+            "description": "Register external MCP server",
+            "options": [
+              "--url <server_url>",
+              "--name <server_name>",
+              "--auto-discover",
+              "--test-connection"
+            ],
+            "examples": [
+              "tars mcp client register --url ws://localhost:3001 --name github-server",
+              "tars mcp client register --url stdio://path/to/server --name local-server"
+            ]
+          },
+          "unregister": {
+            "description": "Unregister MCP server",
+            "options": [
+              "--name <server_name>",
+              "--all"
+            ],
+            "examples": [
+              "tars mcp client unregister --name github-server"
+            ]
+          },
+          "list": {
+            "description": "List registered servers",
+            "options": [
+              "--detailed",
+              "--tools",
+              "--resources",
+              "--status"
+            ],
+            "examples": [
+              "tars mcp client list --detailed --tools"
+            ]
+          },
+          "discover": {
+            "description": "Discover MCP servers",
+            "options": [
+              "--network [local|subnet|internet]",
+              "--timeout <seconds>",
+              "--auto-register",
+              "--ports <port_list>"
+            ],
+            "examples": [
+              "tars mcp client discover --network local --auto-register",
+              "tars mcp client discover --ports 3000,3001,8000"
+            ]
+          },
+          "call": {
+            "description": "Call tool on external server",
+            "options": [
+              "--server <server_name>",
+              "--tool <tool_name>",
+              "--args <json_args>",
+              "--async",
+              "--timeout <seconds>"
+            ],
+            "examples": [
+              "tars mcp client call --server github --tool get_repository --args '{\"owner\":\"user\",\"repo\":\"project\"}'",
+              "tars mcp client call --tool analyze_code --args '{\"path\":\"/src\"}' --async"
+            ]
+          },
+          "resource": {
+            "description": "Access external resource",
+            "options": [
+              "--server <server_name>",
+              "--uri <resource_uri>",
+              "--output <file_path>",
+              "--format [json|text|binary]"
+            ],
+            "examples": [
+              "tars mcp client resource --server github --uri github://repos/user/project",
+              "tars mcp client resource --uri external://data/metrics --output metrics.json"
+            ]
+          }
+        }
+      },
+      "workflow": {
+        "description": "Cross-server workflow operations",
+        "subcommands": {
+          "create": {
+            "description": "Create workflow definition",
+            "options": [
+              "--name <workflow_name>",
+              "--servers <server_list>",
+              "--template <template_name>",
+              "--output <file_path>"
+            ],
+            "examples": [
+              "tars mcp workflow create --name ci-pipeline --servers github,jenkins,slack",
+              "tars mcp workflow create --template data-analysis --output workflow.json"
+            ]
+          },
+          "run": {
+            "description": "Execute workflow",
+            "options": [
+              "--definition <workflow_file>",
+              "--parameters <json_params>",
+              "--async",
+              "--monitor"
+            ],
+            "examples": [
+              "tars mcp workflow run --definition ci-pipeline.json --monitor",
+              "tars mcp workflow run --definition workflow.json --parameters '{\"branch\":\"main\"}'"
+            ]
+          },
+          "list": {
+            "description": "List available workflows",
+            "options": [
+              "--detailed",
+              "--status"
+            ],
+            "examples": [
+              "tars mcp workflow list --detailed"
+            ]
+          },
+          "status": {
+            "description": "Check workflow execution status",
+            "options": [
+              "--workflow <workflow_id>",
+              "--all"
+            ],
+            "examples": [
+              "tars mcp workflow status --workflow ci-pipeline-123"
+            ]
+          }
+        }
+      },
+      "integrate": {
+        "description": "Integration and metascript generation",
+        "subcommands": {
+          "generate": {
+            "description": "Generate integration metascript",
+            "options": [
+              "--server <server_name>",
+              "--use-case <use_case>",
+              "--output <file_path>",
+              "--template <template_name>"
+            ],
+            "examples": [
+              "tars mcp integrate generate --server github --use-case code-analysis",
+              "tars mcp integrate generate --server slack --use-case notifications --output slack-integration.trsx"
+            ]
+          },
+          "test": {
+            "description": "Test integration",
+            "options": [
+              "--metascript <metascript_path>",
+              "--server <server_name>",
+              "--dry-run"
+            ],
+            "examples": [
+              "tars mcp integrate test --metascript github-integration.trsx",
+              "tars mcp integrate test --server github --dry-run"
+            ]
+          },
+          "deploy": {
+            "description": "Deploy integration",
+            "options": [
+              "--metascript <metascript_path>",
+              "--environment [dev|staging|prod]",
+              "--auto-start"
+            ],
+            "examples": [
+              "tars mcp integrate deploy --metascript integration.trsx --environment prod",
+              "tars mcp integrate deploy --metascript integration.trsx --auto-start"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,59 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
+    <TargetFramework>net9.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Core -->
+    <Compile Include="Core/DataSourceTypes.fs" />
+    <Compile Include="Core/WebApiTypes.fs" />
+    <Compile Include="Core/InfrastructureTypes.fs" />
+    <Compile Include="Core/PatternDetector.fs" />
+    <Compile Include="Core/Interfaces.fs" />
+    
+    <!-- Detection -->
+    <Compile Include="Detection/PatternDetector.fs" />
+    <Compile Include="Detection/ProtocolAnalyzer.fs" />
+    <Compile Include="Detection/SchemaInferencer.fs" />
+    <Compile Include="Detection/ConfidenceScorer.fs" />
+    
+    <!-- Templates -->
+    <Compile Include="Templates/TemplateEngine.fs" />
+    <Compile Include="Templates/ClosureTemplates.fs" />
+    <Compile Include="Templates/TemplateValidator.fs" />
+    
+    <!-- Generators -->
+    <Compile Include="Generators/RestEndpointGenerator.fs" />
+    <Compile Include="Generators/GraphQLGenerator.fs" />
+    <Compile Include="Generators/InfrastructureGenerator.fs" />
+
+    <!-- Generation -->
+    <Compile Include="Generation/ClosureGenerator.fs" />
+    <Compile Include="Generation/CodeSynthesizer.fs" />
+    <Compile Include="Generation/DynamicCompiler.fs" />
+
+    <!-- Closures -->
+    <Compile Include="Closures/InfrastructureClosureFactory.fs" />
+    <Compile Include="Closures/WebApiClosureFactory.fs" />
+
+    <!-- Integration -->
+    <Compile Include="Integration/TarsConnector.fs" />
+    <Compile Include="Integration/MetascriptSynthesizer.fs" />
+    <Compile Include="Integration/AgentInterface.fs" />
+    <Compile Include="Integration/CliCommands.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="System.Text.Json" Version="8.0.5" />
+  </ItemGroup>
+
+</Project>
+
+
+
+

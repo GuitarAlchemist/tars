@@ -1,0 +1,2 @@
+obj\Debug\net9.0\Protos/Filesync.cs \
+obj\Debug\net9.0\Protos/FilesyncGrpc.cs: Protos/filesync.proto

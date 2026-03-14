@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <OutputType>Exe</OutputType>
     <AssemblyName>IterativeApp_v4</AssemblyName>
     <RootNamespace>IterativeApp_v4</RootNamespace>
@@ -11,4 +11,3 @@
   </ItemGroup>
   
 </Project>
-

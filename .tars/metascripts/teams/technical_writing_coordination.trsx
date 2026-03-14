@@ -1,0 +1,337 @@
+# TARS Technical Writers Team Coordination Metascript
+# Autonomous documentation generation and knowledge management
+# TARS_TEAM_SIGNATURE: TECHNICAL_WRITING_COORDINATION_SYSTEM
+
+## Team Configuration
+```yaml
+team:
+  name: "Technical Writers Team"
+  lead_agent: "Documentation Architect"
+  members:
+    - name: "API Documentation Agent"
+      specialization: "API documentation and reference generation"
+      capabilities: ["api_documentation", "openapi_generation", "endpoint_analysis"]
+    - name: "User Guide Agent"
+      specialization: "User-facing documentation and tutorials"
+      capabilities: ["user_guides", "tutorial_creation", "onboarding_flows"]
+    - name: "Tutorial Agent"
+      specialization: "Step-by-step tutorials and learning materials"
+      capabilities: ["tutorial_design", "interactive_guides", "learning_paths"]
+    - name: "Knowledge Base Agent"
+      specialization: "Knowledge extraction and organization"
+      capabilities: ["knowledge_extraction", "content_organization", "search_optimization"]
+
+  coordination:
+    communication_protocol: "Collaborative editing with review cycles"
+    decision_making: "Editorial review with user feedback integration"
+    conflict_resolution: "Style guide adherence with user experience priority"
+    
+  objectives:
+    - "Create comprehensive technical documentation"
+    - "Maintain up-to-date API documentation"
+    - "Develop user guides and tutorials"
+    - "Extract and organize knowledge from code"
+    - "Ensure documentation accessibility"
+```
+
+## Agent Workflows
+
+### API Documentation Agent Workflow
+```fsharp
+// API Documentation Generation
+let generateAPIDocumentation projectPath =
+    async {
+        // Analyze API endpoints and schemas
+        let! apiAnalysis = analyzeAPIEndpoints projectPath
+        
+        // Generate OpenAPI specifications
+        let! openApiSpec = generateOpenAPISpecification apiAnalysis
+        
+        // Create endpoint documentation
+        let! endpointDocs = generateEndpointDocumentation apiAnalysis
+        
+        // Generate code examples
+        let! codeExamples = generateAPICodeExamples apiAnalysis
+        
+        // Create interactive documentation
+        let! interactiveDocs = createInteractiveDocumentation {
+            OpenApiSpec = openApiSpec
+            EndpointDocs = endpointDocs
+            CodeExamples = codeExamples
+        }
+        
+        return {
+            APIAnalysis = apiAnalysis
+            OpenApiSpec = openApiSpec
+            EndpointDocs = endpointDocs
+            CodeExamples = codeExamples
+            InteractiveDocs = interactiveDocs
+        }
+    }
+```
+
+### User Guide Agent Workflow
+```fsharp
+// User Guide Creation
+let createUserGuides projectInfo =
+    async {
+        // Analyze user personas and use cases
+        let! userAnalysis = analyzeUserPersonas projectInfo
+        
+        // Create getting started guide
+        let! gettingStarted = createGettingStartedGuide userAnalysis
+        
+        // Generate feature documentation
+        let! featureDocs = generateFeatureDocumentation projectInfo userAnalysis
+        
+        // Create troubleshooting guides
+        let! troubleshooting = createTroubleshootingGuides projectInfo
+        
+        // Generate FAQ sections
+        let! faqSections = generateFAQSections {
+            UserAnalysis = userAnalysis
+            FeatureDocs = featureDocs
+            Troubleshooting = troubleshooting
+        }
+        
+        return {
+            UserAnalysis = userAnalysis
+            GettingStarted = gettingStarted
+            FeatureDocs = featureDocs
+            Troubleshooting = troubleshooting
+            FAQSections = faqSections
+        }
+    }
+```
+
+### Tutorial Agent Workflow
+```fsharp
+// Tutorial and Learning Material Creation
+let createTutorials learningObjectives =
+    async {
+        // Design learning paths
+        let learningPaths = designLearningPaths learningObjectives
+        
+        // Create step-by-step tutorials
+        let! stepByStepTutorials = createStepByStepTutorials learningPaths
+        
+        // Generate interactive examples
+        let! interactiveExamples = generateInteractiveExamples stepByStepTutorials
+        
+        // Create video script outlines
+        let videoScripts = createVideoScriptOutlines stepByStepTutorials
+        
+        // Design assessment materials
+        let assessmentMaterials = designAssessmentMaterials learningPaths
+        
+        return {
+            LearningPaths = learningPaths
+            StepByStepTutorials = stepByStepTutorials
+            InteractiveExamples = interactiveExamples
+            VideoScripts = videoScripts
+            AssessmentMaterials = assessmentMaterials
+        }
+    }
+```
+
+### Knowledge Base Agent Workflow
+```fsharp
+// Knowledge Extraction and Organization
+let organizeKnowledgeBase projectPath =
+    async {
+        // Extract knowledge from codebase
+        let! codeKnowledge = extractKnowledgeFromCode projectPath
+        
+        // Analyze documentation patterns
+        let! docPatterns = analyzeDocumentationPatterns projectPath
+        
+        // Create knowledge taxonomy
+        let knowledgeTaxonomy = createKnowledgeTaxonomy codeKnowledge docPatterns
+        
+        // Generate searchable content
+        let! searchableContent = generateSearchableContent knowledgeTaxonomy
+        
+        // Create knowledge graphs
+        let! knowledgeGraphs = createKnowledgeGraphs {
+            CodeKnowledge = codeKnowledge
+            Taxonomy = knowledgeTaxonomy
+            SearchableContent = searchableContent
+        }
+        
+        return {
+            CodeKnowledge = codeKnowledge
+            DocPatterns = docPatterns
+            KnowledgeTaxonomy = knowledgeTaxonomy
+            SearchableContent = searchableContent
+            KnowledgeGraphs = knowledgeGraphs
+        }
+    }
+```
+
+## Team Coordination Logic
+```fsharp
+// Technical Writers Team Orchestration
+let orchestrateTechnicalWriting projectPath =
+    async {
+        printfn "📝 Technical Writers Team: Starting documentation coordination..."
+        
+        // Analyze project for documentation needs
+        let! projectAnalysis = analyzeProjectDocumentationNeeds projectPath
+        
+        // Parallel documentation generation
+        let! documentationResults = Async.Parallel [
+            generateAPIDocumentation projectPath
+            createUserGuides projectAnalysis.ProjectInfo
+            createTutorials projectAnalysis.LearningObjectives
+            organizeKnowledgeBase projectPath
+        ]
+        
+        let [apiDocs; userGuides; tutorials; knowledgeBase] = documentationResults |> Array.toList
+        
+        // Integrate all documentation
+        let! integratedDocs = integrateDocumentation {
+            APIDocs = apiDocs
+            UserGuides = userGuides
+            Tutorials = tutorials
+            KnowledgeBase = knowledgeBase
+        }
+        
+        // Generate documentation website
+        let! docWebsite = generateDocumentationWebsite integratedDocs
+        
+        // Create documentation maintenance plan
+        let maintenancePlan = createDocumentationMaintenancePlan integratedDocs
+        
+        printfn "✅ Technical Writers Team: Documentation coordination completed"
+        return {
+            IntegratedDocs = integratedDocs
+            DocWebsite = docWebsite
+            MaintenancePlan = maintenancePlan
+            QualityMetrics = calculateDocumentationQuality integratedDocs
+        }
+    }
+```
+
+## Documentation Templates and Standards
+```yaml
+# Documentation Standards
+documentation_standards:
+  style_guide:
+    - "Use clear, concise language"
+    - "Follow consistent formatting"
+    - "Include code examples for all features"
+    - "Provide troubleshooting information"
+    - "Ensure accessibility compliance"
+  
+  structure_templates:
+    api_documentation:
+      - "Overview and authentication"
+      - "Endpoint reference"
+      - "Request/response examples"
+      - "Error codes and handling"
+      - "SDKs and client libraries"
+    
+    user_guide:
+      - "Getting started"
+      - "Core concepts"
+      - "Feature walkthroughs"
+      - "Best practices"
+      - "Troubleshooting"
+    
+    tutorial:
+      - "Prerequisites"
+      - "Step-by-step instructions"
+      - "Code examples"
+      - "Expected outcomes"
+      - "Next steps"
+
+# Content Quality Metrics
+quality_metrics:
+  readability:
+    - "Flesch reading ease score"
+    - "Average sentence length"
+    - "Technical term density"
+    - "Code-to-text ratio"
+  
+  completeness:
+    - "Feature coverage percentage"
+    - "API endpoint documentation"
+    - "Example code availability"
+    - "Error scenario coverage"
+  
+  accessibility:
+    - "Alt text for images"
+    - "Proper heading structure"
+    - "Color contrast compliance"
+    - "Screen reader compatibility"
+```
+
+## Automated Documentation Generation
+```fsharp
+// Automated Documentation Pipeline
+let automateDocumentationGeneration projectPath =
+    async {
+        // Set up documentation automation
+        let! automationConfig = setupDocumentationAutomation projectPath
+        
+        // Configure continuous documentation updates
+        let! continuousUpdates = configureContinuousDocUpdates automationConfig
+        
+        // Implement documentation testing
+        let! docTesting = implementDocumentationTesting automationConfig
+        
+        // Set up documentation deployment
+        let! docDeployment = setupDocumentationDeployment {
+            AutomationConfig = automationConfig
+            ContinuousUpdates = continuousUpdates
+            DocTesting = docTesting
+        }
+        
+        return {
+            AutomationConfig = automationConfig
+            ContinuousUpdates = continuousUpdates
+            DocTesting = docTesting
+            DocDeployment = docDeployment
+        }
+    }
+```
+
+## Documentation Website Generation
+```yaml
+# Static Site Generator Configuration
+site_generator:
+  framework: "Docusaurus" # or GitBook, VuePress, etc.
+  features:
+    - "Search functionality"
+    - "Version control"
+    - "Multi-language support"
+    - "Interactive API explorer"
+    - "Feedback collection"
+  
+  deployment:
+    - "GitHub Pages"
+    - "Netlify"
+    - "Vercel"
+    - "Custom domain"
+
+# Content Management
+content_management:
+  version_control:
+    - "Git-based workflow"
+    - "Branch-based reviews"
+    - "Automated testing"
+    - "Deployment pipelines"
+  
+  collaboration:
+    - "Editorial workflows"
+    - "Review assignments"
+    - "Comment systems"
+    - "Approval processes"
+```
+
+---
+
+**TARS Technical Writers Team Coordination v1.0**  
+**Autonomous documentation generation and knowledge management**  
+**Integrated with TARS multi-agent system**  
+**TARS_TEAM_COMPLETE: TECHNICAL_WRITING_COORDINATION_READY**

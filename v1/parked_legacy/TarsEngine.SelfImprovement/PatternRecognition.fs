@@ -150,7 +150,11 @@ module PatternRecognition =
               IsRegex = true
               Severity = 3
               Recommendation = "Use async Task instead of async void except for event handlers"
+<<<<<<< HEAD:v1/parked_legacy/TarsEngine.SelfImprovement/PatternRecognition.fs
               Examples = ["public async void DoSomethingAsync() { await // REAL: Implement actual logic here; }"]
+=======
+              Examples = ["public async void DoSomethingAsync() { await Task.Delay(1000); }"]
+>>>>>>> origin/main:TarsEngine.SelfImprovement/PatternRecognition.fs
               Tags = ["csharp"; "async"; "error-handling"; "best-practice"] }
 
             { Id = "CS007"

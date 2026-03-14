@@ -1,0 +1,50 @@
+graph TD
+    A[TARS Core Engine] --> B[Advanced Reasoning System]
+    A --> C[Metascript Engine]
+    A --> D[LLM Integration Layer]
+    
+    B --> E[Chain of Thought Engine]
+    B --> F[Dynamic Budget Controller]
+    B --> G[Quality Metrics System]
+    B --> H[Real-time Reasoning Engine]
+    B --> I[Visualization Engine]
+    
+    C --> J[Metascript Parser]
+    C --> K[Execution Engine]
+    C --> L[Variable System]
+    
+    D --> M[Qwen3 Integration]
+    D --> N[Ollama Interface]
+    D --> O[Model Management]
+    
+    E --> P[Step Classification]
+    E --> Q[Chain Validation]
+    E --> R[Alternative Generation]
+    
+    F --> S[Resource Monitoring]
+    F --> T[Strategy Selection]
+    F --> U[Budget Optimization]
+    
+    G --> V[Multi-dimensional Assessment]
+    G --> W[Real-time Monitoring]
+    G --> X[Quality Prediction]
+    
+    H --> Y[Streaming Updates]
+    H --> Z[Interrupt Handling]
+    H --> AA[Context Maintenance]
+    
+    I --> BB[Reasoning Trees]
+    I --> CC[Thought Graphs]
+    I --> DD[Interactive Exports]
+    
+    classDef coreEngine fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    classDef reasoning fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef metascript fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    classDef llm fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef component fill:#fafafa,stroke:#424242,stroke-width:1px
+    
+    class A coreEngine
+    class B,E,F,G,H,I reasoning
+    class C,J,K,L metascript
+    class D,M,N,O llm
+    class P,Q,R,S,T,U,V,W,X,Y,Z,AA,BB,CC,DD component

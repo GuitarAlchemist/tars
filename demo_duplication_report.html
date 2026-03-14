@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Duplication Analysis Report</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1, h2 { color: #333; }
+    .low { color: green; }
+    .moderate { color: orange; }
+    .high { color: red; }
+    .veryhigh { color: darkred; }
+    .block { margin-bottom: 10px; padding: 10px; border: 1px solid #ddd; }
+    .metrics { display: flex; flex-wrap: wrap; }
+    .metric { flex: 1; min-width: 200px; margin: 10px; padding: 10px; border: 1px solid #ddd; }
+  </style>
+</head>
+<body>
+  <h1>Duplication Analysis Report for demo.cs</h1>
+  <div class="metrics">
+    <div class="metric">
+      <h3>Total Lines</h3>
+      <p>45</p>
+    </div>
+    <div class="metric">
+      <h3>Duplicated Lines</h3>
+      <p>20</p>
+    </div>
+    <div class="metric">
+      <h3>Duplication Percentage</h3>
+      <p>44.44%</p>
+    </div>
+    <div class="metric">
+      <h3>Duplication Level</h3>
+      <p class="veryhigh">VeryHigh</p>
+    </div>
+  </div>
+  <h2>Duplicated Blocks</h2>
+  <div class="block">
+    <h3>Main and AnotherMethod</h3>
+    <p>Source: Lines 12-15</p>
+    <p>Target: Lines 39-42</p>
+    <p>Line Count: 4</p>
+    <p>Similarity: Exact</p>
+  </div>
+  <div class="block">
+    <h3>Main and AnotherMethod</h3>
+    <p>Source: Lines 24-27</p>
+    <p>Target: Lines 39-42</p>
+    <p>Line Count: 4</p>
+    <p>Similarity: Exact</p>
+  </div>
+  <div class="block">
+    <h3>Main and AnotherMethod</h3>
+    <p>Source: Lines 30-33</p>
+    <p>Target: Lines 39-42</p>
+    <p>Line Count: 4</p>
+    <p>Similarity: Exact</p>
+  </div>
+  <div class="block">
+    <h3>Main and Main</h3>
+    <p>Source: Lines 12-15</p>
+    <p>Target: Lines 24-27</p>
+    <p>Line Count: 4</p>
+    <p>Similarity: Exact</p>
+  </div>
+  <div class="block">
+    <h3>Main and Main</h3>
+    <p>Source: Lines 24-27</p>
+    <p>Target: Lines 30-33</p>
+    <p>Line Count: 4</p>
+    <p>Similarity: Exact</p>
+  </div>
+</body>
+</html>

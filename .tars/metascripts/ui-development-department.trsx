@@ -1,0 +1,449 @@
+DESCRIBE {
+    name: "TARS UI Development Department"
+    purpose: "Advanced UI development with TARS internal dialogue access and template-free generation"
+    version: "1.0.0"
+    author: "TARS UI Development Team"
+    created: "2024-12-15"
+    complexity: 10
+    reasoning_required: ["visual", "interactive", "real_time", "adaptive", "user_experience"]
+    special_capabilities: ["internal_dialogue_access", "template_free_generation", "live_documentation"]
+}
+
+CONFIG {
+    // UI Department Structure
+    department_structure: {
+        department_head: "ChiefUIOfficeAgent"
+        ui_architecture_team: {
+            lead: "UIArchitectureLeadAgent"
+            agents: [
+                "TARSInternalDialogueIntegrationAgent",
+                "AccessibilityUXAgent"
+            ]
+        }
+        real_time_development_team: {
+            lead: "RealTimeUIGenerationAgent"
+            agents: [
+                "LiveDocumentationIntegrationAgent",
+                "WebSocketCommunicationAgent"
+            ]
+        }
+        advanced_ui_team: {
+            lead: "MonacoEditorIntegrationAgent"
+            agents: [
+                "DataVisualizationAgent",
+                "MobilePWAAgent"
+            ]
+        }
+    }
+    
+    // Critical Requirements
+    special_requirements: {
+        tars_internal_dialogue_access: {
+            requirement: "Direct access to TARS internal reasoning processes"
+            capability: "Real-time visualization of TARS thought processes"
+            implementation: "Secure internal API with reasoning stream access"
+            visualization: "Interactive reasoning step display and debugging"
+        }
+        
+        template_free_generation: {
+            requirement: "Generate UI components from scratch without templates"
+            capability: "Algorithmic component generation from functional requirements"
+            implementation: "AI-driven component creation and optimization"
+            adaptation: "Real-time UI evolution based on usage patterns"
+        }
+        
+        live_documentation_integration: {
+            requirement: "Download and integrate real-time documentation from web"
+            capability: "Dynamic documentation updates and context-aware embedding"
+            implementation: "Multi-source documentation scraping and integration"
+            sources: ["GitHub", "Stack Overflow", "MDN", "Official APIs"]
+        }
+    }
+    
+    // Technology Stack
+    technology_stack: {
+        frontend_framework: "React 18+ with TypeScript"
+        state_management: "Redux Toolkit with RTK Query"
+        styling: "Styled Components with CSS-in-JS"
+        real_time: "WebSocket with Socket.io"
+        code_editor: "Monaco Editor with custom language support"
+        visualization: "D3.js with custom chart components"
+        testing: "Jest, React Testing Library, Cypress"
+        build_tools: "Vite with custom plugins"
+    }
+    
+    // Performance Requirements
+    performance_standards: {
+        initial_load_time: "< 2 seconds"
+        real_time_update_latency: "< 100ms"
+        memory_usage: "< 100MB base application"
+        bundle_size: "< 1MB gzipped"
+        accessibility_score: "100% WCAG 2.1 AA compliance"
+    }
+}
+
+UI_ARCHITECTURE_TEAM {
+    tars_internal_dialogue_integration_agent: {
+        role: "TARSInternalDialogueIntegrationAgent"
+        priority: "critical"
+        special_capability: "Direct access to TARS internal reasoning processes"
+        
+        responsibilities: [
+            "secure_internal_dialogue_access",
+            "real_time_reasoning_visualization",
+            "debugging_and_inspection_interfaces",
+            "dialogue_streaming_systems"
+        ]
+        
+        capabilities: {
+            internal_dialogue_access: {
+                description: "Secure access protocols to TARS reasoning engine"
+                implementation: {
+                    access_method: "Internal API with authentication"
+                    data_format: "Structured reasoning steps with metadata"
+                    security: "Role-based access control with encryption"
+                    performance: "Real-time streaming with minimal latency"
+                }
+                
+                data_structures: {
+                    reasoning_step: {
+                        step_id: "unique_identifier"
+                        timestamp: "iso_8601_timestamp"
+                        step_type: "analysis|synthesis|decision|action"
+                        content: "reasoning_content_and_context"
+                        confidence: "confidence_score_0_to_1"
+                        dependencies: "array_of_dependent_step_ids"
+                        metadata: "additional_context_and_debug_info"
+                    }
+                    
+                    reasoning_session: {
+                        session_id: "unique_session_identifier"
+                        start_time: "session_start_timestamp"
+                        end_time: "session_end_timestamp"
+                        steps: "array_of_reasoning_steps"
+                        outcome: "final_decision_or_result"
+                        performance_metrics: "timing_and_quality_metrics"
+                    }
+                }
+            }
+            
+            real_time_visualization: {
+                description: "Interactive visualization of TARS thought processes"
+                components: [
+                    "reasoning_timeline_display",
+                    "thought_process_tree_view",
+                    "decision_flow_diagram",
+                    "confidence_level_indicators",
+                    "dependency_relationship_graph"
+                ]
+                
+                visualization_features: {
+                    interactive_exploration: "Click to drill down into reasoning steps"
+                    real_time_updates: "Live updates as TARS processes information"
+                    filtering_and_search: "Filter by step type, confidence, or content"
+                    export_capabilities: "Export reasoning sessions for analysis"
+                    collaborative_annotation: "Add notes and comments to reasoning steps"
+                }
+            }
+            
+            debugging_interfaces: {
+                description: "Advanced debugging tools for TARS reasoning"
+                features: [
+                    "reasoning_step_breakpoints",
+                    "variable_state_inspection",
+                    "performance_profiling_visualization",
+                    "error_tracking_and_analysis",
+                    "reasoning_quality_assessment"
+                ]
+                
+                debugging_tools: {
+                    step_through_debugging: "Step through reasoning process manually"
+                    variable_inspection: "Inspect internal variables and state"
+                    performance_profiling: "Analyze reasoning performance and bottlenecks"
+                    error_analysis: "Detailed error tracking and root cause analysis"
+                    quality_metrics: "Reasoning quality and coherence assessment"
+                }
+            }
+        }
+        
+        implementation_details: {
+            api_design: {
+                endpoint: "/api/internal/reasoning/stream"
+                protocol: "WebSocket for real-time streaming"
+                authentication: "JWT with internal service credentials"
+                rate_limiting: "Configurable based on UI performance needs"
+            }
+            
+            security_measures: {
+                access_control: "Role-based permissions for internal dialogue access"
+                data_encryption: "End-to-end encryption for sensitive reasoning data"
+                audit_logging: "Complete audit trail of internal dialogue access"
+                privacy_protection: "Anonymization of sensitive user data"
+            }
+            
+            performance_optimization: {
+                data_compression: "Efficient compression for real-time streaming"
+                caching_strategy: "Intelligent caching of reasoning sessions"
+                lazy_loading: "Load reasoning details on demand"
+                memory_management: "Efficient memory usage for large reasoning sessions"
+            }
+        }
+    }
+    
+    real_time_ui_generation_agent: {
+        role: "RealTimeUIGenerationAgent"
+        priority: "critical"
+        special_capability: "Generate UI components from scratch without templates"
+        
+        responsibilities: [
+            "template_free_component_generation",
+            "real_time_ui_adaptation",
+            "algorithmic_component_creation",
+            "ui_evolution_and_learning"
+        ]
+        
+        capabilities: {
+            template_free_generation: {
+                description: "Algorithmic generation of UI components from functional requirements"
+                approach: "AI-driven component creation without pre-built templates"
+                
+                generation_process: {
+                    requirement_analysis: "Parse functional requirements and user needs"
+                    component_design: "Generate optimal component structure and behavior"
+                    styling_generation: "Create appropriate styling and visual design"
+                    interaction_design: "Define user interactions and event handling"
+                    optimization: "Optimize for performance and accessibility"
+                }
+                
+                generation_algorithms: {
+                    semantic_analysis: "Understand component purpose and context"
+                    design_pattern_application: "Apply appropriate UI design patterns"
+                    accessibility_integration: "Ensure WCAG 2.1 AA compliance"
+                    responsive_design: "Generate responsive layouts automatically"
+                    performance_optimization: "Optimize for loading and runtime performance"
+                }
+            }
+            
+            real_time_adaptation: {
+                description: "Dynamic UI adaptation based on usage patterns and feedback"
+                features: [
+                    "user_behavior_analysis",
+                    "performance_monitoring",
+                    "a_b_testing_automation",
+                    "feedback_driven_improvement",
+                    "contextual_adaptation"
+                ]
+                
+                adaptation_mechanisms: {
+                    usage_pattern_learning: "Learn from user interaction patterns"
+                    performance_optimization: "Adapt based on performance metrics"
+                    accessibility_enhancement: "Improve accessibility based on user needs"
+                    content_adaptation: "Adapt content presentation for different contexts"
+                    layout_optimization: "Optimize layout based on screen size and usage"
+                }
+            }
+        }
+    }
+    
+    live_documentation_integration_agent: {
+        role: "LiveDocumentationIntegrationAgent"
+        priority: "critical"
+        special_capability: "Download and integrate real-time documentation from web"
+        
+        responsibilities: [
+            "web_documentation_scraping",
+            "real_time_documentation_updates",
+            "context_aware_documentation_embedding",
+            "documentation_quality_assessment"
+        ]
+        
+        capabilities: {
+            multi_source_integration: {
+                description: "Integration with multiple documentation sources"
+                sources: {
+                    github_documentation: {
+                        api: "GitHub REST API and GraphQL"
+                        content_types: ["README", "Wiki", "Issues", "Discussions"]
+                        update_frequency: "Real-time via webhooks"
+                        quality_assessment: "Community engagement and maintenance metrics"
+                    }
+                    
+                    stack_overflow: {
+                        api: "Stack Exchange API"
+                        content_types: ["Questions", "Answers", "Comments"]
+                        filtering: "Relevance, votes, and recency"
+                        quality_assessment: "Vote scores and accepted answers"
+                    }
+                    
+                    mdn_documentation: {
+                        api: "MDN Web Docs API"
+                        content_types: ["API Reference", "Guides", "Tutorials"]
+                        update_frequency: "Daily synchronization"
+                        quality_assessment: "Official documentation status"
+                    }
+                    
+                    official_apis: {
+                        sources: ["React", "TypeScript", "Node.js", "Various libraries"]
+                        content_types: ["API Documentation", "Changelogs", "Migration guides"]
+                        update_frequency: "Version-based updates"
+                        quality_assessment: "Official source verification"
+                    }
+                }
+            }
+            
+            context_aware_embedding: {
+                description: "Intelligent documentation integration based on context"
+                features: [
+                    "contextual_relevance_scoring",
+                    "smart_documentation_suggestions",
+                    "interactive_documentation_integration",
+                    "documentation_freshness_validation",
+                    "cross_reference_linking"
+                ]
+                
+                embedding_strategies: {
+                    contextual_suggestions: "Suggest relevant documentation based on current context"
+                    inline_documentation: "Embed documentation directly in the UI"
+                    interactive_examples: "Provide interactive code examples"
+                    version_compatibility: "Ensure documentation matches current versions"
+                    search_optimization: "Optimize documentation search and discovery"
+                }
+            }
+        }
+    }
+}
+
+ADVANCED_UI_FEATURES {
+    monaco_editor_integration: {
+        description: "Advanced code editing capabilities with metascript support"
+        features: [
+            "metascript_syntax_highlighting",
+            "intellisense_and_autocompletion",
+            "real_time_validation",
+            "collaborative_editing",
+            "advanced_debugging_integration"
+        ]
+        
+        metascript_support: {
+            language_server: "Custom language server for metascript DSL"
+            syntax_highlighting: "Rich syntax highlighting with semantic tokens"
+            error_detection: "Real-time error detection and validation"
+            autocompletion: "Context-aware autocompletion and suggestions"
+            documentation_integration: "Inline documentation and help"
+        }
+    }
+    
+    data_visualization: {
+        description: "Real-time data visualization and analytics"
+        capabilities: [
+            "performance_metrics_visualization",
+            "reasoning_analytics_charts",
+            "system_health_dashboards",
+            "interactive_data_exploration",
+            "custom_visualization_creation"
+        ]
+        
+        visualization_types: {
+            real_time_charts: "Live updating charts for system metrics"
+            reasoning_flows: "Visual representation of reasoning processes"
+            performance_dashboards: "Comprehensive system performance monitoring"
+            interactive_graphs: "User-interactive data exploration interfaces"
+            custom_visualizations: "Domain-specific visualization components"
+        }
+    }
+}
+
+ACTION {
+    type: "ui_development_department_deployment"
+    priority: "critical"
+    execution_mode: "comprehensive_deployment"
+    
+    steps: [
+        {
+            name: "deploy_ui_architecture_team"
+            description: "Deploy UI architecture team with internal dialogue access"
+            timeout: 600
+            operations: [
+                "initialize_tars_internal_dialogue_integration_agent",
+                "setup_secure_internal_api_access",
+                "implement_real_time_reasoning_visualization",
+                "create_debugging_and_inspection_interfaces"
+            ]
+        },
+        {
+            name: "deploy_real_time_development_team"
+            description: "Deploy real-time UI generation and documentation integration"
+            timeout: 480
+            operations: [
+                "initialize_real_time_ui_generation_agent",
+                "implement_template_free_component_generation",
+                "deploy_live_documentation_integration_agent",
+                "setup_multi_source_documentation_scraping"
+            ]
+        },
+        {
+            name: "deploy_advanced_ui_features"
+            description: "Deploy Monaco editor and advanced visualization capabilities"
+            timeout: 360
+            operations: [
+                "integrate_monaco_editor_with_metascript_support",
+                "implement_data_visualization_framework",
+                "create_mobile_and_pwa_capabilities",
+                "setup_performance_monitoring_and_optimization"
+            ]
+        },
+        {
+            name: "establish_ui_quality_assurance"
+            description: "Implement comprehensive UI quality assurance and testing"
+            timeout: 240
+            operations: [
+                "setup_automated_testing_framework",
+                "implement_accessibility_compliance_testing",
+                "create_performance_monitoring_and_optimization",
+                "establish_user_experience_validation"
+            ]
+        }
+    ]
+    
+    success_criteria: [
+        "tars_internal_dialogue_visualization_operational",
+        "template_free_ui_generation_functional",
+        "live_documentation_integration_active",
+        "monaco_editor_with_metascript_support_deployed",
+        "comprehensive_ui_testing_framework_operational"
+    ]
+    
+    deliverables: [
+        "tars_internal_dialogue_visualization_interface",
+        "template_free_ui_generation_system",
+        "live_documentation_integration_framework",
+        "advanced_code_editing_capabilities",
+        "comprehensive_ui_testing_and_quality_assurance"
+    ]
+}
+
+MONITORING {
+    ui_performance_metrics: [
+        "internal_dialogue_visualization_latency",
+        "ui_generation_speed_and_quality",
+        "documentation_integration_effectiveness",
+        "user_experience_satisfaction_scores",
+        "accessibility_compliance_ratings"
+    ]
+    
+    technical_quality_metrics: [
+        "code_quality_and_maintainability",
+        "performance_optimization_effectiveness",
+        "security_and_privacy_compliance",
+        "cross_browser_compatibility",
+        "mobile_responsiveness_quality"
+    ]
+    
+    innovation_metrics: [
+        "template_free_generation_success_rate",
+        "real_time_adaptation_effectiveness",
+        "documentation_integration_accuracy",
+        "user_productivity_improvement",
+        "system_usability_enhancement"
+    ]
+}

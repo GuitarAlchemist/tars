@@ -1,0 +1,26 @@
+SIMULATED VIDEO ANALYSIS:
+Video Type: Tutorial/Educational
+Duration: 5:30 minutes
+
+AUDIO TRANSCRIPTION:
+"In this tutorial, we'll learn how to deploy applications using Docker.
+First, create a Dockerfile in your project directory.
+Next, build the image using docker build command.
+Finally, run the container with docker run."
+
+VISUAL ANALYSIS:
+Frame 1 (0:00): Desktop with terminal open
+Frame 2 (1:30): Text editor showing Dockerfile content
+Frame 3 (3:00): Terminal showing docker build command
+Frame 4 (4:30): Browser showing running application
+
+EXTRACTED STEPS:
+1. Create Dockerfile
+2. Build Docker image
+3. Run Docker container
+4. Verify deployment
+
+GENERATED TUTORIAL METASCRIPT:
+- Step-by-step Docker deployment guide
+- Code examples extracted from video
+- Verification steps included

@@ -1,0 +1,225 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: tars-ingress
+  namespace: tars
+  labels:
+    app.kubernetes.io/name: tars
+    app.kubernetes.io/component: ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    # WebSocket support for TARS internal dialogue
+    nginx.ingress.kubernetes.io/proxy-set-headers: |
+      Upgrade $http_upgrade
+      Connection "upgrade"
+    # CORS support for development
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: tars.local
+    http:
+      paths:
+      # TARS UI Service (Main Interface)
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: tars-ui-service
+            port:
+              number: 80
+      # TARS Core API
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: tars-core-service
+            port:
+              number: 80
+      # TARS Internal Dialogue WebSocket
+      - path: /ws
+        pathType: Prefix
+        backend:
+          service:
+            name: tars-core-service
+            port:
+              number: 80
+      # Knowledge Management API
+      - path: /knowledge
+        pathType: Prefix
+        backend:
+          service:
+            name: tars-knowledge-service
+            port:
+              number: 80
+      # Health Checks
+      - path: /health
+        pathType: Prefix
+        backend:
+          service:
+            name: tars-core-service
+            port:
+              number: 80
+      # Metrics (Prometheus)
+      - path: /metrics
+        pathType: Prefix
+        backend:
+          service:
+            name: tars-core-service
+            port:
+              number: 9090
+---
+# NodePort Service for direct access in minikube
+apiVersion: v1
+kind: Service
+metadata:
+  name: tars-nodeport
+  namespace: tars
+  labels:
+    app.kubernetes.io/name: tars
+    app.kubernetes.io/component: nodeport
+spec:
+  type: NodePort
+  selector:
+    app: tars-ui
+  ports:
+  - port: 80
+    targetPort: 3000
+    nodePort: 30080
+    name: http
+---
+# LoadBalancer Service for cloud deployments
+apiVersion: v1
+kind: Service
+metadata:
+  name: tars-loadbalancer
+  namespace: tars
+  labels:
+    app.kubernetes.io/name: tars
+    app.kubernetes.io/component: loadbalancer
+  annotations:
+    # Azure Load Balancer annotations
+    service.beta.kubernetes.io/azure-load-balancer-internal: "false"
+    # AWS Load Balancer annotations
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+spec:
+  type: LoadBalancer
+  selector:
+    app: tars-ui
+  ports:
+  - port: 80
+    targetPort: 3000
+    name: http
+  - port: 443
+    targetPort: 3443
+    name: https
+---
+# HorizontalPodAutoscaler for TARS Core Service
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: tars-core-hpa
+  namespace: tars
+  labels:
+    app.kubernetes.io/name: tars-core
+    app.kubernetes.io/component: autoscaler
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: tars-core-service
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 60
+---
+# NetworkPolicy for security
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: tars-network-policy
+  namespace: tars
+  labels:
+    app.kubernetes.io/name: tars
+    app.kubernetes.io/component: security
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    - podSelector: {}
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 8081
+    - protocol: TCP
+      port: 3000
+    - protocol: TCP
+      port: 6379
+  egress:
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 53
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 80
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 6379
+  - to:
+    - podSelector: {}
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 8081
+    - protocol: TCP
+      port: 3000
+    - protocol: TCP
+      port: 6379

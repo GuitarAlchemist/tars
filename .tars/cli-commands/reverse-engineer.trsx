@@ -1,0 +1,316 @@
+# TARS Reverse Engineering CLI Commands
+# Command-line interface for autonomous codebase analysis and improvement
+# TARS_CLI_SIGNATURE: AUTONOMOUS_REVERSE_ENGINEERING_COMMANDS
+
+## CLI Command Definitions
+```yaml
+commands:
+  reverse-engineer:
+    description: "Autonomous codebase analysis and improvement"
+    aliases: ["re", "analyze", "improve"]
+    
+    subcommands:
+      analyze:
+        description: "Analyze existing codebase for improvement opportunities"
+        usage: "tars reverse-engineer analyze [options] <project-path>"
+        
+      improve:
+        description: "Apply autonomous improvements to codebase"
+        usage: "tars reverse-engineer improve [options] <project-path>"
+        
+      report:
+        description: "Generate comprehensive analysis report"
+        usage: "tars reverse-engineer report [options] <project-path>"
+        
+      modernize:
+        description: "Modernize legacy codebase to current standards"
+        usage: "tars reverse-engineer modernize [options] <project-path>"
+        
+      security-audit:
+        description: "Perform security audit and apply fixes"
+        usage: "tars reverse-engineer security-audit [options] <project-path>"
+        
+      optimize:
+        description: "Optimize performance and bundle size"
+        usage: "tars reverse-engineer optimize [options] <project-path>"
+```
+
+## Command Implementation
+```fsharp
+// TARS CLI Reverse Engineering Commands
+
+module TarsReverseEngineerCLI =
+    
+    open System
+    open System.IO
+    open TarsCore
+    open TarsAgents
+    
+    // Main reverse engineering command handler
+    let handleReverseEngineerCommand args =
+        match args with
+        | "analyze" :: projectPath :: options -> analyzeCommand projectPath options
+        | "improve" :: projectPath :: options -> improveCommand projectPath options
+        | "report" :: projectPath :: options -> reportCommand projectPath options
+        | "modernize" :: projectPath :: options -> modernizeCommand projectPath options
+        | "security-audit" :: projectPath :: options -> securityAuditCommand projectPath options
+        | "optimize" :: projectPath :: options -> optimizeCommand projectPath options
+        | _ -> showReverseEngineerHelp ()
+    
+    // Analyze command - comprehensive codebase analysis
+    let analyzeCommand projectPath options =
+        printfn "🔍 TARS: Starting autonomous codebase analysis..."
+        printfn "Project: %s" projectPath
+        
+        if not (Directory.Exists projectPath) then
+            printfn "❌ Error: Project path does not exist: %s" projectPath
+            exit 1
+        
+        let analysisOptions = parseAnalysisOptions options
+        let reverseEngineerAgent = spawnAgent "ReverseEngineeringAgent"
+        
+        try
+            let analysis = reverseEngineerAgent.AnalyzeProject projectPath analysisOptions
+            
+            printfn "\n📊 TARS Analysis Results:"
+            printfn "Project Type: %s" analysis.ProjectInfo.Type
+            printfn "Framework: %s" analysis.ProjectInfo.Framework
+            printfn "Language: %s" analysis.ProjectInfo.Language
+            printfn "Files: %d" analysis.ProjectInfo.FileCount
+            printfn "Lines of Code: %s" (formatNumber analysis.ProjectInfo.LinesOfCode)
+            
+            printfn "\n⚠️  Issues Found:"
+            printfn "Critical: %d" analysis.Issues.Critical.Length
+            printfn "High: %d" analysis.Issues.High.Length
+            printfn "Medium: %d" analysis.Issues.Medium.Length
+            printfn "Low: %d" analysis.Issues.Low.Length
+            
+            printfn "\n🤖 TARS Can Auto-Fix:"
+            let autoFixable = analysis.Issues.All |> List.filter (fun issue -> issue.CanAutoFix)
+            printfn "%d out of %d issues (%d%%)" 
+                autoFixable.Length 
+                analysis.Issues.All.Length
+                (autoFixable.Length * 100 / analysis.Issues.All.Length)
+            
+            if analysisOptions.SaveReport then
+                let reportPath = Path.Combine(projectPath, "tars-analysis-report.md")
+                saveAnalysisReport analysis reportPath
+                printfn "\n📋 Analysis report saved: %s" reportPath
+            
+            printfn "\n✅ TARS analysis complete!"
+            
+        with
+        | ex -> 
+            printfn "❌ TARS analysis failed: %s" ex.Message
+            exit 1
+    
+    // Improve command - apply autonomous improvements
+    let improveCommand projectPath options =
+        printfn "🔧 TARS: Applying autonomous improvements..."
+        printfn "Project: %s" projectPath
+        
+        let improveOptions = parseImproveOptions options
+        let reverseEngineerAgent = spawnAgent "ReverseEngineeringAgent"
+        
+        // First analyze to identify improvements
+        let analysis = reverseEngineerAgent.AnalyzeProject projectPath improveOptions.AnalysisOptions
+        
+        // Filter improvements based on options
+        let improvementsToApply = 
+            analysis.Issues.All
+            |> List.filter (fun issue -> 
+                issue.CanAutoFix && 
+                (not improveOptions.SafeMode || issue.IsSafe) &&
+                (improveOptions.IncludeCritical || issue.Priority <> Critical) &&
+                (improveOptions.IncludeHigh || issue.Priority <> High))
+        
+        if improvementsToApply.IsEmpty then
+            printfn "ℹ️  No improvements to apply with current options"
+            exit 0
+        
+        printfn "\n🎯 TARS will apply %d improvements:" improvementsToApply.Length
+        improvementsToApply |> List.iteri (fun i improvement ->
+            printfn "  %d. %s" (i+1) improvement.Title)
+        
+        if improveOptions.RequireConfirmation then
+            printf "\nProceed with improvements? (y/N): "
+            let response = Console.ReadLine()
+            if response.ToLower() <> "y" && response.ToLower() <> "yes" then
+                printfn "❌ Operation cancelled by user"
+                exit 0
+        
+        // Apply improvements
+        let results = reverseEngineerAgent.ApplyImprovements improvementsToApply projectPath
+        
+        let successful = results |> List.filter (fun r -> r.Success)
+        let failed = results |> List.filter (fun r -> not r.Success)
+        
+        printfn "\n📈 TARS Improvement Results:"
+        printfn "✅ Successful: %d" successful.Length
+        printfn "❌ Failed: %d" failed.Length
+        printfn "Success Rate: %d%%" (successful.Length * 100 / results.Length)
+        
+        if not failed.IsEmpty then
+            printfn "\n❌ Failed Improvements:"
+            failed |> List.iter (fun result ->
+                printfn "  - %s: %s" result.ImprovementTitle result.ErrorMessage)
+        
+        // Generate improvement report
+        let reportPath = Path.Combine(projectPath, "tars-improvements-report.md")
+        saveImprovementReport results reportPath
+        printfn "\n📋 Improvement report saved: %s" reportPath
+        
+        printfn "\n🎉 TARS improvements complete!"
+    
+    // Report command - generate comprehensive report
+    let reportCommand projectPath options =
+        printfn "📋 TARS: Generating comprehensive analysis report..."
+        
+        let reportOptions = parseReportOptions options
+        let reverseEngineerAgent = spawnAgent "ReverseEngineeringAgent"
+        
+        let analysis = reverseEngineerAgent.AnalyzeProject projectPath reportOptions.AnalysisOptions
+        
+        let reportContent = generateComprehensiveReport analysis reportOptions
+        let reportPath = reportOptions.OutputPath |> Option.defaultValue (Path.Combine(projectPath, "tars-comprehensive-report.md"))
+        
+        File.WriteAllText(reportPath, reportContent)
+        
+        printfn "✅ Comprehensive report generated: %s" reportPath
+        
+        if reportOptions.OpenInBrowser then
+            openInBrowser reportPath
+    
+    // Modernize command - modernize legacy codebase
+    let modernizeCommand projectPath options =
+        printfn "🚀 TARS: Modernizing legacy codebase..."
+        
+        let modernizeOptions = parseModernizeOptions options
+        let reverseEngineerAgent = spawnAgent "ReverseEngineeringAgent"
+        
+        let modernizationPlan = reverseEngineerAgent.CreateModernizationPlan projectPath modernizeOptions
+        
+        printfn "\n📋 TARS Modernization Plan:"
+        printfn "Current State: %s" modernizationPlan.CurrentState
+        printfn "Target State: %s" modernizationPlan.TargetState
+        printfn "Estimated Timeline: %s" modernizationPlan.Timeline
+        printfn "Steps: %d" modernizationPlan.Steps.Length
+        
+        if modernizeOptions.ExecutePlan then
+            printfn "\n🔧 Executing modernization plan..."
+            let results = reverseEngineerAgent.ExecuteModernizationPlan modernizationPlan projectPath
+            
+            printfn "✅ Modernization complete!"
+            printfn "Success Rate: %d%%" results.SuccessRate
+        else
+            let planPath = Path.Combine(projectPath, "tars-modernization-plan.md")
+            saveModernizationPlan modernizationPlan planPath
+            printfn "\n📋 Modernization plan saved: %s" planPath
+    
+    // Security audit command
+    let securityAuditCommand projectPath options =
+        printfn "🛡️  TARS: Performing security audit..."
+        
+        let securityOptions = parseSecurityOptions options
+        let securityAgent = spawnAgent "SecurityAgent"
+        let reverseEngineerAgent = spawnAgent "ReverseEngineeringAgent"
+        
+        let securityAudit = securityAgent.PerformSecurityAudit projectPath securityOptions
+        
+        printfn "\n🔍 Security Audit Results:"
+        printfn "Security Score: %d/100" securityAudit.SecurityScore
+        printfn "Vulnerabilities: %d" securityAudit.Vulnerabilities.Length
+        printfn "Critical: %d" (securityAudit.Vulnerabilities |> List.filter (fun v -> v.Severity = "Critical") |> List.length)
+        printfn "High: %d" (securityAudit.Vulnerabilities |> List.filter (fun v -> v.Severity = "High") |> List.length)
+        
+        if securityOptions.FixVulnerabilities then
+            printfn "\n🔧 TARS applying security fixes..."
+            let fixes = reverseEngineerAgent.ApplySecurityFixes securityAudit.Vulnerabilities projectPath
+            printfn "✅ Applied %d security fixes" fixes.Length
+        
+        let auditReportPath = Path.Combine(projectPath, "tars-security-audit.md")
+        saveSecurityAuditReport securityAudit auditReportPath
+        printfn "\n📋 Security audit report saved: %s" auditReportPath
+    
+    // Optimize command - performance optimization
+    let optimizeCommand projectPath options =
+        printfn "⚡ TARS: Optimizing performance..."
+        
+        let optimizeOptions = parseOptimizeOptions options
+        let performanceAgent = spawnAgent "PerformanceAgent"
+        let reverseEngineerAgent = spawnAgent "ReverseEngineeringAgent"
+        
+        let performanceAnalysis = performanceAgent.AnalyzePerformance projectPath optimizeOptions
+        
+        printfn "\n📊 Performance Analysis:"
+        printfn "Bundle Size: %s" (formatFileSize performanceAnalysis.BundleSize)
+        printfn "Load Time: %s" (formatTime performanceAnalysis.LoadTime)
+        printfn "Bottlenecks: %d" performanceAnalysis.Bottlenecks.Length
+        
+        if optimizeOptions.ApplyOptimizations then
+            printfn "\n🔧 TARS applying performance optimizations..."
+            let optimizations = reverseEngineerAgent.ApplyPerformanceOptimizations performanceAnalysis.Optimizations projectPath
+            
+            printfn "✅ Applied %d optimizations" optimizations.Length
+            printfn "Estimated improvement: %s" optimizations.EstimatedImprovement
+        
+        let perfReportPath = Path.Combine(projectPath, "tars-performance-report.md")
+        savePerformanceReport performanceAnalysis perfReportPath
+        printfn "\n📋 Performance report saved: %s" perfReportPath
+    
+    // Help command
+    let showReverseEngineerHelp () =
+        printfn """
+🤖 TARS Reverse Engineering Commands
+
+USAGE:
+  tars reverse-engineer <command> [options] <project-path>
+
+COMMANDS:
+  analyze          Analyze codebase for improvement opportunities
+  improve          Apply autonomous improvements
+  report           Generate comprehensive analysis report
+  modernize        Modernize legacy codebase
+  security-audit   Perform security audit and fixes
+  optimize         Optimize performance and bundle size
+
+EXAMPLES:
+  tars reverse-engineer analyze ./my-project
+  tars reverse-engineer improve ./my-project --auto-apply
+  tars reverse-engineer modernize ./legacy-app --target latest
+  tars reverse-engineer security-audit ./api --fix-vulnerabilities
+  tars reverse-engineer optimize ./webapp --focus bundle-size
+
+OPTIONS:
+  --auto-apply     Apply improvements without confirmation
+  --safe-mode      Only apply safe improvements
+  --output <path>  Specify output path for reports
+  --format <type>  Report format (markdown, json, html)
+  --verbose        Show detailed progress information
+
+For more information: tars help reverse-engineer <command>
+"""
+```
+
+## CLI Integration
+```fsharp
+// Register reverse engineering commands with TARS CLI
+
+let registerReverseEngineerCommands () =
+    TarsCLI.registerCommand "reverse-engineer" handleReverseEngineerCommand
+    TarsCLI.registerAlias "re" "reverse-engineer"
+    TarsCLI.registerAlias "analyze" "reverse-engineer analyze"
+    TarsCLI.registerAlias "improve" "reverse-engineer improve"
+    
+    printfn "✅ TARS Reverse Engineering commands registered"
+
+// Auto-register on module load
+registerReverseEngineerCommands ()
+```
+
+---
+
+**TARS Reverse Engineering CLI v1.0**  
+**Command-line interface for autonomous codebase improvement**  
+**Integrated with TARS multi-agent system**  
+**TARS_CLI_COMPLETE: AUTONOMOUS_REVERSE_ENGINEERING_CLI_READY**

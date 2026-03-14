@@ -7,12 +7,36 @@
   </PropertyGroup>
 
   <ItemGroup>
+<<<<<<< HEAD:v1/TarsEngineFSharp.Core/TarsEngineFSharp.Core.fsproj
     <Compile Include="Monads\Result.fs" />
     <Compile Include="Monads\Option.fs" />
     <Compile Include="Library.fs" />
+=======
+    <Compile Include="Monads.fs" />
+    <Compile Include="Ast.fs" />
+    <Compile Include="Library.fs" />
+    <Compile Include="Parser.fs" />
+    <Compile Include="Evaluator.fs" />
+    <Compile Include="AgentInterfaces.fs" />
+    <Compile Include="AgentFramework.fs" />
+    <Compile Include="AgentCommunication.fs" />
+    <Compile Include="AgentLearning.fs" />
+    <Compile Include="Interpreter.fs" />
+    <Compile Include="SimpleDsl.fs" />
+    <Compile Include="AdvancedDsl.fs" />
+    <Compile Include="MonadicDsl.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FParsec" Version="1.1.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+>>>>>>> origin/main:TarsEngine.DSL/TarsEngine.DSL.fsproj
   </ItemGroup>
 
 </Project>
 
+<<<<<<< HEAD:v1/TarsEngineFSharp.Core/TarsEngineFSharp.Core.fsproj
 
 
+=======
+>>>>>>> origin/main:TarsEngine.DSL/TarsEngine.DSL.fsproj

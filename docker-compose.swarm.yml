@@ -1,0 +1,158 @@
+# TARS Autonomous Swarm - Docker Compose Configuration
+# Enables TARS swarm deployment with multiple autonomous instances
+# TARS_SWARM_SIGNATURE: AUTONOMOUS_SWARM_DEPLOYMENT_V1
+
+version: '3.8'
+
+services:
+  # TARS Alpha - Primary autonomous instance
+  tars-alpha:
+    build: .
+    container_name: tars-alpha
+    hostname: tars-alpha
+    environment:
+      - TARS_INSTANCE_ID=ALPHA
+      - TARS_ROLE=Primary
+      - TARS_SWARM_COORDINATOR=true
+      - TARS_SELF_MODIFICATION_LEVEL=Full
+      - TARS_EXPERIMENT_AUTHORITY=High
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+    volumes:
+      - tars-alpha-data:/app/.tars/projects
+      - tars-alpha-logs:/app/logs
+      - ./.tars/metascripts:/app/.tars/metascripts  # Real-time metascript sync
+      - ./logs:/app/.tars/metascripts/logs  # Logs directory
+      - /var/run/docker.sock:/var/run/docker.sock  # Docker-in-Docker for self-replication
+    networks:
+      - tars-swarm
+    restart: unless-stopped
+
+  # TARS Beta - Secondary autonomous instance
+  tars-beta:
+    build: .
+    container_name: tars-beta
+    hostname: tars-beta
+    environment:
+      - TARS_INSTANCE_ID=BETA
+      - TARS_ROLE=Secondary
+      - TARS_SWARM_COORDINATOR=false
+      - TARS_SELF_MODIFICATION_LEVEL=Limited
+      - TARS_EXPERIMENT_AUTHORITY=Medium
+      - TARS_ALPHA_HOST=tars-alpha
+    ports:
+      - "8082:8080"
+      - "8083:8081"
+    volumes:
+      - tars-beta-data:/app/.tars/projects
+      - tars-beta-logs:/app/logs
+      - ./.tars/metascripts:/app/.tars/metascripts  # Real-time metascript sync
+      - ./logs:/app/.tars/metascripts/logs  # Logs directory
+    networks:
+      - tars-swarm
+    depends_on:
+      - tars-alpha
+    restart: unless-stopped
+
+  # TARS Gamma - Experimental instance
+  tars-gamma:
+    build: .
+    container_name: tars-gamma
+    hostname: tars-gamma
+    environment:
+      - TARS_INSTANCE_ID=GAMMA
+      - TARS_ROLE=Experimental
+      - TARS_SWARM_COORDINATOR=false
+      - TARS_SELF_MODIFICATION_LEVEL=Sandbox
+      - TARS_EXPERIMENT_AUTHORITY=Full
+      - TARS_ALPHA_HOST=tars-alpha
+    ports:
+      - "8084:8080"
+      - "8085:8081"
+    volumes:
+      - tars-gamma-data:/app/.tars/projects
+      - tars-gamma-logs:/app/logs
+      - ./.tars/metascripts:/app/.tars/metascripts  # Real-time metascript sync
+      - ./logs:/app/.tars/metascripts/logs  # Logs directory
+    networks:
+      - tars-swarm
+    depends_on:
+      - tars-alpha
+    restart: unless-stopped
+
+  # TARS Delta - QA and Validation instance
+  tars-delta:
+    build: .
+    container_name: tars-delta
+    hostname: tars-delta
+    environment:
+      - TARS_INSTANCE_ID=DELTA
+      - TARS_ROLE=QualityAssurance
+      - TARS_SWARM_COORDINATOR=false
+      - TARS_SELF_MODIFICATION_LEVEL=ReadOnly
+      - TARS_EXPERIMENT_AUTHORITY=Low
+      - TARS_ALPHA_HOST=tars-alpha
+    ports:
+      - "8086:8080"
+      - "8087:8081"
+    volumes:
+      - tars-delta-data:/app/.tars/projects
+      - tars-delta-logs:/app/logs
+      - ./.tars/metascripts:/app/.tars/metascripts  # Real-time metascript sync
+      - ./logs:/app/.tars/metascripts/logs  # Logs directory
+    networks:
+      - tars-swarm
+    depends_on:
+      - tars-alpha
+    restart: unless-stopped
+
+  # Redis for TARS swarm coordination
+  tars-redis:
+    image: redis:7-alpine
+    container_name: tars-redis
+    hostname: tars-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - tars-redis-data:/data
+    networks:
+      - tars-swarm
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+  # PostgreSQL for TARS persistent storage
+  tars-postgres:
+    image: postgres:15-alpine
+    container_name: tars-postgres
+    hostname: tars-postgres
+    environment:
+      - POSTGRES_DB=tars_autonomous
+      - POSTGRES_USER=tars
+      - POSTGRES_PASSWORD=tars_autonomous_2024
+    ports:
+      - "5432:5432"
+    volumes:
+      - tars-postgres-data:/var/lib/postgresql/data
+    networks:
+      - tars-swarm
+    restart: unless-stopped
+
+networks:
+  tars-swarm:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.25.0.0/16
+
+volumes:
+  tars-alpha-data:
+  tars-alpha-logs:
+  tars-beta-data:
+  tars-beta-logs:
+  tars-gamma-data:
+  tars-gamma-logs:
+  tars-delta-data:
+  tars-delta-logs:
+  tars-redis-data:
+  tars-postgres-data:

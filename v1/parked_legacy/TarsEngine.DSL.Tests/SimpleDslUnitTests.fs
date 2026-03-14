@@ -1,6 +1,7 @@
 module TarsEngine.DSL.Tests.SimpleDslUnitTests
 
 open System
+<<<<<<< HEAD:v1/parked_legacy/TarsEngine.DSL.Tests/SimpleDslUnitTests.fs
 open System.IO
 open System.Text.Json
 open Xunit
@@ -22,6 +23,11 @@ let private deleteDirectoryIfExists path =
     if Directory.Exists(path) then
         Directory.Delete(path, true)
 
+=======
+open Xunit
+open TarsEngine.DSL.SimpleDsl
+
+>>>>>>> origin/main:TarsEngine.DSL.Tests/SimpleDslUnitTests.fs
 [<Fact>]
 let ``Parse simple block`` () =
     let blockText = """DESCRIBE {
@@ -189,6 +195,7 @@ ELSE {
 
 [<Fact>]
 let ``Execute program with mcp_send action`` () =
+<<<<<<< HEAD:v1/parked_legacy/TarsEngine.DSL.Tests/SimpleDslUnitTests.fs
     let workspace = Directory.GetCurrentDirectory()
     let outboxDir = Path.Combine(workspace, ".tars", "mcp", "outbox")
     Directory.CreateDirectory(outboxDir) |> ignore
@@ -198,6 +205,8 @@ let ``Execute program with mcp_send action`` () =
         else
             Set.empty
 
+=======
+>>>>>>> origin/main:TarsEngine.DSL.Tests/SimpleDslUnitTests.fs
     let programText = """VARIABLE target {
     value: "augment"
 }
@@ -216,6 +225,7 @@ ACTION {
     
     let program = parseProgram programText
     let result = executeProgram program
+<<<<<<< HEAD:v1/parked_legacy/TarsEngine.DSL.Tests/SimpleDslUnitTests.fs
     try
         match result with
         | Success (StringValue message) ->
@@ -264,6 +274,23 @@ let ``Execute program with mcp_receive action`` () =
     type: "mcp_receive"
     source: "augment"
     timeout: 3
+=======
+    
+    match result with
+    | Success value ->
+        match value with
+        | StringValue message -> 
+            Assert.Contains("MCP request to augment", message)
+            Assert.Contains("action: code_generation", message)
+        | _ -> Assert.True(false, "Expected StringValue")
+    | Error msg -> Assert.True(false, $"Expected Success but got Error: {msg}")
+
+[<Fact>]
+let ``Execute program with mcp_receive action`` () =
+    let programText = """ACTION {
+    type: "mcp_receive"
+    timeout: 10
+>>>>>>> origin/main:TarsEngine.DSL.Tests/SimpleDslUnitTests.fs
     result_variable: "request"
 }
 
@@ -274,6 +301,7 @@ ACTION {
     
     let program = parseProgram programText
     let result = executeProgram program
+<<<<<<< HEAD:v1/parked_legacy/TarsEngine.DSL.Tests/SimpleDslUnitTests.fs
     try
         match result with
         | Success (StringValue message) ->
@@ -465,3 +493,14 @@ ACTION {{
             Assert.True(false, "Expected generate_report log output")
     finally
         deleteDirectoryIfExists tempDir
+=======
+    
+    match result with
+    | Success value ->
+        match value with
+        | StringValue message -> 
+            Assert.Contains("Received MCP request", message)
+            Assert.Contains("timeout: 10", message)
+        | _ -> Assert.True(false, "Expected StringValue")
+    | Error msg -> Assert.True(false, $"Expected Success but got Error: {msg}")
+>>>>>>> origin/main:TarsEngine.DSL.Tests/SimpleDslUnitTests.fs

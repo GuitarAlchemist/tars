@@ -1,0 +1,18 @@
+﻿{
+  "version": "1.0",
+  "last_updated": "2025-05-01T12:00:00Z",
+  "metascripts": [
+    {
+      "id": "metascript_generator",
+      "path": "TarsCli/Metascripts/Generators/metascript_generator.tars",
+      "type": "generator",
+      "status": "active",
+      "created_at": "2025-05-01T12:00:00Z",
+      "last_executed": null,
+      "generated_by": null,
+      "dependencies": [],
+      "generates": ["html_report_generator", "cli_command_implementation"]
+    }
+  ],
+  "execution_history": []
+}

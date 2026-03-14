@@ -1,0 +1,264 @@
+syntax = "proto3";
+
+option csharp_namespace = "DistributedFileSync.Services.Grpc";
+
+package filesync;
+
+// File synchronization service
+// Designed by: Architect Agent (Alice)
+// Implemented by: Senior Developer Agent (Bob)
+// Performance optimized by: Performance Engineer Agent (Dave)
+service FileSyncService {
+  // Synchronize a file between nodes
+  rpc SyncFile(SyncFileRequest) returns (SyncFileResponse);
+  
+  // Get file metadata
+  rpc GetFileMetadata(GetFileMetadataRequest) returns (GetFileMetadataResponse);
+  
+  // Stream file content for large files
+  rpc StreamFileContent(stream FileChunkRequest) returns (stream FileChunkResponse);
+  
+  // Resolve file conflicts
+  rpc ResolveConflict(ResolveConflictRequest) returns (ResolveConflictResponse);
+  
+  // Get node status and capabilities
+  rpc GetNodeStatus(GetNodeStatusRequest) returns (GetNodeStatusResponse);
+  
+  // Heartbeat for node discovery and health monitoring
+  rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+}
+
+// Node discovery and management service
+service NodeDiscoveryService {
+  // Register a new node in the network
+  rpc RegisterNode(RegisterNodeRequest) returns (RegisterNodeResponse);
+  
+  // Discover available nodes
+  rpc DiscoverNodes(DiscoverNodesRequest) returns (DiscoverNodesResponse);
+  
+  // Update node status
+  rpc UpdateNodeStatus(UpdateNodeStatusRequest) returns (UpdateNodeStatusResponse);
+}
+
+// File synchronization request
+message SyncFileRequest {
+  string file_path = 1;
+  FileMetadataProto metadata = 2;
+  bytes content = 3;
+  string source_node_id = 4;
+  bool force_overwrite = 5;
+}
+
+// File synchronization response
+message SyncFileResponse {
+  bool success = 1;
+  string error_message = 2;
+  FileMetadataProto updated_metadata = 3;
+  ConflictInfo conflict = 4;
+}
+
+// Get file metadata request
+message GetFileMetadataRequest {
+  string file_path = 1;
+  string node_id = 2;
+}
+
+// Get file metadata response
+message GetFileMetadataResponse {
+  bool found = 1;
+  FileMetadataProto metadata = 2;
+  string error_message = 3;
+}
+
+// File chunk for streaming large files
+message FileChunkRequest {
+  string file_id = 1;
+  int64 chunk_index = 2;
+  bytes chunk_data = 3;
+  int64 total_chunks = 4;
+  string checksum = 5;
+}
+
+// File chunk response
+message FileChunkResponse {
+  bool success = 1;
+  string error_message = 2;
+  int64 bytes_received = 3;
+}
+
+// Conflict resolution request
+message ResolveConflictRequest {
+  string file_id = 1;
+  ConflictResolutionStrategy strategy = 2;
+  FileMetadataProto preferred_version = 3;
+}
+
+// Conflict resolution response
+message ResolveConflictResponse {
+  bool resolved = 1;
+  string error_message = 2;
+  FileMetadataProto final_metadata = 3;
+}
+
+// Node status request
+message GetNodeStatusRequest {
+  string node_id = 1;
+}
+
+// Node status response
+message GetNodeStatusResponse {
+  NodeProto node_info = 1;
+  NodeStatisticsProto statistics = 2;
+}
+
+// Heartbeat request
+message HeartbeatRequest {
+  string node_id = 1;
+  int64 timestamp = 2;
+  NodeStatisticsProto statistics = 3;
+}
+
+// Heartbeat response
+message HeartbeatResponse {
+  bool acknowledged = 1;
+  int64 server_timestamp = 2;
+  repeated string known_nodes = 3;
+}
+
+// Node registration request
+message RegisterNodeRequest {
+  NodeProto node_info = 1;
+  string auth_token = 2;
+}
+
+// Node registration response
+message RegisterNodeResponse {
+  bool success = 1;
+  string error_message = 2;
+  string assigned_node_id = 3;
+  repeated NodeProto known_nodes = 4;
+}
+
+// Node discovery request
+message DiscoverNodesRequest {
+  string requesting_node_id = 1;
+  NodeCapabilitiesProto required_capabilities = 2;
+}
+
+// Node discovery response
+message DiscoverNodesResponse {
+  repeated NodeProto available_nodes = 1;
+  int32 total_nodes = 2;
+}
+
+// Update node status request
+message UpdateNodeStatusRequest {
+  string node_id = 1;
+  NodeStatus status = 2;
+  NodeStatisticsProto statistics = 3;
+}
+
+// Update node status response
+message UpdateNodeStatusResponse {
+  bool success = 1;
+  string error_message = 2;
+}
+
+// File metadata protobuf message
+message FileMetadataProto {
+  string id = 1;
+  string file_path = 2;
+  string file_name = 3;
+  int64 file_size = 4;
+  string content_hash = 5;
+  int64 last_modified = 6;
+  int64 created_at = 7;
+  int64 version = 8;
+  string last_modified_by = 9;
+  bool is_syncing = 10;
+  bool has_conflict = 11;
+  ConflictResolutionStrategy conflict_strategy = 12;
+  SyncStatus status = 13;
+  map<string, string> additional_metadata = 14;
+  int64 metadata_updated = 15;
+}
+
+// Node information protobuf message
+message NodeProto {
+  string id = 1;
+  string name = 2;
+  string address = 3;
+  int32 port = 4;
+  NodeStatus status = 5;
+  int64 last_seen = 6;
+  NodeCapabilitiesProto capabilities = 7;
+  string version = 8;
+  repeated string sync_directories = 9;
+}
+
+// Node capabilities protobuf message
+message NodeCapabilitiesProto {
+  int64 max_file_size = 1;
+  int32 max_concurrent_syncs = 2;
+  repeated string supported_compression = 3;
+  repeated string supported_encryption = 4;
+  bool supports_conflict_resolution = 5;
+  bool can_relay = 6;
+  int64 available_storage = 7;
+  int64 network_bandwidth = 8;
+}
+
+// Node statistics protobuf message
+message NodeStatisticsProto {
+  int64 total_files_synced = 1;
+  int64 total_bytes_transferred = 2;
+  int64 successful_syncs = 3;
+  int64 failed_syncs = 4;
+  double average_sync_time = 5;
+  double cpu_usage = 6;
+  int64 memory_usage = 7;
+  double network_utilization = 8;
+  int32 active_connections = 9;
+  int64 last_updated = 10;
+}
+
+// Conflict information
+message ConflictInfo {
+  string file_id = 1;
+  ConflictType conflict_type = 2;
+  FileMetadataProto local_version = 3;
+  FileMetadataProto remote_version = 4;
+  int64 detected_at = 5;
+}
+
+// Enumerations
+enum SyncStatus {
+  SYNC_STATUS_PENDING = 0;
+  SYNC_STATUS_IN_PROGRESS = 1;
+  SYNC_STATUS_COMPLETED = 2;
+  SYNC_STATUS_FAILED = 3;
+  SYNC_STATUS_CONFLICT = 4;
+  SYNC_STATUS_DELETED = 5;
+}
+
+enum ConflictResolutionStrategy {
+  CONFLICT_RESOLUTION_LAST_WRITE_WINS = 0;
+  CONFLICT_RESOLUTION_THREE_WAY_MERGE = 1;
+  CONFLICT_RESOLUTION_MANUAL = 2;
+  CONFLICT_RESOLUTION_KEEP_BOTH = 3;
+}
+
+enum NodeStatus {
+  NODE_STATUS_OFFLINE = 0;
+  NODE_STATUS_ONLINE = 1;
+  NODE_STATUS_SYNCING = 2;
+  NODE_STATUS_ERROR = 3;
+  NODE_STATUS_MAINTENANCE = 4;
+}
+
+enum ConflictType {
+  CONFLICT_TYPE_MODIFICATION = 0;
+  CONFLICT_TYPE_DELETION = 1;
+  CONFLICT_TYPE_CREATION = 2;
+  CONFLICT_TYPE_PERMISSION = 3;
+}

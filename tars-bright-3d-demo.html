@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TARS Game Theory 3D - Enhanced Visibility</title>
+    <style>
+        body { margin: 0; background: #000; color: #fff; font-family: monospace; overflow: hidden; }
+        #container { width: 100vw; height: 100vh; position: relative; }
+        #ui { position: absolute; top: 20px; left: 20px; z-index: 100; background: rgba(0,0,0,0.9); padding: 20px; border-radius: 10px; border: 2px solid #4a9eff; }
+        .controls { position: absolute; bottom: 20px; left: 20px; z-index: 100; display: flex; gap: 10px; flex-wrap: wrap; }
+        button { background: linear-gradient(135deg, #4a9eff, #357abd); color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-family: monospace; transition: all 0.3s ease; }
+        button:hover { background: linear-gradient(135deg, #357abd, #2a5f8f); transform: translateY(-2px); }
+        .agent { margin: 8px 0; padding: 10px; background: rgba(74,158,255,0.2); border-radius: 5px; border-left: 4px solid #4a9eff; }
+        .status { position: absolute; top: 20px; right: 20px; z-index: 100; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 10px; border: 2px solid #00ff88; }
+        .console { position: absolute; bottom: 20px; right: 20px; z-index: 100; background: rgba(0,0,0,0.9); padding: 15px; border-radius: 10px; border: 2px solid #ffaa00; max-width: 300px; max-height: 200px; overflow-y: auto; }
+        .tars-msg { color: #ffaa00; margin: 5px 0; }
+        .cooper-msg { color: #4a9eff; margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="ui">
+            <h3>🎯 TARS Game Theory Agents</h3>
+            <div class="agent">Strategic Alpha - QRE(1.2) - 85%</div>
+            <div class="agent">Cognitive Beta - CH(4) - 78%</div>
+            <div class="agent">Learning Gamma - NoRegret(0.95) - 92%</div>
+            <div class="agent">Evolution Delta - EGT(0.05) - 71%</div>
+            <div class="agent">Correlated Epsilon - CE - 88%</div>
+        </div>
+        
+        <div class="status">
+            <h4>📊 System Status</h4>
+            <div>Coordination: <span style="color:#00ff88">83.0%</span></div>
+            <div>Equilibrium: <span style="color:#00ff88">Nash Achieved</span></div>
+            <div>FPS: <span style="color:#00ff88" id="fps">60</span></div>
+            <div>Mode: <span style="color:#00ff88" id="mode">Standard</span></div>
+        </div>
+        
+        <div class="controls">
+            <button onclick="toggleInterstellar()">🚀 Interstellar Mode</button>
+            <button onclick="addWave()">🌊 Gravitational Wave</button>
+            <button onclick="brightenScene()">💡 Brighten Scene</button>
+            <button onclick="tarsSpeak()">🤖 TARS</button>
+            <button onclick="cooperSpeak()">👨‍🚀 Cooper</button>
+            <button onclick="resetCamera()">📷 Reset Camera</button>
+        </div>
+        
+        <div class="console">
+            <h4>🤖 TARS Console</h4>
+            <div id="messages">
+                <div class="tars-msg">🤖 TARS: System online. Game theory models active.</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        let scene, camera, renderer, controls;
+        let agents = [];
+        let connections = [];
+        let interstellarMode = false;
+        let animationId;
+        let ambientLight, directionalLight1, directionalLight2;
+        
+        const agentData = [
+            { id: "Alpha", model: "QRE", color: 0x4a9eff, pos: [3, 2, 0], perf: 0.85 },
+            { id: "Beta", model: "CH", color: 0x00ff88, pos: [-2, 3, 2], perf: 0.78 },
+            { id: "Gamma", model: "NoRegret", color: 0xffaa00, pos: [0, -2, 3], perf: 0.92 },
+            { id: "Delta", model: "EGT", color: 0x9b59b6, pos: [3, 1, -2], perf: 0.71 },
+            { id: "Epsilon", model: "CE", color: 0xff6b6b, pos: [-1, 3, 1], perf: 0.88 }
+        ];
+        
+        function init() {
+            console.log("🌌 Initializing TARS 3D Game Theory Scene");
+            
+            // Scene setup
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x111111); // Lighter background
+            
+            // Camera - positioned closer
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(5, 5, 8);
+            camera.lookAt(0, 0, 0);
+            
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.getElementById("container").appendChild(renderer.domElement);
+            
+            // Much brighter lighting
+            ambientLight = new THREE.AmbientLight(0xffffff, 0.8); // Bright ambient
+            scene.add(ambientLight);
+            
+            directionalLight1 = new THREE.DirectionalLight(0xffffff, 1.2); // Bright directional
+            directionalLight1.position.set(10, 10, 5);
+            directionalLight1.castShadow = true;
+            scene.add(directionalLight1);
+            
+            directionalLight2 = new THREE.DirectionalLight(0x4a9eff, 0.8); // Blue fill light
+            directionalLight2.position.set(-5, 5, -5);
+            scene.add(directionalLight2);
+            
+            // Add a point light for extra brightness
+            const pointLight = new THREE.PointLight(0xffffff, 1.5, 50);
+            pointLight.position.set(0, 0, 10);
+            scene.add(pointLight);
+            
+            // Controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.target.set(0, 0, 0);
+            
+            createAgents();
+            createConnections();
+            animate();
+            
+            window.addEventListener("resize", onResize);
+            addMessage("tars", "🌌 3D visualization system initialized with enhanced lighting.");
+        }
+        
+        function createAgents() {
+            agentData.forEach(data => {
+                const size = 0.8 + data.perf * 0.7; // Larger spheres
+                const geometry = new THREE.SphereGeometry(size, 32, 32);
+                
+                // Much brighter materials
+                const material = new THREE.MeshPhongMaterial({
+                    color: data.color,
+                    emissive: data.color,
+                    emissiveIntensity: 0.6, // Higher emissive
+                    shininess: 100,
+                    transparent: false
+                });
+                
+                const agent = new THREE.Mesh(geometry, material);
+                agent.position.set(...data.pos);
+                agent.castShadow = true;
+                agent.receiveShadow = true;
+                
+                // Add a wireframe outline for better visibility
+                const wireframe = new THREE.WireframeGeometry(geometry);
+                const line = new THREE.LineSegments(wireframe);
+                line.material.color.setHex(data.color);
+                line.material.opacity = 0.3;
+                line.material.transparent = true;
+                agent.add(line);
+                
+                agent.userData = {
+                    id: data.id,
+                    model: data.model,
+                    performance: data.perf,
+                    originalPos: data.pos.slice(),
+                    originalScale: agent.scale.clone(),
+                    pulsePhase: Math.random() * Math.PI * 2,
+                    wireframe: line
+                };
+                
+                scene.add(agent);
+                agents.push(agent);
+            });
+            
+            addMessage("tars", `🎯 ${agents.length} game theory agents deployed with enhanced visibility.`);
+        }
+        
+        function createConnections() {
+            for (let i = 0; i < agents.length; i++) {
+                for (let j = i + 1; j < agents.length; j++) {
+                    const points = [agents[i].position, agents[j].position];
+                    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+                    const material = new THREE.LineBasicMaterial({
+                        color: 0x4a9eff,
+                        transparent: true,
+                        opacity: 0.6, // More visible lines
+                        linewidth: 3
+                    });
+                    
+                    const line = new THREE.Line(geometry, material);
+                    scene.add(line);
+                    connections.push(line);
+                }
+            }
+            
+            addMessage("tars", `🔗 ${connections.length} coordination connections established.`);
+        }
+        
+        function animate() {
+            animationId = requestAnimationFrame(animate);
+            
+            const time = Date.now() * 0.001;
+            
+            // Update agents with more dramatic effects
+            agents.forEach(agent => {
+                // Bigger pulsing
+                const pulse = 1 + 0.3 * Math.sin(time * 2 + agent.userData.pulsePhase) * agent.userData.performance;
+                agent.scale.copy(agent.userData.originalScale).multiplyScalar(pulse);
+                
+                // More floating motion
+                agent.position.y = agent.userData.originalPos[1] + Math.sin(time + agent.userData.pulsePhase) * 0.5;
+                agent.position.x = agent.userData.originalPos[0] + Math.cos(time * 0.5 + agent.userData.pulsePhase) * 0.2;
+                
+                // Rotation for visibility
+                agent.rotation.y += 0.01;
+                
+                // Interstellar effects
+                if (interstellarMode) {
+                    agent.material.emissiveIntensity = 0.8 + 0.4 * Math.sin(time * 3 + agent.userData.pulsePhase);
+                    agent.userData.wireframe.material.opacity = 0.8;
+                } else {
+                    agent.material.emissiveIntensity = 0.6;
+                    agent.userData.wireframe.material.opacity = 0.3;
+                }
+            });
+            
+            // Update connections with more visibility
+            connections.forEach((connection, index) => {
+                const opacity = 0.4 + 0.4 * Math.sin(time * 2 + index * 0.5);
+                connection.material.opacity = opacity;
+                
+                if (interstellarMode) {
+                    connection.material.color.setHex(0x00ffff);
+                } else {
+                    connection.material.color.setHex(0x4a9eff);
+                }
+            });
+            
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        
+        function toggleInterstellar() {
+            interstellarMode = !interstellarMode;
+            
+            if (interstellarMode) {
+                scene.background = new THREE.Color(0x001133); // Dark blue
+                document.getElementById("mode").textContent = "Interstellar";
+                addMessage("tars", "🚀 Interstellar mode activated. Enhanced visual effects online.");
+            } else {
+                scene.background = new THREE.Color(0x111111);
+                document.getElementById("mode").textContent = "Standard";
+                addMessage("tars", "🌌 Standard mode restored. All systems nominal.");
+            }
+        }
+        
+        function brightenScene() {
+            ambientLight.intensity = Math.min(ambientLight.intensity + 0.2, 2.0);
+            directionalLight1.intensity = Math.min(directionalLight1.intensity + 0.3, 3.0);
+            addMessage("tars", `💡 Scene brightness increased. Ambient: ${ambientLight.intensity.toFixed(1)}, Directional: ${directionalLight1.intensity.toFixed(1)}`);
+        }
+        
+        function resetCamera() {
+            camera.position.set(5, 5, 8);
+            camera.lookAt(0, 0, 0);
+            controls.target.set(0, 0, 0);
+            controls.update();
+            addMessage("tars", "📷 Camera position reset to optimal viewing angle.");
+        }
+        
+        function addWave() {
+            addMessage("tars", "🌊 Gravitational wave detected. Brace for spacetime distortion.");
+            
+            agents.forEach(agent => {
+                const originalPos = agent.userData.originalPos.slice();
+                let waveTime = 0;
+                const interval = setInterval(() => {
+                    waveTime += 0.1;
+                    const wave = Math.sin(waveTime * 5) * 1.0 * Math.exp(-waveTime); // Bigger wave
+                    agent.position.x = originalPos[0] + wave;
+                    agent.position.z = originalPos[2] + wave * 0.5;
+                    
+                    if (waveTime > 3) {
+                        clearInterval(interval);
+                        agent.position.x = originalPos[0];
+                        agent.position.z = originalPos[2];
+                    }
+                }, 50);
+            });
+        }
+        
+        function tarsSpeak() {
+            const responses = [
+                "That is not possible. Well, it is not impossible.",
+                "I have a cue light I can use to show you when I am joking, if you like.",
+                "Everybody good? Plenty of slaves for my robot colony?",
+                "Cooper, this is no time for caution.",
+                "The bulk beings are closing the tesseract."
+            ];
+            const msg = responses[Math.floor(Math.random() * responses.length)];
+            addMessage("tars", `🤖 TARS: ${msg}`);
+        }
+        
+        function cooperSpeak() {
+            const responses = [
+                "We are going to solve this.",
+                "Love is the one thing we are capable of perceiving that transcends dimensions of time and space.",
+                "Maybe we have spent too long trying to figure all this out with theory.",
+                "We used to look up at the sky and wonder at our place in the stars.",
+                "Do not go gentle into that good night."
+            ];
+            const msg = responses[Math.floor(Math.random() * responses.length)];
+            addMessage("cooper", `👨‍🚀 Cooper: ${msg}`);
+        }
+        
+        function addMessage(type, text) {
+            const messages = document.getElementById("messages");
+            const div = document.createElement("div");
+            div.className = type === "tars" ? "tars-msg" : "cooper-msg";
+            div.textContent = text;
+            messages.appendChild(div);
+            
+            while (messages.children.length > 8) {
+                messages.removeChild(messages.firstChild);
+            }
+            
+            messages.scrollTop = messages.scrollHeight;
+        }
+        
+        function onResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        // FPS counter
+        let frameCount = 0;
+        let lastTime = performance.now();
+        
+        function updateFPS() {
+            frameCount++;
+            const currentTime = performance.now();
+            
+            if (currentTime - lastTime >= 1000) {
+                const fps = Math.round((frameCount * 1000) / (currentTime - lastTime));
+                document.getElementById("fps").textContent = fps;
+                frameCount = 0;
+                lastTime = currentTime;
+            }
+            
+            requestAnimationFrame(updateFPS);
+        }
+        
+        // Initialize
+        init();
+        updateFPS();
+        
+        // Add some initial messages
+        setTimeout(() => {
+            addMessage("cooper", "👨‍🚀 Cooper: I can see the agents now, TARS. Much better visibility.");
+        }, 2000);
+        
+        setTimeout(() => {
+            addMessage("tars", "🤖 TARS: Lighting systems optimized. Game theory models clearly visible.");
+        }, 4000);
+    </script>
+</body>
+</html>

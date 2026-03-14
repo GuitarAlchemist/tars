@@ -1,0 +1,216 @@
+================================================================================
+TARS ENHANCED METASCRIPT EXECUTION LOG
+================================================================================
+Start Time: 2025-05-30 19:08:29
+Metascript: tars-unified-data-pipelines
+Metascript Path: .tars/metascripts/tars-unified-data-pipelines.trsx
+Session ID: dfd8f53c
+Log File: tars.log
+
+TARS METASCRIPT ARCHITECTURE:
+🔧 Enhanced F# Code Execution
+⚙️ Real YAML Configuration Processing
+📁 Real File System Operations
+🔄 Variable Tracking and Interpolation
+📊 Comprehensive Execution Tracing
+💡 Performance Monitoring and Analytics
+
+EXECUTION TRACE:
+================================================================================
+
+[19:08:29.860] 🚀 SYSTEM_START | Enhanced Metascript Execution | Starting TARS with enhanced execution engine
+[19:08:29.871] 📝 METASCRIPT_INPUT | File Analysis | Metascript: "tars-unified-data-pipelines" (13363 bytes)
+[19:08:29.871] 🔧 SESSION_INIT | Session Creation | Execution session dfd8f53c initialized
+[19:08:29.871] 📋 PHASE_START | METASCRIPT_PARSING | Parsing metascript content
+[19:08:29.873] 📊 PARSING_RESULT | Found 1 F# code blocks and 1 YAML blocks to execute
+[19:08:29.873] 🚀 PHASE_START | YAML_CONFIGURATION | Processing YAML configuration blocks
+[19:08:29.874] ⚙️ YAML_BLOCK_START | Block 1 | Processing YAML configuration block
+[19:08:29.875] 📋 YAML_CONTENT | Block Size | YAML block contains 942 characters
+[19:08:29.910] 🔧 YAML_VARIABLE | computational_expressions = [|"pipeline_builder"; "async_stream_builder"; "reactive_builder";
+  "dataflow_builder"; "query_builder"|]
+[19:08:29.910] 🔧 YAML_VARIABLE | data_sources = [|"ienumerable_sync"; "iasyncenumerable_async"; "observable_reactive";
+  "channel_streams"; "dataflow_blocks"; "cuda_vectors"|]
+[19:08:29.915] 🔧 YAML_VARIABLE | dataflow_specs = seq
+  [[max_degree_parallelism, 8]; [bounded_capacity, 10000]; [batch_size, 1000];
+   [completion_timeout, 30000]]
+[19:08:29.915] 🔧 YAML_VARIABLE | f_sharp_features = [|"computation_expressions"; "type_providers"; "active_patterns";
+  "pattern_matching"; "pipe_operators"; "async_workflows"|]
+[19:08:29.915] 🔧 YAML_VARIABLE | output_directory = "C:/Users/spare/source/repos/tars/.tars/projects/unified-data-pipelines"
+[19:08:29.916] 🔧 YAML_VARIABLE | pipeline_config = seq
+  [[name, TarsUnifiedDataPipelines]; [version, 1.0.0];
+   [description, TPL Dataflow + Rx + F# computational expressions for ultimate data processing]]
+[19:08:29.916] 🔧 YAML_VARIABLE | reactive_specs = seq
+  [[buffer_size, 1000]; [throttle_ms, 100]; [retry_attempts, 3];
+   [backpressure_strategy, drop_oldest]]
+[19:08:29.918] ✅ YAML_BLOCK_END | Block 1 | Extracted 7 variables [0ms]
+[19:08:29.919] ✅ PHASE_END | YAML_CONFIGURATION | Processed 1 YAML blocks, extracted 7 total variables
+[19:08:29.919] 🚀 PHASE_START | F#_CODE_EXECUTION | Executing F# code blocks with enhanced engine
+[19:08:29.919] 🔧 F#_BLOCK_START | Block 1 | Starting F# code execution
+[19:08:29.919] 📋 F#_CONTENT | Block Size | F# block contains 12157 characters, 276 lines
+[19:08:29.919] 💻 F#_EXECUTION | Enhanced Engine | Executing F# code with real file operations and variable tracking
+[19:08:29.927] ✅ F#_BLOCK_SUCCESS | Block 1 | F# code executed successfully [0.003s]
+[19:08:29.928] 📊 F#_OUTPUT | printfn "🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊"
+[19:08:29.928] 📊 F#_OUTPUT | 🌊              TARS UNIFIED DATA PIPELINES                          🌊 printfn "🌊         TPL Dataflow + Rx + F# Computational Expressions         🌊"
+[19:08:29.928] 📊 F#_OUTPUT | 🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊 printfn ""
+[19:08:29.928] 📊 F#_OUTPUT | 🎯 Created unified data pipelines directory: %s outputDir
+[19:08:29.928] 📊 F#_OUTPUT | printfn "🔧 Phase 1: F# Computational Expressions for Data Processing"
+[19:08:29.928] 📊 F#_OUTPUT | ✅ Computational expressions created: printfn "  - Pipeline Builder: For synchronous data processing"
+[19:08:29.929] 📊 F#_OUTPUT | - Async Stream Builder: For asynchronous enumerable processing printfn "  - Reactive Builder: For observable stream processing"
+[19:08:29.929] 📊 F#_OUTPUT | printfn "🔄 Phase 2: TPL Dataflow Pipeline Architecture"
+[19:08:29.929] 📊 F#_OUTPUT | ✅ TPL Dataflow architecture ready: printfn "  - Transform blocks for data transformation"
+[19:08:29.929] 📊 F#_OUTPUT | - Action blocks for side effects printfn "  - Batch blocks for aggregation"
+[19:08:29.929] 📊 F#_OUTPUT | - Broadcast blocks for fan-out // ============================================================================
+[19:08:29.929] 📊 F#_OUTPUT | printfn "📡 Phase 3: Reactive Extensions Integration"
+[19:08:29.929] 📊 F#_OUTPUT | ✅ Reactive Extensions integrated: printfn "  - Subject-based event streams"
+[19:08:29.929] 📊 F#_OUTPUT | - F# pipe-friendly operators printfn "  - Computational expression support"
+[19:08:29.930] 📊 F#_OUTPUT | - Backpressure and throttling // ============================================================================
+[19:08:29.930] 📊 F#_OUTPUT | printfn "📊 Phase 4: IEnumerable and IAsyncEnumerable Integration"
+[19:08:29.930] 📊 F#_OUTPUT | 🔄 Generating item %d i
+[19:08:29.930] 📊 F#_OUTPUT | ✅ Enumerable integration complete: printfn "  - Synchronous seq processing with pipeline CE"
+[19:08:29.930] 📊 F#_OUTPUT | - Asynchronous IAsyncEnumerable processing printfn "  - Lazy evaluation with yield sequences"
+[19:08:29.930] 📊 F#_OUTPUT | - Async sequences with computation expressions // ============================================================================
+[19:08:29.930] 📊 F#_OUTPUT | printfn "🔪 Phase 5: Unified Data Slicing and Dicing Operations"
+[19:08:29.930] 📊 F#_OUTPUT | ✅ Data slicing and dicing operations ready: printfn "  - Active patterns for classification"
+[19:08:29.930] 📊 F#_OUTPUT | - Custom pipe operators printfn "  - Slice, dice, and chunk operations"
+[19:08:29.931] 📊 F#_OUTPUT | - Unified query computational expression // ============================================================================
+[19:08:29.931] 📊 F#_OUTPUT | printfn "🚀 Phase 6: Demonstration of Unified Pipeline"
+[19:08:29.931] 📊 F#_OUTPUT | 📊 Generated %d sample data items sampleData.Length
+[19:08:29.931] 📊 F#_OUTPUT | ✅ Processed %d items through pipeline CE results.Length
+[19:08:29.931] 📊 F#_OUTPUT | 🔪 Data operations: printfn "  - Sliced: %d items (skip 1, take 3)" (slicedData |> Seq.length)
+[19:08:29.931] 📊 F#_OUTPUT | - Diced: %d items (data > 5) (dicedData |> Seq.length)
+[19:08:29.931] 📊 F#_OUTPUT | - Chunked: %d chunks of size 2 (chunkedData |> Seq.length)
+[19:08:29.931] 📊 F#_OUTPUT | 📡 Reactive pipeline active with %d subjects 3
+[19:08:29.931] 📊 F#_OUTPUT | printfn "🎉 TARS Unified Data Pipelines Architecture Complete!"
+[19:08:29.931] 📊 F#_OUTPUT | 🌊 TPL Dataflow + Rx + F# Computational Expressions Ready! printfn "🔧 Ultimate data processing with F# niceties enabled!"
+[19:08:29.932] 📊 F#_OUTPUT | Variable 'outputDir' = C:/Users/spare/source/repos/tars/.tars/projects/unified-data-pipelines
+[19:08:29.932] 📊 F#_OUTPUT | Variable 'pipeline' = PipelineBuilder()
+[19:08:29.932] 📊 F#_OUTPUT | Variable 'enumerator' = source.GetAsyncEnumerator()
+[19:08:29.932] 📊 F#_OUTPUT | Variable 'item' = enumerator.Current
+[19:08:29.932] 📊 F#_OUTPUT | Variable 'asyncStream' = AsyncStreamBuilder()
+[19:08:29.932] 📊 F#_OUTPUT | Variable 'reactive' = ReactiveBuilder()
+[19:08:29.932] 📊 F#_OUTPUT | Variable 'dataflowOptions' = ExecutionDataflowBlockOptions(
+[19:08:29.932] 📊 F#_OUTPUT | Variable 'batchOptions' = GroupingDataflowBlockOptions(
+[19:08:29.932] 📊 F#_OUTPUT | Variable 'dataSubject' = new Subject<DataItem<obj>>()
+[19:08:29.932] 📊 F#_OUTPUT | Variable 'resultSubject' = new Subject<ProcessingResult<obj>>()
+[19:08:29.933] 📊 F#_OUTPUT | Variable 'errorSubject' = new Subject<exn>()
+[19:08:29.933] 📊 F#_OUTPUT | Variable 'reactiveDataPipeline' = reactive {
+[19:08:29.933] 📊 F#_OUTPUT | Variable 'transformed' = transform item
+[19:08:29.933] 📊 F#_OUTPUT | Variable 'query' = QueryBuilder()
+[19:08:29.933] 📊 F#_OUTPUT | Variable 'sampleData' = lazyDataGenerator 5 |> Seq.toList
+[19:08:29.933] 📊 F#_OUTPUT | Variable 'processedData' = pipeline {
+[19:08:29.933] 📊 F#_OUTPUT | Variable 'results' = processedData |> Seq.toList
+[19:08:29.933] 📊 F#_OUTPUT | Variable 'slicedData' = sampleData |> slice 1 3
+[19:08:29.933] 📊 F#_OUTPUT | Variable 'dicedData' = sampleData |> dice (fun item -> item.Data > 5)
+[19:08:29.933] 📊 F#_OUTPUT | Variable 'chunkedData' = sampleData |> chunk 2
+[19:08:29.934] 🔧 VARIABLE_STATE | asyncStream = "AsyncStreamBuilder()"
+[19:08:29.934] 🔧 VARIABLE_STATE | batchOptions = "GroupingDataflowBlockOptions("
+[19:08:29.934] 🔧 VARIABLE_STATE | chunkedData = "sampleData |> chunk 2"
+[19:08:29.935] 🔧 VARIABLE_STATE | computational_expressions = [|"pipeline_builder"; "async_stream_builder"; "reactive_builder";
+  "dataflow_builder"; "query_builder"|]
+[19:08:29.935] 🔧 VARIABLE_STATE | dataSubject = "new Subject<DataItem<obj>>()"
+[19:08:29.935] 🔧 VARIABLE_STATE | data_sources = [|"ienumerable_sync"; "iasyncenumerable_async"; "observable_reactive";
+  "channel_streams"; "dataflow_blocks"; "cuda_vectors"|]
+[19:08:29.935] 🔧 VARIABLE_STATE | dataflowOptions = "ExecutionDataflowBlockOptions("
+[19:08:29.935] 🔧 VARIABLE_STATE | dataflow_specs = seq
+  [[max_degree_parallelism, 8]; [bounded_capacity, 10000]; [batch_size, 1000];
+   [completion_timeout, 30000]]
+[19:08:29.935] 🔧 VARIABLE_STATE | dicedData = "sampleData |> dice (fun item -> item.Data > 5)"
+[19:08:29.935] 🔧 VARIABLE_STATE | enumerator = "source.GetAsyncEnumerator()"
+[19:08:29.936] 🔧 VARIABLE_STATE | errorSubject = "new Subject<exn>()"
+[19:08:29.936] 🔧 VARIABLE_STATE | f_sharp_features = [|"computation_expressions"; "type_providers"; "active_patterns";
+  "pattern_matching"; "pipe_operators"; "async_workflows"|]
+[19:08:29.936] 🔧 VARIABLE_STATE | item = "enumerator.Current"
+[19:08:29.936] 🔧 VARIABLE_STATE | outputDir = "C:/Users/spare/source/repos/tars/.tars/projects/unified-data-pipelines"
+[19:08:29.936] 🔧 VARIABLE_STATE | output_directory = "C:/Users/spare/source/repos/tars/.tars/projects/unified-data-pipelines"
+[19:08:29.936] 🔧 VARIABLE_STATE | pipeline = "PipelineBuilder()"
+[19:08:29.936] 🔧 VARIABLE_STATE | pipeline_config = seq
+  [[name, TarsUnifiedDataPipelines]; [version, 1.0.0];
+   [description, TPL Dataflow + Rx + F# computational expressions for ultimate data processing]]
+[19:08:29.937] 🔧 VARIABLE_STATE | processedData = "pipeline {"
+[19:08:29.937] 🔧 VARIABLE_STATE | query = "QueryBuilder()"
+[19:08:29.937] 🔧 VARIABLE_STATE | reactive = "ReactiveBuilder()"
+[19:08:29.937] 🔧 VARIABLE_STATE | reactiveDataPipeline = "reactive {"
+[19:08:29.937] 🔧 VARIABLE_STATE | reactive_specs = seq
+  [[buffer_size, 1000]; [throttle_ms, 100]; [retry_attempts, 3];
+   [backpressure_strategy, drop_oldest]]
+[19:08:29.937] 🔧 VARIABLE_STATE | resultSubject = "new Subject<ProcessingResult<obj>>()"
+[19:08:29.937] 🔧 VARIABLE_STATE | results = "processedData |> Seq.toList"
+[19:08:29.937] 🔧 VARIABLE_STATE | sampleData = "lazyDataGenerator 5 |> Seq.toList"
+[19:08:29.938] 🔧 VARIABLE_STATE | slicedData = "sampleData |> slice 1 3"
+[19:08:29.938] 🔧 VARIABLE_STATE | transformed = "transform item"
+[19:08:29.938] ✅ F#_BLOCK_END | Block 1 | Execution completed [0.003s]
+[19:08:29.938] ✅ PHASE_END | F#_CODE_EXECUTION | Executed 1 F# blocks, 27 variables tracked
+[19:08:29.938] 
+[19:08:29.938] 🏁 PHASE_START | EXECUTION_FINALIZATION | Finalizing metascript execution
+[19:08:29.939] 📊 PERFORMANCE_ANALYSIS | Execution Statistics | Analyzing execution performance
+[19:08:29.939] ⏱️ TIMING_ANALYSIS | Total Duration | 0.089 seconds
+[19:08:29.939] 📈 THROUGHPUT_ANALYSIS | Processing Rate | 22.4 blocks/second
+[19:08:29.939] ✅ PHASE_END | EXECUTION_FINALIZATION | Finalization complete
+[19:08:29.940] 
+[19:08:29.940] ✅ SYSTEM_END | Enhanced Metascript Success | Enhanced execution complete
+[19:08:29.940] 
+================================================================================
+ENHANCED METASCRIPT EXECUTION SUMMARY
+================================================================================
+End Time: 2025-05-30 19:08:29
+Total Duration: 0.089 seconds
+Session ID: dfd8f53c
+Metascript: tars-unified-data-pipelines
+Metascript Size: 13363 bytes
+
+EXECUTION STATISTICS:
+- YAML Blocks Processed: 1
+- F# Blocks Executed: 1
+- Variables Tracked: 27
+- Success Rate: 100%
+- Processing Rate: 22.4 blocks/second
+
+VARIABLES CREATED:
+- asyncStream = "AsyncStreamBuilder()"
+- batchOptions = "GroupingDataflowBlockOptions("
+- chunkedData = "sampleData |> chunk 2"
+- computational_expressions = [|"pipeline_builder"; "async_stream_builder"; "reactive_builder";
+  "dataflow_builder"; "query_builder"|]
+- dataSubject = "new Subject<DataItem<obj>>()"
+- data_sources = [|"ienumerable_sync"; "iasyncenumerable_async"; "observable_reactive";
+  "channel_streams"; "dataflow_blocks"; "cuda_vectors"|]
+- dataflowOptions = "ExecutionDataflowBlockOptions("
+- dataflow_specs = seq
+  [[max_degree_parallelism, 8]; [bounded_capacity, 10000]; [batch_size, 1000];
+   [completion_timeout, 30000]]
+- dicedData = "sampleData |> dice (fun item -> item.Data > 5)"
+- enumerator = "source.GetAsyncEnumerator()"
+- errorSubject = "new Subject<exn>()"
+- f_sharp_features = [|"computation_expressions"; "type_providers"; "active_patterns";
+  "pattern_matching"; "pipe_operators"; "async_workflows"|]
+- item = "enumerator.Current"
+- outputDir = "C:/Users/spare/source/repos/tars/.tars/projects/unified-data-pipelines"
+- output_directory = "C:/Users/spare/source/repos/tars/.tars/projects/unified-data-pipelines"
+- pipeline = "PipelineBuilder()"
+- pipeline_config = seq
+  [[name, TarsUnifiedDataPipelines]; [version, 1.0.0];
+   [description, TPL Dataflow + Rx + F# computational expressions for ultimate data processing]]
+- processedData = "pipeline {"
+- query = "QueryBuilder()"
+- reactive = "ReactiveBuilder()"
+- reactiveDataPipeline = "reactive {"
+- reactive_specs = seq
+  [[buffer_size, 1000]; [throttle_ms, 100]; [retry_attempts, 3];
+   [backpressure_strategy, drop_oldest]]
+- resultSubject = "new Subject<ProcessingResult<obj>>()"
+- results = "processedData |> Seq.toList"
+- sampleData = "lazyDataGenerator 5 |> Seq.toList"
+- slicedData = "sampleData |> slice 1 3"
+- transformed = "transform item"
+
+ENHANCED EXECUTION ARCHITECTURE BENEFITS:
+🔧 **Enhanced F# Execution**: Pattern-based code execution with real file operations
+⚙️ **YAML Configuration**: Real YAML parsing and variable extraction
+📁 **File System Integration**: Direct file operations during execution
+🔄 **Variable Tracking**: Complete variable lifecycle management
+📊 **Performance Monitoring**: Detailed timing and throughput analysis
+💡 **Comprehensive Logging**: Enhanced traceability and debugging
+
+================================================================================
+END OF ENHANCED METASCRIPT EXECUTION LOG
+================================================================================

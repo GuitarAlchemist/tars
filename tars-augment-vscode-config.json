@@ -1,0 +1,52 @@
+{
+  "collaboration": {
+    "enabled": true,
+    "components": {
+      "vscode": {
+        "role": "user_interface",
+        "capabilities": ["file_editing", "terminal_execution", "agent_coordination"]
+      },
+      "augment": {
+        "role": "code_understanding",
+        "capabilities": ["codebase_analysis", "code_generation", "refactoring"]
+      },
+      "tars": {
+        "role": "specialized_processing",
+        "capabilities": ["metascript_execution", "dsl_processing", "self_improvement"]
+      }
+    },
+    "workflows": [
+      {
+        "name": "code_generation",
+        "coordinator": "vscode",
+        "steps": [
+          {"component": "vscode", "action": "get_user_request"},
+          {"component": "augment", "action": "analyze_codebase_context"},
+          {"component": "tars", "action": "generate_metascript"},
+          {"component": "tars", "action": "execute_metascript"},
+          {"component": "vscode", "action": "apply_changes"}
+        ]
+      },
+      {
+        "name": "self_improvement",
+        "coordinator": "tars",
+        "steps": [
+          {"component": "tars", "action": "identify_improvement_areas"},
+          {"component": "augment", "action": "analyze_code_quality"},
+          {"component": "tars", "action": "generate_improvement_plan"},
+          {"component": "vscode", "action": "apply_improvements"}
+        ]
+      },
+      {
+        "name": "learning_documentation",
+        "coordinator": "augment",
+        "steps": [
+          {"component": "vscode", "action": "get_user_query"},
+          {"component": "augment", "action": "analyze_code_structure"},
+          {"component": "tars", "action": "generate_explanations"},
+          {"component": "vscode", "action": "present_information"}
+        ]
+      }
+    ]
+  }
+}

@@ -48,5 +48,9 @@ module ExplorationFileProcessor =
                 return! File.ReadAllTextAsync(filePath)
             with
             | ex -> 
+<<<<<<< HEAD:v1/parked_legacy/TarsEngine.SelfImprovement/ExplorationFileProcessor.fs
                 return $"Error reading file: %s{ex.Message}"
+=======
+                return sprintf "Error reading file: %s" ex.Message
+>>>>>>> origin/main:TarsEngine.SelfImprovement/ExplorationFileProcessor.fs
         }

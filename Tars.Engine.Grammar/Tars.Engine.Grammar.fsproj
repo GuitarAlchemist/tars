@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningsAsErrors />
+    <WarningsNotAsErrors>FS0025</WarningsNotAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="GrammarSource.fs" />
+    <Compile Include="GrammarResolver.fs" />
+    <Compile Include="LanguageDispatcher.fs" />
+    <!-- Temporarily disabled fractal grammar files due to compilation errors -->
+    <!-- <Compile Include="RFCProcessor.fs" /> -->
+    <!-- <Compile Include="FractalGrammar.fs" /> -->
+    <!-- <Compile Include="FractalGrammarParser.fs" /> -->
+    <!-- <Compile Include="FractalGrammarIntegration.fs" /> -->
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Text.Json" Version="8.0.5" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,74 @@
+{
+  "project_id": "proj-1748747562",
+  "title": "Advanced Metascript-Driven Autonomous Intelligence: A Comprehensive Framework for Self-Improving AI Systems",
+  "research_area": "Autonomous Intelligence Systems",
+  "lead_agent": "Dr. CS Researcher",
+  "collaborating_agents": [
+    "Dr. Research Director",
+    "Dr. Data Scientist",
+    "Dr. Academic Writer",
+    "Dr. Knowledge Synthesizer"
+  ],
+  "status": "Active",
+  "start_date": "2025-05-31T23:12:42.170970",
+  "estimated_duration_days": 180,
+  "phases": [
+    {
+      "phase": "Literature Review",
+      "duration_days": 30,
+      "responsible_agent": "Dr. Knowledge Synthesizer",
+      "deliverables": [
+        "Comprehensive literature review",
+        "Research gap analysis",
+        "Theoretical framework"
+      ]
+    },
+    {
+      "phase": "Methodology Development",
+      "duration_days": 45,
+      "responsible_agent": "Dr. Research Director",
+      "deliverables": [
+        "Research methodology",
+        "Experimental design",
+        "Data collection protocols"
+      ]
+    },
+    {
+      "phase": "Implementation and Experimentation",
+      "duration_days": 60,
+      "responsible_agent": "Dr. CS Researcher",
+      "deliverables": [
+        "Implementation artifacts",
+        "Experimental results",
+        "Data analysis"
+      ]
+    },
+    {
+      "phase": "Analysis and Writing",
+      "duration_days": 30,
+      "responsible_agent": "Dr. Academic Writer",
+      "deliverables": [
+        "Research paper draft",
+        "Statistical analysis",
+        "Results interpretation"
+      ]
+    },
+    {
+      "phase": "Peer Review and Revision",
+      "duration_days": 15,
+      "responsible_agent": "Dr. Peer Reviewer",
+      "deliverables": [
+        "Peer review feedback",
+        "Revised manuscript",
+        "Response to reviewers"
+      ]
+    }
+  ],
+  "expected_outputs": [
+    "Peer-reviewed research paper",
+    "Conference presentation",
+    "Technical documentation",
+    "Open-source implementation",
+    "Research dataset"
+  ]
+}

@@ -52,5 +52,9 @@
       <Content Include="improvement_rules.meta" />
     </ItemGroup>
 
+<<<<<<< HEAD:v1/parked_mixed/TarsEngineFSharp/TarsEngineFSharp.fsproj
 </Project>
 
+=======
+</Project>
+>>>>>>> origin/main:TarsEngineFSharp/TarsEngineFSharp.fsproj

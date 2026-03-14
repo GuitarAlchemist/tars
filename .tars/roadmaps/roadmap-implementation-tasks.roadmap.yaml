@@ -1,0 +1,475 @@
+id: "roadmap-implementation-2024"
+title: "TARS Roadmap Management Implementation - Granular Tasks"
+description: "Detailed task breakdown for implementing autonomous roadmap management system"
+version: "1.0.0"
+status: 1  # InProgress
+estimatedHours: 72.0
+actualHours: 0.0
+completionPercentage: 0.0
+createdAt: "2024-02-05T12:30:00Z"
+updatedAt: "2024-02-05T12:30:00Z"
+startedAt: "2024-02-05T12:30:00Z"
+completedAt: null
+targetDate: "2024-02-19T23:59:59Z"
+metadata:
+  project: "TARS Roadmap Management"
+  implementation_type: "granular_tasks"
+  total_tasks: 72
+  task_duration_range: "1-4 hours"
+
+phases:
+  - id: "phase-foundation"
+    title: "Foundation - Data Model and Storage"
+    description: "Core data structures and storage infrastructure"
+    status: 0  # NotStarted
+    priority: 0  # Critical
+    estimatedHours: 16.0
+    actualHours: 0.0
+    completionPercentage: 0.0
+    createdAt: "2024-02-05T12:30:00Z"
+    updatedAt: "2024-02-05T12:30:00Z"
+    startedAt: null
+    completedAt: null
+    targetDate: "2024-02-07T23:59:59Z"
+    metadata:
+      week: 1
+      days: "1-2"
+    
+    milestones:
+      - id: "milestone-data-types"
+        title: "Core Data Types Definition"
+        description: "Define all data types and enums for roadmap system"
+        version: "1.0.0"
+        status: 0  # NotStarted
+        priority: 0  # Critical
+        estimatedHours: 2.0
+        actualHours: 0.0
+        completionPercentage: 0.0
+        dependencies: []
+        createdAt: "2024-02-05T12:30:00Z"
+        updatedAt: "2024-02-05T12:30:00Z"
+        startedAt: null
+        completedAt: null
+        targetDate: "2024-02-06T10:00:00Z"
+        metadata:
+          task_group: "1.1"
+          assignee: "Data-Model-Agent"
+        
+        achievements:
+          - id: "task-1-1-1"
+            title: "Define Achievement enum types"
+            description: "Create AchievementStatus, Priority, Category, Complexity enums with XML docs"
+            category: 0  # Infrastructure
+            priority: 0  # Critical
+            status: 0  # NotStarted
+            complexity: 1  # Simple
+            estimatedHours: 0.5
+            actualHours: null
+            completionPercentage: 0.0
+            dependencies: []
+            blockers: []
+            tags: ["enums", "data-model", "foundation"]
+            assignedAgent: "Data-Model-Agent"
+            createdAt: "2024-02-05T12:30:00Z"
+            updatedAt: "2024-02-05T12:30:00Z"
+            startedAt: null
+            completedAt: null
+            dueDate: "2024-02-06T09:00:00Z"
+            metadata:
+              deliverable: "AchievementEnums.fs"
+              acceptance_criteria: "All enums compile and have XML documentation"
+              duration_minutes: 30
+          
+          - id: "task-1-1-2"
+            title: "Define Achievement record type"
+            description: "Core Achievement record with 20+ fields, metadata, timestamps"
+            category: 0  # Infrastructure
+            priority: 0  # Critical
+            status: 0  # NotStarted
+            complexity: 2  # Moderate
+            estimatedHours: 0.75
+            actualHours: null
+            completionPercentage: 0.0
+            dependencies: ["task-1-1-1"]
+            blockers: []
+            tags: ["records", "data-model", "achievement"]
+            assignedAgent: "Data-Model-Agent"
+            createdAt: "2024-02-05T12:30:00Z"
+            updatedAt: "2024-02-05T12:30:00Z"
+            startedAt: null
+            completedAt: null
+            dueDate: "2024-02-06T09:45:00Z"
+            metadata:
+              deliverable: "Achievement record in RoadmapDataModel.fs"
+              acceptance_criteria: "Record compiles with all required fields"
+              duration_minutes: 45
+          
+          - id: "task-1-1-3"
+            title: "Define Milestone and Phase types"
+            description: "Milestone and RoadmapPhase records with hierarchical relationships"
+            category: 0  # Infrastructure
+            priority: 0  # Critical
+            status: 0  # NotStarted
+            complexity: 2  # Moderate
+            estimatedHours: 0.5
+            actualHours: null
+            completionPercentage: 0.0
+            dependencies: ["task-1-1-2"]
+            blockers: []
+            tags: ["records", "hierarchy", "milestone", "phase"]
+            assignedAgent: "Data-Model-Agent"
+            createdAt: "2024-02-05T12:30:00Z"
+            updatedAt: "2024-02-05T12:30:00Z"
+            startedAt: null
+            completedAt: null
+            dueDate: "2024-02-06T10:15:00Z"
+            metadata:
+              deliverable: "Milestone and RoadmapPhase records"
+              acceptance_criteria: "Hierarchical structure is correct"
+              duration_minutes: 30
+          
+          - id: "task-1-1-4"
+            title: "Define TarsRoadmap root type"
+            description: "Root TarsRoadmap record with version, metadata, phase list"
+            category: 0  # Infrastructure
+            priority: 0  # Critical
+            status: 0  # NotStarted
+            complexity: 1  # Simple
+            estimatedHours: 0.25
+            actualHours: null
+            completionPercentage: 0.0
+            dependencies: ["task-1-1-3"]
+            blockers: []
+            tags: ["records", "root-type", "roadmap"]
+            assignedAgent: "Data-Model-Agent"
+            createdAt: "2024-02-05T12:30:00Z"
+            updatedAt: "2024-02-05T12:30:00Z"
+            startedAt: null
+            completedAt: null
+            dueDate: "2024-02-06T10:30:00Z"
+            metadata:
+              deliverable: "TarsRoadmap record"
+              acceptance_criteria: "Complete roadmap structure defined"
+              duration_minutes: 15
+
+      - id: "milestone-helper-functions"
+        title: "Helper Functions Implementation"
+        description: "Creation, update, metrics, and validation helper functions"
+        version: "1.0.0"
+        status: 0  # NotStarted
+        priority: 0  # Critical
+        estimatedHours: 3.0
+        actualHours: 0.0
+        completionPercentage: 0.0
+        dependencies: ["milestone-data-types"]
+        createdAt: "2024-02-05T12:30:00Z"
+        updatedAt: "2024-02-05T12:30:00Z"
+        startedAt: null
+        completedAt: null
+        targetDate: "2024-02-06T14:00:00Z"
+        metadata:
+          task_group: "1.2"
+          assignee: "Data-Model-Agent"
+        
+        achievements:
+          - id: "task-1-2-1"
+            title: "Achievement creation helpers"
+            description: "createAchievement and createMilestone functions with validation"
+            category: 0  # Infrastructure
+            priority: 0  # Critical
+            status: 0  # NotStarted
+            complexity: 2  # Moderate
+            estimatedHours: 0.75
+            actualHours: null
+            completionPercentage: 0.0
+            dependencies: ["task-1-1-4"]
+            blockers: []
+            tags: ["helpers", "creation", "validation"]
+            assignedAgent: "Data-Model-Agent"
+            createdAt: "2024-02-05T12:30:00Z"
+            updatedAt: "2024-02-05T12:30:00Z"
+            startedAt: null
+            completedAt: null
+            dueDate: "2024-02-06T11:15:00Z"
+            metadata:
+              deliverable: "Creation helper functions"
+              acceptance_criteria: "Functions create valid objects with proper defaults"
+              duration_minutes: 45
+          
+          - id: "task-1-2-2"
+            title: "Achievement update helpers"
+            description: "updateAchievementStatus and updateAchievementProgress with state transitions"
+            category: 0  # Infrastructure
+            priority: 0  # Critical
+            status: 0  # NotStarted
+            complexity: 3  # Expert
+            estimatedHours: 1.0
+            actualHours: null
+            completionPercentage: 0.0
+            dependencies: ["task-1-2-1"]
+            blockers: []
+            tags: ["helpers", "updates", "state-transitions"]
+            assignedAgent: "Data-Model-Agent"
+            createdAt: "2024-02-05T12:30:00Z"
+            updatedAt: "2024-02-05T12:30:00Z"
+            startedAt: null
+            completedAt: null
+            dueDate: "2024-02-06T12:15:00Z"
+            metadata:
+              deliverable: "Update helper functions"
+              acceptance_criteria: "State transitions work correctly, timestamps update"
+              duration_minutes: 60
+          
+          - id: "task-1-2-3"
+            title: "Metrics calculation functions"
+            description: "calculateAchievementMetrics with completion rates and performance metrics"
+            category: 0  # Infrastructure
+            priority: 1  # High
+            status: 0  # NotStarted
+            complexity: 3  # Expert
+            estimatedHours: 0.75
+            actualHours: null
+            completionPercentage: 0.0
+            dependencies: ["task-1-2-2"]
+            blockers: []
+            tags: ["metrics", "calculations", "performance"]
+            assignedAgent: "Data-Model-Agent"
+            createdAt: "2024-02-05T12:30:00Z"
+            updatedAt: "2024-02-05T12:30:00Z"
+            startedAt: null
+            completedAt: null
+            dueDate: "2024-02-06T13:00:00Z"
+            metadata:
+              deliverable: "Metrics calculation functions"
+              acceptance_criteria: "Accurate calculations for test data"
+              duration_minutes: 45
+          
+          - id: "task-1-2-4"
+            title: "Validation functions"
+            description: "validateRoadmap with dependency validation and circular detection"
+            category: 2  # Quality
+            priority: 1  # High
+            status: 0  # NotStarted
+            complexity: 3  # Expert
+            estimatedHours: 0.5
+            actualHours: null
+            completionPercentage: 0.0
+            dependencies: ["task-1-2-3"]
+            blockers: []
+            tags: ["validation", "dependencies", "quality"]
+            assignedAgent: "Data-Model-Agent"
+            createdAt: "2024-02-05T12:30:00Z"
+            updatedAt: "2024-02-05T12:30:00Z"
+            startedAt: null
+            completedAt: null
+            dueDate: "2024-02-06T13:30:00Z"
+            metadata:
+              deliverable: "Validation functions"
+              acceptance_criteria: "Catches invalid data, provides useful error messages"
+              duration_minutes: 30
+
+      - id: "milestone-yaml-serialization"
+        title: "YAML Serialization Setup"
+        description: "Configure YAML serialization with schema validation"
+        version: "1.0.0"
+        status: 0  # NotStarted
+        priority: 1  # High
+        estimatedHours: 2.0
+        actualHours: 0.0
+        completionPercentage: 0.0
+        dependencies: ["milestone-helper-functions"]
+        createdAt: "2024-02-05T12:30:00Z"
+        updatedAt: "2024-02-05T12:30:00Z"
+        startedAt: null
+        completedAt: null
+        targetDate: "2024-02-06T16:00:00Z"
+        metadata:
+          task_group: "1.3"
+          assignee: "Serialization-Agent"
+        
+        achievements:
+          - id: "task-1-3-1"
+            title: "YAML serialization configuration"
+            description: "Configure YamlDotNet for F# records with custom converters"
+            category: 0  # Infrastructure
+            priority: 1  # High
+            status: 0  # NotStarted
+            complexity: 2  # Moderate
+            estimatedHours: 0.5
+            actualHours: null
+            completionPercentage: 0.0
+            dependencies: ["task-1-2-4"]
+            blockers: []
+            tags: ["yaml", "serialization", "configuration"]
+            assignedAgent: "Serialization-Agent"
+            createdAt: "2024-02-05T12:30:00Z"
+            updatedAt: "2024-02-05T12:30:00Z"
+            startedAt: null
+            completedAt: null
+            dueDate: "2024-02-06T14:30:00Z"
+            metadata:
+              deliverable: "YAML serialization setup"
+              acceptance_criteria: "Records serialize/deserialize correctly"
+              duration_minutes: 30
+          
+          - id: "task-1-3-2"
+            title: "Schema validation setup"
+            description: "Define YAML schema with validation rules and error messages"
+            category: 2  # Quality
+            priority: 1  # High
+            status: 0  # NotStarted
+            complexity: 3  # Expert
+            estimatedHours: 0.75
+            actualHours: null
+            completionPercentage: 0.0
+            dependencies: ["task-1-3-1"]
+            blockers: []
+            tags: ["schema", "validation", "error-handling"]
+            assignedAgent: "Serialization-Agent"
+            createdAt: "2024-02-05T12:30:00Z"
+            updatedAt: "2024-02-05T12:30:00Z"
+            startedAt: null
+            completedAt: null
+            dueDate: "2024-02-06T15:15:00Z"
+            metadata:
+              deliverable: "YAML schema and validation"
+              acceptance_criteria: "Invalid YAML files are rejected with clear errors"
+              duration_minutes: 45
+          
+          - id: "task-1-3-3"
+            title: "Test serialization with sample data"
+            description: "Create test data and verify round-trip serialization"
+            category: 2  # Quality
+            priority: 2  # Medium
+            status: 0  # NotStarted
+            complexity: 2  # Moderate
+            estimatedHours: 0.5
+            actualHours: null
+            completionPercentage: 0.0
+            dependencies: ["task-1-3-2"]
+            blockers: []
+            tags: ["testing", "serialization", "validation"]
+            assignedAgent: "Serialization-Agent"
+            createdAt: "2024-02-05T12:30:00Z"
+            updatedAt: "2024-02-05T12:30:00Z"
+            startedAt: null
+            completedAt: null
+            dueDate: "2024-02-06T15:45:00Z"
+            metadata:
+              deliverable: "Serialization tests"
+              acceptance_criteria: "All test cases pass"
+              duration_minutes: 30
+          
+          - id: "task-1-3-4"
+            title: "Performance optimization"
+            description: "Optimize serialization for large roadmaps and memory usage"
+            category: 3  # Performance
+            priority: 3  # Low
+            status: 0  # NotStarted
+            complexity: 2  # Moderate
+            estimatedHours: 0.25
+            actualHours: null
+            completionPercentage: 0.0
+            dependencies: ["task-1-3-3"]
+            blockers: []
+            tags: ["performance", "optimization", "memory"]
+            assignedAgent: "Serialization-Agent"
+            createdAt: "2024-02-05T12:30:00Z"
+            updatedAt: "2024-02-05T12:30:00Z"
+            startedAt: null
+            completedAt: null
+            dueDate: "2024-02-06T16:00:00Z"
+            metadata:
+              deliverable: "Optimized serialization"
+              acceptance_criteria: "Handles 1000+ achievements efficiently"
+              duration_minutes: 15
+
+  - id: "phase-analysis-agent"
+    title: "Analysis Agent Implementation"
+    description: "Autonomous analysis agent with comprehensive roadmap analysis"
+    status: 0  # NotStarted
+    priority: 1  # High
+    estimatedHours: 20.0
+    actualHours: 0.0
+    completionPercentage: 0.0
+    createdAt: "2024-02-05T12:30:00Z"
+    updatedAt: "2024-02-05T12:30:00Z"
+    startedAt: null
+    completedAt: null
+    targetDate: "2024-02-12T23:59:59Z"
+    metadata:
+      week: 1
+      days: "3-5"
+    
+    milestones:
+      - id: "milestone-agent-framework"
+        title: "Agent Framework Setup"
+        description: "Base agent infrastructure and configuration"
+        version: "1.0.0"
+        status: 0  # NotStarted
+        priority: 1  # High
+        estimatedHours: 3.0
+        actualHours: 0.0
+        completionPercentage: 0.0
+        dependencies: ["milestone-yaml-serialization"]
+        createdAt: "2024-02-05T12:30:00Z"
+        updatedAt: "2024-02-05T12:30:00Z"
+        startedAt: null
+        completedAt: null
+        targetDate: "2024-02-07T12:00:00Z"
+        metadata:
+          task_group: "2.1"
+          assignee: "Agent-Framework-Agent"
+
+  - id: "phase-cli-integration"
+    title: "CLI Integration"
+    description: "Command-line interface for roadmap management"
+    status: 0  # NotStarted
+    priority: 1  # High
+    estimatedHours: 8.0
+    actualHours: 0.0
+    completionPercentage: 0.0
+    createdAt: "2024-02-05T12:30:00Z"
+    updatedAt: "2024-02-05T12:30:00Z"
+    startedAt: null
+    completedAt: null
+    targetDate: "2024-02-15T23:59:59Z"
+    metadata:
+      week: 2
+      days: "2-3"
+
+  - id: "phase-integration-testing"
+    title: "Integration and Testing"
+    description: "System integration, testing, and documentation"
+    status: 0  # NotStarted
+    priority: 0  # Critical
+    estimatedHours: 12.0
+    actualHours: 0.0
+    completionPercentage: 0.0
+    createdAt: "2024-02-05T12:30:00Z"
+    updatedAt: "2024-02-05T12:30:00Z"
+    startedAt: null
+    completedAt: null
+    targetDate: "2024-02-19T23:59:59Z"
+    metadata:
+      week: 2
+      days: "4-5"
+
+metadata:
+  implementation_approach: "granular_tasks"
+  task_size: "1-4 hours each"
+  total_tasks: 72
+  parallel_execution: true
+  buffer_time: "20% included"
+  quality_gates: "unit_tests_integration_tests_documentation"
+  success_criteria:
+    - "Complete roadmap data model with YAML storage"
+    - "Autonomous analysis agent with 5+ analysis types"
+    - "CLI commands for roadmap management"
+    - "Integration with TARS Windows service"
+    - ">90% unit test coverage"
+  risk_mitigation:
+    - "Start simple, iterate complexity"
+    - "Test integration points early"
+    - "Continuous testing throughout"
+    - "20% buffer for unexpected issues"

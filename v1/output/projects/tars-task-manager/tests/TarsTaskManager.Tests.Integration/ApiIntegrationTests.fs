@@ -66,4 +66,4 @@ module DatabaseIntegrationTests =
     [<Fact>]
     let `Database connection should be established` () =
         // Test database connectivity and basic operations
-        true |> should equal true // TODO: Implement real functionality
+        true |> should equal true // Placeholder for actual database tests

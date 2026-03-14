@@ -19,7 +19,10 @@ type AutonomousImprovementService(logger: ILogger) =
             let knowledgeExtractionHandler = KnowledgeExtractionStep.getHandler logger 100
             let codeAnalysisHandler = CodeAnalysisStep.getHandler logger
             let improvementApplicationHandler = ImprovementApplicationStep.getHandler logger 10
+<<<<<<< HEAD:v1/parked_legacy/TarsEngine.SelfImprovement/AutonomousImprovementService.fs
             let executionValidationHandler = ExecutionValidationStep.getHandler logger
+=======
+>>>>>>> origin/main:TarsEngine.SelfImprovement/AutonomousImprovementService.fs
             let feedbackCollectionHandler = FeedbackCollectionStep.getHandler logger
             let reportingHandler = ReportingStep.getHandler logger
 
@@ -28,7 +31,10 @@ type AutonomousImprovementService(logger: ILogger) =
                 knowledgeExtractionHandler
                 codeAnalysisHandler
                 improvementApplicationHandler
+<<<<<<< HEAD:v1/parked_legacy/TarsEngine.SelfImprovement/AutonomousImprovementService.fs
                 executionValidationHandler
+=======
+>>>>>>> origin/main:TarsEngine.SelfImprovement/AutonomousImprovementService.fs
                 feedbackCollectionHandler
                 reportingHandler
             ]

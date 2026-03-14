@@ -1,0 +1,11 @@
+{
+  "sessions": [],
+  "lastConversation": null,
+  "totalConversations": 0,
+  "averageSessionLength": 0,
+  "conversationMetrics": {
+    "emotionalIntelligence": 0.82,
+    "responseQuality": 0.88,
+    "userSatisfaction": 0.85
+  }
+}

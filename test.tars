@@ -1,0 +1,15 @@
+﻿CONFIG {
+    name: "Test Metascript"
+    version: "1.0"
+}
+
+FSHARP {
+    let message = "Hello from F# metascript!"
+    printfn "%s" message
+}
+
+COMMAND {
+    echo "Hello from command block!"
+}
+
+This is a simple test metascript that demonstrates the basic functionality.

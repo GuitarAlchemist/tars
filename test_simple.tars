@@ -1,0 +1,14 @@
+# Simple TARS Test Metascript
+
+```yaml
+name: "Simple Test"
+description: "Test basic TARS functionality"
+version: "1.0.0"
+```
+
+```fsharp
+printfn "Hello from TARS!"
+printfn "Testing cryptographic proof system"
+let result = 42 * 2
+printfn "Result: %d" result
+```

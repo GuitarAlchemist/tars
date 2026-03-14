@@ -1,0 +1,43 @@
+// Async programming patterns metascript
+
+rule ConvertToAsync {
+    match: "public $returnType $methodName($params)\n    {\n        $body\n    }"
+    replace: "public async Task<$returnType> $methodName($params)\n    {\n        $body\n    }"
+    requires: "System.Threading.Tasks"
+    description: "Convert synchronous method to asynchronous"
+    language: "csharp"
+    confidence: 0.7
+}
+
+rule ReplaceBlockingCallWithAsync {
+    match: "$result = $obj.$method($args);"
+    replace: "$result = await $obj.$methodAsync($args);"
+    description: "Replace blocking call with async equivalent"
+    language: "csharp"
+    confidence: 0.8
+}
+
+rule AddConfigureAwait {
+    match: "await $expression;"
+    replace: "await $expression.ConfigureAwait(false);"
+    description: "Add ConfigureAwait(false) to await expressions"
+    language: "csharp"
+    confidence: 0.9
+}
+
+rule ConvertSynchronousFileOperations {
+    match: "File.$operation($args);"
+    replace: "await File.$operationAsync($args);"
+    requires: "System.IO"
+    description: "Convert synchronous file operations to asynchronous"
+    language: "csharp"
+    confidence: 0.9
+}
+
+rule AddAsyncSuffix {
+    match: "public async Task<$returnType> $methodName($params)"
+    replace: "public async Task<$returnType> $methodNameAsync($params)"
+    description: "Add Async suffix to async method names"
+    language: "csharp"
+    confidence: 0.8
+}

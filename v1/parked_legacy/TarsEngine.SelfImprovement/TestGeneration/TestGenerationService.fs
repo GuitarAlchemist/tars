@@ -72,7 +72,7 @@ type TestGenerationService(logger: ILogger<TestGenerationService>) =
     
     let initializeTestGenerator() =
         // This will be implemented to create an instance of the C# ImprovedCSharpTestGenerator
-        // TODO: Implement real functionality
+        // For now, we'll just log that this is a placeholder
         logger.LogInformation("TestGenerationService: Initializing test generator (placeholder)")
         Task.CompletedTask
     
@@ -145,7 +145,7 @@ type TestGenerationService(logger: ILogger<TestGenerationService>) =
                     if obj.ReferenceEquals(testGenerator, null) then
                         do! initializeTestGenerator()
                     
-                    // TODO: Implement real functionality
+                    // For now, return a placeholder result
                     // This will be replaced with actual test generation using the C# ImprovedCSharpTestGenerator
                     logger.LogInformation("TestGenerationService: Generating tests from code (placeholder)")
                     

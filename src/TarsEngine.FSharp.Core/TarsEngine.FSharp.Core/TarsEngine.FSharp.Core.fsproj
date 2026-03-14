@@ -1,0 +1,164 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningsAsErrors />
+    <WarningsNotAsErrors>FS0988</WarningsNotAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Core Types -->
+    <Compile Include="RevolutionaryTypes.fs" />
+    
+    <!-- Modern Game Theory Modules -->
+    <Compile Include="ModernGameTheory.fs" />
+    <Compile Include="FeedbackTracker.fs" />
+    <Compile Include="GameTheoryFeedbackCLI.fs" />
+
+    <!-- Elmish UI Integration -->
+    <Compile Include="GameTheoryElmishModels.fs" />
+    <Compile Include="GameTheoryElmishViews.fs" />
+    <Compile Include="GameTheoryElmishServices.fs" />
+    <Compile Include="GameTheoryElmishApp.fs" />
+
+    <!-- Three.js + WebGPU 3D Integration -->
+    <Compile Include="GameTheoryThreeJsIntegration.fs" />
+    <Compile Include="GameTheoryWebGPUShaders.fs" />
+    <Compile Include="GameTheoryInterstellarEffects.fs" />
+    <Compile Include="GameTheory3DIntegrationService.fs" />
+    
+    <!-- FLUX Integration - Core AST and Types -->
+    <Compile Include="../FLUX/Ast/FluxAst.fs" />
+
+    <!-- FLUX Integration - ChatGPT-Cross-Entropy Refinement -->
+    <Compile Include="../FLUX/Refinement/CrossEntropyRefinement.fs" />
+
+    <!-- FLUX Integration - Vector Store Semantics -->
+    <Compile Include="../FLUX/VectorStore/SemanticVectorStore.fs" />
+
+    <!-- FLUX Integration - Fractal Grammar System -->
+    <Compile Include="../FLUX/FractalGrammar/SimpleFractalGrammar.fs" />
+
+    <!-- FLUX Integration - Fractal Language Architecture -->
+    <Compile Include="../FLUX/FractalLanguage/FluxFractalArchitecture.fs" />
+    <Compile Include="../FLUX/FractalLanguage/FluxFractalInterpreter.fs" />
+
+    <!-- FLUX Integration - Unified TRSX Format -->
+    <Compile Include="../FLUX/UnifiedFormat/UnifiedTrsxInterpreter.fs" />
+    <Compile Include="../FLUX/UnifiedFormat/TrsxMigrationTool.fs" />
+    <Compile Include="../FLUX/UnifiedFormat/TrsxCli.fs" />
+
+    <!-- Working Core Modules -->
+    <Compile Include="AutonomousEvolution.fs" />
+    <Compile Include="BSPReasoningEngine.fs" />
+    <Compile Include="ComprehensiveTypes.fs" />
+    <Compile Include="TempTypeFixes.fs" />
+
+    <!-- Unified Deployment Module -->
+    <Compile Include="UnifiedDeployment.fs" />
+
+    <!-- Injectable Deployment Service -->
+    <Compile Include="DeploymentService.fs" />
+
+    <!-- Janus Research Service -->
+    <Compile Include="JanusResearchService.fs" />
+
+    <!-- Grammar Distillation Service -->
+    <Compile Include="GrammarDistillationService.fs" />
+
+    <!-- Tracing System (Required for Grammar Evolution) -->
+    <Compile Include="../Tracing/AgenticTraceCapture.fs" />
+
+    <!-- Grammar Evolution System -->
+    <!-- Core Grammar Components (Dependencies) -->
+    <Compile Include="../Grammar/GrammarSource.fs" />
+    <Compile Include="../Grammar/FractalGrammar.fs" />
+    <Compile Include="../Grammar/GrammarResolver.fs" />
+
+    <!-- Advanced Grammar Evolution -->
+    <Compile Include="../Grammar/EmergentTierEvolution.fs" />
+    <Compile Include="../Grammar/UnifiedGrammarEvolution.fs" />
+    <Compile Include="../Grammar/VectorStoreGrammarAnalyzer.fs" />
+    <Compile Include="../Grammar/ReasoningGrammarEvolution.fs" />
+    <Compile Include="../Grammar/GrammarEvolutionDemo.fs" />
+
+    <!-- Auto-Improvement Capabilities -->
+    <Compile Include="../AutoImprovement/SelfModificationEngine.fs" />
+    <Compile Include="../AutoImprovement/ContinuousLearningEngine.fs" />
+    <Compile Include="../AutoImprovement/AutonomousGoalSetting.fs" />
+
+    <!-- FLUX Multi-Modal Language System -->
+    <Compile Include="../FLUX/FluxIntegrationEngine.fs" />
+
+    <!-- 3D Visualization System -->
+    <Compile Include="../Visualization/ThreeDVisualizationEngine.fs" />
+
+    <!-- Production Deployment System -->
+    <Compile Include="../Production/ProductionDeploymentEngine.fs" />
+
+    <!-- Scientific Research System -->
+    <Compile Include="../Research/ScientificResearchEngine.fs" />
+
+    <!-- Advanced Diagnostics System -->
+    <Compile Include="../Diagnostics/AdvancedDiagnosticsEngine.fs" />
+
+    <!-- Autonomous Agent Swarm System -->
+    <Compile Include="../AgentSwarm/AutonomousAgentSwarmEngine.fs" />
+
+    <!-- Master Integration System -->
+    <Compile Include="../Integration/MasterIntegrationEngine.fs" />
+
+    <!-- Adaptive Learning System -->
+    <Compile Include="../Learning/AdaptiveLearningEngine.fs" />
+
+    <!-- Advanced Reasoning System -->
+    <Compile Include="../Reasoning/AdvancedReasoningEngine.fs" />
+    <Compile Include="../Reasoning/ReasoningDSL.fs" />
+
+    <!-- CUDA Acceleration -->
+    <Compile Include="../GPU/CudaReasoningEngine.fs" />
+    <Compile Include="../GPU/RealCudaEngine.fs" />
+    <Compile Include="../GPU/CudaMetricsTest.fs" />
+    <!-- WSL CUDA Acceleration (Recommended) -->
+    <Compile Include="../GPU/WSLCudaEngine.fs" />
+    <Compile Include="../GPU/WSLCudaMetricsTest.fs" />
+
+    <!-- CLI Commands -->
+    <Compile Include="Commands/GrammarEvolutionCommand.fs" />
+    <Compile Include="Commands/AutoImprovementCommand.fs" />
+    <Compile Include="Commands/FluxCommand.fs" />
+    <Compile Include="Commands/VisualizationCommand.fs" />
+    <Compile Include="Commands/ProductionCommand.fs" />
+    <Compile Include="Commands/ResearchCommand.fs" />
+    <Compile Include="Commands/DiagnosticsCommand.fs" />
+    <Compile Include="Commands/SwarmCommand.fs" />
+    <Compile Include="Commands/IntegrationCommand.fs" />
+    <Compile Include="Commands/LearningCommand.fs" />
+    <Compile Include="Commands/ReasoningCommand.fs" />
+
+    <!-- TARS CLI (Must be last for EntryPoint) -->
+    <Compile Include="TarsCli.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.0" />
+    <PackageReference Include="System.Text.Json" Version="9.0.0" />
+    <PackageReference Include="FParsec" Version="1.1.1" />
+    <!-- Real CUDA GPU Acceleration -->
+    <PackageReference Include="ILGPU" Version="1.5.1" />
+    <PackageReference Include="ILGPU.Algorithms" Version="1.5.1" />
+  </ItemGroup>
+
+  <!-- Project references removed to eliminate warnings -->
+  <!-- <ItemGroup>
+    <ProjectReference Include="../Tars.Engine.VectorStore/Tars.Engine.VectorStore.csproj" />
+    <ProjectReference Include="../Tars.Engine.Grammar/Tars.Engine.Grammar.csproj" />
+    <ProjectReference Include="../Tars.Engine.Integration/Tars.Engine.Integration.csproj" />
+    <ProjectReference Include="../TarsEngine.CustomTransformers/TarsEngine.CustomTransformers.csproj" />
+  </ItemGroup> -->
+
+</Project>

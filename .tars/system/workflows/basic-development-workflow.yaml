@@ -1,0 +1,169 @@
+﻿# Basic Development Workflow
+# Standard development workflow for TARS projects
+
+name: "basic_development_workflow"
+description: "Standard development workflow with analysis, coding, testing, and deployment"
+version: "1.0.0"
+author: "TARS Workflow Team"
+
+# Workflow Configuration
+config:
+  parallel_execution: false
+  timeout_minutes: 30
+  retry_attempts: 3
+  auto_rollback: true
+
+# Workflow Variables
+variables:
+  project_name: "MyProject"
+  target_framework: "net9.0"
+  test_framework: "xunit"
+  deployment_target: "local"
+
+# Workflow Stages
+stages:
+  # Stage 1: Analysis
+  - name: "analysis"
+    description: "Analyze project requirements and architecture"
+    agents:
+      - name: "Analyst"
+        role: "Requirements Analysis"
+        model: "llama3"
+        temperature: 0.6
+    tasks:
+      - type: "metascript"
+        script: "code_analysis.tars"
+        parameters:
+          target_directory: "."
+          analysis_depth: "comprehensive"
+      - type: "report"
+        output: "analysis_report.md"
+
+  # Stage 2: Planning
+  - name: "planning"
+    description: "Create development plan and architecture"
+    depends_on: ["analysis"]
+    agents:
+      - name: "Architect"
+        role: "System Architecture"
+        model: "llama3"
+        temperature: 0.5
+    tasks:
+      - type: "metascript"
+        script: "tree_of_thought_generator.tars"
+        parameters:
+          problem: "Design system architecture for {{project_name}}"
+          depth: 4
+      - type: "file_create"
+        path: "architecture_plan.md"
+
+  # Stage 3: Implementation
+  - name: "implementation"
+    description: "Implement the planned solution"
+    depends_on: ["planning"]
+    agents:
+      - name: "Developer"
+        role: "Code Implementation"
+        model: "codellama:13b-code"
+        temperature: 0.2
+    tasks:
+      - type: "metascript"
+        script: "autonomous_improvement.tars"
+        parameters:
+          target_directory: "src/"
+          improvement_type: "implementation"
+      - type: "code_generation"
+        language: "fsharp"
+        output_directory: "src/"
+
+  # Stage 4: Testing
+  - name: "testing"
+    description: "Run comprehensive tests"
+    depends_on: ["implementation"]
+    agents:
+      - name: "Tester"
+        role: "Quality Assurance"
+        model: "llama3"
+        temperature: 0.4
+    tasks:
+      - type: "command"
+        command: "dotnet test"
+        working_directory: "."
+      - type: "metascript"
+        script: "code_quality_analyzer.tars"
+        parameters:
+          target_directory: "src/"
+          include_tests: true
+
+  # Stage 5: Review
+  - name: "review"
+    description: "Code review and quality assessment"
+    depends_on: ["testing"]
+    agents:
+      - name: "Reviewer"
+        role: "Code Review"
+        model: "llama3"
+        temperature: 0.5
+    tasks:
+      - type: "metascript"
+        script: "multi_agent_collaboration.tars"
+        parameters:
+          task: "Code review for {{project_name}}"
+          agents: 3
+      - type: "report"
+        output: "review_report.md"
+
+  # Stage 6: Deployment
+  - name: "deployment"
+    description: "Deploy the solution"
+    depends_on: ["review"]
+    condition: "{{deployment_target}} != 'none'"
+    agents:
+      - name: "Deployer"
+        role: "Deployment"
+        model: "llama3"
+        temperature: 0.3
+    tasks:
+      - type: "command"
+        command: "dotnet build --configuration Release"
+      - type: "command"
+        command: "dotnet publish --configuration Release"
+        condition: "{{deployment_target}} == 'production'"
+
+# Success Criteria
+success_criteria:
+  - stage: "testing"
+    metric: "test_pass_rate"
+    threshold: 0.95
+  - stage: "review"
+    metric: "code_quality_score"
+    threshold: 0.8
+  - stage: "deployment"
+    metric: "deployment_success"
+    threshold: 1.0
+
+# Failure Handling
+failure_handling:
+  - stage: "testing"
+    action: "retry"
+    max_retries: 2
+  - stage: "deployment"
+    action: "rollback"
+    rollback_to: "review"
+
+# Notifications
+notifications:
+  - event: "workflow_start"
+    message: "Development workflow started for {{project_name}}"
+  - event: "stage_complete"
+    message: "Stage {{stage_name}} completed successfully"
+  - event: "workflow_complete"
+    message: "Development workflow completed for {{project_name}}"
+  - event: "workflow_failed"
+    message: "Development workflow failed at stage {{failed_stage}}"
+
+# Cleanup
+cleanup:
+  - remove_temp_files: true
+  - archive_logs: true
+  - generate_summary: true

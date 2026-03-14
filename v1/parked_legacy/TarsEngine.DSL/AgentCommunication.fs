@@ -123,7 +123,11 @@ module AgentCommunication =
                 match subscribers.TryFind(agentName) with
                 | Some(handlers) ->
                     // Remove the handler from the list
+<<<<<<< HEAD:v1/parked_legacy/TarsEngine.DSL/AgentCommunication.fs
                     let newHandlers = handlers |> List.filter (fun h -> not (Object.ReferenceEquals(h, handler)))
+=======
+                    let newHandlers = handlers |> List.filter (fun h -> not (System.Object.ReferenceEquals(h, handler)))
+>>>>>>> origin/main:TarsEngine.DSL/AgentCommunication.fs
                     subscribers <- subscribers.Add(agentName, newHandlers)
                 | None -> ()
             )
@@ -161,7 +165,11 @@ module AgentCommunication =
                         )
 
                         // Sleep for a short time
+<<<<<<< HEAD:v1/parked_legacy/TarsEngine.DSL/AgentCommunication.fs
                         // REAL: Implement actual autonomous logic here
+=======
+                        Thread.Sleep(100)
+>>>>>>> origin/main:TarsEngine.DSL/AgentCommunication.fs
                 )
                 ()
 

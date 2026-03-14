@@ -342,16 +342,27 @@ module RetroactionLoop =
                     // This is very simplified - real pattern generation would be more sophisticated
                     let escapedBefore = System.Text.RegularExpressions.Regex.Escape(before)
                     let pattern = createPattern
+<<<<<<< HEAD:v1/parked_legacy/TarsEngine.SelfImprovement/RetroactionLoop.fs
                                     $"Auto-generated pattern for %s{context}"
                                     $"Pattern generated from successful improvement in %s{context}"
+=======
+                                    (sprintf "Auto-generated pattern for %s" context)
+                                    (sprintf "Pattern generated from successful improvement in %s" context)
+>>>>>>> origin/main:TarsEngine.SelfImprovement/RetroactionLoop.fs
                                     escapedBefore
                                     after
                                     context
                     
                     newPatterns <- newPatterns @ [pattern]
+<<<<<<< HEAD:v1/parked_legacy/TarsEngine.SelfImprovement/RetroactionLoop.fs
                     logger.LogInformation $"Generated new pattern for context %s{context}"
                 with ex ->
                     logger.LogError(ex, $"Error generating pattern for context %s{context}")
+=======
+                    logger.LogInformation(sprintf "Generated new pattern for context %s" context)
+                with ex ->
+                    logger.LogError(ex, sprintf "Error generating pattern for context %s" context)
+>>>>>>> origin/main:TarsEngine.SelfImprovement/RetroactionLoop.fs
         
         // Add the new patterns to the state
         let updatedState =

@@ -1,4 +1,8 @@
+<<<<<<< HEAD:v1/parked_legacy/TarsEngine.DSL/TestEnhancedTelemetry.fs
 namespace TarsEngine.DSL
+=======
+﻿namespace TarsEngine.DSL
+>>>>>>> origin/main:TarsEngine.DSL/TestEnhancedTelemetry.fs
 
 open System
 open System.IO
@@ -54,6 +58,7 @@ module TestEnhancedTelemetry =
         // Enable telemetry
         TelemetryService.enableTelemetry()
         
+<<<<<<< HEAD:v1/parked_legacy/TarsEngine.DSL/TestEnhancedTelemetry.fs
         // TODO: Implement real functionality
         let tokenizingMetric = TelemetryService.startMeasuring "Tokenizing"
         // TODO: Implement real functionality
@@ -73,6 +78,27 @@ module TestEnhancedTelemetry =
         let nestedBlockParsingMetric = TelemetryService.startMeasuring "NestedBlockParsing"
         // TODO: Implement real functionality
         System.Threading.// REAL: Implement actual autonomous logic here
+=======
+        // Simulate detailed metrics collection
+        let tokenizingMetric = TelemetryService.startMeasuring "Tokenizing"
+        // Simulate tokenizing
+        System.Threading.Thread.Sleep(10)
+        TelemetryService.stopMeasuring tokenizingMetric
+        
+        let blockParsingMetric = TelemetryService.startMeasuring "BlockParsing"
+        // Simulate block parsing
+        System.Threading.Thread.Sleep(20)
+        TelemetryService.stopMeasuring blockParsingMetric
+        
+        let propertyParsingMetric = TelemetryService.startMeasuring "PropertyParsing"
+        // Simulate property parsing
+        System.Threading.Thread.Sleep(15)
+        TelemetryService.stopMeasuring propertyParsingMetric
+        
+        let nestedBlockParsingMetric = TelemetryService.startMeasuring "NestedBlockParsing"
+        // Simulate nested block parsing
+        System.Threading.Thread.Sleep(25)
+>>>>>>> origin/main:TarsEngine.DSL/TestEnhancedTelemetry.fs
         TelemetryService.stopMeasuring nestedBlockParsingMetric
         
         // Record non-time metrics
@@ -126,6 +152,7 @@ module TestEnhancedTelemetry =
         // Enable telemetry
         TelemetryService.enableTelemetry()
         
+<<<<<<< HEAD:v1/parked_legacy/TarsEngine.DSL/TestEnhancedTelemetry.fs
         // TODO: Implement real functionality
         let chunkingMetric = TelemetryService.startMeasuring "Chunking"
         // TODO: Implement real functionality
@@ -140,6 +167,22 @@ module TestEnhancedTelemetry =
         let chunkCombiningMetric = TelemetryService.startMeasuring "ChunkCombining"
         // TODO: Implement real functionality
         System.Threading.// REAL: Implement actual autonomous logic here
+=======
+        // Simulate detailed metrics collection for incremental parsing
+        let chunkingMetric = TelemetryService.startMeasuring "Chunking"
+        // Simulate chunking
+        System.Threading.Thread.Sleep(30)
+        TelemetryService.stopMeasuring chunkingMetric
+        
+        let chunkParsingMetric = TelemetryService.startMeasuring "ChunkParsing"
+        // Simulate chunk parsing
+        System.Threading.Thread.Sleep(40)
+        TelemetryService.stopMeasuring chunkParsingMetric
+        
+        let chunkCombiningMetric = TelemetryService.startMeasuring "ChunkCombining"
+        // Simulate chunk combining
+        System.Threading.Thread.Sleep(20)
+>>>>>>> origin/main:TarsEngine.DSL/TestEnhancedTelemetry.fs
         TelemetryService.stopMeasuring chunkCombiningMetric
         
         // Record non-time metrics

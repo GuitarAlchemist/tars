@@ -79,13 +79,19 @@ module ReportingStep =
                 report.AppendLine("# TARS Autonomous Improvement Report") |> ignore
                 report.AppendLine() |> ignore
                 report.AppendLine(sprintf "**Date:** %s" (DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"))) |> ignore
+<<<<<<< HEAD:v1/parked_legacy/TarsEngine.SelfImprovement/ReportingStep.fs
                 report.AppendLine $"**Workflow:** %s{state.Name}" |> ignore
                 report.AppendLine $"**Duration:** %.2f{(DateTime.UtcNow - state.StartTime).TotalMinutes} minutes" |> ignore
+=======
+                report.AppendLine(sprintf "**Workflow:** %s" state.Name) |> ignore
+                report.AppendLine(sprintf "**Duration:** %.2f minutes" (DateTime.UtcNow - state.StartTime).TotalMinutes) |> ignore
+>>>>>>> origin/main:TarsEngine.SelfImprovement/ReportingStep.fs
                 report.AppendLine() |> ignore
 
                 // Add the summary
                 report.AppendLine("## Summary") |> ignore
                 report.AppendLine() |> ignore
+<<<<<<< HEAD:v1/parked_legacy/TarsEngine.SelfImprovement/ReportingStep.fs
                 report.AppendLine $"- **Improvements Applied:** %d{appliedImprovements.Length}" |> ignore
                 report.AppendLine
                     $"- **Successful Improvements:** %d{feedback |> Array.filter (fun f -> f.IsSuccessful) |> Array.length}"
@@ -93,6 +99,11 @@ module ReportingStep =
                 report.AppendLine
                     $"- **Failed Improvements:** %d{feedback |> Array.filter (fun f -> not f.IsSuccessful) |> Array.length}"
                 |> ignore
+=======
+                report.AppendLine(sprintf "- **Improvements Applied:** %d" appliedImprovements.Length) |> ignore
+                report.AppendLine(sprintf "- **Successful Improvements:** %d" (feedback |> Array.filter (fun f -> f.IsSuccessful) |> Array.length)) |> ignore
+                report.AppendLine(sprintf "- **Failed Improvements:** %d" (feedback |> Array.filter (fun f -> not f.IsSuccessful) |> Array.length)) |> ignore
+>>>>>>> origin/main:TarsEngine.SelfImprovement/ReportingStep.fs
                 report.AppendLine() |> ignore
 
                 // Add the workflow steps
@@ -137,12 +148,21 @@ module ReportingStep =
                             | Some f -> "❌ Failed"
                             | None -> "⚠️ Unknown"
 
+<<<<<<< HEAD:v1/parked_legacy/TarsEngine.SelfImprovement/ReportingStep.fs
                         report.AppendLine $"### %s{improvement.PatternName} (%s{status})" |> ignore
                         report.AppendLine() |> ignore
                         report.AppendLine $"**File:** %s{improvement.FilePath}" |> ignore
 
                         match improvement.LineNumber with
                         | Some line -> report.AppendLine $"**Line:** %d{line}" |> ignore
+=======
+                        report.AppendLine(sprintf "### %s (%s)" improvement.PatternName status) |> ignore
+                        report.AppendLine() |> ignore
+                        report.AppendLine(sprintf "**File:** %s" improvement.FilePath) |> ignore
+
+                        match improvement.LineNumber with
+                        | Some line -> report.AppendLine(sprintf "**Line:** %d" line) |> ignore
+>>>>>>> origin/main:TarsEngine.SelfImprovement/ReportingStep.fs
                         | None -> ()
 
                         report.AppendLine() |> ignore

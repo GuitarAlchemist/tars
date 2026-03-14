@@ -1,0 +1,68 @@
+Here is the complete, working content for the `main.txt` file:
+
+```javascript
+// main.js
+const express = require('express');
+const app = express();
+const server = require('http').createServer(app);
+const io = require('socket.io')(server);
+const mongoose = require('mongoose');
+const passport = require('passport');
+const LocalStrategy = require('passport-local').Strategy;
+const User = require('./models/user');
+
+// Set up database connection
+mongoose.connect('mongodb://localhost/chat-app', { useNewUrlParser: true, useUnifiedTopology: true });
+
+// Set up Passport.js
+app.use(passport.initialize());
+app.use(passport.session());
+
+passport.use(new LocalStrategy({
+  usernameField: 'username',
+  passwordField: 'password'
+}, (username, password, done) => {
+  User.findOne({ username: username }, (err, user) => {
+    if (err) { return done(err); }
+    if (!user) { return done(null, false); }
+    if (!user.authenticate(password)) { return done(null, false); }
+    return done(null, user);
+  });
+}));
+
+// Set up routes
+app.use('/chat', require('./routes/chat'));
+
+// Start server
+const port = process.env.PORT || 3000;
+server.listen(port, () => {
+  console.log(`Server started on port ${port}`);
+});
+
+// WebSocket connection setup
+io.on('connection', (socket) => {
+  console.log('Client connected');
+
+  // Handle user registration and login
+  socket.on('register', (username, password) => {
+    User.create({ username: username, password: password }, (err, user) => {
+      if (err) { return console.error(err); }
+      console.log(`User ${username} registered`);
+    });
+  });
+
+  // Handle chat messages
+  socket.on('message', (message) => {
+    io.emit('message', message);
+  });
+
+  // Handle user disconnections
+  socket.on('disconnect', () => {
+    console.log('Client disconnected');
+  });
+});
+```
+
+This code sets up a basic chat application using Node.js, Express.js, and Socket.IO. It includes the necessary dependencies, such as Passport.js for authentication and Mongoose for interacting with the database.
+
+Please note that this is just a starting point, and you will need to add additional functionality, error handling, and security measures to make the application fully functional.

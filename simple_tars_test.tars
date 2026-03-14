@@ -1,0 +1,73 @@
+DESCRIBE {
+    name: "Simple TARS API Test"
+    version: "1.0"
+    description: "Simple test to check if TARS API infrastructure exists"
+    author: "TARS Test"
+    date: "2025-01-09"
+}
+
+FSHARP {
+    // 🚀 SIMPLE TARS API TEST
+    printfn "🚀 Simple TARS API Test Starting..."
+    
+    try
+        // Try to reference TARS API
+        printfn "📚 Attempting to access TARS API..."
+        
+        // Check if we can access the namespace
+        let apiNamespace = "TarsEngine.FSharp.Core.Api"
+        printfn "🔍 Looking for namespace: %s" apiNamespace
+        
+        // Try basic operations
+        printfn "✅ F# execution working"
+        printfn "✅ Console output working"
+        printfn "✅ String formatting working"
+        
+        // Check current directory and assemblies
+        let currentDir = System.Environment.CurrentDirectory
+        printfn "📁 Current directory: %s" currentDir
+        
+        let assemblies = System.AppDomain.CurrentDomain.GetAssemblies()
+        printfn "📦 Loaded assemblies: %d" assemblies.Length
+        
+        // Look for TARS-related assemblies
+        let tarsAssemblies = 
+            assemblies 
+            |> Array.filter (fun a -> a.FullName.Contains("Tars") || a.FullName.Contains("TARS"))
+            |> Array.map (fun a -> a.GetName().Name)
+        
+        printfn "🔍 TARS assemblies found: %d" tarsAssemblies.Length
+        for assembly in tarsAssemblies do
+            printfn "   📦 %s" assembly
+        
+        // Test if we can create basic data structures
+        let testData = [1; 2; 3; 4; 5]
+        let sum = testData |> List.sum
+        printfn "🧮 Basic computation test: sum of [1;2;3;4;5] = %d" sum
+        
+        // Test async operations
+        let asyncTest = async {
+            do! Async.Sleep(100)
+            return "Async test completed"
+        }
+        let asyncResult = asyncTest |> Async.RunSynchronously
+        printfn "⚡ Async test: %s" asyncResult
+        
+        printfn "\n📊 Simple TARS Test Results:"
+        printfn "✅ F# execution: Working"
+        printfn "✅ Basic operations: Working"
+        printfn "✅ Async operations: Working"
+        printfn "📦 TARS assemblies: %d found" tarsAssemblies.Length
+        
+        if tarsAssemblies.Length > 0 then
+            printfn "🎯 TARS infrastructure appears to be available"
+            "TARS infrastructure detected"
+        else
+            printfn "⚠️ No TARS assemblies found - API may not be available"
+            "No TARS assemblies found"
+            
+    with
+    | ex ->
+        printfn "❌ Test failed: %s" ex.Message
+        sprintf "Test failed: %s" ex.Message
+}

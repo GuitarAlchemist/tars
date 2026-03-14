@@ -1,4 +1,8 @@
+<<<<<<< HEAD:v1/parked_legacy/TarsEngine.DSL/ParserWithEnhancedTelemetry.fs
 namespace TarsEngine.DSL
+=======
+﻿namespace TarsEngine.DSL
+>>>>>>> origin/main:TarsEngine.DSL/ParserWithEnhancedTelemetry.fs
 
 open System
 open System.IO
@@ -25,7 +29,11 @@ module ParserWithEnhancedTelemetry =
             // Start tokenizing measurement
             let tokenizingMetric = TelemetryService.startMeasuring "Tokenizing"
             
+<<<<<<< HEAD:v1/parked_legacy/TarsEngine.DSL/ParserWithEnhancedTelemetry.fs
             // Tokenize the code (implementd here)
+=======
+            // Tokenize the code (simulated here)
+>>>>>>> origin/main:TarsEngine.DSL/ParserWithEnhancedTelemetry.fs
             let tokens = code.Split([|' '; '\n'; '\r'; '\t'|], StringSplitOptions.RemoveEmptyEntries)
             
             // Stop tokenizing measurement
@@ -119,7 +127,11 @@ module ParserWithEnhancedTelemetry =
             // Start chunking measurement
             let chunkingMetric = TelemetryService.startMeasuring "Chunking"
             
+<<<<<<< HEAD:v1/parked_legacy/TarsEngine.DSL/ParserWithEnhancedTelemetry.fs
             // Chunk the code (implementd here)
+=======
+            // Chunk the code (simulated here)
+>>>>>>> origin/main:TarsEngine.DSL/ParserWithEnhancedTelemetry.fs
             let chunkSize = 100
             let chunks = 
                 [0 .. chunkSize .. (code.Length - 1)]
@@ -153,8 +165,13 @@ module ParserWithEnhancedTelemetry =
             // Start chunk combining measurement
             let chunkCombiningMetric = TelemetryService.startMeasuring "ChunkCombining"
             
+<<<<<<< HEAD:v1/parked_legacy/TarsEngine.DSL/ParserWithEnhancedTelemetry.fs
             // TODO: Implement real functionality
             System.Threading.// REAL: Implement actual autonomous logic here
+=======
+            // Combining happens inside the incremental parser, so we're just simulating the timing here
+            System.Threading.Thread.Sleep(10)
+>>>>>>> origin/main:TarsEngine.DSL/ParserWithEnhancedTelemetry.fs
             
             // Stop chunk combining measurement
             TelemetryService.stopMeasuring chunkCombiningMetric
@@ -162,7 +179,11 @@ module ParserWithEnhancedTelemetry =
             // Record memory usage
             TelemetryService.recordMetric "PeakMemoryUsage" (TelemetryService.getCurrentMemoryUsage())
             
+<<<<<<< HEAD:v1/parked_legacy/TarsEngine.DSL/ParserWithEnhancedTelemetry.fs
             // Record cached chunk count (implementd)
+=======
+            // Record cached chunk count (simulated)
+>>>>>>> origin/main:TarsEngine.DSL/ParserWithEnhancedTelemetry.fs
             TelemetryService.recordMetric "CachedChunkCount" (int64 (chunks.Length / 2))
             
             // Stop overall parsing measurement

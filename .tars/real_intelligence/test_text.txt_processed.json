@@ -1,0 +1,37 @@
+{
+  "file_type": "text",
+  "file_path": ".tars/real_intelligence/test_text.txt",
+  "timestamp": "2025-05-31T22:11:02.055148",
+  "processing_results": {
+    "total_lines": 7,
+    "error_lines": [
+      "Error: ModuleNotFoundError: No module named 'requests'"
+    ],
+    "solution_lines": [
+      "Solution: pip install requests"
+    ]
+  },
+  "tars_intelligence": {
+    "content_type": "error_analysis",
+    "errors_detected": 1,
+    "solutions_provided": 1,
+    "actionable_items": [
+      "install_python_package",
+      "check_virtual_environment",
+      "verify_imports"
+    ],
+    "key_concepts": [
+      "python",
+      "import",
+      "error",
+      "module",
+      "environment"
+    ],
+    "tars_actions": [
+      "debug_python_error",
+      "install_dependencies",
+      "check_environment"
+    ]
+  },
+  "confidence": 0.9
+}

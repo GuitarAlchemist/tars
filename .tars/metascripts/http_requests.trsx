@@ -1,0 +1,76 @@
+DESCRIBE {
+    name: "HTTP Requests Demo"
+    version: "1.0"
+    description: "A demonstration of HTTP requests in TARS DSL"
+    author: "TARS Team"
+    date: "2025-04-01"
+}
+
+CONFIG {
+    model: "llama3"
+    temperature: 0.7
+    max_tokens: 1000
+}
+
+// Make a GET request to a public API
+ACTION {
+    type: "http_request"
+    url: "https://jsonplaceholder.typicode.com/todos/1"
+    method: "GET"
+    result_variable: "todo_response"
+}
+
+// Log the response
+ACTION {
+    type: "log"
+    message: "GET response:\n${todo_response}"
+}
+
+// Make a POST request
+ACTION {
+    type: "http_request"
+    url: "https://jsonplaceholder.typicode.com/posts"
+    method: "POST"
+    headers: {
+        "Content-Type": "application/json"
+    }
+    body: "{\"title\":\"TARS Test\",\"body\":\"This is a test post from TARS DSL\",\"userId\":1}"
+    result_variable: "post_response"
+}
+
+// Log the response
+ACTION {
+    type: "log"
+    message: "POST response:\n${post_response}"
+}
+
+// Extract data from the response using a function
+FUNCTION parse_json {
+    parameters: "json_string, key"
+    
+    // In a real implementation, this would parse the JSON
+    // For now, just return a mock value
+    VARIABLE result {
+        value: "Extracted ${key} from JSON"
+    }
+    
+    RETURN {
+        value: "${result}"
+    }
+}
+
+// Call the function to parse the response
+CALL {
+    function: "parse_json"
+    arguments: {
+        json_string: "${todo_response}"
+        key: "title"
+    }
+    result_variable: "todo_title"
+}
+
+// Log the extracted data
+ACTION {
+    type: "log"
+    message: "Extracted title: ${todo_title}"
+}

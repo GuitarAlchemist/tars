@@ -1,0 +1,147 @@
+﻿{
+    "GeneratedFiles":  [
+                           "main.py",
+                           "README.md",
+                           "requirements.txt",
+                           "test.js",
+                           "test.py"
+                       ],
+    "MemoryVersion":  "2.0-Enhanced",
+    "SessionId":  "6a7e6ce0",
+    "ProjectId":  "create_a_file_organizer_utility",
+    "TechnologyStack":  "Python",
+    "Entries":  [
+                    {
+                        "Id":  "entry001",
+                        "VectorSpace":  "user_requests",
+                        "Timestamp":  "2025-05-26T12:11:31.100Z",
+                        "EntryType":  "UserRequest",
+                        "Metadata":  {
+                                         "complexity":  "complex",
+                                         "source":  "user_input",
+                                         "request_type":  "utility"
+                                     },
+                        "Relevance":  1,
+                        "Content":  "Create a file organizer utility",
+                        "Embedding":  null
+                    },
+                    {
+                        "Id":  "entry002",
+                        "VectorSpace":  "technology_decisions",
+                        "Timestamp":  "2025-05-26T12:11:36.106Z",
+                        "EntryType":  "TechnologyDecision",
+                        "Metadata":  {
+                                         "detection_method":  "enhanced_algorithm",
+                                         "confidence":  "HIGH",
+                                         "technology":  "Python"
+                                     },
+                        "Relevance":  0.95,
+                        "Content":  "Selected Python for implementation. Confidence: 87.3%",
+                        "Embedding":  null
+                    },
+                    {
+                        "Id":  "entry003",
+                        "VectorSpace":  "file_generations",
+                        "Timestamp":  "2025-05-26T12:12:03.108Z",
+                        "EntryType":  "FileGenerated",
+                        "Metadata":  {
+                                         "importance":  "primary",
+                                         "file_name":  "main.py",
+                                         "file_size":  "1242",
+                                         "file_type":  "python_code"
+                                     },
+                        "Relevance":  0.9,
+                        "Content":  "Generated main.py - Python application code",
+                        "Embedding":  null
+                    },
+                    {
+                        "Id":  "entry004",
+                        "VectorSpace":  "file_generations",
+                        "Timestamp":  "2025-05-26T12:12:11.111Z",
+                        "EntryType":  "FileGenerated",
+                        "Metadata":  {
+                                         "importance":  "secondary",
+                                         "file_name":  "README.md",
+                                         "file_size":  "4346",
+                                         "file_type":  "documentation"
+                                     },
+                        "Relevance":  0.7,
+                        "Content":  "Generated README.md - Documentation",
+                        "Embedding":  null
+                    },
+                    {
+                        "Id":  "entry005",
+                        "VectorSpace":  "file_generations",
+                        "Timestamp":  "2025-05-26T12:12:19.111Z",
+                        "EntryType":  "FileGenerated",
+                        "Metadata":  {
+                                         "importance":  "secondary",
+                                         "file_name":  "requirements.txt",
+                                         "file_size":  "81",
+                                         "file_type":  "configuration"
+                                     },
+                        "Relevance":  0.7,
+                        "Content":  "Generated requirements.txt - Configuration file",
+                        "Embedding":  null
+                    },
+                    {
+                        "Id":  "entry006",
+                        "VectorSpace":  "file_generations",
+                        "Timestamp":  "2025-05-26T12:12:27.111Z",
+                        "EntryType":  "FileGenerated",
+                        "Metadata":  {
+                                         "importance":  "secondary",
+                                         "file_name":  "test.js",
+                                         "file_size":  "2009",
+                                         "file_type":  "javascript_code"
+                                     },
+                        "Relevance":  0.7,
+                        "Content":  "Generated test.js - JavaScript code",
+                        "Embedding":  null
+                    },
+                    {
+                        "Id":  "entry007",
+                        "VectorSpace":  "file_generations",
+                        "Timestamp":  "2025-05-26T12:12:35.111Z",
+                        "EntryType":  "FileGenerated",
+                        "Metadata":  {
+                                         "importance":  "secondary",
+                                         "file_name":  "test.py",
+                                         "file_size":  "1737",
+                                         "file_type":  "python_code"
+                                     },
+                        "Relevance":  0.7,
+                        "Content":  "Generated test.py - Python application code",
+                        "Embedding":  null
+                    },
+                    {
+                        "Id":  "entry008",
+                        "VectorSpace":  "success_patterns",
+                        "Timestamp":  "2025-05-26T12:12:18.111Z",
+                        "EntryType":  "SuccessPattern",
+                        "Metadata":  {
+                                         "success_rate":  "100",
+                                         "files_count":  "5",
+                                         "execution_time":  "49",
+                                         "technology":  "Python"
+                                     },
+                        "Relevance":  1,
+                        "Content":  "Successfully generated Python project with 5 files in 49 seconds",
+                        "Embedding":  null
+                    }
+                ],
+    "UserRequest":  "Create a file organizer utility",
+    "StartTime":  "2025-05-26T12:11:31.117Z",
+    "EnhancedFeatures":  [
+                             "fixed_technology_detection",
+                             "vector_space_organization",
+                             "relevance_scoring"
+                         ],
+    "LastAccess":  "2025-05-26T12:12:20.117Z",
+    "TechnologyConfidence":  0.873015873015873,
+    "EmbeddingsGenerated":  true,
+    "EmbeddingVersion":  "1.0",
+    "EmbeddingMethod":  "simple_text_analysis",
+    "EmbeddingDimensions":  16,
+    "EmbeddingTimestamp":  "2025-05-26T12:13:57.545Z"
+}
