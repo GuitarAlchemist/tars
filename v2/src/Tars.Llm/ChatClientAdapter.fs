@@ -50,8 +50,37 @@ module internal ChatClientMapping =
         if not req.Stop.IsEmpty then
             opts.StopSequences <- req.Stop |> ResizeArray
 
-        if req.ResponseFormat = Some ResponseFormat.Json || req.JsonMode then
+        match req.ResponseFormat with
+        | Some ResponseFormat.Json -> opts.ResponseFormat <- ChatResponseFormat.Json
+        | Some (ResponseFormat.Constrained (Grammar.JsonSchema schema)) ->
+            // Pass JSON schema through MAF as JSON mode + schema in AdditionalProperties
             opts.ResponseFormat <- ChatResponseFormat.Json
+            opts.AdditionalProperties <-
+                let dict = System.Collections.Generic.Dictionary<string, obj>()
+                dict.["json_schema"] <- box schema
+                dict :> System.Collections.Generic.IDictionary<string, obj>
+                |> System.Collections.ObjectModel.ReadOnlyDictionary
+                |> (fun d -> System.Collections.Generic.Dictionary(d) |> AdditionalPropertiesDictionary)
+        | Some (ResponseFormat.Constrained (Grammar.Ebnf grammar)) ->
+            // Pass EBNF grammar through AdditionalProperties for backends that support it
+            opts.AdditionalProperties <-
+                let dict = System.Collections.Generic.Dictionary<string, obj>()
+                dict.["guided_decoding_backend"] <- box "xgrammar"
+                dict.["guided_decoding_grammar"] <- box grammar
+                dict :> System.Collections.Generic.IDictionary<string, obj>
+                |> System.Collections.ObjectModel.ReadOnlyDictionary
+                |> (fun d -> System.Collections.Generic.Dictionary(d) |> AdditionalPropertiesDictionary)
+        | Some (ResponseFormat.Constrained (Grammar.Regex pattern)) ->
+            opts.AdditionalProperties <-
+                let dict = System.Collections.Generic.Dictionary<string, obj>()
+                dict.["guided_decoding_backend"] <- box "outlines"
+                dict.["guided_decoding_regex"] <- box pattern
+                dict :> System.Collections.Generic.IDictionary<string, obj>
+                |> System.Collections.ObjectModel.ReadOnlyDictionary
+                |> (fun d -> System.Collections.Generic.Dictionary(d) |> AdditionalPropertiesDictionary)
+        | _ ->
+            if req.JsonMode then
+                opts.ResponseFormat <- ChatResponseFormat.Json
 
         opts
 

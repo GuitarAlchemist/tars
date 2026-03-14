@@ -376,7 +376,8 @@ module WotCommand =
                                       Deterministic = false
                                       Seed = None
                                       ContextWindow = None
-                                      AgentHint = None }
+                                      AgentHint = None
+                                      GrammarConstraint = None }
 
                                 // Phase 15: Symbolic Reflector
                                 // We pass null graph service for now as it's not fully wired
@@ -1123,7 +1124,8 @@ module WotCommand =
                                           Deterministic = opts.Deterministic
                                           Seed = opts.Seed
                                           ContextWindow = None
-                                          AgentHint = None }
+                                          AgentHint = None
+                                          GrammarConstraint = None }
 
                                     let modelStr = opts.Model |> Option.defaultValue "<default>"
 

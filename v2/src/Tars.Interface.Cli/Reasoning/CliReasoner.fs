@@ -16,7 +16,8 @@ type ReasonerSettings =
       Deterministic: bool
       Seed: int option
       ContextWindow: int option
-      AgentHint: string option } // Phase 17.2: Agent role hint
+      AgentHint: string option // Phase 17.2: Agent role hint
+      GrammarConstraint: ResponseFormat option } // Constrained decoding format
 
     static member Default =
         { Model = None
@@ -26,7 +27,8 @@ type ReasonerSettings =
           Deterministic = false
           Seed = None
           ContextWindow = None
-          AgentHint = None }
+          AgentHint = None
+          GrammarConstraint = None }
 
 module private Journal =
     let ensureDir (path: string) =
@@ -114,6 +116,7 @@ type CliReasoner(llm: ILlmService, runDir: string, settings: ReasonerSettings, l
             Temperature = temp
             Seed = seed
             ContextWindow = settings.ContextWindow
+            ResponseFormat = settings.GrammarConstraint
             Messages = [ { Role = Role.User; Content = prompt } ] }
 
 
