@@ -103,6 +103,8 @@
     <Compile Include="WotPersistenceTests.fs" />
     <Compile Include="WorkflowOfThought\EvidenceProvenanceTests.fs" />
     <Compile Include="PromotionPipelineTests.fs" />
+    <Compile Include="GaPatternSeederTests.fs" />
+    <Compile Include="PromotionIndexTests.fs" />
     <Compile Include="ClaudeCodeBridgeTests.fs" />
     <Compile Include="SwarmTests.fs" />
     <Compile Include="MetaCognitionTests.fs" />

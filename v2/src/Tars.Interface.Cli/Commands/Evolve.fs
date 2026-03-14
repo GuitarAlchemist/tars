@@ -874,6 +874,14 @@ let run (logger: ILogger) (options: EvolveOptions) =
             with ex ->
                 logger.Warning("Meta-cognitive analysis skipped: {Message}", ex.Message)
 
+            // Refresh promotion index so pattern selectors pick up new outcomes
+            try
+                let index = Tars.Evolution.PromotionIndex.refresh ()
+                if not options.Quiet then
+                    RichOutput.info $"Promotion index refreshed: {index.PatternCount} patterns"
+            with ex ->
+                logger.Warning("Promotion index refresh skipped: {Message}", ex.Message)
+
             // Save knowledge graph
             try
                 knowledgeGraph.Save(knowledgeGraphPath)

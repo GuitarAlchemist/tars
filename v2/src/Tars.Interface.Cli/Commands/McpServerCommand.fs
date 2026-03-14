@@ -198,6 +198,12 @@ module McpServerCommand =
                     registry.Register(tool)
                 logger.Information("Registered {Count} probabilistic grammar tools", grammarTools.Length)
 
+                // --- Register GA trace bridge tools ---
+                let gaTraceTools = Tars.Evolution.McpGaTraceBridge.createTools ()
+                for tool in gaTraceTools do
+                    registry.Register(tool)
+                logger.Information("Registered {Count} GA trace bridge tools", gaTraceTools.Length)
+
             with ex ->
                 logger.Error("Failed to register tools: {Error}", ex.Message)
             // We don't throw, just continue with partial tools

@@ -14,6 +14,7 @@
     <Compile Include="WeightedGrammar.fs" />
     <Compile Include="RoundtripValidation.fs" />
     <Compile Include="PromotionPipeline.fs" />
+    <Compile Include="PromotionIndex.fs" />
     <Compile Include="StructuredOutput.fs" />
     <Compile Include="ProblemIngestor.fs" />
     <Compile Include="ResearchEnhancedCurriculum.fs" />
@@ -46,6 +47,9 @@
     <Compile Include="ReplicatorDynamics.fs" />
     <Compile Include="McpPatternResources.fs" />
     <Compile Include="McpGrammarTools.fs" />
+    <Compile Include="GaPatternSeeder.fs" />
+    <Compile Include="GaTraceBridge.fs" />
+    <Compile Include="McpGaTraceBridge.fs" />
     <Compile Include="Engine.fs" />
   </ItemGroup>
 
