@@ -75,11 +75,16 @@ module LlmService =
                             return res
                         with ex ->
                             return! AsyncResult.ofResult (rerror<LlmResponse> (LlmError.fromException ex))
-                    | Anthropic _ ->
-                        return!
-                            AsyncResult.ofResult (
-                                rerror<LlmResponse> (LlmError.ModelNotFound "Anthropic not implemented")
-                            )
+                    | Anthropic model ->
+                        try
+                            let! res =
+                                AnthropicClient.sendMessageAsync httpClient routed.Endpoint model routed.ApiKey req
+                                |> Async.AwaitTask
+                                |> AsyncResult.ofAsync
+
+                            return res
+                        with ex ->
+                            return! AsyncResult.ofResult (rerror<LlmResponse> (LlmError.fromException ex))
                     | DockerModelRunner model ->
                         try
                             let! res =
@@ -164,7 +169,8 @@ module LlmService =
                     | GoogleGemini model ->
                         return!
                             GoogleGeminiClient.generateContentAsync httpClient routed.Endpoint model routed.ApiKey req
-                    | Anthropic _ -> return raise (NotImplementedException("Anthropic not implemented"))
+                    | Anthropic model ->
+                        return! AnthropicClient.sendMessageAsync httpClient routed.Endpoint model routed.ApiKey req
                     | DockerModelRunner model ->
                         return! OpenAiCompatibleClient.sendChatAsync httpClient routed.Endpoint model routed.ApiKey req
                     | LlamaCpp(model, config) ->
@@ -203,7 +209,10 @@ module LlmService =
                                 onToken
                     | GoogleGemini _ ->
                         return raise (NotImplementedException("Google Gemini streaming not implemented"))
-                    | Anthropic _ -> return raise (NotImplementedException("Anthropic streaming not implemented"))
+                    | Anthropic model ->
+                        return!
+                            AnthropicClient.sendMessageStreamAsync
+                                httpClient routed.Endpoint model routed.ApiKey req onToken
                     | DockerModelRunner model ->
                         return!
                             OpenAiCompatibleClient.sendChatStreamAsync

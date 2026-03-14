@@ -45,6 +45,7 @@
     <Compile Include="MctsBridge.fs" />
     <Compile Include="ReplicatorDynamics.fs" />
     <Compile Include="McpPatternResources.fs" />
+    <Compile Include="McpGrammarTools.fs" />
     <Compile Include="Engine.fs" />
   </ItemGroup>
 

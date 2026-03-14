@@ -192,6 +192,12 @@ module McpServerCommand =
 
                 logger.Information("Registered {Count} Claude Code bridge tools", bridgeTools.Length)
 
+                // --- Register probabilistic grammar tools ---
+                let grammarTools = Tars.Evolution.McpGrammarTools.createTools ()
+                for tool in grammarTools do
+                    registry.Register(tool)
+                logger.Information("Registered {Count} probabilistic grammar tools", grammarTools.Length)
+
             with ex ->
                 logger.Error("Failed to register tools: {Error}", ex.Message)
             // We don't throw, just continue with partial tools
