@@ -232,11 +232,11 @@ module PatternSelector =
 
         let heuristicScore (goal: string) =
             let g = goal.ToLowerInvariant()
-            [ ChainOfThought, (if g.Contains("explain") || g.Contains("step") then 0.8 else 0.4)
-              ReAct, (if g.Contains("search") || g.Contains("find") || g.Contains("look") then 0.8 else 0.3)
-              GraphOfThoughts, (if g.Contains("compare") || g.Contains("alternative") then 0.8 else 0.2)
-              TreeOfThoughts, (if g.Contains("explore") || g.Contains("brainstorm") then 0.8 else 0.2)
-              WorkflowOfThought, (if g.Contains("workflow") || g.Contains("pipeline") then 0.8 else 0.3) ]
+            [ ChainOfThought, (if g.Contains("explain") || g.Contains("step") || g.Contains("summarize") || g.Contains("describe") then 0.8 else 0.4)
+              ReAct, (if g.Contains("search") || g.Contains("find") || g.Contains("look") || g.Contains("scan") || g.Contains("debug") then 0.8 else 0.3)
+              GraphOfThoughts, (if g.Contains("compare") || g.Contains("alternative") || g.Contains("tradeoff") then 0.8 else 0.2)
+              TreeOfThoughts, (if g.Contains("explore") || g.Contains("brainstorm") || g.Contains("generate ideas") then 0.8 else 0.2)
+              WorkflowOfThought, (if g.Contains("workflow") || g.Contains("pipeline") || g.Contains("refactor") || g.Contains("fix") then 0.8 else 0.3) ]
             |> Map.ofList
 
         /// Score boost from promoted patterns (cross-repo discovery).
