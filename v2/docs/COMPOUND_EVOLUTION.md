@@ -9,11 +9,14 @@
 
 | Metric | TARS (F#) | Guitar Alchemist (C#) | Combined |
 |--------|-----------|----------------------|----------|
-| Source files | 476 .fs | 1,098 .cs | 1,574 |
+| Source files | 476 .fs | 1,422 .cs | 1,898 |
 | Lines of code | 93,481 | 117,367 | 210,848 |
 | Test lines | 20,938 | 156,192 | 177,130 |
 | Tests passing | 790/790 | 1,267/1,283 | 2,057 |
 | Modules/Projects | 20 | 14 | 34 |
+| Agents | 5 reasoning patterns | 6 specialized agents | 11 |
+| Skills/Tools | 124+ registered tools | 6 skills + 16 MCP tools | 146+ |
+| Roadmap phases | 15/17 complete | 4/4 complete | 19/21 |
 
 ---
 
@@ -158,10 +161,11 @@ These patterns now influence TARS's agent pattern selection through the Promotio
 
 ### For Guitar Alchemist
 - **Full interactive stack**: streaming CLI, multi-turn sessions, cross-agent delegation, persistent memory
-- **5 specialized agents** (Theory, Tab, Technique, Composer, Critic) with delegation
-- **7 orchestrator skills** (ScaleInfo, FretSpan, ChordSubstitution, KeyIdentification, ProgressionCompletion, VoicingComfort, SkillMd-driven)
+- **6 specialized agents** (Theory, Tab, Technique, Composer, Critic + base orchestration) with cross-agent delegation
+- **6 orchestrator skills** (ScaleInfo, FretSpan, ChordSubstitution, KeyIdentification, ProgressionCompletion, SkillMd-driven)
 - **4 lifecycle hooks** (sanitization, memory, observability, trace bridge)
-- **MCP tools** for external integration (memory search/write/read/stats)
+- **16 MCP tool types** (chat, scales, chords, keys, instruments, DSL, web search, feed reader, etc.)
+- **Persistent memory** with MemoryStore, MemoryHook, and MemoryMcpTools
 
 ### For the Ecosystem
 - **210K+ lines of code** across 1,574 source files
