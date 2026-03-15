@@ -5,12 +5,11 @@ open Tars.Sandbox
 
 type SandboxTests(output: Xunit.Abstractions.ITestOutputHelper) =
 
-    [<Fact>]
+    [<Fact(Skip = "Requires Docker with tars-sandbox image")>]
     member this.``Can run python script in sandbox``() =
         task {
             use client = DockerClient.createClient ()
 
-            // Simple python script to print hello
             let cmd = [ "python"; "-c"; "print('Hello from Sandbox')" ]
 
             let! result = DockerClient.runContainer client "tars-sandbox" cmd
@@ -26,12 +25,11 @@ type SandboxTests(output: Xunit.Abstractions.ITestOutputHelper) =
             | Error e -> Assert.Fail($"Failed to run container: {e}")
         }
 
-    [<Fact>]
+    [<Fact(Skip = "Requires Docker with tars-sandbox image")>]
     member this.``Sandbox has no internet access``() =
         task {
             use client = DockerClient.createClient ()
 
-            // Try to connect to google.com
             let cmd =
                 [ "python"
                   "-c"
@@ -45,9 +43,7 @@ type SandboxTests(output: Xunit.Abstractions.ITestOutputHelper) =
                 output.WriteLine($"Stderr: {stderr}")
                 output.WriteLine($"ExitCode: {exitCode}")
 
-                // Should fail
                 Assert.NotEqual(0L, exitCode)
             | Error e ->
-                // If docker fails to start, that's different, but here we expect the script to fail
                 Assert.Fail($"Failed to run container: {e}")
         }
