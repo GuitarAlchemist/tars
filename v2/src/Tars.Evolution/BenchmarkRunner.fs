@@ -4,6 +4,8 @@ open System
 open System.Diagnostics
 open System.IO
 open System.Text.Json
+open System.Text.Json.Serialization
+open System.Threading
 open System.Threading.Tasks
 open Tars.Llm
 open Tars.Cortex
@@ -13,7 +15,9 @@ open Tars.Cortex.WoTTypes
 module BenchmarkRunner =
 
     let private jsonOptions =
-        JsonSerializerOptions(WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase)
+        let opts = JsonSerializerOptions(WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase)
+        opts.Converters.Add(JsonFSharpConverter())
+        opts
 
     /// Extract F# code from LLM response (strip markdown fences, explanations).
     let private extractCode (response: string) : string =
@@ -100,14 +104,23 @@ Do not use 'open' statements — write self-contained code."""
                 psi.CreateNoWindow <- true
 
                 use proc = Process.Start(psi)
-                let! stdout = proc.StandardOutput.ReadToEndAsync()
-                let! stderr = proc.StandardError.ReadToEndAsync()
+                use cts = new CancellationTokenSource(TimeSpan.FromSeconds(30.0))
+                let mutable stdout = ""
+                let mutable stderr = ""
+                let mutable timedOut = false
 
-                let completed = proc.WaitForExit(30_000) // 30s timeout
-                if not completed then
-                    try proc.Kill() with _ -> ()
+                try
+                    let! out = proc.StandardOutput.ReadToEndAsync(cts.Token)
+                    let! err = proc.StandardError.ReadToEndAsync(cts.Token)
+                    stdout <- out
+                    stderr <- err
+                    proc.WaitForExit()
+                with :? OperationCanceledException ->
+                    timedOut <- true
+                    try proc.Kill(true) with _ -> ()
+                    stderr <- "error FS0000: Process timed out after 30 seconds"
 
-                let compiled = not (stderr.Contains("error FS"))
+                let compiled = not timedOut && not (stderr.Contains("error FS"))
                 let validated = stdout.Contains("PASS") && not (stdout.Contains("FAIL"))
 
                 let errors =
@@ -138,6 +151,7 @@ Do not use 'open' statements — write self-contained code."""
                 logger $"  [{problem.Id}] Retry with error feedback..."
                 let retryPrompt = $"Your previous F# code had compilation errors:\n{String.Join('\n', errors)}\n\nFix the code. Output ONLY valid F# code.\n\nOriginal problem: {problem.Description}\nRequired signature: {problem.ExpectedSignature}"
 
+                let retrySw = Stopwatch.StartNew()
                 let! retryResponse =
                     llm.CompleteAsync(
                         { ModelHint = None
@@ -154,9 +168,13 @@ Do not use 'open' statements — write self-contained code."""
                           JsonMode = false
                           Seed = None
                           ContextWindow = None })
+                retrySw.Stop()
+                let retryGenMs = retrySw.ElapsedMilliseconds
 
                 let retryCode = extractCode retryResponse.Text
+                let valSw = Stopwatch.StartNew()
                 let! compiled2, validated2, errors2, output2 = compileAndValidate retryCode problem.ValidationCode
+                valSw.Stop()
 
                 let status = if validated2 then "PASS" elif compiled2 then "FAIL (validation)" else "FAIL (compile)"
                 logger $"  [{problem.Id}] {status}"
@@ -170,8 +188,8 @@ Do not use 'open' statements — write self-contained code."""
                       Validated = validated2
                       CompileErrors = errors2
                       ValidationOutput = output2
-                      GenerationTimeMs = genMs
-                      ValidationTimeMs = sw.ElapsedMilliseconds
+                      GenerationTimeMs = genMs + retryGenMs
+                      ValidationTimeMs = sw.ElapsedMilliseconds + valSw.ElapsedMilliseconds
                       Timestamp = DateTime.UtcNow }
             else
                 let status = if validated then "PASS" elif compiled then "FAIL (validation)" else "FAIL (compile)"
