@@ -11,6 +11,19 @@ A modular, self-improving AI agent framework built in F#. Combines neuro-symboli
 
 ---
 
+## ix ML Integration
+
+TARS is connected to [ix](https://github.com/GuitarAlchemist/ix) (39 Rust ML tools) via MCP federation. Available capabilities:
+
+- **`ix_ml_pipeline`** — One-call ML pipeline: load CSV → preprocess → train → evaluate → persist
+- **`ix_ml_predict`** — Load cached model, predict on new data
+- **39 algorithm tools** — statistics, optimization, neural nets, game theory, topology, chaos, and more
+- **Governance** — All operations governed by [Demerzel](https://github.com/GuitarAlchemist/Demerzel) constitution (11 articles, 12 personas, tetravalent logic)
+
+Use `/ix-ml-builder` or `/federation-discover` to explore available capabilities.
+
+---
+
 ## Quick Start
 
 The active project lives in [`v2/`](./v2/). All development happens there.
