@@ -12,6 +12,7 @@
     <Compile Include="Units.fs" />
     <Compile Include="Budget.fs" />
     <Compile Include="Primitives.fs" />
+    <Compile Include="AgentDefinition.fs" />
     <Compile Include="AgentConstitution.fs" />
     <Compile Include="Domain.fs" />
     <Compile Include="SymbolicTypes.fs" />
