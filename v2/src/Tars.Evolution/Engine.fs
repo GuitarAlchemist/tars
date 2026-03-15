@@ -434,13 +434,38 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                         Timeout = TimeSpan.FromMinutes(5.0)
                         Score = 1.0 } ]
 
-                if String.IsNullOrWhiteSpace(responseText) then
-                    // Return a fallback task when no response is received
+                // If agent loop produced nothing, try direct LLM call with reasoning model
+                let! effectiveResponse =
+                    if not (String.IsNullOrWhiteSpace(responseText)) then
+                        task { return responseText }
+                    else
+                        task {
+                            ctx.Logger("[Curriculum] No response from agent loop, trying direct LLM call...")
+                            let! directResponse =
+                                ctx.Llm.CompleteAsync(
+                                    { ModelHint = Some "reasoning"
+                                      Model = None
+                                      SystemPrompt = Some "You generate F# coding tasks. Output ONLY valid JSON."
+                                      MaxTokens = Some 500
+                                      Temperature = Some 0.7
+                                      Stop = []
+                                      Messages = [ { Role = Role.User; Content = prompt } ]
+                                      Tools = []
+                                      ToolChoice = None
+                                      ResponseFormat = Some ResponseFormat.Json
+                                      Stream = false
+                                      JsonMode = true
+                                      Seed = None
+                                      ContextWindow = None })
+                            return directResponse.Text
+                        }
+
+                if String.IsNullOrWhiteSpace(effectiveResponse) then
                     ctx.Logger("[Curriculum] No response received, using fallback task")
                     return fallbackPracticalTask ()
                 else
                     try
-                        let rootResult = tryExtractJsonElement responseText
+                        let rootResult = tryExtractJsonElement effectiveResponse
 
                         match rootResult with
                         | Result.Error err ->

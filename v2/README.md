@@ -124,7 +124,7 @@ dotnet test --filter Category!=Slow
 | **Tars.Tools** | Tool registry and standard tools |
 | **Tars.Sandbox** | Docker-based code execution |
 | **Tars.Security** | Security policies and validation |
-| **Tars.Evolution** | Self-improvement protocols |
+| **Tars.Evolution** | Self-improvement: promotion pipeline, cross-repo pattern discovery, probabilistic grammars |
 | **Tars.Connectors** | External service connectors |
 | **Tars.Interface.Cli** | Command-line interface |
 
@@ -169,6 +169,19 @@ let verified = grounded verifyFact claim
 - Semantic chunking, Time decay scoring, Cross-encoder reranking
 - Answer attribution, Retrieval metrics, Fallback chains
 
+### Self-Improvement Loop
+
+```
+evolve tasks → pattern outcomes → promotion pipeline → promotion index
+     ^                                                        |
+     └──────────── pattern selector reads index ←─────────────┘
+```
+
+- **Promotion Staircase**: Implementation → Helper → Builder → DslClause → GrammarRule
+- **Cross-repo discovery**: GA orchestrator patterns ingested via trace bridge
+- **Probabilistic grammars**: PCFG Bayesian weights + replicator dynamics
+- **Meta-cognitive analysis**: Detects capability gaps and generates curriculum
+
 ## 📖 Documentation
 
 - [Chat Quick Start](README_CHAT.md)
@@ -177,23 +190,10 @@ let verified = grounded verifyFact claim
 
 ## 🧪 Test Coverage
 
-- **255 unit tests** covering all major modules (0 skipped)
+- **790 unit tests** covering all modules (0 skipped, 0 failures)
 - **Real LLM integration tests** with Ollama (Agent, CoT, ReAct, Plan&Execute)
-- **4 cognitive evals** for behavioral testing (memory, budget, compression, watchdog)
-- **8 cognitive patterns** fully implemented and tested
-
-## 🎉 v2.0-alpha Release
-
-**Version:** v2.0-alpha | **Tests:** 255 passing | **Patterns:** 8/8 complete
-
-Key features:
-
-- Token Budget Governor with multi-dimensional governance
-- All 8 cognitive design patterns (SemanticWatchdog, UncertaintyGatedPlanner, etc.)
-- MCP Server mode for IDE integration
-- Temporal Knowledge Graph with community detection
-
-See [Release Notes](docs/RELEASE_NOTES_v2.0-alpha.md) for details.
+- **Cognitive evals** for behavioral testing (memory, budget, compression, watchdog)
+- **Cross-repo integration tests**: GA pattern seeding, promotion index, constrained decoding
 
 ## 📄 License
 

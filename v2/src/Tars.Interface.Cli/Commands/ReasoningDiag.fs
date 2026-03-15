@@ -267,9 +267,13 @@ let run (logger: ILogger) (config: IConfiguration) (tarsConfig: TarsConfig) (arg
             let! ledgerOpt =
                 if opts.UseLedger then
                     async {
-                        let ledger = ledgerFromConfig logger tarsConfig
-                        do! ledger.Initialize() |> Async.AwaitTask
-                        return Some ledger
+                        try
+                            let ledger = ledgerFromConfig logger tarsConfig
+                            do! ledger.Initialize() |> Async.AwaitTask
+                            return Some ledger
+                        with ex ->
+                            logger.Warning("Knowledge ledger init failed: {Message}", [| box ex.Message |])
+                            return None
                     }
                 else
                     async { return None }

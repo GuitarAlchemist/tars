@@ -148,10 +148,44 @@ module PatternSelector =
         /// </summary>
         member _.GetByName(name: string) = patterns |> Map.tryFind name
 
+    /// Lightweight promotion index entry — deserialized from ~/.tars/promotion/index.json
+    /// without depending on Tars.Evolution (avoids circular reference).
+    type PromotedEntry = {
+        PatternName: string
+        LevelRank: int
+        Score: float
+        Weight: float
+        Contexts: string list
+    }
+
+    /// Load promoted patterns from the persisted index file on disk.
+    let private loadPromotedEntries () : PromotedEntry list =
+        try
+            let path = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                ".tars", "promotion", "index.json")
+            if File.Exists path then
+                use doc = JsonDocument.Parse(File.ReadAllText path)
+                let entries = doc.RootElement.GetProperty("Entries")
+                [ for e in entries.EnumerateArray() do
+                    { PatternName =
+                        (try e.GetProperty("PatternName").GetString() with _ -> "")
+                      LevelRank =
+                        (try e.GetProperty("LevelRank").GetInt32() with _ -> 0)
+                      Score =
+                        (try e.GetProperty("Score").GetDouble() with _ -> 0.0)
+                      Weight =
+                        (try e.GetProperty("Weight").GetDouble() with _ -> 0.5)
+                      Contexts =
+                        (try [ for c in e.GetProperty("Contexts").EnumerateArray() do c.GetString() ]
+                         with _ -> []) } ]
+            else []
+        with _ -> []
+
     /// <summary>
-    /// A pattern selector that uses golden trace history and recorded pattern
-    /// outcomes to boost patterns that have succeeded in the past, combined
-    /// with goal-based heuristics.
+    /// A pattern selector that uses golden trace history, recorded pattern
+    /// outcomes, AND the promotion index (from cross-repo pattern discovery)
+    /// to select the best reasoning pattern for a goal.
     /// </summary>
     type HistoryAwareSelector() =
         let goldenHistory = lazy (
@@ -162,6 +196,9 @@ module PatternSelector =
                     | Result.Ok golden -> Some golden
                     | Result.Error _ -> None)
             with _ -> [])
+
+        /// Lazy-load promoted patterns from disk.
+        let promotedPatterns = lazy (loadPromotedEntries ())
 
         let parsePatternKind (s: string) =
             if isNull s then None else
@@ -195,12 +232,66 @@ module PatternSelector =
 
         let heuristicScore (goal: string) =
             let g = goal.ToLowerInvariant()
-            [ ChainOfThought, (if g.Contains("explain") || g.Contains("step") then 0.8 else 0.4)
-              ReAct, (if g.Contains("search") || g.Contains("find") || g.Contains("look") then 0.8 else 0.3)
-              GraphOfThoughts, (if g.Contains("compare") || g.Contains("alternative") then 0.8 else 0.2)
-              TreeOfThoughts, (if g.Contains("explore") || g.Contains("brainstorm") then 0.8 else 0.2)
-              WorkflowOfThought, (if g.Contains("workflow") || g.Contains("pipeline") then 0.8 else 0.3) ]
+            [ ChainOfThought, (if g.Contains("explain") || g.Contains("step") || g.Contains("summarize") || g.Contains("describe") then 0.8 else 0.4)
+              ReAct, (if g.Contains("search") || g.Contains("find") || g.Contains("look") || g.Contains("scan") || g.Contains("debug") then 0.8 else 0.3)
+              GraphOfThoughts, (if g.Contains("compare") || g.Contains("alternative") || g.Contains("tradeoff") then 0.8 else 0.2)
+              TreeOfThoughts, (if g.Contains("explore") || g.Contains("brainstorm") || g.Contains("generate ideas") then 0.8 else 0.2)
+              WorkflowOfThought, (if g.Contains("workflow") || g.Contains("pipeline") || g.Contains("refactor") || g.Contains("fix") then 0.8 else 0.3) ]
             |> Map.ofList
+
+        /// Score boost from promoted patterns (cross-repo discovery).
+        /// Patterns at Builder+ level that contextually match the goal
+        /// boost WorkflowOfThought (the most flexible pattern kind).
+        /// Score a promoted entry against a goal by context word overlap.
+        let scoreEntry (goalLower: string) (entry: PromotedEntry) : float =
+            let words = goalLower.Split([|' '; ','; '.'; '?'; '!'|], StringSplitOptions.RemoveEmptyEntries)
+            let contextMatch =
+                entry.Contexts
+                |> List.sumBy (fun c ->
+                    let cLower = c.ToLowerInvariant()
+                    words |> Array.sumBy (fun w -> if cLower.Contains(w) then 1 else 0))
+            float (entry.LevelRank * 10) + float (contextMatch * 2) + entry.Weight + entry.Score
+
+        let promotionBoost (goal: string) : Map<PatternKind, float> =
+            let entries = promotedPatterns.Value
+            if entries.IsEmpty then Map.empty
+            else
+                let goalLower = goal.ToLowerInvariant()
+                let scored =
+                    entries
+                    |> List.map (fun e -> e, scoreEntry goalLower e)
+                    |> List.sortByDescending snd
+
+                match scored with
+                | [] -> Map.empty
+                | (topEntry, topScore) :: _ ->
+                    // Only boost if context actually matches the goal well.
+                    // Cap at 0.08 so promotion never overrides heuristic margins
+                    // (heuristic range: 0.2-0.8, so 0.08 is a tiebreaker not an override).
+                    let baseScore = float (topEntry.LevelRank * 10) + topEntry.Weight + topEntry.Score
+                    let contextSignal = topScore - baseScore
+                    let boost =
+                        if contextSignal >= 4.0 then 0.08
+                        elif contextSignal >= 2.0 then 0.04
+                        else 0.0
+
+                    let name = topEntry.PatternName.ToLowerInvariant()
+                    let kindToBoost =
+                        if name.Contains("routing") || name.Contains("pipeline") || name.Contains("orchestrat") then
+                            WorkflowOfThought
+                        elif name.Contains("skill") || name.Contains("fastpath") then
+                            PlanAndExecute
+                        elif name.Contains("hook") || name.Contains("fsm") then
+                            WorkflowOfThought
+                        elif name.Contains("confidence") || name.Contains("evidence") then
+                            ChainOfThought
+                        else
+                            WorkflowOfThought
+
+                    [ kindToBoost, boost
+                      WorkflowOfThought, boost * 0.5 ]
+                    |> List.distinctBy fst
+                    |> Map.ofList
 
         let combineScores (goal: string) =
             let heuristic = heuristicScore goal
@@ -208,13 +299,17 @@ module PatternSelector =
             let maxGolden = golden |> Map.values |> Seq.append [1.0] |> Seq.max
             let outcomes = outcomeScores ()
             let maxOutcome = outcomes |> Map.values |> Seq.map abs |> Seq.append [1.0] |> Seq.max
+            let promoted = promotionBoost goal
+
             heuristic
             |> Map.map (fun kind score ->
                 let goldenBoost = golden |> Map.tryFind kind |> Option.defaultValue 0.0
                 let outcomeBoost = outcomes |> Map.tryFind kind |> Option.defaultValue 0.0
+                let promoBoost = promoted |> Map.tryFind kind |> Option.defaultValue 0.0
                 score
                 + 0.3 * (goldenBoost / maxGolden)
-                + 0.2 * (outcomeBoost / maxOutcome))
+                + 0.2 * (outcomeBoost / maxOutcome)
+                + promoBoost) // Direct addition — promoted patterns already normalized
 
         /// Record the outcome of a pattern execution so future selections can learn from it.
         member _.RecordOutcome(patternKind: PatternKind, goal: string, success: bool, durationMs: int64) =

@@ -78,12 +78,16 @@ let run (logger: ILogger) (options: EvolveOptions) =
                 Confidence = Some 0.72
                 Reputation = Some 0.5 } ]
 
+        let reasoningModel =
+            config.Llm.ReasoningModel
+            |> Option.defaultValue model
+
         let curriculumAgent =
             AgentFactory.create
                 curriculumId
                 "Curriculum"
                 "0.1.0"
-                model
+                reasoningModel
                 "You are a curriculum agent that generates progressively harder coding tasks."
                 []
                 curriculumCapabilities
@@ -873,6 +877,14 @@ let run (logger: ILogger) (options: EvolveOptions) =
                             RichOutput.dim $"  [Meta] {r}"
             with ex ->
                 logger.Warning("Meta-cognitive analysis skipped: {Message}", ex.Message)
+
+            // Refresh promotion index so pattern selectors pick up new outcomes
+            try
+                let index = Tars.Evolution.PromotionIndex.refresh ()
+                if not options.Quiet then
+                    RichOutput.info $"Promotion index refreshed: {index.PatternCount} patterns"
+            with ex ->
+                logger.Warning("Promotion index refresh skipped: {Message}", ex.Message)
 
             // Save knowledge graph
             try

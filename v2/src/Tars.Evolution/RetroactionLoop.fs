@@ -493,7 +493,7 @@ Output JSON ONLY, no explanation.
                         | _ ->
                             async { return [] }
 
-                    // 5. Feed promotion pipeline
+                    // 5. Feed promotion pipeline & persist index
                     let promotionResults =
                         match newPattern with
                         | Some pattern ->
@@ -501,6 +501,12 @@ Output JSON ONLY, no explanation.
                             let results = feedPromotionPipeline problem score pattern
                             for r in results do
                                 Console.WriteLine(r.AuditReport)
+
+                            // Close the loop: rebuild & persist promotion index
+                            // so pattern selectors pick up newly promoted patterns
+                            let index = PromotionIndex.refresh ()
+                            Console.WriteLine($"[Retroaction] Promotion index refreshed: {index.PatternCount} patterns")
+
                             results
                         | None -> []
 

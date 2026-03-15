@@ -147,6 +147,41 @@ User writes workflow
         |                     |
         v                     v
   [Result]            [Evolved WoT DSL]
+                             |
+                             v
+                      [Promotion Index]
+                       (persisted JSON)
+                             |
+                             v
+                      [Pattern Selector]
+                       (context-gated boost)
+                             |
+                             v
+                      [Agent Execution]
+                       (next run uses promoted patterns)
+```
+
+### Cross-Repo Pattern Discovery
+
+```
+  Guitar Alchemist repo          TARS repo
+  ┌──────────────────┐    ┌──────────────────────────┐
+  │ TraceBridgeHook  │    │ GaTraceBridge             │
+  │ writes to        │───>│ reads ~/.ga/traces/       │
+  │ ~/.ga/traces/    │    │                            │
+  └──────────────────┘    │ GaPatternSeeder           │
+                          │ static code analysis       │
+                          │         │                  │
+                          │         v                  │
+                          │ PromotionPipeline.run      │
+                          │         │                  │
+                          │         v                  │
+                          │ PromotionIndex.refresh()   │
+                          │         │                  │
+                          │         v                  │
+                          │ PatternSelector reads      │
+                          │ index for goal-matching    │
+                          └──────────────────────────┘
 ```
 
 ---
@@ -182,8 +217,17 @@ User writes workflow
 - `tars run <file>` -- Execute a metascript
 - `tars promote [status|lineage|run|report]` -- Promotion pipeline
 
+### Cross-Repo Pattern Discovery (active development)
+- `src/Tars.Evolution/PromotionIndex.fs` -- Bridges promotion output to agent execution
+- `src/Tars.Evolution/GaTraceBridge.fs` -- Reads GA orchestrator traces from `~/.ga/traces/`
+- `src/Tars.Evolution/McpGaTraceBridge.fs` -- MCP tools for cross-repo ingestion
+- `src/Tars.Evolution/GaPatternSeeder.fs` -- Static analysis patterns from Guitar Alchemist
+
 ### MCP Tools
 - `promotion_status` -- Query promotion pipeline state
 - `promotion_lineage` -- Query governance decisions
 - `run_promotion_pipeline` -- Trigger pipeline programmatically
 - `list_patterns` / `get_pattern` / `suggest_pattern` -- Pattern library
+- `ingest_ga_traces` -- Import GA traces into promotion pipeline
+- `ga_trace_stats` -- View GA trace bridge statistics
+- `promotion_index` -- View ranked promotion index
