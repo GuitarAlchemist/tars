@@ -3,7 +3,7 @@
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)](https://dotnet.microsoft.com/)
 [![F#](https://img.shields.io/badge/F%23-Functional-378BBA)](https://fsharp.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-793%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/Tests-809%20passing-brightgreen)]()
 
 A modular, self-improving AI agent framework built in F#. Combines neuro-symbolic reasoning, multi-agent orchestration, probabilistic grammars, and a closed-loop evolution pipeline.
 
@@ -52,7 +52,7 @@ Foundation       LLM Abstraction (Ollama/vLLM/Anthropic/llama.cpp),
 | **Tars.LinkedData** | Intelligence | RDF/SPARQL, semantic web ingestion |
 | **Tars.Evolution** | Evolution | Promotion pipeline, grammars, breeding, cross-repo bridge |
 
-**Tests**: `Tars.Tests` — 793 tests (122 test files), all passing.
+**Tests**: `Tars.Tests` — 809 tests (122 test files), all passing.
 
 ---
 
@@ -273,7 +273,7 @@ v2/
 │   ├── Tars.Symbolic/          # Neuro-symbolic feedback
 │   └── Tars.Tools/             # Tool registry (124+ tools)
 ├── tests/
-│   └── Tars.Tests/             # 793 tests across 122 files
+│   └── Tars.Tests/             # 809 tests across 122 files
 ├── grammars/                   # EBNF + JSON schema grammars
 ├── docs/                       # Architecture, roadmap, research
 ├── scripts/                    # Setup and utility scripts
@@ -326,7 +326,7 @@ v2/
 ```bash
 cd v2
 dotnet build           # Build all projects
-dotnet test            # Run all 793 tests
+dotnet test            # Run all 809 tests
 dotnet test --filter "ClassName~PromotionIndex"  # Run specific tests
 ```
 
