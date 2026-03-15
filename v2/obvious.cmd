@@ -1,6 +1,0 @@
-@echo off
-echo Killing old TARS processes...
-taskkill /F /IM Tars.Interface.Cli.exe >nul 2>&1
-echo Starting TARS Chat...
-dotnet run --project src/Tars.Interface.Cli -- chat
-pause

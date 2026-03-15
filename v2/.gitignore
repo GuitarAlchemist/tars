@@ -14,6 +14,9 @@
 # Build logs and temp files
 *.log
 *.tmp
+*.trsx
+log_output_*
+benchmark_results_*.csv
 build_*.txt
 *_build_*.txt
 *_errors*.txt
@@ -24,6 +27,14 @@ graph_*.log
 msbuild.log
 test_*.txt
 debug_*.json
+crash_log.txt
+mcp_stderr.txt
+puzzle_debug.json
+evolve_error.txt
+ollama_models.txt
+
+# Backup files
+*.bak
 
 # Demo outputs
 demo_*.txt
