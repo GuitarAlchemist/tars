@@ -1,1 +1,0 @@
-{"jsonrpc":"2.0","result":{"content":[{"type":"text","text":"### TARS Tool Health Report\n\n\u2705 **list_all_tools**: Healthy\n  Calls: 1, Avg: 21.1ms\n\n\u2705 **report_status**: Healthy\n  Calls: 1, Avg: 12.5ms","data":null,"mimeType":null,"resource":null}],"isError":false},"error":null,"id":2}

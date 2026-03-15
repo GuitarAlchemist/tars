@@ -12,10 +12,8 @@ open Tars.Cortex
 open Tars.Cortex.AdvancedPrompting
 open Tars.Cortex.CognitiveGrounding
 open Tars.Llm
-open Tars.Llm.Routing
-open Tars.Llm.LlmService
 open Tars.Security
-open System.Net.Http
+open Tars.Interface.Cli
 
 /// Options for the prompt command
 type PromptOptions = {
@@ -45,26 +43,12 @@ let runPrompt (logger: ILogger) (options: PromptOptions) =
             AnsiConsole.MarkupLine($"[yellow]Warning: Could not load secrets: {err}[/]")
         
         // Setup LLM
-        let ollamaBaseUri =
-            match CredentialVault.getSecret "OLLAMA_BASE_URL" with
-            | Result.Ok url -> Uri(url)
-            | Result.Error _ -> Uri("http://localhost:11434/")
-        
-        let model = 
-            if options.Cloud then "gpt-oss:120b-cloud" 
+        let llmService = LlmFactory.create logger
+
+        let model =
+            if options.Cloud then "gpt-oss:120b-cloud"
             else "llama3.2:3b"
-        
-        let routingCfg: RoutingConfig = {
-            RoutingConfig.Default with
-                OllamaBaseUri = ollamaBaseUri
-                DefaultOllamaModel = model
-        }
-        
-        let svcCfg: LlmServiceConfig = { Routing = routingCfg }
-        use httpClient = new HttpClient()
-        httpClient.Timeout <- TimeSpan.FromMinutes(5.0)
-        let llmService = DefaultLlmService(httpClient, svcCfg) :> ILlmService
-        
+
         let config = { defaultConfig with Verbose = options.Verbose }
         
         // Determine strategy
@@ -136,26 +120,12 @@ let runGround (logger: ILogger) (ledger: Tars.Knowledge.KnowledgeLedger) (option
             AnsiConsole.MarkupLine($"[yellow]Warning: Could not load secrets: {err}[/]")
         
         // Setup LLM
-        let ollamaBaseUri =
-            match CredentialVault.getSecret "OLLAMA_BASE_URL" with
-            | Result.Ok url -> Uri(url)
-            | Result.Error _ -> Uri("http://localhost:11434/")
-        
-        let model = 
-            if options.Cloud then "gpt-oss:120b-cloud" 
+        let llmService = LlmFactory.create logger
+
+        let model =
+            if options.Cloud then "gpt-oss:120b-cloud"
             else "llama3.2:3b"
-        
-        let routingCfg: RoutingConfig = {
-            RoutingConfig.Default with
-                OllamaBaseUri = ollamaBaseUri
-                DefaultOllamaModel = model
-        }
-        
-        let svcCfg: LlmServiceConfig = { Routing = routingCfg }
-        use httpClient = new HttpClient()
-        httpClient.Timeout <- TimeSpan.FromMinutes(5.0)
-        let llmService = DefaultLlmService(httpClient, svcCfg) :> ILlmService
-        
+
         if options.Cloud then
             AnsiConsole.MarkupLine($"[cyan]☁️  Cloud model: {model}[/]")
         

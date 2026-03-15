@@ -3,7 +3,6 @@ module Tars.Tests.ClaudeCodeBridgeTests
 open System
 open System.Text.Json
 open Xunit
-open Tars.Tools
 open Tars.Cortex
 open Tars.Cortex.WoTTypes
 open Tars.Cortex.ClaudeCodeBridge
@@ -12,6 +11,15 @@ open Tars.Cortex.ClaudeCodeBridge
 // Helpers
 // =========================================================================
 
+/// Lightweight IToolRegistry that avoids loading Tars.Tools.dll (blocked by WDAC).
+type private StubToolRegistry() =
+    let mutable tools = Map.empty<string, Tars.Core.Tool>
+    member _.Register(tool: Tars.Core.Tool) = tools <- tools |> Map.add tool.Name tool
+    interface Tars.Core.IToolRegistry with
+        member this.Register(tool) = this.Register(tool)
+        member _.Get(name) = tools |> Map.tryFind name
+        member _.GetAll() = tools |> Map.values |> Seq.toList
+
 let private jsonOptions =
     JsonSerializerOptions(
         WriteIndented = true,
@@ -19,7 +27,7 @@ let private jsonOptions =
 
 /// Create a minimal tool registry with a dummy echo tool.
 let private makeRegistry () =
-    let reg = ToolRegistry()
+    let reg = StubToolRegistry()
     reg.Register(
         { Name = "echo"
           Description = "Echo the input back"

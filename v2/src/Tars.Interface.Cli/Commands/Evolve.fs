@@ -8,12 +8,8 @@ open Tars.Core
 open Tars.Core.Knowledge
 open Tars.Kernel
 open Tars.Evolution
-open System.Net.Http
 open Tars.Llm
-open Tars.Llm.Routing
-open Tars.Llm.LlmService
 open Tars.Cortex
-open Tars.Security
 open Tars.Connectors.EpisodeIngestion
 open Tars.Interface.Cli // For ConfigurationLoader
 open Tars.Interface.Cli.SpectreUI
@@ -35,7 +31,8 @@ type EvolveOptions =
       PlanPath: string option
       Focus: string option
       ResearchEnhanced: bool
-      SelfImprovement: bool }
+      SelfImprovement: bool
+      Benchmark: bool }
 
 let run (logger: ILogger) (options: EvolveOptions) =
     task {
@@ -252,73 +249,10 @@ let run (logger: ILogger) (options: EvolveOptions) =
         registry.Register(reviewerAgent)
 
         // Initialize LLM Service
-        // Ensure secret is registered
-        CredentialVault.registerSecret "OLLAMA_BASE_URL" "http://localhost:11434"
-
-        match CredentialVault.getSecret "OLLAMA_BASE_URL" with
-        | Microsoft.FSharp.Core.Result.Ok _ -> ()
-        | Microsoft.FSharp.Core.Result.Error e -> logger.Warning("Secret registration FAILED: {Error}", e)
-
-        let useLlamaCpp =
-            config.Llm.Provider.Equals("LlamaCpp", StringComparison.OrdinalIgnoreCase)
-            || config.Llm.Provider.Equals("llama.cpp", StringComparison.OrdinalIgnoreCase)
-
-        let routingCfg: RoutingConfig =
-            let ollamaUri =
-                config.Llm.BaseUrl |> Option.defaultValue "http://localhost:11434" |> Uri
-
-            // Helper to get API key if provider matches, else fall back to secret
-            let getKey provider secretName =
-                if config.Llm.Provider.Equals(provider, StringComparison.OrdinalIgnoreCase) then
-                    config.Llm.ApiKey
-                    |> Option.orElse (CredentialVault.getSecret secretName |> Result.toOption)
-                else
-                    CredentialVault.getSecret secretName |> Result.toOption
-
-            { RoutingConfig.Default with
-                OllamaBaseUri = ollamaUri
-                VllmBaseUri = ollamaUri
-                OpenAIBaseUri = Uri("https://api.openai.com/")
-                GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com/")
-                AnthropicBaseUri = Uri("https://api.anthropic.com/")
-                DefaultOllamaModel = model
-                DefaultVllmModel = model
-                DefaultOpenAIModel = if config.Llm.Provider = "OpenAI" then model else "gpt-4o"
-                DefaultGoogleGeminiModel =
-                    if config.Llm.Provider = "Google" then
-                        model
-                    else
-                        "gemini-pro"
-                DefaultAnthropicModel =
-                    if config.Llm.Provider = "Anthropic" then
-                        model
-                    else
-                        "claude-3-opus-20240229"
-                DefaultEmbeddingModel = config.Llm.EmbeddingModel
-                OpenAIKey = getKey "OpenAI" "OPENAI_API_KEY"
-                GoogleGeminiKey = getKey "Google" "GOOGLE_API_KEY"
-                AnthropicKey = getKey "Anthropic" "ANTHROPIC_API_KEY"
-                LlamaCppBaseUri =
-                    if useLlamaCpp then
-                        config.Llm.LlamaCppUrl |> Option.map Uri
-                    else
-                        None
-                DefaultLlamaCppModel =
-                    if useLlamaCpp && config.Llm.LlamaCppUrl.IsSome then
-                        Some model
-                    else
-                        None
-                DefaultContextWindow =
-                    if config.Llm.ContextWindow > 0 then
-                        Some config.Llm.ContextWindow
-                    else
-                        None
-                DefaultTemperature = None }
-
-        let svcCfg: LlmServiceConfig = { Routing = routingCfg }
-        use httpClient = new HttpClient()
-        httpClient.Timeout <- TimeSpan.FromSeconds(120.0)
-        let baseLlmService = DefaultLlmService(httpClient, svcCfg) :> ILlmService
+        let baseLlmService =
+            match options.Model with
+            | Some m -> LlmFactory.createWithModel logger m
+            | None -> LlmFactory.create logger
 
         // Setup Tracing if enabled
         let traceRecorder = TraceRecorder()
@@ -811,6 +745,36 @@ let run (logger: ILogger) (options: EvolveOptions) =
 
                     do! Task.Delay(500)
 
+                // Run benchmark suite after each evolution cycle if --benchmark is set
+                if options.Benchmark then
+                    if not options.Quiet then
+                        RichOutput.info "Running benchmark suite..."
+
+                    let benchLogger msg =
+                        if not options.Quiet then
+                            RichOutput.dim (sprintf "   %s" msg)
+
+                    let! benchSummary =
+                        BenchmarkRunner.runSuite
+                            llmService
+                            None    // all difficulties
+                            None    // all categories
+                            None    // no limit
+                            true    // retry on failure
+                            benchLogger
+
+                    BenchmarkRunner.recordOutcomes benchSummary
+                    let benchPath = BenchmarkRunner.saveResults benchSummary
+
+                    if not options.Quiet then
+                        let passPct = (benchSummary.PassRate * 100.0).ToString("F0")
+                        let compilePct = (benchSummary.CompileRate * 100.0).ToString("F0")
+                        let durationSec = float benchSummary.TotalDurationMs / 1000.0
+                        RichOutput.info (sprintf "Benchmark: %d/%d passed (%s%%)" benchSummary.Validated benchSummary.TotalProblems passPct)
+                        RichOutput.dim (sprintf "   Compiled: %d/%d (%s%%)" benchSummary.Compiled benchSummary.TotalProblems compilePct)
+                        RichOutput.dim (sprintf "   Duration: %.1fs" durationSec)
+                        RichOutput.dim (sprintf "   Results saved to %s" benchPath)
+
             if not options.Quiet then
                 let consumedTokens =
                     match budget.Consumed with
@@ -885,6 +849,14 @@ let run (logger: ILogger) (options: EvolveOptions) =
                     RichOutput.info $"Promotion index refreshed: {index.PatternCount} patterns"
             with ex ->
                 logger.Warning("Promotion index refresh skipped: {Message}", ex.Message)
+
+            // Export meta-cognitive insights for cross-repo consumption
+            try
+                let insightPath = Tars.Evolution.InsightExporter.export ()
+                if not options.Quiet then
+                    RichOutput.info $"Insights exported to {insightPath}"
+            with ex ->
+                logger.Warning("Insight export skipped: {Message}", ex.Message)
 
             // Save knowledge graph
             try

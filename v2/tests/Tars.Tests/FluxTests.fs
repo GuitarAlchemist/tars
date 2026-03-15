@@ -7,7 +7,7 @@ open Tars.Llm
 open Tars.Metascript.Domain
 open Tars.Metascript.Engine
 open Tars.Metascript.Config
-open Tars.Tools
+open Tars.Core
 
 type DelayLlm(delayMs: int) =
     interface ILlmService with
@@ -38,7 +38,7 @@ type FluxTests() =
 
         let ctx =
             { Llm = llm
-              Tools = ToolRegistry()
+              Tools = StubToolRegistry()
               Budget = None
               VectorStore = None
               KnowledgeGraph = None

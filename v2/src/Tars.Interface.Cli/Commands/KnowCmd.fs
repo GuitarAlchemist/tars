@@ -440,15 +440,8 @@ Return ONLY a JSON array of triples:
 
                 AnsiConsole.MarkupLine("[bold yellow]Consulting LLM...[/]")
 
-                // Directly execute task
-                use llmClient = new System.Net.Http.HttpClient()
-
-                let llmService =
-                    Tars.Llm.LlmService.DefaultLlmService(
-                        llmClient,
-                        { Routing = Tars.Llm.Routing.RoutingConfig.fromTarsConfig config }
-                    )
-                    :> Tars.Llm.ILlmService
+                // Create LLM service via factory
+                let llmService = Tars.Interface.Cli.LlmFactory.create Serilog.Log.Logger
 
                 let req =
                     { ModelHint = None

@@ -1,11 +1,12 @@
 namespace Tars.Interface.Cli.Commands
 
 open System
+open Serilog
 open Tars.Core
 open Tars.Knowledge
 open Spectre.Console
 open Tars.Llm
-open Tars.Llm.LlmService
+open Tars.Interface.Cli
 
 /// Reflection command - runs the Symbolic Reflection System
 module ReflectCommand =
@@ -190,15 +191,8 @@ module ReflectCommand =
                 AnsiConsole.MarkupLine "[blue]🏗️  Initialising TARS Architect...[/]"
                 
                 // 1. Load Config & LLM
-                let config = Tars.Interface.Cli.ConfigurationLoader.load ()
-                let tarsConfig = config
-                
-                // LLM Setup (similar to Program.fs/Evolve.fs)
-                let routingCfg = Tars.Llm.Routing.RoutingConfig.fromTarsConfig tarsConfig
-                let svcCfg = { Tars.Llm.LlmServiceConfig.Routing = routingCfg }
-                use httpClient = new System.Net.Http.HttpClient()
-                httpClient.Timeout <- TimeSpan.FromSeconds(120.0)
-                let llmService = DefaultLlmService(httpClient, svcCfg) :> ILlmService
+                let config = ConfigurationLoader.load ()
+                let llmService = LlmFactory.create Log.Logger
                 
                 // 2. Load Ledger
                 AnsiConsole.MarkupLine "[dim]Connecting to Knowledge Ledger...[/]"

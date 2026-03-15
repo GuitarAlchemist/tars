@@ -2,50 +2,19 @@ module Tars.Interface.Cli.Commands.SemanticMemoryCommand
 
 open System
 open System.IO
+open Serilog
 open Tars.Core
 open Tars.Kernel
 open Tars.Llm
 open Tars.Llm.LlmService
-open Tars.Llm.Routing
 open Tars.Cortex
 open Microsoft.Extensions.Configuration
+open Tars.Interface.Cli
 open Spectre.Console
 
-let private createLlmService (config: IConfiguration) : ILlmService * ILlmServiceFunctional =
-    // Initialize LLM service for embeddings
-    let ollamaUrl =
-        config["OLLAMA_BASE_URL"]
-        |> Option.ofObj
-        |> Option.defaultValue "http://localhost:11434"
-
-    let embeddingModel =
-        config["DEFAULT_EMBEDDING_MODEL"]
-        |> Option.ofObj
-        |> Option.defaultValue "nomic-embed-text"
-
-    let generationModel =
-        config["DEFAULT_GENERATION_MODEL"]
-        |> Option.ofObj
-        |> Option.defaultValue "qwen2.5-coder:1.5b"
-
-    let routingCfg =
-        { RoutingConfig.Default with
-            OllamaBaseUri = Uri(ollamaUrl)
-            VllmBaseUri = Uri("http://localhost:8000")
-            OpenAIBaseUri = Uri("https://api.openai.com")
-            GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com")
-            AnthropicBaseUri = Uri("https://api.anthropic.com")
-            DefaultOllamaModel = generationModel
-            DefaultVllmModel = generationModel
-            DefaultOpenAIModel = "text-embedding-3-small"
-            DefaultGoogleGeminiModel = "embedding-001"
-            DefaultAnthropicModel = "claude-3-opus-20240229"
-            DefaultEmbeddingModel = embeddingModel }
-
-    let svcCfg = { Routing = routingCfg }
-    let httpClient = new System.Net.Http.HttpClient()
-    let service = DefaultLlmService(httpClient, svcCfg)
-    (service :> ILlmService, service :> ILlmServiceFunctional)
+let private createLlmService (_config: IConfiguration) : ILlmService * ILlmServiceFunctional =
+    let service = LlmFactory.create Log.Logger
+    (service, service :?> ILlmServiceFunctional)
 
 let private createEmbedder (llmService: ILlmServiceFunctional) : Embedder =
     fun text ->

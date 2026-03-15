@@ -1,6 +1,0 @@
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
-100   784  100   621  100   163   1803    473 --:--:-- --:--:-- --:--:--  2279
-{"choices":[{"finish_reason":"length","index":0,"message":{"role":"assistant","reasoning_content":"Okay, the user asked me to say","content":""}}],"created":1766583501,"model":"Qwen3-8B-Q4_K_M.gguf","system_fingerprint":"b7513-bf6bc3c15","object":"chat.completion","usage":{"completion_tokens":10,"prompt_tokens":15,"total_tokens":25},"id":"chatcmpl-JTgbnzaz515NNld0hLA4srUS6AcGYe8L","timings":{"cache_n":14,"prompt_n":1,"prompt_ms":11.545,"prompt_per_token_ms":11.545,"prompt_per_second":86.617583369424,"predicted_n":10,"predicted_ms":325.241,"predicted_per_token_ms":32.5241,"predicted_per_second":30.746431108009137}}

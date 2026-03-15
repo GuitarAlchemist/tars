@@ -12,7 +12,7 @@
 | Source files | 476 .fs | 1,422 .cs | 1,898 |
 | Lines of code | 93,481 | 117,367 | 210,848 |
 | Test lines | 20,938 | 156,192 | 177,130 |
-| Tests passing | 790/790 | 1,267/1,283 | 2,057 |
+| Tests passing | 793/793 | 1,267/1,283 | 2,060 |
 | Modules/Projects | 20 | 14 | 34 |
 | Agents | 5 reasoning patterns | 6 specialized agents | 11 |
 | Skills/Tools | 124+ registered tools | 6 skills + 16 MCP tools | 146+ |
@@ -48,7 +48,8 @@
 - **Closed feedback loop**: evolve → outcomes → promotion → index → selector → evolve
 - **Robust evolve**: Curriculum agent uses reasoning model, direct LLM fallback
 - **Meta-cognitive gap detection**: Found 60% search failure rate, improved heuristics
-- 3 new MCP tools: `ingest_ga_traces`, `ga_trace_stats`, `promotion_index`
+- 4 new MCP tools: `ingest_ga_traces`, `ga_trace_stats`, `promotion_index`, `export_insights`
+- **InsightExporter**: Bidirectional trace bridge — exports meta-cognitive insights to `~/.tars/insights/` for GA consumption
 
 ### What TARS Learned From Guitar Alchemist
 
@@ -129,8 +130,14 @@ These patterns now influence TARS's agent pattern selection through the Promotio
      agent execution ──────────────► better patterns
          │                          inform GA skills
          ▼
-     meta-cognitive
-     gap analysis
+     meta-cognitive                         ▲
+     gap analysis                           │
+         │                                  │
+         ├──► InsightExporter ──────────────┘
+         │    ~/.tars/insights/      GA reads insights
+         │    (pattern scores,       for skill prioritization
+         │     gaps, promotions,
+         │     recommendations)
          │
          ▼
      curriculum generation
@@ -143,7 +150,7 @@ These patterns now influence TARS's agent pattern selection through the Promotio
 
 1. **Asymmetric learning**: TARS learns structural patterns from GA's domain-specific orchestration. GA gains meta-cognitive infrastructure from TARS.
 
-2. **No circular dependency**: TARS reads GA traces via flat JSON files (`~/.ga/traces/`). GA writes traces via a hook. Neither repo imports the other.
+2. **No circular dependency**: TARS reads GA traces via flat JSON files (`~/.ga/traces/`), GA reads TARS insights via `~/.tars/insights/`. Neither repo imports the other — communication is via shared filesystem.
 
 3. **Promotion as proof**: Patterns aren't just copied — they climb TARS's 5-level staircase (Implementation → Helper → Builder → DslClause → GrammarRule) through demonstrated value. All 5 GA patterns reached GrammarRule, proving genuine structural merit.
 
@@ -158,6 +165,7 @@ These patterns now influence TARS's agent pattern selection through the Promotio
 - **Closed self-improvement loop**: the system can now improve itself without human intervention
 - **Better model routing**: curriculum generation uses reasoning model instead of 3B, reducing fallback rate
 - **Robust error handling**: `diag reasoning` no longer crashes without Postgres
+- **Bidirectional bridge**: InsightExporter publishes pattern scores, gaps, promotions, and recommendations for GA consumption
 
 ### For Guitar Alchemist
 - **Full interactive stack**: streaming CLI, multi-turn sessions, cross-agent delegation, persistent memory
@@ -169,7 +177,7 @@ These patterns now influence TARS's agent pattern selection through the Promotio
 
 ### For the Ecosystem
 - **210K+ lines of code** across 1,574 source files
-- **2,057 tests** passing across both repos
+- **2,060 tests** passing across both repos
 - **Three-repo bridge** (TARS ↔ GA ↔ MachinDeOuf) via MCP and CLI
 - **Probabilistic grammars** shared between TARS (pattern evolution) and GA (harmonic fitness)
 - **Compound engineering staircase** validated: patterns genuinely climb from Implementation to GrammarRule through demonstrated, scored value
@@ -181,7 +189,7 @@ These patterns now influence TARS's agent pattern selection through the Promotio
 | Priority | Item | Repo | Impact |
 |----------|------|------|--------|
 | High | Install `deepseek-r1:8b` for reasoning tasks | TARS | Evolve loop generates real curriculum instead of fallbacks |
-| High | Bidirectional trace bridge | Both | GA reads TARS meta-cognitive insights for skill prioritization |
+| ~~High~~ | ~~Bidirectional trace bridge~~ | ~~Both~~ | ~~Done: InsightExporter writes to ~/.tars/insights/, GA-side reader pending~~ |
 | Medium | Live trace ingestion (watch `~/.ga/traces/`) | TARS | Real-time pattern discovery instead of batch |
 | Medium | Embed TARS reasoning in GA skills | GA | Theory/Composer agents use WoT for complex queries |
 | Low | Unified MCP federation | All 3 | Single MCP server exposes all repos' tools |

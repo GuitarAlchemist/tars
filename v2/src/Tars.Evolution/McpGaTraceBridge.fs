@@ -122,6 +122,29 @@ module McpGaTraceBridge =
             Result.Error $"Failed to build promotion index: {ex.Message}"
 
     // =========================================================================
+    // Tool: export_insights — Export meta-cognitive insights for GA consumption
+    // =========================================================================
+
+    let private exportInsightsTool (_input: string) : Result<string, string> =
+        try
+            let path = InsightExporter.export ()
+            let snapshot = InsightExporter.loadLatest ()
+            match snapshot with
+            | Some s ->
+                let summary =
+                    {| ExportedTo = path
+                       PatternScoreCount = s.PatternScores.Length
+                       GapCount = s.Gaps.Length
+                       PromotedCount = s.PromotedPatterns.Length
+                       OutcomeSummary = s.OutcomeSummary
+                       Recommendations = s.RecommendedActions |}
+                Result.Ok (JsonSerializer.Serialize(summary, jsonOptions))
+            | None ->
+                Result.Ok $"{{\"ExportedTo\": \"{path}\", \"Note\": \"Export succeeded but re-read failed\"}}"
+        with ex ->
+            Result.Error $"Failed to export insights: {ex.Message}"
+
+    // =========================================================================
     // Tool registration
     // =========================================================================
 
@@ -144,4 +167,10 @@ module McpGaTraceBridge =
             Version = "1.0"
             ParentVersion = None
             CreatedAt = DateTime.UtcNow
-            Execute = fun input -> async { return promotionIndexTool input } } ]
+            Execute = fun input -> async { return promotionIndexTool input } }
+          { Name = "export_insights"
+            Description = "Export TARS meta-cognitive insights to ~/.tars/insights/ for cross-repo consumption. Includes pattern scores, capability gaps, promoted patterns, outcome summary, and recommendations. Guitar Alchemist reads these to prioritize skill development. No input required."
+            Version = "1.0"
+            ParentVersion = None
+            CreatedAt = DateTime.UtcNow
+            Execute = fun input -> async { return exportInsightsTool input } } ]

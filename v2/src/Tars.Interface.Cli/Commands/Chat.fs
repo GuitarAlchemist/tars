@@ -6,11 +6,9 @@ open Serilog
 open Tars.Core
 open Tars.Graph
 open Spectre.Console
-open System.Net.Http
 open Tars.Llm
-open Tars.Llm.Routing
-open Tars.Llm.LlmService
 open Tars.Security
+open Tars.Interface.Cli
 open Tars.Connectors.EpisodeIngestion
 open Tars.Cortex
 open System.IO
@@ -298,37 +296,7 @@ let run (logger: ILogger) (options: ChatOptions) : Task<int> =
                 logger.Warning("Failed to register search_memory tool: {Error}", ex.Message)
 
         // LLM Service Initialization
-        let ollamaBaseUri =
-            match CredentialVault.getSecret "OLLAMA_BASE_URL" with
-            | Result.Ok url ->
-                logger.Information("Using Ollama from secrets: {Url}", url)
-                Uri(url)
-            | Result.Error _ ->
-                let errorMsg = "OLLAMA_BASE_URL secret is MISSING!"
-                logger.Fatal(errorMsg)
-                failwith errorMsg
-
-        let routingCfg: RoutingConfig =
-            { RoutingConfig.Default with
-                OllamaBaseUri = ollamaBaseUri
-                VllmBaseUri = Uri("http://localhost:8000/")
-                OpenAIBaseUri = Uri("https://api.openai.com/")
-                GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com/")
-                AnthropicBaseUri = Uri("https://api.anthropic.com/")
-                DefaultOllamaModel = "qwen2.5-coder:latest"
-                DefaultVllmModel = "qwen2.5-72b-instruct"
-                DefaultOpenAIModel = "gpt-4o"
-                DefaultGoogleGeminiModel = "gemini-pro"
-                DefaultAnthropicModel = "claude-3-opus-20240229"
-                DefaultEmbeddingModel = "nomic-embed-text"
-                OpenAIKey = CredentialVault.getSecret "OPENAI_API_KEY" |> Result.toOption
-                GoogleGeminiKey = CredentialVault.getSecret "GOOGLE_API_KEY" |> Result.toOption
-                AnthropicKey = CredentialVault.getSecret "ANTHROPIC_API_KEY" |> Result.toOption }
-
-        let svcCfg: LlmServiceConfig = { Routing = routingCfg }
-        use httpClient = new HttpClient()
-        httpClient.Timeout <- TimeSpan.FromSeconds(120.0)
-        let llmService = DefaultLlmService(httpClient, svcCfg) :> ILlmService
+        let llmService = LlmFactory.create logger
 
         let modelName = options.Model |> Option.defaultValue "llama3.2"
 

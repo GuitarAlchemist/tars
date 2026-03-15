@@ -54,6 +54,7 @@
     <Compile Include="Commands\SmokeTest.fs" />
     <Compile Include="Commands\NeuroSymbolicBenchmark.fs" />
     <Compile Include="Commands\Benchmark.fs" />
+    <Compile Include="Commands\CodeBenchmark.fs" />
     <Compile Include="Commands\PromoteCommand.fs" />
     <Compile Include="Commands\WotCommand.fs" />
     <Compile Include="Commands\SwarmCommand.fs" />

@@ -7,8 +7,6 @@ open System.Threading.Tasks
 open Serilog
 open Tars.Core
 open Tars.Llm
-open Tars.Llm.Routing
-open Tars.Llm.LlmService
 open Tars.Interface.Cli
 open Spectre.Console
 
@@ -29,33 +27,8 @@ let private writeSkipped (msg: string) =
     AnsiConsole.MarkupLine($"[yellow]SKIP[/] ({msg})")
 
 // --- Helper to create LLM service ---
-let private createLlmService () =
-    let config = ConfigurationLoader.load ()
-    let useLlamaCpp =
-        config.Llm.Provider.Equals("LlamaCpp", StringComparison.OrdinalIgnoreCase)
-        || config.Llm.Provider.Equals("llama.cpp", StringComparison.OrdinalIgnoreCase)
-
-    let routingCfg =
-        { RoutingConfig.Default with
-            OllamaBaseUri =
-                config.Llm.BaseUrl
-                |> Option.map Uri
-                |> Option.defaultValue (Uri "http://localhost:11434")
-            DefaultOllamaModel = config.Llm.Model
-            LlamaCppBaseUri =
-                if useLlamaCpp then
-                    config.Llm.LlamaCppUrl |> Option.map Uri
-                else
-                    None
-            DefaultLlamaCppModel =
-                if useLlamaCpp && config.Llm.LlamaCppUrl.IsSome then
-                    Some config.Llm.Model
-                else
-                    None }
-
-    let serviceConfig = { LlmServiceConfig.Routing = routingCfg }
-    let client = new HttpClient()
-    (DefaultLlmService(client, serviceConfig) :> ILlmService, config)
+let private createLlmService (logger: ILogger) =
+    LlmFactory.createWithConfig logger
 
 // --- Core Diagnostic Checks ---
 
@@ -100,7 +73,7 @@ let private checkLlm (logger: ILogger) : Task<bool> =
         writeCheck "LLM Connectivity"
 
         try
-            let svc, config = createLlmService ()
+            let svc, config = createLlmService logger
 
             let req =
                 { ModelHint = None
@@ -175,7 +148,7 @@ let private checkCoT (logger: ILogger) : Task<bool> =
         writeCheck "Chain of Thought (CoT)"
 
         try
-            let svc, config = createLlmService ()
+            let svc, config = createLlmService logger
 
             // Simple reasoning test
             let req =
@@ -221,7 +194,7 @@ let private checkWoT (logger: ILogger) : Task<bool> =
         writeCheck "Workflow of Thought (WoT)"
 
         try
-            let svc, config = createLlmService ()
+            let svc, config = createLlmService logger
 
             // Simple multi-step test
             let req =
@@ -313,7 +286,7 @@ let private checkRag (logger: ILogger) : Task<bool> =
         writeCheck "RAG Components"
 
         try
-            let svc, config = createLlmService ()
+            let svc, config = createLlmService logger
 
             // Test embedding capability
             let! embeddings = svc.EmbedAsync("test embedding")
