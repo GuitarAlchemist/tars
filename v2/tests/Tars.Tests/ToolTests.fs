@@ -1,7 +1,6 @@
 namespace Tars.Tests
 
 open Xunit
-open Tars.Tools.Standard
 
 type ToolTests() =
 
@@ -12,7 +11,7 @@ type ToolTests() =
             // This test requires Docker to be running and tars-sandbox image to exist
             // We assume the environment is set up correctly (checked via 'docker images' earlier)
 
-            let! result = StandardTools.runCommand "echo hello from sandbox"
+            let! result = Tars.Tools.Standard.StandardTools.runCommand "echo hello from sandbox"
 
             Assert.Equal("hello from sandbox", result)
         }
@@ -22,7 +21,7 @@ type ToolTests() =
         task {
             if not (TestHelpers.requireTools()) then () else
             // Check OS release info
-            let! result = StandardTools.runCommand "cat /etc/os-release"
+            let! result = Tars.Tools.Standard.StandardTools.runCommand "cat /etc/os-release"
 
             // The sandbox is Debian-based (python:3.11-slim)
             Assert.Contains("PRETTY_NAME=\"Debian", result)

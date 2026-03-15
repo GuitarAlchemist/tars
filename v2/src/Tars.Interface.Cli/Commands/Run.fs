@@ -8,15 +8,12 @@ open Serilog
 open Tars.Core
 open Tars.Kernel
 open Tars.Llm
-open Tars.Llm.Routing
-open Tars.Llm.LlmService
 open Tars.Metascript
 open Tars.Metascript.Domain
 open Tars.Metascript.Engine
 open Tars.Metascript.Config
-open System.Net.Http
 open Tars.Cortex
-open Tars.Security
+open Tars.Interface.Cli
 
 let execute (logger: ILogger) (scriptPath: string) =
     task {
@@ -32,45 +29,7 @@ let execute (logger: ILogger) (scriptPath: string) =
                 let workflow = JsonSerializer.Deserialize<Workflow>(json, options)
 
                 // Initialize Kernel & LLM
-                let getSecret key =
-                    match CredentialVault.getSecret key with
-                    | Result.Ok s -> Some s
-                    | Result.Error _ -> None
-
-                let routingCfg: RoutingConfig =
-                    { OllamaBaseUri = Uri("http://localhost:11434/")
-                      VllmBaseUri = Uri("http://localhost:11434/")
-                      OpenAIBaseUri = Uri("https://api.openai.com/")
-                      GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com/")
-                      AnthropicBaseUri = Uri("https://api.anthropic.com/")
-                      DefaultOllamaModel = "qwen2.5-coder:1.5b"
-                      DefaultVllmModel = "qwen2.5-coder:1.5b"
-                      DefaultOpenAIModel = "gpt-4o"
-                      DefaultGoogleGeminiModel = "gemini-pro"
-                      DefaultAnthropicModel = "claude-3-opus-20240229"
-                      DefaultDockerModelRunnerModel = None
-                      DefaultLlamaCppModel = None
-                      DefaultEmbeddingModel = "nomic-embed-text"
-
-                      OllamaKey = None
-                      VllmKey = None
-                      OpenAIKey = getSecret "OPENAI_API_KEY"
-                      GoogleGeminiKey = getSecret "GOOGLE_API_KEY"
-                      AnthropicKey = getSecret "ANTHROPIC_API_KEY"
-                      DockerModelRunnerBaseUri = None
-                      LlamaCppBaseUri = None
-                      DockerModelRunnerKey = None
-                      LlamaCppKey = None
-                      LlamaSharpModelPath = None
-
-                      DefaultContextWindow = None
-
-                      DefaultTemperature = None }
-
-                let svcCfg: LlmServiceConfig = { Routing = routingCfg }
-                use httpClient = new HttpClient()
-                httpClient.Timeout <- TimeSpan.FromSeconds(120.0)
-                let llmService = DefaultLlmService(httpClient, svcCfg)
+                let llmService = LlmFactory.create logger
 
                 // Initialize Tools
                 let tools = Tars.Tools.ToolRegistry()
@@ -89,7 +48,7 @@ let execute (logger: ILogger) (scriptPath: string) =
 
                 let embedder (text: string) =
                     async {
-                        match! (llmService :> ILlmServiceFunctional).EmbedAsync text with
+                        match! (llmService :?> ILlmServiceFunctional).EmbedAsync text with
                         | Result.Ok embedding -> return embedding
                         | Result.Error _ -> return Array.empty<float32>
                     }

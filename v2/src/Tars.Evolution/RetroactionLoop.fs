@@ -181,7 +181,7 @@ module RetroactionLoop =
 
                 if score.Overall >= config.PatternThreshold then
                     Console.WriteLine($"[Retroaction] Score {score.Overall:F2} >= threshold {config.PatternThreshold}, compiling pattern...")
-                    let! compiled = PatternCompiler.compileFromTrace llm runId trace problem.Description
+                    let! compiled = TraceCompiler.compileFromTrace llm runId trace problem.Description
                     match compiled with
                     | Ok pattern ->
                         let scoredPattern = { pattern with Score = score.Overall }

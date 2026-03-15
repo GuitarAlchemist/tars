@@ -1,76 +1,0 @@
-=== Chunking Strategy Comparison ===
-
---- Sample Text ---
-
-# Semantic Memory in TARS v2
-
-Semantic memory allows the agent to learn from past experiences. It consists of two main components:
-1. Logical Memory: Abstracted rules and strategies.
-2. Perceptual Memory: Raw data and observations.
-
-## Implementation Details
-
-The system uses vector embeddings to store and retrieve memories. Here is a sample configuration:
-
-```fsharp
-type RagConfig = {
-    CollectionName: string
-    TopK: int
-    MinScore: float32
-}
-```
-
-When a new task is executed, the agent queries the semantic memory to find relevant past experiences.
-This process involves:
-- Computing the embedding of the current task.
-- Searching the vector store for similar entries.
-- Retrieving the associated strategies.
-
-The goal is to improve performance over time by avoiding repeated mistakes.
-
---- Fixed Size Chunking ---
-[demo_chunk_0] # Semantic Memory in TARS v2\n\nSemantic memory allows the agent to learn from past experiences. It co
-[demo_chunk_1] nsists of two main components:\n1. Logical Memory: Abstracted rules and strategies.\n2. Perceptual Mem
-[demo_chunk_2] ory: Raw data and observations.\n\n## Implementation Details\n\nThe system uses vector embeddings to sto
-[demo_chunk_3] re and retrieve memories. Here is a sample configuration:\n\n```fsharp\ntype RagConfig = {\n    Collecti
-[demo_chunk_4] onName: string\n    TopK: int\n    MinScore: float32\n}\n```\n\nWhen a new task is executed, the agent que
-[demo_chunk_5] ries the semantic memory to find relevant past experiences.\nThis process involves:\n- Computing the e
-[demo_chunk_6] mbedding of the current task.\n- Searching the vector store for similar entries.\n- Retrieving the ass
-
---- Semantic Chunking ---
-[demo_chunk_0] # Semantic Memory in TARS v2\n\nSemantic memory allows the agent to learn from past experiences.
-[demo_chunk_1] It consists of two main components:\n1.
-[demo_chunk_2] Logical Memory: Abstracted rules and strategies.
-[demo_chunk_3] 2. Perceptual Memory: Raw data and observations.
-[demo_chunk_4] ## Implementation Details\n\nThe system uses vector embeddings to store and retrieve memories.
-[demo_chunk_5] Here is a sample configuration:\n\n```fsharp\ntype RagConfig = {\n    CollectionName: string\n    TopK: int\n    MinScore: float32\n}\n```\n\nWhen a new task is executed, the agent queries the semantic memory to find relevant past experiences.
-[demo_chunk_6] This process involves:\n- Computing the embedding of the current task.
-[demo_chunk_7] - Searching the vector store for similar entries.
-[demo_chunk_8] - Retrieving the associated strategies.
-[demo_chunk_9] The goal is to improve performance over time by avoiding repeated mistakes.
-
---- Agentic Chunking ---
-[demo_chunk_0] # Semantic Memory in TARS v2\n\nSemantic memory allows the agent to learn from past experiences. It consists of two main components:\n1. Logical Memory: Abstracted rules and strategies.\n2. Perceptual Memory: Raw data and observations.
-[demo_chunk_1] ## Implementation Details\n\nThe system uses vector embeddings to store and retrieve memories. Here is a sample configuration:\n\n```fsharp\ntype RagConfig = {\n    CollectionName: string\n    TopK: int\n    MinScore: float32\n}\n```
-[demo_chunk_2] When a new task is executed, the agent queries the semantic memory to find relevant past experiences.\nThis process involves:\n- Computing the embedding of the current task.\n- Searching the vector store for similar entries.\n- Retrieving the associated strategies.\n\nThe goal is to improve performance over time by avoiding repeated mistakes.
-
---- AST Chunking (F# Sample) ---
-module Tars.Demo
-
-type DemoConfig = {
-    Id: string
-    Value: int
-}
-
-let processConfig (config: DemoConfig) =
-    printfn "Processing %s" config.Id
-    config.Value * 2
-
-type Processor() =
-    member this.Run() =
-        let config = { Id = "test"; Value = 10 }
-        processConfig config
-
-[demo_ast_chunk_0] type DemoConfig = {\n    Id: string\n    Value: int\n}
-[demo_ast_chunk_1] let processConfig (config: DemoConfig) =\n    printfn "Processing %s" config.Id\n    config.Value * 2
-[demo_ast_chunk_2] type Processor() =\n    member this.Run() =\n        let config = { Id = "test"; Value = 10 }\n        processConfig config

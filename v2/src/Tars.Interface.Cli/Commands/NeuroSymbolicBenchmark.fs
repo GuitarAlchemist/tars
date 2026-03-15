@@ -8,8 +8,6 @@ open System.Threading.Tasks
 open Serilog
 open Tars.Core
 open Tars.Llm
-open Tars.Llm.Routing
-open Tars.Llm.LlmService
 open Tars.Symbolic
 open Tars.Interface.Cli
 
@@ -60,29 +58,7 @@ let runPuzzleWithConstraints (logger: ILogger) (puzzle: Puzzle) (config: Benchma
         let mutable previousFailures = []
 
         // Setup LLM (simplified for benchmark)
-        let tarsConfig = ConfigurationLoader.load ()
-
-        let routingCfg =
-            { RoutingConfig.Default with
-                OllamaBaseUri =
-                    tarsConfig.Llm.BaseUrl
-                    |> Option.map Uri
-                    |> Option.defaultValue (Uri "http://localhost:11434")
-                DefaultOllamaModel = tarsConfig.Llm.Model
-                LlamaCppBaseUri = tarsConfig.Llm.LlamaCppUrl |> Option.map Uri
-                DefaultLlamaCppModel =
-                    if tarsConfig.Llm.LlamaCppUrl.IsSome then
-                        Some tarsConfig.Llm.Model
-                    else
-                        None
-                LlamaSharpModelPath = tarsConfig.Llm.LlamaSharpModelPath
-                DefaultContextWindow = if tarsConfig.Llm.ContextWindow > 0 then Some tarsConfig.Llm.ContextWindow else None
-                DefaultTemperature = None }
-
-        use client = new System.Net.Http.HttpClient()
-
-        let llmService =
-            DefaultLlmService(client, { LlmServiceConfig.Routing = routingCfg }) :> ILlmService
+        let llmService = LlmFactory.create logger
 
         // Adaptive loop
         let mutable currentAttempt = 1

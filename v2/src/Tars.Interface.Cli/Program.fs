@@ -213,7 +213,7 @@ let main argv =
 
     task {
         match argv with
-        | [| "ask"; prompt |] -> return! Ask.run config prompt
+        | [| "ask"; prompt |] -> return! Ask.run logger prompt
         | [| "guard-output"; path |] ->
             // Defaults: no required fields, citations not required, extra fields not allowed
             return GuardOutputCommand.run config path None false false
@@ -256,6 +256,8 @@ let main argv =
                 return 1
 
         // Benchmark
+        | args when args.Length > 1 && args.[0] = "benchmark" && args.[1] = "code" ->
+            return! CodeBenchmark.run logger (args |> Array.skip 2)
         | args when args.Length > 0 && args.[0] = "benchmark" -> return! Benchmark.run logger (args |> Array.skip 1)
 
         // Puzzle Demo - now with benchmark/export support
@@ -315,7 +317,8 @@ let main argv =
                   PlanPath = None
                   Focus = None
                   ResearchEnhanced = false
-                  SelfImprovement = false }
+                  SelfImprovement = false
+                  Benchmark = false }
 
             let mutable i = 1
 
@@ -359,6 +362,7 @@ let main argv =
                     options <- { options with Focus = Some args.[i] }
                 | "--research" -> options <- { options with ResearchEnhanced = true }
                 | "--self-improve" -> options <- { options with SelfImprovement = true }
+                | "--benchmark" -> options <- { options with Benchmark = true }
                 | "--loop" when i + 1 < args.Length ->
                     i <- i + 1
                     let mutable parsedVal = 0

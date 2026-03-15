@@ -33,6 +33,9 @@ chunking_demo_output.txt
 secrets.json
 token.json
 
+# Archive (parked debug/session files)
+_archive/
+
 # Other
 *.out
 .fake

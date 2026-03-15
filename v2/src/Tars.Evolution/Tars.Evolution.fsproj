@@ -9,6 +9,8 @@
   <ItemGroup>
     <Compile Include="Protocol.fs" />
     <Compile Include="CurriculumTypes.fs" />
+    <Compile Include="BenchmarkTypes.fs" />
+    <Compile Include="ProblemBank.fs" />
     <Compile Include="PromotionTypes.fs" />
     <Compile Include="GrammarGovernor.fs" />
     <Compile Include="WeightedGrammar.fs" />
@@ -27,7 +29,7 @@
     <Compile Include="TaskPrioritization.fs" />
     <Compile Include="SpeechActBridge.fs" />
     <Compile Include="SymbolicReflector.fs" />
-    <Compile Include="PatternCompiler.fs" />
+    <Compile Include="TraceCompiler.fs" />
     <Compile Include="PatternLibrary.fs" />
     <Compile Include="SelfImprovement.fs" />
     <Compile Include="RetroactionLoop.fs" />
@@ -49,6 +51,8 @@
     <Compile Include="McpGrammarTools.fs" />
     <Compile Include="GaPatternSeeder.fs" />
     <Compile Include="GaTraceBridge.fs" />
+    <Compile Include="BenchmarkRunner.fs" />
+    <Compile Include="InsightExporter.fs" />
     <Compile Include="McpGaTraceBridge.fs" />
     <Compile Include="Engine.fs" />
   </ItemGroup>

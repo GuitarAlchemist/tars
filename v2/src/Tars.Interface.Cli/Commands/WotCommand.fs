@@ -645,7 +645,7 @@ module WotCommand =
 
                                                 try
                                                     let! patternRes =
-                                                        PatternCompiler.compileFromTrace
+                                                        TraceCompiler.compileFromTrace
                                                             llm
                                                             runId
                                                             golden.Steps
@@ -1248,7 +1248,7 @@ module WotCommand =
 
                                         try
                                             let! patternRes =
-                                                PatternCompiler.compileFromTrace
+                                                TraceCompiler.compileFromTrace
                                                     llm
                                                     (Guid.NewGuid())
                                                     canonicalTraces

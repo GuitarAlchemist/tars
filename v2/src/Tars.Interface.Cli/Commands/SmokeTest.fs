@@ -4,8 +4,6 @@ open System
 open System.Threading.Tasks
 open Serilog
 open Tars.Llm
-open Tars.Llm.Routing
-open Tars.Llm.LlmService
 open Tars.Interface.Cli
 open Spectre.Console
 
@@ -15,23 +13,10 @@ let runSmokeTest (logger: ILogger) : Task<int> =
         AnsiConsole.WriteLine()
         
         try
-            // Load configuration
+            // Load configuration and create LLM service
             let config = ConfigurationLoader.load ()
-            
-            // Initialize routing config
-            let routingCfg = {
-                RoutingConfig.Default with
-                    OllamaBaseUri = config.Llm.BaseUrl |> Option.map Uri |> Option.defaultValue (Uri "http://localhost:11434")
-                    DefaultOllamaModel = config.Llm.Model
-                    LlamaCppBaseUri = config.Llm.LlamaCppUrl |> Option.map Uri
-                    DefaultLlamaCppModel = if config.Llm.LlamaCppUrl.IsSome then Some config.Llm.Model else None
-            }
-            
-            let serviceConfig = { LlmServiceConfig.Routing = routingCfg }
-            use client = new System.Net.Http.HttpClient()
-            client.Timeout <- TimeSpan.FromMinutes(2.0)
-            let llmService = DefaultLlmService(client, serviceConfig) :> ILlmService
-            
+            let llmService = LlmFactory.create logger
+
             AnsiConsole.MarkupLine($"[bold]Configuration:[/]")
             AnsiConsole.MarkupLine($"  Provider: [cyan]{config.Llm.Provider}[/]")
             AnsiConsole.MarkupLine($"  Model: [cyan]{config.Llm.Model}[/]")

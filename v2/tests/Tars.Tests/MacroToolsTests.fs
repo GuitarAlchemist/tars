@@ -3,7 +3,6 @@ namespace Tars.Tests
 open Xunit
 open Tars.Core
 open Tars.Metascript
-open Tars.Tools
 
 module MacroToolsTests =
 
@@ -49,7 +48,7 @@ module MacroToolsTests =
         task {
             if not (TestHelpers.requireTools()) then () else
             let registry = MockRegistry()
-            let tools = MacroTools.getTools registry
+            let tools = Tars.Tools.MacroTools.getTools registry
             let registerTool = tools |> List.find (fun t -> t.Name = "register_macro")
 
             let validJson =
@@ -96,7 +95,7 @@ module MacroToolsTests =
         task {
             if not (TestHelpers.requireTools()) then () else
             let registry = MockRegistry()
-            let tools = MacroTools.getTools registry
+            let tools = Tars.Tools.MacroTools.getTools registry
             let registerTool = tools |> List.find (fun t -> t.Name = "register_macro")
 
             let invalidJson = "{ invalid: json }"
@@ -117,7 +116,7 @@ module MacroToolsTests =
             let! _ = iRegistry.Register(createTestWorkflow "macro1")
             let! _ = iRegistry.Register(createTestWorkflow "macro2")
 
-            let tools = MacroTools.getTools registry
+            let tools = Tars.Tools.MacroTools.getTools registry
             let listTool = tools |> List.find (fun t -> t.Name = "list_macros")
 
             let! result = listTool.Execute "" |> Async.StartAsTask
@@ -137,7 +136,7 @@ module MacroToolsTests =
             let iRegistry = registry :> IMacroRegistry
             let! _ = iRegistry.Register(createTestWorkflow "my_macro")
 
-            let tools = MacroTools.getTools registry
+            let tools = Tars.Tools.MacroTools.getTools registry
             let getTool = tools |> List.find (fun t -> t.Name = "get_macro")
 
             let! result = getTool.Execute "my_macro" |> Async.StartAsTask
@@ -154,7 +153,7 @@ module MacroToolsTests =
         task {
             if not (TestHelpers.requireTools()) then () else
             let registry = MockRegistry()
-            let tools = MacroTools.getTools registry
+            let tools = Tars.Tools.MacroTools.getTools registry
             let getTool = tools |> List.find (fun t -> t.Name = "get_macro")
 
             let! result = getTool.Execute "missing_macro" |> Async.StartAsTask

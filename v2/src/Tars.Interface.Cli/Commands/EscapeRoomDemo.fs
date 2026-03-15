@@ -4,8 +4,6 @@ open System
 open Serilog
 open Tars.Core
 open Tars.Llm
-open Tars.Llm.Routing
-open Tars.Llm.LlmService
 open Tars.Interface.Cli
 open Spectre.Console
 
@@ -273,26 +271,8 @@ let processCommand (state: RoomState) (command: string) : RoomState * string =
     | _ -> newState, $"I don't understand '{command}'. Try HELP for available commands."
 
 /// Create LLM service
-let private createLlmService () =
-    let config = ConfigurationLoader.load ()
-
-    let routingCfg =
-        { RoutingConfig.Default with
-            OllamaBaseUri =
-                config.Llm.BaseUrl
-                |> Option.map Uri
-                |> Option.defaultValue (Uri "http://localhost:11434")
-            DefaultOllamaModel = config.Llm.Model
-            LlamaCppBaseUri = config.Llm.LlamaCppUrl |> Option.map Uri
-            DefaultLlamaCppModel =
-                if config.Llm.LlamaCppUrl.IsSome then
-                    Some config.Llm.Model
-                else
-                    None }
-
-    let serviceConfig = { LlmServiceConfig.Routing = routingCfg }
-    let client = new System.Net.Http.HttpClient()
-    (DefaultLlmService(client, serviceConfig) :> ILlmService, config)
+let private createLlmService (logger: ILogger) =
+    LlmFactory.createWithConfig logger
 
 /// System prompt for the escape room agent
 let systemPrompt =
@@ -310,7 +290,7 @@ let run (logger: ILogger) (maxTurns: int) (verbose: bool) =
         AnsiConsole.MarkupLine("[dim]Watch TARS solve an escape room puzzle using reasoning![/]")
         AnsiConsole.WriteLine()
 
-        let svc, config = createLlmService ()
+        let svc, config = createLlmService logger
         let mutable state = RoomState.initial
         let mutable conversationHistory = []
         let mutable solved = false

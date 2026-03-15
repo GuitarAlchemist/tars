@@ -2,11 +2,8 @@ namespace Tars.Interface.Cli.Commands
 
 open System
 open System.IO
-open System.Net.Http
 open Serilog
 open Tars.Llm
-open Tars.Llm.LlmService
-open Tars.Llm.Routing
 open Tars.Metascript
 open Tars.Metascript.V1
 open Tars.Metascript.V1Executor
@@ -14,6 +11,7 @@ open Tars.Metascript.Domain
 open Tars.Metascript.Config
 open Tars.Evolution.Reflection
 open Tars.Evolution.Optimizer
+open Tars.Interface.Cli
 
 open Tars.Tools
 
@@ -45,23 +43,7 @@ module RunCommand =
                             metascript.Blocks.Length
                         )
 
-                        let routingConfig =
-                            { RoutingConfig.Default with
-                                OllamaBaseUri = Uri("http://localhost:11434")
-                                VllmBaseUri = Uri("http://localhost:11434/v1")
-                                OpenAIBaseUri = Uri("https://api.openai.com")
-                                GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com")
-                                AnthropicBaseUri = Uri("https://api.anthropic.com")
-                                DefaultOllamaModel = "qwen2.5-coder:1.5b"
-                                DefaultVllmModel = "qwen2.5-coder:1.5b"
-                                DefaultOpenAIModel = "gpt-4o"
-                                DefaultGoogleGeminiModel = "gemini-1.5-pro"
-                                DefaultAnthropicModel = "claude-3-5-sonnet-20240620"
-                                DefaultEmbeddingModel = "nomic-embed-text" }
-
-                        let llmConfig = { Routing = routingConfig }
-                        use httpClient = new HttpClient()
-                        let llm = DefaultLlmService(httpClient, llmConfig) :> ILlmService
+                        let llm = LlmFactory.create logger
 
                         let handlers: IBlockHandler list =
                             [ TextBlockHandler() :> IBlockHandler
@@ -116,25 +98,7 @@ module RunCommand =
                         | Parser.Success workflow ->
                             logger.Information("Workflow '{Name}' loaded successfully.", workflow.Name)
 
-                            let routingConfig =
-                                { RoutingConfig.Default with
-                                    OllamaBaseUri = Uri("http://localhost:11434")
-                                    VllmBaseUri = Uri("http://localhost:11434/v1")
-                                    OpenAIBaseUri = Uri("https://api.openai.com")
-                                    GoogleGeminiBaseUri = Uri("https://generativelanguage.googleapis.com")
-                                    AnthropicBaseUri = Uri("https://api.anthropic.com")
-                                    DefaultOllamaModel = "qwen2.5-coder:1.5b"
-                                    DefaultVllmModel = "qwen2.5-coder:1.5b"
-                                    DefaultOpenAIModel = "gpt-4o"
-                                    DefaultGoogleGeminiModel = "gemini-1.5-pro"
-                                    DefaultAnthropicModel = "claude-3-5-sonnet-20240620"
-                                    DefaultEmbeddingModel = "nomic-embed-text" }
-
-                            let llmConfig = { Routing = routingConfig }
-                            use httpClient = new HttpClient()
-                            httpClient.Timeout <- TimeSpan.FromMinutes(2.0)
-
-                            let llm = DefaultLlmService(httpClient, llmConfig)
+                            let llm = LlmFactory.create logger
                             let tools = ToolRegistry()
 
                             let ctx: MetascriptContext =
