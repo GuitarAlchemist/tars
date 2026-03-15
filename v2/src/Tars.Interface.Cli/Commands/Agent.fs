@@ -1041,11 +1041,24 @@ let run
     | "fanout" when args.Length > 0 ->
         let goal = String.Join(" ", args)
         runFanOut config options goal
+    | "list" ->
+        printfn "TARS Agents"
+        printfn "━━━━━━━━━━━━━━━━━━━━"
+        let agents = Tars.Core.WorkflowOfThought.AgentRegistry.allDefinitions ()
+        for agent in agents do
+            let hint = agent.ModelHint |> Option.defaultValue "-"
+            let temp = agent.Temperature |> Option.map (fun t -> $"{t:F1}") |> Option.defaultValue "-"
+            let desc = agent.Description |> Option.defaultValue ""
+            printfn "  %-14s  hint=%-10s  temp=%-4s  %s" agent.Role hint temp desc
+        printfn ""
+        printfn $"  {agents.Length} agents loaded (from agents/*.md + builtins)"
+        System.Threading.Tasks.Task.FromResult(0)
     | "help"
     | _ ->
         printfn "TARS Agent Commands"
         printfn "━━━━━━━━━━━━━━━━━━━━"
         printfn ""
+        printfn "  tars agent list             List all registered agents"
         printfn "  tars agent run <goal>       Run via MAF (orchestrated WoT + tools)"
         printfn "  tars agent chat             Interactive multi-turn chat with WoT reasoning"
         printfn "  tars agent pipeline <goal>  Run sequential pipeline (Analyzer -> Coder -> Reviewer)"
@@ -1063,6 +1076,7 @@ let run
         printfn "  --evidence <file|dir>       Write LLM request/response trace to JSON"
         printfn ""
         printfn "Examples:"
+        printfn "  tars agent list"
         printfn "  tars agent run \"Analyze this codebase and suggest improvements\""
         printfn "  tars agent pipeline \"Design a caching layer for the API\""
         printfn "  tars agent fanout \"Review this module for bugs and improvements\""
