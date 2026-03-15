@@ -195,3 +195,33 @@ let ``AgentRegistry get is case-insensitive`` () =
 let ``AgentRegistry getOrDefault falls back to Default`` () =
     let unknown = Tars.Core.WorkflowOfThought.AgentRegistry.getOrDefault "nonexistent"
     Assert.Equal("Default", unknown.Role)
+
+[<Fact>]
+let ``Parse accepts GA-compatible fields without error`` () =
+    let md = """---
+id: ga-theory
+name: Theory Agent
+role: theory
+description: Music theory analysis
+capabilities: [reasoning, analysis]
+routing_keywords: [chord, scale, key]
+use_critique: true
+delegates_to: critic
+---
+
+You are Theory Agent.
+"""
+    let result = AgentDefinitionParser.parse md None
+    match result with
+    | Result.Ok def ->
+        Assert.Equal("ga-theory", def.Id)
+        Assert.Equal("theory", def.Role)
+    | Result.Error e -> Assert.Fail($"Parse failed: {e}")
+
+[<Fact>]
+let ``Discovery searches cross-repo paths`` () =
+    let paths = AgentDefinitionDiscovery.defaultSearchPaths "/tmp/test"
+    Assert.Equal(3, paths.Length)
+    Assert.Contains("agents", paths.[0])
+    Assert.Contains(".tars", paths.[1])
+    Assert.Contains(".ga", paths.[2])

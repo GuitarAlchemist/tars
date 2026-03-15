@@ -1,7 +1,7 @@
 namespace Tars.Evolution
 
-/// Bridge to MachinDeOuf's Rust MCTS implementation.
-/// Falls back to the built-in F# MctsSolver when machin-skill is unavailable.
+/// Bridge to ix's Rust MCTS implementation.
+/// Falls back to the built-in F# MctsSolver when ix is unavailable.
 /// Follows the same pattern as MachinBridge + FallbackGA.
 module MctsBridge =
 
@@ -10,7 +10,7 @@ module MctsBridge =
     open System.Text.Json
     open MctsTypes
 
-    /// Result from MachinDeOuf MCTS search
+    /// Result from ix MCTS search
     type MctsExternalResult = {
         BestActionIndex: int
         Iterations: int
@@ -18,7 +18,7 @@ module MctsBridge =
         TreeSize: int
     }
 
-    /// Parse machin-skill MCTS output.
+    /// Parse ix MCTS output.
     /// Expected format:
     ///   MCTS:
     ///     Best action:  2
@@ -51,7 +51,7 @@ module MctsBridge =
           AverageReward = avgReward
           TreeSize = treeSize }
 
-    /// Serialize WoT templates to a temp EBNF grammar for machin grammar search.
+    /// Serialize WoT templates to a temp EBNF grammar for ix grammar search.
     /// Encodes the template pool as EBNF productions so the Rust MCTS can explore
     /// grammar-guided derivations natively.
     let private templatesToEbnf (templates: Tars.DSL.Wot.DslNode list) : string =
@@ -68,8 +68,8 @@ module MctsBridge =
         let header = $"root ::= ({nodeAlts})+"
         header + "\n" + (productions |> String.concat "\n")
 
-    /// Try to run grammar-guided MCTS via machin-skill CLI.
-    /// Calls: machin grammar search --grammar <file> --iterations N --exploration C --max-depth D
+    /// Try to run grammar-guided MCTS via ix CLI.
+    /// Calls: ix grammar search --grammar <file> --iterations N --exploration C --max-depth D
     let private tryMachinGrammarSearch
         (config: MachinBridge.MachinConfig)
         (mctsConfig: MctsConfig)
@@ -77,7 +77,7 @@ module MctsBridge =
         : Result<MctsExternalResult, string> =
 
         if not (MachinBridge.isAvailable config) then
-            Error "machin-skill not available"
+            Error "ix not available"
         else
             try
                 let grammarText = templatesToEbnf templates
@@ -90,7 +90,7 @@ module MctsBridge =
                     // Direct CLI call via process
                     let psi = System.Diagnostics.ProcessStartInfo()
                     psi.FileName <- config.SkillPath
-                    psi.Arguments <- $"run -p machin-skill -- {args}"
+                    psi.Arguments <- $"run -p ix -- {args}"
                     psi.UseShellExecute <- false
                     psi.RedirectStandardOutput <- true
                     psi.RedirectStandardError <- true
@@ -106,13 +106,13 @@ module MctsBridge =
                     if proc.ExitCode = 0 then
                         Ok (parseMctsOutput output)
                     else
-                        Error $"machin grammar search exited with code {proc.ExitCode}"
+                        Error $"ix grammar search exited with code {proc.ExitCode}"
                 finally
                     try File.Delete(tmpFile) with _ -> ()
             with ex ->
-                Error $"machin grammar search failed: {ex.Message}"
+                Error $"ix grammar search failed: {ex.Message}"
 
-    /// Run MCTS search for WoT derivation, using MachinDeOuf when available.
+    /// Run MCTS search for WoT derivation, using ix when available.
     /// Falls back to built-in F# MCTS solver.
     let searchWotDerivation
         (machinConfig: MachinBridge.MachinConfig option)
@@ -120,14 +120,14 @@ module MctsBridge =
         (meta: Tars.DSL.Wot.DslMeta)
         (templates: Tars.DSL.Wot.DslNode list)
         (maxNodes: int)
-        : WotMctsState.WotAction list * bool = // (actions, usedMachinDeOuf)
+        : WotMctsState.WotAction list * bool = // (actions, usedIx)
 
-        // Try Rust MCTS via machin grammar search when config provided
+        // Try Rust MCTS via ix grammar search when config provided
         match machinConfig with
         | Some config ->
             match tryMachinGrammarSearch config mctsConfig templates with
             | Ok _externalResult ->
-                // Rust MCTS returned a result — but the action space is indexed,
+                // Rust MCTS returned a result -- but the action space is indexed,
                 // so we still need F# to map indices back to WotActions.
                 // For now, use the external result's iteration count as a signal
                 // and run F# MCTS with that budget for action mapping.
@@ -139,7 +139,7 @@ module MctsBridge =
                 let result = WotMctsState.searchDerivation mctsConfig meta templates maxNodes
                 (result.BestActions, false)
         | None ->
-            // No machin config — use F# fallback directly
+            // No ix config -- use F# fallback directly
             let result = WotMctsState.searchDerivation mctsConfig meta templates maxNodes
             (result.BestActions, false)
 

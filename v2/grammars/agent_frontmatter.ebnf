@@ -1,0 +1,65 @@
+(* EBNF grammar for agent definition YAML frontmatter.
+   Used by AgentDefinition.fs to validate .md files at load time.
+   Compatible with both TARS (F#) and GA (C#) agent schemas. *)
+
+frontmatter = "---" , newline , field_list , "---" , newline ;
+
+field_list = field , { field } ;
+
+field = id_field
+      | name_field
+      | role_field
+      | description_field
+      | model_hint_field
+      | temperature_field
+      | capabilities_field
+      | version_field
+      | routing_keywords_field
+      | use_critique_field
+      | delegates_to_field ;
+
+(* Required fields *)
+id_field          = "id:" , ws , yaml_value , newline ;
+name_field        = "name:" , ws , yaml_value , newline ;
+role_field        = "role:" , ws , yaml_value , newline ;
+
+(* Optional fields *)
+description_field      = "description:" , ws , yaml_value , newline ;
+model_hint_field       = "model_hint:" , ws , model_hint_value , newline ;
+temperature_field      = "temperature:" , ws , float_value , newline ;
+version_field          = "version:" , ws , yaml_value , newline ;
+capabilities_field     = "capabilities:" , ( inline_list | multiline_list ) ;
+routing_keywords_field = "routing_keywords:" , ( inline_list | multiline_list ) ;
+use_critique_field     = "use_critique:" , ws , bool_value , newline ;
+delegates_to_field     = "delegates_to:" , ws , identifier , newline ;
+
+(* Value types *)
+yaml_value       = quoted_string | unquoted_string ;
+quoted_string    = ( '"' , { any_char - '"' } , '"' )
+                 | ( "'" , { any_char - "'" } , "'" ) ;
+unquoted_string  = identifier , { ( ws | identifier | "-" | "." | "," ) } ;
+identifier       = letter , { letter | digit | "-" | "_" } ;
+
+model_hint_value = "reasoning" | "fast" | "coding" | "cheap" | identifier ;
+float_value      = digit , { digit } , [ "." , digit , { digit } ] ;
+bool_value       = "true" | "false" ;
+
+(* Lists *)
+inline_list      = ws , "[" , yaml_value , { "," , ws , yaml_value } , "]" , newline ;
+multiline_list   = newline , list_item , { list_item } ;
+list_item        = ws , "- " , yaml_value , newline ;
+
+(* Terminals *)
+letter   = "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j"
+         | "k" | "l" | "m" | "n" | "o" | "p" | "q" | "r" | "s" | "t"
+         | "u" | "v" | "w" | "x" | "y" | "z"
+         | "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J"
+         | "K" | "L" | "M" | "N" | "O" | "P" | "Q" | "R" | "S" | "T"
+         | "U" | "V" | "W" | "X" | "Y" | "Z" ;
+digit    = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+ws       = " " , { " " } ;
+newline  = "\n" ;
+any_char = letter | digit | " " | "-" | "_" | "." | "," | ":" | "/"
+         | "(" | ")" | "[" | "]" | "{" | "}" | "!" | "?" | "+" | "="
+         | "@" | "#" | "$" | "%" | "^" | "&" | "*" | "~" | "`" | "|"
+         | ";" | "<" | ">" | "'" | '"' ;

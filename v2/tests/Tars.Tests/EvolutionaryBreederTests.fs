@@ -8,7 +8,7 @@ open Tars.Evolution.EvolutionaryPatternBreeder
 open Tars.Cortex
 open Tars.Cortex.WoTTypes
 
-/// Tests for MachinBridge and EvolutionaryPatternBreeder.
+/// Tests for MachinBridge (ix bridge) and EvolutionaryPatternBreeder.
 module EvolutionaryBreederTests =
 
     /// Helper to construct PatternOutcome without ambiguity with PatternOutcomeDto.
@@ -60,7 +60,7 @@ module EvolutionaryBreederTests =
     // =========================================================================
 
     [<Fact>]
-    let ``parseOptimizeOutput parses machin-skill output`` () =
+    let ``parseOptimizeOutput parses ix output`` () =
         let output = """
   GeneticAlgorithm:
     Best value:   0.000123
@@ -168,7 +168,7 @@ module EvolutionaryBreederTests =
         let result = breed None outcomes 10
         Assert.True(result.BestFitness >= 0.0)
         Assert.True(result.Generations > 0)
-        Assert.False(result.UsedMachinDeOuf)
+        Assert.False(result.UsedMachinDeOuf) // UsedMachinDeOuf field name kept for compatibility
         Assert.True(result.Recommendation.Length > 0)
 
         // Genome should be in valid ranges

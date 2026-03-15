@@ -5,7 +5,7 @@ open Tars.Cortex
 open Tars.Core.MetaCognition
 
 /// Applies real genetic algorithm operators to TARS pattern evolution.
-/// Uses MachinDeOuf's GA when available, falls back to built-in F# GA.
+/// Uses ix's GA when available, falls back to built-in F# GA.
 /// Each pattern is encoded as a real-valued vector (its hyperparameters),
 /// and the fitness function is derived from execution history.
 module EvolutionaryPatternBreeder =
@@ -119,13 +119,13 @@ module EvolutionaryPatternBreeder =
         let fitnessFn = computeFitness outcomes
 
         let result, usedMachin =
-            // Try MachinDeOuf first for superior GA implementation
+            // Try ix first for superior GA implementation
             match machinConfig with
             | Some config when MachinBridge.isAvailable config ->
-                // MachinDeOuf's GA operates on benchmark functions,
+                // ix's GA operates on benchmark functions,
                 // but we need custom fitness. Use the F# fallback with
-                // MachinDeOuf-calibrated parameters.
-                // In future: extend machin-skill to accept custom fitness via stdin/JSON.
+                // ix-calibrated parameters.
+                // In future: extend ix to accept custom fitness via stdin/JSON.
                 let gaConfig =
                     { MachinBridge.FallbackGA.defaultGAConfig with
                         PopulationSize = 50

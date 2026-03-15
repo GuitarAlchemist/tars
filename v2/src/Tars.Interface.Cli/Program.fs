@@ -661,7 +661,7 @@ let main argv =
             printfn "  tars breed [options]               Evolutionary pattern optimization via GA"
             printfn "       --generations N               GA generations (default 50)"
             printfn "       --show-genome                 Display evolved genome details"
-            printfn "       status                        Check MachinDeOuf availability"
+            printfn "       status                        Check ix availability"
             printfn "  tars grammar [command]             Probabilistic grammar weights + MCTS search"
             printfn "       weights                       Show current weighted grammar rules"
             printfn "       evolve [--steps N]            Run replicator dynamics on rule ecosystem"

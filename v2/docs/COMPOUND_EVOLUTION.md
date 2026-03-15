@@ -37,7 +37,7 @@
 
 ### Phase 3 — Probabilistic Grammars (commits 043ce409..a415976d)
 - Three-force pipeline: EBNF constrained decoding + PCFG Bayesian weights + replicator dynamics
-- MctsBridge to Rust (MachinDeOuf) with F# fallback
+- MctsBridge to Rust (ix) with F# fallback
 - MCP grammar tools: `weights`, `update`, `evolve`, `search`
 - Constrained decoding for structured IR: IntentPlan, BeliefUpdate, RepairProposal
 - End-to-end integration tests (25 constrained decoding + 7 probabilistic grammar)
@@ -178,7 +178,7 @@ These patterns now influence TARS's agent pattern selection through the Promotio
 ### For the Ecosystem
 - **210K+ lines of code** across 1,574 source files
 - **2,060 tests** passing across both repos
-- **Three-repo bridge** (TARS ↔ GA ↔ MachinDeOuf) via MCP and CLI
+- **Three-repo bridge** (TARS ↔ GA ↔ ix) via MCP and CLI
 - **Probabilistic grammars** shared between TARS (pattern evolution) and GA (harmonic fitness)
 - **Compound engineering staircase** validated: patterns genuinely climb from Implementation to GrammarRule through demonstrated, scored value
 

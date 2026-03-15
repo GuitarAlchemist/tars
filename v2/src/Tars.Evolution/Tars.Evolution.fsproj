@@ -38,7 +38,7 @@
     <Compile Include="CurriculumPlanner.fs" />
     <Compile Include="ReflectionEngine.fs" />
     <Compile Include="MetaCognitionOrchestrator.fs" />
-    <!-- MachinDeOuf bridge: Rust-based GA/optimization for pattern evolution -->
+    <!-- ix bridge: Rust-based GA/optimization for pattern evolution -->
     <Compile Include="MachinBridge.fs" />
     <Compile Include="EvolutionaryPatternBreeder.fs" />
     <!-- MCTS: Monte Carlo Tree Search for grammar derivation -->

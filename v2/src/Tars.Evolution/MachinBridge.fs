@@ -6,25 +6,25 @@ open System.Text
 open System.Text.Json
 open System.Threading.Tasks
 
-/// Bridge to MachinDeOuf's Rust-based ML algorithms.
-/// Calls `machin-skill` CLI for genetic algorithms, optimization, and clustering.
-/// Falls back to built-in F# implementations when machin-skill is not available.
+/// Bridge to ix's Rust-based ML algorithms.
+/// Calls `ix` CLI for genetic algorithms, optimization, and clustering.
+/// Falls back to built-in F# implementations when ix is not available.
 module MachinBridge =
 
-    /// Result from a MachinDeOuf optimization call.
+    /// Result from an ix optimization call.
     type OptimizeResult =
         { BestValue: float
           BestParams: float list
           Iterations: int
           Converged: bool }
 
-    /// Configuration for the MachinDeOuf bridge.
+    /// Configuration for the ix bridge.
     type MachinConfig =
-        { /// Path to machin-skill executable
+        { /// Path to ix executable
           SkillPath: string
           /// Timeout for subprocess calls
           Timeout: TimeSpan
-          /// Working directory for machin-skill
+          /// Working directory for ix
           WorkingDir: string option }
 
     let defaultConfig =
@@ -32,12 +32,12 @@ module MachinBridge =
           Timeout = TimeSpan.FromSeconds(30.0)
           WorkingDir = None }
 
-    /// Check if machin-skill is available.
+    /// Check if ix is available.
     let isAvailable (config: MachinConfig) : bool =
         try
             let psi = ProcessStartInfo()
             psi.FileName <- config.SkillPath
-            psi.Arguments <- "run -p machin-skill -- list"
+            psi.Arguments <- "run -p ix -- list"
             psi.UseShellExecute <- false
             psi.RedirectStandardOutput <- true
             psi.RedirectStandardError <- true
@@ -51,7 +51,7 @@ module MachinBridge =
             proc.ExitCode = 0
         with _ -> false
 
-    /// Execute machin-skill CLI and parse output.
+    /// Execute ix CLI and parse output.
     let private executeSkill
         (config: MachinConfig)
         (args: string)
@@ -60,7 +60,7 @@ module MachinBridge =
             try
                 let psi = ProcessStartInfo()
                 psi.FileName <- config.SkillPath
-                psi.Arguments <- sprintf "run -p machin-skill -- %s" args
+                psi.Arguments <- sprintf "run -p ix -- %s" args
                 psi.UseShellExecute <- false
                 psi.RedirectStandardOutput <- true
                 psi.RedirectStandardError <- true
@@ -92,18 +92,18 @@ module MachinBridge =
 
                 if not completed then
                     try proc.Kill() with _ -> ()
-                    return Error "machin-skill timed out"
+                    return Error "ix timed out"
                 elif proc.ExitCode <> 0 then
                     return Error (stderr.ToString().Trim())
                 else
                     return Ok (stdout.ToString().Trim())
             with ex ->
-                return Error (sprintf "machin-skill error: %s" ex.Message)
+                return Error (sprintf "ix error: %s" ex.Message)
         }
 
-    /// Parse machin-skill optimization output.
+    /// Parse ix optimization output.
     let parseOptimizeOutput (output: string) : OptimizeResult =
-        // machin-skill output format:
+        // ix output format:
         //   GeneticAlgorithm:
         //     Best value:   0.000123
         //     Best params:  [0.001, -0.002, 0.003]
@@ -138,7 +138,7 @@ module MachinBridge =
           Iterations = iterations
           Converged = converged }
 
-    /// Run genetic algorithm optimization via machin-skill.
+    /// Run genetic algorithm optimization via ix.
     let runGeneticAlgorithm
         (config: MachinConfig)
         (dim: int)
@@ -155,7 +155,7 @@ module MachinBridge =
             | Error err -> return Error err
         }
 
-    /// Run differential evolution via machin-skill.
+    /// Run differential evolution via ix.
     let runDifferentialEvolution
         (config: MachinConfig)
         (dim: int)
@@ -172,7 +172,7 @@ module MachinBridge =
             | Error err -> return Error err
         }
 
-    /// Run PSO via machin-skill.
+    /// Run PSO via ix.
     let runPSO
         (config: MachinConfig)
         (dim: int)
@@ -193,7 +193,7 @@ module MachinBridge =
     // Built-in F# fallback implementations
     // =========================================================================
 
-    /// Minimal genetic algorithm in pure F# for when machin-skill is unavailable.
+    /// Minimal genetic algorithm in pure F# for when ix is unavailable.
     module FallbackGA =
 
         type Individual =

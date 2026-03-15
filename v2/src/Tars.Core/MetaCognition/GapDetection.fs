@@ -15,6 +15,16 @@ module GapDetection =
               "test", "testing"
               "debug", "debugging"
               "explain", "explanation"
+              // Search sub-domains: granular tagging for better gap remedies
+              "find file", "search-files"
+              "find class", "search-code"
+              "find function", "search-code"
+              "grep", "search-code"
+              "search code", "search-code"
+              "search file", "search-files"
+              "look for", "search-code"
+              "locate", "search-files"
+              "where is", "search-code"
               "search", "search"
               "analyze", "analysis"
               "plan", "planning"
@@ -24,7 +34,12 @@ module GapDetection =
               "deploy", "deployment"
               "security", "security"
               "performance", "performance"
-              "data", "data-processing" ]
+              "data", "data-processing"
+              // Agent-related domains
+              "compose", "composition"
+              "route", "routing"
+              "delegate", "delegation"
+              "orchestrat", "orchestration" ]
         keywords
         |> List.choose (fun (keyword, domain) ->
             if lower.Contains(keyword) then Some domain else None)
@@ -80,6 +95,9 @@ module GapDetection =
             GapRemedy.AcquireTool(toolName, sprintf "Tool '%s' needed but not available" toolName)
         | FailureRootCause.WrongPattern(used, _) ->
             GapRemedy.LearnPattern(sprintf "Alternative to '%s' for this domain" used)
+        | FailureRootCause.KnowledgeGap domain when domain.StartsWith("search") ->
+            // Search-specific: compose multi-strategy search (glob + grep + semantic)
+            GapRemedy.ComposePatterns([ "glob-search"; "grep-search"; "semantic-search" ])
         | FailureRootCause.KnowledgeGap domain ->
             GapRemedy.IngestKnowledge(domain, [ "documentation"; "examples" ])
         | FailureRootCause.InsufficientContext _ ->
@@ -90,6 +108,8 @@ module GapDetection =
             GapRemedy.ImprovePrompt("current", "Fix prompt formatting/instructions")
         | FailureRootCause.ExternalFailure _ ->
             GapRemedy.LearnPattern "Add retry/fallback handling"
+        | FailureRootCause.Unknown domain when domain.StartsWith("search") ->
+            GapRemedy.ComposePatterns([ "iterative-search"; "breadth-first-discovery"; "semantic-similarity" ])
         | FailureRootCause.Unknown _ ->
             GapRemedy.LearnPattern "Investigate and develop new approach"
 

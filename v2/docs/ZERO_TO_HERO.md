@@ -322,7 +322,7 @@ type PatternGenome =
       BranchingFactor: float }  // How wide to explore
 ```
 
-The GA evolves these using execution history as fitness. It uses MachinDeOuf's Rust GA when available, or a built-in F# GA.
+The GA evolves these using execution history as fitness. It uses ix's Rust GA when available, or a built-in F# GA.
 
 ---
 
@@ -413,7 +413,7 @@ dotnet run --project src/Tars.Interface.Cli -- breed
 # With genome details
 dotnet run --project src/Tars.Interface.Cli -- breed --show-genome --generations 100
 
-# Check MachinDeOuf bridge
+# Check ix bridge
 dotnet run --project src/Tars.Interface.Cli -- breed status
 ```
 
@@ -583,7 +583,7 @@ Layer 5: Ralph Loop
 
 Layer 4: Evolutionary Breeding (GA)
   └─ Optimizes pattern hyperparameters using execution history
-  └─ Uses MachinDeOuf's Rust GA or built-in F# fallback
+  └─ Uses ix's Rust GA or built-in F# fallback
 
 Layer 3: Meta-Cognition
   └─ Identifies capability gaps from failure clustering
@@ -611,7 +611,7 @@ TARS doesn't work alone:
 | Repo | Language | Role |
 |------|----------|------|
 | **TARS** | F# | Agent runtime, evolution, meta-cognition |
-| **MachinDeOuf** | Rust | ML algorithms (GA, PSO, MCTS, clustering, FFT) |
+| **ix** | Rust | ML algorithms (GA, PSO, MCTS, clustering, FFT) |
 | **Guitar Alchemist** | C#/F# | Music domain, spectral analysis, DSL patterns |
 
 Connected via MCP (Model Context Protocol) — each repo exposes tools the others can call.
