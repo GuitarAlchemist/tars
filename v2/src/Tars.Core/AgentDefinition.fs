@@ -125,6 +125,15 @@ module AgentDefinitionParser =
             |> String.concat "\n"
             |> fun s -> s.TrimEnd()
 
+        // Validate known fields (grammar-aware)
+        let knownFields =
+            set [ "id"; "name"; "role"; "description"; "model_hint"; "temperature"
+                  "capabilities"; "version"; "routing_keywords"; "use_critique"; "delegates_to" ]
+        let unknownFields =
+            frontmatter.Keys
+            |> Seq.filter (fun k -> not (knownFields.Contains(k.ToLowerInvariant())))
+            |> Seq.toList
+
         // Build definition
         let tryGet key = match frontmatter.TryGetValue(key) with true, v -> Some (parseValue v) | _ -> None
         let require key =
@@ -183,8 +192,9 @@ module AgentDefinitionDiscovery =
                 |> Array.toList
             else [])
 
-    /// Default search paths: ./agents/, ~/.tars/agents/
+    /// Default search paths: ./agents/, ~/.tars/agents/, ~/.ga/agents/ (cross-repo)
     let defaultSearchPaths (workingDir: string) : string list =
         let home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
         [ Path.Combine(workingDir, "agents")
-          Path.Combine(home, ".tars", "agents") ]
+          Path.Combine(home, ".tars", "agents")
+          Path.Combine(home, ".ga", "agents") ]

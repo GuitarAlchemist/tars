@@ -17,6 +17,16 @@
       "command": "cargo",
       "args": ["run", "--release", "-p", "ix-agent"],
       "cwd": "C:\\Users\\spare\\source\\repos\\ix"
+    },
+    "ga": {
+      "type": "stdio",
+      "command": "dotnet",
+      "args": [
+        "run",
+        "--project",
+        "GaMcpServer/GaMcpServer.csproj"
+      ],
+      "cwd": "C:\\Users\\spare\\source\\repos\\ga"
     }
   }
 }

@@ -6,13 +6,13 @@ open Tars.Cortex
 open Tars.Evolution
 
 /// CLI command for evolutionary pattern breeding via genetic algorithms.
-/// Uses MachinDeOuf's Rust GA when available, falls back to built-in F# GA.
+/// Uses ix's Rust GA when available, falls back to built-in F# GA.
 module BreedCommand =
 
     let private machinDeOufDir =
         let candidate = IO.Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            "source", "repos", "MachinDeOuf")
+            "source", "repos", "ix")
         if IO.Directory.Exists(candidate) then Some candidate else None
 
     let private printHelp () =
@@ -21,26 +21,26 @@ module BreedCommand =
         AnsiConsole.MarkupLine("  [bold]tars breed[/]                     Run GA breeding on execution history")
         AnsiConsole.MarkupLine("  [bold]tars breed --generations N[/]     Set GA generations (default 50)")
         AnsiConsole.MarkupLine("  [bold]tars breed --show-genome[/]       Display the evolved genome details")
-        AnsiConsole.MarkupLine("  [bold]tars breed status[/]              Check MachinDeOuf availability")
+        AnsiConsole.MarkupLine("  [bold]tars breed status[/]              Check ix availability")
         AnsiConsole.MarkupLine("")
-        AnsiConsole.MarkupLine("  [dim]Uses MachinDeOuf's Rust-based GA when available, otherwise built-in F# GA.[/]")
+        AnsiConsole.MarkupLine("  [dim]Uses ix's Rust-based GA when available, otherwise built-in F# GA.[/]")
         0
 
     let private showStatus () =
-        AnsiConsole.MarkupLine("[bold cyan]MachinDeOuf Bridge Status[/]")
+        AnsiConsole.MarkupLine("[bold cyan]ix Bridge Status[/]")
         AnsiConsole.MarkupLine("")
 
         match machinDeOufDir with
         | Some dir ->
-            AnsiConsole.MarkupLine(sprintf "  MachinDeOuf repo: [green]found[/] at %s" dir)
+            AnsiConsole.MarkupLine(sprintf "  ix repo: [green]found[/] at %s" dir)
             let config = { MachinBridge.defaultConfig with WorkingDir = Some dir }
             if MachinBridge.isAvailable config then
-                AnsiConsole.MarkupLine("  machin-skill: [green]available[/]")
+                AnsiConsole.MarkupLine("  ix: [green]available[/]")
             else
-                AnsiConsole.MarkupLine("  machin-skill: [yellow]not built[/] (run `cargo build -p machin-skill`)")
+                AnsiConsole.MarkupLine("  ix: [yellow]not built[/] (run `cargo build -p ix`)")
         | None ->
-            AnsiConsole.MarkupLine("  MachinDeOuf repo: [dim]not found[/]")
-            AnsiConsole.MarkupLine("  [dim]Expected at ~/source/repos/MachinDeOuf[/]")
+            AnsiConsole.MarkupLine("  ix repo: [dim]not found[/]")
+            AnsiConsole.MarkupLine("  [dim]Expected at ~/source/repos/ix[/]")
 
         AnsiConsole.MarkupLine("  F# fallback GA: [green]always available[/]")
 
@@ -69,7 +69,7 @@ module BreedCommand =
             sw.Stop()
 
             AnsiConsole.MarkupLine("")
-            AnsiConsole.MarkupLine(sprintf "  Backend: [bold]%s[/]" (if result.UsedMachinDeOuf then "MachinDeOuf Rust GA" else "Built-in F# GA"))
+            AnsiConsole.MarkupLine(sprintf "  Backend: [bold]%s[/]" (if result.UsedMachinDeOuf then "ix Rust GA" else "Built-in F# GA"))
             AnsiConsole.MarkupLine(sprintf "  Population: [bold]%d[/]  Generations: [bold]%d[/]" result.PopulationSize result.Generations)
             AnsiConsole.MarkupLine(sprintf "  Best fitness: [bold green]%.4f[/]" result.BestFitness)
             AnsiConsole.MarkupLine(sprintf "  Duration: [bold]%dms[/]" sw.ElapsedMilliseconds)

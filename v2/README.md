@@ -218,12 +218,12 @@ TARS operates in a three-repo ecosystem connected via filesystem bridges:
 |------|----------|------|
 | **TARS** | F# | Self-improving agent framework |
 | **Guitar Alchemist** | C# | Music theory AI chatbot |
-| **MachinDeOuf** | Rust | ML algorithms (GA, MCTS, PSO) |
+| **ix** | Rust | ML algorithms (GA, MCTS, PSO) |
 
 Communication:
 - **GA --> TARS**: `TraceBridgeHook` writes to `~/.ga/traces/`, `GaTraceBridge` reads
 - **TARS --> GA**: `InsightExporter` writes to `~/.tars/insights/`, GA reader consumes
-- **MachinDeOuf --> TARS**: `MctsBridge` calls `machin-skill` CLI, falls back to F# MCTS
+- **ix --> TARS**: `MctsBridge` calls `ix` CLI, falls back to F# MCTS
 
 See [COMPOUND_EVOLUTION.md](docs/COMPOUND_EVOLUTION.md) for the full cross-pollination story.
 

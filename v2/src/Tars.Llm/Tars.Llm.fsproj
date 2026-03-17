@@ -16,6 +16,8 @@
     <Compile Include="OpenAiCompatibleClient.fs" />
     <Compile Include="AnthropicClient.fs" />
     <Compile Include="ConstrainedDecoding.fs" />
+    <Compile Include="AiFunction.fs" />
+    <Compile Include="AiFunctionIx.fs" />
     <Compile Include="GoogleGeminiClient.fs" />
     <Compile Include="LlamaCppClient.fs" />
     <Compile Include="LlamaSharpService.fs" />

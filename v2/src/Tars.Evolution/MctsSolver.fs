@@ -2,7 +2,7 @@ namespace Tars.Evolution
 
 /// Pure F# Monte Carlo Tree Search implementation.
 /// UCB1 selection, random rollout, full backpropagation.
-/// Serves as fallback when MachinDeOuf's Rust MCTS is unavailable.
+/// Serves as fallback when ix's Rust MCTS is unavailable.
 module MctsSolver =
 
     open System

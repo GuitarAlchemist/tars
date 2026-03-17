@@ -475,5 +475,5 @@ module ProbabilisticGrammarTests =
         ]
         let config = { MctsTypes.defaultMctsConfig with MaxIterations = 50; MaxRolloutDepth = 10 }
         let actions, usedMachin = searchWotDerivation None config (mkMeta ()) templates 3
-        Assert.False(usedMachin, "Should not use MachinDeOuf when config is None")
+        Assert.False(usedMachin, "Should not use ix when config is None")
         Assert.True(actions.Length > 0, "Should find some actions")

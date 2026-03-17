@@ -117,7 +117,13 @@
     <Compile Include="ReplicatorDynamicsTests.fs" />
     <Compile Include="ConstrainedDecodingTests.fs" />
     <Compile Include="ProbabilisticGrammarIntegrationTests.fs" />
+    <Compile Include="AiFunctionTests.fs" />
+    <Compile Include="AiFunctionIxTests.fs" />
     <Compile Include="AgentDefinitionTests.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="WorkflowOfThought\fixtures\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

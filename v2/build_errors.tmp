@@ -1,38 +1,0 @@
-  Determining projects to restore...
-  All projects are up-to-date for restore.
-  Tars.Security -> C:\Users\spare\source\repos\tars\v2\src\Tars.Security\bin\Debug\net10.0\Tars.Security.dll
-  Tars.Sandbox -> C:\Users\spare\source\repos\tars\v2\src\Tars.Sandbox\bin\Debug\net10.0\Tars.Sandbox.dll
-  Tars.Core -> C:\Users\spare\source\repos\tars\v2\src\Tars.Core\bin\Debug\net10.0\Tars.Core.dll
-  Tars.Connectors -> C:\Users\spare\source\repos\tars\v2\src\Tars.Connectors\bin\Debug\net10.0\Tars.Connectors.dll
-  Tars.Tools -> C:\Users\spare\source\repos\tars\v2\src\Tars.Tools\bin\Debug\net10.0\Tars.Tools.dll
-  Tars.Llm -> C:\Users\spare\source\repos\tars\v2\src\Tars.Llm\bin\Debug\net10.0\Tars.Llm.dll
-  Tars.Kernel -> C:\Users\spare\source\repos\tars\v2\src\Tars.Kernel\bin\Debug\net10.0\Tars.Kernel.dll
-  Tars.Graph -> C:\Users\spare\source\repos\tars\v2\src\Tars.Graph\bin\Debug\net10.0\Tars.Graph.dll
-  Tars.Cortex -> C:\Users\spare\source\repos\tars\v2\src\Tars.Cortex\bin\Debug\net10.0\Tars.Cortex.dll
-  Tars.Evolution -> C:\Users\spare\source\repos\tars\v2\src\Tars.Evolution\bin\Debug\net10.0\Tars.Evolution.dll
-  Tars.Metascript -> C:\Users\spare\source\repos\tars\v2\src\Tars.Metascript\bin\Debug\net10.0\Tars.Metascript.dll
-C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\Chat.fs(131,25): error FS0764: No assignment given for field 'Model' of type 'Tars.Llm.LlmRequest' [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\Chat.fs(295,21): error FS0764: No assignment given for field 'Model' of type 'Tars.Llm.LlmRequest' [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\SemanticMemoryCommand.fs(76,35): error FS0193: Type constraint mismatch. The type     ''a -> KernelBootstrap.KernelContext'    is not compatible with type    'KernelContext' [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\SemanticMemoryCommand.fs(77,41): error FS0072: Lookup on object of indeterminate type based on information prior to this program point. A type annotation may be needed prior to this program point to constrain the type of the object. This may allow the lookup to be resolved. [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\SemanticMemoryCommand.fs(83,22): error FS3566: Multiple type matches were found:    Tars.Cortex.VectorEntry    Tars.Core.MemorySchemaThe type 'Tars.Cortex.VectorEntry' was used. Due to the overlapping field names    CreatedAt    Idconsider using type annotations or change the order of open statements. [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\SemanticMemoryCommand.fs(83,29): error FS0039: The type 'VectorEntry' does not define the field, constructor or member 'Logical'. [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\SemanticMemoryCommand.fs(91,30): error FS0193: Type constraint mismatch. The type     ''a -> KernelBootstrap.KernelContext'    is not compatible with type    'KernelContext' [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\SemanticMemoryCommand.fs(96,24): error FS0193: Type constraint mismatch. The type     ''a -> KernelBootstrap.KernelContext'    is not compatible with type    'KernelContext' [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\SemanticMemoryCommand.fs(123,34): error FS0193: Type constraint mismatch. The type     ''a -> KernelBootstrap.KernelContext'    is not compatible with type    'KernelContext' [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
-
-Build FAILED.
-
-C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\Chat.fs(131,25): error FS0764: No assignment given for field 'Model' of type 'Tars.Llm.LlmRequest' [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\Chat.fs(295,21): error FS0764: No assignment given for field 'Model' of type 'Tars.Llm.LlmRequest' [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\SemanticMemoryCommand.fs(76,35): error FS0193: Type constraint mismatch. The type     ''a -> KernelBootstrap.KernelContext'    is not compatible with type    'KernelContext' [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\SemanticMemoryCommand.fs(77,41): error FS0072: Lookup on object of indeterminate type based on information prior to this program point. A type annotation may be needed prior to this program point to constrain the type of the object. This may allow the lookup to be resolved. [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\SemanticMemoryCommand.fs(83,22): error FS3566: Multiple type matches were found:    Tars.Cortex.VectorEntry    Tars.Core.MemorySchemaThe type 'Tars.Cortex.VectorEntry' was used. Due to the overlapping field names    CreatedAt    Idconsider using type annotations or change the order of open statements. [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\SemanticMemoryCommand.fs(83,29): error FS0039: The type 'VectorEntry' does not define the field, constructor or member 'Logical'. [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\SemanticMemoryCommand.fs(91,30): error FS0193: Type constraint mismatch. The type     ''a -> KernelBootstrap.KernelContext'    is not compatible with type    'KernelContext' [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\SemanticMemoryCommand.fs(96,24): error FS0193: Type constraint mismatch. The type     ''a -> KernelBootstrap.KernelContext'    is not compatible with type    'KernelContext' [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
-C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Commands\SemanticMemoryCommand.fs(123,34): error FS0193: Type constraint mismatch. The type     ''a -> KernelBootstrap.KernelContext'    is not compatible with type    'KernelContext' [C:\Users\spare\source\repos\tars\v2\src\Tars.Interface.Cli\Tars.Interface.Cli.fsproj]
-    0 Warning(s)
-    9 Error(s)
-
-Time Elapsed 00:00:04.33

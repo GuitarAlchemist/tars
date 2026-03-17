@@ -5,9 +5,9 @@ namespace Tars.Evolution
 /// enabling MDO-optimized weight evolution and Bayesian updates from execution feedback.
 ///
 /// Architecture (from Compound Engineering notebook):
-///   Force 1: Grammar constraints (EBNF, WoT DSL) — guarantees structure
-///   Force 2: PCFG-like weights (this module) — steers preferences
-///   Force 3: Semantic validation (GrammarGovernor) — catches nonsense
+///   Force 1: Grammar constraints (EBNF, WoT DSL) -- guarantees structure
+///   Force 2: PCFG-like weights (this module) -- steers preferences
+///   Force 3: Semantic validation (GrammarGovernor) -- catches nonsense
 module WeightedGrammar =
 
     open System
@@ -217,7 +217,7 @@ module WeightedGrammar =
           SelectionCount = r.SelectionCount
           Source = match r.Source with
                    | Tars -> "tars" | GuitarAlchemist -> "guitar_alchemist"
-                   | MachinDeOuf -> "machin_de_ouf" | Evolved -> "evolved" | Manual -> "manual"
+                   | MachinDeOuf -> "ix" | Evolved -> "evolved" | Manual -> "manual"
           LastUpdated = r.LastUpdated.ToString("o") }
 
     let private fromDto (dto: WeightedRuleDto) : WeightedRule =
@@ -228,7 +228,7 @@ module WeightedGrammar =
             | _ -> Implementation
         let source =
             match dto.Source with
-            | "guitar_alchemist" -> GuitarAlchemist | "machin_de_ouf" -> MachinDeOuf
+            | "guitar_alchemist" -> GuitarAlchemist | "ix" -> MachinDeOuf
             | "evolved" -> Evolved | "manual" -> Manual | _ -> Tars
         { PatternId = dto.PatternId
           PatternName = dto.PatternName

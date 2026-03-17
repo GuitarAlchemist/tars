@@ -44,7 +44,7 @@ let private showWeights () =
                 $"{r.SuccessRate:F3}",
                 string r.SelectionCount,
                 match r.Source with
-                | Tars -> "TARS" | GuitarAlchemist -> "GA" | MachinDeOuf -> "MDO"
+                | Tars -> "TARS" | GuitarAlchemist -> "GA" | MachinDeOuf -> "ix"
                 | Evolved -> "Evolved" | Manual -> "Manual"
             ) |> ignore
 

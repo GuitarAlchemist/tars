@@ -4,7 +4,7 @@ open System
 
 /// Generic MCTS types for tree search over grammar derivation spaces.
 /// Follows the same pattern as MachinBridge: pure F# implementation
-/// with optional bridge to MachinDeOuf's Rust MCTS when available.
+/// with optional bridge to ix's Rust MCTS when available.
 module MctsTypes =
 
     /// Interface for states in the MCTS search tree.
