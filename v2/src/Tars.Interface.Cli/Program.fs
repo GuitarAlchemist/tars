@@ -14,10 +14,20 @@ open Spectre.Console
 let main argv =
     // Ensure Unicode/UTF-8 I/O for CLI output (fixes mojibake on Windows consoles)
     Encoding.RegisterProvider(CodePagesEncodingProvider.Instance)
+    let isMcpMode =
+        argv.Length >= 2 && argv.[0] = "mcp" && argv.[1] = "server"
+
     let isRedirected = Console.IsOutputRedirected || Console.IsErrorRedirected
 
     // When redirected (e.g., piping to clip), use ASCII-safe output
-    if isRedirected then
+    // EXCEPT in MCP mode where JSON-RPC requires UTF-8 on stdout
+    if isMcpMode then
+        Console.OutputEncoding <- new UTF8Encoding(false)
+        // Also disable Spectre.Console decorations in MCP mode
+        AnsiConsole.Profile.Capabilities.Ansi <- false
+        AnsiConsole.Profile.Capabilities.Links <- false
+        AnsiConsole.Profile.Capabilities.Interactive <- false
+    elif isRedirected then
         // Use Code Page 437 (OEM) which supports box-drawing characters
         // This is compatible with Windows cmd.exe and clip.exe
         Console.OutputEncoding <- Encoding.GetEncoding(437)
@@ -56,12 +66,7 @@ let main argv =
 
     let tarsConfig = ConfigurationLoader.load ()
 
-    let isMcpServer =
-        match argv with
-        | [| "mcp"; "server" |] -> true
-        | _ -> false
-
-    if isMcpServer then
+    if isMcpMode then
         // Redirect all logs to Stderr to keep Stdout clean for JSON-RPC
         Log.Logger <-
             LoggerConfiguration()

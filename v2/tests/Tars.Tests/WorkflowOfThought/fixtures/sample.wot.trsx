@@ -1,0 +1,51 @@
+meta {
+  name = "sample_integration_test"
+  description = "Golden-path fixture for WoT parsing integration tests"
+}
+
+inputs {
+  topic = "Test input for integration validation"
+}
+
+policy {
+  allowed_tools = []
+  max_tool_calls = 0
+  max_tokens = 1024
+}
+
+workflow "sample_integration_test" {
+
+  node "analyse" kind="reason" agent="Planner" {
+    goal = "Analyse the topic: ${topic}"
+    output = "analysis"
+  }
+
+  node "research" kind="reason" agent="Researcher" {
+    input = ["analysis"]
+    goal = "Research supporting evidence for: ${analysis}"
+    output = "evidence"
+  }
+
+  node "evaluate" kind="reason" agent="Verifier" {
+    input = ["evidence"]
+    goal = "Evaluate the quality of: ${evidence}"
+    output = "evaluation"
+  }
+
+  node "refine" kind="reason" agent="Planner" {
+    input = ["analysis", "evaluation"]
+    goal = "Refine the analysis using: ${evaluation}"
+    output = "refined"
+  }
+
+  node "summarise" kind="reason" agent="Planner" {
+    input = ["refined"]
+    goal = "Produce a final summary from: ${refined}"
+    output = "summary"
+  }
+
+  edge "analyse" -> "research"
+  edge "research" -> "evaluate"
+  edge "evaluate" -> "refine"
+  edge "refine" -> "summarise"
+}
