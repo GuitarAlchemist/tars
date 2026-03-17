@@ -117,6 +117,7 @@
     <Compile Include="ReplicatorDynamicsTests.fs" />
     <Compile Include="ConstrainedDecodingTests.fs" />
     <Compile Include="ProbabilisticGrammarIntegrationTests.fs" />
+    <Compile Include="AiFunctionTests.fs" />
     <Compile Include="AgentDefinitionTests.fs" />
   </ItemGroup>
 
