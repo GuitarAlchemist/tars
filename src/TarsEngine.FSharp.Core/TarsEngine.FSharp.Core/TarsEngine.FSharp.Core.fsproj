@@ -77,6 +77,7 @@
     <Compile Include="../Grammar/GrammarSource.fs" />
     <Compile Include="../Grammar/FractalGrammar.fs" />
     <Compile Include="../Grammar/GrammarResolver.fs" />
+    <Compile Include="../Grammar/ConstitutionalGovernance.fs" />
 
     <!-- Advanced Grammar Evolution -->
     <Compile Include="../Grammar/EmergentTierEvolution.fs" />
@@ -117,6 +118,8 @@
     <!-- Advanced Reasoning System -->
     <Compile Include="../Reasoning/AdvancedReasoningEngine.fs" />
     <Compile Include="../Reasoning/ReasoningDSL.fs" />
+    <Compile Include="../Reasoning/BeliefState.fs" />
+    <Compile Include="../Reasoning/BeliefState.Test.fs" />
 
     <!-- CUDA Acceleration -->
     <Compile Include="../GPU/CudaReasoningEngine.fs" />

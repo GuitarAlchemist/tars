@@ -72,6 +72,9 @@
     <!-- Comprehensive Test Runner -->
     <Compile Include="CudaComprehensiveTestRunner.fs" />
 
+    <!-- Governance Evolution Module -->
+    <Compile Include="GovernanceEvolution.fs" />
+
     <!-- Console Application Entry Point -->
     <Compile Include="CudaTestConsole.fs" />
 
