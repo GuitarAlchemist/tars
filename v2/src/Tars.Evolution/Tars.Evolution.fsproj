@@ -29,6 +29,7 @@
     <Compile Include="TaskPrioritization.fs" />
     <Compile Include="SpeechActBridge.fs" />
     <Compile Include="SymbolicReflector.fs" />
+    <Compile Include="GrammarDistillation.fs" />
     <Compile Include="TraceCompiler.fs" />
     <Compile Include="PatternLibrary.fs" />
     <Compile Include="SelfImprovement.fs" />

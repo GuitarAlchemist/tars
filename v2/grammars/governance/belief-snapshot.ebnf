@@ -1,0 +1,26 @@
+(* Belief Snapshot grammar — constrains LLM to produce valid belief snapshots *)
+(* Conforms to governance/demerzel/schemas/contracts/belief-snapshot.schema.json *)
+
+snapshot        ::= "{" ws repo_field "," ws timestamp "," ws beliefs ws "}"
+
+repo_field      ::= '"repo"' ws ":" ws target_repo
+target_repo     ::= '"ix"' | '"tars"' | '"ga"' | '"demerzel"'
+timestamp       ::= '"timestamp"' ws ":" ws datetime_literal
+
+beliefs         ::= '"beliefs"' ws ":" ws "[" ws belief_items ws "]"
+belief_items    ::= belief_item (ws "," ws belief_item)*
+belief_item     ::= "{" ws proposition "," ws value_field "," ws confidence evidence? updated? ws "}"
+
+proposition     ::= '"proposition"' ws ":" ws string_literal
+value_field     ::= '"value"' ws ":" ws tetra_value
+tetra_value     ::= '"T"' | '"F"' | '"U"' | '"C"'
+confidence      ::= '"confidence"' ws ":" ws conf_number
+
+evidence        ::= "," ws '"evidence"' ws ":" ws "[" ws (string_literal (ws "," ws string_literal)*)? ws "]"
+updated         ::= "," ws '"updated_at"' ws ":" ws date_literal
+
+string_literal  ::= '"' [^"]* '"'
+datetime_literal ::= '"' [0-9][0-9][0-9][0-9] "-" [0-9][0-9] "-" [0-9][0-9] "T" [0-9][0-9] ":" [0-9][0-9] ":" [0-9][0-9] "Z" '"'
+date_literal    ::= '"' [0-9][0-9][0-9][0-9] "-" [0-9][0-9] "-" [0-9][0-9] '"'
+conf_number     ::= "0" | "0." [0-9]+ | "1" | "1.0"
+ws              ::= [ \t\n\r]*

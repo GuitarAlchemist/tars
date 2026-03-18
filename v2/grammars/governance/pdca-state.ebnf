@@ -1,0 +1,23 @@
+(* PDCA State grammar — constrains LLM to produce valid Kaizen PDCA states *)
+(* Conforms to governance/demerzel/logic/kaizen-pdca-state.schema.json *)
+
+pdca            ::= "{" ws name_field "," ws phase_field "," ws classification "," ws started experiment? hypothesis? metrics? observations? ws "}"
+
+name_field      ::= '"name"' ws ":" ws string_literal
+phase_field     ::= '"phase"' ws ":" ws phase_value
+phase_value     ::= '"plan"' | '"do"' | '"check"' | '"act"'
+
+classification  ::= '"classification"' ws ":" ws class_value
+class_value     ::= '"reactive"' | '"proactive"' | '"innovative"'
+
+started         ::= '"started_at"' ws ":" ws date_literal
+
+experiment      ::= "," ws '"experiment"' ws ":" ws bool_value
+hypothesis      ::= "," ws '"hypothesis"' ws ":" ws string_literal
+metrics         ::= "," ws '"success_metrics"' ws ":" ws "[" ws (string_literal (ws "," ws string_literal)*)? ws "]"
+observations    ::= "," ws '"observations"' ws ":" ws "[" ws (string_literal (ws "," ws string_literal)*)? ws "]"
+
+bool_value      ::= "true" | "false"
+string_literal  ::= '"' [^"]* '"'
+date_literal    ::= '"' [0-9][0-9][0-9][0-9] "-" [0-9][0-9] "-" [0-9][0-9] '"'
+ws              ::= [ \t\n\r]*
