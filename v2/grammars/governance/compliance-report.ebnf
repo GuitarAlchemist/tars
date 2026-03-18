@@ -1,0 +1,29 @@
+(* Compliance Report grammar — constrains LLM to produce valid compliance reports *)
+(* Conforms to governance/demerzel/schemas/contracts/compliance-report.schema.json *)
+
+report          ::= "{" ws report_id "," ws directive_ref "," ws repo_field "," ws status_field "," ws timestamp "," ws evidence articles? notes? ws "}"
+
+report_id       ::= '"report_id"' ws ":" ws string_literal
+directive_ref   ::= '"directive_id"' ws ":" ws string_literal
+repo_field      ::= '"repo"' ws ":" ws target_repo
+target_repo     ::= '"ix"' | '"tars"' | '"ga"' | '"demerzel"'
+
+status_field    ::= '"status"' ws ":" ws compliance_status
+compliance_status ::= '"compliant"' | '"non_compliant"' | '"partial"' | '"not_applicable"'
+
+timestamp       ::= '"timestamp"' ws ":" ws datetime_literal
+
+evidence        ::= '"evidence"' ws ":" ws "[" ws evidence_items ws "]"
+evidence_items  ::= evidence_item (ws "," ws evidence_item)*
+evidence_item   ::= "{" ws '"type"' ws ":" ws evidence_type ws "," ws '"description"' ws ":" ws string_literal ws "}"
+evidence_type   ::= '"file_exists"' | '"test_passing"' | '"config_valid"' | '"manual_verification"'
+
+articles        ::= "," ws '"articles_checked"' ws ":" ws "[" ws article_items ws "]"
+article_items   ::= number (ws "," ws number)*
+
+notes           ::= "," ws '"notes"' ws ":" ws string_literal
+
+string_literal  ::= '"' [^"]* '"'
+datetime_literal ::= '"' [0-9][0-9][0-9][0-9] "-" [0-9][0-9] "-" [0-9][0-9] "T" [0-9][0-9] ":" [0-9][0-9] ":" [0-9][0-9] "Z" '"'
+number          ::= [0-9]+
+ws              ::= [ \t\n\r]*

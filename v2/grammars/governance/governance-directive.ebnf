@@ -1,0 +1,27 @@
+(* Governance Directive grammar — constrains LLM to produce valid Demerzel directives *)
+(* Conforms to governance/demerzel/schemas/contracts/directive.schema.json *)
+
+directive       ::= "{" ws directive_id "," ws type_field "," ws from_field "," ws to_field "," ws priority "," ws subject "," ws requirements deadline? compliance? ws "}"
+
+directive_id    ::= '"directive_id"' ws ":" ws string_literal
+type_field      ::= '"type"' ws ":" ws directive_type
+directive_type  ::= '"governance_directive"' | '"compliance_request"' | '"reconnaissance_request"' | '"knowledge_transfer"' | '"violation_remediation"'
+
+from_field      ::= '"from"' ws ":" ws '"demerzel"'
+to_field        ::= '"to"' ws ":" ws target_repo
+target_repo     ::= '"ix"' | '"tars"' | '"ga"' | '"demerzel"'
+
+priority        ::= '"priority"' ws ":" ws priority_value
+priority_value  ::= '"P0"' | '"P1"' | '"P2"' | '"P3"'
+
+subject         ::= '"subject"' ws ":" ws string_literal
+
+requirements    ::= '"requirements"' ws ":" ws "[" ws req_items ws "]"
+req_items       ::= string_literal (ws "," ws string_literal)*
+
+deadline        ::= "," ws '"deadline"' ws ":" ws date_literal
+compliance      ::= "," ws '"compliance_verification"' ws ":" ws string_literal
+
+string_literal  ::= '"' [^"]* '"'
+date_literal    ::= '"' [0-9][0-9][0-9][0-9] "-" [0-9][0-9] "-" [0-9][0-9] '"'
+ws              ::= [ \t\n\r]*

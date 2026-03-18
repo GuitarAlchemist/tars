@@ -17,6 +17,7 @@
     <Compile Include="Domain.fs" />
     <Compile Include="SymbolicTypes.fs" />
     <Compile Include="ContractEnforcement.fs" />
+    <Compile Include="GovernanceGeneration.fs" />
     <Compile Include="ConstitutionLoader.fs" />
     <Compile Include="NeuroSymbolicDefaults.fs" />
     <Compile Include="Puzzles.fs" />
