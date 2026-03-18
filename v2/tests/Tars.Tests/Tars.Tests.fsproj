@@ -119,6 +119,7 @@
     <Compile Include="ProbabilisticGrammarIntegrationTests.fs" />
     <Compile Include="AiFunctionTests.fs" />
     <Compile Include="AiFunctionIxTests.fs" />
+    <Compile Include="GrammarDistillationTests.fs" />
     <Compile Include="AgentDefinitionTests.fs" />
   </ItemGroup>
 
