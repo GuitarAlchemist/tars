@@ -122,6 +122,7 @@
     <Compile Include="GrammarDistillationTests.fs" />
     <Compile Include="GrammarMlBridgeTests.fs" />
     <Compile Include="AgentDefinitionTests.fs" />
+    <Compile Include="ResearchCycleTests.fs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -14,6 +14,9 @@
     <Compile Include="PromotionTypes.fs" />
     <Compile Include="GrammarGovernor.fs" />
     <Compile Include="WeightedGrammar.fs" />
+    <Compile Include="ResearchTypes.fs" />
+    <Compile Include="ResearchWeights.fs" />
+    <Compile Include="ResearchCycle.fs" />
     <Compile Include="RoundtripValidation.fs" />
     <Compile Include="PromotionPipeline.fs" />
     <Compile Include="PromotionIndex.fs" />
