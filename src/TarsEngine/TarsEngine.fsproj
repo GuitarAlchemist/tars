@@ -100,7 +100,7 @@
 
     <!-- JSON and Serialization -->
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="System.Text.Json" Version="9.0.0" />
+    <PackageReference Include="System.Text.Json" Version="9.0.5" />
 
     <!-- Memory Management -->
     <PackageReference Include="System.Memory" Version="4.5.5" />
