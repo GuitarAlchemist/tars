@@ -165,6 +165,22 @@ See **[v2/README.md](./v2/README.md)** for full documentation including architec
 
 ---
 
+## Active Boundaries
+
+| Area | Status | Description |
+|------|--------|-------------|
+| **`v2/`** | **Active** | F# neuro-symbolic agent framework — all new development happens here |
+| **`v2/agents/`** | **Active** | Declarative agent definitions (Markdown + YAML frontmatter) |
+| **`v2/grammars/`** | **Active** | EBNF grammars for constrained decoding |
+| **`v2/puzzles/`** | **Active** | WoT puzzle benchmarks |
+| **`v2/docs/`** | **Active** | Architecture, roadmap, plans |
+| **`v1/`** | **Legacy** | Original C#/.NET implementation — retained for reference, not maintained |
+| **`archive/docs/`** | **Archived** | 119 historical reports, session summaries, and analysis docs moved from root |
+| **`archive/scripts/`** | **Archived** | 245 legacy PowerShell and F# scripts moved from root |
+| **`governance/`** | **Active** | Demerzel submodule — constitutions, policies, schemas |
+
+**CI target:** `v2/` only (`working-directory: v2` in `dotnet.yml`). Archived content does not affect builds.
+
 ## Repository Layout
 
 | Directory | Description |
@@ -174,7 +190,8 @@ See **[v2/README.md](./v2/README.md)** for full documentation including architec
 | **[v2/grammars/](./v2/grammars/)** | EBNF grammars for constrained decoding |
 | **[v2/puzzles/](./v2/puzzles/)** | WoT puzzle benchmarks |
 | **[v2/docs/](./v2/docs/)** | Architecture, roadmap, plans |
-| Root-level C# projects | Legacy, archived, no longer maintained |
+| **[archive/](./archive/)** | Legacy docs and scripts moved from root |
+| **[v1/](./v1/)** | Legacy C# projects — archived, not maintained |
 
 ---
 
