@@ -131,7 +131,11 @@ type HealthCheckDto =
 // ============================================================================
 
 type GraphitiClient(baseUri: Uri, ?httpClient: HttpClient) =
-    let client = defaultArg httpClient (new HttpClient())
+    let client =
+        defaultArg httpClient (
+            let c = new HttpClient()
+            c.Timeout <- TimeSpan.FromMilliseconds(500.0)
+            c)
 
     let jsonOptions =
         new JsonSerializerOptions(

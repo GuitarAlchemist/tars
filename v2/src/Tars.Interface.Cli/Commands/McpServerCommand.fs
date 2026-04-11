@@ -72,9 +72,17 @@ module McpServerCommand =
                 // Check if Graphiti is available
 
 
-                // Check if Graphiti is available
+                // Check if Graphiti is available (short timeout to avoid blocking MCP startup)
                 let healthResult =
-                    task { return! episodeService.HealthCheckAsync() }
+                    task {
+                        use cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(1.0))
+                        try
+                            let! result = episodeService.HealthCheckAsync().WaitAsync(cts.Token)
+                            return result
+                        with
+                        | :? OperationCanceledException -> return Result.Error "Health check timed out"
+                        | :? TimeoutException -> return Result.Error "Health check timed out"
+                    }
                     |> Async.AwaitTask
                     |> Async.RunSynchronously
 
