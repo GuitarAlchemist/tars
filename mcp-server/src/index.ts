@@ -186,6 +186,15 @@ const tools: Tool[] = [
       },
     },
   },
+  // NOTE: diagnose_and_remediate currently emits free-text markdown.
+  // The eventual Path C upgrade (governed cross-repo remediation) will
+  // require strict JSON output so the ix harness can consume it via a
+  // future `ix_dispatch_action` MCP endpoint. See the design doc in
+  // the ix repo: docs/brainstorms/2026-04-11-triage-session-scenario.md
+  // — that scenario (ix_triage_session) is the in-process prototype;
+  // once it lands, this tool's system prompt should be tightened to
+  // emit { issues: [{ severity, remediation_tool, params }] } matching
+  // the ix AgentAction::InvokeTool shape.
   {
     name: 'diagnose_and_remediate',
     description:
