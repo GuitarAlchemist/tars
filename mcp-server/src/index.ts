@@ -186,7 +186,74 @@ const tools: Tool[] = [
       },
     },
   },
+  {
+    name: 'diagnose_and_remediate',
+    description:
+      'Collect comprehensive system diagnostics and ask the client\'s LLM (via MCP sampling) to analyze them. Returns the top 3 issues, severity classifications, and actionable remediations. Gracefully falls back to raw diagnostics if the client does not support sampling.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        repository_path: {
+          type: 'string',
+          description: 'Path to the repository to analyze (defaults to current directory)',
+        },
+        max_tokens: {
+          type: 'number',
+          description: 'Maximum tokens for the LLM analysis response (default: 800)',
+          default: 800,
+        },
+      },
+    },
+  },
 ];
+
+/**
+ * Format a ComprehensiveDiagnostics object into a compact text payload
+ * suitable for LLM analysis via MCP sampling.
+ */
+function formatDiagnosticsForLlm(
+  diagnostics: Awaited<ReturnType<typeof getComprehensiveDiagnostics>>
+): string {
+  const gb = (bytes: number): string => (bytes / (1024 * 1024 * 1024)).toFixed(2);
+  const gpuSection = diagnostics.gpuInfo
+    .map(
+      (gpu) =>
+        `- ${gpu.name}: ${gb(gpu.memoryUsed)}/${gb(gpu.memoryTotal)} GB VRAM, ` +
+        `util=${gpu.utilizationGpu ?? 'N/A'}%, temp=${gpu.temperature ?? 'N/A'}C, ` +
+        `cuda=${gpu.cudaSupported}`
+    )
+    .join('\n');
+
+  return [
+    `TARS System Diagnostics Snapshot (timestamp: ${diagnostics.timestamp.toISOString()})`,
+    `Overall health score: ${diagnostics.overallHealthScore.toFixed(1)}%`,
+    '',
+    '## GPU',
+    gpuSection || '- none detected',
+    '',
+    '## Git repository',
+    `- isRepository=${diagnostics.gitHealth.isRepository}, branch=${diagnostics.gitHealth.currentBranch ?? 'N/A'}`,
+    `- clean=${diagnostics.gitHealth.isClean}, unstaged=${diagnostics.gitHealth.unstagedChanges}, staged=${diagnostics.gitHealth.stagedChanges}`,
+    `- ahead=${diagnostics.gitHealth.aheadBy}, behind=${diagnostics.gitHealth.behindBy}, commits=${diagnostics.gitHealth.commits}`,
+    '',
+    '## Network',
+    `- connected=${diagnostics.networkDiagnostics.isConnected}, publicIp=${diagnostics.networkDiagnostics.publicIpAddress ?? 'N/A'}`,
+    `- dnsResolutionMs=${diagnostics.networkDiagnostics.dnsResolutionTime}, pingMs=${diagnostics.networkDiagnostics.pingLatency ?? 'N/A'}`,
+    `- activeConnections=${diagnostics.networkDiagnostics.activeConnections}`,
+    '',
+    '## System resources',
+    `- cpu=${diagnostics.systemResources.cpuUsagePercent.toFixed(1)}% across ${diagnostics.systemResources.cpuCoreCount} cores @ ${diagnostics.systemResources.cpuFrequency}MHz`,
+    `- memory=${gb(diagnostics.systemResources.memoryUsedBytes)}/${gb(diagnostics.systemResources.memoryTotalBytes)} GB (avail ${gb(diagnostics.systemResources.memoryAvailableBytes)} GB)`,
+    `- disk=${gb(diagnostics.systemResources.diskUsedBytes)}/${gb(diagnostics.systemResources.diskTotalBytes)} GB (free ${gb(diagnostics.systemResources.diskFreeBytes)} GB)`,
+    `- processes=${diagnostics.systemResources.processCount}, uptimeHours=${Math.floor(diagnostics.systemResources.uptime / 3600)}`,
+    '',
+    '## Services',
+    `- fsPermissions=${diagnostics.serviceHealth.fileSystemPermissions}`,
+    `- dbConnectivity=${diagnostics.serviceHealth.databaseConnectivity}`,
+    `- webServiceAvailable=${diagnostics.serviceHealth.webServiceAvailability}`,
+    `- portsListening=${diagnostics.serviceHealth.portsListening.length}, servicesRunning=${diagnostics.serviceHealth.servicesRunning.length}`,
+  ].join('\n');
+}
 
 // List tools handler
 server.setRequestHandler(ListToolsRequestSchema, async () => {
@@ -412,6 +479,98 @@ ${diagnostics.gpuInfo.map(gpu => `
             },
           ],
         };
+      }
+
+      case 'diagnose_and_remediate': {
+        const repositoryPath = (args?.repository_path as string | undefined) ?? process.cwd();
+        const maxTokens = (args?.max_tokens as number | undefined) ?? 800;
+
+        // Step 1: collect raw diagnostics using the same logic as get_comprehensive_diagnostics
+        const diagnostics = await getComprehensiveDiagnostics(repositoryPath);
+        const formatted = formatDiagnosticsForLlm(diagnostics);
+
+        const systemPrompt =
+          'You are an SRE analyzing TARS system diagnostics. ' +
+          'Identify the top 3 issues (ordered by urgency), classify each as CRITICAL, WARNING, or INFO, ' +
+          'and suggest specific, actionable remediations. Be concise and prescriptive. ' +
+          'If the system appears healthy, say so and list the top 3 optimization opportunities instead.';
+
+        const userMessage =
+          'Analyze this system state snapshot and produce the ranked issue list with severity ' +
+          'and remediation steps:\n\n' +
+          formatted;
+
+        // Step 2: ask the client's LLM via MCP sampling. If the client did not declare
+        // the `sampling` capability, this will reject — fall back to returning the raw
+        // diagnostics with an explanatory note so the tool still provides value.
+        try {
+          const samplingResult = await server.createMessage({
+            messages: [
+              {
+                role: 'user',
+                content: { type: 'text', text: userMessage },
+              },
+            ],
+            systemPrompt,
+            maxTokens,
+            modelPreferences: {
+              hints: [{ name: 'claude-3-sonnet' }],
+              intelligencePriority: 0.8,
+              speedPriority: 0.3,
+            },
+          });
+
+          const analysisText =
+            samplingResult.content.type === 'text'
+              ? samplingResult.content.text
+              : '[non-text response from sampling client]';
+
+          logger.info('diagnose_and_remediate sampling succeeded', {
+            model: samplingResult.model,
+            stopReason: samplingResult.stopReason,
+          });
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text:
+                  `# TARS Diagnose & Remediate\n\n` +
+                  `**Health score**: ${diagnostics.overallHealthScore.toFixed(1)}%  \n` +
+                  `**Analysis model**: ${samplingResult.model}  \n` +
+                  `**Stop reason**: ${samplingResult.stopReason ?? 'n/a'}\n\n` +
+                  `## LLM Analysis\n\n${analysisText}\n\n` +
+                  `---\n\n## Raw diagnostics input\n\n\`\`\`\n${formatted}\n\`\`\``,
+              },
+            ],
+          };
+        } catch (samplingError) {
+          const samplingErrMsg =
+            samplingError instanceof Error ? samplingError.message : String(samplingError);
+          logger.warn('diagnose_and_remediate sampling failed, falling back to raw diagnostics', {
+            error: samplingErrMsg,
+          });
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text:
+                  `# TARS Diagnose & Remediate (fallback mode)\n\n` +
+                  `**Note**: MCP sampling request failed — the connected client likely does ` +
+                  `not declare the \`sampling\` capability, or the user declined the request. ` +
+                  `Returning raw diagnostics instead so you can analyze them directly.\n\n` +
+                  `**Sampling error**: ${samplingErrMsg}\n\n` +
+                  `**Health score**: ${diagnostics.overallHealthScore.toFixed(1)}%\n\n` +
+                  `## Raw diagnostics\n\n\`\`\`\n${formatted}\n\`\`\``,
+              },
+              {
+                type: 'text',
+                text: JSON.stringify(diagnostics, null, 2),
+              },
+            ],
+          };
+        }
       }
 
       default:
