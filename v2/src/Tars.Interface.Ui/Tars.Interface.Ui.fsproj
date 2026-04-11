@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>44;57</NoWarn>
+    <NoWarn>$(NoWarn);44;57</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

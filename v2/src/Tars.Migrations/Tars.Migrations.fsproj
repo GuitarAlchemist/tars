@@ -6,7 +6,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <!-- Suppress NU1903: Npgsql 3.2.7 is transitive dependency of DbUp-PostgreSQL 5.0.37 -->
     <!-- Will be resolved when DbUp updates - tracked at https://github.com/DbUp/DbUp/issues -->
-    <NoWarn>NU1903</NoWarn>
+    <NoWarn>$(NoWarn);NU1903</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
