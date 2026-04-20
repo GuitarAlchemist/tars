@@ -47,6 +47,7 @@
     <Compile Include="WebTools.fs" />
     <Compile Include="CodeAnalysisTools.fs" />
     <Compile Include="ResearchTools.fs" />
+    <Compile Include="GraphPersistence.fs" />
     <Compile Include="GraphTools.fs" />
     <Compile Include="PuzzleValidationTools.fs" />
   </ItemGroup>

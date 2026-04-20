@@ -6,12 +6,18 @@ open Tars.Tools
 /// Tools for graph operations and knowledge queries
 module GraphTools =
 
-    // In-memory graph store for demo/testing
+    // In-memory cache — authoritative store lives on disk (see GraphPersistence).
+    // Dictionaries are rehydrated from the JSONL logs on first access.
     let private nodes =
         System.Collections.Concurrent.ConcurrentDictionary<string, JsonElement>()
 
     let private edges =
         System.Collections.Concurrent.ConcurrentDictionary<string, JsonElement>()
+
+    // Eager hydration: module initializer runs once per process, on first
+    // reference to any GraphTools member. MCP tool invocations therefore
+    // always see the persisted state.
+    do GraphPersistence.hydrate nodes edges
 
     [<TarsToolAttribute("graph_add_node",
                         "Adds a node to the knowledge graph. Input JSON: { \"id\": \"b:101\", \"type\": \"Belief\", \"label\": \"X causes Y\", \"confidence\": 0.85 }")>]
@@ -22,6 +28,8 @@ module GraphTools =
                 let root = doc.RootElement
 
                 let id = root.GetProperty("id").GetString()
+                // Append to log before updating the cache: log is source of truth.
+                GraphPersistence.appendAddNode root
                 nodes.[id] <- root.Clone()
 
                 printfn $"➕ Added node: {id}"
@@ -41,6 +49,7 @@ module GraphTools =
                 let source = root.GetProperty("source").GetString()
                 let target = root.GetProperty("target").GetString()
                 let edgeId = $"{source}->{target}"
+                GraphPersistence.appendAddEdge root
                 edges.[edgeId] <- root.Clone()
 
                 printfn $"🔗 Added edge: {source} -> {target}"
@@ -265,11 +274,14 @@ module GraphTools =
                 return $"graph_find_contradictions error: {ex.Message}"
         }
 
-    [<TarsToolAttribute("graph_clear", "Clears the in-memory graph. Use with caution! No input required.")>]
+    [<TarsToolAttribute("graph_clear",
+                        "Clears the knowledge graph. Writes a clear_all marker to the log for audit (log is preserved); the in-memory cache is truncated. Use graph_vacuum (future) to delete logs. No input required.")>]
     let graphClear (_: string) =
         task {
+            GraphPersistence.appendClearNodes ()
+            GraphPersistence.appendClearEdges ()
             nodes.Clear()
             edges.Clear()
-            printfn "🗑️ Graph cleared"
+            printfn "🗑️ Graph cleared (log marker written)"
             return "Graph cleared successfully"
         }
