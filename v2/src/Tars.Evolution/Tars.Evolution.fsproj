@@ -59,6 +59,7 @@
     <Compile Include="BenchmarkRunner.fs" />
     <Compile Include="InsightExporter.fs" />
     <Compile Include="McpGaTraceBridge.fs" />
+    <Compile Include="ChatbotClaimsBridge.fs" />
     <Compile Include="Engine.fs" />
   </ItemGroup>
 

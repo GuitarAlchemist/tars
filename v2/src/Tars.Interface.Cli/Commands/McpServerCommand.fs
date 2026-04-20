@@ -212,6 +212,12 @@ module McpServerCommand =
                     registry.Register(tool)
                 logger.Information("Registered {Count} GA trace bridge tools", gaTraceTools.Length)
 
+                // --- Register chatbot-claims bridge tools ---
+                let claimTools = Tars.Evolution.ChatbotClaimsBridge.createTools ()
+                for tool in claimTools do
+                    registry.Register(tool)
+                logger.Information("Registered {Count} chatbot-claims bridge tools", claimTools.Length)
+
             with ex ->
                 logger.Error("Failed to register tools: {Error}", ex.Message)
             // We don't throw, just continue with partial tools
