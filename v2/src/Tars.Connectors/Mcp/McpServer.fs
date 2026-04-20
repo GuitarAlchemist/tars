@@ -2,6 +2,7 @@ namespace Tars.Connectors.Mcp
 
 open System
 open System.Text.Json
+open System.Text.Json.Serialization
 open System.Threading.Tasks
 open System.Collections.Concurrent
 open Tars.Core
@@ -18,7 +19,10 @@ type McpServer(registry: IToolRegistry, ?knowledgeGraph: TemporalKnowledgeGraph.
         | s -> s.Substring(0, 8)
 
     let serializerOptions =
-        JsonSerializerOptions(WriteIndented = false, PropertyNamingPolicy = JsonNamingPolicy.CamelCase)
+        JsonSerializerOptions(
+            WriteIndented = false,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)
 
     let log (msg: string) =
         Console.Error.WriteLine($"[TARS MCP] {msg}")
