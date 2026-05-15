@@ -1,0 +1,18 @@
+{
+  "$comment": "Schema pin declaration for v2/baselines/** golden artifacts in tars. Phase 0 deliverable #5 of ga/docs/plans/2026-05-14-arch-cherny-adoption-and-tribunal-ci-plan-v2.md.",
+  "schema_version": 1,
+  "applies_to_path": "v2/baselines/**/*.golden.json",
+  "pins": {
+    "OPTIC-K": "v1.8",
+    "tars_wot_grammar": "frozen — see v2/grammars/wot.trsx",
+    "qa_verdict_schema": "ga/docs/contracts/qa-verdict.schema.json (tars consumes this when emitting tribunal verdicts)",
+    "models": {
+      "glm-4-9b-q4": "current dogfood model — v2/baselines/glm-4-9b-q4/*.golden.json"
+    }
+  },
+  "policy": {
+    "scope": "Golden JSON artifacts produced AFTER this file's git introduction are pinned to these versions. Pre-existing goldens in v2/baselines/glm-4-9b-q4/ are implicitly draft/v0 — they may be re-baselined when WoT grammar evolves or model changes.",
+    "bump_rule": "On model version bump (e.g. glm-4-9b-q4 -> different quantization), add a new subdirectory under v2/baselines/ and update the models map above. Demerzel tribunal is informed via cross-repo dispatch.",
+    "owner": "tars maintainer + cross-repo coordinator (Demerzel tribunal)"
+  }
+}
