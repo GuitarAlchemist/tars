@@ -71,6 +71,13 @@ internal-nlog.txt
 /Experiments/ChatbotExample1/ingestioncache.db
 
 .fake
+
+# Session digests — per-session cursor state captured by the /digest skill
+# and the PreCompact/Stop hook fallbacks. README is tracked; contents are
+# session-specific and may include in-flight model context.
+state/digests/*
+!state/digests/README.md
+
 ## Docker backups
 docker/backups/
 **/docker/backups/

@@ -53,3 +53,28 @@ Three repos via MCP/CLI bridges: **tars** (this repo, agent system), **ix** (`~/
 - Tars.LSP removed from solution (OmniSharp .NET 10 compat); project files still on disk.
 
 For governance details, use `demerzel-*` skills.
+
+## Karpathy 4 Rules — AI coding discipline
+
+These rules apply to every Claude proposal that touches code:
+
+1. **Think before coding.** State your interpretation of the request + assumptions; ask one clarifying question if anything is ambiguous; wait for confirmation before writing code.
+2. **Simplicity first.** Write minimum code that solves the exact problem. No speculative features, no future-proofing.
+3. **Surgical changes only.** Only modify code directly related to the request. Don't refactor adjacent code, don't fix unrelated style issues.
+4. **Goal-driven execution.** Transform every task into verifiable success criteria. Loop until each is demonstrably met. "Task completed" ≠ "goal achieved."
+
+Self-improvement reflex: when the user corrects you, invoke `/correct` so the rule lands in this file's **Session-learned rules** section — Cherny's "most important loop" from the 2026 talk.
+
+## Session continuity (Cherny pattern)
+
+- `/digest` — captures meaningful session state (cursor, in-flight, hypotheses, success criteria) to `state/digests/latest.md`. Auto-fallback via `.claude/hooks/precompact-digest.ps1`; auto-injected on next session via `.claude/hooks/sessionstart-digest.ps1`. See `.claude/skills/digest/SKILL.md`.
+- `/learnings` — captures surprises (non-obvious facts worth grep-finding later) into `docs/solutions/<category>/<date>-<topic>.md`.
+- `/correct` — turns user corrections into permanent rules in this CLAUDE.md.
+
+The hooks are validated in CI by `.github/workflows/karpathy-cherny-discipline.yml`.
+
+## Session-learned rules
+
+_Appended by `/correct` when the user corrects an approach. Persists across sessions._
+
+(none yet)
