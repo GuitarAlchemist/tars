@@ -69,7 +69,7 @@ module ConstrainedDecodingTests =
     let ``listGrammars lists all .ebnf files`` () =
         withTempGrammarDir [ ("a.ebnf", ""); ("b.ebnf", ""); ("c.txt", "") ] (fun dir ->
             let grammars = ConstrainedDecoding.listGrammars dir |> List.sort
-            Assert.Equal<string list>([ "a"; "b" ], grammars)
+            Assert.Equal<string>([ "a"; "b" ], grammars)
         )
 
     [<Fact>]
