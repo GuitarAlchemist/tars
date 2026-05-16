@@ -135,7 +135,7 @@ module MetaCognitionTests =
     [<Fact>]
     let ``Extract domain tags defaults to general`` () =
         let tags = GapDetection.extractDomainTags "hello world"
-        Assert.Equal<string list>([ "general" ], tags)
+        Assert.Equal<string>([ "general" ], tags)
 
     [<Fact>]
     let ``Failure rate by domain computes correctly`` () =

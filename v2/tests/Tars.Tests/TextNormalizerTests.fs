@@ -15,14 +15,14 @@ let ``tokenize splits words correctly`` () =
     let input = "one two three"
     let expected = [ "one"; "two"; "three" ]
     let actual = TextNormalizer.tokenize input
-    Assert.Equal<string list>(expected, actual)
+    Assert.Equal<string>(expected, actual)
 
 [<Fact>]
 let ``removeStopWords filters common words`` () =
     let input = [ "the"; "quick"; "brown"; "fox"; "is"; "a"; "dog" ]
     let expected = [ "quick"; "brown"; "fox"; "dog" ]
     let actual = TextNormalizer.removeStopWords input
-    Assert.Equal<string list>(expected, actual)
+    Assert.Equal<string>(expected, actual)
 
 [<Fact>]
 let ``extractKeywords performs full pipeline`` () =
@@ -30,4 +30,4 @@ let ``extractKeywords performs full pipeline`` () =
     let input = "The Quick, Brown Fox jumps over the quick dog."
     let expected = [ "quick"; "brown"; "fox"; "jumps"; "over"; "dog" ]
     let actual = TextNormalizer.extractKeywords input
-    Assert.Equal<string list>(expected, actual)
+    Assert.Equal<string>(expected, actual)
