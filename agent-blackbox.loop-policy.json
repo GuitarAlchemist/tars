@@ -1,0 +1,38 @@
+{
+  "version": "0.1.0",
+  "description": "Edit scopes for the supervised autonomous loop in tars. Sibling to agent-blackbox.policy.json (which governs risk scoring). The loop skill must only edit paths matched by allow_edit and must never edit paths matched by protected_paths. F# source under v2/ is the primary edit surface.",
+  "allow_edit": [
+    "v2/src/**",
+    "v2/tests/**",
+    "v2/agents/**",
+    "v2/grammars/**",
+    "v2/docs/**",
+    "v2/puzzles/**",
+    "docs/**",
+    "Scripts/**",
+    ".claude/skills/**",
+    "state/governance/**",
+    "state/quality/**",
+    "README.md",
+    "AGENTS.md",
+    "CLAUDE.md"
+  ],
+  "protected_paths": [
+    ".github/workflows/**",
+    "schemas/**",
+    "contracts/**",
+    "migrations/**",
+    "infra/production/**",
+    "billing/**",
+    "legal/**",
+    "security/**",
+    "agent-blackbox.policy.json",
+    "agent-blackbox.loop-policy.json",
+    "Directory.Build.props",
+    "global.json",
+    "**/*.sln",
+    "**/*.fsproj",
+    "v2/baselines/**",
+    "governance/demerzel/**"
+  ]
+}
