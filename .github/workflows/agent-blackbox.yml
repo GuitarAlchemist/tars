@@ -11,10 +11,14 @@ permissions:
   checks: write
 
 env:
-  AGENT_BLACKBOX_REF: "v0.1.0-beta.1"
-  VERIFY_COMMAND: "cd v2 && dotnet test --verbosity normal"
+  AGENT_BLACKBOX_REF: "942f808d3290441ab7d47e78a6b05e0e5587441d"
+  VERIFY_COMMAND: "pwsh Scripts/verify.ps1"
   IX_BLAST_RADIUS_BUILD_COMMAND: ""
   IX_BLAST_RADIUS_COMMAND: ""
+  HARNESS_AUDIT_FAIL_BELOW: "60"
+  RESPONSE_QUALITY_INPUT: "dist/agent-response.txt"
+  RESPONSE_QUALITY_MAX_WORDS: "180"
+  RESPONSE_QUALITY_REQUIRE_GROUNDING: "false"
 
 jobs:
   risk-report:
@@ -90,6 +94,15 @@ jobs:
                   status="ok" if verify_exit == 0 else "failed",
               ),
           ]
+          if os.environ.get("IX_BLAST_RADIUS_COMMAND"):
+              lines.append(
+                  event(
+                      event="analysis",
+                      tool="ix-blast-radius",
+                      command=os.environ["IX_BLAST_RADIUS_COMMAND"],
+                      status="ok",
+                  )
+              )
           Path("dist/agent-trace.jsonl").write_text("\n".join(lines) + "\n", encoding="utf-8")
           PY
 
@@ -108,13 +121,43 @@ jobs:
           fi
           PYTHONPATH=.agent-blackbox python -m cli.agent_blackbox "${analyze_args[@]}"
 
+      - name: Generate harness audit
+        shell: bash
+        run: |
+          PYTHONPATH=.agent-blackbox python -m cli.agent_blackbox harness-audit \
+            --repo . \
+            --out-dir dist \
+            --fail-below "${HARNESS_AUDIT_FAIL_BELOW}"
+
+      - name: Generate response quality report
+        shell: bash
+        run: |
+          if [ ! -s "${RESPONSE_QUALITY_INPUT}" ]; then
+            echo "No response-quality input at ${RESPONSE_QUALITY_INPUT}; skipping."
+            exit 0
+          fi
+          args=(response-quality \
+            --input "${RESPONSE_QUALITY_INPUT}" \
+            --out-dir dist \
+            --max-words "${RESPONSE_QUALITY_MAX_WORDS}")
+          if [ "${RESPONSE_QUALITY_REQUIRE_GROUNDING}" = "true" ]; then
+            args+=(--require-grounding)
+          fi
+          PYTHONPATH=.agent-blackbox python -m cli.agent_blackbox "${args[@]}"
+
       - name: Comment risk report
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
             const marker = '<!-- agent-blackbox-risk-report -->';
-            const body = marker + '\n' + fs.readFileSync('dist/risk-report.md', 'utf8');
+            let body = marker + '\n' + fs.readFileSync('dist/risk-report.md', 'utf8');
+            if (fs.existsSync('dist/harness-audit.md')) {
+              body += '\n\n---\n\n' + fs.readFileSync('dist/harness-audit.md', 'utf8');
+            }
+            if (fs.existsSync('dist/response-quality.md')) {
+              body += '\n\n---\n\n' + fs.readFileSync('dist/response-quality.md', 'utf8');
+            }
             const { owner, repo } = context.repo;
             const issue_number = context.issue.number;
             const comments = await github.rest.issues.listComments({ owner, repo, issue_number, per_page: 100 });
