@@ -118,6 +118,8 @@ tarsapp_build.txt
 
 # Prevent large files from being committed
 node_modules/
+# Explicit: vendored node_modules untracked 2026-05-24, kept on disk for npm install
+/node_modules/
 AugmentWebviewStateStore.xml
 *.bak
 build_output*.txt
