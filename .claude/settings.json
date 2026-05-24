@@ -42,6 +42,19 @@
             "command": "pwsh -NoProfile -File $CLAUDE_PROJECT_DIR/.claude/hooks/digest-activity-tracker.ps1"
           }
         ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $CLAUDE_PROJECT_DIR/.claude/hooks/fsharp-check.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash $CLAUDE_PROJECT_DIR/.claude/hooks/fsharp-format.sh"
+          }
+        ]
       }
     ],
     "Stop": [
