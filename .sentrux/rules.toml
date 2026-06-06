@@ -1,0 +1,52 @@
+# TARS Sentrux architectural constraints — initial baseline
+#
+# Purpose: unblock the Sentrux dashboard's "Rule violations" surface and start
+# enforcing complexity discipline. Numbers here are REALISTIC starting points
+# derived from the current repo state on 2026-05-24, AFTER untracking the
+# Python `tts-venv` virtualenv + vendored node_modules and archiving the
+# v1/v2/Legacy_CSharp_Projects/backup_* trees under archive/.
+#
+# Tightening strategy (mirrors ga/.sentrux/rules.toml):
+#   1. Whenever a PR FIXES a violator, ratchet the relevant constraint down by
+#      the amount fixed (no slack reserved).
+#   2. Never tighten a constraint past the current value without also fixing
+#      the offending code in the same PR — the dashboard goes red instantly.
+#   3. Goal end-state: max_cycles=0, max_cc=15, max_fn_lines=60. Get there over
+#      several quarters via incremental PRs.
+#
+# Baseline snapshot (sentrux check post-cleanup):
+#   files = 12,036 (was 13,730 — node_modules + tts-venv untracked),
+#   import_edges = 823 (was 2,574 — venv was inflating),
+#   quality_signal = 2931 (was 3533 — DROPPED because removing the venv
+#     exposed how redundant the first-party + archive code is).
+#   cycles = 0 (was 3 — all 3 cycles were in Python venv site-packages).
+#   depth = 5 (was 28).
+#
+# Genuine code-quality finding revealed by the cleanup:
+#   - 0 first-party cycles (all 3 prior cycles were in tts-venv)
+#   - redundancy.score collapsed to 112/10000 — first-party + archive duplicate
+#     each other heavily (v1/v2/legacy-csharp + backups overlap). Expected
+#     for an archive; revisit if it doesn't shrink as new work lands outside
+#     archive/.
+
+[constraints]
+# Acyclicity: 0 cycles today (was 3, all in tts-venv). Hold the line at 1.
+# Any new cycle introduced will trip the rule immediately.
+max_cycles = 1
+
+# Cyclomatic complexity ceiling: archive contains a minified dompurify bundle
+# (purify.es.mjs:createDOMPurify at cc=258) and DSL interpreter dispatchers
+# (TarsEngine.DSL/SimpleDsl.fs at cc=154). First-party (non-archive) max is
+# 67 — TarsEngine.FSharp.Core/Program.fs:main. Setting to 260 to accommodate
+# the archive minified file; drop to 70 once archive is excluded from scan.
+max_cc = 260
+
+# Function length: archive has long generated UI strings (max ~1477 lines).
+# First-party max is 990 lines (TarsEngine.FSharp.DynamicUI/Program.fs:main).
+# Setting to 1500 to accommodate archive; drop to 1000 if/when archive is
+# excluded.
+max_fn_lines = 1500
+
+# God-file detection: too noisy today (large archive tree). Enable after a
+# "shrink the giants" or "extract from archive" pass.
+no_god_files = false
