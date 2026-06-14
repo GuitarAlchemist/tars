@@ -262,12 +262,18 @@ module WeightedGrammar =
             File.WriteAllText(weightsPath, json)
         with _ -> () // graceful degradation
 
-    /// Load weighted rules from ~/.tars/promotion/weights.json
-    let load () : WeightedRule list =
+    /// Load weighted rules from a specific promotion directory's weights.json.
+    /// Lets callers (notably hermetic tests) read an isolated store instead of
+    /// the shared ~/.tars one.
+    let loadFrom (dir: string) : WeightedRule list =
         try
-            if File.Exists(weightsPath) then
-                let json = File.ReadAllText(weightsPath)
+            let path = Path.Combine(dir, "weights.json")
+            if File.Exists(path) then
+                let json = File.ReadAllText(path)
                 let dtos = JsonSerializer.Deserialize<WeightedRuleDto list>(json, jsonOptions)
                 dtos |> List.map fromDto
             else []
         with _ -> []
+
+    /// Load weighted rules from ~/.tars/promotion/weights.json
+    let load () : WeightedRule list = loadFrom weightsDir
