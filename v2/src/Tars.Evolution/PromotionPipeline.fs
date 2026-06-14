@@ -386,6 +386,44 @@ let getLineageRecords () : LineageRecord list =
     ensureLoaded ()
     lineageStore.Values |> Seq.toList
 
+// ── Root-aware store access (hermetic, parallel-safe) ───────────────
+// The functions above read the process-global in-memory store (lazily
+// loaded once from ~/.tars). These read/write a caller-supplied
+// promotion directory directly, so callers (notably tests) can operate
+// on an isolated store without racing the shared one.
+
+/// Read recurrence records straight from a specific promotion directory.
+let recurrenceRecordsFrom (promotionDir: string) : RecurrenceRecord list =
+    try
+        let path = Path.Combine(promotionDir, "recurrence.json")
+        if File.Exists path then
+            JsonSerializer.Deserialize<RecurrenceRecord list>(File.ReadAllText path, jsonOptions)
+        else []
+    with _ -> []
+
+/// Read lineage records straight from a specific promotion directory.
+let lineageRecordsFrom (promotionDir: string) : LineageRecord list =
+    try
+        let path = Path.Combine(promotionDir, "lineage.json")
+        if File.Exists path then
+            JsonSerializer.Deserialize<LineageRecord list>(File.ReadAllText path, jsonOptions)
+        else []
+    with _ -> []
+
+/// Persist recurrence + lineage stores to a specific promotion directory.
+let saveStoresTo
+    (promotionDir: string)
+    (recurrence: RecurrenceRecord list)
+    (lineage: LineageRecord list)
+    : unit =
+    Directory.CreateDirectory promotionDir |> ignore
+    File.WriteAllText(
+        Path.Combine(promotionDir, "recurrence.json"),
+        JsonSerializer.Serialize(recurrence, jsonOptions))
+    File.WriteAllText(
+        Path.Combine(promotionDir, "lineage.json"),
+        JsonSerializer.Serialize(lineage, jsonOptions))
+
 /// Get patterns at a specific promotion level
 let getPatternsAtLevel (level: PromotionLevel) : RecurrenceRecord list =
     ensureLoaded ()
