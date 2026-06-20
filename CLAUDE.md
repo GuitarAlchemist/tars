@@ -8,9 +8,16 @@ F# agent system with WoT DSL, evolution pipeline, and MCP tool surface. Part of 
 cd v2                 # working directory is v2/, not repo root
 dotnet build          # full build
 dotnet test           # ~820 tests (4 skipped for Docker)
+dotnet format --verify-no-changes
 ```
 
 Solution: `v2/Tars.sln`, target: `net10.0`.
+
+Repo harness verification:
+
+```powershell
+pwsh Scripts/verify.ps1
+```
 
 ## Layout
 
@@ -78,3 +85,19 @@ The hooks are validated in CI by `.github/workflows/karpathy-cherny-discipline.y
 _Appended by `/correct` when the user corrects an approach. Persists across sessions._
 
 (none yet)
+
+## Agent skills
+
+Per-repo config for the mattpocock engineering skills (`to-issues`, `to-prd`, `triage`, `qa`, `tdd`, `improve-codebase-architecture`, etc.).
+
+### Issue tracker
+
+Issues tracked via GitHub Issues via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Canonical defaults (`needs-triage` / `needs-info` / `ready-for-agent` / `ready-for-human` / `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context (`CONTEXT.md` + `docs/adr/`). See `docs/agents/domain.md`.
