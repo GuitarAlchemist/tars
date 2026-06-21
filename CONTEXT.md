@@ -59,3 +59,41 @@ Decisions live in `docs/adr/`; this file defines the *ubiquitous language*.
 - **grammar sweep / first mesh** — the chosen first workload: fan `grammar.search`
   across N `(grammar variant, exploration, max_depth, seed)` configs over TARS's
   EBNF + pattern-outcome corpus; rank results TARS-side; feed winners to promotion.
+
+## Self-hosting improvement (feature: TARS improves TARS)
+
+> Seeded 2026-06-21 during a `grill-with-docs` session on boosting recursive
+> self-improvement. See `docs/adr/0002-tars-self-hosting-improvement.md`.
+
+- **self-hosting loop** — TARS applying its mutation→verify→promote machinery to
+  *its own F# source*, gated by its own test suite. The deepest recursion target:
+  "did it improve?" has an unambiguous answer (tests green).
+- **recursion levels** — TARS self-improves at five levels: (1) prompt/workflow
+  repair (`SelfImprovement.analyzeAndPropose`), (2) pattern-weight bandit
+  (`PatternSelector` ← ix `grammar.weights`), (3) grammar promotion staircase,
+  (4) model weights (`SelfTrain` SFT, the only level with a true A/B gate), and
+  (5) parallel exploration (the grammar-mesh over ix-pipeline). Self-hosting adds
+  source-code as a 6th.
+- **fitness signal** — what a self-mutation must *improve*: a currently failing/
+  skipped/`xfail` test (or TODO) made to pass. The test suite is the spec, so the
+  accept signal is unambiguous and hard to game. (Perf/quality signals are Phase 2.)
+- **variant** — a mutated copy of a target file (`Mutation.Apply` → `.wot/variants/`).
+  For self-hosting, applied inside an isolated git worktree, never the live tree.
+- **fitness gate** — the verification step: build + `dotnet test -p:NuGetAudit=false`
+  the variant-applied source in a worktree, producing a `Selection.Performance`
+  (`PassRate`/`TotalCost`/`DiffCount`) that `Selection.evaluate` turns into a
+  `Promote`/`Rollback` decision.
+- **hermetic gate** — anti-gaming boundary: test files are taken from HEAD and
+  immutable; the variant may edit only the one designated **non-test source file**;
+  the gate asserts test-count unchanged + zero regressions + target now passes.
+  Closes the edit-the-spec / drop-tests / break-the-untested cheats (Goodhart).
+- **(test, file) pair** — the v1 scoping unit: a curated seed mapping each target
+  test to the single source file allowed to change for it. Sidesteps fault
+  localization (deriving the file from the test) which is the Phase-2 unlock.
+- **best-of-N + repair** — loop control: N diverse proposals (~4) run concurrently
+  in isolated worktrees, accept first green; if none pass, one error-fed repair
+  round via `analyzeAndPropose`. The parallel recursion *boost*.
+- **acceptance / rollback** — `Selection.evaluate` + `SelectionService.ApplyDecision`.
+  Today `ApplyDecision` does a raw `File.Copy` over the original (unsafe for source);
+  self-hosting replaces promotion with a commit to an isolated `self-improve/*`
+  branch (never main; human reviews + merges), and rollback with `git worktree remove`.
