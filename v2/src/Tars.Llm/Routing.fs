@@ -81,6 +81,49 @@ type RoutedBackend =
       Endpoint: Uri
       ApiKey: string option }
 
+/// Provider family inferred from an explicit model name. Isolates the fragile
+/// substring matching so routing can decide over a closed, compiler-checked type.
+type ModelFamily =
+    | OpenAIFamily
+    | AnthropicFamily
+    | GeminiFamily
+    | LocalFamily
+
+module ModelFamily =
+    /// Classify an explicit model name into its provider family.
+    let classify (model: string) : ModelFamily =
+        let has (s: string) = model.Contains(s, StringComparison.OrdinalIgnoreCase)
+
+        if has "gpt" then OpenAIFamily
+        elif has "claude" then AnthropicFamily
+        elif has "gemini" then GeminiFamily
+        else LocalFamily
+
+/// Routing intent inferred from a model hint. The order of classification is
+/// significant and mirrors the original sequential matching.
+type RoutingHint =
+    | CodeHint
+    | CheapHint
+    | ReasoningHint
+    | DockerHint
+    | LlamaCppHint
+    | FastHint
+    | DefaultHint
+
+module RoutingHint =
+    /// Classify a (possibly empty) model hint into a routing intent.
+    let classify (hint: string) : RoutingHint =
+        let has (s: string) = hint.Contains(s, StringComparison.OrdinalIgnoreCase)
+
+        if has "code" then CodeHint
+        elif has "cheap" then CheapHint
+        elif has "reason" || has "analysis" || has "think" || has "math" || has "complex" || has "step" || has "smart" then
+            ReasoningHint
+        elif has "docker" then DockerHint
+        elif has "llamacpp" || has "perf" || has "gguf" then LlamaCppHint
+        elif has "fast" || has "quick" then FastHint
+        else DefaultHint
+
 /// <summary>
 /// Routes an LLM request to the appropriate backend based on model hints.
 /// </summary>
@@ -104,20 +147,21 @@ let chooseBackend (cfg: RoutingConfig) (req: LlmRequest) : RoutedBackend =
 
     match req.Model with
     | Some model ->
-        // If model is explicitly set, try to guess backend or default to Ollama
-        if model.Contains("gpt", StringComparison.OrdinalIgnoreCase) then
+        // If model is explicitly set, classify its provider family then route.
+        match ModelFamily.classify model with
+        | OpenAIFamily ->
             { Backend = OpenAI model
               Endpoint = cfg.OpenAIBaseUri
               ApiKey = cfg.OpenAIKey }
-        elif model.Contains("claude", StringComparison.OrdinalIgnoreCase) then
+        | AnthropicFamily ->
             { Backend = Anthropic model
               Endpoint = cfg.AnthropicBaseUri
               ApiKey = cfg.AnthropicKey }
-        elif model.Contains("gemini", StringComparison.OrdinalIgnoreCase) then
+        | GeminiFamily ->
             { Backend = GoogleGemini model
               Endpoint = cfg.GoogleGeminiBaseUri
               ApiKey = cfg.GoogleGeminiKey }
-        else
+        | LocalFamily ->
             // Check if it matches configured llama.cpp model
             match cfg.LlamaCppBaseUri, cfg.DefaultLlamaCppModel, cfg.LlamaSharpModelPath with
             | Some llamaUri, Some llamaModel, _ when
@@ -156,24 +200,14 @@ let chooseBackend (cfg: RoutingConfig) (req: LlmRequest) : RoutedBackend =
                       Endpoint = cfg.OllamaBaseUri
                       ApiKey = cfg.OllamaKey }
 
-        match hint with
-        | h when h.Contains("code", StringComparison.OrdinalIgnoreCase) ->
-            localRoute (cfg.CodingModel |> Option.defaultValue cfg.DefaultOllamaModel)
+        match RoutingHint.classify hint with
+        | CodeHint -> localRoute (cfg.CodingModel |> Option.defaultValue cfg.DefaultOllamaModel)
 
-        | h when h.Contains("cheap", StringComparison.OrdinalIgnoreCase) -> localRoute cfg.DefaultOllamaModel
+        | CheapHint -> localRoute cfg.DefaultOllamaModel
 
-        | h when
-            h.Contains("reason", StringComparison.OrdinalIgnoreCase)
-            || h.Contains("analysis", StringComparison.OrdinalIgnoreCase)
-            || h.Contains("think", StringComparison.OrdinalIgnoreCase)
-            || h.Contains("math", StringComparison.OrdinalIgnoreCase)
-            || h.Contains("complex", StringComparison.OrdinalIgnoreCase)
-            || h.Contains("step", StringComparison.OrdinalIgnoreCase)
-            || h.Contains("smart", StringComparison.OrdinalIgnoreCase)
-            ->
-            localRoute (cfg.ReasoningModel |> Option.defaultValue cfg.DefaultOllamaModel)
+        | ReasoningHint -> localRoute (cfg.ReasoningModel |> Option.defaultValue cfg.DefaultOllamaModel)
 
-        | h when h.Contains("docker", StringComparison.OrdinalIgnoreCase) ->
+        | DockerHint ->
             match cfg.DockerModelRunnerBaseUri, cfg.DefaultDockerModelRunnerModel with
             | Some uri, Some model ->
                 { Backend = DockerModelRunner model
@@ -181,11 +215,7 @@ let chooseBackend (cfg: RoutingConfig) (req: LlmRequest) : RoutedBackend =
                   ApiKey = cfg.DockerModelRunnerKey }
             | _ -> localRoute cfg.DefaultOllamaModel
 
-        | h when
-            h.Contains("llamacpp", StringComparison.OrdinalIgnoreCase)
-            || h.Contains("perf", StringComparison.OrdinalIgnoreCase)
-            || h.Contains("gguf", StringComparison.OrdinalIgnoreCase)
-            ->
+        | LlamaCppHint ->
             match cfg.LlamaCppBaseUri, cfg.DefaultLlamaCppModel with
             | Some uri, Some model ->
                 { Backend = LlamaCpp(model, Some LlamaCppConfig.Default)
@@ -193,13 +223,9 @@ let chooseBackend (cfg: RoutingConfig) (req: LlmRequest) : RoutedBackend =
                   ApiKey = cfg.LlamaCppKey }
             | _ -> localRoute cfg.DefaultOllamaModel
 
-        | h when
-            h.Contains("fast", StringComparison.OrdinalIgnoreCase)
-            || h.Contains("quick", StringComparison.OrdinalIgnoreCase)
-            ->
-            localRoute (cfg.FastModel |> Option.defaultValue cfg.DefaultOllamaModel)
+        | FastHint -> localRoute (cfg.FastModel |> Option.defaultValue cfg.DefaultOllamaModel)
 
-        | _ -> localRoute cfg.DefaultOllamaModel
+        | DefaultHint -> localRoute cfg.DefaultOllamaModel
 
 module RoutingConfig =
     /// <summary>

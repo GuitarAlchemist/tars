@@ -124,6 +124,7 @@
     <Compile Include="AgentDefinitionTests.fs" />
     <Compile Include="ResearchCycleTests.fs" />
     <Compile Include="AskCommandTests.fs" />
+    <Compile Include="RoutingClassifierTests.fs" />
   </ItemGroup>
 
   <ItemGroup>
