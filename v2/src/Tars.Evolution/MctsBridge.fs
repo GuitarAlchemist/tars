@@ -49,7 +49,7 @@ module MctsBridge =
     /// Serialize WoT templates to an EBNF grammar for ix's grammar-guided MCTS.
     /// Encodes the template pool as EBNF productions so the Rust MCTS can explore
     /// grammar-guided derivations natively.
-    let private templatesToEbnf (templates: Tars.DSL.Wot.DslNode list) : string =
+    let internal templatesToEbnf (templates: Tars.DSL.Wot.DslNode list) : string =
         let productions =
             templates
             |> List.mapi (fun i t ->
@@ -66,7 +66,7 @@ module MctsBridge =
     /// Map the ordered template indices from an ix derivation back onto WotActions.
     /// Honors the F# derivation rules: no duplicate node ids, capped at maxNodes,
     /// terminated with Complete.
-    let private indicesToActions
+    let internal indicesToActions
         (templates: Tars.DSL.Wot.DslNode list)
         (maxNodes: int)
         (indices: int list)

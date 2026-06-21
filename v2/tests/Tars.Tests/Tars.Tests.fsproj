@@ -122,6 +122,7 @@
     <Compile Include="AiFunctionIxTests.fs" />
     <Compile Include="GrammarDistillationTests.fs" />
     <Compile Include="GrammarMlBridgeTests.fs" />
+    <Compile Include="GrammarMeshBridgeTests.fs" />
     <Compile Include="AgentDefinitionTests.fs" />
     <Compile Include="ResearchCycleTests.fs" />
     <Compile Include="AskCommandTests.fs" />

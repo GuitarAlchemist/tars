@@ -85,6 +85,84 @@ module IxSkill =
             proc.HasExited && proc.ExitCode = 0
         with _ -> false
 
+    /// True when ix exposes the real `pipeline` surface (not the historical stub).
+    /// Probes `pipeline schema`, which is read-only and draws its skill enum from
+    /// the live registry — exit 0 means a rebuilt binary with the executor wired in.
+    /// Callers degrade to a serial path when this is false (ADR 0001, D7).
+    let pipelineAvailable (config: Config) : bool =
+        try
+            let fileName, prefix = invocation config
+            let psi = ProcessStartInfo()
+            psi.FileName <- fileName
+            psi.Arguments <- prefix + "pipeline schema --format json"
+            psi.UseShellExecute <- false
+            psi.RedirectStandardOutput <- true
+            psi.RedirectStandardError <- true
+            psi.CreateNoWindow <- true
+            applyWorkingDir config psi
+
+            use proc = Process.Start(psi)
+            let out = proc.StandardOutput.ReadToEnd()
+            proc.StandardError.ReadToEnd() |> ignore
+            proc.WaitForExit(30000) |> ignore
+            // A stub prints a notice and/or exits non-zero; the real schema is a JSON object.
+            proc.HasExited && proc.ExitCode = 0 && out.Contains("\"")
+        with _ -> false
+
+    /// Execute an `ix.yaml` pipeline file, returning raw JSON stdout.
+    /// `paramFiles` are (name, path) pairs bound as `--param name=@path`; each
+    /// file must hold a JSON value (a JSON-encoded string for raw text). The
+    /// stdout shape is `{ "stages": { "<id>": { "output": ... } } }`.
+    let runPipelineJson
+        (config: Config)
+        (yamlPath: string)
+        (paramFiles: (string * string) list)
+        : Task<Result<string, string>> =
+        task {
+            try
+                let fileName, prefix = invocation config
+                let paramArgs =
+                    paramFiles
+                    |> List.map (fun (name, path) -> sprintf "--param %s=@\"%s\"" name path)
+                    |> String.concat " "
+                let psi = ProcessStartInfo()
+                psi.FileName <- fileName
+                psi.Arguments <-
+                    sprintf "%spipeline run --file \"%s\" %s --format json" prefix yamlPath paramArgs
+                psi.UseShellExecute <- false
+                psi.RedirectStandardOutput <- true
+                psi.RedirectStandardError <- true
+                psi.CreateNoWindow <- true
+                applyWorkingDir config psi
+
+                use proc = new Process()
+                proc.StartInfo <- psi
+
+                let stdout = StringBuilder()
+                let stderr = StringBuilder()
+                proc.OutputDataReceived.Add(fun e ->
+                    if not (isNull e.Data) then stdout.AppendLine(e.Data) |> ignore)
+                proc.ErrorDataReceived.Add(fun e ->
+                    if not (isNull e.Data) then stderr.AppendLine(e.Data) |> ignore)
+
+                proc.Start() |> ignore
+                proc.BeginOutputReadLine()
+                proc.BeginErrorReadLine()
+
+                let! completed =
+                    Task.Run(fun () -> proc.WaitForExit(int config.Timeout.TotalMilliseconds))
+
+                if not completed then
+                    try proc.Kill() with _ -> ()
+                    return Error "ix pipeline timed out"
+                elif proc.ExitCode <> 0 then
+                    return Error (stderr.ToString().Trim())
+                else
+                    return Ok (stdout.ToString().Trim())
+            with ex ->
+                return Error (sprintf "ix pipeline error: %s" ex.Message)
+        }
+
     /// Run an ix skill with a JSON input document, returning raw JSON stdout.
     /// Input is passed via a temp file to avoid shell-quoting hazards on Windows.
     let runSkillJson

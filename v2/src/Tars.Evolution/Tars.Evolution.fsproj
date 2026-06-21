@@ -52,6 +52,7 @@
     <Compile Include="MctsSolver.fs" />
     <Compile Include="WotMctsState.fs" />
     <Compile Include="MctsBridge.fs" />
+    <Compile Include="GrammarMeshBridge.fs" />
     <Compile Include="ReplicatorDynamics.fs" />
     <Compile Include="McpPatternResources.fs" />
     <Compile Include="McpGrammarTools.fs" />
