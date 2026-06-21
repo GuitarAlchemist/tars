@@ -94,10 +94,16 @@ from test-failure — both map to `Rollback`.
   `dotnet test` → `decide` → on Accept `checkout -b self-improve/<id>` + commit in the
   worktree; worktree dir always removed (branch ref survives). Mechanic spiked in §above.
 
+**Live Accept verified (2026-06-21):** ran `runGate` against a throwaway repo whose
+HEAD had a genuinely-failing test (`answer()` returns 0; test wants 42). Result:
+`Promoted ("self-improve/13827728", "target 'answer' now passes; 0 regressions; 2
+tests unchanged")`. Confirmed the fix landed on the `self-improve/*` branch, the
+worktree was cleaned up, and **master kept the bug** (promotion never touched main —
+D4). The full loop closes: failing test → worktree → fix → verify → branch commit.
+
 **Not yet built (next increments):** LLM generation of the edit (wire `analyzeAndPropose`),
-best-of-N parallel (D5), a CLI entry + the curated `(test,file)` seed list. A *live*
-Accept needs a genuinely-failing-at-HEAD test (the seed list) — by design the gate
-rejects fixing a test that already passes, so the Accept path can't be demoed without one.
+best-of-N parallel (D5), a CLI entry + the curated `(test,file)` seed list of real
+in-repo failing/skipped tests.
 
 ## Open items to resolve in implementation
 
