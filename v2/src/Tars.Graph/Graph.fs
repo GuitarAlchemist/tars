@@ -534,7 +534,10 @@ module GraphRuntime =
                     task {
                         try
                             let! result =
-                                Async.StartAsTask(tool.Execute input, cancellationToken = ctx.CancellationToken)
+                                Async.StartAsTask(
+                                    Tars.Core.ToolExecution.runDefault tool input,
+                                    cancellationToken = ctx.CancellationToken
+                                )
                             return Choice1Of2 result
                         with :? OperationCanceledException ->
                             return Choice2Of2 ()

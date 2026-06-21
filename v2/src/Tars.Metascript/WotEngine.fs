@@ -219,7 +219,7 @@ type WotEngine(llm: ILlmServiceFunctional, tools: IToolRegistry) =
                                     else
                                         System.Text.Json.JsonSerializer.Serialize(args)
 
-                                let! toolRes = tool.Execute toolInput |> Async.StartAsTask
+                                let! toolRes = Tars.Core.ToolExecution.runDefault tool toolInput |> Async.StartAsTask
                                 let endTime = DateTimeOffset.UtcNow
 
                                 match toolRes with

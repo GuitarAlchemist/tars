@@ -126,6 +126,7 @@
     <Compile Include="AskCommandTests.fs" />
     <Compile Include="RoutingClassifierTests.fs" />
     <Compile Include="LocalModelPoolTests.fs" />
+    <Compile Include="ToolInvokerTests.fs" />
   </ItemGroup>
 
   <ItemGroup>

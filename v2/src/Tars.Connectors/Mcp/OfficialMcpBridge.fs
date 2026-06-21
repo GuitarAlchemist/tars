@@ -24,7 +24,7 @@ module OfficialMcpBridge =
             Func<string, CancellationToken, Task<string>>(fun arguments _ct ->
                 task {
                     let input = if isNull arguments then "" else arguments
-                    let! result = tool.Execute(input) |> Async.StartAsTask
+                    let! result = Tars.Core.ToolExecution.runDefault tool input |> Async.StartAsTask
                     match result with
                     | Result.Ok output -> return output
                     | Result.Error err -> return $"Error: {err}"

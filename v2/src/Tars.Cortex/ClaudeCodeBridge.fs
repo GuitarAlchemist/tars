@@ -261,7 +261,7 @@ module ClaudeCodeBridge =
                                         if payload.Args.IsEmpty then stepInput
                                         else JsonSerializer.Serialize(payload.Args)
 
-                                    let! result = t.Execute(toolInput)
+                                    let! result = Tars.Core.ToolExecution.runDefault t toolInput
                                     sw.Stop()
 
                                     match result with

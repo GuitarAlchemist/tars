@@ -150,10 +150,12 @@ module WotExecutor =
                                 let! r = toolInvoker.Invoke(toolName, resolvedArgs)
 
                                 match r with
-                                | Result.Error e -> return Some $"ToolResult failed: Tool '{toolName}' error: {e}"
-                                | Result.Ok res ->
-                                    let resStr = res.ToString()
-
+                                | ToolOutcome.NotFound -> return Some $"ToolResult failed: Tool '{toolName}' not found"
+                                | ToolOutcome.CircuitOpen ->
+                                    return Some $"ToolResult failed: Tool '{toolName}' circuit breaker open"
+                                | ToolOutcome.Failed(_, e) ->
+                                    return Some $"ToolResult failed: Tool '{toolName}' error: {e}"
+                                | ToolOutcome.Succeeded resStr ->
                                     if resStr.Contains check then
                                         return None
                                     else
@@ -420,7 +422,23 @@ module WotExecutor =
                                         let! r = toolInvoker.Invoke(toolName, resolvedArgs)
 
                                         match r with
-                                        | Result.Error e ->
+                                        | ToolOutcome.NotFound ->
+                                            return
+                                                fail
+                                                    $"Tool '{toolName}' not found"
+                                                    "tool"
+                                                    (Some toolName)
+                                                    (Some resolvedArgs)
+                                                    step.Metadata
+                                        | ToolOutcome.CircuitOpen ->
+                                            return
+                                                fail
+                                                    $"Tool '{toolName}' circuit breaker open"
+                                                    "tool"
+                                                    (Some toolName)
+                                                    (Some resolvedArgs)
+                                                    step.Metadata
+                                        | ToolOutcome.Failed(_, e) ->
                                             return
                                                 fail
                                                     $"Tool '{toolName}' failed: {e}"
@@ -428,8 +446,8 @@ module WotExecutor =
                                                     (Some toolName)
                                                     (Some resolvedArgs)
                                                     step.Metadata
-                                        | Result.Ok value ->
-                                            match storeSingleOutput currentCtx step.Outputs value with
+                                        | ToolOutcome.Succeeded value ->
+                                            match storeSingleOutput currentCtx step.Outputs (box value) with
                                             | Result.Error e ->
                                                 return
                                                     fail

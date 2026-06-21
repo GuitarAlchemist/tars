@@ -3,7 +3,7 @@ namespace Tars.Tests.WorkflowOfThought
 open Xunit
 open Tars.Core.WorkflowOfThought
 
-type FakeToolInvoker(responder: string -> Map<string, string> -> Result<obj, string>) =
+type FakeToolInvoker(responder: string -> Map<string, string> -> ToolOutcome) =
     let calls = ResizeArray<string * Map<string, string>>()
     member _.Calls = Seq.toList calls
 
@@ -48,8 +48,8 @@ module WotGoldenRunTests =
                 match tool with
                 | "mock_echo" ->
                     let msg = args.["msg"]
-                    Ok(box msg)
-                | _ -> Error "unknown tool")
+                    ToolOutcome.Succeeded msg
+                | _ -> ToolOutcome.Failed("Unknown", "unknown tool"))
 
         let reasoner =
             { new IReasoner with
@@ -108,7 +108,8 @@ module WotGoldenRunTests =
 
         // Mock Tool Invoker (unused)
         let invoker =
-            FakeToolInvoker(fun (t: string) (a: Map<string, string>) -> Error "should not be called")
+            FakeToolInvoker(fun (t: string) (a: Map<string, string>) ->
+                ToolOutcome.Failed("Unknown", "should not be called"))
 
         // Mock Reasoner
         let mutable reasonerCalled = false
@@ -166,7 +167,7 @@ module WotGoldenRunTests =
             { AllowedTools = Set.empty
               MaxToolCalls = 0 }
 
-        let invoker = FakeToolInvoker(fun _ _ -> Ok(box "dummy"))
+        let invoker = FakeToolInvoker(fun _ _ -> ToolOutcome.Succeeded "dummy")
 
         let reasoner =
             { new IReasoner with

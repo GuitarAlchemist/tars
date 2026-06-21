@@ -1228,7 +1228,7 @@ Output only the requested result."""
                                 // Fallback: Serialize to JSON
                                 System.Text.Json.JsonSerializer.Serialize(args)
 
-                        let! result = tool.Execute(input)
+                        let! result = Tars.Core.ToolExecution.runDefault tool input
 
                         match result with
                         | Result.Ok s -> return (Map [ "stdout", box s ], List.ofSeq notes)

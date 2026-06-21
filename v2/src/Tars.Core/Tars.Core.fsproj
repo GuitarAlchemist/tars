@@ -40,6 +40,7 @@
     <Compile Include="Metrics.fs" />
     <Compile Include="ToolLedger.fs" />
     <Compile Include="Resilience.fs" />
+    <Compile Include="ToolExecution.fs" />
     <Compile Include="Validation.fs" />
     <Compile Include="GrammarDistill.fs" />
     <Compile Include="PolicyEngine.fs" />
