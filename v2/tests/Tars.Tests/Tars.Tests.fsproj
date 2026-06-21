@@ -123,6 +123,7 @@
     <Compile Include="GrammarMlBridgeTests.fs" />
     <Compile Include="AgentDefinitionTests.fs" />
     <Compile Include="ResearchCycleTests.fs" />
+    <Compile Include="AskCommandTests.fs" />
   </ItemGroup>
 
   <ItemGroup>

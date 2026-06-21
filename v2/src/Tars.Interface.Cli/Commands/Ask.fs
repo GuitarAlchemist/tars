@@ -1,13 +1,11 @@
 module Tars.Interface.Cli.Commands.Ask
 
-open System
-open Serilog
 open Tars.Llm
 open Tars.Interface.Cli
 
-let run (logger: ILogger) (prompt: string) =
+let run (rt: ITarsRuntime) (prompt: string) =
     task {
-        let llmService = LlmFactory.create logger
+        let llmService = rt.Llm ModelChoice.Default
 
         let req: LlmRequest =
             { ModelHint = None

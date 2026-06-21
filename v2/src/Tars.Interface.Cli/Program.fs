@@ -218,7 +218,7 @@ let main argv =
 
     task {
         match argv with
-        | [| "ask"; prompt |] -> return! Ask.run logger prompt
+        | [| "ask"; prompt |] -> return! Ask.run (TarsRuntime.production logger) prompt
         | [| "guard-output"; path |] ->
             // Defaults: no required fields, citations not required, extra fields not allowed
             return GuardOutputCommand.run config path None false false

@@ -17,6 +17,7 @@
     <Compile Include="Reasoning\CliReasoner.fs" />
     <Compile Include="Reasoning\ReplayReasoner.fs" />
     <Compile Include="LlmFactory.fs" />
+    <Compile Include="Runtime.fs" />
     <Compile Include="ConsoleHelpers.fs" />
     <Compile Include="Commands\AgentHelpers.fs" />
     <Content Include="appsettings.json">
