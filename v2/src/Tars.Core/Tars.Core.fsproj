@@ -101,6 +101,7 @@
     <Compile Include="WorkflowOfThought\VariableResolution.fs" />
     <Compile Include="WorkflowOfThought\FeedbackLoop.fs" />
     <Compile Include="WorkflowOfThought\WotController.fs" />
+    <Compile Include="WorkflowOfThought\ReasonFeedback.fs" />
     <Compile Include="WorkflowOfThought\WotExecutor.fs" />
     <Compile Include="WorkflowOfThought\Mutation.fs" />
     <Compile Include="WorkflowOfThought\Selection.fs" />

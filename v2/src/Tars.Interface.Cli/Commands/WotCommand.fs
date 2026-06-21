@@ -412,6 +412,7 @@ module WotCommand =
                                             execPolicy
                                             inputs
                                             plan.Steps
+                                            (SymbolicMemorySink())
                                 with ex ->
                                     return Result.Error(ex.Message, [])
                             }
@@ -1159,6 +1160,7 @@ module WotCommand =
                                                 execPolicy
                                                 inputs
                                                 plan.Steps
+                                                (SymbolicMemorySink())
                                     with ex ->
                                         return Result.Error(ex.Message, [])
                                 }

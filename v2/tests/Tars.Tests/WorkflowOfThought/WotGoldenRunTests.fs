@@ -14,6 +14,11 @@ type FakeToolInvoker(responder: string -> Map<string, string> -> ToolOutcome) =
                 return responder toolName args
             }
 
+type private StubSink() =
+    interface ISymbolicSink with
+        member _.LogFact(_, _, _, _) = async { return () }
+        member _.LogFailure(_, _, _, _) = async { return () }
+
 module WotGoldenRunTests =
 
     [<Fact>]
@@ -68,6 +73,7 @@ module WotGoldenRunTests =
                 policy
                 inputs
                 steps
+                (StubSink())
             |> Async.RunSynchronously
 
         // Assert
@@ -138,6 +144,7 @@ module WotGoldenRunTests =
                 policy
                 inputs
                 steps
+                (StubSink())
             |> Async.RunSynchronously
 
         match result with
@@ -186,6 +193,7 @@ module WotGoldenRunTests =
                 policy
                 inputs
                 steps
+                (StubSink())
             |> Async.RunSynchronously
 
         // Act - Run 2 (simulate delay if needed, but not needed for logic determinism)
@@ -200,6 +208,7 @@ module WotGoldenRunTests =
                 policy
                 inputs
                 steps
+                (StubSink())
             |> Async.RunSynchronously
 
         // Assert
