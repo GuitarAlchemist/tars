@@ -37,7 +37,7 @@ module BreedCommand =
             if MachinBridge.isAvailable config then
                 AnsiConsole.MarkupLine("  ix: [green]available[/]")
             else
-                AnsiConsole.MarkupLine("  ix: [yellow]not built[/] (run `cargo build -p ix`)")
+                AnsiConsole.MarkupLine("  ix: [yellow]not built[/] (run `cargo build -p ix-skill`)")
         | None ->
             AnsiConsole.MarkupLine("  ix repo: [dim]not found[/]")
             AnsiConsole.MarkupLine("  [dim]Expected at ~/source/repos/ix[/]")

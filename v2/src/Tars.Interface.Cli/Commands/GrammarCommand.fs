@@ -15,6 +15,17 @@ module RichOutput =
     let ok msg = AnsiConsole.MarkupLine($"[green]✓[/] {msg}")
     let warn msg = AnsiConsole.MarkupLine($"[yellow]⚠[/] {msg}")
 
+/// Locate the sibling ix repo and build a bridge config when present, so MCTS
+/// search runs on ix's Rust grammar-guided solver (with F# fallback).
+let private ixBridgeConfig () : MachinBridge.MachinConfig option =
+    let candidate =
+        IO.Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            "source", "repos", "ix")
+    if IO.Directory.Exists candidate then
+        Some { MachinBridge.defaultConfig with WorkingDir = Some candidate }
+    else None
+
 /// Display current weighted grammar rules
 let private showWeights () =
     let rules = WeightedGrammar.load ()
@@ -169,19 +180,23 @@ let private runSearch (maxNodes: int) (iterations: int) =
     ]
 
     let config = { MctsTypes.defaultMctsConfig with MaxIterations = iterations; MaxRolloutDepth = 15 }
-    let result = WotMctsState.searchDerivation config meta templates maxNodes
+
+    // Prefer ix's Rust grammar-guided MCTS; fall back to the built-in F# solver.
+    let bestActions, usedIx =
+        MctsBridge.searchWotDerivation (ixBridgeConfig ()) config meta templates maxNodes
 
     // Display results
     AnsiConsole.MarkupLine("[bold]Search Results:[/]")
-    AnsiConsole.MarkupLine($"  Iterations: [bold]{result.Iterations}[/]")
-    AnsiConsole.MarkupLine($"  Avg Reward: [bold]{result.AverageReward:F4}[/]")
-    AnsiConsole.MarkupLine($"  Actions found: [bold]{result.BestActions.Length}[/]")
+    let backend = if usedIx then "[green]ix Rust grammar-guided MCTS[/]" else "[yellow]built-in F# MCTS[/]"
+    AnsiConsole.MarkupLine($"  Backend: {backend}")
+    AnsiConsole.MarkupLine($"  Iterations: [bold]{iterations}[/]")
+    AnsiConsole.MarkupLine($"  Actions found: [bold]{bestActions.Length}[/]")
 
-    if not result.BestActions.IsEmpty then
+    if not bestActions.IsEmpty then
         AnsiConsole.MarkupLine("")
         AnsiConsole.MarkupLine("[bold cyan]Derived Workflow:[/]")
         let mutable stepNum = 1
-        for action in result.BestActions do
+        for action in bestActions do
             match action with
             | AddNode n ->
                 let kind = if n.Kind = NodeKind.Reason then "[blue]REASON[/]" else "[green]WORK[/]"

@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <Compile Include="Functional.fs" />
+    <Compile Include="IxSkill.fs" />
     <Compile Include="Units.fs" />
     <Compile Include="Budget.fs" />
     <Compile Include="Primitives.fs" />

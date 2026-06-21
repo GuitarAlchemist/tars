@@ -32,7 +32,10 @@ type EvolveOptions =
       Focus: string option
       ResearchEnhanced: bool
       SelfImprovement: bool
-      Benchmark: bool }
+      Benchmark: bool
+      /// Fitness domain for the post-cycle benchmark: "code" (default), "ga"
+      /// (Guitar Alchemist music theory), or "all".
+      BenchmarkDomain: string }
 
 let run (logger: ILogger) (options: EvolveOptions) =
     task {
@@ -754,9 +757,16 @@ let run (logger: ILogger) (options: EvolveOptions) =
                         if not options.Quiet then
                             RichOutput.dim (sprintf "   %s" msg)
 
+                    let benchSource =
+                        match options.BenchmarkDomain.ToLowerInvariant() with
+                        | "ga" | "music" -> GaProblemBank.all ()
+                        | "all" -> ProblemBank.all () @ GaProblemBank.all ()
+                        | _ -> ProblemBank.all ()
+
                     let! benchSummary =
-                        BenchmarkRunner.runSuite
+                        BenchmarkRunner.runSuiteFromProblems
                             llmService
+                            benchSource
                             None    // all difficulties
                             None    // all categories
                             None    // no limit
@@ -774,6 +784,16 @@ let run (logger: ILogger) (options: EvolveOptions) =
                         RichOutput.dim (sprintf "   Compiled: %d/%d (%s%%)" benchSummary.Compiled benchSummary.TotalProblems compilePct)
                         RichOutput.dim (sprintf "   Duration: %.1fs" durationSec)
                         RichOutput.dim (sprintf "   Results saved to %s" benchPath)
+
+                    // Level-4 loop: refresh the self-train SFT dataset from the
+                    // verified corpus after each cycle (only PASS-validated rows).
+                    let datasetPath =
+                        System.IO.Path.Combine(
+                            System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile),
+                            ".tars", "self_train", "dataset.jsonl")
+                    let stStats = SelfTrain.exportDataset datasetPath None
+                    if not options.Quiet then
+                        RichOutput.dim (sprintf "   Self-train dataset: %d verified examples -> %s" stStats.VerifiedExamples stStats.OutputPath)
 
             if not options.Quiet then
                 let consumedTokens =

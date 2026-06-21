@@ -443,25 +443,29 @@ module ProbabilisticGrammarTests =
     // =========================================================================
 
     [<Fact>]
-    let ``parseMctsOutput parses complete output`` () =
+    let ``parseMctsOutput parses ix grammar.search JSON`` () =
+        // Real shape emitted by ix `grammar.search` (see crates/ix-agent/src/handlers.rs).
         let output = """
-  MCTS:
-    Best action:  2
-    Iterations:   1000
-    Avg reward:   0.75
-    Tree size:    3421
+{
+  "best_derivation": [
+    { "nonterminal": "root", "alternative": ["node_2)+"] },
+    { "nonterminal": "root", "alternative": ["node_0"] }
+  ],
+  "iterations": 500,
+  "reward": 0.75
+}
 """
         let result = parseMctsOutput output
-        Assert.Equal(2, result.BestActionIndex)
-        Assert.Equal(1000, result.Iterations)
-        Assert.True(abs (result.AverageReward - 0.75) < 0.001)
-        Assert.Equal(3421, result.TreeSize)
+        Assert.Equal<int list>([ 2; 0 ], result.NodeIndices)
+        Assert.Equal(500, result.Iterations)
+        Assert.True(abs (result.Reward - 0.75) < 0.001)
 
     [<Fact>]
-    let ``parseMctsOutput handles empty output`` () =
+    let ``parseMctsOutput handles non-JSON output`` () =
         let result = parseMctsOutput "No results"
-        Assert.Equal(0, result.BestActionIndex)
+        Assert.Empty(result.NodeIndices)
         Assert.Equal(0, result.Iterations)
+        Assert.Equal(0.0, result.Reward)
 
     // =========================================================================
     // MctsBridge: searchWotDerivation

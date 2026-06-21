@@ -63,6 +63,8 @@
     <Compile Include="Commands\RalphCommand.fs" />
     <Compile Include="Commands\BreedCommand.fs" />
     <Compile Include="Commands\GrammarCommand.fs" />
+    <Compile Include="Commands\CrossRepoDemo.fs" />
+    <Compile Include="Commands\SelfTrainCommand.fs" />
     <Compile Include="HealthCommand.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>

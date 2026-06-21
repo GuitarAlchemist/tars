@@ -107,6 +107,7 @@
     <Compile Include="PromotionIndexTests.fs" />
     <Compile Include="InsightExporterTests.fs" />
     <Compile Include="ProblemBankTests.fs" />
+    <Compile Include="GaProblemBankTests.fs" />
     <Compile Include="ClaudeCodeBridgeTests.fs" />
     <Compile Include="SwarmTests.fs" />
     <Compile Include="MetaCognitionTests.fs" />

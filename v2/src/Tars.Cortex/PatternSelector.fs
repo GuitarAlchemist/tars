@@ -200,6 +200,27 @@ module PatternSelector =
         /// Lazy-load promoted patterns from disk.
         let promotedPatterns = lazy (loadPromotedEntries ())
 
+        /// Probe for the sibling ix repo once per selector instance. When present,
+        /// pattern scoring delegates the Beta-Binomial + softmax bandit math to
+        /// ix's `grammar.weights` skill; otherwise it runs the same math in F#.
+        let ixConfig = lazy (
+            match IxSkill.discover () with
+            | Some c when IxSkill.isAvailable c -> Some c
+            | _ -> None)
+
+        /// Stable string key for a PatternKind (used as the ix rule id).
+        let kindKey (k: PatternKind) = sprintf "%A" k
+
+        let keyToKind (s: string) : PatternKind option =
+            match s.ToLowerInvariant() with
+            | s when s.Contains("chain") -> Some ChainOfThought
+            | s when s.Contains("react") -> Some ReAct
+            | s when s.Contains("planandexecute") || s.Contains("plan") -> Some PlanAndExecute
+            | s when s.Contains("graph") -> Some GraphOfThoughts
+            | s when s.Contains("tree") -> Some TreeOfThoughts
+            | s when s.Contains("workflow") -> Some WorkflowOfThought
+            | _ -> None
+
         let parsePatternKind (s: string) =
             if isNull s then None else
             match s.ToLowerInvariant() with
@@ -217,18 +238,55 @@ module PatternSelector =
             |> List.map (fun (kind, count) -> kind, float count)
             |> Map.ofList
 
-        /// Compute a net score from recorded outcomes per PatternKind.
-        /// Each success adds +1, each failure subtracts -0.5.
-        let outcomeScores () =
-            let outcomes = PatternOutcomeStore.loadAll ()
-            outcomes
-            |> List.groupBy (fun o -> o.PatternKind)
-            |> List.map (fun (kind, entries) ->
-                let score =
-                    entries
-                    |> List.sumBy (fun e -> if e.Success then 1.0 else -0.5)
-                kind, score)
-            |> Map.ofList
+        /// Pattern selection as a multi-armed bandit: each PatternKind is an arm
+        /// with a Beta(α,β) success posterior (α = successes+1, β = failures+1,
+        /// a Laplace prior). Returns a softmax distribution over the arms — higher
+        /// for kinds that have succeeded more often, but never collapsing to zero
+        /// so under-explored kinds keep a chance. Delegates to ix `grammar.weights`
+        /// when available; otherwise computes the identical math in F#.
+        let banditScores () : Map<PatternKind, float> =
+            let perKind =
+                PatternOutcomeStore.loadAll ()
+                |> List.groupBy (fun o -> o.PatternKind)
+                |> List.map (fun (kind, es) ->
+                    let succ = es |> List.filter (fun e -> e.Success) |> List.length
+                    let fail = es.Length - succ
+                    kind, float succ + 1.0, float fail + 1.0)
+
+            if List.isEmpty perKind then Map.empty
+            else
+                // F# reference implementation: Beta mean α/(α+β), then softmax.
+                let fsharp () =
+                    let means = perKind |> List.map (fun (k, a, b) -> k, a / (a + b))
+                    let exps = means |> List.map (fun (k, m) -> k, exp m)
+                    let z = exps |> List.sumBy snd
+                    exps |> List.map (fun (k, e) -> k, e / z) |> Map.ofList
+
+                let viaIx () =
+                    match ixConfig.Value with
+                    | None -> None
+                    | Some c ->
+                        try
+                            let rules =
+                                perKind
+                                |> List.map (fun (k, a, b) -> {| id = kindKey k; alpha = a; beta = b |})
+                            let input = JsonSerializer.Serialize({| rules = rules; temperature = 1.0 |})
+                            match (IxSkill.runSkillJson c "grammar.weights" input).GetAwaiter().GetResult() with
+                            | Result.Error _ -> None
+                            | Result.Ok json ->
+                                use d = JsonDocument.Parse(json)
+                                let probs = d.RootElement.GetProperty("probabilities")
+                                let m =
+                                    [ for p in probs.EnumerateArray() ->
+                                        p.GetProperty("rule_id").GetString(),
+                                        p.GetProperty("probability").GetDouble() ]
+                                    |> List.choose (fun (id, pr) ->
+                                        keyToKind id |> Option.map (fun k -> k, pr))
+                                    |> Map.ofList
+                                if Map.isEmpty m then None else Some m
+                        with _ -> None
+
+                viaIx () |> Option.defaultWith fsharp
 
         let heuristicScore (goal: string) =
             let g = goal.ToLowerInvariant()
@@ -297,18 +355,18 @@ module PatternSelector =
             let heuristic = heuristicScore goal
             let golden = goldenScores ()
             let maxGolden = golden |> Map.values |> Seq.append [1.0] |> Seq.max
-            let outcomes = outcomeScores ()
-            let maxOutcome = outcomes |> Map.values |> Seq.map abs |> Seq.append [1.0] |> Seq.max
+            let bandit = banditScores ()
             let promoted = promotionBoost goal
 
             heuristic
             |> Map.map (fun kind score ->
                 let goldenBoost = golden |> Map.tryFind kind |> Option.defaultValue 0.0
-                let outcomeBoost = outcomes |> Map.tryFind kind |> Option.defaultValue 0.0
+                // Bandit boost is already a probability in [0,1]; no normalization.
+                let banditBoost = bandit |> Map.tryFind kind |> Option.defaultValue 0.0
                 let promoBoost = promoted |> Map.tryFind kind |> Option.defaultValue 0.0
                 score
                 + 0.3 * (goldenBoost / maxGolden)
-                + 0.2 * (outcomeBoost / maxOutcome)
+                + 0.2 * banditBoost
                 + promoBoost) // Direct addition — promoted patterns already normalized
 
         /// Record the outcome of a pattern execution so future selections can learn from it.
